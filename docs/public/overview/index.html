@@ -519,7 +519,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <li><b>Sidebar:</b> flat on the window background, with no panel. The machine pages (swiped sideways, each headed by the machine's name in a small line), fixed page dots, the fixed status area, and at the bottom a Filter field, New Workspace and Add Machine. A machine page for a non-default local session is named "This Mac · ‹session›".</li>
       <li><b>Machine page:</b> herdr's workspaces in herdr's order, as section headers, with their tabs as rows (icon tile, label, status glyph). The selected tab is a raised pill. Later a workspace also lists its agent panes (icon, name, glyph and word). Clicking a workspace selects it in the app only.</li>
       <li><b>Tab bar:</b> while the sidebar is hidden, the title-bar row shows one capsule per herdr tab, and one glass marker follows the strip as it scrolls. Each capsule has the icon of the pane last selected in it and the tab label (folder part dimmed). One status slot per capsule shows one glyph by priority: × on hover, then ▲, then ✓, then ◔. The ◔ glyph is static (no animation). When tabs overflow, they shrink and their labels fade out. <code>+</code> makes a new tab. The window title follows the selected tab.</li>
-      <li><b>Strip:</b> one page per tab. Cards follow herdr's split tree, with an 8 pt gap between cards that is the divider. Double-click a divider to reset it to 0.5; ⌃⌘= equalizes the tab's splits. Each card header has the kind icon, title, view switch (chat|term on agents and terminals, plugin|term on plugin panes, none on web pages), split, zoom and close. Controls show on hover on macOS and always on iOS; every action is also in the context menu, the menu bar and ⌘K. Unfocused cards are slightly dimmed.</li>
+      <li><b>Strip:</b> one page per tab. Cards follow herdr's split tree, with an 8 pt gap between cards that is the divider. Double-click a divider to reset it to 0.5; ⌃⌘= equalizes the tab's splits. Each card header has the kind icon, title, view switch (chat|term on agents and terminals, plugin|term on plugin panes, none on web pages), split, zoom and close. Plugin and web cards also have Refresh, which loads the card again from the machine. Controls show on hover on macOS and always on iOS; every action is also in the context menu, the menu bar and ⌘K. Unfocused cards are slightly dimmed.</li>
       <li><b>Swiping:</b> two fingers on a trackpad, one finger on iOS; pages snap. First visit to a machine shows herdr's focused workspace; later visits show the last one picked.</li>
       <li><b>Keys:</b> ⌃⌥1…9 machines, ⌘1…9 tabs, ⇧⌘[ ] step, ⌘T new tab, ⌘D split, ⌘W close the pane, ⇧⌘W the window, ⇧⌘↩ zoom, ⌃⌘ + arrow resize, ⌃⌘= equalize, ⌘K the palette (tabs, workspaces, sessions).</li>
       <li><b>Closing:</b> closing a pane asks first unless the pane runs only its shell (no foreground program). Closing a tab or workspace always asks.</li>
@@ -576,7 +576,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <tr><td>Web page failed</td><td>WebKit's error in the card</td></tr>
       <tr><td>Web address set by someone else</td><td>"Open ‹url›?" with an Open button</td></tr>
       <tr><td>Plugin not installed on this device</td><td>the plugin id, the argument, <b>Show placeholder</b> (switch the card to the pane's terminal), <b>Close pane</b>; on macOS also "Install from ‹source›…", marked "Suggested by ‹machine›"</td></tr>
-      <tr><td>Plugin not responding</td><td>"‹title› is not responding · Reload"</td></tr>
+      <tr><td>Plugin not responding</td><td>"‹title› is not responding · Refresh"</td></tr>
       <tr><td>Full chat not available</td><td>the screen-text chat, with a tooltip that says why</td></tr>
     </table>
     <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/states">States</a></p>
@@ -783,7 +783,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
   </details>
   <details><summary>Web page and remote <code>localhost</code></summary>
     <ul>
-      <li>The pane label <code>oriel:web#&lt;iid&gt; &lt;url&gt;</code> is the marker: it has no length limit, and it survives moves and restarts. A placeholder process holds the slot. The label keeps the address the user typed; the address after in-card navigation and the scroll position go in the machine's state file (<code>web/&lt;iid&gt;.json</code>), as for plugins.</li>
+      <li>The pane label <code>oriel:web#&lt;iid&gt; &lt;url&gt;</code> is the marker: it has no length limit, and it survives moves and restarts. A placeholder process holds the slot. The label keeps the address the user typed; the address after in-card navigation and the scroll position go in the machine's state file (<code>web/&lt;iid&gt;.json</code>), as for plugins. Header: Back, Refresh, Open in browser, Edit address.</li>
       <li>A label this device did not set, for an origin not approved before on this machine, shows "Open ‹url›?" and loads only after a click.</li>
       <li>A remote <code>localhost:P</code> goes through <code>dial</code>. On the Mac: <code>ssh -O forward -L</code> on the ControlMaster, on the same port when it is free, so the page's origin is exactly <code>localhost:P</code>. On iOS: an in-app listener on <code>127.0.0.1:P</code> pipes each connection into a Citadel <code>direct-tcpip</code> channel (a TCP stream through the SSH connection). Tailscale addresses load directly.</li>
       <li><b>Open :P</b>: when a terminal prints a local address (herdr's <code>pane.output_matched</code>), its card shows a chip that opens the address in a web card. The card menu also lists the machine's listening ports (<code>ss</code> or <code>lsof</code>), on demand.</li>
@@ -813,7 +813,8 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
       <li>Every plugin pane is a real herdr pane running an inert placeholder command that prints the title, the argument and "shown by Oriel". The app creates it in one call: <code>layout.apply</code> with a pane node <code>{label, cwd, command:[argv]}</code> in a temporary tab; then <code>pane.move</code> puts it in place, and the temporary tab closes itself. The app never types into a shell. It never passes <code>tab_id</code> to <code>layout.apply</code>: that replaces the whole tab and kills its panes.</li>
       <li>After a herdr cold restart the pane comes back as a shell with its label. The card still works from the label. The upstream ask (herdr discussion #1367) is an opt-in restore of such panes.</li>
       <li>The instance id lives in the label, because <code>pane_id</code> changes on a move and <code>terminal_id</code> on a herdr restart. Cards are keyed by (machine, plugin, iid), so they survive both.</li>
-      <li>Bigger state lives in <code>$HOME/.local/state/oriel/&lt;session&gt;/&lt;plugin-id&gt;/&lt;iid&gt;.json</code> (<code>&lt;session&gt;</code> = the herdr session name) on the pane's machine (a fixed path, so every device finds the same file), written atomically. A <code>oriel_rev</code> metadata token tells other devices to re-read it. Orphan files are cleaned once a day.</li>
+      <li>Bigger state lives in <code>$HOME/.local/state/oriel/&lt;session&gt;/&lt;plugin-id&gt;/&lt;iid&gt;.json</code> (<code>&lt;session&gt;</code> = the herdr session name) on the pane's machine (a fixed path, so every device finds the same file), written atomically, debounced, last writer wins. Orphan files are cleaned once a day.</li>
+      <li><b>No live follow (D59):</b> a card, web included, reads its state file only when it is built: a fresh start, a new device, the card reopened, or on iOS a card the system discarded (cards still in memory keep their state). An open card never moves because another device wrote. <b>Refresh</b> in the card header rebuilds the card from the machine. The state file is for view state only; data every device must see live stays in files the plugin reads with <code>run</code>. <code>oriel_rev</code> marks only renames, because a rename sends no event.</li>
       <li>A plugin with one pane kind omits <code>/&lt;pane&gt;</code>. If two panes carry the same iid (a copied label), the pane that comes first in <code>snapshot.panes[]</code> keeps the card key and both share the state file.</li>
     </ul>
     <div class="flow">
@@ -1055,7 +1056,7 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
     <tr><td class="k">cold restart / live update</td><td>herdr stops and its terminals end / herdr hands over to a new server process and keeps its terminals</td></tr>
     <tr><td class="k">spike</td><td>a small throwaway test of one risky part, before real views</td></tr>
     <tr><td class="k">Simpler choice</td><td>a shortcut taken on purpose, marked in the docs with when to revisit it</td></tr>
-    <tr><td class="k"><code>oriel_rev</code></td><td>a herdr metadata token the app changes to tell other devices to refresh</td></tr>
+    <tr><td class="k"><code>oriel_rev</code></td><td>a herdr metadata token the app changes after a rename, because a rename sends no event and a token change does</td></tr>
     <tr><td class="k">askpass</td><td>a small program <code>ssh</code> runs to ask for a password</td></tr>
     <tr><td class="k"><code>MaxSessions</code></td><td>OpenSSH's limit of sessions on one connection (10 by default)</td></tr>
   </table>
@@ -1149,7 +1150,8 @@ const badge=g=>g?`<span style="color:${BADGE[g]}">${g}</span>`:"";
 const seg=(a,b,first)=>`<span class="seg"><span class="${first?"on":""}">${a}</span><span class="${first?"":"on"}">${b}</span></span>`;
 function head(n){
   const plugin=n.kind==="diff"||n.kind==="hist";
-  const view=plugin?seg("plugin","term",1):n.kind==="web"?"<i>‹</i><i>↻</i><i>↗</i>":seg("chat","term",n.kind==="chat");
+  const R='<i title="Refresh">↻</i>';
+  const view=plugin?R+seg("plugin","term",1):n.kind==="web"?`<i title="Back">‹</i>${R}<i title="Open in browser">↗</i>`:seg("chat","term",n.kind==="chat");
   return `<div class="ph">${ico(...n.icon)}<span class="tt">${n.title}</span><span class="sp"></span>`+
     `<span class="ctl">${view}<i title="Split Right">◫</i><i title="Split Down">⊟</i><i title="Zoom">⤢</i><i title="Close">✕</i></span></div>`;
 }
