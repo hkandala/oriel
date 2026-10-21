@@ -154,43 +154,14 @@ private func started(_ client: HerdrClient, _ exec: FakeExec) async -> AsyncStre
 
 // MARK: Pacing
 
-@Test func `a burst of events is debounced into one read`() async throws {
-    let exec = FakeExec()
-    let client = client(exec)
-    let updates = await started(client, exec)
-    let sent = ContinuousClock.now
-    for _ in 0 ..< 3 {
-        exec.event()
-    }
-    #expect(await eventually { exec[\.reads] == 1 })
-    try? await Task.sleep(for: .milliseconds(300))
-    #expect(exec[\.reads] == 1)
-    #expect(try #require(exec[\.readTimes].last) - sent >= .milliseconds(100))
-    withExtendedLifetime(updates) {}
-}
-
-@Test func `a steady flow of events still reads within the max wait`() async throws {
-    let exec = FakeExec()
-    let client = client(exec)
-    let updates = await started(client, exec)
-    let first = ContinuousClock.now
-    for _ in 0 ..< 50 { // 1.5 s of events, 30 ms apart: the 100 ms debounce alone would never fire
-        exec.event()
-        try? await Task.sleep(for: .milliseconds(30))
-    }
-    // 500 ms max wait + slack for a loaded machine, still before the flow ends at 1.5 s.
-    #expect(try #require(exec[\.readTimes].first) - first < .milliseconds(1400))
-    withExtendedLifetime(updates) {}
-}
-
-@Test func `refresh reads at once, one at a time, with one trailing read`() async throws {
+@Test func `reads at once, one at a time, with one read again`() async throws {
     let exec = FakeExec(readDelay: .milliseconds(300))
     let client = client(exec)
     let updates = await started(client, exec)
-    let asked = ContinuousClock.now
-    await client.refresh()
+    let sent = ContinuousClock.now
+    exec.event()
     #expect(await eventually { exec[\.inFlight] == 1 })
-    #expect(try #require(exec[\.readTimes].first) - asked < .milliseconds(100)) // inside the debounce
+    #expect(try #require(exec[\.readTimes].first) - sent < .milliseconds(100)) // no debounce
     for _ in 0 ..< 5 {
         exec.event()
     }

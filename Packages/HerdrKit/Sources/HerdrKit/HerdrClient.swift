@@ -39,16 +39,12 @@ public actor HerdrClient {
     nonisolated let herdr: String
     nonisolated let exec: any Exec
     nonisolated let timeout: Duration
-    private let debounce = Duration.milliseconds(100)
-    private let maxWait = Duration.milliseconds(500)
 
     private var out: AsyncStream<Update>.Continuation?
     /// No good snapshot since the start or the last failure.
     private var stale = true
     private var reading = false
     private var readAgain = false
-    private var firstEvent: ContinuousClock.Instant?
-    private var timer: Task<Void, Never>?
     private var keepalive: Task<Void, Never>?
     private var events: Task<Void, Never>?
     /// Agent panes of the open events stream; nil when no stream is open.
@@ -160,41 +156,8 @@ public actor HerdrClient {
         return stream
     }
 
-    /// Reads a snapshot now, without the debounce (after the app's own write).
+    /// Reads a snapshot now, or once more after the read in flight (design T4).
     public func refresh() {
-        timer?.cancel()
-        timer = nil
-        firstEvent = nil
-        read()
-    }
-
-    private func stop() {
-        out = nil
-        for task in [timer, keepalive, events] {
-            task?.cancel()
-        }
-    }
-
-    /// An event arrived: read after 100 ms of quiet, but at most 500 ms after the first event.
-    private func changed() {
-        if reading {
-            readAgain = true
-            return
-        }
-        let now = ContinuousClock.now
-        let first = firstEvent ?? now
-        firstEvent = first
-        timer?.cancel()
-        timer = Task { [self, deadline = min(now + debounce, first + maxWait)] in
-            try? await Task.sleep(until: deadline)
-            // Also covers a timer cancelled while it waited for the actor.
-            if !Task.isCancelled {
-                refresh()
-            }
-        }
-    }
-
-    private func read() {
         guard out != nil else { return }
         if reading {
             readAgain = true
@@ -217,9 +180,15 @@ public actor HerdrClient {
             reading = false
             if readAgain {
                 readAgain = false
-                read()
+                refresh()
             }
         }
+    }
+
+    private func stop() {
+        out = nil
+        keepalive?.cancel()
+        events?.cancel()
     }
 
     /// (Re)opens the one events stream. Every line on it means "read the snapshot again".
@@ -250,12 +219,8 @@ public actor HerdrClient {
                     if message?.error != nil {
                         break
                     }
-                    // The `result` line is subscription_started: catch up on what came before it.
-                    if message?.result != nil {
-                        refresh()
-                    } else {
-                        changed()
-                    }
+                    // Every other line, the first too (subscription_started: catch up on what came before it).
+                    refresh()
                 }
                 channel.terminate()
             } catch {}
@@ -325,8 +290,6 @@ struct ReplyError: Decodable {
 }
 
 private struct EventLine: Decodable {
-    struct Present: Decodable {}
-    let result: Present?
     let error: ReplyError?
 }
 

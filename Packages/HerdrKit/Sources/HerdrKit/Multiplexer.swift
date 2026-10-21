@@ -8,7 +8,7 @@ public protocol Multiplexer: Sendable {
     func snapshot() async throws -> Snapshot
     /// Snapshots as the session changes, paced, until the stream is dropped. Called once.
     func updates() async -> AsyncStream<Update>
-    /// Reads a snapshot now, without the pacing (after the app's own write).
+    /// Reads a snapshot now, or once more after the read in flight (after the app's own write).
     func refresh() async
     #if os(macOS)
         /// Starts this session's server and waits until it answers.
