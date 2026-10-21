@@ -404,6 +404,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
         <li>Replies go to the agent's input. A reply never answers an open prompt by accident.</li>
         <li>Answer buttons send a key only if the agent is still blocked and the prompt is unchanged.</li>
         <li>Other agents and every terminal pane get a "screen text" chat, so any agent or terminal pane can switch. Web and plugin panes have no chat view.</li>
+        <li>Paste an image (⌘V) into an agent or terminal card: the app uploads it to a temporary file on the pane's machine with <code>run</code>, then pastes its quoted path (into the draft in chat).</li>
       </ul>
     </div>
   </div>
@@ -462,6 +463,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
         <li>Tapping the title opens the machine and workspace switcher.</li>
         <li>The status area is a bar under the navigation bar.</li>
         <li>Agents open in chat, which needs no terminal stream.</li>
+        <li>No push in v1: the phone shows status while the app is open.</li>
         <li>A terminal view opens as a watcher (<code>observe</code>), so looking never resizes the pane. The first key press, paste or tap in the card takes control.</li>
       </ul>
     </div>
@@ -879,8 +881,8 @@ web:http://localhost:3000/dashboard</code></pre>
   <details><summary>Notifications</summary>
     <ul>
       <li>Blocked: "codex needs you · infra". Finished: "pi finished · api-server", unless you are looking at that pane. The first snapshot after connecting never notifies. A newer notification replaces the older one; seeing the pane removes it.</li>
-      <li>macOS: notifications, and a Dock badge with the number of agents that need you. While the pill shows they are posted as <code>.passive</code>, except with VoiceOver or Switch Control.</li>
-      <li>iOS: while the app is open or in its ~30 s background time. Push needs a relay and comes later.</li>
+      <li>macOS: local notifications, and a Dock badge with the number of agents that need you. While the pill shows they are posted as <code>.passive</code>, except with VoiceOver or Switch Control.</li>
+      <li>iPhone and iPad: no push in v1. Status shows while the app is open, and in its ~30 s background time. A small stateless relay that forwards encrypted payloads to Apple's push service is <a href="https://oriel-docs.vercel.app/docs/future-work">Future work</a>.</li>
     </ul>
   </details>
   <details><summary>How the pill panel works</summary>
@@ -911,6 +913,7 @@ web:http://localhost:3000/dashboard</code></pre>
 <section id="store">
   <h2><span class="num">15</span>Data: app vs herdr</h2>
   <p class="lead">A fresh install on a new device rebuilds every workspace, tab, pane, web page and plugin pane from herdr's labels and the machines' state files.</p>
+  <div class="callout">Where things live: anything that takes space in the layout is a multiplexer pane with a label. Transient UI (the palette, popovers, hover) is app memory only. Per-device settings are app storage.</div>
   <div class="store">
     <div class="col2 tag-h"><h4>herdr and the machines own</h4><ul>
       <li>Workspaces, tabs, panes, order, labels; split tree and ratios</li>
@@ -977,7 +980,7 @@ web:http://localhost:3000/dashboard</code></pre>
     <tr><td>A herdr TUI on the same tab</td><td>shared ratios; our control pins the PTY size</td><td>accepted</td></tr>
     <tr><td><code>pane.swap</code> marks the tab seen in herdr</td><td>TUI users lose a done marker</td><td>accepted; swap only follows a drag</td></tr>
     <tr><td>Transcript formats change</td><td>full chat breaks for one agent</td><td>lenient parsers; screen text and terminal still work</td></tr>
-    <tr><td>iOS drops connections in the background</td><td>no live updates</td><td>reconnect and snapshot on return; push later</td></tr>
+    <tr><td>iOS drops connections in the background</td><td>no live updates</td><td>reconnect and snapshot on return; a push relay is future work</td></tr>
     <tr><td><code>layout.apply</code> with <code>tab_id</code> replaces the whole tab</td><td>the tab's panes are killed</td><td>the app never passes <code>tab_id</code></td></tr>
     <tr><td>herdr cold restart</td><td>web and plugin panes come back as shells with their label</td><td>the card still works from the label; upstream ask: herdr discussion #1367</td></tr>
     <tr><td>A malicious plugin the user installed</td><td>anything the user can do on machines where its panes open, including network use from there</td><td>consent sheet in plain words; This Mac confirm; source shown and pinned to a commit</td></tr>
