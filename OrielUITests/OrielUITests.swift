@@ -295,8 +295,9 @@ extension OrielUITests {
         }
     }
 
-    /// Types a command where the keyboard is and waits for its output in the pane.
+    /// Types a command into the pane once its terminal has the keyboard, and waits for the output.
     func typeAndRead(_ pane: String) async throws {
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
         app.typeText("echo oriel-keys-$((6*7))")
         app.typeKey(.return, modifierFlags: [])
         try await waitFor(pane) { $0.contains("\noriel-keys-42") }
