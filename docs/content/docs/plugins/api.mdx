@@ -32,7 +32,6 @@ interface Oriel {
 
   setArg(arg: string): Promise<void>;
   state: { get<T>(): Promise<T | undefined>; set<T>(value: T): void };
-  snapshot(): HerdrSnapshot | undefined;
   preferences: Record<string, string | boolean>;
   toast(t: { style?: "success" | "failure"; title: string; message?: string }): void;
   open(url: string): Promise<boolean>;        // http(s) only, after a confirm sheet
@@ -50,7 +49,7 @@ interface Oriel {
 | `pane` | the machine, argument and cwd | injected when the card is built; an open card does not follow a rename from elsewhere ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)) |
 | `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `oriel:<plugin>[/<pane>]#<iid>`; updates `pane.arg` |
 | `state` | view state (where the user was looking), kept across devices and restarts | the state file, read when the card is built or on **Refresh**, never live; live shared data belongs in files read with `run` ([State and restore](/docs/plugins/state#when-a-card-reads-its-state)) |
-| `snapshot` | refresh when an agent finishes | the snapshot the app already has; `on("snapshot")` is debounced and fires only while the card is visible |
+| `on("snapshot")` | refresh when an agent finishes | fires when herdr's state changed, debounced, only while the card is visible; carries no data, so herdr's schema stays behind the [Multiplexer interface](/docs/architecture#the-multiplexer-interface); a plugin that needs herdr data runs `herdr` with `run` |
 | `preferences` | per-device settings | read only |
 | `toast` | errors and progress | a native toast at the card's bottom edge |
 | `open` | links in commits, PR pages | `http`/`https` only; a sheet shows the full URL first |
