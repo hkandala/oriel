@@ -11,6 +11,7 @@ protocol Exec {
     func run(_ argv: [String]) async throws -> Channel
     /// Open a TCP stream to host:port, as seen from the machine.
     func dial(host: String, port: Int) async throws -> Channel
+    func herdr() async -> String?   // from the login shell
 }
 ```
 
