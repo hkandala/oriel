@@ -61,7 +61,7 @@ In the app, not on machines:
 ## Card lifecycle
 
 1. A plugin pane enters the selected tab: the
-   card is created, keyed by `(machine, plugin, instance id)`.
+   card is created, keyed by `(machine, terminal_id)`.
 2. The app creates the web page, injects `window.oriel` and the stylesheet,
    and loads the pane's entry file.
 3. When the card leaves the screen, its `run` calls pause and its events stop.

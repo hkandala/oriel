@@ -60,7 +60,7 @@ it relative to the home folder, where every command starts
 
 ## Restore on a fresh app start (any device)
 
-<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'oriel: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, plugin, iid)'], ['5 · render', 'web page + pane context + state file']]} />
+<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'oriel: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, terminal_id)'], ['5 · render', 'web page + pane context + state file']]} />
 
 1. Connect each machine and read `session.snapshot`.
 2. Classify every pane by its label:
@@ -78,12 +78,9 @@ it relative to the home folder, where every command starts
      pane comes back once the plugin is installed;
    - unknown pane name, an `api` too new, or a required preference unset →
      the matching message or the "Set up" view.
-4. Key the card `(machine, plugin, iid)`. If that card is alive (after a move
-   or restart), keep it and update its pane id, cwd and argument. If two panes
-   carry the same iid (a copied label), the pane that comes first in
-   `snapshot.panes[]` keeps that key. The others add their `terminal_id` to
-   the key and share the same state file. The key holder can change after a
-   move.
+4. Key the card `(machine, terminal_id)`, like every card
+   ([Reconcile](/docs/talking-to-herdr#reconcile)). A card that is already
+   alive stays as it is.
 5. When the card is first shown: build its web page, inject the pane context, read
    the state file if the plugin uses one, render.
 6. On every later snapshot: a changed argument re-renders; a pane that is

@@ -35,13 +35,14 @@ oriel:web#m4p8sa http://localhost:3000/dashboard
 
 ## Instance id
 
-`pane_id` changes when a pane moves to another workspace, and `terminal_id`
-changes on a herdr cold restart. The label is the only stable carrier, so the
-instance id (`iid`) lives in it.
+The instance id (`iid`) names the pane's state file
+([State and restore](/docs/plugins/state)). `terminal_id` changes on a herdr
+cold restart, and the label survives it, so the iid lives in the label.
 - The device that creates the pane generates 6 characters of `[a-z0-9]`,
   checked against the snapshot. It never changes.
-- Plugin cards are keyed by `(machine, plugin, iid)`, so they survive moves
-  and restarts without reloading.
+- The card itself is keyed like every card, by `(machine, terminal_id)`
+  ([Reconcile](/docs/talking-to-herdr#reconcile)). Two panes with a copied
+  label share one state file, last writer wins.
 
 ## Create
 
