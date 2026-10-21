@@ -43,12 +43,12 @@ Read first: [ui/window](../../docs/content/docs/ui/window.mdx),
 9. **e2e helper**: the XCUITest runner is sandboxed (phase 1 findings) and cannot reach
    herdr, but it can make network client connections. `make e2e` starts a tiny localhost
    helper outside the sandbox (stdlib only, e.g. `python3 -m`-style `http.server`, ~30
-   lines) that runs `herdr --session <the hl-e2e session> <args>` for the test and returns
+   lines) that runs `herdr --session <the oriel-e2e session> <args>` for the test and returns
    stdout. It refuses any other session, binds 127.0.0.1 on a random port passed in as
-   `TEST_RUNNER_HL_HELPER`, and dies with the e2e run. Tests use it to build layouts,
+   `TEST_RUNNER_ORIEL_HELPER`, and dies with the e2e run. Tests use it to build layouts,
    make changes mid-test and check results (`session.snapshot`, `pane.read`). If you find
    something simpler that works, use it and record why.
-10. **e2e** (`HerdlightUITests`): against a throwaway session built with a known layout
+10. **e2e** (`OrielUITests`): against a throwaway session built with a known layout
    (2 workspaces; one tab with a right split whose second child splits down; a second
    tab):
    - the sidebar lists both workspaces; the tab bar shows the tabs;
@@ -89,9 +89,9 @@ Terminals, trackpad paging, divider drag, splits/close/new-tab actions, zoom.
   strip half a page off and wrote the wrong tab back into the selection.
 - **e2e helper.** `scripts/e2e-helper.py` (stdlib `http.server`) takes one API request line
   per `POST /<session>` and pipes it to `herdr --session <session> remote-api-bridge`. It
-  serves only the two sessions `make e2e` made (`scripts/e2e.sh`: `hl-e2e-<id>-a` and `-b`;
+  serves only the two sessions `make e2e` made (`scripts/e2e.sh`: `oriel-e2e-<id>-a` and `-b`;
   the second one is for the session switch). It binds 127.0.0.1 on a random port and is
-  killed by the script's exit trap. Tests reach it as `HL_HELPER`.
+  killed by the script's exit trap. Tests reach it as `ORIEL_HELPER`.
 - **Accessibility.** An identifier set on a container also lands on the first control in
   `safeAreaInset` content (the session picker got the List's `sidebar` id), so only leaf
   elements carry identifiers. Rows combine their text: a workspace row's text is its

@@ -1,4 +1,4 @@
-# Herdlight v0 plan
+# Oriel v0 plan
 
 **Status: v0 is done** (phases 1–6 merged): the v0 subset of build-order step 1, This Mac only. See the root
 `README.md` for how to build, run and test.
@@ -16,7 +16,7 @@ on any conflict, except where this file narrows the scope for v0.
 
 ## The request (from the user, structured)
 
-Build the first, very basic version of the Herdlight app:
+Build the first, very basic version of the Oriel app:
 
 1. **Scaffold.** A standard Xcode project (created the way Xcode creates it), one
    multiplatform SwiftUI app target. macOS is the real target. iOS is boilerplate only: it
@@ -57,23 +57,23 @@ Build the first, very basic version of the Herdlight app:
 | Scope | This Mac only. Read the layout, show it live, type, click, scroll, resize to fit, swipe tabs, pick a session. No divider drag, drag and drop, close/split UI, plugins, chat, floating panes, zoom, remote machines, notifications. Widened by phase 4b: close, split and zoom buttons, new tab/workspace/session, the ⌘K palette |
 | iOS | Boilerplate: the same target builds for iOS and shows an empty state |
 | Terminal | Official `libghostty-spm`, exact pin |
-| Project | A committed `Herdlight.xcodeproj` in Xcode's own format (file-system synchronized groups), plus a local Swift package `HerdrKit` |
+| Project | A committed `Oriel.xcodeproj` in Xcode's own format (file-system synchronized groups), plus a local Swift package `HerdrKit` |
 | Lint / format | SwiftFormat (formatting) + SwiftLint (lint), the most common pair in the Swift community |
 | CI | GitHub Actions, `runs-on: xcode-27`. Repo is public |
-| herdr safety | Existing sessions: read only. Every write goes to throwaway sessions named `hl-e2e-*` / `hl-dev-*`, cleaned up afterwards |
-| Bundle id | `dev.hkandala.herdlight`, signed to run locally, no team. App Sandbox off, Hardened Runtime on |
+| herdr safety | Existing sessions: read only. Every write goes to throwaway sessions named `oriel-e2e-*` / `oriel-dev-*`, cleaned up afterwards |
+| Bundle id | `dev.hkandala.oriel`, signed to run locally, no team. App Sandbox off, Hardened Runtime on |
 | Minimum OS | macOS 26, iOS 26 |
 
 ## Modules
 
 ```
-Herdlight.xcodeproj
-Herdlight/                 the app target (SwiftUI, macOS + iOS)
+Oriel.xcodeproj
+Oriel/                     the app target (SwiftUI, macOS + iOS)
   App/                     @main, scenes, launch arguments
   Store/                   HostStore: the live @Observable model of one herdr session
   Terminal/                libghostty glue, TerminalStream wiring, PaneViewRegistry
   Views/                   Sidebar, TabBar, Strip, SplitLayout, PaneCard
-HerdlightUITests/          XCUITest end-to-end suite (macOS)
+OrielUITests/              XCUITest end-to-end suite (macOS)
 Packages/HerdrKit/         Swift package, no UI: Exec, ProcessExec, HerdrClient (call,
                            events, pacing), lenient models, split-tree rebuild,
                            TerminalStream (control NDJSON). Tests: `swift test`

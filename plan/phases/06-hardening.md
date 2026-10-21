@@ -45,7 +45,7 @@ Goal: v0 is solid end to end and documented; CI green; nothing extra.
   left. Recovery was the 30 s `ping`: 14 s measured once, up to 30 s. Now the keep-alive ticks every 2 s and
   pings at every tick while the last read failed, so a session started again in a terminal comes back about
   2 s later (herdr restores its workspaces; terminal ids are new, so every card opens a new stream). e2e:
-  `testStoppedSessionSaysSoAndComesBackWhenStartedAgain` (its own session, `hl-e2e-<id>-e`).
+  `testStoppedSessionSaysSoAndComesBackWhenStartedAgain` (its own session, `oriel-e2e-<id>-e`).
 - **Pane closed in herdr while streaming.** The card goes with the next snapshot and its `control` run exits
   (herdr ends it: `terminal … not found`/exited); no zombie children (`ps` shows no `Z` child of the app).
   e2e: `testPaneClosedInHerdrDropsItsCardAndStream`.
@@ -86,7 +86,7 @@ Goal: v0 is solid end to end and documented; CI green; nothing extra.
   (keep `loadedSessions`, so a failing `sessions()` is not retried on every snapshot), and 22 (`Frame.full`
   stays: the integration test reads it to find the first frame after a resize). One `TabButton` serves the
   sidebar and the title bar; one `floatingPanel(open:)` for the palette and session list; one `jsonLine` in
-  HerdrKit; the UI tests share their helpers from `HerdlightUITests.swift` (`read`, `waitFor`, `newTab`,
+  HerdrKit; the UI tests share their helpers from `OrielUITests.swift` (`read`, `waitFor`, `newTab`,
   `split`, `foreground`, `newTabID`, `openSessions`, `openPalette`); `testKeysGoToTheClickedCard` became part
   of `testEachTabKeepsItsKeyboardCard` and `testFollowsTabsMadeAndClosedInHerdr` was dropped (covered by
   `testSelectsAnotherTabWhenTheSelectedOneCloses`). A helper used from another file with a closure

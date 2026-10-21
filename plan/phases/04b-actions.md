@@ -31,7 +31,7 @@ app's own), decisions D11, D39, D41.
      a readable two-word name (like the references: `lunar-ridge`) when none is typed.
 7. **Starting a session server** (amends D39). D39 forbade starting herdr from the app
    because the app would become the macOS "responsible process" for every agent (privacy
-   prompts would name Herdlight) and share its process group. Start it so launchd, not
+   prompts would name Oriel) and share its process group. Start it so launchd, not
    the app, is the parent and responsible process: research the simplest reliable way
    (e.g. `launchctl` with a one-shot job, no KeepAlive) and verify with a throwaway
    session that the server's parent is launchd and that it survives the app quitting.
@@ -89,7 +89,7 @@ app's own), decisions D11, D39, D41.
   A label loads once, so the app boots out an old job of that label first, unless the server
   already answers `ping`. The job runs with `ProcessType` `Interactive` (launchd's default
   throttles CPU and I/O for the server and every agent in it) and logs stderr to
-  `~/Library/Logs/Herdlight/<session>.log`. Session names are checked against herdr's rule
+  `~/Library/Logs/Oriel/<session>.log`. Session names are checked against herdr's rule
   (ASCII letters, digits, `.`, `_`, `-`; at most 64 bytes; not `.` or `..`) before they reach the
   label or a path. A launchd server
   gets launchd's small environment; herdr's panes still run login shells (PATH from the

@@ -51,7 +51,7 @@ mouse and pane size.
 10. **e2e**: against a throwaway session:
     - opening the app attaches the selected tab's panes (each card shows the shell prompt:
       check via `pane.read` that the PTY size equals the card's cols × rows);
-    - typing `echo hl-$RANDOM` + Enter in a card: `pane.read` shows the output;
+    - typing `echo oriel-$RANDOM` + Enter in a card: `pane.read` shows the output;
     - resizing the window changes the PTY size (`stty size` / `pane.read`);
     - clicking a card focuses it and keys go there, not to the other card;
     - scrolling in a card with long output scrolls (herdr viewport moves, `pane.read`
@@ -145,7 +145,7 @@ Stage A (stream level, against throwaway sessions; no GUI yet).
   it is in a window again: after a split the keys stay on the card that was split (herdr's
   `focus:false`). A new surface starts focused in libghostty (a filled cursor); the view
   resigns it at once unless it has the keyboard. Font: 13 pt.
-- **Checked in the app** (hl-dev-term, synthetic CGEvents): typing, Enter, Backspace, Ctrl+C,
+- **Checked in the app** (oriel-dev-term, synthetic CGEvents): typing, Enter, Backspace, Ctrl+C,
   Up for history, Tab completion, arrows in `less` and `vim`, Shift+Enter / Esc / Option+←
   under kitty flags (`^[[13;2u`, `^[[27u`, `^[[98;3u`), paste in a shell and in `cat -v`,
   clicks moving the keyboard between cards, a click in `vim` with `mouse=a` landing on the

@@ -6,23 +6,23 @@ throwaway herdr session.
 
 ## Build
 
-1. **Xcode project** `Herdlight.xcodeproj` at the repo root, as Xcode 27's
-   *Multiplatform → App* template makes it: one app target `Herdlight` (macOS + iOS),
+1. **Xcode project** `Oriel.xcodeproj` at the repo root, as Xcode 27's
+   *Multiplatform → App* template makes it: one app target `Oriel` (macOS + iOS),
    SwiftUI lifecycle, file-system synchronized groups (`objectVersion` 77), Swift 6
    language mode, strict concurrency complete, warnings as errors.
    - Create it with Xcode itself if you can drive it; otherwise write the project in
-     exactly that format, then open it in Xcode once (`open Herdlight.xcodeproj`, take a
+     exactly that format, then open it in Xcode once (`open Oriel.xcodeproj`, take a
      screenshot) and confirm Xcode loads it without changes or upgrade prompts.
-   - Bundle id `dev.hkandala.herdlight`, deployment macOS 26.0 / iOS 26.0, sign to run
+   - Bundle id `dev.hkandala.oriel`, deployment macOS 26.0 / iOS 26.0, sign to run
      locally (`CODE_SIGN_IDENTITY = "-"`, no team), App Sandbox off, Hardened Runtime on.
-   - A shared scheme `Herdlight` (committed under `xcshareddata`) with the UI test target.
+   - A shared scheme `Oriel` (committed under `xcshareddata`) with the UI test target.
    - Main window: one `Window` scene on macOS (design D34), `WindowGroup` on iOS. Content:
-     a placeholder `NavigationSplitView` with "Herdlight" in the sidebar. iOS shows a
-     "Herdlight for iOS is coming" empty state, and stays that way in v0.
+     a placeholder `NavigationSplitView` with "Oriel" in the sidebar. iOS shows a
+     "Oriel for iOS is coming" empty state, and stays that way in v0.
 2. **`Packages/HerdrKit`**: a local Swift package (macOS 26, iOS 26), library `HerdrKit`,
    test target `HerdrKitTests` using Swift Testing. Linked into the app. One trivial
    public symbol and one test, enough to prove the wiring. Phase 2 fills it.
-3. **UI test target** `HerdlightUITests` (macOS only), XCUITest. One test: launch the app
+3. **UI test target** `OrielUITests` (macOS only), XCUITest. One test: launch the app
    with `-session <name>` and assert the main window and the sidebar exist.
    - Find out if the macOS UI test runner can run `Process` (needed to set up herdr state
      from the test). If not, set up state in a script before `xcodebuild test` and pass the
@@ -30,7 +30,7 @@ throwaway herdr session.
 4. **Throwaway herdr sessions**: `scripts/herdr-session.sh up|down <name>` starts a
    headless herdr server for a named session and stops and deletes it. Find out how herdr
    0.9.3 starts a session without a TUI (`herdr --session X server`, or similar). The
-   e2e target uses `hl-e2e-<random>`. Never touch existing sessions.
+   e2e target uses `oriel-e2e-<random>`. Never touch existing sessions.
 5. **Lint and format**: SwiftFormat (`.swiftformat`) and SwiftLint (`.swiftlint.yml`,
    `--strict`), configured with mostly defaults; turn off only rules that fight each other
    or Swift 6. Exclude `docs/`, `resources/`, DerivedData. Install via Homebrew; pin
@@ -38,7 +38,7 @@ throwaway herdr session.
 6. **`Makefile`** targets: `setup` (brew bundle, `git config core.hooksPath .githooks`),
    `format`, `lint`, `build` (macOS + iOS generic, `CODE_SIGNING_ALLOWED=NO` for iOS),
    `test` (`swift test` in HerdrKit), `e2e` (session up → `xcodebuild test` on
-   `HerdlightUITests` → session down, even on failure), `run` (build and open the app,
+   `OrielUITests` → session down, even on failure), `run` (build and open the app,
    optional `SESSION=`). Honor `DERIVED_DATA` (default `.build/DerivedData`, gitignored).
    Pipe `xcodebuild` through `xcbeautify` if installed, plain otherwise.
 7. **`.githooks/pre-commit`**: `swiftformat --lint` and `swiftlint --strict` on staged Swift
@@ -83,14 +83,14 @@ Any herdr calls from the app, libghostty, real UI.
   foreground; `herdr session stop <name>` then `herdr session delete <name>` removes it.
   `--session` wins over `HERDR_SOCKET_PATH`, but `scripts/herdr-session.sh` still unsets
   the `HERDR_*` variables so a server started from inside a herdr pane does not inherit
-  them. The script refuses names outside `hl-e2e-*` / `hl-dev-*` and names that exist.
+  them. The script refuses names outside `oriel-e2e-*` / `oriel-dev-*` and names that exist.
 - **UI test runner and processes.** The macOS UI test runner (`*-Runner.app`) is always
   sandboxed by Xcode (app-sandbox, read-only file access, `network.client`; the test
   target's `ENABLE_APP_SANDBOX` does not change it). `Process` runs, but the child is
   sandboxed too: `HOME` is the runner's container, and it cannot connect to herdr's
   sockets (`herdr session list` with the real `HOME` shows every session as stopped). So
   herdr state is set up by `make e2e` before `xcodebuild test`, and the session name
-  reaches the test as `TEST_RUNNER_HL_SESSION` (read as `HL_SESSION`). Asserting through
+  reaches the test as `TEST_RUNNER_ORIEL_SESSION` (read as `ORIEL_SESSION`). Asserting through
   herdr from inside a test (`pane.read`, `session.snapshot`) needs another path; phase 3
   decides.
 - **Tool versions.** Homebrew cannot pin versions, so the `Brewfile` notes the versions in

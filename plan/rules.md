@@ -41,23 +41,23 @@
 
 - Use the `Makefile` targets (`make lint`, `make format`, `make build`, `make test`,
   `make e2e`, `make run`). If you need a new command, add a target.
-- Concurrent agents must not share DerivedData: pass `DERIVED_DATA=/tmp/hl-dd-<agent-name>`
+- Concurrent agents must not share DerivedData: pass `DERIVED_DATA=/tmp/oriel-dd-<agent-name>`
   (the Makefile honors it).
 - Only one agent drives the GUI at a time (XCUITest and manual runs take over the real
   mouse and keyboard). Take the GUI lock before any GUI driving (running the app and
   clicking, screenshots that need the app frontmost, `make e2e`), and release it right
-  after: `until mkdir /tmp/hl-gui.lock 2>/dev/null; do sleep 20; done; echo "$NAME" >
-  /tmp/hl-gui.lock/owner` … `rm -rf /tmp/hl-gui.lock`. Hold it for minutes, not hours.
+  after: `until mkdir /tmp/oriel-gui.lock 2>/dev/null; do sleep 20; done; echo "$NAME" >
+  /tmp/oriel-gui.lock/owner` … `rm -rf /tmp/oriel-gui.lock`. Hold it for minutes, not hours.
   If a lock is older than 30 minutes, ask the orchestrator before removing it.
 - Screenshots: `screencapture -x -l <windowid> <file>` for the app window, or the
-  attachments in the `.xcresult`. Put the ones you report in `/tmp/hl-shots/`.
+  attachments in the `.xcresult`. Put the ones you report in `/tmp/oriel-shots/`.
 
 ## herdr safety
 
 - Existing sessions (`default` and any other listed by `herdr session list`): read only.
   No writes, no `control` streams, no `--takeover`. Use `observe` or `pane.read` to look.
 - Writes, `control` streams and layout changes go only to throwaway sessions named
-  `hl-e2e-<id>` (tests) or `hl-dev-<agent>` (manual work). Stop and delete them when done
+  `oriel-e2e-<id>` (tests) or `oriel-dev-<agent>` (manual work). Stop and delete them when done
   (`herdr session stop`, `herdr session delete`). `scripts/` has helpers.
 - When running the app by hand against a real session, launch it with the throwaway session
-  selected (`-session hl-dev-<agent>` launch argument), never `default`.
+  selected (`-session oriel-dev-<agent>` launch argument), never `default`.

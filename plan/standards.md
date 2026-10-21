@@ -56,7 +56,7 @@ before writing code. In short:
 
 ## Tests
 
-- e2e first: XCUITest in `HerdlightUITests` against a throwaway herdr session with a known
+- e2e first: XCUITest in `OrielUITests` against a throwaway herdr session with a known
   layout. Assert through accessibility identifiers and through herdr itself (`pane.read`,
   `session.snapshot`), not through pixels.
 - Unit tests (`swift test` in `Packages/HerdrKit`) only for logic with branches: decoding,

@@ -7,7 +7,7 @@ conflict (see "Changes to the design" below).
 ## References
 
 - Screenshots in `resources/inspirations/ui-target/` (Rex and similar apps; some in a light
-  theme, Herdlight stays dark). Study every one at full size.
+  theme, Oriel stays dark). Study every one at full size.
   - `01-titlebar-tabs-single-pane.jpeg`: compact title bar with the session name, one tab
     capsule, ⌘ and + on the right; one pane card inset under it.
   - `02-titlebar-tabs-pane-header.png`: several tab capsules in the title bar (icon tile +
@@ -90,7 +90,7 @@ changed) once the look is settled.
 ## Done when
 
 - Side-by-side screenshots (ours vs each reference) show the same structure, spacing,
-  shapes and glass feel. Put them in `/tmp/hl-shots/phase3b-*.png`, including: sidebar
+  shapes and glass feel. Put them in `/tmp/oriel-shots/phase3b-*.png`, including: sidebar
   shown, sidebar hidden with title-bar tabs, the session picker open with a filter typed,
   the sidebar filter in use, a tab with nested splits.
 - e2e tests pass locally and in CI, including new ones: the session picker filter narrows
