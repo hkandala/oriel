@@ -34,7 +34,8 @@ not use addresses that contain secrets (for example a `?token=` URL).
 
 ## Draw
 
-SwiftUI `WebView` with a `WebPage`, kept in the PaneViewRegistry so
+The same web view as a plugin card (a `WKWebView`,
+[Plugin UI](/docs/plugins/plugin-ui)), kept in the PaneViewRegistry so
 scrolling away does not reload it. The header shows the page title, Back,
 Refresh, Open in browser and Edit address. Refresh reloads the page from the
 saved address and scroll position (see below). Navigation stays inside the

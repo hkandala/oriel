@@ -4,15 +4,15 @@ description: "A plugin is a small web page drawn in a native web view in its car
 ---
 
 A plugin is a small web page: HTML, CSS and JavaScript. Each plugin card is a
-native web view (SwiftUI `WebView` with a `WebPage`) that loads the plugin's
-own files. A bridge gives the page `run(argv)` and `dial(host, port)` on the
+native web view (a `WKWebView` with a `WKUIDelegate`, wrapped for SwiftUI)
+that loads the plugin's own files. A bridge gives the page `run(argv)` and `dial(host, port)` on the
 pane's machine, plus a few app calls ([Plugin API](/docs/plugins/api)) (D53).
 
 ## How it works
 
 <Flow
   rows={[
-    [['index.html', 'the plugin\'s own files'], ['oriel-plugin://<id>/', 'a URL scheme served from the app'], ['WebPage per card', 'window.oriel injected before the page runs'], ['web view', 'drawn in the card, in the strip']],
+    [['index.html', 'the plugin\'s own files'], ['oriel-plugin://<id>/', 'a URL scheme served from the app'], ['WKWebView per card', 'window.oriel injected before the page runs'], ['web view', 'drawn in the card, in the strip']],
     [['oriel.run / oriel.dial', 'a call from the page'], ['bridge (Swift)', 'checks the card\'s machine'], ['Exec on that machine', 'run or dial, over SSH'], ['result', 'a promise in the page']],
   ]}
   caption="Top: how a plugin card loads. Bottom: how the page reaches its machine."
@@ -25,6 +25,9 @@ pane's machine, plus a few app calls ([Plugin API](/docs/plugins/api)) (D53).
   match the cards around them. Pages are told `prefers-color-scheme: dark`.
 - Any JavaScript works: plain DOM, React, Svelte or anything else, bundled by
   the author. The app runs no build step.
+- Web page cards use the same web view type. SwiftUI's own `WebPage` is not
+  used: it has no new-window hook, so it drops `window.open` silently
+  ([Plugin security](/docs/plugins/security)).
 - WebKit is built into macOS and iOS, so the same plugin runs on both. In v1
   the core plugins run on iOS; your own plugins on iOS are
   [Future work](/docs/future-work).

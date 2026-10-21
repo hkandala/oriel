@@ -33,9 +33,6 @@ interface Oriel {
   setArg(arg: string): Promise<void>;
   state: { get<T>(): Promise<T | undefined>; set<T>(value: T): void };
   preferences: Record<string, string | boolean>;
-  toast(t: { style?: "success" | "failure"; title: string; message?: string }): void;
-  open(url: string): Promise<boolean>;        // http(s) only, after a confirm sheet
-  clipboard: { copy(text: string): Promise<void> };
 
   // "snapshot": herdr state changed
   on(event: "snapshot", fn: () => void): void;
@@ -51,9 +48,10 @@ interface Oriel {
 | `state` | view state (where the user was looking), kept across devices and restarts | the state file, read when the card is built or on **Refresh**, never live; live shared data belongs in files read with `run` ([State and restore](/docs/plugins/state#when-a-card-reads-its-state)) |
 | `on("snapshot")` | refresh when an agent finishes | fires when herdr's state changed, debounced, only while the card is visible; carries no data, so herdr's schema stays behind the [Multiplexer interface](/docs/architecture#the-multiplexer-interface); a plugin that needs herdr data runs `herdr` with `run` |
 | `preferences` | per-device settings | read only |
-| `toast` | errors and progress | a native toast at the card's bottom edge |
-| `open` | links in commits, PR pages | `http`/`https` only; a sheet shows the full URL first |
-| `clipboard.copy` | "Copy SHA" | write only |
+| links (web standard) | links in commits, PR pages | `<a target="_blank">` or `window.open` from a click; the app shows the full URL in a sheet, then opens `http`/`https` in the browser ([Plugin security](/docs/plugins/security)) |
+| copy (web standard) | "Copy SHA" | `navigator.clipboard.writeText` from a click or key press |
+
+Errors and progress are drawn by the page itself.
 
 Not in v1: network from the device (`fetch` reaches only the plugin's own
 files), clipboard read, file pickers, plugins outside panes (sidebar, status
