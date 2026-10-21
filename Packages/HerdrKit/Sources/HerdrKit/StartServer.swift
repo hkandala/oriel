@@ -9,9 +9,15 @@ import Foundation
         nonisolated func startServer() async throws {
             // The name goes into a launchd label and file paths.
             guard Session.isValidName(session) else { throw HerdrError.failed("“\(session)” is not a session name") }
-            // Already up (started elsewhere since): booting out its job would stop it.
-            if await (try? snapshot()) != nil {
+            // Already up (started elsewhere since): booting out its job would stop it. No or old herdr: say so.
+            do {
+                _ = try await snapshot()
                 return
+            } catch {
+                switch error {
+                case HerdrError.notFound, HerdrError.unsupported: throw error
+                default: break
+                }
             }
             // The environment the CLI sees, so the server and the CLI agree on paths (XDG_CONFIG_HOME moves
             // herdr's sessions).
