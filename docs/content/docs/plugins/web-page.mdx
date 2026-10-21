@@ -53,18 +53,26 @@ pane's machine (D58), in the same instance state file as a plugin's
   [When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
   An open card does not follow another device's navigation or scrolling.
 - When it reads the file, the card opens the saved address and scroll
-  position by itself only when the typed address may load by itself (see
-  below) and the saved address has the same origin or one approved for this
-  machine. Otherwise the card follows the typed address's rules.
+  position, else the typed address. That address follows the load rule
+  below.
 - Editing the address writes the new label and clears the saved address.
 
-## A label set elsewhere needs a click
+## When a page loads by itself
 
 Any process on a machine (a prompt-injected agent, a script) can rename a
-pane to `oriel:web#<iid> <url>`. So a page loads by itself only if this device created or
-edited that label, or the user approved that origin for this machine before.
-Otherwise the card shows "Open ‹url›?". Approved origins are saved per
-machine.
+pane to `oriel:web#<iid> <url>` or write its state file. So:
+- A page the user creates or types loads at once and approves its origin for
+  that machine.
+- A card built from the machine (a fresh start, another device, a card an
+  agent or the herdr TUI made) loads by itself only if its origin is approved
+  for that machine or on the safe list. Otherwise it shows "Open ‹url›?"
+  once; **Open** approves the origin.
+- Approvals are a per-device setting, kept per machine in app storage.
+- The safe list: the machine's own `localhost` and `127.0.0.1` on any port
+  (always), and built in `github.com`, `gitlab.com`, `bitbucket.org`,
+  `developer.apple.com`, `developer.mozilla.org`, `docs.github.com`,
+  `vercel.com`, `*.vercel.app` and `*.netlify.app`.
+- Settings lists the approvals and the safe list; the user can edit both.
 
 ## Remote localhost
 
