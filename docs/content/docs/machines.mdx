@@ -27,7 +27,7 @@ description: "What a machine is, macOS and iOS connections, the health check, SS
   sheet lists the enabled entries of `herdr machine list --json`
   (`{id, label, target, session, enabled}`) that are not in the app's list,
   each with a checkbox. While the app's list is empty, they start checked.
-  There is no import at first launch. The app never writes herdr's list.
+  The app never writes herdr's list.
 
 ## macOS
 - **SSH is the system `ssh`.** The user's `~/.ssh/config`, agent, keys,
@@ -82,7 +82,7 @@ description: "What a machine is, macOS and iOS connections, the health check, SS
   Jump hosts come later (Citadel has `jump(to:)`).
 - Citadel has no keepalive; the [health check](#health-check) finds dead
   links.
-- When the app goes to the background, it releases its terminal streams. iOS
+- When the app goes to the background, it closes its terminal streams. iOS
   then gives about 30 s. The app holds its other connections with
   `beginBackgroundTask`, closes them when that time ends, and reconnects and
   reads the snapshot again on return.
@@ -101,10 +101,8 @@ description: "What a machine is, macOS and iOS connections, the health check, SS
 One loop per machine checks that it answers.
 - The check is `session.snapshot`, the read the app needs anyway. It carries
   herdr's version and catches any event the app missed.
-- It runs every 30 s while the machine is healthy and every 2 s while it
-  fails, so a session started again in a terminal comes back at once. A
-  failure starts it at once: a call timeout, a stream that ends without a
-  reason, a `live update`, a Mac wake or a network change.
+- It runs every 30 s while the machine is healthy. A failed read switches it
+  to every 2 s, so a session started again in a terminal comes back at once.
 - A machine counts as live only while the check answers. While it fails, its
   cards gray out.
 - On a remote machine a failed check also restarts the connection: on macOS
@@ -121,8 +119,8 @@ One loop per machine checks that it answers.
 - OpenSSH allows 10 sessions per connection by default (`MaxSessions`).
   Machines on one host share their connection, so they share that limit.
   This Mac uses no SSH and has no limit.
-- The app keeps no count. It opens a channel when it needs one: a call, a
-  stream, a chat tail, a plugin `run`.
+- The app opens a channel when it needs one: a call, a stream, a chat tail,
+  a plugin `run`.
 - When the server refuses one, the app closes the least recently shown kept
   stream (D46, [What streams](/docs/talking-to-herdr#what-streams)) and tries
   once more. If nothing is left to close, or the second try fails too, the

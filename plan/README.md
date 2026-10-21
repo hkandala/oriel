@@ -8,8 +8,7 @@ shows an empty state), plugins and plugin cards, the chat view, floating panes, 
 the status area, pills and agent rows in the sidebar, Start an agent, the "seen" state for finished agents,
 drag and drop (with swapping and moving panes), divider drag, keyboard resize, equal splits and divider
 double-click, renaming and reordering tabs and workspaces, more machines in the sidebar ("Add Remote Host" is
-a placeholder), the forced check on wake or network change, the version check after a live update, a text
-size setting, IME composition tests, and trackpad gestures in e2e (checked by hand).
+a placeholder), a text size setting, IME composition tests, and trackpad gestures in e2e (checked by hand).
 
 The working plan for the first app code. The design lives in `docs/content/docs/` and wins
 on any conflict, except where this file narrows the scope for v0.

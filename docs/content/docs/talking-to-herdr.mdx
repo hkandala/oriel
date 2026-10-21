@@ -15,7 +15,7 @@ protocol Exec {
 ```
 
 Every pane kind and plugin reaches its machine through these two calls
-(D52). Nothing of ours runs on the machine: `sshd`, POSIX tools and herdr do
+(D2). Nothing of ours runs on the machine: `sshd`, POSIX tools and herdr do
 the work. A later server helper would sit behind the same two calls
 ([Future work](/docs/future-work)).
 
@@ -25,13 +25,10 @@ the work. A later server helper would sit behind the same two calls
   channel. A web card needs a local port, not a stream; see
   [Remote localhost](/docs/plugins/web-page#remote-localhost).
 - **This Mac:** `Process`. A GUI app does not get the shell's environment. So
-  at launch the app reads `PATH`, `SSH_AUTH_SOCK`, `XDG_CONFIG_HOME` and
-  `XDG_STATE_HOME` once with `$SHELL -lic` (stdin from `/dev/null`, 3 s
-  timeout, output parsed after a unique marker). On failure it uses
-  `$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin`. `HERDR_*`
-  variables are removed from child processes. The launchd job that starts This
-  Mac's server gets `PATH`, `HOME` and `XDG_*` as the CLI sees them
-  ([Checks on connect](/docs/machines#checks-on-connect)).
+  at launch the app reads `PATH`, `SSH_AUTH_SOCK` and every `XDG_*` variable
+  once with `$SHELL -lic` (stdin from `/dev/null`, 3 s timeout, output parsed
+  after a unique marker). `HERDR_*` variables are removed from child
+  processes.
 - **A remote machine on macOS:** the same `Process` with this prefix
   ([macOS](/docs/machines#macos)):
   ```sh
@@ -71,7 +68,7 @@ the work. A later server helper would sit behind the same two calls
   lack. So every command runs with herdr's usual install folders in front of
   `PATH`: `$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin`, set inside the
   envelope on a remote machine and in the child environment on This Mac. The
-  argv says plain `herdr`; there is no lookup step.
+  argv says plain `herdr`.
 - A missing herdr fails the first call (exit 127), and the app shows the
   install command. herdr older than 0.9.3 has no `remote-api-bridge`, so the
   first call fails too, shown as "No answer from herdr". A snapshot that
@@ -90,9 +87,8 @@ the work. A later server helper would sit behind the same two calls
   one line `{"id":"1","method":"…","params":{…}}`, read one reply line, then
   close stdin. herdr answers one request per connection.
 - **Timeout:** every `call()` times out after 10 s. On a timeout the app kills
-  the bridge process (macOS) or closes the channel (iOS), shows "‹machine› did
-  not answer · Retry", and starts the
-  [health check](/docs/machines#health-check) at once.
+  the bridge process (macOS) or closes the channel (iOS) and shows "‹machine›
+  did not answer · Retry".
 - Long-lived streams (events, terminals, chat tails) have no timeout. The
   health check covers them.
 - Cost: 18 ms median and 130 ms at p95 per call (measured locally), plus the
@@ -107,9 +103,7 @@ the work. A later server helper would sit behind the same two calls
 - Subscriptions (herdr accepts no wildcards):
   - `workspace.created|updated|metadata_updated|renamed|moved|reordered|closed`
   - `tab.created|closed|renamed|moved`
-  - `pane.created|closed|moved|exited|agent_detected`. No `pane.updated`: it
-    fires on every terminal title and metadata token change, and the app uses
-    neither.
+  - `pane.created|closed|moved|exited|agent_detected`
   - `layout.updated`
   - `pane.agent_status_changed`, one entry per pane listed in
     `snapshot.agents[]`. Each entry makes herdr poll that pane every 100 ms,
@@ -211,7 +205,7 @@ One path is [Future work](/docs/future-work).
 5. A device closes a stream (closes its stdin) when it stops showing the
    card ([What streams](#what-streams)). herdr frees the pane at once.
 6. **Background:** a Mac app that becomes inactive keeps its streams. An iOS
-   app releases its streams when it goes to the background.
+   app closes its streams when it goes to the background.
 
 ### Watching on a narrow screen
 
@@ -232,7 +226,7 @@ handshake fails, it exits 1 with the reason on stderr.
 | `taken over` | watches; never takes back by itself |
 | `not found` or `exited` | drops the card; waits for the snapshot |
 | `detached` | does nothing (this device closed the stream) |
-| `live update` | starts the [health check](/docs/machines#health-check), which opens every stream again |
+| `live update` | opens the stream again after 1 s |
 | handshake error (exit 1) | "Restart herdr on ‹machine›" |
 
 ### Scrolling, queries and links
