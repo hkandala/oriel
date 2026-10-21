@@ -23,8 +23,7 @@ decisions get "Changed by Dxx", new ones get new numbers.
    deliberate exception to "no abstraction with one implementation". Describe what the
    interface covers (machine connection, snapshot of workspaces/tabs/panes/layout, events,
    terminal streams, actions, agent status) at the level the design already describes herdr.
-   Design now. Do not change app code for this: whether the code also gets the protocol is
-   pending the user (the orchestrator will say).
+   Design now. The code gets the protocol too (see Later decisions).
 3. **Plugins: HTML/JS in a web view.** A plugin is a small web page (HTML/JS) drawn in a
    native web view in its card, with a bridge to `run(argv)` and `dial(host, port)` on the
    pane's machine (permissions as today). It works on iOS from day one. The built-in
@@ -82,6 +81,18 @@ decisions get "Changed by Dxx", new ones get new numbers.
     plugin kit, floating panes, push relay, server helper, launch_argv upstream ask, more
     multiplexer implementations, OSC 7501 use) with links.
 15. **Code, outside docs**: CI on herdr 0.9.5 (done in phase 7).
+
+## Later decisions (from the user)
+
+- **iOS plugins:** iOS v1 ships only the core plugins; your own plugins on iOS are Future
+  work. This replaces item 3's "works on iOS from day one" for user plugins.
+- **Machine name:** a small machine-name line at the top of each sidebar machine page. The
+  session button still shows the session name only.
+- **Web cards keep their viewing state on the machine (D58):** the label
+  `oriel:web#<iid> <url>` keeps the typed address; the current address and scroll position
+  go in the instance state file `web/<iid>.json`, as for plugins.
+- **The `Multiplexer` protocol is also in code** (item 2's scope): `HerdrKit` has the
+  protocol, `HerdrClient` conforms, and the app talks to it.
 
 ## How to ship
 
