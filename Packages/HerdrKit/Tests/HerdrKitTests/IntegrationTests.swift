@@ -186,8 +186,9 @@ private func control(_ client: HerdrClient) async throws {
         }
         #expect(watched.full && watched.width == 60)
         // observe ignores stdin's end; its wrapper ends it, though the pane prints nothing.
-        watcher.close()
         let observer = "^herdr --session \(client.session) terminal session observe"
+        #expect(shell("pgrep", "-f", observer) == 0)
+        watcher.close()
         #expect(await eventually { shell("pgrep", "-f", observer) == 1 })
 
         // Taken over: a controller with --takeover wins, the first one hears it.
