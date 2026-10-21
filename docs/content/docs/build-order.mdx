@@ -10,7 +10,7 @@ Run these before building real views. Each one has pass criteria.
 ### S1 strip
 
 A paged SwiftUI `ScrollView` on macOS and iPad with 3 pages × 3 libghostty
-surfaces, 1 web view and 1 plugin card. Pass:
+surfaces and 2 web views (a web page and a plugin card). Pass:
 - a sideways swipe pages from anywhere; vertical scroll reaches the terminal;
 - views survive page changes and zoom; no dropped frames at 120 Hz;
 - window and sidebar resizes keep the page;
@@ -50,8 +50,11 @@ Which process holds the rollout file open.
 
 ### S6 plugins
 
-- JavaScriptCore runs in the Hardened Runtime build.
-- 12 live plugin cards plus 9 terminals in the strip hold frame time.
+- 6 live plugin cards plus 9 terminals in the strip hold frame time and
+  stay under the memory budget.
+- The content rule and the Content Security Policy block every load and
+  script that is not the plugin's own; `window.oriel` is in place before the
+  page's first script.
 
 ### S7 iOS transport
 
@@ -76,7 +79,7 @@ Citadel exec channels, before any iOS work. Pass:
 | 2 | **Remote machines (Mac):** ControlMaster, askpass, machine pages, status area, notifications |
 | 2b | **Thin iOS slice:** Citadel connect, snapshot, sidebar, one terminal stream |
 | 3 | **Pane kinds and chat:** the plugin registry and picker; the web page with `run` and `dial` (same-port forwards, the Open :port chip, the ports list); transcript and screen-text chat |
-| 4 | **Plugin system:** the plugin host and prelude; `List`, `Detail`, `Markdown`, `ActionPanel`; then `Diff`, `Code`, `Form`; the Git history, Diff and Markdown plugins; install and dev mode; the `oriel-plugin` CLI |
+| 4 | **Plugin system:** the plugin host (a web view per card, `window.oriel`, the content rule and CSP); the Git history, Diff and Markdown plugins; install and dev mode |
 | 5 | **Floating pills (macOS)** |
 | 6 | **Full iPadOS and iOS:** the compact layout, the reply box, the key bar, the `dial` listener for web pages, background handling, accessibility on iOS |
 | 7 | **Later:** [Future work](/docs/future-work) |

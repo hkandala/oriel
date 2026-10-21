@@ -39,7 +39,6 @@ transcript: `agent_session` on the pane.
   results (one collapsed row each), images. Unknown lines are skipped.
 - **Markdown:** `AttributedString(markdown:)` with the `.full` syntax option,
   split into blocks. Code blocks are monospaced and scroll sideways.
-  The plugin kit's `Markdown` uses the same renderer.
 - **Session changes** (`/new`, `/resume`) do not always send an event, so
   while a chat view is open the app re-checks `agent_session` on each
   snapshot and after each send, and restarts the tail when it changes.

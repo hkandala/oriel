@@ -14,12 +14,12 @@ description: "Where plugin state lives and how a fresh app restores plugin panes
 | change signal | `oriel_rev` | a herdr metadata token | every device (`pane.updated`) |
 | preferences | diff style | the app, per device | this device |
 | plugin code and consent | — | the app | this device |
-| in-memory UI state | hover, expanded rows | the JS heap | this card only |
+| in-memory UI state | hover, expanded rows | the page | this card only |
 
 <Callout title="Rule for authors">
 If losing it on a reload would annoy the user, put it in
-`setArg` (small, defines the pane) or `useInstanceState` (bigger). Everything
-else is React state.
+`setArg` (small, defines the pane) or `oriel.state` (bigger). Everything
+else stays in the page.
 </Callout>
 
 ## The instance state file
@@ -55,7 +55,7 @@ absolute paths.
 
 ## Restore on a fresh app start (any device)
 
-<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'web: · oriel: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, plugin, iid)'], ['5 · render', 'VM + pane context + state file']]} />
+<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'web: · oriel: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, plugin, iid)'], ['5 · render', 'web page + pane context + state file']]} />
 
 1. Connect each machine and read `session.snapshot`.
 2. Classify every pane by its label:
@@ -79,7 +79,7 @@ absolute paths.
    `snapshot.panes[]` keeps that key. The others add their `terminal_id` to
    the key and share the same state file. The key holder can change after a
    move.
-5. When the card is first shown: build its VM, inject the pane context, read
+5. When the card is first shown: build its web page, inject the pane context, read
    the state file if the plugin uses one, render.
 6. On every later snapshot: a changed argument re-renders; a changed `oriel_rev`
    re-reads the state file; a pane that is gone destroys the card.

@@ -1,6 +1,6 @@
 ---
 title: "Packages, install and updates"
-description: "The manifest, the build tool, install, dev mode, updates and the card lifecycle"
+description: "The manifest, install, dev mode, updates and the card lifecycle"
 ---
 
 ## Manifest
@@ -15,10 +15,9 @@ A normal `package.json` with one `oriel` field.
     "api": 1,                                  // highest API version used
     "title": "Git history",
     "icon": "arrow.triangle.branch",           // SF Symbol, or an asset path
-    "platforms": ["macos", "ios"],
-    "permissions": ["exec"],                   // v1 has exactly one permission
+    "permissions": ["run"],                    // v1 has exactly one permission
     "panes": [
-      { "name": "history", "title": "Git history", "entry": "src/history.tsx",
+      { "name": "history", "title": "Git history", "entry": "dist/history.html",
         "arg": { "title": "Ref or path", "placeholder": "HEAD",
                  "required": false } }
     ],
@@ -39,29 +38,23 @@ A normal `package.json` with one `oriel` field.
 - Preference types: `textfield`, `password` (Keychain), `checkbox`,
   `dropdown`.
 
-## Build tool
-
-`oriel-plugin build` validates the manifest and runs esbuild
-once per pane entry (`dist/<pane>.js`, with React and the API as globals the
-app provides). `oriel-plugin dev` rebuilds on change and streams the plugin's
-logs.
-
 ## Where plugins live
 
 In the app, not on machines:
 `~/Library/Application Support/Oriel/plugins/<id>/` with
-`package.json`, `dist/`, `assets/` and a source record (URL, ref, commit).
+`package.json`, the page files and a source record (URL, ref, commit).
 - **Install from a git URL** (Settings › Plugins › Add): shallow clone,
-  require `package.json` and a built `dist/` (the app never runs npm or node),
+  require `package.json` and every pane's `entry` file, already built (the app
+  never runs npm, node or a bundler),
   validate, show the consent sheet ([Plugin security](/docs/plugins/security)), move into place.
 - **Link a local folder (dev mode):** the app loads straight from the folder,
-  watches `dist/` and reloads that plugin's cards on change. Cards come back
-  in place because their argument and state live outside JavaScript ([State and restore](/docs/plugins/state)).
+  watches it and reloads that plugin's cards on change. Cards come back
+  in place because their argument and state live outside the page ([State and restore](/docs/plugins/state)).
   Dev plugins get Safari Web Inspector and a "DEV" badge.
 - **Updates:** at most once a day the app checks the remote ref and shows
   "Update available"; the user presses Update. An update that adds a
   permission asks for consent again.
-- **API version:** the app ships React and the API runtime. A plugin whose
+- **API version:** the app injects the API. A plugin whose
   `api` is newer than the app shows "needs a newer Oriel". API changes
   within a version are additive.
 
@@ -69,12 +62,13 @@ In the app, not on machines:
 
 1. A plugin pane enters the selected tab: the
    card is created, keyed by `(machine, plugin, instance id)`.
-2. The app creates the VM, injects the bridge, evaluates the prelude and the
-   plugin's pane entry, and renders it inside a native navigation stack.
-3. When the card leaves the screen, its queue is suspended: timers, events and
-   `exec` pause, and the last tree stays drawn. It resumes on return.
-4. At most 12 live plugin VMs, least recently used first out, and fewer on a
-   memory warning. An evicted card keeps an image of its last tree.
+2. The app creates the web page, injects `window.oriel` and the stylesheet,
+   and loads the pane's entry file.
+3. When the card leaves the screen, its `run` calls pause and its events stop.
+   It resumes on return.
+4. Live web views are capped ([Plugin UI](/docs/plugins/plugin-ui)), and
+   fewer on a memory warning. An evicted card keeps an image of its last
+   frame.
 5. When the pane leaves the snapshot, the card is destroyed.
 
 ## Preferences

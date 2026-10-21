@@ -1,64 +1,47 @@
 ---
 title: "Plugin UI"
-description: "TypeScript and React rendered as native SwiftUI through the component kit"
+description: "A plugin is a small web page drawn in a native web view in its card"
 ---
 
-Plugins are TypeScript and React, written against our component kit
-(`@oriel/api`), in the Raycast style. The kit renders as real SwiftUI.
+A plugin is a small web page: HTML, CSS and JavaScript. Each plugin card is a
+native web view (SwiftUI `WebView` with a `WebPage`) that loads the plugin's
+own files. A bridge gives the page `run(argv)` and `dial(host, port)` on the
+pane's machine, plus a few app calls ([Plugin API](/docs/plugins/api)) (D53).
 
 ## How it works
 
 <Flow
   rows={[
-    [['plugin.tsx', 'React + @oriel/api'], ['esbuild', 'dist/<pane>.js'], ['JSContext per card', 'after the prelude: React 19 + a ~60-line reconciler + the API runtime'], ['JSON view tree', 'each React commit'], ['SwiftUI kit', 'Swift decodes: List, Detail, Diff, Form…']],
-    [['SwiftUI event', 'a click, a key, a text change'], ['__dispatch(nodeId, args)', 'into the card\'s VM'], ['React handler', 'state changes, a new commit']],
+    [['index.html', 'the plugin\'s own files'], ['oriel-plugin://<id>/', 'a URL scheme served from the app'], ['WebPage per card', 'window.oriel injected before the page runs'], ['web view', 'drawn in the card, in the strip']],
+    [['oriel.run / oriel.dial', 'a call from the page'], ['bridge (Swift)', 'checks the permission and the card\'s machine'], ['Exec on that machine', 'run or dial, over SSH'], ['result', 'a promise in the page']],
   ]}
-  caption="Top: how a plugin card renders. Bottom: how events come back."
+  caption="Top: how a plugin card loads. Bottom: how the page reaches its machine."
 />
 
-- Each plugin card gets its own `JSVirtualMachine`, `JSContext` and serial
-  queue. JavaScriptCore is built into macOS and iOS.
-- Measured: React 19 with the reconciler runs in plain JavaScriptCore. One
-  card costs about 3 MB. A 500-row list update takes about 2 ms, even with the
-  JIT off (as on iOS). A web view costs 50 MB empty and 120–200 MB in use.
-- The context has no DOM, network, file system or `require`; it has only
-  what the app injects. Repository text is drawn by native views as text, so
-  it can never become script.
+- The app serves the plugin's files from a custom URL scheme,
+  `oriel-plugin://<id>/`. Nothing loads from the network.
+- Before the page runs, the app injects `window.oriel` (the API) and a small
+  stylesheet with the app's colors and fonts as CSS variables, so plugins can
+  match the cards around them. Pages are told `prefers-color-scheme: dark`.
+- Any JavaScript works: plain DOM, React, Svelte or anything else, bundled by
+  the author. The app runs no build step.
+- WebKit is built into macOS and iOS, so the same plugin runs on both from
+  day one.
+- A web view costs about 50 MB empty and 120–200 MB in use. The app keeps at
+  most 6 live web views on Mac and iPad (2 on iPhone), web pages and plugin
+  cards together, least recently used first out. An evicted card keeps an
+  image of its last frame.
 
 ## Options we compared
 
 | Option | Pros | Cons |
 |---|---|---|
-| **React → JSON → native SwiftUI** (chosen; Raycast 1.x's model) | truly native (lists, text selection, VoiceOver, keyboard); ~3 MB per card; the JS itself can reach only what the app injects; one look | plugins get only our components; DOM and Node npm packages do not work; we version the component set |
-| React in a web view with a CSS kit | any npm package; least work | 120–200 MB per card; looks like an imitation; HTML from repositories can become script |
-| React Native embedded | React to native | two forks to keep in step, a large dependency, still needs our kit |
-| Native Swift plugins | fully native | impossible on iOS; a signing exception on macOS; runs inside our process with our SSH connections |
-| Apple ExtensionKit | sandboxed native views | iOS hosts only extensions inside our own app; each author ships an app |
-
-<Callout title="The kit, not the DOM">
-Because plugins target a component set, not a DOM, the renderer can change
-later without breaking them.
-</Callout>
-
-## Components (v1)
-
-Raycast's prop names are used where they match.
-
-| Component | Drawn as |
-|---|---|
-| `List`, `List.Section`, `List.Item` (`title`, `subtitle`, `icon`, `accessories`, `detail`), `List.EmptyView` | SwiftUI `List` with selection; search when `searchBarPlaceholder` is set; a detail split when `isShowingDetail` |
-| `Detail` (`markdown`, `metadata`) | Markdown blocks plus a metadata grid |
-| `Markdown` | the chat view's Markdown renderer; no HTML; remote images show alt text until clicked |
-| `Diff` (`patch`, `mode: unified \| split`) | a native unified-diff parser with monospaced lines in the terminal palette |
-| `Code` (`text`, `tokens?`) | monospaced, selectable, scrolls sideways; optional pre-colored spans |
-| `Form` with `TextField`, `TextArea`, `Dropdown`, `Checkbox` | SwiftUI `Form`; the native side owns typing and sends `onChange` |
-| `ActionPanel`, `Action` (`title`, `icon`, `shortcut`, `confirm`, `onAction`), `Action.CopyToClipboard`, `Action.OpenURL`, `Action.Push` | the card's header menu, row context menus and a ⌘K popover; the first action is Return, the second ⌘Return |
-| `Icon` (SF Symbols or plugin assets), `Color` (the app's palette and ANSI names) | native images and colors; no arbitrary hex |
-| `isLoading` on any view | a thin progress bar under the card header |
+| **A web page in a native web view** (chosen) | any web library; custom drawing (SVG, canvas) is free; Safari Web Inspector; one engine on macOS and iOS; little app code | 120–200 MB per live card; looks like the app only if the author uses its CSS variables; HTML built from repository text needs care ([Plugin security](/docs/plugins/security)) |
+| TypeScript + React drawn as native SwiftUI | truly native; ~3 MB per card | our own component kit, reconciler and build tool to keep; plugins get only our components. [Future work](/docs/future-work), option (a) |
+| React Native embedded | React to native | two forks to keep in step, a large dependency |
+| Native Swift plugins | fully native | impossible on iOS; runs inside our process with our SSH connections |
+| Apple ExtensionKit | sandboxed native views | iOS hosts only extensions inside our own app |
 
 - Plugins cannot claim the app's shortcuts
-  ([Keyboard shortcuts](/docs/ui/theme-and-accessibility#keyboard-shortcuts))
-  or ⌘[, which is Back inside a plugin card.
-- Simpler choice: no `<WebView>` component for custom drawing (a commit
-  graph, charts) in v1. Revisit when a plugin needs it. It would load the
-  plugin's own files with no API and no network.
+  ([Keyboard shortcuts](/docs/ui/theme-and-accessibility#keyboard-shortcuts)):
+  keys go to the main menu first.

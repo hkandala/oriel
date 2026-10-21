@@ -15,7 +15,7 @@ description: "The pieces of the app and how they reach each machine"
 | `HostStore` | both | the app's live model of one machine: snapshot, events, streams, seen state |
 | `PaneViewRegistry` | both | owns terminal views, web pages and plugin cards, so scrolling never destroys them |
 | `PluginRegistry` | both | core plugins plus installed and linked plugins; manifests; consent |
-| `PluginHost` | both | one JavaScriptCore VM per plugin card; the bridge to the kit and the API |
+| `PluginHost` | both | one web page per plugin card; the bridge (`window.oriel`) to `run`, `dial` and the API |
 | Views | both | sidebar, tab bar, strip, cards, chat, status, pills, sheets |
 
 `Exec` and `Multiplexer` are the only protocols. `HerdrKit` is a separate

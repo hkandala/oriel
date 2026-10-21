@@ -29,7 +29,7 @@ description: "One codebase, dependencies, the strip, the tab bar and tests"
 | Terminal drawing | `Lakr233/libghostty-spm`, exact pin, plus uHerdr's `suppressesTerminalResponses` patch (a vendored wrapper; upstreamed if accepted) | Metal, IME, one API on AppKit and UIKit, a built-in iOS key bar; used by bigtty and Heeler. The patch stops libghostty from answering terminal queries that herdr already answered |
 | SSH on iOS | `orlandos-nl/Citadel` 0.12.1, exact pin | pure Swift; exec and `direct-tcpip` channels are enough (it depends on a swift-nio-ssh fork, so updates are reviewed) |
 | SSH on macOS | the system `/usr/bin/ssh` | the user's SSH setup works unchanged |
-| Plugin runtime | JavaScriptCore + React 19 + react-reconciler (in the prelude) | built into both OSes; measured fast enough without the JIT |
+| Plugin runtime | SwiftUI `WebView` / `WebPage`, one per plugin card | built in; the same plugin runs on both OSes |
 | Web pages | SwiftUI `WebView` / `WebPage` | built in |
 | Markdown | `AttributedString(markdown:)` | built in |
 
@@ -47,9 +47,10 @@ description: "One codebase, dependencies, the strip, the tab bar and tests"
    view, and a container removes it only if it still owns it. Stream lifetime
    follows the HostStore, never whether a view is in a window. Off-screen
    surfaces stop drawing but keep reading their stream (herdr drops a watcher
-   that reads nothing for 30 s). At most about 24 streaming terminals, 6 web pages (2 on
-   iPhone) and 12 plugin VMs, least recently used first out; an evicted card
-   keeps its last image. Web page message handlers sit behind a weak proxy.
+   that reads nothing for 30 s). At most about 24 streaming terminals and 6 live web views
+   (web pages and plugin cards together; 2 on iPhone), least recently used
+   first out; an evicted card keeps its last image. Web page message handlers
+   sit behind a weak proxy.
 3. **libghostty's default key bindings eat the app's shortcuts.** Every
    surface gets `keybind = clear`, and keys go to the main menu first.
 
@@ -86,19 +87,19 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
   declared in the Info.plist. Tab capsules spring-load. During a drag, drop
   zones sit above each card's surface. Drops on another machine are refused.
 - iOS key bar: libghostty-spm's `inputAccessoryItems`.
-- Plugin bridge: a frozen `__host` object per JSContext; every call checks the
-  card's permission and machine binding in Swift.
+- Plugin bridge: `window.oriel`, injected into each plugin page; every call
+  checks the card's permission and machine binding in Swift.
 
 ## One test target
 
-Recorded herdr 0.9.3 JSON (snapshot, layouts, closed reasons), recorded
-plugin view trees and short transcript samples. It checks: decoding, the
+Recorded herdr 0.9.3 JSON (snapshot, layouts, closed reasons) and short
+transcript samples. It checks: decoding, the
 split-tree rebuild, the lit-tab math, the snapshot pacing (debounce, maximum
 wait, one read in flight, trailing read), the equal-splits ratios, the label parser (`web:`, `oriel:` with
 and without a pane name, an argument with spaces and `#`), the remote command
 envelope (hostile strings round-tripped through bash, zsh and fish), the
-plugin tree decode, the state-file write command, the state cleanup selection,
-the bridge refusing `exec` to another machine or without permission, and each
+state-file write command, the state cleanup selection, the bridge refusing
+`run` and `dial` to another machine or without permission, and each
 transcript parser.
 
 What it looks like: [Main window](/docs/ui/window),

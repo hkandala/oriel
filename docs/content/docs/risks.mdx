@@ -19,13 +19,14 @@ description: "Known risks, their effect and the plan for each"
 | Transcript formats change | full chat breaks for one agent | lenient parsers; screen text and terminal still work |
 | iOS drops connections in the background | no live updates | reconnect and snapshot on return; push later |
 | herdr's stream keeps OSC 52 copy requests | copy from a remote program (vim `"+y`) does not reach the device clipboard | select text in the card; later, herdr's clipboard support |
-| A hung plugin script | one CPU core busy until the app quits | the card is abandoned and the plugin disabled after two hangs; QuickJS if it matters |
+| A hung plugin page | its card stops responding | WebKit runs each page in its own process; the card offers **Reload** |
+| Plugin HTML built from repository text | a script in a repository file runs in the plugin page | a Content Security Policy allows only the plugin's own scripts; core plugins insert text, not HTML |
 | A malicious plugin the user installed | anything the user can do on machines where its panes open, including network use from there | consent sheet in plain words; This Mac confirm; source shown and pinned to a commit |
 | A herdr cold restart | web and plugin panes come back as plain shells with their labels; cards still work | accepted; upstream ask ([Future work](/docs/future-work)) |
 | Labels written by a hostile machine | a web page or plugin card opening by itself | web addresses need a click; plugins act only on that machine |
 | DNS rebinding against loopback forwards | a page reaches a forwarded dev server by another name | per-machine loopback rules; accepted residual risk |
 | The pill panel's focus behavior | the reply box may not take keys, or a click may not open the app | [spike S5](/docs/build-order#s5-pill) |
-| Web page memory (120–200 MB each) | memory growth | caps of 6 on Mac and iPad and 2 on iPhone; evict on memory pressure |
+| Web view memory (120–200 MB each, web pages and plugin cards) | memory growth | one cap of 6 live web views on Mac and iPad and 2 on iPhone; evict on memory pressure |
 | libghostty-spm and Citadel are third-party builds | updates lag; supply chain | exact pins; reviewed updates; SwiftTerm as a fallback renderer |
 | A server with `AllowTcpForwarding no` | remote `localhost` pages cannot load | the card says so; Tailscale or LAN addresses still load; a server helper later ([Future work](/docs/future-work)) |
 | A same-port forward holds a Mac port | a Mac program started later on that port cannot bind | the card menu lists forwards with **Stop** |
