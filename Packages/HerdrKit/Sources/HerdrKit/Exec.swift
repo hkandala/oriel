@@ -30,11 +30,10 @@ public struct Channel: Sendable {
     public final class ProcessExec: Exec {
         let environment: [String: String]
         private let lookup: Mutex<Lookup>
-        /// herdr's path, when the login shell was last asked, and whether it is being asked now.
+        /// herdr's path and when the login shell was last asked for it.
         private struct Lookup {
             var path: String?
             var asked: ContinuousClock.Instant
-            var asking = false
         }
 
         /// Reads the login shell once (herdr again while it has none); keep one instance for the app's life.
@@ -60,11 +59,12 @@ public struct Channel: Sendable {
             if let path = lookup.withLock({ $0.path }), FileManager.default.isExecutableFile(atPath: path) {
                 return path
             }
-            // Missing or gone since: ask again, one login shell at a time and at most every 30 s (it may take 3 s
-            // and runs the user's rc files); nil in between.
+            // Missing or gone since: ask again at most every 30 s (it runs the user's rc files); nil in between.
+            // `asked` is set as the run starts, and the 3 s shell timeout keeps the run inside the window, so one
+            // runs at a time.
             let ask = lookup.withLock {
-                guard !$0.asking, ContinuousClock.now - $0.asked >= .seconds(30) else { return false }
-                $0.asking = true
+                guard ContinuousClock.now - $0.asked >= .seconds(30) else { return false }
+                $0.asked = .now
                 return true
             }
             guard ask else { return nil }
