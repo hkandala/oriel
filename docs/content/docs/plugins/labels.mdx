@@ -68,8 +68,8 @@ Web and plugin panes are created the same way (D51).
    the pane in place, and the temporary tab closes itself. For left or top,
    then `pane.swap`, as for drops.
 
-- Both calls run before this device reads the snapshot, so it never shows the
-  temporary tab. Other devices and a herdr TUI may see it for one snapshot.
+- The app's immediate read after its own write waits for the `pane.move`, so
+  this device never shows the temporary tab. Other devices and a herdr TUI may see it for one snapshot.
 - `pane.created` already carries the label, so other devices draw the card at
   once.
 
