@@ -53,14 +53,14 @@ HerdrKit knows nothing about SwiftUI or libghostty; the app knows nothing about 
 
 ## How the tests work
 
-- **Unit tests** (`make test`) cover logic with branches: decoding, the split tree, pacing, frame parsing. Two
+- **Unit tests** (`make test`) cover logic with branches: decoding, the split tree, pacing, frame parsing. Three
   integration tests start a throwaway herdr session and talk to it.
 - **e2e tests** (`make e2e`) drive the real app with XCUITest. `scripts/e2e.sh` starts throwaway herdr sessions
   `oriel-e2e-<id>-a`, `-b`, `-c` (stopped, for "Show stopped") and `-e` (stopped and started by a test); `-d` is
   the name the New Session test makes. It runs the suite and removes them all (and any launchd job the app made for them)
   even when tests fail. The UI test runner is sandboxed and cannot reach herdr, so `scripts/e2e-helper.py` serves
   herdr calls on localhost for the tests: API requests, a second `control` stream to tell a held pane from a free
-  one, a list of the session's streams, and stopping or starting a session. It refuses any session it did not
+  one, a list of the session's herdr runs, and stopping or starting a session. It refuses any session it did not
   make. Tests assert through accessibility identifiers and through herdr itself, not through pixels.
 - XCUITest moves the real mouse and types on the real keyboard: don't use the Mac while `make e2e` runs (32 tests,
   about 6.5 minutes locally).
