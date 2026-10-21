@@ -16,7 +16,7 @@ description: "The pieces of the app and how they reach each machine"
 | `PaneViewRegistry` | both | owns terminal views, web pages and plugin cards, so scrolling never destroys them |
 | `PluginRegistry` | both | core plugins plus installed and linked plugins; manifests; consent |
 | `PluginHost` | both | one JavaScriptCore VM per plugin card; the bridge to the kit and the API |
-| Views | both | sidebar, tab bar, strip, cards, floating layer, chat, status, pills, sheets |
+| Views | both | sidebar, tab bar, strip, cards, chat, status, pills, sheets |
 
 `Exec` and `Multiplexer` are the only protocols. `HerdrKit` is a separate
 package, so its single test target runs with `swift test`.

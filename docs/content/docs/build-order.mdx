@@ -48,13 +48,10 @@ Which process holds the rollout file open.
 - **Open in app** activates the app at the pane. `.passive` notifications land
   quietly. No idle wake-ups.
 
-### S6 plugins and floating
+### S6 plugins
 
 - JavaScriptCore runs in the Hardened Runtime build.
 - 12 live plugin cards plus 9 terminals in the strip hold frame time.
-- A floating card moves between the strip and the floating layer without a
-  reload.
-- A scroll on a floating card never pages the strip.
 
 ### S7 iOS transport
 
@@ -75,7 +72,7 @@ Citadel exec channels, before any iOS work. Pass:
 | 1 | **This Mac:** `Exec`, `call()`, events and snapshot pacing, sidebar, strip, terminal streams, split, close, resize, zoom |
 | 2 | **Remote machines (Mac):** ControlMaster, askpass, machine pages, status area, notifications |
 | 2b | **Thin iOS slice:** Citadel connect, snapshot, sidebar, one terminal stream |
-| 3 | **Pane kinds, chat and floating panes:** the plugin registry and picker; the web page with `localhost` forwards; transcript and screen-text chat; floating panes |
+| 3 | **Pane kinds and chat:** the plugin registry and picker; the web page with `localhost` forwards; transcript and screen-text chat |
 | 4 | **Plugin system:** the plugin host and prelude; `List`, `Detail`, `Markdown`, `ActionPanel`; then `Diff`, `Code`, `Form`; the Git history, Diff and Markdown plugins; install and dev mode; the `oriel-plugin` CLI |
 | 5 | **Floating pills (macOS)** |
 | 6 | **Full iPadOS and iOS:** the compact layout, the reply box, the key bar, background handling, accessibility on iOS |

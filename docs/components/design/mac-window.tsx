@@ -114,21 +114,18 @@ function RenderNode({ n }: { n: Node }) {
 const tryIt = (
   <>
     <b>Try:</b>{" "}scroll the main area sideways (trackpad or shift+wheel): every tab whose page is visible lights up
-    and the glass marker follows. Scroll the sidebar sideways, or click the dots, to switch machines. <b>⧉ 1</b>{' '}
-    shows a floating scratch terminal: drag its header, resize from its corner. The <b>diff</b> and{' '}
+    and the glass marker follows. Scroll the sidebar sideways, or click the dots, to switch machines. The <b>diff</b> and{' '}
     <b>history</b> tabs are plugin panes.
   </>
 );
 
-/** The interactive macOS window: machine pages, lit tabs, the strip and a floating card. */
-export function MacWindow({ floating = false, caption = tryIt }: { floating?: boolean; caption?: ReactNode }) {
+/** The interactive macOS window: machine pages, lit tabs and the strip. */
+export function MacWindow({ caption = tryIt }: { caption?: ReactNode }) {
   const [host, setHost] = useState(0);
-  const [float, setFloat] = useState(floating);
   const pager = useRef<HTMLDivElement>(null);
   const strip = useRef<HTMLDivElement>(null);
   const tabs = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLDivElement>(null);
-  const fcard = useRef<HTMLDivElement>(null);
   const h = HOSTS[host];
 
   // Light every tab whose page is visible; the marker interpolates between tabs.
@@ -163,25 +160,6 @@ export function MacWindow({ floating = false, caption = tryIt }: { floating?: bo
     el.addEventListener('scroll', on, { passive: true });
     return () => el.removeEventListener('scroll', on);
   }, []);
-
-  // Drag the floating card by its header; CSS `resize` handles the corner.
-  const startDrag = (e: React.PointerEvent) => {
-    const fc = fcard.current!;
-    if ((e.target as HTMLElement).closest('.x')) return;
-    const r = fc.getBoundingClientRect(), par = fc.parentElement!.getBoundingClientRect();
-    const dx = e.clientX - r.left, dy = e.clientY - r.top;
-    e.preventDefault();
-    const move = (ev: PointerEvent) => {
-      fc.style.left = Math.max(0, Math.min(ev.clientX - par.left - dx, par.width - 60)) + 'px';
-      fc.style.top = Math.max(40, Math.min(ev.clientY - par.top - dy, par.height - 40)) + 'px';
-    };
-    const up = () => {
-      removeEventListener('pointermove', move);
-      removeEventListener('pointerup', up);
-    };
-    addEventListener('pointermove', move);
-    addEventListener('pointerup', up);
-  };
 
   return (
     <figure className="oriel not-prose">
@@ -252,13 +230,6 @@ export function MacWindow({ floating = false, caption = tryIt }: { floating?: bo
               ))}
             </div>
             <span className="add">+</span>
-            <span
-              className={`floatbtn${float ? ' on' : ''}`}
-              title="Show or hide floating panes (⌥⌘F)"
-              onClick={() => setFloat(!float)}
-            >
-              ⧉ 1
-            </span>
           </div>
           <div className="strip" ref={strip} onScroll={update}>
             {h.tabs.map((t) => (
@@ -266,18 +237,6 @@ export function MacWindow({ floating = false, caption = tryIt }: { floating?: bo
                 <RenderNode n={'dir' in t.layout ? t.layout : { ...t.layout, w: 1 }} />
               </div>
             ))}
-          </div>
-          <div className={`fcard${float ? ' show' : ''}`} ref={fcard}>
-            <div className="ph fhead" onPointerDown={startDrag}>
-              <Ico icon={['sh', '>_']} /> scratch
-              <span className="ctl">
-                <Seg a="chat" b="term" on={1} /> <span title="Dock">⤓</span> ⤢{' '}
-                <span className="x" onClick={() => setFloat(false)}>
-                  ✕
-                </span>
-              </span>
-            </div>
-            <Term body={T.scratch} />
           </div>
         </div>
       </div>

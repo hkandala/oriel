@@ -55,7 +55,7 @@ absolute paths.
 
 ## Restore on a fresh app start (any device)
 
-<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'oriel:float tab · web: · oriel: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, plugin, iid)'], ['5 · render', 'VM + pane context + state file']]} />
+<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'web: · oriel: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, plugin, iid)'], ['5 · render', 'VM + pane context + state file']]} />
 
 1. Connect each machine and read `session.snapshot`.
 2. Classify every pane by its label:
@@ -63,9 +63,6 @@ absolute paths.
      apply);
    - matching the `oriel:` grammar → (plugin, pane, iid, arg);
    - otherwise → `agent` if herdr set `pane.agent`, else `terminal`.
-
-   Separately, every pane whose tab is labeled `oriel:float` floats
-   ([Floating panes in herdr](/docs/floating-panes)), whatever its kind.
 3. Resolve the plugin in the registry (core, then a linked folder, then an
    installed plugin):
    - missing → a card with the plugin id and argument, **Show placeholder**

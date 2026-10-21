@@ -30,7 +30,7 @@ A normal `package.json` with one `oriel` field.
 }
 ```
 - One plugin can declare several pane kinds. Reserved ids (the core plugins
-  and markers): `terminal`, `agent`, `web`, `float`, `git-history`, `diff`,
+  and markers): `terminal`, `agent`, `web`, `git-history`, `diff`,
   `markdown`.
 - An id resolves in this order: core, then a linked folder, then an installed
   plugin. One install per id.
@@ -67,7 +67,7 @@ In the app, not on machines:
 
 ## Card lifecycle
 
-1. A plugin pane enters the selected tab (or the shown floating layer): the
+1. A plugin pane enters the selected tab: the
    card is created, keyed by `(machine, plugin, instance id)`.
 2. The app creates the VM, injects the bridge, evaluates the prelude and the
    plugin's pane entry, and renders it inside a native navigation stack.

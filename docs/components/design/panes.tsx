@@ -44,11 +44,6 @@ export const T = {
   train: `epoch 12/40  loss <span class="g">0.412</span>  acc 0.871
 epoch 13/40  loss <span class="g">0.398</span>  acc 0.876
 <span class="d">█████████████░░░░░░░░ 33%</span>`,
-  scratch: `<span class="g">~/api</span> $ git log --oneline -3
-a1b2c3d fix auth null token
-9f8e7d6 add pricing page
-5c4b3a2 bump deps
-<span class="g">~/api</span> $ ▌`,
 };
 
 export const Seg = ({ a, b, on }: { a: string; b: string; on: 0 | 1 }) => (

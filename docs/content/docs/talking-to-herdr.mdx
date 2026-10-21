@@ -137,8 +137,7 @@ draws them. Keys go back as `terminal.input`.
 
 ### What streams
 
-- The panes of the selected tab, plus the shown floating cards of the
-  selected workspace, on the selected machine.
+- The panes of the selected tab on the selected machine.
 - On the Mac, the panes of recently shown tabs keep their `control` streams,
   up to about 24 terminals, least recently shown first out (D46). Their
   surfaces stop drawing but keep reading: a surface draws only while its page
@@ -176,8 +175,7 @@ draws them. Keys go back as `terminal.input`.
    even after the other device lets go.
 5. A device sends `terminal.release` before it closes a `control` stream:
    when the card leaves the recently shown set (Mac, D46) or the selected tab
-   (iPhone and iPad) or the shown floating layer, when the
-   card switches to chat, when the user switches machines or sessions, and when
+   (iPhone and iPad), when the card switches to chat, when the user switches machines or sessions, and when
    the window closes. On quit the Mac app kills its children instead: herdr
    frees the pane of a killed `control` run at once, as if it had released it.
 6. **Background:** a Mac app that becomes inactive keeps its streams. An iOS
@@ -233,7 +231,6 @@ handshake fails, it exits 1 with the reason on stderr.
 | Drop on a tab capsule | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
 | Drop on a sidebar workspace | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Drop on empty sidebar space | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
-| Float or dock a pane | [Floating panes: herdr calls](/docs/floating-panes#herdr-calls) |
 | Reorder tabs or workspaces | `tab.move` / `workspace.move` |
 | Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`) |
 | Close a tab or workspace | `tab.close` / `workspace.close`; always asks, with the pane count |
