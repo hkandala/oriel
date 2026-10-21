@@ -561,14 +561,15 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <tr><td>herdr not installed on this Mac</td><td>install instructions on This Mac's page; remote machines still work</td></tr>
       <tr><td>herdr missing on a remote machine</td><td>the install command</td></tr>
       <tr><td>herdr older than 0.9.3</td><td>"herdr 0.9.3 or newer is needed"</td></tr>
-      <tr><td>herdr newer than the app knows</td><td>a thin banner; the app keeps working</td></tr>
       <tr><td>herdr updated but not restarted</td><td>"Restart herdr on ‹machine›" (terminal streams fail; the API works)</td></tr>
       <tr><td>herdr server not running on This Mac</td><td>"‹session› is not running", a <b>Start</b> button (a launchd job) and the command to run in a terminal</td></tr>
       <tr><td>herdr server not running on a remote machine</td><td>a <b>Start herdr</b> button</td></tr>
       <tr><td>SSH auth failed</td><td>ssh's message in plain words</td></tr>
       <tr><td>Host key changed</td><td>the connection is blocked and the fingerprint is shown</td></tr>
       <tr><td>Local Network access denied</td><td>where to allow it in System Settings › Privacy &amp; Security</td></tr>
-      <tr><td>Connection lost</td><td>cards gray out; reconnect with back-off; then a fresh snapshot</td></tr>
+      <tr><td>Connection lost</td><td>cards gray out; the app retries every 2 s without prompts, then reads a fresh snapshot</td></tr>
+      <tr><td>Reconnecting needs a password or code</td><td><b>Reconnect</b>; only this button may prompt</td></tr>
+      <tr><td>No SSH session left on the connection</td><td>the card shows its last image and <b>Retry</b></td></tr>
       <tr><td>Pane in use on another device</td><td>the content (watching) and "In use elsewhere · Take back"</td></tr>
       <tr><td>New tab or split</td><td>the pane picker; herdr is called only after a pick</td></tr>
       <tr><td>Agent did not start (10 s)</td><td>"Agent did not start" and the last screen lines</td></tr>
@@ -616,7 +617,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <p class="lead">Two calls per machine: run a command and talk to its stdin and stdout, or dial a TCP port as seen from the machine. Requests use herdr's own <code>remote-api-bridge</code>; live panes use <code>terminal session control</code>.</p>
   <div class="flow">
     <div class="n"><b>herdr event</b><small>any line on the stream</small></div><div class="a">→</div>
-    <div class="n"><b>debounce 100 ms</b><small>at most 500 ms wait; one read in flight per machine</small></div><div class="a">→</div>
+    <div class="n"><b>one read in flight</b><small>an event during a read sets a read-again flag</small></div><div class="a">→</div>
     <div class="n"><b>session.snapshot</b><small>workspaces, tabs, panes, agents, layouts</small></div><div class="a">→</div>
     <div class="n"><b>reconcile</b><small>stable objects, changed fields only</small></div><div class="a">→</div>
     <div class="n"><b>views update</b><small>one row, not the window</small></div>
@@ -630,28 +631,30 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 # every remote command, whatever the login shell (bash, zsh, fish):
 sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&gt;</code></pre>
     <ul>
-      <li>This Mac: <code>Process</code>, with <code>PATH</code>, <code>SSH_AUTH_SOCK</code> and <code>XDG_*</code> read once from <code>$SHELL -lic</code> (3 s timeout, parsed after a marker). <code>HERDR_*</code> is removed from children.</li>
+      <li>This Mac: <code>Process</code>, with <code>PATH</code>, <code>SSH_AUTH_SOCK</code> and <code>XDG_*</code> read once from <code>$SHELL -lic</code> (3 s timeout, parsed after a marker). <code>HERDR_*</code> is removed from children. herdr's usual install folders are on <code>PATH</code> inside the envelope, so the app never looks for herdr: a missing herdr fails the first call and the app shows the install command.</li>
       <li>Remote on macOS: <code>ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/false -S &lt;ctl&gt; &lt;target&gt; --</code>, which never opens a second connection. iOS: a Citadel exec channel.</li>
       <li>Base64 passes through every shell unchanged, so no data is ever pasted into a shell string.</li>
-      <li>Commands that ignore stdin (<code>tail -F</code>, <code>observe</code>) are wrapped so closing the channel ends them and frees the SSH session.</li>
-      <li>Every <code>call()</code> has a 10 s timeout. On timeout the app kills the bridge process or channel and runs <code>ping</code>. Long-lived streams have no timeout; the 30 s ping checks them.</li>
-      <li>Child processes are always signalled by pid, never by process group.</li>
-      <li>herdr's path is resolved once per machine (<code>~/.local/bin</code> and common spots). <code>remote-api-bridge --check</code> must print <code>herdr-api-bridge-v1</code>. Below 0.9.3: refuse; newer protocol: banner. Every herdr argv carries <code>--session</code>.</li>
+      <li><b>Ending a child = closing its stdin.</b> <code>control</code> exits at once and frees the pane; the bridge exits in about 100 ms. If the app crashes, the kernel closes the pipes and every child ends itself, remote ones too. Commands that ignore the end of stdin (<code>observe</code>, <code>tail -F</code>) always run inside <code>sh -c '&lt;cmd&gt; &amp; c=$!; cat &gt;/dev/null; kill $c'</code>, on This Mac too. If a child still runs about 1 s after the close, its channel kills it by pid (never by process group).</li>
+      <li>Every <code>call()</code> has a 10 s timeout, which starts the health check at once. Long-lived streams have none; the health check covers them.</li>
+      <li>The version comes from the snapshot. Below 0.9.3 the app refuses. Every herdr argv carries <code>--session</code>.</li>
     </ul>
   </details>
   <details><summary>Requests and events</summary>
     <ul>
       <li><code>call()</code> runs <code>herdr --session S remote-api-bridge</code>, writes one JSON line, reads one reply (herdr answers one request per connection). 18 ms median, 130 ms p95 locally, plus network.</li>
       <li>One long-lived bridge per machine carries <code>events.subscribe</code>: workspace, tab, pane and layout events listed explicitly (no wildcards), status events only for agent panes, no focus events.</li>
-      <li>Any event means "re-read the snapshot". At most one <code>session.snapshot</code> is in flight per machine. Events that arrive during a read schedule one more read after it. The debounce is 100 ms with a 500 ms maximum wait, so constant events cannot starve updates. The event stream stays; polling was rejected.</li>
-      <li>The stream is reopened, then a snapshot read, when agent panes change, on <code>events_lost</code> and on <code>pane_not_found</code>. A 30 s ping checks liveness.</li>
+      <li>Any event means "read the snapshot again"; the app decodes no event payload. One <code>session.snapshot</code> is in flight per machine. An event during a read sets a read-again flag, so one more read follows. The event stream stays; polling was rejected.</li>
+      <li>The stream is reopened, then a snapshot read, when agent panes change, on <code>events_lost</code> and on <code>pane_not_found</code>.</li>
+      <li><b>One health loop per machine:</b> the snapshot read is the heartbeat. It carries herdr's version and catches missed events. Every 30 s while healthy, every 2 s while failing. Automatic retries use <code>BatchMode</code> and never prompt; a host that needs a password or a one-time code shows <b>Reconnect</b>.</li>
       <li>Snapshots are applied to stable observable objects. Ids are scoped by machine.</li>
     </ul>
   </details>
   <h3>Live panes and who controls them</h3>
 <pre><code>herdr terminal session control &lt;terminal_id&gt; --cols C --rows R [--takeover]
   stdout → {"type":"terminal.frame","width":C,"height":R,"full":true,"bytes":"&lt;base64 ANSI&gt;"}
-  stdin  ← terminal.input · terminal.resize · terminal.scroll · terminal.mouse · terminal.release</code></pre>
+  stdin  ← terminal.input (text) · terminal.resize · terminal.scroll · terminal.mouse
+  close stdin → the stream ends and frees the pane
+herdr call pane.send_keys ← special keys and Ctrl chords</code></pre>
   <div class="own">
     <div class="st"><b>Mac controls</b><br><span class="muted">opens <code>control</code>, types and resizes; the phone opens <code>observe</code> or uses chat</span></div>
     <div class="arrows">first key press, paste or tap in the card<br>on the phone or iPad (<code>--takeover</code>) →<br><br>← first key press, paste or tap on the Mac, or Take back</div>
@@ -659,9 +662,10 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
   </div>
   <details><summary>Streaming rules and how a stream ends</summary>
     <ul>
-      <li>Streams: the selected tab's panes on the selected machine; the Mac keeps those of recently shown tabs too (about 24 terminals). During a swipe, neighbor tabs show each card's last image; their streams start when the swipe stops.</li>
+      <li>Streams: the selected tab's panes on the selected machine; the Mac keeps those of recently shown tabs too (about 24 terminals). Channels open when needed: when the machine refuses one, the app closes the least recently shown kept stream and tries once more; then the card shows Retry. During a swipe, neighbor tabs show each card's last image; their streams start when the swipe stops.</li>
       <li>The Mac opens <code>control</code> without takeover and watches if refused. iPhone and iPad open <code>observe</code>. Any device takes control (<code>--takeover</code>) on the first key press, paste or tap in the card, or Take back. Nothing else takes control: a watcher stays a watcher until its user acts.</li>
-      <li>A Mac that becomes inactive keeps its streams. iOS sends <code>terminal.release</code> when the app goes to the background. A device also releases when it leaves the terminal view (the card leaves the selected tab, or switches to chat).</li>
+      <li>A Mac that becomes inactive keeps its streams. iOS closes its streams when the app goes to the background. A device also closes a stream when it leaves the terminal view (the card leaves the selected tab, or switches to chat).</li>
+      <li>Typed text goes through <code>terminal.input</code>; special keys and Ctrl chords go through <code>pane.send_keys</code>. Asking herdr to accept keys on <code>terminal.input</code>, for one path, is future work.</li>
       <li>Card size ÷ cell size gives cols × rows; the old frame stays until herdr's full frame at the new size arrives. Streams are opened by <code>terminal_id</code>, so they survive moves.</li>
       <li>An iPhone watches at a fixed 160×50, scaled to fit, because herdr does not report PTY columns.</li>
       <li>Terminal queries: herdr already answers them, so libghostty must not. The app uses a pinned libghostty-spm build with the response-suppression patch (uHerdr's <code>suppressesTerminalResponses</code>).</li>
@@ -670,8 +674,8 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
       <tr><td><code>already has an attached client</code></td><td>watches; shows Take back</td></tr>
       <tr><td><code>taken over</code></td><td>watches; never takes back by itself</td></tr>
       <tr><td><code>not found</code> / <code>exited</code></td><td>drops the card; waits for the snapshot</td></tr>
-      <tr><td><code>detached</code></td><td>does nothing (it released the pane)</td></tr>
-      <tr><td><code>live update</code></td><td>backs off, pings, checks the version, reopens everything</td></tr>
+      <tr><td><code>detached</code></td><td>does nothing (it closed the stream)</td></tr>
+      <tr><td><code>live update</code></td><td>the health loop reads the snapshot every 2 s, then reopens everything</td></tr>
       <tr><td>handshake error (exit 1)</td><td>"Restart herdr on ‹machine›"</td></tr></table>
   </details>
   <details><summary>Writes: every user action is a herdr call</summary>
@@ -698,7 +702,7 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
     <div class="card"><h4>macOS</h4><p>The app's own machine list, as on iOS. When herdr is installed on this Mac, its <code>herdr machine list</code> entries are imported on first launch, and the add sheet lists the ones not added yet. herdr on the Mac is needed only for This Mac's sessions (<code>herdr session list</code>). One ControlMaster per host, started on purpose, so there is one prompt per host. Agent and X11 forwarding are off; <code>dial</code> adds port forwards when needed. A bundled askpass script shows password prompts.</p></div>
     <div class="card"><h4>iOS</h4><p>Machines in <code>UserDefaults</code>. A Secure Enclave key that cannot leave the phone. Host keys pinned on first use. The Mac is reached like any machine through Remote Login, over LAN or Tailscale.</p></div>
   </div>
-  <p>A <b>machine</b> is one herdr session, so it is one entry in the machine list. Two sessions on one host share one SSH connection (ControlMaster), its channel budget, and nothing else: each session has its own events, streams and plugin state cleanup. A non-default local session is named "This Mac · ‹session›".</p>
+  <p>A <b>machine</b> is one herdr session, so it is one entry in the machine list. Two sessions on one host share one SSH connection (ControlMaster), its channel limit, and nothing else: each session has its own events, streams and plugin state cleanup. A non-default local session is named "This Mac · ‹session›".</p>
 <pre><code>ssh -M -N -f -o ControlPersist=10m -o ServerAliveInterval=20 -o ForwardAgent=no -o ForwardX11=no \
     -o ClearAllForwardings=yes -S ~/Library/Caches/oriel/&lt;h8&gt; devbox          # start once
 ssh -S ~/Library/Caches/oriel/&lt;h8&gt; -O check devbox                            # wait for it
@@ -707,12 +711,11 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
   <details><summary>Details</summary>
     <ul>
       <li><code>&lt;h8&gt;</code> is 8 hex characters of a hash of the SSH target, so the socket path stays under the 104-byte socket limit for user names up to 50 characters, with ssh's 17-character temporary suffix. The folder is per user, mode 0700.</li>
-      <li>After a wake or network change: <code>ping</code> with a 5 s timeout; on timeout <code>ssh -O exit</code> and restart the master.</li>
       <li>Local Network privacy (macOS 15+): the app declares the usage string and opens an <code>NWConnection</code> to a LAN address first, so the system asks once.</li>
-      <li>All machines keep their control plane open; only the selected machine streams terminals. OpenSSH allows 10 sessions per connection: 1 is reserved for events and 3 for requests and ping; streams, chat tails and plugin calls share the other 6, focused card first. A card without a session shows Retry.</li>
-      <li>Checks on connect: resolve herdr, <code>--check</code>, <code>ping</code>, then <code>integration.list</code>, snapshot, events. If the server is not running: on a remote machine, <b>Start herdr</b> runs <code>nohup &lt;herdr&gt; --session S server &amp;</code> over SSH. On This Mac, <b>Start</b> runs the server as a one-shot launchd job, so launchd, not the app, is its parent and its "responsible process" (macOS privacy prompts never name Oriel).</li>
-      <li>Short calls are bridge requests (<code>call()</code>) and the app's own one-shot commands (state file read and write, transcript lookup, cleanup). Plugin <code>run</code> and <code>dial</code> calls use the shared pool.</li>
-      <li>iOS releases its terminal streams when the app goes to the background. It keeps the connection for about 30 s, then reconnects and re-reads the snapshot on return.</li>
+      <li>All machines keep their control plane open; only the selected machine streams terminals. OpenSSH allows 10 sessions per connection (<code>MaxSessions</code>). The app opens channels when needed and counts none: when the server refuses one, it closes the least recently shown kept stream and tries once more; else the card shows Retry.</li>
+      <li><b>Health:</b> one loop per machine. The snapshot read is the heartbeat: every 30 s while healthy, every 2 s while failing. Automatic retries use <code>BatchMode</code> and never prompt, so a host that needs a password or a one-time code shows <b>Reconnect</b>.</li>
+      <li>Checks on connect, two steps: the snapshot (it carries herdr's version), then events. <code>integration.list</code> runs when the picker opens. If the server is not running: on a remote machine, <b>Start herdr</b> runs <code>nohup &lt;herdr&gt; --session S server &amp;</code> over SSH. On This Mac, <b>Start</b> runs the server as a one-shot launchd job, so launchd, not the app, is its parent and its "responsible process" (macOS privacy prompts never name Oriel). The job gets the same <code>PATH</code>, <code>HOME</code> and <code>XDG_*</code> as the CLI, so server and CLI agree on paths.</li>
+      <li>iOS closes its terminal streams when the app goes to the background. It keeps the connection for about 30 s, then reconnects and re-reads the snapshot on return.</li>
     </ul>
   </details>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/machines">Machines and SSH</a></p>
@@ -777,8 +780,8 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
       <tr><td>web</td><td>core</td><td>native web view</td><td><code>oriel:web#&lt;iid&gt; &lt;url&gt;</code></td></tr>
       <tr><td>git-history, diff, markdown</td><td>core</td><td>a web page and the public bridge</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr>
       <tr><td>your plugins</td><td>installed</td><td>a web page and the public bridge</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr></table>
-    <p class="muted">Core native plugins have a manifest with a <code>native</code> field instead of a page, so a terminal costs no web view. herdr's own TUI plugins are not part of this system; a pane a herdr plugin opened shows as a terminal.</p>
-    <p class="muted">Agent: the picker lists <code>integration.list</code> entries with <code>available:true</code>. Start = split or new tab, then <code>agent.start</code> (retried every 250 ms for up to 5 s while the shell is busy). No agent after 10 s shows "Agent did not start". The default view is the terminal on Mac and iPad, chat on iPhone.</p>
+    <p class="muted">Terminal, Agent and Web page are fixed rows in the picker, drawn natively, so a terminal costs no web view. herdr's own TUI plugins are not part of this system; a pane a herdr plugin opened shows as a terminal.</p>
+    <p class="muted">Agent: when the picker opens, it runs <code>integration.list</code> and lists the entries with <code>available:true</code>. Start = split or new tab, then <code>agent.start</code> (retried every 250 ms for up to 5 s while the shell is busy). No agent after 10 s shows "Agent did not start". The default view is the terminal on Mac and iPad, chat on iPhone.</p>
     <p class="muted">The TypeScript + React kit drawn as native SwiftUI (Raycast's model) is option (a) in <a href="https://oriel-docs.vercel.app/docs/future-work">Future work</a>.</p>
   </details>
   <details><summary>Web page and remote <code>localhost</code></summary>
@@ -786,7 +789,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
       <li>The pane label <code>oriel:web#&lt;iid&gt; &lt;url&gt;</code> is the marker: it has no length limit, and it survives moves and restarts. A placeholder process holds the slot. The label keeps the address the user typed; the address after in-card navigation and the scroll position go in the machine's state file (<code>web/&lt;iid&gt;.json</code>), as for plugins. Header: Back, Refresh, Open in browser, Edit address.</li>
       <li>A label this device did not set, for an origin not approved before on this machine, shows "Open ‹url›?" and loads only after a click.</li>
       <li>A remote <code>localhost:P</code> goes through <code>dial</code>. On the Mac: <code>ssh -O forward -L</code> on the ControlMaster, on the same port when it is free, so the page's origin is exactly <code>localhost:P</code>. On iOS: an in-app listener on <code>127.0.0.1:P</code> pipes each connection into a Citadel <code>direct-tcpip</code> channel (a TCP stream through the SSH connection). Tailscale addresses load directly.</li>
-      <li><b>Open :P</b>: when a terminal prints a local address (herdr's <code>pane.output_matched</code>), its card shows a chip that opens the address in a web card. The card menu also lists the machine's listening ports (<code>ss</code> or <code>lsof</code>), on demand.</li>
+      <li><b>Open :P</b>: when a terminal prints a local address (the app finds it in the terminal text it already streams for the selected tab), its card shows a chip that opens the address in a web card. The card menu also lists the machine's listening ports (<code>ss</code> or <code>lsof</code>), on demand.</li>
       <li>One WebKit data store per machine. Loopback is blocked except that machine's own forwards.</li>
     </ul>
   </details>
@@ -968,7 +971,7 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     <tr><td>A SwiftUI strip with many Metal surfaces</td><td>jank, lost gestures</td><td>v0 pages with a SwiftUI scroll view; measure it with many terminals</td></tr>
     <tr><td>herdr updated but not restarted</td><td>terminal streams fail; the API works</td><td>"Restart herdr" message</td></tr>
     <tr><td>Pane order in <code>layouts[]</code> is not a documented contract</td><td>wrong tree</td><td>leaf-count check, then <code>layout.export</code></td></tr>
-    <tr><td>Bridge cost per call</td><td>18–130 ms plus network</td><td>hidden by the debounce; direct socket if a profile says so</td></tr>
+    <tr><td>Bridge cost per call</td><td>18–130 ms plus network</td><td>one snapshot read in flight; direct socket if a profile says so</td></tr>
     <tr><td>herdr does not report PTY columns</td><td>a phone watcher uses a fixed size</td><td>ask herdr for the field if needed</td></tr>
     <tr><td>A herdr TUI on the same tab</td><td>shared ratios; our control pins the PTY size</td><td>accepted</td></tr>
     <tr><td><code>pane.swap</code> marks the tab seen in herdr</td><td>TUI users lose a done marker</td><td>accepted; swap only follows a drag</td></tr>
@@ -1004,15 +1007,15 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     <div class="st"><b>7 · Later</b><a href="https://oriel-docs.vercel.app/docs/future-work">Future work</a>: the TypeScript + React native kit, floating panes, a push relay, a small server helper, restoring <code>launch_argv</code> panes upstream, more multiplexers (Rex, tmux), OSC 7501, user plugins on iOS, iOS jump hosts, tab thumbnails, more chat parsers, more windows</div>
   </div>
   <details id="calls"><summary>herdr calls the app uses (and never uses)</summary>
-<pre><code>ping · session.snapshot · events.subscribe (long-lived) · integration.list
+<pre><code>session.snapshot (also the heartbeat) · events.subscribe (long-lived) · integration.list (when the picker opens)
 workspace.create | close | rename | move
 tab.create | close | rename | move
-pane.split | close | rename | swap | move | resize | send_input | read | process_info | report_metadata
+pane.split | close | rename | swap | move | resize | send_input | send_keys | read | process_info
 layout.set_split_ratio · layout.export (fallback) · layout.apply (a pane node in a new tab; never tab_id)
 agent.start | prompt | send_keys
 
-herdr --session S remote-api-bridge [--check]
-herdr --session S terminal session control|observe &lt;terminal_id&gt; --cols C --rows R [--takeover]
+herdr --session S remote-api-bridge
+herdr --session S terminal session control|observe &lt;terminal_id&gt; --cols C --rows R [--takeover]   (observe inside the stdin wrapper)
 herdr session list --json                              (macOS)
 herdr machine list --json                              (macOS; imported)
 herdr --session S server                               (remote: nohup, on request; This Mac: a launchd job, D47)
