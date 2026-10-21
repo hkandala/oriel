@@ -67,7 +67,7 @@ HerdrKit knows nothing about SwiftUI or libghostty; the app knows nothing about 
 - Never point the app or a test at a session you care about. Use `scripts/herdr-session.sh up oriel-dev-<name>` for
   hand testing, and `down` to remove it.
 
-CI (GitHub Actions, `.github/workflows/ci.yml`) runs lint, both builds, and `make test e2e` with herdr 0.9.3.
+CI (GitHub Actions, `.github/workflows/ci.yml`) runs lint, both builds, and `make test e2e` with herdr 0.9.5.
 
 ## Known limitations
 
