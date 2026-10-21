@@ -64,6 +64,8 @@ transcript: `agent_session` on the pane.
   - `agent_not_ready`: "Agent is starting". The draft is kept.
   - While the agent is working, Send stays on; the text joins the agent's own
     input queue.
+- A pasted image becomes a path in the draft
+  ([Image paste](/docs/plugins/terminal-and-agent#image-paste)).
 - Sends to one pane go one at a time, in order. Drafts are kept in memory per
   pane and shared with the pill card.
 - **Blocked panel:** the bottom of the screen (`pane.read {source:"detection",

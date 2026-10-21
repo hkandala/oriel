@@ -1,6 +1,6 @@
 ---
 title: "Terminal and agent"
-description: "The two native core plugins that run in herdr panes"
+description: "The two native core plugins that run in herdr panes, and image paste"
 ---
 
 ## Terminal
@@ -31,3 +31,25 @@ A pane where herdr detected an agent (`pane.agent` is set, for example
   agents get the SF Symbol `sparkles`.
 - **View:** terminal by default on Mac and iPad, chat on iPhone. The chat|term
   switch changes it ([Chat view](/docs/chat-view)).
+
+## Image paste
+
+Paste an image into a terminal or agent card, or into the chat reply box, and
+the agent gets it as a file on its own machine (D56).
+
+1. ⌘V (or Paste on iOS) with an image and no text on the clipboard. The app
+   encodes it as PNG, at most 10 MB.
+2. It writes the image to a new temporary folder on the pane's machine with
+   `run`, the PNG on stdin, and reads the path back:
+   ```sh
+   sh -c 'umask 077; d=$(mktemp -d "${TMPDIR:-/tmp}/oriel.XXXXXX") &&
+          cat >"$d/paste.png" && printf %s "$d/paste.png"'
+   ```
+3. It pastes that path into the pane like a text paste, or adds it to the
+   chat draft. Agents such as Claude Code read the image from the pasted
+   path.
+
+- The same steps on This Mac and over SSH. uHerdr, collie, termote and
+  roamgate do the same: upload, then paste the path.
+- Simpler choice: the system's temporary-file cleanup removes old images. No
+  drag and drop of files. Revisit each when users ask.
