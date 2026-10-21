@@ -148,9 +148,10 @@ One loop per machine checks that it answers.
      - `ProcessType Interactive`: launchd's default throttles the CPU and I/O
        of the server and every agent in it.
      - stderr goes to `~/Library/Logs/Oriel/<S>.log`.
-     - The job's environment is the one the app's herdr calls see
-       ([This Mac](/docs/talking-to-herdr#run-and-dial)), so the server and the
-       CLI agree on paths.
+     - The job gets the user's environment keys from the login shell (`PATH`,
+       `HOME`, `SSH_AUTH_SOCK`, `XDG_*`;
+       [herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine),
+       D47), so the server and the CLI agree on paths.
      - An older job of the label is booted out first (a label loads only
        once). A running server, one that answers a snapshot, is never booted
        out: the app uses it.
