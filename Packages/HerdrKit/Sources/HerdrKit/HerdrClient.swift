@@ -185,7 +185,7 @@ public actor HerdrClient {
             "workspace.created", "workspace.updated", "workspace.metadata_updated", "workspace.renamed",
             "workspace.moved", "workspace.reordered", "workspace.closed",
             "tab.created", "tab.closed", "tab.renamed", "tab.moved",
-            "pane.created", "pane.closed", "pane.updated", "pane.moved", "pane.exited", "pane.agent_detected",
+            "pane.created", "pane.closed", "pane.moved", "pane.exited", "pane.agent_detected",
             "layout.updated",
         ]
         // No *.focused: the app ignores herdr's focus. Each agent entry makes herdr poll that pane
