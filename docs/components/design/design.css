@@ -1,5 +1,4 @@
-/* Oriel design mocks, ported from resources/design.html.
-   Every rule is scoped under .oriel so nothing leaks into the Fumadocs theme. */
+/* Oriel design mocks. Every rule is scoped under .oriel so nothing leaks into the Fumadocs theme. */
 .oriel {
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
   --accent: #0a84ff;
