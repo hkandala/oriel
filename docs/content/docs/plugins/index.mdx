@@ -1,25 +1,23 @@
 ---
-title: "Everything is a plugin"
-description: "One registry, one manifest shape and one picker for every pane kind"
+title: "Pane kinds and plugins"
+description: "Terminal, agent and web page are built in; every other pane kind is a plugin"
 ---
 
-Every pane kind comes from one plugin registry, with one manifest shape and
-one picker. Some plugins are native code inside the app; the rest are small
-web pages ([Plugin UI](/docs/plugins/plugin-ui)).
+One picker makes every pane kind. Terminal, Agent and Web page are built into
+the app. Every other pane kind is a plugin: a small web page
+([Plugin UI](/docs/plugins/plugin-ui)) from one plugin registry.
 
-| Plugin | Kind | UI | JavaScript | How herdr marks the pane |
+| Pane kind | Kind | UI | JavaScript | How herdr marks the pane |
 |---|---|---|---|---|
-| `terminal` | core | native terminal (libghostty) | none | none (the default) |
-| `agent` | core | native terminal + chat view ([Chat view](/docs/chat-view)) | none | none (herdr sets `pane.agent`) |
-| `web` | core | native web view | none (only the page's own) | label `oriel:web#<iid> <url>` |
+| Terminal | built in | native terminal (libghostty) | none | none (the default) |
+| Agent | built in | native terminal + chat view ([Chat view](/docs/chat-view)) | none | none (herdr sets `pane.agent`) |
+| Web page | built in | native web view | none (only the page's own) | label `oriel:web#<iid> <url>` |
 | `git-history`, `diff`, `markdown` | core | a web page in a native web view ([Plugin UI](/docs/plugins/plugin-ui)) | yes, the public API | label `oriel:…` ([Labels and instance ids](/docs/plugins/labels)) |
 | your plugins | installed | a web page in a native web view | yes, the public API | label `oriel:…` |
 
-- Core native plugins have a manifest in the app bundle with a `native` field
-  (`terminal`, `agent`, `web`) instead of an HTML entry. The picker reads their
-  title, icon and argument prompt like any plugin. A terminal costs no
-  JavaScript.
-- Core plugins ship with the app. The three web core plugins use exactly the
+- The picker shows Terminal, Agent ▸ and Web page as fixed rows, then one row
+  per plugin manifest: core plugins first, then linked and installed ones.
+- Core plugins ship with the app. They use exactly the
   public API and are reference code for plugin authors.
 - A web or plugin pane is a real herdr pane with a label. In herdr it runs a
   quiet placeholder command, so herdr TUI users see what the pane is. The

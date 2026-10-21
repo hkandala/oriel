@@ -27,11 +27,10 @@ A normal `package.json` with one `oriel` field.
   }
 }
 ```
-- One plugin can declare several pane kinds. Reserved ids (the core plugins
-  and markers): `terminal`, `agent`, `web`, `git-history`, `diff`,
-  `markdown`.
+- One plugin can declare several pane kinds. The id `web` is taken by the web
+  page's label.
 - An id resolves in this order: core, then a linked folder, then an installed
-  plugin. One install per id.
+  plugin, so a plugin cannot replace a core one. One install per id.
 - `arg.required` makes the picker ask for the argument before creating the
   pane. Otherwise the plugin starts empty and can call `setArg`.
 - Preference types: `textfield`, `password` (Keychain), `checkbox`,

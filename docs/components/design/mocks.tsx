@@ -104,9 +104,9 @@ export function Phones({ caption }: { caption?: React.ReactNode }) {
 }
 
 const PICK: [Icon, string, string][] = [
-  [['sh', '>_'], 'Terminal', 'core'],
+  [['sh', '>_'], 'Terminal', ''],
   [['claude', '✳'], 'Agent', 'claude · codex · pi ▸'],
-  [['web', '◍'], 'Web page', 'core'],
+  [['web', '◍'], 'Web page', ''],
   [['codex', '⑂'], 'Git history', 'core'],
   [['codex', '±'], 'Diff', 'core'],
   [['pi', '¶'], 'Markdown', 'core'],
@@ -121,7 +121,7 @@ export function PanePicker({ caption }: { caption?: React.ReactNode }) {
         <div className="h">New pane on devbox</div>
         {PICK.map(([ic, name, note], i) => (
           <div key={name}>
-            {i === 6 && <hr />}
+            {(i === 3 || i === 6) && <hr />}
             <div className="it">
               <Ico icon={ic} />
               {name} <small>{note}</small>
