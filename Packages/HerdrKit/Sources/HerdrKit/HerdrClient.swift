@@ -41,9 +41,8 @@ public actor HerdrClient {
     nonisolated let timeout: Duration
 
     private var out: AsyncStream<Update>.Continuation?
-    /// No good snapshot since the start or the last failure.
-    private var stale = true
-    private var lastRead = ContinuousClock.now
+    /// The last good snapshot; nil since the start or the last failure.
+    private var lastRead: ContinuousClock.Instant?
     private var reading = false
     private var readAgain = false
     private var heartbeat: Task<Void, Never>?
@@ -149,7 +148,6 @@ public actor HerdrClient {
         Task { [self] in
             do {
                 let snapshot = try await snapshot()
-                stale = false
                 lastRead = .now
                 out?.yield(.snapshot(snapshot))
                 let agentPanes = snapshot.agents.map(\.paneID).sorted()
@@ -160,7 +158,7 @@ public actor HerdrClient {
                 out?.yield(.error(.unsupported(message)))
                 out?.finish()
             } catch {
-                stale = true
+                lastRead = nil
                 out?.yield(.error(error as? HerdrError ?? .failed("\(error)")))
             }
             reading = false
@@ -223,7 +221,7 @@ public actor HerdrClient {
     private func beat() async {
         repeat {
             // A 2 s tick, so a read that fails mid-wait (the session stopped) is retried soon.
-            if stale || ContinuousClock.now - lastRead >= .seconds(30) {
+            if lastRead.map({ ContinuousClock.now - $0 >= .seconds(30) }) ?? true {
                 refresh()
             }
         } while await (try? Task.sleep(for: .seconds(2))) != nil
