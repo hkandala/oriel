@@ -576,7 +576,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <tr><td>Agent did not start (10 s)</td><td>"Agent did not start" and the last screen lines</td></tr>
       <tr><td>Move refused by herdr</td><td>herdr's reason in words</td></tr>
       <tr><td>Web page failed</td><td>WebKit's error in the card</td></tr>
-      <tr><td>Web address set by someone else</td><td>"Open ‹url›?" with an Open button</td></tr>
+      <tr><td>Web card built from a label, origin not approved and not on the safe list</td><td>"Open ‹url›?" with an Open button</td></tr>
       <tr><td>Plugin not installed on this device</td><td>the plugin id, the argument, <b>Show placeholder</b> (switch the card to the pane's terminal), <b>Close pane</b>; on macOS also "Install from ‹source›…", marked "Suggested by ‹machine›"</td></tr>
       <tr><td>Plugin not responding</td><td>"‹title› is not responding · Refresh"</td></tr>
       <tr><td>Full chat not available</td><td>the screen-text chat, with a tooltip that says why</td></tr>
@@ -788,7 +788,8 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
   <details><summary>Web page and remote <code>localhost</code></summary>
     <ul>
       <li>The pane label <code>oriel:web#&lt;iid&gt; &lt;url&gt;</code> is the marker: it has no length limit, and it survives moves and restarts. A placeholder process holds the slot. The label keeps the address the user typed; the address after in-card navigation and the scroll position go in the machine's state file (<code>web/&lt;iid&gt;.json</code>), as for plugins. Header: Back, Refresh, Open in browser, Edit address.</li>
-      <li>A label this device did not set, for an origin not approved before on this machine, shows "Open ‹url›?" and loads only after a click.</li>
+      <li><b>When a page loads:</b> a page you create or type loads at once and approves its origin for that machine. A card built from a label (a fresh start, another device, a card an agent or the herdr TUI made) loads by itself if its origin is approved for that machine or on the safe list. Otherwise it shows <b>Open ‹url›?</b> once, and Open approves the origin.</li>
+      <li><b>Approvals and the safe list</b> are a per-device setting, per machine. The safe list: the machine's own <code>localhost</code> and <code>127.0.0.1</code> on any port (always), and built in <code>github.com</code>, <code>gitlab.com</code>, <code>bitbucket.org</code>, <code>developer.apple.com</code>, <code>developer.mozilla.org</code>, <code>docs.github.com</code>, <code>vercel.com</code>, <code>*.vercel.app</code>, <code>*.netlify.app</code>. You can view and edit approvals and the list in Settings.</li>
       <li>A remote <code>localhost:P</code> goes through <code>dial</code>. On the Mac: <code>ssh -O forward -L</code> on the ControlMaster, on the same port when it is free, so the page's origin is exactly <code>localhost:P</code>. On iOS: an in-app listener on <code>127.0.0.1:P</code> pipes each connection into a Citadel <code>direct-tcpip</code> channel (a TCP stream through the SSH connection). Tailscale addresses load directly.</li>
       <li><b>Open :P</b>: when a terminal prints a local address (the app finds it in the terminal text it already streams for the selected tab), its card shows a chip that opens the address in a web card. The card menu also lists the machine's listening ports (<code>ss</code> or <code>lsof</code>), on demand.</li>
       <li>One WebKit data store per machine. Loopback is blocked except that machine's own forwards.</li>
@@ -924,7 +925,7 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
       <li>Chat history (the agent's transcript)</li>
 </ul></div>
     <div class="col2 tag-a"><h4>The app keeps</h4><ul>
-      <li><b>Disk:</b> display preferences and pill settings; window restore ids and the sidebar expand state (<code>@SceneStorage</code>); plugin code, consent and preferences; approved web origins; the machine list; on iOS a Secure Enclave key and pinned host keys in the Keychain</li>
+      <li><b>Disk:</b> display preferences and pill settings; window restore ids and the sidebar expand state (<code>@SceneStorage</code>); plugin code, consent and preferences; approved web origins per machine and the safe list; the machine list; on iOS a Secure Enclave key and pinned host keys in the Keychain</li>
       <li><b>WebKit:</b> cookies, one data store per machine</li>
       <li><b>Memory:</b> zoomed card, chat or terminal per pane, seen values, drafts</li>
       <li><b>While running:</b> ControlMaster sockets and port forwards</li></ul></div>
@@ -982,7 +983,7 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     <tr><td><code>layout.apply</code> with <code>tab_id</code> replaces the whole tab</td><td>the tab's panes are killed</td><td>the app never passes <code>tab_id</code></td></tr>
     <tr><td>herdr cold restart</td><td>web and plugin panes come back as shells with their label</td><td>cards rebuild from the label and the state file; upstream ask: herdr discussion #1367</td></tr>
     <tr><td>A malicious plugin the user installed</td><td>anything the user can do on machines where its panes open, including network use from there</td><td>consent sheet in plain words; This Mac confirm; source shown and pinned to a commit</td></tr>
-    <tr><td>Labels written by a hostile machine</td><td>a web page or plugin card opening by itself</td><td>web addresses need a click; plugins act only on that machine</td></tr>
+    <tr><td>Labels written by a hostile machine</td><td>a web page or plugin card opening by itself</td><td>an origin not approved and not on the safe list needs a click; plugins act only on that machine</td></tr>
     <tr><td>DNS rebinding against loopback forwards</td><td>a page reaches a forwarded dev server by another name</td><td>per-machine loopback rules; accepted residual risk</td></tr>
     <tr><td>The pill panel's focus behavior</td><td>the reply box may not take keys, or a click may not open the app</td><td>spike S5</td></tr>
     <tr><td>Web view memory (120–200 MB each, web pages and plugin cards)</td><td>memory growth</td><td>caps of 6 on Mac and iPad, 2 on iPhone; evict on memory pressure</td></tr>
@@ -1056,7 +1057,8 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
     <tr><td class="k">plugin / core plugin</td><td>a pane kind drawn by a small web page / one that ships with the app (Git history, Diff, Markdown); terminal, agent and web page are built in, not plugins</td></tr>
     <tr><td class="k">bridge</td><td>the calls a plugin page gets on its pane's machine: <code>run(argv)</code> and <code>dial(host, port)</code></td></tr>
     <tr><td class="k">dial</td><td>open a TCP stream to a host and port as seen from a machine, through the SSH connection</td></tr>
-    <tr><td class="k">iid</td><td>the instance id of a web or plugin pane, kept in its label</td></tr>
+    <tr><td class="k">iid</td><td>the instance id of a web or plugin pane, kept in its label; it names the pane's state file</td></tr>
+    <tr><td class="k">safe list</td><td>web origins that load without asking: the machine's own <code>localhost</code> and <code>127.0.0.1</code>, and a built-in list you can edit in Settings</td></tr>
     <tr><td class="k">placeholder</td><td>the inert command a web or plugin pane is created with, which shows TUI users what the pane is; cosmetic</td></tr>
     <tr><td class="k">cold restart / live update</td><td>herdr stops and its terminals end / herdr hands over to a new server process and keeps its terminals</td></tr>
     <tr><td class="k">spike</td><td>a small throwaway test of one risky part, before real views</td></tr>
