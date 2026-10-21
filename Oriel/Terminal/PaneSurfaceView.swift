@@ -46,7 +46,13 @@
         /// After SwiftUI's update: a first responder set during one (a tab that just arrived) is undone.
         private func claimKeyboard() {
             DispatchQueue.main.async { [weak self] in
-                guard let self, pending == Self.request, let window else { return }
+                guard let self, pending == Self.request else { return }
+                // Out of the window for a moment (SwiftUI moves it to a new host when a split closes): claim it
+                // once it is in again, or the keyboard goes nowhere.
+                guard let window else {
+                    wantsKeyboard = true
+                    return
+                }
                 window.makeFirstResponder(self)
                 // Also when it already was the first responder (no becomeFirstResponder then).
                 terminal?.hasKeyboard = window.firstResponder === self
