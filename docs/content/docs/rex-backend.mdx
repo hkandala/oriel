@@ -304,6 +304,9 @@ Today a second backend cannot build the app's model types from outside
    the backend gives.
 5. `HostStore` picks the backend per machine. It names `HerdrClient` in one
    place today.
+6. A lookup for `rex` like the one for herdr. `Exec.herdr()` asks the login
+   shell for herdr's absolute path (D38). A Rex client needs the same for
+   `rex`, or for `nc` and the socket path from `rex server status --json`.
 
 The terminal path in `PaneTerminal` then branches on the backend: a real
 scrollback, all keys through `client.key`, and wheel events sent only in mouse

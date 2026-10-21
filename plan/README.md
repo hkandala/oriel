@@ -141,7 +141,7 @@ tokens and views of the ones before.
 
 Starting an implementer (the orchestrator sends this, with the phase number filled in):
 
-> Implement phase NN of Oriel (`/Users/hkandala/code/oriel`). Read `AGENTS.md`, `plan/README.md`,
+> Implement phase NN of Oriel (`/Users/hkandala/code/oriel`). Pull `origin/main` first. Read `AGENTS.md`, `plan/README.md`,
 > `plan/rules.md`, `plan/standards.md`, `plan/ui-polish.md`, `plan/phases/NN-*.md` and every page it
 > lists under "Read first", then the ponytail skill. Build the phase with small commits, e2e tests as
 > the phase lists, `make lint build test e2e` green, the design pages updated to match what you built.
