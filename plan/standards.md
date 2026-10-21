@@ -11,7 +11,9 @@ before writing code. In short:
 - Does it need to exist? Is it already here? Does the stdlib, SwiftUI, AppKit or an
   installed package do it? Only then write the minimum.
 - No protocol with one implementation, except `Exec` (the design's one seam for local,
-  remote and iOS). No factories, managers, coordinators or "service" layers.
+  remote and iOS) and `Multiplexer` (D49: the app talks to it, `HerdrClient` is its only
+  conformer; it grows a method only when the app uses a new feature). No factories,
+  managers, coordinators or "service" layers.
 - No scaffolding for later phases. A later phase adds what it needs.
 - Mark a deliberate shortcut with a `// ponytail:` comment naming its ceiling and upgrade
   path.
