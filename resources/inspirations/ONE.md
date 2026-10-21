@@ -5,7 +5,7 @@ agent as a dot in a small black pill on the right edge of the screen. Questions
 and finished work collect in an Inbox card next to the pill, and you answer
 with one key. **It is built on herdr**: to answer, stop or message an agent
 from One, the agent must run in herdr. That makes it the closest existing
-product to what Herdlight's status area wants to be.
+product to what Oriel's status area wants to be.
 
 Raw material is in `one-app/`; chosen frames are in `selected/one-*.jpg`.
 
@@ -59,7 +59,7 @@ Product Hunt page found. The author is kyzo (@ky__zo).
     detailed account.
 - **AI on top**: routing, titles ("Pricing page", "Stripe checkout"), recaps,
   and up to two suggested "next steps" use an LLM (your ChatGPT plan or
-  OpenAI key first, then One's servers). Not relevant to Herdlight.
+  OpenAI key first, then One's servers). Not relevant to Oriel.
 
 ## Every UI state
 
@@ -228,9 +228,9 @@ Sizes are in the mockup's CSS pixels. The mockup screen is ~1120 px wide with
 a 26 px menu bar, close to real points, so real sizes are probably within
 ±10 % (estimate).
 
-## Design takeaways for Herdlight
+## Design takeaways for Oriel
 
-Herdlight's status area (DESIGN.md §12) already has the right data:
+Oriel's status area (DESIGN.md §12) already has the right data:
 `agent_status`, `completion_seq`, "finished, not seen". One shows the best
 place and shape to put it, and the cheapest way to answer.
 

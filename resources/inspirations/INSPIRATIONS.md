@@ -1,4 +1,4 @@
-# UI inspirations for Herdlight
+# UI inspirations for Oriel
 
 Three short X videos, studied frame by frame (4 fps). Raw videos and all frames are in `cube-computer/`, `rex-status-tabs/`, `rex-tab-peek/`. The chosen frames are in `selected/`.
 
