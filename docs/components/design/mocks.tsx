@@ -166,7 +166,7 @@ export function AddMachineSheet({ caption }: { caption?: React.ReactNode }) {
         </div>
         <div className="f">
           <label>
-            From herdr<span className="ios">macOS</span>
+            herdr<span className="ios">macOS</span>
           </label>
           <div>
             ☑ devbox
