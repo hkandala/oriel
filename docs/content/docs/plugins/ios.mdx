@@ -1,12 +1,14 @@
 ---
 title: "Plugins on iOS"
-description: "The same plugins run on iOS, built-in and your own"
+description: "The same plugins run on iOS; v1 ships the core ones"
 ---
 
 - Plugins are web pages, and WebKit is on iOS, so the same plugin runs on the
-  iPhone and iPad from day one.
-- v1 ships the core plugins and your own plugins on iOS. A plugin only draws
-  on the device; its `run` and `dial` go to the pane's machine, as on the Mac.
-- The phone has no `git`, so **Install from a git URL** runs the shallow clone
-  on a machine you pick, with `run`, and copies the files back with `tar` over
-  the same connection. Dev mode (a linked folder) is Mac only.
+  iPhone and iPad from day one. It draws on the device; its `run` and `dial`
+  go to the pane's machine, as on the Mac.
+- v1 ships only the core plugins on iOS (Terminal, Agent, Web page, Git
+  history, Diff, Markdown), inside the app. Your own plugins on iOS are
+  [Future work](/docs/future-work).
+- A label for any other plugin shows the missing-plugin card with **Show
+  placeholder** (switch the card to the pane's terminal)
+  ([State and restore](/docs/plugins/state)).
