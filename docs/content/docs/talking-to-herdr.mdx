@@ -46,14 +46,20 @@ the work. A later server helper would sit behind the same two calls
   `<BASE64>` holds the real command as POSIX `sh`, with every argv element
   single-quoted. Base64 contains only `A–Z a–z 0–9 + / =`, so every shell
   passes it through unchanged.
-- **Child processes** are killed when the app quits. The app signals each
-  child by its pid, never by process group. Bridge and control children also
-  exit when their stdin closes. Commands that ignore stdin (`tail -F`,
-  `terminal session observe`) are wrapped like this, so closing the channel
-  ends them and frees the SSH session:
+- **Ending a child = closing its stdin.** A `control` run exits in about
+  2 ms and herdr frees the pane at once (keys written before the close still
+  arrive). A bridge run exits in about 100 ms. If the app quits or crashes,
+  the kernel closes its pipes, so every child ends by itself, remote ones
+  too: ssh closes the channel. (Measured with herdr 0.9.5, on This Mac and
+  over SSH.)
+- `observe` and `tail -F` ignore a closed stdin, so they always run in this
+  wrapper, on This Mac too:
   ```sh
   sh -c '<cmd> & c=$!; cat >/dev/null; kill $c'
   ```
+- One fallback: a channel whose child is still alive about 1 s after the
+  close kills its own pid (SIGKILL). The app signals a child only by its pid,
+  never by process group.
 
 ## Finding herdr on a machine
 
@@ -145,7 +151,6 @@ herdr terminal session control <terminal_id> --cols C --rows R [--takeover]
             "cell_width_px":8,"cell_height_px":17}
            {"type":"terminal.scroll",…}
            {"type":"terminal.mouse",…}
-           {"type":"terminal.release"}
 ```
 
 herdr draws the pane at our size and sends ANSI updates. A libghostty surface
@@ -189,11 +194,8 @@ draws them. Keys go back as `terminal.input`.
    and sent in order.
 4. Nothing else takes control. A watcher stays a watcher until its user acts,
    even after the other device lets go.
-5. A device sends `terminal.release` before it closes a `control` stream:
-   when the card leaves the recently shown set (Mac, D46) or the selected tab
-   (iPhone and iPad), when the card switches to chat, when the user switches machines or sessions, and when
-   the window closes. On quit the Mac app kills its children instead: herdr
-   frees the pane of a killed `control` run at once, as if it had released it.
+5. A device closes a stream (closes its stdin) when it stops showing the
+   card ([What streams](#what-streams)). herdr frees the pane at once.
 6. **Background:** a Mac app that becomes inactive keeps its streams. An iOS
    app releases its streams when it goes to the background.
 
@@ -215,7 +217,7 @@ handshake fails, it exits 1 with the reason on stderr.
 | `already has an attached client` | watches; shows Take back |
 | `taken over` | watches; never takes back by itself |
 | `not found` or `exited` | drops the card; waits for the snapshot |
-| `detached` | does nothing (it released the pane) |
+| `detached` | does nothing (this device closed the stream) |
 | `live update` | backs off, pings, checks the version, opens every stream again |
 | handshake error (exit 1) | "Restart herdr on ‹machine›" |
 
