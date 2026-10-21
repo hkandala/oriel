@@ -829,7 +829,7 @@ web:http://localhost:3000/dashboard</code></pre>
       <li><b>Consent at install</b>, keyed by plugin id and source, in plain words: the plugin can run any command as you on the machine of every one of its panes (including ones others created), use the network from there and leave programs running; on This Mac that includes your files, SSH keys and connections to other machines. Again on a new permission. One more confirm on a plugin's first <code>run</code> or <code>dial</code> on This Mac, also keyed by id and source. The sheet is headed by the plugin id and source URL, not only the plugin's own title.</li>
       <li>Core plugin ids are reserved. An id resolves core first, then a linked folder, then an installed plugin.</li>
       <li>A machine can write labels, so it can open any installed plugin on itself, which gives it only what the plugin does on that machine.</li>
-      <li>iOS v1 ships the core plugins (terminal, agent, web, Git history, Diff, Markdown). Installing your own plugins on iOS comes later.</li>
+      <li>iOS v1 ships the core plugins and your own. A plugin only draws on the device; <code>run</code> and <code>dial</code> go to the pane's machine.</li>
     </ul>
   </details>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/plugins">Pane kinds and plugins</a> · <a href="https://oriel-docs.vercel.app/docs/plugins/web-page">Web page</a> · <a href="https://oriel-docs.vercel.app/docs/plugins/security">Security</a></p>
@@ -996,7 +996,7 @@ web:http://localhost:3000/dashboard</code></pre>
     <div class="st"><b>4 · Plugin system</b>web view host and bridge, Git history, Diff, Markdown, install and dev mode</div>
     <div class="st"><b>5 · Floating pills</b>macOS only</div>
     <div class="st"><b>6 · Full iPadOS and iOS</b>compact layout, reply box, key bar, the <code>dial</code> listener</div>
-    <div class="st"><b>7 · Later</b><a href="https://oriel-docs.vercel.app/docs/future-work">Future work</a>: the TypeScript + React native kit, floating panes, a push relay, a small server helper, restoring <code>launch_argv</code> panes upstream, more multiplexers (Rex, tmux), OSC 7501, user plugins on iOS, iOS jump hosts, tab thumbnails, more chat parsers, more windows</div>
+    <div class="st"><b>7 · Later</b><a href="https://oriel-docs.vercel.app/docs/future-work">Future work</a>: the TypeScript + React native kit, floating panes, a push relay, a small server helper, restoring <code>launch_argv</code> panes upstream, more multiplexers (Rex, tmux), OSC 7501, iOS jump hosts, tab thumbnails, more chat parsers, more windows</div>
   </div>
   <details id="calls"><summary>herdr calls the app uses (and never uses)</summary>
 <pre><code>ping · session.snapshot · events.subscribe (long-lived) · integration.list
