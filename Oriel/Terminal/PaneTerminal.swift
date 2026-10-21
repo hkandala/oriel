@@ -40,7 +40,7 @@
         @ObservationIgnored let view = PaneSurfaceView(frame: .zero)
         @ObservationIgnored var paneID: String
         @ObservationIgnored private let terminalID: String
-        @ObservationIgnored private let client: HerdrClient
+        @ObservationIgnored private let client: any Multiplexer
         @ObservationIgnored private let session: InMemoryTerminalSession
         /// Input not sent yet; it goes out while the stream is live.
         @ObservationIgnored private var pending: [Input] = []
@@ -69,7 +69,7 @@
             $0.withCustom("scrollback-limit", "0")
         }
 
-        init(terminalID: String, paneID: String, client: HerdrClient) {
+        init(terminalID: String, paneID: String, client: any Multiplexer) {
             self.terminalID = terminalID
             self.paneID = paneID
             self.client = client
@@ -310,8 +310,7 @@
                     case let .text(text):
                         stream.input(text)
                     case let .keys(keys):
-                        // Any reply decodes as Created (its tab is optional).
-                        _ = try? await client.call("pane.send_keys", ["pane_id": paneID, "keys": keys]) as Created
+                        try? await client.sendKeys(keys, pane: paneID)
                     }
                 }
                 draining = nil

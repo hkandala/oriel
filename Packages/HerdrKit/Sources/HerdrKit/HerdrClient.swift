@@ -27,7 +27,7 @@ extension HerdrError: LocalizedError {
     }
 }
 
-/// What `HerdrClient.updates()` delivers.
+/// What `Multiplexer.updates()` delivers.
 public enum Update: Sendable {
     case snapshot(Snapshot)
     case error(HerdrError)
@@ -79,7 +79,7 @@ public actor HerdrClient {
     // MARK: Requests
 
     /// Sends one request through a new `remote-api-bridge` run and decodes its `result`.
-    public nonisolated func call<Result: Decodable & Sendable>(
+    nonisolated func call<Result: Decodable & Sendable>(
         _ method: String,
         _ params: [String: any Sendable] = [:],
     ) async throws -> Result {

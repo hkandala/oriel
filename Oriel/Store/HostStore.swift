@@ -93,7 +93,7 @@ final class HostStore {
     var zoomedPaneID: String?
     /// A tab this app just made, selected once a snapshot shows it.
     @ObservationIgnored private var arriving: String?
-    @ObservationIgnored private var client: HerdrClient?
+    @ObservationIgnored private var client: (any Multiplexer)?
     #if os(macOS)
         let terminals = PaneViewRegistry()
         /// The tab whose terminal last got the keyboard from the app.
@@ -196,7 +196,9 @@ final class HostStore {
     func run(exec: any Exec) async {
         var loadedSessions = false
         do {
-            let client = try await HerdrClient(herdr: HerdrClient.locate(exec: exec), session: session, exec: exec)
+            // herdr is the only multiplexer (design D49).
+            let client: any Multiplexer = try await HerdrClient(herdr: HerdrClient.locate(exec: exec),
+                                                                session: session, exec: exec)
             self.client = client
             defer { self.client = nil }
             #if os(macOS)
@@ -204,8 +206,7 @@ final class HostStore {
                     try await client.startServer()
                     // A new server has no workspace yet.
                     if try await client.snapshot().workspaces.isEmpty {
-                        let _: Created = try await client.call("workspace.create", ["cwd": NSHomeDirectory(),
-                                                                                    "focus": false])
+                        _ = try await client.newWorkspace(cwd: NSHomeDirectory())
                     }
                 }
                 terminals.client = client
@@ -280,12 +281,12 @@ final class HostStore {
     }
 }
 
-/// Writes: each is one herdr call, then a snapshot read (design: writes are herdr calls).
+/// Writes: each is one multiplexer action, then a snapshot read (design: writes are herdr calls).
 extension HostStore {
     /// A split restores a zoomed layout first, as tmux does: the new pane shows.
     func split(_ paneID: String, _ direction: SplitNode.Direction) async {
         zoomedPaneID = nil
-        await write("pane.split", ["target_pane_id": paneID, "direction": direction.rawValue, "focus": false])
+        await write { try await $0.split(paneID, direction) }
     }
 
     /// A new tab in the selected workspace, in the keyboard card's directory.
@@ -296,11 +297,13 @@ extension HostStore {
         if let pane = keyboardPane, let fresh = try? await client?.pane(pane.id).cwd {
             cwd = fresh
         }
-        await write("tab.create", ["workspace_id": workspace.id, "cwd": cwd ?? NSHomeDirectory(), "focus": false])
+        await write { [self] in
+            arriving = try await $0.newTab(workspace: workspace.id, cwd: cwd ?? NSHomeDirectory()) ?? arriving
+        }
     }
 
     func newWorkspace() async {
-        await write("workspace.create", ["cwd": NSHomeDirectory(), "focus": false])
+        await write { [self] in arriving = try await $0.newWorkspace(cwd: NSHomeDirectory()) ?? arriving }
     }
 
     /// Closes a pane that runs only its shell; asks first when anything else runs (design D41).
@@ -316,15 +319,15 @@ extension HostStore {
         if let program {
             closing = .pane(paneID, program: program)
         } else {
-            await write("pane.close", ["pane_id": paneID])
+            await write { try await $0.close(pane: paneID) }
         }
     }
 
     /// The user said yes.
     func close(_ close: Close) async {
         switch close {
-        case let .pane(id, _): await write("pane.close", ["pane_id": id])
-        case let .tab(id): await write("tab.close", ["tab_id": id])
+        case let .pane(id, _): await write { try await $0.close(pane: id) }
+        case let .tab(id): await write { try await $0.close(tab: id) }
         }
     }
 
@@ -338,8 +341,8 @@ extension HostStore {
         #endif
     }
 
-    /// One write. No focus change; the snapshot after it draws the result, and selects a tab it made.
-    private func write(_ method: String, _ params: [String: any Sendable]) async {
+    /// One write. No focus change; the snapshot after it draws the result, and selects a tab it made (`arriving`).
+    private func write(_ action: (any Multiplexer) async throws -> Void) async {
         guard let client else { return }
         guard !writing else {
             // A confirmed close must not vanish silently.
@@ -349,9 +352,8 @@ extension HostStore {
         writing = true
         notice = nil
         do {
-            let created: Created = try await client.call(method, params)
+            try await action(client)
             writing = false
-            arriving = created.tab?.id ?? arriving
             await client.refresh()
         } catch {
             writing = false

@@ -11,7 +11,7 @@
     final class PaneViewRegistry {
         /// The design's bound on streaming terminals (D46).
         static let live = 24
-        var client: HerdrClient?
+        var client: (any Multiplexer)?
         /// A terminal took the keyboard (its terminal id).
         var onKeyboard: ((String) -> Void)?
         private var terminals: [String: PaneTerminal] = [:]

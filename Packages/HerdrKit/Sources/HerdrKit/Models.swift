@@ -71,9 +71,10 @@ public enum AgentStatus: String, Decodable, Sendable {
     }
 }
 
-/// What `workspace.create` and `tab.create` return: the new tab, to select once a snapshot shows it.
-public struct Created: Decodable, Sendable {
-    public let tab: Tab?
+/// What `workspace.create` and `tab.create` return: the new tab, to select once a snapshot shows it. Any other
+/// reply decodes as one too (its tab is optional).
+struct Created: Decodable {
+    let tab: Tab?
 }
 
 /// `pane.process_info`: the pane's shell and its foreground processes.
