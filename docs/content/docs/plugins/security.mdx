@@ -36,7 +36,7 @@ description: "Machine binding, what run means, consent, the page's limits and ca
     in a separate content world, which would let the page copy and open
     freely. App-to-page messages travel only as replies to the page's own
     bridge calls (`WKScriptMessageHandlerWithReply`); for example, `oriel.on`
-    waits on a pending call for the next "snapshot changed" signal.
+    waits on a pending call for the next snapshot read.
 - **No permissions to pick.** Every plugin can `run` and `dial`; install
   consent is the gate. Finer rules ("only `git`") would not hold
   (`git -c alias.x='!sh'` runs anything), so none are offered.

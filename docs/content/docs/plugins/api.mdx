@@ -34,7 +34,7 @@ interface Oriel {
   state: { get<T>(): Promise<T | undefined>; set<T>(value: T): void };
   preferences: Record<string, string | boolean>;
 
-  // "snapshot": herdr state changed
+  // "snapshot": after each snapshot read
   on(event: "snapshot", fn: () => void): void;
 }
 ```
@@ -46,7 +46,7 @@ interface Oriel {
 | `pane` | the machine, argument and cwd | injected when the card is built; an open card does not follow a rename from elsewhere ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)) |
 | `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `oriel:<plugin>[/<pane>]#<iid>`; updates `pane.arg` |
 | `state` | view state (where the user was looking), kept across devices and restarts | the state file, read when the card is built or on **Refresh** ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)) |
-| `on("snapshot")` | refresh when an agent finishes | fires after each snapshot read, only while the card is visible; carries no data, so herdr's schema stays behind the [Multiplexer interface](/docs/architecture#the-multiplexer-interface); a plugin that needs herdr data runs `herdr` with `run` |
+| `on("snapshot")` | refresh when an agent finishes | fires after each snapshot read (events and the 30 s health check), only while the card is visible; carries no data, so herdr's schema stays behind the [Multiplexer interface](/docs/architecture#the-multiplexer-interface); a plugin that needs herdr data runs `herdr` with `run` |
 | `preferences` | per-device settings | read only |
 | links (web standard) | links in commits, PR pages | `<a target="_blank">` or `window.open` ([Plugin security](/docs/plugins/security)) |
 | copy (web standard) | "Copy SHA" | `navigator.clipboard.writeText` ([Plugin security](/docs/plugins/security)) |
