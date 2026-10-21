@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="data:,">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oriel · design</title>
 <style>
@@ -563,7 +564,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <tr><td>Connecting</td><td>a spinner on the machine page</td></tr>
       <tr><td>herdr not installed on this Mac</td><td>install instructions on This Mac's page; remote machines still work</td></tr>
       <tr><td>herdr missing on a remote machine</td><td>the install command</td></tr>
-      <tr><td>herdr older than 0.9.3</td><td>"herdr 0.9.3 or newer is needed"</td></tr>
+      <tr><td>herdr older than 0.9.3</td><td>"herdr 0.9.3 or newer is needed"; before 0.9.1 (no <code>remote-api-bridge</code>) "No answer from herdr"</td></tr>
       <tr><td>herdr updated but not restarted</td><td>"Restart herdr on ‹machine›" (terminal streams fail; the API works)</td></tr>
       <tr><td>herdr server not running on This Mac</td><td>"‹session› is not running", a <b>Start</b> button (a launchd job) and the command to run in a terminal</td></tr>
       <tr><td>herdr server not running on a remote machine</td><td>a <b>Start herdr</b> button</td></tr>
@@ -634,12 +635,12 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 # every remote command, whatever the login shell (bash, zsh, fish):
 sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&gt;</code></pre>
     <ul>
-      <li>This Mac: <code>Process</code>, with <code>PATH</code>, <code>SSH_AUTH_SOCK</code> and <code>XDG_*</code> read once from <code>$SHELL -lic</code> (3 s timeout, parsed after a marker). <code>HERDR_*</code> is removed from children. herdr's usual install folders are on <code>PATH</code> inside the envelope, so the app never looks for herdr: a missing herdr fails the first call and the app shows the install command.</li>
+      <li>This Mac: <code>Process</code>, with <code>PATH</code>, <code>SSH_AUTH_SOCK</code> and <code>XDG_*</code> read once from <code>$SHELL -lic</code> (3 s timeout, parsed after a marker). <code>HERDR_*</code> is removed from children. herdr's usual install folders are in front of <code>PATH</code>, so the app never looks for herdr: a missing herdr fails the first call and the app shows the install command.</li>
       <li>Remote on macOS: <code>ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/false -S &lt;ctl&gt; &lt;target&gt; --</code>, which never opens a second connection. iOS: a Citadel exec channel.</li>
       <li>Base64 passes through every shell unchanged, so no data is ever pasted into a shell string.</li>
       <li><b>Ending a child = closing its stdin.</b> <code>control</code> exits at once and frees the pane; the bridge exits in about 100 ms. If the app crashes, the kernel closes the pipes and every child ends itself, remote ones too. Commands that ignore the end of stdin (<code>observe</code>, <code>tail -F</code>) always run inside <code>sh -c '&lt;cmd&gt; &amp; c=$!; cat &gt;/dev/null; kill $c'</code>, on This Mac too. If a child still runs about 1 s after the close, its channel kills it by pid (never by process group).</li>
-      <li>Every <code>call()</code> has a 10 s timeout, which starts the health check at once. Long-lived streams have none; the health check covers them.</li>
-      <li>herdr older than 0.9.3 has no <code>remote-api-bridge</code>, so the first call fails and the app says "herdr 0.9.3 or newer is needed". The version comes from the snapshot; a newer protocol needs nothing. Every herdr argv carries <code>--session</code>.</li>
+      <li>Every <code>call()</code> has a 10 s timeout. Long-lived streams have none; the health check covers them.</li>
+      <li>herdr older than 0.9.1 has no <code>remote-api-bridge</code>, so the first call fails and the app says "No answer from herdr". A snapshot that reports a version below 0.9.3 shows "herdr 0.9.3 or newer is needed"; a newer protocol needs nothing. Every herdr argv carries <code>--session</code>.</li>
     </ul>
   </details>
   <details><summary>Requests and events</summary>
@@ -648,7 +649,7 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
       <li>One long-lived bridge per machine carries <code>events.subscribe</code>: workspace, tab, pane and layout events listed explicitly (no wildcards), status events only for agent panes, no focus events.</li>
       <li>Any event means "read the snapshot again"; the app decodes no event payload. One <code>session.snapshot</code> is in flight per machine. An event during a read sets a read-again flag, so one more read follows. The event stream stays; polling was rejected.</li>
       <li>The stream is reopened, then a snapshot read, when agent panes change, on <code>events_lost</code> and on <code>pane_not_found</code>.</li>
-      <li><b>One health loop per machine:</b> the snapshot read is the heartbeat. It carries herdr's version and catches missed events. Every 30 s while healthy, every 2 s while failing. Automatic retries use <code>BatchMode</code> and never prompt; a host that needs a password or a one-time code shows <b>Reconnect</b>.</li>
+      <li><b>One health check per machine:</b> the snapshot read is the heartbeat. It carries herdr's version and catches missed events. Every 30 s while healthy, every 2 s while failing. Automatic retries use <code>BatchMode</code> and never prompt; a host that needs a password or a one-time code shows <b>Reconnect</b>.</li>
       <li>Snapshots are applied to stable observable objects. Ids are scoped by machine.</li>
     </ul>
   </details>
@@ -678,7 +679,7 @@ herdr call pane.send_keys ← special keys and Ctrl chords</code></pre>
       <tr><td><code>taken over</code></td><td>watches; never takes back by itself</td></tr>
       <tr><td><code>not found</code> / <code>exited</code></td><td>drops the card; waits for the snapshot</td></tr>
       <tr><td><code>detached</code></td><td>does nothing (it closed the stream)</td></tr>
-      <tr><td><code>live update</code></td><td>the health loop reads the snapshot every 2 s, then reopens everything</td></tr>
+      <tr><td><code>live update</code></td><td>opens the stream again after 1 s</td></tr>
       <tr><td>handshake error (exit 1)</td><td>"Restart herdr on ‹machine›"</td></tr></table>
   </details>
   <details><summary>Writes: every user action is a herdr call</summary>
@@ -716,8 +717,8 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
       <li><code>&lt;h8&gt;</code> is 8 hex characters of a hash of the SSH target, so the socket path stays under the 104-byte socket limit for user names up to 50 characters, with ssh's 17-character temporary suffix. The folder is per user, mode 0700.</li>
       <li>Local Network privacy (macOS 15+): the app declares the usage string and opens an <code>NWConnection</code> to a LAN address first, so the system asks once.</li>
       <li>All machines keep their control plane open; only the selected machine streams terminals. OpenSSH allows 10 sessions per connection (<code>MaxSessions</code>). The app opens channels when needed and counts none: when the server refuses one, it closes the least recently shown kept stream and tries once more; else the card shows Retry.</li>
-      <li><b>Health:</b> one loop per machine. The snapshot read is the heartbeat: every 30 s while healthy, every 2 s while failing. Automatic retries use <code>BatchMode</code> and never prompt, so a host that needs a password or a one-time code shows <b>Reconnect</b>.</li>
-      <li>Checks on connect, two steps: the snapshot (it carries herdr's version), then events. <code>integration.list</code> runs when the picker opens. If the server is not running: on a remote machine, <b>Start herdr</b> runs <code>nohup &lt;herdr&gt; --session S server &amp;</code> over SSH. On This Mac, <b>Start</b> runs the server as a one-shot launchd job, so launchd, not the app, is its parent and its "responsible process" (macOS privacy prompts never name Oriel). The job gets the same <code>PATH</code>, <code>HOME</code> and <code>XDG_*</code> as the CLI, so server and CLI agree on paths.</li>
+      <li><b>Health check:</b> one per machine. The snapshot read is the heartbeat: every 30 s while healthy, every 2 s while failing. Automatic retries use <code>BatchMode</code> and never prompt, so a host that needs a password or a one-time code shows <b>Reconnect</b>.</li>
+      <li>Checks on connect, two steps: the snapshot (it carries herdr's version), then events. <code>integration.list</code> runs when the picker opens. If the server is not running: on a remote machine, <b>Start herdr</b> runs <code>nohup herdr --session S server &amp;</code> over SSH. On This Mac, <b>Start</b> runs the server as a one-shot launchd job, so launchd, not the app, is its parent and its "responsible process" (macOS privacy prompts never name Oriel). The job gets the environment the app's herdr calls see (with the user's own <code>PATH</code> order), so server and CLI agree on paths.</li>
       <li>iOS closes its terminal streams when the app goes to the background. It keeps the connection for about 30 s, then reconnects and re-reads the snapshot on return.</li>
     </ul>
   </details>
@@ -790,10 +791,10 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
   <details><summary>Web page and remote <code>localhost</code></summary>
     <ul>
       <li>The pane label <code>oriel:web#&lt;iid&gt; &lt;url&gt;</code> is the marker: it has no length limit, and it survives moves and restarts. A placeholder process holds the slot. The label keeps the address the user typed; the address after in-card navigation and the scroll position go in the machine's state file (<code>web/&lt;iid&gt;.json</code>), as for plugins. Header: Back, Refresh, Open in browser, Edit address.</li>
-      <li><b>When a page loads:</b> a page you create or type loads at once and approves its origin for that machine. A card built from a label (a fresh start, another device, a card an agent or the herdr TUI made) loads by itself if its origin is approved for that machine or on the safe list. Otherwise it shows <b>Open ‹url›?</b> once, and Open approves the origin.</li>
+      <li><b>When a page loads:</b> a page you create or type loads at once and approves its origin for that machine. A card built from the machine (a fresh start, another device, a card an agent or the herdr TUI made) loads by itself if its origin is approved for that machine or on the safe list. Otherwise it shows <b>Open ‹url›?</b> once, and Open approves the origin.</li>
       <li><b>Approvals and the safe list</b> are a per-device setting, per machine. The safe list: the machine's own <code>localhost</code> and <code>127.0.0.1</code> on any port (always), and built in <code>github.com</code>, <code>gitlab.com</code>, <code>bitbucket.org</code>, <code>developer.apple.com</code>, <code>developer.mozilla.org</code>, <code>docs.github.com</code>, <code>vercel.com</code>, <code>*.vercel.app</code>, <code>*.netlify.app</code>. You can view and edit approvals and the list in Settings.</li>
       <li>A remote <code>localhost:P</code> goes through <code>dial</code>. On the Mac: <code>ssh -O forward -L</code> on the ControlMaster, on the same port when it is free, so the page's origin is exactly <code>localhost:P</code>. On iOS: an in-app listener on <code>127.0.0.1:P</code> pipes each connection into a Citadel <code>direct-tcpip</code> channel (a TCP stream through the SSH connection). Tailscale addresses load directly.</li>
-      <li><b>Open :P</b>: when a terminal prints a local address (the app finds it in the terminal text it already streams for the selected tab), its card shows a chip that opens the address in a web card. The card menu also lists the machine's listening ports (<code>ss</code> or <code>lsof</code>), on demand.</li>
+      <li><b>Open :P</b>: when a terminal prints a local address (the app finds it in the terminal text it already streams for the selected tab), its card shows a chip that opens the address in a web card. The picker's web page entry also lists the machine's listening ports (<code>ss</code> or <code>lsof</code>), on demand.</li>
       <li>One WebKit data store per machine. Loopback is blocked except that machine's own forwards.</li>
     </ul>
   </details>
@@ -838,7 +839,7 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
       <li><b>One web view per card, bound to its pane's machine.</b> <code>run</code> and <code>dial</code> go only there. A content rule and a Content Security Policy keep the page to its own files and scripts (no inline script, no <code>eval</code>; inline styles are allowed). Plugin code runs only while its card is alive; off screen, its calls pause.</li>
       <li><b>Honest about <code>run</code>:</b> a plugin with it can do anything you can do on that machine, including network tools and programs that keep running. The consent sheet says so.</li>
       <li><b>Open and copy go through WebKit.</b> A <code>target=_blank</code> click or a <code>window.open</code> from a click reaches the app, which shows a confirm sheet and opens the address itself; without a click WebKit blocks <code>window.open</code>. WebKit allows <code>navigator.clipboard.writeText</code> only during a click or key press. The app never runs script in a plugin page, because WebKit treats such script as a user action.</li>
-      <li><b>No permissions field.</b> Every plugin gets <code>run</code> and <code>dial</code>. Finer rules ("only git") would not hold, so none are offered.</li>
+      <li><b>Every plugin gets <code>run</code> and <code>dial</code>.</b> Finer rules ("only git") would not hold, so none are offered.</li>
       <li><b>Consent at install</b>, keyed by plugin id and source, in plain words: the plugin can run any command as you on the machine of every one of its panes (including ones others created), use the network from there and leave programs running; on This Mac that includes your files, SSH keys and connections to other machines. One more confirm on a plugin's first <code>run</code> or <code>dial</code> on This Mac, also keyed by id and source. The sheet is headed by the plugin id and source URL, not only the plugin's own title.</li>
       <li>An id resolves core first, then a linked folder, then an installed plugin, so a plugin cannot replace a core one. The id <code>web</code> is taken by the web page's label.</li>
       <li>A machine can write labels, so it can open any installed plugin on itself, which gives it only what the plugin does on that machine.</li>
@@ -1012,7 +1013,8 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     <div class="st"><b>7 · Later</b><a href="https://oriel-docs.vercel.app/docs/future-work">Future work</a>: the TypeScript + React native kit, floating panes, a push relay, a small server helper, restoring <code>launch_argv</code> panes upstream, more multiplexers (Rex, tmux), OSC 7501, user plugins on iOS, iOS jump hosts, tab thumbnails, more chat parsers, more windows</div>
   </div>
   <details id="calls"><summary>herdr calls the app uses (and never uses)</summary>
-<pre><code>ping (waiting for a server the app started) · session.snapshot (also the heartbeat) · events.subscribe (long-lived) · integration.list (when the picker opens)
+<pre><code>session.snapshot (also the heartbeat and the wait for a started server) · events.subscribe (long-lived)
+integration.list (when the picker opens)
 workspace.create | close | rename | move
 tab.create | close | rename | move
 pane.split | close | rename | swap | move | resize | send_input | send_keys | read | process_info
@@ -1020,12 +1022,14 @@ layout.set_split_ratio · layout.export (fallback) · layout.apply (a pane node 
 agent.start | prompt | send_keys
 
 herdr --session S remote-api-bridge
-herdr --session S terminal session control|observe &lt;terminal_id&gt; --cols C --rows R [--takeover]   (observe inside the stdin wrapper)
+herdr --session S terminal session control|observe &lt;terminal_id&gt; --cols C --rows R [--takeover]
+                                                       (observe runs inside the stdin wrapper)
 herdr session list --json                              (macOS)
 herdr machine list --json                              (macOS; the Add Machine sheet)
 herdr --session S server                               (remote: nohup, on request; This Mac: a launchd job, D47)
 
-never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom · herdr popups · herdr plugin panes (plugin.pane.open) · herdr's private client socket</code></pre>
+never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom · herdr popups
+       herdr plugin panes (plugin.pane.open) · herdr's private client socket</code></pre>
   </details>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/build-order">Build order</a> · <a href="https://oriel-docs.vercel.app/docs/reference/herdr-calls">herdr calls</a></p>
 </section>
@@ -1170,7 +1174,7 @@ function renderNode(n){
   if(n.kind==="hist") body=`<div class="plug"><div class="wtool"><b>main</b> · 214 commits<span class="btn">Checkout</span><span class="btn">Copy SHA</span></div><div class="hist"><div class="lst">${[["fix auth null token","a1b2c3d · 2h ago · hk",1],["add pricing page","9f8e7d6 · 5h ago · hk",0],["bump deps","5c4b3a2 · 1d ago · bot",0],["refactor session store","4d3c2b1 · 2d ago · hk",0],["initial api","0a9b8c7 · 9d ago · hk",0]].map(r=>`<div class="row ${r[2]?"sel":""}">${r[0]}<small>${r[1]}</small></div>`).join("")}</div><div class="det"><b>fix auth null token</b><div class="meta">a1b2c3d · hk · 2 hours ago · 2 files</div><div class="diff" style="padding:0"><div class="h">src/auth.ts</div><div class="r">-   return verify(token)</div><div class="a">+   if (!token) return null</div><div class="a">+   return verify(token)</div></div></div></div></div>`;
   else if(n.kind==="diff") body=`<div class="plug"><div class="wtool"><b>2 files</b> · +9 −1<span class="btn">Stage all</span><span class="btn">Copy patch</span></div><div class="diff"><div class="h">src/auth.ts  +3 −1</div><div>  export function check(token) {</div><div class="r">-   return verify(token)</div><div class="a">+   if (!token) return null</div><div class="a">+   return verify(token)</div><div>  }</div><div class="h">src/auth.spec.ts  +6</div><div class="a">+ it("returns null without a token", () =&gt; {</div><div class="a">+   expect(check(undefined)).toBeNull()</div><div class="a">+ })</div></div></div>`;
   else if(n.kind==="term") body=`<div class="term">${n.body}</div>`;
-  else if(n.kind==="web"&&n.ask) body=`<div class="webv ask"><div>Open <b>https://${n.title}</b>?</div><div>Built from herdr's label. Its origin is not approved for this machine and not on the safe list.</div><span class="btn" data-open role="button" tabindex="0">Open</span></div>`;
+  else if(n.kind==="web"&&n.ask) body=`<div class="webv ask"><div>Open <b>https://${n.title}</b>?</div><div>Built from the machine. Its origin is not approved for this machine and not on the safe list.</div><span class="btn" data-open role="button" tabindex="0">Open</span></div>`;
   else if(n.kind==="web") body=`<div class="webv"><h5>${n.title.includes("staging")?"Staging":"Dashboard"}</h5><div class="bar" style="width:70%"></div><div class="bar" style="width:45%"></div><div class="bar" style="width:60%"></div><div style="display:flex;gap:8px;margin-top:12px"><div style="flex:1;height:60px;background:#1b2436;border-radius:6px"></div><div style="flex:1;height:60px;background:#1a2b22;border-radius:6px"></div></div></div>`;
   else body=n.body;
   const chip=n.port?`<span class="chip-port" data-port="${n.port}" role="button" tabindex="0" title="Open localhost:${n.port} in a web card">Open :${n.port}</span>`:"";
@@ -1178,9 +1182,9 @@ function renderNode(n){
 }
 let host=0, sel=0;
 const status=w=>["▲","✓","◔"].find(g=>w.tabs.some(t=>t.badge===g));
-const RECON=`<div class="ask" style="flex:1"><div style="color:#ffb340">▲ Needs a password or a one-time code</div><div>Automatic retries never prompt.</div><span class="btn" role="button" tabindex="0">Reconnect</span></div>`;
+const RECON=`<div class="ask" style="flex:1"><div style="color:#ffb340">▲ Needs a password or code</div><div>Automatic retries never prompt.</div><span class="btn">Reconnect</span></div>`;
 function renderHosts(){
-  $("#hostpager").innerHTML=HOSTS.map((h,hi)=>`<div class="hostpage"><div class="mname">${h.name}</div>${h.ws.length?"":`<div class="wsh" style="color:#ffb340">▲ Needs a password</div>`}${h.ws.map((w,wi)=>`<div class="wsh"><span>${w.n}</span>${badge(status(w))}</div>${w.tabs.map((t,ti)=>`<div class="row ${wi===0&&ti===0?"sel":""}" ${wi===0?`data-h="${hi}" data-t="${ti}"`:""} role="button" tabindex="0">${ico(...t.icon)}<span class="lbl">${t.label}</span>${badge(t.badge)}</div>`).join("")}`).join("")}</div>`).join("");
+  $("#hostpager").innerHTML=HOSTS.map((h,hi)=>`<div class="hostpage"><div class="mname">${h.name}</div>${h.ws.length?"":`<div class="wsh" style="color:#ffb340">▲ Needs a password or code</div>`}${h.ws.map((w,wi)=>`<div class="wsh"><span>${w.n}</span>${badge(status(w))}</div>${w.tabs.map((t,ti)=>`<div class="row ${wi===0&&ti===0?"sel":""}" ${wi===0?`data-h="${hi}" data-t="${ti}"`:""} role="button" tabindex="0">${ico(...t.icon)}<span class="lbl">${t.label}</span>${badge(t.badge)}</div>`).join("")}`).join("")}</div>`).join("");
   $("#dots").innerHTML=HOSTS.map((h,i)=>`<b data-i="${i}" title="${h.name} · ${h.sess}" role="button" tabindex="0" aria-label="${h.name}"></b>`).join("");
   $("#statusarea").innerHTML=`<div class="sum"><span style="color:#8fd3ff">1 working</span> · <span style="color:#ffb340">1 needs you</span> · <span style="color:#30d158">1 finished</span></div><div style="color:#ffb340">▲ codex needs you · devbox/infra</div><div style="color:#30d158">✓ pi finished · This Mac/api-server</div>`;
   document.querySelectorAll("#dots b").forEach(b=>b.onclick=()=>goHost(+b.dataset.i));
