@@ -8,7 +8,9 @@ description: "The title row, tab bar, sidebar, Activity, hover card, strip, pane
 ## Title row
 
 One row, 40 pt tall (D45). From left to right:
-- The sidebar toggle.
+- The sidebar toggle, always shown (⌃⌘S). It switches between the two views:
+  the sidebar with tabs as rows, and the tab bar in the title row. There is no
+  setting for this, unlike Rex. The sidebar slides in and out over 0.3 s.
 - The session button: a laptop icon, plus the session name (up to 224 pt)
   only when more than one herdr session runs. A click opens the session list.
 - The tab bar, while the sidebar is hidden.
@@ -84,8 +86,8 @@ Flat on the window background, with no panel (D44).
   machine's name in a small line.
 - Below them, fixed: page dots (one per machine, clickable).
 - Bottom, fixed: a Filter field, New Workspace and Add Machine.
-- While Activity is on, the sidebar lists [Activity](#activity) instead of
-  the machine page.
+- While Activity is on, the sidebar's rows are filtered to
+  [Activity](#activity). The bottom of the sidebar never shows agent activity.
 - **Width.** 240 pt by default. Drag the 6 pt handle at the trailing edge to
   resize it between 227 and 480 pt. The width is kept per device. During the
   drag the strip keeps its pages whole.
@@ -125,24 +127,32 @@ machine page of a non-default session on this Mac is named
 
 ## Activity
 
-The list of agents that need you, finished or work (D61). The eye, ⌘. or
-View ▸ Show Activity turns it on and off.
-- With the sidebar shown, the sidebar lists Activity instead of the tabs. With
-  the sidebar hidden, the same list is a floating glass panel under the eye,
-  320 pt wide and at most 480 pt tall. Esc closes the panel.
-- One section per workspace. One row per agent pane that needs you or has a
-  finish not seen yet, and the working ones while **Show working agents** (the
-  list's footer toggle) is on.
-- **Row.** 44 pt: the program tile, the title (the agent's name, else the tab
-  title) and a status capsule on the right: "Needs you" (amber), "Done"
-  (green) or "Working" (blue), text in the color on a 0.15 fill of it. The
-  second line has the tab label in secondary text and the age on the right
-  ("now", "3m", "2h"), counted from the time the app saw the change.
-- **Order.** Needs you, then done, then working; newest first inside each.
-  Rows do not move while the pointer is over the list.
-- A click selects the workspace and tab and gives that pane the keyboard, so
-  the finish is seen.
-- With nothing to show: "Nothing needs you".
+Activity is a filter on the tab list, as in Rex (D61). The eye, ⌘. or View ▸
+Show Activity turns it on and off. The bottom of the sidebar never shows
+agent activity.
+- **What it lists.** Only the tabs that have a working agent, an agent that
+  needs you, or a finish not seen yet. They keep their workspace sections; a
+  section with no such tab is hidden. **Show idle agents** (the list's footer
+  toggle, off by default) also keeps tabs whose agents are idle and seen.
+- **Where.** With the sidebar shown, the sidebar's rows are filtered in place.
+  With the sidebar hidden, the same list is a floating glass panel under the
+  eye, 320 pt wide and at most 480 pt tall. Esc closes the panel.
+- **Row.** 44 pt, two lines. Line 1: the tab's icon stack, the tab title and
+  the tab's status capsule on the right: "Needs you" (amber), "Done" (green)
+  or "Working" (blue), text in the color on a 0.15 fill of it. A tab shows its
+  strongest state: needs you, then done, then working. Line 2: the agent's
+  name and status word ("claude · needs you") in secondary text, and the age
+  on the right ("now", "3m", "2h"), counted from the time the app saw the
+  change. A tab with several agents names the one with the strongest state.
+- **Order.** herdr's order of workspaces and tabs, as in the full list, so
+  rows do not jump when a status changes.
+- **Selection stays.** The selected tab stays in the list while it is
+  selected, even when nothing is left to show for it. When the user selects
+  another tab, a tab with nothing left leaves the list (0.22 s). Rows never
+  leave while the pointer is over the list.
+- A click selects the workspace and tab and gives the keyboard to the pane
+  with the strongest state, so its finish is seen.
+- With nothing to show: "No agents are working or waiting".
 
 How it works: [Activity and notifications](/docs/status#activity-and-notifications).
 

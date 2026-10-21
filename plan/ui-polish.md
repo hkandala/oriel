@@ -76,7 +76,8 @@ the snapshot.
 | Icon bounce when an agent starts to need you or finishes | Same, off under Reduce Motion | 14 | — |
 | Finish announcement: the title shows "‹agent› finished" for a few seconds | Same | 14 | — |
 | Hold ⌘ for 0.7 s: keycaps ⌘1…⌘9 on the tabs | Same, on title-bar tabs and sidebar rows | 13 | — |
-| Session button shows the name only when more than one session runs | Same | 13 | — |
+| Session button shows the name only when more than one session runs | Same (open question: in tab-bar mode it may become a workspace button, see the mock-ups) | 13 | — |
+| Tab placement is a setting (Above / Left / Right) | No setting: the sidebar toggle is always in the title row and switches between the sidebar and the tab bar (D45) | 13 | — |
 | Right-side buttons: Activity (eye with a badge), Command Palette, New Tab | Same | 14 (eye) | — |
 
 ### Sidebar (tabs as rows)
@@ -97,10 +98,10 @@ the snapshot.
 
 | Rex feature | Oriel | P | herdr |
 |---|---|---|---|
-| Activity toggle (eye, ⌘.): the sidebar lists tabs with activity, grouped by workspace | Same | 14 | — |
+| Activity toggle (eye, ⌘.): a filter on the tab list, only tabs with activity, grouped by workspace; the selected tab stays while selected, a seen tab leaves when you move on | Same. The bottom of the sidebar shows no activity | 14 | — |
 | Popup with the same list while the sidebar is hidden | Same | 14 | — |
-| Two-line rows: title, status capsule (Needs you, Working, Done), message or status word, relative age ("now", "3m") | Same; the age comes from the time the app saw the change | 14 | — |
-| "Include idle processes" | "Show working agents" toggle in the list | 14 | — |
+| Two-line tab rows: icon stack, title, status capsule (Needs you, Working, Done), message or status word, relative age ("now", "3m") | Same, with agent name and status word (herdr sends no message); the age comes from the time the app saw the change | 14 | — |
+| "Include idle processes" | "Show idle agents" toggle in the list | 14 | — |
 | Seen ledger: a finish counts until the user views the tab | Oriel's `completion_seq` rule (D14), in memory | 14 | — |
 | Notifications per status (only while the app is not active; a click opens the pane) | Needs you and finished, as the design says | 14 | — |
 | Dock badge count | Agents that need you, plus unseen finishes if the setting is on | 14 | — |

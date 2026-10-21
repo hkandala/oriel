@@ -58,11 +58,19 @@ views only read it.
   license of each icon) and `SOURCES.md` (the source of each file and the
   license texts).
 - 106 icons, all under open licenses: Simple Icons (CC0), Lobe Icons
-  (MIT), Lucide (ISC), Devicon (MIT), a few from the programs' own
-  repositories (MIT, Apache-2.0) and a few drawn for Oriel (CC0).
-- Every glyph uses the current color so the app can tint it, except `jj`,
-  which keeps its colors. Brand marks belong to their owners and only name the
-  program.
+  (MIT), Phosphor Icons fill (MIT), Devicon (MIT), a few from the programs'
+  own repositories (MIT, Apache-2.0) and a few drawn for Oriel (CC0).
+- One style for the whole set, so a row of tiles reads as one family: every
+  glyph is one solid filled path in the current color (no strokes, no
+  wordmarks, no full-color art), fitted to about 16 to 18 pt of a 24 pt box
+  by its visual weight. Generic glyphs (terminal, monitor, database, folder)
+  come from one family, Phosphor fill.
+- One rule colors every tile: the brand color (saturation capped) with a
+  white glyph, or `#111111` on the few light brands. Black or white brands
+  get `#2b2d31` with a white glyph; shells and generic tools get `#2b2d31`
+  with a `#7ee787` glyph. No tile is white.
+- Brand marks belong to their owners and only name the program.
+- `resources/icons/tools/` rebuilds the whole set (`README.md` there).
 - No icon art comes from Rex. The app's credits list the icon sources.
 
 How it works: [herdr calls](/docs/reference/herdr-calls).

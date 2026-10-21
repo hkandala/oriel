@@ -11,6 +11,13 @@ animation table), `resources/inspirations/rex-app/` (tabs-with-status, three-spl
 
 ## Build
 
+### Sidebar toggle (D45)
+
+0. The sidebar toggle stays in the title row in both views (Rex needs a setting; Oriel does not). It
+   switches between the sidebar (tabs as rows) and the title-bar tab bar; ⌃⌘S does the same. The
+   sidebar slides 0.3 s (Rex's collapse time); Reduce Motion: no slide. The choice is kept per window
+   (`@SceneStorage`).
+
 ### Title-bar tab bar (sidebar hidden, D45)
 
 1. **Track.** A capsule 34 pt tall behind all tabs, filled with the phase 10 track token, hidden

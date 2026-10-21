@@ -39,22 +39,26 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
    selected: its front icon bounces once (scale 1 → 1.15 → 1, spring, off under Reduce Motion), and
    its title shows "‹agent› needs you" or "‹agent› finished" for 3 s, then the title again. A long text
    scrolls once (30 pt/s) instead of fading.
-6. **Activity view.**
+6. **Activity view** (Rex's Activity filter; the bottom of the sidebar shows no activity).
    - An eye button (`eye`, `eye.fill` while on) in the title bar, before ⌘, with a dot badge: amber if
      anything needs you, else green if a finish is unseen. ⌘. and View ▸ Show Activity toggle it.
-   - Sidebar shown: the sidebar lists Activity instead of tabs. Sidebar hidden: the same list in a
-     floating glass panel under the eye, 320 pt wide, at most 480 pt tall (`floatingPanel`).
-   - Content: one section per workspace (when remote machines come, sections group under each
-     machine); one row per agent pane that needs you or has an unseen finish
-     (and, with "Show working agents" on, the working ones). Row 44 pt: tile, title (agent display name,
-     else the tab title), and on the right a status capsule ("Needs you" amber, "Done" green, "Working"
-     blue: text in the color on a 0.15 fill of it); second line: tab label in secondary text and the
-     age on the right ("now", "3m", "2h").
-   - Order in a section: needs you, then done, then working; ties by age, newest first; rows never jump
-     while the pointer is over the list.
-   - A click selects the workspace and tab, gives that pane the keyboard (never herdr focus, D13), and
-     so records it seen.
-   - Empty: "Nothing needs you". Footer: a "Show working agents" toggle.
+   - It is a filter on the tab list: only tabs with a working agent, an agent that needs you or an
+     unseen finish. Sidebar shown: the sidebar's rows are filtered in place (workspace sections with no
+     such tab hide). Sidebar hidden: the same list in a floating glass panel under the eye, 320 pt wide,
+     at most 480 pt tall (`floatingPanel`). When remote machines come, sections group under each
+     machine.
+   - Row 44 pt, two lines: line 1 the tab's icon stack, the tab title, and on the right the tab's
+     strongest status as a capsule ("Needs you" amber, "Done" green, "Working" blue: text in the color
+     on a 0.15 fill of it); line 2 the agent's name and status word ("claude · needs you") in secondary
+     text, and the age on the right ("now", "3m", "2h").
+   - Order: herdr's order (as the full list), so rows do not jump on a status change.
+   - The selected tab stays listed while selected, even with nothing left. When another tab is
+     selected, a tab with nothing left leaves the list (0.22 s). Nothing leaves while the pointer is
+     over the list. (Rex: `ActivityFilter` keeps `shownTabIDs`, `sweptTabs` and `followsSelection`.)
+   - A click selects the workspace and tab and gives the keyboard to the pane with the strongest state
+     (never herdr focus, D13), and so records it seen.
+   - Footer: "Show idle agents" (off): also keep tabs whose agents are idle and seen. Empty: "No agents
+     are working or waiting".
 7. **Notifications (D31).** `UNUserNotificationCenter`, delegate set at launch.
    - A pane turns to needs you: "‹agent› needs you", body "‹workspace› · ‹tab›".
    - A new finish: "‹agent› finished", same body, unless the user is looking at that pane.
@@ -66,8 +70,8 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
    off by default. Dock menu (`applicationDockMenu`): a row per pane that needs you or finished
    ("codex needs you · infra", a click selects it), a separator, New Tab.
 9. **Settings ▸ Notifications.** For Needs you and Finished each: Notify (on), Badge the Dock icon
-   (on for needs you, off for finished), Play a sound (off). Plus "Show working agents in Activity"
-   (the same toggle as the list footer).
+   (on for needs you, off for finished), Play a sound (off). Plus "Show idle agents in Activity" (the
+   same toggle as the list footer).
 10. **Docs.** Rewrite `status.mdx` (status area → Activity; notifications; Dock), D42 (dots and
     badges), the status table in `ui/theme-and-accessibility.mdx` (glyphs become dots and badges; words
     and colors stay), `ui/window.mdx` (eye button), `features.mdx`, the glossary (Activity, badge; drop
@@ -81,7 +85,8 @@ All status changes come from `pane.report_agent` through the e2e helper on a thr
 - Report `working` on a pane of another tab: that tab's status slot shows working (accessibility
   value "working"); the selected tab shows none.
 - Report `blocked`: the tab's value is "needs you", the eye's value says 1 needs you, the Activity
-  list (⌘.) has the row; a click on it selects the tab and gives its card the keyboard.
+  list (⌘.) shows that tab and hides tabs with nothing to show; a click on it selects the tab and gives its card the keyboard.
+- With Activity on, select a listed tab whose finish then becomes seen: it stays while selected and leaves the list after another tab is selected.
 - Report `working` then `idle`: the tab shows "finished"; selecting the tab clears it; the Activity
   row goes.
 - Relaunch with an agent already finished: no "finished" badge (first sighting is seen).

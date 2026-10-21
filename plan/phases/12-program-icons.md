@@ -31,11 +31,10 @@ tab"), `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses
    Strip a login shell's leading `-` (`-zsh`) before matching. The catalog's `scriptSuffix` values for
    claude, codex, gemini and qwen and the `titlePrefix` values `✳` (claude) and `π` (pi) are guesses:
    check them against real panes and fix `catalog.json`.
-   Catalog notes from its author: 106 icons (Simple Icons CC0, Lobe Icons MIT, Lucide ISC, Devicon
-   MIT, three from the programs' own repos, five originals); only `jj` is full color; Lucide and the
-   originals are strokes; `hermes` is too detailed at 22 × 18 pt, so draw a monogram for it if it
-   reads as a blob. `resources/icons/tools/build.mjs` is the generator (it expects its npm packages in
-   `/tmp/icons-work`).
+   Catalog notes: 106 icons in one style (solid filled single paths, normalized size, one tile color
+   rule; see `docs/content/docs/ui/program-icons.mdx`). All are monochrome templates. Weakest at
+   1x: podman, fish, postgres, java, jupyter, aws (thin marks); fix them in `resources/icons/tools/`
+   (`README.md` there), not by hand in the asset catalog.
 4. **When to ask herdr for the process** (no polling; one bridge call each):
    - the first time a pane is shown in a card;
    - 1 s after the user presses Return in that card;
@@ -43,8 +42,9 @@ tab"), `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses
    Keep the result on `HostStore.Pane` (`program`), so the views only read.
 5. **Views** (in `Style.swift` or one new `ProgramIcon.swift` if it passes ~200 lines):
    - `ProgramTile(icon:size:)`: the catalog's tile background and glyph color, rounded rect
-     radius 5 at 22×18 pt (the size of today's `IconTile`), glyph about 13 pt, a 1 px dark outline and
-     a faint top highlight, as in Rex. Replaces `IconTile`.
+     radius 5 at 22×18 pt (the size of today's `IconTile`), the 24 pt glyph box drawn at about 17 pt
+     (the SVGs carry their own optical padding), a 1 px dark outline and a faint top highlight, as in
+     Rex. Replaces `IconTile`.
    - `ProgramGlyph(icon:)`: the glyph alone at 16 pt in `.secondary`, for card headers.
    - `IconStack(icons:max:)`: up to 5 tiles (title-bar tabs) or 3 (sidebar rows), each 4 pt to the
      right of the one in front, the keyboard card's icon in front, a 1 px separation ring in the
