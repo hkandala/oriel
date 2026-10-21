@@ -92,6 +92,7 @@ figure{margin:0} figcaption{font-size:12.5px;color:var(--mute);margin-top:6px}
 .hostpager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;flex:1;min-height:0;scrollbar-width:none}
 .hostpager::-webkit-scrollbar{display:none}
 .hostpage{flex:0 0 100%;scroll-snap-align:start;padding:0 8px 8px;overflow:auto}
+.mname{padding:6px 8px 0;font-size:11px;color:#8a8a94}
 .wsh{display:flex;justify-content:space-between;padding:10px 8px 4px;font-weight:600;color:#a3a3ab}
 .row{display:flex;align-items:center;gap:8px;padding:6px 7px;border-radius:10px;border:1px solid transparent;cursor:pointer;white-space:nowrap}
 .row .lbl{overflow:hidden;text-overflow:ellipsis;flex:1}
@@ -512,7 +513,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <details><summary>Window, sidebar and tab bar</summary>
     <ul>
       <li><b>Title-bar row:</b> the sidebar toggle, the session button (the session's name; it opens the list of sessions, grouped by machine), the tabs while the sidebar is hidden, ⌘ (the palette) and <code>+</code> (new tab).</li>
-      <li><b>Sidebar:</b> flat on the window background, with no panel. The machine pages (swiped sideways), fixed page dots, the fixed status area, and at the bottom a Filter field, New Workspace and Add Machine. A machine page for a non-default local session is named "This Mac · ‹session›".</li>
+      <li><b>Sidebar:</b> flat on the window background, with no panel. The machine pages (swiped sideways, each headed by the machine's name in a small line), fixed page dots, the fixed status area, and at the bottom a Filter field, New Workspace and Add Machine. A machine page for a non-default local session is named "This Mac · ‹session›".</li>
       <li><b>Machine page:</b> herdr's workspaces in herdr's order, as section headers, with their tabs as rows (icon tile, label, status glyph). The selected tab is a raised pill. Later a workspace also lists its agent panes (icon, name, glyph and word). Clicking a workspace selects it in the app only.</li>
       <li><b>Tab bar:</b> while the sidebar is hidden, the title-bar row shows one capsule per herdr tab, and one glass marker follows the strip as it scrolls. Each capsule has the icon of the pane last selected in it and the tab label (folder part dimmed). One status slot per capsule shows one glyph by priority: × on hover, then ▲, then ✓, then ◔. The ◔ glyph is static (no animation). When tabs overflow, they shrink and their labels fade out. <code>+</code> makes a new tab. The window title follows the selected tab.</li>
       <li><b>Strip:</b> one page per tab. Cards follow herdr's split tree, with an 8 pt gap between cards that is the divider. Double-click a divider to reset it to 0.5; ⌃⌘= equalizes the tab's splits. Each card header has the kind icon, title, view switch (chat|term on agents and terminals, plugin|term on plugin panes, none on web pages), split, zoom and close. Controls show on hover on macOS and always on iOS; every action is also in the context menu, the menu bar and ⌘K. Unfocused cards are slightly dimmed.</li>
@@ -1163,7 +1164,7 @@ function renderNode(n){
 let host=0, sel=0;
 const status=w=>["▲","✓","◔"].find(g=>w.tabs.some(t=>t.badge===g));
 function renderHosts(){
-  $("#hostpager").innerHTML=HOSTS.map((h,hi)=>`<div class="hostpage">${h.ws.map((w,wi)=>`<div class="wsh"><span>${w.n}</span>${badge(status(w))}</div>${w.tabs.map((t,ti)=>`<div class="row ${wi===0&&ti===0?"sel":""}" ${wi===0?`data-h="${hi}" data-t="${ti}"`:""} role="button" tabindex="0">${ico(...t.icon)}<span class="lbl">${t.label}</span>${badge(t.badge)}</div>`).join("")}`).join("")}</div>`).join("");
+  $("#hostpager").innerHTML=HOSTS.map((h,hi)=>`<div class="hostpage"><div class="mname">${h.name}</div>${h.ws.map((w,wi)=>`<div class="wsh"><span>${w.n}</span>${badge(status(w))}</div>${w.tabs.map((t,ti)=>`<div class="row ${wi===0&&ti===0?"sel":""}" ${wi===0?`data-h="${hi}" data-t="${ti}"`:""} role="button" tabindex="0">${ico(...t.icon)}<span class="lbl">${t.label}</span>${badge(t.badge)}</div>`).join("")}`).join("")}</div>`).join("");
   $("#dots").innerHTML=HOSTS.map((h,i)=>`<b data-i="${i}" title="${h.name} · ${h.sess}" role="button" tabindex="0" aria-label="${h.name}"></b>`).join("");
   $("#statusarea").innerHTML=`<div class="sum"><span style="color:#8fd3ff">1 working</span> · <span style="color:#ffb340">1 needs you</span> · <span style="color:#30d158">1 finished</span></div><div style="color:#ffb340">▲ codex needs you · devbox/infra</div><div style="color:#30d158">✓ pi finished · This Mac/api-server</div>`;
   document.querySelectorAll("#dots b").forEach(b=>b.onclick=()=>goHost(+b.dataset.i));

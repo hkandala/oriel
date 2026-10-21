@@ -151,10 +151,10 @@ export function MacWindow({ caption = tryIt }: { caption?: ReactNode }) {
             <i />
             <i />
           </div>
-          <div className="hostname">{h.name}</div>
           <div className="hostpager" ref={pager}>
             {HOSTS.map((hh) => (
               <div className="hostpage" key={hh.name}>
+                <div className="hostname">{hh.name}</div>
                 {hh.ws.map((w, wi) => (
                   <div key={w}>
                     <div className="ws">{w}</div>
