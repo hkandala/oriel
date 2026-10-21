@@ -37,6 +37,10 @@ private final class SubscribeCounter: Exec {
         self.base = base
     }
 
+    func herdr() async -> String? {
+        await base.herdr()
+    }
+
     func run(_ argv: [String]) async throws -> Channel {
         let channel = try await base.run(argv)
         return Channel(
@@ -121,6 +125,22 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
     _ = try await withTimeout(.seconds(5), onTimeout: {}, { await channel.exit() })
 }
 
+@Test func `the login shell gives its variables and herdr's path`() async throws {
+    let dir = FileManager.default.temporaryDirectory.appending(path: "oriel-shell-\(UUID().uuidString.prefix(6))")
+    defer { try? FileManager.default.removeItem(at: dir) }
+    try FileManager.default.createDirectory(at: dir.appending(path: "bin"), withIntermediateDirectories: true)
+    let shell = dir.appending(path: "shell").path, herdr = dir.appending(path: "bin/herdr").path
+    // An rc file that prints without a final newline.
+    try "#!/bin/sh\nprintf motd\nsh -c \"$2\"\n".write(toFile: shell, atomically: true, encoding: .utf8)
+    try "".write(toFile: herdr, atomically: true, encoding: .utf8)
+    for path in [shell, herdr] {
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: path)
+    }
+    let found = await ProcessExec.loginShell(["SHELL": shell, "PATH": "\(dir.path)/bin:/usr/bin:/bin", "XDG_X": "1"])
+    #expect(found.herdr == herdr && found.vars["XDG_X"] == "1")
+    #expect(await ProcessExec.loginShell(["SHELL": shell, "PATH": "/usr/bin:/bin"]).herdr == nil)
+}
+
 private struct NewWorkspace: Decodable {
     struct Pane: Decodable {
         let pane_id: String // swiftlint:disable:this identifier_name
@@ -186,7 +206,7 @@ private func control(_ client: HerdrClient) async throws {
         }
         #expect(watched.full && watched.width == 60)
         // observe ignores stdin's end; its wrapper ends it, though the pane prints nothing.
-        let observer = "^herdr --session \(client.session) terminal session observe"
+        let observer = try await "^\(client.herdr()) --session \(client.session) terminal session observe"
         #expect(shell("pgrep", "-f", observer) == 0)
         watcher.close()
         #expect(await eventually { shell("pgrep", "-f", observer) == 1 })
@@ -201,12 +221,16 @@ private func control(_ client: HerdrClient) async throws {
 }
 
 /// The server the app starts gets the CLI's user keys: with `XDG_CONFIG_HOME` elsewhere, both find the session
-/// there (design: XDG fix). The app's own keys stay out (D47).
+/// there (design: XDG fix). The app's own keys stay out (D47), and herdr runs by its absolute path.
 @Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
 func `a started server shares the CLI's paths`() async throws {
     struct Moved: Exec {
         let base: ProcessExec
         let config: String
+        func herdr() async -> String? {
+            await base.herdr()
+        }
+
         func run(_ argv: [String]) async throws -> Channel {
             try await base.run(["env", "XDG_CONFIG_HOME=\(config)", "__CFBundleIdentifier=dev.hkandala.oriel"] + argv)
         }
@@ -219,12 +243,16 @@ func `a started server shares the CLI's paths`() async throws {
         try? FileManager.default.removeItem(atPath: config)
         try? FileManager.default.removeItem(at: URL.libraryDirectory.appending(path: "Logs/Oriel/\(session).log"))
     }
-    let client = await HerdrClient(session: session, exec: Moved(base: ProcessExec(), config: config))
+    let base = await ProcessExec()
+    let client = HerdrClient(session: session, exec: Moved(base: base, config: config))
     try await client.startServer()
     #expect(FileManager.default.fileExists(atPath: "\(config)/herdr/sessions/\(session)"))
     let job = try await HerdrClient.output(
-        ProcessExec(),
+        base,
         ["launchctl", "print", "gui/\(getuid())/dev.hkandala.oriel.herdr.\(session)"],
     )
+    // The login shell's herdr and its PATH as it is.
+    let herdr = try #require(await base.herdr())
+    #expect(job.contains("program = \(herdr)\n") && job.contains("PATH => \(base.environment["PATH"] ?? "")\n"))
     #expect(job.contains("XDG_CONFIG_HOME") && !job.contains("__CFBundleIdentifier"))
 }

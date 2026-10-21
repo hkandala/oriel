@@ -33,8 +33,8 @@ public enum Update: Sendable {
     case error(HerdrError)
 }
 
-/// Talks to one herdr session: requests over `remote-api-bridge`, one events stream, paced snapshots. `herdr`
-/// is found on `PATH`, which has its usual install folders (`ProcessExec`).
+/// Talks to one herdr session: requests over `remote-api-bridge`, one events stream, paced snapshots. herdr runs
+/// by the absolute path its machine's login shell gives (`Exec.herdr()`).
 public actor HerdrClient {
     nonisolated let session: String
     nonisolated let exec: any Exec
@@ -67,7 +67,7 @@ public actor HerdrClient {
         guard let line = jsonLine(["id": "1", "method": method, "params": params]) else {
             throw HerdrError.failed("\(method): params are not JSON")
         }
-        let channel = try await exec.run(bridge)
+        let channel = try await exec.run([herdr(), "--session", session, "remote-api-bridge"])
         channel.write(line)
         let reply = try await withTimeout(timeout, onTimeout: channel.terminate) {
             await channel.lines.first { _ in true }
@@ -75,7 +75,7 @@ public actor HerdrClient {
         channel.closeInput()
         guard let reply else {
             let (status, stderr) = await channel.exit()
-            // 127: no `herdr` on PATH (env and sh both say so).
+            // 127: herdr is gone from its path (env and sh both say so).
             throw status == 127 ? HerdrError.notFound
                 : HerdrError.failed("herdr exited \(status): \(stderr.trimmingCharacters(in: .whitespacesAndNewlines))")
         }
@@ -89,7 +89,7 @@ public actor HerdrClient {
 
     /// Every session herdr knows on this machine, running or not.
     public nonisolated func sessions() async throws -> [Session] {
-        let list = try await Self.output(exec, ["herdr", "--session", session, "session", "list", "--json"])
+        let list = try await Self.output(exec, [herdr(), "--session", session, "session", "list", "--json"])
         return try decode(SessionList.self, list).sessions
     }
 
@@ -195,7 +195,7 @@ public actor HerdrClient {
         let request = jsonLine(["id": "events", "method": "events.subscribe", "params": params]) ?? ""
         events = Task { [self] in
             do {
-                let channel = try await exec.run(bridge)
+                let channel = try await exec.run([herdr(), "--session", session, "remote-api-bridge"])
                 channel.write(request)
                 for await line in channel.lines {
                     let message = try? JSONDecoder().decode(EventLine.self, from: Data(line.utf8))
@@ -227,8 +227,10 @@ public actor HerdrClient {
         } while await (try? Task.sleep(for: .seconds(2))) != nil
     }
 
-    private nonisolated var bridge: [String] {
-        ["herdr", "--session", session, "remote-api-bridge"]
+    /// herdr's absolute path on the machine.
+    nonisolated func herdr() async throws -> String {
+        guard let path = await exec.herdr() else { throw HerdrError.notFound }
+        return path
     }
 
     /// A command's whole stdout, trimmed.

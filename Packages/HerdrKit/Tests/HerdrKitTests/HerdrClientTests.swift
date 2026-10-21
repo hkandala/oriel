@@ -33,6 +33,10 @@ final class FakeExec: Exec {
         state.withLock { $0[keyPath: key] }
     }
 
+    func herdr() async -> String? {
+        "/opt/herdr"
+    }
+
     func run(_ argv: [String]) async throws -> Channel {
         state.withLock { $0.argv.append(argv) }
         let (lines, reply) = AsyncStream<String>.makeStream()
@@ -127,7 +131,7 @@ private func started(_ client: HerdrClient, _ exec: FakeExec) async -> AsyncStre
     let exec = FakeExec { _ in #"{"id":"1","result":{"type":"tab_created","tab":{"tab_id":"w1:t2"}}}"# }
     let created: Created = try await client(exec).call("tab.create", ["workspace_id": "w1", "focus": false])
     #expect(created.tab["tab_id"] == "w1:t2")
-    #expect(exec[\.argv] == [["herdr", "--session", "s", "remote-api-bridge"]])
+    #expect(exec[\.argv] == [["/opt/herdr", "--session", "s", "remote-api-bridge"]])
     let request = try #require(JSONSerialization.jsonObject(with: Data(exec[\.written][0].utf8)) as? [String: Any])
     #expect(request["method"] as? String == "tab.create")
     #expect(request["params"] as? [String: AnyHashable] == ["workspace_id": "w1", "focus": false])
@@ -221,9 +225,12 @@ private func snapshot(version: String) -> String {
 
 @Test func `a missing herdr is not found`() async {
     struct Missing: Exec {
+        func herdr() async -> String? {
+            nil
+        }
+
         func run(_: [String]) async throws -> Channel {
-            Channel(lines: AsyncStream { $0.finish() }, write: { _ in }, closeInput: {}, terminate: {},
-                    exit: { (127, "env: herdr: No such file or directory") })
+            throw HerdrError.failed("ran without herdr")
         }
     }
     await #expect(throws: HerdrError.notFound) { try await HerdrClient(session: "s", exec: Missing()).snapshot() }

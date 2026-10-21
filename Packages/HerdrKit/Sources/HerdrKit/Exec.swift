@@ -1,8 +1,12 @@
 import Foundation
+import Synchronization
 
 /// Runs argv on a machine. The one seam for This Mac, remote machines and iOS.
 public protocol Exec: Sendable {
     func run(_ argv: [String]) async throws -> Channel
+    /// herdr's absolute path on the machine, from its login shell; nil when it has none. Asked again while nil,
+    /// so a herdr installed since is found (talking-to-herdr#herdr-on-each-machine).
+    func herdr() async -> String?
 }
 
 /// A running command: stdout lines, a stdin writer, and its end.
@@ -22,64 +26,71 @@ public struct Channel: Sendable {
 #if os(macOS)
     /// Runs commands on This Mac with the user's login-shell environment.
     /// ponytail: This Mac only, so no SSH prefix and no base64 envelope; remote machines add them.
-    public struct ProcessExec: Exec {
+    public final class ProcessExec: Exec {
         let environment: [String: String]
+        private let herdrPath: Mutex<String?>
 
-        /// Reads the login-shell environment once; keep one instance for the app's life.
+        /// Reads the login shell once (herdr again while it has none); keep one instance for the app's life.
         public init() async {
             // A write to a child that already exited must fail, not kill the app.
             signal(SIGPIPE, SIG_IGN)
-            environment = await Self.loginEnvironment()
+            var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("HERDR_") }
+            let (found, herdr) = await Self.loginShell(env)
+            env.merge(found.filter { Self.isUserKey($0.key) }) { $1 }
+            environment = env
+            herdrPath = Mutex(herdr)
         }
 
         public func run(_ argv: [String]) async throws -> Channel {
             try Self.spawn(argv, environment)
         }
 
-        /// A GUI app does not get the shell's environment, so ask the login shell once.
-        static func loginEnvironment() async -> [String: String] {
-            var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("HERDR_") }
-            let home = env["HOME"] ?? NSHomeDirectory()
-            let marker = "oriel-env-\(UUID().uuidString)"
-            var found: [String: String] = [:]
-            if let channel = try? spawn(
-                [env["SHELL"] ?? "/bin/zsh", "-lic", "echo \(marker); /usr/bin/env; echo \(marker)"],
-                env,
-            ) {
-                // Closed stdin reads like /dev/null.
-                channel.closeInput()
-                found = await (try? withTimeout(.seconds(3), onTimeout: channel.terminate) {
-                    var vars: [String: String] = [:]
-                    var seen = false
-                    // Stop at the second marker: a process the shell started may keep stdout open.
-                    for await line in channel.lines {
-                        if line.hasSuffix(marker) { // an rc file may print without a final newline
-                            if seen {
-                                break
-                            }
-                            seen = true
-                        } else if seen, let equals = line.firstIndex(of: "=") {
-                            vars[String(line[..<equals])] = String(line[line.index(after: equals)...])
-                        }
-                    }
-                    return vars
-                }) ?? [:]
+        public func herdr() async -> String? {
+            if let path = herdrPath.withLock({ $0 }) {
+                return path
             }
-            env.merge(found.filter { isUserKey($0.key) }) { $1 }
-            env["PATH"] = installFolders(home) + (env["PATH"] ?? "/usr/bin:/bin")
-            return env
+            let path = await Self.loginShell(environment).herdr
+            herdrPath.withLock { $0 = path }
+            return path
+        }
+
+        /// A GUI app does not get the shell's environment, so ask the login shell, in one run, for its
+        /// variables and for herdr.
+        static func loginShell(_ env: [String: String]) async -> (vars: [String: String], herdr: String?) {
+            let marker = "oriel-env-\(UUID().uuidString)"
+            guard let channel = try? spawn(
+                [env["SHELL"] ?? "/bin/zsh", "-lic",
+                 "echo \(marker); /usr/bin/env; echo \(marker); command -v herdr; echo \(marker)"],
+                env,
+            ) else { return ([:], nil) }
+            // Closed stdin reads like /dev/null.
+            channel.closeInput()
+            return await (try? withTimeout(.seconds(3), onTimeout: channel.terminate) {
+                var vars: [String: String] = [:]
+                var herdr: String?
+                var seen = 0
+                // Stop at the last marker: a process the shell started may keep stdout open.
+                for await line in channel.lines {
+                    if line.hasSuffix(marker) { // an rc file may print without a final newline
+                        seen += 1
+                        if seen == 3 {
+                            break
+                        }
+                    } else if seen == 1, let equals = line.firstIndex(of: "=") {
+                        vars[String(line[..<equals])] = String(line[line.index(after: equals)...])
+                    } else if seen == 2 {
+                        // The last line: a hook may print first. An alias or function is not a path.
+                        herdr = line.hasPrefix("/") ? line : nil
+                    }
+                }
+                return (vars, herdr)
+            }) ?? ([:], nil)
         }
 
         /// The keys taken from the login shell and given to This Mac's server. The rest of the app's environment
         /// (`__CFBundleIdentifier`, `XPC_*`, `DYLD_*`) must not reach a pane (design D47).
         static func isUserKey(_ key: String) -> Bool {
             ["PATH", "HOME", "SSH_AUTH_SOCK"].contains(key) || key.hasPrefix("XDG_")
-        }
-
-        /// herdr's usual install folders, put in front of `PATH`: no step to find herdr
-        /// (talking-to-herdr#herdr-on-each-machine).
-        static func installFolders(_ home: String) -> String {
-            "\(home)/.local/bin:/opt/homebrew/bin:/usr/local/bin:"
         }
 
         /// A pipe's output until EOF. Not `FileHandle.bytes`: with several pipes open at once it

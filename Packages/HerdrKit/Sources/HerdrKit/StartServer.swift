@@ -28,9 +28,6 @@ import Foundation
                     environment[pair[0]] = pair[1]
                 }
             }
-            // The install folders find herdr; its shells get the user's own PATH.
-            let path = environment["PATH"] ?? ""
-            environment["PATH"] = String(path.trimmingPrefix(ProcessExec.installFolders(environment["HOME"] ?? "")))
             let label = "dev.hkandala.oriel.herdr.\(session)"
             let domain = "gui/\(getuid())"
             let plist = FileManager.default.temporaryDirectory.appending(path: "\(label).plist")
@@ -38,10 +35,10 @@ import Foundation
             try FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
             let log = logs.appending(path: "\(session).log").path
             // Interactive: launchd's default throttles the CPU and I/O of the server and every agent in it.
-            let job: [String: Any] = ["Label": label, "ProgramArguments": ["/usr/bin/env", "-P", path, "herdr",
-                                                                           "--session", session, "server"],
-                                      "EnvironmentVariables": environment, "RunAtLoad": true,
-                                      "ProcessType": "Interactive", "StandardErrorPath": log]
+            let job: [String: Any] = try await ["Label": label,
+                                                "ProgramArguments": [herdr(), "--session", session, "server"],
+                                                "EnvironmentVariables": environment, "RunAtLoad": true,
+                                                "ProcessType": "Interactive", "StandardErrorPath": log]
             try PropertyListSerialization.data(fromPropertyList: job, format: .xml, options: 0).write(to: plist)
             defer { try? FileManager.default.removeItem(at: plist) }
             // The job of a server that stopped since is still loaded, and a label loads only once.
