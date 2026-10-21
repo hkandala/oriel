@@ -4,8 +4,9 @@ import Synchronization
 /// Runs argv on a machine. The one seam for This Mac, remote machines and iOS.
 public protocol Exec: Sendable {
     func run(_ argv: [String]) async throws -> Channel
-    /// herdr's absolute path on the machine, from its login shell; nil when it has none. Asked again while nil or
-    /// gone, so a herdr installed or moved since is found (talking-to-herdr#herdr-on-each-machine).
+    /// herdr's absolute path on the machine, from its login shell; nil when it has none. Asked again at most every
+    /// 30 s while missing or gone, so a herdr installed or moved since is found
+    /// (talking-to-herdr#herdr-on-each-machine).
     func herdr() async -> String?
 }
 
@@ -28,17 +29,27 @@ public struct Channel: Sendable {
     /// ponytail: This Mac only, so no SSH prefix and no base64 envelope; remote machines add them.
     public final class ProcessExec: Exec {
         let environment: [String: String]
-        private let herdrPath: Mutex<String?>
+        private let lookup: Mutex<Lookup>
+        /// herdr's path, when the login shell was last asked, and whether it is being asked now.
+        private struct Lookup {
+            var path: String?
+            var asked: ContinuousClock.Instant
+            var asking = false
+        }
 
         /// Reads the login shell once (herdr again while it has none); keep one instance for the app's life.
-        public init() async {
+        public convenience init() async {
             // A write to a child that already exited must fail, not kill the app.
             signal(SIGPIPE, SIG_IGN)
             var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("HERDR_") }
             let (found, herdr) = await Self.loginShell(env)
             env.merge(found.filter { Self.isUserKey($0.key) }) { $1 }
-            environment = env
-            herdrPath = Mutex(herdr)
+            self.init(env, herdr: herdr, asked: .now)
+        }
+
+        init(_ environment: [String: String], herdr: String?, asked: ContinuousClock.Instant) {
+            self.environment = environment
+            lookup = Mutex(Lookup(path: herdr, asked: asked))
         }
 
         public func run(_ argv: [String]) async throws -> Channel {
@@ -46,12 +57,19 @@ public struct Channel: Sendable {
         }
 
         public func herdr() async -> String? {
-            // Gone since (moved or reinstalled elsewhere): ask again.
-            if let path = herdrPath.withLock({ $0 }), FileManager.default.isExecutableFile(atPath: path) {
+            if let path = lookup.withLock({ $0.path }), FileManager.default.isExecutableFile(atPath: path) {
                 return path
             }
+            // Missing or gone since: ask again, one login shell at a time and at most every 30 s (it may take 3 s
+            // and runs the user's rc files); nil in between.
+            let ask = lookup.withLock {
+                guard !$0.asking, ContinuousClock.now - $0.asked >= .seconds(30) else { return false }
+                $0.asking = true
+                return true
+            }
+            guard ask else { return nil }
             let path = await Self.loginShell(environment).herdr
-            herdrPath.withLock { $0 = path }
+            lookup.withLock { $0 = Lookup(path: path, asked: .now) }
             return path
         }
 

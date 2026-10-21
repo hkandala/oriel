@@ -130,8 +130,9 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
     defer { try? FileManager.default.removeItem(at: dir) }
     try FileManager.default.createDirectory(at: dir.appending(path: "bin"), withIntermediateDirectories: true)
     let shell = dir.appending(path: "shell").path, herdr = dir.appending(path: "bin/herdr").path
-    // An rc file that prints without a final newline.
-    try "#!/bin/sh\nprintf motd\nsh -c \"$2\"\n".write(toFile: shell, atomically: true, encoding: .utf8)
+    // Counts its runs; an rc file that prints without a final newline.
+    let source = "#!/bin/sh\necho >> \"$0.count\"\nprintf motd\nsh -c \"$2\"\n"
+    try source.write(toFile: shell, atomically: true, encoding: .utf8)
     try "".write(toFile: herdr, atomically: true, encoding: .utf8)
     for path in [shell, herdr] {
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: path)
@@ -139,6 +140,14 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
     let found = await ProcessExec.loginShell(["SHELL": shell, "PATH": "\(dir.path)/bin:/usr/bin:/bin", "XDG_X": "1"])
     #expect(found.herdr == herdr && found.vars["XDG_X"] == "1")
     #expect(await ProcessExec.loginShell(["SHELL": shell, "PATH": "/usr/bin:/bin"]).herdr == nil)
+
+    // While herdr is missing: one login shell at a time, then none for 30 s.
+    try FileManager.default.removeItem(atPath: shell + ".count")
+    let exec = ProcessExec(["SHELL": shell, "PATH": "/usr/bin:/bin"], herdr: nil, asked: .now - .seconds(31))
+    async let first = exec.herdr(), second = exec.herdr(), third = exec.herdr()
+    #expect(await [first, second, third] == [nil, nil, nil])
+    #expect(await exec.herdr() == nil)
+    #expect(try String(contentsOfFile: shell + ".count", encoding: .utf8) == "\n")
 }
 
 private struct NewWorkspace: Decodable {

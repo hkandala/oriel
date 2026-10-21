@@ -226,8 +226,11 @@ final class HostStore {
                         await loadSessions()
                     }
                 case let .error(error):
-                    // First, to tell "not running" from other failures without a flash of the other text.
-                    await loadSessions()
+                    // First, to tell "not running" from other failures without a flash of the other text. Without
+                    // herdr there is no list.
+                    if error != .notFound {
+                        await loadSessions()
+                    }
                     state = .failed(error)
                 }
             }

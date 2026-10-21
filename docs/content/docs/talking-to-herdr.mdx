@@ -73,9 +73,10 @@ the work. A later server helper would sit behind the same two calls
   ([Run and dial](#run-and-dial)). On a remote machine it is one run over SSH
   on connect, and the path goes inside the envelope.
 - No path (herdr missing, or the shell failed or took over 3 s): the app shows
-  the install command and asks the shell again on the next try, so a herdr
-  installed since is found. A path that is gone since (herdr moved or
-  reinstalled elsewhere) is asked for again the same way. herdr older than 0.9.1 has no
+  the install command and asks the shell again, at most every 30 s while
+  missing and one run at a time, so a herdr installed since is found. A path
+  that is gone since (herdr moved or reinstalled elsewhere) is asked for again
+  the same way. herdr older than 0.9.1 has no
   `remote-api-bridge`, so the first call fails, shown as "No answer from
   herdr". A snapshot that reports a version below 0.9.3 shows "herdr 0.9.3 or
   newer is needed".
