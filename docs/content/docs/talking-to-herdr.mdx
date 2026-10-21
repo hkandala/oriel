@@ -1,17 +1,29 @@
 ---
 title: "Talking to herdr"
-description: "The exec primitive, requests, events, reconcile, the terminal plane and writes"
+description: "Run and dial, requests, events, reconcile, the terminal plane and writes"
 ---
 
-## The primitive
+## Run and dial
 
 ```swift
 protocol Exec {
     /// Run argv on the machine. Returns stdout as a byte stream and a stdin writer.
     func run(_ argv: [String]) async throws -> Channel
+    /// Open a TCP stream to host:port, as seen from the machine.
+    func dial(host: String, port: Int) async throws -> Channel
 }
 ```
 
+Every pane kind and plugin reaches its machine through these two calls
+(D52). Nothing of ours runs on the machine: `sshd`, POSIX tools and herdr do
+the work. A later server helper would sit behind the same two calls
+([Future work](/docs/future-work)).
+
+- **`dial`:** on This Mac, a plain TCP connection. On a remote machine from
+  macOS, `ssh -S <ctl> -W <host>:<port> <target>` on the host's ControlMaster
+  (one process, one stream on its stdio). From iOS, a Citadel `direct-tcpip`
+  channel. A web card needs a local port, not a stream; see
+  [Remote localhost](/docs/plugins/web-page#remote-localhost).
 - **This Mac:** `Process`. A GUI app does not get the shell's environment. So
   at launch the app reads `PATH`, `SSH_AUTH_SOCK`, `XDG_CONFIG_HOME` and
   `XDG_STATE_HOME` once with `$SHELL -lic` (stdin from `/dev/null`, 3 s
@@ -88,7 +100,11 @@ protocol Exec {
   - No `*.focused` events. They fire on every herdr TUI navigation, and the
     app ignores herdr's focus.
 - **Any event line means "read `session.snapshot` again".** Event payloads
-  are never decoded.
+  are never decoded, with one exception: a second `events.subscribe` run
+  watches the terminal panes of the selected tab with `pane.output_matched`
+  for a localhost address. Its `matched_line` becomes an
+  [Open :port chip](/docs/plugins/web-page#finding-ports). That run is opened
+  again when the selected tab changes.
 - **Snapshot pacing, per machine:**
   - At most one `session.snapshot` is in flight.
   - An event starts a 100 ms debounce. More events restart it, but a read

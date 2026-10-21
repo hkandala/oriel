@@ -62,7 +62,10 @@ Citadel exec channels, before any iOS work. Pass:
 - a long-lived channel streams stdin and stdout (`terminal session control`
   and the event stream);
 - closing a channel ends the remote command, and the server frees the session;
-- a Secure Enclave P-256 key authenticates; 8 parallel channels work.
+- a Secure Enclave P-256 key authenticates; 8 parallel channels work;
+- a `direct-tcpip` channel carries a web page: an in-app listener on
+  `127.0.0.1:<P>` pipes each connection into its own channel, and a dev
+  server loads in a web view at full speed.
 
 ## Build order
 
@@ -72,8 +75,8 @@ Citadel exec channels, before any iOS work. Pass:
 | 1 | **This Mac:** `Exec`, `call()`, events and snapshot pacing, sidebar, strip, terminal streams, split, close, resize, zoom |
 | 2 | **Remote machines (Mac):** ControlMaster, askpass, machine pages, status area, notifications |
 | 2b | **Thin iOS slice:** Citadel connect, snapshot, sidebar, one terminal stream |
-| 3 | **Pane kinds and chat:** the plugin registry and picker; the web page with `localhost` forwards; transcript and screen-text chat |
+| 3 | **Pane kinds and chat:** the plugin registry and picker; the web page with `run` and `dial` (same-port forwards, the Open :port chip, the ports list); transcript and screen-text chat |
 | 4 | **Plugin system:** the plugin host and prelude; `List`, `Detail`, `Markdown`, `ActionPanel`; then `Diff`, `Code`, `Form`; the Git history, Diff and Markdown plugins; install and dev mode; the `oriel-plugin` CLI |
 | 5 | **Floating pills (macOS)** |
-| 6 | **Full iPadOS and iOS:** the compact layout, the reply box, the key bar, background handling, accessibility on iOS |
+| 6 | **Full iPadOS and iOS:** the compact layout, the reply box, the key bar, the `dial` listener for web pages, background handling, accessibility on iOS |
 | 7 | **Later:** [Future work](/docs/future-work) |

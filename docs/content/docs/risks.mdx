@@ -27,4 +27,6 @@ description: "Known risks, their effect and the plan for each"
 | The pill panel's focus behavior | the reply box may not take keys, or a click may not open the app | [spike S5](/docs/build-order#s5-pill) |
 | Web page memory (120–200 MB each) | memory growth | caps of 6 on Mac and iPad and 2 on iPhone; evict on memory pressure |
 | libghostty-spm and Citadel are third-party builds | updates lag; supply chain | exact pins; reviewed updates; SwiftTerm as a fallback renderer |
+| A server with `AllowTcpForwarding no` | remote `localhost` pages cannot load | the card says so; Tailscale or LAN addresses still load; a server helper later ([Future work](/docs/future-work)) |
+| A same-port forward holds a Mac port | a Mac program started later on that port cannot bind | the card menu lists forwards with **Stop** |
 | A local forward port is open to other local users | another account could reach the dev server | accepted for a single-user Mac |

@@ -48,23 +48,48 @@ machine.
 ## Remote localhost
 
 On a remote machine, `localhost:3000` means that machine. WebKit never sends
-loopback through a proxy. So on macOS the app forwards the port on the host's
-ControlMaster, with `<L>` a free port on the Mac that differs from `<P>`:
+loopback through a proxy. So the app gives the machine's port `<P>` a local
+port on this device, through `dial`
+([Run and dial](/docs/talking-to-herdr#run-and-dial)) (D52):
 
-```sh
-ssh -F /dev/null -S <ctl> -O forward -L 127.0.0.1:<L>:localhost:<P> <target>
-```
+- **macOS:** the host's ControlMaster listens on the Mac and forwards each
+  connection:
+  ```sh
+  ssh -F /dev/null -S <ctl> -O forward -L localhost:<P>:localhost:<P> <target>
+  ```
+- **iOS:** an in-app listener on `127.0.0.1:<P>` pipes each connection it
+  accepts into a Citadel `direct-tcpip` channel. Listeners stop when the app
+  goes to the background, like terminal streams, and start again on return.
 
-Then it loads `127.0.0.1:<L>`.
-- The Mac's own `localhost:<P>` is never taken over.
+Rules:
+- The local port is the same `<P>` when it is free, so the page's origin is
+  exactly `localhost:<P>`: OAuth callbacks, CORS lists and absolute URLs keep
+  working. If `<P>` is taken (by the Mac itself or another machine's forward),
+  the app picks another free port and the origin changes. Simpler choice:
+  such a page may break. Revisit when it happens often.
+- A Mac program started later on `<P>` cannot bind it. The card menu lists
+  the active forwards, each with **Stop**.
 - A navigation decider adds forwards for other remote loopback ports the page
-  links to. `ssh -O cancel` removes a forward when its last card closes.
+  links to. A forward ends when its last card closes (`ssh -O cancel` on
+  macOS).
 - Each machine's web cards get a content rule that blocks loopback addresses
   except that machine's own forwards.
-- Simpler choice: the page's origin changes, so a page that hard-codes an
-  absolute `localhost:<P>` URL breaks. Revisit when such pages are common.
-- iOS loads addresses from the phone's network until it gets its own
-  forwarding (later).
+- Forwards use no SSH session from the [channel budget](/docs/machines#channel-budget).
+  They need `AllowTcpForwarding yes` on the server (the default). If a server
+  refuses, the card says so.
+- **Tailscale and LAN addresses** (`http://devbox:3000`) load directly, with
+  no forward, on Mac and iOS.
+
+## Finding ports
+
+- **Open :‹port› chip:** the app watches the terminal panes of the selected tab
+  with `pane.output_matched` and the regex
+  `https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):[0-9]+`
+  ([Events](/docs/talking-to-herdr#events)). A match shows "Open :3000" on that
+  terminal's card. A click makes a web pane for that address next to it.
+- **Ports list:** the picker's web page entry lists the machine's listening
+  ports. It runs `ss -ltnH` (Linux) or `lsof -nP -iTCP -sTCP:LISTEN` (macOS)
+  once when the list opens, never on a timer.
 
 ## Other rules
 

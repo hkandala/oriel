@@ -28,6 +28,7 @@ description: "The words these docs use"
 | split tree | herdr's layout: each split cuts a rectangle in two by a ratio |
 | split id | `split_<n>_<path>`: n = place in `splits[]`; path = `root` or one digit per step (0 = first child, 1 = second) |
 | ControlMaster | one shared SSH connection that later `ssh` commands reuse |
+| run / dial | the two calls the app makes on a machine: run a command and use its stdio / open a TCP stream to a host and port as seen from the machine |
 | envelope | the base64 wrapper every remote command travels in |
 | `terminal_id` / `pane_id` | herdr's id of a terminal process / of a pane slot; the pane id changes on a move to another workspace, the terminal id on a cold restart |
 | cold restart / live update | the herdr server stops, its terminals end, and it starts again / a new herdr server takes over the running terminals, which keep running |

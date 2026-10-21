@@ -54,7 +54,7 @@ export function Architecture({ caption }: { caption?: ReactNode }) {
           <Chips items={[<>HostStore × machines <small>call(), the event stream, terminal streams</small></>]} />
         </div>
         <div className="down">
-          ↓ <code>Exec.run(argv)</code> → stdin / stdout
+          ↓ <code>Exec.run(argv)</code> → stdin / stdout · <code>Exec.dial(host, port)</code> → a TCP stream
         </div>
         <div className="twocol">
           <div className="layer app">
@@ -63,7 +63,7 @@ export function Architecture({ caption }: { caption?: ReactNode }) {
           </div>
           <div className="layer app">
             <h5>iOS · CitadelExec</h5>
-            <Chips items={['one SSH connection per machine', 'one exec channel per run']} />
+            <Chips items={['one SSH connection per machine', 'one exec channel per run', 'one direct-tcpip channel per dial']} />
           </div>
         </div>
         <div className="down">↓ on the machine</div>
