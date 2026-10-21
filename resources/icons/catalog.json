@@ -1,0 +1,2365 @@
+[
+  {
+    "id": "pi",
+    "title": "Pi",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "pi"
+      ],
+      "process": [
+        "pi"
+      ],
+      "titlePrefix": [
+        "π"
+      ],
+      "scriptSuffix": [
+        "pi-coding-agent/dist/cli.js",
+        "pi-coding-agent/dist/bundle/cli.js"
+      ]
+    },
+    "svg": "svg/pi.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/pi.svg"
+  },
+  {
+    "id": "omp",
+    "title": "Oh My Pi",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "omp"
+      ],
+      "process": [
+        "omp"
+      ]
+    },
+    "svg": "svg/omp.svg",
+    "monochrome": true,
+    "brandColor": "#9b4dff",
+    "tile": {
+      "background": "#0f0a14",
+      "glyph": "#ed4abf"
+    },
+    "source": "oh-my-pi repo",
+    "license": "MIT",
+    "url": "https://github.com/can1357/oh-my-pi/blob/main/packages/collab-web/public/favicon.svg"
+  },
+  {
+    "id": "claude",
+    "title": "Claude Code",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "claude"
+      ],
+      "process": [
+        "claude"
+      ],
+      "titlePrefix": [
+        "✳",
+        "Claude Code"
+      ],
+      "scriptSuffix": [
+        "@anthropic-ai/claude-code/cli.js"
+      ]
+    },
+    "svg": "svg/claude.svg",
+    "monochrome": true,
+    "brandColor": "#d97757",
+    "tile": {
+      "background": "#d97757",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/claudecode.svg"
+  },
+  {
+    "id": "codex",
+    "title": "Codex",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "codex"
+      ],
+      "process": [
+        "codex"
+      ],
+      "scriptSuffix": [
+        "@openai/codex/bin/codex.js"
+      ]
+    },
+    "svg": "svg/codex.svg",
+    "monochrome": true,
+    "brandColor": "#3941ff",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/codex.svg)"
+  },
+  {
+    "id": "copilot",
+    "title": "GitHub Copilot CLI",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "copilot"
+      ],
+      "process": [
+        "copilot"
+      ],
+      "scriptSuffix": [
+        "copilot/npm-loader.js",
+        "@github/copilot/index.js"
+      ]
+    },
+    "svg": "svg/copilot.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#3b50e0"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/githubcopilot.svg"
+  },
+  {
+    "id": "devin",
+    "title": "Devin",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "devin"
+      ],
+      "process": [
+        "devin"
+      ]
+    },
+    "svg": "svg/devin.svg",
+    "monochrome": true,
+    "brandColor": "#0294de",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/devin.svg)"
+  },
+  {
+    "id": "droid",
+    "title": "Droid (Factory)",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "droid"
+      ],
+      "process": [
+        "droid"
+      ]
+    },
+    "svg": "svg/droid.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#111111",
+      "glyph": "#ffffff"
+    },
+    "source": "original",
+    "license": "CC0-1.0",
+    "url": ""
+  },
+  {
+    "id": "kimi",
+    "title": "Kimi Code",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "kimi"
+      ],
+      "process": [
+        "kimi",
+        "kimi-cli"
+      ]
+    },
+    "svg": "svg/kimi.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/kimi.svg"
+  },
+  {
+    "id": "opencode",
+    "title": "OpenCode",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "opencode"
+      ],
+      "process": [
+        "opencode"
+      ]
+    },
+    "svg": "svg/opencode.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#2f2f2f",
+      "glyph": "#f5f5f5"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/opencode.svg"
+  },
+  {
+    "id": "kilo",
+    "title": "Kilo Code",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "kilo"
+      ],
+      "process": [
+        "kilo",
+        "kilocode"
+      ]
+    },
+    "svg": "svg/kilo.svg",
+    "monochrome": true,
+    "brandColor": "#f8f675",
+    "tile": {
+      "background": "#1b1b1b",
+      "glyph": "#f8f675"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/kilocode.svg)"
+  },
+  {
+    "id": "hermes",
+    "title": "Hermes Agent",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "hermes"
+      ],
+      "process": [
+        "hermes"
+      ]
+    },
+    "svg": "svg/hermes.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/hermesagent.svg)"
+  },
+  {
+    "id": "qoder",
+    "title": "Qoder",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "qodercli"
+      ],
+      "process": [
+        "qodercli",
+        "qoder"
+      ]
+    },
+    "svg": "svg/qoder.svg",
+    "monochrome": true,
+    "brandColor": "#2adb5c",
+    "tile": {
+      "background": "#111111",
+      "glyph": "#2adb5c"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/qoder.svg)"
+  },
+  {
+    "id": "qwen",
+    "title": "Qwen Code",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "qwen"
+      ],
+      "process": [
+        "qwen"
+      ],
+      "scriptSuffix": [
+        "@qwen-code/qwen-code/cli.js"
+      ]
+    },
+    "svg": "svg/qwen.svg",
+    "monochrome": true,
+    "brandColor": "#6950ef",
+    "tile": {
+      "background": "#6950ef",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/qwen.svg"
+  },
+  {
+    "id": "cursor",
+    "title": "Cursor Agent",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "cursor"
+      ],
+      "process": [
+        "cursor-agent",
+        "agent"
+      ]
+    },
+    "svg": "svg/cursor.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/cursor.svg"
+  },
+  {
+    "id": "mastra",
+    "title": "Mastra Code",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "mastracode"
+      ],
+      "process": [
+        "mastracode",
+        "mastra"
+      ]
+    },
+    "svg": "svg/mastra.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#171717",
+      "glyph": "#ffffff"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/mastra.svg)"
+  },
+  {
+    "id": "antigravity",
+    "title": "Google Antigravity",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "agy",
+        "antigravity_cli"
+      ],
+      "process": [
+        "agy",
+        "antigravity"
+      ]
+    },
+    "svg": "svg/antigravity.svg",
+    "monochrome": true,
+    "brandColor": "#3186ff",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#3186ff"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/antigravity.svg)"
+  },
+  {
+    "id": "grok",
+    "title": "Grok",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "grok"
+      ],
+      "process": [
+        "grok"
+      ]
+    },
+    "svg": "svg/grok.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#000000",
+      "glyph": "#ffffff"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/grok.svg)"
+  },
+  {
+    "id": "letta",
+    "title": "Letta Code",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "letta"
+      ],
+      "process": [
+        "letta"
+      ]
+    },
+    "svg": "svg/letta.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "original",
+    "license": "CC0-1.0",
+    "url": ""
+  },
+  {
+    "id": "gemini",
+    "title": "Gemini CLI",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "gemini"
+      ],
+      "process": [
+        "gemini"
+      ],
+      "scriptSuffix": [
+        "@google/gemini-cli/dist/index.js"
+      ]
+    },
+    "svg": "svg/gemini.svg",
+    "monochrome": true,
+    "brandColor": "#8e75b2",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#4f7ff0"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/googlegemini.svg"
+  },
+  {
+    "id": "amp",
+    "title": "Amp",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "amp"
+      ],
+      "process": [
+        "amp"
+      ]
+    },
+    "svg": "svg/amp.svg",
+    "monochrome": true,
+    "brandColor": "#f34e3f",
+    "tile": {
+      "background": "#f34e3f",
+      "glyph": "#ffffff"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/amp.svg)"
+  },
+  {
+    "id": "goose",
+    "title": "Goose",
+    "kind": "agent",
+    "match": {
+      "process": [
+        "goose"
+      ]
+    },
+    "svg": "svg/goose.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/goose.svg)"
+  },
+  {
+    "id": "aider",
+    "title": "Aider",
+    "kind": "agent",
+    "match": {
+      "process": [
+        "aider"
+      ]
+    },
+    "svg": "svg/aider.svg",
+    "monochrome": true,
+    "brandColor": "#14b014",
+    "tile": {
+      "background": "#111111",
+      "glyph": "#14b014"
+    },
+    "source": "aider repo",
+    "license": "Apache-2.0",
+    "url": "https://github.com/Aider-AI/aider/blob/main/aider/website/assets/icons/safari-pinned-tab.svg"
+  },
+  {
+    "id": "crush",
+    "title": "Crush",
+    "kind": "agent",
+    "match": {
+      "process": [
+        "crush"
+      ]
+    },
+    "svg": "svg/crush.svg",
+    "monochrome": true,
+    "brandColor": "#6b50ff",
+    "tile": {
+      "background": "#6b50ff",
+      "glyph": "#ffffff"
+    },
+    "source": "original",
+    "license": "CC0-1.0",
+    "url": ""
+  },
+  {
+    "id": "ollama",
+    "title": "Ollama",
+    "kind": "agent",
+    "match": {
+      "process": [
+        "ollama"
+      ]
+    },
+    "svg": "svg/ollama.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/ollama.svg"
+  },
+  {
+    "id": "cline",
+    "title": "Cline",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "cline"
+      ],
+      "process": [
+        "cline"
+      ]
+    },
+    "svg": "svg/cline.svg",
+    "monochrome": true,
+    "brandColor": "#18181b",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/cline.svg"
+  },
+  {
+    "id": "kiro",
+    "title": "Kiro",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "kiro"
+      ],
+      "process": [
+        "kiro-cli",
+        "kiro"
+      ]
+    },
+    "svg": "svg/kiro.svg",
+    "monochrome": true,
+    "brandColor": "#9046ff",
+    "tile": {
+      "background": "#9046ff",
+      "glyph": "#ffffff"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/kiro.svg)"
+  },
+  {
+    "id": "maki",
+    "title": "Maki",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "maki"
+      ],
+      "process": [
+        "maki"
+      ]
+    },
+    "svg": "svg/maki.svg",
+    "monochrome": true,
+    "brandColor": "#444444",
+    "tile": {
+      "background": "#444444",
+      "glyph": "#ffffff"
+    },
+    "source": "original",
+    "license": "CC0-1.0",
+    "url": ""
+  },
+  {
+    "id": "meta",
+    "title": "Meta (Muse)",
+    "kind": "agent",
+    "match": {
+      "agent": [
+        "muse"
+      ],
+      "process": [
+        "muse"
+      ]
+    },
+    "svg": "svg/meta.svg",
+    "monochrome": true,
+    "brandColor": "#0467df",
+    "tile": {
+      "background": "#ffffff",
+      "glyph": "#0467df"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/meta.svg"
+  },
+  {
+    "id": "poolside",
+    "title": "Poolside",
+    "kind": "agent",
+    "match": {
+      "process": [
+        "pool",
+        "poolside"
+      ]
+    },
+    "svg": "svg/poolside.svg",
+    "monochrome": true,
+    "brandColor": "#4137ff",
+    "tile": {
+      "background": "#4137ff",
+      "glyph": "#ffffff"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/poolside.svg)"
+  },
+  {
+    "id": "openclaw",
+    "title": "OpenClaw",
+    "kind": "agent",
+    "match": {
+      "process": [
+        "openclaw"
+      ]
+    },
+    "svg": "svg/openclaw.svg",
+    "monochrome": true,
+    "brandColor": "#ff4d4d",
+    "tile": {
+      "background": "#ff4d4d",
+      "glyph": "#ffffff"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/openclaw.svg)"
+  },
+  {
+    "id": "mistral",
+    "title": "Mistral Vibe",
+    "kind": "agent",
+    "match": {
+      "process": [
+        "vibe"
+      ],
+      "titlePrefix": [
+        "Vibe"
+      ]
+    },
+    "svg": "svg/mistral.svg",
+    "monochrome": true,
+    "brandColor": "#fa520f",
+    "tile": {
+      "background": "#fa520f",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/mistralai.svg"
+  },
+  {
+    "id": "terminal",
+    "title": "Shell",
+    "kind": "shell",
+    "match": {
+      "process": [
+        "sh",
+        "dash",
+        "ksh",
+        "tcsh",
+        "csh",
+        "login"
+      ]
+    },
+    "svg": "svg/terminal.svg",
+    "monochrome": true,
+    "brandColor": "#2b2d31",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/terminal"
+  },
+  {
+    "id": "zsh",
+    "title": "zsh",
+    "kind": "shell",
+    "match": {
+      "process": [
+        "zsh",
+        "-zsh"
+      ]
+    },
+    "svg": "svg/zsh.svg",
+    "monochrome": true,
+    "brandColor": "#f15a24",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/zsh.svg"
+  },
+  {
+    "id": "bash",
+    "title": "bash",
+    "kind": "shell",
+    "match": {
+      "process": [
+        "bash",
+        "-bash"
+      ]
+    },
+    "svg": "svg/bash.svg",
+    "monochrome": true,
+    "brandColor": "#4eaa25",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/gnubash.svg"
+  },
+  {
+    "id": "fish",
+    "title": "fish",
+    "kind": "shell",
+    "match": {
+      "process": [
+        "fish",
+        "-fish"
+      ]
+    },
+    "svg": "svg/fish.svg",
+    "monochrome": true,
+    "brandColor": "#34c534",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/fishshell.svg"
+  },
+  {
+    "id": "nushell",
+    "title": "Nushell",
+    "kind": "shell",
+    "match": {
+      "process": [
+        "nu"
+      ]
+    },
+    "svg": "svg/nushell.svg",
+    "monochrome": true,
+    "brandColor": "#4e9a06",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/nushell.svg"
+  },
+  {
+    "id": "vim",
+    "title": "Vim",
+    "kind": "editor",
+    "match": {
+      "process": [
+        "vim",
+        "vi",
+        "view",
+        "vimdiff",
+        "gvim"
+      ]
+    },
+    "svg": "svg/vim.svg",
+    "monochrome": true,
+    "brandColor": "#019733",
+    "tile": {
+      "background": "#019733",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/vim.svg"
+  },
+  {
+    "id": "neovim",
+    "title": "Neovim",
+    "kind": "editor",
+    "match": {
+      "process": [
+        "nvim"
+      ]
+    },
+    "svg": "svg/neovim.svg",
+    "monochrome": true,
+    "brandColor": "#57a143",
+    "tile": {
+      "background": "#57a143",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/neovim.svg"
+  },
+  {
+    "id": "helix",
+    "title": "Helix",
+    "kind": "editor",
+    "match": {
+      "process": [
+        "hx",
+        "helix"
+      ]
+    },
+    "svg": "svg/helix.svg",
+    "monochrome": true,
+    "brandColor": "#281733",
+    "tile": {
+      "background": "#281733",
+      "glyph": "#d4c7ff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/helix.svg"
+  },
+  {
+    "id": "emacs",
+    "title": "Emacs",
+    "kind": "editor",
+    "match": {
+      "process": [
+        "emacs",
+        "emacsclient"
+      ]
+    },
+    "svg": "svg/emacs.svg",
+    "monochrome": true,
+    "brandColor": "#7f5ab6",
+    "tile": {
+      "background": "#7f5ab6",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/gnuemacs.svg"
+  },
+  {
+    "id": "nano",
+    "title": "nano",
+    "kind": "editor",
+    "match": {
+      "process": [
+        "nano",
+        "pico"
+      ]
+    },
+    "svg": "svg/nano.svg",
+    "monochrome": true,
+    "brandColor": "#209ce9",
+    "tile": {
+      "background": "#209ce9",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/nano.svg"
+  },
+  {
+    "id": "pager",
+    "title": "Pager / man",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "less",
+        "more",
+        "most",
+        "man"
+      ]
+    },
+    "svg": "svg/pager.svg",
+    "monochrome": true,
+    "brandColor": "#2b2d31",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/book-open"
+  },
+  {
+    "id": "bat",
+    "title": "bat",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "bat"
+      ]
+    },
+    "svg": "svg/bat.svg",
+    "monochrome": true,
+    "brandColor": "#31369e",
+    "tile": {
+      "background": "#31369e",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/bat.svg"
+  },
+  {
+    "id": "git",
+    "title": "Git",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "git"
+      ]
+    },
+    "svg": "svg/git.svg",
+    "monochrome": true,
+    "brandColor": "#f03c2e",
+    "tile": {
+      "background": "#f03c2e",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/git.svg"
+  },
+  {
+    "id": "lazygit",
+    "title": "lazygit",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "lazygit"
+      ]
+    },
+    "svg": "svg/lazygit.svg",
+    "monochrome": true,
+    "brandColor": "#3fb950",
+    "tile": {
+      "background": "#2f8f46",
+      "glyph": "#ffffff"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/git-compare"
+  },
+  {
+    "id": "tig",
+    "title": "tig",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "tig"
+      ]
+    },
+    "svg": "svg/tig.svg",
+    "monochrome": true,
+    "brandColor": "#f03c2e",
+    "tile": {
+      "background": "#f03c2e",
+      "glyph": "#ffffff"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/git-commit-horizontal"
+  },
+  {
+    "id": "github",
+    "title": "GitHub CLI",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "gh"
+      ]
+    },
+    "svg": "svg/github.svg",
+    "monochrome": true,
+    "brandColor": "#181717",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#181717"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/github.svg"
+  },
+  {
+    "id": "jj",
+    "title": "Jujutsu",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "jj",
+        "jjui",
+        "lazyjj"
+      ]
+    },
+    "svg": "svg/jj.svg",
+    "monochrome": false,
+    "brandColor": "#2f9fdf",
+    "tile": {
+      "background": "#e8f4fb",
+      "glyph": "#0e254f"
+    },
+    "source": "jj repo",
+    "license": "Apache-2.0",
+    "url": "https://github.com/jj-vcs/jj/blob/main/docs/images/jj-logo.svg"
+  },
+  {
+    "id": "monitor",
+    "title": "Monitor",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "top",
+        "htop",
+        "btop",
+        "btm",
+        "atop",
+        "glances",
+        "gotop",
+        "nvtop",
+        "asitop"
+      ]
+    },
+    "svg": "svg/monitor.svg",
+    "monochrome": true,
+    "brandColor": "#2b2d31",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/activity"
+  },
+  {
+    "id": "ssh",
+    "title": "SSH",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "ssh",
+        "mosh",
+        "mosh-client",
+        "et",
+        "autossh"
+      ]
+    },
+    "svg": "svg/ssh.svg",
+    "monochrome": true,
+    "brandColor": "#2b2d31",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/key-round"
+  },
+  {
+    "id": "logs",
+    "title": "Logs",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "tail",
+        "log",
+        "journalctl",
+        "lnav"
+      ]
+    },
+    "svg": "svg/logs.svg",
+    "monochrome": true,
+    "brandColor": "#2b2d31",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/scroll-text"
+  },
+  {
+    "id": "sleep",
+    "title": "Sleep",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "sleep",
+        "caffeinate",
+        "wait"
+      ]
+    },
+    "svg": "svg/sleep.svg",
+    "monochrome": true,
+    "brandColor": "#2b2d31",
+    "tile": {
+      "background": "#2b2d31",
+      "glyph": "#7ee787"
+    },
+    "source": "original",
+    "license": "CC0-1.0",
+    "url": ""
+  },
+  {
+    "id": "tmux",
+    "title": "tmux",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "tmux",
+        "zellij",
+        "screen"
+      ]
+    },
+    "svg": "svg/tmux.svg",
+    "monochrome": true,
+    "brandColor": "#1bb91f",
+    "tile": {
+      "background": "#1bb91f",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/tmux.svg"
+  },
+  {
+    "id": "yazi",
+    "title": "Yazi",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "yazi",
+        "ranger",
+        "lf",
+        "nnn",
+        "mc"
+      ]
+    },
+    "svg": "svg/yazi.svg",
+    "monochrome": true,
+    "brandColor": "#e7904a",
+    "tile": {
+      "background": "#e7904a",
+      "glyph": "#111111"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/folder-open"
+  },
+  {
+    "id": "docker",
+    "title": "Docker",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "docker",
+        "docker-compose",
+        "lazydocker",
+        "colima"
+      ]
+    },
+    "svg": "svg/docker.svg",
+    "monochrome": true,
+    "brandColor": "#2496ed",
+    "tile": {
+      "background": "#2496ed",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/docker.svg"
+  },
+  {
+    "id": "podman",
+    "title": "Podman",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "podman"
+      ]
+    },
+    "svg": "svg/podman.svg",
+    "monochrome": true,
+    "brandColor": "#892ca0",
+    "tile": {
+      "background": "#892ca0",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/podman.svg"
+  },
+  {
+    "id": "kubernetes",
+    "title": "Kubernetes",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "kubectl",
+        "kubectx",
+        "kubens",
+        "k9s",
+        "helm",
+        "minikube",
+        "kind"
+      ]
+    },
+    "svg": "svg/kubernetes.svg",
+    "monochrome": true,
+    "brandColor": "#326ce5",
+    "tile": {
+      "background": "#326ce5",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/kubernetes.svg"
+  },
+  {
+    "id": "terraform",
+    "title": "Terraform",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "terraform",
+        "tofu"
+      ]
+    },
+    "svg": "svg/terraform.svg",
+    "monochrome": true,
+    "brandColor": "#844fba",
+    "tile": {
+      "background": "#844fba",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/terraform.svg"
+  },
+  {
+    "id": "packer",
+    "title": "Packer",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "packer"
+      ]
+    },
+    "svg": "svg/packer.svg",
+    "monochrome": true,
+    "brandColor": "#02a8ef",
+    "tile": {
+      "background": "#02a8ef",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/packer.svg"
+  },
+  {
+    "id": "nomad",
+    "title": "Nomad",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "nomad"
+      ]
+    },
+    "svg": "svg/nomad.svg",
+    "monochrome": true,
+    "brandColor": "#00ca8e",
+    "tile": {
+      "background": "#00ca8e",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/nomad.svg"
+  },
+  {
+    "id": "vagrant",
+    "title": "Vagrant",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "vagrant"
+      ]
+    },
+    "svg": "svg/vagrant.svg",
+    "monochrome": true,
+    "brandColor": "#1868f2",
+    "tile": {
+      "background": "#1868f2",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/vagrant.svg"
+  },
+  {
+    "id": "vault",
+    "title": "Vault",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "vault"
+      ]
+    },
+    "svg": "svg/vault.svg",
+    "monochrome": true,
+    "brandColor": "#ffec6e",
+    "tile": {
+      "background": "#ffec6e",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/vault.svg"
+  },
+  {
+    "id": "consul",
+    "title": "Consul",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "consul"
+      ]
+    },
+    "svg": "svg/consul.svg",
+    "monochrome": true,
+    "brandColor": "#f24c53",
+    "tile": {
+      "background": "#f24c53",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/consul.svg"
+  },
+  {
+    "id": "aws",
+    "title": "AWS CLI",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "aws",
+        "sam",
+        "cdk"
+      ]
+    },
+    "svg": "svg/aws.svg",
+    "monochrome": true,
+    "brandColor": "#ff9900",
+    "tile": {
+      "background": "#232f3e",
+      "glyph": "#ff9900"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/aws.svg)"
+  },
+  {
+    "id": "gcloud",
+    "title": "Google Cloud",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "gcloud",
+        "gsutil",
+        "bq"
+      ]
+    },
+    "svg": "svg/gcloud.svg",
+    "monochrome": true,
+    "brandColor": "#4285f4",
+    "tile": {
+      "background": "#4285f4",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/googlecloud.svg"
+  },
+  {
+    "id": "azure",
+    "title": "Azure CLI",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "az"
+      ]
+    },
+    "svg": "svg/azure.svg",
+    "monochrome": true,
+    "brandColor": "#0669bc",
+    "tile": {
+      "background": "#0669bc",
+      "glyph": "#ffffff"
+    },
+    "source": "Lobe Icons",
+    "license": "MIT",
+    "url": "https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/azure.svg)"
+  },
+  {
+    "id": "vercel",
+    "title": "Vercel",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "vercel",
+        "vc"
+      ]
+    },
+    "svg": "svg/vercel.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#111111",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/vercel.svg"
+  },
+  {
+    "id": "cloudflare",
+    "title": "Cloudflare",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "wrangler",
+        "cloudflared"
+      ]
+    },
+    "svg": "svg/cloudflare.svg",
+    "monochrome": true,
+    "brandColor": "#f38020",
+    "tile": {
+      "background": "#f38020",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/cloudflare.svg"
+  },
+  {
+    "id": "heroku",
+    "title": "Heroku",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "heroku"
+      ]
+    },
+    "svg": "svg/heroku.svg",
+    "monochrome": true,
+    "brandColor": "#6762a6",
+    "tile": {
+      "background": "#6762a6",
+      "glyph": "#ffffff"
+    },
+    "source": "Devicon",
+    "license": "MIT",
+    "url": "https://github.com/devicons/devicon/blob/master/icons/heroku/heroku-plain.svg"
+  },
+  {
+    "id": "railway",
+    "title": "Railway",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "railway"
+      ]
+    },
+    "svg": "svg/railway.svg",
+    "monochrome": true,
+    "brandColor": "#0b0d0e",
+    "tile": {
+      "background": "#13111c",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/railway.svg"
+  },
+  {
+    "id": "render",
+    "title": "Render",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "render"
+      ]
+    },
+    "svg": "svg/render.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/render.svg"
+  },
+  {
+    "id": "modal",
+    "title": "Modal",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "modal"
+      ]
+    },
+    "svg": "svg/modal.svg",
+    "monochrome": true,
+    "brandColor": "#7fee64",
+    "tile": {
+      "background": "#181818",
+      "glyph": "#7fee64"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/modal.svg"
+  },
+  {
+    "id": "tailscale",
+    "title": "Tailscale",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "tailscale"
+      ]
+    },
+    "svg": "svg/tailscale.svg",
+    "monochrome": true,
+    "brandColor": "#242424",
+    "tile": {
+      "background": "#242424",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/tailscale.svg"
+  },
+  {
+    "id": "stripe",
+    "title": "Stripe",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "stripe"
+      ]
+    },
+    "svg": "svg/stripe.svg",
+    "monochrome": true,
+    "brandColor": "#635bff",
+    "tile": {
+      "background": "#635bff",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/stripe.svg"
+  },
+  {
+    "id": "sanity",
+    "title": "Sanity",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "sanity"
+      ]
+    },
+    "svg": "svg/sanity.svg",
+    "monochrome": true,
+    "brandColor": "#0d0e12",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#0d0e12"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/sanity.svg"
+  },
+  {
+    "id": "buildkite",
+    "title": "Buildkite",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "bk",
+        "buildkite-agent"
+      ]
+    },
+    "svg": "svg/buildkite.svg",
+    "monochrome": true,
+    "brandColor": "#14cc80",
+    "tile": {
+      "background": "#14cc80",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/buildkite.svg"
+  },
+  {
+    "id": "bazel",
+    "title": "Bazel",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "bazel",
+        "bazelisk"
+      ]
+    },
+    "svg": "svg/bazel.svg",
+    "monochrome": true,
+    "brandColor": "#43a047",
+    "tile": {
+      "background": "#43a047",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/bazel.svg"
+  },
+  {
+    "id": "nix",
+    "title": "Nix",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "nix",
+        "nh",
+        "nom",
+        "nix-build",
+        "nix-env",
+        "nix-shell",
+        "nix-store",
+        "darwin-rebuild",
+        "nixos-rebuild"
+      ]
+    },
+    "svg": "svg/nix.svg",
+    "monochrome": true,
+    "brandColor": "#5277c3",
+    "tile": {
+      "background": "#5277c3",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/nixos.svg"
+  },
+  {
+    "id": "homebrew",
+    "title": "Homebrew",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "brew"
+      ]
+    },
+    "svg": "svg/homebrew.svg",
+    "monochrome": true,
+    "brandColor": "#fbb040",
+    "tile": {
+      "background": "#fbb040",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/homebrew.svg"
+  },
+  {
+    "id": "huggingface",
+    "title": "Hugging Face",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "huggingface-cli",
+        "hf"
+      ]
+    },
+    "svg": "svg/huggingface.svg",
+    "monochrome": true,
+    "brandColor": "#ffd21e",
+    "tile": {
+      "background": "#ffd21e",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/huggingface.svg"
+  },
+  {
+    "id": "moon",
+    "title": "moon",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "moon"
+      ]
+    },
+    "svg": "svg/moon.svg",
+    "monochrome": true,
+    "brandColor": "#6f53f3",
+    "tile": {
+      "background": "#6f53f3",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/moonrepo.svg"
+  },
+  {
+    "id": "make",
+    "title": "GNU make / gcc",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "make",
+        "gmake",
+        "configure",
+        "libtool",
+        "gcc",
+        "g++",
+        "cpp",
+        "cc"
+      ]
+    },
+    "svg": "svg/make.svg",
+    "monochrome": true,
+    "brandColor": "#a42e2b",
+    "tile": {
+      "background": "#a42e2b",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/gnu.svg"
+  },
+  {
+    "id": "npm",
+    "title": "npm",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "npm",
+        "npx"
+      ]
+    },
+    "svg": "svg/npm.svg",
+    "monochrome": true,
+    "brandColor": "#cb3837",
+    "tile": {
+      "background": "#cb3837",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/npm.svg"
+  },
+  {
+    "id": "pnpm",
+    "title": "pnpm",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "pnpm",
+        "pnpx"
+      ]
+    },
+    "svg": "svg/pnpm.svg",
+    "monochrome": true,
+    "brandColor": "#f69220",
+    "tile": {
+      "background": "#f69220",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/pnpm.svg"
+  },
+  {
+    "id": "yarn",
+    "title": "Yarn",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "yarn"
+      ]
+    },
+    "svg": "svg/yarn.svg",
+    "monochrome": true,
+    "brandColor": "#2c8ebb",
+    "tile": {
+      "background": "#2c8ebb",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/yarn.svg"
+  },
+  {
+    "id": "vite",
+    "title": "Vite",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "vite",
+        "vitest"
+      ]
+    },
+    "svg": "svg/vite.svg",
+    "monochrome": true,
+    "brandColor": "#9135ff",
+    "tile": {
+      "background": "#9135ff",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/vite.svg"
+  },
+  {
+    "id": "postgres",
+    "title": "PostgreSQL",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "psql",
+        "postgres",
+        "pgcli",
+        "pg_dump",
+        "pg_restore"
+      ]
+    },
+    "svg": "svg/postgres.svg",
+    "monochrome": true,
+    "brandColor": "#4169e1",
+    "tile": {
+      "background": "#4169e1",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/postgresql.svg"
+  },
+  {
+    "id": "sqlite",
+    "title": "SQLite",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "sqlite3",
+        "sqlite",
+        "litecli"
+      ]
+    },
+    "svg": "svg/sqlite.svg",
+    "monochrome": true,
+    "brandColor": "#003b57",
+    "tile": {
+      "background": "#0f80cc",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/sqlite.svg"
+  },
+  {
+    "id": "database",
+    "title": "Database",
+    "kind": "tool",
+    "match": {
+      "process": [
+        "mysql",
+        "mariadb",
+        "mycli",
+        "redis-cli",
+        "mongosh",
+        "mongo",
+        "duckdb",
+        "clickhouse",
+        "usql"
+      ]
+    },
+    "svg": "svg/database.svg",
+    "monochrome": true,
+    "brandColor": "#336791",
+    "tile": {
+      "background": "#336791",
+      "glyph": "#ffffff"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/database"
+  },
+  {
+    "id": "python",
+    "title": "Python",
+    "kind": "language",
+    "match": {
+      "process": [
+        "python",
+        "python2",
+        "python2.7",
+        "python3",
+        "python3.10",
+        "python3.11",
+        "python3.12",
+        "python3.13",
+        "python3.14",
+        "python3.15",
+        "ipython",
+        "pip",
+        "pip3"
+      ]
+    },
+    "svg": "svg/python.svg",
+    "monochrome": true,
+    "brandColor": "#3776ab",
+    "tile": {
+      "background": "#3776ab",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/python.svg"
+  },
+  {
+    "id": "uv",
+    "title": "uv",
+    "kind": "language",
+    "match": {
+      "process": [
+        "uv",
+        "uvx"
+      ]
+    },
+    "svg": "svg/uv.svg",
+    "monochrome": true,
+    "brandColor": "#de5fe9",
+    "tile": {
+      "background": "#de5fe9",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/uv.svg"
+  },
+  {
+    "id": "jupyter",
+    "title": "Jupyter",
+    "kind": "language",
+    "match": {
+      "process": [
+        "jupyter",
+        "jupyter-notebook",
+        "jupyter-lab",
+        "jupyter-console",
+        "jupyter-qtconsole"
+      ]
+    },
+    "svg": "svg/jupyter.svg",
+    "monochrome": true,
+    "brandColor": "#f37626",
+    "tile": {
+      "background": "#f37626",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/jupyter.svg"
+  },
+  {
+    "id": "node",
+    "title": "Node.js",
+    "kind": "language",
+    "match": {
+      "process": [
+        "node"
+      ]
+    },
+    "svg": "svg/node.svg",
+    "monochrome": true,
+    "brandColor": "#5fa04e",
+    "tile": {
+      "background": "#5fa04e",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/nodedotjs.svg"
+  },
+  {
+    "id": "bun",
+    "title": "Bun",
+    "kind": "language",
+    "match": {
+      "process": [
+        "bun",
+        "bunx"
+      ]
+    },
+    "svg": "svg/bun.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f9f0e1",
+      "glyph": "#14151a"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/bun.svg"
+  },
+  {
+    "id": "deno",
+    "title": "Deno",
+    "kind": "language",
+    "match": {
+      "process": [
+        "deno"
+      ]
+    },
+    "svg": "svg/deno.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/deno.svg"
+  },
+  {
+    "id": "ruby",
+    "title": "Ruby",
+    "kind": "language",
+    "match": {
+      "process": [
+        "ruby",
+        "irb",
+        "bundle",
+        "bundler",
+        "rails",
+        "rake",
+        "gem"
+      ]
+    },
+    "svg": "svg/ruby.svg",
+    "monochrome": true,
+    "brandColor": "#cc342d",
+    "tile": {
+      "background": "#cc342d",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/ruby.svg"
+  },
+  {
+    "id": "go",
+    "title": "Go",
+    "kind": "language",
+    "match": {
+      "process": [
+        "go",
+        "gopls",
+        "dlv"
+      ]
+    },
+    "svg": "svg/go.svg",
+    "monochrome": true,
+    "brandColor": "#00add8",
+    "tile": {
+      "background": "#00add8",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/go.svg"
+  },
+  {
+    "id": "rust",
+    "title": "Rust",
+    "kind": "language",
+    "match": {
+      "process": [
+        "cargo",
+        "rustc",
+        "rustup",
+        "bacon"
+      ]
+    },
+    "svg": "svg/rust.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/rust.svg"
+  },
+  {
+    "id": "java",
+    "title": "Java",
+    "kind": "language",
+    "match": {
+      "process": [
+        "java",
+        "javac",
+        "jshell",
+        "gradle",
+        "mvn"
+      ]
+    },
+    "svg": "svg/java.svg",
+    "monochrome": true,
+    "brandColor": "#000000",
+    "tile": {
+      "background": "#f5f5f4",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/openjdk.svg"
+  },
+  {
+    "id": "swift",
+    "title": "Swift",
+    "kind": "language",
+    "match": {
+      "process": [
+        "swift",
+        "swiftc",
+        "xcodebuild",
+        "xcrun"
+      ]
+    },
+    "svg": "svg/swift.svg",
+    "monochrome": true,
+    "brandColor": "#f05138",
+    "tile": {
+      "background": "#f05138",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/swift.svg"
+  },
+  {
+    "id": "zig",
+    "title": "Zig",
+    "kind": "language",
+    "match": {
+      "process": [
+        "zig"
+      ]
+    },
+    "svg": "svg/zig.svg",
+    "monochrome": true,
+    "brandColor": "#f7a41d",
+    "tile": {
+      "background": "#f7a41d",
+      "glyph": "#111111"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/zig.svg"
+  },
+  {
+    "id": "clang",
+    "title": "Clang / LLVM",
+    "kind": "language",
+    "match": {
+      "process": [
+        "clang",
+        "clang++",
+        "clang-cpp",
+        "clang-cl",
+        "lldb",
+        "clangd"
+      ]
+    },
+    "svg": "svg/clang.svg",
+    "monochrome": true,
+    "brandColor": "#262d3a",
+    "tile": {
+      "background": "#262d3a",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/llvm.svg"
+  },
+  {
+    "id": "dart",
+    "title": "Dart",
+    "kind": "language",
+    "match": {
+      "process": [
+        "dart",
+        "pub"
+      ]
+    },
+    "svg": "svg/dart.svg",
+    "monochrome": true,
+    "brandColor": "#0175c2",
+    "tile": {
+      "background": "#0175c2",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/dart.svg"
+  },
+  {
+    "id": "flutter",
+    "title": "Flutter",
+    "kind": "language",
+    "match": {
+      "process": [
+        "flutter"
+      ]
+    },
+    "svg": "svg/flutter.svg",
+    "monochrome": true,
+    "brandColor": "#02569b",
+    "tile": {
+      "background": "#02569b",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/flutter.svg"
+  },
+  {
+    "id": "dotnet",
+    "title": ".NET",
+    "kind": "language",
+    "match": {
+      "process": [
+        "dotnet"
+      ]
+    },
+    "svg": "svg/dotnet.svg",
+    "monochrome": true,
+    "brandColor": "#512bd4",
+    "tile": {
+      "background": "#512bd4",
+      "glyph": "#ffffff"
+    },
+    "source": "Simple Icons",
+    "license": "CC0-1.0",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/dotnet.svg"
+  },
+  {
+    "id": "placeholder",
+    "title": "Placeholder",
+    "kind": "generic",
+    "match": {},
+    "svg": "svg/placeholder.svg",
+    "monochrome": true,
+    "brandColor": "#8b8d91",
+    "tile": {
+      "background": "#3a3c41",
+      "glyph": "#8b8d91"
+    },
+    "source": "Lucide",
+    "license": "ISC",
+    "url": "https://lucide.dev/icons/circle-dashed"
+  }
+]

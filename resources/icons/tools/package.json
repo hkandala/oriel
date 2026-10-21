@@ -1,0 +1,21 @@
+{
+  "name": "icons-work",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@lobehub/icons-static-svg": "^1.97.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@tabler/icons": "^3.49.0",
+    "devicon": "^2.17.0",
+    "lucide-static": "^1.61.0",
+    "simple-icons": "^16.35.0"
+  }
+}
