@@ -309,16 +309,16 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 <main>
 <!-- ═════════════ IDEA ═════════════ -->
 <section id="top">
-  <div class="pill">herdr 0.9.3 (protocol 22)</div><div class="pill">macOS 26 · iOS and iPadOS 26</div><div class="pill">design only, no app code</div>
+  <div class="pill">herdr 0.9.3 (protocol 22)</div><div class="pill">macOS 26 · iOS and iPadOS 26</div><div class="pill">v0 built: This Mac</div>
   <h1>Oriel</h1>
-  <p class="lead">A native macOS and iOS app that gives <a href="https://github.com/herdrdev/herdr">herdr</a> a modern interface. herdr stays the backend: it owns every workspace, tab, pane, terminal and agent. The app draws them, drives them, and keeps as little state of its own as it can.</p>
+  <p class="lead">A native Apple client for terminal multiplexers: <a href="https://github.com/herdrdev/herdr">herdr</a> first, and the only backend for now. The multiplexer stays the backend: it owns every workspace, tab, pane, terminal and agent. The app draws them, drives them, and keeps as little state of its own as it can.</p>
   <p>This page is a summary. The full design is in the <a href="https://oriel-docs.vercel.app/docs">design docs</a>.</p>
   <div class="grid2">
     <div class="card"><h4>The problem</h4><p>People run many coding agents at once, often on several machines. herdr keeps them alive and knows when each one is working, blocked or done. But its interface is a terminal UI: one machine at a time, keyboard-first, and nothing when you are away from the terminal or on your phone.</p></div>
     <div class="card"><h4>What we build</h4><p>One app for Mac, iPad and iPhone that shows every herdr machine at once: a sidebar of machines and agents, a swipeable strip of tabs with resizable panes, terminal, agent, web and plugin panes, a chat view for agents and terminals, and status pills on the Mac screen edge. Every pane kind is a plugin: terminal, agent and web page are core plugins, and your own are small web pages.</p></div>
   </div>
   <div class="rules">
-    <div class="rule"><div class="ic">◎</div><b>herdr is the source of truth</b><span>If herdr can hold a piece of state, herdr holds it. A fresh device rebuilds everything from herdr.</span></div>
+    <div class="rule"><div class="ic">◎</div><b>The multiplexer is the source of truth</b><span>If herdr can hold a piece of state, herdr holds it. A fresh device rebuilds everything from it.</span></div>
     <div class="rule"><div class="ic">⇄</div><b>Use what exists</b><span>herdr's API and CLI, OpenSSH, Apple's frameworks. No daemon, relay or server of our own.</span></div>
     <div class="rule"><div class="ic">▭</div><b>The simplest thing that works</b><span>One codebase, one window, one primitive per machine. Shortcuts we take on purpose are marked "Simpler choice" in the docs, with when to revisit them.</span></div>
   </div>
@@ -589,11 +589,11 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 <!-- ═════════════ ARCHITECTURE ═════════════ -->
 <section id="arch">
   <h2><span class="num">8</span>Architecture</h2>
-  <p class="lead">Views read from one HostStore per machine. Each HostStore runs commands on its machine through one tiny protocol, <code>Exec</code>. Plugin cards are web views with a bridge to <code>run</code> and <code>dial</code>.</p>
+  <p class="lead">Views read from one HostStore per machine. Each HostStore talks to its multiplexer through one interface, <code>Multiplexer</code>: herdr is the first and only implementation; Rex and tmux are candidates. Commands reach the machine through one tiny protocol, <code>Exec</code>. Plugin cards are web views with a bridge to <code>run</code> and <code>dial</code>.</p>
   <div class="arch">
     <div class="layer tag-a"><h5>App · SwiftUI · macOS + iOS</h5>
       <div class="chips"><span class="chip">Sidebar</span><span class="chip">TabBar</span><span class="chip">Strip</span><span class="chip">PaneCard: Terminal · Chat · Web · Plugin</span><span class="chip">StatusArea</span><span class="chip">Pills (macOS)</span></div>
-      <div class="chips" style="margin-top:6px"><span class="chip">PaneViewRegistry</span><span class="chip">PluginRegistry + a web view per plugin card</span><span class="chip">HostStore × machines</span></div></div>
+      <div class="chips" style="margin-top:6px"><span class="chip">PaneViewRegistry</span><span class="chip">PluginRegistry + a web view per plugin card</span><span class="chip">HostStore × machines</span><span class="chip">Multiplexer: Herdr</span></div></div>
     <div class="down">↓ <code>Exec.run(argv)</code> → stdin / stdout · <code>Exec.dial(host, port)</code> → a TCP stream</div>
     <div class="twocol">
       <div class="layer tag-a"><h5>macOS · ProcessExec(prefix)</h5><div class="chips"><span class="chip">this Mac: <code>[]</code></span><span class="chip">remote: <code>[ssh -F /dev/null … -S ctl target --]</code></span><span class="chip">dial: <code>ssh -O forward -L</code> / <code>ssh -W</code></span></div></div>
@@ -604,6 +604,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <div class="chips"><span class="chip"><code>herdr remote-api-bridge</code> → herdr.sock</span><span class="chip"><code>herdr terminal session control</code> → frames</span><span class="chip"><code>tail -F</code> → chat</span><span class="chip"><code>git</code>, <code>cat</code> → plugin data</span></div></div>
   </div>
   <table><tr><th>Piece</th><th>Platform</th><th>Job</th></tr>
+    <tr><td><code>Multiplexer</code></td><td>both</td><td>the interface every multiplexer implements: machine connection, a snapshot of workspaces, tabs, panes, layout and agent status, events, terminal streams, actions. <code>Herdr</code> in HerdrKit is the one implementation. A deliberate exception to "no interface with one implementation"</td></tr>
     <tr><td><code>HerdrKit</code></td><td>both</td><td><code>Exec</code>, <code>call()</code>, events, snapshot decoding, split-tree rebuild, label parser, transcript parsers, the remote command envelope</td></tr>
     <tr><td><code>ProcessExec</code> / <code>CitadelExec</code></td><td>macOS / iOS</td><td>run a command or dial a port, locally or over SSH</td></tr>
     <tr><td><code>HostStore</code></td><td>both</td><td>one per machine: snapshot, events, streams, seen state</td></tr>
@@ -873,6 +874,7 @@ web:http://localhost:3000/dashboard</code></pre>
   <h2><span class="num">14</span>Status, notifications and pills</h2>
   <p class="lead">The status area, notifications and pills all read the same snapshot. "Finished" comes from herdr's <code>completion_seq</code>, so the app sees a finish even when a herdr TUI watches the tab. Finishes that happen while the app is closed are not shown.</p>
   <div class="callout">Finished, not seen = <code>completion_seq != null &amp;&amp; completion_seq != seen</code>. herdr sets <code>completion_seq</code> when an agent goes from working or blocked to idle, and clears it to null on every other status change, so a finish shows only until the agent works again. herdr's own <code>done</code> is skipped when a herdr TUI is already looking at the tab, and the counter restarts at 0 with herdr.</div>
+  <p class="muted">Status comes only from herdr's API. herdr does not support OSC 7501 (a program status protocol) yet (draft PR herdr#5172), and under herdr the app never sees that sequence. Another multiplexer, where the app owns the terminal bytes, may use it.</p>
   <details><summary>Notifications</summary>
     <ul>
       <li>Blocked: "codex needs you · infra". Finished: "pi finished · api-server", unless you are looking at that pane. The first snapshot after connecting never notifies. A newer notification replaces the older one; seeing the pane removes it.</li>
@@ -1028,6 +1030,7 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
   <h2><span class="num">20</span>Glossary</h2>
   <table>
     <tr><td class="k">herdr TUI</td><td>herdr's own text interface, run in a terminal app</td></tr>
+    <tr><td class="k"><code>Multiplexer</code></td><td>the interface the app uses for any terminal multiplexer; herdr is the only one for now</td></tr>
     <tr><td class="k">machine</td><td>one herdr session the app connects to; one entry in the machine list. A non-default local session is "This Mac · ‹session›"</td></tr>
     <tr><td class="k">host</td><td>the computer a machine runs on; sessions on one host share one SSH connection</td></tr>
     <tr><td class="k">This Mac</td><td>the Mac the app runs on, reached without SSH</td></tr>
