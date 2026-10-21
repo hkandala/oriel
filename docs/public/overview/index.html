@@ -343,7 +343,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   </div>
   <p class="hint"><b>Try:</b> scroll the main area sideways (trackpad or shift+wheel); the selected row follows the page. Hide the sidebar with the button at the top left: the tabs move into the title bar as capsules, every tab whose page is visible lights up, and the glass marker follows the scroll. Scroll the sidebar sideways, click the dots, or pick a session from the session button to switch machines. Hover a card for its controls. Press <b>Open :3000</b> on the dev server card to open its web card. The <b>diff</b> and <b>history</b> tabs are plugin cards: small web pages.</p>
   <div class="grid3">
-    <div class="card"><h4>Machines</h4><p>The app keeps its own list of machines, on the Mac and on iOS. On a Mac with herdr installed, herdr's machines are imported. All connect at once; one sidebar page per machine, swiped sideways like Arc's spaces.</p></div>
+    <div class="card"><h4>Machines</h4><p>The app keeps its own list of machines, on the Mac and on iOS. On a Mac with herdr, the Add Machine sheet lists herdr's machines. All connect at once; one sidebar page per machine, swiped sideways like Arc's spaces.</p></div>
     <div class="card"><h4>Status everywhere</h4><p><span style="color:#8fd3ff">◔ working</span>, <span style="color:var(--amber)">▲ needs you</span>, <span style="color:var(--green)">✓ finished</span>, on sidebar rows, tab capsules and the status area. The status area covers every machine.</p></div>
     <div class="card"><h4>Panes</h4><p>Panes follow herdr's split layout. Drag dividers to resize, zoom a card to fill its page, drag cards to swap, split or move them. Paste an image into an agent or terminal card: it goes to the pane's machine as a file, and its path is pasted.</p></div>
   </div>
@@ -549,7 +549,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   </details>
   <details><summary>Add a machine, theme and accessibility</summary>
     <ul>
-      <li><b>Add a machine:</b> the app saves the SSH target in its own list, on the Mac and on iOS. On the Mac, herdr's machines (<code>herdr machine list</code>) are imported on first launch, and the add sheet lists those not added yet. iOS shows the public key to copy into <code>authorized_keys</code>. herdr on the Mac is needed only for This Mac's sessions.</li>
+      <li><b>Add a machine:</b> the app saves the SSH target in its own list, on the Mac and on iOS. On the Mac, the Add Machine sheet lists herdr's machines (<code>herdr machine list</code>) not added yet; when the app's list is empty, the sheet opens with them checked. iOS shows the public key to copy into <code>authorized_keys</code>. herdr on the Mac is needed only for This Mac's sessions.</li>
       <li><b>Theme:</b> dark only, frosted. The window is one behind-window blur under a dark tint; pane cards are translucent with a hairline border; the sidebar sits flat on the window; Liquid Glass only on the tab marker, popovers and the palette. Terminals use a dark palette; web pages are told <code>prefers-color-scheme: dark</code>. iOS uses the same look. Status colors: <span style="color:#8fd3ff">◔ working</span> blue, <span style="color:var(--amber)">▲ needs you</span> amber, <span style="color:var(--green)">✓ finished</span> green.</li>
       <li><b>Accessibility:</b> status is always a glyph plus a word, never color alone. Terminal cards expose their screen text to VoiceOver (from <code>pane.read visible</code>, on demand) and announce new output politely. Keyboard focus moves sidebar → tab bar → cards (left to right, top to bottom). Every card action is reachable from the keyboard (⌘K). Every swipe has a keyboard path, a menu path and a button. The chrome supports Dynamic Type on iOS, and the terminal font size follows the app's text size setting. Reduce Motion turns off page animations (the strip jumps to a clicked tab) and the pill's slide.</li>
     </ul>
@@ -699,7 +699,7 @@ herdr call pane.send_keys ← special keys and Ctrl chords</code></pre>
   <h2><span class="num">10</span>Machines and SSH</h2>
   <p class="lead">The app keeps its own machine list, on the Mac and on iOS. On the Mac, SSH is the system <code>ssh</code>; on iOS it is Citadel.</p>
   <div class="grid2">
-    <div class="card"><h4>macOS</h4><p>The app's own machine list, as on iOS. When herdr is installed on this Mac, its <code>herdr machine list</code> entries are imported on first launch, and the add sheet lists the ones not added yet. herdr on the Mac is needed only for This Mac's sessions (<code>herdr session list</code>). One ControlMaster per host, started on purpose, so there is one prompt per host. Agent and X11 forwarding are off; <code>dial</code> adds port forwards when needed. A bundled askpass script shows password prompts.</p></div>
+    <div class="card"><h4>macOS</h4><p>The app's own machine list, as on iOS. When herdr is installed on this Mac, the Add Machine sheet lists its <code>herdr machine list</code> entries not added yet, checked when the app's list is empty. herdr on the Mac is needed only for This Mac's sessions (<code>herdr session list</code>). One ControlMaster per host, started on purpose, so there is one prompt per host. Agent and X11 forwarding are off; <code>dial</code> adds port forwards when needed. A bundled askpass script shows password prompts.</p></div>
     <div class="card"><h4>iOS</h4><p>Machines in <code>UserDefaults</code>. A Secure Enclave key that cannot leave the phone. Host keys pinned on first use. The Mac is reached like any machine through Remote Login, over LAN or Tailscale.</p></div>
   </div>
   <p>A <b>machine</b> is one herdr session, so it is one entry in the machine list. Two sessions on one host share one SSH connection (ControlMaster), its channel limit, and nothing else: each session has its own events, streams and plugin state cleanup. A non-default local session is named "This Mac · ‹session›".</p>
@@ -998,7 +998,7 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
   <div class="timeline">
     <div class="st"><b>0 · Spikes</b>left after v0: S3 ssh · S4 Codex · S5 pill · S6 plugin web views · S7 iOS transport: Citadel exec channels with streaming stdin, a long-lived channel, channel close, <code>direct-tcpip</code></div>
     <div class="st"><b>1 · This Mac</b>v0 built: Exec, call(), events, snapshot, sidebar, strip, splits, terminal streams, actions, palette. Next: divider drag, drag and drop, renames and reorders, agent rows and the status area in the sidebar, "seen"</div>
-    <div class="st"><b>2 · Remote machines</b>the app's machine list and herdr import, ControlMaster, askpass, machine pages, notifications</div>
+    <div class="st"><b>2 · Remote machines</b>the app's machine list and the Add Machine sheet with herdr's machines, ControlMaster, askpass, machine pages, notifications</div>
     <div class="st"><b>2b · Thin iOS slice</b>connect, snapshot, one terminal stream</div>
     <div class="st"><b>3 · Pane kinds and chat</b>registry and picker, placeholders with <code>layout.apply</code>, web page with <code>run</code> and <code>dial</code>, the Open :port chip, transcript and screen-text chat, image paste</div>
     <div class="st"><b>4 · Plugin system</b>web view host and bridge, Git history, Diff, Markdown, install and dev mode</div>
@@ -1017,7 +1017,7 @@ agent.start | prompt | send_keys
 herdr --session S remote-api-bridge
 herdr --session S terminal session control|observe &lt;terminal_id&gt; --cols C --rows R [--takeover]   (observe inside the stdin wrapper)
 herdr session list --json                              (macOS)
-herdr machine list --json                              (macOS; imported)
+herdr machine list --json                              (macOS; the Add Machine sheet)
 herdr --session S server                               (remote: nohup, on request; This Mac: a launchd job, D47)
 
 never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom · herdr popups · herdr plugin panes (plugin.pane.open) · herdr's private client socket</code></pre>
