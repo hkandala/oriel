@@ -1,6 +1,6 @@
 ---
 title: "Plugin security"
-description: "Machine binding, the run permission, consent, the page's limits and caps"
+description: "Machine binding, what run means, consent, the page's limits and caps"
 ---
 
 - **One web page per card, bound to its pane's machine.** `run` and `dial` go
@@ -24,10 +24,9 @@ description: "Machine binding, the run permission, consent, the page's limits an
 - **User-gesture rule, enforced in Swift:** `open(url)` (after a confirm
   sheet) and `clipboard.copy` work only while the user is clicking or typing
   in that card.
-- **One permission, `run`.** Without it a plugin can render, read its
-  argument, the snapshot and preferences, and keep instance state (the app
-  does that file I/O with fixed commands). Finer rules ("only `git`") would
-  not hold (`git -c alias.x='!sh'` runs anything), so none are offered.
+- **No permissions to pick.** Every plugin can `run` and `dial`; install
+  consent is the gate. Finer rules ("only `git`") would not hold
+  (`git -c alias.x='!sh'` runs anything), so none are offered.
 - **Consent at install**, per device, keyed by plugin id and source.
   - The sheet is headed by the plugin id and source URL. A plugin chooses its
     own title, so the title alone could imitate another.
@@ -39,11 +38,10 @@ description: "Machine binding, the run permission, consent, the page's limits an
     other machines."
   - Text from a machine is shown with control and direction-override
     characters removed.
-- Again on an update that adds a permission.
 - **This Mac gets one more confirm**, on a plugin's first `run` or `dial`
   there, remembered per plugin id and source, and revocable.
 - Core plugins ask nothing. Settings lists every plugin with its source,
-  commit, permissions and answers, with Disable and Remove.
+  commit and answers, with Disable and Remove.
 - The argument and machine content are untrusted: they reach a machine only
   as argv inside the envelope. `run` has no shell option.
 - **A machine can write labels**, so it can open any *installed* plugin on

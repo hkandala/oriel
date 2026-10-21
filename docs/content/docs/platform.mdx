@@ -88,7 +88,7 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
   zones sit above each card's surface. Drops on another machine are refused.
 - iOS key bar: libghostty-spm's `inputAccessoryItems`.
 - Plugin bridge: `window.oriel`, injected into each plugin page; every call
-  checks the card's permission and machine binding in Swift.
+  checks the card's machine binding in Swift.
 
 ## One test target
 
@@ -99,7 +99,7 @@ read again), the equal-splits ratios, the label parser (`oriel:` with
 and without a pane name, an argument with spaces and `#`), the remote command
 envelope (hostile strings round-tripped through bash, zsh and fish), the
 state-file write command, the bridge refusing
-`run` and `dial` to another machine or without permission, and each
+`run` and `dial` to another machine, and each
 transcript parser.
 
 What it looks like: [Main window](/docs/ui/window),

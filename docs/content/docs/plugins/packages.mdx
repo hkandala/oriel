@@ -15,7 +15,6 @@ A normal `package.json` with one `oriel` field.
     "api": 1,                                  // highest API version used
     "title": "Git history",
     "icon": "arrow.triangle.branch",           // SF Symbol, or an asset path
-    "permissions": ["run"],                    // v1 has exactly one permission
     "panes": [
       { "name": "history", "title": "Git history", "entry": "dist/history.html",
         "arg": { "title": "Ref or path", "placeholder": "HEAD",
@@ -52,8 +51,7 @@ In the app, not on machines:
   in place because their argument and state live outside the page ([State and restore](/docs/plugins/state)).
   Dev plugins get Safari Web Inspector and a "DEV" badge.
 - **Updates:** at most once a day the app checks the remote ref and shows
-  "Update available"; the user presses Update. An update that adds a
-  permission asks for consent again.
+  "Update available"; the user presses Update.
 - **API version:** the app injects the API. A plugin whose
   `api` is newer than the app shows "needs a newer Oriel". API changes
   within a version are additive.

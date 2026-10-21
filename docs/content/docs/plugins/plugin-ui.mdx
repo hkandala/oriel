@@ -13,7 +13,7 @@ pane's machine, plus a few app calls ([Plugin API](/docs/plugins/api)) (D53).
 <Flow
   rows={[
     [['index.html', 'the plugin\'s own files'], ['oriel-plugin://<id>/', 'a URL scheme served from the app'], ['WebPage per card', 'window.oriel injected before the page runs'], ['web view', 'drawn in the card, in the strip']],
-    [['oriel.run / oriel.dial', 'a call from the page'], ['bridge (Swift)', 'checks the permission and the card\'s machine'], ['Exec on that machine', 'run or dial, over SSH'], ['result', 'a promise in the page']],
+    [['oriel.run / oriel.dial', 'a call from the page'], ['bridge (Swift)', 'checks the card\'s machine'], ['Exec on that machine', 'run or dial, over SSH'], ['result', 'a promise in the page']],
   ]}
   caption="Top: how a plugin card loads. Bottom: how the page reaches its machine."
 />
