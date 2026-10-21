@@ -4,8 +4,8 @@ import Synchronization
 /// Runs argv on a machine. The one seam for This Mac, remote machines and iOS.
 public protocol Exec: Sendable {
     func run(_ argv: [String]) async throws -> Channel
-    /// herdr's absolute path on the machine, from its login shell; nil when it has none. Asked again while nil,
-    /// so a herdr installed since is found (talking-to-herdr#herdr-on-each-machine).
+    /// herdr's absolute path on the machine, from its login shell; nil when it has none. Asked again while nil or
+    /// gone, so a herdr installed or moved since is found (talking-to-herdr#herdr-on-each-machine).
     func herdr() async -> String?
 }
 
@@ -46,7 +46,8 @@ public struct Channel: Sendable {
         }
 
         public func herdr() async -> String? {
-            if let path = herdrPath.withLock({ $0 }) {
+            // Gone since (moved or reinstalled elsewhere): ask again.
+            if let path = herdrPath.withLock({ $0 }), FileManager.default.isExecutableFile(atPath: path) {
                 return path
             }
             let path = await Self.loginShell(environment).herdr
