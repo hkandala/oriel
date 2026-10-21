@@ -21,12 +21,8 @@ Each item says what it is and when to build it. Smaller deferrals are marked
 
 ## Panes and layout
 
-- **Floating panes.** A pane floats above the strip as a movable, resizable
-  card, then docks back into a tab. The design: floating panes are panes in a
-  tab labeled `oriel:float`; float and dock are `pane.move`; card frames are in
-  memory. Build it when users ask for scratch terminals over their tabs.
-  Research:
-  [`floating-panes.md`](https://github.com/hkandala/oriel/blob/main/resources/research/ui/floating-panes.md).
+- **Floating panes** (cards that float above the strip and dock back into a
+  tab): [`floating-panes.md`](https://github.com/hkandala/oriel/blob/main/resources/research/ui/floating-panes.md).
 - **Placeholders after a cold restart.** herdr brings a pane started with a
   command back as a plain shell, with its label, so the card still works
   ([Labels and instance ids](/docs/plugins/labels)). The upstream ask: restore
@@ -43,9 +39,10 @@ Each item says what it is and when to build it. Smaller deferrals are marked
   program sends to report its status;
   [spec](https://www.superlogical.com/rex/docs/build/program-status)). herdr does
   not support it yet (draft PR
-  [#5172](https://github.com/herdrdev/herdr/pull/5172)). When herdr ships
-  `panes[].program_status`, show its `message` on ▲ and ✓ rows and in
-  notifications, and say "failed" for `error`. Another multiplexer's
+  [#5172](https://github.com/herdrdev/herdr/pull/5172) adds `program_status` to
+  `pane.get` and `pane.list`; a change to it alone sends no event). Once herdr
+  ships it, show its `message` on ▲ and ✓ rows and in notifications, and say
+  "failed" for `error`. Another multiplexer's
   implementation may parse OSC 7501 itself where the app owns the terminal
   bytes ([Status](/docs/status#status-area-and-notifications)).
 - **A small server helper** behind the same `run` and `dial` calls: one program

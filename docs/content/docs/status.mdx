@@ -11,16 +11,8 @@ description: "The status area, notifications and how the floating pills work"
   seen. Clicking a row selects that machine, workspace, tab and pane.
 - Sidebar rows, tab capsules, the status area and the pills all read
   `agent_status` and `completion_seq` from the snapshot. No extra calls.
-- Status comes only from the multiplexer's API (D55). OSC 7501, the Program
-  Status Protocol, is an escape sequence that programs such as pi and Claude
-  Code write to their terminal to report working, blocked or done
-  ([spec](https://www.superlogical.com/rex/docs/build/program-status)). herdr
-  does not support it yet (draft PR
-  [#5172](https://github.com/herdrdev/herdr/pull/5172)); once it does, it folds
-  it into `agent_status` and `completion_seq`. Under herdr the app never sees
-  the raw sequence: its terminal stream is herdr's redrawn screen. Another
-  multiplexer's implementation may read OSC 7501 itself where the app owns the
-  terminal bytes.
+- Status comes only from the multiplexer's API (D55), never from
+  [OSC 7501](/docs/reference/glossary) ([Future work](/docs/future-work)).
 - **"Finished, not seen"** = `completion_seq` in `snapshot.agents[]` is not
   null and differs from the value this device recorded as seen
   ([Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own)).
