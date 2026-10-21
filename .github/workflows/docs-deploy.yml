@@ -50,5 +50,6 @@ jobs:
           npm install -g vercel@latest
           vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
           vercel build --prod --token="$VERCEL_TOKEN"
-          url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          # one archive upload: the free plan allows 5000 uploaded files a day (about 870 per deploy)
+          url=$(vercel deploy --prebuilt --prod --archive=tgz --token="$VERCEL_TOKEN")
           echo "Production: $url" >> "$GITHUB_STEP_SUMMARY"
