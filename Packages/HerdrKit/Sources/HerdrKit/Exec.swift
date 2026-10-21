@@ -66,9 +66,14 @@ public struct Channel: Sendable {
                 }) ?? [:]
             }
             env.merge(found.filter { ["PATH", "SSH_AUTH_SOCK"].contains($0.key) || $0.key.hasPrefix("XDG_") }) { $1 }
-            // herdr's usual install folders in front: no step to find herdr (talking-to-herdr#herdr-on-each-machine).
-            env["PATH"] = "\(home)/.local/bin:/opt/homebrew/bin:/usr/local/bin:" + (env["PATH"] ?? "/usr/bin:/bin")
+            env["PATH"] = installFolders(home) + (env["PATH"] ?? "/usr/bin:/bin")
             return env
+        }
+
+        /// herdr's usual install folders, put in front of `PATH`: no step to find herdr
+        /// (talking-to-herdr#herdr-on-each-machine).
+        static func installFolders(_ home: String) -> String {
+            "\(home)/.local/bin:/opt/homebrew/bin:/usr/local/bin:"
         }
 
         /// A pipe's output until EOF. Not `FileHandle.bytes`: with several pipes open at once it
