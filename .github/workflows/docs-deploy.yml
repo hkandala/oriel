@@ -6,14 +6,10 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
-      - 'resources/design.html'
-      - 'resources/inspirations/selected/**'
       - '.github/workflows/docs-deploy.yml'
   pull_request:
     paths:
       - 'docs/**'
-      - 'resources/design.html'
-      - 'resources/inspirations/selected/**'
       - '.github/workflows/docs-deploy.yml'
   workflow_dispatch:
 

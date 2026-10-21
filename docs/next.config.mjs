@@ -8,7 +8,7 @@ const config = {
   async redirects() {
     return [
       { source: '/', destination: '/docs', permanent: false },
-      // the published resources/design.html; its relative image paths need the file URL
+      // the overview's relative image paths need the file URL
       { source: '/overview', destination: '/overview/index.html', permanent: false },
       // folders without an index page, and pages merged into others
       { source: '/docs/ui', destination: '/docs/ui/window', permanent: false },

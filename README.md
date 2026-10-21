@@ -45,8 +45,8 @@ Packages/HerdrKit/         Swift package, no UI: Exec/ProcessExec (child process
                            events, paced snapshots), models, split tree, TerminalStream, starting a server
 scripts/                   herdr-session.sh (throwaway sessions), e2e.sh and e2e-helper.py (UI test setup)
 plan/                      the v0 plan, phase files and their findings
-docs/                      the design site (MDX pages under docs/content/docs/)
-resources/                 research notes, the one-page design overview, UI references
+docs/                      the design site (MDX pages under docs/content/docs/, the overview in docs/public/overview/)
+resources/                 research notes and UI references
 ```
 
 HerdrKit knows nothing about SwiftUI or libghostty; the app knows nothing about herdr's argv or JSON.
@@ -90,8 +90,8 @@ pnpm dev
 ```
 
 The site needs pnpm 10 or newer (`docs/package.json` pins it). With an older global pnpm, run
-`npx pnpm@10 install` and `npx pnpm@10 dev` instead. `resources/design.html` is a one-page overview with no build
-step (`open resources/design.html`).
+`npx pnpm@10 install` and `npx pnpm@10 dev` instead. `docs/public/overview/index.html` is a one-page overview with no
+build step (`open docs/public/overview/index.html`).
 
 The raw inspiration videos and frames are kept locally only; they are not in git.
 
