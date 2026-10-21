@@ -86,8 +86,8 @@ export const Web = ({ title }: { title: string }) => (
     <div className="bar" style={{ width: '45%' }} />
     <div className="bar" style={{ width: '60%' }} />
     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-      <div style={{ flex: 1, height: 60, background: '#e9eefb', borderRadius: 6 }} />
-      <div style={{ flex: 1, height: 60, background: '#eaf6ee', borderRadius: 6 }} />
+      <div style={{ flex: 1, height: 60, background: '#1b2436', borderRadius: 6 }} />
+      <div style={{ flex: 1, height: 60, background: '#1a2b22', borderRadius: 6 }} />
     </div>
   </div>
 );

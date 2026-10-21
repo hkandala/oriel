@@ -69,7 +69,9 @@ function Ctl({ n }: { n: Leaf }) {
   return (
     <>
       {plugin ? (
-        <Seg a="plugin" b="term" on={0} />
+        <>
+          ↻ <Seg a="plugin" b="term" on={0} />
+        </>
       ) : n.kind === 'web' ? (
         '‹ ↻ ↗'
       ) : (

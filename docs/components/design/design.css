@@ -71,9 +71,9 @@
 .oriel .term .y { color: #e5c07b; }
 .oriel .term .m { color: #c08cf0; }
 .oriel .term .d { color: #777; }
-.oriel .webv { flex: 1; background: #fafafa; color: #222; padding: 14px; overflow: hidden; }
+.oriel .webv { flex: 1; background: #101115; color: #ddd; padding: 14px; overflow: hidden; }
 .oriel .webv h5 { margin: 0 0 6px; font-size: 16px; font-weight: 700; }
-.oriel .webv .bar { height: 8px; background: #e6e6e6; border-radius: 4px; margin: 6px 0; }
+.oriel .webv .bar { height: 8px; background: #26272d; border-radius: 4px; margin: 6px 0; }
 .oriel .chat { flex: 1; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; font-size: 11.5px; min-height: 0; }
 .oriel .msg .who { color: #8d8d97; font-size: 10.5px; }
 .oriel .msg.u .txt { background: #2a2a33; display: inline-block; padding: 4px 8px; border-radius: 8px; }

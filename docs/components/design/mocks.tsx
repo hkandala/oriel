@@ -121,7 +121,7 @@ export function PanePicker({ caption }: { caption?: React.ReactNode }) {
         <div className="h">New pane on devbox</div>
         {PICK.map(([ic, name, note], i) => (
           <div key={name}>
-            {(i === 3 || i === 6) && <hr />}
+            {i === 3 && <div className="h">Plugins</div>}
             <div className="it">
               <Ico icon={ic} />
               {name} <small>{note}</small>
@@ -163,6 +163,16 @@ export function AddMachineSheet({ caption }: { caption?: React.ReactNode }) {
             <span className="btn">Copy</span>
           </div>
           <small>copy into authorized_keys on the machine</small>
+        </div>
+        <div className="f">
+          <label>
+            From herdr<span className="ios">macOS</span>
+          </label>
+          <div>
+            ☑ devbox
+            <br />☑ gpu-01
+          </div>
+          <small>herdr's machines not yet added, checked while the list is empty</small>
         </div>
         <div className="btns">
           <span className="btn">Cancel</span>
