@@ -6,8 +6,7 @@ description: "How a plugin pane is stored in herdr: label, placeholder and insta
 ## Label format
 
 ```text
-label     = "web:" url
-          | "oriel:" plugin-id [ "/" pane-name ] "#" iid [ " " arg ]
+label     = "oriel:" plugin-id [ "/" pane-name ] "#" iid [ " " arg ]
 plugin-id = [a-z0-9][a-z0-9._-]{0,63}
 pane-name = [a-z0-9][a-z0-9-]{0,31}
 iid       = [a-z0-9]{6}
@@ -21,7 +20,7 @@ oriel:git-history#k3f9q2 main
 oriel:markdown#q2m0zd docs/DESIGN.md
 oriel:diff#a81xw0 base=main
 oriel:kanban/board#7tt1qe
-web:http://localhost:3000/dashboard
+oriel:web#m4p8sa http://localhost:3000/dashboard
 ```
 
 - A plugin with one pane kind omits `/<pane-name>`. A label without a pane

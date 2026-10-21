@@ -774,7 +774,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
     <table><tr><th>Plugin</th><th>Kind</th><th>UI</th><th>herdr marks the pane with</th></tr>
       <tr><td>terminal</td><td>core</td><td>native terminal</td><td>nothing (the default)</td></tr>
       <tr><td>agent</td><td>core</td><td>native terminal + chat view</td><td>nothing (herdr sets <code>pane.agent</code>)</td></tr>
-      <tr><td>web</td><td>core</td><td>native web view</td><td><code>web:&lt;url&gt;</code></td></tr>
+      <tr><td>web</td><td>core</td><td>native web view</td><td><code>oriel:web#&lt;iid&gt; &lt;url&gt;</code></td></tr>
       <tr><td>git-history, diff, markdown</td><td>core</td><td>a web page and the public bridge</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr>
       <tr><td>your plugins</td><td>installed</td><td>a web page and the public bridge</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr></table>
     <p class="muted">Core native plugins have a manifest with a <code>native</code> field instead of a page, so a terminal costs no web view. herdr's own TUI plugins are not part of this system; a pane a herdr plugin opened shows as a terminal.</p>
@@ -783,7 +783,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
   </details>
   <details><summary>Web page and remote <code>localhost</code></summary>
     <ul>
-      <li>The pane label <code>web:&lt;url&gt;</code> is the marker: it has no length limit, and it survives moves and restarts. A placeholder process holds the slot.</li>
+      <li>The pane label <code>oriel:web#&lt;iid&gt; &lt;url&gt;</code> is the marker: it has no length limit, and it survives moves and restarts. A placeholder process holds the slot. The label keeps the address the user typed; the address after in-card navigation and the scroll position go in the machine's state file (<code>web/&lt;iid&gt;.json</code>), as for plugins.</li>
       <li>A label this device did not set, for an origin not approved before on this machine, shows "Open ‹url›?" and loads only after a click.</li>
       <li>A remote <code>localhost:P</code> goes through <code>dial</code>. On the Mac: <code>ssh -O forward -L</code> on the ControlMaster, on the same port when it is free, so the page's origin is exactly <code>localhost:P</code>. On iOS: an in-app listener on <code>127.0.0.1:P</code> pipes each connection into a Citadel <code>direct-tcpip</code> channel (a TCP stream through the SSH connection). Tailscale addresses load directly.</li>
       <li><b>Open :P</b>: when a terminal prints a local address (herdr's <code>pane.output_matched</code>), its card shows a chip that opens the address in a web card. The card menu also lists the machine's listening ports (<code>ss</code> or <code>lsof</code>), on demand.</li>
@@ -808,7 +808,7 @@ oriel.dial(host, port)   → a TCP stream to host:port, as seen from that machin
 <pre><code>oriel:git-history#k3f9q2 main          ← plugin # instance id, then the argument (what a TUI user reads)
 oriel:markdown#q2m0zd docs/DESIGN.md
 oriel:kanban/board#7tt1qe              ← a plugin with several pane kinds
-web:http://localhost:3000/dashboard</code></pre>
+oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     <ul>
       <li>Every plugin pane is a real herdr pane running an inert placeholder command that prints the title, the argument and "shown by Oriel". The app creates it in one call: <code>layout.apply</code> with a pane node <code>{label, cwd, command:[argv]}</code> in a temporary tab; then <code>pane.move</code> puts it in place, and the temporary tab closes itself. The app never types into a shell. It never passes <code>tab_id</code> to <code>layout.apply</code>: that replaces the whole tab and kills its panes.</li>
       <li>After a herdr cold restart the pane comes back as a shell with its label. The card still works from the label. The upstream ask (herdr discussion #1367) is an opt-in restore of such panes.</li>
@@ -913,7 +913,7 @@ web:http://localhost:3000/dashboard</code></pre>
     <div class="col2 tag-h"><h4>herdr and the machines own</h4><ul>
       <li>Workspaces, tabs, panes, order, labels; split tree and ratios</li>
       <li>Terminal content and PTYs; agent kind, status, completion counter, transcript pointer</li>
-      <li>Web addresses (<code>web:&lt;url&gt;</code>) and plugin panes (<code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code>)</li>
+      <li>Web addresses (<code>oriel:web#&lt;iid&gt; &lt;url&gt;</code>) and plugin panes (<code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code>)</li>
       <li>Plugin instance state (a file on the machine)</li>
       <li>Chat history (the agent's transcript)</li>
 </ul></div>

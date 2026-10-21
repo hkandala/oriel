@@ -8,7 +8,9 @@ and the app draws a native web view in its rectangle.
 
 ## The marker is the pane label
 
-The label is the marker: `web:http://localhost:3000/dashboard`. The label is
+The label is the marker: `oriel:web#<iid> <url>`, for example
+`oriel:web#m4p8sa http://localhost:3000/dashboard`
+([Labels and instance ids](/docs/plugins/labels)). The label is
 the only pane field that has no length limit and survives moves and herdr
 restarts (tested on 0.9.3). Metadata tokens are capped at 80 characters and
 lost on restart. Titles, process arguments and environment are lost or
@@ -21,11 +23,11 @@ not use addresses that contain secrets (for example a `?token=` URL).
 
 1. The user types an address. A bare `host:port` gets `http://`. Only `http`
    and `https` are accepted.
-2. `layout.apply` makes the pane with the label `web:<url>` and the
+2. `layout.apply` makes the pane with the label `oriel:web#<iid> <url>` and the
    placeholder command, then `pane.move` puts it in place
    ([Create](/docs/plugins/labels#create)). The placeholder prints
    "web page", the address and "shown by Oriel".
-3. After a later edit of the address, `pane.rename {label: "web:<url>"}`, then
+3. After a later edit of the address, `pane.rename {label: "oriel:web#<iid> <url>"}`, then
    `pane.report_metadata {source: "user:oriel", tokens: {oriel_rev:
    "<time>"}}`. A rename sends no event, but a token change sends
    `pane.updated`, so other devices see the new address at once.
@@ -37,10 +39,25 @@ scrolling away does not reload it. The header shows the page title, Back,
 Reload, Open in browser and Edit address. Navigation stays inside the card
 (like an iframe). The label keeps the address the user typed.
 
+## Viewing state on the machine
+
+The address after in-card navigation and the scroll position are saved on the
+pane's machine (D58), in the same instance state file as a plugin's
+([The instance state file](/docs/plugins/state#the-instance-state-file)):
+`$HOME/.local/state/oriel/<session>/web/<iid>.json`, holding
+`{"url": …, "scrollY": …}`.
+- Written debounced (500 ms) when a navigation ends or scrolling stops, then a
+  new `oriel_rev` token, as for plugins. Last writer wins.
+- When the card is built, and on a changed `oriel_rev`, the card opens the
+  saved address and scroll position if the saved address may load by itself
+  (its origin is the typed address's origin, or one approved for this machine,
+  see below). Otherwise it opens the typed address.
+- Editing the address writes the new label and clears the saved address.
+
 ## A label set elsewhere needs a click
 
 Any process on a machine (a prompt-injected agent, a script) can rename a
-pane to `web:<url>`. So a page loads by itself only if this device created or
+pane to `oriel:web#<iid> <url>`. So a page loads by itself only if this device created or
 edited that label, or the user approved that origin for this machine before.
 Otherwise the card shows "Open ‹url›?". Approved origins are saved per
 machine.

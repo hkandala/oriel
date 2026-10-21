@@ -10,7 +10,7 @@ description: "Where plugin state lives and how a fresh app restores plugin panes
 | the pane and its place in the layout | — | herdr pane | every device and the herdr TUI |
 | plugin, pane kind, instance id | `git-history#k3f9q2` (`/<pane>` only when the plugin has several) | the pane label | every device |
 | the argument: what the pane shows | `main`, `docs/DESIGN.md` | the pane label | every device, the TUI border |
-| bigger instance state | selected commit, filters, scroll anchor | a JSON file on the pane's machine, keyed by iid | every device that reaches the machine |
+| bigger instance state | selected commit, filters, scroll anchor; a web card's current address and scroll position | a JSON file on the pane's machine, keyed by iid | every device that reaches the machine |
 | change signal | `oriel_rev` | a herdr metadata token | every device (`pane.updated`) |
 | preferences | diff style | the app, per device | this device |
 | plugin code and consent | — | the app | this device |
@@ -55,13 +55,13 @@ absolute paths.
 
 ## Restore on a fresh app start (any device)
 
-<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'web: · oriel: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, plugin, iid)'], ['5 · render', 'web page + pane context + state file']]} />
+<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'oriel: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, plugin, iid)'], ['5 · render', 'web page + pane context + state file']]} />
 
 1. Connect each machine and read `session.snapshot`.
 2. Classify every pane by its label:
-   - `web:http(s)://…` → the web plugin, argument = the URL ([Web page](/docs/plugins/web-page) load rules
+   - matching the `oriel:` grammar → (plugin, pane, iid, arg); for `web`, the
+     argument is the typed URL ([Web page](/docs/plugins/web-page) load rules
      apply);
-   - matching the `oriel:` grammar → (plugin, pane, iid, arg);
    - otherwise → `agent` if herdr set `pane.agent`, else `terminal`.
 3. Resolve the plugin in the registry (core, then a linked folder, then an
    installed plugin):

@@ -20,9 +20,9 @@ One rule decides where each new thing goes (D57):
 | Split tree and ratios | herdr | `snapshot.layouts[]` |
 | Terminal content and PTY | herdr | `terminal session` frames |
 | Agent kind, status, `completion_seq`, transcript pointer | herdr | `agents[]`, `panes[]` |
-| Web page address | herdr | pane label `web:<url>` |
+| Web page address the user typed | herdr | pane label `oriel:web#<iid> <url>` |
 | Plugin, pane kind, instance id, argument | herdr | pane label `oriel:<plugin>[/<pane>]#<iid> <arg>` |
-| Plugin instance state | the machine | `$HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json` ([State and restore](/docs/plugins/state)) |
+| Plugin instance state; a web card's current address and scroll position | the machine | `$HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json` (`web` for web cards; [State and restore](/docs/plugins/state)) |
 | Chat history | the agent | its transcript file on the machine |
 | This Mac's sessions (macOS) | herdr | `herdr session list` |
 | Remote machines: target, session, label, id | app, disk | `UserDefaults` (imported once from `herdr machine list` on macOS) |
