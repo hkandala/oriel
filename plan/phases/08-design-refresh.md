@@ -91,6 +91,12 @@ decisions get "Changed by Dxx", new ones get new numbers.
 - **Web cards keep their viewing state on the machine (D58):** the label
   `oriel:web#<iid> <url>` keeps the typed address; the current address and scroll position
   go in the instance state file `web/<iid>.json`, as for plugins.
+- **No live cross-device follow for any card (D59):** a card, web included, reads its state
+  file only when it is built (fresh start, new device, reopened; on iOS only cards the system
+  discarded). Every plugin and web card gets a header **Refresh** (it replaces the web card's
+  Reload) that rebuilds the card from the machine. State writes no longer change `oriel_rev`;
+  it follows only renames. `oriel.state` is for view state; live shared data goes in files
+  read with `run`.
 - **The `Multiplexer` protocol is also in code** (item 2's scope): `HerdrKit` has the
   protocol, `HerdrClient` conforms, and the app talks to it.
 
