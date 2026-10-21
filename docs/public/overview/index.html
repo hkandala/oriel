@@ -107,7 +107,7 @@ figure{margin:0} figcaption{font-size:12.5px;color:var(--mute);margin-top:6px}
 .dots b.on{background:#fff}
 .status{padding:6px 14px;font-size:11.5px}
 .status .sum{color:#cfcfd6;margin-bottom:2px}
-.status div{padding:1px 0}
+.status div{padding:1px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sfoot{display:flex;align-items:center;gap:2px;padding:4px 8px 8px}
 .filter{flex:1;display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:99px;background:rgba(255,255,255,.07);color:#77777f;margin-right:4px}
 .main{grid-row:2;grid-column:2;display:flex;flex-direction:column;min-width:0;min-height:0}
@@ -126,8 +126,7 @@ figure{margin:0} figcaption{font-size:12.5px;color:var(--mute);margin-top:6px}
 .win .ctl{display:none}.win .pane:hover .ctl{display:flex}
 .seg{display:inline-flex;border:1px solid rgba(255,255,255,.15);border-radius:6px;overflow:hidden;font-size:10px;margin-right:4px}
 .seg span{padding:0 6px}.seg span.on{background:rgba(255,255,255,.15);color:#fff}
-.chip-plugin{font-size:9.5px;border:1px solid rgba(255,255,255,.2);border-radius:5px;padding:0 4px;color:#aaa}
-.chip-port{font-size:11px;padding:2px 9px;border-radius:99px;background:rgba(10,132,255,.22);border:1px solid rgba(10,132,255,.45);color:#a9d0ff;cursor:pointer;margin-right:4px}
+.chip-port{font-size:11px;padding:2px 9px;border-radius:99px;background:rgba(10,132,255,.22);border:1px solid rgba(10,132,255,.45);color:#a9d0ff;cursor:pointer;position:absolute;right:10px;bottom:10px}
 .term{font:11px/1.45 var(--mono);padding:2px 12px 10px;color:#d6d6dc;white-space:pre;overflow:hidden;flex:1}
 .term .g{color:#5fd27a}.term .b{color:#7cb7ff}.term .y{color:#e5c07b}.term .m{color:#c08cf0}.term .d{color:#777}
 .webv{flex:1;margin:0 8px 8px;border-radius:8px;background:#101115;color:#ddd;padding:14px;overflow:hidden;font-family:var(--sans)}
@@ -173,7 +172,7 @@ figure{margin:0} figcaption{font-size:12.5px;color:var(--mute);margin-top:6px}
 .twocol{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 /* split demo */
-.splitdemo{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:14px;align-items:start}
+.splitdemo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr);gap:14px;align-items:start}
 .sd-canvas{height:220px;border-radius:12px;background:#1b1b20;position:relative;overflow:hidden;user-select:none}
 .sd-pane{position:absolute;background:#2a2a33;border-radius:8px;color:#ddd;font:12px var(--mono);display:grid;place-items:center}
 .sd-div{position:absolute;background:transparent;z-index:2}
@@ -741,7 +740,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
     <div>
       <div class="muted" style="font-size:12px;margin-bottom:6px">3 · draw it, drag a divider</div>
       <div class="sd-canvas" id="sd"></div>
-      <pre style="margin-top:8px;font-size:11.5px"><code id="sdcall">drag a divider, or double-click it to reset it to 0.5…</code></pre>
+      <pre style="margin-top:8px;font-size:11.5px;white-space:pre-wrap"><code id="sdcall">drag a divider, or double-click it to reset it to 0.5…</code></pre>
     </div>
   </div>
   <details><summary>Zoom, PTY size, selection and "seen"</summary>
@@ -1151,8 +1150,7 @@ const seg=(a,b,first)=>`<span class="seg"><span class="${first?"on":""}">${a}</s
 function head(n){
   const plugin=n.kind==="diff"||n.kind==="hist";
   const view=plugin?seg("plugin","term",1):n.kind==="web"?"<i>‹</i><i>↻</i><i>↗</i>":seg("chat","term",n.kind==="chat");
-  return `<div class="ph">${ico(...n.icon)}<span class="tt">${n.title}</span>${plugin?`<span class="chip-plugin">plugin</span>`:""}<span class="sp"></span>`+
-    (n.port?`<span class="chip-port" data-port="${n.port}" role="button" tabindex="0" title="Open localhost:${n.port} in a web card">Open :${n.port}</span>`:"")+
+  return `<div class="ph">${ico(...n.icon)}<span class="tt">${n.title}</span><span class="sp"></span>`+
     `<span class="ctl">${view}<i title="Split Right">◫</i><i title="Split Down">⊟</i><i title="Zoom">⤢</i><i title="Close">✕</i></span></div>`;
 }
 function renderNode(n){
@@ -1163,7 +1161,8 @@ function renderNode(n){
   else if(n.kind==="term") body=`<div class="term">${n.body}</div>`;
   else if(n.kind==="web") body=`<div class="webv"><h5>${n.title.includes("staging")?"Staging":"Dashboard"}</h5><div class="bar" style="width:70%"></div><div class="bar" style="width:45%"></div><div class="bar" style="width:60%"></div><div style="display:flex;gap:8px;margin-top:12px"><div style="flex:1;height:60px;background:#1b2436;border-radius:6px"></div><div style="flex:1;height:60px;background:#1a2b22;border-radius:6px"></div></div></div>`;
   else body=n.body;
-  return `<div class="pane ${n.dim?"dimmed":""}" style="flex:${n.w||1}">${head(n)}${body}</div>`;
+  const chip=n.port?`<span class="chip-port" data-port="${n.port}" role="button" tabindex="0" title="Open localhost:${n.port} in a web card">Open :${n.port}</span>`:"";
+  return `<div class="pane ${n.dim?"dimmed":""}" style="flex:${n.w||1}">${head(n)}${body}${chip}</div>`;
 }
 let host=0, sel=0;
 const status=w=>["▲","✓","◔"].find(g=>w.tabs.some(t=>t.badge===g));
