@@ -26,7 +26,7 @@
 
 /* ───── macOS window ───── */
 .oriel .win { --side: 230px; position: relative; height: 480px; border-radius: 16px; overflow: hidden; display: grid; grid-template-columns: var(--side) 1fr; background: #0e0f12; border: 1px solid rgba(255,255,255,.08); box-shadow: 0 20px 50px rgba(0,0,0,.35); color: #e9e9ee; font-size: 12.5px; }
-.oriel .side { margin: 8px; border-radius: 14px; background: rgba(255,255,255,.045); backdrop-filter: blur(30px) saturate(1.6); border: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; min-height: 0; }
+.oriel .side { display: flex; flex-direction: column; min-height: 0; }
 .oriel .lights { display: flex; gap: 7px; padding: 12px 12px 4px; }
 .oriel .lights i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; }
 .oriel .lights i:nth-child(2) { background: #febc2e; }
@@ -35,33 +35,24 @@
 .oriel .hostpager { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; flex: 1; min-height: 0; scrollbar-width: none; }
 .oriel .hostpager::-webkit-scrollbar { display: none; }
 .oriel .hostpage { flex: 0 0 100%; scroll-snap-align: start; padding: 2px 8px; overflow: auto; }
-.oriel .ws { padding: 5px 8px; border-radius: 7px; font-weight: 600; display: flex; justify-content: space-between; }
-.oriel .ws.sel { background: rgba(255,255,255,.09); }
-.oriel .ag { padding: 3px 8px 3px 20px; display: flex; align-items: center; gap: 7px; color: #cfcfd6; white-space: nowrap; }
-.oriel .ag .st { margin-left: auto; font-size: 11px; color: #9a9aa6; }
+.oriel .ws { padding: 8px 8px 3px; font-size: 11px; font-weight: 600; color: #9a9aa6; }
+.oriel .trow { padding: 4px 8px; border-radius: 7px; display: flex; align-items: center; gap: 7px; color: #cfcfd6; white-space: nowrap; cursor: pointer; }
+.oriel .trow.lit { background: rgba(255,255,255,.10); color: #fff; }
+.oriel .trow .st { margin-left: auto; font-size: 11px; }
 /* status colors, the same everywhere: ◔ working blue, ▲ needs you amber, ✓ finished green */
-.oriel .st.w, .oriel .badge.w { color: var(--accent); }
-.oriel .st.b, .oriel .badge.b { color: var(--amber); }
-.oriel .st.d, .oriel .badge.d { color: var(--green); }
+.oriel .st.w { color: var(--accent); }
+.oriel .st.b { color: var(--amber); }
+.oriel .st.d { color: var(--green); }
 .oriel .dots { display: flex; gap: 7px; justify-content: center; align-items: center; padding: 6px; }
 .oriel .dots b { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; }
 .oriel .dots b.on { background: #fff; }
-.oriel .dots .plus { margin-left: 8px; color: #bbb; cursor: pointer; }
 .oriel .status { border-top: 1px solid rgba(255,255,255,.08); padding: 8px 12px; font-size: 11.5px; }
 .oriel .status .sum { color: #cfcfd6; margin-bottom: 4px; }
 .oriel .status div { padding: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oriel .sfoot { display: flex; gap: 10px; padding: 6px 12px 10px; color: #9a9aa6; }
+.oriel .sfoot span:first-child { flex: 1; }
 .oriel .main { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 8px 8px 8px 0; }
-.oriel .tabbar { height: 40px; display: flex; align-items: center; gap: 6px; padding: 0 6px; position: relative; }
-.oriel .tabs { display: flex; gap: 2px; position: relative; flex: 1; overflow: hidden; }
-.oriel .tab { position: relative; z-index: 1; display: flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 99px; color: #d8d8de; white-space: nowrap; cursor: pointer; transition: background .2s, color .2s; }
-.oriel .tab.lit { background: rgba(255,255,255,.10); color: #fff; }
-.oriel .tab .badge { font-size: 11px; }
-/* one status slot per tab: × on hover wins over the glyph */
-.oriel .tab .x { display: none; font-size: 11px; color: #bbb; }
-.oriel .tab:hover .x { display: inline; }
-.oriel .tab:hover .badge { display: none; }
 .oriel .marker { position: absolute; top: 0; height: 100%; border-radius: 99px; background: rgba(255,255,255,.16); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.22); box-shadow: inset 0 1px 0 rgba(255,255,255,.25); z-index: 0; transition: width .15s; }
-.oriel .tabbar .add { color: #ccc; padding: 0 6px; font-size: 16px; }
 .oriel .strip { flex: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 12px; scrollbar-width: thin; min-height: 0; }
 .oriel .tpage { flex: 0 0 100%; scroll-snap-align: start; padding: 2px; display: flex; gap: 6px; min-height: 0; }
 .oriel .col { display: flex; gap: 6px; min-width: 0; min-height: 0; }
@@ -74,7 +65,6 @@
 .oriel .seg { display: inline-flex; border: 1px solid rgba(255,255,255,.15); border-radius: 6px; overflow: hidden; font-size: 10px; }
 .oriel .seg span { padding: 0 6px; }
 .oriel .seg span.on { background: rgba(255,255,255,.15); color: #fff; }
-.oriel .chip-plugin { font-size: 9.5px; border: 1px solid rgba(255,255,255,.2); border-radius: 5px; padding: 0 4px; color: #aaa; }
 .oriel .term { font: 11px/1.45 var(--mono); padding: 8px 10px; color: #d6d6dc; white-space: pre; overflow: hidden; flex: 1; }
 .oriel .term .g { color: #5fd27a; }
 .oriel .term .b { color: #7cb7ff; }

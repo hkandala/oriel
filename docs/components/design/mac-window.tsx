@@ -25,28 +25,19 @@ type Split = { dir: 'row' | 'col'; kids: Node[]; w?: number };
 type Node = Leaf | Split;
 type St = 'w' | 'b' | 'd'; // ◔ working · ▲ needs you · ✓ finished
 type Tab = { label: string; icon: Icon; badge?: St; layout: Node };
-type Agent = [Icon, string, string, St | ''];
-type Host = { name: string; ws: { n: string; sel?: boolean; ag?: Agent[] }[]; tabs: Tab[] };
+type Host = { name: string; ws: string[]; tabs: Tab[] };
 
 const GLYPH: Record<St, string> = { w: '◔', b: '▲', d: '✓' };
 const p = (kind: Leaf['kind'], title: string, icon: Icon, o: Partial<Leaf> = {}): Leaf => ({ kind, title, icon, ...o });
 const CL: Icon = ['claude', '✳'], SH: Icon = ['sh', '>_'], PI: Icon = ['pi', 'π'], WEB: Icon = ['web', '◍'];
 const CX: Icon = ['codex', '>_'], DF: Icon = ['codex', '±'], GH: Icon = ['codex', '⑂'];
 
-// One pane lives in one tab. The sidebar, tab glyphs, status area and the pills demo tell the same story:
+// One pane lives in one tab. The sidebar rows, status area and the pills demo tell the same story:
 // claude works, pi finished (not seen), codex needs you.
 const HOSTS: Host[] = [
   {
     name: 'This Mac',
-    ws: [
-      {
-        n: 'api-server',
-        sel: true,
-        ag: [[CL, 'claude', '◔ working', 'w'], [PI, 'pi', '✓ finished', 'd'], [WEB, 'Dashboard', '', ''], [DF, 'Diff', '', ''], [GH, 'Git history', '', ''], [SH, 'Terminals (4)', '', '']],
-      },
-      { n: 'web-app' },
-      { n: 'infra' },
-    ],
+    ws: ['api-server', 'web-app', 'infra'],
     tabs: [
       { label: 'fix-auth', icon: CL, badge: 'w', layout: { dir: 'row', kids: [p('term', 'claude · fix-auth', CL, { body: T.claude, w: 1.4 }), { dir: 'col', kids: [p('term', 'zsh', SH, { body: T.zsh, dim: true }), p('term', 'logs', SH, { body: T.logs, dim: true })] }] } },
       { label: 'docs', icon: PI, badge: 'd', layout: p('chat', 'pi · docs', PI) },
@@ -57,7 +48,7 @@ const HOSTS: Host[] = [
   },
   {
     name: 'devbox',
-    ws: [{ n: 'infra', sel: true, ag: [[CX, 'codex', '▲ needs you', 'b'], [WEB, 'staging.internal', '', ''], [SH, 'Terminals (1)', '', '']] }, { n: 'ml-pipeline' }],
+    ws: ['infra', 'ml-pipeline'],
     tabs: [
       { label: 'terraform', icon: CX, badge: 'b', layout: { dir: 'row', kids: [p('term', 'codex · migrate', CX, { body: T.codex, w: 1.3 }), p('term', 'zsh', SH, { body: T.zsh, dim: true })] } },
       { label: 'staging', icon: WEB, layout: p('web', 'staging.internal', WEB) },
@@ -65,7 +56,7 @@ const HOSTS: Host[] = [
   },
   {
     name: 'gpu-01',
-    ws: [{ n: 'training', sel: true, ag: [[CL, 'claude', 'idle', ''], [SH, 'Terminals (2)', '', '']] }],
+    ws: ['training'],
     tabs: [
       { label: 'train', icon: SH, layout: { dir: 'col', kids: [p('term', 'train.py', SH, { body: T.train }), p('term', 'nvidia-smi', SH, { body: T.gpu, dim: true })] } },
       { label: 'eval', icon: CL, layout: p('term', 'claude · eval', CL, { body: T.claude }) },
@@ -78,9 +69,7 @@ function Ctl({ n }: { n: Leaf }) {
   return (
     <>
       {plugin ? (
-        <>
-          <span className="chip-plugin">plugin</span> <Seg a="plugin" b="term" on={0} />
-        </>
+        <Seg a="plugin" b="term" on={0} />
       ) : n.kind === 'web' ? (
         '‹ ↻ ↗'
       ) : (
@@ -113,40 +102,32 @@ function RenderNode({ n }: { n: Node }) {
 
 const tryIt = (
   <>
-    <b>Try:</b>{" "}scroll the main area sideways (trackpad or shift+wheel): every tab whose page is visible lights up
-    and the glass marker follows. Scroll the sidebar sideways, or click the dots, to switch machines. The <b>diff</b> and{' '}
-    <b>history</b> tabs are plugin panes.
+    <b>Try:</b>{" "}scroll the main area sideways (trackpad or shift+wheel): the row of every tab whose page is visible
+    lights up. Scroll the sidebar sideways, or click the dots, to switch machines. The <b>diff</b> and{' '}
+    <b>history</b> tabs are plugin panes. The tab bar, shown while the sidebar is hidden, is in the{' '}
+    <a href="/overview/index.html#f-window">overview</a>.
   </>
 );
 
-/** The interactive macOS window: machine pages, lit tabs and the strip. */
+/** The interactive macOS window: machine pages, lit tab rows and the strip. */
 export function MacWindow({ caption = tryIt }: { caption?: ReactNode }) {
   const [host, setHost] = useState(0);
   const pager = useRef<HTMLDivElement>(null);
   const strip = useRef<HTMLDivElement>(null);
-  const tabs = useRef<HTMLDivElement>(null);
-  const marker = useRef<HTMLDivElement>(null);
   const h = HOSTS[host];
 
-  // Light every tab whose page is visible; the marker interpolates between tabs.
+  // Light the row of every tab whose page is visible.
   const update = useCallback(() => {
-    const s = strip.current, m = marker.current;
-    if (!s || !m || !tabs.current) return;
-    const els = [...tabs.current.querySelectorAll<HTMLElement>('.tab')];
-    if (!els.length) return;
-    const w = s.clientWidth || 1, x = s.scrollLeft, pos = x / w, a = Math.floor(pos);
-    els.forEach((t, i) => t.classList.toggle('lit', i >= a && (i === a || x + w - i * w > 2)));
-    const i0 = Math.min(a, els.length - 1), i1 = Math.min(a + 1, els.length - 1), f = pos - a;
-    m.style.left = els[i0].offsetLeft + (els[i1].offsetLeft - els[i0].offsetLeft) * f + 'px';
-    m.style.width = els[i0].offsetWidth + (els[i1].offsetWidth - els[i0].offsetWidth) * f + 'px';
-  }, []);
+    const s = strip.current, page = pager.current?.children[host];
+    if (!s || !page) return;
+    const w = s.clientWidth || 1, x = s.scrollLeft, a = Math.floor(x / w);
+    page.querySelectorAll('.trow').forEach((t, i) => t.classList.toggle('lit', i >= a && (i === a || x + w - i * w > 2)));
+  }, [host]);
 
   useEffect(() => {
     if (strip.current) strip.current.scrollLeft = 0;
     update();
-    addEventListener('resize', update);
-    return () => removeEventListener('resize', update);
-  }, [host, update]);
+  }, [update]);
 
   // Switch machine once the sidebar pager settles.
   useEffect(() => {
@@ -174,20 +155,21 @@ export function MacWindow({ caption = tryIt }: { caption?: ReactNode }) {
           <div className="hostpager" ref={pager}>
             {HOSTS.map((hh) => (
               <div className="hostpage" key={hh.name}>
-                {hh.ws.map((w) => (
-                  <div key={w.n}>
-                    <div className={`ws${w.sel ? ' sel' : ''}`}>
-                      <span>
-                        {w.ag ? '▾' : '▸'} {w.n}
-                      </span>
-                    </div>
-                    {w.ag?.map(([ic, name, st, c]) => (
-                      <div className="ag" key={name}>
-                        <Ico icon={ic} />
-                        {name}
-                        <span className={`st ${c}`}>{st}</span>
-                      </div>
-                    ))}
+                {hh.ws.map((w, wi) => (
+                  <div key={w}>
+                    <div className="ws">{w}</div>
+                    {wi === 0 &&
+                      hh.tabs.map((t, i) => (
+                        <div
+                          className="trow"
+                          key={t.label}
+                          onClick={() => strip.current?.scrollTo({ left: i * strip.current.clientWidth, behavior: 'smooth' })}
+                        >
+                          <Ico icon={t.icon} />
+                          {t.label}
+                          {t.badge && <span className={`st ${t.badge}`}>{GLYPH[t.badge]}</span>}
+                        </div>
+                      ))}
                   </div>
                 ))}
               </div>
@@ -202,35 +184,19 @@ export function MacWindow({ caption = tryIt }: { caption?: ReactNode }) {
                 onClick={() => pager.current?.scrollTo({ left: i * pager.current.clientWidth, behavior: 'smooth' })}
               />
             ))}
-            <span className="plus" title="Add machine">
-              +
-            </span>
           </div>
           <div className="status">
             <div className="sum">1 working · 1 needs you · 1 finished</div>
             <div><span className="st b">▲</span> codex needs you · devbox/infra</div>
             <div><span className="st d">✓</span> pi finished · This Mac/api-server</div>
           </div>
+          <div className="sfoot">
+            <span>⌕ Filter</span>
+            <span title="New Workspace">⊞</span>
+            <span title="Add Machine…">◍</span>
+          </div>
         </aside>
         <div className="main">
-          <div className="tabbar">
-            <div className="tabs" ref={tabs}>
-              <div className="marker" ref={marker} />
-              {h.tabs.map((t, i) => (
-                <div
-                  key={h.name + t.label}
-                  className="tab"
-                  onClick={() => strip.current?.scrollTo({ left: i * strip.current.clientWidth, behavior: 'smooth' })}
-                >
-                  <Ico icon={t.icon} />
-                  <span>{t.label}</span>
-                  {t.badge && <span className={`badge ${t.badge}`}>{GLYPH[t.badge]}</span>}
-                  <span className="x">×</span>
-                </div>
-              ))}
-            </div>
-            <span className="add">+</span>
-          </div>
           <div className="strip" ref={strip} onScroll={update}>
             {h.tabs.map((t) => (
               <div className="tpage" key={h.name + t.label}>
