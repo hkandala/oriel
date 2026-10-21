@@ -219,7 +219,7 @@
                 }
                 Task { open(observe: !takeover, takeover: takeover) }
             case .liveUpdate:
-                // ponytail: one retry after 1 s; the design also reads the snapshot (the version check).
+                // ponytail: one retry after 1 s; the design leaves it to the health loop.
                 Task { [observing] in
                     try? await Task.sleep(for: .seconds(1))
                     open(observe: observing)
