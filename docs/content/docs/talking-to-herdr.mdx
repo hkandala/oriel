@@ -30,7 +30,7 @@ the work. A later server helper would sit behind the same two calls
   timeout, output parsed after a unique marker). On failure it uses
   `$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin`. `HERDR_*`
   variables are removed from child processes. The launchd job that starts This
-  Mac's server gets the same environment, plus `HOME`
+  Mac's server gets `PATH`, `HOME` and `XDG_*` as the CLI sees them
   ([Checks on connect](/docs/machines#checks-on-connect)).
 - **A remote machine on macOS:** the same `Process` with this prefix
   ([macOS](/docs/machines#macos)):
@@ -59,8 +59,10 @@ the work. A later server helper would sit behind the same two calls
   ```sh
   sh -c '<cmd> & c=$!; cat >/dev/null; kill $c'
   ```
-- One fallback: a channel whose child is still alive about 1 s after the
-  close kills its own pid (SIGKILL). The app signals a child only by its pid,
+- One fallback: a channel the app ends by closing its stdin is killed by its
+  pid (SIGKILL) if it is still alive about 1 s later. A one-shot command whose
+  stdin is closed only so it reads end of input is not killed. A dropped
+  stream or a timeout kills at once. The app signals a child only by its pid,
   never by process group.
 
 ## herdr on each machine
@@ -72,7 +74,8 @@ the work. A later server helper would sit behind the same two calls
   argv says plain `herdr`; there is no lookup step.
 - A missing herdr fails the first call (exit 127), and the app shows the
   install command. herdr older than 0.9.3 has no `remote-api-bridge`, so the
-  first call fails too, and the app says "herdr 0.9.3 or newer is needed".
+  first call fails too, shown as "No answer from herdr". A snapshot that
+  reports a version below 0.9.3 shows "herdr 0.9.3 or newer is needed".
 - The version comes from `session.snapshot`. Decoding is lenient, so a newer
   protocol needs nothing.
 - Commands start in the machine's home folder (sshd starts them there; on

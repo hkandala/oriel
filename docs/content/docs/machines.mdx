@@ -141,23 +141,23 @@ One loop per machine checks that it answers.
      same way; a new server gets one workspace in `$HOME`. The app starts the
      server as a one-shot launchd job (D47):
      - `launchctl bootstrap gui/<uid>` with a plist that runs
-       `herdr --session S server`: label `dev.hkandala.oriel.herdr.<S>`,
+       `/usr/bin/env herdr --session S server`: label `dev.hkandala.oriel.herdr.<S>`,
        `RunAtLoad`, no `KeepAlive`, `ProcessType` `Interactive` (the default
        throttles the CPU and I/O of the server and every agent in it), stderr
        to `~/Library/Logs/Oriel/<S>.log`.
-     - The plist's `EnvironmentVariables` hold the environment the app's
-       children get (`PATH`, `HOME`, `XDG_*`;
-       [Run and dial](/docs/talking-to-herdr#run-and-dial)), so the server and
-       the CLI agree on paths.
+     - The plist's `EnvironmentVariables` hold `PATH`, `HOME` and `XDG_*`
+       copied from the CLI's environment (read by running `env` through the
+       same `Exec`; [Run and dial](/docs/talking-to-herdr#run-and-dial)), so
+       the server and the CLI agree on paths.
      - An older job with that label is booted out first, never a running
-       server (one that answers).
+       server (one whose snapshot answers).
      - launchd, not the app, is the server's parent and "responsible
        process": macOS privacy prompts never name Oriel, the server has its
        own process group, and it outlives the app. `herdr session stop` ends
        it for good: launchd keeps the job loaded, not running.
    - **A remote machine:** a **Start herdr** button runs
      `sh -c 'nohup herdr --session S server </dev/null >/dev/null 2>&1 &'`
-     over SSH and polls `ping` for up to 5 s.
+     over SSH and polls `session.snapshot` for up to 5 s.
 2. Open the event stream. Its `subscription_started` reply counts as an
    event, so the app reads the snapshot once more and misses nothing between
    the two steps.

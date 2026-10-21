@@ -7,8 +7,7 @@ description: "Every herdr call and command the app uses, and the ones it never u
 
 | Call | Used for | Page |
 |---|---|---|
-| `ping` | waiting for a server the app started | [Checks on connect](/docs/machines#checks-on-connect) |
-| `session.snapshot` | all state and herdr's version, read after events; the health check every 30 s | [Reconcile](/docs/talking-to-herdr#reconcile) |
+| `session.snapshot` | all state and herdr's version, read after events; the health check every 30 s; waiting for a server the app started | [Reconcile](/docs/talking-to-herdr#reconcile) |
 | `events.subscribe` (long-lived) | "read the snapshot again" | [Events](/docs/talking-to-herdr#events) |
 | `integration.list` | the agent picker, when it opens | [Agent](/docs/plugins/terminal-and-agent#agent) |
 | `workspace.create` \| `close` \| `rename` \| `move` | sidebar actions | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
