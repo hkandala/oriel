@@ -9,7 +9,7 @@ description: "Every herdr call and command the app uses, and the ones it never u
 |---|---|---|
 | `ping` | version check, liveness every 30 s, after a timeout | [Events](/docs/talking-to-herdr#events) |
 | `session.snapshot` | all state, read after events | [Reconcile](/docs/talking-to-herdr#reconcile) |
-| `events.subscribe` (long-lived) | "read the snapshot again"; `pane.output_matched` for the Open :port chip | [Events](/docs/talking-to-herdr#events) |
+| `events.subscribe` (long-lived) | "read the snapshot again" | [Events](/docs/talking-to-herdr#events) |
 | `integration.list` | the agent picker | [Agent](/docs/plugins/terminal-and-agent#agent) |
 | `workspace.create` \| `close` \| `rename` \| `move` | sidebar actions | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `tab.create` \| `close` \| `rename` \| `move` | tab bar actions | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |

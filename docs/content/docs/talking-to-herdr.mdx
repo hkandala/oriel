@@ -107,11 +107,7 @@ the work. A later server helper would sit behind the same two calls
   - No `*.focused` events. They fire on every herdr TUI navigation, and the
     app ignores herdr's focus.
 - **Any event line means "read `session.snapshot` again".** Event payloads
-  are never decoded, with one exception: a second `events.subscribe` run
-  watches the terminal panes of the selected tab with `pane.output_matched`
-  for a localhost address. Its `matched_line` becomes an
-  [Open :port chip](/docs/plugins/web-page#finding-ports). That run is opened
-  again when the selected tab changes.
+  are never decoded.
 - **Snapshot pacing, per machine:** at most one `session.snapshot` is in
   flight. An event, or the app's own write, starts a read at once if none is
   in flight; otherwise it sets "read again", and the read that ends with it

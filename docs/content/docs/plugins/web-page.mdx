@@ -102,11 +102,11 @@ Rules:
 
 ## Finding ports
 
-- **Open :‹port› chip:** the app watches the terminal panes of the selected tab
-  with `pane.output_matched` and the regex
-  `https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):[0-9]+`
-  ([Events](/docs/talking-to-herdr#events)). A match shows "Open :3000" on that
-  terminal's card. A click makes a web pane for that address next to it.
+- **Open :‹port› chip:** when a frame arrives for a terminal card of the
+  selected tab, the app searches the screen text it already holds for
+  `https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):[0-9]+`. No extra call
+  or event stream. A match shows "Open :3000" on that terminal's card. A
+  click makes a web pane for that address next to it.
 - **Ports list:** the picker's web page entry lists the machine's listening
   ports. It runs `ss -ltnH` (Linux) or `lsof -nP -iTCP -sTCP:LISTEN` (macOS)
   once when the list opens, never on a timer.
