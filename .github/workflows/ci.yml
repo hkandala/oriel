@@ -36,8 +36,8 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 20
     env:
-      HERDR_VERSION: 0.9.3
-      HERDR_SHA256: 5173a3e0ae42d5d1ab7ebfa5d5e6329f7c3d23f8e1a3677c7ce3231da2884157
+      HERDR_VERSION: 0.9.5
+      HERDR_SHA256: fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2
     steps:
       - uses: actions/checkout@v7
       - run: brew install xcbeautify
