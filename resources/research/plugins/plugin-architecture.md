@@ -52,13 +52,13 @@ a protocol when there is a second native kind.
 ### 1.1 Labels, cwd and restarts [verified]
 | Fact | Evidence |
 |---|---|
-| A pane `label` has no length cap, survives `pane.move` and survives a cold restart. Metadata tokens are capped at 80 characters, are not saved, and are lost on restart. | `research/herdr-core.md` §3, §7.1 |
+| A pane `label` has no length cap, survives `pane.move` and survives a cold restart. Metadata tokens are capped at 80 characters, are not saved, and are lost on restart. | `research/herdr/herdr-core.md` §3, §7.1 |
 | `hl:git-diff:main...feature` (colons inside the arg) survived a cold server restart intact. | today, `hnspike`: `pane.rename`, then `herdr --session hnspike server stop` and start, then `session.snapshot` |
 | After a cold restart, the pane's process is gone and a login shell takes its place (`foreground_processes: [{"name":"zsh","argv":["-zsh"]}]`). | same test |
 | **`terminal_id` changes on a cold restart** (`term_65d594deecb4b2` became `term_65d594ea352ba2`). `pane_id` stayed `w1:p2`. | same test. This affects the PaneViewRegistry key in DESIGN §6. After a restart every card is rebuilt anyway. |
 | `pane.split` gives the new pane the target pane's **current** cwd. After `cd /tmp` in `w1:p1`, a split of it had `cwd: /private/tmp`. | today, `hnspike2` |
 | A pane's `cwd` is kept across a cold restart. | `hnspike` test, pane `w1:p2` |
-| `pane.rename` sends no event. Token changes and terminal-title (OSC 0/2) changes send `pane.updated`. | `research/herdr-core.md` §1.4, §7.2 |
+| `pane.rename` sends no event. Token changes and terminal-title (OSC 0/2) changes send `pane.updated`. | `research/herdr/herdr-core.md` §1.4, §7.2 |
 
 So a git or diff plugin pane split from an agent's pane starts in the agent's
 repository. Its arg and its cwd both survive restarts and moves.
@@ -309,7 +309,7 @@ Real examples, all installed with `herdr plugin install`:
 - `alexarthurs/herdr-sidebar`: file explorer and source control.
 - `ChmaraX/herdr-gitview`.
 - plannotator, which opens its UI in "Herdr Browser panes"
-  (`research/web-clients.md` §8).
+  (`research/clients/web-clients.md` §8).
 
 What the app gets for free:
 - They are normal herdr panes. They already draw in terminal cards through
@@ -520,7 +520,7 @@ follow it.
    ```sh
     clear; exec sh -c 'printf "\033]2;%s\007%s\n(shown by Herdlight)\n" "$1" "$1"; stty raw -echo; exec cat >/dev/null' sh '<label>'
    ```
-   The title change makes herdr send `pane.updated` (`research/herdr-core.md`
+   The title change makes herdr send `pane.updated` (`research/herdr/herdr-core.md`
    §1.4). **Every other device** then re-reads the snapshot and sees the new
    label. Today a rename sends no event, so a second device can see the pane
    from `pane.created` as a shell and keep showing a terminal. This also fixes

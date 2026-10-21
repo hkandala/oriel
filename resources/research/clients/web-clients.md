@@ -3,7 +3,7 @@
 Repos were cloned shallow into `/tmp/herdr-research/<name>` on 2026-10-08. None returned 404.
 `powerfooI/roamgate` and `powerfooI/herdr-studio` are the same project under two names (same commit `4476392`, "Release 0.8.0").
 `IvoryHeart/herdr-world` is a fork of roamgate.
-Longer per-repo notes, with more file paths, are in `research/web-clients-notes/{collie,roamgate,herdr-world,termote}.md`.
+Longer per-repo notes, with more file paths, are in `research/clients/web-clients-notes/{collie,roamgate,herdr-world,termote}.md`.
 
 Local herdr `ping` returned this (read-only call):
 `{"version":"0.9.3","protocol":22,"capabilities":{"live_handoff":true,"detached_server_daemon":true,"endpoint_protocol_generation":1,"surface_interest":true,"health_check":true,"ssh_agent_registration":true}}`

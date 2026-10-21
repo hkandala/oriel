@@ -4,7 +4,7 @@ Goal: a two-finger horizontal swipe anywhere in the strip pages between tabs, ve
 scroll still reaches terminals, and the chrome is finished Liquid Glass.
 
 Read first: [platform: making the strip work, tab bar and Liquid Glass](../../docs/content/docs/platform.mdx),
-[ui/swiping](../../docs/content/docs/ui/swiping.mdx), `resources/research/gorex.md`.
+[ui/swiping](../../docs/content/docs/ui/swiping.mdx), `resources/research/clients/gorex.md`.
 
 ## Build
 

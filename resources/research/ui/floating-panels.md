@@ -49,7 +49,7 @@ main window at that pane.
 7. **Spike result on this Mac (fact).** The panel showed at CG layer 3
    (`.floating`) with glass capsules. It did not become key, the app stayed
    inactive, and Ghostty stayed frontmost. The collection-behavior set raised
-   no exception. Screenshot: `research/floating-panels-smoke.png`.
+   no exception. Screenshot: `research/ui/floating-panels-smoke.png`.
 
 ---
 

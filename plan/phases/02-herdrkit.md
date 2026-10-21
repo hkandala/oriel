@@ -5,7 +5,7 @@ reads and rebuild split trees, tested against recorded JSON and a real throwaway
 
 Read first: [talking-to-herdr](../../docs/content/docs/talking-to-herdr.mdx),
 [layout](../../docs/content/docs/layout.mdx), [data](../../docs/content/docs/data.mdx),
-`resources/research/herdr-core.md`, herdr-web `server/herdr.ts` and
+`resources/research/herdr/herdr-core.md`, herdr-web `server/herdr.ts` and
 `server/session-hub.ts`.
 
 ## Build

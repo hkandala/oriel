@@ -1,7 +1,7 @@
 # Plugin system v2: Herdlight's own plugins (TypeScript + React, Raycast style)
 
 Research for Herdlight, after DESIGN.md revision 4. It replaces §10.4 of
-DESIGN.md and `research/plugin-architecture.md` (host-side web plugins inside
+DESIGN.md and `research/plugins/plugin-architecture.md` (host-side web plugins inside
 herdr plugins), which the user rejected.
 
 The user's direction (not up for debate):
@@ -265,7 +265,7 @@ bundle. Each commit calls `__host.commit(json)`. Swift decodes it into a
 - **react-reconciler in plain JSC works [verified]:**
   - React 19.3 + react-reconciler 0.34 run in the system `jsc`, with and
     without the JIT.
-  - The host config is ~60 lines (`research/plugin-system-v2-spike/renderer.js`).
+  - The host config is ~60 lines (`research/plugins/plugin-system-v2-spike/renderer.js`).
   - The only polyfills needed are `setTimeout`/`clearTimeout`,
     `queueMicrotask` and `console` (`poly.js`). React's scheduler falls back
     to `setTimeout`.
@@ -387,7 +387,7 @@ kinds possible. Because plugins target a component vocabulary, not a DOM, we
 can still switch the renderer to A later without breaking plugins.
 
 ### 2.6 Spike numbers [verified]
-Files and a README are in `research/plugin-system-v2-spike/`. Test plugin: a
+Files and a README are in `research/plugins/plugin-system-v2-spike/`. Test plugin: a
 git-history-like `list` with 500 `item`s plus a `detail`. Every commit
 serialises the full JSON tree (80 KB). Run on an Apple Silicon Mac, system
 `jsc`.
@@ -664,7 +664,7 @@ web:http://localhost:3000/dashboard
 ```
 - **Why the label:** it is the only free-form pane field that has no length
   limit, survives moves (also across workspaces) and survives a cold restart
-  [verified, `research/herdr-core.md` §3, §7.1]. Tokens are capped at 80
+  [verified, `research/herdr/herdr-core.md` §3, §7.1]. Tokens are capped at 80
   characters and lost on restart. Env, argv and title are lost or invisible.
 - **Readable:** `#` and a space keep it short and scannable. The herdr TUI
   shows the label as the border title when the metadata `title` is empty
@@ -1083,5 +1083,5 @@ reaches. The answers:
   [react-native-macos](https://github.com/microsoft/react-native-macos) · [Valdi](https://github.com/Snapchat/valdi) · [LiveView Native](https://github.com/liveview-native)
 - App Store climate: [appcompliance.io on 2.5.2 (2026-03-02)](https://appcompliance.io/blog/apple-vibe-coding-crackdown-guideline-2-5-2/) [secondary] ·
   [Obsidian community plugins](https://obsidian.md/help/community-plugins)
-- herdr facts: `research/herdr-core.md` §3, §7.1–7.2; DESIGN.md §7.1, §7.3, §8.4, §10.3, §10.4.4
-- Spike: `research/plugin-system-v2-spike/` (run 2026-10-08)
+- herdr facts: `research/herdr/herdr-core.md` §3, §7.1–7.2; DESIGN.md §7.1, §7.3, §8.4, §10.3, §10.4.4
+- Spike: `research/plugins/plugin-system-v2-spike/` (run 2026-10-08)

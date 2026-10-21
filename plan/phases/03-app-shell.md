@@ -8,7 +8,7 @@ Read first: [ui/window](../../docs/content/docs/ui/window.mdx),
 [layout](../../docs/content/docs/layout.mdx),
 [platform: tab bar and Liquid Glass](../../docs/content/docs/platform.mdx),
 [theme](../../docs/content/docs/ui/theme-and-accessibility.mdx),
-`resources/research/gorex.md` (tab capsule behavior).
+`resources/research/clients/gorex.md` (tab capsule behavior).
 
 ## Build
 

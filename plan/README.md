@@ -116,6 +116,6 @@ Rules for working: [rules.md](rules.md). Coding standards: [standards.md](standa
 
 - herdr-web (`~/code/herdr-web`, the user's working web client): stream handling, input,
   mouse and sizing notes in its README and `server/terminal-stream.ts`, `src/lib/keys.ts`.
-- `resources/research/herdr-core.md`, `resources/research/macos-clients.md`,
-  `resources/research/gorex.md` (tab bar behavior).
+- `resources/research/herdr/herdr-core.md`, `resources/research/clients/macos-clients.md`,
+  `resources/research/clients/gorex.md` (tab bar behavior).
 - libghostty-spm README and its `Example/GhosttyTerminalApp/`.
