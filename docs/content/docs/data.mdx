@@ -3,6 +3,17 @@ title: "Data: app vs herdr"
 description: "What the app stores and what herdr owns"
 ---
 
+## Where things live
+
+One rule decides where each new thing goes (D57):
+- **Anything that takes space in the layout** is a multiplexer pane with a
+  label: terminals, agents, web pages and plugin panes.
+- **Transient UI** (the palette, popovers, hover, chips) lives in app memory
+  only.
+- **Per-device settings** live in app storage.
+
+## Every piece of data
+
 | Data | Owner | Where |
 |---|---|---|
 | Workspaces, tabs, panes, order, labels | herdr | `session.snapshot` |
