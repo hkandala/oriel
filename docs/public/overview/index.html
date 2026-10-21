@@ -315,7 +315,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <p>This page is a summary. The full design is in the <a href="https://oriel-docs.vercel.app/docs">design docs</a>.</p>
   <div class="grid2">
     <div class="card"><h4>The problem</h4><p>People run many coding agents at once, often on several machines. herdr keeps them alive and knows when each one is working, blocked or done. But its interface is a terminal UI: one machine at a time, keyboard-first, and nothing when you are away from the terminal or on your phone.</p></div>
-    <div class="card"><h4>What we build</h4><p>One app for Mac, iPad and iPhone that shows every herdr machine at once: a sidebar of machines and agents, a swipeable strip of tabs with resizable panes, terminal, agent, web and plugin panes, a chat view for agents and terminals, and status pills on the Mac screen edge. Every pane kind is a plugin: terminal, agent and web page are core plugins, and your own are TypeScript and React drawn as native SwiftUI.</p></div>
+    <div class="card"><h4>What we build</h4><p>One app for Mac, iPad and iPhone that shows every herdr machine at once: a sidebar of machines and agents, a swipeable strip of tabs with resizable panes, terminal, agent, web and plugin panes, a chat view for agents and terminals, and status pills on the Mac screen edge. Every pane kind is a plugin: terminal, agent and web page are core plugins, and your own are small web pages.</p></div>
   </div>
   <div class="rules">
     <div class="rule"><div class="ic">◎</div><b>herdr is the source of truth</b><span>If herdr can hold a piece of state, herdr holds it. A fresh device rebuilds everything from herdr.</span></div>
@@ -359,7 +359,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 <!-- ═════════════ FEATURES: PANE KINDS ═════════════ -->
 <section id="f-panes">
   <h2><span class="num">2</span>Pane kinds and plugins</h2>
-  <p class="lead">Every pane kind is a plugin. Terminal, Agent and Web page are native core plugins. Git history, Diff and Markdown are core plugins written in TypeScript with the same public API that anyone can use.</p>
+  <p class="lead">Every pane kind is a plugin. Terminal, Agent and Web page are native core plugins. Git history, Diff and Markdown are core plugins built as small web pages, with the same bridge anyone can use.</p>
   <div class="grid2">
     <div>
       <div class="picker">
@@ -374,8 +374,8 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       </div>
     </div>
     <div>
-      <div class="card"><h4>Web page</h4><p>Any address, rendered natively next to your terminals. Remote <code>localhost</code> works through SSH forwards.</p></div>
-      <div class="card" style="margin-top:10px"><h4>Your own plugins</h4><p>TypeScript and React with a component kit (List, Detail, Markdown, Diff, Code, Form, Actions) that draws as native SwiftUI, in the Raycast style. Install from a git URL or link a folder for live reload.</p></div>
+      <div class="card"><h4>Web page</h4><p>Any address, next to your terminals. A remote <code>localhost:3000</code> opens as <code>localhost:3000</code> on your device, through the SSH connection. When a terminal prints a local address, its card shows an <b>Open :3000</b> chip.</p></div>
+      <div class="card" style="margin-top:10px"><h4>Your own plugins</h4><p>A small web page (HTML and JavaScript) in a native web view, with a bridge to <code>oriel.run(argv)</code> and <code>oriel.dial(host, port)</code> on the pane's machine. It runs on iOS too. Install from a git URL or link a folder for live reload.</p></div>
       <div class="card" style="margin-top:10px"><h4>Restored from herdr</h4><p>Every plugin pane is a real herdr pane with a label like <code>oriel:git-history#k3f9q2 main</code>. A fresh app on any device rebuilds it from that label.</p></div>
     </div>
   </div>
@@ -589,15 +589,15 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 <!-- ═════════════ ARCHITECTURE ═════════════ -->
 <section id="arch">
   <h2><span class="num">8</span>Architecture</h2>
-  <p class="lead">Views read from one HostStore per machine. Each HostStore runs commands on its machine through one tiny protocol, <code>Exec</code>. Plugin cards run in their own JavaScript VMs.</p>
+  <p class="lead">Views read from one HostStore per machine. Each HostStore runs commands on its machine through one tiny protocol, <code>Exec</code>. Plugin cards are web views with a bridge to <code>run</code> and <code>dial</code>.</p>
   <div class="arch">
     <div class="layer tag-a"><h5>App · SwiftUI · macOS + iOS</h5>
       <div class="chips"><span class="chip">Sidebar</span><span class="chip">TabBar</span><span class="chip">Strip</span><span class="chip">PaneCard: Terminal · Chat · Web · Plugin</span><span class="chip">StatusArea</span><span class="chip">Pills (macOS)</span></div>
-      <div class="chips" style="margin-top:6px"><span class="chip">PaneViewRegistry</span><span class="chip">PluginRegistry + PluginHost (one JS VM per plugin card)</span><span class="chip">HostStore × machines</span></div></div>
-    <div class="down">↓ <code>Exec.run(argv)</code> → stdin / stdout</div>
+      <div class="chips" style="margin-top:6px"><span class="chip">PaneViewRegistry</span><span class="chip">PluginRegistry + a web view per plugin card</span><span class="chip">HostStore × machines</span></div></div>
+    <div class="down">↓ <code>Exec.run(argv)</code> → stdin / stdout · <code>Exec.dial(host, port)</code> → a TCP stream</div>
     <div class="twocol">
-      <div class="layer tag-a"><h5>macOS · ProcessExec(prefix)</h5><div class="chips"><span class="chip">this Mac: <code>[]</code></span><span class="chip">remote: <code>[ssh -F /dev/null … -S ctl target --]</code></span></div></div>
-      <div class="layer tag-a"><h5>iOS · CitadelExec</h5><div class="chips"><span class="chip">one SSH connection per machine</span><span class="chip">one exec channel per run</span></div></div>
+      <div class="layer tag-a"><h5>macOS · ProcessExec(prefix)</h5><div class="chips"><span class="chip">this Mac: <code>[]</code></span><span class="chip">remote: <code>[ssh -F /dev/null … -S ctl target --]</code></span><span class="chip">dial: <code>ssh -O forward -L</code> / <code>ssh -W</code></span></div></div>
+      <div class="layer tag-a"><h5>iOS · CitadelExec</h5><div class="chips"><span class="chip">one SSH connection per machine</span><span class="chip">one exec channel per run</span><span class="chip">one <code>direct-tcpip</code> channel per dial</span></div></div>
     </div>
     <div class="down">↓ on the machine</div>
     <div class="layer tag-s"><h5>Machine · herdr + standard tools</h5>
@@ -605,17 +605,17 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   </div>
   <table><tr><th>Piece</th><th>Platform</th><th>Job</th></tr>
     <tr><td><code>HerdrKit</code></td><td>both</td><td><code>Exec</code>, <code>call()</code>, events, snapshot decoding, split-tree rebuild, label parser, transcript parsers, the remote command envelope</td></tr>
-    <tr><td><code>ProcessExec</code> / <code>CitadelExec</code></td><td>macOS / iOS</td><td>run a command locally or over SSH</td></tr>
+    <tr><td><code>ProcessExec</code> / <code>CitadelExec</code></td><td>macOS / iOS</td><td>run a command or dial a port, locally or over SSH</td></tr>
     <tr><td><code>HostStore</code></td><td>both</td><td>one per machine: snapshot, events, streams, seen state</td></tr>
     <tr><td><code>PaneViewRegistry</code></td><td>both</td><td>owns terminal views, web pages and plugin cards, so scrolling never destroys them</td></tr>
-    <tr><td><code>PluginRegistry</code> / <code>PluginHost</code></td><td>both</td><td>manifests and consent / one JavaScriptCore VM per plugin card and the bridge to the kit</td></tr></table>
+    <tr><td><code>PluginRegistry</code> / <code>PluginHost</code></td><td>both</td><td>manifests and consent / a web view per plugin card and its bridge to <code>run</code> and <code>dial</code></td></tr></table>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/architecture">Architecture</a></p>
 </section>
 
 <!-- ═════════════ TALKING TO HERDR ═════════════ -->
 <section id="herdr">
   <h2><span class="num">9</span>Talking to herdr</h2>
-  <p class="lead">One primitive per machine: run a command and talk to its stdin and stdout. Requests use herdr's own <code>remote-api-bridge</code>; live panes use <code>terminal session control</code>.</p>
+  <p class="lead">Two calls per machine: run a command and talk to its stdin and stdout, or dial a TCP port as seen from the machine. Requests use herdr's own <code>remote-api-bridge</code>; live panes use <code>terminal session control</code>.</p>
   <div class="flow">
     <div class="n"><b>herdr event</b><small>any line on the stream</small></div><div class="a">→</div>
     <div class="n"><b>debounce 100 ms</b><small>at most 500 ms wait; one read in flight per machine</small></div><div class="a">→</div>
@@ -623,8 +623,11 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
     <div class="n"><b>reconcile</b><small>stable objects, changed fields only</small></div><div class="a">→</div>
     <div class="n"><b>views update</b><small>one row, not the window</small></div>
   </div>
-  <details><summary>The primitive and the remote command envelope</summary>
-<pre><code>protocol Exec { func run(_ argv: [String]) async throws -&gt; Channel }
+  <details><summary>The two calls and the remote command envelope</summary>
+<pre><code>protocol Exec {
+  func run(_ argv: [String]) async throws -&gt; Channel
+  func dial(host: String, port: Int) async throws -&gt; Channel
+}
 
 # every remote command, whatever the login shell (bash, zsh, fish):
 sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&gt;</code></pre>
@@ -680,9 +683,10 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
       <tr><td>Double-click a divider / ⌃⌘=</td><td><code>layout.set_split_ratio</code> 0.5 / each split's ratio from the leaf counts on each side</td></tr>
       <tr><td>Keyboard resize (⌃⌘ + arrow)</td><td><code>pane.resize</code></td></tr>
       <tr><td>Start an agent</td><td><code>agent.start {name, kind, pane_id}</code>, retried while the shell is busy</td></tr>
+      <tr><td>New web or plugin pane</td><td><code>layout.apply</code> with a pane node <code>{label, cwd, command}</code> in a new tab, then <code>pane.move</code> into place. Never with <code>tab_id</code>, which replaces the whole tab and kills its panes.</td></tr>
       <tr><td>Swap / move</td><td><code>pane.swap</code> / <code>pane.move</code>; <code>changed:false</code> shows herdr's reason</td></tr>
       <tr><td>Reorder / rename</td><td><code>tab.move</code>, <code>workspace.move</code> / <code>*.rename</code></td></tr>
-      <tr><td>Close</td><td><code>*.close</code>. A pane asks first unless it runs only its shell (checked with <code>pane.process_info</code>). A tab or workspace always asks.</td></tr></table>
+      <tr><td>Close</td><td><code>*.close</code>. A pane asks first unless it runs only its shell (checked with <code>pane.process_info</code>). Web and plugin panes close without asking. A tab or workspace always asks.</td></tr></table>
     <p class="muted">Every create and move uses <code>focus:false</code>. The app waits for the event and snapshot; it never patches its own state. It never calls herdr's focus methods or <code>pane.zoom</code>.</p>
   </details>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/talking-to-herdr">Talking to herdr</a></p>
@@ -709,7 +713,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
       <li>Local Network privacy (macOS 15+): the app declares the usage string and opens an <code>NWConnection</code> to a LAN address first, so the system asks once.</li>
       <li>All machines keep their control plane open; only the selected machine streams terminals. OpenSSH allows 10 sessions per connection: 1 is reserved for events and 3 for requests and ping; streams, chat tails and plugin calls share the other 6, focused card first. A card without a session shows Retry.</li>
       <li>Checks on connect: resolve herdr, <code>--check</code>, <code>ping</code>, then <code>integration.list</code>, snapshot, events. If the server is not running: on a remote machine, <b>Start herdr</b> runs <code>nohup &lt;herdr&gt; --session S server &amp;</code> over SSH. On This Mac the app does not start herdr. It shows the command to run in a terminal (<code>herdr server</code>, or open herdr), because a server started by the app would make the app the "responsible process" for every agent (macOS privacy prompts) and share its process group.</li>
-      <li>Short calls are bridge requests (<code>call()</code>) and the app's own one-shot commands (state file read and write, transcript lookup, cleanup). Plugin <code>exec</code> calls use the shared pool.</li>
+      <li>Short calls are bridge requests (<code>call()</code>) and the app's own one-shot commands (state file read and write, transcript lookup, cleanup). Plugin <code>run</code> and <code>dial</code> calls use the shared pool.</li>
       <li>iOS releases its terminal streams when the app goes to the background. It keeps the connection for about 30 s, then reconnects and re-reads the snapshot on return.</li>
     </ul>
   </details>
@@ -756,76 +760,48 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
 <!-- ═════════════ PLUGINS ═════════════ -->
 <section id="plugins">
   <h2><span class="num">12</span>Plugin system</h2>
-  <p class="lead">Every pane kind comes from one registry. Plugins are TypeScript and React written against our component kit. Each card runs React in its own JavaScriptCore VM, and native SwiftUI draws the result.</p>
+  <p class="lead">Every pane kind comes from one registry. A plugin is a small web page (HTML and JavaScript) drawn in a native web view in its card. A bridge gives it two calls on its pane's machine: <code>run(argv)</code> and <code>dial(host, port)</code>. It works on iOS from day one.</p>
   <div class="flow">
-    <div class="n"><b>plugin.tsx</b><small>React + @oriel/api</small></div><div class="a">→</div>
-    <div class="n"><b>esbuild</b><small>dist/&lt;pane&gt;.js</small></div><div class="a">→</div>
-    <div class="n"><b>JSContext per card</b><small>React 19 + ~60-line reconciler</small></div><div class="a">→</div>
-    <div class="n"><b>JSON view tree</b><small>each React commit</small></div><div class="a">→</div>
-    <div class="n"><b>SwiftUI kit</b><small>List, Detail, Diff, Form…</small></div>
+    <div class="n"><b>plugin folder</b><small>HTML, CSS, JavaScript</small></div><div class="a">→</div>
+    <div class="n"><b>web view per card</b><small>the plugin's own page</small></div><div class="a">→</div>
+    <div class="n"><b>bridge</b><small>oriel.run(argv) · oriel.dial(host, port)</small></div><div class="a">→</div>
+    <div class="n"><b>the pane's machine</b><small>git, cat, a dev server…</small></div>
   </div>
   <div class="grid3">
-    <div class="card"><h4>Native</h4><p>Real SwiftUI lists, text selection, VoiceOver, keyboard and context menus. One look by construction.</p></div>
-    <div class="card"><h4>Light</h4><p>About 3 MB per card, measured. A 500-row update takes ~2 ms even without the JIT, as on iOS. A web view costs 120–200 MB.</p></div>
-    <div class="card"><h4>Contained</h4><p>The JavaScript has no DOM, network, file system or <code>require</code>: only what the app injects. Repository text is drawn as text and can never become script. With <code>exec</code> a plugin can still act on its pane's machine (see <a href="#plugin-security">Security</a>).</p></div>
+    <div class="card"><h4>Just the web</h4><p>Any HTML, CSS and JavaScript the author bundles. No component kit to learn and no build tool from us.</p></div>
+    <div class="card"><h4>Mac and iOS</h4><p>A web view works the same on both, so a plugin runs on both. Git history, Diff and Markdown are built this way.</p></div>
+    <div class="card"><h4>Bound to its machine</h4><p><code>run</code> and <code>dial</code> reach only the machine of the plugin's pane (see <a href="#plugin-security">Security</a>).</p></div>
   </div>
   <details open><summary>Everything is a plugin</summary>
     <table><tr><th>Plugin</th><th>Kind</th><th>UI</th><th>herdr marks the pane with</th></tr>
       <tr><td>terminal</td><td>core</td><td>native terminal</td><td>nothing (the default)</td></tr>
       <tr><td>agent</td><td>core</td><td>native terminal + chat view</td><td>nothing (herdr sets <code>pane.agent</code>)</td></tr>
       <tr><td>web</td><td>core</td><td>native web view</td><td><code>web:&lt;url&gt;</code></td></tr>
-      <tr><td>git-history, diff, markdown</td><td>core</td><td>the kit, public API</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr>
-      <tr><td>your plugins</td><td>installed</td><td>the kit, public API</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr></table>
-    <p class="muted">Core native plugins have a manifest with a <code>native</code> field instead of a JS entry, so a terminal costs no JavaScript. herdr's own TUI plugins are not part of this system; a pane a herdr plugin opened shows as a terminal.</p>
+      <tr><td>git-history, diff, markdown</td><td>core</td><td>a web page and the public bridge</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr>
+      <tr><td>your plugins</td><td>installed</td><td>a web page and the public bridge</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr></table>
+    <p class="muted">Core native plugins have a manifest with a <code>native</code> field instead of a page, so a terminal costs no web view. herdr's own TUI plugins are not part of this system; a pane a herdr plugin opened shows as a terminal.</p>
     <p class="muted">Agent: the picker lists <code>integration.list</code> entries with <code>available:true</code>. Start = split or new tab, then <code>agent.start</code> (retried every 250 ms for up to 5 s while the shell is busy). No agent after 10 s shows "Agent did not start". The default view is the terminal on Mac and iPad, chat on iPhone.</p>
+    <p class="muted">The TypeScript + React kit drawn as native SwiftUI (Raycast's model) is option (a) in <a href="https://oriel-docs.vercel.app/docs/future-work">Future work</a>.</p>
   </details>
-  <details><summary>Web page</summary>
+  <details><summary>Web page and remote <code>localhost</code></summary>
     <ul>
       <li>The pane label <code>web:&lt;url&gt;</code> is the marker: it has no length limit, and it survives moves and restarts. A placeholder process holds the slot.</li>
       <li>A label this device did not set, for an origin not approved before on this machine, shows "Open ‹url›?" and loads only after a click.</li>
-      <li>On a remote machine, <code>localhost:P</code> becomes an <code>ssh -O forward</code> to a different free local port. WebKit never proxies loopback.</li>
+      <li>A remote <code>localhost:P</code> goes through <code>dial</code>. On the Mac: <code>ssh -O forward -L</code> on the ControlMaster, on the same port when it is free, so the page's origin is exactly <code>localhost:P</code>. On iOS: an in-app listener on <code>127.0.0.1:P</code> pipes each connection into a Citadel <code>direct-tcpip</code> channel (a TCP stream through the SSH connection). Tailscale addresses load directly.</li>
+      <li><b>Open :P</b>: when a terminal prints a local address (herdr's <code>pane.output_matched</code>), its card shows a chip that opens the address in a web card. The card menu also lists the machine's listening ports (<code>ss</code> or <code>lsof</code>), on demand.</li>
       <li>One WebKit data store per machine. Loopback is blocked except that machine's own forwards.</li>
-      <li>iOS loads addresses from the phone's network for now.</li>
     </ul>
   </details>
-  <details><summary>The options we compared</summary>
-    <table><tr><th>Option</th><th>Pros</th><th>Cons</th></tr>
-      <tr><td><b>React → JSON → native SwiftUI</b> (chosen; Raycast 1.x's model)</td><td>truly native; ~3 MB per card; the JS reaches only the injected API; one look</td><td>only our components; DOM and Node npm packages do not work; we version the kit</td></tr>
-      <tr><td>React in a web view with a CSS kit</td><td>any npm package; least work</td><td>120–200 MB per card; an imitation look; HTML from repositories can become script</td></tr>
-      <tr><td>React Native</td><td>React to native</td><td>two forks, a large dependency, still needs our kit</td></tr>
-      <tr><td>Native Swift plugins</td><td>fully native</td><td>impossible on iOS; a signing exception on macOS; in our process</td></tr>
-      <tr><td>Apple ExtensionKit</td><td>sandboxed native views</td><td>iOS hosts only our own extensions; each author ships an app</td></tr></table>
-    <p class="muted">Plugins target a component set, not a DOM, so the renderer can change later without breaking them. A <code>&lt;WebView&gt;</code> component for custom drawing (a commit graph) comes when a plugin needs it.</p>
+  <details><summary>The bridge</summary>
+<pre><code>oriel.run(argv)          → runs a command on the pane's machine (needs the "run" permission)
+oriel.dial(host, port)   → a TCP stream to host:port, as seen from that machine</code></pre>
+    <p class="muted">Every pane kind uses the same two calls: the web page's <code>localhost</code> is a <code>dial</code>, Git history is a <code>run</code> of <code>git</code>. Full detail → <a href="https://oriel-docs.vercel.app/docs/plugins/api">Plugin API</a>.</p>
   </details>
-  <details><summary>Components and the API</summary>
-    <table><tr><th>Component</th><th>Drawn as</th></tr>
-      <tr><td><code>List</code>, <code>List.Section</code>, <code>List.Item</code>, <code>List.EmptyView</code></td><td>SwiftUI <code>List</code> with selection, search, and an optional detail split</td></tr>
-      <tr><td><code>Detail</code>, <code>Markdown</code></td><td>the chat view's Markdown renderer plus a metadata grid; no HTML</td></tr>
-      <tr><td><code>Diff</code>, <code>Code</code></td><td>a native diff parser in the terminal palette; monospaced selectable code</td></tr>
-      <tr><td><code>Form</code> (TextField, TextArea, Dropdown, Checkbox)</td><td>SwiftUI <code>Form</code></td></tr>
-      <tr><td><code>ActionPanel</code>, <code>Action</code></td><td>the header menu, context menus, a ⌘K popover; first action Return</td></tr>
-      <tr><td><code>Icon</code>, <code>Color</code></td><td>SF Symbols and the app's palette</td></tr></table>
-<pre><code>usePane()            → { machine, paneId, cwd, arg, iid, plugin, device }
-exec(argv, opts?)    → runs on the card's own machine only (needs "exec")
-setArg(arg)          → renames its own pane; herdr keeps it
-useInstanceState(v)  → a JSON file on the pane's machine, shared by every device
-useSnapshot()        → herdr's snapshot, to refresh when an agent finishes
-getPreferenceValues · showToast · open(url) after a confirm · Clipboard.copy · useNavigation · usePromise · useExec</code></pre>
-    <p class="muted"><code>exec</code>: 30 s timeout, 4 MiB per stream, 2 at a time per machine, paused off screen. Caps: view tree 4 MiB, state 256 KiB, argument 1024 characters.</p>
-    <p class="muted">Not in v1: network, local storage, layout primitives, plugins outside panes, one plugin opening another.</p>
-  </details>
-  <details><summary>Packages, install and updates</summary>
-<pre><code>{ "name": "git-history", "version": "0.3.0", "repository": "https://github.com/me/oriel-git-history",
-  "oriel": { "api": 1, "title": "Git history", "icon": "arrow.triangle.branch",
-    "platforms": ["macos","ios"], "permissions": ["exec"],
-    "panes": [{ "name": "history", "title": "Git history", "entry": "src/history.tsx",
-                "arg": { "title": "Ref or path", "placeholder": "HEAD" } }],
-    "preferences": [{ "name": "maxCommits", "type": "textfield", "default": "500" }] } }</code></pre>
+  <details><summary>Install and updates</summary>
     <ul>
-      <li><code>oriel-plugin build</code> runs esbuild per pane entry; <code>oriel-plugin dev</code> rebuilds on change.</li>
-      <li>Plugins live in the app (<code>Application Support/Oriel/plugins/</code>). Install from a git URL (the app never runs npm; <code>dist/</code> must be built) or link a local folder for live reload with Safari Web Inspector.</li>
+      <li>Plugins live in the app (<code>Application Support/Oriel/plugins/</code>). Install from a git URL, or link a local folder for live reload with Safari Web Inspector. The app runs no build step.</li>
       <li>Updates are checked daily and applied when the user presses Update; new permissions ask again.</li>
-      <li>Cards suspend off screen (timers and exec pause). At most 12 live plugin VMs, least recently used out first.</li>
+      <li>Cards suspend off screen.</li>
       <li>Preferences are per device (passwords in the Keychain).</li>
     </ul>
   </details>
@@ -835,7 +811,8 @@ oriel:markdown#q2m0zd docs/DESIGN.md
 oriel:kanban/board#7tt1qe              ← a plugin with several pane kinds
 web:http://localhost:3000/dashboard</code></pre>
     <ul>
-      <li>Every plugin pane is a real herdr pane with a placeholder process that prints the title, the marker, the argument and the state path. The app types the placeholder only after the new pane's foreground process is the shell (checked with <code>pane.process_info</code> on the next snapshot), so it never races the shell's startup. The placeholder is cosmetic: the label is the truth. The card menu's <b>Restore placeholder</b> types it into the shell again.</li>
+      <li>Every plugin pane is a real herdr pane running an inert placeholder command that prints the title, the marker, the argument and the state path. The app creates it in one call: <code>layout.apply</code> with a pane node <code>{label, cwd, command:[argv]}</code> in a temporary tab; then <code>pane.move</code> puts it in place, and the temporary tab closes itself. The app never types into a shell. It never passes <code>tab_id</code> to <code>layout.apply</code>: that replaces the whole tab and kills its panes.</li>
+      <li>After a herdr cold restart the pane comes back as a shell with its label. The card still works from the label. The upstream ask (herdr discussion #1367) is an opt-in restore of such panes.</li>
       <li>The instance id lives in the label, because <code>pane_id</code> changes on a move and <code>terminal_id</code> on a herdr restart. Cards are keyed by (machine, plugin, iid), so they survive both.</li>
       <li>Bigger state lives in <code>$HOME/.local/state/oriel/&lt;session&gt;/&lt;plugin-id&gt;/&lt;iid&gt;.json</code> (<code>&lt;session&gt;</code> = the herdr session name) on the pane's machine (a fixed path, so every device finds the same file), written atomically. A <code>oriel_rev</code> metadata token tells other devices to re-read it. Orphan files are cleaned once a day.</li>
       <li>A plugin with one pane kind omits <code>/&lt;pane&gt;</code>. If two panes carry the same iid (a copied label), the pane that comes first in <code>snapshot.panes[]</code> keeps the card key and both share the state file.</li>
@@ -845,20 +822,19 @@ web:http://localhost:3000/dashboard</code></pre>
       <div class="n"><b>2 · classify</b><small>web: · oriel: · agent · terminal</small></div><div class="a">→</div>
       <div class="n"><b>3 · resolve</b><small>core, then linked, then installed; missing → placeholder card</small></div><div class="a">→</div>
       <div class="n"><b>4 · key the card</b><small>(machine, plugin, iid)</small></div><div class="a">→</div>
-      <div class="n"><b>5 · render</b><small>VM + pane context + state file</small></div>
+      <div class="n"><b>5 · render</b><small>web view + pane context + state file</small></div>
     </div>
   </details>
   <details id="plugin-security" open><summary>Security</summary>
     <ul>
-      <li><b>One VM per card, bound to its pane's machine.</b> <code>exec</code> goes only there. The app gives plugins no network, no storage across machines and no HTML. Plugin JavaScript runs only while a card is on screen.</li>
-      <li><b>Honest about <code>exec</code>:</b> a plugin with it can do anything you can do on that machine, including network tools and programs that keep running. The consent sheet says so.</li>
-      <li><code>open(url)</code> (after a confirm sheet) and <code>Clipboard.copy</code> work only while the app is dispatching your click or key press to that card. This is enforced in Swift.</li>
-      <li><b>One permission, <code>exec</code>.</b> Finer rules ("only git") would not hold, so none are offered.</li>
-      <li><b>Consent at install</b>, keyed by plugin id and source, in plain words: the plugin can run any command as you on the machine of every one of its panes (including ones others created), use the network from there and leave programs running; on This Mac that includes your files, SSH keys and connections to other machines. Again on a new permission. One more confirm on a plugin's first <code>exec</code> on This Mac, also keyed by id and source. The sheet is headed by the plugin id and source URL, not only the plugin's own title.</li>
+      <li><b>One web view per card, bound to its pane's machine.</b> <code>run</code> and <code>dial</code> go only there. Plugin code runs only while its card is on screen.</li>
+      <li><b>Honest about <code>run</code>:</b> a plugin with it can do anything you can do on that machine, including network tools and programs that keep running. The consent sheet says so.</li>
+      <li><code>open(url)</code> (after a confirm sheet) and the clipboard work only while the app is dispatching your click or key press to that card. This is enforced in Swift.</li>
+      <li><b>One permission, <code>run</code>.</b> Finer rules ("only git") would not hold, so none are offered.</li>
+      <li><b>Consent at install</b>, keyed by plugin id and source, in plain words: the plugin can run any command as you on the machine of every one of its panes (including ones others created), use the network from there and leave programs running; on This Mac that includes your files, SSH keys and connections to other machines. Again on a new permission. One more confirm on a plugin's first <code>run</code> on This Mac, also keyed by id and source. The sheet is headed by the plugin id and source URL, not only the plugin's own title.</li>
       <li>Core plugin ids are reserved. An id resolves core first, then a linked folder, then an installed plugin.</li>
       <li>A machine can write labels, so it can open any installed plugin on itself, which gives it only what the plugin does on that machine.</li>
-      <li>A call that runs longer than 3 s marks the card "not responding · Reload". JavaScriptCore cannot stop a running script, so a hung VM is abandoned and the plugin disabled after two hangs.</li>
-      <li>iOS v1 ships the core plugins only; other plugin panes show their placeholder.</li>
+      <li>iOS v1 ships the core plugins (terminal, agent, web, Git history, Diff, Markdown). Installing your own plugins on iOS comes later.</li>
     </ul>
   </details>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/plugins">Pane kinds and plugins</a> · <a href="https://oriel-docs.vercel.app/docs/plugins/web-page">Web page</a> · <a href="https://oriel-docs.vercel.app/docs/plugins/security">Security</a></p>
@@ -955,7 +931,7 @@ web:http://localhost:3000/dashboard</code></pre>
   <p class="lead">One multiplatform SwiftUI target for macOS 26 and iOS 26, one main window, and three platform problems solved up front.</p>
   <div class="grid3">
     <div class="card"><h4>① Swipes get eaten</h4><p>Terminal and web views take every scroll. A macOS <code>NSEvent</code> monitor locks the axis per gesture and gives horizontal motion to the strip; on iOS the terminal yields horizontal pans.</p></div>
-    <div class="card"><h4>② Lazy views get destroyed</h4><p>The PaneViewRegistry owns every terminal view, web page and plugin card; only the newest container may hold a view. Caps: ~24 terminals, 6 web pages (2 on iPhone), 12 plugin VMs.</p></div>
+    <div class="card"><h4>② Lazy views get destroyed</h4><p>The PaneViewRegistry owns every terminal view, web page and plugin card; only the newest container may hold a view. Caps: ~24 terminals, 6 web views for web pages and plugin cards (2 on iPhone).</p></div>
     <div class="card"><h4>③ Shortcuts get eaten</h4><p>libghostty binds ⌘T, ⌘W and ⌘D. Every surface gets <code>keybind = clear</code>, and keys go to the main menu first.</p></div>
   </div>
   <details><summary>Tab bar, glass, signing, dependencies, tests</summary>
@@ -967,9 +943,9 @@ web:http://localhost:3000/dashboard</code></pre>
     <table><tr><th>Need</th><th>Choice</th></tr>
       <tr><td>Terminal drawing</td><td><code>libghostty-spm</code>, exact pin, with the response-suppression patch</td></tr>
       <tr><td>SSH</td><td>system <code>ssh</code> on macOS; <code>Citadel</code> 0.12.1 on iOS</td></tr>
-      <tr><td>Plugin runtime</td><td>JavaScriptCore + React 19 + react-reconciler</td></tr>
+      <tr><td>Plugin runtime</td><td>a WebKit web view per card, with the plugin's own page</td></tr>
       <tr><td>Web pages · Markdown</td><td>SwiftUI <code>WebView</code> · <code>AttributedString(markdown:)</code></td></tr></table>
-    <p>One test target checks decoding, the tree rebuild, the lit-tab math, the label parser, the remote command envelope (bash, zsh, fish), the plugin tree decode, the state-file write, the state cleanup, the plugin bridge's machine binding, and the transcript parsers.</p>
+    <p>One test target checks decoding, the tree rebuild, the lit-tab math, the label parser, the remote command envelope (bash, zsh, fish), the state-file write, the state cleanup, the plugin bridge's machine binding, and the transcript parsers.</p>
   </details>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/platform">Platform and code</a></p>
 </section>
@@ -999,12 +975,13 @@ web:http://localhost:3000/dashboard</code></pre>
     <tr><td><code>pane.swap</code> marks the tab seen in herdr</td><td>TUI users lose a done marker</td><td>accepted; swap only follows a drag</td></tr>
     <tr><td>Transcript formats change</td><td>full chat breaks for one agent</td><td>lenient parsers; screen text and terminal still work</td></tr>
     <tr><td>iOS drops connections in the background</td><td>no live updates</td><td>reconnect and snapshot on return; push later</td></tr>
-    <tr><td>A hung plugin script</td><td>one CPU core busy until the app quits</td><td>the card is abandoned and the plugin disabled after two hangs; QuickJS if it matters</td></tr>
+    <tr><td><code>layout.apply</code> with <code>tab_id</code> replaces the whole tab</td><td>the tab's panes are killed</td><td>the app never passes <code>tab_id</code></td></tr>
+    <tr><td>herdr cold restart</td><td>web and plugin panes come back as shells with their label</td><td>the card still works from the label; upstream ask: herdr discussion #1367</td></tr>
     <tr><td>A malicious plugin the user installed</td><td>anything the user can do on machines where its panes open, including network use from there</td><td>consent sheet in plain words; This Mac confirm; source shown and pinned to a commit</td></tr>
     <tr><td>Labels written by a hostile machine</td><td>a web page or plugin card opening by itself</td><td>web addresses need a click; plugins act only on that machine</td></tr>
     <tr><td>DNS rebinding against loopback forwards</td><td>a page reaches a forwarded dev server by another name</td><td>per-machine loopback rules; accepted residual risk</td></tr>
     <tr><td>The pill panel's focus behavior</td><td>the reply box may not take keys, or a click may not open the app</td><td>spike S5</td></tr>
-    <tr><td>Web page memory (120–200 MB each)</td><td>memory growth</td><td>caps of 6 on Mac and iPad, 2 on iPhone; evict on memory pressure</td></tr>
+    <tr><td>Web view memory (120–200 MB each, web pages and plugin cards)</td><td>memory growth</td><td>caps of 6 on Mac and iPad, 2 on iPhone; evict on memory pressure</td></tr>
     <tr><td>libghostty-spm and Citadel are third-party builds</td><td>updates lag; supply chain</td><td>exact pins (libghostty with the response-suppression patch); reviewed updates; SwiftTerm as a fallback renderer</td></tr>
     <tr><td>Citadel exec channels on iOS (streaming stdin, long-lived channels, channel close)</td><td>the iOS transport may not work</td><td>spike S7; a thin iOS slice right after remote machines</td></tr>
     <tr><td>A local forward port is open to other local users</td><td>another account could reach the dev server</td><td>accepted for a single-user Mac</td></tr>
@@ -1032,7 +1009,7 @@ web:http://localhost:3000/dashboard</code></pre>
 workspace.create | close | rename | move
 tab.create | close | rename | move
 pane.split | close | rename | swap | move | resize | send_input | read | process_info | report_metadata
-layout.set_split_ratio · layout.export (fallback)
+layout.set_split_ratio · layout.export (fallback) · layout.apply (a pane node in a new tab; never tab_id)
 agent.start | prompt | send_keys
 
 herdr --session S remote-api-bridge [--check]
@@ -1072,9 +1049,10 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
     <tr><td class="k"><code>terminal_id</code> / <code>pane_id</code></td><td>herdr's id of a terminal process / of a pane slot; the pane id changes on a move to another workspace, the terminal id on a herdr cold restart</td></tr>
     <tr><td class="k"><code>completion_seq</code></td><td>herdr's sequence number of an agent's last finish (working or blocked → idle); null until the first finish, and cleared to null on every other status change, so it is null while the agent works; restarts at 0 with herdr</td></tr>
     <tr><td class="k">plugin / core plugin</td><td>a pane kind / one that ships with the app (terminal, agent, web, git history, diff, Markdown)</td></tr>
-    <tr><td class="k">kit</td><td>the React components plugins use, drawn as native SwiftUI</td></tr>
+    <tr><td class="k">bridge</td><td>the calls a plugin page gets on its pane's machine: <code>run(argv)</code> and <code>dial(host, port)</code></td></tr>
+    <tr><td class="k">dial</td><td>open a TCP stream to a host and port as seen from a machine, through the SSH connection</td></tr>
     <tr><td class="k">iid</td><td>a plugin pane's instance id, kept in its label</td></tr>
-    <tr><td class="k">placeholder</td><td>the quiet process in a web or plugin pane that shows TUI users what the pane is; cosmetic</td></tr>
+    <tr><td class="k">placeholder</td><td>the inert command a web or plugin pane is created with, which shows TUI users what the pane is; cosmetic</td></tr>
     <tr><td class="k">cold restart / live update</td><td>herdr stops and its terminals end / herdr hands over to a new server process and keeps its terminals</td></tr>
     <tr><td class="k">spike</td><td>a small throwaway test of one risky part, before real views</td></tr>
     <tr><td class="k">Simpler choice</td><td>a shortcut taken on purpose, marked in the docs with when to revisit it</td></tr>
