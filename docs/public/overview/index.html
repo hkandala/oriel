@@ -327,7 +327,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 <!-- ═════════════ FEATURES: WINDOW ═════════════ -->
 <section id="f-window">
   <h2><span class="num">1</span>Machines, tabs and panes</h2>
-  <p class="lead">A glass sidebar of machines and workspaces, a glass tab bar, and a strip that pages sideways through tabs. Try it.</p>
+  <p class="lead">A flat sidebar of machines, workspaces and tabs, tab capsules in the title bar when the sidebar is hidden, and a strip that pages sideways through tabs. Try it.</p>
   <div class="mockwrap">
   <div class="win" id="win">
     <div class="titlebar">
@@ -482,7 +482,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <table>
     <tr><th>From</th><th>We take</th></tr>
     <tr><td>Cube</td><td>the sideways strip of tab pages; tabs lit while visible; web pages as panes; a sidebar tree with kind icons</td></tr>
-    <tr><td>Rex</td><td>status inside the tab; × on hover; dimmed unfocused panes; glass on chrome only (we keep the window opaque, so the app is fully dark)</td></tr>
+    <tr><td>Rex</td><td>status inside the tab; × on hover; dimmed unfocused panes; glass on chrome only</td></tr>
     <tr><td>gorex</td><td>the reference implementation for Rex-like behavior: capsule tabs that shrink and fade their labels on overflow, an 8 pt gap between cards that is the divider, header controls on hover, dimmed unfocused cards, one tab status slot (× &gt; ▲ &gt; ✓ &gt; ◔), a static working glyph, double-click a divider to reset it to 0.5, ⌃⌘= to equalize, a window title that follows the active tab. It draws everything with its own Metal renderer, so it is <b>not</b> a reference for glass or SwiftUI (spike S2 stays open).</td></tr>
     <tr><td>Arc</td><td>one sidebar page per machine, swiped sideways</td></tr>
     <tr><td>One</td><td>the edge pill with a glyph per agent; a card with the agent's output and a reply box</td></tr>
@@ -519,10 +519,11 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <p class="lead">How each part looks and behaves. The sections after this one explain how it works.</p>
   <details><summary>Window, sidebar and tab bar</summary>
     <ul>
-      <li><b>Sidebar</b> (macOS 26's floating glass sidebar): the machine's name, the machine pages (swiped sideways), fixed page dots and <code>+</code> (add a machine), and the fixed status area at the bottom. A machine page for a non-default local session is named "This Mac · ‹session›".</li>
-      <li><b>Machine page:</b> herdr's workspaces in herdr's order. A workspace expands to its agent panes (icon, name, glyph and word), its web and plugin panes, and one "Terminals (n)" row. A collapsed workspace shows how many agents need you. Clicking a workspace selects it in the app only.</li>
-      <li><b>Tab bar:</b> one glass capsule per herdr tab, with the icon of the pane last selected in it and the tab label (folder part dimmed). One status slot per capsule shows one glyph by priority: × on hover, then ▲, then ✓, then ◔. The ◔ glyph is static (no animation). When tabs overflow, they shrink and their labels fade out. <code>+</code> makes a new tab. The window title follows the selected tab.</li>
-      <li><b>Strip:</b> one page per tab. Cards follow herdr's split tree, with an 8 pt gap between cards that is the divider. Double-click a divider to reset it to 0.5; ⌃⌘= equalizes the tab's splits. Each card header has the kind icon, title, view switch (chat|term on agents and terminals, plugin|term on plugin panes, none on web pages), zoom and close. Controls show on hover on macOS and always on iOS; every action is also in the context menu, the menu bar and ⌘K. Unfocused cards are slightly dimmed.</li>
+      <li><b>Title-bar row:</b> the sidebar toggle, the machine button (the machine's name; it opens the list of machines and sessions), the tabs while the sidebar is hidden, ⌘ (the palette) and <code>+</code> (new tab).</li>
+      <li><b>Sidebar:</b> flat on the window background, with no panel. The machine pages (swiped sideways), fixed page dots, the fixed status area, and at the bottom a Filter field, New Workspace and Add Machine. A machine page for a non-default local session is named "This Mac · ‹session›".</li>
+      <li><b>Machine page:</b> herdr's workspaces in herdr's order, as section headers, with their tabs as rows (icon tile, label, status glyph). The selected tab is a raised pill. Later a workspace also lists its agent panes (icon, name, glyph and word). Clicking a workspace selects it in the app only.</li>
+      <li><b>Tab bar:</b> while the sidebar is hidden, the title-bar row shows one capsule per herdr tab, and one glass marker follows the strip as it scrolls. Each capsule has the icon of the pane last selected in it and the tab label (folder part dimmed). One status slot per capsule shows one glyph by priority: × on hover, then ▲, then ✓, then ◔. The ◔ glyph is static (no animation). When tabs overflow, they shrink and their labels fade out. <code>+</code> makes a new tab. The window title follows the selected tab.</li>
+      <li><b>Strip:</b> one page per tab. Cards follow herdr's split tree, with an 8 pt gap between cards that is the divider. Double-click a divider to reset it to 0.5; ⌃⌘= equalizes the tab's splits. Each card header has the kind icon, title, view switch (chat|term on agents and terminals, plugin|term on plugin panes, none on web pages), split, zoom and close. Controls show on hover on macOS and always on iOS; every action is also in the context menu, the menu bar and ⌘K. Unfocused cards are slightly dimmed.</li>
       <li><b>Swiping:</b> two fingers on a trackpad, one finger on iOS; pages snap. First visit to a machine shows herdr's focused workspace; later visits show the last one picked.</li>
       <li><b>Keys:</b> ⌃⌥1…9 machines, ⌘1…9 tabs, ⇧⌘[ ] step, ⌘T new tab, ⌘D split, ⌘W close the pane, ⇧⌘W the window, ⇧⌘↩ zoom, ⌃⌘ + arrow resize, ⌃⌘= equalize, ⌘K card actions.</li>
       <li><b>Closing:</b> closing a pane asks first unless the pane runs only its shell (no foreground program). Closing a tab or workspace always asks.</li>
@@ -553,7 +554,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <details><summary>Add a machine, theme and accessibility</summary>
     <ul>
       <li><b>Add a machine:</b> the app saves the SSH target in its own list, on the Mac and on iOS. On the Mac, herdr's machines (<code>herdr machine list</code>) are imported on first launch, and the add sheet lists those not added yet. iOS shows the public key to copy into <code>authorized_keys</code>. herdr on the Mac is needed only for This Mac's sessions.</li>
-      <li><b>Theme:</b> dark only. Opaque near-black window (<code>#0e0f12</code>), opaque cards, dark-tinted glass on the sidebar and tab bar. Terminals use a dark palette; web pages are told <code>prefers-color-scheme: dark</code>. iOS uses the same look. Status colors: <span style="color:#8fd3ff">◔ working</span> blue, <span style="color:var(--amber)">▲ needs you</span> amber, <span style="color:var(--green)">✓ finished</span> green.</li>
+      <li><b>Theme:</b> dark only, frosted. The window is one behind-window blur under a dark tint; pane cards are translucent with a hairline border; the sidebar sits flat on the window; Liquid Glass only on the tab marker and the session list. Terminals use a dark palette; web pages are told <code>prefers-color-scheme: dark</code>. iOS uses the same look. Status colors: <span style="color:#8fd3ff">◔ working</span> blue, <span style="color:var(--amber)">▲ needs you</span> amber, <span style="color:var(--green)">✓ finished</span> green.</li>
       <li><b>Accessibility:</b> status is always a glyph plus a word, never color alone. Terminal cards expose their screen text to VoiceOver (from <code>pane.read visible</code>, on demand) and announce new output politely. Keyboard focus moves sidebar → tab bar → cards (left to right, top to bottom). Every card action is reachable from the keyboard (⌘K). Every swipe has a keyboard path, a menu path and a button. The chrome supports Dynamic Type on iOS, and the terminal font size follows the app's text size setting. Reduce Motion turns off the morph, page animations and the pill's slide.</li>
     </ul>
     <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/add-a-machine">Add a machine</a> · <a href="https://oriel-docs.vercel.app/docs/ui/theme-and-accessibility">Theme and accessibility</a></p>
@@ -938,8 +939,8 @@ web:http://localhost:3000/dashboard</code></pre>
   </div>
   <details><summary>Tab bar, glass, signing, dependencies, tests</summary>
     <ul>
-      <li>Tab bar: one <code>ToolbarItem</code> without the shared glass background, holding a <code>ScrollView</code> and a <code>GlassEffectContainer</code>. The marker follows the strip's scroll offset; lit tabs come from the same number. gorex is the reference for how the tabs behave (sizes, overflow, status slot, window title), not for glass or SwiftUI: it draws with its own Metal renderer, so spike S2 stays open.</li>
-      <li>Glass only on chrome (tab bar, sidebar, status area, menus). Pane cards and pills are opaque.</li>
+      <li>Tab bar: a row in the hidden title bar's line, holding a <code>ScrollView</code> of capsules. The marker is one <code>glassEffect</code> capsule that follows the strip's scroll offset; lit tabs come from the same number. gorex is the reference for how the tabs behave (sizes, overflow, status slot, window title), not for glass or SwiftUI: it draws with its own Metal renderer.</li>
+      <li>Frosted window: one behind-window <code>NSVisualEffectView</code> under a dark tint. Pane cards are translucent with a hairline border. Liquid Glass on the tab marker and the session list. Pills are opaque.</li>
       <li>macOS: Sandbox off, Hardened Runtime on, notarized Developer ID download. iOS: App Store.</li>
     </ul>
     <table><tr><th>Need</th><th>Choice</th></tr>
