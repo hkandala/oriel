@@ -18,7 +18,7 @@ import Foundation
             var environment: [String: String] = [:]
             for line in try await Self.output(exec, ["env"]).split(separator: "\n") {
                 let pair = line.split(separator: "=", maxSplits: 1).map(String.init)
-                if pair.count == 2, ["PATH", "HOME"].contains(pair[0]) || pair[0].hasPrefix("XDG_") {
+                if pair.count == 2 {
                     environment[pair[0]] = pair[1]
                 }
             }

@@ -65,11 +65,7 @@ public struct Channel: Sendable {
                     return vars
                 }) ?? [:]
             }
-            for key in ["PATH", "SSH_AUTH_SOCK", "XDG_CONFIG_HOME", "XDG_STATE_HOME"] {
-                if let value = found[key] {
-                    env[key] = value
-                }
-            }
+            env.merge(found.filter { ["PATH", "SSH_AUTH_SOCK"].contains($0.key) || $0.key.hasPrefix("XDG_") }) { $1 }
             // herdr's usual install folders in front: no step to find herdr (talking-to-herdr#herdr-on-each-machine).
             env["PATH"] = "\(home)/.local/bin:/opt/homebrew/bin:/usr/local/bin:" + (env["PATH"] ?? "/usr/bin:/bin")
             return env
