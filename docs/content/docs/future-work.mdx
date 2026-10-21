@@ -1,0 +1,72 @@
+---
+title: "Future work"
+description: "Everything the design defers, in one list"
+---
+
+Each item says what it is and when to build it. Smaller deferrals are marked
+"Simpler choice" on their own pages.
+
+## Plugins
+
+- **(a) A TypeScript + React kit drawn as native SwiftUI.** Plugins written in
+  React against a component kit (`List`, `Detail`, `Diff`, `Form`), run in one
+  JavaScriptCore VM per card and drawn as real SwiftUI (Raycast 1.x's model).
+  Measured at about 3 MB per card. It looks fully native, but it needs our own
+  component set, a reconciler and a build tool. Plugins are web pages instead
+  ([Plugin UI](/docs/plugins/plugin-ui)). Revisit when web plugins look or feel
+  wrong next to native cards. Research and spike:
+  [`plugin-system-v2.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugin-system-v2.md).
+- **User plugins on iOS**, once there is an install path without `git` on the
+  phone ([Plugins on iOS](/docs/plugins/ios)).
+
+## Panes and layout
+
+- **Floating panes.** A pane floats above the strip as a movable, resizable
+  card, then docks back into a tab. The design: floating panes are panes in a
+  tab labeled `oriel:float`; float and dock are `pane.move`; card frames are in
+  memory. Build it when users ask for scratch terminals over their tabs.
+  Research:
+  [`floating-panes.md`](https://github.com/hkandala/oriel/blob/main/resources/research/ui/floating-panes.md).
+- **Placeholders after a cold restart.** herdr brings a pane started with a
+  command back as a plain shell, with its label, so the card still works
+  ([Labels and instance ids](/docs/plugins/labels)). The upstream ask: restore
+  panes with a `launch_argv` on a cold restart, opt-in (herdr discussion
+  [#1367](https://github.com/herdrdev/herdr/discussions/1367)).
+- Tab thumbnails and an overview grid; several main windows.
+
+## Machines and multiplexers
+
+- **More multiplexers.** Rex ([superlogical.com](https://www.superlogical.com))
+  and tmux, as more implementations of the
+  [`Multiplexer` interface](/docs/architecture#the-multiplexer-interface).
+- **OSC 7501** (the Program Status Protocol, a terminal escape sequence that a
+  program sends to report its status;
+  [spec](https://www.superlogical.com/rex/docs/build/program-status)). herdr does
+  not support it yet (draft PR
+  [#5172](https://github.com/herdrdev/herdr/pull/5172)). When herdr ships
+  `panes[].program_status`, show its `message` on ▲ and ✓ rows and in
+  notifications, and say "failed" for `error`. Another multiplexer's
+  implementation may parse OSC 7501 itself where the app owns the terminal
+  bytes ([Status](/docs/status#status-area-and-notifications)).
+- **A small server helper** behind the same `run` and `dial` calls: one program
+  of ours per machine that carries every call on one SSH channel. Build it only
+  when one of these is real:
+  1. **Session budget:** cards show "no session · Retry" because terminals,
+     chat tails and plugin calls exceed `MaxSessions` on busy tabs.
+  2. **Latency:** a plugin needs many small calls (a file tree, search), and
+     users on slow links feel it.
+  3. **File watching:** a plugin needs pushed file changes, not refreshes on
+     snapshots.
+  4. **`AllowTcpForwarding no`:** a server refuses `dial`.
+  5. **Windows servers:** herdr supports them; our `sh` envelope does not.
+
+  Plugins, labels and state files stay the same when it comes. Research:
+  [`remote-plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/remote-plugins.md).
+- iOS jump hosts (Citadel has `jump(to:)`).
+
+## Notifications and chat
+
+- **iOS push.** A tiny stateless relay that forwards encrypted payloads to
+  Apple's push service, so the phone alerts while the app is closed. v1 shows
+  status while the app is open ([Notifications](/docs/status#notifications)).
+- More chat parsers.
