@@ -19,12 +19,12 @@ import Foundation
                 default: break
                 }
             }
-            // The environment the CLI sees, so the server and the CLI agree on paths (XDG_CONFIG_HOME moves
-            // herdr's sessions).
+            // The CLI's user keys, so the server and the CLI agree on paths (XDG_CONFIG_HOME moves herdr's
+            // sessions).
             var environment: [String: String] = [:]
-            for line in try await Self.output(exec, ["env"]).split(separator: "\n") {
-                let pair = line.split(separator: "=", maxSplits: 1).map(String.init)
-                if pair.count == 2 {
+            for entry in try await Self.output(exec, ["env", "-0"]).split(separator: "\0") {
+                let pair = entry.split(separator: "=", maxSplits: 1).map(String.init)
+                if pair.count == 2, ProcessExec.isUserKey(pair[0]) {
                     environment[pair[0]] = pair[1]
                 }
             }

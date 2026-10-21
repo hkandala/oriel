@@ -200,15 +200,15 @@ private func control(_ client: HerdrClient) async throws {
     })
 }
 
-/// The server the app starts gets the CLI's environment: with `XDG_CONFIG_HOME` elsewhere, both find the session
-/// there (design: XDG fix).
+/// The server the app starts gets the CLI's user keys: with `XDG_CONFIG_HOME` elsewhere, both find the session
+/// there (design: XDG fix). The app's own keys stay out (D47).
 @Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
 func `a started server shares the CLI's paths`() async throws {
     struct Moved: Exec {
         let base: ProcessExec
         let config: String
         func run(_ argv: [String]) async throws -> Channel {
-            try await base.run(["env", "XDG_CONFIG_HOME=\(config)"] + argv)
+            try await base.run(["env", "XDG_CONFIG_HOME=\(config)", "__CFBundleIdentifier=dev.hkandala.oriel"] + argv)
         }
     }
     // Not the temporary directory: a socket path there is too long.
@@ -222,4 +222,9 @@ func `a started server shares the CLI's paths`() async throws {
     let client = await HerdrClient(session: session, exec: Moved(base: ProcessExec(), config: config))
     try await client.startServer()
     #expect(FileManager.default.fileExists(atPath: "\(config)/herdr/sessions/\(session)"))
+    let job = try await HerdrClient.output(
+        ProcessExec(),
+        ["launchctl", "print", "gui/\(getuid())/dev.hkandala.oriel.herdr.\(session)"],
+    )
+    #expect(job.contains("XDG_CONFIG_HOME") && !job.contains("__CFBundleIdentifier"))
 }

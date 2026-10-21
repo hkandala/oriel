@@ -65,9 +65,15 @@ public struct Channel: Sendable {
                     return vars
                 }) ?? [:]
             }
-            env.merge(found.filter { ["PATH", "SSH_AUTH_SOCK"].contains($0.key) || $0.key.hasPrefix("XDG_") }) { $1 }
+            env.merge(found.filter { isUserKey($0.key) }) { $1 }
             env["PATH"] = installFolders(home) + (env["PATH"] ?? "/usr/bin:/bin")
             return env
+        }
+
+        /// The keys taken from the login shell and given to This Mac's server. The rest of the app's environment
+        /// (`__CFBundleIdentifier`, `XPC_*`, `DYLD_*`) must not reach a pane (design D47).
+        static func isUserKey(_ key: String) -> Bool {
+            ["PATH", "HOME", "SSH_AUTH_SOCK"].contains(key) || key.hasPrefix("XDG_")
         }
 
         /// herdr's usual install folders, put in front of `PATH`: no step to find herdr
