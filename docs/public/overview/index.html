@@ -132,9 +132,11 @@ figure{margin:0} figcaption{font-size:12.5px;color:var(--mute);margin-top:6px}
 .webv{flex:1;margin:0 8px 8px;border-radius:8px;background:#101115;color:#ddd;padding:14px;overflow:hidden;font-family:var(--sans)}
 .webv h5{margin:0 0 6px;font-size:16px}
 .webv .bar{height:8px;background:#26272d;border-radius:4px;margin:6px 0}
+.btn{display:inline-block;border:1px solid rgba(255,255,255,.16);border-radius:6px;padding:1px 8px;color:#ddd;cursor:pointer}
+.ask{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;color:#9a9aa3;font-size:12px}
+.ask b{color:#e9e9ee}
 .plug{flex:1;display:flex;flex-direction:column;min-height:0;margin:0 8px 8px;border-radius:8px;background:#121318;font-family:var(--sans);overflow:hidden}
 .wtool{display:flex;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px;color:#bbb}
-.wtool .btn{border:1px solid rgba(255,255,255,.16);border-radius:6px;padding:1px 8px;color:#ddd}
 .wtool .btn:first-of-type{margin-left:auto}
 .chat{flex:1;padding:4px 12px 10px;display:flex;flex-direction:column;gap:6px;overflow:hidden;font-size:11.5px}
 .msg .who{color:#8d8d97;font-size:10.5px}
@@ -341,7 +343,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
     <div class="sesslist" id="sesslist"></div>
   </div>
   </div>
-  <p class="hint"><b>Try:</b> scroll the main area sideways (trackpad or shift+wheel); the selected row follows the page. Hide the sidebar with the button at the top left: the tabs move into the title bar as capsules, every tab whose page is visible lights up, and the glass marker follows the scroll. Scroll the sidebar sideways, click the dots, or pick a session from the session button to switch machines. Hover a card for its controls. Press <b>Open :3000</b> on the dev server card to open its web card. The <b>diff</b> and <b>history</b> tabs are plugin cards: small web pages.</p>
+  <p class="hint"><b>Try:</b> scroll the main area sideways (trackpad or shift+wheel); the selected row follows the page. Hide the sidebar with the button at the top left: the tabs move into the title bar as capsules, every tab whose page is visible lights up, and the glass marker follows the scroll. Scroll the sidebar sideways, click the dots, or pick a session from the session button to switch machines. Hover a card for its controls. Press <b>Open :3000</b> on the dev server card to open its web card. The <b>diff</b> and <b>history</b> tabs are plugin cards: small web pages. On devbox, the <b>staging</b> card was built from a label, so it asks first: press <b>Open</b>. <b>lab-mac</b> needs a password, so it shows <b>Reconnect</b>.</p>
   <div class="grid3">
     <div class="card"><h4>Machines</h4><p>The app keeps its own list of machines, on the Mac and on iOS. On a Mac with herdr, the Add Machine sheet lists herdr's machines. All connect at once; one sidebar page per machine, swiped sideways like Arc's spaces.</p></div>
     <div class="card"><h4>Status everywhere</h4><p><span style="color:#8fd3ff">◔ working</span>, <span style="color:var(--amber)">▲ needs you</span>, <span style="color:var(--green)">✓ finished</span>, on sidebar rows, tab capsules and the status area. The status area covers every machine.</p></div>
@@ -1141,8 +1143,9 @@ const HOSTS=[
  {name:"devbox",sess:"floral-willow",ic:"server",
   ws:[{n:"infra",tabs:[
      {label:"terraform",icon:["codex",">_"],badge:"▲",layout:{dir:"row",kids:[pane("term","codex · migrate",T.codex,{icon:["codex",">_"],w:1.3}),pane("term","~/infra",T.zshInfra,{icon:["sh",">_"],dim:true})]}},
-     {label:"staging",icon:["web","◍"],layout:pane("web","staging.internal",null,{icon:["web","◍"]})}]},
+     {label:"staging",icon:["web","◍"],layout:pane("web","staging.internal",null,{icon:["web","◍"],ask:true})}]},
    {n:"ml-pipeline",tabs:[{label:"etl",icon:["sh",">_"]}]}]},
+ {name:"lab-mac",sess:"default",ic:"server",ws:[]},
  {name:"gpu-01",sess:"training",ic:"server",
   ws:[{n:"training",tabs:[
      {label:"train",icon:["sh",">_"],layout:{dir:"col",kids:[pane("term","train.py",T.train,{icon:["sh",">_"]}),pane("term","nvidia-smi",T.gpu,{icon:["sh",">_"],dim:true})]}},
@@ -1167,6 +1170,7 @@ function renderNode(n){
   if(n.kind==="hist") body=`<div class="plug"><div class="wtool"><b>main</b> · 214 commits<span class="btn">Checkout</span><span class="btn">Copy SHA</span></div><div class="hist"><div class="lst">${[["fix auth null token","a1b2c3d · 2h ago · hk",1],["add pricing page","9f8e7d6 · 5h ago · hk",0],["bump deps","5c4b3a2 · 1d ago · bot",0],["refactor session store","4d3c2b1 · 2d ago · hk",0],["initial api","0a9b8c7 · 9d ago · hk",0]].map(r=>`<div class="row ${r[2]?"sel":""}">${r[0]}<small>${r[1]}</small></div>`).join("")}</div><div class="det"><b>fix auth null token</b><div class="meta">a1b2c3d · hk · 2 hours ago · 2 files</div><div class="diff" style="padding:0"><div class="h">src/auth.ts</div><div class="r">-   return verify(token)</div><div class="a">+   if (!token) return null</div><div class="a">+   return verify(token)</div></div></div></div></div>`;
   else if(n.kind==="diff") body=`<div class="plug"><div class="wtool"><b>2 files</b> · +9 −1<span class="btn">Stage all</span><span class="btn">Copy patch</span></div><div class="diff"><div class="h">src/auth.ts  +3 −1</div><div>  export function check(token) {</div><div class="r">-   return verify(token)</div><div class="a">+   if (!token) return null</div><div class="a">+   return verify(token)</div><div>  }</div><div class="h">src/auth.spec.ts  +6</div><div class="a">+ it("returns null without a token", () =&gt; {</div><div class="a">+   expect(check(undefined)).toBeNull()</div><div class="a">+ })</div></div></div>`;
   else if(n.kind==="term") body=`<div class="term">${n.body}</div>`;
+  else if(n.kind==="web"&&n.ask) body=`<div class="webv ask"><div>Open <b>https://${n.title}</b>?</div><div>Built from herdr's label. Its origin is not approved for this machine and not on the safe list.</div><span class="btn" data-open role="button" tabindex="0">Open</span></div>`;
   else if(n.kind==="web") body=`<div class="webv"><h5>${n.title.includes("staging")?"Staging":"Dashboard"}</h5><div class="bar" style="width:70%"></div><div class="bar" style="width:45%"></div><div class="bar" style="width:60%"></div><div style="display:flex;gap:8px;margin-top:12px"><div style="flex:1;height:60px;background:#1b2436;border-radius:6px"></div><div style="flex:1;height:60px;background:#1a2b22;border-radius:6px"></div></div></div>`;
   else body=n.body;
   const chip=n.port?`<span class="chip-port" data-port="${n.port}" role="button" tabindex="0" title="Open localhost:${n.port} in a web card">Open :${n.port}</span>`:"";
@@ -1174,8 +1178,9 @@ function renderNode(n){
 }
 let host=0, sel=0;
 const status=w=>["▲","✓","◔"].find(g=>w.tabs.some(t=>t.badge===g));
+const RECON=`<div class="ask" style="flex:1"><div style="color:#ffb340">▲ Needs a password or a one-time code</div><div>Automatic retries never prompt.</div><span class="btn" role="button" tabindex="0">Reconnect</span></div>`;
 function renderHosts(){
-  $("#hostpager").innerHTML=HOSTS.map((h,hi)=>`<div class="hostpage"><div class="mname">${h.name}</div>${h.ws.map((w,wi)=>`<div class="wsh"><span>${w.n}</span>${badge(status(w))}</div>${w.tabs.map((t,ti)=>`<div class="row ${wi===0&&ti===0?"sel":""}" ${wi===0?`data-h="${hi}" data-t="${ti}"`:""} role="button" tabindex="0">${ico(...t.icon)}<span class="lbl">${t.label}</span>${badge(t.badge)}</div>`).join("")}`).join("")}</div>`).join("");
+  $("#hostpager").innerHTML=HOSTS.map((h,hi)=>`<div class="hostpage"><div class="mname">${h.name}</div>${h.ws.length?"":`<div class="wsh" style="color:#ffb340">▲ Needs a password</div>`}${h.ws.map((w,wi)=>`<div class="wsh"><span>${w.n}</span>${badge(status(w))}</div>${w.tabs.map((t,ti)=>`<div class="row ${wi===0&&ti===0?"sel":""}" ${wi===0?`data-h="${hi}" data-t="${ti}"`:""} role="button" tabindex="0">${ico(...t.icon)}<span class="lbl">${t.label}</span>${badge(t.badge)}</div>`).join("")}`).join("")}</div>`).join("");
   $("#dots").innerHTML=HOSTS.map((h,i)=>`<b data-i="${i}" title="${h.name} · ${h.sess}" role="button" tabindex="0" aria-label="${h.name}"></b>`).join("");
   $("#statusarea").innerHTML=`<div class="sum"><span style="color:#8fd3ff">1 working</span> · <span style="color:#ffb340">1 needs you</span> · <span style="color:#30d158">1 finished</span></div><div style="color:#ffb340">▲ codex needs you · devbox/infra</div><div style="color:#30d158">✓ pi finished · This Mac/api-server</div>`;
   document.querySelectorAll("#dots b").forEach(b=>b.onclick=()=>goHost(+b.dataset.i));
@@ -1191,12 +1196,13 @@ function toggleSessions(on){ $("#sesslist").classList.toggle("show",on); $("#ses
 function goHost(i){ host=i; const hp=$("#hostpager"); hp.scrollLeft=i*hp.clientWidth; renderStrip(); }
 const page=i=>$("#strip").scrollTo({left:i*$("#strip").clientWidth,behavior:"smooth"});
 function renderStrip(){
-  const h=HOSTS[host], tabs=h.ws[0].tabs;
+  const h=HOSTS[host], tabs=h.ws.length?h.ws[0].tabs:[];
   $("#sessbtn").innerHTML=`${SVG[h.ic]}<span>${h.sess}</span>`;
   document.querySelectorAll("#dots b").forEach((b,i)=>b.classList.toggle("on",i===host));
   const bar=$("#tabs"); bar.querySelectorAll(".tab").forEach(t=>t.remove());
   tabs.forEach((t,i)=>{const el=document.createElement("div");el.className="tab";el.setAttribute("role","button");el.tabIndex=0;el.innerHTML=`${ico(...t.icon)}<span>${t.label}</span>${badge(t.badge)}`;el.onclick=()=>page(i);bar.appendChild(el)});
-  $("#strip").innerHTML=tabs.map(t=>`<div class="tpage">${renderNode(t.layout.dir?t.layout:{...t.layout,w:1})}</div>`).join("");
+  $("#strip").innerHTML=tabs.length?"":`<div class="tpage"><div class="pane" style="flex:1">${RECON}</div></div>`;
+  $("#strip").innerHTML+=tabs.map(t=>`<div class="tpage">${renderNode(t.layout.dir?t.layout:{...t.layout,w:1})}</div>`).join("");
   $("#strip").scrollLeft=0; updateTabs();
 }
 function updateTabs(){
@@ -1213,7 +1219,8 @@ function updateTabs(){
 }
 renderHosts(); renderStrip();
 $("#strip").addEventListener("scroll",updateTabs,{passive:true});
-$("#strip").addEventListener("click",e=>{const c=e.target.closest(".chip-port"); if(c) page(HOSTS[host].ws[0].tabs.findIndex(t=>t.layout.title===`localhost:${c.dataset.port}`))});
+$("#strip").addEventListener("click",e=>{const c=e.target.closest(".chip-port"); if(c) page(HOSTS[host].ws[0].tabs.findIndex(t=>t.layout.title===`localhost:${c.dataset.port}`));
+  const o=e.target.closest("[data-open]"); if(o){const t=HOSTS[host].ws[0].tabs.find(t=>t.layout.ask); delete t.layout.ask; o.closest(".pane").outerHTML=renderNode({...t.layout,w:1})}});
 let hostT; $("#hostpager").addEventListener("scroll",()=>{clearTimeout(hostT);hostT=setTimeout(()=>{const hp=$("#hostpager");if(!hp.clientWidth)return;const i=Math.round(hp.scrollLeft/hp.clientWidth);if(i!==host){host=i;renderStrip()}},120)},{passive:true});
 $("#sessbtn").onclick=()=>toggleSessions(!$("#sesslist").classList.contains("show"));
 $("#win").addEventListener("click",e=>{ if(!e.target.closest("#sesslist,#sessbtn")) toggleSessions(false) });
