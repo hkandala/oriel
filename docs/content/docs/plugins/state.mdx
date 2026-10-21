@@ -20,8 +20,8 @@ If losing it on a reload would annoy the user, put it in
 `setArg` (small, defines the pane) or `oriel.state` (bigger). Everything
 else stays in the page.
 
-`oriel.state` is only for view state: where the user was looking. Another
-device does not see a change until it builds the card again. Data that every
+`oriel.state` is only for view state: where the user was looking
+([When a card reads its state](#when-a-card-reads-its-state)). Data that every
 device must see live belongs in files on the machine: read them with `run`,
 and read them again when they may have changed (for example on the
 `snapshot` event).

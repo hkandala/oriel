@@ -37,8 +37,8 @@ not use addresses that contain secrets (for example a `?token=` URL).
 The same web view as a plugin card (a `WKWebView`,
 [Plugin UI](/docs/plugins/plugin-ui)), kept in the PaneViewRegistry so
 scrolling away does not reload it. The header shows the page title, Back,
-Refresh, Open in browser and Edit address. Refresh reloads the page from the
-saved address and scroll position (see below). Navigation stays inside the
+Refresh ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)),
+Open in browser and Edit address. Navigation stays inside the
 card (like an iframe). The label keeps the address the user typed.
 
 ## Viewing state on the machine
@@ -50,9 +50,8 @@ pane's machine (D58), in the same instance state file as a plugin's
 `{"url": …, "scrollY": …}`.
 - Written debounced (500 ms) when a navigation ends or scrolling stops, as for
   plugins. Last writer wins.
-- Read only when the card is built or on Refresh (D59;
-  [When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
-  An open card does not follow another device's navigation or scrolling.
+- Read when the card is built or on Refresh
+  ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
 - When it reads the file, the card opens the saved address and scroll
   position, else the typed address. That address follows the load rule
   below.
@@ -112,9 +111,8 @@ Rules:
 
 - **Open :‹port› chip:** when a frame arrives for a terminal card of the
   selected tab, the app searches the screen text it already holds for
-  `https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):[0-9]+`. No extra call
-  or event stream. A match shows "Open :3000" on that terminal's card. A
-  click makes a web pane for that address next to it.
+  `https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):[0-9]+`. A match
+  shows "Open :3000" on that terminal's card. A click makes a web pane for that address next to it.
 - **Ports list:** the picker's web page entry lists the machine's listening
   ports. It runs `ss -ltnH` (Linux) or `lsof -nP -iTCP -sTCP:LISTEN` (macOS)
   once when the list opens, never on a timer.

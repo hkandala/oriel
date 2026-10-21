@@ -45,11 +45,11 @@ interface Oriel {
 | `dial` | a service on the machine, such as a dev server's API or a database | a TCP stream as seen from **that card's machine only** ([Run and dial](/docs/talking-to-herdr#run-and-dial)); closed when the card closes |
 | `pane` | the machine, argument and cwd | injected when the card is built; an open card does not follow a rename from elsewhere ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)) |
 | `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `oriel:<plugin>[/<pane>]#<iid>`; updates `pane.arg` |
-| `state` | view state (where the user was looking), kept across devices and restarts | the state file, read when the card is built or on **Refresh**, never live; live shared data belongs in files read with `run` ([State and restore](/docs/plugins/state#when-a-card-reads-its-state)) |
-| `on("snapshot")` | refresh when an agent finishes | fires when herdr's state changed, debounced, only while the card is visible; carries no data, so herdr's schema stays behind the [Multiplexer interface](/docs/architecture#the-multiplexer-interface); a plugin that needs herdr data runs `herdr` with `run` |
+| `state` | view state (where the user was looking), kept across devices and restarts | the state file, read when the card is built or on **Refresh** ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)) |
+| `on("snapshot")` | refresh when an agent finishes | fires after each snapshot read, only while the card is visible; carries no data, so herdr's schema stays behind the [Multiplexer interface](/docs/architecture#the-multiplexer-interface); a plugin that needs herdr data runs `herdr` with `run` |
 | `preferences` | per-device settings | read only |
-| links (web standard) | links in commits, PR pages | `<a target="_blank">` or `window.open` from a click; the app shows the full URL in a sheet, then opens `http`/`https` in the browser ([Plugin security](/docs/plugins/security)) |
-| copy (web standard) | "Copy SHA" | `navigator.clipboard.writeText` from a click or key press |
+| links (web standard) | links in commits, PR pages | `<a target="_blank">` or `window.open` ([Plugin security](/docs/plugins/security)) |
+| copy (web standard) | "Copy SHA" | `navigator.clipboard.writeText` ([Plugin security](/docs/plugins/security)) |
 
 Errors and progress are drawn by the page itself.
 
