@@ -70,9 +70,8 @@ public struct Channel: Sendable {
                     env[key] = value
                 }
             }
-            if found["PATH"] == nil {
-                env["PATH"] = "\(home)/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
-            }
+            // herdr's usual install folders, after the user's own: no step to find herdr.
+            env["PATH"] = (env["PATH"] ?? "/usr/bin:/bin") + ":\(home)/.local/bin:/opt/homebrew/bin:/usr/local/bin"
             return env
         }
 

@@ -77,9 +77,6 @@ final class FakeExec: Exec {
                     + #""agents":[\#(entries.joined(separator: ","))]}}}"#)
                 reply.finish()
             }
-        } else if line.contains("ping") {
-            reply.yield(#"{"id":"1","result":{"type":"pong","version":"0.9.3","protocol":22}}"#)
-            reply.finish()
         }
     }
 
@@ -100,7 +97,7 @@ func eventually(within timeout: Duration = .seconds(3), _ condition: () -> Bool)
 }
 
 private func client(_ exec: FakeExec) -> HerdrClient {
-    HerdrClient(herdr: "/bin/herdr", session: "s", exec: exec, timeout: .seconds(1))
+    HerdrClient(session: "s", exec: exec, timeout: .seconds(1))
 }
 
 /// Starts updates and waits for the opening reads (one before and one after subscribing).
@@ -130,7 +127,7 @@ private func started(_ client: HerdrClient, _ exec: FakeExec) async -> AsyncStre
     let exec = FakeExec { _ in #"{"id":"1","result":{"type":"tab_created","tab":{"tab_id":"w1:t2"}}}"# }
     let created: Created = try await client(exec).call("tab.create", ["workspace_id": "w1", "focus": false])
     #expect(created.tab["tab_id"] == "w1:t2")
-    #expect(exec[\.argv] == [["/bin/herdr", "--session", "s", "remote-api-bridge"]])
+    #expect(exec[\.argv] == [["herdr", "--session", "s", "remote-api-bridge"]])
     let request = try #require(JSONSerialization.jsonObject(with: Data(exec[\.written][0].utf8)) as? [String: Any])
     #expect(request["method"] as? String == "tab.create")
     #expect(request["params"] as? [String: AnyHashable] == ["workspace_id": "w1", "focus": false])
@@ -139,17 +136,22 @@ private func started(_ client: HerdrClient, _ exec: FakeExec) async -> AsyncStre
 @Test func `herdr errors, timeouts and old versions throw typed errors`() async throws {
     let failing = client(FakeExec { _ in #"{"id":"1","error":{"code":"pane_not_found","message":"pane x"}}"# })
     await #expect(throws: HerdrError.herdr(code: "pane_not_found", message: "pane x")) {
-        try await failing.ping()
+        try await failing.snapshot()
     }
     let silent = FakeExec { _ in nil }
-    await #expect(throws: HerdrError.timeout) { try await client(silent).ping() }
+    await #expect(throws: HerdrError.timeout) { try await client(silent).snapshot() }
     #expect(silent[\.terminated] == 1)
-    let old = client(FakeExec { _ in #"{"id":"1","result":{"type":"pong","version":"0.9.2","protocol":21}}"# })
+    let old = client(FakeExec { _ in snapshot(version: "0.9.2") })
     await #expect(throws: HerdrError.unsupported("herdr 0.9.2 is too old; 0.9.3 or newer needed")) {
-        try await old.ping()
+        try await old.snapshot()
     }
-    let candidate = client(FakeExec { _ in #"{"id":"1","result":{"type":"pong","version":"0.9.4-rc1"}}"# })
-    try await candidate.ping()
+    _ = try await client(FakeExec { _ in snapshot(version: "0.9.4-rc1") }).snapshot()
+}
+
+/// An empty snapshot reply from this herdr version.
+private func snapshot(version: String) -> String {
+    #"{"id":"1","result":{"snapshot":{"version":"\#(version)","workspaces":[],"tabs":[],"panes":[],"layouts":[],"#
+        + #""agents":[]}}}"#
 }
 
 // MARK: Pacing
@@ -207,17 +209,22 @@ private func started(_ client: HerdrClient, _ exec: FakeExec) async -> AsyncStre
 }
 
 @Test func `a herdr that is too old gets one error and no snapshot`() async {
-    let exec = FakeExec { line in
-        line.contains("ping")
-            ? #"{"id":"1","result":{"type":"pong","version":"0.9.2"}}"#
-            : #"{"id":"1","result":{"snapshot":{"workspaces":[],"tabs":[],"panes":[],"layouts":[],"agents":[]}}}"#
-    }
     var updates: [Update] = []
-    for await update in await client(exec).updates() {
+    for await update in await client(FakeExec { _ in snapshot(version: "0.9.2") }).updates() {
         updates.append(update)
     }
     guard updates.count == 1, case .error(.unsupported) = updates[0] else {
         Issue.record("expected only .unsupported, got \(updates)")
         return
     }
+}
+
+@Test func `a missing herdr is not found`() async {
+    struct Missing: Exec {
+        func run(_: [String]) async throws -> Channel {
+            Channel(lines: AsyncStream { $0.finish() }, write: { _ in }, closeInput: {}, terminate: {},
+                    exit: { (127, "env: herdr: No such file or directory") })
+        }
+    }
+    await #expect(throws: HerdrError.notFound) { try await HerdrClient(session: "s", exec: Missing()).snapshot() }
 }

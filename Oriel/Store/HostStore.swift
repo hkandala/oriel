@@ -197,8 +197,7 @@ final class HostStore {
         var loadedSessions = false
         do {
             // herdr is the only multiplexer (design D49).
-            let client: any Multiplexer = try await HerdrClient(herdr: HerdrClient.locate(exec: exec),
-                                                                session: session, exec: exec)
+            let client: any Multiplexer = HerdrClient(session: session, exec: exec)
             self.client = client
             defer { self.client = nil }
             #if os(macOS)

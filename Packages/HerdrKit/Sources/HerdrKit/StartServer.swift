@@ -10,11 +10,11 @@ import Foundation
             // The name goes into a launchd label and file paths.
             guard Session.isValidName(session) else { throw HerdrError.failed("“\(session)” is not a session name") }
             // Already up (started elsewhere since): booting out its job would stop it.
-            if await (try? ping()) != nil {
+            if await (try? snapshot()) != nil {
                 return
             }
             // The environment the CLI sees, so the server and the CLI agree on paths (XDG_CONFIG_HOME moves
-            // herdr's sessions).
+            // herdr's sessions); `PATH` also finds herdr.
             var environment: [String: String] = [:]
             for line in try await Self.output(exec, ["env"]).split(separator: "\n") {
                 let pair = line.split(separator: "=", maxSplits: 1).map(String.init)
@@ -29,7 +29,8 @@ import Foundation
             try FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
             let log = logs.appending(path: "\(session).log").path
             // Interactive: launchd's default throttles the CPU and I/O of the server and every agent in it.
-            let job: [String: Any] = ["Label": label, "ProgramArguments": [herdr, "--session", session, "server"],
+            let job: [String: Any] = ["Label": label, "ProgramArguments": ["/usr/bin/env", "herdr", "--session",
+                                                                           session, "server"],
                                       "EnvironmentVariables": environment, "RunAtLoad": true,
                                       "ProcessType": "Interactive", "StandardErrorPath": log]
             try PropertyListSerialization.data(fromPropertyList: job, format: .xml, options: 0).write(to: plist)
@@ -43,7 +44,7 @@ import Foundation
                 throw HerdrError.failed("launchctl bootstrap exited \(status): \(stderr)")
             }
             for _ in 0 ..< 50 {
-                if await (try? ping()) != nil {
+                if await (try? snapshot()) != nil {
                     return
                 }
                 try await Task.sleep(for: .milliseconds(100))

@@ -6,7 +6,7 @@ public let herdrVersion = "0.9.3"
 public enum HerdrError: Error, Equatable, Sendable {
     /// No herdr binary on the machine.
     case notFound
-    /// herdr is there but too old or lacks the API bridge.
+    /// herdr is too old.
     case unsupported(String)
     /// herdr did not answer within 10 s.
     case timeout
@@ -33,43 +33,29 @@ public enum Update: Sendable {
     case error(HerdrError)
 }
 
-/// Talks to one herdr session: requests over `remote-api-bridge`, one events stream, paced snapshots.
+/// Talks to one herdr session: requests over `remote-api-bridge`, one events stream, paced snapshots. `herdr`
+/// is found on `PATH`, which has its usual install folders (`ProcessExec`).
 public actor HerdrClient {
     nonisolated let session: String
-    nonisolated let herdr: String
     nonisolated let exec: any Exec
     nonisolated let timeout: Duration
 
     private var out: AsyncStream<Update>.Continuation?
     /// No good snapshot since the start or the last failure.
     private var stale = true
+    private var lastRead = ContinuousClock.now
     private var reading = false
     private var readAgain = false
-    private var keepalive: Task<Void, Never>?
+    private var heartbeat: Task<Void, Never>?
     private var events: Task<Void, Never>?
     /// Agent panes of the open events stream; nil when no stream is open.
     private var subscribed: [String]?
 
-    /// `herdr` is the path from `locate(exec:)`; `timeout` bounds each request.
-    public init(herdr: String, session: String, exec: any Exec, timeout: Duration = .seconds(10)) {
-        self.herdr = herdr
+    /// `timeout` bounds each request.
+    public init(session: String, exec: any Exec, timeout: Duration = .seconds(10)) {
         self.session = session
         self.exec = exec
         self.timeout = timeout
-    }
-
-    /// Finds the herdr binary and checks that it has the API bridge.
-    public static func locate(exec: any Exec) async throws -> String {
-        let find = #"command -v herdr || for p in "$HOME/.local/bin/herdr" /opt/homebrew/bin/herdr "#
-            + #"/usr/local/bin/herdr; do [ -x "$p" ] && echo "$p" && break; done"#
-        let path = try await output(exec, ["sh", "-c", find])
-        guard !path.isEmpty else { throw HerdrError.notFound }
-        guard try await output(exec, [path, "--session", "default", "remote-api-bridge", "--check"])
-            == "herdr-api-bridge-v1"
-        else {
-            throw HerdrError.unsupported("\(path) has no remote-api-bridge; herdr \(herdrVersion) or newer needed")
-        }
-        return path
     }
 
     // MARK: Requests
@@ -90,7 +76,9 @@ public actor HerdrClient {
         channel.closeInput()
         guard let reply else {
             let (status, stderr) = await channel.exit()
-            throw HerdrError.failed("herdr exited \(status): \(stderr.trimmingCharacters(in: .whitespacesAndNewlines))")
+            // 127: no `herdr` on PATH (env and sh both say so).
+            throw status == 127 ? HerdrError.notFound
+                : HerdrError.failed("herdr exited \(status): \(stderr.trimmingCharacters(in: .whitespacesAndNewlines))")
         }
         let decoded = try decode(Reply<Result>.self, reply)
         if let error = decoded.error {
@@ -100,22 +88,9 @@ public actor HerdrClient {
         return result
     }
 
-    /// Checks that the server answers and is new enough.
-    nonisolated func ping() async throws {
-        let pong: Pong = try await call("ping")
-        // Leading digits per part, so 0.9.4-rc1 counts as 0.9.4.
-        let numbers = { (version: String) in
-            version.split(separator: ".").map { Int($0.prefix(while: \.isNumber)) ?? 0 }
-        }
-        let have = numbers(pong.version), need = numbers(herdrVersion)
-        if have.lexicographicallyPrecedes(need) {
-            throw HerdrError.unsupported("herdr \(pong.version) is too old; \(herdrVersion) or newer needed")
-        }
-    }
-
     /// Every session herdr knows on this machine, running or not.
     public nonisolated func sessions() async throws -> [Session] {
-        let list = try await Self.output(exec, [herdr, "--session", session, "session", "list", "--json"])
+        let list = try await Self.output(exec, ["herdr", "--session", session, "session", "list", "--json"])
         return try decode(SessionList.self, list).sessions
     }
 
@@ -130,9 +105,16 @@ public actor HerdrClient {
         try await (call("pane.process_info", ["pane_id": paneID]) as ProcessInfoResult).processInfo.program
     }
 
-    /// One `session.snapshot`, with every tab's split tree.
+    /// One `session.snapshot`, with every tab's split tree. Throws `.unsupported` when herdr is too old.
     public nonisolated func snapshot() async throws -> Snapshot {
         var snapshot = try await (call("session.snapshot") as SnapshotResult).snapshot
+        // Leading digits per part, so 0.9.4-rc1 counts as 0.9.4.
+        let numbers = { (version: String) in
+            version.split(separator: ".").map { Int($0.prefix(while: \.isNumber)) ?? 0 }
+        }
+        if let version = snapshot.version, numbers(version).lexicographicallyPrecedes(numbers(herdrVersion)) {
+            throw HerdrError.unsupported("herdr \(version) is too old; \(herdrVersion) or newer needed")
+        }
         for layout in snapshot.layouts {
             if let tree = SplitNode(layout) {
                 snapshot.trees[layout.tabID] = tree
@@ -152,7 +134,7 @@ public actor HerdrClient {
         let (stream, out) = AsyncStream<Update>.makeStream()
         self.out = out
         out.onTermination = { _ in Task { await self.stop() } }
-        keepalive = Task { await self.keepAlive() }
+        heartbeat = Task { await self.beat() }
         return stream
     }
 
@@ -168,11 +150,15 @@ public actor HerdrClient {
             do {
                 let snapshot = try await snapshot()
                 stale = false
+                lastRead = .now
                 out?.yield(.snapshot(snapshot))
                 let agentPanes = snapshot.agents.map(\.paneID).sorted()
                 if out != nil, agentPanes != subscribed {
                     subscribe(agentPanes)
                 }
+            } catch let HerdrError.unsupported(message) {
+                out?.yield(.error(.unsupported(message)))
+                out?.finish()
             } catch {
                 stale = true
                 out?.yield(.error(error as? HerdrError ?? .failed("\(error)")))
@@ -187,7 +173,7 @@ public actor HerdrClient {
 
     private func stop() {
         out = nil
-        keepalive?.cancel()
+        heartbeat?.cancel()
         events?.cancel()
     }
 
@@ -232,33 +218,19 @@ public actor HerdrClient {
         }
     }
 
-    /// Pings now and every 30 s, every 2 s while a read failed. The first good ping starts the reads, so a
-    /// herdr that is too old never delivers a snapshot; a stale session (stopped, then started in a terminal)
-    /// reads again once it answers.
-    private func keepAlive() async {
-        var next = ContinuousClock.now
+    /// The one health check (design T3): a snapshot read now and every 30 s, every 2 s while reads fail. It also
+    /// catches events the stream missed, and finds a stopped session again once it answers.
+    private func beat() async {
         repeat {
-            // A 2 s tick, so a read that fails mid-wait (the session stopped) is checked soon.
-            guard stale || ContinuousClock.now >= next else { continue }
-            next = .now + .seconds(30)
-            do {
-                try await ping()
-                if stale {
-                    refresh()
-                }
-            } catch let HerdrError.unsupported(message) {
-                out?.yield(.error(.unsupported(message)))
-                out?.finish()
-                return
-            } catch {
-                stale = true
-                out?.yield(.error(error as? HerdrError ?? .failed("\(error)")))
+            // A 2 s tick, so a read that fails mid-wait (the session stopped) is retried soon.
+            if stale || ContinuousClock.now - lastRead >= .seconds(30) {
+                refresh()
             }
         } while await (try? Task.sleep(for: .seconds(2))) != nil
     }
 
     private nonisolated var bridge: [String] {
-        [herdr, "--session", session, "remote-api-bridge"]
+        ["herdr", "--session", session, "remote-api-bridge"]
     }
 
     /// A command's whole stdout, trimmed.
@@ -291,10 +263,6 @@ struct ReplyError: Decodable {
 
 private struct EventLine: Decodable {
     let error: ReplyError?
-}
-
-private struct Pong: Decodable {
-    let version: String
 }
 
 private struct SessionList: Decodable {

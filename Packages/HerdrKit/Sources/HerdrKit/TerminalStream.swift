@@ -154,7 +154,7 @@ public extension HerdrClient {
         observe: Bool = false,
         takeover: Bool = false,
     ) async throws -> TerminalStream {
-        var argv = [herdr, "--session", session, "terminal", "session", observe ? "observe" : "control",
+        var argv = ["herdr", "--session", session, "terminal", "session", observe ? "observe" : "control",
                     terminalID, "--cols", "\(cols)", "--rows", "\(rows)"]
         if observe {
             // observe ignores stdin's end, so a wrapper ends it then (design T6).

@@ -2,6 +2,8 @@
 // unknown enum values fall back, so a newer herdr does not break decoding.
 
 public struct Snapshot: Decodable, Sendable {
+    /// herdr's version: the snapshot read is also the version check.
+    let version: String?
     public let focusedWorkspaceID: String?
     public let workspaces: [Workspace]
     public let tabs: [Tab]
@@ -17,7 +19,7 @@ public struct Snapshot: Decodable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case focusedWorkspaceID = "focused_workspace_id"
-        case workspaces, tabs, panes, agents, layouts
+        case version, workspaces, tabs, panes, agents, layouts
     }
 }
 

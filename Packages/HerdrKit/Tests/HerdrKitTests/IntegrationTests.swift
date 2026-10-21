@@ -24,7 +24,7 @@ private func withSession(_ exec: any Exec, _ body: (HerdrClient) async throws ->
     let session = "oriel-e2e-\(UUID().uuidString.prefix(6).lowercased())"
     try #require(shell(script, "up", session) == 0)
     defer { shell(script, "down", session) }
-    try await body(HerdrClient(herdr: HerdrClient.locate(exec: exec), session: session, exec: exec))
+    try await body(HerdrClient(session: session, exec: exec))
 }
 
 /// Counts `events.subscribe` requests, so a test can tell a read caused by an event from one after
@@ -61,7 +61,6 @@ func `talks to a throwaway herdr session`() async throws {
 }
 
 private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws {
-    try await client.ping()
     #expect(try await client.sessions().contains { $0.name == client.session && $0.running })
     let _: Created = try await client.call("workspace.create", ["cwd": "/tmp", "focus": false])
 
@@ -219,8 +218,7 @@ func `a started server shares the CLI's paths`() async throws {
         try? FileManager.default.removeItem(atPath: config)
         try? FileManager.default.removeItem(at: URL.libraryDirectory.appending(path: "Logs/Oriel/\(session).log"))
     }
-    let exec = await Moved(base: ProcessExec(), config: config)
-    let client = try await HerdrClient(herdr: HerdrClient.locate(exec: exec), session: session, exec: exec)
+    let client = await HerdrClient(session: session, exec: Moved(base: ProcessExec(), config: config))
     try await client.startServer()
     #expect(FileManager.default.fileExists(atPath: "\(config)/herdr/sessions/\(session)"))
 }
