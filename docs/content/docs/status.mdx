@@ -46,9 +46,9 @@ The app makes notifications itself, from snapshot changes:
 
 - The same notifications, while the app is open or within its ~30 s
   background time.
-- Push notifications need an always-on relay that holds Apple's push key
-  (Heeler's design: a herdr hook on each machine posts to a small relay).
-  They come later.
+- No push in v1: the iPhone shows status while the app is open. Alerts while
+  the app is closed need a small relay that forwards encrypted payloads to
+  Apple's push service ([Future work](/docs/future-work)).
 
 ## Floating pills: how they work (macOS)
 
