@@ -404,7 +404,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
         <li>Replies go to the agent's input. A reply never answers an open prompt by accident.</li>
         <li>Answer buttons send a key only if the agent is still blocked and the prompt is unchanged.</li>
         <li>Other agents and every terminal pane get a "screen text" chat, so any agent or terminal pane can switch. Web and plugin panes have no chat view.</li>
-        <li>Paste an image (⌘V) into an agent or terminal card: the app uploads it to a temporary file on the pane's machine with <code>run</code>, then pastes its quoted path (into the draft in chat).</li>
+        <li>Paste an image (⌘V) into an agent or terminal card: the app uploads it to a temporary file on the pane's machine with <code>run</code>, then pastes its path (into the draft in chat).</li>
       </ul>
     </div>
   </div>
@@ -556,8 +556,8 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <details><summary>Add a machine, theme and accessibility</summary>
     <ul>
       <li><b>Add a machine:</b> the app saves the SSH target in its own list, on the Mac and on iOS. On the Mac, herdr's machines (<code>herdr machine list</code>) are imported on first launch, and the add sheet lists those not added yet. iOS shows the public key to copy into <code>authorized_keys</code>. herdr on the Mac is needed only for This Mac's sessions.</li>
-      <li><b>Theme:</b> dark only, frosted. The window is one behind-window blur under a dark tint; pane cards are translucent with a hairline border; the sidebar sits flat on the window; Liquid Glass only on the tab marker and the session list. Terminals use a dark palette; web pages are told <code>prefers-color-scheme: dark</code>. iOS uses the same look. Status colors: <span style="color:#8fd3ff">◔ working</span> blue, <span style="color:var(--amber)">▲ needs you</span> amber, <span style="color:var(--green)">✓ finished</span> green.</li>
-      <li><b>Accessibility:</b> status is always a glyph plus a word, never color alone. Terminal cards expose their screen text to VoiceOver (from <code>pane.read visible</code>, on demand) and announce new output politely. Keyboard focus moves sidebar → tab bar → cards (left to right, top to bottom). Every card action is reachable from the keyboard (⌘K). Every swipe has a keyboard path, a menu path and a button. The chrome supports Dynamic Type on iOS, and the terminal font size follows the app's text size setting. Reduce Motion turns off the morph, page animations and the pill's slide.</li>
+      <li><b>Theme:</b> dark only, frosted. The window is one behind-window blur under a dark tint; pane cards are translucent with a hairline border; the sidebar sits flat on the window; Liquid Glass only on the tab marker, popovers and the palette. Terminals use a dark palette; web pages are told <code>prefers-color-scheme: dark</code>. iOS uses the same look. Status colors: <span style="color:#8fd3ff">◔ working</span> blue, <span style="color:var(--amber)">▲ needs you</span> amber, <span style="color:var(--green)">✓ finished</span> green.</li>
+      <li><b>Accessibility:</b> status is always a glyph plus a word, never color alone. Terminal cards expose their screen text to VoiceOver (from <code>pane.read visible</code>, on demand) and announce new output politely. Keyboard focus moves sidebar → tab bar → cards (left to right, top to bottom). Every card action is reachable from the keyboard (⌘K). Every swipe has a keyboard path, a menu path and a button. The chrome supports Dynamic Type on iOS, and the terminal font size follows the app's text size setting. Reduce Motion turns off page animations (the strip jumps to a clicked tab) and the pill's slide.</li>
     </ul>
     <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/add-a-machine">Add a machine</a> · <a href="https://oriel-docs.vercel.app/docs/ui/theme-and-accessibility">Theme and accessibility</a></p>
   </details>
@@ -704,7 +704,7 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
     <div class="card"><h4>macOS</h4><p>The app's own machine list, as on iOS. When herdr is installed on this Mac, its <code>herdr machine list</code> entries are imported on first launch, and the add sheet lists the ones not added yet. herdr on the Mac is needed only for This Mac's sessions (<code>herdr session list</code>). One ControlMaster per host, started on purpose, so there is one prompt per host. Agent and X11 forwarding are off; <code>dial</code> adds port forwards when needed. A bundled askpass script shows password prompts.</p></div>
     <div class="card"><h4>iOS</h4><p>Machines in <code>UserDefaults</code>. A Secure Enclave key that cannot leave the phone. Host keys pinned on first use. The Mac is reached like any machine through Remote Login, over LAN or Tailscale.</p></div>
   </div>
-  <p>A <b>machine</b> is one herdr session, so it is one entry in the machine list. Two sessions on one host share one SSH connection (ControlMaster), its channel budget, and the plugin state cleanup per (host, session). A non-default local session is named "This Mac · ‹session›".</p>
+  <p>A <b>machine</b> is one herdr session, so it is one entry in the machine list. Two sessions on one host share one SSH connection (ControlMaster), its channel budget, and nothing else: each session has its own events, streams and plugin state cleanup. A non-default local session is named "This Mac · ‹session›".</p>
 <pre><code>ssh -M -N -f -o ControlPersist=10m -o ServerAliveInterval=20 -o ForwardAgent=no -o ForwardX11=no \
     -o ClearAllForwardings=yes -S ~/Library/Caches/oriel/&lt;h8&gt; devbox          # start once
 ssh -S ~/Library/Caches/oriel/&lt;h8&gt; -O check devbox                            # wait for it
@@ -816,7 +816,7 @@ oriel:markdown#q2m0zd docs/DESIGN.md
 oriel:kanban/board#7tt1qe              ← a plugin with several pane kinds
 web:http://localhost:3000/dashboard</code></pre>
     <ul>
-      <li>Every plugin pane is a real herdr pane running an inert placeholder command that prints the title, the marker, the argument and the state path. The app creates it in one call: <code>layout.apply</code> with a pane node <code>{label, cwd, command:[argv]}</code> in a temporary tab; then <code>pane.move</code> puts it in place, and the temporary tab closes itself. The app never types into a shell. It never passes <code>tab_id</code> to <code>layout.apply</code>: that replaces the whole tab and kills its panes.</li>
+      <li>Every plugin pane is a real herdr pane running an inert placeholder command that prints the title, the argument and "shown by Oriel". The app creates it in one call: <code>layout.apply</code> with a pane node <code>{label, cwd, command:[argv]}</code> in a temporary tab; then <code>pane.move</code> puts it in place, and the temporary tab closes itself. The app never types into a shell. It never passes <code>tab_id</code> to <code>layout.apply</code>: that replaces the whole tab and kills its panes.</li>
       <li>After a herdr cold restart the pane comes back as a shell with its label. The card still works from the label. The upstream ask (herdr discussion #1367) is an opt-in restore of such panes.</li>
       <li>The instance id lives in the label, because <code>pane_id</code> changes on a move and <code>terminal_id</code> on a herdr restart. Cards are keyed by (machine, plugin, iid), so they survive both.</li>
       <li>Bigger state lives in <code>$HOME/.local/state/oriel/&lt;session&gt;/&lt;plugin-id&gt;/&lt;iid&gt;.json</code> (<code>&lt;session&gt;</code> = the herdr session name) on the pane's machine (a fixed path, so every device finds the same file), written atomically. A <code>oriel_rev</code> metadata token tells other devices to re-read it. Orphan files are cleaned once a day.</li>
@@ -832,11 +832,11 @@ web:http://localhost:3000/dashboard</code></pre>
   </details>
   <details id="plugin-security" open><summary>Security</summary>
     <ul>
-      <li><b>One web view per card, bound to its pane's machine.</b> <code>run</code> and <code>dial</code> go only there. A content rule and a Content Security Policy keep the page to its own files and scripts. Plugin code runs only while its card is on screen.</li>
+      <li><b>One web view per card, bound to its pane's machine.</b> <code>run</code> and <code>dial</code> go only there. A content rule and a Content Security Policy keep the page to its own files and scripts. Plugin code runs only while its card is alive; off screen, its calls pause.</li>
       <li><b>Honest about <code>run</code>:</b> a plugin with it can do anything you can do on that machine, including network tools and programs that keep running. The consent sheet says so.</li>
       <li><code>open(url)</code> (after a confirm sheet) and the clipboard work only while the app is dispatching your click or key press to that card. This is enforced in Swift.</li>
       <li><b>One permission, <code>run</code>.</b> Finer rules ("only git") would not hold, so none are offered.</li>
-      <li><b>Consent at install</b>, keyed by plugin id and source, in plain words: the plugin can run any command as you on the machine of every one of its panes (including ones others created), use the network from there and leave programs running; on This Mac that includes your files, SSH keys and connections to other machines. Again on a new permission. One more confirm on a plugin's first <code>run</code> on This Mac, also keyed by id and source. The sheet is headed by the plugin id and source URL, not only the plugin's own title.</li>
+      <li><b>Consent at install</b>, keyed by plugin id and source, in plain words: the plugin can run any command as you on the machine of every one of its panes (including ones others created), use the network from there and leave programs running; on This Mac that includes your files, SSH keys and connections to other machines. Again on a new permission. One more confirm on a plugin's first <code>run</code> or <code>dial</code> on This Mac, also keyed by id and source. The sheet is headed by the plugin id and source URL, not only the plugin's own title.</li>
       <li>Core plugin ids are reserved. An id resolves core first, then a linked folder, then an installed plugin.</li>
       <li>A machine can write labels, so it can open any installed plugin on itself, which gives it only what the plugin does on that machine.</li>
       <li>iOS v1 ships the core plugins (terminal, agent, web, Git history, Diff, Markdown). Installing your own plugins on iOS comes later.</li>
@@ -944,7 +944,7 @@ web:http://localhost:3000/dashboard</code></pre>
   <details><summary>Tab bar, glass, signing, dependencies, tests</summary>
     <ul>
       <li>Tab bar: a row in the hidden title bar's line, holding a <code>ScrollView</code> of capsules. The marker is one <code>glassEffect</code> capsule that follows the strip's scroll offset; lit tabs come from the same number. gorex is the reference for how the tabs behave (sizes, overflow, status slot, window title), not for glass or SwiftUI: it draws with its own Metal renderer.</li>
-      <li>Frosted window: one behind-window <code>NSVisualEffectView</code> under a dark tint. Pane cards are translucent with a hairline border. Liquid Glass on the tab marker and the session list. Pills are opaque.</li>
+      <li>Frosted window: one behind-window <code>NSVisualEffectView</code> under a dark tint. Pane cards are translucent with a hairline border. Liquid Glass only on the tab marker, popovers and the palette. Pills are opaque.</li>
       <li>macOS: Sandbox off, Hardened Runtime on, notarized Developer ID download. iOS: App Store.</li>
     </ul>
     <table><tr><th>Need</th><th>Choice</th></tr>
@@ -1001,8 +1001,8 @@ web:http://localhost:3000/dashboard</code></pre>
   <p class="lead">Prove the risky parts first, then build outward from this Mac.</p>
   <div class="timeline">
     <div class="st"><b>0 · Spikes</b>left after v0: S3 ssh · S4 Codex · S5 pill · S6 plugin web views · S7 iOS transport: Citadel exec channels with streaming stdin, a long-lived channel, channel close, <code>direct-tcpip</code></div>
-    <div class="st"><b>1 · This Mac</b>v0 built: Exec, call(), events, snapshot, sidebar, strip, splits, terminal streams, actions, palette. Next: divider drag, drag and drop, agents and status in the sidebar</div>
-    <div class="st"><b>2 · Remote machines</b>the app's machine list and herdr import, ControlMaster, askpass, machine pages, status area, notifications</div>
+    <div class="st"><b>1 · This Mac</b>v0 built: Exec, call(), events, snapshot, sidebar, strip, splits, terminal streams, actions, palette. Next: divider drag, drag and drop, renames and reorders, agent rows and the status area in the sidebar, "seen"</div>
+    <div class="st"><b>2 · Remote machines</b>the app's machine list and herdr import, ControlMaster, askpass, machine pages, notifications</div>
     <div class="st"><b>2b · Thin iOS slice</b>connect, snapshot, one terminal stream</div>
     <div class="st"><b>3 · Pane kinds and chat</b>registry and picker, placeholders with <code>layout.apply</code>, web page with <code>run</code> and <code>dial</code>, the Open :port chip, transcript and screen-text chat, image paste</div>
     <div class="st"><b>4 · Plugin system</b>web view host and bridge, Git history, Diff, Markdown, install and dev mode</div>
@@ -1022,7 +1022,7 @@ herdr --session S remote-api-bridge [--check]
 herdr --session S terminal session control|observe &lt;terminal_id&gt; --cols C --rows R [--takeover]
 herdr session list --json                              (macOS)
 herdr machine list --json                              (macOS; imported)
-herdr --session S server                               (remote machines only: nohup, on request)
+herdr --session S server                               (remote: nohup, on request; This Mac: a launchd job, D47)
 
 never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom · herdr popups · herdr plugin panes (plugin.pane.open) · herdr's private client socket</code></pre>
   </details>
@@ -1118,7 +1118,7 @@ epoch 13/40  loss <span class="g">0.398</span>  acc 0.876
 <span class="d">█████████████░░░░░░░░ 33%</span>`
 };
 const pane=(kind,title,body,opts={})=>({kind,title,body,...opts});
-// a pasted image: uploaded to the pane's machine, its quoted path pasted into the draft
+// a pasted image: uploaded to the pane's machine, its path pasted into the draft
 const PICHAT=`<div class="chat"><div class="msg u"><div class="who">you</div><span class="txt">write the API guide</span></div><div class="tool">▸ Read  src/routes/*.ts   ·   ▸ Write  docs/api.md</div><div class="msg"><div class="who">pi</div>Wrote <code style="background:#2a2a33">docs/api.md</code> (214 lines). It covers auth, pagination and errors.</div><div class="msg"><div class="who">pi</div>✓ Done.</div><div class="composer"><code>'/tmp/tmp.k3f9/paste.png'</code> the table overflows on mobile, fix it▌</div></div>`;
 const SVG={
   side:`<svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x=".7" y=".7" width="14.6" height="12.6" rx="2.5"/><path d="M5.5 1v12"/></svg>`,
