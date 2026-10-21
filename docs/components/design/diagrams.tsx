@@ -51,7 +51,7 @@ export function Architecture({ caption }: { caption?: ReactNode }) {
       <div className="arch">
         <div className="layer app">
           <h5>App · SwiftUI · macOS + iOS</h5>
-          <Chips items={[<>HostStore × machines <small>call(), the event stream, terminal streams</small></>]} />
+          <Chips items={[<>HostStore × machines <small>call(), the event stream, terminal streams</small></>, 'Multiplexer: Herdr']} />
         </div>
         <div className="down">
           ↓ <code>Exec.run(argv)</code> → stdin / stdout · <code>Exec.dial(host, port)</code> → a TCP stream
@@ -59,7 +59,7 @@ export function Architecture({ caption }: { caption?: ReactNode }) {
         <div className="twocol">
           <div className="layer app">
             <h5>macOS · ProcessExec(prefix)</h5>
-            <Chips items={[<>this Mac: <code>[]</code></>, <>remote: <code>[ssh -F /dev/null … -S ctl target --]</code></>]} />
+            <Chips items={[<>this Mac: <code>[]</code></>, <>remote: <code>[ssh -F /dev/null … -S ctl target --]</code></>, <>dial: <code>ssh -O forward -L</code> / <code>ssh -W</code></>]} />
           </div>
           <div className="layer app">
             <h5>iOS · CitadelExec</h5>
@@ -74,7 +74,7 @@ export function Architecture({ caption }: { caption?: ReactNode }) {
               <><code>herdr remote-api-bridge</code> → herdr.sock (JSON, 1 request each)</>,
               <><code>herdr terminal session control</code> → live frames for one pane</>,
               <><code>tail -c +N -F</code> → chat view</>,
-              <><code>git</code>, <code>cat</code>, … (plugin exec) → plugin data</>,
+              <><code>git</code>, <code>cat</code>, … (plugin run) → plugin data</>,
             ]}
           />
         </div>
