@@ -281,7 +281,7 @@ final class HostStore {
     }
 }
 
-/// Writes: each is one multiplexer action, then a snapshot read (design: writes are herdr calls).
+/// Writes: each is one multiplexer action, then a snapshot read.
 extension HostStore {
     /// A split restores a zoomed layout first, as tmux does: the new pane shows.
     func split(_ paneID: String, _ direction: SplitNode.Direction) async {
@@ -289,7 +289,7 @@ extension HostStore {
         await write { try await $0.split(paneID, direction) }
     }
 
-    /// A new tab in the selected workspace, in the keyboard card's directory.
+    /// A new tab in the selected workspace, in the keyboard card's directory; the snapshot after it selects it.
     func newTab() async {
         guard let workspace = selectedWorkspace else { return }
         var cwd = keyboardPane?.cwd
@@ -297,13 +297,14 @@ extension HostStore {
         if let pane = keyboardPane, let fresh = try? await client?.pane(pane.id).cwd {
             cwd = fresh
         }
-        await write { [self] in
+        await write {
             arriving = try await $0.newTab(workspace: workspace.id, cwd: cwd ?? NSHomeDirectory()) ?? arriving
         }
     }
 
+    /// The snapshot after it selects the new workspace (`arriving`).
     func newWorkspace() async {
-        await write { [self] in arriving = try await $0.newWorkspace(cwd: NSHomeDirectory()) ?? arriving }
+        await write { arriving = try await $0.newWorkspace(cwd: NSHomeDirectory()) ?? arriving }
     }
 
     /// Closes a pane that runs only its shell; asks first when anything else runs (design D41).
@@ -341,7 +342,7 @@ extension HostStore {
         #endif
     }
 
-    /// One write. No focus change; the snapshot after it draws the result, and selects a tab it made (`arriving`).
+    /// One write. No focus change; the snapshot after it draws the result.
     private func write(_ action: (any Multiplexer) async throws -> Void) async {
         guard let client else { return }
         guard !writing else {
