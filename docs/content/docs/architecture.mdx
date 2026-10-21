@@ -9,7 +9,7 @@ description: "The pieces of the app and how they reach each machine"
 
 | Piece | Platform | Job |
 |---|---|---|
-| `HerdrKit` (Swift package) | both | `Exec`, `call()`, the event stream, snapshot decoding, the split-tree rebuild, the label parser, transcript parsers, the remote command envelope |
+| `HerdrKit` (Swift package) | both | `Exec`, the `Multiplexer` interface and its herdr implementation: `call()`, the event stream, snapshot decoding, the split-tree rebuild, the label parser, transcript parsers, the remote command envelope |
 | `ProcessExec` | macOS | `Process` with pipes; an argv prefix makes it local or remote |
 | `CitadelExec` | iOS | the Citadel SSH client, exec channels, a Secure Enclave key |
 | `HostStore` | both | the app's live model of one machine: snapshot, events, streams, seen state |
@@ -18,5 +18,26 @@ description: "The pieces of the app and how they reach each machine"
 | `PluginHost` | both | one JavaScriptCore VM per plugin card; the bridge to the kit and the API |
 | Views | both | sidebar, tab bar, strip, cards, floating layer, chat, status, pills, sheets |
 
-`Exec` is the only protocol, with one implementation per platform. `HerdrKit`
-is a separate package, so its single test target runs with `swift test`.
+`Exec` and `Multiplexer` are the only protocols. `HerdrKit` is a separate
+package, so its single test target runs with `swift test`.
+
+## The Multiplexer interface
+
+A terminal multiplexer is a program that keeps terminals alive in panes,
+tabs and workspaces, such as herdr or tmux. `Multiplexer` is the Swift
+protocol that every multiplexer implements (D49). herdr is the first and only
+implementation. Rex ([superlogical.com](https://www.superlogical.com)) and tmux
+are candidates ([Future work](/docs/future-work)). The views use only this
+interface and the app's own model types, never herdr's JSON or argv.
+
+| Part | What it gives the app | herdr implementation |
+|---|---|---|
+| Machine connection | one session on one machine, through that machine's `Exec` (`run` and `dial`) | [Finding herdr](/docs/talking-to-herdr#finding-herdr-on-a-machine), `ping`, [Checks on connect](/docs/machines#checks-on-connect) |
+| Snapshot | every workspace, tab, pane, label and split tree, in the app's model types | `session.snapshot`, [Reconcile](/docs/talking-to-herdr#reconcile), [Layout](/docs/layout) |
+| Events | "the state changed, read the snapshot again" | `events.subscribe`, [Events](/docs/talking-to-herdr#events) |
+| Terminal streams | one pane's screen as ANSI frames; keys, resize, scroll and mouse back; control or watch | `terminal session control/observe`, [Terminal plane](/docs/talking-to-herdr#terminal-plane) |
+| Actions | create, split, move, swap, close, rename, resize; start, prompt and send keys to an agent; read a pane's text | [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls), [Chat view](/docs/chat-view) |
+| Agent status | per agent pane: working, needs you, idle, and a finish counter | `agent_status`, `completion_seq`, [Status](/docs/status) |
+
+Simpler choice: the interface has the shape of herdr's features. A second
+implementation reshapes it where that multiplexer differs.
