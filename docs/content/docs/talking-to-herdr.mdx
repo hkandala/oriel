@@ -61,25 +61,27 @@ the work. A later server helper would sit behind the same two calls
   close kills its own pid (SIGKILL). The app signals a child only by its pid,
   never by process group.
 
-## Finding herdr on a machine
+## herdr on each machine
 
 - herdr installs to `~/.local/bin`, which non-interactive SSH commands often
-  lack. On first connect the app finds the path once:
-  ```sh
-  sh -c 'command -v herdr || for p in "$HOME/.local/bin/herdr" \
-      /opt/homebrew/bin/herdr /usr/local/bin/herdr; do
-    [ -x "$p" ] && echo "$p" && break; done'
-  ```
-- `<herdr> remote-api-bridge --check` must print `herdr-api-bridge-v1`.
-- `ping` returns the version and protocol. Below 0.9.3 the app refuses with a
-  message. Above protocol 22 it shows a banner and keeps going. Decoding is
-  lenient.
+  lack. So every command runs with herdr's usual install folders in front of
+  `PATH`: `$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin`, set inside the
+  envelope on a remote machine and in the child environment on This Mac. The
+  argv says plain `herdr`; there is no lookup step.
+- A missing herdr fails the first call (exit 127), and the app shows the
+  install command. herdr older than 0.9.3 has no `remote-api-bridge`, so the
+  first call fails too, and the app says "herdr 0.9.3 or newer is needed".
+- The version comes from `session.snapshot`. Decoding is lenient, so a newer
+  protocol needs nothing.
+- Commands start in the machine's home folder (sshd starts them there; on
+  This Mac the app sets the child's working folder), so the app passes paths
+  relative to it and never reads `$HOME`.
 - Every herdr argv carries `--session <name>` (also `--session default`), so
   no inherited variable can point a command at another session.
 
 ## Requests
 
-- `call(method, params)`: run `<herdr> --session S remote-api-bridge`, write
+- `call(method, params)`: run `herdr --session S remote-api-bridge`, write
   one line `{"id":"1","method":"…","params":{…}}`, read one reply line, then
   close stdin. herdr answers one request per connection.
 - **Timeout:** every `call()` times out after 10 s. On a timeout the app kills

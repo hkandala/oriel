@@ -7,10 +7,10 @@ description: "Every herdr call and command the app uses, and the ones it never u
 
 | Call | Used for | Page |
 |---|---|---|
-| `ping` | version check | [Checks on connect](/docs/machines#checks-on-connect) |
-| `session.snapshot` | all state, read after events; the health check every 30 s | [Reconcile](/docs/talking-to-herdr#reconcile) |
+| `ping` | waiting for a server the app started | [Checks on connect](/docs/machines#checks-on-connect) |
+| `session.snapshot` | all state and herdr's version, read after events; the health check every 30 s | [Reconcile](/docs/talking-to-herdr#reconcile) |
 | `events.subscribe` (long-lived) | "read the snapshot again" | [Events](/docs/talking-to-herdr#events) |
-| `integration.list` | the agent picker | [Agent](/docs/plugins/terminal-and-agent#agent) |
+| `integration.list` | the agent picker, when it opens | [Agent](/docs/plugins/terminal-and-agent#agent) |
 | `workspace.create` \| `close` \| `rename` \| `move` | sidebar actions | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `tab.create` \| `close` \| `rename` \| `move` | tab bar actions | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.split` \| `close` \| `swap` \| `move` \| `resize` | split, close, drag, placing a new web or plugin pane | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
@@ -27,7 +27,7 @@ description: "Every herdr call and command the app uses, and the ones it never u
 ## Commands
 
 ```sh
-herdr --session S remote-api-bridge [--check]
+herdr --session S remote-api-bridge
 herdr --session S terminal session control|observe <terminal_id> \
     --cols C --rows R [--takeover]
 herdr session list --json                           # macOS

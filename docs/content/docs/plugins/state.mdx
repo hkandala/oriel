@@ -36,9 +36,9 @@ $HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json
 
 `<session>` is the herdr session name.
 It is a fixed path (not `XDG_STATE_HOME`), because the Mac and the iPhone
-reach the machine through different shells and must agree on one file. The app reads
-the machine's `$HOME` once on connect (`printf %s "$HOME"`) and always passes
-absolute paths.
+reach the machine through different shells and must agree on one file. The app passes
+it relative to the home folder, where every command starts
+([herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine)).
 - On the pane's machine: next to the data, shared by Mac and iPhone, kept
   across app reinstalls, no sync service.
 - Read with one `cat` when the card is built (a missing file means the

@@ -131,10 +131,10 @@ One loop per machine checks that it answers.
 
 ## Checks on connect
 
-1. Find the herdr path and run `remote-api-bridge --check`
-   ([Finding herdr on a machine](/docs/talking-to-herdr#finding-herdr-on-a-machine)).
-   If herdr is missing, show the install command.
-2. `ping`. If the server is not running:
+1. `session.snapshot`. Its errors say what is wrong: herdr missing (the
+   install command), herdr too old, or the server not running
+   ([herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine)). If
+   the server is not running:
    - **This Mac:** a **Start** button, next to the command to run in a
      terminal. The app starts the server as a one-shot launchd job (D47), so
      launchd, not the app, is its parent and "responsible process": macOS
@@ -142,12 +142,14 @@ One loop per machine checks that it answers.
      group, and it outlives the app. Picking a stopped session or making a new
      one starts it the same way; a new server gets one workspace in `$HOME`.
    - **A remote machine:** a **Start herdr** button runs
-     `sh -c 'nohup <herdr> --session S server </dev/null >/dev/null 2>&1 &'`
+     `sh -c 'nohup herdr --session S server </dev/null >/dev/null 2>&1 &'`
      over SSH and polls `ping` for up to 5 s.
-3. Check the version from the `ping` reply.
-4. `integration.list` once, for the agent picker
-   ([Agent](/docs/plugins/terminal-and-agent#agent)).
-5. `session.snapshot`, then open the event stream.
+2. Open the event stream. Its `subscription_started` reply counts as an
+   event, so the app reads the snapshot once more and misses nothing between
+   the two steps.
+
+The agent picker reads `integration.list` when it opens
+([Agent](/docs/plugins/terminal-and-agent#agent)).
 
 What it looks like: [Add a machine](/docs/ui/add-a-machine),
 [States](/docs/ui/states).

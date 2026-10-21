@@ -37,8 +37,8 @@ One rule decides where each new thing goes (D57):
 | Zoomed card, chat or terminal per pane, seen values, drafts | app, per device | memory |
 | ControlMaster sockets, port forwards | app | `~/Library/Caches/oriel/` (macOS), while running |
 
-`<session>` is the herdr session name. `$HOME` is the machine's home folder,
-read once on connect.
+`<session>` is the herdr session name. `$HOME` is the machine's home folder;
+commands start there, so paths are relative to it.
 
 <Callout title="Nothing the app saves describes herdr's state">
 The only exception is the window restore ids. A restore id that is gone falls

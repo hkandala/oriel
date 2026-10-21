@@ -31,7 +31,7 @@ interface and the app's own model types, never herdr's JSON or argv.
 
 | Part | What it gives the app | herdr implementation |
 |---|---|---|
-| Machine connection | one session on one machine, through that machine's `Exec` (`run` and `dial`) | [Finding herdr](/docs/talking-to-herdr#finding-herdr-on-a-machine), [Checks on connect](/docs/machines#checks-on-connect), [Health check](/docs/machines#health-check) |
+| Machine connection | one session on one machine, through that machine's `Exec` (`run` and `dial`) | [herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine), [Checks on connect](/docs/machines#checks-on-connect), [Health check](/docs/machines#health-check) |
 | Snapshot | every workspace, tab, pane, label and split tree, in the app's model types | `session.snapshot`, [Reconcile](/docs/talking-to-herdr#reconcile), [Layout](/docs/layout) |
 | Events | "the state changed, read the snapshot again" | `events.subscribe`, [Events](/docs/talking-to-herdr#events) |
 | Terminal streams | one pane's screen as ANSI frames; keys, resize, scroll and mouse back; control or watch | `terminal session control/observe`, [Terminal plane](/docs/talking-to-herdr#terminal-plane) |

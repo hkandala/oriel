@@ -15,7 +15,8 @@ The chat|term switch shows the screen text instead
 A pane where herdr detected an agent (`pane.agent` is set, for example
 `claude`, `codex`, `pi`).
 - **Picker:** the `integration.list` entries with `available: true` (the
-  command is on the herdr server's `PATH`), read once on connect. The kind is
+  command is on the herdr server's `PATH`), read each time the picker opens,
+  so a newly installed agent shows at once. The kind is
   the entry's `label`. Simpler choice: agents without a herdr integration are
   not listed. Start them from a terminal, and herdr still detects them.
   Revisit when users ask for agents that herdr has no integration for.
