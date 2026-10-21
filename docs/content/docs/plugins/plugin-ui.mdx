@@ -25,8 +25,9 @@ pane's machine, plus a few app calls ([Plugin API](/docs/plugins/api)) (D53).
   match the cards around them. Pages are told `prefers-color-scheme: dark`.
 - Any JavaScript works: plain DOM, React, Svelte or anything else, bundled by
   the author. The app runs no build step.
-- WebKit is built into macOS and iOS, so the same plugin runs on both from
-  day one.
+- WebKit is built into macOS and iOS, so the same plugin runs on both. In v1
+  the core plugins run on iOS; your own plugins on iOS are
+  [Future work](/docs/future-work).
 - A web view costs about 50 MB empty and 120–200 MB in use. The app keeps at
   most 6 live web views on Mac and iPad (2 on iPhone), web pages and plugin
   cards together, least recently used first out. An evicted card keeps an

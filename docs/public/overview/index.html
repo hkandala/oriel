@@ -369,7 +369,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
     </div>
     <div>
       <div class="card"><h4>Web page</h4><p>Any address, next to your terminals. A remote <code>localhost:3000</code> opens as <code>localhost:3000</code> on your device, through the SSH connection. When a terminal prints a local address, its card shows an <b>Open :3000</b> chip.</p></div>
-      <div class="card" style="margin-top:10px"><h4>Your own plugins</h4><p>A small web page (HTML and JavaScript) in a native web view, with a bridge to <code>oriel.run(argv)</code> and <code>oriel.dial(host, port)</code> on the pane's machine. It runs on iOS too. Install from a git URL or link a folder for live reload.</p></div>
+      <div class="card" style="margin-top:10px"><h4>Your own plugins</h4><p>A small web page (HTML and JavaScript) in a native web view, with a bridge to <code>oriel.run(argv)</code> and <code>oriel.dial(host, port)</code> on the pane's machine. On iOS, v1 ships only the core plugins. Install from a git URL or link a folder for live reload.</p></div>
       <div class="card" style="margin-top:10px"><h4>Restored from herdr</h4><p>Every plugin pane is a real herdr pane with a label like <code>oriel:git-history#k3f9q2 main</code>. A fresh app on any device rebuilds it from that label.</p></div>
     </div>
   </div>
@@ -758,7 +758,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
 <!-- ═════════════ PLUGINS ═════════════ -->
 <section id="plugins">
   <h2><span class="num">12</span>Plugin system</h2>
-  <p class="lead">Every pane kind comes from one registry. A plugin is a small web page (HTML and JavaScript) drawn in a native web view in its card. A bridge gives it two calls on its pane's machine: <code>run(argv)</code> and <code>dial(host, port)</code>. It works on iOS from day one.</p>
+  <p class="lead">Every pane kind comes from one registry. A plugin is a small web page (HTML and JavaScript) drawn in a native web view in its card. A bridge gives it two calls on its pane's machine: <code>run(argv)</code> and <code>dial(host, port)</code>. The core plugins run on iOS in v1; your own plugins on iOS are future work.</p>
   <div class="flow">
     <div class="n"><b>plugin folder</b><small>HTML, CSS, JavaScript</small></div><div class="a">→</div>
     <div class="n"><b>web view per card</b><small>the plugin's own page</small></div><div class="a">→</div>
@@ -767,7 +767,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
   </div>
   <div class="grid3">
     <div class="card"><h4>Just the web</h4><p>Any HTML, CSS and JavaScript the author bundles. No component kit to learn and no build tool from us.</p></div>
-    <div class="card"><h4>Mac and iOS</h4><p>A web view works the same on both, so a plugin runs on both. Git history, Diff and Markdown are built this way.</p></div>
+    <div class="card"><h4>Mac and iOS</h4><p>A web view works the same on both. Git history, Diff and Markdown are built this way and run on both in v1; your own plugins run on the Mac, and on iOS later.</p></div>
     <div class="card"><h4>Bound to its machine</h4><p><code>run</code> and <code>dial</code> reach only the machine of the plugin's pane (see <a href="#plugin-security">Security</a>).</p></div>
   </div>
   <details open><summary>Everything is a plugin</summary>
