@@ -199,3 +199,28 @@ private func control(_ client: HerdrClient) async throws {
         #expect(await closedReason(&takerEvents) == .ended)
     })
 }
+
+/// The server the app starts gets the CLI's environment: with `XDG_CONFIG_HOME` elsewhere, both find the session
+/// there (design: XDG fix).
+@Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
+func `a started server shares the CLI's paths`() async throws {
+    struct Moved: Exec {
+        let base: ProcessExec
+        let config: String
+        func run(_ argv: [String]) async throws -> Channel {
+            try await base.run(["env", "XDG_CONFIG_HOME=\(config)"] + argv)
+        }
+    }
+    // Not the temporary directory: a socket path there is too long.
+    let config = "/tmp/oriel-xdg-\(UUID().uuidString.prefix(6))"
+    let session = "oriel-e2e-\(UUID().uuidString.prefix(6).lowercased())"
+    defer {
+        shell("launchctl", "bootout", "gui/\(getuid())/dev.hkandala.oriel.herdr.\(session)")
+        try? FileManager.default.removeItem(atPath: config)
+        try? FileManager.default.removeItem(at: URL.libraryDirectory.appending(path: "Logs/Oriel/\(session).log"))
+    }
+    let exec = await Moved(base: ProcessExec(), config: config)
+    let client = try await HerdrClient(herdr: HerdrClient.locate(exec: exec), session: session, exec: exec)
+    try await client.startServer()
+    #expect(FileManager.default.fileExists(atPath: "\(config)/herdr/sessions/\(session)"))
+}

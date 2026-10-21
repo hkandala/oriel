@@ -13,6 +13,15 @@ import Foundation
             if await (try? ping()) != nil {
                 return
             }
+            // The environment the CLI sees, so the server and the CLI agree on paths (XDG_CONFIG_HOME moves
+            // herdr's sessions).
+            var environment: [String: String] = [:]
+            for line in try await Self.output(exec, ["env"]).split(separator: "\n") {
+                let pair = line.split(separator: "=", maxSplits: 1).map(String.init)
+                if pair.count == 2, ["PATH", "HOME"].contains(pair[0]) || pair[0].hasPrefix("XDG_") {
+                    environment[pair[0]] = pair[1]
+                }
+            }
             let label = "dev.hkandala.oriel.herdr.\(session)"
             let domain = "gui/\(getuid())"
             let plist = FileManager.default.temporaryDirectory.appending(path: "\(label).plist")
@@ -21,7 +30,8 @@ import Foundation
             let log = logs.appending(path: "\(session).log").path
             // Interactive: launchd's default throttles the CPU and I/O of the server and every agent in it.
             let job: [String: Any] = ["Label": label, "ProgramArguments": [herdr, "--session", session, "server"],
-                                      "RunAtLoad": true, "ProcessType": "Interactive", "StandardErrorPath": log]
+                                      "EnvironmentVariables": environment, "RunAtLoad": true,
+                                      "ProcessType": "Interactive", "StandardErrorPath": log]
             try PropertyListSerialization.data(fromPropertyList: job, format: .xml, options: 0).write(to: plist)
             defer { try? FileManager.default.removeItem(at: plist) }
             // The job of a server that stopped since is still loaded, and a label loads only once.
