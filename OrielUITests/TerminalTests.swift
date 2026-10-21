@@ -2,7 +2,7 @@ import XCTest
 
 /// Live terminals (phase 4), checked through herdr: `pane.read`, `pane.get` and a second
 /// `control` stream from the helper. Session one's t1 is p1 | (p2 / p3), t2 holds p4.
-extension HerdlightUITests {
+extension OrielUITests {
     func testCardsAttachAtTheirSize() async throws {
         XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
         for pane in ["w1:p1", "w1:p2", "w1:p3"] {
@@ -133,16 +133,16 @@ extension HerdlightUITests {
         element("tab.w1:t1").click()
         // Back on t1, the keyboard is on p2 again, not on herdr's focused p1.
         XCTAssertTrue(hasKeyboard(terminal))
-        app.typeText("echo hl-$((40+3))")
+        app.typeText("echo oriel-$((40+3))")
         app.typeKey(.return, modifierFlags: [])
-        try await waitFor("w1:p2") { $0.contains("\nhl-43") }
+        try await waitFor("w1:p2") { $0.contains("\noriel-43") }
         let other = try await read("w1:p1")
-        XCTAssertFalse(other.contains("hl-43"))
+        XCTAssertFalse(other.contains("oriel-43"))
 
         // Up arrow (a herdr key) brings the command back.
         app.typeKey(.upArrow, modifierFlags: [])
         app.typeKey(.return, modifierFlags: [])
-        try await waitFor("w1:p2") { $0.components(separatedBy: "\nhl-43").count == 3 }
+        try await waitFor("w1:p2") { $0.components(separatedBy: "\noriel-43").count == 3 }
     }
 
     func testTakenOverCardOffersTakeBack() async throws {

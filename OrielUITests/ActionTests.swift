@@ -2,7 +2,7 @@ import XCTest
 
 /// Actions (phase 4b): close, zoom, new tab, workspace and session, the palette. Session one's t1 is
 /// p1 | (p2 / p3), t2 "second" holds p4; w2 is "beta".
-extension HerdlightUITests {
+extension OrielUITests {
     func testClosingAPaneAsksUnlessOnlyItsShellRuns() async throws {
         XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
         let (tab, first) = try await newTab("close")
@@ -161,9 +161,9 @@ extension HerdlightUITests {
         keepScreenshot("zoom")
         // Clicks and keys reach the zoomed terminal, not a hidden one under it.
         element("terminal.w1:p2").click()
-        app.typeText("echo hl-zoom-$((6*7))")
+        app.typeText("echo oriel-zoom-$((6*7))")
         app.typeKey(.return, modifierFlags: [])
-        try await waitFor("w1:p2") { $0.contains("\nhl-zoom-42") }
+        try await waitFor("w1:p2") { $0.contains("\noriel-zoom-42") }
         // The hidden cards keep their size.
         try await Self.call(one, "pane.send_text", ["pane_id": "w1:p3", "text": "clear; stty size\r"])
         try await waitFor("w1:p3") { $0.split(separator: "\n").contains { $0 == neighbor } }

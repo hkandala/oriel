@@ -161,14 +161,14 @@ private func control(_ client: HerdrClient) async throws {
         guard case let .frame(first)? = await events.next() else { throw HerdrError.failed("no first frame") }
         #expect(first.full && first.width == 60 && first.height == 12)
 
-        control.input("echo hl-$((6*7)); stty size\r")
+        control.input("echo oriel-$((6*7)); stty size\r")
         var text = ""
         for _ in 0 ..< 50 where !text.contains("12 60") {
             try await Task.sleep(for: .milliseconds(100))
             text = try await (client.call("pane.read", ["pane_id": pane.pane_id, "source": "visible"]) as Read)
                 .read.text
         }
-        #expect(text.contains("hl-42"))
+        #expect(text.contains("oriel-42"))
         #expect(text.contains("12 60"))
 
         control.resize(cols: 70, rows: 15, cellWidth: 8, cellHeight: 17)

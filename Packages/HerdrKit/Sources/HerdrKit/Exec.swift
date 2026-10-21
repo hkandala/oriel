@@ -40,7 +40,7 @@ public struct Channel: Sendable {
         static func loginEnvironment() async -> [String: String] {
             var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("HERDR_") }
             let home = env["HOME"] ?? NSHomeDirectory()
-            let marker = "hl-env-\(UUID().uuidString)"
+            let marker = "oriel-env-\(UUID().uuidString)"
             var found: [String: String] = [:]
             if let channel = try? spawn(
                 [env["SHELL"] ?? "/bin/zsh", "-lic", "echo \(marker); /usr/bin/env; echo \(marker)"],
@@ -188,7 +188,7 @@ public struct Channel: Sendable {
             let status = Task { await ended.first { _ in true } ?? -1 }
             let input = stdin.fileHandleForWriting
             // A full pipe blocks this queue, never the caller (keystrokes come from the main actor).
-            let writes = DispatchQueue(label: "herdlight.exec.stdin")
+            let writes = DispatchQueue(label: "oriel.exec.stdin")
             return Channel(
                 lines: lines,
                 write: { line in writes.async { try? input.write(contentsOf: Data((line + "\n").utf8)) } },

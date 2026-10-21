@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 @main
-struct HerdlightApp: App {
+struct OrielApp: App {
     #if os(macOS)
         init() {
             SwipeRouter.install()
@@ -13,7 +13,7 @@ struct HerdlightApp: App {
 
     var body: some Scene {
         #if os(macOS)
-            Window("Herdlight", id: "main") {
+            Window("Oriel", id: "main") {
                 ContentView()
             }
             .windowToolbarStyle(.unifiedCompact)
@@ -26,7 +26,7 @@ struct HerdlightApp: App {
             }
         #else
             WindowGroup {
-                ContentUnavailableView("Herdlight for iOS is coming", systemImage: "iphone")
+                ContentUnavailableView("Oriel for iOS is coming", systemImage: "iphone")
                     .preferredColorScheme(.dark)
             }
         #endif

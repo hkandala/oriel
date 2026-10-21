@@ -4,7 +4,7 @@ import XCTest
 /// reach herdr, so herdr calls go through the e2e helper on localhost (`scripts/e2e-helper.py`).
 /// xcodebuild strips the TEST_RUNNER_ prefix from the names.
 @MainActor
-final class HerdlightUITests: XCTestCase {
+final class OrielUITests: XCTestCase {
     var one = ""
     private var two = ""
     let app = XCUIApplication()
@@ -196,7 +196,7 @@ final class HerdlightUITests: XCTestCase {
 }
 
 /// Helpers shared by the test files.
-extension HerdlightUITests {
+extension OrielUITests {
     /// `stty size` in the pane prints the grid its card shows (the terminal's accessibility value).
     func expectPTYSize(_ pane: String) async throws {
         let terminal = element("terminal.\(pane)")
@@ -297,9 +297,9 @@ extension HerdlightUITests {
 
     /// Types a command where the keyboard is and waits for its output in the pane.
     func typeAndRead(_ pane: String) async throws {
-        app.typeText("echo hl-keys-$((6*7))")
+        app.typeText("echo oriel-keys-$((6*7))")
         app.typeKey(.return, modifierFlags: [])
-        try await waitFor(pane) { $0.contains("\nhl-keys-42") }
+        try await waitFor(pane) { $0.contains("\noriel-keys-42") }
     }
 
     /// The session's `terminal session` runs, any client's, as `pid argv` lines.

@@ -3,7 +3,7 @@ import XCTest
 /// Failure paths (phase 6): a session that stops, a pane closed in herdr, session switches and quit. A takeover is
 /// in TerminalTests.
 /// Streams are counted through the helper (`pgrep` on the session's `terminal session` runs).
-extension HerdlightUITests {
+extension OrielUITests {
     func testStoppedSessionSaysSoAndComesBackWhenStartedAgain() async throws {
         let five = try XCTUnwrap(ProcessInfo.processInfo.environment["HL_SESSION5"])
         let snapshot = try await Self.call(five, "session.snapshot", [:])["snapshot"] as? [String: Any]
