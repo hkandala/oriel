@@ -17,24 +17,24 @@
 			containerPortal = 073FE5EB092CEA68E7CB4244 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = FEE888DDB3673F2B4C12F88D;
-			remoteInfo = Herdlight;
+			remoteInfo = Oriel;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		21288B51504EFA0EF1A20CCE /* Herdlight.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Herdlight.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		383C6A9484A91F97C24CC84E /* HerdlightUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HerdlightUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		21288B51504EFA0EF1A20CCE /* Oriel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Oriel.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		383C6A9484A91F97C24CC84E /* OrielUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OrielUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		23C2008A358C53916101BB13 /* Herdlight */ = {
+		23C2008A358C53916101BB13 /* Oriel */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Herdlight;
+			path = Oriel;
 			sourceTree = "<group>";
 		};
-		E5E33E2A6BF50261E7A42524 /* HerdlightUITests */ = {
+		E5E33E2A6BF50261E7A42524 /* OrielUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = HerdlightUITests;
+			path = OrielUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -62,8 +62,8 @@
 		108494E918F2B6D742A8C165 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				21288B51504EFA0EF1A20CCE /* Herdlight.app */,
-				383C6A9484A91F97C24CC84E /* HerdlightUITests.xctest */,
+				21288B51504EFA0EF1A20CCE /* Oriel.app */,
+				383C6A9484A91F97C24CC84E /* OrielUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -71,8 +71,8 @@
 		298ACD03C347026649D47B2B = {
 			isa = PBXGroup;
 			children = (
-				23C2008A358C53916101BB13 /* Herdlight */,
-				E5E33E2A6BF50261E7A42524 /* HerdlightUITests */,
+				23C2008A358C53916101BB13 /* Oriel */,
+				E5E33E2A6BF50261E7A42524 /* OrielUITests */,
 				108494E918F2B6D742A8C165 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -80,9 +80,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		8B5B05292FF21054166B5E2A /* HerdlightUITests */ = {
+		8B5B05292FF21054166B5E2A /* OrielUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 60DA706F8C8D3A54A8FD93E4 /* Build configuration list for PBXNativeTarget "HerdlightUITests" */;
+			buildConfigurationList = 60DA706F8C8D3A54A8FD93E4 /* Build configuration list for PBXNativeTarget "OrielUITests" */;
 			buildPhases = (
 				3F6B3B916A75A4FE01E1F2AF /* Sources */,
 				49CEE9D72ABF7DF102154F39 /* Frameworks */,
@@ -94,18 +94,18 @@
 				D5299C6ADF561279719A42D2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				E5E33E2A6BF50261E7A42524 /* HerdlightUITests */,
+				E5E33E2A6BF50261E7A42524 /* OrielUITests */,
 			);
-			name = HerdlightUITests;
+			name = OrielUITests;
 			packageProductDependencies = (
 			);
-			productName = HerdlightUITests;
-			productReference = 383C6A9484A91F97C24CC84E /* HerdlightUITests.xctest */;
+			productName = OrielUITests;
+			productReference = 383C6A9484A91F97C24CC84E /* OrielUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		FEE888DDB3673F2B4C12F88D /* Herdlight */ = {
+		FEE888DDB3673F2B4C12F88D /* Oriel */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 14FEAC611FC3F64A2048D835 /* Build configuration list for PBXNativeTarget "Herdlight" */;
+			buildConfigurationList = 14FEAC611FC3F64A2048D835 /* Build configuration list for PBXNativeTarget "Oriel" */;
 			buildPhases = (
 				E3B156E207CC421E8FBB9009 /* Sources */,
 				1B106EE7FB92BA4A5D6FAB85 /* Frameworks */,
@@ -116,15 +116,15 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				23C2008A358C53916101BB13 /* Herdlight */,
+				23C2008A358C53916101BB13 /* Oriel */,
 			);
-			name = Herdlight;
+			name = Oriel;
 			packageProductDependencies = (
 				42A62881E820297033DC0FF9 /* HerdrKit */,
 				6F2E8B4DAC305F7192B4D6E8 /* GhosttyTerminal */,
 			);
-			productName = Herdlight;
-			productReference = 21288B51504EFA0EF1A20CCE /* Herdlight.app */;
+			productName = Oriel;
+			productReference = 21288B51504EFA0EF1A20CCE /* Oriel.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -146,7 +146,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 105431E15F57E9A2637F92E1 /* Build configuration list for PBXProject "Herdlight" */;
+			buildConfigurationList = 105431E15F57E9A2637F92E1 /* Build configuration list for PBXProject "Oriel" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -164,8 +164,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FEE888DDB3673F2B4C12F88D /* Herdlight */,
-				8B5B05292FF21054166B5E2A /* HerdlightUITests */,
+				FEE888DDB3673F2B4C12F88D /* Oriel */,
+				8B5B05292FF21054166B5E2A /* OrielUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -207,7 +207,7 @@
 /* Begin PBXTargetDependency section */
 		D5299C6ADF561279719A42D2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = FEE888DDB3673F2B4C12F88D /* Herdlight */;
+			target = FEE888DDB3673F2B4C12F88D /* Oriel */;
 			targetProxy = 1FA281F8352E1B13510E2245 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -240,7 +240,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.hkandala.herdlight;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.hkandala.oriel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -328,7 +328,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.hkandala.HerdlightUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.hkandala.oriel.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -336,7 +336,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_TARGET_NAME = Herdlight;
+				TEST_TARGET_NAME = Oriel;
 			};
 			name = Release;
 		};
@@ -405,7 +405,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.hkandala.HerdlightUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.hkandala.oriel.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -413,7 +413,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_TARGET_NAME = Herdlight;
+				TEST_TARGET_NAME = Oriel;
 			};
 			name = Debug;
 		};
@@ -444,7 +444,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.hkandala.herdlight;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.hkandala.oriel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -462,7 +462,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		105431E15F57E9A2637F92E1 /* Build configuration list for PBXProject "Herdlight" */ = {
+		105431E15F57E9A2637F92E1 /* Build configuration list for PBXProject "Oriel" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				8A6F9AF951FE115F67CB7A42 /* Debug */,
@@ -471,7 +471,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		14FEAC611FC3F64A2048D835 /* Build configuration list for PBXNativeTarget "Herdlight" */ = {
+		14FEAC611FC3F64A2048D835 /* Build configuration list for PBXNativeTarget "Oriel" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D4CA71EA1B3853944A60D81A /* Debug */,
@@ -480,7 +480,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		60DA706F8C8D3A54A8FD93E4 /* Build configuration list for PBXNativeTarget "HerdlightUITests" */ = {
+		60DA706F8C8D3A54A8FD93E4 /* Build configuration list for PBXNativeTarget "OrielUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D0AE97DE02AC5F3B620791FD /* Debug */,

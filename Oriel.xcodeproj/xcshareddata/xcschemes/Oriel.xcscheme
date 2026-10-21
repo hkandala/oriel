@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "FEE888DDB3673F2B4C12F88D"
-               BuildableName = "Herdlight.app"
-               BlueprintName = "Herdlight"
-               ReferencedContainer = "container:Herdlight.xcodeproj">
+               BuildableName = "Oriel.app"
+               BlueprintName = "Oriel"
+               ReferencedContainer = "container:Oriel.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -36,9 +36,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "8B5B05292FF21054166B5E2A"
-               BuildableName = "HerdlightUITests.xctest"
-               BlueprintName = "HerdlightUITests"
-               ReferencedContainer = "container:Herdlight.xcodeproj">
+               BuildableName = "OrielUITests.xctest"
+               BlueprintName = "OrielUITests"
+               ReferencedContainer = "container:Oriel.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -58,9 +58,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FEE888DDB3673F2B4C12F88D"
-            BuildableName = "Herdlight.app"
-            BlueprintName = "Herdlight"
-            ReferencedContainer = "container:Herdlight.xcodeproj">
+            BuildableName = "Oriel.app"
+            BlueprintName = "Oriel"
+            ReferencedContainer = "container:Oriel.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -75,9 +75,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FEE888DDB3673F2B4C12F88D"
-            BuildableName = "Herdlight.app"
-            BlueprintName = "Herdlight"
-            ReferencedContainer = "container:Herdlight.xcodeproj">
+            BuildableName = "Oriel.app"
+            BlueprintName = "Oriel"
+            ReferencedContainer = "container:Oriel.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

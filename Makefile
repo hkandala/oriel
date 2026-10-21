@@ -2,7 +2,7 @@ SHELL := /bin/bash -eo pipefail
 .PHONY: setup format lint build test e2e run
 
 DERIVED_DATA ?= .build/DerivedData
-XCODEBUILD := xcodebuild -project Herdlight.xcodeproj -scheme Herdlight -derivedDataPath $(DERIVED_DATA)
+XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
 MAC := -destination 'platform=macOS'
 BEAUTIFY := $(if $(shell command -v xcbeautify),| xcbeautify $(if $(CI),--renderer github-actions))
 
@@ -34,4 +34,4 @@ e2e:
 
 run:
 	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)
-	open $(DERIVED_DATA)/Build/Products/Debug/Herdlight.app $(if $(SESSION),--args -session $(SESSION))
+	open $(DERIVED_DATA)/Build/Products/Debug/Oriel.app $(if $(SESSION),--args -session $(SESSION))
