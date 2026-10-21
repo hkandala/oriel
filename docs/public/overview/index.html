@@ -485,7 +485,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
     <tr><th>From</th><th>We take</th></tr>
     <tr><td>Cube</td><td>the sideways strip of tab pages; tabs lit while visible; web pages as panes; a sidebar tree with kind icons</td></tr>
     <tr><td>Rex</td><td>status inside the tab; × on hover; dimmed unfocused panes; glass on chrome only</td></tr>
-    <tr><td>gorex</td><td>the reference implementation for Rex-like behavior: capsule tabs that shrink and fade their labels on overflow, an 8 pt gap between cards that is the divider, header controls on hover, dimmed unfocused cards, one tab status slot (× &gt; ▲ &gt; ✓ &gt; ◔), a static working glyph, double-click a divider to reset it to 0.5, ⌃⌘= to equalize, a window title that follows the active tab. It draws everything with its own Metal renderer, so it is <b>not</b> a reference for glass or SwiftUI (spike S2 stays open).</td></tr>
+    <tr><td>gorex</td><td>the reference implementation for Rex-like behavior: capsule tabs that shrink and fade their labels on overflow, an 8 pt gap between cards that is the divider, header controls on hover, dimmed unfocused cards, one tab status slot (× &gt; ▲ &gt; ✓ &gt; ◔), a static working glyph, double-click a divider to reset it to 0.5, ⌃⌘= to equalize, a window title that follows the active tab. It draws everything with its own Metal renderer, so it is <b>not</b> a reference for glass or SwiftUI.</td></tr>
     <tr><td>Arc</td><td>one sidebar page per machine, swiped sideways</td></tr>
     <tr><td>One</td><td>the edge pill with a glyph per agent; a card with the agent's output and a reply box</td></tr>
   </table>
@@ -968,11 +968,10 @@ web:http://localhost:3000/dashboard</code></pre>
 <!-- ═════════════ RISKS ═════════════ -->
 <section id="risks">
   <h2><span class="num">18</span>Risks and known limits</h2>
-  <p class="lead">The biggest risks are the SwiftUI strip, the title-bar tab bar and the pill panel's focus behavior. Each gets a spike before real views.</p>
+  <p class="lead">v0 built the SwiftUI strip and the title-bar tab bar. The biggest risks left are the pill panel's focus behavior and the iOS transport. Each gets a spike before real views.</p>
   <table>
     <tr><th>Risk</th><th>Effect</th><th>Plan</th></tr>
-    <tr><td>A SwiftUI strip with many Metal surfaces</td><td>jank, lost gestures</td><td>spike S1; fallback is a paging container</td></tr>
-    <tr><td>The toolbar squeezes the tab bar</td><td>tabs overflow</td><td>spike S2; fallback is a hidden title bar. gorex shows the behavior, not the glass or SwiftUI code</td></tr>
+    <tr><td>A SwiftUI strip with many Metal surfaces</td><td>jank, lost gestures</td><td>v0 pages with a SwiftUI scroll view; measure it with many terminals</td></tr>
     <tr><td>herdr updated but not restarted</td><td>terminal streams fail; the API works</td><td>"Restart herdr" message</td></tr>
     <tr><td>Pane order in <code>layouts[]</code> is not a documented contract</td><td>wrong tree</td><td>leaf-count check, then <code>layout.export</code></td></tr>
     <tr><td>Bridge cost per call</td><td>18–130 ms plus network</td><td>hidden by the debounce; direct socket if a profile says so</td></tr>
@@ -1000,15 +999,15 @@ web:http://localhost:3000/dashboard</code></pre>
   <h2><span class="num">19</span>Build order</h2>
   <p class="lead">Prove the risky parts first, then build outward from this Mac.</p>
   <div class="timeline">
-    <div class="st"><b>0 · Spikes</b>S1 strip (libghostty answers no query that herdr already answered) · S2 tab bar · S3 ssh · S4 Codex · S5 pill · S6 plugins · S7 iOS transport: Citadel exec channels with streaming stdin, a long-lived channel, channel close</div>
-    <div class="st"><b>1 · This Mac</b>Exec, call(), events, snapshot, sidebar, strip, terminal streams, split, close, resize, zoom</div>
-    <div class="st"><b>2 · Remote machines</b>ControlMaster, askpass, machine pages, status area, notifications</div>
+    <div class="st"><b>0 · Spikes</b>left after v0: S3 ssh · S4 Codex · S5 pill · S6 plugin web views · S7 iOS transport: Citadel exec channels with streaming stdin, a long-lived channel, channel close, <code>direct-tcpip</code></div>
+    <div class="st"><b>1 · This Mac</b>v0 built: Exec, call(), events, snapshot, sidebar, strip, splits, terminal streams, actions, palette. Next: divider drag, drag and drop, agents and status in the sidebar</div>
+    <div class="st"><b>2 · Remote machines</b>the app's machine list and herdr import, ControlMaster, askpass, machine pages, status area, notifications</div>
     <div class="st"><b>2b · Thin iOS slice</b>connect, snapshot, one terminal stream</div>
-    <div class="st"><b>3 · Pane kinds and chat</b>registry and picker, web page with <code>localhost</code> forwards, transcript and screen-text chat</div>
-    <div class="st"><b>4 · Plugin system</b>host and prelude, kit components, Git history, Diff, Markdown, install and dev mode, CLI</div>
+    <div class="st"><b>3 · Pane kinds and chat</b>registry and picker, placeholders with <code>layout.apply</code>, web page with <code>run</code> and <code>dial</code>, the Open :port chip, transcript and screen-text chat, image paste</div>
+    <div class="st"><b>4 · Plugin system</b>web view host and bridge, Git history, Diff, Markdown, install and dev mode</div>
     <div class="st"><b>5 · Floating pills</b>macOS only</div>
-    <div class="st"><b>6 · Full iPadOS and iOS</b>compact layout, reply box, key bar</div>
-    <div class="st"><b>7 · Later</b>iOS push, iOS <code>localhost</code> forwarding, iOS jump hosts, user plugins on iOS, a <code>&lt;WebView&gt;</code> kit component, tab thumbnails and an overview grid, more chat parsers, more windows</div>
+    <div class="st"><b>6 · Full iPadOS and iOS</b>compact layout, reply box, key bar, the <code>dial</code> listener</div>
+    <div class="st"><b>7 · Later</b><a href="https://oriel-docs.vercel.app/docs/future-work">Future work</a>: the TypeScript + React native kit, floating panes, a push relay, a small server helper, restoring <code>launch_argv</code> panes upstream, more multiplexers (Rex, tmux), OSC 7501, user plugins on iOS, iOS jump hosts, tab thumbnails, more chat parsers, more windows</div>
   </div>
   <details id="calls"><summary>herdr calls the app uses (and never uses)</summary>
 <pre><code>ping · session.snapshot · events.subscribe (long-lived) · integration.list
