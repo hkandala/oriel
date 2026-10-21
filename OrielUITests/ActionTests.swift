@@ -51,7 +51,7 @@ extension OrielUITests {
 
     func testClosingATabAsksFirst() async throws {
         XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
-        let (tab, pane) = try await newTab("doomed")
+        let (tab, pane) = try await newTab("doomed", closeAfter: false)
         try await split(pane)
         let row = element("tab.\(tab)")
         row.hover()
