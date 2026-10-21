@@ -13,7 +13,7 @@ The full design, including what comes later, is in [`docs/content/docs/`](docs/c
 
 - macOS 26 or later
 - Xcode 27
-- herdr 0.9.3 or later on your `PATH` (the app reads your login shell's `PATH`)
+- herdr 0.9.3 or later, found by `command -v herdr` in your login shell
 - Homebrew, for SwiftFormat, SwiftLint and xcbeautify (`Brewfile`)
 
 ## Build, run and test
