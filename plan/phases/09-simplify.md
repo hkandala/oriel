@@ -47,7 +47,7 @@ feature stays. Only the way it works gets simpler. The user approved every item 
   - Later decision (user, loop 2): no install folders on `PATH`. The machine's login shell
     finds herdr once (`$SHELL -lic 'command -v herdr'`; This Mac: the same run that reads the
     environment), every call runs that absolute path, and the server's `PATH` is the login
-    shell's unchanged. No path: the install command, and the next try asks again.
+    shell's unchanged. No path: the install command, asked again at most every 30 s.
 - **T10. Machine import:** only the Add Machine sheet lists herdr's machines; it opens with
   them checked when the app's list is empty. No first-launch import, no flag.
 - **XDG fix:** the launchd job that starts This Mac's server gets the same environment the
