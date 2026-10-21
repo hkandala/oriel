@@ -578,7 +578,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <tr><td>Agent did not start (10 s)</td><td>"Agent did not start" and the last screen lines</td></tr>
       <tr><td>Move refused by herdr</td><td>herdr's reason in words</td></tr>
       <tr><td>Web page failed</td><td>WebKit's error in the card</td></tr>
-      <tr><td>Web card built from a label, origin not approved and not on the safe list</td><td>"Open ‹url›?" with an Open button</td></tr>
+      <tr><td>Web address from the machine, origin not approved and not on the safe list</td><td>"Open ‹url›?" with an Open button</td></tr>
       <tr><td>Plugin not installed on this device</td><td>the plugin id, the argument, <b>Show placeholder</b> (switch the card to the pane's terminal), <b>Close pane</b>; on macOS also "Install from ‹source›…", marked "Suggested by ‹machine›"</td></tr>
       <tr><td>Plugin not responding</td><td>"‹title› is not responding · Refresh"</td></tr>
       <tr><td>Full chat not available</td><td>the screen-text chat, with a tooltip that says why</td></tr>
@@ -639,7 +639,7 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
       <li>Base64 passes through every shell unchanged, so no data is ever pasted into a shell string.</li>
       <li><b>Ending a child = closing its stdin.</b> <code>control</code> exits at once and frees the pane; the bridge exits in about 100 ms. If the app crashes, the kernel closes the pipes and every child ends itself, remote ones too. Commands that ignore the end of stdin (<code>observe</code>, <code>tail -F</code>) always run inside <code>sh -c '&lt;cmd&gt; &amp; c=$!; cat &gt;/dev/null; kill $c'</code>, on This Mac too. If a child still runs about 1 s after the close, its channel kills it by pid (never by process group).</li>
       <li>Every <code>call()</code> has a 10 s timeout, which starts the health check at once. Long-lived streams have none; the health check covers them.</li>
-      <li>The version comes from the snapshot. Below 0.9.3 the app refuses. Every herdr argv carries <code>--session</code>.</li>
+      <li>herdr older than 0.9.3 has no <code>remote-api-bridge</code>, so the first call fails and the app says "herdr 0.9.3 or newer is needed". The version comes from the snapshot; a newer protocol needs nothing. Every herdr argv carries <code>--session</code>.</li>
     </ul>
   </details>
   <details><summary>Requests and events</summary>
@@ -800,7 +800,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
   <details><summary>The bridge</summary>
 <pre><code>oriel.run(argv)          → runs a command on the pane's machine
 oriel.dial(host, port)   → a TCP stream to host:port, as seen from that machine</code></pre>
-    <p class="muted">Also on <code>window.oriel</code>: the pane context, <code>setArg</code>, instance state, a "snapshot changed" event (no snapshot data: a plugin that needs herdr data uses <code>run</code>), and preferences. The app never pushes into the page: it sends events only as replies to the page's own bridge calls (the page awaits the next event). To open a link, a plugin uses a normal <code>target=_blank</code> link or <code>window.open</code> on a click, and the app asks first; to copy, it uses <code>navigator.clipboard.writeText</code>. The page is served from the app (<code>oriel-plugin://&lt;id&gt;/</code>).</p>
+    <p class="muted">Also on <code>window.oriel</code>: the pane context, <code>setArg</code>, instance state, <code>on("snapshot")</code>, a "herdr state changed" signal with no data (a plugin that needs herdr data runs <code>herdr</code> with <code>run</code>), and preferences. The app never pushes into the page: it sends events only as replies to the page's own bridge calls (<code>oriel.on</code> waits on a pending call for the next signal). To open a link, a plugin uses a normal <code>target=_blank</code> link or <code>window.open</code> on a click, and the app asks first; to copy, it uses <code>navigator.clipboard.writeText</code>. The page is served from the app (<code>oriel-plugin://&lt;id&gt;/</code>).</p>
     <p class="muted">Every pane kind uses the same two calls: the web page's <code>localhost</code> is a <code>dial</code>, Git history is a <code>run</code> of <code>git</code>. Full detail → <a href="https://oriel-docs.vercel.app/docs/plugins/api">Plugin API</a>.</p>
   </details>
   <details><summary>Install and updates</summary>
@@ -1012,7 +1012,7 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     <div class="st"><b>7 · Later</b><a href="https://oriel-docs.vercel.app/docs/future-work">Future work</a>: the TypeScript + React native kit, floating panes, a push relay, a small server helper, restoring <code>launch_argv</code> panes upstream, more multiplexers (Rex, tmux), OSC 7501, user plugins on iOS, iOS jump hosts, tab thumbnails, more chat parsers, more windows</div>
   </div>
   <details id="calls"><summary>herdr calls the app uses (and never uses)</summary>
-<pre><code>session.snapshot (also the heartbeat) · events.subscribe (long-lived) · integration.list (when the picker opens)
+<pre><code>ping (waiting for a server the app started) · session.snapshot (also the heartbeat) · events.subscribe (long-lived) · integration.list (when the picker opens)
 workspace.create | close | rename | move
 tab.create | close | rename | move
 pane.split | close | rename | swap | move | resize | send_input | send_keys | read | process_info
