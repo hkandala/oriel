@@ -51,16 +51,17 @@ extension OrielUITests {
 
     func testClosingATabAsksFirst() async throws {
         XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
-        let (tab, pane) = try await newTab("doomed", closeAfter: false)
+        let (tab, pane) = try await newTab("doomed")
         try await split(pane)
         let row = element("tab.\(tab)")
         row.hover()
         element("tab.\(tab).close").click()
         let confirm = app.sheets.buttons["Close Tab"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 2))
+        // The count follows the snapshot, which may not have the split yet.
         XCTAssertTrue(app.sheets.staticTexts
             .matching(NSPredicate(format: "value CONTAINS '2 panes' OR label CONTAINS '2 panes'")).firstMatch
-            .exists)
+            .waitForExistence(timeout: 2))
         keepScreenshot("close tab dialog")
         confirm.click()
         XCTAssertTrue(row.waitForNonExistence(timeout: 3))

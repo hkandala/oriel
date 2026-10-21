@@ -181,7 +181,7 @@ final class OrielUITests: XCTestCase {
 
     func testSelectsAnotherTabWhenTheSelectedOneCloses() async throws {
         XCTAssertTrue(element("tab.w1:t2").waitForExistence(timeout: connect))
-        let (tab, _) = try await newTab("doomed", in: "w1", closeAfter: false)
+        let (tab, _) = try await newTab("doomed", in: "w1")
         let row = element("tab.\(tab)")
         row.click()
         XCTAssertTrue(row.wait(for: \.isSelected, toEqual: true, timeout: 2))
@@ -252,18 +252,15 @@ extension OrielUITests {
         element("pane.\(pane)").coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 40, dy: 17)).hover()
     }
 
-    /// A new tab (closed after the test unless told not to), shown in the sidebar: its id and its pane's. By
+    /// A new tab (closed after the test), shown in the sidebar: its id and its pane's. By
     /// default in w2, another workspace than the selected one, so a click on it also crosses workspaces.
-    func newTab(_ label: String, in workspace: String = "w2",
-                closeAfter: Bool = true) async throws -> (tab: String, pane: String)
-    {
+    func newTab(_ label: String, in workspace: String = "w2") async throws -> (tab: String, pane: String) {
         let created = try await Self.call(one, "tab.create", ["workspace_id": workspace, "label": label,
                                                               "cwd": "/tmp", "focus": false])
         let tab = try XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String)
         let pane = try XCTUnwrap((created["root_pane"] as? [String: Any])?["pane_id"] as? String)
-        if closeAfter {
-            addTeardownBlock { [one] in _ = try? await Self.call(one, "tab.close", ["tab_id": tab]) }
-        }
+        // Also after a test that closed it (an error then), so a failed test leaves no tab for the next one.
+        addTeardownBlock { [one] in _ = try? await Self.call(one, "tab.close", ["tab_id": tab]) }
         XCTAssertTrue(element("tab.\(tab)").waitForExistence(timeout: 2))
         return (tab, pane)
     }
