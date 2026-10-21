@@ -149,7 +149,9 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
         let (tab, pane) = try await newTab("taken")
         element("tab.\(tab)").click()
-        try await waitForPrompt(pane)
+        // The app controls the pane (its PTY has the card's size) before the probe: a probe that came first would
+        // win, and the app would only watch.
+        try await expectPTYSize(pane)
         let terminal = try await terminalID(pane)
         try await waitForControl(terminal) { $0.contains("already has an attached client") }
 
