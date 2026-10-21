@@ -39,5 +39,8 @@ interface and the app's own model types, never herdr's JSON or argv.
 | Actions | create, split, move, swap, close, rename, resize; start, prompt and send keys to an agent; read a pane's text | [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls), [Chat view](/docs/chat-view) |
 | Agent status | per agent pane: working, needs you, idle, and a finish counter | `agent_status`, `completion_seq`, [Status](/docs/status) |
 
+Agent status comes only from the interface, never from escape sequences in
+the app's terminal surfaces (D55, [Status](/docs/status#status-area-and-notifications)).
+
 Simpler choice: the interface has the shape of herdr's features. A second
 implementation reshapes it where that multiplexer differs.

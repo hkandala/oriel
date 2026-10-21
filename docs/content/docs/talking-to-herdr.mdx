@@ -114,7 +114,9 @@ the work. A later server helper would sit behind the same two calls
   - After the app's own write, the read starts at once, with no debounce.
 - The stream is opened again, followed by a snapshot, when the set of agent
   panes changes, on `events_lost` (the reader fell behind herdr's 512-event
-  buffer) and on `pane_not_found` (a listed pane closed first).
+  buffer) and on `pane_not_found` (a listed pane closed first). Once herdr
+  supports OSC 7501, a plain pane whose program reports status becomes an
+  agent pane, and this rule picks it up.
 - Every 30 s the app sends `ping`, every 2 s while its last read failed, so a
   session started again in a terminal comes back at once. A network change or a
   Mac wake forces a check. A machine counts as live only while it answers.
