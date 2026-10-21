@@ -7,7 +7,7 @@ const Cap = ({ children }: { children?: React.ReactNode }) =>
 /** An agent card in chat view, with the blocked panel and the reply box. */
 export function ChatCard({ caption }: { caption?: React.ReactNode }) {
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <Pane
         icon={['claude', '✳']}
         title="claude · fix-auth"
@@ -67,7 +67,7 @@ const Chips = ({ on }: { on: number }) => (
 /** Two iPhone screens: an agent in chat and a terminal with the key bar. */
 export function Phones({ caption }: { caption?: React.ReactNode }) {
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div className="phones">
         <div className="phone">
           <div className="nb">‹ MacBook · api-server</div>
@@ -116,7 +116,7 @@ const PICK: [Icon, string, string][] = [
 /** The new-pane picker. */
 export function PanePicker({ caption }: { caption?: React.ReactNode }) {
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div className="picker">
         <div className="h">New pane on devbox</div>
         {PICK.map(([ic, name, note], i) => (
@@ -137,7 +137,7 @@ export function PanePicker({ caption }: { caption?: React.ReactNode }) {
 /** The add-machine sheet (the public key row is iOS only). */
 export function AddMachineSheet({ caption }: { caption?: React.ReactNode }) {
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div className="sheet">
         <h4>Add machine</h4>
         <div className="f">
@@ -177,7 +177,7 @@ export function AddMachineSheet({ caption }: { caption?: React.ReactNode }) {
 /** Where a dragged card can land on another card. */
 export function DropZones({ caption }: { caption?: React.ReactNode }) {
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div className="drop">
         <div className="dz-card">
           <div className="dz l">split left</div>

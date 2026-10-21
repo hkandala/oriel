@@ -60,8 +60,8 @@ export function useExec(
 |---|---|---|
 | `exec` | every data need is on the pane's machine: `git`, `cat`, `gh`, `rg`, and the herdr CLI (read panes, prompt an agent) | runs on **that card's machine only**, through the envelope; `argv[0] === "herdr"` becomes the resolved herdr path with `--session`; default cwd is the pane's cwd; 30 s timeout, 4 MiB per stream; one queue per machine, 2 at a time; paused while the card is off screen |
 | `usePane` | the machine, argument and cwd | injected; re-renders on change |
-| `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `hl:<plugin>[/<pane>]#<iid>`, then a new `hl_rev` token |
-| `useInstanceState` | bigger state shared across devices | the state file and the `hl_rev` signal ([State and restore](/docs/plugins/state)) |
+| `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `oriel:<plugin>[/<pane>]#<iid>`, then a new `oriel_rev` token |
+| `useInstanceState` | bigger state shared across devices | the state file and the `oriel_rev` signal ([State and restore](/docs/plugins/state)) |
 | `useSnapshot` | refresh when an agent finishes | the snapshot the app already has, debounced, only while the card is visible |
 | preferences | per-device settings | read only |
 | `showToast` | errors and progress | a native toast at the card's bottom edge |

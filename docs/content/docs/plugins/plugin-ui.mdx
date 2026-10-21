@@ -4,13 +4,13 @@ description: "TypeScript and React rendered as native SwiftUI through the compon
 ---
 
 Plugins are TypeScript and React, written against our component kit
-(`@herdlight/api`), in the Raycast style. The kit renders as real SwiftUI.
+(`@oriel/api`), in the Raycast style. The kit renders as real SwiftUI.
 
 ## How it works
 
 <Flow
   rows={[
-    [['plugin.tsx', 'React + @herdlight/api'], ['esbuild', 'dist/<pane>.js'], ['JSContext per card', 'after the prelude: React 19 + a ~60-line reconciler + the API runtime'], ['JSON view tree', 'each React commit'], ['SwiftUI kit', 'Swift decodes: List, Detail, Diff, Form…']],
+    [['plugin.tsx', 'React + @oriel/api'], ['esbuild', 'dist/<pane>.js'], ['JSContext per card', 'after the prelude: React 19 + a ~60-line reconciler + the API runtime'], ['JSON view tree', 'each React commit'], ['SwiftUI kit', 'Swift decodes: List, Detail, Diff, Form…']],
     [['SwiftUI event', 'a click, a key, a text change'], ['__dispatch(nodeId, args)', 'into the card\'s VM'], ['React handler', 'state changes, a new commit']],
   ]}
   caption="Top: how a plugin card renders. Bottom: how events come back."

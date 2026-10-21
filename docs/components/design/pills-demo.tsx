@@ -95,7 +95,7 @@ export function PillCardBody({
 export function PillCard({ state = 'blk' }: { state?: St }) {
   const a = state === 'done' ? { ...START[1], st: state } : { ...START[2], st: state };
   return (
-    <div className="hl not-prose">
+    <div className="oriel not-prose">
       <div className="pcard static">
         <PillCardBody a={a} />
       </div>
@@ -150,7 +150,7 @@ export function PillsDemo() {
   const hosts = [...new Set(agents.map((a) => a.host))];
 
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div
         className={`desk${list ? ' listopen' : ''}`}
         onClick={(e) => !(e.target as HTMLElement).closest('.plist,.notch,.pcard,.ctrls') && setList(false)}

@@ -32,11 +32,11 @@ description: "What a machine is, macOS and iOS connections, the channel budget a
   ```sh
   ssh -M -N -f -o ControlPersist=10m -o ServerAliveInterval=20 \
       -o ForwardAgent=no -o ForwardX11=no -o ClearAllForwardings=yes \
-      -S ~/Library/Caches/hl/<h8> <target>
-  ssh -S ~/Library/Caches/hl/<h8> -O check <target>   # wait until this succeeds
+      -S ~/Library/Caches/oriel/<h8> <target>
+  ssh -S ~/Library/Caches/oriel/<h8> -O check <target>   # wait until this succeeds
   ```
   - Later runs use `-F /dev/null -o ControlMaster=no -o BatchMode=yes
-    -o ProxyCommand=/usr/bin/false -S ~/Library/Caches/hl/<h8>`. Without a
+    -o ProxyCommand=/usr/bin/false -S ~/Library/Caches/oriel/<h8>`. Without a
     master they fail at once instead of opening their own connection and
     prompting again. They send none of the user's configured forwards to the
     master.
@@ -121,7 +121,7 @@ description: "What a machine is, macOS and iOS connections, the channel budget a
    - **This Mac:** a **Start** button, next to the command to run in a
      terminal. The app starts the server as a one-shot launchd job (D47), so
      launchd, not the app, is its parent and "responsible process": macOS
-     privacy prompts never name Herdlight, the server has its own process
+     privacy prompts never name Oriel, the server has its own process
      group, and it outlives the app. Picking a stopped session or making a new
      one starts it the same way; a new server gets one workspace in `$HOME`.
    - **A remote machine:** a **Start herdr** button runs

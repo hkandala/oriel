@@ -11,7 +11,7 @@ description: "Where plugin state lives and how a fresh app restores plugin panes
 | plugin, pane kind, instance id | `git-history#k3f9q2` (`/<pane>` only when the plugin has several) | the pane label | every device |
 | the argument: what the pane shows | `main`, `docs/DESIGN.md` | the pane label | every device, the TUI border |
 | bigger instance state | selected commit, filters, scroll anchor | a JSON file on the pane's machine, keyed by iid | every device that reaches the machine |
-| change signal | `hl_rev` | a herdr metadata token | every device (`pane.updated`) |
+| change signal | `oriel_rev` | a herdr metadata token | every device (`pane.updated`) |
 | preferences | diff style | the app, per device | this device |
 | plugin code and consent | — | the app | this device |
 | in-memory UI state | hover, expanded rows | the JS heap | this card only |
@@ -25,7 +25,7 @@ else is React state.
 ## The instance state file
 
 ```text
-$HOME/.local/state/herdlight/<session>/<plugin-id>/<iid>.json
+$HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json
 ```
 
 `<session>` is the herdr session name.
@@ -42,12 +42,12 @@ absolute paths.
   ```sh
   sh -c 'umask 077; mkdir -p "${1%/*}" && cat >"$1.$$" && mv "$1.$$" "$1"' sh <path>
   ```
-  Then a new `hl_rev` token tells other devices to read it again. Last writer
+  Then a new `oriel_rev` token tells other devices to read it again. Last writer
   wins.
 - The app also writes `<plugin-id>/_plugin.json` (title, source, version) once,
   so a device without the plugin can suggest installing it.
 - **Cleanup** runs at most once a day per machine.
-  `$HOME/.local/state/herdlight/<session>/.gc` holds the date of the last
+  `$HOME/.local/state/oriel/<session>/.gc` holds the date of the last
   cleanup. The first device to connect waits for a complete, non-empty
   snapshot. Then it deletes regular files named `<iid>.json` (matching
   `^[a-z0-9]{6}\.json$`) that are older than 24 hours and whose iid is in no
@@ -55,16 +55,16 @@ absolute paths.
 
 ## Restore on a fresh app start (any device)
 
-<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'hl:float tab · web: · hl: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, plugin, iid)'], ['5 · render', 'VM + pane context + state file']]} />
+<Flow steps={[['1 · snapshot', 'connect each machine'], ['2 · classify', 'oriel:float tab · web: · oriel: · agent · terminal'], ['3 · resolve', 'core, then linked, then installed; missing → placeholder card'], ['4 · key the card', '(machine, plugin, iid)'], ['5 · render', 'VM + pane context + state file']]} />
 
 1. Connect each machine and read `session.snapshot`.
 2. Classify every pane by its label:
    - `web:http(s)://…` → the web plugin, argument = the URL ([Web page](/docs/plugins/web-page) load rules
      apply);
-   - matching the `hl:` grammar → (plugin, pane, iid, arg);
+   - matching the `oriel:` grammar → (plugin, pane, iid, arg);
    - otherwise → `agent` if herdr set `pane.agent`, else `terminal`.
 
-   Separately, every pane whose tab is labeled `hl:float` floats
+   Separately, every pane whose tab is labeled `oriel:float` floats
    ([Floating panes in herdr](/docs/floating-panes)), whatever its kind.
 3. Resolve the plugin in the registry (core, then a linked folder, then an
    installed plugin):
@@ -84,7 +84,7 @@ absolute paths.
    move.
 5. When the card is first shown: build its VM, inject the pane context, read
    the state file if the plugin uses one, render.
-6. On every later snapshot: a changed argument re-renders; a changed `hl_rev`
+6. On every later snapshot: a changed argument re-renders; a changed `oriel_rev`
    re-reads the state file; a pane that is gone destroys the card.
 
 Nothing in these steps reads app storage except plugin code, consent and

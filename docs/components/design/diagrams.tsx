@@ -15,7 +15,7 @@ export function Flow({
   caption?: ReactNode;
 }) {
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       {(rows ?? [steps!]).map((row, r) => (
         <div className="flow" key={r}>
           {row.map(([b, s], i) => (
@@ -47,7 +47,7 @@ const Chips = ({ items }: { items: ReactNode[] }) => (
 /** The app, the two Exec implementations, and what runs on each machine. */
 export function Architecture({ caption }: { caption?: ReactNode }) {
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div className="arch">
         <div className="layer app">
           <h5>App · SwiftUI · macOS + iOS</h5>
@@ -87,7 +87,7 @@ export function Architecture({ caption }: { caption?: ReactNode }) {
 /** Who controls a terminal pane, and what moves control. */
 export function Ownership() {
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div className="own">
         <div className="st">
           <b>Mac controls</b>

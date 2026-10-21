@@ -184,7 +184,7 @@ export function MacWindow({ floating = false, caption = tryIt }: { floating?: bo
   };
 
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div className="win">
         <aside className="side">
           <div className="lights">

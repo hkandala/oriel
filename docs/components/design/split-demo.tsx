@@ -42,7 +42,7 @@ export function SplitDemo() {
   const f0 = r0.toFixed(2), f1 = r1.toFixed(2);
 
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div className="splitdemo">
         <div>
           <div className="sd-label">1 · herdr sends a flat list</div>

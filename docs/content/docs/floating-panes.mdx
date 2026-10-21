@@ -5,20 +5,20 @@ description: "Where floating panes live in herdr, the calls, and how the app sho
 
 ## Where they live
 
-A floating pane is a normal herdr pane in a tab labeled exactly `hl:float`.
+A floating pane is a normal herdr pane in a tab labeled exactly `oriel:float`.
 Every pane in that tab floats. The app creates at most one such tab per
 workspace. If two exist, the panes in both float, and new floating panes go
 to the first.
 
 | Option | Verdict |
 |---|---|
-| **a tab labeled `hl:float`** | **chosen**: one marker per workspace; any pane kind can float; herdr keeps the tab, its panes and labels across restarts; `pane.move` keeps the terminal; every device and the herdr TUI agree |
+| **a tab labeled `oriel:float`** | **chosen**: one marker per workspace; any pane kind can float; herdr keeps the tab, its panes and labels across restarts; `pane.move` keeps the terminal; every device and the herdr TUI agree |
 | herdr's popup | rejected: one per server, no pane id, not in the snapshot, not saved, modal on herdr TUI screens |
-| a pane label marker | rejected: the label already holds `web:`/`hl:` or the user's own label |
+| a pane label marker | rejected: the label already holds `web:`/`oriel:` or the user's own label |
 | a metadata token | rejected: lost on restart |
 | an app-side list | rejected: ids change on restart, and other devices would not agree |
 
-- herdr TUI users see one more tab, "hl:float", with the floating panes as
+- herdr TUI users see one more tab, "oriel:float", with the floating panes as
   splits. That is where they live, and they can use them there.
 - If a TUI user renames the tab, its panes show as docked.
 
@@ -26,9 +26,9 @@ to the first.
 
 | User action | herdr call (all with `focus:false`) |
 |---|---|
-| New floating pane, no floating tab yet | `tab.create {workspace_id, cwd, label:"hl:float"}`, then the pane kind's create steps |
+| New floating pane, no floating tab yet | `tab.create {workspace_id, cwd, label:"oriel:float"}`, then the pane kind's create steps |
 | New floating pane, floating tab exists | `pane.split` on the largest pane in that tab, alternating `right` and `down`, then the kind's steps; if herdr refuses, the app shows herdr's reason |
-| Float a docked pane | `pane.move {pane_id, destination:{type:"tab", tab_id:<floating tab>, split:"right"}}`, or with no floating tab `pane.move {pane_id, destination:{type:"new_tab", workspace_id, label:"hl:float"}}` |
+| Float a docked pane | `pane.move {pane_id, destination:{type:"tab", tab_id:<floating tab>, split:"right"}}`, or with no floating tab `pane.move {pane_id, destination:{type:"new_tab", workspace_id, label:"oriel:float"}}` |
 | Dock a floating pane | the normal moves of [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls); the **Dock** button does the same as a drop on the selected tab's capsule: `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
 | Close | `pane.close`; asks first unless the pane runs only its shell |
 

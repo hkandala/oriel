@@ -22,7 +22,7 @@ not use addresses that contain secrets (for example a `?token=` URL).
 1. The user types an address. A bare `host:port` gets `http://`. Only `http`
    and `https` are accepted.
 2. `pane.split` or `tab.create`, then `pane.rename {label: "web:<url>"}`.
-3. `pane.report_metadata {source: "user:herdlight", tokens: {hl_rev:
+3. `pane.report_metadata {source: "user:oriel", tokens: {oriel_rev:
    "<time>"}}`. A rename sends no event, but a token change sends
    `pane.updated`, so other devices see the new pane at once. The same call
    follows every rename.
@@ -36,7 +36,7 @@ not use addresses that contain secrets (for example a `?token=` URL).
    ```
    It decodes to:
    ```sh
-   printf 'web page: %s\n(shown by Herdlight)\n' '<url>'
+   printf 'web page: %s\n(shown by Oriel)\n' '<url>'
    stty raw -echo; exec cat >/dev/null
    ```
    `stty raw` makes Ctrl-C and Ctrl-D plain bytes, so a herdr TUI user cannot

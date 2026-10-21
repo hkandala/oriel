@@ -7,7 +7,7 @@ description: "How a plugin pane is stored in herdr: label, placeholder and insta
 
 ```text
 label     = "web:" url
-          | "hl:" plugin-id [ "/" pane-name ] "#" iid [ " " arg ]
+          | "oriel:" plugin-id [ "/" pane-name ] "#" iid [ " " arg ]
 plugin-id = [a-z0-9][a-z0-9._-]{0,63}
 pane-name = [a-z0-9][a-z0-9-]{0,31}
 iid       = [a-z0-9]{6}
@@ -17,16 +17,16 @@ arg       = the rest: no control characters, at most 1024 characters
 Examples, as a herdr TUI user sees them in the pane border:
 
 ```text
-hl:git-history#k3f9q2 main
-hl:markdown#q2m0zd docs/DESIGN.md
-hl:diff#a81xw0 base=main
-hl:kanban/board#7tt1qe
+oriel:git-history#k3f9q2 main
+oriel:markdown#q2m0zd docs/DESIGN.md
+oriel:diff#a81xw0 base=main
+oriel:kanban/board#7tt1qe
 web:http://localhost:3000/dashboard
 ```
 
 - A plugin with one pane kind omits `/<pane-name>`. A label without a pane
   name opens the first pane kind in the plugin's manifest.
-- The `hl:` prefix keeps a user's own label (`todo: fix login`) from turning
+- The `oriel:` prefix keeps a user's own label (`todo: fix login`) from turning
   into a plugin.
 - The argument goes last, so the useful part is what a TUI user reads. herdr
   trims labels, and `setArg` trims too.
@@ -49,13 +49,13 @@ instance id (`iid`) lives in it.
 1. Picker → argument prompt if required → generate the iid.
 2. `pane.split {…, cwd: <source pane's cwd>}` or `tab.create`. A diff split
    from an agent's pane opens in that agent's repository.
-3. `pane.rename {label: "hl:<plugin>[/<pane>]#<iid> <arg>"}`.
-4. `pane.report_metadata` with a new `hl_rev` token, so other devices see the
+3. `pane.rename {label: "oriel:<plugin>[/<pane>]#<iid> <arg>"}`.
+4. `pane.report_metadata` with a new `oriel_rev` token, so other devices see the
    pane at once.
 5. The placeholder. On the next snapshot the app checks with
    `pane.process_info` that the pane's foreground process is its shell. Only
    then does `pane.send_input` type the placeholder inside the envelope. It
-   prints the title, the `hl:<plugin>[/<pane>]#<iid>` marker, the argument and
+   prints the title, the `oriel:<plugin>[/<pane>]#<iid>` marker, the argument and
    the state file path, then runs `stty raw -echo; exec cat >/dev/null`.
 
 <Callout title="The label is the truth">

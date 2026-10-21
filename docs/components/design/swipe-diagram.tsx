@@ -12,7 +12,7 @@ export function SwipeDiagram() {
   const a = Math.floor(t);
   const lit = (i: number) => i === a || (i === a + 1 && t - a > 0.01);
   return (
-    <figure className="hl not-prose">
+    <figure className="oriel not-prose">
       <div className="swipe">
         <div className="panel">
           <div className="t">Sidebar · machine pages</div>

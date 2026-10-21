@@ -5,13 +5,13 @@ description: "The manifest, the build tool, install, dev mode, updates and the c
 
 ## Manifest
 
-A normal `package.json` with one `herdlight` field.
+A normal `package.json` with one `oriel` field.
 ```jsonc
 {
   "name": "git-history",                       // plugin id: ^[a-z0-9][a-z0-9._-]{0,63}$
   "version": "0.3.0",
-  "repository": "https://github.com/me/hl-git-history",
-  "herdlight": {
+  "repository": "https://github.com/me/oriel-git-history",
+  "oriel": {
     "api": 1,                                  // highest API version used
     "title": "Git history",
     "icon": "arrow.triangle.branch",           // SF Symbol, or an asset path
@@ -41,15 +41,15 @@ A normal `package.json` with one `herdlight` field.
 
 ## Build tool
 
-`hl-plugin build` validates the manifest and runs esbuild
+`oriel-plugin build` validates the manifest and runs esbuild
 once per pane entry (`dist/<pane>.js`, with React and the API as globals the
-app provides). `hl-plugin dev` rebuilds on change and streams the plugin's
+app provides). `oriel-plugin dev` rebuilds on change and streams the plugin's
 logs.
 
 ## Where plugins live
 
 In the app, not on machines:
-`~/Library/Application Support/Herdlight/plugins/<id>/` with
+`~/Library/Application Support/Oriel/plugins/<id>/` with
 `package.json`, `dist/`, `assets/` and a source record (URL, ref, commit).
 - **Install from a git URL** (Settings › Plugins › Add): shallow clone,
   require `package.json` and a built `dist/` (the app never runs npm or node),
@@ -62,7 +62,7 @@ In the app, not on machines:
   "Update available"; the user presses Update. An update that adds a
   permission asks for consent again.
 - **API version:** the app ships React and the API runtime. A plugin whose
-  `api` is newer than the app shows "needs a newer Herdlight". API changes
+  `api` is newer than the app shows "needs a newer Oriel". API changes
   within a version are additive.
 
 ## Card lifecycle
