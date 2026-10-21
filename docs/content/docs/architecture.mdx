@@ -42,5 +42,15 @@ interface and the app's own model types, never herdr's JSON or argv.
 Agent status comes only from the interface, never from escape sequences in
 the app's terminal surfaces (D55, [Status](/docs/status#status-area-and-notifications)).
 
+In code, `Multiplexer` lives in `HerdrKit` (`Multiplexer.swift`) next to its
+only conformer, `HerdrClient`. It has only what the app uses today: the session
+list, the snapshot and its updates, starting the server, one pane's details,
+terminal streams, and the actions split, new tab, new workspace, close and send
+keys. Agent status comes in the snapshot. The machine connection is not a method:
+`HostStore` makes the `HerdrClient` (find herdr, then `init`), the one place that
+names herdr. The model types (`Snapshot`, `Session`, `HerdrError`, ...) stay shared
+in `HerdrKit`; they move when a second multiplexer needs its own. Each feature adds
+its methods when it is built.
+
 Simpler choice: the interface has the shape of herdr's features. A second
 implementation reshapes it where that multiplexer differs.
