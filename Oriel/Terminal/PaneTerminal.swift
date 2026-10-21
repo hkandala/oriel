@@ -153,6 +153,7 @@
             run = Task {
                 // The last stream ends first, so herdr never sees two of ours on one pane.
                 await previous?.value
+                guard generation == self.generation else { return }
                 let stream: TerminalStream
                 do {
                     stream = try await client.terminal(terminalID, cols: Int(grid.columns), rows: Int(grid.rows),
@@ -163,10 +164,12 @@
                     }
                     return
                 }
+                // Ended while it opened: close it too; the loop below drains it until herdr exits.
                 if generation == self.generation {
                     self.stream = stream
+                } else {
+                    stream.close()
                 }
-                // A cancelled task ends the iteration at once, which kills the run.
                 for await event in stream.events where generation == self.generation {
                     switch event {
                     case let .frame(frame):
@@ -193,14 +196,10 @@
         }
 
         /// Ends the current stream by closing its stdin. The run goes on until herdr exits, so the next `open`
-        /// waits for the pane to be free; a stream still opening is cancelled instead.
+        /// waits for the pane to be free; a stream still opening closes itself once open.
         private func end() {
             generation += 1
-            if let stream {
-                stream.close()
-            } else {
-                run?.cancel()
-            }
+            stream?.close()
             stream = nil
             state = .idle
         }
