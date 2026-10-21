@@ -10,6 +10,7 @@
   --accent:#0a84ff; --green:#30d158; --amber:#ff9f0a; --red:#ff453a;
   --code:#f0f0ed; --herdr:#e8f2ff; --app:#fff5e6; --host:#ecf8ef;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --winbg: linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)),radial-gradient(60% 90% at 10% 0%,rgba(96,116,170,.45),transparent 70%),radial-gradient(55% 80% at 100% 100%,rgba(130,90,150,.35),transparent 70%),#24262d;
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark){
@@ -72,7 +73,7 @@ figure{margin:0} figcaption{font-size:12.5px;color:var(--mute);margin-top:6px}
 /* ───── Mock window: the v0 look (frosted window, flat sidebar, translucent cards) ───── */
 .mockwrap{margin:18px 0 6px}
 .win{--side:240px;position:relative;height:520px;border-radius:16px;overflow:hidden;display:grid;grid-template-columns:var(--side) minmax(0,1fr);grid-template-rows:40px minmax(0,1fr);
-  background:linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)),radial-gradient(60% 90% at 10% 0%,rgba(96,116,170,.45),transparent 70%),radial-gradient(55% 80% at 100% 100%,rgba(130,90,150,.35),transparent 70%),#24262d;
+  background:var(--winbg);
   border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 50px rgba(0,0,0,.35);color:#e9e9ee;font-size:12.5px}
 .win.noside{--side:0px}
 .titlebar{grid-column:1/-1;display:flex;align-items:center;gap:4px;padding:0 8px 0 0;min-width:0}
@@ -188,7 +189,7 @@ figure{margin:0} figcaption{font-size:12.5px;color:var(--mute);margin-top:6px}
 .own .arrows{font-size:12px;color:var(--mute);text-align:center;line-height:1.5}
 
 /* phone */
-.phone{width:250px;height:470px;border-radius:38px;background:#0d0d10;padding:12px;box-shadow:0 14px 40px rgba(0,0,0,.25);color:#e8e8ee;font-size:12px;display:flex;flex-direction:column;gap:6px}
+.phone{width:250px;height:470px;border-radius:38px;background:#0d0d10;border:1px solid rgba(255,255,255,.14);padding:12px;box-shadow:0 14px 40px rgba(0,0,0,.25);color:#e8e8ee;font-size:12px;display:flex;flex-direction:column;gap:6px}
 .phone .nb{padding:18px 8px 4px;font-weight:600}
 .phone .sbar{margin:0 6px;padding:2px 8px;border-radius:7px;background:#1a1a20;font-size:10.5px;color:#bbb}
 .phone .chipsrow{display:flex;gap:4px;padding:0 6px;font-size:10.5px;overflow:hidden}
@@ -381,8 +382,8 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <h2><span class="num">3</span>Chat view</h2>
   <p class="lead">Switch any agent or terminal pane between its terminal and a chat view. Agents show their own transcript. A blocked agent shows its prompt with answer buttons.</p>
   <div class="grid2">
-    <div class="pane" style="height:310px;background:#16161a;color:#ddd">
-      <div class="ph"><span class="ico claude">✳</span> claude · fix-auth <span class="ctl"><span class="seg"><span class="on">chat</span><span>term</span></span> ⤢ ✕</span></div>
+    <div class="pane" style="height:310px;background:linear-gradient(rgba(255,255,255,.04),rgba(255,255,255,.04)),var(--winbg);color:#ddd">
+      <div class="ph"><span class="ico claude">✳</span> claude · fix-auth <span class="sp"></span><span class="ctl"><span class="seg"><span class="on">chat</span><span>term</span></span> ⤢ ✕</span></div>
       <div class="chat">
         <div class="msg u"><div class="who">you</div><span class="txt">run the tests and fix what fails</span></div>
         <div class="msg"><div class="who">claude</div>Running the test suite.</div>
