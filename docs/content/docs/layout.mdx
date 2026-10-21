@@ -1,6 +1,6 @@
 ---
 title: "Layout and sizing"
-description: "The split tree, drawing and resizing, zoom, PTY size, selection and seen"
+description: "The split tree, drawing, dividers, fade, motion, keyboard moves, zoom, PTY size, selection and seen"
 ---
 
 ## What herdr returns
@@ -50,13 +50,67 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
   cell rectangles are not used for drawing.
 - Each terminal card tells herdr its own size in cells, so the PTY fits the
   card.
-- Dragging a divider moves the split in the view at once (8 pt hit area,
-  resize cursor). On release the app sends `layout.set_split_ratio`. The
-  ratio stays within herdr's 0.1–0.9.
-- Double-clicking a divider sets its ratio to 0.5.
-- ⌃⌘= makes the splits of the tab equal. Each split gets the ratio "leaves on
-  its first side ÷ all leaves under it", so every pane gets the same share.
 - Resizing works on the split tree only. To put a pane elsewhere, move it.
+
+## Dividers
+
+- **Hit area.** Each split's 8 pt gap is its divider, with a 16 pt hit area
+  centered on it and the resize cursor. On hover a grip shows: a 36 × 3 pt
+  capsule in the hover color, which fades in over 0.2 s.
+- **Drag.** The split moves in the view at once: the app holds its own ratio
+  for that split until the next snapshot shows herdr's. On release the app
+  sends `layout.set_split_ratio {tab_id, path, ratio}`, with the ratio kept in
+  herdr's 0.1–0.9. Terminals keep their 100 ms resize settle, so a drag does
+  not flood herdr with PTY resizes.
+- **Double-click** a divider: ratio 0.5.
+- **Balance** (⌃⌘=, View ▸ Pane ▸ Balance Splits): each split gets the ratio
+  "leaves on its first side ÷ all leaves under it", so every pane gets the
+  same share. One `layout.set_split_ratio` per split.
+- **Autobalance** (a setting, off by default): after a split, the app balances
+  the tab.
+- **Keys.** ⌃⌘ and an arrow resizes the keyboard card by 5 % that way
+  (`pane.resize {pane_id, direction, amount: 0.05}`).
+- **Accessibility.** Each divider is an adjustable element, "Divider between
+  ‹a› and ‹b›", with the ratio as a percent. Increment and decrement move it
+  5 % and send the ratio.
+
+## Fade
+
+The card with the keyboard is drawn at full strength; the others fade (D64).
+The fade is the opacity of the card's content, not an overlay, so card edges
+stay crisp:
+
+| Card | Window is key | Window is not key |
+|---|---|---|
+| Keyboard card | 1.0 | 0.8 (0.85 in light) |
+| Other cards | 0.7 | 0.5 |
+
+Each card also takes the fill of its state from the look's tokens
+([Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style)).
+Two settings, both on by default, turn the fades off: **Fade inactive panes**
+and **Fade panes in inactive windows**.
+
+## Layout motion
+
+- When the tree changes (a split, a close, a move, a ratio from herdr), card
+  frames animate over 0.2 s, ease-out.
+- If terminals flicker when they resize during the motion, each terminal
+  keeps its old size, clipped by its card, until the motion ends, and then
+  resizes once.
+- Reduce Motion: no animation.
+
+## Moving the keyboard
+
+The keyboard card is the app's own (see below). Keys move it, and never call
+herdr's focus methods (D13):
+- ⌥⌘ and an arrow: the nearest card that way. Cards that overlap on the other
+  axis come first, then the nearest center.
+- ⌘[ and ⌘]: the previous and next card in the tree's order, round the ends.
+- ⌥⇧⌘ and an arrow: moves the keyboard card that way with
+  `pane.swap {pane_id, direction}`. The keyboard follows the pane.
+- **Focus follows mouse** (a setting, off by default): a card gets the
+  keyboard when the pointer rests on it for 0.15 s. Never while a mouse button
+  is down or the palette or a menu is open.
 
 ## Zoom is the app's own
 
@@ -100,13 +154,14 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
     `completion_seq` is the number of that change. At the agent's next status
     change, for example when it starts working again, herdr sets it back to
     null. So an unseen finish clears when the agent starts working again,
-    and the agent then shows ◔.
+    and the agent then shows the working dots.
   - "Finished, not seen" is "not null and different from the seen value",
     not "greater than": the counter restarts at 0 when herdr restarts.
   - herdr's own `done` status is not used, because herdr goes straight to
     `idle` when a herdr TUI is already looking at that tab.
   - The first time the app sees an agent, it records the agent's current
-    `completion_seq` as seen, so old finishes do not flood the status area.
+    `completion_seq` as seen, so old finishes do not flood Activity or
+    the notifications.
   - Viewing the agent's pane records the current value.
   - Each device keeps its own seen values. Seeing an agent on one device does
     not clear it on another.

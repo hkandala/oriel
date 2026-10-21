@@ -1,74 +1,230 @@
 ---
 title: "Main window (Mac and iPad)"
-description: "The sidebar, tab bar, strip, pane cards and zoom of the main window"
+description: "The title row, tab bar, sidebar, Activity, hover card, strip, pane cards, zoom, find bar, notices and the palette"
 ---
 
 <MacWindow />
 
+## Title row
+
+One row, 40 pt tall (D45). From left to right:
+- The sidebar toggle.
+- The session button: a laptop icon, plus the session name (up to 224 pt)
+  only when more than one herdr session runs. A click opens the session list.
+- The tab bar, while the sidebar is hidden.
+- On the right: the eye (Activity, ⌘.), ⌘ (the command palette) and `+` (new
+  tab).
+
+The eye is `eye`, and `eye.fill` while Activity is on. It has a dot badge:
+amber when an agent needs you, else green when a finish is not seen yet.
+
+Each title-row button and each card header button shows a tooltip after the
+pointer rests on it for 0.5 s: a small glass label with the action's name and
+its shortcut as keycap chips, for example "New Tab ⌘T". It fades in over
+0.13 s.
+
+The window title is "‹tab title› - ‹session›", so the Window menu and Mission
+Control show it.
+
+## Tab bar
+
+The tab bar is in the title row while the sidebar is hidden. While the sidebar
+is shown, the tabs are its rows under each workspace (D45). One capsule per
+herdr tab (D42).
+- **Track.** A capsule 34 pt tall sits behind the tabs. It is hidden when the
+  workspace has one tab.
+- **Width.** All tabs share one width: the space less the 1 pt gaps, divided
+  by the count, at most 220 pt and at least 64 pt. Below 64 pt the bar scrolls
+  sideways, with edge fades (8 pt leading, 16 pt trailing), and keeps the
+  selected tab in view. The setting **Tabs fill the bar** removes the 220 pt
+  limit.
+- **After a close**, the widths stay as they were while the pointer stays in
+  the bar, so the next × is under the pointer. They settle when the pointer
+  leaves.
+- **Dividers.** 1 pt wide, the tab height less 18 pt tall, centered between
+  tabs. A divider next to the selected, a lit or the hovered tab is hidden. They
+  fade over 0.2 s.
+- **Selection.** One marker follows the strip as it scrolls, so it sits
+  between two capsules while the strip is between their pages. Its radius is
+  half its height, at most 16.5 pt. A click, ⌘1…⌘9 or a key step moves it with
+  Rex's spring (stiffness 520, damping 46). Reduce Motion makes it jump. Glass
+  draws it as a Liquid Glass capsule, Classic as a plain raised pill.
+- **Hover.** The hovered tab gets the hover fill over 0.14 s.
+- **Content.** The tab's program icon stack (up to 5 icons, the keyboard
+  card's in front, [Program icons](/docs/ui/program-icons)), the title, and
+  one status slot.
+- **Title.** One line. When it does not fit, its end fades out over 16 pt; it
+  never shows an ellipsis. The folder part is in secondary text. The title is
+  herdr's tab label. When the label is herdr's default (a bare number), the
+  title is the keyboard card's program and folder, for example "zsh ~" (D65).
+- **Status slot.** × on the selected tab and on the hovered one (a 22 pt hit
+  area, hidden when the tab is narrower than 52 pt). Otherwise three working
+  dots, on every tab with a working agent except the selected one. Needs you
+  and finished are badges on the front icon
+  ([Theme and accessibility](/docs/ui/theme-and-accessibility#status)).
+- **Announcement.** When a tab that is not selected turns to needs you or
+  finished, its front icon bounces once and its title shows "‹agent› needs
+  you" or "‹agent› finished" for 3 s. A long text scrolls once (30 pt/s)
+  instead of fading. Reduce Motion turns the bounce off.
+- **Context menu** on a capsule and on a sidebar tab row: Rename Tab, Move Tab
+  Left, Move Tab Right, Close Tab, Close Other Tabs. Close Other Tabs asks once,
+  with the total pane count. Rename puts a text field in place of the title:
+  Enter saves, Esc cancels.
+- **Keycap hints.** If the user holds ⌘ for 0.7 s while the window is key,
+  each of the first nine tabs (capsules, or the rows of the selected workspace)
+  shows a keycap "⌘1"… over its icon. They fade in over 0.13 s and out over
+  0.1 s when ⌘ is released.
+- Drag a capsule to reorder the tabs ([Drag and drop](/docs/ui/drag-and-drop)).
+- Rest the pointer on a capsule to see the [hover card](#hover-card).
+
 ## Sidebar
 
-Flat on the frosted window background, with no panel (D44).
+Flat on the window background, with no panel (D44).
 - Middle: the machine pages, swiped sideways. Each page starts with the
   machine's name in a small line.
 - Below them, fixed: page dots (one per machine, clickable).
-- Bottom, fixed: the status area
-  ([Status area and notifications](/docs/status#status-area-and-notifications)),
-  then a Filter field, New Workspace and Add Machine.
+- Bottom, fixed: a Filter field, New Workspace and Add Machine.
+- While Activity is on, the sidebar lists [Activity](#activity) instead of
+  the machine page.
+- **Width.** 240 pt by default. Drag the 6 pt handle at the trailing edge to
+  resize it between 227 and 480 pt. The width is kept per device. During the
+  drag the strip keeps its pages whole.
 
 A machine is one herdr session ([machine](/docs/reference/glossary)). The
 machine page of a non-default session on this Mac is named
 "This Mac · ‹session›".
 
-**v0 (D44, D45).** One machine page, the Filter field and New Workspace. Machine
-pages, agent rows and the status area come later.
+**Now.** One machine page, the Filter field, New Workspace and Add Remote Host
+(a placeholder). Machine pages and agent rows come later.
 
 ## Machine page
 
 - herdr's workspaces, in herdr's order, as section headers, with their tabs
-  as rows (icon tile, label, status glyph). The selected tab is a raised pill
-  (D45).
-- Later a workspace also lists its agent panes (icon, name, status glyph and
-  word), and a collapsed workspace shows how many of its agents need you.
+  as rows.
+- **Rows.** 30 pt tall, 2 pt apart: the icon stack (up to 3 icons), the title
+  and the status slot. The selected tab is a raised pill, radius 10 (D45).
+- **Sticky headers.** A workspace header stays at the top while its tabs
+  scroll under it. 18 pt fades show at the top and bottom of the list when
+  content is under them.
+- **Collapse.** A chevron collapses a section (it turns over 0.18 s). A
+  collapsed workspace shows the number of its agents that need you, in the
+  needs-you color, and the working dots when one works. The collapse state is
+  kept per device.
+- **Header actions.** On hover, a `+` at the trailing end makes a new tab in
+  that workspace, in the folder of its keyboard card (or `$HOME`). The header's
+  context menu: New Tab, Rename Workspace, Move Up, Move Down, Close Workspace.
+  Close Workspace always asks, with the tab and pane count.
+- **Rename.** A double-click on a workspace or tab title puts a text field in
+  its place: Enter saves, Esc cancels.
+- Drag rows and headers to reorder them
+  ([Drag and drop](/docs/ui/drag-and-drop)).
+- Later a workspace also lists its agent panes (icon, name, status), and the
+  collapsed count covers them.
 - Clicking a workspace selects it in the app only
   ([Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own)).
 
-## Tab bar
+## Activity
 
-The title-bar row, while the sidebar is hidden; while it is shown, the tabs
-are its rows under each workspace (D45). One capsule per herdr tab; one glass marker
-follows the strip as it scrolls, so it sits between two capsules while the strip
-is between their pages. A click on a capsule scrolls the strip there, and the
-marker moves the same way.
-- Each capsule shows the icon of the pane last selected in that tab (the
-  first pane if none), and the tab label with the folder part dimmed.
-- Each capsule has one status slot. It shows one glyph, in this order of
-  priority: × while the pointer is over the tab, then ▲ when an agent needs
-  you, then ✓ when one finished and you have not seen it, then ◔ while one
-  works. The ◔ glyph does not animate.
-- `+` makes a new tab.
-- The window title is the selected tab's label, so the Window menu and Mission
-  Control show it.
+The list of agents that need you, finished or work (D61). The eye, ⌘. or
+View ▸ Show Activity turns it on and off.
+- With the sidebar shown, the sidebar lists Activity instead of the tabs. With
+  the sidebar hidden, the same list is a floating glass panel under the eye,
+  320 pt wide and at most 480 pt tall. Esc closes the panel.
+- One section per workspace. One row per agent pane that needs you or has a
+  finish not seen yet, and the working ones while **Show working agents** (the
+  list's footer toggle) is on.
+- **Row.** 44 pt: the program tile, the title (the agent's name, else the tab
+  title) and a status capsule on the right: "Needs you" (amber), "Done"
+  (green) or "Working" (blue), text in the color on a 0.15 fill of it. The
+  second line has the tab label in secondary text and the age on the right
+  ("now", "3m", "2h"), counted from the time the app saw the change.
+- **Order.** Needs you, then done, then working; newest first inside each.
+  Rows do not move while the pointer is over the list.
+- A click selects the workspace and tab and gives that pane the keyboard, so
+  the finish is seen.
+- With nothing to show: "Nothing needs you".
+
+How it works: [Activity and notifications](/docs/status#activity-and-notifications).
+
+## Hover card
+
+A peek at what runs in a tab (D63).
+- **When.** The pointer rests 0.25 s on a title-bar capsule, a sidebar tab row
+  or an Activity row. The card stays while the pointer moves into it (0.15 s
+  grace). It goes when the pointer leaves, on a click elsewhere, on a scroll,
+  and with Esc. One card at a time, and none during a drag.
+- **Where.** Centered 6 pt under a capsule, or 6 pt right of the sidebar edge
+  for a row. It stays inside the window.
+- **Look.** A glass panel, radius 12, at most 280 pt wide. It fades and grows
+  in from 0.97 over 0.13 s.
+- **Content**, top to bottom:
+  - The tab title (folder part dimmed) and the tab's status capsule, if any.
+  - A minimap of the tab's splits, 56 pt tall: each card a small rounded
+    rect (radius 2, 2 pt gap), the keyboard card in the accent color. Hidden
+    for a tab with one pane.
+  - One row per pane, at most 6 and then "+N more": the program glyph, the
+    program or agent name, the folder in secondary text, and the status
+    capsule or the working dots on the right.
+  - For a pane that needs you: the last 3 non-empty lines of its screen, in
+    secondary monospaced text. The app reads them with `pane.read` when the
+    card opens, one call per such pane, and shows nothing if the read fails.
+- A click on a pane row selects the workspace and tab and gives that pane the
+  keyboard. A click on the title selects the tab.
+- VoiceOver: the card is a popover with the rows as buttons. A tab's action
+  "Show Panes" opens it.
 
 ## Strip
 
 - One page per tab, full width, paged.
-- Inside a page, pane cards follow herdr's split tree. Drag a divider to
-  resize. Double-click a divider to reset it to 0.5. ⌃⌘= makes every split in
-  the tab equal.
-- Cards without keyboard focus are slightly dimmed.
+- Inside a page, pane cards follow herdr's split tree, with an 8 pt gap
+  between them. The gap is the divider: drag it to resize (a grip shows on
+  hover), double-click it to reset it to 0.5, and ⌃⌘= balances the tab.
+- Cards without the keyboard fade (D64). Layout changes animate.
+
+How it works: [Layout and sizing](/docs/layout).
 
 ## Pane card
 
-- Each card has a thin header: kind icon, title, the view switch, zoom and
-  close. The view switch is chat|term on agents and terminals, plugin|term on
-  plugin panes, and none on web pages. Plugin and web cards also have
-  **Refresh**, which loads the card again from the machine
+- **Card.** Radius 10. It fades in over 0.2 s when its terminal's first frame
+  arrives.
+- **Header.** 36 pt tall: the program glyph, the title (herdr's pane label if
+  set, else the program) and the folder in secondary text. On the trailing
+  side, four 22 pt buttons, 2 pt apart: Split Right, Split Down, Zoom and
+  Close. Zoom is disabled when the tab has one pane.
+- On macOS the buttons show on the keyboard card and on a hovered card. On iOS
+  they always show.
+- Agent and terminal cards also have a chat|term view switch, plugin panes a
+  plugin|term switch. Plugin and web cards also have **Refresh**, which loads
+  the card again from the machine
   ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
-- On macOS the header controls show on hover. On iOS they always show. Every
-  card action is also in the card's context menu and the menu bar; the ⌘K
-  palette jumps to tabs, workspaces and sessions, and gets card actions later
-  (D48).
+- **Show pane headers** (a setting, on by default). When it is off, the card
+  is all content, and its actions stay in the context menu, the menu bar and
+  the palette.
+- **Context menu** on the header and on the card's edge (inside the terminal,
+  the program keeps its own right-click): Split Right, Split Down, Split Left,
+  Split Up, Zoom or Restore, Move to New Tab, Move to Tab ▸ (the workspace's
+  other tabs), Move to New Workspace, Rename Pane…, Close Pane.
+- **Rename Pane** puts a text field in the header. Enter saves the label; an
+  empty name clears it. Labels that start with `oriel:` belong to the app and
+  are not offered for rename.
+- Drag the header to move the pane ([Drag and drop](/docs/ui/drag-and-drop)).
 - Close asks first unless the pane runs only its shell.
+- ⌘-click on a link in a terminal opens it in the default browser, `http` and
+  `https` only.
+
+## Find bar
+
+⌘F opens the find bar on the keyboard card.
+- A small glass bar at the card's top right, 8 pt in: the field, the match
+  count ("3 of 12"), ↑ and ↓ buttons, and ×. One bar per card.
+- ⌘G or Enter goes to the next match, ⇧Enter to the previous one. Esc closes
+  the bar.
+- The text comes from herdr and the search is case blind. A match scrolls
+  herdr's viewport into view and gets a highlight. Closing the bar scrolls back
+  to the bottom. herdr's viewport is shared, so a herdr TUI on the same pane
+  scrolls too.
+
+How it works: [Scrolling, queries and links](/docs/talking-to-herdr#scrolling-queries-and-links).
 
 ## Pane card in chat view
 
@@ -82,10 +238,58 @@ How the messages, the reply box and the key buttons work:
 - The zoom button, a double-click on the header, or ⇧⌘↩ zooms a card. It
   fills its tab's page in the strip, as if it were the only pane. Only the
   zoomed card resizes; the others stay, hidden, at their size.
+- A zoomed card shows only two buttons: Restore (white on an accent circle)
+  and Close.
 - A split from the zoomed card restores the layout first, so the new pane
   shows.
-- The same button or ⇧⌘↩ restores the layout. Esc is not used, because the
-  program in the pane needs it.
+- Restore or ⇧⌘↩ restores the layout. Esc is not used, because the program in
+  the pane needs it.
+
+## Notice
+
+A short message after a failed action or a refused move.
+- A capsule at the bottom center of the strip, 30 pt above its bottom: glass,
+  a leading symbol in a tone color (red for an error, amber for a warning,
+  blue for information), the text, an optional action button (for example
+  "Retry") and ×.
+- It goes after 4 s.
+
+## Command palette
+
+⌘K, ⇧⌘P or the title-bar ⌘ button opens it (D48).
+- 480 pt wide. The search field says "Search commands, tabs and sessions…".
+- **Rows.** 28 pt: a symbol, the title, and on the right the shortcut in
+  secondary glyphs, or › for a row that opens a sub-page. The selected row is
+  an accent pill, radius 8.
+- **Sections.** With an empty field: the five commands run last (kept in
+  memory), then the page's items. Then Commands, Tabs, Workspaces and Sessions.
+- **Footer.** Under a hairline, keycap chips: "↩ Run", "⎋ Close", and "⌫ Back"
+  on a sub-page.
+- **Matching.** Fuzzy, in the order of the typed letters, over titles and
+  keywords: "split" finds Split Right, "dark" finds Appearance ▸ Dark. On a
+  tie, commands come before tabs, and shorter titles first.
+- **Sub-pages.** ⌫ on an empty field or Esc goes back one page; Esc on the
+  first page closes the palette.
+  - Change Session ›: the sessions, running ones first.
+  - Rename Tab ›, Rename Workspace ›, Rename Pane ›: the field holds the
+    current name; Enter saves.
+  - Move Pane to Tab ›: the workspace's tabs, New Tab and New Workspace.
+  - Go to Directory › (⇧⌘G): a folder browser that starts in the keyboard
+    card's folder. → or Enter goes into a folder, ← goes up, ⌘↩ chooses the
+    shown folder. Choosing types `cd -- '‹path›'` and Return into the card.
+    Enabled only when the card runs only its shell.
+  - Insert Path › (⌃⌘I): the same browser with files too. Choosing types the
+    shell-quoted path at the cursor, without Return.
+  - Appearance › and Interface Style ›: a row highlighted for 0.75 s previews
+    on the window. Enter keeps it; Esc restores the old one.
+  - Font Size ›, Cursor Style ›.
+- **Settings as commands.** Each on/off setting is one command whose title
+  says what it does now: "Turn On Focus Follows Mouse" or "Turn Off Focus
+  Follows Mouse".
+
+The palette and the menu bar come from one command list, so each title and
+shortcut is written once
+([Keyboard shortcuts](/docs/ui/theme-and-accessibility#keyboard-shortcuts)).
 
 How it works: [Layout and sizing](/docs/layout),
 [Zoom is the app's own](/docs/layout#zoom-is-the-apps-own),

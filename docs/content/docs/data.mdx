@@ -27,22 +27,25 @@ One rule decides where each new thing goes (D57):
 | This Mac's sessions (macOS) | herdr | `herdr session list` |
 | Remote machines: target, session, label, id | app, disk | `UserDefaults` (on macOS the add sheet offers `herdr machine list`) |
 | iOS SSH key and pinned host keys | app, disk | Secure Enclave, Keychain |
-| Display preferences, pill settings | app, disk | `UserDefaults` |
-| Window restore ids (machine, workspace, tab), sidebar expand state | app, disk | `@SceneStorage` |
+| Settings: appearance, interface style, tab, pane, terminal and notification options ([Settings](/docs/ui/settings)); pill settings | app, disk | app storage (`UserDefaults`) |
+| Sidebar width | app, disk | app storage (`UserDefaults`) |
+| Window restore ids (machine, workspace, tab), sidebar shown or hidden, collapsed workspace sections | app, disk | `@SceneStorage` |
 | Plugin code and source record | app, disk | `Application Support/Oriel/plugins/` |
 | Plugin consent and This Mac answers | app, disk | `UserDefaults` |
 | Plugin preferences | app, disk | `UserDefaults`, passwords in the Keychain |
 | Approved web origins per machine, the web safe list | app, disk | `UserDefaults` |
 | Web cookies | WebKit | one data store per machine |
-| Zoomed card, chat or terminal per pane, seen values, drafts | app, per device | memory |
+| Zoomed card, keyboard card per tab, chat or terminal per pane, drafts | app, per device | memory |
+| Seen values and the time of each status change (Activity), program icons, recent palette commands, a divider's ratio while it is dragged | app, per device | memory |
 | ControlMaster sockets, port forwards | app | `~/Library/Caches/oriel/` (macOS), while running |
 
 `<session>` is the herdr session name. `$HOME` is the machine's home folder;
 commands start there, so paths are relative to it.
 
 <Callout title="Nothing the app saves describes herdr's state">
-The only exception is the window restore ids. A restore id that is gone falls
-back to herdr's focused workspace. A fresh install on a new device rebuilds
+The only exceptions are the window restore ids and the collapsed sections. A
+restore id that is gone falls back to herdr's focused workspace; a collapsed
+workspace that is gone is forgotten. A fresh install on a new device rebuilds
 every workspace, tab, pane, web page and plugin pane from
 herdr's labels and the machines' state files
 ([State and restore](/docs/plugins/state)).

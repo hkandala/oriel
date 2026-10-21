@@ -1,22 +1,44 @@
 ---
 title: "Drag and drop"
-description: "Moving panes by dragging their header"
+description: "Moving panes by dragging their header, and reordering tabs and workspaces"
 ---
 
-Drag a card by its header:
+## Panes
+
+Drag a card by its header (the title area, not its buttons) by 4 pt or more.
+With pane headers hidden, hold ⌥ and drag the card's edge.
 
 <DropZones caption="Center: a card in the same tab only. Edges: a card in another tab." />
 
-| Drop on | Result |
-|---|---|
-| the center of a card in the same tab | swap the two panes |
-| an edge of a card in another tab | split there |
-| a tab capsule (hold to page to it) | move into that tab |
-| a workspace in the sidebar | new tab in that workspace |
-| empty sidebar space | new workspace |
+- **Preview.** A snapshot of the card (its header and the top of its
+  content) at half size follows the pointer. The card in place dims to 0.4.
+- **Indicator.** A rounded rect (radius 10) filled with the accent color at
+  0.2, with a 2 pt accent stroke. It moves between targets over 0.12 s.
 
-- The card menu has the same moves (**Move to ▸**). That is the
-  only path on iPhone.
-- A pane cannot move to another machine. Inside one tab only swap is offered.
+| Drop on | Indicator | Result |
+|---|---|---|
+| the center third of a card in the same tab | the whole card | swap the two panes |
+| an edge band (the outer quarter) of a card in another tab | that half of the card | split there |
+| a tab capsule or a sidebar tab row | the capsule or row lit | move into that tab, split right |
+| the empty end of the tab track, or `+` | a ghost capsule at the end | new tab in this workspace |
+| a workspace header in the sidebar | the header lit | new tab in that workspace |
+| empty sidebar space | a ghost row "New Workspace" | new workspace |
+
+- **Spring-loading.** Hold over a capsule or row for 0.65 s: that tab is
+  selected, the strip pages there and the capsule pulses once (to 1.04 over
+  0.2 s). Then drop on a card there.
+- Inside one tab only swap is offered. A pane cannot move to another machine.
+- One write per drop, then the snapshot. If herdr refuses or changes nothing,
+  its reason shows in the notice.
+- Esc cancels a drag. A failed write leaves the layout as herdr has it.
+- The card's context menu has the same moves (Move to New Tab, Move to Tab ▸,
+  Move to New Workspace). That is the only path on iPhone.
+
+## Tabs and workspaces
+
+- Drag a title-bar capsule or a sidebar tab row to reorder the tabs of its
+  workspace. The others slide apart over 0.22 s. A tab cannot move to another
+  workspace, because herdr moves tabs only inside one.
+- Drag a sidebar section header to reorder the workspaces.
 
 How it works: [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls).

@@ -1,0 +1,77 @@
+---
+title: "Settings"
+description: "The Settings window: every setting, its default and its tab"
+---
+
+Settings is the native macOS Settings window, opened with Oriel ▸ Settings…
+or ⌘, (D62). It has four tabs, each a grouped form, about 560 pt wide. Each
+setting is one key in app storage, per device
+([Data](/docs/data#every-piece-of-data)). Settings that are not on this page
+do not exist.
+
+Each on/off setting is also a command in the palette, with a title that says
+what it does now, for example "Turn On Focus Follows Mouse" (D48).
+
+## General
+
+| Setting | Choices | Default |
+|---|---|---|
+| Appearance | Auto, Light, Dark (segmented) | Dark |
+| Interface Style | Glass, Classic (two cards, each with a small picture) | Glass |
+| Tabs fill the bar | on, off: off caps title-bar tabs at 220 pt | off |
+
+Appearance and Interface Style are also in View ▸ Appearance and View ▸
+Interface Style
+([Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style)).
+
+## Panes
+
+| Setting | Choices | Default |
+|---|---|---|
+| Show pane headers | on, off | on |
+| Fade inactive panes | on, off | on |
+| Fade panes in inactive windows | on, off | on |
+| Autobalance splits | on, off: balance the tab after each split | off |
+| Focus follows mouse | on, off | off |
+
+What they do: [Pane card](/docs/ui/window#pane-card),
+[Fade](/docs/layout#fade), [Dividers](/docs/layout#dividers),
+[Moving the keyboard](/docs/layout#moving-the-keyboard).
+
+## Terminal
+
+| Setting | Choices | Default |
+|---|---|---|
+| Font | the installed monospaced fonts | the system monospaced font |
+| Font size | 8 to 32 pt (also ⌘+, ⌘-, ⌘0) | 13 |
+| Cursor style | Block, Bar, Underline | Block |
+| Blinking cursor | on, off | on |
+| Option key acts as Alt | Off, Both, Left, Right | Off |
+| Copy on select | on, off | off |
+
+- A change applies to every terminal at once, without opening its stream
+  again. A new font or size changes each card's grid, so the PTYs resize once,
+  0.3 s after the last change.
+- With Option as Alt on, an Option chord on a letter or digit goes to the
+  program as Alt and that key, for the chosen side. ⌥← and ⌥→ always move by
+  word.
+
+## Notifications
+
+| Setting | Needs you | Finished |
+|---|---|---|
+| Notify | on | on |
+| Badge the Dock icon | on | off |
+| Play a sound | off | off |
+
+| Setting | Choices | Default |
+|---|---|---|
+| Show working agents in Activity | on, off (the same toggle as the list's footer) | off |
+
+What they do: [Activity and notifications](/docs/status#activity-and-notifications).
+
+## Later
+
+The pills, the web safe list and plugin preferences add their settings when
+they are built ([Floating pills](/docs/ui/pills),
+[Web page](/docs/plugins/web-page), [Plugins](/docs/plugins)).

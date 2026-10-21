@@ -31,8 +31,9 @@ Each item says what it is and when to build it. Smaller deferrals are marked
 
 ## Machines and multiplexers
 
-- **More multiplexers.** Rex ([superlogical.com](https://www.superlogical.com))
-  and tmux, as more implementations of the
+- **More multiplexers.** Rex ([superlogical.com](https://www.superlogical.com)),
+  designed in [Rex as a second multiplexer](/docs/rex-backend), and tmux, as
+  more implementations of the
   [`Multiplexer` interface](/docs/architecture#the-multiplexer-interface).
 - **OSC 7501** (the Program Status Protocol, a terminal escape sequence that a
   program sends to report its status;
@@ -43,7 +44,7 @@ Each item says what it is and when to build it. Smaller deferrals are marked
   ships it, show its `message` on ▲ and ✓ rows and in notifications, and say
   "failed" for `error`. Another multiplexer's
   implementation may parse OSC 7501 itself where the app owns the terminal
-  bytes ([Status](/docs/status#status-area-and-notifications)).
+  bytes ([Status](/docs/status#activity-and-notifications)).
 - **A small server helper** behind the same `run` and `dial` calls: one program
   of ours per machine that carries every call on one SSH channel. Build it only
   when one of these is real:

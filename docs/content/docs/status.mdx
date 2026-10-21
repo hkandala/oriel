@@ -1,38 +1,60 @@
 ---
 title: "Status, notifications and pills"
-description: "The status area, notifications and how the floating pills work"
+description: "Activity, notifications, the Dock and how the floating pills work"
 ---
 
-## Status area and notifications
+## Activity and notifications
 
-- **Status area** (bottom of the sidebar, fixed, all machines): a summary row
-  ("1 working · 1 needs you · 1 finished"; click it to list the working
-  agents) and one row per agent that needs you or has finished and not been
-  seen. Clicking a row selects that machine, workspace, tab and pane.
-- Sidebar rows, tab capsules, the status area and the pills all read
-  `agent_status` and `completion_seq` from the snapshot. No extra calls.
+- Tab capsules, sidebar rows, Activity, the hover card, notifications, the
+  Dock and the pills all read `agent_status` and `completion_seq` from the
+  snapshot. No extra calls.
 - Status comes only from the multiplexer's API (D55), never from
   [OSC 7501](/docs/reference/glossary) ([Future work](/docs/future-work)).
 - **"Finished, not seen"** = `completion_seq` in `snapshot.agents[]` is not
   null and differs from the value this device recorded as seen. How "seen"
   works: [Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own).
+- Each pane is working, needs you, finished (not seen) or nothing. A tab and a
+  workspace show the strongest state of their panes: needs you, then finished,
+  then working.
+- Each change carries the time the app saw it. Activity shows its age from
+  that time.
+
+### Activity
+
+The Activity view replaces a fixed status area (D61). The eye button in the
+title row, ⌘. or View ▸ Show Activity shows it, in the sidebar or as a popup.
+It lists the agent panes that need you or finished and are not seen, and the
+working ones on request. A click on a row selects that machine, workspace,
+tab and pane, so the finish is seen. The look is in
+[Main window: Activity](/docs/ui/window#activity).
 
 ### Notifications
 
 The app makes notifications itself, from snapshot changes:
-- The status becomes `blocked`: "codex needs you · infra".
-- `completion_seq` changes to a new non-null value: "pi finished ·
-  api-server", unless the user is looking at that pane.
+- A pane's status becomes `blocked`: "codex needs you", with "‹workspace› ·
+  ‹tab›" as the body.
+- `completion_seq` changes to a new non-null value: "pi finished", with the
+  same body, unless the user is looking at that pane.
+- The app posts them only while it is not active or the pane is not shown.
 - The first snapshot after app launch never notifies. After a reconnect,
   changes against the last known state do notify.
 - The id is `"<machine>|<terminal_id>"`, so a newer notification replaces
   the older one. It is removed when the pane is seen.
+- A click opens the app at that pane.
+- Settings ▸ Notifications has, for needs you and for finished: Notify (on),
+  Badge the Dock icon (on for needs you, off for finished) and Play a sound
+  (off) ([Settings](/docs/ui/settings)).
 
 ### macOS
 
 - `UNUserNotificationCenter`. Its delegate is set at launch, so a click that
   starts the app is not lost.
-- The Dock badge shows the number of agents that need you.
+- **Dock badge:** the number of panes that need you, plus the finishes not
+  seen while that setting is on.
+- **Sounds:** one system sound per status, "Funk" for needs you and "Glass"
+  for finished, off by default.
+- **Dock menu:** a row per pane that needs you or finished ("codex needs you ·
+  infra"; a click selects it), a separator, then New Tab.
 - While the pill is on screen, notifications are posted as `.passive`
   (Notification Center, no banner). The exception is when VoiceOver or Switch
   Control is on, because those users cannot reach the pill.
@@ -89,7 +111,7 @@ The look and behavior are in [Floating pills (macOS)](/docs/ui/pills).
   or opening a pill card does not mark an agent seen. **Mark seen**, a reply
   or **Open in app** does.
 - **Accessibility:** each glyph and row has a label ("codex, needs you,
-  infra") and an Open action. The pill is never the only path. The status
-  area, notifications and the Dock badge remain.
+  infra") and an Open action. The pill is never the only path. Activity,
+  notifications and the Dock badge remain.
 - Simpler choices: no dragging, no notch placement, no global hotkey, no
   per-workspace pills. Revisit each one when users ask for it.

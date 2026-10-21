@@ -38,10 +38,13 @@ before writing code. In short:
 
 ## SwiftUI and look
 
-- Dark theme only, frosted (D44, `docs/content/docs/ui/theme-and-accessibility.mdx`): the
-  window background is one behind-window `NSVisualEffectView` under a dark tint (the only
-  blur bridge to AppKit); pane cards are translucent with a hairline border; the sidebar sits flat on
-  the window background; Liquid Glass on the tab marker and the session list.
+- Appearance Auto, Light or Dark, and interface style Glass or Classic (D44,
+  `docs/content/docs/ui/theme-and-accessibility.mdx`). Views draw only with the one `Look`
+  token type in `Style.swift`, read from the environment; no color literal outside it, no
+  theme engine.
+- Glass: the window background is one behind-window `NSVisualEffectView` under a tint (the
+  only blur bridge to AppKit). Classic: an opaque window background, no blur. Pane cards are
+  never glass.
 - Use the system glass APIs (`glassEffect`, `glassEffectID`, `GlassEffectContainer`). No
   other custom blur.
 - Every control and region an e2e test touches has an `accessibilityIdentifier`

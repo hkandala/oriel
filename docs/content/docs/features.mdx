@@ -15,22 +15,38 @@ on one page.
   connected at once. herdr on the Mac is needed only for This Mac.
 - A sidebar page per machine. Swipe the sidebar sideways to switch machines,
   like Arc's spaces. The whole window follows.
-- Workspaces expand to show their agents, each with its agent icon and a
-  status glyph: **◔ working, ▲ needs you, ✓ finished**.
-- A status area at the bottom of the sidebar: a summary ("1 working · 1 needs
-  you · 1 finished") and a row per agent that needs you or has finished and
-  not been seen, across all machines.
+- Workspaces are sections with their tabs (and later their agents) as rows. Collapse a section, rename
+  it in place, add a tab from its header, reorder or close it. A collapsed
+  workspace shows how many of its agents need you.
+- The sidebar resizes from 227 to 480 pt and keeps its width.
+- **Activity** (the eye button, ⌘.): the agents that need you or finished and
+  that you have not seen, and the working ones on request, in the sidebar or a
+  popup.
 
 ## Tabs and panes
 
 - A strip of tabs: each herdr tab is one page. Swipe sideways through them.
   The tab bar lights every tab whose page is visible and selects the tab when
   the swipe stops. The window title follows the selected tab.
-- Panes follow herdr's split layout. Drag a divider to resize it, or
-  double-click it to reset it to half. ⌃⌘= makes all splits equal.
+- Rex's tab bar: equal-width capsules on a track, a sliding selection, titles
+  that fade instead of cutting off, × on hover, a context menu, rename in
+  place, drag to reorder, and ⌘1…⌘9 keycaps when you hold ⌘.
+- Program icons: each tab shows a stack of the icons of the programs in its
+  panes, with three working dots and badges for **needs you** and
+  **finished**.
+- The hover card: rest on a tab to see its splits and panes, and the last
+  lines of an agent that needs you. Click a pane to go to it.
+- Panes follow herdr's split layout. Drag a divider to resize it, double-click
+  it to reset it to half, or use ⌃⌘ and the arrows. ⌃⌘= balances all splits.
+- Split in four directions, move between cards and swap them with the keys,
+  rename a pane, move it to another tab or workspace from its context menu.
+- Cards without the keyboard fade. Layout changes animate.
 - Zoom a pane to fill the window, then return.
 - Drag a pane to swap it, split it into another tab, or move it to another
   workspace.
+- Find in a pane (⌘F), and ⌘-click links.
+- A command palette (⌘K) with every command and its shortcut, sub-pages for
+  renames, sessions, appearance and folders, Go to Directory and Insert Path.
 
 ## Pane kinds
 
@@ -50,8 +66,9 @@ on one page.
   box and buttons to answer a blocked prompt.
 - Paste an image into an agent, terminal or chat reply box: the app copies it
   to the pane's machine and pastes its path.
-- Notifications when an agent needs you or finishes. The Dock badge shows the
-  number of agents that need you.
+- Notifications when an agent needs you or finishes, with a setting per
+  status for the banner, the Dock badge and a sound. The Dock badge shows the
+  number of agents that need you; the Dock menu lists them.
 - Floating pills (macOS): while you work in another app, a small black pill on
   the screen edge shows a glyph per agent. A blocked or finished agent opens a
   small pill card with its output and a reply box. One click opens the main
@@ -64,8 +81,13 @@ on one page.
 - iPhone shows one pane per page, opens agents in chat, and has a key bar for
   terminals.
 
-## Look
+## Look and settings
 
-- Dark only, frosted: the desktop shows softly through the window,
-  translucent pane cards float on it, the sidebar sits flat, and Liquid Glass
-  is only on the tab marker, popovers and the palette.
+- Light, dark or Auto, in two styles: Glass (the desktop shows softly through
+  the window) and Classic (an opaque window). Pane cards float on the window
+  as translucent cards, the sidebar sits flat, and glass is only on the
+  Glass style's tab marker and on floating panels.
+- Our own program icons, from open-license sets.
+- A Settings window with a few settings: appearance, panes, the terminal font,
+  size and cursor, and notifications.
+- Folders dropped on the Dock icon open a new workspace there.

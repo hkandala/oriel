@@ -1,66 +1,136 @@
 ---
 title: "Theme and accessibility"
-description: "Dark theme, status colors, VoiceOver, keyboard paths, text size and the keyboard shortcuts"
+description: "Appearance, interface style, status colors, VoiceOver, keyboard paths, text size and the keyboard shortcuts"
 ---
 
-## Theme
+## Appearance and interface style
 
-- Dark only, frosted (D44). The window background is a dark-tinted
-  behind-window blur, so the desktop shows through softly. Pane cards are
-  translucent dark with a hairline border and float on it. The sidebar sits
-  flat on the window background. The tab marker, popovers and the palette use Liquid Glass.
-- Terminals use a dark palette. Web pages are told `prefers-color-scheme:
-  dark`. iOS uses the same look.
-- The status glyphs, words and colors are the same everywhere (sidebar, tabs,
-  status area, pills, notifications):
+Two settings decide the look (D44). Both are in View ▸ Appearance, View ▸
+Interface Style, Settings ▸ General and the palette.
+- **Appearance:** Auto (follows macOS), Light or Dark. Dark is the default.
+- **Interface style:** Glass or Classic. Glass is the default.
+  - Glass: the window background is a behind-window blur under a tint, so
+    the desktop shows through softly. The selected tab and sidebar row are
+    Liquid Glass capsules.
+  - Classic: an opaque window with no blur. The selected tab and row are
+    plain raised pills.
+- In both styles the sidebar sits flat on the window background, and pane
+  cards are translucent fills with thin edges, never glass. Popovers, the
+  palette, the hover card, the Activity panel, the find bar, notices and
+  tooltips use the system glass.
+- Pane cards have a 10 pt radius. The 8 pt gap between cards is the one fixed
+  layout size.
 
-  | Glyph | Word | Color | herdr status |
-  |---|---|---|---|
-  | ◔ | working | blue | `working` |
-  | ▲ | needs you | amber | `blocked` |
-  | ✓ | finished | green | finished and not yet seen by this device |
+One token table in `Style.swift` holds every color the views draw, per style
+and appearance, with values measured from Rex and tuned by eye. In short:
 
-  Idle agents show no glyph. The ◔ glyph does not animate, so the tab bar,
-  sidebar and pills do not redraw all the time.
+| Token | Glass | Classic |
+|---|---|---|
+| Window background | behind-window blur + a tint at 0.5 (`#1e1e1e` dark, white light) | opaque `#1e1e1e` dark, `#f6f6f6` light |
+| Card fill | white 0.04 dark, 0.10 light; a step brighter on the keyboard card | white 0.035 dark, 0.6 light; a step apart on the keyboard card |
+| Card edges | a thin inner rim and a 1 pt outer stroke; a light shadow in light | a 0.7 pt outer stroke; a light shadow in light |
+| Hover and pressed fill (rows, tabs, buttons) | white 0.05 and 0.08 in dark, black in light | the same |
+| Tab track | white 0.05 in dark, black 0.05 in light | the same |
+| Selected tab and row | Liquid Glass capsule | a raised pill with a fine stroke |
+
+Terminals keep a transparent background, so the card shows through. Their
+text uses one light and one dark palette (libghostty-spm's defaults), which
+follow the appearance. A change updates every terminal without opening its
+stream again. Web pages are told the current `prefers-color-scheme`. There are
+no other themes.
+
+## Status
+
+The status words and colors are the same everywhere (tabs, sidebar rows,
+Activity, the hover card, pills, notifications):
+
+| Shown as | Word | Dark | Light | herdr status |
+|---|---|---|---|---|
+| three working dots | working | `#58a6ff` | `#0667d8` | `working` |
+| an amber badge on the program icon | needs you | `#d29922` | `#9d5c00` | `blocked` |
+| a green badge on the program icon | finished | `#3fb950` | `#116329` | finished and not yet seen by this device |
+
+- **Working dots.** Three dots, 3.5 pt, in a 14 pt box. Each dot's opacity
+  goes 0.3 → 0.85 → 0.3 over 1.2 s, each dot 0.2 s after the one before. The
+  clock drives them, so every tab is in step, and they draw at 15 frames a
+  second or less, only while visible.
+- **Badges.** A 7 pt dot on the top right of the front program icon, with a
+  1.5 pt ring in the background color.
+- In Activity and the hover card, status is a capsule: the word in the color,
+  on a 0.15 fill of it.
+- Idle agents show nothing.
 
 ## Accessibility
 
-- Status is always a glyph plus a word, never color alone. VoiceOver reads,
-  for example, "codex, needs you, infra".
+- Status is never color alone. Every dot and badge carries its word, and
+  VoiceOver reads, for example, "codex, needs you, infra".
 - A terminal card gives VoiceOver its screen text. The app reads it with
   `pane.read {source:"visible", format:"text"}` when VoiceOver asks for it.
   New output is announced politely (it does not interrupt speech).
-- Keyboard focus moves in this order: sidebar, tab bar, cards (left to right,
-  then top to bottom). ⌥⌘→ and ⌥⌘← move to the next or
-  previous element. A terminal keeps Tab for itself.
-- Every card action can be reached from the keyboard (the menu bar; the ⌘K
-  palette gets them later, D48). Every swipe has
-  a keyboard path, a menu path and a button. Hover controls are also in
-  context menus and the menu bar.
+- ⌥⌘ and an arrow moves the keyboard between cards. Keyboard focus in the
+  chrome follows Full Keyboard Access. A terminal keeps Tab for itself.
+- Every card action can be reached from the keyboard, through the menu bar and
+  the palette (D48). Every swipe has a keyboard path, a menu path and a
+  button. Hover controls are also in context menus and the menu bar.
+- Each divider is an adjustable element: "Divider between ‹a› and ‹b›", with
+  the ratio as a percent ([Dividers](/docs/layout#dividers)).
 - On iOS, the app's chrome and the chat view follow Dynamic Type.
-- The terminal font size follows the app's text size setting.
-- Reduce Motion turns off page animations (the strip jumps to a clicked
-  tab) and the pill's slide. Reduce Transparency is handled by the system glass.
+- The terminal font size is the app's text size: 13 pt by default, 8 to 32,
+  with ⌘+, ⌘- and ⌘0 ([Settings](/docs/ui/settings)).
+- Reduce Motion stops the working dots (three still dots at 0.6), makes the
+  tab selection and the strip jump, and turns off the icon bounce, the layout
+  motion and the pill's slide.
+- Reduce Transparency is handled by the system glass. Classic is an opaque
+  window for users who want no blur at all.
 
 ## Keyboard shortcuts
 
-| Keys | Action |
-|---|---|
-| ⌃⌥1 … ⌃⌥9 | switch machines |
-| ⌘1 … ⌘9 | switch tabs |
-| ⇧⌘[ and ⇧⌘] | previous and next tab |
-| ⌘T | new tab, in the keyboard card's directory |
-| ⇧⌘N | new session |
-| ⌘D | split |
-| ⌘W | close the pane (asks first unless the pane runs only its shell) |
-| ⇧⌘W | close the window |
-| ⇧⌘↩ | zoom or unzoom the card |
-| ⌘K | the command palette: jump to a tab, workspace or session (card actions later, D48) |
-| ⌃⌘ + arrow | move the nearest divider |
-| ⌃⌘= | make every split in the tab equal |
-| ⌥⌘← and ⌥⌘→ | move keyboard focus |
+The palette and the menu bar come from one command list, so each shortcut is
+defined once. A command with two shortcuts has a hidden second menu item.
+
+| Keys | Action | Menu |
+|---|---|---|
+| ⌘, | Settings | Oriel |
+| ⌘T | new tab, in the keyboard card's folder | File |
+| ⇧⌘N | new session | File |
+| ⇧⌘G | Go to Directory (in a card that runs only its shell) | File |
+| ⌘W | close the pane (asks first unless the pane runs only its shell) | File |
+| ⌥⌘W | close the tab (asks) | File |
+| ⇧⌘W | close the window | File |
+| ⌃⌘I | Insert Path | Edit |
+| ⌘F | find in the keyboard card | Edit |
+| ⌘G, or Enter in the find bar | next match (⇧Enter: previous match) | Edit |
+| ⌘K and ⇧⌘P | the command palette | View |
+| ⌘. | show or hide Activity | View |
+| ⌃⌘S | show or hide the sidebar | View |
+| ⌘D, ⇧⌘D | split right, split down | View ▸ Pane |
+| ⇧⌘↩ | zoom or restore the card | View ▸ Pane |
+| ⌃⌘= | balance the splits of the tab | View ▸ Pane |
+| ⌥⌘ + arrow | give the keyboard to the nearest card that way | View ▸ Pane |
+| ⌘[ and ⌘] | previous and next card | View ▸ Pane |
+| ⌥⇧⌘ + arrow | move the keyboard card that way | View ▸ Pane |
+| ⌃⌘ + arrow | resize the keyboard card by 5 % | View ▸ Pane |
+| ⌘+ (and ⌘=), ⌘-, ⌘0 | bigger, smaller, actual text size | View |
+| ⌃⌘F | full screen | View |
+| ⌘1 … ⌘9 | switch tabs | Window |
+| ⇧⌘[ and ⌃⇧⇥, ⇧⌘] and ⌃⇥ | previous and next tab | Window |
+| ⌃⇧PgUp, ⌃⇧PgDn | move the tab left, right | Window |
+| ⌃⌥1 … ⌃⌥9 | switch machines | Window |
+| hold ⌘ for 0.7 s | keycap hints on the first nine tabs | |
+
+New Workspace, Close Workspace, Change Session, and Previous and Next Session
+have no shortcut. In the palette: ↩ runs, ⎋ goes back or closes, ⌫ on an empty
+field goes back. In the folder browser: → or ↩ goes in, ← goes up, ⌘↩ chooses.
+
+Rex shortcuts not taken, and why:
+- ⌘K stays the palette (D48), so Change Session has no shortcut (it is ⌘K in
+  Rex). ⇧⌘P also opens the palette for Rex users.
+- ⌘N (new window) is not used: one main window (D34).
+- ⌘/ (sidebar) is not used: ⌃⌘S is the macOS sidebar key.
+- ⌘R (refresh) is not needed: the snapshot is live.
+- Find Previous has no shortcut: ⇧⌘G is Go to Directory.
 
 Plugins cannot claim these keys.
 
 How it works: [Platform and code](/docs/platform),
-[Status area and notifications](/docs/status#status-area-and-notifications).
+[Activity and notifications](/docs/status#activity-and-notifications).

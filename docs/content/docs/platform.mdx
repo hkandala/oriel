@@ -69,16 +69,19 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
 - If the toolbar squeezes the item ([spike S2](/docs/build-order#s2-tab-bar)),
   the window hides its title bar and the tab bar sits at the top of the
   detail column with `WindowDragGesture`.
-- Each capsule has one status slot: × on hover, else ▲, else ✓, else ◔. The
-  ◔ glyph is static, so the bar does not redraw while agents work.
-- The window title (`navigationTitle`) is the selected tab's label.
-- Reference for this Rex-like behavior:
-  [gorex](https://github.com/hkandala/oriel/blob/main/resources/research/clients/gorex.md)
-  (capsule tabs, the status slot order, the static working glyph, the window
-  title). gorex is not a reference for the glass API: it draws everything with
-  its own Metal renderer and uses no Apple glass, so spike S2 stays open.
-- Glass only on the tab marker, popovers and the palette (D44); the sidebar sits flat on the
-  frosted window, pane cards are translucent on it, and pills are opaque.
+- Each capsule has one status slot: × on the selected or hovered tab, else
+  the working dots. The dots are one `TimelineView` at 15 frames a second or
+  less, driven by the clock and drawn only while visible; needs you and
+  finished are badges on the icon (D42).
+- The window title (`navigationTitle`) is "‹tab title› - ‹session›".
+- Reference for this Rex-like behavior: the Rex study
+  ([`rex-ui.md`](https://github.com/hkandala/oriel/blob/main/resources/research/clients/rex-ui.md)),
+  then [gorex](https://github.com/hkandala/oriel/blob/main/resources/research/clients/gorex.md).
+  Neither is a reference for the glass API, so spike S2 stays open.
+- One `Look` token value per style and appearance draws every surface (D44).
+  Glass is only on the Glass style's tab marker and sidebar pill, popovers,
+  the palette and floating panels; the sidebar sits flat on the window, pane
+  cards are translucent on it, and pills are opaque.
 
 ## Other details
 

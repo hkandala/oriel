@@ -247,30 +247,49 @@ handshake fails, it exits 1 with the reason on stderr.
   app uses a pinned libghostty-spm build with uHerdr's response-suppression
   patch (`suppressesTerminalResponses`). [Spike S1](/docs/build-order#s1-strip)
   checks it.
-- **Links** in terminal output open on this device, and only `http` or
-  `https`.
+- **Find** (⌘F) reads the pane's recent text with
+  `pane.read {source:"recent", lines: 5000, format:"text"}` when the bar opens
+  and 0.3 s after each edit, and searches it on the device. Next and previous
+  scroll herdr's shared viewport with `pane.scroll`, so a herdr TUI on the
+  same pane scrolls too.
+- **Links** in terminal output open on this device with ⌘-click, and only
+  `http` or `https`.
 
 ## Writes are herdr calls
 
 | User action | herdr call |
 |---|---|
 | New workspace | `workspace.create {cwd, label}` |
-| New tab | `tab.create {workspace_id, cwd}`, with the cwd of the selected pane |
-| Split | `pane.split {target_pane_id, direction: right or down, ratio, cwd}` |
+| Folder dropped on the Dock icon | `workspace.create {cwd}`, one per folder |
+| New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a section header's `+`, that workspace's keyboard card, or `$HOME` |
+| Split right or down | `pane.split {target_pane_id, direction: right or down, ratio, cwd}` |
+| Split left or up | `pane.split` right or down, then `pane.swap` of the old and the new pane (herdr splits only right and down) |
+| Autobalance after a split (setting) | then one `layout.set_split_ratio` per split, as for ⌃⌘= |
 | Drag a divider | `layout.set_split_ratio {tab_id, path, ratio}` on release; ratio kept in 0.1–0.9 |
 | Double-click a divider | `layout.set_split_ratio` with ratio 0.5 |
-| Make splits equal (⌃⌘=) | one `layout.set_split_ratio` per split; ratio = leaves on the first side ÷ all leaves under the split |
+| Balance splits (⌃⌘=) | one `layout.set_split_ratio` per split; ratio = leaves on the first side ÷ all leaves under the split |
 | Swap two panes (same tab) | `pane.swap {source_pane_id, target_pane_id}` |
+| Move the keyboard card (⌥⇧⌘ + arrow) | `pane.swap {pane_id, direction}` |
+| Move to New Tab (card menu) | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
+| Move to Tab ▸ (card menu) | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
+| Move to New Workspace (card menu) | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
 | Drop on an edge of a pane in another tab | `pane.move {pane_id, destination:{type:"tab", tab_id, split, target_pane_id}}`; for left or top, then `pane.swap` |
-| Drop on a tab capsule | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
+| Drop on a tab capsule or sidebar tab row | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
+| Drop on the tab track's empty end or `+` | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Drop on a sidebar workspace | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Drop on empty sidebar space | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
-| Reorder tabs or workspaces | `tab.move` / `workspace.move` |
+| Move Tab Left or Right, drag a tab | `tab.move {tab_id, insert_index}`, inside its workspace only |
+| Move Up or Down, drag a workspace | `workspace.move {workspace_id, insert_index}` |
 | Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`); web and plugin panes close at once (known by their label), and the app removes their [state file](/docs/plugins/state#the-instance-state-file) |
 | Close a tab or workspace | `tab.close` / `workspace.close`; always asks, with the pane count |
-| Rename | `tab.rename` / `workspace.rename` |
+| Close Other Tabs | one `tab.close` per other tab; asks once, with the total pane count |
+| Rename a tab or workspace | `tab.rename` / `workspace.rename` |
+| Rename a pane | `pane.rename {pane_id, label}`; an empty name clears the label; `oriel:` labels are not offered |
+| Go to Directory (⇧⌘G) | `pane.send_input` of `cd -- '‹path›'` and Return, only when the pane runs only its shell |
+| Insert Path (⌃⌘I) | `pane.send_input` of the shell-quoted path, no Return |
+| Find next or previous (⌘F) | `pane.scroll {pane_id, offset_from_bottom}` to the match; offset 0 when the bar closes |
 | Start an agent | [agent.start steps](/docs/plugins/terminal-and-agent#agent) |
-| Keyboard resize (⌃⌘ + arrow) | `pane.resize {pane_id, direction, amount}` |
+| Keyboard resize (⌃⌘ + arrow) | `pane.resize {pane_id, direction, amount: 0.05}` on the keyboard card |
 
 - No close can be undone.
 - Every create and move passes `focus:false`, so herdr's focus never moves.
@@ -280,7 +299,8 @@ handshake fails, it exits 1 with the reason on stderr.
 - After its own write, the app reads the snapshot at once and keeps the drag
   preview until the snapshot arrives. It never patches its own state by hand.
 - `pane.swap` makes herdr focus that tab and mark it seen. The herdr TUI does
-  not jump. Accepted, because a swap only follows a drag.
+  not jump. Accepted, because a swap only follows a drag, a split left or up,
+  or a key the user pressed.
 
 What it looks like: [Main window](/docs/ui/window),
 [Drag and drop](/docs/ui/drag-and-drop),

@@ -1,0 +1,68 @@
+---
+title: "Program icons"
+description: "Where program icons show, how a pane gets its icon, when the app asks herdr, and the icon catalog"
+---
+
+Every pane, tab and row shows the icon of the program that runs in it (D60).
+
+## Where icons show
+
+| Place | Look |
+|---|---|
+| Title-bar tab capsule | a stack of up to 5 tiles, one per pane |
+| Sidebar tab row | a stack of up to 3 tiles |
+| Card header | the glyph alone, 16 pt, in secondary color, then the program's name and the folder |
+| Hover card, Activity rows | the pane's tile or glyph |
+| Palette rows for tabs | the front tile of the tab's stack |
+
+- **Tile.** A rounded rect, 22 × 18 pt, radius 5, in the catalog's tile
+  color, with the glyph at about 13 pt in the catalog's glyph color, a 1 px
+  dark outline and a faint highlight at the top.
+- **Stack.** The keyboard card's icon is in front. Each tile behind sits 4 pt
+  to the right of the one in front, with a 1 px ring in the background color,
+  so the stack reads as layers.
+- **Badges.** Needs you and finished show as a dot on the front tile
+  ([Status](/docs/ui/theme-and-accessibility#status)).
+- In the card header, herdr's pane label wins over the program's name when
+  it is set.
+
+## How a pane gets its icon
+
+The first match wins:
+1. herdr's agent kind for the pane (`agent`, or `display_agent`).
+2. The foreground process from `pane.process_info`: its name, then the base
+   name of `argv0`, then the end of a script path for programs that run
+   under `node` or `bun` (for example `pi`).
+3. The first word of the terminal title (`terminal_title_stripped`).
+4. A shell, or nothing known: the `terminal` icon. An unknown program gets a
+   neutral tile with the program's first letter.
+
+A login shell's leading `-` (`-zsh`) is removed before matching. The
+catalog's `match` field holds the values for each step.
+
+## When the app asks herdr
+
+The app asks for the foreground process with one `pane.process_info` call,
+only at these times:
+- the first time a pane shows in a card;
+- 1 s after the user presses Return in that card;
+- when a snapshot shows that the pane's terminal title or agent changed.
+
+There is no polling. The result stays on the pane in the `HostStore`, so the
+views only read it.
+
+## The catalog
+
+- `resources/icons/` in the repository holds the icons: `svg/` (one SVG per
+  program), `catalog.json` (id, name, match values, tile colors, source and
+  license of each icon) and `SOURCES.md` (the source of each file and the
+  license texts).
+- 106 icons, all under open licenses: Simple Icons (CC0), Lobe Icons
+  (MIT), Lucide (ISC), Devicon (MIT), a few from the programs' own
+  repositories (MIT, Apache-2.0) and a few drawn for Oriel (CC0).
+- Every glyph uses the current color so the app can tint it, except `jj`,
+  which keeps its colors. Brand marks belong to their owners and only name the
+  program.
+- No icon art comes from Rex. The app's credits list the icon sources.
+
+How it works: [herdr calls](/docs/reference/herdr-calls).

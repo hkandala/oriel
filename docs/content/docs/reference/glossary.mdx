@@ -17,10 +17,17 @@ description: "The words these docs use"
 | tab capsule | one tab in the tab bar |
 | lit tab | a tab whose page is visible in the strip |
 | pane card | how the app draws one herdr pane: a header plus content |
+| keyboard card | the card that gets typed keys, one per tab; the app's own choice, never herdr's focus |
+| program icon | the icon of the program that runs in a pane, from Oriel's own catalog; a tab shows a stack of them |
+| hover card | the panel that shows a tab's splits and panes when the pointer rests on the tab |
+| Glass / Classic | the two interface styles: a window with a behind-window blur / an opaque window |
+| Appearance | Auto, Light or Dark |
 | pill / pill card / peek | the floating status capsule on the Mac screen edge / the small window for one agent next to it / a pill card that slides out by itself without taking the keyboard |
-| status area | the fixed list of agents that need you or finished, at the bottom of the sidebar |
+| Activity | the list of agents that need you, finished (not seen) or work, shown in the sidebar or a popup with the eye button or ⌘. |
 | OSC 7501 | the Program Status Protocol: an escape sequence a program writes to its terminal to report idle, working, blocked, done or error. herdr does not read it yet; the app reads status only from herdr |
-| status glyph, status word | ◔ working (blue), ▲ needs you (amber), ✓ finished (green) |
+| working dots | three dots that pulse in step on every tab while an agent works (blue) |
+| badge | a small dot on a program icon or button: amber when an agent needs you, green when a finish is not seen |
+| status word | working (blue), needs you (amber), finished (green); always next to a dot or badge for VoiceOver |
 | seen | this device has shown the agent's last finish to the user |
 | PTY | the pseudo-terminal a shell runs in; it has one size |
 | frame | one message of ANSI bytes from `terminal session` |

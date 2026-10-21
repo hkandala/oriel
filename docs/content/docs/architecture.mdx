@@ -39,7 +39,7 @@ interface and the app's own model types, never herdr's JSON or argv.
 | Agent status | per agent pane: working, needs you, idle, and a finish counter | `agent_status`, `completion_seq`, [Status](/docs/status) |
 
 Agent status comes only from the interface, never from escape sequences in
-the app's terminal surfaces (D55, [Status](/docs/status#status-area-and-notifications)).
+the app's terminal surfaces (D55, [Status](/docs/status#activity-and-notifications)).
 
 In code, `Multiplexer` lives in `HerdrKit` (`Multiplexer.swift`) next to its
 only conformer, `HerdrClient`. It has only what the app uses today: the session

@@ -9,6 +9,12 @@ Frame-by-frame write-ups:
 [`ONE.md`](https://github.com/hkandala/oriel/blob/main/resources/inspirations/ONE.md)
 (One). The gorex study is in
 [`gorex.md`](https://github.com/hkandala/oriel/blob/main/resources/research/clients/gorex.md).
+The Rex study (build 1327, October 2026) is in
+[`rex-ui.md`](https://github.com/hkandala/oriel/blob/main/resources/research/clients/rex-ui.md)
+and
+[`rex-server.md`](https://github.com/hkandala/oriel/blob/main/resources/research/clients/rex-server.md),
+with screenshots in
+[`rex-app/`](https://github.com/hkandala/oriel/tree/main/resources/inspirations/rex-app).
 
 ## Cube Computer: a sidebar and a sideways strip
 
@@ -26,15 +32,18 @@ strip. Web pages sit next to terminals as equals.
 ![Rex: finished badge on a background tab](/inspirations/rex-status-04-background-tab-done-badge.jpg)
 ![Rex: tab thumbnails](/inspirations/rex-peek-02-tab-peek-live-thumbnails.jpg)
 
-*Top: a finished badge on a background tab. Bottom: live tab thumbnails.*
+*Top: a finished badge on a background tab. Bottom: live tab thumbnails in an earlier Rex build (build 1327 has none).*
 
-Capsule tabs with app icons. A tab shows when its program is working and when
-it has finished. Unfocused splits are dimmed. The chrome is minimal and dark.
+Capsule tabs with program icons. A tab shows when its program is working,
+needs you or has finished. Unfocused splits fade. The chrome is minimal, in
+light or dark, Glass or Classic. Oriel copies Rex's layout, sizes, timings and
+behavior, but none of its files: no icon art, themes, materials or code.
 
 ## gorex: a Rex-like app with readable source
 
 [gorex](https://github.com/egoist/gorex) is an open-source copy of Rex,
-written in Go. It is our **reference implementation for Rex-like behavior**:
+written in Go. It was our first **reference for Rex-like behavior**, before
+we studied Rex itself; where they differ, Rex wins:
 capsule tabs, a card split tree where the 8 pt gap is the divider, header
 controls on hover, dimmed unfocused cards, one status slot per tab
 (× on hover > ▲ > ✓ > ◔), a working glyph that does not animate, a double-click
@@ -67,12 +76,13 @@ swipe on the sidebar. No image here.
 | From | We take |
 |---|---|
 | Cube | the sideways strip of tab pages; tabs lit while visible; web pages as panes; a sidebar tree with kind icons |
-| Rex | status inside the tab; × on hover; dimmed unfocused panes; glass on chrome only |
-| gorex | the tab status slot order; a static working glyph; double-click a divider to reset it; ⌃⌘= to make splits equal; the window title from the selected tab |
+| Rex | the tab bar (track, equal widths, dividers, sliding selection, fading titles, × on hover, keycap hints); program icon stacks with working dots and status badges; the Activity view, notifications and the Dock badge; the hover card; the sidebar (sizes, sticky collapsible sections, rename in place); pane headers, buttons, fade and context menus; divider keys and balance; drag and drop timings; the command palette with sub-pages; Auto, Light and Dark, Glass and Classic; the Settings window; find in a pane; empty states and notices |
+| gorex | double-click a divider to reset it; a grip on hover; ⌃⌘= to make splits equal; the window title from the selected tab |
 | Arc | one sidebar page per machine, swiped sideways |
 | One | the edge pill with a glyph per agent; a card with the agent's output and a reply box |
 
-Rex shows the wallpaper softly through its window, and so do we (D44).
+In its Glass style Rex shows the wallpaper softly through its window, and so
+does Oriel's Glass style (D44).
 
 ## Lessons from existing herdr clients
 
