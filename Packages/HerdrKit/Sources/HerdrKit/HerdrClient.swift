@@ -35,7 +35,7 @@ public enum Update: Sendable {
 
 /// Talks to one herdr session: requests over `remote-api-bridge`, one events stream, paced snapshots.
 public actor HerdrClient {
-    public nonisolated let session: String
+    nonisolated let session: String
     nonisolated let herdr: String
     nonisolated let exec: any Exec
     nonisolated let timeout: Duration
@@ -105,7 +105,7 @@ public actor HerdrClient {
     }
 
     /// Checks that the server answers and is new enough.
-    public nonisolated func ping() async throws {
+    nonisolated func ping() async throws {
         let pong: Pong = try await call("ping")
         // Leading digits per part, so 0.9.4-rc1 counts as 0.9.4.
         let numbers = { (version: String) in
