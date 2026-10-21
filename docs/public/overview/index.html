@@ -796,15 +796,15 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
     </ul>
   </details>
   <details><summary>The bridge</summary>
-<pre><code>oriel.run(argv)          → runs a command on the pane's machine (needs the "run" permission)
+<pre><code>oriel.run(argv)          → runs a command on the pane's machine
 oriel.dial(host, port)   → a TCP stream to host:port, as seen from that machine</code></pre>
-    <p class="muted">Also on <code>window.oriel</code>: the pane context, <code>setArg</code>, instance state, the snapshot, preferences, toasts, a confirmed <code>open</code> and clipboard copy. The page is served from the app (<code>oriel-plugin://&lt;id&gt;/</code>).</p>
+    <p class="muted">Also on <code>window.oriel</code>: the pane context, <code>setArg</code>, instance state, a "snapshot changed" event (no snapshot data: a plugin that needs herdr data uses <code>run</code>), and preferences. The app never pushes into the page: it sends events only as replies to the page's own bridge calls (the page awaits the next event). To open a link, a plugin uses a normal <code>target=_blank</code> link or <code>window.open</code> on a click, and the app asks first; to copy, it uses <code>navigator.clipboard.writeText</code>. The page is served from the app (<code>oriel-plugin://&lt;id&gt;/</code>).</p>
     <p class="muted">Every pane kind uses the same two calls: the web page's <code>localhost</code> is a <code>dial</code>, Git history is a <code>run</code> of <code>git</code>. Full detail → <a href="https://oriel-docs.vercel.app/docs/plugins/api">Plugin API</a>.</p>
   </details>
   <details><summary>Install and updates</summary>
     <ul>
       <li>Plugins live in the app (<code>Application Support/Oriel/plugins/</code>). Install from a git URL, or link a local folder for live reload with Safari Web Inspector. The app runs no build step.</li>
-      <li>Updates are checked daily and applied when the user presses Update; new permissions ask again.</li>
+      <li>Updates are checked daily and applied when the user presses Update.</li>
       <li>Cards suspend off screen.</li>
       <li>Preferences are per device (passwords in the Keychain).</li>
     </ul>
@@ -833,11 +833,11 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
   </details>
   <details id="plugin-security" open><summary>Security</summary>
     <ul>
-      <li><b>One web view per card, bound to its pane's machine.</b> <code>run</code> and <code>dial</code> go only there. A content rule and a Content Security Policy keep the page to its own files and scripts. Plugin code runs only while its card is alive; off screen, its calls pause.</li>
+      <li><b>One web view per card, bound to its pane's machine.</b> <code>run</code> and <code>dial</code> go only there. A content rule and a Content Security Policy keep the page to its own files and scripts (no inline script, no <code>eval</code>; inline styles are allowed). Plugin code runs only while its card is alive; off screen, its calls pause.</li>
       <li><b>Honest about <code>run</code>:</b> a plugin with it can do anything you can do on that machine, including network tools and programs that keep running. The consent sheet says so.</li>
-      <li><code>open(url)</code> (after a confirm sheet) and the clipboard work only while the app is dispatching your click or key press to that card. This is enforced in Swift.</li>
-      <li><b>One permission, <code>run</code>.</b> Finer rules ("only git") would not hold, so none are offered.</li>
-      <li><b>Consent at install</b>, keyed by plugin id and source, in plain words: the plugin can run any command as you on the machine of every one of its panes (including ones others created), use the network from there and leave programs running; on This Mac that includes your files, SSH keys and connections to other machines. Again on a new permission. One more confirm on a plugin's first <code>run</code> or <code>dial</code> on This Mac, also keyed by id and source. The sheet is headed by the plugin id and source URL, not only the plugin's own title.</li>
+      <li><b>Open and copy go through WebKit.</b> A <code>target=_blank</code> click or a <code>window.open</code> from a click reaches the app, which shows a confirm sheet and opens the address itself; without a click WebKit blocks <code>window.open</code>. WebKit allows <code>navigator.clipboard.writeText</code> only during a click or key press. The app never runs script in a plugin page, because WebKit treats such script as a user action.</li>
+      <li><b>No permissions field.</b> Every plugin gets <code>run</code> and <code>dial</code>. Finer rules ("only git") would not hold, so none are offered.</li>
+      <li><b>Consent at install</b>, keyed by plugin id and source, in plain words: the plugin can run any command as you on the machine of every one of its panes (including ones others created), use the network from there and leave programs running; on This Mac that includes your files, SSH keys and connections to other machines. One more confirm on a plugin's first <code>run</code> or <code>dial</code> on This Mac, also keyed by id and source. The sheet is headed by the plugin id and source URL, not only the plugin's own title.</li>
       <li>Core plugin ids are reserved. An id resolves core first, then a linked folder, then an installed plugin.</li>
       <li>A machine can write labels, so it can open any installed plugin on itself, which gives it only what the plugin does on that machine.</li>
       <li>iOS v1 ships only the core plugins (terminal, agent, web, Git history, Diff, Markdown). Your own plugins on iOS are future work.</li>
@@ -951,8 +951,8 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     <table><tr><th>Need</th><th>Choice</th></tr>
       <tr><td>Terminal drawing</td><td><code>libghostty-spm</code>, exact pin, with the response-suppression patch</td></tr>
       <tr><td>SSH</td><td>system <code>ssh</code> on macOS; <code>Citadel</code> 0.12.1 on iOS</td></tr>
-      <tr><td>Plugin runtime</td><td>a WebKit web view per card, with the plugin's own page</td></tr>
-      <tr><td>Web pages · Markdown</td><td>SwiftUI <code>WebView</code> · <code>AttributedString(markdown:)</code></td></tr></table>
+      <tr><td>Plugin runtime</td><td><code>WKWebView</code> with a <code>WKUIDelegate</code>, one per card, with the plugin's own page</td></tr>
+      <tr><td>Web pages · Markdown</td><td>the same <code>WKWebView</code> (SwiftUI's <code>WebView</code> drops <code>window.open</code>) · <code>AttributedString(markdown:)</code></td></tr></table>
     <p>One test target checks decoding, the tree rebuild, the lit-tab math, the label parser, the remote command envelope (bash, zsh, fish), the state-file write, the state cleanup, the plugin bridge's machine binding, and the transcript parsers.</p>
   </details>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/platform">Platform and code</a></p>
