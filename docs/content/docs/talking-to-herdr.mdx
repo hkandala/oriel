@@ -88,7 +88,8 @@ the work. A later server helper would sit behind the same two calls
 - Long-lived streams (events, terminals, chat tails) have no timeout. The 30 s
   `ping` checks them.
 - Cost: 18 ms median and 130 ms at p95 per call (measured locally), plus the
-  network round trip. Keystrokes never take this path. Simpler choice: the
+  network round trip. Text typing never takes this path (special keys do:
+  [Terminal plane](#terminal-plane)). Simpler choice: the
   bridge, not the local socket. Revisit when a profile shows the cost hurts:
   talking to the local socket directly takes 0.5 ms.
 
@@ -154,7 +155,16 @@ herdr terminal session control <terminal_id> --cols C --rows R [--takeover]
 ```
 
 herdr draws the pane at our size and sends ANSI updates. A libghostty surface
-draws them. Keys go back as `terminal.input`.
+draws them. Input takes two paths:
+- Text (typing, IME, paste, plain Enter, Tab and Backspace) goes on the
+  stream as `terminal.input`.
+- Special keys (arrows, Esc, function keys, keys with modifiers, Ctrl
+  chords, and the macOS line-editing keys such as ⌘← and ⌥←) go as
+  `pane.send_keys`, one bridge call per burst. Their bytes depend on the
+  program's input modes, and herdr encodes them for those modes. Keys that
+  pile up during a call go in the next one, in order with the text.
+
+One path is [Future work](/docs/future-work).
 
 ### What streams
 

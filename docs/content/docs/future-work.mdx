@@ -58,6 +58,11 @@ Each item says what it is and when to build it. Smaller deferrals are marked
 
   Plugins, labels and state files stay the same when it comes. Research:
   [`remote-plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/remote-plugins.md).
+- **Keys on the terminal stream.** Ask herdr to accept named keys on
+  `terminal.input` (`{"type":"terminal.input","keys":["up"]}`), encoded as
+  `pane.send_keys` does. Then all input takes one path, with no bridge call
+  per key burst, which matters over SSH
+  ([Terminal plane](/docs/talking-to-herdr#terminal-plane)).
 - iOS jump hosts (Citadel has `jump(to:)`).
 
 ## Notifications and chat
