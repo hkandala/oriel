@@ -40,7 +40,10 @@ description: "The words these docs use"
 | chat tail | the long-lived `tail -F` that reads a transcript |
 | plugin / core plugin | a pane kind beyond terminal, agent and web page: a small web page / one that ships with the app (git history, diff, Markdown) |
 | placeholder | the quiet command a web or plugin pane runs in herdr; cosmetic, the label is the truth |
-| iid | the instance id of a web or plugin pane, kept in its label |
+| iid | the instance id of a web or plugin pane, kept in its label; it names the pane's state file |
+| approval / safe list | a web origin this device opened once on a machine, so it loads without asking there / origins that load without asking: the machine's own `localhost` and `127.0.0.1`, and a built-in list; both are editable in Settings |
+| Refresh | the card header button that reads the snapshot and builds the card again from its label and state file |
+| health check | the per-machine loop that reads `session.snapshot` every 30 s, every 2 s while it fails |
 | askpass | a small program `ssh` runs to ask for a password |
 | `MaxSessions` | OpenSSH's limit of sessions on one connection (10 by default) |
 | spike | a small test build that answers one risky question first |
