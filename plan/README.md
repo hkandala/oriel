@@ -10,6 +10,8 @@ drag and drop (with swapping and moving panes), divider drag, keyboard resize, e
 double-click, renaming and reordering tabs and workspaces, more machines in the sidebar ("Add Remote Host" is
 a placeholder), a text size setting, IME composition tests, and trackpad gestures in e2e (checked by hand).
 
+**Next: UI polish (phases 10–19)**, see [UI polish](#ui-polish-phases-1019) below.
+
 The working plan for the first app code. The design lives in `docs/content/docs/` and wins
 on any conflict, except where this file narrows the scope for v0.
 
@@ -96,6 +98,56 @@ JSON. That seam is where remote machines and iOS plug in later.
 | 6 | Hardening and v0 wrap-up | [phases/06-hardening.md](phases/06-hardening.md) |
 
 Rules for working: [rules.md](rules.md). Coding standards: [standards.md](standards.md).
+
+## UI polish (phases 10–19)
+
+The request (from the user, structured): give Oriel every interface feature that Superlogical's Rex
+app has and that works with herdr, built now even where the design put it in a later step. Rex was
+reverse engineered for this (`resources/research/clients/rex-ui.md`, `rex-server.md`, screenshots in
+`resources/inspirations/rex-app/`). In short:
+
+1. Rex's look and behavior for the tab bar, sidebar, pane cards, dividers, palette and states, with
+   Rex's sizes and timings.
+2. Light and dark (and Auto), and two interface styles: Glass and Classic. No other themes, no
+   compact density.
+3. Program icons from our own SVG set (`resources/icons/`, open licenses), stacked per tab, with
+   status badges.
+4. Agent activity: working dots, needs-you and finished badges, the Activity view, notifications,
+   the Dock badge.
+5. The hover card (peek), keycap hints, tooltips with keys.
+6. Pane resizing, balancing, moving with keys, context menus, drag and drop.
+7. A Settings window with a few basic settings.
+8. Rex as a multiplexer is **not** built: it is future work (`docs/content/docs/rex-backend.mdx`).
+   No tab tear-off, no several windows.
+
+The full list of what is built and what is left out, feature by feature, is
+[ui-polish.md](ui-polish.md). Each phase updates the design pages it changes.
+
+| # | Phase | File |
+|---|---|---|
+| 10 | Appearance (Auto, Light, Dark) and interface style (Glass, Classic) | [phases/10-appearance.md](phases/10-appearance.md) |
+| 11 | Settings window and terminal options | [phases/11-settings.md](phases/11-settings.md) |
+| 12 | Program icons | [phases/12-program-icons.md](phases/12-program-icons.md) |
+| 13 | Tab bar and sidebar | [phases/13-tabs-and-sidebar.md](phases/13-tabs-and-sidebar.md) |
+| 14 | Agent activity, notifications and the Dock | [phases/14-activity.md](phases/14-activity.md) |
+| 15 | Pane cards and layout | [phases/15-panes-and-layout.md](phases/15-panes-and-layout.md) |
+| 16 | Drag and drop | [phases/16-drag-and-drop.md](phases/16-drag-and-drop.md) |
+| 17 | Hover card and tooltips | [phases/17-hover-card.md](phases/17-hover-card.md) |
+| 18 | Command palette and the key map | [phases/18-palette-and-keys.md](phases/18-palette-and-keys.md) |
+| 19 | Find, links, states and finish | [phases/19-find-and-finish.md](phases/19-find-and-finish.md) |
+
+The phases run in this order, one implementer at a time ([rules.md](rules.md)); each builds on the
+tokens and views of the ones before.
+
+Starting an implementer (the orchestrator sends this, with the phase number filled in):
+
+> Implement phase NN of Oriel (`/Users/hkandala/code/oriel`). Read `AGENTS.md`, `plan/README.md`,
+> `plan/rules.md`, `plan/standards.md`, `plan/ui-polish.md`, `plan/phases/NN-*.md` and every page it
+> lists under "Read first", then the ponytail skill. Build the phase with small commits, e2e tests as
+> the phase lists, `make lint build test e2e` green, the design pages updated to match what you built.
+> Use `DERIVED_DATA=/tmp/oriel-dd-<your-name>`, take the GUI lock for GUI work, and only throwaway
+> `oriel-dev-*` / `oriel-e2e-*` herdr sessions. Report what you built, how you tested it, screenshot
+> paths, and findings to add to the phase file.
 
 ## Known risks (check early)
 
