@@ -13,19 +13,22 @@ description: "What a machine is, macOS and iOS connections, the channel budget a
 - On this Mac, each running herdr session is a machine. The `default`
   session is "This Mac". Another session is named "This Mac · ‹session›".
 
-## macOS
+## The machine list
 
-- **The Mac app requires herdr installed on this Mac.** The machine list and
-  `herdr machine add` run through it. Without it, the app shows how to install
-  herdr, and remote machines cannot be added or shown.
-- **The machine list is herdr's.**
-  - This Mac: `herdr session list --json`. The `default` session always shows
-    (even when it is stopped, so the app can say how to start it). Other
-    sessions show while they run.
-  - Remote: the enabled entries of `herdr machine list --json`
-    (`{id, label, target, session, enabled}`).
-  - Machines added in the app also show in the herdr TUI, and the other way
-    round.
+- **The app keeps its own list of remote machines**, on macOS and iOS alike
+  (D54): target, session, label and id, in `UserDefaults`. One code path on
+  both platforms.
+- **This Mac's sessions** come from `herdr session list --json`, when herdr is
+  installed on the Mac. The `default` session always shows (even when it is
+  stopped, so the app can say how to start it). Other sessions show while
+  they run. herdr on the Mac is needed only for these, not for remote
+  machines.
+- **Import from herdr (macOS):** when herdr is on the Mac, the first launch
+  adds the enabled entries of `herdr machine list --json`
+  (`{id, label, target, session, enabled}`). Later, the add-machine sheet
+  offers the entries not yet in the list. The app never writes herdr's list.
+
+## macOS
 - **SSH is the system `ssh`.** The user's `~/.ssh/config`, agent, keys,
   `ProxyJump`, YubiKey and Tailscale SSH work unchanged.
 - **One ControlMaster per host,** started on purpose, once:
@@ -72,7 +75,6 @@ description: "What a machine is, macOS and iOS connections, the channel budget a
   `authorized_keys`.
 - The first connect shows the host key's SHA256 fingerprint and asks. After
   that the key is pinned, and a changed key blocks the connection.
-- The machine list is saved in `UserDefaults`.
 - The phone reaches the Mac like any SSH machine: turn on System Settings ›
   General › Sharing › Remote Login, then add the Mac by its Tailscale or LAN
   name.

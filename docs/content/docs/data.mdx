@@ -13,8 +13,8 @@ description: "What the app stores and what herdr owns"
 | Plugin, pane kind, instance id, argument | herdr | pane label `oriel:<plugin>[/<pane>]#<iid> <arg>` |
 | Plugin instance state | the machine | `$HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json` ([State and restore](/docs/plugins/state)) |
 | Chat history | the agent | its transcript file on the machine |
-| Machines (macOS) | herdr | `herdr session list`, `herdr machine list` |
-| Machines (iOS): target, session, label, id | app, disk | `UserDefaults` |
+| This Mac's sessions (macOS) | herdr | `herdr session list` |
+| Remote machines: target, session, label, id | app, disk | `UserDefaults` (imported once from `herdr machine list` on macOS) |
 | iOS SSH key and pinned host keys | app, disk | Secure Enclave, Keychain |
 | Display preferences, pill settings | app, disk | `UserDefaults` |
 | Window restore ids (machine, workspace, tab), sidebar expand state | app, disk | `@SceneStorage` |
