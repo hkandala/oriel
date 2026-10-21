@@ -65,7 +65,7 @@ feature stays. Only the way it works gets simpler. The user approved every item 
 - **P5. No permissions field:** v1 has one capability (`run`/`dial`) that every plugin has.
   Remove the manifest field, the no-run mode, the bridge check and the
   consent-on-new-permission rule. Install consent stays.
-- **P7. Open and copy through WebKit:** PENDING the WebKit spike (the orchestrator sends the
+- **P7. Open and copy through WebKit** (spike passed). Cards use WKWebView + WKUIDelegate (SwiftUI `WebPage` has no new-window hook). `target=_blank`/`window.open` from a gesture reach the app, which confirms and opens the URL; copy is native `navigator.clipboard` (WebKit requires a gesture). Remove the Swift gesture tracker, bridge `clipboard.copy` and `toast`. The app never pushes into a page with evaluateJavaScript (forced user gesture); app-to-page messages are replies to the page's bridge calls. CSP: `script-src 'self'`, inline styles allowed. Previously:
   result). If it passes: `target=_blank`/`window.open` reach `WKUIDelegate` (confirm sheet),
   copy uses `navigator.clipboard.writeText`; remove the Swift user-gesture tracker and
   `toast`.

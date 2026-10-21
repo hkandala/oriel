@@ -94,7 +94,7 @@ Rules:
   macOS).
 - Each machine's web cards get a content rule that blocks loopback addresses
   except that machine's own forwards.
-- Forwards use no SSH session from the [channel budget](/docs/machines#channel-budget).
+- Forwards use no [SSH session](/docs/machines#ssh-sessions).
   They need `AllowTcpForwarding yes` on the server (the default). If a server
   refuses, the card says so.
 - **Tailscale and LAN addresses** (`http://devbox:3000`) load directly, with

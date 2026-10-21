@@ -47,7 +47,7 @@ Each item says what it is and when to build it. Smaller deferrals are marked
 - **A small server helper** behind the same `run` and `dial` calls: one program
   of ours per machine that carries every call on one SSH channel. Build it only
   when one of these is real:
-  1. **Session budget:** cards show "no session · Retry" because terminals,
+  1. **SSH sessions:** cards show **Retry** because terminals,
      chat tails and plugin calls exceed `MaxSessions` on busy tabs.
   2. **Latency:** a plugin needs many small calls (a file tree, search), and
      users on slow links feel it.
