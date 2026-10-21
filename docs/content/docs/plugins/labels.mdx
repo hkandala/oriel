@@ -46,23 +46,46 @@ instance id (`iid`) lives in it.
 
 ## Create
 
-1. Picker → argument prompt if required → generate the iid.
-2. `pane.split {…, cwd: <source pane's cwd>}` or `tab.create`. A diff split
-   from an agent's pane opens in that agent's repository.
-3. `pane.rename {label: "oriel:<plugin>[/<pane>]#<iid> <arg>"}`.
-4. `pane.report_metadata` with a new `oriel_rev` token, so other devices see the
-   pane at once.
-5. The placeholder. On the next snapshot the app checks with
-   `pane.process_info` that the pane's foreground process is its shell. Only
-   then does `pane.send_input` type the placeholder inside the envelope. It
-   prints the title, the `oriel:<plugin>[/<pane>]#<iid>` marker, the argument and
-   the state file path, then runs `stty raw -echo; exec cat >/dev/null`.
+Web and plugin panes are created the same way (D51).
+
+1. Picker → argument prompt if required → generate the iid (plugin panes).
+2. `layout.apply` without a `tab_id` makes a new tab with one pane. herdr
+   starts the pane with its label and its placeholder command in one call:
+   ```text
+   layout.apply {workspace_id, focus:false,
+                 root:{type:"pane", cwd, label:"oriel:<plugin>#<iid> <arg>",
+                       command:["sh","-c",<script>,"sh",<title>,<arg>]}}
+   ```
+   - `cwd` is the source pane's cwd, so a diff split from an agent's pane
+     opens in that agent's repository.
+   - The script prints the title, the argument and "shown by Oriel", then runs
+     `stty raw -echo; exec cat >/dev/null`. `stty raw` makes Ctrl-C and
+     Ctrl-D plain bytes, so a herdr TUI user cannot end the pane by accident.
+   - herdr runs the argv itself. No login shell, quoting or envelope is
+     involved: the title and argument are plain argv (`"$1"`, `"$2"`).
+3. For a new tab, that is all. For a split, `pane.move {pane_id,
+   destination:{type:"tab", tab_id, split, target_pane_id}, focus:false}` puts
+   the pane in place, and the temporary tab closes itself. For left or top,
+   then `pane.swap`, as for drops.
+
+- Both calls run before this device reads the snapshot, so it never shows the
+  temporary tab. Other devices and a herdr TUI may see it for one snapshot.
+- `pane.created` already carries the label, so other devices draw the card at
+  once.
+
+<Callout title="Never pass tab_id" type="warn">
+`layout.apply` with a `tab_id` replaces the whole tab and kills its panes. The
+app never passes it.
+</Callout>
 
 <Callout title="The label is the truth">
 The placeholder is cosmetic, and the app relies on nothing in it. It shows
-herdr TUI users and devices without the plugin what the pane is, and Ctrl-C
-cannot end it. After a herdr restart the pane returns as a plain shell with
-its label. The card works anyway, and its menu offers **Restore placeholder**
-(type the placeholder command into the shell again). Apart from the
-placeholder, the app never types into a shell by itself.
+herdr TUI users and devices without the plugin what the pane is. The app never
+types into a shell.
+
+After a cold restart herdr brings the pane back as a plain shell with its
+label: it saves the command but runs it again only after a live update. The
+card works anyway. A fix is an upstream ask
+([Future work](/docs/future-work)). If the placeholder process is killed,
+herdr closes the pane.
 </Callout>

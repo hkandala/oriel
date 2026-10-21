@@ -21,29 +21,14 @@ not use addresses that contain secrets (for example a `?token=` URL).
 
 1. The user types an address. A bare `host:port` gets `http://`. Only `http`
    and `https` are accepted.
-2. `pane.split` or `tab.create`, then `pane.rename {label: "web:<url>"}`.
-3. `pane.report_metadata {source: "user:oriel", tokens: {oriel_rev:
+2. `layout.apply` makes the pane with the label `web:<url>` and the
+   placeholder command, then `pane.move` puts it in place
+   ([Create](/docs/plugins/labels#create)). The placeholder prints
+   "web page", the address and "shown by Oriel".
+3. After a later edit of the address, `pane.rename {label: "web:<url>"}`, then
+   `pane.report_metadata {source: "user:oriel", tokens: {oriel_rev:
    "<time>"}}`. A rename sends no event, but a token change sends
-   `pane.updated`, so other devices see the new pane at once. The same call
-   follows every rename.
-4. The placeholder. On the next snapshot the app checks with
-   `pane.process_info` that the new pane's foreground process is its shell.
-   Only then does `pane.send_input` type the placeholder, inside the envelope
-   ([The primitive](/docs/talking-to-herdr#the-primitive)), so it never races
-   the shell's startup:
-   ```sh
-   clear; exec sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh <BASE64>
-   ```
-   It decodes to:
-   ```sh
-   printf 'web page: %s\n(shown by Oriel)\n' '<url>'
-   stty raw -echo; exec cat >/dev/null
-   ```
-   `stty raw` makes Ctrl-C and Ctrl-D plain bytes, so a herdr TUI user cannot
-   end the pane by accident. The line can end up in the shell's history.
-
-The placeholder is cosmetic. It shows herdr TUI users what the pane is. The
-label is the truth: the card works without the placeholder.
+   `pane.updated`, so other devices see the new address at once.
 
 ## Draw
 
@@ -88,7 +73,5 @@ Then it loads `127.0.0.1:<L>`.
 - Page dialogs show as a sheet on the card, labeled with the origin.
 - Plain `http` needs `NSAllowsArbitraryLoadsInWebContent` and
   `NSAllowsLocalNetworking`.
-- After a herdr restart the pane returns as a plain shell with its label, so
-  the page still draws. The card menu has **Restore placeholder** (type the
-  placeholder command into the shell again).
-- If the placeholder process is killed, herdr closes the pane.
+- After a cold restart the pane returns as a plain shell with its label, so
+  the page still draws ([Create](/docs/plugins/labels#create)).
