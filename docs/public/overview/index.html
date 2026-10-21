@@ -527,7 +527,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <li><b>Tab bar:</b> while the sidebar is hidden, the title-bar row shows one capsule per herdr tab, and one glass marker follows the strip as it scrolls. Each capsule has the icon of the pane last selected in it and the tab label (folder part dimmed). One status slot per capsule shows one glyph by priority: × on hover, then ▲, then ✓, then ◔. The ◔ glyph is static (no animation). When tabs overflow, they shrink and their labels fade out. <code>+</code> makes a new tab. The window title follows the selected tab.</li>
       <li><b>Strip:</b> one page per tab. Cards follow herdr's split tree, with an 8 pt gap between cards that is the divider. Double-click a divider to reset it to 0.5; ⌃⌘= equalizes the tab's splits. Each card header has the kind icon, title, view switch (chat|term on agents and terminals, plugin|term on plugin panes, none on web pages), split, zoom and close. Controls show on hover on macOS and always on iOS; every action is also in the context menu, the menu bar and ⌘K. Unfocused cards are slightly dimmed.</li>
       <li><b>Swiping:</b> two fingers on a trackpad, one finger on iOS; pages snap. First visit to a machine shows herdr's focused workspace; later visits show the last one picked.</li>
-      <li><b>Keys:</b> ⌃⌥1…9 machines, ⌘1…9 tabs, ⇧⌘[ ] step, ⌘T new tab, ⌘D split, ⌘W close the pane, ⇧⌘W the window, ⇧⌘↩ zoom, ⌃⌘ + arrow resize, ⌃⌘= equalize, ⌘K card actions.</li>
+      <li><b>Keys:</b> ⌃⌥1…9 machines, ⌘1…9 tabs, ⇧⌘[ ] step, ⌘T new tab, ⌘D split, ⌘W close the pane, ⇧⌘W the window, ⇧⌘↩ zoom, ⌃⌘ + arrow resize, ⌃⌘= equalize, ⌘K the palette (tabs, workspaces, sessions).</li>
       <li><b>Closing:</b> closing a pane asks first unless the pane runs only its shell (no foreground program). Closing a tab or workspace always asks.</li>
     </ul>
     <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/window">Window</a> · <a href="https://oriel-docs.vercel.app/docs/ui/swiping">Swiping</a></p>
@@ -541,7 +541,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <tr><td>empty sidebar space</td><td>new workspace</td></tr></table>
     <ul>
       <li>The card menu has the same moves (Move to ▸); that is the only path on iPhone. A pane cannot move to another machine.</li>
-      <li><b>Zoom:</b> the zoom button, a double-click on the header, or ⇧⌘↩ draws the card over the whole window under the tab bar. The same again restores it. Esc is not used, because the program in the pane needs it.</li>
+      <li><b>Zoom:</b> the zoom button, a double-click on the header, or ⇧⌘↩ makes the card fill its tab's page, as if it were the only pane. The same again restores it. Esc is not used, because the program in the pane needs it.</li>
     </ul>
     <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/drag-and-drop">Drag and drop</a> · <a href="https://oriel-docs.vercel.app/docs/ui/window">Window (zoom)</a></p>
   </details>
@@ -569,7 +569,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <tr><td>herdr older than 0.9.3</td><td>"herdr 0.9.3 or newer is needed"</td></tr>
       <tr><td>herdr newer than the app knows</td><td>a thin banner; the app keeps working</td></tr>
       <tr><td>herdr updated but not restarted</td><td>"Restart herdr on ‹machine›" (terminal streams fail; the API works)</td></tr>
-      <tr><td>herdr server not running on This Mac</td><td>the command to run in a terminal (<code>herdr server</code>, or open herdr); the app does not start it</td></tr>
+      <tr><td>herdr server not running on This Mac</td><td>"‹session› is not running", a <b>Start</b> button (a launchd job) and the command to run in a terminal</td></tr>
       <tr><td>herdr server not running on a remote machine</td><td>a <b>Start herdr</b> button</td></tr>
       <tr><td>SSH auth failed</td><td>ssh's message in plain words</td></tr>
       <tr><td>Host key changed</td><td>the connection is blocked and the fingerprint is shown</td></tr>
@@ -665,7 +665,7 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
   </div>
   <details><summary>Streaming rules and how a stream ends</summary>
     <ul>
-      <li>Streams: the selected tab's panes on the selected machine. During a swipe, neighbor tabs show each card's last image; their streams start when the swipe stops.</li>
+      <li>Streams: the selected tab's panes on the selected machine; the Mac keeps those of recently shown tabs too (about 24 terminals). During a swipe, neighbor tabs show each card's last image; their streams start when the swipe stops.</li>
       <li>The Mac opens <code>control</code> without takeover and watches if refused. iPhone and iPad open <code>observe</code>. Any device takes control (<code>--takeover</code>) on the first key press, paste or tap in the card, or Take back. Nothing else takes control: a watcher stays a watcher until its user acts.</li>
       <li>A Mac that becomes inactive keeps its streams. iOS sends <code>terminal.release</code> when the app goes to the background. A device also releases when it leaves the terminal view (the card leaves the selected tab, or switches to chat).</li>
       <li>Card size ÷ cell size gives cols × rows; the old frame stays until herdr's full frame at the new size arrives. Streams are opened by <code>terminal_id</code>, so they survive moves.</li>
@@ -716,7 +716,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
       <li>After a wake or network change: <code>ping</code> with a 5 s timeout; on timeout <code>ssh -O exit</code> and restart the master.</li>
       <li>Local Network privacy (macOS 15+): the app declares the usage string and opens an <code>NWConnection</code> to a LAN address first, so the system asks once.</li>
       <li>All machines keep their control plane open; only the selected machine streams terminals. OpenSSH allows 10 sessions per connection: 1 is reserved for events and 3 for requests and ping; streams, chat tails and plugin calls share the other 6, focused card first. A card without a session shows Retry.</li>
-      <li>Checks on connect: resolve herdr, <code>--check</code>, <code>ping</code>, then <code>integration.list</code>, snapshot, events. If the server is not running: on a remote machine, <b>Start herdr</b> runs <code>nohup &lt;herdr&gt; --session S server &amp;</code> over SSH. On This Mac the app does not start herdr. It shows the command to run in a terminal (<code>herdr server</code>, or open herdr), because a server started by the app would make the app the "responsible process" for every agent (macOS privacy prompts) and share its process group.</li>
+      <li>Checks on connect: resolve herdr, <code>--check</code>, <code>ping</code>, then <code>integration.list</code>, snapshot, events. If the server is not running: on a remote machine, <b>Start herdr</b> runs <code>nohup &lt;herdr&gt; --session S server &amp;</code> over SSH. On This Mac, <b>Start</b> runs the server as a one-shot launchd job, so launchd, not the app, is its parent and its "responsible process" (macOS privacy prompts never name Oriel).</li>
       <li>Short calls are bridge requests (<code>call()</code>) and the app's own one-shot commands (state file read and write, transcript lookup, cleanup). Plugin <code>run</code> and <code>dial</code> calls use the shared pool.</li>
       <li>iOS releases its terminal streams when the app goes to the background. It keeps the connection for about 30 s, then reconnects and re-reads the snapshot on return.</li>
     </ul>
