@@ -61,3 +61,6 @@
   (`herdr session stop`, `herdr session delete`). `scripts/` has helpers.
 - When running the app by hand against a real session, launch it with the throwaway session
   selected (`-session oriel-dev-<agent>` launch argument), never `default`.
+- Vercel: the docs deploy only through `.github/workflows/docs-deploy.yml` and the `oriel`
+  project. Run the `vercel` CLI only from the repo root (linked to `oriel`): in another folder,
+  `vercel pull --yes` silently creates and links a new project.
