@@ -347,7 +347,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
     <div class="sesslist" id="sesslist"></div>
   </div>
   </div>
-  <p class="hint"><b>Try:</b> scroll the main area sideways (trackpad or shift+wheel); the selected row follows the page. Hide the sidebar with the button at the top left: the tabs move into the title bar as capsules, every tab whose page is visible lights up, and the glass marker follows the scroll. Scroll the sidebar sideways, click the dots, or open the machine button to switch machines. Hover a card for its controls. Press <b>Open :3000</b> on the dev server card to open its web card. The <b>diff</b> and <b>history</b> tabs are plugin cards: small web pages.</p>
+  <p class="hint"><b>Try:</b> scroll the main area sideways (trackpad or shift+wheel); the selected row follows the page. Hide the sidebar with the button at the top left: the tabs move into the title bar as capsules, every tab whose page is visible lights up, and the glass marker follows the scroll. Scroll the sidebar sideways, click the dots, or pick a session from the session button to switch machines. Hover a card for its controls. Press <b>Open :3000</b> on the dev server card to open its web card. The <b>diff</b> and <b>history</b> tabs are plugin cards: small web pages.</p>
   <div class="grid3">
     <div class="card"><h4>Machines</h4><p>The app keeps its own list of machines, on the Mac and on iOS. On a Mac with herdr installed, herdr's machines are imported. All connect at once; one sidebar page per machine, swiped sideways like Arc's spaces.</p></div>
     <div class="card"><h4>Status everywhere</h4><p><span style="color:#8fd3ff">◔ working</span>, <span style="color:var(--amber)">▲ needs you</span>, <span style="color:var(--green)">✓ finished</span>, on sidebar rows, tab capsules and the status area. The status area covers every machine.</p></div>
@@ -521,7 +521,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <p class="lead">How each part looks and behaves. The sections after this one explain how it works.</p>
   <details><summary>Window, sidebar and tab bar</summary>
     <ul>
-      <li><b>Title-bar row:</b> the sidebar toggle, the machine button (the machine's name; it opens the list of machines and sessions), the tabs while the sidebar is hidden, ⌘ (the palette) and <code>+</code> (new tab).</li>
+      <li><b>Title-bar row:</b> the sidebar toggle, the session button (the session's name; it opens the list of sessions, grouped by machine), the tabs while the sidebar is hidden, ⌘ (the palette) and <code>+</code> (new tab).</li>
       <li><b>Sidebar:</b> flat on the window background, with no panel. The machine pages (swiped sideways), fixed page dots, the fixed status area, and at the bottom a Filter field, New Workspace and Add Machine. A machine page for a non-default local session is named "This Mac · ‹session›".</li>
       <li><b>Machine page:</b> herdr's workspaces in herdr's order, as section headers, with their tabs as rows (icon tile, label, status glyph). The selected tab is a raised pill. Later a workspace also lists its agent panes (icon, name, glyph and word). Clicking a workspace selects it in the app only.</li>
       <li><b>Tab bar:</b> while the sidebar is hidden, the title-bar row shows one capsule per herdr tab, and one glass marker follows the strip as it scrolls. Each capsule has the icon of the pane last selected in it and the tab label (folder part dimmed). One status slot per capsule shows one glyph by priority: × on hover, then ▲, then ✓, then ◔. The ◔ glyph is static (no animation). When tabs overflow, they shrink and their labels fade out. <code>+</code> makes a new tab. The window title follows the selected tab.</li>
@@ -1130,7 +1130,7 @@ const SVG={
 // one status per agent everywhere: claude working (◔ blue), pi finished (✓ green), codex needs you (▲ amber), gpu-01 claude idle.
 // A machine's first workspace is the selected one; its tabs are the strip's pages.
 const HOSTS=[
- {name:"This Mac",ic:"laptop",
+ {name:"This Mac",sess:"lunar-ridge",ic:"laptop",
   ws:[{n:"api-server",tabs:[
      {label:"fix-auth",icon:["claude","✳"],badge:"◔",layout:{dir:"row",kids:[pane("term","claude · fix-auth",T.claude,{icon:["claude","✳"],w:1.4}),{dir:"col",kids:[pane("term","npm run dev",T.dev,{icon:["sh",">_"],dim:true,port:3000}),pane("term","logs",T.logs,{icon:["sh",">_"],dim:true})]}]}},
      {label:"docs",icon:["pi","π"],badge:"✓",layout:pane("chat","pi · docs",PICHAT,{icon:["pi","π"]})},
@@ -1139,12 +1139,12 @@ const HOSTS=[
      {label:"history",icon:["codex","⑂"],layout:pane("hist","Git history · main",null,{icon:["codex","⑂"]})}]},
    {n:"web-app",tabs:[{label:"landing",icon:["sh",">_"]},{label:"e2e",icon:["claude","✳"]}]},
    {n:"infra",tabs:[{label:"~/infra",icon:["sh",">_"]}]}]},
- {name:"devbox",ic:"server",
+ {name:"devbox",sess:"floral-willow",ic:"server",
   ws:[{n:"infra",tabs:[
      {label:"terraform",icon:["codex",">_"],badge:"▲",layout:{dir:"row",kids:[pane("term","codex · migrate",T.codex,{icon:["codex",">_"],w:1.3}),pane("term","~/infra",T.zshInfra,{icon:["sh",">_"],dim:true})]}},
      {label:"staging",icon:["web","◍"],layout:pane("web","staging.internal",null,{icon:["web","◍"]})}]},
    {n:"ml-pipeline",tabs:[{label:"etl",icon:["sh",">_"]}]}]},
- {name:"gpu-01",ic:"server",
+ {name:"gpu-01",sess:"training",ic:"server",
   ws:[{n:"training",tabs:[
      {label:"train",icon:["sh",">_"],layout:{dir:"col",kids:[pane("term","train.py",T.train,{icon:["sh",">_"]}),pane("term","nvidia-smi",T.gpu,{icon:["sh",">_"],dim:true})]}},
      {label:"eval",icon:["claude","✳"],layout:pane("term","claude · eval",T.claudeIdle,{icon:["claude","✳"]})}]}]}
@@ -1176,14 +1176,14 @@ let host=0, sel=0;
 const status=w=>["▲","✓","◔"].find(g=>w.tabs.some(t=>t.badge===g));
 function renderHosts(){
   $("#hostpager").innerHTML=HOSTS.map((h,hi)=>`<div class="hostpage">${h.ws.map((w,wi)=>`<div class="wsh"><span>${w.n}</span>${badge(status(w))}</div>${w.tabs.map((t,ti)=>`<div class="row ${wi===0&&ti===0?"sel":""}" ${wi===0?`data-h="${hi}" data-t="${ti}"`:""} role="button" tabindex="0">${ico(...t.icon)}<span class="lbl">${t.label}</span>${badge(t.badge)}</div>`).join("")}`).join("")}</div>`).join("");
-  $("#dots").innerHTML=HOSTS.map((h,i)=>`<b data-i="${i}" title="${h.name}" role="button" tabindex="0" aria-label="${h.name}"></b>`).join("");
+  $("#dots").innerHTML=HOSTS.map((h,i)=>`<b data-i="${i}" title="${h.name} · ${h.sess}" role="button" tabindex="0" aria-label="${h.name}"></b>`).join("");
   $("#statusarea").innerHTML=`<div class="sum"><span style="color:#8fd3ff">1 working</span> · <span style="color:#ffb340">1 needs you</span> · <span style="color:#30d158">1 finished</span></div><div style="color:#ffb340">▲ codex needs you · devbox/infra</div><div style="color:#30d158">✓ pi finished · This Mac/api-server</div>`;
   document.querySelectorAll("#dots b").forEach(b=>b.onclick=()=>goHost(+b.dataset.i));
   document.querySelectorAll("#hostpager .row[data-h]").forEach(r=>r.onclick=()=>{ if(+r.dataset.h===host) page(+r.dataset.t) });
   $("#sidetoggle").innerHTML=SVG.side; $("#ibws").innerHTML=SVG.stack; $("#ibadd").innerHTML=SVG.globe;
 }
 function renderSessions(){
-  $("#sesslist").innerHTML=`<div class="filter">⌕ Filter or create…</div>`+HOSTS.map((h,i)=>`<div class="sh">${SVG[h.ic]} ${h.name}</div><div class="row ${i===host?"acc":""}" data-i="${i}" role="button" tabindex="0"><span class="ck">${i===host?"✓":""}</span><span class="lbl">default</span><span class="kb">⌘${i+1}</span></div>`).join("")+
+  $("#sesslist").innerHTML=`<div class="filter">⌕ Filter or create…</div>`+HOSTS.map((h,i)=>`<div class="sh">${SVG[h.ic]} ${h.name}</div><div class="row ${i===host?"acc":""}" data-i="${i}" role="button" tabindex="0"><span class="ck">${i===host?"✓":""}</span><span class="lbl">${h.sess}</span><span class="kb">⌘${i+1}</span></div>`).join("")+
     `<hr><div class="row" role="button" tabindex="0">${SVG.stack}<span class="lbl">New Session</span><span class="kb">⇧⌘N</span></div><hr><div class="row" role="button" tabindex="0">${SVG.globe}<span class="lbl">Add Machine…</span></div>`;
   document.querySelectorAll("#sesslist .row[data-i]").forEach(r=>r.onclick=()=>{goHost(+r.dataset.i); toggleSessions(false)});
 }
@@ -1192,7 +1192,7 @@ function goHost(i){ host=i; const hp=$("#hostpager"); hp.scrollLeft=i*hp.clientW
 const page=i=>$("#strip").scrollTo({left:i*$("#strip").clientWidth,behavior:"smooth"});
 function renderStrip(){
   const h=HOSTS[host], tabs=h.ws[0].tabs;
-  $("#sessbtn").innerHTML=`${SVG[h.ic]}<span>${h.name}</span>`;
+  $("#sessbtn").innerHTML=`${SVG[h.ic]}<span>${h.sess}</span>`;
   document.querySelectorAll("#dots b").forEach((b,i)=>b.classList.toggle("on",i===host));
   const bar=$("#tabs"); bar.querySelectorAll(".tab").forEach(t=>t.remove());
   tabs.forEach((t,i)=>{const el=document.createElement("div");el.className="tab";el.setAttribute("role","button");el.tabIndex=0;el.innerHTML=`${ico(...t.icon)}<span>${t.label}</span>${badge(t.badge)}`;el.onclick=()=>page(i);bar.appendChild(el)});
