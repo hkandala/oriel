@@ -293,7 +293,6 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <a href="#hosts">Machines and SSH</a>
   <a href="#layout">Layout and sizing</a>
   <a href="#plugins">Plugin system</a>
-  <a href="#floating">Floating panes in herdr</a>
   <a href="#chat">Chat view: how it works</a>
   <a href="#status">Status and pills</a>
   <a href="#store">Data: app vs herdr</a>
@@ -316,7 +315,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <p>This page is a summary. The full design is in the <a href="https://oriel-docs.vercel.app/docs">design docs</a>.</p>
   <div class="grid2">
     <div class="card"><h4>The problem</h4><p>People run many coding agents at once, often on several machines. herdr keeps them alive and knows when each one is working, blocked or done. But its interface is a terminal UI: one machine at a time, keyboard-first, and nothing when you are away from the terminal or on your phone.</p></div>
-    <div class="card"><h4>What we build</h4><p>One app for Mac, iPad and iPhone that shows every herdr machine at once: a sidebar of machines and agents, a swipeable strip of tabs with resizable panes, terminal, agent, web and plugin panes, a chat view for agents and terminals, floating panes, and status pills on the Mac screen edge. Every pane kind is a plugin: terminal, agent and web page are core plugins, and your own are TypeScript and React drawn as native SwiftUI.</p></div>
+    <div class="card"><h4>What we build</h4><p>One app for Mac, iPad and iPhone that shows every herdr machine at once: a sidebar of machines and agents, a swipeable strip of tabs with resizable panes, terminal, agent, web and plugin panes, a chat view for agents and terminals, and status pills on the Mac screen edge. Every pane kind is a plugin: terminal, agent and web page are core plugins, and your own are TypeScript and React drawn as native SwiftUI.</p></div>
   </div>
   <div class="rules">
     <div class="rule"><div class="ic">◎</div><b>herdr is the source of truth</b><span>If herdr can hold a piece of state, herdr holds it. A fresh device rebuilds everything from herdr.</span></div>
@@ -464,7 +463,6 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
         <li>The status area is a bar under the navigation bar.</li>
         <li>Agents open in chat, which needs no terminal stream.</li>
         <li>A terminal view opens as a watcher (<code>observe</code>), so looking never resizes the pane. The first key press, paste or tap in the card takes control.</li>
-        <li>Floating panes show as one more tab, "Floating".</li>
       </ul>
     </div>
   </div>
@@ -522,11 +520,11 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <details><summary>Window, sidebar and tab bar</summary>
     <ul>
       <li><b>Sidebar</b> (macOS 26's floating glass sidebar): the machine's name, the machine pages (swiped sideways), fixed page dots and <code>+</code> (add a machine), and the fixed status area at the bottom. A machine page for a non-default local session is named "This Mac · ‹session›".</li>
-      <li><b>Machine page:</b> herdr's workspaces in herdr's order. A workspace expands to its agent panes (icon, name, glyph and word), its web and plugin panes, and one "Terminals (n)" row. A collapsed workspace shows how many agents need you. Floating agents show with a ⧉ mark. Clicking a workspace selects it in the app only.</li>
-      <li><b>Tab bar:</b> one glass capsule per herdr tab, with the icon of the pane last selected in it and the tab label (folder part dimmed). One status slot per capsule shows one glyph by priority: × on hover, then ▲, then ✓, then ◔. The ◔ glyph is static (no animation). When tabs overflow, they shrink and their labels fade out. <code>+</code> makes a new tab; <code>⧉ n</code> shows or hides floating panes. The window title follows the selected tab.</li>
+      <li><b>Machine page:</b> herdr's workspaces in herdr's order. A workspace expands to its agent panes (icon, name, glyph and word), its web and plugin panes, and one "Terminals (n)" row. A collapsed workspace shows how many agents need you. Clicking a workspace selects it in the app only.</li>
+      <li><b>Tab bar:</b> one glass capsule per herdr tab, with the icon of the pane last selected in it and the tab label (folder part dimmed). One status slot per capsule shows one glyph by priority: × on hover, then ▲, then ✓, then ◔. The ◔ glyph is static (no animation). When tabs overflow, they shrink and their labels fade out. <code>+</code> makes a new tab. The window title follows the selected tab.</li>
       <li><b>Strip:</b> one page per tab. Cards follow herdr's split tree, with an 8 pt gap between cards that is the divider. Double-click a divider to reset it to 0.5; ⌃⌘= equalizes the tab's splits. Each card header has the kind icon, title, view switch (chat|term on agents and terminals, plugin|term on plugin panes, none on web pages), zoom and close. Controls show on hover on macOS and always on iOS; every action is also in the context menu, the menu bar and ⌘K. Unfocused cards are slightly dimmed.</li>
       <li><b>Swiping:</b> two fingers on a trackpad, one finger on iOS; pages snap. First visit to a machine shows herdr's focused workspace; later visits show the last one picked.</li>
-      <li><b>Keys:</b> ⌃⌥1…9 machines, ⌘1…9 tabs, ⇧⌘[ ] step, ⌘T new tab, ⌘D split, ⌘W close the pane, ⇧⌘W the window, ⇧⌘↩ zoom, ⌃⌘ + arrow resize, ⌃⌘= equalize, ⌥⌘F floating panes, ⌘K card actions.</li>
+      <li><b>Keys:</b> ⌃⌥1…9 machines, ⌘1…9 tabs, ⇧⌘[ ] step, ⌘T new tab, ⌘D split, ⌘W close the pane, ⇧⌘W the window, ⇧⌘↩ zoom, ⌃⌘ + arrow resize, ⌃⌘= equalize, ⌘K card actions.</li>
       <li><b>Closing:</b> closing a pane asks first unless the pane runs only its shell (no foreground program). Closing a tab or workspace always asks.</li>
     </ul>
     <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/window">Window</a> · <a href="https://oriel-docs.vercel.app/docs/ui/swiping">Swiping</a></p>
@@ -537,28 +535,26 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
       <tr><td>an edge of a card in another tab</td><td>split there</td></tr>
       <tr><td>a tab capsule (hold to page to it)</td><td>move into that tab</td></tr>
       <tr><td>a sidebar workspace</td><td>new tab there</td></tr>
-      <tr><td>empty sidebar space</td><td>new workspace</td></tr>
-      <tr><td>the <code>⧉</code> button</td><td>float the pane</td></tr></table>
+      <tr><td>empty sidebar space</td><td>new workspace</td></tr></table>
     <ul>
-      <li>The card menu has the same moves (Move to ▸, Float); that is the only path on iPhone. A pane cannot move to another machine.</li>
-      <li><b>Zoom:</b> the zoom button, a double-click on the header, or ⇧⌘↩ draws the card over the whole window under the tab bar. The same again restores it. While a card is zoomed, floating cards are hidden. Esc is not used, because the program in the pane needs it.</li>
+      <li>The card menu has the same moves (Move to ▸); that is the only path on iPhone. A pane cannot move to another machine.</li>
+      <li><b>Zoom:</b> the zoom button, a double-click on the header, or ⇧⌘↩ draws the card over the whole window under the tab bar. The same again restores it. Esc is not used, because the program in the pane needs it.</li>
     </ul>
     <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/drag-and-drop">Drag and drop</a> · <a href="https://oriel-docs.vercel.app/docs/ui/window">Window (zoom)</a></p>
   </details>
-  <details><summary>Floating panes and pills</summary>
+  <details><summary>Pills</summary>
     <ul>
-      <li><b>Floating panes:</b> any pane can float above the strip of its workspace as a card with the normal header plus Dock (⤓). Drag the header to move it or onto a tab to dock it; drag the corner to resize; a click brings it to the front. Dock moves the card into the selected tab as a right split. Layers: strip, zoom layer, floating cards. ⌥⌘F or <code>⧉ n</code> shows or hides them; hiding never closes. With no floating panes, ⧉ opens the new-pane picker; Return makes a floating scratch terminal. After an app restart, floating panes start hidden and open centered at 70% × 75%. iPhone shows them as a "Floating" tab.</li>
       <li><b>Pill:</b> a black notch-shaped tab on the right screen edge, vertically centered, with one glyph per agent across all machines, in a stable order. Idle agents get no glyph; with nothing running it shows one gray dot. If more than 10 agents are not idle, it shows 9 glyphs and a tenth that reads "+n" (n agents not shown). One pill with a glyph per agent, not a pill per agent: ten agents would be ten capsules.</li>
       <li><b>Pill list and pill card:</b> click the pill for the list, grouped by machine and workspace; rows never reorder. Click a glyph or row for the agent's pill card: its last messages (or screen text), the prompt and key buttons when blocked, a reply box, Mark seen, Open in app, ✕.</li>
       <li><b>Peek:</b> a newly blocked or finished agent's card slides out without taking the keyboard and shrinks back after 8 s unless the pointer enters it. The first click on a card only activates it. Esc closes, ⌘↩ opens the app. Opaque near-black, no glass. A Peek switch in the pill's context menu and a setting turn peeks or the pill off.</li>
     </ul>
-    <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/floating-panes">Floating panes</a> · <a href="https://oriel-docs.vercel.app/docs/ui/pills">Floating pills</a></p>
+    <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/pills">Floating pills</a></p>
   </details>
   <details><summary>Add a machine, theme and accessibility</summary>
     <ul>
       <li><b>Add a machine (macOS):</b> the app opens a terminal card on This Mac and types <code>herdr machine add &lt;target&gt;</code>, where herdr asks about host keys, passwords and installing itself. So the Mac app needs herdr installed on this Mac. <b>iOS</b> saves the target, shows the public key to copy into <code>authorized_keys</code>, and connects.</li>
       <li><b>Theme:</b> dark only. Opaque near-black window (<code>#0e0f12</code>), opaque cards, dark-tinted glass on the sidebar and tab bar. Terminals use a dark palette; web pages are told <code>prefers-color-scheme: dark</code>. iOS uses the same look. Status colors: <span style="color:#8fd3ff">◔ working</span> blue, <span style="color:var(--amber)">▲ needs you</span> amber, <span style="color:var(--green)">✓ finished</span> green.</li>
-      <li><b>Accessibility:</b> status is always a glyph plus a word, never color alone. Terminal cards expose their screen text to VoiceOver (from <code>pane.read visible</code>, on demand) and announce new output politely. Keyboard focus moves sidebar → tab bar → cards (left to right, top to bottom) → floating cards. Every card action is reachable from the keyboard (⌘K). Every swipe has a keyboard path, a menu path and a button. The chrome supports Dynamic Type on iOS, and the terminal font size follows the app's text size setting. Reduce Motion turns off the morph, page animations and the pill's slide.</li>
+      <li><b>Accessibility:</b> status is always a glyph plus a word, never color alone. Terminal cards expose their screen text to VoiceOver (from <code>pane.read visible</code>, on demand) and announce new output politely. Keyboard focus moves sidebar → tab bar → cards (left to right, top to bottom). Every card action is reachable from the keyboard (⌘K). Every swipe has a keyboard path, a menu path and a button. The chrome supports Dynamic Type on iOS, and the terminal font size follows the app's text size setting. Reduce Motion turns off the morph, page animations and the pill's slide.</li>
     </ul>
     <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/add-a-machine">Add a machine</a> · <a href="https://oriel-docs.vercel.app/docs/ui/theme-and-accessibility">Theme and accessibility</a></p>
   </details>
@@ -596,7 +592,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <p class="lead">Views read from one HostStore per machine. Each HostStore runs commands on its machine through one tiny protocol, <code>Exec</code>. Plugin cards run in their own JavaScript VMs.</p>
   <div class="arch">
     <div class="layer tag-a"><h5>App · SwiftUI · macOS + iOS</h5>
-      <div class="chips"><span class="chip">Sidebar</span><span class="chip">TabBar</span><span class="chip">Strip</span><span class="chip">PaneCard: Terminal · Chat · Web · Plugin</span><span class="chip">Floating layer</span><span class="chip">StatusArea</span><span class="chip">Pills (macOS)</span></div>
+      <div class="chips"><span class="chip">Sidebar</span><span class="chip">TabBar</span><span class="chip">Strip</span><span class="chip">PaneCard: Terminal · Chat · Web · Plugin</span><span class="chip">StatusArea</span><span class="chip">Pills (macOS)</span></div>
       <div class="chips" style="margin-top:6px"><span class="chip">PaneViewRegistry</span><span class="chip">PluginRegistry + PluginHost (one JS VM per plugin card)</span><span class="chip">HostStore × machines</span></div></div>
     <div class="down">↓ <code>Exec.run(argv)</code> → stdin / stdout</div>
     <div class="twocol">
@@ -662,7 +658,7 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
   </div>
   <details><summary>Streaming rules and how a stream ends</summary>
     <ul>
-      <li>Streams: the selected tab's panes plus the shown floating cards of the selected workspace, on the selected machine. During a swipe, neighbor tabs show each card's last image; their streams start when the swipe stops.</li>
+      <li>Streams: the selected tab's panes on the selected machine. During a swipe, neighbor tabs show each card's last image; their streams start when the swipe stops.</li>
       <li>The Mac opens <code>control</code> without takeover and watches if refused. iPhone and iPad open <code>observe</code>. Any device takes control (<code>--takeover</code>) on the first key press, paste or tap in the card, or Take back. Nothing else takes control: a watcher stays a watcher until its user acts.</li>
       <li>A Mac that becomes inactive keeps its streams. iOS sends <code>terminal.release</code> when the app goes to the background. A device also releases when it leaves the terminal view (the card leaves the selected tab, or switches to chat).</li>
       <li>Card size ÷ cell size gives cols × rows; the old frame stays until herdr's full frame at the new size arrives. Streams are opened by <code>terminal_id</code>, so they survive moves.</li>
@@ -685,7 +681,6 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
       <tr><td>Keyboard resize (⌃⌘ + arrow)</td><td><code>pane.resize</code></td></tr>
       <tr><td>Start an agent</td><td><code>agent.start {name, kind, pane_id}</code>, retried while the shell is busy</td></tr>
       <tr><td>Swap / move</td><td><code>pane.swap</code> / <code>pane.move</code>; <code>changed:false</code> shows herdr's reason</td></tr>
-      <tr><td>Float or dock</td><td><code>pane.move</code> into or out of the <code>oriel:float</code> tab</td></tr>
       <tr><td>Reorder / rename</td><td><code>tab.move</code>, <code>workspace.move</code> / <code>*.rename</code></td></tr>
       <tr><td>Close</td><td><code>*.close</code>. A pane asks first unless it runs only its shell (checked with <code>pane.process_info</code>). A tab or workspace always asks.</td></tr></table>
     <p class="muted">Every create and move uses <code>focus:false</code>. The app waits for the event and snapshot; it never patches its own state. It never calls herdr's focus methods or <code>pane.zoom</code>.</p>
@@ -847,7 +842,7 @@ web:http://localhost:3000/dashboard</code></pre>
     </ul>
     <div class="flow">
       <div class="n"><b>1 · snapshot</b><small>connect each machine</small></div><div class="a">→</div>
-      <div class="n"><b>2 · classify</b><small>oriel:float tab · web: · oriel: · agent · terminal</small></div><div class="a">→</div>
+      <div class="n"><b>2 · classify</b><small>web: · oriel: · agent · terminal</small></div><div class="a">→</div>
       <div class="n"><b>3 · resolve</b><small>core, then linked, then installed; missing → placeholder card</small></div><div class="a">→</div>
       <div class="n"><b>4 · key the card</b><small>(machine, plugin, iid)</small></div><div class="a">→</div>
       <div class="n"><b>5 · render</b><small>VM + pane context + state file</small></div>
@@ -869,28 +864,9 @@ web:http://localhost:3000/dashboard</code></pre>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/plugins">Pane kinds and plugins</a> · <a href="https://oriel-docs.vercel.app/docs/plugins/web-page">Web page</a> · <a href="https://oriel-docs.vercel.app/docs/plugins/security">Security</a></p>
 </section>
 
-<!-- ═════════════ FLOATING ═════════════ -->
-<section id="floating">
-  <h2><span class="num">13</span>Floating panes in herdr</h2>
-  <p class="lead">A floating pane is a normal herdr pane in a tab labeled <code>oriel:float</code>; the app creates at most one such tab per workspace. Floating and docking are <code>pane.move</code>. The app keeps only card positions, in memory.</p>
-  <table><tr><th>Option</th><th>Verdict</th></tr>
-    <tr><td><b>a tab labeled <code>oriel:float</code></b></td><td><b>chosen:</b> one marker per workspace; any pane kind floats; herdr keeps it across restarts; every device and the herdr TUI agree</td></tr>
-    <tr><td>herdr's popup</td><td>one per server, no pane id, not in the snapshot, not saved</td></tr>
-    <tr><td>a label marker / a metadata token / an app list</td><td>the label is taken / lost on restart / ids change and devices disagree</td></tr></table>
-  <details><summary>Calls and rules</summary>
-    <ul>
-      <li>New floating pane: <code>tab.create {label:"oriel:float"}</code> or a split inside that tab, then the pane kind's steps. Float: <code>pane.move</code> into it (<code>new_tab</code> with the label creates it in one call). Dock: the normal moves. Moving the last pane out closes the tab.</li>
-      <li>Cards draw inside the main window above the strip and zoom layer. The floating tab is left out of the tab bar and strip. Position, size, shown state and order live in memory.</li>
-      <li>Shown floating cards stream like the selected tab; hidden ones release their stream. A scroll on a floating card never pages the strip.</li>
-      <li>herdr's own popups are not shown: no public call reveals one.</li>
-    </ul>
-  </details>
-  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/floating-panes">Floating panes in herdr</a></p>
-</section>
-
 <!-- ═════════════ CHAT ═════════════ -->
 <section id="chat">
-  <h2><span class="num">14</span>Chat view: how it works</h2>
+  <h2><span class="num">13</span>Chat view: how it works</h2>
   <p class="lead">herdr knows where each agent writes its transcript. The app tails that file on the machine, turns lines into messages, and replies with <code>agent.prompt</code>.</p>
   <div class="flow">
     <div class="n"><b>agent_session</b><small>pi: path · Claude/Codex: id</small></div><div class="a">→</div>
@@ -918,7 +894,7 @@ web:http://localhost:3000/dashboard</code></pre>
 
 <!-- ═════════════ STATUS ═════════════ -->
 <section id="status">
-  <h2><span class="num">15</span>Status, notifications and pills</h2>
+  <h2><span class="num">14</span>Status, notifications and pills</h2>
   <p class="lead">The status area, notifications and pills all read the same snapshot. "Finished" comes from herdr's <code>completion_seq</code>, so the app sees a finish even when a herdr TUI watches the tab. Finishes that happen while the app is closed are not shown.</p>
   <div class="callout">Finished, not seen = <code>completion_seq != null &amp;&amp; completion_seq != seen</code>. herdr sets <code>completion_seq</code> when an agent goes from working or blocked to idle, and clears it to null on every other status change, so a finish shows only until the agent works again. herdr's own <code>done</code> is skipped when a herdr TUI is already looking at the tab, and the counter restarts at 0 with herdr.</div>
   <details><summary>Notifications</summary>
@@ -954,13 +930,12 @@ web:http://localhost:3000/dashboard</code></pre>
 
 <!-- ═════════════ STORE ═════════════ -->
 <section id="store">
-  <h2><span class="num">16</span>Data: app vs herdr</h2>
-  <p class="lead">A fresh install on a new device rebuilds every workspace, tab, pane, floating pane, web page and plugin pane from herdr's labels and the machines' state files.</p>
+  <h2><span class="num">15</span>Data: app vs herdr</h2>
+  <p class="lead">A fresh install on a new device rebuilds every workspace, tab, pane, web page and plugin pane from herdr's labels and the machines' state files.</p>
   <div class="store">
     <div class="col2 tag-h"><h4>herdr and the machines own</h4><ul>
       <li>Workspaces, tabs, panes, order, labels; split tree and ratios</li>
       <li>Terminal content and PTYs; agent kind, status, completion counter, transcript pointer</li>
-      <li>Which panes float (<code>oriel:float</code> tab)</li>
       <li>Web addresses (<code>web:&lt;url&gt;</code>) and plugin panes (<code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code>)</li>
       <li>Plugin instance state (a file on the machine)</li>
       <li>Chat history (the agent's transcript)</li>
@@ -968,7 +943,7 @@ web:http://localhost:3000/dashboard</code></pre>
     <div class="col2 tag-a"><h4>The app keeps</h4><ul>
       <li><b>Disk:</b> display preferences and pill settings; window restore ids and the sidebar expand state (<code>@SceneStorage</code>); plugin code, consent and preferences; approved web origins; on iOS the machine list, a Secure Enclave key and pinned host keys in the Keychain</li>
       <li><b>WebKit:</b> cookies, one data store per machine</li>
-      <li><b>Memory:</b> zoomed card, floating card frames, chat or terminal per pane, seen values, drafts</li>
+      <li><b>Memory:</b> zoomed card, chat or terminal per pane, seen values, drafts</li>
       <li><b>While running:</b> ControlMaster sockets and port forwards</li></ul></div>
   </div>
   <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/data">Data: app vs herdr</a></p>
@@ -976,7 +951,7 @@ web:http://localhost:3000/dashboard</code></pre>
 
 <!-- ═════════════ PLATFORM ═════════════ -->
 <section id="platform">
-  <h2><span class="num">17</span>Platform and code</h2>
+  <h2><span class="num">16</span>Platform and code</h2>
   <p class="lead">One multiplatform SwiftUI target for macOS 26 and iOS 26, one main window, and three platform problems solved up front.</p>
   <div class="grid3">
     <div class="card"><h4>① Swipes get eaten</h4><p>Terminal and web views take every scroll. A macOS <code>NSEvent</code> monitor locks the axis per gesture and gives horizontal motion to the strip; on iOS the terminal yields horizontal pans.</p></div>
@@ -986,7 +961,7 @@ web:http://localhost:3000/dashboard</code></pre>
   <details><summary>Tab bar, glass, signing, dependencies, tests</summary>
     <ul>
       <li>Tab bar: one <code>ToolbarItem</code> without the shared glass background, holding a <code>ScrollView</code> and a <code>GlassEffectContainer</code>. The marker follows the strip's scroll offset; lit tabs come from the same number. gorex is the reference for how the tabs behave (sizes, overflow, status slot, window title), not for glass or SwiftUI: it draws with its own Metal renderer, so spike S2 stays open.</li>
-      <li>Glass only on chrome (tab bar, sidebar, status area, menus). Pane cards, floating cards and pills are opaque.</li>
+      <li>Glass only on chrome (tab bar, sidebar, status area, menus). Pane cards and pills are opaque.</li>
       <li>macOS: Sandbox off, Hardened Runtime on, notarized Developer ID download. iOS: App Store.</li>
     </ul>
     <table><tr><th>Need</th><th>Choice</th></tr>
@@ -1001,7 +976,7 @@ web:http://localhost:3000/dashboard</code></pre>
 
 <!-- ═════════════ DECISIONS ═════════════ -->
 <section id="decisions">
-  <h2><span class="num">18</span>Design decisions</h2>
+  <h2><span class="num">17</span>Design decisions</h2>
   <p class="lead">Each decision says what we chose, why, and what we turned down. Type to filter.</p>
   <input id="dq" placeholder="filter: plugin, zoom, ssh, chat, focus…">
   <table class="dec" id="dec"><thead><tr><th>#</th><th>Decision</th><th>Why</th><th>Rejected</th></tr></thead><tbody></tbody></table>
@@ -1010,7 +985,7 @@ web:http://localhost:3000/dashboard</code></pre>
 
 <!-- ═════════════ RISKS ═════════════ -->
 <section id="risks">
-  <h2><span class="num">19</span>Risks and known limits</h2>
+  <h2><span class="num">18</span>Risks and known limits</h2>
   <p class="lead">The biggest risks are the SwiftUI strip, the title-bar tab bar and the pill panel's focus behavior. Each gets a spike before real views.</p>
   <table>
     <tr><th>Risk</th><th>Effect</th><th>Plan</th></tr>
@@ -1039,14 +1014,14 @@ web:http://localhost:3000/dashboard</code></pre>
 
 <!-- ═════════════ BUILD ═════════════ -->
 <section id="build">
-  <h2><span class="num">20</span>Build order</h2>
+  <h2><span class="num">19</span>Build order</h2>
   <p class="lead">Prove the risky parts first, then build outward from this Mac.</p>
   <div class="timeline">
-    <div class="st"><b>0 · Spikes</b>S1 strip (libghostty answers no query that herdr already answered) · S2 tab bar · S3 ssh · S4 Codex · S5 pill · S6 plugins and floating · S7 iOS transport: Citadel exec channels with streaming stdin, a long-lived channel, channel close</div>
+    <div class="st"><b>0 · Spikes</b>S1 strip (libghostty answers no query that herdr already answered) · S2 tab bar · S3 ssh · S4 Codex · S5 pill · S6 plugins · S7 iOS transport: Citadel exec channels with streaming stdin, a long-lived channel, channel close</div>
     <div class="st"><b>1 · This Mac</b>Exec, call(), events, snapshot, sidebar, strip, terminal streams, split, close, resize, zoom</div>
     <div class="st"><b>2 · Remote machines</b>ControlMaster, askpass, machine pages, status area, notifications</div>
     <div class="st"><b>2b · Thin iOS slice</b>connect, snapshot, one terminal stream</div>
-    <div class="st"><b>3 · Pane kinds, chat, floating panes</b>registry and picker, web page with <code>localhost</code> forwards, transcript and screen-text chat, floating panes</div>
+    <div class="st"><b>3 · Pane kinds and chat</b>registry and picker, web page with <code>localhost</code> forwards, transcript and screen-text chat</div>
     <div class="st"><b>4 · Plugin system</b>host and prelude, kit components, Git history, Diff, Markdown, install and dev mode, CLI</div>
     <div class="st"><b>5 · Floating pills</b>macOS only</div>
     <div class="st"><b>6 · Full iPadOS and iOS</b>compact layout, reply box, key bar</div>
@@ -1073,7 +1048,7 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
 
 <!-- ═════════════ GLOSSARY ═════════════ -->
 <section id="glossary">
-  <h2><span class="num">21</span>Glossary</h2>
+  <h2><span class="num">20</span>Glossary</h2>
   <table>
     <tr><td class="k">herdr TUI</td><td>herdr's own text interface, run in a terminal app</td></tr>
     <tr><td class="k">machine</td><td>one herdr session the app connects to; one entry in the machine list. A non-default local session is "This Mac · ‹session›"</td></tr>
@@ -1087,7 +1062,6 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
     <tr><td class="k">status area</td><td>the sidebar's bottom part; it covers every machine</td></tr>
     <tr><td class="k">working / needs you / finished</td><td>the status words, with ◔ (blue), ▲ (amber), ✓ (green)</td></tr>
     <tr><td class="k">seen</td><td>the user looked at an agent since its last finish; kept per device</td></tr>
-    <tr><td class="k">floating card</td><td>a pane card drawn above the strip, from the workspace's <code>oriel:float</code> tab</td></tr>
     <tr><td class="k">pill / pill card / peek</td><td>the floating status capsule on the Mac screen edge / the small window for one agent next to it / a pill card that slides out by itself without taking the keyboard</td></tr>
     <tr><td class="k">PTY</td><td>the pseudo-terminal a shell runs in; it has one size</td></tr>
     <tr><td class="k">frame</td><td>one message of ANSI bytes from <code>terminal session</code></td></tr>
