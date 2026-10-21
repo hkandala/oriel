@@ -39,9 +39,8 @@ interface Oriel {
   open(url: string): Promise<boolean>;        // http(s) only, after a confirm sheet
   clipboard: { copy(text: string): Promise<void> };
 
-  // "pane": pane changed (arg, cwd); "snapshot": herdr state changed;
-  // "state": another device wrote the instance state
-  on(event: "pane" | "snapshot" | "state", fn: () => void): void;
+  // "pane": pane changed (arg, cwd); "snapshot": herdr state changed
+  on(event: "pane" | "snapshot", fn: () => void): void;
 }
 ```
 
@@ -51,7 +50,7 @@ interface Oriel {
 | `dial` | a service on the machine, such as a dev server's API or a database | a TCP stream as seen from **that card's machine only** ([Run and dial](/docs/talking-to-herdr#run-and-dial)); closed when the card closes |
 | `pane` | the machine, argument and cwd | injected; `on("pane")` fires on change |
 | `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `oriel:<plugin>[/<pane>]#<iid>`, then a new `oriel_rev` token |
-| `state` | bigger state shared across devices | the state file and the `oriel_rev` signal ([State and restore](/docs/plugins/state)) |
+| `state` | view state (where the user was looking), kept across devices and restarts | the state file, read when the card is built or on **Refresh**, never live; live shared data belongs in files read with `run` ([State and restore](/docs/plugins/state#when-a-card-reads-its-state)) |
 | `snapshot` | refresh when an agent finishes | the snapshot the app already has; `on("snapshot")` is debounced and fires only while the card is visible |
 | `preferences` | per-device settings | read only |
 | `toast` | errors and progress | a native toast at the card's bottom edge |

@@ -32,6 +32,9 @@ pane's machine, plus a few app calls ([Plugin API](/docs/plugins/api)) (D53).
   most 6 live web views on Mac and iPad (2 on iPhone), web pages and plugin
   cards together, least recently used first out. An evicted card keeps an
   image of its last frame.
+- The card header has **Refresh**: it loads the page and its state from the
+  machine again. An open card never follows another device's state writes
+  ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
 
 ## Options we compared
 

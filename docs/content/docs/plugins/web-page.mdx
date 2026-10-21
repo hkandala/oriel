@@ -37,8 +37,9 @@ not use addresses that contain secrets (for example a `?token=` URL).
 
 SwiftUI `WebView` with a `WebPage`, kept in the PaneViewRegistry so
 scrolling away does not reload it. The header shows the page title, Back,
-Reload, Open in browser and Edit address. Navigation stays inside the card
-(like an iframe). The label keeps the address the user typed.
+Refresh, Open in browser and Edit address. Refresh reloads the page from the
+saved address and scroll position (see below). Navigation stays inside the
+card (like an iframe). The label keeps the address the user typed.
 
 ## Viewing state on the machine
 
@@ -47,13 +48,15 @@ pane's machine (D58), in the same instance state file as a plugin's
 ([The instance state file](/docs/plugins/state#the-instance-state-file)):
 `$HOME/.local/state/oriel/<session>/web/<iid>.json`, holding
 `{"url": …, "scrollY": …}`.
-- Written debounced (500 ms) when a navigation ends or scrolling stops, then a
-  new `oriel_rev` token, as for plugins. Last writer wins.
-- When the card is built, and on a changed `oriel_rev`, the card opens the
-  saved address and scroll position by itself only when the typed address may
-  load by itself (see below) and the saved address has the same origin or one
-  approved for this machine. Otherwise the card follows the typed address's
-  rules.
+- Written debounced (500 ms) when a navigation ends or scrolling stops, as for
+  plugins. Last writer wins.
+- Read only when the card is built or on Refresh (D59;
+  [When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
+  An open card does not follow another device's navigation or scrolling.
+- When it reads the file, the card opens the saved address and scroll
+  position by itself only when the typed address may load by itself (see
+  below) and the saved address has the same origin or one approved for this
+  machine. Otherwise the card follows the typed address's rules.
 - Editing the address writes the new label and clears the saved address.
 
 ## A label set elsewhere needs a click

@@ -19,7 +19,7 @@ description: "Known risks, their effect and the plan for each"
 | Transcript formats change | full chat breaks for one agent | lenient parsers; screen text and terminal still work |
 | iOS drops connections in the background | no live updates | reconnect and snapshot on return; a push relay later ([Future work](/docs/future-work)) |
 | herdr's stream keeps OSC 52 copy requests | copy from a remote program (vim `"+y`) does not reach the device clipboard | select text in the card; later, herdr's clipboard support |
-| A hung plugin page | its card stops responding | WebKit runs each page in its own process; the card offers **Reload** |
+| A hung plugin page | its card stops responding | WebKit runs each page in its own process; the card offers **Refresh** |
 | Plugin HTML built from repository text | a script in a repository file runs in the plugin page | a Content Security Policy allows only the plugin's own scripts; core plugins insert text, not HTML |
 | A malicious plugin the user installed | anything the user can do on machines where its panes open, including network use from there | consent sheet in plain words; This Mac confirm; source shown and pinned to a commit |
 | A herdr cold restart | web and plugin panes come back as plain shells with their labels; cards still work | accepted; upstream ask ([Future work](/docs/future-work)) |

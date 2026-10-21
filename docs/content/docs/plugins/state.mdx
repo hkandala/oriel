@@ -10,8 +10,8 @@ description: "Where plugin state lives and how a fresh app restores plugin panes
 | the pane and its place in the layout | — | herdr pane | every device and the herdr TUI |
 | plugin, pane kind, instance id | `git-history#k3f9q2` (`/<pane>` only when the plugin has several) | the pane label | every device |
 | the argument: what the pane shows | `main`, `docs/DESIGN.md` | the pane label | every device, the TUI border |
-| bigger instance state | selected commit, filters, scroll anchor; a web card's current address and scroll position | a JSON file on the pane's machine, keyed by iid | every device that reaches the machine |
-| change signal | `oriel_rev` | a herdr metadata token | every device (`pane.updated`) |
+| view state | selected commit, filters, scroll anchor; a web card's current address and scroll position | a JSON file on the pane's machine, keyed by iid | every device that reaches the machine, when it builds the card |
+| rename signal | `oriel_rev` | a herdr metadata token | every device (`pane.updated`) |
 | preferences | diff style | the app, per device | this device |
 | plugin code and consent | — | the app | this device |
 | in-memory UI state | hover, expanded rows | the page | this card only |
@@ -20,6 +20,12 @@ description: "Where plugin state lives and how a fresh app restores plugin panes
 If losing it on a reload would annoy the user, put it in
 `setArg` (small, defines the pane) or `oriel.state` (bigger). Everything
 else stays in the page.
+
+`oriel.state` is only for view state: where the user was looking. Another
+device does not see a change until it builds the card again. Data that every
+device must see live belongs in files on the machine: read them with `run`,
+and read them again when they may have changed (for example on the
+`snapshot` event).
 </Callout>
 
 ## The instance state file
@@ -42,8 +48,7 @@ absolute paths.
   ```sh
   sh -c 'umask 077; mkdir -p "${1%/*}" && cat >"$1.$$" && mv "$1.$$" "$1"' sh <path>
   ```
-  Then a new `oriel_rev` token tells other devices to read it again. Last writer
-  wins.
+  Last writer wins.
 - The app also writes `<plugin-id>/_plugin.json` (title, source, version) once,
   so a device without the plugin can suggest installing it.
 - **Cleanup** runs at most once a day per machine.
@@ -81,8 +86,24 @@ absolute paths.
    move.
 5. When the card is first shown: build its web page, inject the pane context, read
    the state file if the plugin uses one, render.
-6. On every later snapshot: a changed argument re-renders; a changed `oriel_rev`
-   re-reads the state file; a pane that is gone destroys the card.
+6. On every later snapshot: a changed argument re-renders; a pane that is
+   gone destroys the card.
 
 Nothing in these steps reads app storage except plugin code, consent and
 preferences.
+
+## When a card reads its state
+
+A card reads its state file only when it is built (D59):
+- a fresh app start or a new device;
+- the card shown again after it was closed or evicted
+  ([Plugin UI](/docs/plugins/plugin-ui#how-it-works)), or its plugin reloaded;
+- on iOS, a card the system discarded while the app was in the background.
+  Returning from the background is not a fresh start: cards still in memory
+  keep their state.
+
+While a card is open, it never reads its state file again by itself, so
+another device's writes do not move it. Every plugin card and web card has
+**Refresh** in its header: it writes this card's pending state, then
+rebuilds the card as if it were opened again, so it loads the page and its
+state from the machine.
