@@ -1,21 +1,13 @@
 {
-  "name": "icons-work",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "private": true,
+  "description": "Dependencies of build.mjs; install into /tmp/icons-work (see README.md)",
   "dependencies": {
-    "@lobehub/icons-static-svg": "^1.97.0",
-    "@resvg/resvg-js": "^2.6.2",
-    "@tabler/icons": "^3.49.0",
-    "devicon": "^2.17.0",
-    "lucide-static": "^1.61.0",
-    "simple-icons": "^16.35.0"
+    "@lobehub/icons-static-svg": "1.97.0",
+    "@phosphor-icons/core": "2.1.1",
+    "@resvg/resvg-js": "2.6.2",
+    "devicon": "2.17.0",
+    "paper-jsdom": "0.12.18",
+    "simple-icons": "16.35.0",
+    "svgpath": "2.6.0"
   }
 }
