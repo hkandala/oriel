@@ -11,7 +11,7 @@ final class FakeExec: Exec {
         var argv: [[String]] = []
         var written: [String] = []
         var reads = 0
-        var readTimes: [ContinuousClock.Instant] = []
+        var firstRead: ContinuousClock.Instant?
         var inFlight = 0
         var maxInFlight = 0
         var terminated = 0
@@ -65,7 +65,7 @@ final class FakeExec: Exec {
             Task {
                 let agents = state.withLock {
                     $0.reads += 1
-                    $0.readTimes.append(.now)
+                    $0.firstRead = $0.firstRead ?? .now
                     $0.inFlight += 1
                     $0.maxInFlight = max($0.maxInFlight, $0.inFlight)
                     return $0.agents
@@ -113,7 +113,7 @@ private func started(_ client: HerdrClient, _ exec: FakeExec) async -> AsyncStre
     }
     exec.state.withLock {
         $0.reads = 0
-        $0.readTimes = []
+        $0.firstRead = nil
     }
     return updates
 }
@@ -163,7 +163,7 @@ private func snapshot(version: String) -> String {
     let sent = ContinuousClock.now
     exec.event()
     #expect(await eventually { exec[\.inFlight] == 1 })
-    #expect(try #require(exec[\.readTimes].first) - sent < .milliseconds(100)) // no debounce
+    #expect(try #require(exec[\.firstRead]) - sent < .milliseconds(100)) // no debounce
     for _ in 0 ..< 5 {
         exec.event()
     }
