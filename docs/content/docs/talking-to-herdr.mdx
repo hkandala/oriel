@@ -112,13 +112,11 @@ the work. A later server helper would sit behind the same two calls
   for a localhost address. Its `matched_line` becomes an
   [Open :port chip](/docs/plugins/web-page#finding-ports). That run is opened
   again when the selected tab changes.
-- **Snapshot pacing, per machine:**
-  - At most one `session.snapshot` is in flight.
-  - An event starts a 100 ms debounce. More events restart it, but a read
-    starts at most 500 ms after the first event, so a steady flow of events
-    cannot hold back updates.
-  - Events that arrive during a read schedule one more read after it.
-  - After the app's own write, the read starts at once, with no debounce.
+- **Snapshot pacing, per machine:** at most one `session.snapshot` is in
+  flight. An event, or the app's own write, starts a read at once if none is
+  in flight; otherwise it sets "read again", and the read that ends with it
+  set starts one more. A read takes 20–130 ms, so it batches the events that
+  arrive during it.
 - The stream is opened again, followed by a snapshot, when the set of agent
   panes changes, on `events_lost` (the reader fell behind herdr's 512-event
   buffer) and on `pane_not_found` (a listed pane closed first).
@@ -128,7 +126,7 @@ the work. A later server helper would sit behind the same two calls
 
 ## Reconcile
 
-<Flow steps={[['herdr event', 'any line on the stream'], ['pacing', '100 ms debounce, 500 ms max, one read at a time'], ['session.snapshot', 'workspaces, tabs, panes, agents, layouts'], ['reconcile', 'stable objects, changed fields only'], ['views update', 'one row, not the window']]} />
+<Flow steps={[['herdr event', 'any line on the stream'], ['pacing', 'one read in flight, then read again if needed'], ['session.snapshot', 'workspaces, tabs, panes, agents, layouts'], ['reconcile', 'stable objects, changed fields only'], ['views update', 'one row, not the window']]} />
 
 - One snapshot holds every workspace, tab, pane, agent and layout.
 - The HostStore applies it to stable `@Observable` objects (`Workspace`,
