@@ -5,7 +5,7 @@ description: "The spikes to run first and the order to build in"
 
 ## Spikes
 
-Run these before building real views. Each one has pass criteria.
+Run each one before the step that needs it. Each one has pass criteria.
 
 ### S1 strip
 
@@ -72,13 +72,19 @@ Citadel exec channels, before any iOS work. Pass:
 
 ## Build order
 
+**v0 is built** (the repository's `plan/`): This Mac only, with the session
+picker, the sidebar of workspaces and tabs, the strip with swipes between
+tabs, herdr's splits, live terminals, close, split and zoom, new tabs,
+workspaces and sessions, and the ⌘K palette. The steps below follow from
+there.
+
 | Step | What |
 |---|---|
-| 0 | Spikes S1–S7 |
-| 1 | **This Mac:** `Exec`, `call()`, events and snapshot pacing, sidebar, strip, terminal streams, split, close, resize, zoom |
-| 2 | **Remote machines (Mac):** ControlMaster, askpass, machine pages, status area, notifications |
+| 0 | Spikes S1–S7, for the parts v0 did not cover |
+| 1 | **Finish This Mac:** divider drag and keyboard resize, drag and drop, renames and reorders, agent rows and the status area in the sidebar, "seen" |
+| 2 | **Remote machines (Mac):** the app's machine list and the herdr import, ControlMaster, askpass, machine pages, notifications |
 | 2b | **Thin iOS slice:** Citadel connect, snapshot, sidebar, one terminal stream |
-| 3 | **Pane kinds and chat:** the plugin registry and picker; the web page with `run` and `dial` (same-port forwards, the Open :port chip, the ports list); transcript and screen-text chat |
+| 3 | **Pane kinds and chat:** the plugin registry and picker; placeholder panes with `layout.apply`; the web page with `run` and `dial` (same-port forwards, the Open :port chip, the ports list); transcript and screen-text chat; image paste |
 | 4 | **Plugin system:** the plugin host (a web view per card, `window.oriel`, the content rule and CSP); the Git history, Diff and Markdown plugins; install and dev mode |
 | 5 | **Floating pills (macOS)** |
 | 6 | **Full iPadOS and iOS:** the compact layout, the reply box, the key bar, the `dial` listener for web pages, background handling, accessibility on iOS |
