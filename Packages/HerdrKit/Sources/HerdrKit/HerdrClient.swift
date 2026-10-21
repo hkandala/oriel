@@ -75,9 +75,7 @@ public actor HerdrClient {
         channel.closeInput()
         guard let reply else {
             let (status, stderr) = await channel.exit()
-            // 127: herdr is gone from its path (env and sh both say so).
-            throw status == 127 ? HerdrError.notFound
-                : HerdrError.failed("herdr exited \(status): \(stderr.trimmingCharacters(in: .whitespacesAndNewlines))")
+            throw HerdrError.failed("herdr exited \(status): \(stderr.trimmingCharacters(in: .whitespacesAndNewlines))")
         }
         let decoded = try decode(Reply<Result>.self, reply)
         if let error = decoded.error {
