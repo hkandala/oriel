@@ -11,7 +11,6 @@ description: "Where plugin state lives and how a fresh app restores plugin panes
 | plugin, pane kind, instance id | `git-history#k3f9q2` (`/<pane>` only when the plugin has several) | the pane label | every device |
 | the argument: what the pane shows | `main`, `docs/DESIGN.md` | the pane label | every device, the TUI border |
 | view state | selected commit, filters, scroll anchor; a web card's current address and scroll position | a JSON file on the pane's machine, keyed by iid | every device that reaches the machine, when it builds the card |
-| rename signal | `oriel_rev` | a herdr metadata token | every device (`pane.updated`) |
 | preferences | diff style | the app, per device | this device |
 | plugin code and consent | — | the app | this device |
 | in-memory UI state | hover, expanded rows | the page | this card only |
@@ -84,15 +83,16 @@ it relative to the home folder, where every command starts
    alive stays as it is.
 5. When the card is first shown: build its web page, inject the pane context, read
    the state file if the plugin uses one, render.
-6. On every later snapshot: a changed argument re-renders; a pane that is
-   gone destroys the card.
+6. On every later snapshot, a pane that is gone destroys the card. Nothing
+   else changes an open card.
 
 Nothing in these steps reads app storage except plugin code, consent and
 preferences.
 
 ## When a card reads its state
 
-A card reads its state file only when it is built (D59):
+An open card changes only when it is built or on **Refresh** (D59). That
+holds for its argument (the label) and its state file. A card is built on:
 - a fresh app start or a new device;
 - the card shown again after it was closed or evicted
   ([Plugin UI](/docs/plugins/plugin-ui#how-it-works)), or its plugin reloaded;
@@ -100,8 +100,8 @@ A card reads its state file only when it is built (D59):
   Returning from the background is not a fresh start: cards still in memory
   keep their state.
 
-While a card is open, it never reads its state file again by itself, so
-another device's writes do not move it. Every plugin card and web card has
-**Refresh** in its header: it writes this card's pending state, then
-rebuilds the card as if it were opened again, so it loads the page and its
-state from the machine.
+While a card is open, another device's renames and state writes do not
+move it. Every plugin card and web card has **Refresh** in its header: it
+writes this card's pending state, reads `session.snapshot` (a rename sends no
+event), then builds the card again with the label and state from the
+machine.

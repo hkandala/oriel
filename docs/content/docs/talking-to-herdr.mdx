@@ -104,7 +104,9 @@ the work. A later server helper would sit behind the same two calls
 - Subscriptions (herdr accepts no wildcards):
   - `workspace.created|updated|metadata_updated|renamed|moved|reordered|closed`
   - `tab.created|closed|renamed|moved`
-  - `pane.created|closed|updated|moved|exited|agent_detected`
+  - `pane.created|closed|moved|exited|agent_detected`. No `pane.updated`: it
+    fires on every terminal title and metadata token change, and the app uses
+    neither.
   - `layout.updated`
   - `pane.agent_status_changed`, one entry per pane listed in
     `snapshot.agents[]`. Each entry makes herdr poll that pane every 100 ms,

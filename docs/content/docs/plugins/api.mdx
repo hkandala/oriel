@@ -39,8 +39,8 @@ interface Oriel {
   open(url: string): Promise<boolean>;        // http(s) only, after a confirm sheet
   clipboard: { copy(text: string): Promise<void> };
 
-  // "pane": pane changed (arg, cwd); "snapshot": herdr state changed
-  on(event: "pane" | "snapshot", fn: () => void): void;
+  // "snapshot": herdr state changed
+  on(event: "snapshot", fn: () => void): void;
 }
 ```
 
@@ -48,8 +48,8 @@ interface Oriel {
 |---|---|---|
 | `run` | every data need is on the pane's machine: `git`, `cat`, `gh`, `rg`, and the herdr CLI (read panes, prompt an agent) | runs on **that card's machine only**, through the envelope; `argv[0] === "herdr"` gets `--session`; default cwd is the pane's cwd; 30 s timeout, 4 MiB per stream; one queue per machine, 2 at a time; paused while the card is off screen |
 | `dial` | a service on the machine, such as a dev server's API or a database | a TCP stream as seen from **that card's machine only** ([Run and dial](/docs/talking-to-herdr#run-and-dial)); closed when the card closes |
-| `pane` | the machine, argument and cwd | injected; `on("pane")` fires on change |
-| `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `oriel:<plugin>[/<pane>]#<iid>`, then a new `oriel_rev` token |
+| `pane` | the machine, argument and cwd | injected when the card is built; an open card does not follow a rename from elsewhere ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)) |
+| `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `oriel:<plugin>[/<pane>]#<iid>`; updates `pane.arg` |
 | `state` | view state (where the user was looking), kept across devices and restarts | the state file, read when the card is built or on **Refresh**, never live; live shared data belongs in files read with `run` ([State and restore](/docs/plugins/state#when-a-card-reads-its-state)) |
 | `snapshot` | refresh when an agent finishes | the snapshot the app already has; `on("snapshot")` is debounced and fires only while the card is visible |
 | `preferences` | per-device settings | read only |
