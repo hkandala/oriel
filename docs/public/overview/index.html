@@ -552,7 +552,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   </details>
   <details><summary>Add a machine, theme and accessibility</summary>
     <ul>
-      <li><b>Add a machine (macOS):</b> the app opens a terminal card on This Mac and types <code>herdr machine add &lt;target&gt;</code>, where herdr asks about host keys, passwords and installing itself. So the Mac app needs herdr installed on this Mac. <b>iOS</b> saves the target, shows the public key to copy into <code>authorized_keys</code>, and connects.</li>
+      <li><b>Add a machine:</b> the app saves the SSH target in its own list, on the Mac and on iOS. On the Mac, herdr's machines (<code>herdr machine list</code>) are imported on first launch, and the add sheet lists those not added yet. iOS shows the public key to copy into <code>authorized_keys</code>. herdr on the Mac is needed only for This Mac's sessions.</li>
       <li><b>Theme:</b> dark only. Opaque near-black window (<code>#0e0f12</code>), opaque cards, dark-tinted glass on the sidebar and tab bar. Terminals use a dark palette; web pages are told <code>prefers-color-scheme: dark</code>. iOS uses the same look. Status colors: <span style="color:#8fd3ff">◔ working</span> blue, <span style="color:var(--amber)">▲ needs you</span> amber, <span style="color:var(--green)">✓ finished</span> green.</li>
       <li><b>Accessibility:</b> status is always a glyph plus a word, never color alone. Terminal cards expose their screen text to VoiceOver (from <code>pane.read visible</code>, on demand) and announce new output politely. Keyboard focus moves sidebar → tab bar → cards (left to right, top to bottom). Every card action is reachable from the keyboard (⌘K). Every swipe has a keyboard path, a menu path and a button. The chrome supports Dynamic Type on iOS, and the terminal font size follows the app's text size setting. Reduce Motion turns off the morph, page animations and the pill's slide.</li>
     </ul>
@@ -561,7 +561,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <details><summary>States</summary>
     <table><tr><th>State</th><th>What the user sees</th></tr>
       <tr><td>Connecting</td><td>a spinner on the machine page</td></tr>
-      <tr><td>herdr not installed on this Mac</td><td>install instructions; remote machines cannot be listed or added until herdr is installed</td></tr>
+      <tr><td>herdr not installed on this Mac</td><td>install instructions on This Mac's page; remote machines still work</td></tr>
       <tr><td>herdr missing on a remote machine</td><td>the install command</td></tr>
       <tr><td>herdr older than 0.9.3</td><td>"herdr 0.9.3 or newer is needed"</td></tr>
       <tr><td>herdr newer than the app knows</td><td>a thin banner; the app keeps working</td></tr>
@@ -695,9 +695,9 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
 <!-- ═════════════ HOSTS ═════════════ -->
 <section id="hosts">
   <h2><span class="num">10</span>Machines and SSH</h2>
-  <p class="lead">On macOS the machine list is herdr's and SSH is the system <code>ssh</code>. On iOS the app saves machines and uses Citadel.</p>
+  <p class="lead">The app keeps its own machine list, on the Mac and on iOS. On the Mac, SSH is the system <code>ssh</code>; on iOS it is Citadel.</p>
   <div class="grid2">
-    <div class="card"><h4>macOS</h4><p>The Mac app requires herdr installed on this Mac: the machine list and <code>herdr machine add</code> run through it. Machines: <code>herdr session list</code> (the default session always, others while running) plus <code>herdr machine list</code>. One ControlMaster per host, started on purpose, so there is one prompt per host. Forwarding is off. A bundled askpass script shows password prompts.</p></div>
+    <div class="card"><h4>macOS</h4><p>The app's own machine list, as on iOS. When herdr is installed on this Mac, its <code>herdr machine list</code> entries are imported on first launch, and the add sheet lists the ones not added yet. herdr on the Mac is needed only for This Mac's sessions (<code>herdr session list</code>). One ControlMaster per host, started on purpose, so there is one prompt per host. Agent and X11 forwarding are off; <code>dial</code> adds port forwards when needed. A bundled askpass script shows password prompts.</p></div>
     <div class="card"><h4>iOS</h4><p>Machines in <code>UserDefaults</code>. A Secure Enclave key that cannot leave the phone. Host keys pinned on first use. The Mac is reached like any machine through Remote Login, over LAN or Tailscale.</p></div>
   </div>
   <p>A <b>machine</b> is one herdr session, so it is one entry in the machine list. Two sessions on one host share one SSH connection (ControlMaster), its channel budget, and the plugin state cleanup per (host, session). A non-default local session is named "This Mac · ‹session›".</p>
@@ -915,9 +915,9 @@ web:http://localhost:3000/dashboard</code></pre>
       <li>Web addresses (<code>web:&lt;url&gt;</code>) and plugin panes (<code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code>)</li>
       <li>Plugin instance state (a file on the machine)</li>
       <li>Chat history (the agent's transcript)</li>
-      <li>Machines on macOS (<code>session list</code>, <code>machine list</code>)</li></ul></div>
+</ul></div>
     <div class="col2 tag-a"><h4>The app keeps</h4><ul>
-      <li><b>Disk:</b> display preferences and pill settings; window restore ids and the sidebar expand state (<code>@SceneStorage</code>); plugin code, consent and preferences; approved web origins; on iOS the machine list, a Secure Enclave key and pinned host keys in the Keychain</li>
+      <li><b>Disk:</b> display preferences and pill settings; window restore ids and the sidebar expand state (<code>@SceneStorage</code>); plugin code, consent and preferences; approved web origins; the machine list; on iOS a Secure Enclave key and pinned host keys in the Keychain</li>
       <li><b>WebKit:</b> cookies, one data store per machine</li>
       <li><b>Memory:</b> zoomed card, chat or terminal per pane, seen values, drafts</li>
       <li><b>While running:</b> ControlMaster sockets and port forwards</li></ul></div>
@@ -1015,7 +1015,7 @@ agent.start | prompt | send_keys
 herdr --session S remote-api-bridge [--check]
 herdr --session S terminal session control|observe &lt;terminal_id&gt; --cols C --rows R [--takeover]
 herdr session list --json                              (macOS)
-herdr machine list --json | add | rename | remove      (macOS; add runs in a terminal card)
+herdr machine list --json                              (macOS; imported)
 herdr --session S server                               (remote machines only: nohup, on request)
 
 never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom · herdr popups · herdr plugin panes (plugin.pane.open) · herdr's private client socket</code></pre>
