@@ -259,7 +259,7 @@ handshake fails, it exits 1 with the reason on stderr.
 | Drop on a sidebar workspace | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Drop on empty sidebar space | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
 | Reorder tabs or workspaces | `tab.move` / `workspace.move` |
-| Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`); web and plugin panes close at once (known by their label) |
+| Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`); web and plugin panes close at once (known by their label), and the app removes their [state file](/docs/plugins/state#the-instance-state-file) |
 | Close a tab or workspace | `tab.close` / `workspace.close`; always asks, with the pane count |
 | Rename | `tab.rename` / `workspace.rename` |
 | Start an agent | [agent.start steps](/docs/plugins/terminal-and-agent#agent) |

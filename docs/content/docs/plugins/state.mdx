@@ -49,14 +49,15 @@ it relative to the home folder, where every command starts
   sh -c 'umask 077; mkdir -p "${1%/*}" && cat >"$1.$$" && mv "$1.$$" "$1"' sh <path>
   ```
   Last writer wins.
-- The app also writes `<plugin-id>/_plugin.json` (title, source, version) once,
-  so a device without the plugin can suggest installing it.
-- **Cleanup** runs at most once a day per machine.
-  `$HOME/.local/state/oriel/<session>/.gc` holds the date of the last
-  cleanup. The first device to connect waits for a complete, non-empty
-  snapshot. Then it deletes regular files named `<iid>.json` (matching
-  `^[a-z0-9]{6}\.json$`) that are older than 24 hours and whose iid is in no
-  current label.
+- The app also writes `<plugin-id>/_plugin.json` (title, source, version) each
+  time it creates a pane of that plugin, so a device without the plugin can
+  suggest installing it.
+- **Cleanup:** the device that closes a web or plugin pane removes its state
+  file (`rm -f`). On connect, the app runs once
+  `find .local/state/oriel/<session> -type f -mtime +30 -delete`, so files of
+  panes closed elsewhere (in the TUI, by a script) go after 30 days. Every
+  write refreshes a file's age; a card nobody touched for 30 days starts
+  fresh.
 
 ## Restore on a fresh app start (any device)
 
