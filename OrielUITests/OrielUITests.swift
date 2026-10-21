@@ -16,8 +16,8 @@ final class OrielUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         let env = ProcessInfo.processInfo.environment
-        one = try XCTUnwrap(env["HL_SESSION"], "run through make e2e")
-        two = try XCTUnwrap(env["HL_SESSION2"], "run through make e2e")
+        one = try XCTUnwrap(env["ORIEL_SESSION"], "run through make e2e")
+        two = try XCTUnwrap(env["ORIEL_SESSION2"], "run through make e2e")
         // Once per session; the runner may restart between tests, so ask herdr, not a static. The check is on
         // the last step, so a setup cut short builds again (and fails loudly) instead of passing half-built.
         let snapshot = try await Self.call(two, "session.snapshot", [:])["snapshot"] as? [String: Any]
@@ -366,7 +366,7 @@ extension OrielUITests {
     /// One POST to the e2e helper: `<session>` for an API call, `<session>/<action>` for the others (see the helper).
     @discardableResult
     nonisolated static func post(_ path: String, _ body: Data) async throws -> (data: Data, status: Int) {
-        let helper = try XCTUnwrap(ProcessInfo.processInfo.environment["HL_HELPER"])
+        let helper = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_HELPER"])
         var request = try URLRequest(url: XCTUnwrap(URL(string: "\(helper)/\(path)")))
         request.httpMethod = "POST"
         request.httpBody = body

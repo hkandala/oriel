@@ -5,7 +5,7 @@ import XCTest
 /// Streams are counted through the helper (`pgrep` on the session's `terminal session` runs).
 extension OrielUITests {
     func testStoppedSessionSaysSoAndComesBackWhenStartedAgain() async throws {
-        let five = try XCTUnwrap(ProcessInfo.processInfo.environment["HL_SESSION5"])
+        let five = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION5"])
         let snapshot = try await Self.call(five, "session.snapshot", [:])["snapshot"] as? [String: Any]
         if (snapshot?["workspaces"] as? [Any] ?? []).isEmpty {
             try await Self.call(five, "workspace.create", ["label": "five", "cwd": "/tmp", "focus": false])
@@ -58,7 +58,7 @@ extension OrielUITests {
     }
 
     func testSwitchingSessionsAndQuittingLeaveNoStreams() async throws {
-        let two = try XCTUnwrap(ProcessInfo.processInfo.environment["HL_SESSION2"])
+        let two = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION2"])
         XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
         XCTAssertTrue(element("tab.w1:t1").isSelected)
         // t1's three cards stream; the other session's one card once it shows.

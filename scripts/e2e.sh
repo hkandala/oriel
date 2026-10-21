@@ -8,14 +8,14 @@ cd "$(dirname "$0")/.."
 unset "${!HERDR_@}"
 
 id=$(openssl rand -hex 3)
-one=hl-e2e-$id-a
-two=hl-e2e-$id-b
+one=oriel-e2e-$id-a
+two=oriel-e2e-$id-b
 # Listed but stopped, for "Show stopped".
-three=hl-e2e-$id-c
+three=oriel-e2e-$id-c
 # Made by the app's New Session.
-four=hl-e2e-$id-d
+four=oriel-e2e-$id-d
 # Stopped and started again by a test.
-five=hl-e2e-$id-e
+five=oriel-e2e-$id-e
 # A session joins the cleanup only once it is up: a failed `up` must not remove a session it did not make.
 made=("$four")
 trap 'for s in "${made[@]}"; do scripts/herdr-session.sh down "$s" || true; done' EXIT

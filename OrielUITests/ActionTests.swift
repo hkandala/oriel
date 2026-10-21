@@ -176,7 +176,7 @@ extension OrielUITests {
     }
 
     func testNewSessionFromTheFilterIsSelected() throws {
-        let name = try XCTUnwrap(ProcessInfo.processInfo.environment["HL_SESSION4"])
+        let name = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION4"])
         XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
         openSessions()
         app.typeText(name)
@@ -191,7 +191,7 @@ extension OrielUITests {
     }
 
     func testShowStoppedRevealsStoppedSessionsAndPickingOneStartsIt() throws {
-        let stopped = try XCTUnwrap(ProcessInfo.processInfo.environment["HL_SESSION3"])
+        let stopped = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION3"])
         XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
         openSessions()
         XCTAssertTrue(element("session.\(one)").exists)

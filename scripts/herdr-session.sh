@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Start or remove a throwaway headless herdr session.
-# Usage: scripts/herdr-session.sh up|down <hl-e2e-*|hl-dev-*>
+# Usage: scripts/herdr-session.sh up|down <oriel-e2e-*|oriel-dev-*>
 set -euo pipefail
 
-usage="usage: $0 up|down <hl-e2e-*|hl-dev-*>"
+usage="usage: $0 up|down <oriel-e2e-*|oriel-dev-*>"
 cmd=${1:?$usage}
 name=${2:?$usage}
 case $name in
-hl-e2e-* | hl-dev-*) ;;
-*) echo "refusing '$name': only hl-e2e-* and hl-dev-* sessions are throwaway" >&2 && exit 2 ;;
+oriel-e2e-* | oriel-dev-*) ;;
+*) echo "refusing '$name': only oriel-e2e-* and oriel-dev-* sessions are throwaway" >&2 && exit 2 ;;
 esac
 # Inside a herdr pane these point at the user's own session; keep them out of the server.
 unset "${!HERDR_@}"
@@ -35,7 +35,7 @@ up)
     ;;
 down)
     # The app starts servers as one-shot launchd jobs (design D47); launchd keeps them loaded after they stop.
-    launchctl bootout "gui/$(id -u)/dev.hkandala.herdlight.herdr.$name" 2>/dev/null || true
+    launchctl bootout "gui/$(id -u)/dev.hkandala.oriel.herdr.$name" 2>/dev/null || true
     exists || exit 0
     herdr session stop "$name" >/dev/null 2>&1 || true
     for _ in $(seq 50); do

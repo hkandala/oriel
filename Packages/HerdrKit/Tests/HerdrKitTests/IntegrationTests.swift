@@ -21,7 +21,7 @@ private func shell(_ argv: String...) -> Int32 {
 
 /// A client for a new throwaway session, removed after `body`.
 private func withSession(_ exec: any Exec, _ body: (HerdrClient) async throws -> Void) async throws {
-    let session = "hl-e2e-\(UUID().uuidString.prefix(6).lowercased())"
+    let session = "oriel-e2e-\(UUID().uuidString.prefix(6).lowercased())"
     try #require(shell(script, "up", session) == 0)
     defer { shell(script, "down", session) }
     try await body(HerdrClient(herdr: HerdrClient.locate(exec: exec), session: session, exec: exec))

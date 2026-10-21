@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 unset "${!HERDR_@}"
-session=hl-dev-fixtures-$(openssl rand -hex 3)
+session=oriel-dev-fixtures-$(openssl rand -hex 3)
 scripts=../../../../../scripts
 "$scripts/herdr-session.sh" up "$session"
 trap '"$scripts/herdr-session.sh" down "$session"' EXIT

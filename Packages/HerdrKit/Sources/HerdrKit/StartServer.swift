@@ -13,10 +13,10 @@ import Foundation
             if await (try? ping()) != nil {
                 return
             }
-            let label = "dev.hkandala.herdlight.herdr.\(session)"
+            let label = "dev.hkandala.oriel.herdr.\(session)"
             let domain = "gui/\(getuid())"
             let plist = FileManager.default.temporaryDirectory.appending(path: "\(label).plist")
-            let logs = URL.libraryDirectory.appending(path: "Logs/Herdlight")
+            let logs = URL.libraryDirectory.appending(path: "Logs/Oriel")
             try FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
             let log = logs.appending(path: "\(session).log").path
             // Interactive: launchd's default throttles the CPU and I/O of the server and every agent in it.

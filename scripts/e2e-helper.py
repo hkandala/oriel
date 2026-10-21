@@ -72,6 +72,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
 server = socketserver.TCPServer(("127.0.0.1", 0), Handler)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 # xcodebuild passes TEST_RUNNER_* to the tests without the prefix.
-env = {**os.environ, "TEST_RUNNER_HL_HELPER": f"http://127.0.0.1:{server.server_address[1]}",
-       **{f"TEST_RUNNER_HL_SESSION{n if n > 1 else ''}": name for n, name in enumerate(sessions, 1)}}
+env = {**os.environ, "TEST_RUNNER_ORIEL_HELPER": f"http://127.0.0.1:{server.server_address[1]}",
+       **{f"TEST_RUNNER_ORIEL_SESSION{n if n > 1 else ''}": name for n, name in enumerate(sessions, 1)}}
 sys.exit(subprocess.run(command, env=env).returncode)
