@@ -818,7 +818,7 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     </ul>
     <div class="flow">
       <div class="n"><b>1 · snapshot</b><small>connect each machine</small></div><div class="a">→</div>
-      <div class="n"><b>2 · classify</b><small>web: · oriel: · agent · terminal</small></div><div class="a">→</div>
+      <div class="n"><b>2 · classify</b><small>oriel: · agent · terminal</small></div><div class="a">→</div>
       <div class="n"><b>3 · resolve</b><small>core, then linked, then installed; missing → placeholder card</small></div><div class="a">→</div>
       <div class="n"><b>4 · key the card</b><small>(machine, plugin, iid)</small></div><div class="a">→</div>
       <div class="n"><b>5 · render</b><small>web view + pane context + state file</small></div>
@@ -1050,7 +1050,7 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
     <tr><td class="k">plugin / core plugin</td><td>a pane kind / one that ships with the app (terminal, agent, web, git history, diff, Markdown)</td></tr>
     <tr><td class="k">bridge</td><td>the calls a plugin page gets on its pane's machine: <code>run(argv)</code> and <code>dial(host, port)</code></td></tr>
     <tr><td class="k">dial</td><td>open a TCP stream to a host and port as seen from a machine, through the SSH connection</td></tr>
-    <tr><td class="k">iid</td><td>a plugin pane's instance id, kept in its label</td></tr>
+    <tr><td class="k">iid</td><td>the instance id of a web or plugin pane, kept in its label</td></tr>
     <tr><td class="k">placeholder</td><td>the inert command a web or plugin pane is created with, which shows TUI users what the pane is; cosmetic</td></tr>
     <tr><td class="k">cold restart / live update</td><td>herdr stops and its terminals end / herdr hands over to a new server process and keeps its terminals</td></tr>
     <tr><td class="k">spike</td><td>a small throwaway test of one risky part, before real views</td></tr>
