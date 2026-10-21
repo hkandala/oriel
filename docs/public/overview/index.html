@@ -815,17 +815,18 @@ oriel:kanban/board#7tt1qe              ← a plugin with several pane kinds
 oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     <ul>
       <li>Every plugin pane is a real herdr pane running an inert placeholder command that prints the title, the argument and "shown by Oriel". The app creates it in one call: <code>layout.apply</code> with a pane node <code>{label, cwd, command:[argv]}</code> in a temporary tab; then <code>pane.move</code> puts it in place, and the temporary tab closes itself. The app never types into a shell. It never passes <code>tab_id</code> to <code>layout.apply</code>: that replaces the whole tab and kills its panes.</li>
-      <li>After a herdr cold restart the pane comes back as a shell with its label. The card still works from the label. The upstream ask (herdr discussion #1367) is an opt-in restore of such panes.</li>
-      <li>The instance id lives in the label, because <code>pane_id</code> changes on a move and <code>terminal_id</code> on a herdr restart. Cards are keyed by (machine, plugin, iid), so they survive both.</li>
-      <li>Bigger state lives in <code>$HOME/.local/state/oriel/&lt;session&gt;/&lt;plugin-id&gt;/&lt;iid&gt;.json</code> (<code>&lt;session&gt;</code> = the herdr session name) on the pane's machine (a fixed path, so every device finds the same file), written atomically, debounced, last writer wins. Orphan files are cleaned once a day.</li>
-      <li><b>No live follow (D59):</b> a card, web included, reads its state file only when it is built: a fresh start, a new device, the card reopened, or on iOS a card the system discarded (cards still in memory keep their state). An open card never moves because another device wrote. <b>Refresh</b> in the card header rebuilds the card from the machine. The state file is for view state only; data every device must see live stays in files the plugin reads with <code>run</code>. <code>oriel_rev</code> marks only renames, because a rename sends no event.</li>
-      <li>A plugin with one pane kind omits <code>/&lt;pane&gt;</code>. If two panes carry the same iid (a copied label), the pane that comes first in <code>snapshot.panes[]</code> keeps the card key and both share the state file.</li>
+      <li><b>One card key:</b> every card is keyed by (machine, <code>terminal_id</code>). The terminal id survives moves. The iid in the label only names the state file.</li>
+      <li>After a herdr cold restart the pane comes back as a shell with its label and a new terminal id, so its card rebuilds from the label and the state file, as every card does when it is built. The upstream ask (herdr discussion #1367) is an opt-in restore of such panes.</li>
+      <li>Bigger state lives in <code>.local/state/oriel/&lt;session&gt;/&lt;plugin-id&gt;/&lt;iid&gt;.json</code> under the home folder (<code>&lt;session&gt;</code> = the herdr session name) on the pane's machine (a fixed path, so every device finds the same file), written atomically, debounced, last writer wins.</li>
+      <li><b>Cleanup:</b> the device that closes a pane removes its state file. On connect, one <code>find &lt;state dir&gt; -type f -mtime +30 -delete</code> removes files nobody wrote for 30 days.</li>
+      <li><b>No live follow (D59):</b> a card, web included, changes only when it is built (a fresh start, a new device, the card reopened, or on iOS a card the system discarded) or on <b>Refresh</b> in the card header, which reads the snapshot first and then rebuilds the card. An open card never moves because another device wrote or renamed. The state file is for view state only; data every device must see live stays in files the plugin reads with <code>run</code>.</li>
+      <li>A plugin with one pane kind omits <code>/&lt;pane&gt;</code>.</li>
     </ul>
     <div class="flow">
       <div class="n"><b>1 · snapshot</b><small>connect each machine</small></div><div class="a">→</div>
       <div class="n"><b>2 · classify</b><small>oriel: · agent · terminal</small></div><div class="a">→</div>
       <div class="n"><b>3 · resolve</b><small>core, then linked, then installed; missing → placeholder card</small></div><div class="a">→</div>
-      <div class="n"><b>4 · key the card</b><small>(machine, plugin, iid)</small></div><div class="a">→</div>
+      <div class="n"><b>4 · key the card</b><small>(machine, terminal_id)</small></div><div class="a">→</div>
       <div class="n"><b>5 · render</b><small>web view + pane context + state file</small></div>
     </div>
   </details>
@@ -979,7 +980,7 @@ oriel:web#m4p8sa http://localhost:3000/dashboard</code></pre>
     <tr><td>Transcript formats change</td><td>full chat breaks for one agent</td><td>lenient parsers; screen text and terminal still work</td></tr>
     <tr><td>iOS drops connections in the background</td><td>no live updates</td><td>reconnect and snapshot on return; a push relay is future work</td></tr>
     <tr><td><code>layout.apply</code> with <code>tab_id</code> replaces the whole tab</td><td>the tab's panes are killed</td><td>the app never passes <code>tab_id</code></td></tr>
-    <tr><td>herdr cold restart</td><td>web and plugin panes come back as shells with their label</td><td>the card still works from the label; upstream ask: herdr discussion #1367</td></tr>
+    <tr><td>herdr cold restart</td><td>web and plugin panes come back as shells with their label</td><td>cards rebuild from the label and the state file; upstream ask: herdr discussion #1367</td></tr>
     <tr><td>A malicious plugin the user installed</td><td>anything the user can do on machines where its panes open, including network use from there</td><td>consent sheet in plain words; This Mac confirm; source shown and pinned to a commit</td></tr>
     <tr><td>Labels written by a hostile machine</td><td>a web page or plugin card opening by itself</td><td>web addresses need a click; plugins act only on that machine</td></tr>
     <tr><td>DNS rebinding against loopback forwards</td><td>a page reaches a forwarded dev server by another name</td><td>per-machine loopback rules; accepted residual risk</td></tr>
@@ -1060,7 +1061,6 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
     <tr><td class="k">cold restart / live update</td><td>herdr stops and its terminals end / herdr hands over to a new server process and keeps its terminals</td></tr>
     <tr><td class="k">spike</td><td>a small throwaway test of one risky part, before real views</td></tr>
     <tr><td class="k">Simpler choice</td><td>a shortcut taken on purpose, marked in the docs with when to revisit it</td></tr>
-    <tr><td class="k"><code>oriel_rev</code></td><td>a herdr metadata token the app changes after a rename, because a rename sends no event and a token change does</td></tr>
     <tr><td class="k">askpass</td><td>a small program <code>ssh</code> runs to ask for a password</td></tr>
     <tr><td class="k"><code>MaxSessions</code></td><td>OpenSSH's limit of sessions on one connection (10 by default)</td></tr>
   </table>
