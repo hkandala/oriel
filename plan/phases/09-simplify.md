@@ -44,6 +44,10 @@ feature stays. Only the way it works gets simpler. The user approved every item 
   shows the install command); the version comes from the snapshot; no newer-protocol banner;
   `integration.list` runs when the picker opens; state paths are relative to `$HOME` (no
   `$HOME` read).
+  - Later decision (user, loop 2): no install folders on `PATH`. The machine's login shell
+    finds herdr once (`$SHELL -lic 'command -v herdr'`; This Mac: the same run that reads the
+    environment), every call runs that absolute path, and the server's `PATH` is the login
+    shell's unchanged. No path: the install command, and the next try asks again.
 - **T10. Machine import:** only the Add Machine sheet lists herdr's machines; it opens with
   them checked when the app's list is empty. No first-launch import, no flag.
 - **XDG fix:** the launchd job that starts This Mac's server gets the same environment the

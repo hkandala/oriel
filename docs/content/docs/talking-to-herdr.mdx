@@ -25,9 +25,9 @@ the work. A later server helper would sit behind the same two calls
   channel. A web card needs a local port, not a stream; see
   [Remote localhost](/docs/plugins/web-page#remote-localhost).
 - **This Mac:** `Process`. A GUI app does not get the shell's environment. So
-  at launch the app reads `PATH`, `HOME`, `SSH_AUTH_SOCK` and every `XDG_*`
-  variable once with `$SHELL -lic` (stdin from `/dev/null`, 3 s timeout,
-  output parsed after a unique marker). `HERDR_*` variables are removed from
+  at launch the app reads `PATH`, `HOME`, `SSH_AUTH_SOCK`, every `XDG_*`
+  variable and herdr's path once with `$SHELL -lic` (stdin from `/dev/null`,
+  3 s timeout, output parsed after a unique marker). `HERDR_*` variables are removed from
   child processes.
 - **A remote machine on macOS:** the same `Process` with this prefix
   ([macOS](/docs/machines#macos)):
@@ -64,16 +64,20 @@ the work. A later server helper would sit behind the same two calls
 
 ## herdr on each machine
 
-- herdr installs to `~/.local/bin`, which non-interactive SSH commands often
-  lack. So every command runs with herdr's usual install folders in front of
-  `PATH`: `$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin`, set inside the
-  envelope on a remote machine and in the child environment on This Mac (if
-  `$SHELL -lic` fails, that `PATH` is the app's own,
-  `/usr/bin:/bin:/usr/sbin:/sbin`). The argv says plain `herdr`.
-- A missing herdr fails the first call (exit 127), and the app shows the
-  install command. herdr older than 0.9.1 has no `remote-api-bridge`, so the
-  first call fails too, shown as "No answer from herdr". A snapshot that
-  reports a version below 0.9.3 shows "herdr 0.9.3 or newer is needed".
+- herdr installs to `~/.local/bin`, which only the user's shell config puts
+  on `PATH`. So the app asks the machine's login shell once,
+  `$SHELL -lic 'command -v herdr'`, and takes the last line if it is an
+  absolute path (an rc file may print first). Every herdr call on that machine
+  runs that path; `PATH` stays the login shell's own. On This Mac the same
+  shell run reads the environment, at launch
+  ([Run and dial](#run-and-dial)). On a remote machine it is one run over SSH
+  on connect, and the path goes inside the envelope.
+- No path (herdr missing, or the shell failed or took over 3 s): the app shows
+  the install command and asks the shell again on the next try, so a herdr
+  installed since is found. herdr older than 0.9.1 has no
+  `remote-api-bridge`, so the first call fails, shown as "No answer from
+  herdr". A snapshot that reports a version below 0.9.3 shows "herdr 0.9.3 or
+  newer is needed".
 - The version comes from `session.snapshot`. Decoding is lenient, so a newer
   protocol needs nothing.
 - Commands start in the machine's home folder (sshd starts them there; on

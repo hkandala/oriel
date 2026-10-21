@@ -141,14 +141,14 @@ One loop per machine checks that it answers.
      server's parent and "responsible process": macOS privacy prompts never
      name Oriel, the server has its own process group, and it outlives the app.
      - `launchctl bootstrap gui/<uid>` (the user's GUI domain) loads the job
-       `dev.hkandala.oriel.herdr.<S>`, which runs `herdr --session <S> server`
-       through `/usr/bin/env -P <install folders + PATH>`.
+       `dev.hkandala.oriel.herdr.<S>`, which runs
+       `<herdr path> --session <S> server` (the path from the login shell).
      - `RunAtLoad` without `KeepAlive`: once `herdr session stop` ends the
        server, launchd never runs it again (`launchctl submit` restarted it).
      - `ProcessType Interactive`: launchd's default throttles the CPU and I/O
        of the server and every agent in it.
      - stderr goes to `~/Library/Logs/Oriel/<S>.log`.
-     - The job's environment is `PATH` (the user's own order), `HOME`,
+     - The job's environment is `PATH` (the login shell's, unchanged), `HOME`,
        `SSH_AUTH_SOCK` and every `XDG_*` variable, as the app's herdr calls
        see them ([This Mac](/docs/talking-to-herdr#run-and-dial)). So the
        server and the CLI agree on paths, and none of the app's own variables
@@ -157,7 +157,7 @@ One loop per machine checks that it answers.
        once). A running server, one that answers a snapshot, is never booted
        out: the app uses it.
    - **A remote machine:** a **Start herdr** button runs
-     `sh -c 'nohup herdr --session S server </dev/null >/dev/null 2>&1 &'`
+     `sh -c 'nohup <herdr path> --session S server </dev/null >/dev/null 2>&1 &'`
      over SSH and polls `session.snapshot` for up to 5 s.
 2. Open the event stream. Its `subscription_started` reply counts as an
    event, so the app reads the snapshot once more and misses nothing between

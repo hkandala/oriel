@@ -629,13 +629,14 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <details><summary>The two calls and the remote command envelope</summary>
 <pre><code>protocol Exec {
   func run(_ argv: [String]) async throws -&gt; Channel
+  func herdr() async -&gt; String?   // from the login shell
   func dial(host: String, port: Int) async throws -&gt; Channel
 }
 
 # every remote command, whatever the login shell (bash, zsh, fish):
 sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&gt;</code></pre>
     <ul>
-      <li>This Mac: <code>Process</code>, with <code>PATH</code>, <code>SSH_AUTH_SOCK</code> and <code>XDG_*</code> read once from <code>$SHELL -lic</code> (3 s timeout, parsed after a marker). <code>HERDR_*</code> is removed from children. herdr's usual install folders are in front of <code>PATH</code>, so the app never looks for herdr: a missing herdr fails the first call and the app shows the install command.</li>
+      <li>This Mac: <code>Process</code>, with <code>PATH</code>, <code>HOME</code>, <code>SSH_AUTH_SOCK</code>, <code>XDG_*</code> and herdr's path read once from <code>$SHELL -lic</code> (3 s timeout, parsed after a marker). <code>HERDR_*</code> is removed from children. A remote machine's login shell gives herdr's path once on connect. Every herdr call runs that absolute path; with no path, the app shows the install command and asks again on the next try.</li>
       <li>Remote on macOS: <code>ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/false -S &lt;ctl&gt; &lt;target&gt; --</code>, which never opens a second connection. iOS: a Citadel exec channel.</li>
       <li>Base64 passes through every shell unchanged, so no data is ever pasted into a shell string.</li>
       <li><b>Ending a child = closing its stdin.</b> <code>control</code> exits at once and frees the pane; the bridge exits in about 100 ms. If the app crashes, the kernel closes the pipes and every child ends itself, remote ones too. Commands that ignore the end of stdin (<code>observe</code>, <code>tail -F</code>) always run inside <code>sh -c '&lt;cmd&gt; &amp; c=$!; cat &gt;/dev/null; kill $c'</code>, on This Mac too. If a child still runs about 1 s after the close, its channel kills it by pid (never by process group).</li>
@@ -718,7 +719,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
       <li>Local Network privacy (macOS 15+): the app declares the usage string and opens an <code>NWConnection</code> to a LAN address first, so the system asks once.</li>
       <li>All machines keep their control plane open; only the selected machine streams terminals. OpenSSH allows 10 sessions per connection (<code>MaxSessions</code>). The app opens channels when needed and counts none: when the server refuses one, it closes the least recently shown kept stream and tries once more; else the card shows Retry.</li>
       <li><b>Health check:</b> one per machine. The snapshot read is the heartbeat: every 30 s while healthy, every 2 s while failing. Automatic retries use <code>BatchMode</code> and never prompt, so a host that needs a password or a one-time code shows <b>Reconnect</b>.</li>
-      <li>Checks on connect, two steps: the snapshot (it carries herdr's version), then events. <code>integration.list</code> runs when the picker opens. If the server is not running: on a remote machine, <b>Start herdr</b> runs <code>nohup herdr --session S server &amp;</code> over SSH. On This Mac, <b>Start</b> runs the server as a one-shot launchd job, so launchd, not the app, is its parent and its "responsible process" (macOS privacy prompts never name Oriel). The job gets the environment the app's herdr calls see (with the user's own <code>PATH</code> order), so server and CLI agree on paths.</li>
+      <li>Checks on connect, two steps: the snapshot (it carries herdr's version), then events. <code>integration.list</code> runs when the picker opens. If the server is not running: on a remote machine, <b>Start herdr</b> runs <code>nohup &lt;herdr path&gt; --session S server &amp;</code> over SSH. On This Mac, <b>Start</b> runs the server as a one-shot launchd job, so launchd, not the app, is its parent and its "responsible process" (macOS privacy prompts never name Oriel). The job runs herdr's absolute path with the login shell's <code>PATH</code>, <code>HOME</code>, <code>SSH_AUTH_SOCK</code> and <code>XDG_*</code>, so server and CLI agree on paths.</li>
       <li>iOS closes its terminal streams when the app goes to the background. It keeps the connection for about 30 s, then reconnects and re-reads the snapshot on return.</li>
     </ul>
   </details>

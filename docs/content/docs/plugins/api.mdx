@@ -41,7 +41,7 @@ interface Oriel {
 
 | API | Why | How |
 |---|---|---|
-| `run` | every data need is on the pane's machine: `git`, `cat`, `gh`, `rg`, and the herdr CLI (read panes, prompt an agent) | runs on **that card's machine only**, through the envelope; `argv[0] === "herdr"` gets `--session`; default cwd is the pane's cwd; 30 s timeout, 4 MiB per stream; one queue per machine, 2 at a time; paused while the card is off screen |
+| `run` | every data need is on the pane's machine: `git`, `cat`, `gh`, `rg`, and the herdr CLI (read panes, prompt an agent) | runs on **that card's machine only**, through the envelope; `argv[0] === "herdr"` runs herdr's path with `--session`; default cwd is the pane's cwd; 30 s timeout, 4 MiB per stream; one queue per machine, 2 at a time; paused while the card is off screen |
 | `dial` | a service on the machine, such as a dev server's API or a database | a TCP stream as seen from **that card's machine only** ([Run and dial](/docs/talking-to-herdr#run-and-dial)); closed when the card closes |
 | `pane` | the machine, argument and cwd | injected when the card is built; an open card does not follow a rename from elsewhere ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)) |
 | `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `oriel:<plugin>[/<pane>]#<iid>`; updates `pane.arg` |
