@@ -309,7 +309,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
   <p>This page is a summary. The full design is in the <a href="https://oriel-docs.vercel.app/docs">design docs</a>.</p>
   <div class="grid2">
     <div class="card"><h4>The problem</h4><p>People run many coding agents at once, often on several machines. herdr keeps them alive and knows when each one is working, blocked or done. But its interface is a terminal UI: one machine at a time, keyboard-first, and nothing when you are away from the terminal or on your phone.</p></div>
-    <div class="card"><h4>What we build</h4><p>One app for Mac, iPad and iPhone that shows every herdr machine at once: a sidebar of machines and agents, a swipeable strip of tabs with resizable panes, terminal, agent, web and plugin panes, a chat view for agents and terminals, and status pills on the Mac screen edge. Every pane kind is a plugin: terminal, agent and web page are core plugins, and your own are small web pages.</p></div>
+    <div class="card"><h4>What we build</h4><p>One app for Mac, iPad and iPhone that shows every herdr machine at once: a sidebar of machines and agents, a swipeable strip of tabs with resizable panes, terminal, agent, web and plugin panes, a chat view for agents and terminals, and status pills on the Mac screen edge. Terminal, agent and web page are built in; every other pane kind is a plugin, a small web page.</p></div>
   </div>
   <div class="rules">
     <div class="rule"><div class="ic">◎</div><b>The multiplexer is the source of truth</b><span>If herdr can hold a piece of state, herdr holds it. A fresh device rebuilds everything from it.</span></div>
@@ -353,17 +353,18 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 <!-- ═════════════ FEATURES: PANE KINDS ═════════════ -->
 <section id="f-panes">
   <h2><span class="num">2</span>Pane kinds and plugins</h2>
-  <p class="lead">Every pane kind is a plugin. Terminal, Agent and Web page are native core plugins. Git history, Diff and Markdown are core plugins built as small web pages, with the same bridge anyone can use.</p>
+  <p class="lead">Terminal, Agent and Web page are built in: fixed rows in the pane picker. Every other pane kind is a plugin, a small web page. Git history, Diff and Markdown are core plugins that ship with the app and use the same bridge anyone can use.</p>
   <div class="grid2">
     <div>
       <div class="picker">
         <div class="h">New pane on devbox</div>
-        <div class="it"><span class="ico sh">&gt;_</span>Terminal <small>core</small></div>
+        <div class="it"><span class="ico sh">&gt;_</span>Terminal</div>
         <div class="it"><span class="ico claude">✳</span>Agent <small>claude · codex · pi ▸</small></div>
-        <div class="it"><span class="ico web">◍</span>Web page <small>core</small></div>
-        <div class="it"><span class="ico codex">⑂</span>Git history <small>core plugin</small></div>
-        <div class="it"><span class="ico codex">±</span>Diff <small>core plugin</small></div>
-        <div class="it"><span class="ico pi">¶</span>Markdown <small>core plugin</small></div>
+        <div class="it"><span class="ico web">◍</span>Web page</div>
+        <div class="h">Plugins</div>
+        <div class="it"><span class="ico codex">⑂</span>Git history <small>core</small></div>
+        <div class="it"><span class="ico codex">±</span>Diff <small>core</small></div>
+        <div class="it"><span class="ico pi">¶</span>Markdown <small>core</small></div>
         <div class="it"><span class="ico sh">▦</span>Kanban <small>installed</small></div>
       </div>
     </div>
@@ -761,7 +762,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
 <!-- ═════════════ PLUGINS ═════════════ -->
 <section id="plugins">
   <h2><span class="num">12</span>Plugin system</h2>
-  <p class="lead">Every pane kind comes from one registry. A plugin is a small web page (HTML and JavaScript) drawn in a native web view in its card. A bridge gives it two calls on its pane's machine: <code>run(argv)</code> and <code>dial(host, port)</code>. The core plugins run on iOS in v1; your own plugins on iOS are future work.</p>
+  <p class="lead">Terminal, Agent and Web page are built in. Every other pane kind is a plugin: a small web page (HTML and JavaScript) drawn in a native web view in its card. A bridge gives it two calls on its pane's machine: <code>run(argv)</code> and <code>dial(host, port)</code>. The core plugins run on iOS in v1; your own plugins on iOS are future work.</p>
   <div class="flow">
     <div class="n"><b>plugin folder</b><small>HTML, CSS, JavaScript</small></div><div class="a">→</div>
     <div class="n"><b>web view per card</b><small>the plugin's own page</small></div><div class="a">→</div>
@@ -773,11 +774,11 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
     <div class="card"><h4>Mac and iOS</h4><p>A web view works the same on both. Git history, Diff and Markdown are built this way and run on both in v1; your own plugins run on the Mac, and on iOS later.</p></div>
     <div class="card"><h4>Bound to its machine</h4><p><code>run</code> and <code>dial</code> reach only the machine of the plugin's pane (see <a href="#plugin-security">Security</a>).</p></div>
   </div>
-  <details open><summary>Everything is a plugin</summary>
-    <table><tr><th>Plugin</th><th>Kind</th><th>UI</th><th>herdr marks the pane with</th></tr>
-      <tr><td>terminal</td><td>core</td><td>native terminal</td><td>nothing (the default)</td></tr>
-      <tr><td>agent</td><td>core</td><td>native terminal + chat view</td><td>nothing (herdr sets <code>pane.agent</code>)</td></tr>
-      <tr><td>web</td><td>core</td><td>native web view</td><td><code>oriel:web#&lt;iid&gt; &lt;url&gt;</code></td></tr>
+  <details open><summary>Pane kinds</summary>
+    <table><tr><th>Pane kind</th><th>Kind</th><th>UI</th><th>herdr marks the pane with</th></tr>
+      <tr><td>terminal</td><td>built in</td><td>native terminal</td><td>nothing (the default)</td></tr>
+      <tr><td>agent</td><td>built in</td><td>native terminal + chat view</td><td>nothing (herdr sets <code>pane.agent</code>)</td></tr>
+      <tr><td>web</td><td>built in</td><td>native web view</td><td><code>oriel:web#&lt;iid&gt; &lt;url&gt;</code></td></tr>
       <tr><td>git-history, diff, markdown</td><td>core</td><td>a web page and the public bridge</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr>
       <tr><td>your plugins</td><td>installed</td><td>a web page and the public bridge</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr></table>
     <p class="muted">Terminal, Agent and Web page are fixed rows in the picker, drawn natively, so a terminal costs no web view. herdr's own TUI plugins are not part of this system; a pane a herdr plugin opened shows as a terminal.</p>
@@ -1051,7 +1052,7 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
     <tr><td class="k">envelope</td><td>the base64 wrapper every remote command travels in</td></tr>
     <tr><td class="k"><code>terminal_id</code> / <code>pane_id</code></td><td>herdr's id of a terminal process / of a pane slot; the pane id changes on a move to another workspace, the terminal id on a herdr cold restart</td></tr>
     <tr><td class="k"><code>completion_seq</code></td><td>herdr's sequence number of an agent's last finish (working or blocked → idle); null until the first finish, and cleared to null on every other status change, so it is null while the agent works; restarts at 0 with herdr</td></tr>
-    <tr><td class="k">plugin / core plugin</td><td>a pane kind / one that ships with the app (terminal, agent, web, git history, diff, Markdown)</td></tr>
+    <tr><td class="k">plugin / core plugin</td><td>a pane kind drawn by a small web page / one that ships with the app (Git history, Diff, Markdown); terminal, agent and web page are built in, not plugins</td></tr>
     <tr><td class="k">bridge</td><td>the calls a plugin page gets on its pane's machine: <code>run(argv)</code> and <code>dial(host, port)</code></td></tr>
     <tr><td class="k">dial</td><td>open a TCP stream to a host and port as seen from a machine, through the SSH connection</td></tr>
     <tr><td class="k">iid</td><td>the instance id of a web or plugin pane, kept in its label</td></tr>
