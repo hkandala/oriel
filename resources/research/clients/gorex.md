@@ -43,7 +43,7 @@ A copy of Superlogical's Rex terminal (`gorex/README.md`). Its features: tabs an
   The backend only "provides a surface to draw on and its input" (a layer-backed NSView, with `CADisplayLink` frame pacing). Accessibility is done by hand: each node becomes a subclass of `NSAccessibilityElement`.
 - The UI is in immediate mode. `ui.View(a.view)` calls `func (a *App) view(c *ui.Context)` again on every change, much like a SwiftUI `body`.
 
-**What this means for us:** there is nothing to reuse at the code level. Herdlight's plan (SwiftUI with real `glassEffect`, libghostty-spm) is a different stack, and it is the more native one.
+**What this means for us:** there is nothing to reuse at the code level. Oriel's plan (SwiftUI with real `glassEffect`, libghostty-spm) is a different stack, and it is the more native one.
 
 ## 2. Window and title bar (the only real AppKit code)
 

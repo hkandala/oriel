@@ -1,6 +1,6 @@
 # Plugin architecture for custom pane types
 
-Research for Herdlight (DESIGN.md revision 3). Question: how do other people
+Research for Oriel (DESIGN.md revision 3). Question: how do other people
 add pane types (a diff view, a Markdown reader, git history) and how does the
 built-in web page pane become a plugin shipped by default?
 
@@ -19,7 +19,7 @@ Three layers. Each layer is used only when the layer before it cannot do the job
 | Layer | What | Who writes it | macOS | iOS | App work |
 |---|---|---|---|---|---|
 | **L0** | herdr's own TUI plugin panes (reviewr, file viewer, sidebar, gitview) | anyone, today | free | free | about 20 lines: list them in the "new pane" picker |
-| **L1** | **web plugins**: an HTML/JS folder drawn in a `WebPage` card, with a small `hl` JS bridge (exec on the pane's host, a few herdr calls, theme) | anyone | yes | yes | one generic card plus the bridge |
+| **L1** | **web plugins**: an HTML/JS folder drawn in a `WebPage` card, with a small `oriel` JS bridge (exec on the pane's host, a few herdr calls, theme) | anyone | yes | yes | one generic card plus the bridge |
 | **L2** | native SwiftUI panes compiled into the app | us only | yes | yes | one `case` in an enum per kind |
 
 - **The web page pane is the built-in reference plugin.** It goes through the
@@ -27,11 +27,11 @@ Three layers. Each layer is used only when the layer before it cannot do the job
   one difference is its renderer: it loads the URL in the label and gets no
   bridge, because its content is the open internet.
 - **Third-party plugins live on each host, inside a normal herdr plugin
-  folder**, with one extra file `herdlight.json` and a `ui/` folder. They are
+  folder**, with one extra file `oriel.json` and a `ui/` folder. They are
   installed with `herdr plugin install owner/repo`. The app finds them with
   `plugin.list`. The app stores no plugin code, and iOS gets plugins with no
   download step of its own.
-- **Label format:** `hl:<plugin-id>:<arg>`. `web:<url>` keeps working as the
+- **Label format:** `oriel:<plugin-id>:<arg>`. `web:<url>` keeps working as the
   web plugin's short form.
 - **Security boundary = the host.** A plugin found on host A can run commands
   only on host A, and only drive herdr on host A. It already has that power as a
@@ -53,7 +53,7 @@ a protocol when there is a second native kind.
 | Fact | Evidence |
 |---|---|
 | A pane `label` has no length cap, survives `pane.move` and survives a cold restart. Metadata tokens are capped at 80 characters, are not saved, and are lost on restart. | `research/herdr/herdr-core.md` §3, §7.1 |
-| `hl:git-diff:main...feature` (colons inside the arg) survived a cold server restart intact. | today, `hnspike`: `pane.rename`, then `herdr --session hnspike server stop` and start, then `session.snapshot` |
+| `oriel:git-diff:main...feature` (colons inside the arg) survived a cold server restart intact. | today, `hnspike`: `pane.rename`, then `herdr --session hnspike server stop` and start, then `session.snapshot` |
 | After a cold restart, the pane's process is gone and a login shell takes its place (`foreground_processes: [{"name":"zsh","argv":["-zsh"]}]`). | same test |
 | **`terminal_id` changes on a cold restart** (`term_65d594deecb4b2` became `term_65d594ea352ba2`). `pane_id` stayed `w1:p2`. | same test. This affects the PaneViewRegistry key in DESIGN §6. After a restart every card is rebuilt anyway. |
 | `pane.split` gives the new pane the target pane's **current** cwd. After `cd /tmp` in `w1:p1`, a split of it had `cwd: /private/tmp`. | today, `hnspike2` |
@@ -94,7 +94,7 @@ What I checked live today:
   [verified] Reading it would need a TOML parser in Swift, and a future herdr
   could turn strict. So the app's data goes in a separate JSON file (§4.1).
 - `herdr plugin pane open --plugin P --entrypoint E --placement split
-  --target-pane w1:p1 --direction down --env HL_ARG=x --no-focus` makes a normal
+  --target-pane w1:p1 --direction down --env ORIEL_ARG=x --no-focus` makes a normal
   pane. Its label is the entrypoint `title`. Its cwd is the plugin root unless
   `--cwd` is given. The snapshot has **no field that says a pane belongs to a
   plugin**. [verified] In the raw JSON request the field is `entrypoint`
@@ -109,7 +109,7 @@ What I checked live today:
 
 ### 2.1 Native Swift plugins loaded at runtime (bundles, dylibs)
 How: `Bundle(url:).load()` on a `.bundle` that links a shared
-`HerdlightPluginKit` framework and returns a SwiftUI view.
+`OrielPluginKit` framework and returns a SwiftUI view.
 - **macOS signing.** The app ships with Hardened Runtime (DESIGN §14.1).
   Library validation "prevents a program from loading frameworks, plug-ins, or
   libraries unless they're either signed by Apple or signed with the same Team
@@ -199,7 +199,7 @@ Facts that decide it:
 How: the plugin is a folder (`index.html` plus assets) built with any web
 stack. The app shows it in SwiftUI `WebView`/`WebPage` (macOS 26, iOS 26, the
 same type the web pane uses). It serves the files through a custom scheme and
-injects a small `hl` object that posts messages to Swift.
+injects a small `oriel` object that posts messages to Swift.
 - **Platform APIs** (all [docs]):
   - `WebPage.Configuration.urlSchemeHandlers: [URLScheme: any URLSchemeHandler]`,
     where `URLSchemeHandler.reply(for:)` returns an async sequence of response
@@ -240,7 +240,7 @@ injects a small `hl` object that posts messages to Swift.
 - **Looking native:**
   - `font: -apple-system-body` or `system-ui` gives SF Pro and follows Dynamic
     Type on iOS. `ui-monospace` gives SF Mono.
-  - `color-scheme: light dark` and injected `--hl-*` variables (§6.4) supply
+  - `color-scheme: light dark` and injected `--oriel-*` variables (§6.4) supply
     the app's card colours, ANSI palette, terminal font and radius.
   - No real vibrancy inside the page. That matches DESIGN D25: cards are
     opaque, and glass is for chrome only. The app draws the card header and
@@ -253,7 +253,7 @@ injects a small `hl` object that posts messages to Swift.
   `Exec`. The plugin never sees SSH.
 - **iOS:** works. App Store analysis is in §8.
 - **DX:** any bundler (Vite, esbuild). Safari Web Inspector. `herdr plugin link`
-  plus the card's Reload button. A small `hl.d.ts`.
+  plus the card's Reload button. A small `oriel.d.ts`.
 - **Performance:** one WebContent process per live plugin page (about 50 MB
   each, from Raycast's numbers). Cap the live pages (§7).
 - Verdict: **choose for third parties (L1).** One mechanism covers macOS and
@@ -373,15 +373,15 @@ Verdict: **L0, always on.** The only app work is to list the host's
 ```
 "new pane" picker on host H
  ├─ Terminal · Agent                                   (DESIGN §10.1–10.2)
- ├─ App plugins:  Web page (built-in) · Markdown (built-in) · <host plugins with herdlight.json>
+ ├─ App plugins:  Web page (built-in) · Markdown (built-in) · <host plugins with oriel.json>
  └─ herdr panes:  <plugin.list panes[] with placement split|tab>   → plugin.pane.open (L0)
 
-App plugin pane  =  herdr pane with label "hl:<id>:<arg>"  (or "web:<url>")
+App plugin pane  =  herdr pane with label "oriel:<id>:<arg>"  (or "web:<url>")
                     + placeholder process typed into its shell
 card             =  native header (icon, title, arg, Reload, Terminal, Restore placeholder)
                     + WebPage body:
                         renderer "url"     → load arg as a page (web plugin, no bridge)
-                        renderer "bundle"  → hl-plugin://<h8>.<id>/index.html + hl bridge
+                        renderer "bundle"  → oriel-plugin://<h8>.<id>/index.html + oriel bridge
 bridge           →  Exec on the pane's host only · herdr allowlist on that host · theme · setArg
 ```
 
@@ -398,12 +398,12 @@ the label scheme (§10.3) and the argv quoting function (§7.1).
 ```
 persiyanov-reviewr/            (any herdr plugin folder)
   herdr-plugin.toml            herdr's manifest: id, name, version, panes, actions…
-  herdlight.json            ← the only new file
+  oriel.json            ← the only new file
   native/ui/index.html         ← built web bundle (any bundler's dist/)
   native/ui/assets/…
   bin/reviewr                  ← optional host-side helper the UI can exec
 ```
-`herdlight.json`:
+`oriel.json`:
 ```json
 {
   "ui": "native/ui",
@@ -422,12 +422,12 @@ Left out on purpose:
   them, and `plugin.list` returns them.
 - Permissions: the host is the boundary (§6).
 - An arg schema: the plugin asks the user itself, then calls `setArg`.
-- A minimum app version: the plugin reads `hl.version`.
+- A minimum app version: the plugin reads `oriel.version`.
 
 **The plugin id is the herdr plugin id.** It must match
 `^[a-z0-9][a-z0-9._-]{0,63}$`. herdr also allows `:` in ids, but the label
 parser cannot accept it. Plugins whose ids do not match are skipped and logged.
-The `hl.` prefix and the id `web` are reserved for built-ins.
+The `oriel.` prefix and the id `web` are reserved for built-ins.
 
 Why the host, and not a plugins folder in the app:
 1. herdr already does install, preview, build, update, uninstall, config and
@@ -454,12 +454,12 @@ struct AppPlugin { let id, title, icon: String; let renderer: Renderer }
 
 let builtIns = [
   AppPlugin(id: "web",         title: "Web page", icon: "globe",            renderer: .url),
-  AppPlugin(id: "hl.markdown", title: "Markdown", icon: "doc.richtext",     renderer: .bundle("Plugins/markdown")),
+  AppPlugin(id: "oriel.markdown", title: "Markdown", icon: "doc.richtext",     renderer: .bundle("Plugins/markdown")),
 ]
 ```
 - `web` is the reference built-in. It is the existing §10.3 code. `renderer:
   .url` means the arg is the page and there is no bridge.
-- `hl.markdown` is the **reference bundle plugin**. It is the smallest useful
+- `oriel.markdown` is the **reference bundle plugin**. It is the smallest useful
   test of the bridge: `exec cat`, `setArg`, theme, and refresh on snapshot.
   The arg is a file path; an empty arg makes it list `*.md` in the cwd.
   Built-ins work on every host with nothing installed, iOS included.
@@ -471,7 +471,7 @@ let builtIns = [
 1. `plugin.list` (one `call()`): gives `plugin_id`, `name`, `version`,
    `plugin_root` and `panes[]`. This already covers L0.
 2. One exec for every root at once:
-   `sh -c 'for r; do [ -f "$r/herdlight.json" ] && printf "%s\0" "$r" && cat "$r/herdlight.json" && printf "\0"; done' sh <root1> <root2> …`
+   `sh -c 'for r; do [ -f "$r/oriel.json" ] && printf "%s\0" "$r" && cat "$r/oriel.json" && printf "\0"; done' sh <root1> <root2> …`
 3. The result is held in memory per host and re-read on reconnect. Bundles are
    fetched only when a card first opens (§6.3).
 
@@ -482,10 +482,10 @@ let builtIns = [
 ### 5.1 Label format
 ```
 web:<http(s)-url>              built-in web plugin (unchanged; DESIGN §10.3)
-hl:<plugin-id>:<arg>           every other app plugin
+oriel:<plugin-id>:<arg>           every other app plugin
 ```
 Parser (the one function the test target checks):
-- The prefix is `hl:`. The id runs up to the next `:` and must match
+- The prefix is `oriel:`. The id runs up to the next `:` and must match
   `^[a-z0-9][a-z0-9._-]{0,63}$`. The arg is everything after that colon. It may
   be empty and may contain `:`.
 - `web:` followed by an http or https URL is the plugin `web` with arg = URL.
@@ -501,11 +501,11 @@ Rules for the arg:
   socket can set a label (DESIGN D15).
 - Keep it readable, because the herdr TUI shows the label as the pane border
   title. A short path or a query-string style is best:
-  `hl:hl.markdown:docs/DESIGN.md`, `hl:persiyanov.reviewr:base=main`.
+  `oriel:oriel.markdown:docs/DESIGN.md`, `oriel:persiyanov.reviewr:base=main`.
 - There is no length cap (§1.1). Tokens and their 80-character cap are not
   used.
 
-Why `hl:` and not `<id>:` like `web:`: a user label such as `todo: fix login`
+Why `oriel:` and not `<id>:` like `web:`: a user label such as `todo: fix login`
 must never turn into a plugin. `web:` is safe only because a valid URL must
 follow it.
 
@@ -513,12 +513,12 @@ follow it.
 1. The user picks the plugin in the picker on host H.
 2. `pane.split {target_pane_id, direction, focus:false}` or `tab.create`. The new
    pane gets the source pane's cwd [verified].
-3. `pane.rename {pane_id, label: "hl:<id>:<arg>"}`. The arg is usually empty;
+3. `pane.rename {pane_id, label: "oriel:<id>:<arg>"}`. The arg is usually empty;
    the plugin asks the user and calls `setArg`.
 4. `pane.send_input` sends the placeholder, which is the §10.3 one with an
    **OSC 2 title** added:
    ```sh
-    clear; exec sh -c 'printf "\033]2;%s\007%s\n(shown by Herdlight)\n" "$1" "$1"; stty raw -echo; exec cat >/dev/null' sh '<label>'
+    clear; exec sh -c 'printf "\033]2;%s\007%s\n(shown by Oriel)\n" "$1" "$1"; stty raw -echo; exec cat >/dev/null' sh '<label>'
    ```
    The title change makes herdr send `pane.updated` (`research/herdr/herdr-core.md`
    §1.4). **Every other device** then re-reads the snapshot and sees the new
@@ -552,10 +552,10 @@ again.
 ## 6. The bridge, security, theming
 
 ### 6.1 API (all of it)
-Injected at document start into the page world as a global `hl`. It is
-delivered as `hl.d.ts`, with no npm runtime.
+Injected at document start into the page world as a global `oriel`. It is
+delivered as `oriel.d.ts`, with no npm runtime.
 ```ts
-declare const hl: {
+declare const oriel: {
   version: 1;
   readonly context: {                    // live: re-read fields on every use
     host: { id: string; label: string };
@@ -567,7 +567,7 @@ declare const hl: {
   exec(argv: string[], opts?: { cwd?: string; stdin?: string; timeoutMs?: number; base64?: boolean }):
     Promise<{ code: number; stdout: string; stderr: string; truncated: boolean }>;
   herdr(method: string, params?: object): Promise<unknown>;   // allowlist below
-  setArg(arg: string): Promise<void>;                          // renames own pane to hl:<id>:<arg>
+  setArg(arg: string): Promise<void>;                          // renames own pane to oriel:<id>:<arg>
   on(event: "snapshot" | "arg" | "theme", cb: (data: any) => void): () => void;
 };
 ```
@@ -610,16 +610,16 @@ What is new is code from a host running inside our app. Defences:
    - A `WKContentRuleList` blocks `^(https?|wss?|ftp):` for every load.
    - The CSP has `connect-src 'none'`.
    - The navigation decider cancels any main-frame navigation off
-     `hl-plugin:`. A link the user clicks opens in the browser.
+     `oriel-plugin:`. A link the user clicks opens in the browser.
    - So a plugin cannot leak data from the device. It can leak only from its
      own host, which it already could.
-3. **One origin per (host, plugin):** `hl-plugin://<h8>.<plugin-id>/`, where
+3. **One origin per (host, plugin):** `oriel-plugin://<h8>.<plugin-id>/`, where
    `<h8>` is the host hash DESIGN §8.1 already uses. Each pair gets one
    in-memory `WKWebsiteDataStore.nonPersistent()`, kept for the app run. The
    app stores nothing on disk, and plugins cannot read each other's storage.
 4. **Strict CSP to stop XSS from turning into remote code execution.** This is
    the real risk. A Markdown or diff plugin draws content from the repository.
-   An injected `<img onerror=…>` that reached `hl.exec` would run commands on
+   An injected `<img onerror=…>` that reached `oriel.exec` would run commands on
    the host. The scheme handler sends:
    ```
    Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval';
@@ -631,7 +631,7 @@ What is new is code from a host running inside our app. Defences:
    inlined HTML files. Plugin authors must still render untrusted HTML through a
    sanitiser or as `textContent` (stated in the SDK README).
 5. **The bridge checks the sender.** It handles a message only from the main
-   frame whose origin is the card's own `hl-plugin://` origin, and only for that
+   frame whose origin is the card's own `oriel-plugin://` origin, and only for that
    card's pane.
 6. **Arg and repository content are untrusted.** Authors pass them as argv
    (never through `sh -c`) and put `--` before paths, so an arg like
@@ -667,16 +667,16 @@ or appearance changes:
 ```css
 :root {
   color-scheme: light dark;
-  --hl-bg; --hl-fg; --hl-muted; --hl-accent; --hl-border; --hl-selection;
-  --hl-radius; --hl-font: -apple-system-body;            /* SF Pro, Dynamic Type on iOS */
-  --hl-font-mono: <terminal font family>, ui-monospace;  --hl-font-mono-size;
-  --hl-ansi-0 … --hl-ansi-15;                            /* the libghostty palette, for diff colours */
+  --oriel-bg; --oriel-fg; --oriel-muted; --oriel-accent; --oriel-border; --oriel-selection;
+  --oriel-radius; --oriel-font: -apple-system-body;            /* SF Pro, Dynamic Type on iOS */
+  --oriel-font-mono: <terminal font family>, ui-monospace;  --oriel-font-mono-size;
+  --oriel-ansi-0 … --oriel-ansi-15;                            /* the libghostty palette, for diff colours */
 }
 ```
-- The app also adds a ~60-line base `hl.css` for body, buttons, inputs, lists,
+- The app also adds a ~60-line base `oriel.css` for body, buttons, inputs, lists,
   code, tables and scrollbars, so a plugin with no CSS of its own looks like the
   app. There is no component library (the VS Code toolkit lesson, §2.4).
-- `html` gets the class `hl-macos` or `hl-ios` for small platform tweaks.
+- `html` gets the class `oriel-macos` or `oriel-ios` for small platform tweaks.
 - The card uses `webViewContentBackground(.hidden)` over the card's opaque
   background, so there is never a white flash while the page loads.
 - The native card header draws the icon, `document.title` (falling back to the
@@ -743,15 +743,15 @@ highlighter (§2.7) with no WASM runtime from us.
 | A plugin store, catalogue, search or install-from-URL in the app | Never on iOS (4.7.4). On macOS: the herdr marketplace and a terminal card are enough. |
 | Per-plugin capabilities and permission UI | Cross-host plugins exist (next row). |
 | **Cross-host plugins** (one plugin on This Mac used for every host's panes) | Users complain about installing on each host. Then add explicit per-host consent and Zed-style capabilities. |
-| A streaming `hl.spawn` (`tail -F`, watchers) | A real plugin cannot work with snapshot-driven refresh. It costs a long-lived channel per card. |
+| A streaming `oriel.spawn` (`tail -F`, watchers) | A real plugin cannot work with snapshot-driven refresh. It costs a long-lived channel per card. |
 | Network access for plugins | A plugin needs a web API it cannot reach through `exec` (for example `gh api`, `curl` on the host). |
 | A storage API, or persistent web data stores | A plugin needs device-local preferences that are not per pane (arg) or per host (files). |
-| A TUI fallback for app plugins (`plugin.pane.open` with `HL_ARG`, so herdr TUI users see the plugin's TUI instead of the placeholder) | A popular host plugin ships both a TUI and a GUI. It is a second creation path. |
+| A TUI fallback for app plugins (`plugin.pane.open` with `ORIEL_ARG`, so herdr TUI users see the plugin's TUI instead of the placeholder) | A popular host plugin ships both a TUI and a GUI. It is a second creation path. |
 | Plugin commands, menus, keybindings, sidebar or status contributions | Someone needs a plugin outside a pane. herdr's `[[actions]]` could be listed in a command palette. |
-| `hl.openPane(id, arg)` (a plugin opens another plugin pane) | A diff plugin wants to open a file in the Markdown plugin. |
+| `oriel.openPane(id, arg)` (a plugin opens another plugin pane) | A diff plugin wants to open a file in the Markdown plugin. |
 | A disk cache of bundles; a file watcher for hot reload | Bundle fetches show up in a profile. Authors ask for more than Reload. |
 | A Swift protocol for native kinds | A second native kind (L2) exists. Until then, an enum case. |
-| `herdlight.json` fields beyond `ui`, `icon`, `title` | A real plugin needs one. |
+| `oriel.json` fields beyond `ui`, `icon`, `title` | A real plugin needs one. |
 
 ---
 
@@ -773,7 +773,7 @@ highlighter (§2.7) with no WASM runtime from us.
   - **D30:** third-party pane types are web plugins that live on the host
     inside herdr plugins, scoped to that host. Rejected: dylibs, ExtensionKit,
     React→native, WASM.
-  - **D31:** label `hl:<id>:<arg>`, with `web:` kept.
+  - **D31:** label `oriel:<id>:<arg>`, with `web:` kept.
   - **D32:** herdr TUI panes are listed in the picker, `split` and `tab` only.
 - §17 build order: in step 3 (web panes), add the generic plugin card, the
-  bridge and `hl.markdown`.
+  bridge and `oriel.markdown`.

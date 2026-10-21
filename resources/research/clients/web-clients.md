@@ -329,7 +329,7 @@ Test setup: one throwaway pane `w9:pH` that I created and then closed. Steps:
 herdr pane split w9:p5 --direction down --no-focus --env HERDR_WEB_URL=https://example.com
 herdr pane run w9:pH "printf '\033]2;web:https://example.com/a?b=1\007'; exec sleep 120"
 herdr pane rename w9:pH "web https://example.com"
-herdr pane report-metadata w9:pH --source herdlight --title Example --token url=https://example.com/x
+herdr pane report-metadata w9:pH --source oriel --title Example --token url=https://example.com/x
 herdr pane get w9:pH
 ```
 Result (also seen in `pane.list`; values were still present about 6 s later; no TTL was given):

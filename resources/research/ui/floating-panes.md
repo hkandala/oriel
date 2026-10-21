@@ -40,13 +40,13 @@ for it as well". It covers two things:
    `session.snapshot`. The app could then stream the popup by its
    `terminal_id`, which works today (§2.4).
 4. **Floating panes made in the app are normal herdr panes that live in a
-   floating tab.** That is one tab per workspace whose label is `hl:float`.
+   floating tab.** That is one tab per workspace whose label is `oriel:float`.
    Every pane in that tab floats. herdr keeps the tab, its label and its panes
    across restarts (tested). The app stores nothing except where each card sits
    on the screen and whether the floating panes are shown. Both are kept in
    memory only.
 5. **To float a pane:** `pane.move` into the floating tab, or
-   `pane.move {type:"new_tab", workspace_id, label:"hl:float"}` when there is
+   `pane.move {type:"new_tab", workspace_id, label:"oriel:float"}` when there is
    no floating tab yet. **To dock it:** `pane.move` into a strip tab. herdr
    closes the floating tab when its last pane leaves (tested). The
    `terminal_id` stays the same, so the stream and the cached view survive.
@@ -184,7 +184,7 @@ Nobody shows herdr popups through the public API, because they cannot.
 
 ---
 
-## 3. Design for Herdlight
+## 3. Design for Oriel
 
 ### 3.1 herdr-originated popups and overlays
 - **Overlay, zoomed, and `type = "pane"` commands** are real panes in the
@@ -213,20 +213,20 @@ Nobody shows herdr popups through the public API, because they cannot.
 
 ### 3.2 Where a user-created floating pane lives
 **In a floating tab:** a normal herdr tab in the workspace whose label is
-exactly `hl:float`. Every pane in any tab with that label floats.
+exactly `oriel:float`. Every pane in any tab with that label floats.
 
 | Option | Verdict |
 |---|---|
 | **herdr popup** | reject. One per server, no `pane_id`, not in snapshot, not saved, no agent detection, opened only from plugin entrypoints against herdr's focused tab, and modal on herdr TUI screens |
-| **pane label marker** (`float:` …) | reject. The pane label already holds the `web:`/`hl:` marker or the user's own label. A web page or plugin pane could not float |
+| **pane label marker** (`float:` …) | reject. The pane label already holds the `web:`/`oriel:` marker or the user's own label. A web page or plugin pane could not float |
 | **metadata token** | reject. Lost on restart, 80 characters (§10.3) |
 | **app-side list of floating `terminal_id`s** | reject. Breaks D1. Ids change on a cold restart. Other devices would not agree |
-| **a tab labelled `hl:float`** | **chosen**. One marker per workspace. Any pane kind can float. herdr saves the tab label, panes and labels (tested across a cold restart). `pane.move` keeps `terminal_id`. Every device and the herdr TUI see the same thing |
+| **a tab labelled `oriel:float`** | **chosen**. One marker per workspace. Any pane kind can float. herdr saves the tab label, panes and labels (tested across a cold restart). `pane.move` keeps `terminal_id`. Every device and the herdr TUI see the same thing |
 
-- The `hl:` prefix stops a user's own tab label from turning into a floating
+- The `oriel:` prefix stops a user's own tab label from turning into a floating
   tab by accident (the same rule as §10.4.4). `float` joins `web` as a reserved
   plugin id.
-- herdr TUI users see one more tab, "hl:float", with the floating panes as
+- herdr TUI users see one more tab, "oriel:float", with the floating panes as
   splits. That is honest: it is where they live. They can use the panes there.
 - If two devices both create a floating tab, both tabs float. No dedupe is
   needed. If a herdr TUI user renames the tab, its panes simply show as docked.
@@ -237,23 +237,23 @@ exactly `hl:float`. Every pane in any tab with that label floats.
 
 | User action | herdr call (all with `focus:false`, herdr's default) |
 |---|---|
-| New floating terminal, no floating tab yet | `tab.create {workspace_id, cwd, label:"hl:float"}` |
+| New floating terminal, no floating tab yet | `tab.create {workspace_id, cwd, label:"oriel:float"}` |
 | New floating terminal, floating tab exists | `pane.split {target_pane_id: <any pane in it>, direction:"right"}` |
 | New floating agent | the row above, then `agent.start` in the new pane (§10.2) |
-| New floating web page or app plugin | the row above, then rename, placeholder and `hl_rev` token (§10.3, §10.4.4) |
-| New floating herdr TUI plugin pane | first: `plugin.pane.open {placement:"tab", workspace_id}` then `tab.rename {label:"hl:float"}`; after that: `plugin.pane.open {placement:"split", target_pane_id: <a floating pane>}` |
-| Float a docked pane (card menu **Float**, or drop on the "⧉" button) | `pane.move {pane_id, destination:{type:"tab", tab_id: <floating tab>, split:"right"}}`, or with no floating tab `pane.move {pane_id, destination:{type:"new_tab", workspace_id, label:"hl:float"}}` |
+| New floating web page or app plugin | the row above, then rename, placeholder and `oriel_rev` token (§10.3, §10.4.4) |
+| New floating herdr TUI plugin pane | first: `plugin.pane.open {placement:"tab", workspace_id}` then `tab.rename {label:"oriel:float"}`; after that: `plugin.pane.open {placement:"split", target_pane_id: <a floating pane>}` |
+| Float a docked pane (card menu **Float**, or drop on the "⧉" button) | `pane.move {pane_id, destination:{type:"tab", tab_id: <floating tab>, split:"right"}}`, or with no floating tab `pane.move {pane_id, destination:{type:"new_tab", workspace_id, label:"oriel:float"}}` |
 | Dock a floating pane (card menu **Move to tab ▸**, or drag its header onto a tab capsule or a card edge) | the existing §7.7 rows: `pane.move {destination:{type:"tab", tab_id, split, target_pane_id}}` |
 | Close | `pane.close` (asks first if an agent is working) |
 
 Live facts (0.9.3, throwaway server):
-- `tab.create {label:"hl:float"}` returns the tab and its `root_pane` in one
+- `tab.create {label:"oriel:float"}` returns the tab and its `root_pane` in one
   reply.
 - Moving the only pane out of the floating tab closes that tab (`w1:t2` was
   gone).
-- `pane.move {type:"new_tab", workspace_id, label:"hl:float"}` makes the
+- `pane.move {type:"new_tab", workspace_id, label:"oriel:float"}` makes the
   floating tab and moves the pane in one call. `focused_tab_id` did not change.
-- After `server.stop` and a fresh start, the `hl:float` tab and its pane came
+- After `server.stop` and a fresh start, the `oriel:float` tab and its pane came
   back. The `terminal_id`s were new, as already known (§14.5).
 
 ### 3.4 How it looks (macOS, iPad in regular width)
@@ -350,12 +350,12 @@ new code: the floating tab is just a tab, and only its display name changes.
 - **herdr TUI:** sees an ordinary tab. Nothing in herdr changes.
 
 ### 3.7 Multiple floating panes and restarts
-- Many floating panes means many panes in the `hl:float` tab. herdr keeps them
+- Many floating panes means many panes in the `oriel:float` tab. herdr keeps them
   as splits there, which only herdr TUI users see. The app draws each one as
   its own card and ignores that tab's split tree and ratios. While we control a
   pane, its PTY follows our card size (§9.5).
 - herdr restart: the tab and its panes come back. Shells come back as shells.
-  Agents come back the way herdr restores agents. `web:`/`hl:` labels survive
+  Agents come back the way herdr restores agents. `web:`/`oriel:` labels survive
   (§10.3).
 - App restart: the floating panes are still in herdr, hidden, with the count on
   "⧉ n" and default frames.
@@ -371,7 +371,7 @@ new code: the floating tab is just a tab, and only its display name changes.
 
 ## 4. Changes to DESIGN.md (proposal)
 - §0: add item 12, "Floating panes: panes in a workspace tab labelled
-  `hl:float` float as cards above the strip (macOS, iPad). ⌥⌘F shows or hides
+  `oriel:float` float as cards above the strip (macOS, iPad). ⌥⌘F shows or hides
   them. herdr popups are not shown until herdr reports them."
 - §5: new §5.10 "Floating panes" = §3.4 and §3.5 above. §5.4: add "drop on the
   ⧉ button → float". §5.5: add the z-order line.
@@ -379,9 +379,9 @@ new code: the floating tab is just a tab, and only its display name changes.
 - §8.4 and §7.6 "Which panes stream": add "+ shown floating cards".
 - §10.4.2 L0: add that floating herdr plugin panes use `placement:"tab"` and
   `"split"` into the floating tab, never `popup` or `overlay`.
-- §13: add rows "Which panes float | herdr | tab label `hl:float`" and
+- §13: add rows "Which panes float | herdr | tab label `oriel:float`" and
   "Floating card frames, shown/hidden, z-order | app | memory".
-- §15: **D41** "Floating panes live in a tab labelled `hl:float` per workspace;
+- §15: **D41** "Floating panes live in a tab labelled `oriel:float` per workspace;
   float and dock = `pane.move`; card frames and visibility are the app's own,
   in memory." Rejected: herdr popup, pane label marker, metadata token, an
   app-side list. **D42** "Floating cards draw inside the main window above the

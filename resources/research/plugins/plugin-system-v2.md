@@ -1,6 +1,6 @@
-# Plugin system v2: Herdlight's own plugins (TypeScript + React, Raycast style)
+# Plugin system v2: Oriel's own plugins (TypeScript + React, Raycast style)
 
-Research for Herdlight, after DESIGN.md revision 4. It replaces §10.4 of
+Research for Oriel, after DESIGN.md revision 4. It replaces §10.4 of
 DESIGN.md and `research/plugins/plugin-architecture.md` (host-side web plugins inside
 herdr plugins), which the user rejected.
 
@@ -25,7 +25,7 @@ from the sources. **[guess]** my estimate, not checked.
 ## 0. The answer
 
 1. **Plugins are TypeScript + React, written against our own component kit**
-   (`@herdlight/api`): `List`, `Detail`, `Markdown`, `Diff`, `Code`, `Form`,
+   (`@oriel/api`): `List`, `Detail`, `Markdown`, `Diff`, `Code`, `Form`,
    `ActionPanel`/`Action`, navigation, toasts. This is the Raycast model.
 2. **The kit renders as real SwiftUI (option B, Raycast 1.x style).** Each
    plugin card runs React in its own `JSContext` (JavaScriptCore, built into
@@ -45,11 +45,11 @@ from the sources. **[guess]** my estimate, not checked.
    Git history, Diff and Markdown are *core JS plugins* bundled in the app.
    They use the same API as third parties and act as the SDK's reference code.
 5. **Plugin code lives in the app**
-   (`~/Library/Application Support/Herdlight/plugins/<id>/`). You install a
+   (`~/Library/Application Support/Oriel/plugins/<id>/`). You install a
    plugin from a git URL or link a local folder (dev mode with hot reload). A
-   tiny CLI (`hl-plugin build|dev`, esbuild) builds it.
+   tiny CLI (`oriel-plugin build|dev`, esbuild) builds it.
 6. **herdr holds the pane, its kind, its instance id and its arg** in the
-   pane label: `hl:<plugin>[/<pane>]#<iid> <arg>`. Bigger per-instance state
+   pane label: `oriel:<plugin>[/<pane>]#<iid> <arg>`. Bigger per-instance state
    lives in a JSON file on the pane's host, keyed by the instance id. The app
    stores no per-pane data. Restore = parse labels (§5).
 7. **API:** `exec` on the pane's host (through the existing `Exec` and base64
@@ -340,7 +340,7 @@ bundle. Each commit calls `__host.commit(json)`. Swift decodes it into a
 ### 2.3 (C) Hybrid: B plus a `<WebView>` escape hatch
 `<WebView source="graph.html" data={json} onMessage={fn} />`:
 - It loads a file from the plugin's own `dist/` over
-  `hl-plugin://<plugin-id>/`.
+  `oriel-plugin://<plugin-id>/`.
 - CSP: `default-src 'self'; script-src 'self'`. No network. No `exec` and no
   API inside the page.
 - The page gets only the `data` JSON (re-sent on change) and may
@@ -416,8 +416,8 @@ where:
 | `terminal` | core | `Terminal` host component (libghostty, §7.6) | none | the pane itself | none (the default) |
 | `agent` | core | `Terminal` + chat view (§10.2, §11) | none | the pane itself (`pane.agent` set) | none |
 | `web` | core | `WebPage` host component (§10.3) | none (the page's own JS only) | placeholder | `web:<url>` |
-| `git-history`, `diff`, `markdown` | core JS, bundled | kit | yes, same API as third parties | placeholder | `hl:…` |
-| third-party | user | kit (+ hatch later) | yes | placeholder | `hl:…` |
+| `git-history`, `diff`, `markdown` | core JS, bundled | kit | yes, same API as third parties | placeholder | `oriel:…` |
+| third-party | user | kit (+ hatch later) | yes | placeholder | `oriel:…` |
 
 - Core native plugins have a manifest JSON in the app bundle with
   `"host": "terminal" | "agent" | "web"` instead of `panes[].entry`. The
@@ -439,14 +439,14 @@ where:
 
 ## 4. Plugin package and lifecycle
 
-### 4.1 Manifest (`package.json` with one `herdlight` field)
+### 4.1 Manifest (`package.json` with one `oriel` field)
 ```jsonc
 {
   "name": "git-history",                 // plugin id: ^[a-z0-9][a-z0-9._-]{0,63}$, unique
   "version": "0.3.0",                    // informational, shown in Settings
   "description": "Commits, diffs and blame for the pane's repo",
-  "repository": "https://github.com/me/hl-git-history",
-  "herdlight": {
+  "repository": "https://github.com/me/oriel-git-history",
+  "oriel": {
     "api": 1,                            // highest API version used; the app must support it
     "title": "Git history",
     "icon": "arrow.triangle.branch",     // SF Symbol name, or "assets/icon.png" (template-tinted)
@@ -474,29 +474,29 @@ where:
   paths, and the plugin runs against a host.
 
 ### 4.2 Build tool
-`@herdlight/api` ships types, hooks and a bin `hl-plugin`, like Raycast's
+`@oriel/api` ships types, hooks and a bin `oriel-plugin`, like Raycast's
 CLI inside `@raycast/api`:
-- `hl-plugin build`:
+- `oriel-plugin build`:
   - validates the manifest (zod schema);
   - runs esbuild once per pane entry, writing `dist/<pane>.js` (IIFE, ES2022,
     minified);
-  - marks `react`, `react/jsx-runtime` and `@herdlight/api` as externals
+  - marks `react`, `react/jsx-runtime` and `@oriel/api` as externals
     mapped to globals the prelude defines. Bundles stay small, and there is
     one React per app release.
   - copies `assets/`.
-- `hl-plugin dev` = `build --watch`, plus it tails
-  `log stream --predicate 'subsystem == "herdlight.plugin.<id>"'`
+- `oriel-plugin dev` = `build --watch`, plus it tails
+  `log stream --predicate 'subsystem == "oriel.plugin.<id>"'`
   (Raycast streams logs the same way).
 - About 150 lines of TypeScript [guess]. No templates, lint or publish
   commands in v1.
 
 ### 4.3 Where plugins live and how they get there (macOS)
 ```
-~/Library/Application Support/Herdlight/plugins/<plugin-id>/
+~/Library/Application Support/Oriel/plugins/<plugin-id>/
   package.json
   dist/<pane>.js
   assets/…
-  .hl-source.json      {"url":"https://github.com/me/hl-git-history","ref":"main","commit":"<sha>","installedAt":"…"}
+  .oriel-source.json      {"url":"https://github.com/me/oriel-git-history","ref":"main","commit":"<sha>","installedAt":"…"}
 ```
 - **Install from a git URL** (Settings › Plugins › Add):
   1. `git clone --depth 1 --branch <ref> <url>` into a temp folder (local
@@ -523,14 +523,14 @@ CLI inside `@raycast/api`:
   - Simpler choice: no auto-update. Raycast auto-updates because it reviews
     every change; we do not.
 - **Versioning:**
-  - `herdlight.api` must be ≤ the app's API version. Otherwise the card
-    says "needs a newer Herdlight".
+  - `oriel.api` must be ≤ the app's API version. Otherwise the card
+    says "needs a newer Oriel".
   - The app ships React, the reconciler and the API runtime (the prelude).
     The API version goes up with app releases (Raycast's synchronised model).
   - API changes are additive within version 1.
 
 ### 4.4 Lifecycle of a card
-1. A pane with an `hl:` label enters the selected tab. The card is created,
+1. A pane with an `oriel:` label enters the selected tab. The card is created,
    keyed by `(host, plugin, iid)` (§5.3).
 2. Create the VM, context and serial queue. Inject `__host`. Evaluate the
    prelude, then `dist/<pane>.js`. Render the default export inside the
@@ -548,11 +548,11 @@ This is DESIGN §10.4.4 with the new label:
    `[a-z0-9]`, retry if any label in the snapshot already has it).
 2. `pane.split {target_pane_id, direction, cwd: <source pane cwd>}` or
    `tab.create`.
-3. `pane.rename {pane_id, label: "hl:<plugin>[/<pane>]#<iid> <arg>"}`.
+3. `pane.rename {pane_id, label: "oriel:<plugin>[/<pane>]#<iid> <arg>"}`.
 4. `pane.send_input` with the placeholder (§5.4), through the base64
    envelope.
-5. `pane.report_metadata {pane_id, source:"user:herdlight",
-   tokens:{hl_rev:"<ms>"}}`. A rename sends no event; a token change sends
+5. `pane.report_metadata {pane_id, source:"user:oriel",
+   tokens:{oriel_rev:"<ms>"}}`. A rename sends no event; a token change sends
    `pane.updated` [verified in revision 4].
 6. Re-read the snapshot.
 
@@ -578,7 +578,7 @@ files, which the plugin can read with `exec`. Not synced: add
   "‹id› is a Mac plugin · Show placeholder". The placeholder shows the arg.
 - **Later, behind Settings › "Load plugins from my Mac" (off by default):**
   - The phone already reaches the Mac as an SSH host (DESIGN §8.2). It reads
-    `~/Library/Application Support/Herdlight/plugins/` there with one
+    `~/Library/Application Support/Oriel/plugins/` there with one
     `tar` exec, using revision 4's tar reader (no `..`, no links, size cap),
     and keeps it in memory.
   - No iCloud entitlement, no new transport.
@@ -635,7 +635,7 @@ pane from herdr alone. It stores nothing per pane.
 | Instance id | `k3f9q2` | **label** | every device | moves, cold restart |
 | The arg: what the pane shows | `main`, `docs/DESIGN.md`, `base=main` | **label** | every device, TUI border | moves, cold restart |
 | Bigger instance state | selected commit, filters, scroll anchor, review comments | **host file**, keyed by iid (§5.5) | every device that reaches the host | everything except deleting the file |
-| Change signal for other devices | `hl_rev=1791492…` | metadata token | every device (`pane.updated`) | not persisted, and does not need to be |
+| Change signal for other devices | `oriel_rev=1791492…` | metadata token | every device (`pane.updated`) | not persisted, and does not need to be |
 | Preferences | diff style | app, per device (§4.6) | this device | app reinstall: no |
 | Installed plugin code, consent | — | app | this device | — |
 | React in-memory state | hover, expanded rows | JS heap | this card | nothing (rebuilt from the rows above) |
@@ -647,19 +647,19 @@ Everything else is React state."
 ### 5.2 Label format
 ```
 label     = "web:" url
-          | "hl:" plugin-id [ "/" pane-name ] "#" iid [ " " arg ]
+          | "oriel:" plugin-id [ "/" pane-name ] "#" iid [ " " arg ]
 plugin-id = [a-z0-9][a-z0-9._-]{0,63}
 pane-name = [a-z0-9][a-z0-9-]{0,31}
 iid       = [a-z0-9]{6}
 arg       = the rest (any text, no control characters, ≤ 1024 chars, enforced by setArg)
-regex     = ^hl:([a-z0-9][a-z0-9._-]{0,63})(?:/([a-z0-9][a-z0-9-]{0,31}))?#([a-z0-9]{6})(?: (.*))?$
+regex     = ^oriel:([a-z0-9][a-z0-9._-]{0,63})(?:/([a-z0-9][a-z0-9-]{0,31}))?#([a-z0-9]{6})(?: (.*))?$
 ```
 Examples, as they look in the herdr TUI border:
 ```
-hl:git-history#k3f9q2 main
-hl:markdown#q2m0zd docs/DESIGN.md
-hl:diff#a81xw0 base=main
-hl:kanban/board#7tt1qe
+oriel:git-history#k3f9q2 main
+oriel:markdown#q2m0zd docs/DESIGN.md
+oriel:diff#a81xw0 base=main
+oriel:kanban/board#7tt1qe
 web:http://localhost:3000/dashboard
 ```
 - **Why the label:** it is the only free-form pane field that has no length
@@ -669,7 +669,7 @@ web:http://localhost:3000/dashboard
 - **Readable:** `#` and a space keep it short and scannable. The herdr TUI
   shows the label as the border title when the metadata `title` is empty
   (`state.rs border_label`). The arg goes last, so the useful part is what a
-  TUI user reads. Revision 4's `hl:<id>:<arg>` is replaced; nothing shipped,
+  TUI user reads. Revision 4's `oriel:<id>:<arg>` is replaced; nothing shipped,
   so nothing needs to stay compatible.
 - **Trimmed:** herdr trims labels, so an arg cannot start or end with a space.
   `setArg` trims too, so the app's idea of the arg matches herdr's.
@@ -703,8 +703,8 @@ It is sent with `pane.send_input` through the base64 envelope (DESIGN §7.1):
 It decodes to:
 ```sh
 printf '\033]2;%s\007' 'Git history · main'                    # outer window title only
-printf '◆ %s\n  %s\n  arg: %s\n\n  Shown by Herdlight. Open it there to use it.\n  state: %s\n' \
-  'Git history' 'hl:git-history#k3f9q2' 'main' '~/.local/state/herdlight/default/git-history/k3f9q2.json'
+printf '◆ %s\n  %s\n  arg: %s\n\n  Shown by Oriel. Open it there to use it.\n  state: %s\n' \
+  'Git history' 'oriel:git-history#k3f9q2' 'main' '~/.local/state/oriel/default/git-history/k3f9q2.json'
 stty raw -echo; exec cat >/dev/null
 ```
 - **What it carries:** nothing the app relies on. After a cold restart herdr
@@ -721,7 +721,7 @@ stty raw -echo; exec cat >/dev/null
 
 ### 5.5 Bigger instance state: a file on the pane's host
 ```
-${XDG_STATE_HOME:-$HOME/.local/state}/herdlight/<herdr-session>/<plugin-id>/<iid>.json
+${XDG_STATE_HOME:-$HOME/.local/state}/oriel/<herdr-session>/<plugin-id>/<iid>.json
 ```
 - **Why the host:**
   - It is next to herdr and the data.
@@ -738,8 +738,8 @@ ${XDG_STATE_HOME:-$HOME/.local/state}/herdlight/<herdr-session>/<plugin-id>/<iid
 - **Write:** `setState` is debounced 500 ms. The JSON comes over stdin:
   `sh -c 'umask 077; mkdir -p "${1%/*}" && cat >"$1.tmp" && mv "$1.tmp" "$1"' sh <path>`.
   The rename is atomic. Cap 256 KiB. After the write, the app sends
-  `report_metadata tokens:{hl_rev:"<ms>"}` on that pane.
-- **Other devices:** a changed `hl_rev` on a pane whose card uses state means
+  `report_metadata tokens:{oriel_rev:"<ms>"}` on that pane.
+- **Other devices:** a changed `oriel_rev` on a pane whose card uses state means
   "re-read the file". Then the hook's value updates and the component
   re-renders.
 - **Conflicts:** last writer wins for the whole object. Plugins keep state
@@ -759,7 +759,7 @@ ${XDG_STATE_HOME:-$HOME/.local/state}/herdlight/<herdr-session>/<plugin-id>/<iid
 
 ### 5.6 A label for a plugin this device does not have
 Common case: the Mac created the pane, and the phone lacks the plugin.
-1. The card shows the plugin icon placeholder, `hl:<id>`, the arg, and "Not
+1. The card shows the plugin icon placeholder, `oriel:<id>`, the arg, and "Not
    installed on this ‹device›". Actions: **Show placeholder** (the terminal
    view of the pane) and **Close pane**.
 2. On macOS, if `plugin.json` exists on the host (one `cat`, only for missing
@@ -774,12 +774,12 @@ Common case: the Mac created the pane, and the phone lacks the plugin.
 2. For each pane in the snapshot, classify it:
    - label matches `^web:https?://` → `web` plugin, arg = the URL
      (§10.3 load rules apply);
-   - label matches the `hl:` regex → `(plugin, pane, iid, arg)`;
+   - label matches the `oriel:` regex → `(plugin, pane, iid, arg)`;
    - otherwise → `agent` if `pane.agent` is set, else `terminal`.
 3. Resolve the plugin in the local registry: core, installed, or dev.
    - Missing → the §5.6 card.
    - Unknown pane name → "‹plugin› has no pane ‹name›" plus Show placeholder.
-   - `api` too new → "needs a newer Herdlight".
+   - `api` too new → "needs a newer Oriel".
    - A required preference is unset → the "Set up" view.
 4. Key the card `(host, plugin, iid)`. If a card with that key is already
    alive (for example after a move or a cold restart), keep it, and update
@@ -792,7 +792,7 @@ Common case: the Mac created the pane, and the phone lacks the plugin.
    - render.
 6. On every later snapshot:
    - changed label arg → new `arg` in `usePane()` (re-render, no reload);
-   - changed `hl_rev` → re-read the state file if the card uses state;
+   - changed `oriel_rev` → re-read the state file if the card uses state;
    - changed `cwd` → update the context;
    - pane gone → destroy the card.
 7. Garbage collection, at most once a day per host and session, after the
@@ -804,7 +804,7 @@ No step reads app storage, except the plugin code, consent and preferences.
 - **The problem:** a closed pane takes its label with it. The state file
   stays. herdr has no hook we can use, since we do not build on herdr plugins.
 - **GC step** (whichever device connects; it is idempotent):
-  1. List `…/herdlight/<session>/*/*.json` files older than 24 hours
+  1. List `…/oriel/<session>/*/*.json` files older than 24 hours
      (`find … -mtime +0`).
   2. Delete those whose `<plugin>/<iid>` is not in any current label.
 - **Why 24 hours:** it covers a device that creates a pane and writes its
@@ -820,7 +820,7 @@ No step reads app storage, except the plugin code, consent and preferences.
 ## 6. Plugin API (all of it, v1)
 
 ```ts
-// @herdlight/api  (types; runtime is the app's prelude)
+// @oriel/api  (types; runtime is the app's prelude)
 export function usePane(): {
   host: { id: string; label: string };      // the pane's host; exec goes only there
   paneId: string;                            // not durable (changes on cross-workspace move); do not store
@@ -838,7 +838,7 @@ export function showToast(t: { style?: "success" | "failure" | "animated"; title
 export function open(url: string): Promise<boolean>;                 // http(s) only, native confirm sheet
 export const Clipboard: { copy(text: string): Promise<void> };
 export function useNavigation(): { push(view: ReactNode): void; pop(): void };
-// @herdlight/api/utils
+// @oriel/api/utils
 export function usePromise<T>(fn: (...a: any[]) => Promise<T>, args?: any[]): { data?: T; error?: Error; isLoading: boolean; revalidate(): void };
 export function useExec(argv: string[], opts?: { cwd?: string; parse?: (stdout: string) => any; refreshOnSnapshot?: boolean }): ReturnType<typeof usePromise>;
 // components
@@ -849,8 +849,8 @@ export { List, Detail, Markdown, Diff, Code, Form, ActionPanel, Action, Icon, Co
 |---|---|---|
 | `exec` | Every data need is on the pane's host: `git`, `cat`, `gh`, `rg`, and the herdr CLI (read panes, `agent prompt`). `argv[0] === "herdr"` is replaced with the resolved herdr path plus `--session <s>` | `Exec.run` on **that card's host only**, through the base64 envelope (DESIGN §7.1). Default cwd is the pane's cwd. 30 s timeout, 4 MiB per stream. One queue per host, 2 at a time (DESIGN §8.4). Refused while the card's queue is suspended |
 | `usePane` | Every plugin needs its arg and cwd. Raycast's `environment` folded in | Injected. Re-renders on arg or cwd change |
-| `setArg` | The durable "what this pane shows" (§5) | `pane.rename` of its **own** pane only, keeping `hl:<id>#<iid>`, then the `hl_rev` token |
-| `useInstanceState` | Bigger durable state shared across devices (§5.5) | Host file plus the `hl_rev` signal |
+| `setArg` | The durable "what this pane shows" (§5) | `pane.rename` of its **own** pane only, keeping `oriel:<id>#<iid>`, then the `oriel_rev` token |
+| `useInstanceState` | Bigger durable state shared across devices (§5.5) | Host file plus the `oriel_rev` signal |
 | `useSnapshot` | Refresh when an agent finishes (redraw the diff) | The HostStore forwards the snapshot it already has, debounced, only while the card is visible. No new channel |
 | preferences | Per-device config (§4.6) | Read-only for the plugin |
 | `showToast` | Errors and progress without custom UI | A native toast at the card's bottom edge. `animated` shows a spinner. The returned handle can update or hide it |
@@ -1028,13 +1028,13 @@ reaches. The answers:
   - the PaneViewRegistry keys plugin cards by `(host, plugin, iid)`.
 - **§13 storage:**
   - remove "third-party plugin code: the host" and "plugin web storage";
-  - add plugin code + `.hl-source.json` (Application Support), consent and
+  - add plugin code + `.oriel-source.json` (Application Support), consent and
     This Mac answers (`UserDefaults`), preferences (`UserDefaults` +
     Keychain), instance state (host file, §5.5).
 - **§14.5:** a `JSContext` bridge replaces `URLSchemeHandler` + content rules
   + `WKScriptMessageHandlerWithReply`, until the hatch.
 - **§14.6 tests:**
-  - the label parser (`web:`, `hl:` with and without `/pane`, an arg with
+  - the label parser (`web:`, `oriel:` with and without `/pane`, an arg with
     spaces and `#`);
   - the reconciler tree round trip (JS commit → Swift `Node` decode) on
     recorded trees;
@@ -1045,7 +1045,7 @@ reaches. The answers:
 - **Decisions:** D34–D38 are replaced by:
   - kit + JSC → SwiftUI (C, built as B);
   - plugins live in the app, installed from git or a folder;
-  - label `hl:<plugin>[/<pane>]#<iid> <arg>`, with state in a host file keyed
+  - label `oriel:<plugin>[/<pane>]#<iid> <arg>`, with state in a host file keyed
     by iid;
   - API §6;
   - security §7 (per-card host binding, install consent, This Mac confirm,

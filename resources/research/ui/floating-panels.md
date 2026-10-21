@@ -1,7 +1,7 @@
 # Floating agent pills on macOS 26
 
 Research for a macOS-only feature: small always-on-top capsules ("pills") that
-show agent status while Herdlight is not in front. A pill expands into a
+show agent status while Oriel is not in front. A pill expands into a
 small card with the agent's latest output and a reply box. A click opens the
 main window at that pane.
 
@@ -309,7 +309,7 @@ events" ([Apple](https://developer.apple.com/documentation/appkit/nsscreen/main)
 **Accessibility:**
 - Each pill is one element. Label: "codex, blocked, infra" (symbol plus word,
   never colour alone, §5.9). Actions: Expand (the button) and "Open in
-  Herdlight" (`accessibilityAction(named:)`, plus a context menu).
+  Oriel" (`accessibilityAction(named:)`, plus a context menu).
 - Pills cannot be reached by keyboard while another app is active, and v1 has
   no global hotkey. So pills must never be the only path. The status area,
   banners when VoiceOver is on, and the Dock badge remain.
@@ -468,8 +468,8 @@ struct PillStack<Card: View>: View {
         .glassEffect(.regular, in: .capsule)
         .glassEffectID(p.id, in: glass)
         .accessibilityLabel("\(p.agent), \(p.status), \(p.workspace)")
-        .accessibilityAction(named: "Open in Herdlight") { open(p) }
-        .contextMenu { Button("Open in Herdlight") { open(p) } }
+        .accessibilityAction(named: "Open in Oriel") { open(p) }
+        .contextMenu { Button("Open in Oriel") { open(p) } }
     }
 
     private func expandedCard(_ p: PillItem) -> some View {
