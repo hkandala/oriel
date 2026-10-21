@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Herdlight · design</title>
+<title>Oriel · design</title>
 <style>
 :root{
   --bg:#f7f7f5; --fg:#1d1d1f; --mute:#6e6e73; --line:#e3e3e0; --card:#fff;
@@ -258,7 +258,7 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 <body>
 <div class="layout">
 <nav class="toc" id="toc">
-  <div class="t">Herdlight</div>
+  <div class="t">Oriel</div>
   <a href="#top">The idea</a>
   <div class="tg">Features</div>
   <a href="#f-window">Machines, tabs and panes</a>
@@ -294,9 +294,9 @@ nav.toc .tg{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:v
 <!-- ═════════════ IDEA ═════════════ -->
 <section id="top">
   <div class="pill">herdr 0.9.3 (protocol 22)</div><div class="pill">macOS 26 · iOS and iPadOS 26</div><div class="pill">design only, no app code</div>
-  <h1>Herdlight</h1>
+  <h1>Oriel</h1>
   <p class="lead">A native macOS and iOS app that gives <a href="https://github.com/herdrdev/herdr">herdr</a> a modern interface. herdr stays the backend: it owns every workspace, tab, pane, terminal and agent. The app draws them, drives them, and keeps as little state of its own as it can.</p>
-  <p>This page is a summary. The full design is in the <a href="https://herdlight.vercel.app/docs">design docs</a>.</p>
+  <p>This page is a summary. The full design is in the <a href="https://oriel-docs.vercel.app/docs">design docs</a>.</p>
   <div class="grid2">
     <div class="card"><h4>The problem</h4><p>People run many coding agents at once, often on several machines. herdr keeps them alive and knows when each one is working, blocked or done. But its interface is a terminal UI: one machine at a time, keyboard-first, and nothing when you are away from the terminal or on your phone.</p></div>
     <div class="card"><h4>What we build</h4><p>One app for Mac, iPad and iPhone that shows every herdr machine at once: a sidebar of machines and agents, a swipeable strip of tabs with resizable panes, terminal, agent, web and plugin panes, a chat view for agents and terminals, floating panes, and status pills on the Mac screen edge. Every pane kind is a plugin: terminal, agent and web page are core plugins, and your own are TypeScript and React drawn as native SwiftUI.</p></div>
@@ -338,7 +338,7 @@ a1b2c3d fix auth null token
     <div class="card"><h4>Status everywhere</h4><p><span style="color:#8fd3ff">◔ working</span>, <span style="color:var(--amber)">▲ needs you</span>, <span style="color:var(--green)">✓ finished</span>, on sidebar rows, tab capsules and the status area. The status area covers every machine.</p></div>
     <div class="card"><h4>Panes</h4><p>Panes follow herdr's split layout. Drag dividers to resize, zoom a card to fill the window, drag cards to swap, split, move or float them.</p></div>
   </div>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/ui/window">Window</a> · <a href="https://herdlight.vercel.app/docs/features">Features</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/window">Window</a> · <a href="https://oriel-docs.vercel.app/docs/features">Features</a></p>
 </section>
 
 <!-- ═════════════ FEATURES: PANE KINDS ═════════════ -->
@@ -361,10 +361,10 @@ a1b2c3d fix auth null token
     <div>
       <div class="card"><h4>Web page</h4><p>Any address, rendered natively next to your terminals. Remote <code>localhost</code> works through SSH forwards.</p></div>
       <div class="card" style="margin-top:10px"><h4>Your own plugins</h4><p>TypeScript and React with a component kit (List, Detail, Markdown, Diff, Code, Form, Actions) that draws as native SwiftUI, in the Raycast style. Install from a git URL or link a folder for live reload.</p></div>
-      <div class="card" style="margin-top:10px"><h4>Restored from herdr</h4><p>Every plugin pane is a real herdr pane with a label like <code>hl:git-history#k3f9q2 main</code>. A fresh app on any device rebuilds it from that label.</p></div>
+      <div class="card" style="margin-top:10px"><h4>Restored from herdr</h4><p>Every plugin pane is a real herdr pane with a label like <code>oriel:git-history#k3f9q2 main</code>. A fresh app on any device rebuilds it from that label.</p></div>
     </div>
   </div>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/plugins">Pane kinds and plugins</a> · <a href="https://herdlight.vercel.app/docs/plugins/web-page">Web page</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/plugins">Pane kinds and plugins</a> · <a href="https://oriel-docs.vercel.app/docs/plugins/web-page">Web page</a></p>
 </section>
 
 <!-- ═════════════ FEATURES: CHAT ═════════════ -->
@@ -392,7 +392,7 @@ a1b2c3d fix auth null token
       </ul>
     </div>
   </div>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/ui/window">Window (the chat card)</a> · <a href="https://herdlight.vercel.app/docs/chat-view">Chat view</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/window">Window (the chat card)</a> · <a href="https://oriel-docs.vercel.app/docs/chat-view">Chat view</a></p>
 </section>
 
 <!-- ═════════════ FEATURES: PILLS ═════════════ -->
@@ -412,7 +412,7 @@ a1b2c3d fix auth null token
     <div class="ctrls"><button id="simBlock">Simulate: codex needs you</button><button id="simDone">Simulate: pi finished</button><button id="simReset">Reset</button></div>
   </div>
   <p class="hint"><b>Try:</b> click the pill on the right edge to open the list, then click a row to open that agent's card. Press a simulate button: the card peeks out without taking focus and shrinks back after 8 s if the pointer never enters it. On a peeked card the first click only activates it; the next click sends the key. <b>Mark seen</b> clears a finished agent's ✓.</p>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/ui/pills">Floating pills</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/pills">Floating pills</a></p>
 </section>
 
 <!-- ═════════════ FEATURES: PHONE ═════════════ -->
@@ -452,7 +452,7 @@ a1b2c3d fix auth null token
       </ul>
     </div>
   </div>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/ui/iphone-and-ipad">iPhone and iPad</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/iphone-and-ipad">iPhone and iPad</a></p>
 </section>
 
 <!-- ═════════════ INSPIRATIONS ═════════════ -->
@@ -496,7 +496,7 @@ a1b2c3d fix auth null token
       <tr><td>libghostty draws terminals better than SwiftTerm on iOS.</td><td>Heeler measured both</td></tr>
     </table>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/inspirations">Inspirations</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/inspirations">Inspirations</a></p>
 </section>
 
 <!-- ═════════════ UI DETAILS ═════════════ -->
@@ -513,7 +513,7 @@ a1b2c3d fix auth null token
       <li><b>Keys:</b> ⌃⌥1…9 machines, ⌘1…9 tabs, ⇧⌘[ ] step, ⌘T new tab, ⌘D split, ⌘W close the pane, ⇧⌘W the window, ⇧⌘↩ zoom, ⌃⌘ + arrow resize, ⌃⌘= equalize, ⌥⌘F floating panes, ⌘K card actions.</li>
       <li><b>Closing:</b> closing a pane asks first unless the pane runs only its shell (no foreground program). Closing a tab or workspace always asks.</li>
     </ul>
-    <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/ui/window">Window</a> · <a href="https://herdlight.vercel.app/docs/ui/swiping">Swiping</a></p>
+    <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/window">Window</a> · <a href="https://oriel-docs.vercel.app/docs/ui/swiping">Swiping</a></p>
   </details>
   <details><summary>Drag and drop, zoom</summary>
     <table><tr><th>Drop a card on</th><th>Result</th></tr>
@@ -527,7 +527,7 @@ a1b2c3d fix auth null token
       <li>The card menu has the same moves (Move to ▸, Float); that is the only path on iPhone. A pane cannot move to another machine.</li>
       <li><b>Zoom:</b> the zoom button, a double-click on the header, or ⇧⌘↩ draws the card over the whole window under the tab bar. The same again restores it. While a card is zoomed, floating cards are hidden. Esc is not used, because the program in the pane needs it.</li>
     </ul>
-    <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/ui/drag-and-drop">Drag and drop</a> · <a href="https://herdlight.vercel.app/docs/ui/window">Window (zoom)</a></p>
+    <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/drag-and-drop">Drag and drop</a> · <a href="https://oriel-docs.vercel.app/docs/ui/window">Window (zoom)</a></p>
   </details>
   <details><summary>Floating panes and pills</summary>
     <ul>
@@ -536,7 +536,7 @@ a1b2c3d fix auth null token
       <li><b>Pill list and pill card:</b> click the pill for the list, grouped by machine and workspace; rows never reorder. Click a glyph or row for the agent's pill card: its last messages (or screen text), the prompt and key buttons when blocked, a reply box, Mark seen, Open in app, ✕.</li>
       <li><b>Peek:</b> a newly blocked or finished agent's card slides out without taking the keyboard and shrinks back after 8 s unless the pointer enters it. The first click on a card only activates it. Esc closes, ⌘↩ opens the app. Opaque near-black, no glass. A Peek switch in the pill's context menu and a setting turn peeks or the pill off.</li>
     </ul>
-    <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/ui/floating-panes">Floating panes</a> · <a href="https://herdlight.vercel.app/docs/ui/pills">Floating pills</a></p>
+    <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/floating-panes">Floating panes</a> · <a href="https://oriel-docs.vercel.app/docs/ui/pills">Floating pills</a></p>
   </details>
   <details><summary>Add a machine, theme and accessibility</summary>
     <ul>
@@ -544,7 +544,7 @@ a1b2c3d fix auth null token
       <li><b>Theme:</b> dark only. Opaque near-black window (<code>#0e0f12</code>), opaque cards, dark-tinted glass on the sidebar and tab bar. Terminals use a dark palette; web pages are told <code>prefers-color-scheme: dark</code>. iOS uses the same look. Status colors: <span style="color:#8fd3ff">◔ working</span> blue, <span style="color:var(--amber)">▲ needs you</span> amber, <span style="color:var(--green)">✓ finished</span> green.</li>
       <li><b>Accessibility:</b> status is always a glyph plus a word, never color alone. Terminal cards expose their screen text to VoiceOver (from <code>pane.read visible</code>, on demand) and announce new output politely. Keyboard focus moves sidebar → tab bar → cards (left to right, top to bottom) → floating cards. Every card action is reachable from the keyboard (⌘K). Every swipe has a keyboard path, a menu path and a button. The chrome supports Dynamic Type on iOS, and the terminal font size follows the app's text size setting. Reduce Motion turns off the morph, page animations and the pill's slide.</li>
     </ul>
-    <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/ui/add-a-machine">Add a machine</a> · <a href="https://herdlight.vercel.app/docs/ui/theme-and-accessibility">Theme and accessibility</a></p>
+    <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/add-a-machine">Add a machine</a> · <a href="https://oriel-docs.vercel.app/docs/ui/theme-and-accessibility">Theme and accessibility</a></p>
   </details>
   <details><summary>States</summary>
     <table><tr><th>State</th><th>What the user sees</th></tr>
@@ -570,7 +570,7 @@ a1b2c3d fix auth null token
       <tr><td>Plugin not responding</td><td>"‹title› is not responding · Reload"</td></tr>
       <tr><td>Full chat not available</td><td>the screen-text chat, with a tooltip that says why</td></tr>
     </table>
-    <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/ui/states">States</a></p>
+    <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/ui/states">States</a></p>
   </details>
 </section>
 
@@ -597,7 +597,7 @@ a1b2c3d fix auth null token
     <tr><td><code>HostStore</code></td><td>both</td><td>one per machine: snapshot, events, streams, seen state</td></tr>
     <tr><td><code>PaneViewRegistry</code></td><td>both</td><td>owns terminal views, web pages and plugin cards, so scrolling never destroys them</td></tr>
     <tr><td><code>PluginRegistry</code> / <code>PluginHost</code></td><td>both</td><td>manifests and consent / one JavaScriptCore VM per plugin card and the bridge to the kit</td></tr></table>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/architecture">Architecture</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/architecture">Architecture</a></p>
 </section>
 
 <!-- ═════════════ TALKING TO HERDR ═════════════ -->
@@ -669,12 +669,12 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
       <tr><td>Keyboard resize (⌃⌘ + arrow)</td><td><code>pane.resize</code></td></tr>
       <tr><td>Start an agent</td><td><code>agent.start {name, kind, pane_id}</code>, retried while the shell is busy</td></tr>
       <tr><td>Swap / move</td><td><code>pane.swap</code> / <code>pane.move</code>; <code>changed:false</code> shows herdr's reason</td></tr>
-      <tr><td>Float or dock</td><td><code>pane.move</code> into or out of the <code>hl:float</code> tab</td></tr>
+      <tr><td>Float or dock</td><td><code>pane.move</code> into or out of the <code>oriel:float</code> tab</td></tr>
       <tr><td>Reorder / rename</td><td><code>tab.move</code>, <code>workspace.move</code> / <code>*.rename</code></td></tr>
       <tr><td>Close</td><td><code>*.close</code>. A pane asks first unless it runs only its shell (checked with <code>pane.process_info</code>). A tab or workspace always asks.</td></tr></table>
     <p class="muted">Every create and move uses <code>focus:false</code>. The app waits for the event and snapshot; it never patches its own state. It never calls herdr's focus methods or <code>pane.zoom</code>.</p>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/talking-to-herdr">Talking to herdr</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/talking-to-herdr">Talking to herdr</a></p>
 </section>
 
 <!-- ═════════════ HOSTS ═════════════ -->
@@ -687,10 +687,10 @@ sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh &lt;BASE64 of the POSIX command&
   </div>
   <p>A <b>machine</b> is one herdr session, so it is one entry in the machine list. Two sessions on one host share one SSH connection (ControlMaster), its channel budget, and the plugin state cleanup per (host, session). A non-default local session is named "This Mac · ‹session›".</p>
 <pre><code>ssh -M -N -f -o ControlPersist=10m -o ServerAliveInterval=20 -o ForwardAgent=no -o ForwardX11=no \
-    -o ClearAllForwardings=yes -S ~/Library/Caches/hl/&lt;h8&gt; devbox          # start once
-ssh -S ~/Library/Caches/hl/&lt;h8&gt; -O check devbox                            # wait for it
+    -o ClearAllForwardings=yes -S ~/Library/Caches/oriel/&lt;h8&gt; devbox          # start once
+ssh -S ~/Library/Caches/oriel/&lt;h8&gt; -O check devbox                            # wait for it
 ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/false \
-    -S ~/Library/Caches/hl/&lt;h8&gt; devbox -- sh -c '…' sh &lt;BASE64&gt;   # later runs: no fallback, no forwards</code></pre>
+    -S ~/Library/Caches/oriel/&lt;h8&gt; devbox -- sh -c '…' sh &lt;BASE64&gt;   # later runs: no fallback, no forwards</code></pre>
   <details><summary>Details</summary>
     <ul>
       <li><code>&lt;h8&gt;</code> is 8 hex characters of a hash of the SSH target, so the socket path stays under the 104-byte socket limit for user names up to 50 characters, with ssh's 17-character temporary suffix. The folder is per user, mode 0700.</li>
@@ -702,7 +702,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
       <li>iOS releases its terminal streams when the app goes to the background. It keeps the connection for about 30 s, then reconnects and re-reads the snapshot on return.</li>
     </ul>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/machines">Machines and SSH</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/machines">Machines and SSH</a></p>
 </section>
 
 <!-- ═════════════ LAYOUT ═════════════ -->
@@ -739,7 +739,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
       <li><b>Seen</b> is tracked per agent: the first sighting counts as seen, and viewing the pane records the current <code>completion_seq</code>. Each device keeps its own seen values: seeing an agent on one device does not clear it on another.</li>
     </ul>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/layout">Layout and sizing</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/layout">Layout and sizing</a></p>
 </section>
 
 <!-- ═════════════ PLUGINS ═════════════ -->
@@ -747,7 +747,7 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
   <h2><span class="num">12</span>Plugin system</h2>
   <p class="lead">Every pane kind comes from one registry. Plugins are TypeScript and React written against our component kit. Each card runs React in its own JavaScriptCore VM, and native SwiftUI draws the result.</p>
   <div class="flow">
-    <div class="n"><b>plugin.tsx</b><small>React + @herdlight/api</small></div><div class="a">→</div>
+    <div class="n"><b>plugin.tsx</b><small>React + @oriel/api</small></div><div class="a">→</div>
     <div class="n"><b>esbuild</b><small>dist/&lt;pane&gt;.js</small></div><div class="a">→</div>
     <div class="n"><b>JSContext per card</b><small>React 19 + ~60-line reconciler</small></div><div class="a">→</div>
     <div class="n"><b>JSON view tree</b><small>each React commit</small></div><div class="a">→</div>
@@ -763,8 +763,8 @@ ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes -o ProxyCommand=/usr/bin/f
       <tr><td>terminal</td><td>core</td><td>native terminal</td><td>nothing (the default)</td></tr>
       <tr><td>agent</td><td>core</td><td>native terminal + chat view</td><td>nothing (herdr sets <code>pane.agent</code>)</td></tr>
       <tr><td>web</td><td>core</td><td>native web view</td><td><code>web:&lt;url&gt;</code></td></tr>
-      <tr><td>git-history, diff, markdown</td><td>core</td><td>the kit, public API</td><td><code>hl:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr>
-      <tr><td>your plugins</td><td>installed</td><td>the kit, public API</td><td><code>hl:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr></table>
+      <tr><td>git-history, diff, markdown</td><td>core</td><td>the kit, public API</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr>
+      <tr><td>your plugins</td><td>installed</td><td>the kit, public API</td><td><code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code></td></tr></table>
     <p class="muted">Core native plugins have a manifest with a <code>native</code> field instead of a JS entry, so a terminal costs no JavaScript. herdr's own TUI plugins are not part of this system; a pane a herdr plugin opened shows as a terminal.</p>
     <p class="muted">Agent: the picker lists <code>integration.list</code> entries with <code>available:true</code>. Start = split or new tab, then <code>agent.start</code> (retried every 250 ms for up to 5 s while the shell is busy). No agent after 10 s shows "Agent did not start". The default view is the terminal on Mac and iPad, chat on iPhone.</p>
   </details>
@@ -804,34 +804,34 @@ getPreferenceValues · showToast · open(url) after a confirm · Clipboard.copy 
     <p class="muted">Not in v1: network, local storage, layout primitives, plugins outside panes, one plugin opening another.</p>
   </details>
   <details><summary>Packages, install and updates</summary>
-<pre><code>{ "name": "git-history", "version": "0.3.0", "repository": "https://github.com/me/hl-git-history",
-  "herdlight": { "api": 1, "title": "Git history", "icon": "arrow.triangle.branch",
+<pre><code>{ "name": "git-history", "version": "0.3.0", "repository": "https://github.com/me/oriel-git-history",
+  "oriel": { "api": 1, "title": "Git history", "icon": "arrow.triangle.branch",
     "platforms": ["macos","ios"], "permissions": ["exec"],
     "panes": [{ "name": "history", "title": "Git history", "entry": "src/history.tsx",
                 "arg": { "title": "Ref or path", "placeholder": "HEAD" } }],
     "preferences": [{ "name": "maxCommits", "type": "textfield", "default": "500" }] } }</code></pre>
     <ul>
-      <li><code>hl-plugin build</code> runs esbuild per pane entry; <code>hl-plugin dev</code> rebuilds on change.</li>
-      <li>Plugins live in the app (<code>Application Support/Herdlight/plugins/</code>). Install from a git URL (the app never runs npm; <code>dist/</code> must be built) or link a local folder for live reload with Safari Web Inspector.</li>
+      <li><code>oriel-plugin build</code> runs esbuild per pane entry; <code>oriel-plugin dev</code> rebuilds on change.</li>
+      <li>Plugins live in the app (<code>Application Support/Oriel/plugins/</code>). Install from a git URL (the app never runs npm; <code>dist/</code> must be built) or link a local folder for live reload with Safari Web Inspector.</li>
       <li>Updates are checked daily and applied when the user presses Update; new permissions ask again.</li>
       <li>Cards suspend off screen (timers and exec pause). At most 12 live plugin VMs, least recently used out first.</li>
       <li>Preferences are per device (passwords in the Keychain).</li>
     </ul>
   </details>
   <details open><summary>Plugin panes in herdr, state, and restore on a fresh start</summary>
-<pre><code>hl:git-history#k3f9q2 main          ← plugin # instance id, then the argument (what a TUI user reads)
-hl:markdown#q2m0zd docs/DESIGN.md
-hl:kanban/board#7tt1qe              ← a plugin with several pane kinds
+<pre><code>oriel:git-history#k3f9q2 main          ← plugin # instance id, then the argument (what a TUI user reads)
+oriel:markdown#q2m0zd docs/DESIGN.md
+oriel:kanban/board#7tt1qe              ← a plugin with several pane kinds
 web:http://localhost:3000/dashboard</code></pre>
     <ul>
       <li>Every plugin pane is a real herdr pane with a placeholder process that prints the title, the marker, the argument and the state path. The app types the placeholder only after the new pane's foreground process is the shell (checked with <code>pane.process_info</code> on the next snapshot), so it never races the shell's startup. The placeholder is cosmetic: the label is the truth. The card menu's <b>Restore placeholder</b> types it into the shell again.</li>
       <li>The instance id lives in the label, because <code>pane_id</code> changes on a move and <code>terminal_id</code> on a herdr restart. Cards are keyed by (machine, plugin, iid), so they survive both.</li>
-      <li>Bigger state lives in <code>$HOME/.local/state/herdlight/&lt;session&gt;/&lt;plugin-id&gt;/&lt;iid&gt;.json</code> (<code>&lt;session&gt;</code> = the herdr session name) on the pane's machine (a fixed path, so every device finds the same file), written atomically. A <code>hl_rev</code> metadata token tells other devices to re-read it. Orphan files are cleaned once a day.</li>
+      <li>Bigger state lives in <code>$HOME/.local/state/oriel/&lt;session&gt;/&lt;plugin-id&gt;/&lt;iid&gt;.json</code> (<code>&lt;session&gt;</code> = the herdr session name) on the pane's machine (a fixed path, so every device finds the same file), written atomically. A <code>oriel_rev</code> metadata token tells other devices to re-read it. Orphan files are cleaned once a day.</li>
       <li>A plugin with one pane kind omits <code>/&lt;pane&gt;</code>. If two panes carry the same iid (a copied label), the pane that comes first in <code>snapshot.panes[]</code> keeps the card key and both share the state file.</li>
     </ul>
     <div class="flow">
       <div class="n"><b>1 · snapshot</b><small>connect each machine</small></div><div class="a">→</div>
-      <div class="n"><b>2 · classify</b><small>hl:float tab · web: · hl: · agent · terminal</small></div><div class="a">→</div>
+      <div class="n"><b>2 · classify</b><small>oriel:float tab · web: · oriel: · agent · terminal</small></div><div class="a">→</div>
       <div class="n"><b>3 · resolve</b><small>core, then linked, then installed; missing → placeholder card</small></div><div class="a">→</div>
       <div class="n"><b>4 · key the card</b><small>(machine, plugin, iid)</small></div><div class="a">→</div>
       <div class="n"><b>5 · render</b><small>VM + pane context + state file</small></div>
@@ -850,26 +850,26 @@ web:http://localhost:3000/dashboard</code></pre>
       <li>iOS v1 ships the core plugins only; other plugin panes show their placeholder.</li>
     </ul>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/plugins">Pane kinds and plugins</a> · <a href="https://herdlight.vercel.app/docs/plugins/web-page">Web page</a> · <a href="https://herdlight.vercel.app/docs/plugins/security">Security</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/plugins">Pane kinds and plugins</a> · <a href="https://oriel-docs.vercel.app/docs/plugins/web-page">Web page</a> · <a href="https://oriel-docs.vercel.app/docs/plugins/security">Security</a></p>
 </section>
 
 <!-- ═════════════ FLOATING ═════════════ -->
 <section id="floating">
   <h2><span class="num">13</span>Floating panes in herdr</h2>
-  <p class="lead">A floating pane is a normal herdr pane in a tab labeled <code>hl:float</code>; the app creates at most one such tab per workspace. Floating and docking are <code>pane.move</code>. The app keeps only card positions, in memory.</p>
+  <p class="lead">A floating pane is a normal herdr pane in a tab labeled <code>oriel:float</code>; the app creates at most one such tab per workspace. Floating and docking are <code>pane.move</code>. The app keeps only card positions, in memory.</p>
   <table><tr><th>Option</th><th>Verdict</th></tr>
-    <tr><td><b>a tab labeled <code>hl:float</code></b></td><td><b>chosen:</b> one marker per workspace; any pane kind floats; herdr keeps it across restarts; every device and the herdr TUI agree</td></tr>
+    <tr><td><b>a tab labeled <code>oriel:float</code></b></td><td><b>chosen:</b> one marker per workspace; any pane kind floats; herdr keeps it across restarts; every device and the herdr TUI agree</td></tr>
     <tr><td>herdr's popup</td><td>one per server, no pane id, not in the snapshot, not saved</td></tr>
     <tr><td>a label marker / a metadata token / an app list</td><td>the label is taken / lost on restart / ids change and devices disagree</td></tr></table>
   <details><summary>Calls and rules</summary>
     <ul>
-      <li>New floating pane: <code>tab.create {label:"hl:float"}</code> or a split inside that tab, then the pane kind's steps. Float: <code>pane.move</code> into it (<code>new_tab</code> with the label creates it in one call). Dock: the normal moves. Moving the last pane out closes the tab.</li>
+      <li>New floating pane: <code>tab.create {label:"oriel:float"}</code> or a split inside that tab, then the pane kind's steps. Float: <code>pane.move</code> into it (<code>new_tab</code> with the label creates it in one call). Dock: the normal moves. Moving the last pane out closes the tab.</li>
       <li>Cards draw inside the main window above the strip and zoom layer. The floating tab is left out of the tab bar and strip. Position, size, shown state and order live in memory.</li>
       <li>Shown floating cards stream like the selected tab; hidden ones release their stream. A scroll on a floating card never pages the strip.</li>
       <li>herdr's own popups are not shown: no public call reveals one.</li>
     </ul>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/floating-panes">Floating panes in herdr</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/floating-panes">Floating panes in herdr</a></p>
 </section>
 
 <!-- ═════════════ CHAT ═════════════ -->
@@ -897,7 +897,7 @@ web:http://localhost:3000/dashboard</code></pre>
       <li>The chat|term switch is a control, not a swipe. While chat is shown, the terminal stream is closed.</li>
     </ul>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/chat-view">Chat view</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/chat-view">Chat view</a></p>
 </section>
 
 <!-- ═════════════ STATUS ═════════════ -->
@@ -933,7 +933,7 @@ web:http://localhost:3000/dashboard</code></pre>
       <li>The card is the chat view, so it opens no terminal stream and uses the same key guard. Opening a card does not mark an agent seen; Mark seen, a reply or Open in app does.</li>
     </ul>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/status">Status</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/status">Status</a></p>
 </section>
 
 <!-- ═════════════ STORE ═════════════ -->
@@ -944,8 +944,8 @@ web:http://localhost:3000/dashboard</code></pre>
     <div class="col2 tag-h"><h4>herdr and the machines own</h4><ul>
       <li>Workspaces, tabs, panes, order, labels; split tree and ratios</li>
       <li>Terminal content and PTYs; agent kind, status, completion counter, transcript pointer</li>
-      <li>Which panes float (<code>hl:float</code> tab)</li>
-      <li>Web addresses (<code>web:&lt;url&gt;</code>) and plugin panes (<code>hl:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code>)</li>
+      <li>Which panes float (<code>oriel:float</code> tab)</li>
+      <li>Web addresses (<code>web:&lt;url&gt;</code>) and plugin panes (<code>oriel:&lt;plugin&gt;[/&lt;pane&gt;]#&lt;iid&gt; &lt;arg&gt;</code>)</li>
       <li>Plugin instance state (a file on the machine)</li>
       <li>Chat history (the agent's transcript)</li>
       <li>Machines on macOS (<code>session list</code>, <code>machine list</code>)</li></ul></div>
@@ -955,7 +955,7 @@ web:http://localhost:3000/dashboard</code></pre>
       <li><b>Memory:</b> zoomed card, floating card frames, chat or terminal per pane, seen values, drafts</li>
       <li><b>While running:</b> ControlMaster sockets and port forwards</li></ul></div>
   </div>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/data">Data: app vs herdr</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/data">Data: app vs herdr</a></p>
 </section>
 
 <!-- ═════════════ PLATFORM ═════════════ -->
@@ -980,7 +980,7 @@ web:http://localhost:3000/dashboard</code></pre>
       <tr><td>Web pages · Markdown</td><td>SwiftUI <code>WebView</code> · <code>AttributedString(markdown:)</code></td></tr></table>
     <p>One test target checks decoding, the tree rebuild, the lit-tab math, the label parser, the remote command envelope (bash, zsh, fish), the plugin tree decode, the state-file write, the state cleanup, the plugin bridge's machine binding, and the transcript parsers.</p>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/platform">Platform and code</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/platform">Platform and code</a></p>
 </section>
 
 <!-- ═════════════ DECISIONS ═════════════ -->
@@ -989,7 +989,7 @@ web:http://localhost:3000/dashboard</code></pre>
   <p class="lead">Each decision says what we chose, why, and what we turned down. Type to filter.</p>
   <input id="dq" placeholder="filter: plugin, zoom, ssh, chat, focus…">
   <table class="dec" id="dec"><thead><tr><th>#</th><th>Decision</th><th>Why</th><th>Rejected</th></tr></thead><tbody></tbody></table>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/decisions">Design decisions</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/decisions">Design decisions</a></p>
 </section>
 
 <!-- ═════════════ RISKS ═════════════ -->
@@ -1018,7 +1018,7 @@ web:http://localhost:3000/dashboard</code></pre>
     <tr><td>Citadel exec channels on iOS (streaming stdin, long-lived channels, channel close)</td><td>the iOS transport may not work</td><td>spike S7; a thin iOS slice right after remote machines</td></tr>
     <tr><td>A local forward port is open to other local users</td><td>another account could reach the dev server</td><td>accepted for a single-user Mac</td></tr>
   </table>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/risks">Risks</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/risks">Risks</a></p>
 </section>
 
 <!-- ═════════════ BUILD ═════════════ -->
@@ -1052,7 +1052,7 @@ herdr --session S server                               (remote machines only: no
 
 never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom · herdr popups · herdr plugin panes (plugin.pane.open) · herdr's private client socket</code></pre>
   </details>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/build-order">Build order</a> · <a href="https://herdlight.vercel.app/docs/reference/herdr-calls">herdr calls</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/build-order">Build order</a> · <a href="https://oriel-docs.vercel.app/docs/reference/herdr-calls">herdr calls</a></p>
 </section>
 
 <!-- ═════════════ GLOSSARY ═════════════ -->
@@ -1071,7 +1071,7 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
     <tr><td class="k">status area</td><td>the sidebar's bottom part; it covers every machine</td></tr>
     <tr><td class="k">working / needs you / finished</td><td>the status words, with ◔ (blue), ▲ (amber), ✓ (green)</td></tr>
     <tr><td class="k">seen</td><td>the user looked at an agent since its last finish; kept per device</td></tr>
-    <tr><td class="k">floating card</td><td>a pane card drawn above the strip, from the workspace's <code>hl:float</code> tab</td></tr>
+    <tr><td class="k">floating card</td><td>a pane card drawn above the strip, from the workspace's <code>oriel:float</code> tab</td></tr>
     <tr><td class="k">pill / pill card / peek</td><td>the floating status capsule on the Mac screen edge / the small window for one agent next to it / a pill card that slides out by itself without taking the keyboard</td></tr>
     <tr><td class="k">PTY</td><td>the pseudo-terminal a shell runs in; it has one size</td></tr>
     <tr><td class="k">frame</td><td>one message of ANSI bytes from <code>terminal session</code></td></tr>
@@ -1088,11 +1088,11 @@ never: pane.focus · tab.focus · workspace.focus · agent.focus · pane.zoom ·
     <tr><td class="k">cold restart / live update</td><td>herdr stops and its terminals end / herdr hands over to a new server process and keeps its terminals</td></tr>
     <tr><td class="k">spike</td><td>a small throwaway test of one risky part, before real views</td></tr>
     <tr><td class="k">Simpler choice</td><td>a shortcut taken on purpose, marked in the docs with when to revisit it</td></tr>
-    <tr><td class="k"><code>hl_rev</code></td><td>a herdr metadata token the app changes to tell other devices to refresh</td></tr>
+    <tr><td class="k"><code>oriel_rev</code></td><td>a herdr metadata token the app changes to tell other devices to refresh</td></tr>
     <tr><td class="k">askpass</td><td>a small program <code>ssh</code> runs to ask for a password</td></tr>
     <tr><td class="k"><code>MaxSessions</code></td><td>OpenSSH's limit of sessions on one connection (10 by default)</td></tr>
   </table>
-  <p class="more">Full detail → <a href="https://herdlight.vercel.app/docs/reference/glossary">Glossary</a></p>
+  <p class="more">Full detail → <a href="https://oriel-docs.vercel.app/docs/reference/glossary">Glossary</a></p>
 </section>
 </main>
 </div>
@@ -1320,7 +1320,7 @@ addEventListener("resize",updateTabs);
 })();
 
 /* ───────── decisions ───────── */
-const D=[["D1", "herdr is the source of truth for workspaces, tabs, panes, layout, floating panes, web addresses, plugin panes and (on macOS) machines.", "Clients with their own copy drifted. A fresh device rebuilds from herdr.", "App-owned tabs or layout.", "#store"], ["D2", "One primitive per machine: run a command and use its stdio.", "One path for local, remote macOS and iOS; herdr's own remote method.", "A daemon, relay or bridge of our own on the machine.", "#herdr"], ["D3", "Every remote command goes through a base64 envelope run by sh.", "The login shell may be fish, where POSIX quoting is not safe.", "Quoting argv into the login shell.", "#herdr"], ["D4", "Control plane = herdr --session S remote-api-bridge on every machine, one call per request.", "One path; no socket lookup; the cost hides behind the snapshot pacing.", "A direct local socket; socket forwarding.", "#herdr"], ["D5", "Events only mean \"read the snapshot again\". Status events only for agent panes; no focus events. Snapshot reads are paced per machine: one in flight, 100 ms debounce with a 500 ms maximum wait, one trailing read for events during a read.", "One code path; each status entry costs herdr a poll; a steady flow of events cannot starve updates.", "Applying deltas; subscribing to every pane; polling session.snapshot (an ssh run and a herdr process every second on every machine, even when nothing changes).", "#herdr"], ["D6", "Apply snapshots to stable observable objects with hand-written lenient models.", "One status change redraws one row.", "One big state value; code generation.", "#herdr"], ["D7", "Terminal plane = herdr terminal session control/observe by terminal_id, for the selected tab and shown floating cards of the selected machine.", "Public, per pane, works over SSH, survives moves.", "herdr's private client socket; terminal attach in a PTY; polling pane.read.", "#herdr"], ["D8", "One control rule: the Mac opens control without takeover and watches if refused; iPhone and iPad open observe. Any device takes control (--takeover) on the first key press, paste, click or tap in the card, or Take back. A watcher stays a watcher until its user acts. A Mac that becomes inactive keeps its streams; iOS releases them in the background.", "One controller and one PTY size per pane. Looking on a phone never resizes the PTY. Looking on a Mac pins it to the card size, which is accepted.", "Taking over on open; automatic takeover; control on every device.", "#herdr"], ["D9", "libghostty-spm draws terminals, as a pinned build with uHerdr's response-suppression patch.", "Best quality on both platforms. The patch stops a second answer to terminal queries that herdr already answered.", "SwiftTerm as the main renderer (kept as a fallback); xterm.js in a web view.", "#platform"], ["D10", "Layout = herdr's split tree rebuilt from the flat snapshot; resize = layout.set_split_ratio.", "Ratios live in herdr; no extra calls.", "App-owned sizes; layout.export per tab.", "#layout"], ["D11", "Zoom is the app's own, drawn as a layer. (Zoom, Zoom is the app's own)", "pane.zoom moves herdr's focus, marks the tab seen and blocks moves.", "pane.zoom.", "#layout"], ["D12", "One tab = one page in the strip.", "Matches herdr and Cube.", "Panes wider than the window in one long scroller.", "#f-window"], ["D13", "The app never calls herdr's focus methods; selection and \"seen\" are the app's own, per device.", "Each focus call moves every attached herdr TUI.", "Focusing on click or swipe.", "#layout"], ["D14", "\"Finished, not seen\" = completion_seq not null and different from the seen value; the first sighting counts as seen. herdr sets completion_seq on a finish and clears it at the next status change.", "herdr skips done when a TUI watches the tab; the counter restarts with herdr.", "Waiting for done; a \"greater than\" test.", "#status"], ["D15", "macOS SSH = system ssh, one ControlMaster per host started on purpose, forwarding off, a bundled askpass script.", "The user's setup works; one prompt per host; no path back to the Mac.", "ControlMaster=auto; a Swift SSH library on macOS.", "#hosts"], ["D16", "macOS machines come from herdr session list and herdr machine list; adding runs herdr machine add in a terminal card. The Mac app requires herdr installed on the Mac. (Add a machine, macOS)", "herdr stores machines, installs itself and starts the server, and needs a terminal for its questions.", "An app machine list on macOS.", "#hosts"], ["D17", "iOS uses Citadel with a Secure Enclave key; machines in UserDefaults; the Mac via Remote Login.", "Pure Swift; the key cannot leave the device; no new mechanism. Spike S7 tests the exec channels first.", "libssh2 + OpenSSL; a relay.", "#hosts"], ["D18", "Everything is a plugin: one registry, manifest shape and picker; terminal, agent and web are native core plugins.", "One model for every pane kind without JavaScript cost for core panes.", "Special-casing core kinds; herdr TUI plugins in the picker.", "#plugins"], ["D19", "Plugin UI = TypeScript + React in one JSContext per card, rendered as native SwiftUI through a component kit.", "Native look and behavior; ~3 MB per card; the JS reaches only the injected API; works on iOS.", "React in a web view; React Native; native Swift plugins; ExtensionKit.", "#plugins"], ["D20", "Plugins live in the app, installed from a git URL or a linked folder; the app never runs npm.", "One install per device for every machine; no setup on any machine; a simple dev loop.", "herdr plugins on each machine; an in-app store.", "#plugins"], ["D21", "A plugin pane is a herdr pane labeled hl:<plugin>[/<pane>]#<iid> <arg>. A placeholder is typed only once the new pane's shell is in front; it is cosmetic.", "The label is durable and readable; the iid survives moves and restarts.", "Metadata tokens; an app-side pane list.", "#plugins"], ["D22", "Bigger plugin state lives in a JSON file on the pane's machine, keyed by iid; preferences stay per device.", "Shared by every device, survives reinstalls, no sync service.", "Labels for everything; app storage.", "#plugins"], ["D23", "After every rename or state write, a hl_rev metadata token tells other devices to refresh. (Web page, State and restore)", "A rename sends no event; a token change does.", "Polling; a terminal-title trick.", "#plugins"], ["D24", "Plugin API = exec on the card's own machine, pane context, setArg, instance state, the snapshot, preferences, toasts, confirmed open, clipboard copy, navigation.", "Covers diff, git history and Markdown; nothing more.", "Network, storage, a herdr call API, plugins outside panes in v1.", "#plugins"], ["D25", "Plugin security: one VM per card bound to its machine; one permission (exec) described honestly; consent at install and on new permissions, keyed by id and source; a This Mac confirm; no network or HTML from the app; user-gesture rule for open and the clipboard; a watchdog.", "The user sees exactly what they grant; the app adds no reach beyond exec on the pane's machine.", "Finer permissions that do not hold; claiming a sandbox that exec cannot give.", "#plugin-security"], ["D26", "iOS v1 ships core plugins only.", "Downloaded code is an App Store review risk.", "User plugins on iOS in v1.", "#plugins"], ["D27", "Web page = core plugin with label web:<url>. A label set elsewhere loads only after a click, unless the user approved that origin for this machine. Per-machine data stores; remote localhost through forwards on other ports.", "Durable marker; no request leaves the device without the user; machines stay apart.", "Auto-loading every label; SOCKS (WebKit never proxies loopback); same-port forwards.", "#plugins"], ["D28", "Floating panes = panes in a tab labeled hl:float; float and dock are pane.move; cards inside the main window; frames in memory.", "herdr keeps which panes float; any pane kind can float; nothing stored.", "herdr popups; label markers; a window per floating pane.", "#floating"], ["D29", "Chat = the agent's transcript tailed on the machine + agent.prompt; parsers for pi, Claude Code and Codex; a screen-text chat for every other agent or terminal pane. Web and plugin panes have no chat view.", "What every working chat view does; any agent or terminal pane can switch.", "Per-agent prompt parsers; parsing the screen into fake messages.", "#chat"], ["D30", "The blocked panel sends a key only if the agent is still blocked and the prompt text is unchanged.", "The prompt may have changed on another device.", "Sending without a check.", "#chat"], ["D31", "Notifications are made by the app from snapshot changes; .passive while the pill shows (except with VoiceOver or Switch Control); no iOS push in v1.", "herdr sends its own only to TUI clients; no double alerts; push needs a relay.", "herdr's private notifications; dropping banners.", "#status"], ["D32", "Floating pills: one non-activating NSPanel, one pill with a glyph per agent, a pill card that is the compact chat view, peeks that never take the keyboard, opaque. (Floating pills, how they work)", "One proved the shape; never steal a keystroke; glass renders flat in an inactive app.", "A pill per agent; a SwiftUI window; glass pills.", "#status"], ["D33", "Dark theme only: opaque near-black window, opaque cards, dark-tinted glass on chrome.", "An all-dark look with no colored windows.", "A translucent window; a light theme in v1.", "#ui"], ["D34", "One multiplatform target, macOS 26 and iOS 26, one main window.", "Liquid Glass and WebView; no fallbacks; no control fights.", "Separate apps; back-deploying; several main windows in v1.", "#platform"], ["D35", "Horizontal gestures belong to the strip; the PaneViewRegistry owns every view.", "Terminals and web views would eat the swipe; SwiftUI would destroy views.", "Each view handling its own scroll.", "#platform"], ["D36", "iPhone shows one pane per page and opens agents in chat.", "Splits do not fit; chat needs no PTY.", "Shrinking splits onto a phone.", "#f-phone"], ["D37", "The agent picker lists the available integration.list entries.", "One call; herdr checks the PATH.", "Probing every agent with command -v.", "#plugins"], ["D38", "Refuse herdr older than 0.9.3; a banner for newer protocols; --session on every herdr argv.", "Old herdr lacks what we use; no inherited variable can redirect a command.", "A read-only mode.", "#herdr"], ["D39", "On This Mac the app never starts herdr. It shows the command to run in a terminal. Remote machines keep a **Start herdr** button (over SSH). Children are always signalled by pid.", "A server started by the app makes the app the \"responsible process\" for every agent (macOS privacy prompts would name Herdlight) and shares its process group.", "Starting the local server from the app.", "#hosts"], ["D40", "Every call() has a 10 s timeout. On a timeout the app kills the bridge process or channel and runs ping. Long-lived streams have no timeout; the 30 s ping checks them.", "A dead SSH link after a network change must not hang drags, writes and plugin calls.", "No timeout; a timeout on streams.", "#herdr"], ["D41", "Closing a pane asks first unless the pane runs only its shell. Closing a tab or workspace always asks.", "A close kills processes on every device and cannot be undone.", "Asking only when an agent works; never asking.", "#herdr"], ["D42", "Rex-like behavior follows gorex: one tab status slot (× on hover > ▲ > ✓ > ◔), a static ◔, double-click a divider to reset it to 0.5, ⌃⌘= to make splits equal, the window title from the selected tab.", "gorex is a readable Rex copy; a static glyph avoids constant redraws. gorex is not a glass reference.", "An animated working glyph; several glyphs per tab.", "#layout"], ["D43", "A machine is one herdr session: one entry in the machine list and one sidebar page. Sessions on one host share one SSH connection and its channel budget.", "herdr's own unit is the session; one connection per host keeps one prompt and one channel budget.", "One connection per session; one machine per host.", "#hosts"]];
+const D=[["D1", "herdr is the source of truth for workspaces, tabs, panes, layout, floating panes, web addresses, plugin panes and (on macOS) machines.", "Clients with their own copy drifted. A fresh device rebuilds from herdr.", "App-owned tabs or layout.", "#store"], ["D2", "One primitive per machine: run a command and use its stdio.", "One path for local, remote macOS and iOS; herdr's own remote method.", "A daemon, relay or bridge of our own on the machine.", "#herdr"], ["D3", "Every remote command goes through a base64 envelope run by sh.", "The login shell may be fish, where POSIX quoting is not safe.", "Quoting argv into the login shell.", "#herdr"], ["D4", "Control plane = herdr --session S remote-api-bridge on every machine, one call per request.", "One path; no socket lookup; the cost hides behind the snapshot pacing.", "A direct local socket; socket forwarding.", "#herdr"], ["D5", "Events only mean \"read the snapshot again\". Status events only for agent panes; no focus events. Snapshot reads are paced per machine: one in flight, 100 ms debounce with a 500 ms maximum wait, one trailing read for events during a read.", "One code path; each status entry costs herdr a poll; a steady flow of events cannot starve updates.", "Applying deltas; subscribing to every pane; polling session.snapshot (an ssh run and a herdr process every second on every machine, even when nothing changes).", "#herdr"], ["D6", "Apply snapshots to stable observable objects with hand-written lenient models.", "One status change redraws one row.", "One big state value; code generation.", "#herdr"], ["D7", "Terminal plane = herdr terminal session control/observe by terminal_id, for the selected tab and shown floating cards of the selected machine.", "Public, per pane, works over SSH, survives moves.", "herdr's private client socket; terminal attach in a PTY; polling pane.read.", "#herdr"], ["D8", "One control rule: the Mac opens control without takeover and watches if refused; iPhone and iPad open observe. Any device takes control (--takeover) on the first key press, paste, click or tap in the card, or Take back. A watcher stays a watcher until its user acts. A Mac that becomes inactive keeps its streams; iOS releases them in the background.", "One controller and one PTY size per pane. Looking on a phone never resizes the PTY. Looking on a Mac pins it to the card size, which is accepted.", "Taking over on open; automatic takeover; control on every device.", "#herdr"], ["D9", "libghostty-spm draws terminals, as a pinned build with uHerdr's response-suppression patch.", "Best quality on both platforms. The patch stops a second answer to terminal queries that herdr already answered.", "SwiftTerm as the main renderer (kept as a fallback); xterm.js in a web view.", "#platform"], ["D10", "Layout = herdr's split tree rebuilt from the flat snapshot; resize = layout.set_split_ratio.", "Ratios live in herdr; no extra calls.", "App-owned sizes; layout.export per tab.", "#layout"], ["D11", "Zoom is the app's own, drawn as a layer. (Zoom, Zoom is the app's own)", "pane.zoom moves herdr's focus, marks the tab seen and blocks moves.", "pane.zoom.", "#layout"], ["D12", "One tab = one page in the strip.", "Matches herdr and Cube.", "Panes wider than the window in one long scroller.", "#f-window"], ["D13", "The app never calls herdr's focus methods; selection and \"seen\" are the app's own, per device.", "Each focus call moves every attached herdr TUI.", "Focusing on click or swipe.", "#layout"], ["D14", "\"Finished, not seen\" = completion_seq not null and different from the seen value; the first sighting counts as seen. herdr sets completion_seq on a finish and clears it at the next status change.", "herdr skips done when a TUI watches the tab; the counter restarts with herdr.", "Waiting for done; a \"greater than\" test.", "#status"], ["D15", "macOS SSH = system ssh, one ControlMaster per host started on purpose, forwarding off, a bundled askpass script.", "The user's setup works; one prompt per host; no path back to the Mac.", "ControlMaster=auto; a Swift SSH library on macOS.", "#hosts"], ["D16", "macOS machines come from herdr session list and herdr machine list; adding runs herdr machine add in a terminal card. The Mac app requires herdr installed on the Mac. (Add a machine, macOS)", "herdr stores machines, installs itself and starts the server, and needs a terminal for its questions.", "An app machine list on macOS.", "#hosts"], ["D17", "iOS uses Citadel with a Secure Enclave key; machines in UserDefaults; the Mac via Remote Login.", "Pure Swift; the key cannot leave the device; no new mechanism. Spike S7 tests the exec channels first.", "libssh2 + OpenSSL; a relay.", "#hosts"], ["D18", "Everything is a plugin: one registry, manifest shape and picker; terminal, agent and web are native core plugins.", "One model for every pane kind without JavaScript cost for core panes.", "Special-casing core kinds; herdr TUI plugins in the picker.", "#plugins"], ["D19", "Plugin UI = TypeScript + React in one JSContext per card, rendered as native SwiftUI through a component kit.", "Native look and behavior; ~3 MB per card; the JS reaches only the injected API; works on iOS.", "React in a web view; React Native; native Swift plugins; ExtensionKit.", "#plugins"], ["D20", "Plugins live in the app, installed from a git URL or a linked folder; the app never runs npm.", "One install per device for every machine; no setup on any machine; a simple dev loop.", "herdr plugins on each machine; an in-app store.", "#plugins"], ["D21", "A plugin pane is a herdr pane labeled oriel:<plugin>[/<pane>]#<iid> <arg>. A placeholder is typed only once the new pane's shell is in front; it is cosmetic.", "The label is durable and readable; the iid survives moves and restarts.", "Metadata tokens; an app-side pane list.", "#plugins"], ["D22", "Bigger plugin state lives in a JSON file on the pane's machine, keyed by iid; preferences stay per device.", "Shared by every device, survives reinstalls, no sync service.", "Labels for everything; app storage.", "#plugins"], ["D23", "After every rename or state write, a oriel_rev metadata token tells other devices to refresh. (Web page, State and restore)", "A rename sends no event; a token change does.", "Polling; a terminal-title trick.", "#plugins"], ["D24", "Plugin API = exec on the card's own machine, pane context, setArg, instance state, the snapshot, preferences, toasts, confirmed open, clipboard copy, navigation.", "Covers diff, git history and Markdown; nothing more.", "Network, storage, a herdr call API, plugins outside panes in v1.", "#plugins"], ["D25", "Plugin security: one VM per card bound to its machine; one permission (exec) described honestly; consent at install and on new permissions, keyed by id and source; a This Mac confirm; no network or HTML from the app; user-gesture rule for open and the clipboard; a watchdog.", "The user sees exactly what they grant; the app adds no reach beyond exec on the pane's machine.", "Finer permissions that do not hold; claiming a sandbox that exec cannot give.", "#plugin-security"], ["D26", "iOS v1 ships core plugins only.", "Downloaded code is an App Store review risk.", "User plugins on iOS in v1.", "#plugins"], ["D27", "Web page = core plugin with label web:<url>. A label set elsewhere loads only after a click, unless the user approved that origin for this machine. Per-machine data stores; remote localhost through forwards on other ports.", "Durable marker; no request leaves the device without the user; machines stay apart.", "Auto-loading every label; SOCKS (WebKit never proxies loopback); same-port forwards.", "#plugins"], ["D28", "Floating panes = panes in a tab labeled oriel:float; float and dock are pane.move; cards inside the main window; frames in memory.", "herdr keeps which panes float; any pane kind can float; nothing stored.", "herdr popups; label markers; a window per floating pane.", "#floating"], ["D29", "Chat = the agent's transcript tailed on the machine + agent.prompt; parsers for pi, Claude Code and Codex; a screen-text chat for every other agent or terminal pane. Web and plugin panes have no chat view.", "What every working chat view does; any agent or terminal pane can switch.", "Per-agent prompt parsers; parsing the screen into fake messages.", "#chat"], ["D30", "The blocked panel sends a key only if the agent is still blocked and the prompt text is unchanged.", "The prompt may have changed on another device.", "Sending without a check.", "#chat"], ["D31", "Notifications are made by the app from snapshot changes; .passive while the pill shows (except with VoiceOver or Switch Control); no iOS push in v1.", "herdr sends its own only to TUI clients; no double alerts; push needs a relay.", "herdr's private notifications; dropping banners.", "#status"], ["D32", "Floating pills: one non-activating NSPanel, one pill with a glyph per agent, a pill card that is the compact chat view, peeks that never take the keyboard, opaque. (Floating pills, how they work)", "One proved the shape; never steal a keystroke; glass renders flat in an inactive app.", "A pill per agent; a SwiftUI window; glass pills.", "#status"], ["D33", "Dark theme only: opaque near-black window, opaque cards, dark-tinted glass on chrome.", "An all-dark look with no colored windows.", "A translucent window; a light theme in v1.", "#ui"], ["D34", "One multiplatform target, macOS 26 and iOS 26, one main window.", "Liquid Glass and WebView; no fallbacks; no control fights.", "Separate apps; back-deploying; several main windows in v1.", "#platform"], ["D35", "Horizontal gestures belong to the strip; the PaneViewRegistry owns every view.", "Terminals and web views would eat the swipe; SwiftUI would destroy views.", "Each view handling its own scroll.", "#platform"], ["D36", "iPhone shows one pane per page and opens agents in chat.", "Splits do not fit; chat needs no PTY.", "Shrinking splits onto a phone.", "#f-phone"], ["D37", "The agent picker lists the available integration.list entries.", "One call; herdr checks the PATH.", "Probing every agent with command -v.", "#plugins"], ["D38", "Refuse herdr older than 0.9.3; a banner for newer protocols; --session on every herdr argv.", "Old herdr lacks what we use; no inherited variable can redirect a command.", "A read-only mode.", "#herdr"], ["D39", "On This Mac the app never starts herdr. It shows the command to run in a terminal. Remote machines keep a **Start herdr** button (over SSH). Children are always signalled by pid.", "A server started by the app makes the app the \"responsible process\" for every agent (macOS privacy prompts would name Oriel) and shares its process group.", "Starting the local server from the app.", "#hosts"], ["D40", "Every call() has a 10 s timeout. On a timeout the app kills the bridge process or channel and runs ping. Long-lived streams have no timeout; the 30 s ping checks them.", "A dead SSH link after a network change must not hang drags, writes and plugin calls.", "No timeout; a timeout on streams.", "#herdr"], ["D41", "Closing a pane asks first unless the pane runs only its shell. Closing a tab or workspace always asks.", "A close kills processes on every device and cannot be undone.", "Asking only when an agent works; never asking.", "#herdr"], ["D42", "Rex-like behavior follows gorex: one tab status slot (× on hover > ▲ > ✓ > ◔), a static ◔, double-click a divider to reset it to 0.5, ⌃⌘= to make splits equal, the window title from the selected tab.", "gorex is a readable Rex copy; a static glyph avoids constant redraws. gorex is not a glass reference.", "An animated working glyph; several glyphs per tab.", "#layout"], ["D43", "A machine is one herdr session: one entry in the machine list and one sidebar page. Sessions on one host share one SSH connection and its channel budget.", "herdr's own unit is the session; one connection per host keeps one prompt and one channel budget.", "One connection per session; one machine per host.", "#hosts"]];
 const tb=$("#dec tbody");
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
 function drawD(q=""){q=q.toLowerCase();tb.innerHTML=D.filter(r=>r.slice(0,4).join(" ").toLowerCase().includes(q)).map(r=>`<tr><td><a href="${r[4]}" title="Go to the section">${r[0]}</a></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td class="rej">${esc(r[3])}</td></tr>`).join("")||`<tr><td colspan="4" class="muted">No decision matches.</td></tr>`}
