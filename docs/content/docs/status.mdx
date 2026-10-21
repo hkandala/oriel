@@ -14,15 +14,8 @@ description: "The status area, notifications and how the floating pills work"
 - Status comes only from the multiplexer's API (D55), never from
   [OSC 7501](/docs/reference/glossary) ([Future work](/docs/future-work)).
 - **"Finished, not seen"** = `completion_seq` in `snapshot.agents[]` is not
-  null and differs from the value this device recorded as seen
-  ([Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own)).
-  - It is not a "greater than" test, because the counter restarts at 0 when
-    herdr restarts.
-  - herdr sets `completion_seq` back to null at the agent's next status
-    change. So an unseen finish clears when the agent starts working again,
-    and the agent then shows ◔.
-  - herdr's own `done` status is not used, because herdr goes straight to
-    `idle` when a herdr TUI is already looking at that tab.
+  null and differs from the value this device recorded as seen. How "seen"
+  works: [Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own).
 
 ### Notifications
 

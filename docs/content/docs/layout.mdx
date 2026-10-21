@@ -99,7 +99,12 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
     server. When an agent finishes (working or blocked → idle),
     `completion_seq` is the number of that change. At the agent's next status
     change, for example when it starts working again, herdr sets it back to
-    null.
+    null. So an unseen finish clears when the agent starts working again,
+    and the agent then shows ◔.
+  - "Finished, not seen" is "not null and different from the seen value",
+    not "greater than": the counter restarts at 0 when herdr restarts.
+  - herdr's own `done` status is not used, because herdr goes straight to
+    `idle` when a herdr TUI is already looking at that tab.
   - The first time the app sees an agent, it records the agent's current
     `completion_seq` as seen, so old finishes do not flood the status area.
   - Viewing the agent's pane records the current value.
