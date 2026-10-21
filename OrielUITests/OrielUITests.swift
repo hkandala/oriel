@@ -305,9 +305,10 @@ extension OrielUITests {
 
     /// The session's `terminal session` runs, any client's, as `pid argv` lines.
     func streams(_ session: String) async throws -> [String] {
-        let (data, status) = try await Self.post("\(session)/streams", Data())
+        let (data, status) = try await Self.post("\(session)/children", Data())
         XCTAssertEqual(status, 200)
         return String(decoding: data, as: UTF8.self).split(separator: "\n").map(String.init)
+            .filter { $0.contains("terminal session") }
     }
 
     /// Opens the session list; its filter has the keyboard.

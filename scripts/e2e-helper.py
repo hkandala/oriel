@@ -6,8 +6,8 @@ POST /<session> with one API request line as the body; the reply line comes back
 POST /<session>/control with a terminal id as the body opens `terminal session control` on it
 without takeover, closes its stdin at once (which lets go), and gives back what the stream printed
 (a frame, or the reason it was refused); /<session>/takeover does the same with --takeover.
-POST /<session>/streams lists the `terminal session` runs on the session, one command line each;
-/<session>/children lists those and the `remote-api-bridge` runs.
+POST /<session>/children lists the session's `terminal session` and `remote-api-bridge` runs, one
+command line each.
 POST /<session>/stop stops the session; /<session>/start starts its server again, as a user would in a
 terminal.
 Any session not named on the command line is refused.
@@ -31,7 +31,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
-        elif action not in ("", "control", "takeover", "streams", "children", "stop", "start"):
+        elif action not in ("", "control", "takeover", "children", "stop", "start"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
@@ -46,11 +46,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 argv += ["terminal", "session", "control", body.decode(), "--cols", "80", "--rows", "24"]
                 argv += ["--takeover"] if action == "takeover" else []
                 body = b""
-            elif action in ("streams", "children"):
+            elif action == "children":
                 # The helper runs one request at a time, so none of these is its own. Anchored: the shell that
                 # wraps an `observe` run is not a run of its own.
-                runs = "terminal session" if action == "streams" else "(terminal session|remote-api-bridge)"
-                argv = ["pgrep", "-lf", f"^[^ ]*herdr --session {session} {runs}"]
+                argv = ["pgrep", "-lf", f"^[^ ]*herdr --session {session} (terminal session|remote-api-bridge)"]
             elif action == "stop":
                 argv = ["herdr", "session", "stop", session]
             else:
@@ -58,7 +57,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             try:
                 run = subprocess.run(argv, input=body, capture_output=True, timeout=10)
                 # pgrep exits 1 when it finds none.
-                ok = run.returncode == 0 or action in ("streams", "children") and run.returncode == 1
+                ok = run.returncode == 0 or action == "children" and run.returncode == 1
                 status, reply = (200, run.stdout) if ok else (500, run.stderr)
             except Exception as error:  # a timeout or no herdr: tell the test, keep serving
                 status, reply = 500, str(error).encode()
