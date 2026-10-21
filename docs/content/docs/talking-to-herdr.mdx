@@ -84,9 +84,10 @@ the work. A later server helper would sit behind the same two calls
   close stdin. herdr answers one request per connection.
 - **Timeout:** every `call()` times out after 10 s. On a timeout the app kills
   the bridge process (macOS) or closes the channel (iOS), shows "‹machine› did
-  not answer · Retry", and checks the machine with `ping`.
-- Long-lived streams (events, terminals, chat tails) have no timeout. The 30 s
-  `ping` checks them.
+  not answer · Retry", and starts the
+  [health check](/docs/machines#health-check) at once.
+- Long-lived streams (events, terminals, chat tails) have no timeout. The
+  health check covers them.
 - Cost: 18 ms median and 130 ms at p95 per call (measured locally), plus the
   network round trip. Text typing never takes this path (special keys do:
   [Terminal plane](#terminal-plane)). Simpler choice: the
@@ -116,9 +117,8 @@ the work. A later server helper would sit behind the same two calls
 - The stream is opened again, followed by a snapshot, when the set of agent
   panes changes, on `events_lost` (the reader fell behind herdr's 512-event
   buffer) and on `pane_not_found` (a listed pane closed first).
-- Every 30 s the app sends `ping`, every 2 s while its last read failed, so a
-  session started again in a terminal comes back at once. A network change or a
-  Mac wake forces a check. A machine counts as live only while it answers.
+- The [health check](/docs/machines#health-check) reads the snapshot every
+  30 s, so a missed event is caught there.
 
 ## Reconcile
 
@@ -222,7 +222,7 @@ handshake fails, it exits 1 with the reason on stderr.
 | `taken over` | watches; never takes back by itself |
 | `not found` or `exited` | drops the card; waits for the snapshot |
 | `detached` | does nothing (this device closed the stream) |
-| `live update` | backs off, pings, checks the version, opens every stream again |
+| `live update` | starts the [health check](/docs/machines#health-check), which opens every stream again |
 | handshake error (exit 1) | "Restart herdr on ‹machine›" |
 
 ### Scrolling, queries and links

@@ -52,9 +52,8 @@ description: "What a machine is, macOS and iOS connections, the channel budget a
   - Forwarding is off, so a machine cannot reach the Mac's SSH agent or ports
     through the app's long-lived connection. The app's own `-O forward` calls
     still work.
-  - `-O check` only asks whether the master process lives. After a wake or a
-    network change the app sends `ping` with a 5 s timeout. On a timeout it
-    runs `ssh -O exit`, starts the master again and opens the streams again.
+  - `-O check` only asks whether the master process lives. A dead link is
+    found by the [health check](#health-check).
   - On quit the app runs `ssh -S <ctl> -O exit <target>` for each master.
 - **Password and OTP prompts:** `SSH_ASKPASS` points at a one-file script in
   the app's `Contents/Resources`, with `SSH_ASKPASS_REQUIRE=force`. It shows
@@ -80,7 +79,8 @@ description: "What a machine is, macOS and iOS connections, the channel budget a
   name.
 - Reachability is the user's network (LAN or Tailscale). There is no relay.
   Jump hosts come later (Citadel has `jump(to:)`).
-- Citadel has no keepalive, so the 30 s `ping` finds dead links.
+- Citadel has no keepalive; the [health check](#health-check) finds dead
+  links.
 - When the app goes to the background, it releases its terminal streams. iOS
   then gives about 30 s. The app holds its other connections with
   `beginBackgroundTask`, closes them when that time ends, and reconnects and
@@ -94,6 +94,26 @@ description: "What a machine is, macOS and iOS connections, the channel budget a
   calls), so the status area, notifications and pills cover every machine.
 - Only the selected machine streams terminals. Switching machines closes the
   old machine's streams and opens the new one's.
+
+## Health check
+
+One loop per machine checks that it answers.
+- The check is `session.snapshot`, the read the app needs anyway. It carries
+  herdr's version and catches any event the app missed.
+- It runs every 30 s while the machine is healthy and every 2 s while it
+  fails, so a session started again in a terminal comes back at once. A
+  failure starts it at once: a call timeout, a stream that ends without a
+  reason, a `live update`, a Mac wake or a network change.
+- A machine counts as live only while the check answers. While it fails, its
+  cards gray out.
+- On a remote machine a failed check also restarts the connection: on macOS
+  `ssh -O exit`, then a new ControlMaster; on iOS a new Citadel connection.
+- **Automatic retries never prompt.** On macOS they run with
+  `BatchMode=yes`. A host that needs a password, an OTP or a key prompt shows
+  **Reconnect** and stops retrying; only that button may prompt.
+- When a check succeeds after a failure, the app opens the event stream and
+  the terminal streams again: the same path as the first connect
+  ([Checks on connect](#checks-on-connect)).
 
 ## Channel budget
 
