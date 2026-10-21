@@ -72,9 +72,13 @@ extension OrielUITests {
             try await expectStreams(3, 0, two)
         }
 
+        // No herdr run outlives the app: each ends when its stdin closes.
         app.typeKey("q", modifierFlags: .command)
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
-        try await expectStreams(0, 0, two)
+        try await poll("no herdr runs left") { () async throws -> Bool? in
+            let left = try await (Self.post("\(one)/children", Data()), Self.post("\(two)/children", Data()))
+            return left.0.data.isEmpty && left.1.data.isEmpty ? true : nil
+        }
     }
 
     private func pickSession(_ name: String) {

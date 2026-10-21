@@ -172,7 +172,7 @@ extension OrielUITests {
         return try XCTUnwrap((pane?["scroll"] as? [String: Any])?["viewport_rows"] as? Int)
     }
 
-    /// A `control` stream from the helper, released at once, until its output passes `done`.
+    /// A `control` stream from the helper, let go at once, until its output passes `done`.
     private func waitForControl(_ terminal: String, _ done: (String) -> Bool) async throws {
         try await poll("control of \(terminal)", times: 20) { () async throws -> String? in
             let text = try await String(decoding: Self.post("\(one)/control", Data(terminal.utf8)).data, as: UTF8.self)

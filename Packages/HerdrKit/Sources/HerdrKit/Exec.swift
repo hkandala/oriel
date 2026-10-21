@@ -11,15 +11,15 @@ public struct Channel: Sendable {
     public let lines: AsyncStream<String>
     /// Writes one line to stdin, in order, without blocking the caller.
     public let write: @Sendable (String) -> Void
+    /// Every long-running command the app starts exits when its stdin closes (design T6).
     public let closeInput: @Sendable () -> Void
+    /// Stops reading now and kills the command if it still runs.
     public let terminate: @Sendable () -> Void
     /// Waits for the command to end and gives back its exit status and stderr.
     public let exit: @Sendable () async -> (status: Int32, stderr: String)
 }
 
 #if os(macOS)
-    import Synchronization
-
     /// Runs commands on This Mac with the user's login-shell environment.
     /// ponytail: This Mac only, so no SSH prefix and no base64 envelope; remote machines add them.
     public struct ProcessExec: Exec {
@@ -76,12 +76,6 @@ public struct Channel: Sendable {
             return env
         }
 
-        /// Children alive now, so they can be killed by pid when the app quits.
-        private static let children: Mutex<Set<pid_t>> = {
-            atexit { ProcessExec.children.withLock { $0.forEach { Darwin.kill($0, SIGKILL) } } }
-            return Mutex([])
-        }()
-
         /// A pipe's output until EOF. Not `FileHandle.bytes`: with several pipes open at once it
         /// stalls (seen on macOS 27 with a second bridge run while the events stream is open).
         private static func chunks(_ handle: FileHandle) -> AsyncStream<Data> {
@@ -122,15 +116,6 @@ public struct Channel: Sendable {
             }
         }
 
-        /// Kills the child unless it has ended: its pid may belong to another process by then.
-        private static func kill(_ pid: pid_t) {
-            children.withLock {
-                if $0.contains(pid) {
-                    Darwin.kill(pid, SIGKILL)
-                }
-            }
-        }
-
         /// The end of a pipe's output as text. Only the tail: long-lived streams may log for hours.
         private static func tail(_ handle: FileHandle) -> Task<String, Never> {
             let output = chunks(handle)
@@ -154,25 +139,25 @@ public struct Channel: Sendable {
             process.standardError = stderr
             let (ended, endedContinuation) = AsyncStream<Int32>.makeStream()
             process.terminationHandler = {
-                let pid = $0.processIdentifier
-                children.withLock { _ = $0.remove(pid) }
                 endedContinuation.yield($0.terminationStatus)
                 endedContinuation.finish()
             }
-            // Under the lock, so a child that ends at once cannot be removed before it is added.
-            let pid = try children.withLock {
-                try process.run()
-                $0.insert(process.processIdentifier)
-                return process.processIdentifier
-            }
+            try process.run()
+            let pid = process.processIdentifier
 
             let (lines, linesContinuation) = AsyncStream<String>.makeStream()
             let reader = split(stdout.fileHandleForReading, into: linesContinuation)
             let errors = tail(stderr.fileHandleForReading)
+            // Running until reaped: after that, its pid may belong to another process.
+            let kill: @Sendable () -> Void = {
+                if process.isRunning {
+                    Darwin.kill(pid, SIGKILL)
+                }
+            }
             // Ends the stream too, so a reader never waits on a child that ignores the signal, and stops
             // both pipe readers, so a grandchild that keeps a pipe open cannot keep them alive.
             let terminate: @Sendable () -> Void = {
-                kill(pid)
+                kill()
                 linesContinuation.finish()
                 reader.cancel()
                 errors.cancel()
@@ -182,7 +167,7 @@ public struct Channel: Sendable {
                 if case .cancelled = reason {
                     terminate()
                 } else {
-                    kill(pid)
+                    kill()
                 }
             }
             let status = Task { await ended.first { _ in true } ?? -1 }

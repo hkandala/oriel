@@ -9,7 +9,7 @@
     @MainActor @Observable
     final class PaneTerminal {
         enum State: Equatable {
-            /// No stream: not shown lately (D46), released, or the pane is gone.
+            /// No stream: not shown lately (D46), closed, or the pane is gone.
             case idle
             case live
             /// Another client controls the pane: watch until the user acts (design D8).
@@ -192,16 +192,12 @@
             drain()
         }
 
-        /// Ends the current stream: a controller releases (killed if herdr does not answer within
-        /// 500 ms), a watcher stops.
+        /// Ends the current stream by closing its stdin. The run goes on until herdr exits, so the next `open`
+        /// waits for the pane to be free; a stream still opening is cancelled instead.
         private func end() {
             generation += 1
-            if let stream, !observing {
-                stream.release()
-                Task { [run] in
-                    try? await Task.sleep(for: .milliseconds(500))
-                    run?.cancel()
-                }
+            if let stream {
+                stream.close()
             } else {
                 run?.cancel()
             }
@@ -224,7 +220,7 @@
                 }
                 Task { open(observe: !takeover, takeover: takeover) }
             case .liveUpdate:
-                // ponytail: one retry after 1 s; the design also pings and checks the version.
+                // ponytail: one retry after 1 s; the design also reads the snapshot (the version check).
                 Task { [observing] in
                     try? await Task.sleep(for: .seconds(1))
                     open(observe: observing)

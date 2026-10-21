@@ -186,11 +186,15 @@ private func control(_ client: HerdrClient) async throws {
             throw HerdrError.failed("no observe frame")
         }
         #expect(watched.full && watched.width == 60)
+        // observe ignores stdin's end; its wrapper ends it, though the pane prints nothing.
+        watcher.close()
+        let observer = "^herdr --session \(client.session) terminal session observe"
+        #expect(await eventually { shell("pgrep", "-f", observer) == 1 })
 
         // Taken over: a controller with --takeover wins, the first one hears it.
         let taker = try await client.terminal(terminal, cols: 60, rows: 12, takeover: true)
         #expect(await closedReason(&events) == .held)
-        taker.release()
+        taker.close()
         var takerEvents = taker.events.makeAsyncIterator()
         #expect(await closedReason(&takerEvents) == .ended)
     })

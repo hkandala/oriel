@@ -54,7 +54,8 @@ before writing code. In short:
 - Every herdr argv carries `--session <name>`.
 - Never call herdr focus methods (`*.focus`). Creates pass `focus:false`.
 - Never patch local state after a write; read the snapshot again.
-- Child processes die with the app; signal by pid, never by process group.
+- Every long-running child ends when its stdin closes (wrap a command that ignores it, like `observe`);
+  the one fallback kill signals by pid, never by process group.
 
 ## Tests
 

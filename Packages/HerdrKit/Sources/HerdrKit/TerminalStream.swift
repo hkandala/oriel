@@ -23,7 +23,7 @@ public struct TerminalStream: Sendable {
     public enum Closed: Sendable, Equatable {
         /// Another client controls the pane, or took it with `--takeover`.
         case held
-        /// We released it, or the terminal is not found or has exited.
+        /// We closed it, or the terminal is not found or has exited.
         case ended
         /// herdr is replacing itself; open again after a moment.
         case liveUpdate
@@ -46,7 +46,7 @@ public struct TerminalStream: Sendable {
     public enum MouseAction: String, Sendable { case down, up, drag } // swiftlint:disable:this identifier_name
     public enum MouseButton: String, Sendable { case left, middle, right }
 
-    /// Frames until one `.closed`, then the end. Dropping the iteration kills the run.
+    /// Frames until one `.closed`, then the end. Dropping the iteration ends the run.
     public let events: AsyncStream<Event>
     let channel: Channel
 
@@ -127,10 +127,15 @@ public struct TerminalStream: Sendable {
               "column": column, "row": row, "modifiers": modifiers])
     }
 
-    /// Lets go of the pane; herdr answers `detached` and the run ends.
-    public func release() {
-        send(["type": "terminal.release"])
+    /// Lets go of the pane by closing stdin: herdr answers `detached` (input sent before still arrives) and the
+    /// run ends (design T6).
+    public func close() {
         channel.closeInput()
+        // The one fallback: a run still going 1 s later (a hung herdr, a write stuck on a full pipe) is killed.
+        Task {
+            try? await Task.sleep(for: .seconds(1))
+            channel.terminate()
+        }
     }
 
     private func send(_ command: [String: any Sendable]) {
@@ -151,7 +156,10 @@ public extension HerdrClient {
     ) async throws -> TerminalStream {
         var argv = [herdr, "--session", session, "terminal", "session", observe ? "observe" : "control",
                     terminalID, "--cols", "\(cols)", "--rows", "\(rows)"]
-        if takeover, !observe {
+        if observe {
+            // observe ignores stdin's end, so a wrapper ends it then (design T6).
+            argv = ["sh", "-c", #""$@" & c=$!; cat >/dev/null; kill $c"#, "sh"] + argv
+        } else if takeover {
             argv.append("--takeover")
         }
         return try await TerminalStream(exec.run(argv))
