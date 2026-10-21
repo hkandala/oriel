@@ -137,12 +137,25 @@ One loop per machine checks that it answers.
    - **This Mac:** a **Start** button, next to the command to run in a
      terminal. Picking a stopped session or making a new one starts it the
      same way; a new server gets one workspace in `$HOME`. The app starts the
-     server as a one-shot launchd job (D47) that runs `herdr --session S server`
-     with the environment the app's herdr calls see (every variable `env`
-     prints), except that `PATH` keeps the user's own order. So the server
-     and the CLI agree on paths. launchd, not the app, is the server's parent
-     and "responsible process": macOS privacy prompts never name Oriel, the
-     server has its own process group, and it outlives the app.
+     server as a one-shot launchd job (D47). launchd, not the app, is the
+     server's parent and "responsible process": macOS privacy prompts never
+     name Oriel, the server has its own process group, and it outlives the app.
+     - `launchctl bootstrap gui/<uid>` (the user's GUI domain) loads the job
+       `dev.hkandala.oriel.herdr.<S>`, which runs `herdr --session <S> server`
+       through `/usr/bin/env -P <install folders + PATH>`.
+     - `RunAtLoad` without `KeepAlive`: once `herdr session stop` ends the
+       server, launchd never runs it again (`launchctl submit` restarted it).
+     - `ProcessType Interactive`: launchd's default throttles the CPU and I/O
+       of the server and every agent in it.
+     - stderr goes to `~/Library/Logs/Oriel/<S>.log`.
+     - The job's environment is `PATH` (the user's own order), `HOME`,
+       `SSH_AUTH_SOCK` and every `XDG_*` variable, as the app's herdr calls
+       see them ([This Mac](/docs/talking-to-herdr#run-and-dial)). So the
+       server and the CLI agree on paths, and none of the app's own variables
+       (`__CFBundleIdentifier`, `XPC_*`) reach a pane.
+     - An older job of the label is booted out first (a label loads only
+       once). A running server, one that answers a snapshot, is never booted
+       out: the app uses it.
    - **A remote machine:** a **Start herdr** button runs
      `sh -c 'nohup herdr --session S server </dev/null >/dev/null 2>&1 &'`
      over SSH and polls `session.snapshot` for up to 5 s.

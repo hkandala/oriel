@@ -25,10 +25,10 @@ the work. A later server helper would sit behind the same two calls
   channel. A web card needs a local port, not a stream; see
   [Remote localhost](/docs/plugins/web-page#remote-localhost).
 - **This Mac:** `Process`. A GUI app does not get the shell's environment. So
-  at launch the app reads `PATH`, `SSH_AUTH_SOCK` and every `XDG_*` variable
-  once with `$SHELL -lic` (stdin from `/dev/null`, 3 s timeout, output parsed
-  after a unique marker). `HERDR_*` variables are removed from child
-  processes.
+  at launch the app reads `PATH`, `HOME`, `SSH_AUTH_SOCK` and every `XDG_*`
+  variable once with `$SHELL -lic` (stdin from `/dev/null`, 3 s timeout,
+  output parsed after a unique marker). `HERDR_*` variables are removed from
+  child processes.
 - **A remote machine on macOS:** the same `Process` with this prefix
   ([macOS](/docs/machines#macos)):
   ```sh
@@ -67,8 +67,9 @@ the work. A later server helper would sit behind the same two calls
 - herdr installs to `~/.local/bin`, which non-interactive SSH commands often
   lack. So every command runs with herdr's usual install folders in front of
   `PATH`: `$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin`, set inside the
-  envelope on a remote machine and in the child environment on This Mac. The
-  argv says plain `herdr`.
+  envelope on a remote machine and in the child environment on This Mac (if
+  `$SHELL -lic` fails, that `PATH` is the app's own,
+  `/usr/bin:/bin:/usr/sbin:/sbin`). The argv says plain `herdr`.
 - A missing herdr fails the first call (exit 127), and the app shows the
   install command. herdr older than 0.9.1 has no `remote-api-bridge`, so the
   first call fails too, shown as "No answer from herdr". A snapshot that
