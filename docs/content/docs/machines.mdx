@@ -23,10 +23,11 @@ description: "What a machine is, macOS and iOS connections, the health check, SS
   stopped, so the app can say how to start it). Other sessions show while
   they run. herdr on the Mac is needed only for these, not for remote
   machines.
-- **Import from herdr (macOS):** when herdr is on the Mac, the first launch
-  adds the enabled entries of `herdr machine list --json`
-  (`{id, label, target, session, enabled}`). Later, the add-machine sheet
-  offers the entries not yet in the list. The app never writes herdr's list.
+- **herdr's machines (macOS):** when herdr is on the Mac, the Add Machine
+  sheet lists the enabled entries of `herdr machine list --json`
+  (`{id, label, target, session, enabled}`) that are not in the app's list,
+  each with a checkbox. While the app's list is empty, they start checked.
+  There is no import at first launch. The app never writes herdr's list.
 
 ## macOS
 - **SSH is the system `ssh`.** The user's `~/.ssh/config`, agent, keys,

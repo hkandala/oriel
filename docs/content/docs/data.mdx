@@ -25,7 +25,7 @@ One rule decides where each new thing goes (D57):
 | Plugin instance state; a web card's current address and scroll position | the machine | `$HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json` (`web` for web cards; [State and restore](/docs/plugins/state)) |
 | Chat history | the agent | its transcript file on the machine |
 | This Mac's sessions (macOS) | herdr | `herdr session list` |
-| Remote machines: target, session, label, id | app, disk | `UserDefaults` (imported once from `herdr machine list` on macOS) |
+| Remote machines: target, session, label, id | app, disk | `UserDefaults` (on macOS the add sheet offers `herdr machine list`) |
 | iOS SSH key and pinned host keys | app, disk | Secure Enclave, Keychain |
 | Display preferences, pill settings | app, disk | `UserDefaults` |
 | Window restore ids (machine, workspace, tab), sidebar expand state | app, disk | `@SceneStorage` |
