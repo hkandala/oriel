@@ -16,6 +16,8 @@
         var selectedTabIDs: [String: String] = [:]
         /// The app's own zoom (design D11): this card fills its tab's page.
         var zoomedPaneID: String?
+        /// The card whose header shows the rename field.
+        var renamingPaneID: String?
         /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
         var stripPage = 0.0
         /// The terminal that last had the keyboard in each tab. Observed: the tab's icon stack puts it in front.
@@ -86,8 +88,12 @@
             return Array(([front].compactMap(\.self) + tabPanes.filter { $0 !== front }).prefix(5))
         }
 
-        /// The card keys go to: the terminal with the keyboard, else herdr's focused pane of the selected tab.
+        /// The card keys and the menu bar's pane items go to: the selected tab's zoomed card, else the terminal with
+        /// the keyboard, else herdr's focused pane of the selected tab.
         var keyboardPane: HostStore.Pane? {
+            if let zoomed = zoomedPaneID.flatMap(store.pane), zoomed.tabID == selectedTab?.id {
+                return zoomed
+            }
             if let id = terminals.keyboardTerminalID, let pane = store.panes.first(where: { $0.terminalID == id }) {
                 return pane
             }
@@ -141,10 +147,14 @@
             }
         }
 
-        /// Selects the pane's workspace and tab and gives the pane the keyboard (never herdr focus, D13).
+        /// Selects the pane's workspace and tab and gives the pane the keyboard (never herdr focus, D13). A zoom of
+        /// another card restores, so the pane shows.
         func go(to pane: HostStore.Pane) {
             guard let workspace = store.workspace(of: pane.tabID) else { return }
             select(workspace, tab: pane.tabID)
+            if zoomedPaneID != pane.id, store.pane(zoomedPaneID ?? "")?.tabID == pane.tabID {
+                zoomedPaneID = nil
+            }
             if let terminalID = pane.terminalID {
                 keyboardTerminals[pane.tabID] = terminalID
             }
@@ -190,9 +200,32 @@
         }
 
         /// A split restores a zoomed layout first, as tmux does: the new pane shows.
-        func split(_ paneID: String, _ direction: SplitNode.Direction) async {
+        func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
             zoomedPaneID = nil
-            await store.split(paneID, direction)
+            await store.split(paneID, direction, before: before)
+        }
+
+        /// The keyboard goes to the nearest card that way, as herdr's `pane.neighbor` finds it (read only).
+        func moveKeyboard(_ heading: Heading) async {
+            guard let from = keyboardPane, let client = store.client,
+                  let id = try? await client.neighbor(of: from.id, heading), let pane = store.pane(id) else { return }
+            go(to: pane)
+        }
+
+        /// The keyboard goes to the previous or next card in the tab's tree, round the ends.
+        func stepCard(_ offset: Int) {
+            guard let ids = selectedTab?.tree?.paneIDs, let from = keyboardPane,
+                  let index = ids.firstIndex(of: from.id),
+                  let pane = store.pane(ids[(index + offset + ids.count) % ids.count]) else { return }
+            go(to: pane)
+        }
+
+        /// The pane goes to another tab or workspace; the page follows it there and it keeps the keyboard.
+        func move(_ pane: HostStore.Pane, to destination: Destination) async {
+            let terminalID = pane.terminalID
+            guard let moved = await store.move(pane.id, to: destination) else { return }
+            keyboardTerminals[moved.tabID] = terminalID
+            arriving = moved.tabID
         }
 
         /// A new tab in the workspace (the selected one by default), in its keyboard card's directory, else home;

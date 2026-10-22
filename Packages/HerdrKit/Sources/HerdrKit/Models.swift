@@ -120,6 +120,26 @@ public enum AgentStatus: String, Decodable, Sendable {
 /// reply decodes as one too (its tab is optional).
 struct Created: Decodable {
     let tab: Tab?
+    /// `pane.split`'s new pane.
+    let pane: Pane?
+}
+
+/// `pane.move`: the pane where it went (a move to another workspace gives it a new id).
+struct Moved: Decodable {
+    let moveResult: Created
+
+    enum CodingKeys: String, CodingKey { case moveResult = "move_result" }
+}
+
+/// `pane.neighbor`: the nearest pane that way, if any.
+struct Neighbor: Decodable {
+    let neighbor: NeighborPane
+}
+
+struct NeighborPane: Decodable {
+    let paneID: String?
+
+    enum CodingKeys: String, CodingKey { case paneID = "neighbor_pane_id" }
 }
 
 /// `pane.process_info`: the pane's shell and its foreground processes.

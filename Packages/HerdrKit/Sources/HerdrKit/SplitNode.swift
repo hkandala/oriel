@@ -51,3 +51,69 @@ extension SplitNode: Decodable {
         }
     }
 }
+
+/// Equal splits (like Rex): in a run of same-direction splits, n panes get 1/n each.
+public extension SplitNode {
+    /// The leaves, first to last (herdr's `panes[]` order).
+    var paneIDs: [String] {
+        switch self {
+        case let .leaf(id): [id]
+        case let .split(_, _, first, second): first.paneIDs + second.paneIDs
+        }
+    }
+
+    /// The ratio changes that even out the run of same-direction splits holding the pane (all runs when nil):
+    /// each split gets the units on its first side over the units under it, where a child split in the other
+    /// direction counts as one unit. Paths as `layout.set_split_ratio` takes them (`false` = first child).
+    func evened(around paneID: String? = nil) -> [(path: [Bool], ratio: Double)] {
+        guard let paneID else { return run([], whole: true) }
+        guard let path = path(to: paneID), !path.isEmpty else { return [] }
+        // The pane's parent, then up while the parent splits the same way.
+        var top = Array(path.dropLast())
+        let direction = node(at: top)?.direction
+        while !top.isEmpty, node(at: Array(top.dropLast()))?.direction == direction {
+            top.removeLast()
+        }
+        return node(at: top)?.run(top, whole: false) ?? []
+    }
+
+    private var direction: Direction? {
+        if case let .split(direction, _, _, _) = self {
+            direction
+        } else {
+            nil
+        }
+    }
+
+    private func units(_ direction: Direction) -> Int {
+        if case let .split(own, _, first, second) = self, own == direction {
+            first.units(direction) + second.units(direction)
+        } else {
+            1
+        }
+    }
+
+    /// This split's run (its children that split the same way, and theirs), or every split below when `whole`.
+    private func run(_ path: [Bool], whole: Bool) -> [(path: [Bool], ratio: Double)] {
+        guard case let .split(direction, ratio, first, second) = self else { return [] }
+        let even = Double(first.units(direction)) / Double(units(direction))
+        let own = abs(even - ratio) > 0.001 ? [(path, even)] : []
+        return own + [(first, false), (second, true)].flatMap { child, step in
+            whole || child.direction == direction ? child.run(path + [step], whole: whole) : []
+        }
+    }
+
+    private func path(to paneID: String) -> [Bool]? {
+        switch self {
+        case let .leaf(id): id == paneID ? [] : nil
+        case let .split(_, _, first, second):
+            first.path(to: paneID).map { [false] + $0 } ?? second.path(to: paneID).map { [true] + $0 }
+        }
+    }
+
+    private func node(at path: [Bool]) -> SplitNode? {
+        guard let step = path.first else { return self }
+        guard case let .split(_, _, first, second) = self else { return nil }
+        return (step ? second : first).node(at: Array(path.dropFirst()))
+    }
+}

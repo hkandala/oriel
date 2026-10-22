@@ -265,3 +265,33 @@ func `a started server shares the CLI's paths`() async throws {
     #expect(job.contains("program = \(herdr)\n") && job.contains("PATH => \(base.environment["PATH"] ?? "")\n"))
     #expect(job.contains("XDG_CONFIG_HOME") && !job.contains("__CFBundleIdentifier"))
 }
+
+@Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
+func `changes a layout in a throwaway herdr session`() async throws {
+    try await withSession(ProcessExec()) { client in
+        let _: Created = try await client.call("workspace.create", ["cwd": "/tmp", "focus": false])
+        let second = try #require(try await client.split("w1:p1", .right))
+        let third = try #require(try await client.split(second.id, .right))
+        #expect(third.tabID == "w1:t1")
+        let tree = try #require(try await client.snapshot().trees["w1:t1"])
+        // herdr halved p2: 50 / 25 / 25; the root goes to 1/3, its second child stays at 1/2.
+        let evened = tree.evened(around: third.id)
+        #expect(evened.map(\.path) == [[]])
+        for change in evened {
+            try await client.setRatio(tab: "w1:t1", path: change.path, ratio: change.ratio)
+        }
+        #expect(try await client.snapshot().trees["w1:t1"]?.evened().isEmpty == true)
+        #expect(try await client.neighbor(of: "w1:p1", .right) == second.id)
+        #expect(try await client.neighbor(of: "w1:p1", .left) == nil)
+        try await client.swap("w1:p1", .right)
+        #expect(try await client.snapshot().trees["w1:t1"]?.paneIDs == [second.id, "w1:p1", third.id])
+        try await client.rename(pane: "w1:p1", label: "named")
+        #expect(try await client.pane("w1:p1").label == "named")
+        try await client.rename(pane: "w1:p1", label: nil)
+        #expect(try await client.pane("w1:p1").label == nil)
+        let moved = try await client.move(pane: third.id, to: .newTab(workspaceID: "w1"))
+        #expect(moved?.tabID != "w1:t1")
+        let away = try await client.move(pane: second.id, to: .newWorkspace)
+        #expect(away?.id.hasPrefix("w2:") == true)
+    }
+}

@@ -271,10 +271,6 @@ final class HostStore {
 
 /// Writes: each is one multiplexer action, then a snapshot read.
 extension HostStore {
-    func split(_ paneID: String, _ direction: SplitNode.Direction) async {
-        await write { try await $0.split(paneID, direction) }
-    }
-
     /// A new tab in the workspace, in `cwd` or the pane's directory, asked now: a `cd` sends no event, so the
     /// snapshot's cwd may be old. Its id.
     func newTab(in workspaceID: String, cwd: String?, of paneID: String? = nil) async -> String? {
@@ -361,13 +357,14 @@ extension HostStore {
         }
     }
 
-    /// One write. No focus change; the snapshot after it draws the result.
-    private func write(_ action: (any Multiplexer) async throws -> Void) async {
-        guard let client else { return }
+    /// One write. No focus change; the snapshot after it draws the result. Whether it went through.
+    @discardableResult
+    func write(_ action: (any Multiplexer) async throws -> Void) async -> Bool {
+        guard let client else { return false }
         guard !writing else {
             // A confirmed close must not vanish silently.
-            await show("Busy, try again")
-            return
+            Task { await show("Busy, try again") }
+            return false
         }
         writing = true
         notice = nil
@@ -381,8 +378,9 @@ extension HostStore {
         // After a failure too: part of it may have happened (Close Other Tabs).
         await client.refresh()
         if let failure {
-            await show(failure.localizedDescription)
+            Task { await show(failure.localizedDescription) }
         }
+        return failure == nil
     }
 
     /// A notice for a few seconds, unless a newer one replaced it.

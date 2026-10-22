@@ -1,3 +1,5 @@
+import Foundation
+
 /// One session of a terminal multiplexer, as the app uses it (design D49): the app talks to this, never to
 /// herdr's methods or argv. `HerdrClient` is the only implementation. It grows a requirement when the app uses
 /// a new feature, not before.
@@ -24,8 +26,22 @@ public protocol Multiplexer: Sendable {
     func terminal(_ terminalID: String, cols: Int, rows: Int, observe: Bool, takeover: Bool) async throws
         -> TerminalStream
 
+    /// The nearest pane that way, if any. Read only.
+    func neighbor(of paneID: String, _ heading: Heading) async throws -> String?
+
     /// Actions. None moves the multiplexer's focus.
-    func split(_ paneID: String, _ direction: SplitNode.Direction) async throws
+    /// Returns the new pane.
+    func split(_ paneID: String, _ direction: SplitNode.Direction) async throws -> Pane?
+    /// Swaps the pane with its nearest neighbor that way, in the same tab.
+    func swap(_ paneID: String, _ heading: Heading) async throws
+    /// Moves the nearest divider that way by `amount` of its split.
+    func resize(_ paneID: String, _ heading: Heading, amount: Double) async throws
+    /// One split's ratio; `path` from the root, `false` = first child.
+    func setRatio(tab tabID: String, path: [Bool], ratio: Double) async throws
+    /// Returns the pane where it went.
+    func move(pane paneID: String, to destination: Destination) async throws -> Pane?
+    /// A nil label clears it.
+    func rename(pane paneID: String, label: String?) async throws
     /// Returns the new tab's id.
     func newTab(workspace workspaceID: String, cwd: String) async throws -> String?
     /// Returns the new workspace's first tab. Without a label the multiplexer names it.
@@ -45,10 +61,58 @@ public protocol Multiplexer: Sendable {
     func sendKeys(_ keys: [String], pane paneID: String) async throws
 }
 
+/// A way from a pane, for keys that move the keyboard, swap or resize.
+public enum Heading: String, Sendable {
+    // herdr's words.
+    // swiftlint:disable:next identifier_name
+    case left, right, up, down
+}
+
+/// Where `move(pane:to:)` puts a pane.
+public enum Destination: Sendable {
+    case newTab(workspaceID: String)
+    /// Split right of the tab's whole layout.
+    case tab(String)
+    case newWorkspace
+}
+
 extension HerdrClient: Multiplexer {
-    public nonisolated func split(_ paneID: String, _ direction: SplitNode.Direction) async throws {
-        let _: Created = try await call("pane.split", ["target_pane_id": paneID, "direction": direction.rawValue,
-                                                       "focus": false])
+    public nonisolated func neighbor(of paneID: String, _ heading: Heading) async throws -> String? {
+        try await (call("pane.neighbor", ["pane_id": paneID, "direction": heading.rawValue]) as Neighbor).neighbor
+            .paneID
+    }
+
+    public nonisolated func split(_ paneID: String, _ direction: SplitNode.Direction) async throws -> Pane? {
+        try await (call("pane.split", ["target_pane_id": paneID, "direction": direction.rawValue,
+                                       "focus": false]) as Created).pane
+    }
+
+    public nonisolated func swap(_ paneID: String, _ heading: Heading) async throws {
+        let _: Created = try await call("pane.swap", ["pane_id": paneID, "direction": heading.rawValue,
+                                                      "focus": false])
+    }
+
+    public nonisolated func resize(_ paneID: String, _ heading: Heading, amount: Double) async throws {
+        let _: Created = try await call("pane.resize", ["pane_id": paneID, "direction": heading.rawValue,
+                                                        "amount": amount])
+    }
+
+    public nonisolated func setRatio(tab tabID: String, path: [Bool], ratio: Double) async throws {
+        let _: Created = try await call("layout.set_split_ratio", ["tab_id": tabID, "path": path, "ratio": ratio])
+    }
+
+    public nonisolated func move(pane paneID: String, to destination: Destination) async throws -> Pane? {
+        let place: [String: any Sendable] = switch destination {
+        case let .newTab(workspaceID): ["type": "new_tab", "workspace_id": workspaceID]
+        case let .tab(tabID): ["type": "tab", "tab_id": tabID, "split": "right"]
+        case .newWorkspace: ["type": "new_workspace"]
+        }
+        return try await (call("pane.move", ["pane_id": paneID, "destination": place, "focus": false]) as Moved)
+            .moveResult.pane
+    }
+
+    public nonisolated func rename(pane paneID: String, label: String?) async throws {
+        let _: Created = try await call("pane.rename", ["pane_id": paneID, "label": label ?? NSNull()])
     }
 
     public nonisolated func newTab(workspace workspaceID: String, cwd: String) async throws -> String? {
