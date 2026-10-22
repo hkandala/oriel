@@ -330,6 +330,8 @@ struct OrielApp: App {
             var changed: (Bool) -> Void = { _ in }
             weak var pages: WindowPages?
             private var observers: [NSObjectProtocol] = []
+            /// Joined a window before, so full screen now is the user's own.
+            private var joined = false
 
             override func viewDidMoveToWindow() {
                 super.viewDidMoveToWindow()
@@ -351,10 +353,11 @@ struct OrielApp: App {
                 }
                 // After SwiftUI's update, which may not change state. Full screen already: macOS restored it so (the
                 // reader joins once the window shows its first page, before the user can act).
-                let full = window.styleMask.contains(.fullScreen)
+                let full = window.styleMask.contains(.fullScreen), restored = full && !joined
+                joined = true
                 DispatchQueue.main.async { [weak self] in
                     self?.changed(full)
-                    if full {
+                    if restored {
                         window.toggleFullScreen(nil)
                     }
                 }

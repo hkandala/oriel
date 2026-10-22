@@ -17,12 +17,6 @@
         }
     }
 
-    extension Notice where Action == EmptyView {
-        init(text: String) {
-            self.init(text: text) {}
-        }
-    }
-
     /// The page's selected workspace's tabs, or why there is nothing to show.
     struct Detail: View {
         let pages: WindowPages
@@ -39,7 +33,7 @@
                         .overlay(alignment: .bottom) {
                             VStack(spacing: gap) {
                                 if let notice = store.notice {
-                                    Notice(text: notice).accessibilityIdentifier("detail.notice")
+                                    Notice(text: notice) {}.accessibilityIdentifier("detail.notice")
                                 }
                                 // Another window controls the session (D66).
                                 if page.watched {

@@ -60,11 +60,10 @@
 
         /// Shows the session's page; one not open yet opens after the page in view, its store connecting (`start`:
         /// its server is started first). A session another window shows is watched until this window takes it.
-        @discardableResult
-        func open(_ session: String, start: Bool = false) -> Page {
+        func open(_ session: String, start: Bool = false) {
             if let page = list.first(where: { $0.id == session }) {
                 show(page)
-                return page
+                return
             }
             let store = HostStore.named(session, start: start)
             store.windows.append(self)
@@ -75,7 +74,6 @@
                 at: current.flatMap { current in list.firstIndex { $0 === current } }.map { $0 + 1 } ?? list.endIndex,
             )
             show(page)
-            return page
         }
 
         func show(_ page: Page) {
@@ -117,13 +115,11 @@
         private func leave(_ store: HostStore) {
             let controlled = store.windows.first === self
             store.windows.removeAll { $0 === self }
-            if let next = store.windows.first {
-                if controlled {
-                    next.control(store)
-                }
-            } else {
+            if store.windows.isEmpty {
                 Notifications.remove(store.panes, session: store.session)
                 store.disconnect()
+            } else if controlled {
+                store.windows[0].control(store)
             }
         }
 

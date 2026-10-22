@@ -51,9 +51,7 @@
                 terminals[terminalID] = nil
                 Self.recent.removeAll { $0 === terminal }
             }
-            for (terminalID, terminal) in terminals {
-                terminal.inView = shown[terminalID] != nil
-            }
+            terminals.values.forEach { $0.inView = false }
             guard let client else { return }
             let streaming = shown.map { terminal($0.key, pane: $0.value, client: client) }
             streaming.forEach { $0.inView = true }

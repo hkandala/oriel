@@ -138,7 +138,7 @@ extension OrielUITests {
     /// `stty size` in the pane prints the grid its card shows (the terminal's accessibility value), in this window
     /// when there are several.
     func expectPTYSize(_ pane: String, in window: XCUIElement? = nil) async throws {
-        let terminal = (window ?? app).descendants(matching: .any)["terminal.\(pane)"]
+        let terminal = element("terminal.\(pane)", in: window)
         try await waitForPrompt(pane)
         try await poll("stty size in \(pane) to match its card", times: 30) { () async throws -> String? in
             guard terminal.exists, let grid = terminal.value as? String, !grid.isEmpty else { return nil }
@@ -269,9 +269,12 @@ extension OrielUITests {
         return filter
     }
 
-    /// For people reviewing a run: the window, in the result bundle.
-    func keepScreenshot(_ name: String) {
-        let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+    /// For people reviewing a run: the window (brought to the front when given), in the result bundle.
+    func keepScreenshot(_ name: String, of window: XCUIElement? = nil) {
+        if let window {
+            raise(window)
+        }
+        let attachment = XCTAttachment(screenshot: (window ?? app.windows.firstMatch).screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
@@ -286,8 +289,9 @@ extension OrielUITests {
         return XCTWaiter().wait(for: [focus], timeout: 2) == .completed
     }
 
-    func element(_ identifier: String) -> XCUIElement {
-        app.descendants(matching: .any)[identifier]
+    /// In this window when there are several.
+    func element(_ identifier: String, in window: XCUIElement? = nil) -> XCUIElement {
+        (window ?? app).descendants(matching: .any)[identifier]
     }
 
     /// One herdr API call on a throwaway session, through the helper.

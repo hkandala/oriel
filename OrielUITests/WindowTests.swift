@@ -109,10 +109,6 @@ extension OrielUITests {
         return window
     }
 
-    private func element(_ identifier: String, in window: XCUIElement) -> XCUIElement {
-        window.descendants(matching: .any)[identifier]
-    }
-
     /// The terminal's `control` and `observe` runs, any client's, settle at these counts.
     private func expectStreams(_ terminal: String, control: Int, observe: Int, session: String? = nil) async throws {
         try await poll("\(control) control and \(observe) observe runs of \(terminal)") { () async throws -> Bool? in
@@ -130,7 +126,7 @@ extension OrielUITests {
 
     /// Brings the window to the front: a click on a part the other window does not cover (macOS offsets a new window
     /// by about 29 pt), in its title row right of the tabs, else below its cards.
-    private func raise(_ window: XCUIElement) {
+    func raise(_ window: XCUIElement) {
         let frame = window.frame
         let others = app.windows.allElementsBoundByIndex.filter { $0.identifier != window.identifier }.map(\.frame)
         let points = [CGVector(dx: frame.width * 0.75, dy: 8), CGVector(dx: frame.width / 2, dy: frame.height - 3)]
@@ -138,14 +134,5 @@ extension OrielUITests {
             !others.contains { $0.contains(CGPoint(x: frame.minX + point.dx, y: frame.minY + point.dy)) }
         }) else { return XCTFail("window \(window.identifier) is covered") }
         window.coordinate(withNormalizedOffset: .zero).withOffset(point).click()
-    }
-
-    /// The window in front, so no other window covers it.
-    private func keepScreenshot(_ name: String, of window: XCUIElement) {
-        raise(window)
-        let attachment = XCTAttachment(screenshot: window.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
     }
 }

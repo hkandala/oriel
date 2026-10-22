@@ -114,3 +114,79 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
   `-ApplePersistenceIgnoreState YES`).
 
 ## Findings
+
+### Deviations
+
+- **The control capsule is in `Detail`, built on a new `Notice` view** (`Oriel/Views/Detail.swift`): the failed-write
+  notice and the capsule are the same capsule (text, optional action, glass), stacked 30 pt above the strip's bottom,
+  so phase 21's restyle covers both. The old notice sat 16 pt above; the design says 30.
+- **Control moves every stream of the session, not only the shown ones.** On a control change the new controller's
+  observing streams of the session take over (recent tabs too) and the other windows' control streams reopen as
+  `observe`. Taking back only the shown tab's streams left the old controller holding the recent tabs' panes: the new
+  controller's next tab then opened `control`, was refused, and showed "In use elsewhere". A card held by another
+  device is taken over too when a window takes the session (D66: "that window opens its streams again as control").
+- **The dim is `alphaValue` on the terminal's host view, not SwiftUI's `opacity`.** `.opacity` moved the terminal's
+  accessibility frame half a card down, so XCUITest's click at its center landed in the card's padding.
+- **Full screen is left after a restore, not at quit.** Leaving full screen in `applicationShouldTerminate`
+  (`.terminateLater`, reply after `didExitFullScreen`, even with `invalidateRestorableState`) still restored the window
+  in full screen: AppKit had saved the state before. Now the window reader, which joins once the window shows its first
+  page, toggles full screen off when the window is already in it then (only a restore can do that before the user
+  acts). `window.isRestorable = false` is gone.
+- **The app keeps running with no window**, as Mac apps with `WindowGroup` do (the old `Window` scene quit with its
+  window). Closing the last window disconnects every store; the Dock icon opens a new window.
+
+### Decisions
+
+- **Spike (herdr 0.9.5):** a `control --takeover` closes the other client's `control` stream with
+  `{"type":"terminal.closed","reason":"terminal attach taken over"}` (already `.held` in `TerminalStream.Closed`); an
+  `observe` stream stays open through a takeover; a refused `control` says "terminal attach failed: terminal … already
+  has an attached client; retry with --takeover"; a stream whose stdin closes ends with "detached".
+- **`HostStore.windows: [WindowPages]`** (macOS only, observed): the windows with the page open, the controller first.
+  `WindowPages.control(store)` moves a window to the front and switches the streams; `leave(store)` (Close Page, window
+  close) hands control to the next window or, the last one gone, removes the session's notifications and disconnects
+  the store. `Page.watched` is `store.windows.first` being another window (compared by registry). The store calls
+  `snapshotted(changes)`: each window settles its page, and notifications post once, with the controller's page.
+- **Input hook:** `PaneTerminal.onInput` (key, paste, mouse down) → the registry's `onInput` → the window takes control
+  when it watches. A new stream asks `watches()` (the registry → the window's page) and opens `observe` while another
+  window controls; takeovers never watch.
+- **D46 shared:** one static `recent: [PaneTerminal]` over every registry; a terminal its window shows (`inView`) is
+  never evicted, so a tab with more panes than 24 keeps them all, as before. A pane in two windows counts twice.
+- **Per-window statics:** the keyboard claim counter became a per-view `claimed` flag the registry drops on its own
+  views (`dropClaim`), so a claim in one window never voids one in another; `SwipeRouter.strip` became a weak
+  `NSHashTable` of anchors, picked by the scroll view under the pointer.
+- **Window registry:** `WindowPages.windows`, the window that was key last first (`look(key:)` moves it), for
+  notification clicks (the last key window with the page, else the front window, which is brought forward with
+  `makeKeyAndOrderFront`), the Dock menu's New Tab and a click that started the app (`early`). `WindowPages.main` is
+  gone. The Dock menu and the badge read `HostStore.all` (each session once).
+- **Seen across windows:** `look(key:)` sets a store's looking tab from the key window; a window that stops being key
+  clears only stores no key window shows, as the two windows' calls come in either order.
+- **Scene storage:** `selection`, one JSON string `{session: {workspace, tabs: {workspace: tab}}}` (sorted keys, so
+  the same selection is the same text and `onChange` does not loop). With `-session`, the selection of that session
+  still comes back.
+- **Window close:** `NSWindow.willCloseNotification` in the window reader (now `WindowReader`, which also hands the
+  window to `WindowPages.window`), not `onDisappear`.
+- **⌥-click:** the This Mac toggle's setter reads `NSEvent.modifierFlags`; a plain click does nothing, as before.
+- **Files:** `WindowPages` moved to `Oriel/Store/WindowPages.swift` and `Detail` to `Oriel/Views/Detail.swift`, and
+  `PaneTerminal`'s font statics to an extension: SwiftLint's file and type length limits.
+
+### Assumptions
+
+- **Restore needs "keep windows" on this Mac.** macOS's default ("Close windows when quitting an application") does not
+  restore after a normal quit; the hand check launched with `-NSQuitAlwaysKeepsWindows YES`. A crash or a logout
+  restores either way.
+- **Scene storage comes back after the window first shows**, about 20 ms after `applicationDidFinishLaunching` (logged
+  on this Mac); a window waits for it while `AppDelegate.restoring` (set in `application(_:didDecodeRestorableState:)`,
+  cleared at launch end), at most 1 s. A restored window always saved its pages, so a non-empty `pages` is the signal.
+- **macOS restores full screen before the window's first page shows** (logged: `willEnterFullScreen` before launch
+  ends, the page after the scene storage), so full screen at the reader's first sight means a restore.
+
+### Learned
+
+- **Saved state lives in `$TMPDIR/dev.hkandala.oriel.savedState`** on macOS 27, not `~/Library/Saved Application
+  State`. The hand check deleted it after.
+- **An XCUITest launch without `-ApplePersistenceIgnoreState` showed no window at all**; the restore check attached
+  XCUITest to an app started with `open` instead (`XCUIApplication(bundleIdentifier:)`).
+- **New windows overlap all but about 29 pt**: a click meant for the window behind lands on the front one. The window
+  tests raise a window by clicking a point the other window does not cover.
+- **Hand check of restore:** two windows came back, window 2 with its sidebar hidden and tab t2 selected, window 1 with
+  its sidebar and t1; the window quit in full screen came back out of it (`/tmp/oriel-shots/16/restore/`).

@@ -160,7 +160,7 @@
                 let stream: TerminalStream
                 do {
                     stream = try await client.terminal(terminalID, cols: Int(grid.columns), rows: Int(grid.rows),
-                                                       observe: observe, takeover: takeover)
+                                                       observe: observing, takeover: takeover)
                 } catch {
                     if generation == self.generation {
                         state = .failed(error.localizedDescription)
