@@ -78,54 +78,83 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
 
 ## Findings
 
+### Deviations
+
+- **Glass dark has Rex's backdrop too.** The table gives the blur plus `#1e1e1e` at 0.5. On this desktop
+  that measured `#606061`, far lighter than Rex's Glass (`#393939` between the cards in
+  `glass-untinted.jpg`). Rex's Modern dark window also has a backdrop of black 0.6, blended `overlay`.
+  With it (`Look.backdrop`, Glass dark only) the window measures `#353536`–`#393939`.
+- **Classic dark card fill is white 0.018, not 0.035.** The table says white 0.035 and "`#222` on
+  `#1e1e1e`", but 0.035 gives `#262626`. White 0.018 gives `#222`, as the table names and Rex shows.
+- **Classic light window is plain `#f6f6f6`.** With the table's white 0.5 on top, the window measured
+  `#fbfbfb` and the cards `#fdfdfd`–`#fefefe`, nearly flat. Plain `#f6f6f6` gives Rex's light steps
+  (window `#f3f3f3`, card `#fbfbfb` in `light-mode.jpg`). The theme page says `#f6f6f6`.
+- **`window.look` is a 1 × 1 pt leaf, not the root element.** SwiftUI exposes no accessibility value on
+  a container (`.contain`), nor on a plain `accessibilityElement()` (role `AXUnknown`). So the value sits
+  on a clear leaf with the static-text trait, in the root view's top-left corner: identifier
+  `window.look`, label "Appearance", value such as `"glass dark"`, sorted last for VoiceOver.
+- **Only two status tokens.** `Look` has `working` and `needsYou`, the two colors a view draws today.
+  Finished and error get their tokens (the table's values) in the phases that first draw them (14, 15,
+  21). The phase says `Look` holds only what views draw.
+- **No dim overlay on cards without the keyboard.** The black overlay was a color literal and looked
+  dirty in light. The keyboard card's fill and stroke now mark it. Phase 17 adds the content fade (D64).
+- **Floating panels lost their custom look.** The palette's black tint and both panels' shadows are gone.
+  Plain system glass adapts to each appearance and stays readable over terminal text in all four looks.
+
+### Decisions
+
 - **Settings and menu.** `@AppStorage("appearance")` (default `dark`) and `@AppStorage("interfaceStyle")`
   (default `glass`) hold two `String` enums in `Style.swift`. View ▸ Appearance and View ▸ Interface Style
-  are SwiftUI `Picker`s in the commands, which macOS draws as submenus with checkmarks. `ContentView` sets
-  `NSApp.appearance` in `onChange(of: appearance, initial: true)`. Launch arguments (`-appearance light
-  -interfaceStyle classic`) override the stored values without any parsing code.
-- **`window.look`.** SwiftUI exposes no accessibility value on a container (`.contain`) or on a plain
-  `accessibilityElement()` (role `AXUnknown`). So the value sits on a clear 1 × 1 pt leaf with the
-  static-text trait, in the root view's top-left corner. At full size it took every accessibility hit test,
-  and half the e2e suite failed. It has the identifier `window.look`, the label "Appearance" and a value
-  such as `"glass dark"`. The value comes from the window's real `colorScheme` and the style setting, so
-  Auto reports what the window draws.
-- **Window material.** `.hudWindow` in both appearances. With the aqua appearance it draws light. Measured
-  in Display P3 screenshots on the same desktop: Glass light window `#ececec`, keyboard card `#f9f9f9`
-  (Rex `light-mode.jpg`: window `#f3f3f3`, card `#fbfbfb`).
-- **Glass dark needed Rex's backdrop.** The blur with `#1e1e1e` at 0.5 alone measured `#606061`, much
-  lighter than Rex's Glass (`#393939` between the cards in `glass-untinted.jpg`). Rex's Modern dark window
-  also has a backdrop of black 0.6, blended `overlay`. Adding it (`Look.backdrop`, Glass dark only) gives
-  `#353536`–`#393939`.
-- **Classic dark card fill is white 0.018.** The table's white 0.035 gives `#262626`, not the `#222` on
-  `#1e1e1e` it names (and Rex shows in `classic-untinted.jpg`). White 0.018 gives `#222`. The window is
-  `#1e1e1e` (`#282828` in a Display P3 screenshot, the same pixels as Rex's).
-- **Classic light window is plain `#f6f6f6`.** With white 0.5 over it (the table's value) the window
-  measured `#fbfbfb` and the cards `#fdfdfd`–`#fefefe`, nearly flat. Plain `#f6f6f6` gives Rex's light
-  steps (window `#f3f3f3`, card `#fbfbfb` in `light-mode.jpg`).
-- **Keyboard card fill.** Drawn as a second fill over the card fill. Dark adds white 0.05 (Glass) or
-  black 0.1 (Classic). Light uses white 2/3 (Glass) and 0.5 (Classic), which end at 0.7 and 0.8.
-- **No black overlay on other cards.** The keyboard card's fill and stroke now mark it. Phase 17 adds the
-  content fade (D64).
-- **Card shadow.** A `ShadowStyle` on the card fill. On a translucent fill it comes out faint, so the light
-  cards are separated mostly by their stroke, as in Rex's light shot.
-- **Floating panels.** The palette lost its black tint, and both panels lost their custom shadows. Plain
-  system glass adapts to each appearance and stays readable over terminal text in both.
-- **Terminal palettes.** libghostty-spm's defaults (Alabaster light, Afterglow dark) read well in both
-  appearances: prompt, `ls -G`, `git log --color`, vim syntax colors. As in most terminals, ANSI white
-  (7, 15) nearly disappears on light cards and black (0) on dark ones. So no custom theme. Terminals in hidden tabs switch too: after a switch, going back to a hidden tab showed the new
-  palette, and no stream reopened.
-- **Status tokens.** `Look` has `working` and `needsYou`, the two colors a view draws today. Finished and
-  error get their tokens (the values in the table above) in the phases that first draw them (14, 15, 21).
-- **Lint.** A SwiftLint custom rule, `look_colors`, fails the build on the common color literals outside
-  `Style.swift`: `Color(red:…)`, `Color.white`, `.white.opacity(…)`, `(.white)` and the other named
-  colors. It covers the "Done when" grep on every commit. A gradient color list in a mask is not matched.
-- **Clipping.** The strip and the title-bar tabs are scroll views, which clip. The 4 pt above the cards
-  now sits inside each page, and the tab row has 5 pt above and below the capsules (the shadow's radius
-  3.5 plus its offset 1.5). Otherwise the cards'
-  outer stroke and the Classic pill's shadow get cut.
-- **e2e.** `testMenuSwitchesTheLook` also checks that Auto follows the system's `AppleInterfaceStyle`: it
-  first picks the other appearance, so an Auto that does nothing fails. The
-  menu checkmarks were checked by hand (`AXMenuItemMarkChar`). The test starts on Glass, and a teardown block goes back to Glass Dark even
-  after a failure, because the menu writes to the app's persistent defaults. The UI tests share those
-  defaults with the user's own Oriel (same bundle id), so a run leaves the look at Glass Dark. `testLaunchesInEachLook` relaunches with the arguments for each look and checks that
-  `stty size` matches the card's grid. Screenshots: `/tmp/oriel-shots/10/`.
+  are SwiftUI `Picker`s in the commands; macOS draws them as submenus with checkmarks. `ContentView` sets
+  `NSApp.appearance` in `onChange(of: appearance, initial: true)`.
+- **Window material: `.hudWindow` in both appearances.** With the aqua appearance it draws light. Glass
+  light measured window `#ececec`, keyboard card `#f9f9f9` (Rex `light-mode.jpg`: `#f3f3f3`, `#fbfbfb`).
+- **Keyboard card fill is a second fill over the card fill.** Dark adds white 0.05 (Glass) or black 0.1
+  (Classic). Light adds white 2/3 (Glass) and 0.5 (Classic), which end at the table's 0.7 and 0.8.
+- **Card shape and edges in one view.** `CardSurface` draws the fill, the `plusLighter` rim and the
+  stroke just outside the edge (`inset(by: -width / 2)`); `Pill` draws the selected tab and row (Liquid
+  Glass in Glass, the raised pill in Classic). Both read `Look` from the environment.
+- **Lint rule instead of a grep.** A SwiftLint custom rule, `look_colors`, fails on common color
+  literals outside `Style.swift`: `Color(red:…)`, `Color(.sRGB, …)`, `Color(nsColor:)`, `Color.white`,
+  `.white.opacity(…)`, `(.white)` and the other named colors. A gradient color list in a mask is not
+  matched.
+- **No custom terminal theme.** libghostty-spm's defaults (Alabaster light, Afterglow dark) read well:
+  prompt, `ls -G`, `git log --color`, vim syntax colors.
+
+### Assumptions
+
+- **The window's `colorScheme` is the truth.** `window.look` and `Look` derive dark or light from the
+  environment's `colorScheme`, which follows `NSApp.appearance` and, in Auto, the system.
+- **No launch flash.** `NSApp.appearance` is set in the first `onChange(initial:)`, not in `App.init`. No
+  flash was seen launching light on this dark Mac; a light Mac launching dark was not tried.
+- **Glass colors depend on the desktop.** All Glass measurements are on one wallpaper; another
+  wallpaper (or the e2e runner's) gives other numbers. Compare Glass looks on the same desktop.
+
+### Learned
+
+- **Scroll views clip.** The strip and the title-bar tabs are scroll views. The 4 pt above the cards
+  now sits inside each page, and the tab row has 5 pt above and below the capsules (the pill shadow's
+  radius 3.5 plus its offset 1.5). Otherwise the top cards' outer stroke and the Classic pill's shadow are
+  cut.
+- **A full-size accessibility leaf hides everything under it.** At window size the `window.look` leaf
+  answered every accessibility hit test, so XCUITest found no hit point for the strip and half the suite
+  failed. Run the whole `make e2e` after an accessibility change, not only the new tests.
+- **Shadows on translucent fills are faint.** A `ShadowStyle` on a white 0.1 fill casts a 0.1-strength
+  shadow, so light cards are separated mostly by their stroke, as in Rex's light shot.
+- **Terminals follow without a reopen.** `AppTerminalView` updates its scheme in
+  `viewDidChangeEffectiveAppearance` and when it joins a window, so a terminal in a hidden tab shows the
+  new palette when it comes back, with no new stream. ANSI white (7, 15) nearly disappears on light cards
+  and black (0) on dark ones, as in most terminals.
+- **Measuring colors.** `screencapture` writes Display P3; read pixels converted to sRGB (an `NSBitmapImageRep`
+  helper). Classic dark: window `#282828`, card `#2d2d2d` in such a shot, the same pixels as Rex's
+  screenshot. SwiftUI's `.overlay` blend needs `BlendMode.overlay` spelled out next to `.overlay(_:)`.
+- **Settings persist across test runs.** The menu writes the app's persistent defaults, which the UI
+  tests share with the user's own Oriel (same bundle id; the sandboxed runner cannot read them back).
+  `testMenuSwitchesTheLook` starts on Glass, and a teardown block goes back to Glass Dark even after a
+  failure. Launch arguments pin a setting: the argument domain hides what the menu writes.
+- **e2e.** `testMenuSwitchesTheLook` picks the other appearance before Auto, so an Auto that does nothing
+  fails. The menu checkmarks were checked by hand (`AXMenuItemMarkChar`). `testLaunchesInEachLook`
+  relaunches in each look and checks that `stty size` matches the card's grid.
+- **Other stopped sessions break an old test.** Many stopped sessions on this Mac pushed the e2e stopped
+  session out of the session list's 320 pt scroll view, so its click landed outside the panel.
+  `testShowStoppedRevealsStoppedSessionsAndPickingOneStartsIt` now types its name into the filter first.
