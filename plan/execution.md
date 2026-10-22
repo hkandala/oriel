@@ -13,10 +13,23 @@ next phase.
 | Reviewers | 3 per round, started by the phase agent, read only | spec review, ponytail review, e2e and GUI review (see below) | edit files or commit |
 | Verifier | 1 per round, started by the phase agent, read only | checks every Build item and every e2e item of the phase file is done and works, item by item, with evidence | edit files or commit |
 
-## GUI runs while the user works
+## GUI budget (the user works on this Mac)
 
-Local GUI runs (XCUITest, app launches, screenshots) are allowed under the GUI lock. The user may step in
-for a moment; then wait and go on. CI stays the final check.
+GUI runs are slow and take over the user's mouse and keyboard. Phase 11 used about 80 minutes of GUI lock
+for a small phase. The budget per phase:
+
+| Who | GUI allowed | Not allowed |
+|---|---|---|
+| Phase agent, while building | single XCUITest runs of the tests it writes or changes (`-only-testing:`), about 2 min each | full `make e2e`; manual app driving |
+| Phase agent, at the end | ONE full `make e2e` after the last code change; one screenshot run when the phase changes how things look (XCTAttachments in that run are enough) | a second full run unless the first failed |
+| E2E reviewer | round 1 only, at most 15 min of lock: drive the new UI through XCUITest (or by hand with screenshots) and read the tests; no full `make e2e` | later rounds, unless its own blocker was fixed (then single tests only) |
+| Spec and ponytail reviewers, verifier | none: read the code, the tests, the phase agent's final run and CI | any GUI run |
+
+- Never send keys with `osascript` / System Events or similar: when Oriel loses focus, the keys land in the
+  user's apps (phase 11 typed into the user's browser). Keys go through XCUITest only.
+- A small phase (a few files, no new view) gets one review round unless a blocker comes up.
+- CI runs the full suite on every push; a failure only on CI is investigated from CI logs, not with more
+  local runs. The user may step in for a moment; then wait and go on.
 
 ## The phase loop (inside each phase agent)
 
