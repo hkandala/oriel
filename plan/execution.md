@@ -69,8 +69,12 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    element's label or value.
 12. **Assert every scripted edit** (phase 15): a replace that matches nothing must fail loudly.
    **Write the screenshot's e2e test first**, so the rough screenshot (rule 5) is also its first run.
-13. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
-14. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
+13. **Test as on CI's small screen** (phase 16): CI's display is 1024 × 768, so windows overlap. Pick and
+   raise windows by identifier (`firstMatch`, ⌘`), never by click position. Log the timing of a macOS
+   lifecycle question (restore, full screen) before designing around it. Never `git checkout <file>` to
+   drop debug lines in a dirty tree (it reverts the phase's work in that file); remove them with an edit.
+14. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
+15. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
 
 ## The phase loop (inside each phase agent)
@@ -224,6 +228,8 @@ here what the user should check at the end.
 - Phase 15: notifications and the Dock badge need a signed build: the ad-hoc dev build gets no
   notification permission, so neither showed on this Mac. One reviewer's scripted mouse click landed in
   your Ghostty window (no keys sent).
+- Phase 16: the app stays open with no window, as WindowGroup apps do. Window restore after quit is
+  made independent of the macOS "close windows when quitting" setting in phase 21.
 - The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
   at Glass Dark.
 
@@ -237,7 +243,7 @@ here what the user should check at the end.
 | 13 | phase13-title-row | done | 15 commits, 3 rounds, 1h55m, ~35 min GUI lock |
 | 14 | phase14-sidebar | done | 13 commits, 3 rounds, 1h28m, ~40 min GUI lock |
 | 15 | phase15-agents | done | 13 commits, 4 rounds, 1h11m, ~30 min GUI lock |
-| 16 | | not started | |
+| 16 | phase16-windows | done | 12 commits, 3 rounds, 1h47m, ~50 min GUI lock |
 | 17 | | not started | |
 | 18 | | not started | |
 | 19 | | not started | |

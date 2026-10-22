@@ -85,6 +85,10 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
     `ui/window.mdx` (find bar, notice), the keyboard table (⌘F,
     ⌘G), `features.mdx` (final list), `inspirations.mdx` ("What we take" from Rex).
 
+
+- **Restore without the system setting.** Window restore (phase 16) works only when macOS keeps windows
+  on quit, which is off by default. Register `NSQuitAlwaysKeepsWindows = true` in the app's own defaults
+  (`UserDefaults.standard.register`), so Oriel restores its windows and pages after a normal quit.
 ## e2e
 
 - Print 200 numbered lines in a throwaway pane; ⌘F, type "line 42": the bar shows "1 of 1" and
