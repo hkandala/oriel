@@ -278,9 +278,15 @@
             arriving = moved.tabID
             // In case the snapshot after the move came in already.
             settle()
-            // Still in the selected tab: no tab change gives it the keyboard.
-            if moved.tabID == selectedTab?.id {
-                focusKeyboardCard()
+            // The write reads the snapshot without waiting for it: until a snapshot shows the pane in its tab, the next
+            // snapshot gives it the keyboard (`shown`), also when the tab stays selected (a spring-loaded tab, a
+            // re-place). Before, a left or top drop in another tab left the keyboard on the tab's old card.
+            if store.panes.contains(where: { $0.terminalID == terminalID && $0.tabID == moved.tabID }) {
+                if moved.tabID == selectedTab?.id {
+                    focusKeyboardCard()
+                }
+            } else {
+                keyboardTabID = nil
             }
         }
 
