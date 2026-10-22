@@ -91,13 +91,17 @@ final class OrielUITests: XCTestCase {
         XCTAssertTrue(first.wait(for: \.isSelected, toEqual: true, timeout: 2))
         // Once the strip's scroll to t1 has settled (on CI it was still between the pages).
         let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            first.value as? String == "in view" && second.value as? String == ""
+            (first.value as? String)?.hasPrefix("in view") == true
+                && (second.value as? String)?.hasPrefix("in view") == false
         }, object: nil)
         XCTAssertEqual(XCTWaiter().wait(for: [settled], timeout: 2), .completed,
                        "t1 \(first.value ?? "nil"), t2 \(second.value ?? "nil")")
         second.click()
         XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
-        let marked = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == 'in view'"), object: second)
+        let marked = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value BEGINSWITH 'in view'"),
+            object: second,
+        )
         XCTAssertEqual(XCTWaiter().wait(for: [marked], timeout: 2), .completed)
     }
 

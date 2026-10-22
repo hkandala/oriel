@@ -20,6 +20,8 @@
         var wantsKeyboard = false
         /// Took the keyboard.
         var onKeyboard: (() -> Void)?
+        /// Return, with or without modifiers.
+        var onReturn: (() -> Void)?
 
         override init(frame: NSRect) {
             super.init(frame: frame)
@@ -97,6 +99,10 @@
         }
 
         override func keyDown(with event: NSEvent) {
+            // Return and the keypad's Enter.
+            if [36, 76].contains(event.keyCode), !hasMarkedText() {
+                onReturn?()
+            }
             if !hasMarkedText(), let key = Self.herdrKey(event) {
                 terminal?.keys([key])
             } else if event.modifierFlags.intersection([.command, .control, .option, .shift]) == [.command, .control],

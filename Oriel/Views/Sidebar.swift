@@ -85,13 +85,19 @@ struct TabButton: View {
     var body: some View {
         let selected = workspace.id == store.selectedWorkspaceID && tab.id == workspace.selectedTabID
         let row = lit == nil
+        let stack = row ? [] : store.stack(tab)
         Button {
             store.selectedWorkspaceID = workspace.id
             // A capsule: the strip scrolls to the new selection and the marker follows, as during a swipe.
             workspace.selectedTabID = tab.id
         } label: {
             HStack(spacing: 8) {
-                IconTile()
+                // Rows keep the plain terminal tile until phase 14 replaces them.
+                if row {
+                    ProgramTile(icon: "terminal")
+                } else {
+                    IconStack(panes: stack)
+                }
                 Text(tab.label).lineLimit(1).foregroundStyle(lit == false ? .secondary : .primary)
                 if row {
                     Spacer(minLength: 0)
@@ -113,7 +119,8 @@ struct TabButton: View {
         .buttonStyle(ChromeStyle(selected: row && selected, radius: row ? 10 : 16))
         .accessibilityIdentifier("tab.\(tab.id)")
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityValue(lit == true ? "in view" : "")
+        .accessibilityValue(row ? "" : ((lit == true ? "in view; " : "") + "icons: "
+                + stack.map(\.iconID).joined(separator: ", ")))
         .accessibilityAction(named: "Close Tab") { store.closing = .tab(tab.id) }
         .overlay(alignment: .trailing) {
             if hovering {

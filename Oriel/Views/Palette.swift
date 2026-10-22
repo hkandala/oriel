@@ -13,7 +13,10 @@ struct Palette: View {
 
     private struct Item: Identifiable {
         let id: String
-        let symbol: String
+        /// A tab's when it has no pane.
+        var symbol = "apple.terminal"
+        /// A tab's front pane, for its program tile.
+        var pane: HostStore.Pane?
         let title: String
         let detail: String
         let jump: () -> Void
@@ -42,7 +45,7 @@ struct Palette: View {
                     VStack(spacing: 2) {
                         ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
                             Button { jump(item) } label: {
-                                MenuRow(symbol: item.symbol, title: item.title, detail: item.detail,
+                                MenuRow(symbol: item.symbol, pane: item.pane, title: item.title, detail: item.detail,
                                         selected: offset == index)
                             }
                             .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
@@ -79,10 +82,12 @@ struct Palette: View {
     private var items: [Item] {
         let tabs = store.workspaces.flatMap { workspace in
             workspace.tabs.map { tab in
-                Item(id: "tab.\(tab.id)", symbol: "apple.terminal", title: tab.label, detail: workspace.label) {
+                var row = Item(id: "tab.\(tab.id)", title: tab.label, detail: workspace.label) {
                     store.selectedWorkspaceID = workspace.id
                     workspace.selectedTabID = tab.id
                 }
+                row.pane = store.stack(tab).first
+                return row
             }
         }
         let workspaces = store.workspaces.map { workspace in

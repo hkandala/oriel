@@ -237,7 +237,10 @@ private struct PaneCard: View {
 
     var body: some View {
         let pane = store.pane(id)
-        let title = pane?.title ?? "terminal"
+        // The label wins; else the program in primary text and the folder in secondary, as in Rex ("zsh ~").
+        let name = pane?.label == nil ? pane?.programName : nil
+        let folder = pane?.label ?? pane?.folder ?? (name == nil ? "terminal" : "")
+        let title = [name, folder].compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " ")
         let zoomed = store.zoomedPaneID == id
         #if os(macOS)
             let terminal = pane?.terminalID.flatMap { store.terminals.terminal($0, pane: id) }
@@ -249,13 +252,18 @@ private struct PaneCard: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 // Clicks pass through to the header's double-click.
-                Image(systemName: "apple.terminal").foregroundStyle(.secondary).accessibilityHidden(true)
-                    .allowsHitTesting(false)
-                Text(title)
-                    .lineLimit(1)
-                    // A path keeps its end, a label its start.
-                    .truncationMode(pane?.label == nil ? .head : .tail)
-                    .allowsHitTesting(false)
+                ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
+                Group {
+                    if let name {
+                        Text("\(name) \(Text(folder).foregroundStyle(.secondary))")
+                    } else {
+                        Text(folder)
+                    }
+                }
+                .lineLimit(1)
+                // A path keeps its end, a label its start.
+                .truncationMode(pane?.label != nil ? .tail : name == nil ? .head : .middle)
+                .allowsHitTesting(false)
                 Spacer(minLength: 0)
                 // Only on hover (and while zoomed, so Restore stays in sight); hidden, they take no width from a
                 // narrow card.
@@ -293,6 +301,12 @@ private struct PaneCard: View {
                 #endif
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        // The first time the card shows: what runs in it, for its icon.
+        .task(id: id) {
+            if pane?.asked == false {
+                await store.askProgram(id)
+            }
         }
         .clipShape(CardSurface.shape)
         // The card's element is its background: a container would merge into a one-pane page's.

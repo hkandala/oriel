@@ -14,6 +14,8 @@
         var client: (any Multiplexer)?
         /// A terminal took the keyboard (its terminal id).
         var onKeyboard: ((String) -> Void)?
+        /// The user pressed Return in a terminal (its terminal id).
+        var onReturn: ((String) -> Void)?
         private var terminals: [String: PaneTerminal] = [:]
         /// Streaming terminals, the most recently shown last.
         private var recent: [String] = []
@@ -28,6 +30,7 @@
             guard let client else { return nil }
             let terminal = PaneTerminal(terminalID: terminalID, paneID: paneID, client: client)
             terminal.view.onKeyboard = { [weak self] in self?.onKeyboard?(terminalID) }
+            terminal.view.onReturn = { [weak self] in self?.onReturn?(terminalID) }
             terminals[terminalID] = terminal
             return terminal
         }

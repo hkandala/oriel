@@ -86,6 +86,11 @@ extension EnvironmentValues {
 }
 
 private extension Color {
+    /// `#rrggbb` from the icon catalog; the neutral tile when missing.
+    init(hex: String?) {
+        self.init(hex: hex.flatMap { Int($0.dropFirst(), radix: 16) } ?? 0x2B2D31)
+    }
+
     init(hex: Int) {
         self.init(red: Double(hex >> 16 & 0xFF) / 255, green: Double(hex >> 8 & 0xFF) / 255,
                   blue: Double(hex & 0xFF) / 255)
@@ -144,16 +149,78 @@ struct StatusGlyph: View {
     }
 }
 
-/// The small terminal tile on tabs and rows.
-struct IconTile: View {
+/// The program icon catalog (`resources/icons/catalog.json`, bundled).
+let programIcons: [ProgramIcon] = Bundle.main.url(forResource: "catalog", withExtension: "json")
+    .flatMap { try? JSONDecoder().decode([ProgramIcon].self, from: Data(contentsOf: $0)) } ?? []
+
+/// A program's colored tile, as in Rex: the catalog's tile and glyph colors, a dark outline and a faint highlight
+/// at the top.
+struct ProgramTile: View {
+    let icon: String
+    /// The placeholder's: the program's first letter.
+    var letter: String?
+    @Environment(\.displayScale) private var scale
+
     var body: some View {
-        Text(">_")
-            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-            .foregroundStyle(Color(red: 0.6, green: 0.88, blue: 0.62))
+        let colors = programIcons.first { $0.id == icon }?.tile
+        let shape = RoundedRectangle(cornerRadius: 5, style: .continuous)
+        // The glyphs carry their own padding in a 24 pt box.
+        ProgramMark(icon: icon, letter: letter, size: 17)
+            .foregroundStyle(Color(hex: colors?.glyph))
             .frame(width: 22, height: 18)
-            .background(.black.opacity(0.55), in: .rect(cornerRadius: 5))
-            .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.white.opacity(0.09)))
+            .background(Color(hex: colors?.background), in: shape)
+            .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.12), .clear], startPoint: .top,
+                                                       endPoint: .center), lineWidth: 1))
+            .overlay(shape.inset(by: -0.5 / scale).stroke(.black.opacity(0.45), lineWidth: 1 / scale))
             .accessibilityHidden(true)
+    }
+}
+
+/// The program's glyph alone, for card headers.
+struct ProgramGlyph: View {
+    let icon: String
+    var letter: String?
+
+    var body: some View {
+        ProgramMark(icon: icon, letter: letter, size: 16).foregroundStyle(.secondary).accessibilityHidden(true)
+    }
+}
+
+/// The catalog's template image, or the placeholder's letter.
+private struct ProgramMark: View {
+    let icon: String
+    let letter: String?
+    let size: CGFloat
+
+    var body: some View {
+        if icon == "placeholder", let letter {
+            Text(letter).font(.system(size: size * 0.65, weight: .bold, design: .rounded))
+        } else {
+            Image("program.\(icon)").resizable().frame(width: size, height: size)
+        }
+    }
+}
+
+/// A tab's panes as overlapping tiles, the first in front and each next one 4 pt to the right behind it. A ring cut
+/// around each tile in front keeps the layers apart on any background.
+struct IconStack: View {
+    let panes: [HostStore.Pane]
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // Back to front.
+            ForEach(Array(panes.enumerated()).reversed(), id: \.element.id) { index, pane in
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous).frame(width: 24, height: 20)
+                        .blendMode(.destinationOut)
+                    ProgramTile(icon: pane.iconID, letter: pane.letter)
+                }
+                .frame(width: 22, height: 18)
+                .offset(x: CGFloat(index) * 4)
+            }
+        }
+        .compositingGroup()
+        .frame(width: 22 + CGFloat(max(panes.count - 1, 0)) * 4, alignment: .leading)
     }
 }
 
@@ -194,9 +261,11 @@ struct ChromeStyle: ButtonStyle {
     }
 }
 
-/// A row of the session list and the palette: a symbol, a title, and a shortcut or hint on the right.
+/// A row of the session list and the palette: a symbol (or a pane's program tile), a title, and a shortcut or
+/// hint on the right.
 struct MenuRow: View {
     var symbol: String?
+    var pane: HostStore.Pane?
     let title: String
     var detail = ""
     /// On the accent pill.
@@ -204,8 +273,12 @@ struct MenuRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: symbol ?? "circle").opacity(symbol == nil ? 0 : 1).frame(width: 18)
-                .accessibilityHidden(true)
+            if let pane {
+                ProgramTile(icon: pane.iconID, letter: pane.letter)
+            } else {
+                Image(systemName: symbol ?? "circle").opacity(symbol == nil ? 0 : 1).frame(width: 18)
+                    .accessibilityHidden(true)
+            }
             // A long typed name keeps both ends, and takes the free space before the detail does.
             Text(title).lineLimit(1).truncationMode(.middle).layoutPriority(1)
             Spacer(minLength: 4)

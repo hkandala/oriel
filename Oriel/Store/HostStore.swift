@@ -11,52 +11,6 @@ final class HostStore {
         case failed(HerdrError)
     }
 
-    @MainActor @Observable
-    final class Workspace: Identifiable {
-        let id: String
-        var label = ""
-        var status = AgentStatus.idle
-        var tabs: [Tab] = []
-        /// The app's own selection, never herdr's focus. Starts at herdr's active tab.
-        var selectedTabID: String?
-
-        init(id: String) {
-            self.id = id
-        }
-    }
-
-    @MainActor @Observable
-    final class Tab: Identifiable {
-        let id: String
-        var label = ""
-        var status = AgentStatus.idle
-        var tree: SplitNode?
-
-        init(id: String) {
-            self.id = id
-        }
-    }
-
-    @MainActor @Observable
-    final class Pane: Identifiable {
-        let id: String
-        var label: String?
-        var cwd: String?
-        /// The tab's focused pane, as herdr has it.
-        var focused = false
-        var tabID = ""
-        var terminalID: String?
-
-        init(id: String) {
-            self.id = id
-        }
-
-        /// What the card header shows: the label, else the directory.
-        var title: String {
-            label ?? cwd.map { ($0 as NSString).abbreviatingWithTildeInPath } ?? "terminal"
-        }
-    }
-
     /// A close waiting for the user's yes (design D41).
     enum Close {
         /// The pane and the program running in it.
@@ -98,8 +52,9 @@ final class HostStore {
         let terminals = PaneViewRegistry()
         /// The tab whose terminal last got the keyboard from the app.
         @ObservationIgnored private var keyboardTabID: String?
-        /// The terminal that last had the keyboard in each tab: the app's own, like the selection.
-        @ObservationIgnored private var keyboardTerminals: [String: String] = [:]
+        /// The terminal that last had the keyboard in each tab: the app's own, like the selection. Observed: the
+        /// tab's icon stack puts it in front.
+        private var keyboardTerminals: [String: String] = [:]
     #endif
 
     init(session: String, start: Bool = false) {
@@ -109,6 +64,14 @@ final class HostStore {
             terminals.onKeyboard = { [weak self] terminalID in
                 guard let self, let tabID = panes.first(where: { $0.terminalID == terminalID })?.tabID else { return }
                 keyboardTerminals[tabID] = terminalID
+            }
+            // Return may have started or ended a program.
+            terminals.onReturn = { [weak self] terminalID in
+                guard let self, let pane = panes.first(where: { $0.terminalID == terminalID }) else { return }
+                Task {
+                    try? await Task.sleep(for: .seconds(1))
+                    await askProgram(pane.id)
+                }
             }
         #endif
     }
@@ -136,6 +99,20 @@ final class HostStore {
         let tabs = workspace.tabs
         let index = tabs.firstIndex { $0.id == workspace.selectedTabID } ?? 0
         workspace.selectedTabID = tabs[(index + offset + tabs.count) % tabs.count].id
+    }
+
+    /// The tab's panes for its icon stack, at most 5: the keyboard card's first (herdr's focused pane until one
+    /// had the keyboard), then herdr's order.
+    func stack(_ tab: Tab) -> [Pane] {
+        let tabPanes = panes.filter { $0.tabID == tab.id }
+        #if os(macOS)
+            let keyboard = keyboardTerminals[tab.id]
+            let front = tabPanes.first { $0.terminalID != nil && $0.terminalID == keyboard }
+                ?? tabPanes.first(where: \.focused)
+        #else
+            let front = tabPanes.first(where: \.focused)
+        #endif
+        return Array(((front.map { [$0] } ?? []) + tabPanes.filter { $0 !== front }).prefix(5))
     }
 
     /// The card keys go to: the terminal with the keyboard, else herdr's focused pane of the selected tab.
@@ -236,6 +213,16 @@ final class HostStore {
         }
     }
 
+    /// Asks herdr what runs in the pane (one `pane.process_info`); its icon follows. A failed ask keeps the last
+    /// answer.
+    func askProgram(_ paneID: String) async {
+        guard let client, let pane = pane(paneID) else { return }
+        pane.asked = true
+        do {
+            pane.program = try await client.program(paneID)
+        } catch {}
+    }
+
     /// herdr's session list again, for the picker: a session started since shows up.
     func loadSessions() async {
         guard let client else { return }
@@ -259,6 +246,13 @@ final class HostStore {
         }
         let focused = snapshot.focusedPaneIDs
         reuse(self, \.panes, snapshot.panes, Pane.init(id:)) { pane, new in
+            let agent = new.agent ?? new.displayAgent
+            // A new agent or title: the program may have changed. Spinners do not change the stripped title.
+            if pane.asked, agent != pane.agent || new.title != pane.terminalTitle {
+                Task { await askProgram(pane.id) }
+            }
+            pane.agent = agent
+            pane.terminalTitle = new.title
             pane.label = new.label
             pane.cwd = new.cwd
             pane.focused = focused.contains(new.id)
@@ -311,7 +305,7 @@ extension HostStore {
         guard let client else { return }
         let program: String?
         do {
-            program = try await client.program(paneID)
+            program = try await client.program(paneID)?.name
         } catch {
             // Unknown: ask.
             program = "A program"
