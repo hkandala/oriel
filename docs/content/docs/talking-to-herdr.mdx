@@ -337,7 +337,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Double-click a divider | `layout.set_split_ratio` with ratio 0.5 |
 | Balance splits (⌃⌘=) | one `layout.set_split_ratio` per split of the selected tab whose ratio changes; ratio = units on the first side ÷ units under the split, where a child split the other way is one unit |
 | Swap two panes (same tab) | `pane.swap {source_pane_id, target_pane_id}` |
-| Move the keyboard card (⌥⇧⌘ + arrow) | `pane.swap {pane_id, direction}`; the keyboard stays with the pane |
+| Move the keyboard card (⌥⇧⌘ + arrow) | `pane.swap {pane_id, direction, focus:false}` (herdr 0.9.5 focuses that tab anyway); the keyboard stays with the pane |
 | Move to New Tab (card menu) | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}`; the window then selects the new tab |
 | Move to Tab ▸ (card menu) | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}`; the window then selects that tab |
 | Move to New Workspace (card menu) | `pane.move {pane_id, destination:{type:"new_workspace"}}`; the window then selects the new tab. The pane gets a new pane id; its terminal and card stay |

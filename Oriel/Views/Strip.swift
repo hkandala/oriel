@@ -218,6 +218,10 @@
         var natural: CGSize?
         /// The app's ratio while its divider is dragged or sent, until herdr's snapshot shows its own.
         @State private var held: Double?
+        /// The last divider change asked for, and the last one sent: only the latest goes, and `held` stays until its
+        /// snapshot.
+        @State private var asked = 0
+        @State private var sent = 0
 
         var body: some View {
             switch node {
@@ -252,7 +256,11 @@
                         side(second, sizes.1, step: true, zoomed: zoomed, area: geometry.size)
                     }
                 }
-                .onChange(of: ratio) { held = nil }
+                .onChange(of: ratio) {
+                    if sent == asked {
+                        held = nil
+                    }
+                }
             }
         }
 
@@ -278,14 +286,18 @@
                 held = nil
                 return
             }
+            asked += 1
+            let change = asked
             Task {
                 // After a write in flight (a quick second change), not refused as busy.
                 while page.store.writing {
                     try? await Task.sleep(for: .milliseconds(50))
                 }
                 // A newer change replaced it while it waited.
-                guard held == value else { return }
-                if await !page.store.setRatio(tab: tabID, path: path, ratio: value) {
+                guard change == asked else { return }
+                let done = await page.store.setRatio(tab: tabID, path: path, ratio: value)
+                sent = change
+                if !done {
                     held = nil
                 }
             }

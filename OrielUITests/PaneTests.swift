@@ -165,6 +165,12 @@ extension OrielUITests {
         XCTAssertFalse(element("pane.\(first).split-right").exists)
         XCTAssertFalse(element("pane.\(first).split-down").exists)
         keepScreenshot("zoomed card")
+
+        // Its neighbor gone, the card is alone: the zoom ends.
+        try await Self.call(one, "pane.close", ["pane_id": second])
+        XCTAssertTrue(element("pane.\(first).split-right").waitForExistence(timeout: 3))
+        XCTAssertEqual(element("pane.\(first).zoom").label, "Zoom")
+        XCTAssertFalse(element("pane.\(first).zoom").isEnabled)
     }
 
     func testCardsWithoutTheKeyboardFade() throws {

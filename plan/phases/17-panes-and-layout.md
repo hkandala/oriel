@@ -165,7 +165,9 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
   pointer (E2E review). Never for a card under a zoom (hidden sides also take no hits now).
 - **A zoom ends when its card is alone** in its tab (moved, or its neighbor closed), in `settle`.
 - **A divider change waits for a write in flight** instead of being refused as busy (a double-click soon after a
-  drag, quick VoiceOver steps).
+  drag, quick VoiceOver steps); only the latest waiting change is sent, and the held ratio stays until its snapshot.
+- **A zoomed card that moves away is no longer zoomed** (`Page.move`), and Focus Follows Mouse acts only on cards of
+  the selected tab (a palette pick to another tab left the old card hovered).
 - **Rename** ends on Enter or Esc with the keyboard back on the card; a click elsewhere only closes the field.
 - **Files:** `PaneCard` moved to `Oriel/Views/PaneCard.swift` and the pane writes to `Oriel/Store/PaneWrites.swift`
   (SwiftLint's file length).
@@ -173,7 +175,10 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 ### Assumptions
 
 - **A global hotkey takes ⌃⌘= on this Mac**, not macOS: CI's runner delivers it, but no test presses it.
-- **Menus block hover**, so Focus Follows Mouse needs no menu check: SwiftUI sends no hover while a menu tracks.
+- **An open menu is `RunLoop.main.currentMode == .eventTracking`**: Focus Follows Mouse waits while it is so (hover
+  stays on while a context menu tracks, and main-actor tasks still run then; spec review).
+- **The rename field gets the keyboard** (`focusSoon`): if it never did (a window that is not key), a click elsewhere
+  would not close it; Enter, Esc or another Rename Pane… still do.
 - **herdr keeps exactly the ratio it is sent** (0.3333 came back 0.3333), so "herdr already has it" is a plain
   compare.
 

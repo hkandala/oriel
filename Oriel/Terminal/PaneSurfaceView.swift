@@ -328,6 +328,11 @@
         /// Fits the terminal to itself, except while cards move (layout motion): then the terminal keeps its size,
         /// clipped, and fits once when they stop.
         final class Host: NSView {
+            /// A held terminal stays at the top, as the card's content does.
+            override var isFlipped: Bool {
+                true
+            }
+
             var holding = false {
                 didSet {
                     if !holding {

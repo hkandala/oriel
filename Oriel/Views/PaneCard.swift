@@ -50,9 +50,13 @@
                     .accessibilityIdentifier("pane.\(id)")
                     // The buttons show on hover only and the context menu is on the header: VoiceOver acts on the card.
                     .accessibilityActions {
-                        let commands = AppCommands.pane(page) { pane }.filter { $0.enabled && $0.menu.isEmpty }
-                        ForEach(commands, id: \.title) { command in
-                            Button(command.title, action: command.action)
+                        // Move to Tab ▸ flattened: one action per tab.
+                        let commands = AppCommands.pane(page) { pane }.filter(\.enabled).flatMap { command in
+                            command.menu.isEmpty ? [(command.title, command.action)]
+                                : command.menu.map { ("\(command.title) \($0.title)", $0.action) }
+                        }
+                        ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
+                            Button(command.0, action: command.1)
                         }
                     }
             }
@@ -63,8 +67,13 @@
                 // rename or a drag that ends under it still counts; once (keys may move the keyboard away again).
                 guard follow, !lit else { return }
                 while await (try? Task.sleep(for: .milliseconds(150))) != nil {
-                    guard let pane = store.pane(id), page.keyboardCard(pane.tabID) !== pane else { return }
-                    if NSEvent.pressedMouseButtons == 0, !(NSApp.keyWindow?.firstResponder is NSText) {
+                    // Not after the page went to another tab (a palette pick): hover lasts until the mouse moves.
+                    guard let pane = store.pane(id), pane.tabID == page.selectedTab?.id,
+                          page.keyboardCard(pane.tabID) !== pane else { return }
+                    // No button down, no open menu (hover stays on while one tracks), no text field typing.
+                    if NSEvent.pressedMouseButtons == 0, RunLoop.main.currentMode != .eventTracking,
+                       !(NSApp.keyWindow?.firstResponder is NSText)
+                    {
                         page.go(to: pane)
                         return
                     }

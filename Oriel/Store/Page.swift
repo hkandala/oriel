@@ -239,6 +239,10 @@
         func move(_ pane: HostStore.Pane, to destination: Destination) async {
             let terminalID = pane.terminalID
             guard let moved = await store.move(pane.id, to: destination) else { return }
+            // Not zoomed over the panes of the tab it went to.
+            if zoomedPaneID == pane.id {
+                zoomedPaneID = nil
+            }
             keyboardTerminals[moved.tabID] = terminalID
             arriving = moved.tabID
             // In case the snapshot after the move came in already.
