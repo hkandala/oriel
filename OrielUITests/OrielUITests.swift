@@ -42,7 +42,9 @@ final class OrielUITests: XCTestCase {
     }
 
     /// The pointer goes off the title row: left on a capsule, it would open a hover card in the next test's launch.
-    override func tearDown() async throws {
+    /// Not async: a failure stops an async test inside the main actor's job, and an async tearDown then waits for
+    /// the main actor until the 2-minute allowance runs out.
+    override func tearDown() {
         if app.windows.firstMatch.exists {
             app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.9)).hover()
         }
@@ -215,7 +217,8 @@ extension OrielUITests {
         if !row.isSelected {
             row.click()
         }
-        XCTAssertTrue(element("tab.\(tab)").exists(within: 2))
+        // Hittable, not only there: the capsule slides in, and a click during that misses it.
+        XCTAssertTrue(element("tab.\(tab)").has(\.isHittable, true, within: 2))
         return (tab, pane)
     }
 
@@ -240,8 +243,14 @@ extension OrielUITests {
     }
 
     func tabIDs() async throws -> [String] {
-        let snapshot = try await snapshot()
-        return (snapshot?["tabs"] as? [[String: Any]] ?? []).compactMap { $0["tab_id"] as? String }
+        try await Self.ids("tab", in: one)
+    }
+
+    /// The session's `tab` or `workspace` ids. Off the main actor for async teardown blocks: after a failure, one on
+    /// the main actor waits for it until the 2-minute allowance runs out.
+    nonisolated static func ids(_ kind: String, in session: String) async throws -> [String] {
+        let snapshot = try await call(session, "session.snapshot", [:])["snapshot"] as? [String: Any]
+        return (snapshot?[kind + "s"] as? [[String: Any]] ?? []).compactMap { $0[kind + "_id"] as? String }
     }
 
     /// The tab herdr has now and did not have `before`.

@@ -139,9 +139,9 @@ extension OrielUITests {
         let terminal = try await terminalID(pane)
         let workspaces = try await workspaceIDs()
         XCTAssertFalse(workspaces.isEmpty)
-        addTeardownBlock { @MainActor in
-            for id in try await self.workspaceIDs() where !workspaces.contains(id) {
-                try await Self.call(self.one, "workspace.close", ["workspace_id": id, "close_group": false])
+        addTeardownBlock { [one] in
+            for id in try await Self.ids("workspace", in: one) where !workspaces.contains(id) {
+                try await Self.call(one, "workspace.close", ["workspace_id": id, "close_group": false])
             }
         }
         paneMenu(pane, "Move to New Workspace")

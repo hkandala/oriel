@@ -85,9 +85,9 @@ extension OrielUITests {
 
         // beta's row: a new tab there, with a new pane id.
         let betaTabs = try await tabIDs().filter { $0.hasPrefix("w2:") }
-        addTeardownBlock { @MainActor in
-            for id in try await self.tabIDs() where id.hasPrefix("w2:") && !betaTabs.contains(id) {
-                _ = try? await Self.call(self.one, "tab.close", ["tab_id": id])
+        addTeardownBlock { [one] in
+            for id in try await Self.ids("tab", in: one) where id.hasPrefix("w2:") && !betaTabs.contains(id) {
+                _ = try? await Self.call(one, "tab.close", ["tab_id": id])
             }
         }
         drag(second, to: element("workspace.w2").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
@@ -101,9 +101,9 @@ extension OrielUITests {
 
         // The sidebar's empty space: a new workspace.
         let workspaces = try await workspaceIDs()
-        addTeardownBlock { @MainActor in
-            for id in try await self.workspaceIDs() where !workspaces.contains(id) {
-                _ = try? await Self.call(self.one, "workspace.close", ["workspace_id": id, "close_group": false])
+        addTeardownBlock { [one] in
+            for id in try await Self.ids("workspace", in: one) where !workspaces.contains(id) {
+                _ = try? await Self.call(one, "workspace.close", ["workspace_id": id, "close_group": false])
             }
         }
         XCTAssertTrue(element("pane.\(inBeta)").exists(within: 3))
