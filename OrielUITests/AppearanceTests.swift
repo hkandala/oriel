@@ -20,6 +20,10 @@ extension OrielUITests {
             expectLook(look)
             keepScreenshot(look)
         }
+        // Auto follows macOS.
+        let system = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark" ? "dark" : "light"
+        pick("Appearance", "Auto")
+        expectLook("classic \(system)")
     }
 
     /// Launch arguments land in UserDefaults' argument domain, which the settings read.
