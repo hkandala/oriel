@@ -225,7 +225,7 @@ final class HostStore {
                 pane.program = program
             }
         } catch {
-            if pane.program == nil {
+            if ask == pane.asks, pane.program == nil {
                 pane.asked = false
             }
         }
