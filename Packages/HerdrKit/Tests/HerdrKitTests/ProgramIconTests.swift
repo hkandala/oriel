@@ -2,9 +2,12 @@ import Foundation
 import HerdrKit
 import Testing
 
+/// The repository's root.
+private let root = URL(filePath: #filePath).appending(path: "../../../../..").standardized
+
 /// The app's catalog, read from the repository.
 private let catalog: [ProgramIcon] = {
-    let url = URL(filePath: #filePath).appending(path: "../../../../../resources/icons/catalog.json").standardized
+    let url = root.appending(path: "resources/icons/catalog.json")
     return (try? JSONDecoder().decode([ProgramIcon].self, from: Data(contentsOf: url))) ?? []
 }()
 
@@ -12,9 +15,15 @@ private func icon(agent: String? = nil, _ program: Program? = nil, title: String
     catalog.iconID(agent: agent, program: program, title: title)
 }
 
-@Test func `the catalog decodes`() {
+/// The app draws nothing for a missing image set and the neutral tile for a bad color, silently.
+@Test func `every icon has its image set and two tile colors`() throws {
     #expect(catalog.count > 100)
-    #expect(catalog.first { $0.id == "vim" }?.tile.background.hasPrefix("#") == true)
+    let hex = /#[0-9a-f]{6}/
+    for icon in catalog {
+        let set = root.appending(path: "Oriel/Assets.xcassets/program.\(icon.id).imageset/\(icon.id).svg")
+        #expect(FileManager.default.fileExists(atPath: set.path), "\(icon.id)")
+        #expect(try hex.wholeMatch(in: icon.tile.background) != nil && hex.wholeMatch(in: icon.tile.glyph) != nil)
+    }
 }
 
 @Test func `herdr's agent wins`() {

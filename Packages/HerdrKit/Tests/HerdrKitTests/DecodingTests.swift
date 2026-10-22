@@ -87,6 +87,15 @@ private func leaf(_ id: String) -> SplitNode {
     #expect(SplitNode(layouts[1]) == nil) // too many panes
 }
 
+@Test func `a pane decodes its agent and stripped title`() throws {
+    // As herdr 0.9.5 sent it after `printf '\e]0;✳ Claude Code\a'` and `pane.report_agent`.
+    let json = #"{"pane_id":"w1:p1","tab_id":"w1:t1","agent":"claude","terminal_title":"✳ Claude Code","#
+        + #""terminal_title_stripped":"Claude Code"}"#
+    let pane = try JSONDecoder().decode(Pane.self, from: Data(json.utf8))
+    #expect(pane.agent == "claude")
+    #expect(pane.title == "Claude Code")
+}
+
 @Test func `a pane's program is what runs in the foreground besides its shell, else the shell`() throws {
     func info(_ processes: String) throws -> PaneProcesses {
         let json = #"{"process_info":{"pane_id":"w1:p1","shell_pid":7,"foreground_processes":[\#(processes)]}}"#

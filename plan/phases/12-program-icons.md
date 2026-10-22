@@ -144,6 +144,12 @@ tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, 
 ### Assumptions
 
 
+- **A tab that never showed keeps the `terminal` icon** while a program without an agent or title match runs in
+  it (python3 on launch): the phase asks herdr only when a card shows (lazy neighbour pages count). One
+  `process_info` per pane on the first snapshot would fix it; not done, as the phase lists the triggers.
+- **The header shows the process's real name**: macOS's `nano` is `pico`, a Node CLI started by its package path
+  shows `cli.js`. The catalog's `title` ("Pager / man") reads worse than the process name, so it is not used.
+
 ### Learned
 
 - **herdr sends `pane.updated` when the stripped title changes** (not on `cd`); it is now in the subscription.
@@ -158,5 +164,9 @@ tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, 
   stayed `terminal`). The card now starts an unstructured `Task` in `onAppear`, and a failed ask clears `asked`.
 - **An `XCTNSPredicateExpectation` checks about once a second**, so "within 2 s" failed at ~1.2 s real time. The
   icon test polls every 100 ms with the suite's `poll`.
+- **The front tile once jumped to an unclicked card** (E2E reviewer, not reproduced): after the window was
+  re-activated, tab 1's stack showed nano in front. The stack follows the tab's keyboard card, which
+  `becomeFirstResponder` records; AppKit's key-view fallback when a page changes may move it. The keyboard logic
+  is older than this phase; a lead for phase 17.
 - **Return reaches `keyDown` with key code 36 (76 on the keypad)** for XCUITest's `typeKey(.return)`; plain Return
   goes to libghostty, so the hook sits before the key routing.
