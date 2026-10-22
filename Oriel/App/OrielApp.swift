@@ -13,15 +13,10 @@ struct OrielApp: App {
             NSWindow.allowsAutomaticWindowTabbing = false
             // Before any surface exists, so none starts at libghostty's default size.
             PaneTerminal.setFontSize(fontSize)
-            // ⌘= is View ▸ Bigger's second key (the menu shows ⌘+). A monitor sees it before any view: an invisible
-            // button's shortcut kept its first action. At 32 the key goes on and beeps, as the disabled Bigger does.
+            // Second shortcuts (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=) run their first's menu item. A monitor sees them before any view:
+            // an invisible button's shortcut kept its first action (phase 11). A disabled item lets the key go on.
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                guard event.modifierFlags.intersection([.command, .control, .option]) == .command,
-                      event.charactersIgnoringModifiers == "=",
-                      UserDefaults.standard.object(forKey: "fontSize") as? Int ?? PaneTerminal.fontSize
-                      < PaneTerminal.fontSizes.upperBound else { return event }
-                MainActor.assumeIsolated { PaneTerminal.stepFontSize(1) }
-                return nil
+                MainActor.assumeIsolated { KeyboardShortcut.second(event) } ? nil : event
             }
         }
     #endif
@@ -170,13 +165,18 @@ struct OrielApp: App {
         @State private var openingSession = false
         @State private var workspaceButtonX: CGFloat = 0
         @State private var fullScreen = false
-        @AppStorage("appearance") private var appearance = Appearance.dark
-        @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
+        /// The window's content height, for the palette's list.
+        @State private var height: CGFloat = 0
+        private var settings = Settings()
+        @Environment(\.openWindow) private var openWindow
         @Environment(\.colorScheme) private var colorScheme
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
+            let style = settings.style, appearance = settings.appearance
             let look = Look(style: style, dark: colorScheme == .dark)
+            let commands = CommandList(pages: pages, palette: open(.palette), sidebar: $sidebar, agents: $agents,
+                                       openSession: $openingSession, openWindow: openWindow, settings: settings)
             let store = page.store
             VStack(spacing: 0) {
                 TitleBar(page: page, fullScreen: fullScreen, sidebar: $sidebar, agents: $agents,
@@ -195,6 +195,7 @@ struct OrielApp: App {
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: sidebar)
             }
             .hoverPanelHost()
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
             .overlay {
                 if panel == .workspaces {
                     WorkspaceMenu(pages: pages, page: page, open: open(.workspaces)) { openingSession = true }
@@ -203,10 +204,11 @@ struct OrielApp: App {
                         .floatingPanel(open: open(.workspaces), alignment: .topLeading)
                 }
                 if panel == .palette {
-                    Palette(pages: pages, page: page, open: open(.palette)).padding(.top, 96).floatingPanel(
-                        open: open(.palette),
-                        alignment: .top,
-                    )
+                    Palette(pages: pages, page: page, commands: commands, open: open(.palette), height: height)
+                        .padding(.top, 96).floatingPanel(
+                            open: open(.palette),
+                            alignment: .top,
+                        )
                 }
             }
             .sheet(isPresented: $openingSession) { OpenSession(pages: pages) }
@@ -250,11 +252,7 @@ struct OrielApp: App {
                 case .dark: NSAppearance(named: .darkAqua)
                 }
             }
-            .focusedSceneValue(\.page, page)
-            .focusedSceneValue(\.palette, open(.palette))
-            .focusedSceneValue(\.sidebar, $sidebar)
-            .focusedSceneValue(\.agents, $agents)
-            .focusedSceneValue(\.openSession, $openingSession)
+            .focusedSceneValue(\.commands, commands)
             // The workspace menu belongs to the collapsed sidebar's button.
             .onChange(of: sidebar) {
                 if sidebar, panel == .workspaces {

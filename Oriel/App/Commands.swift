@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The shortcuts the menu bar and the chrome buttons' tooltips share.
+/// Shortcuts written in more than one place: the command list, the chrome buttons' tooltips, the second keys.
 extension KeyboardShortcut {
     static let newTab = KeyboardShortcut("t")
     static let openSession = KeyboardShortcut("n", modifiers: [.command, .shift])
@@ -10,236 +10,147 @@ extension KeyboardShortcut {
     static let splitDown = KeyboardShortcut("d", modifiers: [.command, .shift])
     static let zoom = KeyboardShortcut(.return, modifiers: [.command, .shift])
     static let closePane = KeyboardShortcut("w")
+    static let previousTab = KeyboardShortcut("[", modifiers: [.command, .shift])
+    static let nextTab = KeyboardShortcut("]", modifiers: [.command, .shift])
+    static let bigger = KeyboardShortcut("+")
+
+    /// A command's second shortcut runs the menu item of its first (OrielApp's key monitor); the menu shows the first.
+    static let seconds: [(second: KeyboardShortcut, first: KeyboardShortcut)] = [
+        (KeyboardShortcut("p", modifiers: [.command, .shift]), .palette),
+        (KeyboardShortcut(.tab, modifiers: [.control, .shift]), .previousTab),
+        (KeyboardShortcut(.tab, modifiers: .control), .nextTab),
+        (KeyboardShortcut("="), .bigger),
+    ]
 
     /// As the menu bar draws it: "⇧⌘N".
     var glyphs: String {
         let modifiers: [(EventModifiers, String)] = [(.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")]
+        let keys: [Character: String] = [
+            KeyEquivalent.return.character: "↩", KeyEquivalent.tab.character: "⇥",
+            KeyEquivalent.leftArrow.character: "←", KeyEquivalent.rightArrow.character: "→",
+            KeyEquivalent.upArrow.character: "↑", KeyEquivalent.downArrow.character: "↓",
+            KeyEquivalent.pageUp.character: "⇞", KeyEquivalent.pageDown.character: "⇟",
+        ]
         return modifiers.filter { self.modifiers.contains($0.0) }.map(\.1).joined()
-            + (key == .return ? "↩" : String(key.character).uppercased())
+            + (keys[key.character] ?? String(key.character).uppercased())
     }
 }
 
 #if os(macOS)
     import HerdrKit
 
-    extension FocusedValues {
-        /// The window's page in view, for the menu commands.
-        @Entry var page: Page?
-        @Entry var palette: Binding<Bool>?
-        @Entry var sidebar: Binding<Bool>?
-        @Entry var agents: Binding<Bool>?
-        @Entry var openSession: Binding<Bool>?
+    extension KeyboardShortcut {
+        var modifierFlags: NSEvent.ModifierFlags {
+            let pairs: [(EventModifiers, NSEvent.ModifierFlags)] = [
+                (.command, .command), (.shift, .shift), (.option, .option), (.control, .control),
+            ]
+            return NSEvent.ModifierFlags(pairs.filter { modifiers.contains($0.0) }.map(\.1))
+        }
+
+        /// The second shortcut's key went down: runs the menu item of its first, when enabled. Whether it did.
+        @MainActor static func second(_ event: NSEvent) -> Bool {
+            let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
+            // Tab by its key code: with Shift its character is backtab.
+            let key = event.keyCode == 48 ? KeyEquivalent.tab.character : event.charactersIgnoringModifiers?
+                .lowercased()
+                .first
+            guard let first = seconds
+                .first(where: { $0.second.modifierFlags == flags && $0.second.key.character == key })?
+                .first, let item = NSApp.mainMenu?.item(first), item.isEnabled,
+                let menu = item.menu else { return false }
+            menu.performActionForItem(at: menu.index(of: item))
+            return true
+        }
     }
 
-    /// One command (D48). The menu bar reads the one list of them (`AppCommands.list`); the palette will too.
+    private extension NSMenu {
+        /// The item with this shortcut, in this menu or a submenu.
+        func item(_ shortcut: KeyboardShortcut) -> NSMenuItem? {
+            for item in items {
+                if item.keyEquivalent == String(shortcut.key.character),
+                   item.keyEquivalentModifierMask == shortcut.modifierFlags
+                {
+                    return item
+                }
+                if let found = item.submenu?.item(shortcut) {
+                    return found
+                }
+            }
+            return nil
+        }
+    }
+
+    extension FocusedValues {
+        /// The key window's commands, for the menu bar.
+        @Entry var commands: CommandList?
+    }
+
+    /// The menu bar's settings (D62), for the command list.
+    struct Settings: DynamicProperty {
+        @AppStorage("appearance") var appearance = Appearance.dark
+        @AppStorage("interfaceStyle") var style = InterfaceStyle.glass
+        @AppStorage("fontSize") var fontSize = PaneTerminal.fontSize
+        @AppStorage("fadeInactivePanes") var fade = true
+        @AppStorage("focusFollowsMouse") var followMouse = false
+    }
+
+    /// One command (D48). The menu bar and the palette read the one list of them (`CommandList`).
     struct Command {
         /// Its group in the menu bar; groups are divided from each other.
         enum Section {
-            case file, close, view, appearance, interfaceStyle, size, tabSteps, tabs
+            case file, close, edit, view, size, tabSteps, pages, tabs
             /// View ▸ Pane, and the card header's context menu.
             case pane, paneMove
             /// View ▸ Pane, keys only.
             case paneKeys
+            /// The palette only.
+            case palette
         }
 
         let section: Section
         let title: String
         var key: KeyboardShortcut?
+        /// The palette row's SF Symbol.
+        var symbol: String?
+        /// More words the palette's filter matches.
+        var keywords = ""
         var enabled = true
-        /// A choice: whether it is the current one (a checkmark).
+        /// On or off, or a choice that is the current one (a checkmark).
         var checked: Bool?
-        /// A submenu instead of an action.
+        /// A setting: the palette's title says what it does now ("Turn On Focus Follows Mouse").
+        var setting = false
+        /// A submenu instead of an action; a sub-page in the palette.
         var menu: [Command] = []
+        /// The palette's sub-page tries a highlighted row on the window (Appearance, Interface Style).
+        var previews = false
+        /// The palette's name page: the current name, and what Enter does with the field.
+        var name: (current: String, save: (String) async -> Void)?
         var action: () -> Void = {}
     }
 
-    /// The menu bar, drawn from the command list; the shortcuts work wherever the keyboard is.
+    /// The menu bar, drawn from the key window's command list; the shortcuts work wherever the keyboard is.
     struct AppCommands: Commands {
-        @FocusedValue(\.page) private var page
-        @FocusedBinding(\.palette) private var palette
-        @FocusedValue(\.sidebar) private var sidebar
-        @FocusedValue(\.agents) private var agents
-        @FocusedBinding(\.openSession) private var openSession
-        @AppStorage("appearance") private var appearance = Appearance.dark
-        @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
-        @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
-        @AppStorage("fadeInactivePanes") private var fade = true
-        @AppStorage("focusFollowsMouse") private var followMouse = false
+        @FocusedValue(\.commands) private var commands
         @Environment(\.openWindow) private var openWindow
+        private var settings = Settings()
 
         var body: some Commands {
-            let list = list
+            // With no window: New Window and the settings.
+            let list = (commands ?? CommandList(openWindow: openWindow, settings: settings)).all
             CommandGroup(replacing: .newItem) { items(list, .file) }
             // ⌘W closes the keyboard card, ⇧⌘W the window (design: keyboard).
             CommandGroup(replacing: .saveItem) { items(list, .close) }
+            CommandGroup(after: .pasteboard) { items(list, .edit) }
             CommandGroup(after: .sidebar) {
                 items(list, .view)
                 Menu("Pane") { CommandItems(commands: list, sections: [.pane, .paneMove, .paneKeys]) }
-                Divider()
-                Menu("Appearance") { items(list, .appearance) }
-                Menu("Interface Style") { items(list, .interfaceStyle) }
                 Divider()
                 items(list, .size)
             }
             CommandGroup(after: .windowArrangement) {
                 Divider()
-                items(list, .tabSteps)
-                Divider()
-                items(list, .tabs)
+                CommandItems(commands: list, sections: [.tabSteps, .pages, .tabs])
             }
-        }
-
-        var list: [Command] {
-            let tabs = page?.selectedWorkspace?.tabs ?? []
-            return [
-                Command(section: .file, title: "New Window", key: .init("n")) { openWindow(id: "main") },
-                Command(section: .file, title: "New Tab", key: .newTab, enabled: page?.selectedWorkspace != nil) {
-                    Task { await page?.newTab() }
-                },
-                Command(section: .file, title: "Open Session…", key: .openSession,
-                        enabled: openSession != nil) { openSession = true },
-                Command(section: .close, title: "Close Window", key: .init("w", modifiers: [.command, .shift])) {
-                    NSApp.keyWindow?.performClose(nil)
-                },
-                Command(section: .view, title: "Toggle Sidebar", key: .toggleSidebar,
-                        enabled: sidebar != nil) { sidebar?.wrappedValue.toggle() },
-                Command(section: .view, title: "Show Agents", key: .init("."), enabled: agents != nil && sidebar != nil,
-                        checked: agents?.wrappedValue == true && sidebar?.wrappedValue == true, action: {
-                            if let agents, let sidebar {
-                                toggleAgents(agents, sidebar)
-                            }
-                        }),
-                Command(section: .view, title: "Command Palette", key: .palette, enabled: palette != nil) {
-                    palette?.toggle()
-                },
-                Command(section: .view, title: "Fade Inactive Panes", checked: fade) { fade.toggle() },
-            ] + Self.pane(page) { [page] in page?.keyboardPane } + paneKeys + [Appearance.auto, .light, .dark]
-                .map { value in
-                    Command(section: .appearance, title: value.rawValue.capitalized, checked: appearance == value) {
-                        appearance = value
-                    }
-                } + [InterfaceStyle.glass, .classic].map { value in
-                    Command(section: .interfaceStyle, title: value.rawValue.capitalized, checked: style == value) {
-                        style = value
-                    }
-                } + [
-                    // The text size (design: theme and accessibility); OrielApp's key monitor takes ⌘=.
-                    Command(section: .size, title: "Bigger", key: .init("+"), enabled: fontSize < PaneTerminal.fontSizes
-                        .upperBound) { PaneTerminal.stepFontSize(1) },
-                    Command(
-                        section: .size,
-                        title: "Smaller",
-                        key: .init("-"),
-                        enabled: fontSize > PaneTerminal.fontSizes
-                            .lowerBound,
-                    ) { PaneTerminal.stepFontSize(-1) },
-                    Command(
-                        section: .size,
-                        title: "Actual Size",
-                        key: .init("0"),
-                        enabled: fontSize != PaneTerminal.fontSize,
-                    ) {
-                        fontSize = PaneTerminal.fontSize
-                    },
-                    Command(
-                        section: .tabSteps,
-                        title: "Show Previous Tab",
-                        key: .init("[", modifiers: [.command, .shift]),
-                        enabled: tabs.count > 1,
-                    ) { page?.step(-1) },
-                    Command(section: .tabSteps, title: "Show Next Tab", key: .init("]", modifiers: [.command, .shift]),
-                            enabled: tabs.count > 1) { page?.step(1) },
-                ] + tabs.prefix(9).enumerated().map { index, tab in
-                    Command(section: .tabs, title: page?.titleText(tab) ?? tab.label,
-                            key: KeyboardShortcut(KeyEquivalent(Character("\(index + 1)"))), action: {
-                                // The workspace when the key is pressed: the menu may be older than a workspace switch.
-                                if let page, let workspace = page.selectedWorkspace,
-                                   workspace.tabs.indices.contains(index)
-                                {
-                                    page.select(workspace, tab: workspace.tabs[index].id)
-                                }
-                            })
-                }
-        }
-
-        /// The pane's actions (D48), for View ▸ Pane on the keyboard card and the card header's context menu. Close
-        /// Pane is in the File menu. Actions ask `target` for the pane when they run: the menu bar may be older than
-        /// the last keyboard move.
-        static func pane(_ page: Page?, _ target: @escaping @MainActor () -> HostStore.Pane?) -> [Command] {
-            let pane = target(), workspace = pane.flatMap { page?.store.workspace(of: $0.tabID) }
-            let zoomed = pane.map { page?.zoomedPaneID == $0.id } ?? false
-            func act(_ title: String, _ key: KeyboardShortcut? = nil, _ section: Command.Section = .pane,
-                     enabled: Bool = true, _ run: @escaping (Page, HostStore.Pane) async -> Void) -> Command
-            {
-                Command(section: section, title: title, key: key, enabled: pane != nil && enabled) {
-                    if let page, let pane = target() {
-                        Task { await run(page, pane) }
-                    }
-                }
-            }
-            return [
-                act("Split Right", .splitRight) { await $0.split($1.id, .right) },
-                act("Split Down", .splitDown) { await $0.split($1.id, .down) },
-                act("Split Left") { await $0.split($1.id, .right, before: true) },
-                act("Split Up") { await $0.split($1.id, .down, before: true) },
-                act(zoomed ? "Restore Pane" : "Zoom Pane", .zoom,
-                    enabled: pane.map { page?.canZoom($0.id) == true } ?? false) { $0.zoom($1.id) },
-                act("Move to New Tab", nil, .paneMove) { page, pane in
-                    if let workspace = page.store.workspace(of: pane.tabID) {
-                        await page.move(pane, to: .newTab(workspaceID: workspace.id))
-                    }
-                },
-                // herdr refuses a move into the pane's own tab.
-                Command(section: .paneMove, title: "Move to Tab", enabled: (workspace?.tabs.count ?? 0) > 1,
-                        menu: (workspace?.tabs ?? []).filter { $0.id != pane?.tabID }.map { other in
-                            act(page?.titleText(other) ?? other.label) { await $0.move($1, to: .tab(other.id)) }
-                        }),
-                act("Move to New Workspace", nil, .paneMove) { await $0.move($1, to: .newWorkspace) },
-                act("Rename Pane…", nil, .paneMove) { $0.renamingPaneID = $1.id },
-                act("Close Pane", .closePane, .close) { await $0.store.close(pane: $1.id) },
-            ]
-        }
-
-        /// Keys that move the keyboard, the pane or a divider; and Focus Follows Mouse.
-        private var paneKeys: [Command] {
-            let page = page, enabled = page?.keyboardPane != nil, tab = page?.selectedTab
-            let arrows: [(Heading, KeyEquivalent)] = [
-                (.left, .leftArrow), (.right, .rightArrow), (.up, .upArrow), (.down, .downArrow),
-            ]
-            func each(_ title: String, _ modifiers: EventModifiers,
-                      _ act: @escaping (Page, HostStore.Pane, Heading) async -> Void) -> [Command]
-            {
-                arrows.map { heading, key in
-                    Command(section: .paneKeys, title: "\(title) \(heading.rawValue.capitalized)",
-                            key: .init(key, modifiers: modifiers), enabled: enabled, action: {
-                                if let page, let pane = page.keyboardPane {
-                                    Task { await act(page, pane, heading) }
-                                }
-                            })
-                }
-            }
-            // Even when it looks even: the menu may be older than the tab's last change.
-            let balance = Command(section: .paneKeys, title: "Balance Splits",
-                                  key: .init("=", modifiers: [.command, .control]), enabled: tab != nil, action: {
-                                      if let page, let tab = page.selectedTab {
-                                          Task { await page.store.balance(tab) }
-                                      }
-                                  })
-            return [balance] +
-                each("Select Pane", [.command, .option]) { page, _, heading in await page.moveKeyboard(heading) }
-                + [
-                    Command(section: .paneKeys, title: "Select Previous Pane", key: .init("["), enabled: enabled) {
-                        page?.stepCard(-1)
-                    },
-                    Command(section: .paneKeys, title: "Select Next Pane", key: .init("]"), enabled: enabled) {
-                        page?.stepCard(1)
-                    },
-                ]
-                + each("Move Pane", [.command, .option, .shift]) { await $0.store.swap($1.id, $2) }
-                + each("Resize Pane", [.command, .control]) { await $0.store.resize($1.id, $2) }
-                + [Command(section: .paneKeys, title: "Focus Follows Mouse", checked: followMouse) {
-                    followMouse.toggle()
-                }]
         }
 
         private func items(_ list: [Command], _ section: Command.Section) -> some View {

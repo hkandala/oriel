@@ -53,8 +53,8 @@
                     .accessibilityIdentifier("pane.\(id)")
                     // The buttons show on hover only and the context menu is on the header: VoiceOver acts on the card.
                     .accessibilityActions {
-                        // Move to Tab ▸ flattened: one action per tab.
-                        let commands = AppCommands.pane(page) { pane }.filter(\.enabled).flatMap { command in
+                        // Move Pane to Tab ▸ flattened: one action per place.
+                        let commands = CommandList.pane(page) { pane }.filter(\.enabled).flatMap { command in
                             command.menu.isEmpty ? [(command.title, command.action)]
                                 : command.menu.map { ("\(command.title) \($0.title)", $0.action) }
                         }
@@ -144,7 +144,7 @@
                     .dragSource(.pane(id), page: page)
             }
             .contextMenu {
-                CommandItems(commands: AppCommands.pane(page) { pane }, sections: [.pane, .paneMove, .close])
+                CommandItems(commands: CommandList.pane(page) { pane }, sections: [.pane, .paneMove, .close])
             }
         }
 
@@ -176,12 +176,9 @@
             .disabled(store.writing)
         }
 
-        /// Enter: herdr's label (an empty one clears it), unless unchanged; the snapshot after it shows it.
+        /// Enter: herdr's label (an empty one clears it); the snapshot after it shows it.
         private func rename(_ pane: HostStore.Pane?) {
-            let label = draft.trimmingCharacters(in: .whitespaces)
-            if label != pane?.label ?? "" {
-                Task { await page.store.rename(pane: id, label: label) }
-            }
+            Task { [draft] in await page.store.rename(pane: id, label: draft) }
             stopRenaming(pane)
         }
 

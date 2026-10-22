@@ -79,6 +79,12 @@
             showTerminals()
         }
 
+        /// The page before (-1) or after (1) the one in view.
+        func neighbor(_ offset: Int) -> Page? {
+            list.firstIndex { $0 === current }.map { $0 + offset }
+                .flatMap { list.indices.contains($0) ? list[$0] : nil }
+        }
+
         func page(_ store: HostStore) -> Page? {
             list.first { $0.store === store }
         }

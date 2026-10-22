@@ -17,10 +17,15 @@ struct FilterList: View {
         var section: String?
         /// A spinner in place of the detail.
         var busy = false
+        /// Opens a sub-page: a › on the right, and the list stays open.
+        var opens = false
         let act: () -> Void
     }
 
     let prompt: String
+    /// A header above the field (a palette sub-page says where you are): `<name>.title`.
+    var title: String?
+    var fieldSymbol = "line.3.horizontal.decrease.circle"
     /// The field is `<name>.filter`, a row `<name>.<item id>`.
     let name: String
     /// The rows for a filter. A function, so each key reads the rows as they are now.
@@ -30,6 +35,13 @@ struct FilterList: View {
     let maxHeight: CGFloat
     /// The lit row's id, for a button outside the list that acts on it.
     var lit: Binding<String?>?
+    /// The field's first text (a name page).
+    var text = ""
+    /// Enter acts on the field's text instead of a row (a name page).
+    var submit: ((String) -> Void)?
+    /// ⌫ on an empty field, or Esc: back a page. Whether it went back (Esc goes on to close the panel otherwise).
+    var back: (() -> Bool)?
+    var rowHeight: CGFloat = 26
     /// After a row acted.
     let done: () -> Void
     @State private var filter = ""
@@ -41,18 +53,32 @@ struct FilterList: View {
         let items = items(filter)
         let index = current(items)
         VStack(alignment: .leading, spacing: 2) {
-            FilterField(prompt: prompt, text: $filter, identifier: "\(name).filter", autofocus: true)
+            if let title {
+                Text(title).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+                    .padding(.horizontal, 8).padding(.bottom, 2)
+                    .accessibilityIdentifier("\(name).title")
+            }
+            FilterField(prompt: prompt, text: $filter, identifier: "\(name).filter", symbol: fieldSymbol,
+                        autofocus: true)
                 // Here, not onSubmit: a field's submit action is not refreshed when only the index changes, so ↓
                 // Enter took the first row. Each handler reads the rows and the index as they are now.
                 .onKeyPress(.return) {
                     let items = self.items(filter)
-                    if !items.isEmpty {
+                    if let submit {
+                        submit(filter)
+                        done()
+                    } else if !items.isEmpty {
                         act(items[current(items)])
                     }
                     return .handled
                 }
                 .onKeyPress(.downArrow) { move(1) }
                 .onKeyPress(.upArrow) { move(-1) }
+                // ⌫ arrives as DEL (U+7F), which `.delete` (U+8) does not match.
+                .onKeyPress(keys: [.delete, KeyEquivalent("\u{7F}")]) { _ in
+                    filter.isEmpty && back?() == true ? .handled : .ignored
+                }
+                .onKeyPress(.escape) { back?() == true ? .handled : .ignored }
                 .padding(.bottom, 4)
             ScrollViewReader { proxy in
                 ScrollView {
@@ -69,7 +95,9 @@ struct FilterList: View {
                             }
                             Button { act(item) } label: {
                                 MenuRow(symbol: item.symbol, pane: item.pane, state: item.state, title: item.title,
-                                        detail: item.busy ? "" : item.detail, selected: offset == index)
+                                        detail: item.busy ? "" : [item.detail, item.opens ? "›" : ""]
+                                            .filter { !$0.isEmpty }.joined(separator: " "),
+                                        selected: offset == index, height: rowHeight)
                                     .overlay(alignment: .trailing) {
                                         if item.busy {
                                             ProgressView().controlSize(.small).padding(.trailing, 8)
@@ -81,7 +109,7 @@ struct FilterList: View {
                             .accessibilityValue(item.state?.word ?? "")
                             .accessibilityAddTraits(offset == index ? .isSelected : [])
                         }
-                        if items.isEmpty {
+                        if items.isEmpty, submit == nil {
                             Text("No matches").foregroundStyle(.secondary).padding(8)
                         }
                     }
@@ -96,6 +124,7 @@ struct FilterList: View {
                 }
             }
         }
+        .onAppear { filter = text }
         // A cleared filter lights the start row again (the selected workspace).
         .onChange(of: filter) { self.index = filter.isEmpty ? nil : 0 }
         .onChange(of: items.isEmpty ? nil : items[index].id, initial: true) { lit?.wrappedValue = $1 }
@@ -113,7 +142,9 @@ struct FilterList: View {
 
     private func act(_ item: Item) {
         item.act()
-        done()
+        if !item.opens {
+            done()
+        }
     }
 }
 
@@ -123,13 +154,14 @@ struct FilterField: View {
     let prompt: String
     @Binding var text: String
     let identifier: String
+    var symbol = "line.3.horizontal.decrease.circle"
     var autofocus = false
     @State private var editing = false
     @FocusState private var focused: Bool
 
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
+            Image(systemName: symbol)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             if editing || autofocus || !text.isEmpty {

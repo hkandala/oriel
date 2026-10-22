@@ -1,5 +1,5 @@
 #if os(macOS)
-    import Foundation
+    import AppKit
     import HerdrKit
     import Observation
 
@@ -304,6 +304,38 @@
         /// The snapshot after it selects the new workspace.
         func newWorkspace(label: String? = nil) async {
             arriving = await store.newWorkspace(label: label)?.id ?? arriving
+        }
+
+        /// Go to Directory (`directory`, a `cd`) or Insert Path: the system panel at the keyboard card's folder, fresh
+        /// from herdr,
+        /// then the chosen path typed into the card, quoted. Go to Directory asks again that the card runs only its
+        /// shell (D41). ponytail: This Mac only; remote machines need another picker.
+        func choosePath(directory: Bool) async {
+            guard let pane = keyboardPane, let client = store.client else { return }
+            let panel = NSOpenPanel()
+            panel.canChooseDirectories = true
+            panel.canChooseFiles = !directory
+            panel.directoryURL = await (try? client.pane(pane.id).cwd).map { URL(filePath: $0) }
+            let chosen = if let window = NSApp.keyWindow {
+                await panel.beginSheetModal(for: window)
+            } else {
+                await panel.begin()
+            }
+            guard chosen == .OK, var path = panel.url?.path(percentEncoded: false) else { return }
+            // A folder URL ends in a slash.
+            if path.count > 1, path.hasSuffix("/") {
+                path.removeLast()
+            }
+            let quoted = "'" + path.replacing("'", with: #"'\''"#) + "'"
+            if directory {
+                guard await (try? client.program(pane.id))??.isShell == true else {
+                    await store.show("A program is running in the pane")
+                    return
+                }
+                await store.write { try await $0.sendInput("cd -- \(quoted)", keys: ["enter"], pane: pane.id) }
+            } else {
+                await store.write { try await $0.sendInput(quoted, keys: [], pane: pane.id) }
+            }
         }
     }
 #endif

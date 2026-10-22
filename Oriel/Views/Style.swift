@@ -289,6 +289,7 @@ struct MenuRow: View {
     var detail = ""
     /// On the accent pill.
     var selected = false
+    var height: CGFloat = 26
 
     var body: some View {
         HStack(spacing: 8) {
@@ -309,7 +310,7 @@ struct MenuRow: View {
                 .truncationMode(.middle)
         }
         .padding(.horizontal, 8)
-        .frame(height: 26)
+        .frame(height: height)
     }
 }
 
