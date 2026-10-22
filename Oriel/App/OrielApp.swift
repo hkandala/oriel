@@ -18,7 +18,8 @@ struct OrielApp: App {
             TerminalConfiguration {
                 $0.withFontFamily(fontFamily.isEmpty ? NSFont.monospacedSystemFont(ofSize: 0, weight: .regular)
                     .familyName ?? "Menlo" : fontFamily)
-                $0.withFontSize(Float(fontSize))
+                $0.withFontSize(Float(min(max(fontSize, PaneTerminal.fontSizes.lowerBound),
+                                          PaneTerminal.fontSizes.upperBound)))
                 $0.withCursorStyle(cursorStyle)
                 $0.withCursorStyleBlink(cursorBlink)
                 // libghostty-spm drops writes to the selection clipboard; `clipboard` also writes the pasteboard.
