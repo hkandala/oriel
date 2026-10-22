@@ -8,10 +8,10 @@ extension OrielUITests {
         // Window 1 opened the session first: it controls, window 2 watches.
         XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
         XCTAssertFalse(element("notice.controlled", in: first).exists)
-        // Watched because of another Oriel window: the capsule, not the per-card button.
-        XCTAssertFalse(element("pane.w1:p1.take-back", in: second).exists)
         let terminal = try await terminalID("w1:p1")
         try await expectStreams(terminal, control: 1, observe: 1)
+        // Watched because of another Oriel window: the capsule, not the per-card button.
+        XCTAssertFalse(element("pane.w1:p1.take-back", in: second).exists)
         // A wider card than window 1's, so the PTY size tells the windows apart.
         app.typeKey("s", modifierFlags: [.command, .control])
         keepScreenshot("window 1 controls", of: first)
@@ -24,7 +24,7 @@ extension OrielUITests {
         app.typeText("echo one-$((40+2))")
         app.typeKey(.return, modifierFlags: [])
         try await waitFor("w1:p1") { $0.contains("\none-42") }
-        // Raising window 1 is not input: window 2 keeps control (the PTY size below).
+        // keepScreenshot raises window 1, which is not input: window 2 keeps control (the PTY size below).
         keepScreenshot("window 1 observes the echo", of: first)
         // Window 1 still streams the pane, now watching it.
         try await expectStreams(terminal, control: 1, observe: 1)
