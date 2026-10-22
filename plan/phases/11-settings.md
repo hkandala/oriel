@@ -59,10 +59,11 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
   `testFontSizeKeys` failed on CI in every run. A debug run (a draft PR that logged key events, closed)
   showed why: CI's XCUITest sends ⌘+ as key 24 with ⌘⇧ and `characters` "=" (`charactersIgnoringModifiers`
   "+"), and the menu's "+" item does not match that, so Bigger never ran; ⌘= itself arrived as plain ⌘ +
-  "=". (Earlier guesses, a stale button or a German layout, were wrong: the failing step was ⌘+.) A real
-  keyboard can send ⌘+ the same way, which is why apps bind ⌘= too. The monitor (in `OrielApp.init`) takes ⌘,
-  with or without Shift, plus "=" or "+", and calls `stepFontSize(1)` before any view or menu sees the key;
-  the menu item still shows ⌘+ and works by click.
+  "=". (Earlier guesses, a stale button or a German layout, were wrong: the failing step was ⌘+.) On this
+  Mac the menu's "+" matched a real ⇧⌘=; apps bind ⌘= too because ⌘+ needs Shift on US layouts. The
+  monitor (in `OrielApp.init`) takes ⌘, with or without Shift, plus "=" or "+", and calls `stepFontSize(1)` before any view or menu sees the key,
+  below 32 (at 32 the key goes on and beeps, like ⌘- at 8); the menu item still shows ⌘+ and works by
+  click.
 
 ### Decisions
 

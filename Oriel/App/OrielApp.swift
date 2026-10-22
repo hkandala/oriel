@@ -15,8 +15,11 @@ struct OrielApp: App {
             // View ▸ Bigger's keys, before any view or menu sees them: ⌘= (a menu item shows one shortcut) and ⌘+,
             // which can arrive as ⇧⌘= with the character "=" (CI's XCUITest sends it so), which the menu's "+" misses.
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                // At 32 the key goes on and beeps, as the disabled Bigger does.
                 guard event.modifierFlags.intersection([.command, .control, .option]) == .command,
-                      ["=", "+"].contains(event.charactersIgnoringModifiers) else { return event }
+                      ["=", "+"].contains(event.charactersIgnoringModifiers),
+                      UserDefaults.standard.object(forKey: "fontSize") as? Int ?? PaneTerminal.fontSize
+                      < PaneTerminal.fontSizes.upperBound else { return event }
                 MainActor.assumeIsolated { PaneTerminal.stepFontSize(1) }
                 return nil
             }
