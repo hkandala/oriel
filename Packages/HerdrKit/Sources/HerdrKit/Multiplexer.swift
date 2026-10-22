@@ -11,8 +11,9 @@ public protocol Multiplexer: Sendable {
     /// Reads a snapshot now, or once more after the read in flight (after the app's own write).
     func refresh() async
     #if os(macOS)
-        /// Starts this session's server and waits until it answers.
-        func startServer() async throws
+        /// Starts this session's server and waits until it answers; false when it already ran.
+        @discardableResult
+        func startServer() async throws -> Bool
     #endif
 
     /// One pane now: its cwd follows a `cd` that no event reports.
@@ -27,8 +28,14 @@ public protocol Multiplexer: Sendable {
     func split(_ paneID: String, _ direction: SplitNode.Direction) async throws
     /// Returns the new tab's id.
     func newTab(workspace workspaceID: String, cwd: String) async throws -> String?
-    /// Returns the new workspace's first tab id. Without a label the multiplexer names it.
-    func newWorkspace(label: String?, cwd: String) async throws -> String?
+    /// Returns the new workspace's first tab. Without a label the multiplexer names it.
+    func newWorkspace(label: String?, cwd: String) async throws -> Tab?
+    func rename(workspace workspaceID: String, label: String) async throws
+    /// Moves the workspaces, in this order, before another one, or last.
+    func move(workspaces workspaceIDs: [String], before workspaceID: String?) async throws
+    /// `group` also closes the workspace's linked worktree workspaces; herdr refuses to close a repository's
+    /// workspace that has them without it.
+    func close(workspace workspaceID: String, group: Bool) async throws
     func close(pane paneID: String) async throws
     func close(tab tabID: String) async throws
     func rename(tab tabID: String, label: String) async throws
@@ -48,10 +55,24 @@ extension HerdrClient: Multiplexer {
         try await (call("tab.create", ["workspace_id": workspaceID, "cwd": cwd, "focus": false]) as Created).tab?.id
     }
 
-    public nonisolated func newWorkspace(label: String?, cwd: String) async throws -> String? {
+    public nonisolated func newWorkspace(label: String?, cwd: String) async throws -> Tab? {
         var params: [String: any Sendable] = ["cwd": cwd, "focus": false]
         params["label"] = label
-        return try await (call("workspace.create", params) as Created).tab?.id
+        return try await (call("workspace.create", params) as Created).tab
+    }
+
+    public nonisolated func rename(workspace workspaceID: String, label: String) async throws {
+        let _: Created = try await call("workspace.rename", ["workspace_id": workspaceID, "label": label])
+    }
+
+    public nonisolated func move(workspaces workspaceIDs: [String], before workspaceID: String?) async throws {
+        var params: [String: any Sendable] = ["workspace_ids": workspaceIDs]
+        params["before_workspace_id"] = workspaceID
+        let _: Created = try await call("workspace.move_block", params)
+    }
+
+    public nonisolated func close(workspace workspaceID: String, group: Bool) async throws {
+        let _: Created = try await call("workspace.close", ["workspace_id": workspaceID, "close_group": group])
     }
 
     public nonisolated func close(pane paneID: String) async throws {

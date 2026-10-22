@@ -30,9 +30,23 @@ public struct Workspace: Decodable, Sendable, Identifiable {
     public let label: String
     public let activeTabID: String
     public let agentStatus: AgentStatus
+    /// Only once a `worktree.*` call has looked at the workspace; a plain `workspace.create` leaves it out.
+    public let worktree: Worktree?
 
     enum CodingKeys: String, CodingKey {
-        case id = "workspace_id", label, activeTabID = "active_tab_id", agentStatus = "agent_status"
+        case id = "workspace_id", label, activeTabID = "active_tab_id", agentStatus = "agent_status", worktree
+    }
+}
+
+/// A workspace's git checkout, as herdr tracks it.
+public struct Worktree: Decodable, Equatable, Sendable {
+    /// The repository's shared `.git` directory: the same for a repository and its linked worktrees.
+    public let repoKey: String
+    public let checkoutPath: String
+    public let isLinkedWorktree: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case repoKey = "repo_key", checkoutPath = "checkout_path", isLinkedWorktree = "is_linked_worktree"
     }
 }
 

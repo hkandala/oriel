@@ -37,13 +37,21 @@ private func leaf(_ id: String) -> SplitNode {
 @Test func `unknown fields and values do not fail decoding`() throws {
     let json = #"""
     {"workspaces":[{"workspace_id":"w1","number":1,"label":"x","active_tab_id":"w1:t1",
-      "agent_status":"sleeping","new_field":{"a":[1]}}],
+      "agent_status":"sleeping","new_field":{"a":[1]}},
+      {"workspace_id":"w2","label":"y","active_tab_id":"w2:t1","agent_status":"idle",
+       "worktree":{"repo_key":"/r/.git","repo_name":"r","checkout_path":"/wt","is_linked_worktree":true}}],
      "tabs":[],"panes":[{"pane_id":"w1:p1","tab_id":"w1:t1"}],"agents":[],"something_new":true,
      "layouts":[{"tab_id":"w1:t1","panes":[{"pane_id":"w1:p1"},{"pane_id":"w1:p2"}],
        "splits":[{"id":"split_0_root","direction":"diagonal","ratio":0.5}]}]}
     """#
     let snapshot = try JSONDecoder().decode(Snapshot.self, from: Data(json.utf8))
     #expect(snapshot.workspaces[0].agentStatus == .unknown)
+    #expect(snapshot.workspaces[0].worktree == nil)
+    #expect(snapshot.workspaces[1].worktree == Worktree(
+        repoKey: "/r/.git",
+        checkoutPath: "/wt",
+        isLinkedWorktree: true,
+    ))
     #expect(snapshot.focusedWorkspaceID == nil)
     #expect(snapshot.panes[0].terminalID == nil)
     #expect(SplitNode(snapshot.layouts[0]) == .split(.right, ratio: 0.5, first: leaf("w1:p1"), second: leaf("w1:p2")))

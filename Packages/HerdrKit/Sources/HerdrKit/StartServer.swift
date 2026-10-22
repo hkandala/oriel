@@ -4,15 +4,17 @@ import Foundation
     public extension HerdrClient {
         /// Starts this session's server as a one-shot launchd job, so launchd, not the app, is its parent
         /// and responsible process (design D47), and waits until it answers. No KeepAlive: once
-        /// `herdr session stop` ends it, launchd keeps the job loaded but never runs it again.
+        /// `herdr session stop` ends it, launchd keeps the job loaded but never runs it again. False when it
+        /// already ran.
         /// ponytail: This Mac only; remote machines start herdr over SSH.
-        nonisolated func startServer() async throws {
+        @discardableResult
+        nonisolated func startServer() async throws -> Bool {
             // The name goes into a launchd label and file paths.
             guard Session.isValidName(session) else { throw HerdrError.failed("“\(session)” is not a session name") }
             // Already up (started elsewhere since): booting out its job would stop it. No or old herdr: say so.
             do {
                 _ = try await snapshot()
-                return
+                return false
             } catch {
                 switch error {
                 case HerdrError.notFound, HerdrError.unsupported: throw error
@@ -51,7 +53,7 @@ import Foundation
             }
             for _ in 0 ..< 50 {
                 if await (try? snapshot()) != nil {
-                    return
+                    return true
                 }
                 try await Task.sleep(for: .milliseconds(100))
             }
