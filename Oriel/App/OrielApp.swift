@@ -55,12 +55,12 @@ struct OrielApp: App {
                     if sidebar {
                         Sidebar(store: store)
                             .padding([.leading, .bottom], gap)
+                            .padding(.top, 4)
                             .transition(.move(edge: .leading).combined(with: .opacity))
                     }
                     Detail(store: $store)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .padding(.top, 4)
             }
             .overlay {
                 if picking {
@@ -91,7 +91,7 @@ struct OrielApp: App {
             // A text leaf: SwiftUI exposes no value on a container or a plain element.
             .background {
                 Color.clear.accessibilityElement().accessibilityAddTraits(.isStaticText)
-                    .accessibilityIdentifier("window.look")
+                    .accessibilityLabel("Appearance").accessibilityIdentifier("window.look")
                     .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
             }
             // The title bar row takes the hidden title bar's line.

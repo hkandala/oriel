@@ -1,16 +1,20 @@
 import XCTest
 
-/// Appearance and interface style (phase 10). The window's root element `window.look` says which look it draws,
-/// from the effective appearance and the style setting.
+/// Appearance and interface style (phase 10). The window's `window.look` element says which look it draws, from
+/// the effective appearance and the style setting.
 extension OrielUITests {
     /// View ▸ Appearance and View ▸ Interface Style switch the look, with a screenshot of each of the four.
     func testMenuSwitchesTheLook() {
         XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
-        // Settings persist: start from the defaults whatever an earlier run left, and end on them.
+        // Settings persist (in the app's own defaults): start from the defaults whatever an earlier run left, and
+        // go back to them even when a step fails.
         pick("Interface Style", "Glass")
+        addTeardownBlock { @MainActor [self] in
+            pick("Interface Style", "Glass")
+            pick("Appearance", "Dark")
+        }
         let steps = [("Appearance", "Dark", "glass dark"), ("Appearance", "Light", "glass light"),
-                     ("Interface Style", "Classic", "classic light"), ("Appearance", "Dark", "classic dark"),
-                     ("Interface Style", "Glass", "glass dark")]
+                     ("Interface Style", "Classic", "classic light"), ("Appearance", "Dark", "classic dark")]
         for (menu, item, look) in steps {
             pick(menu, item)
             expectLook(look)

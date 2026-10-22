@@ -16,7 +16,9 @@ struct Strip: View {
                 ForEach(workspace.tabs) { tab in
                     Group {
                         if let tree = tab.tree {
+                            // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
                             SplitLayout(node: tree, store: store).padding([.horizontal, .bottom], gap)
+                                .padding(.top, 4)
                         } else {
                             Text("No layout for this tab").foregroundStyle(.secondary)
                         }

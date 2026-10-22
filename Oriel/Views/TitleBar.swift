@@ -83,6 +83,8 @@ private struct TabBar: View {
                 }
                 .background(alignment: .topLeading) { marker(tabs) }
                 .coordinateSpace(.named("tabs"))
+                // Room for the Classic pill's shadow: the scroll view clips.
+                .padding(.vertical, 4)
             }
             .scrollIndicators(.never)
             // Capsules fade out at the edges instead of being cut.

@@ -85,7 +85,7 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
   -interfaceStyle classic`) override the stored values without any parsing code.
 - **`window.look`.** SwiftUI exposes no accessibility value on a container (`.contain`) or on a plain
   `accessibilityElement()` (role `AXUnknown`). So the value sits on a clear leaf with the static-text trait,
-  in the root view's background: identifier `window.look`, value `"glass dark"` and so on. The value comes
+  in the root view's background: identifier `window.look`, label "Appearance", value `"glass dark"` and so on. The value comes
   from the window's real `colorScheme` and the style setting, so Auto reports what the window draws.
 - **Window material.** `.hudWindow` in both appearances. With the aqua appearance it draws light. Measured
   in Display P3 screenshots on the same desktop: Glass light window `#ececec`, keyboard card `#f9f9f9`
@@ -110,8 +110,13 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
   palette, and no stream reopened.
 - **Status tokens.** `Look` has `working` and `needsYou`, the two colors a view draws today. Finished and
   error get their tokens (the values in the table above) in the phases that first draw them (14, 15, 21).
-- **Lint.** A SwiftLint custom rule, `look_colors`, fails the build on color literals outside
-  `Style.swift`. It checks the "Done when" grep on every commit.
-- **e2e.** `testMenuSwitchesTheLook` starts and ends on Glass Dark, because the menu writes to the app's
-  persistent defaults. `testLaunchesInEachLook` relaunches with the arguments for each look and checks that
+- **Lint.** A SwiftLint custom rule, `look_colors`, fails the build on the common color literals outside
+  `Style.swift`: `Color(red:…)`, `Color.white`, `.white.opacity(…)`, `(.white)` and the other named
+  colors. It covers the "Done when" grep on every commit. A gradient color list in a mask is not matched.
+- **Clipping.** The strip and the title-bar tabs are scroll views, which clip. The 4 pt above the cards
+  now sits inside each page, and the tab row has 4 pt above and below the capsules. Otherwise the cards'
+  outer stroke and the Classic pill's shadow get cut.
+- **e2e.** `testMenuSwitchesTheLook` starts on Glass, and a teardown block goes back to Glass Dark even
+  after a failure, because the menu writes to the app's persistent defaults. The UI tests share those
+  defaults with the user's own Oriel (same bundle id), so a run leaves the look at Glass Dark. `testLaunchesInEachLook` relaunches with the arguments for each look and checks that
   `stty size` matches the card's grid. Screenshots: `/tmp/oriel-shots/10/`.
