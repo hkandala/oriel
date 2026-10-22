@@ -79,8 +79,9 @@ window, terminal settings), `docs/content/docs/data.mdx` (per-device settings li
   `TerminalCursorStyle` raw value, `block`), `cursorBlink` (`true`), `optionAsAlt` (`false`),
   `copyOnSelect` (`false`), next to phase 10's `appearance` and `interfaceStyle`.
 - **One place applies the terminal settings: the `App`.** `OrielApp` reads the five libghostty settings,
-  builds a `TerminalConfiguration` (it is `Hashable`) and applies it with a scene-level
-  `onChange(of:initial:)` to the one static `PaneTerminal.controller`. The controller's base keeps the fixed
+  builds a `TerminalConfiguration` (it is `Hashable`) and applies it to the one static
+  `PaneTerminal.controller` in `init` (before any surface, so none starts at libghostty's 14 pt) and in a
+  scene-level `onChange(of:)`. The controller's base keeps the fixed
   options (`keybind = clear`, transparent, no padding, no scrollback); `setTerminalConfiguration` lays the
   settings on top. Several windows (phase 16) share it as they are.
 - **Option as Alt is read per key press** (`UserDefaults.standard.bool(forKey: "optionAsAlt")` in
@@ -90,6 +91,14 @@ window, terminal settings), `docs/content/docs/data.mdx` (per-device settings li
 - **Menu: View ▸ Bigger (⌘+), Smaller (⌘-), Actual Size (⌘0)**, after the appearance pickers, each disabled
   at its end of 8–32 (Actual Size at 13). ⌘= is a zero-size, zero-opacity, accessibility-hidden button in
   `ContentView`'s background.
+- **One `LookPickers` view** holds the Appearance and Interface Style pickers for both View (submenus) and
+  Settings ▸ General (`.pickerStyle(.segmented)` at the call site).
+- **⌘W in a window without a store closes it.** File ▸ Close Pane replaces the system Close item; in the
+  Settings window (no focused store) it reads "Close" and closes the window.
+- **⌘= works only in the main window.** The invisible button lives in its content; in the Settings window
+  ⌘+, ⌘- and ⌘0 (menu items) still work.
+- **Settings tabs are found by label in tests.** SwiftUI's Settings tabs take no accessibility identifier;
+  `testSettingsFontSizeResizesTheGrid` clicks the toolbar button "Terminal".
 - **The font picker lists `NSFontManager.availableFontFamilies` whose regular face is fixed pitch** (on this
   Mac: Andale Mono, Anonymous Pro, Courier New, Fira Code, JetBrains Mono, Menlo, Monaco, PT Mono).
 - **`Commands.swift`.** `OrielApp.swift` passed SwiftLint's 400-line limit, so the menu commands and their
@@ -116,6 +125,11 @@ window, terminal settings), `docs/content/docs/data.mdx` (per-device settings li
 - **Global hotkeys eat test keys.** On this Mac Raycast takes ⌥⇧B and a scratchpad takes ⌥.; synthesized
   keys then land in another app and the test fails far from the cause. `testOptionKeyActsAsAlt` uses ⌥B
   and ⌥1 only. Before any synthesized key in a manual check, make Oriel frontmost first.
+- **SwiftUI keeps a keyboard shortcut's first action.** The invisible ⌘= button's action kept its first
+  `@AppStorage` copy, so after another key changed the size ⌘= added 1 to the size it last set itself (13 →
+  17). `.id(fontSize)` makes a new button per size. `testFontSizeKeys` presses ⌘= after ⌘0 to catch it.
+  Phase 20's second shortcuts need the same `.id`.
+- **Screenshots** of both tabs in light and dark: `/tmp/oriel-shots/11/settings-{general,terminal}-{light,dark}.png`.
 - **The Settings scene remembers its tab** (`com_apple_SwiftUI_Settings_selectedTabIndex`) and its frame, so
   a test clicks the tab it needs rather than assuming General.
 - **Launch arguments pin a setting without persisting it.** `testOptionKeyActsAsAlt` relaunches with
