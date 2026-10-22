@@ -61,10 +61,10 @@
         "claude"
       ],
       "process": [
-        "claude"
+        "claude",
+        "claude.exe"
       ],
       "titlePrefix": [
-        "✳",
         "Claude Code"
       ],
       "scriptSuffix": [
@@ -311,6 +311,7 @@
         "qwen"
       ],
       "scriptSuffix": [
+        "@qwen-code/qwen-code/cli-entry.js",
         "@qwen-code/qwen-code/cli.js"
       ]
     },
@@ -456,6 +457,7 @@
         "gemini"
       ],
       "scriptSuffix": [
+        "@google/gemini-cli/bundle/gemini.js",
         "@google/gemini-cli/dist/index.js"
       ]
     },

@@ -51,7 +51,7 @@ const E = [
   // agents
   ['pi', 'Pi', 'agent', 'si:pi', { agent: ['pi'], process: ['pi'], titlePrefix: ['π'], scriptSuffix: ['pi-coding-agent/dist/cli.js', 'pi-coding-agent/dist/bundle/cli.js'] }],
   ['omp', 'Oh My Pi', 'agent', 'ext:omp-mark.svg', { agent: ['omp'], process: ['omp'] }, { brandColor: '#9b4dff', notes: 'pi glyph path from the favicon; dark rect and gradient dropped' }],
-  ['claude', 'Claude Code', 'agent', 'si:claudecode', { agent: ['claude'], process: ['claude'], titlePrefix: ['✳', 'Claude Code'], scriptSuffix: ['@anthropic-ai/claude-code/cli.js'] }],
+  ['claude', 'Claude Code', 'agent', 'si:claudecode', { agent: ['claude'], process: ['claude', 'claude.exe'], titlePrefix: ['Claude Code'], scriptSuffix: ['@anthropic-ai/claude-code/cli.js'] }],
   ['codex', 'Codex', 'agent', 'lobe:codex', { agent: ['codex'], process: ['codex'], scriptSuffix: ['@openai/codex/bin/codex.js'] }, { brandColor: '#3941ff' }],
   ['copilot', 'GitHub Copilot CLI', 'agent', 'si:githubcopilot', { agent: ['copilot'], process: ['copilot'], scriptSuffix: ['copilot/npm-loader.js', '@github/copilot/index.js'] }],
   ['devin', 'Devin', 'agent', 'lobe:devin', { agent: ['devin'], process: ['devin'] }, { brandColor: '#0294de' }],
@@ -61,13 +61,13 @@ const E = [
   ['kilo', 'Kilo Code', 'agent', 'lobe:kilocode', { agent: ['kilo'], process: ['kilo', 'kilocode'] }, { brandColor: '#f8f675' }],
   ['hermes', 'Hermes Agent', 'agent', 'orig', { agent: ['hermes'], process: ['hermes'] }, { brandColor: '#000000', notes: 'the Lobe mark is a detailed portrait that reads as a blob at tab size; solid "H" monogram' }],
   ['qoder', 'Qoder', 'agent', 'lobe:qoder', { agent: ['qodercli'], process: ['qodercli', 'qoder'] }, { brandColor: '#2adb5c' }],
-  ['qwen', 'Qwen Code', 'agent', 'si:qwen', { agent: ['qwen'], process: ['qwen'], scriptSuffix: ['@qwen-code/qwen-code/cli.js'] }],
+  ['qwen', 'Qwen Code', 'agent', 'si:qwen', { agent: ['qwen'], process: ['qwen'], scriptSuffix: ['@qwen-code/qwen-code/cli-entry.js', '@qwen-code/qwen-code/cli.js'] }],
   ['cursor', 'Cursor Agent', 'agent', 'si:cursor', { agent: ['cursor'], process: ['cursor-agent', 'agent'] }],
   ['mastra', 'Mastra Code', 'agent', 'lobe:mastra', { agent: ['mastracode'], process: ['mastracode', 'mastra'] }, { brandColor: '#000000' }],
   ['antigravity', 'Google Antigravity', 'agent', 'lobe:antigravity', { agent: ['agy', 'antigravity_cli'], process: ['agy', 'antigravity'] }, { brandColor: '#3186ff' }],
   ['grok', 'Grok', 'agent', 'lobe:grok', { agent: ['grok'], process: ['grok'] }, { brandColor: '#000000' }],
   ['letta', 'Letta Code', 'agent', 'orig', { agent: ['letta'], process: ['letta'] }, { brandColor: '#000000', notes: 'no logo SVG in letta-ai repos and none in Simple Icons/Lobe; solid "L" monogram' }],
-  ['gemini', 'Gemini CLI', 'agent', 'si:googlegemini', { agent: ['gemini'], process: ['gemini'], scriptSuffix: ['@google/gemini-cli/dist/index.js'] }],
+  ['gemini', 'Gemini CLI', 'agent', 'si:googlegemini', { agent: ['gemini'], process: ['gemini'], scriptSuffix: ['@google/gemini-cli/bundle/gemini.js', '@google/gemini-cli/dist/index.js'] }],
   ['amp', 'Amp', 'agent', 'lobe:amp', { agent: ['amp'], process: ['amp'] }, { brandColor: '#f34e3f', notes: 'Simple Icons "amp" is the AMP web project, not Sourcegraph Amp' }],
   ['goose', 'Goose', 'agent', 'lobe:goose', { process: ['goose'] }, { brandColor: '#000000' }],
   ['aider', 'Aider', 'agent', 'ext:aider-mark.svg', { process: ['aider'] }, { brandColor: '#14b014', notes: 'outer square removed so the mark is the glyph (was a knock-out)' }],
@@ -269,6 +269,19 @@ for (const [id, title, kind, src, match, x = {}] of E) {
 }
 fs.writeFileSync(path.join(OUT, 'catalog.json'), JSON.stringify(catalog, null, 2) + '\n');
 
+// ---- the app's asset catalog: one template image set per icon, vector data kept -------------------------
+const ASSETS = path.resolve(OUT, '../../Oriel/Assets.xcassets');
+for (const f of fs.readdirSync(ASSETS)) if (f.startsWith('program.')) fs.rmSync(path.join(ASSETS, f), { recursive: true });
+for (const c of catalog) {
+  const dir = path.join(ASSETS, `program.${c.id}.imageset`);
+  fs.mkdirSync(dir);
+  fs.copyFileSync(path.join(OUT, c.svg), path.join(dir, `${c.id}.svg`));
+  fs.writeFileSync(path.join(dir, 'Contents.json'), JSON.stringify({
+    images: [{ filename: `${c.id}.svg`, idiom: 'universal' }], info: { author: 'xcode', version: 1 },
+    properties: { 'preserves-vector-representation': true, 'template-rendering-intent': c.monochrome ? 'template' : 'original' },
+  }, null, 2) + '\n');
+}
+
 // ---- licenses + SOURCES.md --------------------------------------------------------------------------
 const LIC = {
   'Simple Icons': ['simple-icons-CC0-1.0.md', `${NM}/simple-icons/LICENSE.md`, `CC0-1.0, package simple-icons@${ver('simple-icons')}. Simple Icons asks users to check each brand's guidelines: https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md`],
@@ -296,7 +309,7 @@ Every SVG in \`svg/\` and its source. Counts: ${Object.entries(count).map(([k, v
 Notes:
 - One style: a single solid path per icon, \`fill="currentColor"\`, no strokes, no gradients, no text. Each glyph is fitted into a 24x24 viewBox (about 18 units for wide or tall marks, about 16 for square or dense ones) and optically centered. \`tools/build.mjs\` generates everything here; see \`tools/README.md\`.
 - Brand marks are trademarks of their owners. The licenses below cover the SVG files, not the trademarks; use marks only to identify the program.
-- Matching: \`match.agent\` = herdr agent kind (\`pane.agent\`), \`process\` = foreground argv0 basename (strip a leading \`-\` of login shells), \`titlePrefix\` = first word of the terminal title, \`scriptSuffix\` = script path suffix when argv0 is \`node\`/\`bun\`. Unmatched panes use \`terminal\`; \`placeholder\` is for unknown/loading.
+- Matching: \`match.agent\` = herdr agent kind (\`pane.agent\`), \`process\` = the foreground process's name, argv0 basename or script basename (a leading \`-\` of login shells stripped), \`titlePrefix\` = the start of herdr's \`terminal_title_stripped\` up to a space (herdr strips status glyphs such as \`✳\` and spinners), \`scriptSuffix\` = the end of the script path a \`node\`/\`bun\` process runs. A shell or nothing known uses \`terminal\`; an unknown program \`placeholder\` (drawn with its first letter).
 - Tiles (one rule): background = brand color (saturation capped at 0.75, darkened a little when white is just short of 3:1), glyph white when it reaches 3:1 on it, else #111111. Near-black or near-white brands use the neutral tile #2b2d31 with a white glyph. Shells and generic tool glyphs use #2b2d31 with the green glyph #7ee787; \`placeholder\` uses a gray glyph. Draw the 24-unit viewBox at 17 pt centered in the 22x18 pt tile.
 
 | id | source | license | original URL | notes |

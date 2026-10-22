@@ -1,6 +1,6 @@
 # Icon generator
 
-`build.mjs` writes `../svg/`, `../catalog.json`, `../SOURCES.md`, `../licenses/` and `../contact-sheet.png`, and then checks every SVG (one solid `currentColor` path, renders non-empty, tile contrast >= 3:1).
+`build.mjs` writes `../svg/`, `../catalog.json`, `../SOURCES.md`, `../licenses/`, `../contact-sheet.png` and the app's image sets (`Oriel/Assets.xcassets/program.<id>.imageset`), and then checks every SVG (one solid `currentColor` path, renders non-empty, tile contrast >= 3:1).
 
 ```sh
 mkdir -p /tmp/icons-work/lic && cp package.json /tmp/icons-work/
