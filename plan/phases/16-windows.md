@@ -198,6 +198,9 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
   State`. The hand check deleted it after.
 - **An XCUITest launch without `-ApplePersistenceIgnoreState` showed no window at all**; the restore check attached
   XCUITest to an app started with `open` instead (`XCUIApplication(bundleIdentifier:)`).
+- **`app.windows.firstMatch` follows the front window**: an element kept from it before a second window opens then
+  means the new window, so "window 1" checks passed on window 2 (seen in the final run's screenshots). Window tests
+  keep `app.windows[identifier]`.
 - **New windows overlap all but about 29 pt**: a click meant for the window behind lands on the front one. The window
   tests raise a window by clicking a point the other window does not cover.
 - **Hand check of restore:** two windows came back, window 2 with its sidebar hidden and tab t2 selected, window 1 with

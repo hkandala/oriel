@@ -89,8 +89,9 @@ extension OrielUITests {
 
     func testWindowsOnDifferentSessionsEachControlTheirOwn() async throws {
         XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
-        let first = app.windows.firstMatch
-        let identifier = first.identifier
+        // By identifier: `firstMatch` would follow the front window.
+        let identifier = app.windows.firstMatch.identifier
+        let first = app.windows[identifier]
         // A plain click on This Mac opens nothing; ⌥-click opens a window, as ⌘N.
         element("titlebar.machine", in: first).click()
         app.menuItems["This Mac"].click()
