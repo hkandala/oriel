@@ -28,10 +28,11 @@ test:
 
 # Runs the UI tests against throwaway herdr sessions, removed even when tests fail.
 # ONLY=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB runs just those.
-# SHARD=i/n runs every nth test from the ith (0-based), for CI's parallel jobs.
+# SHARD=i/n runs every nth test by name from the ith (0-based), for CI's parallel jobs (by name: files hold
+# similar tests, so file order split them less evenly).
 ifdef SHARD
 ONLY := $(shell grep -ho 'func test[A-Za-z0-9_]*' OrielUITests/*.swift | sed 's|func |OrielUITests/OrielUITests/|' \
-	| awk -v i=$(word 1,$(subst /, ,$(SHARD))) -v n=$(word 2,$(subst /, ,$(SHARD))) 'NR % n == i' | paste -sd, -)
+	| sort | awk -v i=$(word 1,$(subst /, ,$(SHARD))) -v n=$(word 2,$(subst /, ,$(SHARD))) 'NR % n == i' | paste -sd, -)
 endif
 e2e:
 	rm -rf $(DERIVED_DATA)/e2e.xcresult
