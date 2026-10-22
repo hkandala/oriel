@@ -26,8 +26,11 @@ next phase.
 4. Self-review the diff against the phase file and the ponytail rules; fix what you find.
 5. Start the three reviewers and the verifier in parallel (briefs below). Merge their findings. Fix every
    blocker and should; answer each nit with a fix or a one-line reason.
-6. Repeat step 5 with fresh agents until a round has no blocker and no should, and the verifier passes
-   every item. At most 4 rounds; if it does not converge, report to the orchestrator what is stuck.
+6. Later rounds (fresh agents) re-run only the reviewers whose last round had a blocker or a should, plus
+   the E2E reviewer when code changed. The verifier runs once, after a round with no blocker and no should
+   (phase 10: four verifier runs found nothing; ponytail after round 1 found only nits). Done when that
+   round is clean and the verifier passes every item. At most 4 rounds; if it does not converge, report
+   to the orchestrator what is stuck.
 7. Write the implementation notes in the phase file's `## Findings` section, as phases 01–09 did (see
    `plan/phases/05-strip-and-glass.md`): short bullets with a bold lead, saying why, not only what. Cover:
    - **Deviations**: where the code differs from the phase file, `plan/ui-layout.md` or a design page, and why.
@@ -141,13 +144,17 @@ here what the user should check at the end.
 
 ### For the user to check at the end
 
-- (none yet)
+- Phase 10: the four looks next to Rex (`/tmp/oriel-shots/10/final-*.png`). Known gaps kept on purpose:
+  the Classic dark pill is a little brighter than Rex (`#303030` vs `#292929`); Glass dark cards are
+  lighter than the window until phase 17's fade.
+- The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
+  at Glass Dark.
 
 ## Progress log
 
 | Phase | Agent | Status | Notes |
 |---|---|---|---|
-| 10 | | not started | |
+| 10 | phase10-appearance | done | 25 commits, 4 rounds, 2h12m; verifier never found anything |
 | 11 | | not started | |
 | 12 | | not started | |
 | 13 | | not started | |
