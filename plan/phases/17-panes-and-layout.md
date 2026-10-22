@@ -25,8 +25,8 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 3. **Fade.** Replace the black overlay. A card without the keyboard draws its content (the terminal)
    at opacity 0.7 and uses the phase 10 "no keyboard" card fill; the keyboard card is 1.0 with the
    keyboard-card fill and stroke. In a window that is not key: 0.5 for the others, 0.8 (dark) or 0.85
-   (light) for the keyboard card. One setting, **Fade inactive panes** (on), turns both fades off. This
-   phase adds the Settings ▸ Panes tab with it and Focus follows mouse (step 14). The watching window's
+   (light) for the keyboard card. One setting, **Fade inactive panes** (on), turns both fades off: a toggle in the View menu
+   (View ▸ Fade Inactive Panes, `@AppStorage`), as there is no Settings window (D62). The watching window's
    0.85 dim (phase 16) multiplies with these.
 4. **Context menu** on the header (not inside the terminal, which keeps its own right-click): Split
    Right, Split Down, Split Left, Split Up, Zoom / Restore, Move to New Tab, Move
@@ -67,7 +67,7 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 12. ⌘[ and ⌘]: previous and next card in the tree's order, round the ends.
 13. ⌥⇧⌘← → ↑ ↓: move the keyboard card: `pane.swap {pane_id, direction}`. The keyboard follows the
     pane.
-14. **Focus follows mouse** (Settings ▸ Panes, off): a card under a resting pointer (0.15 s) gets the
+14. **Focus follows mouse** (a toggle in View ▸ Pane, `@AppStorage`, off): a card under a resting pointer (0.15 s) gets the
     keyboard. Never while a mouse button is down or the palette or a menu is open.
 15. **Split keys.** ⌘D Split Right, ⇧⌘D Split Down (View ▸ Pane). Split Left and Split Up have no
     shortcut: ⇧⌘← and ⇧⌘↑ (Rex's keys) would steal "select to line start" from the app's text fields.
@@ -80,7 +80,7 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 
 17. Update `layout.mdx` (dividers, balance, keys, motion, fade), `ui/window.mdx` (pane card, zoom,
     context menu), the keyboard table, `talking-to-herdr.mdx` writes table (split left/up, rename,
-    move to new tab, keyboard move), `ui/settings.mdx` (Panes tab), D42 (dividers), D64 (fade).
+    move to new tab, keyboard move), `ui/settings.mdx` (the two View menu toggles), D42 (dividers), D64 (fade).
 
 ## e2e
 

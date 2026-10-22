@@ -31,7 +31,7 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, 
    - Move Pane to Tab ›: the workspace's other tabs, plus "New Tab" and "New Workspace".
    - Appearance › (Auto, Light, Dark) and Interface Style › (Glass, Classic): highlighting a row for
      0.75 s previews it on the window; Enter keeps it, ⎋ restores the old one.
-   - Font Size ›, Cursor Style ›.
+   - Font Size › (no Cursor Style: that setting waits for the Settings window, D62).
    - **Go to Directory** (⇧⌘G, not a sub-page): an `NSOpenPanel` (`canChooseDirectories`) that starts
      at the keyboard card's directory (fresh from `pane.get`). Choosing sends
      `pane.send_input {pane_id, text: "cd -- '<path>'", keys: ["enter"]}`. Enabled when the keyboard
@@ -40,14 +40,15 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, 
      another picker.
    - **Insert Path** (⌃⌘I, not a sub-page): the same panel with `canChooseFiles` too; choosing sends
      the shell-quoted path at the cursor with `pane.send_input {pane_id, text}`, no Return.
-5. **Settings as commands.** Each toggle in Settings is one command whose title says what it does now:
+5. **Settings as commands.** Each toggle in the menu bar (Fade Inactive Panes, Focus Follows Mouse) is
+   one command whose title says what it does now:
    "Turn On Focus Follows Mouse" / "Turn Off Focus Follows Mouse".
 6. **Menu bar** (Rex's structure, Oriel's commands):
    - File: New Window ⌘N, New Tab ⌘T, New Workspace, Open Session… ⇧⌘N, Go to Directory… ⇧⌘G, Close
      Pane ⌘W, Close Tab ⌥⌘W, Close Workspace, Close Page, Close Window ⇧⌘W.
    - Edit: (system items), Insert Path… ⌃⌘I, Find… ⌘F (phase 21).
    - View: Command Palette ⌘K, Show Agents ⌘. (the Agents view), Toggle Sidebar ⌃⌘S, Appearance ▸,
-     Interface Style ▸, Pane ▸ (Split Right ⌘D, Split Down ⇧⌘D, Split Left, Split Up, Zoom ⇧⌘↩,
+     Interface Style ▸, Fade Inactive Panes (phase 17), Pane ▸ (Focus Follows Mouse (phase 17), Split Right ⌘D, Split Down ⇧⌘D, Split Left, Split Up, Zoom ⇧⌘↩,
      Balance Splits ⌃⌘=, Focus Left/Right/Up/Down ⌥⌘arrows, Previous Pane ⌘[, Next Pane ⌘], Move
      Left/Right/Up/Down ⌥⇧⌘arrows, Resize ⌃⌘arrows), Bigger ⌘+, Smaller ⌘-, Actual Size ⌘0, Enter Full
      Screen ⌃⌘F.
@@ -56,7 +57,9 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, 
      ⌘1…⌘9, then the open windows.
    A command with two shortcuts (⌘K and ⇧⌘P; ⇧⌘[ and ⌃⇧⇥; ⇧⌘] and ⌃⇥) uses phase 11's trick: a
    zero-size, zero-opacity `Button` with `.keyboardShortcut` in the window's content (not `.hidden()`,
-   whose shortcuts do not fire). The menu shows the first shortcut.
+   whose shortcuts do not fire). The menu shows the first shortcut. Its action must read current state
+   (the store, `UserDefaults`), not a value the view captured: SwiftUI keeps a shortcut's first action
+   (phase 11 findings, `PaneTerminal.stepFontSize`).
 7. **Rex shortcuts not taken, and why** (record in the keyboard table): ⌘K stays the palette (D48), so
    switching sessions has no shortcut of its own (Rex's Change Session is ⌘K; Oriel uses Open
    Session… ⇧⌘N and the sidebar's pages); ⇧⌘P also opens it (Rex's key); ⌘N is New Window

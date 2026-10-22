@@ -75,7 +75,7 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
 
 10. Compare every screen with the Rex references and `resources/mockups/layout.html` side by side (title
     row and tab bar, machine and workspace menus, sidebar pages, Agents popover and view, Open Session
-    sheet, two windows, hover card, cards, palette, Settings, light and dark, Glass and Classic). Fix
+    sheet, two windows, hover card, cards, palette, light and dark, Glass and Classic). Fix
     spacing, font weights, colors and timings until they match in spirit. List what you changed in the
     findings.
 11. Update the docs site's mock-ups to the new look: the components in `docs/components/design/`

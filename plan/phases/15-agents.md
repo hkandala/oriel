@@ -101,14 +101,14 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
     - Only while the app is not active, or the pane is not shown.
     - Id `"<machine>|<session>|<terminal_id>"` (machine is "local" for This Mac), so a newer one replaces the older; removed when the pane is seen.
     - A click activates the app, shows that session's page and selects the pane.
-12. **Dock.** Badge = the number of panes that need you over all open pages, plus unseen finishes
-    when that setting is on. Sounds: one system sound per status (`NSSound(named:)`: "Funk" for needs
-    you, "Glass" for finished), off by default. Dock menu (`applicationDockMenu`): a row per pane that
+12. **Dock.** Badge = the number of panes that need you over all open pages. No sounds (no Settings
+    window to turn them on, D62). Dock menu (`applicationDockMenu`): a row per pane that
     needs you or finished ("codex needs you · default · infra", a click selects it), a separator, New
     Tab. Expose the badge as the accessibility value of an element with id `app.badge` on the window
     root (as `window.look` does), so e2e can read it.
-13. **Settings ▸ Notifications.** For Needs you and Finished each: Notify (on), Badge the Dock icon
-    (on for needs you, off for finished), Play a sound (off).
+13. **No notification settings.** There is no Settings window (D62): notifications are on for needs
+    you and finished, the badge counts needs you only, and nothing plays a sound (`ui/settings.mdx`,
+    fixed defaults). Do not add a Settings page or menu items for these.
 
 ### Docs
 
