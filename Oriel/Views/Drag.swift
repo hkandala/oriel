@@ -156,7 +156,7 @@
         }
 
         func dropEntered(info _: DropInfo) {
-            over = true
+            withAnimation(.easeOut(duration: 0.12)) { over = true }
         }
 
         func dropUpdated(info _: DropInfo) -> DropProposal? {
@@ -164,7 +164,7 @@
         }
 
         func dropExited(info _: DropInfo) {
-            over = false
+            withAnimation(.easeOut(duration: 0.12)) { over = false }
         }
 
         func performDrop(info _: DropInfo) -> Bool {

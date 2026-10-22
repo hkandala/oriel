@@ -51,7 +51,8 @@
 
         func dropExited(info _: DropInfo) {
             spring?.cancel()
-            withAnimation(.slide) { over = nil }
+            // A tab slides back; a capsule's highlight fades.
+            withAnimation(page.dragging?.paneID == nil ? .slide : .easeOut(duration: 0.12)) { over = nil }
         }
 
         func performDrop(info _: DropInfo) -> Bool {
@@ -114,7 +115,10 @@
                 }
                 return DropProposal(operation: .move)
             }
-            state.ghost = pointY > frames.values.map(\.maxY).max() ?? 0
+            let ghost = pointY > frames.values.map(\.maxY).max() ?? 0
+            if ghost != state.ghost {
+                withAnimation(.easeOut(duration: 0.12)) { state.ghost = ghost }
+            }
             // The 2 pt gaps count as the row above.
             let row = state.ghost ? nil : page.store.workspaces.first { workspace in
                 frames[workspace.id].map { pointY >= $0.minY && pointY < $0.maxY + 2 } ?? false
@@ -135,7 +139,7 @@
 
         func dropExited(info _: DropInfo) {
             state.spring?.cancel()
-            withAnimation(.slide) { state = State() }
+            withAnimation(page.dragging?.paneID == nil ? .slide : .easeOut(duration: 0.12)) { state = State() }
         }
 
         func performDrop(info _: DropInfo) -> Bool {

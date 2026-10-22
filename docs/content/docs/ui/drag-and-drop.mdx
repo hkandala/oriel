@@ -43,7 +43,7 @@ Drag a card by its header (the title area, not its buttons) by 4 pt or more.
 | the pane's own tab capsule | none | not a target (herdr refuses `same_tab`) | — |
 | another tab's capsule in the title row | the capsule highlighted | move into that tab, split right of its layout | `pane.move {type:"tab", tab_id, split:"right"}` |
 | an edge band of a card in another tab (after spring-loading) | that half of the card | split beside that card | `pane.move {type:"tab", tab_id, split, target_pane_id}`, then `pane.swap` for left or top |
-| the empty end of the tab track, or `+` | a ghost capsule at the end | a new tab in the selected workspace | `pane.move {type:"new_tab", workspace_id}` |
+| the empty end of the tab track, or `+` | a ghost capsule at the end (and the `+` highlighted) | a new tab in the selected workspace | `pane.move {type:"new_tab", workspace_id}` |
 | a workspace row in the sidebar | the row highlighted | a new tab in that workspace | `pane.move {type:"new_tab", workspace_id}` |
 | empty space at the bottom of the sidebar page | a ghost row "New Workspace" | a new workspace | `pane.move {type:"new_workspace"}` |
 | another session's page dots, the Agents view | none; the pointer shows that it is not a target | — | — |

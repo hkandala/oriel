@@ -24,7 +24,7 @@
         /// Where the workspace button starts in the window, for its menu.
         @Binding var workspaceButtonX: CGFloat
         /// A pane dragged over the tab track's end or the `+`.
-        @State private var end = false
+        /// A pane dragged over the `+`.
         @State private var plus = false
 
         var body: some View {
@@ -44,7 +44,7 @@
                     }
                 }
                 if page.store.state == .live, let workspace = page.selectedWorkspace {
-                    TabBar(workspace: workspace, page: page, ghost: end || plus, end: $end)
+                    TabBar(workspace: workspace, page: page, plus: plus)
                 } else {
                     Spacer(minLength: 0)
                 }

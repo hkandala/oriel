@@ -12,10 +12,9 @@
 
         let workspace: HostStore.Workspace
         let page: Page
-        /// A pane dragged over the track's end or the `+`: a ghost capsule at the end, when it fits.
-        let ghost: Bool
-        /// A pane dragged over the track's end.
-        @Binding var end: Bool
+        /// A pane dragged over the `+`; with one over the track's end, a ghost capsule at the end, when it fits.
+        let plus: Bool
+        @State private var end = false
         /// A drag over the track: the capsule a pane is over, or the place a dragged tab goes.
         @State private var over: Int?
         @State private var spring: Task<Void, Never>?
@@ -114,7 +113,7 @@
                 .background(alignment: .leading) {
                     Color.clear.contentShape(.rect)
                         .overlay(alignment: .leading) {
-                            if ghost, content + 1 + width <= space {
+                            if end || plus, content + 1 + width <= space {
                                 DropIndicator(radius: Self.radius).frame(width: width, height: Self.height)
                                     .offset(x: content + 1)
                             }
