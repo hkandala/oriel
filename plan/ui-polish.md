@@ -34,9 +34,9 @@ Rules that hold for every phase:
 | Sessions | A session picker that switches the window's one session | The Open Session sheet: create a session, start a stopped one, or open a running one as a new page. A window starts with `default` only |
 | D42 status | A static ◔ in one status slot | Rex's three working dots (an animation at 15 fps or less, in sync on every tab, still under Reduce Motion), a status badge on the program icon for needs you and finished, and a state icon on each workspace row |
 | Status area (status.mdx), D61 | A fixed list at the bottom of the sidebar; later the Activity filter (eye) | The Agents button (outline chat bubbles, an amber dot when an agent of the current session needs you). Hover: a popover of the agents that need you. Click (⌘.): the Agents view, the agents of the page's session sorted by priority or workspace order, idle ones too |
-| D48 palette | Jump to tab, workspace, session | Also every command, with sub-pages, shortcuts and settings |
+| D48 palette | Jump to tab, workspace, session | Also every command, with sub-pages, shortcuts and the menu bar's toggles |
 | Program icons | One `>_` tile | A tile per program (our own SVG set), overlapping per pane in each tab, with badges |
-| Settings | None | A Settings window with a few basic settings (phase 11) |
+| Settings | None | A few settings in the menu bar (phase 11); a Settings window later, after its mock-ups (D62) |
 
 New decisions get the next free numbers when each phase records them.
 
@@ -49,15 +49,16 @@ the snapshot.
 
 | Rex feature | Oriel | P | herdr |
 |---|---|---|---|
-| Color scheme Auto / Light / Dark | Same; View ▸ Appearance and Settings | 10 | — |
+| Color scheme Auto / Light / Dark | Same; View ▸ Appearance | 10 | — |
 | Interface style Glass / Classic | Same two styles. Classic drops the window blur and the glass selection pill; floating panels (palette, menus, popovers, sheets, hover card, notices) keep system glass in both. "Tint with theme" is left out | 10 | — |
 | Material values per style, appearance and key or non-key window | A small token table per style and appearance (`Style.swift`) | 10 | — |
 | Terminal palette per appearance | libghostty-spm's light and dark palettes, switched with the appearance | 10 | — |
 | Pane card radius 10, window corners from macOS | Same | 10 | — |
-| Fade inactive panes: content opacity 0.7; in a window that is not key 0.5, the focused card 0.8 (0.85 light) | Same, as one setting, "Fade inactive panes" (on by default). Replaces today's black overlay | 17 | — |
+| Fade inactive panes: content opacity 0.7; in a window that is not key 0.5, the focused card 0.8 (0.85 light) | Same, as one toggle, View ▸ Fade Inactive Panes (on by default). Replaces today's black overlay | 17 | — |
 | Window title "‹tab› - ‹session›" | Same, with the session of the page in view | 13 | — |
-| Settings window | Native Settings scene, four tabs: General, Panes, Terminal, Notifications | 11 | — |
-| Terminal font, size (⌘0, ⌘+, ⌘-), cursor style and blink, Option as Alt, copy on select | Same, in Settings ▸ Terminal | 11 | — |
+| Settings window | Later, after its mock-ups, once phases 10–21 are done (D62, future work). Phase 11 built a stock tabbed form; the user dropped it | — | — |
+| Terminal font size (⌘0, ⌘+, ⌘-) | View ▸ Bigger (⌘+ and ⌘=), Smaller, Actual Size | 11 | — |
+| Terminal font, cursor style and blink, Option as Alt, copy on select | Fixed defaults until the Settings window: SF Mono, a blinking block, Option types characters, no copy on select | 11 | — |
 | Program icons per process | Our own SVG catalog, matched by herdr's `agent`, the terminal title and the foreground process | 12 | `pane.process_info` |
 | Several windows (File ▸ New Window ⌘N) | Same, a machine per window; ⌥-click a machine in the machine menu opens it in a new window | 16 | — |
 | Windows restore their state | `@SceneStorage`: open pages, selection, sidebar view, sort and width | 16 | — |
@@ -121,9 +122,9 @@ the snapshot.
 | Seen ledger: a finish counts until the user views the tab | Oriel's `completion_seq` rule (D14), in memory, shared by the windows on a session | 15, 16 | — |
 | (herdr's Spaces panel) workspace state | A state icon on each workspace row: amber dot, working dots, green dot, gray ring | 15 | — |
 | Notifications per status (only while the app is not active; a click opens the pane) | Needs you and finished, for every open page | 15 | — |
-| Dock badge count | Agents that need you over all open pages, plus unseen finishes if the setting is on | 15 | — |
-| Sounds per status | One system sound per status, off by default | 15 | — |
-| Per-status settings: tab indicator, notification, Dock badge, sound | Notification, Dock badge and sound, in Settings ▸ Notifications | 15 | — |
+| Dock badge count | Agents that need you over all open pages | 15 | — |
+| Sounds per status | Left out until the Settings window (off by default in Rex's sense: no switch, no sound) | — | — |
+| Per-status settings: tab indicator, notification, Dock badge, sound | Fixed until the Settings window: notify for needs you and finished, badge for needs you | 15 | — |
 
 ### Several windows
 
@@ -158,7 +159,7 @@ the snapshot.
 | Dividers as accessibility sliders | Same | 17 | — |
 | Focus pane left, right, up, down (⌥⌘ arrows), previous and next (⌘[, ⌘]) | Same; the app's own keyboard card, never herdr focus | 17 | — |
 | Move pane left, right, up, down (⌥⇧⌘ arrows) | Same | 17 | `pane.swap {direction}` |
-| Focus follows mouse (setting) | Same | 17 | — |
+| Focus follows mouse (setting) | Same, as a toggle in View ▸ Pane (off) | 17 | — |
 | Layout changes animate | Card frames animate 0.2 s; terminals resize once the motion ends | 17 | — |
 | Drag a pane by its header: drop zones, spring-loading after 0.65 s, drop on the tab bar for a new tab, on a workspace for a new tab there, on empty sidebar for a new workspace | Same, with the exact table in ui-layout.md: swap in the same tab, an edge drop in the same tab re-places the pane (move out, move back, swap), edges in another tab split, a center drop across tabs is refused | 18 | `pane.swap`, `pane.move` |
 | Find in the pane (⌘F): a find bar, match count, previous and next | Same; the text comes from herdr and the match scrolls into view | 21 | `pane.read {source:"recent"}`, `pane.scroll` |
@@ -170,9 +171,9 @@ the snapshot.
 |---|---|---|---|
 | Sections: commands, tabs, workspaces, sessions; fuzzy match with keywords | Same; sessions are the open pages, and Open Session… opens the sheet for the others | 20 | — |
 | Rows 28 pt, accent selection, shortcut glyphs on the right, › for sub-pages, a footer with key hints | Same, without the footer (no hint text in the UI) | 20 | — |
-| Sub-pages: Change Session, Rename Tab, Rename Workspace, Rename Pane, Move Pane to Tab, Go to Directory, Insert Path, Appearance, Interface Style, Font Size, Cursor Style | Same, except Change Session (the Open Session sheet and the sidebar pages do that job) and Go to Directory and Insert Path (they open the system folder panel) | 20 | the write of each command |
+| Sub-pages: Change Session, Rename Tab, Rename Workspace, Rename Pane, Move Pane to Tab, Go to Directory, Insert Path, Appearance, Interface Style, Font Size, Cursor Style | Same, except Cursor Style (no such setting until the Settings window), Change Session (the Open Session sheet and the sidebar pages do that job) and Go to Directory and Insert Path (they open the system folder panel) | 20 | the write of each command |
 | Live preview while a choice is highlighted (0.75 s) | Same, for Appearance and Interface Style | 20 | — |
-| Settings as commands ("Turn On Focus Follows Mouse") | Same | 20 | — |
+| Settings as commands ("Turn On Focus Follows Mouse") | Same, for the menu bar's toggles | 20 | — |
 | Go to Directory (⇧⌘G): browse folders, then `cd` in the pane | Same, with `NSOpenPanel` at the pane's folder, only when the pane runs only its shell | 20 | `pane.send_input` |
 | Insert Path (⌃⌘I): browse, then type the quoted path | Same, with `NSOpenPanel` | 20 | `pane.send_input` |
 | Rex's default shortcuts | Adopted where they do not clash with the design (table in phase 20); ⌘N is New Window, as in Rex | 20 | — |

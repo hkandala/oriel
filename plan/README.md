@@ -125,7 +125,7 @@ scenes A–K). Rex was reverse engineered for this (`resources/research/clients/
    other watches with Take Back.
 7. The hover card (peek), keycap hints, tooltips with keys.
 8. Pane resizing, balancing, moving with keys, context menus, drag and drop within what herdr allows.
-9. A Settings window with a few basic settings.
+9. A few basic settings, in the menu bar for now; the Settings window comes after its mock-ups.
 10. No explanatory text in the UI beyond what ui-layout.md lists.
 11. Rex as a multiplexer is **not** built: it is future work (`docs/content/docs/rex-backend.mdx`).
     No tab tear-off.
@@ -136,7 +136,7 @@ The full list of what is built and what is left out, feature by feature, is
 | # | Phase | File |
 |---|---|---|
 | 10 | Appearance (Auto, Light, Dark) and interface style (Glass, Classic) | [phases/10-appearance.md](phases/10-appearance.md) |
-| 11 | Settings window and terminal options | [phases/11-settings.md](phases/11-settings.md) |
+| 11 | Font size and menus | [phases/11-settings.md](phases/11-settings.md) |
 | 12 | Program icons | [phases/12-program-icons.md](phases/12-program-icons.md) |
 | 13 | Title row, tab bar and menus | [phases/13-title-row.md](phases/13-title-row.md) |
 | 14 | Sidebar: session pages, workspace rows and the Open Session sheet | [phases/14-sidebar.md](phases/14-sidebar.md) |

@@ -162,6 +162,7 @@ phase 18.
 
 ## Removed by this layout
 
+- The Settings window, for now: the few settings are menu items (D62); the window comes after its mock-ups.
 - Tabs as sidebar rows, workspace sections with collapse chevrons, keycap hints on sidebar rows.
 - The Activity filter (eye button), "Show idle agents" and any status area at the bottom of the sidebar.
 - The session picker in the title row (sessions are sidebar pages; stopped ones are in the sheet).
