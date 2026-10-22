@@ -28,8 +28,13 @@ next phase.
    blocker and should; answer each nit with a fix or a one-line reason.
 6. Repeat step 5 with fresh agents until a round has no blocker and no should, and the verifier passes
    every item. At most 4 rounds; if it does not converge, report to the orchestrator what is stuck.
-7. Update the phase file's `## Findings` section (what you learned, numbers you measured, choices you made)
-   and the design pages the phase changed, so they match the code. Commit and push.
+7. Write the implementation notes in the phase file's `## Findings` section, as phases 01–09 did (see
+   `plan/phases/05-strip-and-glass.md`): short bullets with a bold lead, saying why, not only what. Cover:
+   - **Deviations**: where the code differs from the phase file, `plan/ui-layout.md` or a design page, and why.
+   - **Decisions**: choices the design did not make (names, numbers, APIs picked, spike results).
+   - **Assumptions**: what you took as true without proof (herdr behavior, macOS behavior, user intent).
+   - **Learned**: bugs found, measurements, API quirks, test tricks the next phase needs.
+   Update the design pages the phase changed so they match the code. Commit and push.
 8. Confirm CI is green on the last push (`gh run list --limit 3`).
 9. Write `plan/metrics/NN.json` (format below), commit it with the phase, and report to the orchestrator:
    what was built, the commits, how it was tested, screenshot paths, the review rounds and their final
@@ -109,7 +114,10 @@ that run. Pass only when every item is done and every check is green."
    and would fail if the feature broke.
 5. Build and run the app once against a throwaway session (GUI lock), look at the new UI next to
    `resources/mockups/layout.html` and the Rex references, keep 2–3 screenshots.
-6. The phase file's Findings and the design pages match what was built.
+6. Read the phase's Findings (implementation notes). Fold each deviation and decision into the design
+   pages, `plan/ui-layout.md` and later phase files where they matter. Send the phase agent a numbered
+   list of any assumption or note that looks wrong or that the user should decide, and settle it before
+   the next phase.
 7. If anything fails: send it back to the same phase agent with a numbered list. Otherwise log the phase as
    done below and start the next one.
 
