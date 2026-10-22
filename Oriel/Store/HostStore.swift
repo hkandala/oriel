@@ -344,9 +344,13 @@ extension HostStore {
         case let .pane(id, _): await write { try await $0.close(pane: id) }
         case let .tab(id): await write { try await $0.close(tab: id) }
         case let .otherTabs(others):
+            // At once: one by one, 20 tabs took seconds and the bar showed each step.
             await write { client in
-                for other in others {
-                    try await client.close(tab: other)
+                try await withThrowingTaskGroup { group in
+                    for other in others {
+                        group.addTask { try await client.close(tab: other) }
+                    }
+                    try await group.waitForAll()
                 }
             }
         }

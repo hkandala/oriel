@@ -105,10 +105,16 @@
         var body: some View {
             Menu {
                 // The current machine: picking it does nothing.
-                Toggle(isOn: .constant(true)) { Label("This Mac", systemImage: thisMacIcon) }
+                Toggle(isOn: .constant(true)) {
+                    Image(systemName: thisMacIcon)
+                    Text("This Mac")
+                }
                 Divider()
                 // ponytail: no-op until remote hosts
-                Button("Add Remote Host…", systemImage: "plus") {}
+                Button {} label: {
+                    Image(systemName: "plus")
+                    Text("Add Remote Host…")
+                }
             } label: {
                 // One text, so the menu button is one element.
                 let chevron = Text(Image(systemName: "chevron.down")).font(.system(size: 8, weight: .bold))
@@ -117,7 +123,6 @@
                     .padding(.horizontal, 6)
                     .frame(height: 28)
             }
-            .labelStyle(.titleAndIcon)
             .menuStyle(.button)
             .menuIndicator(.hidden)
             .buttonStyle(ChromeStyle(radius: 7))

@@ -10,6 +10,8 @@ extension OrielUITests {
         XCTAssertEqual(toggle.value as? String, "open")
         XCTAssertLessThan(tab.frame.maxY, window.frame.minY + 40)
         XCTAssertFalse(workspace.exists)
+        // The capsule alone: the sidebar lists no tabs.
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "tab.w1:t2").count, 1)
         keepScreenshot("sidebar open")
 
         app.typeKey("s", modifierFlags: [.command, .control])
@@ -35,7 +37,11 @@ extension OrielUITests {
         // Its checkmark is not in XCUITest's view of a menu item (phase 10); the screenshot shows it.
         XCTAssertTrue(app.menuItems["Add Remote Host…"].exists)
         keepScreenshot("machine menu")
-        app.typeKey(.escape, modifierFlags: [])
+        // The current machine: nothing changes.
+        thisMac.click()
+        XCTAssertTrue(thisMac.waitForNonExistence(timeout: 2))
+        XCTAssertEqual(app.windows.count, 1)
+        XCTAssertTrue(element("tab.w1:t2").exists)
     }
 
     func testWorkspaceMenuMakesAndPicksWorkspaces() async throws {
@@ -45,8 +51,13 @@ extension OrielUITests {
         XCTAssertTrue(button.waitForExistence(timeout: 2))
         let filter = openWorkspaceMenu()
         XCTAssertTrue(element("workspaces.w1").isSelected)
-        XCTAssertTrue(element("workspaces.w2").exists)
         keepScreenshot("workspace menu")
+        // Arrows move; Esc closes.
+        app.typeKey(.downArrow, modifierFlags: [])
+        XCTAssertTrue(element("workspaces.w2").wait(for: \.isSelected, toEqual: true, timeout: 2))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(filter.waitForNonExistence(timeout: 2))
+        openWorkspaceMenu()
 
         // A name no workspace has: Enter makes it in herdr, and the app selects it.
         let name = "made-\(Int.random(in: 1000 ... 9999))"
@@ -60,6 +71,12 @@ extension OrielUITests {
             return workspaces.first { $0["label"] as? String == name }?["workspace_id"] as? String
         }
         addTeardownBlock { [one] in _ = try? await Self.call(one, "workspace.close", ["workspace_id": made]) }
+        // In home, not the server's cwd (the runner's own home is its sandbox container).
+        let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
+        XCTAssertEqual(
+            panes.first { $0["workspace_id"] as? String == made }?["cwd"] as? String,
+            "/Users/\(NSUserName())",
+        )
         try await poll("the button to show \(name)") { button.value as? String == "\(one) | \(name)" ? true : nil }
         XCTAssertTrue(element("tab.\(made):t1").waitForExistence(timeout: 2))
 
@@ -69,6 +86,27 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.w2:t1").waitForExistence(timeout: 2))
         XCTAssertFalse(element("tab.w1:t1").exists)
         XCTAssertEqual(button.value as? String, "\(one) | beta")
+        keepScreenshot("one tab")
+    }
+
+    func testCloseButtonShowsOnTheHoveredTabAndCloses() async throws {
+        let (workspace, tabs) = try await newWorkspace(tabs: 3)
+        let close = element("tab.\(tabs[1]).close")
+        XCTAssertFalse(close.exists)
+        element("tab.\(tabs[1])").hover()
+        XCTAssertTrue(close.waitForExistence(timeout: 2))
+        keepScreenshot("hover and close")
+        element("tab.\(tabs[2])").hover()
+        XCTAssertTrue(close.waitForNonExistence(timeout: 2))
+        element("tab.\(tabs[1])").hover()
+        close.click()
+        let confirm = app.sheets.buttons["Close Tab"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 2))
+        confirm.click()
+        try await poll("herdr to close it") { () async throws -> Bool? in
+            try await tabsOf(workspace).map(\.id) == [tabs[0], tabs[2]] ? true : nil
+        }
+        XCTAssertTrue(element("tab.\(tabs[1])").waitForNonExistence(timeout: 2))
     }
 
     func testTabContextMenuRenamesAndMoves() async throws {
@@ -152,30 +190,28 @@ extension OrielUITests {
         XCTAssertGreaterThanOrEqual(last.frame.width, 64)
     }
 
-    func testHoldingCommandShowsKeycaps() {
+    func testHoldingCommandShowsKeycaps() async throws {
         let tab = element("tab.w1:t2")
         XCTAssertTrue(tab.waitForExistence(timeout: connect))
         XCTAssertFalse(tab.label.contains("⌘2"))
         XCUIElement.perform(withKeyModifiers: .command) {
-            let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS '⌘2'"), object: tab)
-            XCTAssertEqual(XCTWaiter().wait(for: [shown], timeout: 3), .completed)
+            for _ in 0 ..< 30 where !tab.label.contains("⌘2") {
+                Thread.sleep(forTimeInterval: 0.1)
+            }
+            XCTAssertTrue(tab.label.contains("⌘2"))
+            // Only the tabs: the sidebar shows none.
+            XCTAssertFalse(element("workspace.w1").label.contains("⌘"))
             keepScreenshot("keycap hints")
         }
-        let hidden = XCTNSPredicateExpectation(predicate: NSPredicate(format: "NOT label CONTAINS '⌘2'"), object: tab)
-        XCTAssertEqual(XCTWaiter().wait(for: [hidden], timeout: 2), .completed)
+        try await poll("the keycaps to go") { tab.label.contains("⌘2") ? nil : true }
     }
 
-    func testWindowTitleIsTheTabTitleAndTheSession() {
+    /// A labeled tab's title is its label (testShowsWorkspacesTabsAndSplits: "second - ‹session›").
+    func testWindowTitleOfADefaultLabelIsTheProgramAndFolder() async throws {
         let window = app.windows.firstMatch
         XCTAssertTrue(element("tab.w1:t2").waitForExistence(timeout: connect))
-        // t1 keeps herdr's default label: the front card's program and folder.
-        let named = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "title BEGINSWITH 'zsh ' AND title ENDSWITH %@", " - \(one)"),
-            object: window,
-        )
-        XCTAssertEqual(XCTWaiter().wait(for: [named], timeout: 3), .completed, window.title)
-        element("tab.w1:t2").click()
-        XCTAssertTrue(window.wait(for: \.title, toEqual: "second - \(one)", timeout: 2))
+        // t1 keeps herdr's default label: the front card's program and folder name (/private/tmp).
+        try await poll("the window title") { window.title == "zsh tmp - \(one)" ? true : nil }
     }
 
     /// Opens the workspace menu; its filter has the keyboard.

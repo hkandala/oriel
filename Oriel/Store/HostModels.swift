@@ -100,7 +100,8 @@ extension HostStore {
     func title(_ tab: Tab) -> (name: String, folder: String?) {
         guard !tab.label.isEmpty, tab.label.allSatisfy(\.isNumber), let pane = stack(tab).first,
               let name = pane.programName else { return (tab.label, nil) }
-        return (name, pane.folder)
+        // The folder's name ("pi oriel"), as in Rex: a tab is narrow.
+        return (name, pane.folder.map { $0 == "~" ? $0 : ($0 as NSString).lastPathComponent })
     }
 
     func workspace(of tabID: String) -> Workspace? {
