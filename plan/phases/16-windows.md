@@ -201,3 +201,5 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
   tests raise a window by clicking a point the other window does not cover.
 - **Hand check of restore:** two windows came back, window 2 with its sidebar hidden and tab t2 selected, window 1 with
   its sidebar and t1; the window quit in full screen came back out of it (`/tmp/oriel-shots/16/restore/`).
+  After the spec review's change: ⌘N in a full-screen window opened window 3 in full screen and it stayed there; a
+  relaunch brought all three back, none in full screen.
