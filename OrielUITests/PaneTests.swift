@@ -122,7 +122,11 @@ extension OrielUITests {
         let moved = try await newTabID(after: before)
         // Gone already after the move to a new workspace below, which takes its only pane.
         addTeardownBlock { [one] in
-            let close = try JSONSerialization.data(withJSONObject: ["method": "tab.close", "params": ["tab_id": moved]])
+            let close = try JSONSerialization.data(withJSONObject: [
+                "id": "1",
+                "method": "tab.close",
+                "params": ["tab_id": moved],
+            ])
             _ = try? await Self.post(one, close + Data("\n".utf8))
         }
         try await poll("the pane in the new tab") { () async throws -> Bool? in
