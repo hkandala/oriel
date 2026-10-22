@@ -15,16 +15,9 @@ catalog = {e["id"]: e for e in json.loads((ICONS / "catalog.json").read_text())}
 
 # UI glyphs (simple drawings in the spirit of SF Symbols), 24 x 24, filled.
 UI = {
-    "sidebar": '<path d="M3 4h18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v12h5V6zm7 0v12h9V6z"/>',
-    "agents": '<path d="M9 2.5l1.6 4.4L15 8.5l-4.4 1.6L9 14.5l-1.6-4.4L3 8.5l4.4-1.6zM17.5 12l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9zM4 17h8v2H4zm0 3h11v1.6H4z"/>',
     "laptop": '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5V15H4zM6 6v7h12V6zM1.5 16.5h21l-1 2.2a1 1 0 0 1-.9.6H3.4a1 1 0 0 1-.9-.6z"/>',
     "server": '<path d="M4 3h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm0 10h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1zm2.5-7.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm0 10a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>',
-    "cloud": '<path d="M7 19a5 5 0 0 1-.6-10A6.5 6.5 0 0 1 19 9.5 4.8 4.8 0 0 1 18.5 19z"/>',
-    "desktop": '<path d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v9h16V6z"/>',
     "cpu": '<path d="M8 2h2v3h4V2h2v3h2a1 1 0 0 1 1 1v2h3v2h-3v4h3v2h-3v2a1 1 0 0 1-1 1h-2v3h-2v-3h-4v3H8v-3H6a1 1 0 0 1-1-1v-2H2v-2h3v-4H2V8h3V6a1 1 0 0 1 1-1h2zm-1 5v10h10V7zm3 3h4v4h-4z"/>',
-    "house": '<path d="M12 3l9 8h-3v9h-5v-6h-2v6H6v-9H3z"/>',
-    "flask": '<path d="M8 2h8v2h-1v5.2l5.6 9.8A2 2 0 0 1 18.9 22H5.1a2 2 0 0 1-1.7-3L9 9.2V4H8zm3 2v5.7L8.6 14h6.8L13 9.7V4z"/>',
-    "game": '<path d="M7 7h10a5 5 0 0 1 0 10c-1.6 0-2.6-.8-3.4-2h-3.2c-.8 1.2-1.8 2-3.4 2A5 5 0 0 1 7 7zm0 3v1.5H5.5v1.5H7v1.5h1.5V13H10v-1.5H8.5V10zm9 .5a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm2 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>',
     "plusstack": '<path d="M5 3h14v2H5zM3 7h12v2H5v10h10v-4h2v6H3zm15 0h2v3h3v2h-3v3h-2v-3h-3v-2h3z"/>',
     "branch": '<path d="M6 3a3 3 0 0 1 1 5.8v6.4a3 3 0 1 1-2 0V8.8A3 3 0 0 1 6 3zm12 0a3 3 0 0 1 1 5.8V10a4 4 0 0 1-4 4H8.5v-2H15a2 2 0 0 0 2-2V8.8A3 3 0 0 1 18 3z"/>',
     "filter": '<path d="M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z"/>',
@@ -32,37 +25,16 @@ UI = {
     "cmd": '<path d="M7 3a4 4 0 0 1 4 4v2h2V7a4 4 0 1 1 4 4h-2v2h2a4 4 0 1 1-4 4v-2h-2v2a4 4 0 1 1-4-4h2v-2H7a4 4 0 0 1 0-8zm0 2a2 2 0 1 0 0 4h2V7a2 2 0 0 0-2-2zm10 0a2 2 0 0 0-2 2v2h2a2 2 0 1 0 0-4zm-6 6v2h2v-2zm-4 4a2 2 0 1 0 2 2v-2zm8 0v2a2 2 0 1 0 2-2z"/>',
     "chev": '<path d="M7 9l5 5 5-5 1.4 1.4L12 16.8l-6.4-6.4z"/>',
     "check": '<path d="M9.5 16.2L5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/>',
-    "folder": '<path d="M3 5h7l2 2h9v12H3z"/>',
     "sort": '<path d="M7 4l4 4H8v12H6V8H3zm10 16l-4-4h3V4h2v12h3z"/>',
-    "window": '<path d="M3 4h18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 4v10h16V8z"/>',
 }
 
-
-# Candidate glyphs for the Agents toggle (the user picks one).
-UI.update({
-    "people": '<path d="M9 4a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zm7.5 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM2 19c0-3.3 3.1-6 7-6s7 2.7 7 6v1H2zm15.5-6c2.7.2 4.5 2.4 4.5 5v2h-4.5v-1c0-2.4-1-4.5-2.6-5.8.8-.2 1.7-.2 2.6-.2z"/>',
-    "robot": '<path d="M11 2h2v2.1A7 7 0 0 1 19 11v6a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-6a7 7 0 0 1 6-6.9zM9 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM8.5 16v1.5h7V16zM2 11h2v5H2zm18 0h2v5h-2z"/>',
-    "bubbles": '<path d="M3 4h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8l-4 3v-3H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm15 4h3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-1v3l-4-3h-5a1 1 0 0 1-1-1v-1h6a2 2 0 0 0 2-2z"/>',
-    "statuslist": '<path d="M5 4.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM9 5.5h12v2H9zM5 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm4 1h12v2H9zM5 15.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm4 1h12v2H9z"/>',
-    "pulse": '<path d="M2 11h4.4l2.1-5.6 4.1 12 2.5-6.4H22v2h-5.5l-3.9 10L8.5 11.5 7.8 13H2z"/>',
-    "wand": '<path d="M14.6 6.6l2.8 2.8L6.8 20 4 17.2zM17 2l.8 2.2L20 5l-2.2.8L17 8l-.8-2.2L14 5l2.2-.8zM20.5 9l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6zM10 2.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4L8 4.5l1.4-.6z"/>',
-    "stackperson": '<path d="M6 2h12v2H6zM4 5h16v2H4zm-1 3h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zm9 2.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM7.5 19h9c0-2.2-2-3.5-4.5-3.5S7.5 16.8 7.5 19z"/>',
-})
-UI["sparkles"] = UI["agents"]
 # Outline (stroked) glyphs.
 UIO = {
     "bubbles": '<path d="M4 4.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8.5L5 16v-2.5H4A1.5 1.5 0 0 1 2.5 12V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M15.5 8.5H20A1.5 1.5 0 0 1 21.5 10v6a1.5 1.5 0 0 1-1.5 1.5h-1V20l-3.5-2.5H11a1.5 1.5 0 0 1-1.5-1.5v-2.5"/>',
     "folder": '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2h8.8A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>',
-    "squarestack": '<rect x="7.5" y="3.5" width="13" height="13" rx="2"/><path d="M16.5 20.5h-11a2 2 0 0 1-2-2v-11"/>',
-    "rect3": '<rect x="3.5" y="4" width="17" height="6" rx="1.5"/><rect x="3.5" y="14" width="7.5" height="6" rx="1.5"/><rect x="13" y="14" width="7.5" height="6" rx="1.5"/>',
-    "tray": '<path d="M3.5 13.5l2.4-7.3A1.5 1.5 0 0 1 7.3 5h9.4a1.5 1.5 0 0 1 1.4 1.2l2.4 7.3v5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M3.5 13.5h5l1 2h5l1-2h5"/>',
-    "grid": '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
-    "briefcase": '<rect x="3" y="7" width="18" height="12.5" rx="2"/><path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7M3 12.5h18"/>',
-    "cube": '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
     "sidebarclosed": '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M9 4.5v15"/>',
     "sidebaropen": '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M9 4.5v15"/><path d="M5.6 4.5H9v15H5.6A2.6 2.6 0 0 1 3 16.9V7.1a2.6 2.6 0 0 1 2.6-2.6z" fill="currentColor"/>',
     "bubblesfill": '<path fill="currentColor" d="M4 4.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8.5L5 16v-2.5H4A1.5 1.5 0 0 1 2.5 12V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M15.5 8.5H20A1.5 1.5 0 0 1 21.5 10v6a1.5 1.5 0 0 1-1.5 1.5h-1V20l-3.5-2.5H11a1.5 1.5 0 0 1-1.5-1.5v-2.5"/>',
-    "sidebarlist": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1.5M5.5 11h1.5M5.5 14h1.5"/>',
 }
 AGENT_ICON = "o:bubbles"
 
@@ -115,18 +87,18 @@ MACHINES = [("This Mac", "laptop", True), ("devbox", "server", False), ("gpu-box
 STOPPED = ["orcr-spike-pi", "pi-bench", "swebench-autopilot"]
 RUNNING_NOT_OPEN = ["pi-scratch", "orcr-pi"]
 
-# session -> workspaces: (name, status, branch, ahead, behind, changed, worktree_child)
+# session -> workspaces: (name, status, branch, ahead, behind, worktree_child)
 SESSIONS = {
     "default": [
-        ("oriel", "working", "main", 2, 0, 3, False),
-        ("oriel-rex-ui", "", "feat/rex-ui", 5, 1, 12, True),
-        ("mira", "done", "main", 0, 0, 0, False),
-        ("dotfiles", "idle", "master", 0, 3, 1, False),
-        ("infra", "needs", None, 0, 0, 0, False),
+        ("oriel", "working", "main", 2, 0, False),
+        ("oriel-rex-ui", "", "feat/rex-ui", 5, 1, True),
+        ("mira", "done", "main", 0, 0, False),
+        ("dotfiles", "idle", "master", 0, 3, False),
+        ("infra", "needs", None, 0, 0, False),
     ],
     "pi-herd": [
-        ("agents", "working", "main", 0, 0, 0, False),
-        ("scratch", "", None, 0, 0, 0, False),
+        ("agents", "working", "main", 0, 0, False),
+        ("scratch", "", None, 0, 0, False),
     ],
 }
 SELECTED_WS = "oriel"
@@ -176,23 +148,21 @@ def tabbar():
     return f'<span class="track">{"".join(caps)}</span>'
 
 
-def agents_button(on, icon=None):
-    glyph_name = icon or ("o:bubblesfill" if on else AGENT_ICON)
-    return (f'<span class="btn" title="Agents ⌘.">{ui(glyph_name)}'
+def agents_button(on):
+    return (f'<span class="btn">{ui("o:bubblesfill" if on else AGENT_ICON)}'
             f'<span class="ebadge amber"></span></span>')
 
 
-def ws_label(session, name, style):
-    sep = '<span class="psep2">·</span>' if style == "dot" else '<span class="pbar"></span>'
-    return f'<span class="dim">{session}</span>{sep}<span>{name}</span>'
+def ws_label(session, name):
+    return f'<span class="dim">{session}</span><span class="pbar"></span><span>{name}</span>'
 
 
-def title_row(sidebar_open, agents_view, machine_icon="laptop", session="default", style="line", ws_icon="o:folder"):
-    machine = (f'<span class="pick icononly" title="Machine (⌥-click: open in a new window)">{ui(machine_icon)}'
+def title_row(sidebar_open, agents_view, machine_icon="laptop", session="default"):
+    machine = (f'<span class="pick icononly" title="Machine">{ui(machine_icon)}'
                f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
     workspace = ("" if sidebar_open else
-                 f'<span class="pick" title="Workspace">{ui(ws_icon)}'
-                 f'<span class="pname">{ws_label(session, "oriel", style)}</span>'
+                 f'<span class="pick" title="Workspace">{ui("o:folder")}'
+                 f'<span class="pname">{ws_label(session, "oriel")}</span>'
                  f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
     return (f'<div class="titlerow">{traffic()}'
             f'<span class="btn" title="Toggle Sidebar ⌃⌘S">{ui("o:sidebaropen" if sidebar_open else "o:sidebarclosed")}</span>'
@@ -202,7 +172,7 @@ def title_row(sidebar_open, agents_view, machine_icon="laptop", session="default
 
 
 # ---------------------------------------------------------------- sidebar
-def git_line(branch, ahead, behind, changed):
+def git_line(branch, ahead, behind):
     parts = [f'<span class="br">{ui("branch", "ic xs")}</span>{branch}']
     counts = " ".join(x for x in [f'<span class="ahead">↑{ahead}</span>' if ahead else "",
                                   f'<span class="behind">↓{behind}</span>' if behind else ""] if x)
@@ -213,9 +183,9 @@ def git_line(branch, ahead, behind, changed):
 
 def workspace_rows(session):
     out = []
-    for name, status, branch, ahead, behind, changed, child in SESSIONS[session]:
+    for name, status, branch, ahead, behind, child in SESSIONS[session]:
         sel = session == "default" and name == SELECTED_WS
-        second = git_line(branch, ahead, behind, changed) if branch else ""
+        second = git_line(branch, ahead, behind) if branch else ""
         out.append(f'<div class="ws{" sel" if sel else ""}{" child" if child else ""}{"" if branch else " one"}">'
                    f'<span class="sicon">{state_icon(status)}</span>'
                    f'<span class="col"><span class="l1">{name}</span>{second}</span></div>')
@@ -235,7 +205,7 @@ def page(session):
 
 def footer():
     return (f'<div class="foot"><span class="filter">{ui("filter", "ic xs")} Filter</span>'
-            f'<span class="sbtn" title="Open Session… ⇧⌘N">{ui("plusstack", "ic sm")}</span></div>')
+            f'<span class="sbtn" title="Open Session ⇧⌘N">{ui("plusstack", "ic sm")}</span></div>')
 
 
 def sidebar_workspaces(session="default"):
@@ -336,14 +306,13 @@ def session_sheet():
 
 
 # ---------------------------------------------------------------- windows
-def window(sidebar=None, popup=None, session="default", machine_icon="laptop", watching=False, agents=False,
-           style="line", ws_icon="o:folder"):
+def window(sidebar=None, popup=None, session="default", machine_icon="laptop", watching=False, agents=False):
     side = ""
     if sidebar == "ws":
         side = sidebar_workspaces(session)
     elif sidebar == "agents":
         side = sidebar_agents(session)
-    return (f'<div class="win">{title_row(sidebar is not None, agents or sidebar == "agents", machine_icon, session, style, ws_icon)}'
+    return (f'<div class="win">{title_row(sidebar is not None, agents or sidebar == "agents", machine_icon, session)}'
             f'<div class="content">{side}{strip(watching)}</div>{popup or ""}</div>')
 
 
@@ -393,11 +362,11 @@ SCENES = [
     ("H", "Agents view: the agents of this session",
      "A click on the Agents button turns the sidebar into a list of the agents of the session on this page "
      "(the first bubble fills while it is on): one row per agent pane, even when a tab holds several. Sorted by "
-     "priority (needs you, working, done, idle) or by workspace order. Idle agents show by default. A sideways "
+     "priority (needs you, working, done, idle) or by workspace order. Idle agents show. A sideways "
      "swipe shows the next session's agents. A click opens that workspace, tab and pane.", window("agents")),
     ("K", "Dragging a pane by its header",
      "A drop on the center of a card in the same tab swaps the two; a drop on an edge places the pane beside "
-     "that card (the indicator shows the half it will take). Holding over a tab capsule for 0.65 s pages to "
+     "that card (the indicator shows the half it will take). Holding over another tab's capsule for 0.65 s pages to "
      "that tab; a drop on the tab track's empty end makes a new tab; a drop on a workspace row makes a new tab "
      "there; a drop on empty sidebar space makes a new workspace.", window("ws", drag_overlay())),
     ("I", "Two windows, same machine, different sessions",
