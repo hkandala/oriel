@@ -178,17 +178,6 @@
         }
     }
 
-    /// Everywhere else in the window: not a target, with the forbidden pointer.
-    struct NoDrop: DropDelegate {
-        func performDrop(info _: DropInfo) -> Bool {
-            false
-        }
-
-        func dropUpdated(info _: DropInfo) -> DropProposal? {
-            DropProposal(operation: .forbidden)
-        }
-    }
-
     extension Animation {
         /// Rex's insertion timing: 0.22 s on its "production" curve. Tabs and rows slide apart with it.
         static let slide = Animation.timingCurve(0.2, 0.9, 0.3, 1, duration: 0.22)

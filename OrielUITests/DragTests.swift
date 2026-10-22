@@ -1,8 +1,6 @@
 import XCTest
 
-/// Drag and drop (phase 18). Each test makes its own workspace in session one (closed after) and checks herdr. A drag
-/// holds at its end before the drop; screenshots and checks during the hold run on the main queue, which XCUITest
-/// drains while it drags.
+/// Drag and drop (phase 18). Each test makes its own workspace in session one (closed after) and checks herdr.
 extension OrielUITests {
     func testDropOnACardsCenterSwapsAndOnItsEdgePlacesBeside() async throws {
         let (tab, first) = try await dragWorkspace("swap")
@@ -10,13 +8,13 @@ extension OrielUITests {
         restoreHerdrFocusAfter()
         XCTAssertTrue(element("pane.\(third)").waitForExistence(timeout: 3))
 
-        await drag(first, to: card(second, 0.5, 0.6), shot: "drag over a center target")
+        drag(first, to: card(second, 0.5, 0.6))
         try await poll("the two swapped") { () async throws -> Bool? in
             try await order(tab) == [second, first, third] ? true : nil
         }
 
         let tabs = try await tabIDs()
-        await drag(third, to: card(second, 0.1, 0.6), shot: "drag over an edge target")
+        drag(third, to: card(second, 0.1, 0.6))
         try await poll("the pane left of its neighbor") { () async throws -> Bool? in
             try await order(tab) == [third, second, first] ? true : nil
         }
@@ -25,8 +23,7 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
 
         // Its own tab's capsule is not a target: nothing moves.
-        await drag(third, to: element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
-                   shot: "drag over a not-allowed target")
+        drag(third, to: element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
         try await Task.sleep(for: .milliseconds(500))
         let still = try await order(tab)
         XCTAssertEqual(still, [third, second, first])
@@ -43,10 +40,7 @@ extension OrielUITests {
         XCTAssertTrue(capsule.waitForExistence(timeout: 3))
         XCTAssertTrue(element("pane.\(second)").waitForExistence(timeout: 3))
 
-        var springLoaded = false
-        await drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), hold: 1.2,
-                   shot: "a spring-loaded tab") { springLoaded = capsule.isSelected }
-        XCTAssertTrue(springLoaded, "the tab was not selected during the hold")
+        drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), hold: 1.2)
         try await poll("the pane split right in that tab") { () async throws -> Bool? in
             try await order(other) == [third, second] ? true : nil
         }
@@ -62,7 +56,7 @@ extension OrielUITests {
         // The tab track's empty end: a new tab in this workspace (the pane keeps its id).
         let end = element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
             .withOffset(CGVector(dx: 80, dy: 0))
-        await drag(second, to: end)
+        drag(second, to: end)
         let moved = try await poll("the pane in a new tab") { () async throws -> String? in
             let place = try await place(of: terminal)
             return place.map { $0.tab != tab && workspace(of: $0.tab) == workspace(of: tab) } == true ? place?.tab : nil
@@ -76,8 +70,8 @@ extension OrielUITests {
                 _ = try? await Self.call(self.one, "tab.close", ["tab_id": id])
             }
         }
-        await drag(second, to: element("workspace.w2").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
-                   hold: 0.3)
+        drag(second, to: element("workspace.w2").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
+             hold: 0.3)
         let inBeta = try await poll("the pane in a new tab of beta") { () async throws -> String? in
             let place = try await place(of: terminal)
             return place.map { $0.tab.hasPrefix("w2:") && !betaTabs.contains($0.tab) } == true ? place?.pane : nil
@@ -91,7 +85,7 @@ extension OrielUITests {
             }
         }
         XCTAssertTrue(element("pane.\(inBeta)").waitForExistence(timeout: 3))
-        await drag(inBeta, to: element("sidebar").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)))
+        drag(inBeta, to: element("sidebar").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)))
         try await poll("the pane in a new workspace") { () async throws -> Bool? in
             let place = try await place(of: terminal)
             return place.map { !workspaces.contains(workspace(of: $0.tab)) } == true ? true : nil
@@ -111,7 +105,7 @@ extension OrielUITests {
         XCTAssertTrue(third.waitForExistence(timeout: 3))
         let from = third.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         let target = element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
-        await during(from, to: target, shot: "a tab reorder in progress")
+        during(from, to: target)
         try await poll("herdr's tab order") { () async throws -> Bool? in
             try await tabIDs().filter { $0.hasPrefix("\(workspace):") } == [tabs[2], tabs[0], tabs[1]] ? true : nil
         }
@@ -128,8 +122,8 @@ extension OrielUITests {
         let firstRow = element("workspace.\(first)"), secondRow = element("workspace.\(second)")
         XCTAssertTrue(secondRow.waitForExistence(timeout: 3))
 
-        await during(firstRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
-                     to: secondRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9)))
+        during(firstRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
+               to: secondRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9)))
         try await poll("first below second") { () async throws -> Bool? in
             try await workspaceIDs().suffix(2) == [second, first] ? true : nil
         }
@@ -154,8 +148,8 @@ extension OrielUITests {
         let tree = try XCTUnwrap((opened["workspace"] as? [String: Any])?["workspace_id"] as? String)
         let repoRow = element("workspace.\(repo)")
         XCTAssertTrue(element("workspace.\(tree)").waitForExistence(timeout: 3))
-        await during(repoRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
-                     to: secondRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)))
+        during(repoRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
+               to: secondRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)))
         try await poll("the repository and its worktree before second") { () async throws -> Bool? in
             try await workspaceIDs().suffix(4) == [repo, tree, second, first] ? true : nil
         }
@@ -200,34 +194,13 @@ extension OrielUITests {
     }
 
     /// Drags a card by its header's title area.
-    func drag(_ pane: String, to target: XCUICoordinate, hold: TimeInterval = 0.6, shot: String? = nil,
-              check: (() -> Void)? = nil) async
-    {
-        await during(card(pane, 0, 0).withOffset(CGVector(dx: 60, dy: 17)), to: target, hold: hold, shot: shot,
-                     check: check)
+    func drag(_ pane: String, to target: XCUICoordinate, hold: TimeInterval = 0.6) {
+        during(card(pane, 0, 0).withOffset(CGVector(dx: 60, dy: 17)), to: target, hold: hold)
     }
 
-    /// A drag that holds at `target` before the drop; halfway through the hold, a screenshot and `check`.
-    func during(_ from: XCUICoordinate, to target: XCUICoordinate, hold: TimeInterval = 0.6, shot: String? = nil,
-                check: (() -> Void)? = nil) async
-    {
-        var ran = false
-        let taken = Task { @MainActor in
-            // The press, the move (about 0.5 s at the default speed), then half the hold.
-            try? await Task.sleep(for: .seconds(0.3 + 0.5 + hold / 2))
-            ran = true
-            check?()
-            return shot.map { _ in XCUIScreen.main.screenshot() }
-        }
+    /// A drag that holds at `target` before the drop. XCUITest runs nothing else while it drags (not even the main
+    /// queue), so a drag in progress shows only in the run's screen recording.
+    func during(_ from: XCUICoordinate, to target: XCUICoordinate, hold: TimeInterval = 0.6) {
         from.click(forDuration: 0.3, thenDragTo: target, withVelocity: .default, thenHoldForDuration: hold)
-        if shot != nil || check != nil {
-            XCTAssertTrue(ran, "the hold's check ran after the drop")
-        }
-        if let shot, let image = await taken.value {
-            let attachment = XCTAttachment(screenshot: image)
-            attachment.name = shot
-            attachment.lifetime = .keepAlways
-            add(attachment)
-        }
     }
 }
