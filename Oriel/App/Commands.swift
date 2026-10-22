@@ -31,6 +31,12 @@
         /// A submenu instead of an action.
         var menu: [Command] = []
         var action: () -> Void = {}
+
+        /// The same command in another section.
+        func `in`(_ section: Section) -> Command {
+            Command(section: section, title: title, key: key, enabled: enabled, checked: checked, menu: menu,
+                    action: action)
+        }
     }
 
     /// The menu bar, drawn from the command list; the shortcuts work wherever the keyboard is.
@@ -99,89 +105,99 @@
                     palette?.toggle()
                 },
                 Command(section: .view, title: "Fade Inactive Panes", checked: fade) { fade.toggle() },
-            ] + Self.pane(page, page?.keyboardPane) + paneKeys + [Appearance.auto, .light, .dark].map { value in
-                Command(section: .appearance, title: value.rawValue.capitalized, checked: appearance == value) {
-                    appearance = value
+            ] + Self.pane(page) { [page] in page?.keyboardPane } + paneKeys + [Appearance.auto, .light, .dark]
+                .map { value in
+                    Command(section: .appearance, title: value.rawValue.capitalized, checked: appearance == value) {
+                        appearance = value
+                    }
+                } + [InterfaceStyle.glass, .classic].map { value in
+                    Command(section: .interfaceStyle, title: value.rawValue.capitalized, checked: style == value) {
+                        style = value
+                    }
+                } + [
+                    // The text size (design: theme and accessibility); OrielApp's key monitor takes ⌘=.
+                    Command(section: .size, title: "Bigger", key: .init("+"), enabled: fontSize < PaneTerminal.fontSizes
+                        .upperBound) { PaneTerminal.stepFontSize(1) },
+                    Command(
+                        section: .size,
+                        title: "Smaller",
+                        key: .init("-"),
+                        enabled: fontSize > PaneTerminal.fontSizes
+                            .lowerBound,
+                    ) { PaneTerminal.stepFontSize(-1) },
+                    Command(
+                        section: .size,
+                        title: "Actual Size",
+                        key: .init("0"),
+                        enabled: fontSize != PaneTerminal.fontSize,
+                    ) {
+                        fontSize = PaneTerminal.fontSize
+                    },
+                    Command(
+                        section: .tabSteps,
+                        title: "Show Previous Tab",
+                        key: .init("[", modifiers: [.command, .shift]),
+                        enabled: tabs.count > 1,
+                    ) { page?.step(-1) },
+                    Command(section: .tabSteps, title: "Show Next Tab", key: .init("]", modifiers: [.command, .shift]),
+                            enabled: tabs.count > 1) { page?.step(1) },
+                ] + tabs.prefix(9).enumerated().map { index, tab in
+                    Command(section: .tabs, title: page?.titleText(tab) ?? tab.label,
+                            key: KeyboardShortcut(KeyEquivalent(Character("\(index + 1)"))), action: {
+                                // The workspace when the key is pressed: the menu may be older than a workspace switch.
+                                if let page, let workspace = page.selectedWorkspace,
+                                   workspace.tabs.indices.contains(index)
+                                {
+                                    page.select(workspace, tab: workspace.tabs[index].id)
+                                }
+                            })
                 }
-            } + [InterfaceStyle.glass, .classic].map { value in
-                Command(section: .interfaceStyle, title: value.rawValue.capitalized, checked: style == value) {
-                    style = value
-                }
-            } + [
-                // The text size (design: theme and accessibility); OrielApp's key monitor takes ⌘=.
-                Command(section: .size, title: "Bigger", key: .init("+"), enabled: fontSize < PaneTerminal.fontSizes
-                    .upperBound) { PaneTerminal.stepFontSize(1) },
-                Command(section: .size, title: "Smaller", key: .init("-"), enabled: fontSize > PaneTerminal.fontSizes
-                    .lowerBound) { PaneTerminal.stepFontSize(-1) },
-                Command(
-                    section: .size,
-                    title: "Actual Size",
-                    key: .init("0"),
-                    enabled: fontSize != PaneTerminal.fontSize,
-                ) {
-                    fontSize = PaneTerminal.fontSize
-                },
-                Command(section: .tabSteps, title: "Show Previous Tab", key: .init("[", modifiers: [.command, .shift]),
-                        enabled: tabs.count > 1) { page?.step(-1) },
-                Command(section: .tabSteps, title: "Show Next Tab", key: .init("]", modifiers: [.command, .shift]),
-                        enabled: tabs.count > 1) { page?.step(1) },
-            ] + tabs.prefix(9).enumerated().map { index, tab in
-                Command(section: .tabs, title: page?.titleText(tab) ?? tab.label,
-                        key: KeyboardShortcut(KeyEquivalent(Character("\(index + 1)"))), action: {
-                            // The workspace when the key is pressed: the menu may be older than a workspace switch.
-                            if let page, let workspace = page.selectedWorkspace,
-                               workspace.tabs.indices.contains(index)
-                            {
-                                page.select(workspace, tab: workspace.tabs[index].id)
-                            }
-                        })
-            }
         }
 
         /// The pane's actions (D48), for View ▸ Pane on the keyboard card and the card header's context menu. Close
-        /// Pane is in the File menu.
-        static func pane(_ page: Page?, _ pane: HostStore.Pane?) -> [Command] {
-            guard let page, let pane else {
+        /// Pane is in the File menu. Actions ask `target` for the pane when they run: the menu bar may be older than
+        /// the last keyboard move.
+        static func pane(_ page: Page?, _ target: @escaping @MainActor () -> HostStore.Pane?) -> [Command] {
+            guard let page, let pane = target() else {
                 return ["Split Right", "Split Down", "Split Left", "Split Up", "Zoom Pane"]
                     .map { Command(section: .pane, title: $0, enabled: false) }
                     + ["Move to New Tab", "Move to Tab", "Move to New Workspace", "Rename Pane…"]
                     .map { Command(section: .paneMove, title: $0, enabled: false) }
                     + [Command(section: .close, title: "Close Pane", key: .init("w"), enabled: false)]
             }
-            let id = pane.id, store = page.store
-            let workspace = store.workspace(of: pane.tabID)
-            let tab = workspace?.tabs.first { $0.id == pane.tabID }
-            let zoomed = page.zoomedPaneID == id
-            let split = { (title: String, key: KeyboardShortcut?, direction: SplitNode.Direction, before: Bool) in
+            let store = page.store, workspace = store.workspace(of: pane.tabID), zoomed = page.zoomedPaneID == pane.id
+            let act = { (title: String, key: KeyboardShortcut?, run: @escaping (HostStore.Pane) async -> Void) in
                 Command(section: .pane, title: title, key: key) {
-                    Task { await page.split(id, direction, before: before) }
+                    if let pane = target() {
+                        Task { await run(pane) }
+                    }
                 }
             }
             return [
-                split("Split Right", .init("d"), .right, false),
-                split("Split Down", .init("d", modifiers: [.command, .shift]), .down, false),
-                split("Split Left", nil, .right, true),
-                split("Split Up", nil, .down, true),
+                act("Split Right", .init("d")) { await page.split($0.id, .right) },
+                act("Split Down", .init("d", modifiers: [.command, .shift])) { await page.split($0.id, .down) },
+                act("Split Left", nil) { await page.split($0.id, .right, before: true) },
+                act("Split Up", nil) { await page.split($0.id, .down, before: true) },
                 Command(section: .pane, title: zoomed ? "Restore Pane" : "Zoom Pane",
                         key: .init(.return, modifiers: [.command, .shift]),
-                        enabled: zoomed || (tab?.tree?.paneIDs.count ?? 0) > 1) { page.zoom(id) },
-                Command(section: .paneMove, title: "Move to New Tab") {
-                    if let workspace {
-                        Task { await page.move(pane, to: .newTab(workspaceID: workspace.id)) }
+                        enabled: zoomed || store.panes.count { $0.tabID == pane.tabID } > 1, action: {
+                            if let pane = target() {
+                                page.zoom(pane.id)
+                            }
+                        }),
+                act("Move to New Tab", nil) { pane in
+                    if let workspace = store.workspace(of: pane.tabID) {
+                        await page.move(pane, to: .newTab(workspaceID: workspace.id))
                     }
-                },
+                }.in(.paneMove),
                 // herdr refuses a move into the pane's own tab.
                 Command(section: .paneMove, title: "Move to Tab", enabled: (workspace?.tabs.count ?? 0) > 1,
                         menu: (workspace?.tabs ?? []).filter { $0.id != pane.tabID }.map { other in
-                            Command(section: .paneMove, title: page.titleText(other)) {
-                                Task { await page.move(pane, to: .tab(other.id)) }
-                            }
+                            act(page.titleText(other), nil) { await page.move($0, to: .tab(other.id)) }
                         }),
-                Command(section: .paneMove, title: "Move to New Workspace") {
-                    Task { await page.move(pane, to: .newWorkspace) }
-                },
-                Command(section: .paneMove, title: "Rename Pane…") { page.renamingPaneID = id },
-                Command(section: .close, title: "Close Pane", key: .init("w")) { Task { await store.close(pane: id) } },
+                act("Move to New Workspace", nil) { await page.move($0, to: .newWorkspace) }.in(.paneMove),
+                act("Rename Pane…", nil) { page.renamingPaneID = $0.id }.in(.paneMove),
+                act("Close Pane", .init("w")) { await store.close(pane: $0.id) }.in(.close),
             ]
         }
 
@@ -203,10 +219,10 @@
                             })
                 }
             }
+            // Even when it looks even: the menu may be older than the tab's last change.
             let balance = Command(section: .paneKeys, title: "Balance Splits",
-                                  key: .init("=", modifiers: [.command, .control]),
-                                  enabled: tab?.tree?.evened().isEmpty == false, action: {
-                                      if let page, let tab {
+                                  key: .init("=", modifiers: [.command, .control]), enabled: tab != nil, action: {
+                                      if let page, let tab = page.selectedTab {
                                           Task { await page.store.balance(tab) }
                                       }
                                   })

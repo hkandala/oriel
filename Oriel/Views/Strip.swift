@@ -307,6 +307,8 @@
                         .onTapGesture(count: 2) { set(0.5) }
                         .accessibilityElement()
                         .accessibilityLabel(label)
+                        // As the cards: a plain element shows XCUITest no value.
+                        .accessibilityAddTraits(.isStaticText)
                         .accessibilityValue("\(Int((ratio * 100).rounded()))%")
                         .accessibilityIdentifier(id)
                         .accessibilityAdjustableAction { direction in

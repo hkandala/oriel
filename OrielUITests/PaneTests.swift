@@ -10,9 +10,11 @@ extension OrielUITests {
         let second = try await split(first), third = try await split(second)
         element("tab.\(tab)").click()
         let divider = element("divider.\(tab).root")
-        XCTAssertTrue(divider.waitForExistence(timeout: 3))
+        // The second split's divider: the app has all three panes.
+        XCTAssertTrue(element("divider.\(tab).1").waitForExistence(timeout: 3))
 
-        app.typeKey("=", modifierFlags: [.command, .control])
+        // ⌃⌘= through its menu item: a global hotkey on this Mac takes the key before the app sees it.
+        pick("Pane", "Balance Splits")
         try await expectWidths(tab, [first: 1 / 3, second: 1 / 3, third: 1 / 3])
         XCTAssertTrue(hasValue(divider, "33%", timeout: 2))
 
@@ -158,6 +160,9 @@ extension OrielUITests {
         shot.lifetime = .keepAlways
         add(shot)
         app.typeKey("w", modifierFlags: [.command, .shift])
+        // Key again, the keyboard is still on the card it was on (phase 12 saw it move once after a re-activation).
+        XCTAssertTrue(hasValue(card, "content 100%", timeout: 3))
+        XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
     }
 }
 
@@ -231,6 +236,7 @@ extension OrielUITests {
             }
             Thread.sleep(forTimeInterval: 0.1)
         }
+        XCTFail("\(element.identifier) has \(element.value ?? "no value"), not \(value)")
         return false
     }
 

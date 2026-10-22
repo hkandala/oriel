@@ -43,6 +43,8 @@
             // The card's element is its background: a container would merge into a one-pane page's.
             .background {
                 CardSurface(keyboard: lit).accessibilityElement().accessibilityLabel(pane?.cardTitle ?? "terminal")
+                    // A plain element has no value in XCUITest (phase 10); the static text trait gives it one.
+                    .accessibilityAddTraits(.isStaticText)
                     .accessibilityValue("content \(Int((content * 100).rounded()))%")
                     .accessibilityIdentifier("pane.\(id)")
                     // The buttons show on hover only; VoiceOver splits from the card.
@@ -106,7 +108,7 @@
             // Behind the header, so its buttons still take their own clicks.
             .background { Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) } }
             .contextMenu {
-                let commands = AppCommands.pane(page, pane)
+                let commands = AppCommands.pane(page) { pane }
                 CommandItems(commands: commands.filter { $0.section == .pane })
                 Divider()
                 CommandItems(commands: commands.filter { $0.section == .paneMove })
