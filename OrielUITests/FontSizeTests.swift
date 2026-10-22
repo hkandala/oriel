@@ -53,6 +53,31 @@ extension OrielUITests {
         try await waitFor("w1:p1") { $0.split(separator: "\n").contains("∫¡") }
     }
 
+    func testDebugKeys() async throws {
+        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        var out: [String] = []
+        for (key, flags) in [
+            ("=", XCUIElement.KeyModifierFlags.command),
+            ("+", .command),
+            ("-", .command),
+            ("0", .command),
+        ] {
+            app.typeKey(key, modifierFlags: flags)
+            try await Task.sleep(for: .milliseconds(300))
+            out.append("\(key): \(app.windows.firstMatch.title)")
+        }
+        try await Self.call(one, "pane.send_text", ["pane_id": "w1:p1", "text": "clear; cat -v\r"])
+        try await Task.sleep(for: .milliseconds(500))
+        element("terminal.w1:p1").click()
+        app.typeKey("=", modifierFlags: [])
+        app.typeKey("+", modifierFlags: [])
+        app.typeKey(.return, modifierFlags: [])
+        try await Task.sleep(for: .milliseconds(500))
+        try await out.append(read("w1:p1"))
+        _ = try? await Self.call(one, "pane.send_keys", ["pane_id": "w1:p1", "keys": ["ctrl+c"]])
+        XCTFail("DEBUG " + out.joined(separator: " | "))
+    }
+
     /// The grid shrinks below `grid` (a bigger font); the new grid.
     @discardableResult
     private func expectGrid(_ terminal: XCUIElement, smallerThan grid: String) async throws -> String {

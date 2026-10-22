@@ -15,6 +15,12 @@ struct OrielApp: App {
             // ⌘= is View ▸ Bigger's second key (a menu item shows one). A monitor, not an invisible button with
             // the shortcut, so Shift may be down: on layouts where = is a shifted key (German: ⇧0), ⌘= is ⇧⌘0.
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                if event.modifierFlags.contains(.command) {
+                    let info = "KEY \(event.characters ?? "nil") \(event.charactersIgnoringModifiers ?? "nil") "
+                        + "\(event.keyCode) \(event.modifierFlags.rawValue)"
+                    MainActor.assumeIsolated { NSApp.windows.first?.title = info }
+                    NSLog("%@", info)
+                }
                 guard event.modifierFlags.intersection([.command, .control, .option]) == .command,
                       event.charactersIgnoringModifiers == "=" else { return event }
                 MainActor.assumeIsolated { PaneTerminal.stepFontSize(1) }
