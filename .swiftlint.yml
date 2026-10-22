@@ -10,3 +10,10 @@ opening_brace: # SwiftFormat's wrapMultilineStatementBraces puts these braces on
   ignore_multiline_statement_conditions: true
   ignore_multiline_function_signatures: true
 allow_zero_lintable_files: true # the hook may pass only excluded files
+custom_rules:
+  look_colors: # D44: views draw with the Look tokens; color literals live in Style.swift only
+    included: '/Oriel/'
+    excluded: 'Oriel/Views/Style\.swift$'
+    regex: 'Color\((red|white|hex|hue):|Color\.(white|black|red|green|blue|orange|yellow)\b|[(\[ ]\.(white|black|red|green|blue|orange|yellow)\.opacity'
+    message: 'Draw with the Look tokens in Style.swift (D44)'
+    severity: error
