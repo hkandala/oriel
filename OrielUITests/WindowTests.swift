@@ -63,6 +63,7 @@ extension OrielUITests {
         app.typeKey("s", modifierFlags: [.command, .control])
 
         // Window 1 controls and closes: window 2 takes over at its own card size.
+        raise(first)
         first.buttons[XCUIIdentifierCloseWindow].click()
         XCTAssertTrue(first.waitForNonExistence(timeout: 3))
         XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
@@ -171,15 +172,16 @@ extension OrielUITests {
         return String(decoding: data, as: UTF8.self).split(separator: "\n").count { $0.contains("remote-api-bridge") }
     }
 
-    /// Brings the window to the front: a click on a part the other window does not cover (macOS offsets a new window
-    /// by about 29 pt), in its title row right of the tabs, else below its cards.
+    /// Brings the window to the front with Window ▸ Cycle Through Windows (⌘`), as a click cannot: on CI's 1024×768
+    /// screen both windows have the same frame. `firstMatch` is the front window.
     func raise(_ window: XCUIElement) {
-        let frame = window.frame
-        let others = app.windows.allElementsBoundByIndex.filter { $0.identifier != window.identifier }.map(\.frame)
-        let points = [CGVector(dx: frame.width * 0.75, dy: 8), CGVector(dx: frame.width / 2, dy: frame.height - 3)]
-        guard let point = points.first(where: { point in
-            !others.contains { $0.contains(CGPoint(x: frame.minX + point.dx, y: frame.minY + point.dy)) }
-        }) else { return XCTFail("window \(window.identifier) is covered") }
-        window.coordinate(withNormalizedOffset: .zero).withOffset(point).click()
+        let identifier = window.identifier
+        if app.windows.firstMatch.identifier != identifier {
+            app.typeKey("`", modifierFlags: .command)
+        }
+        let front = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            self.app.windows.firstMatch.identifier == identifier
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter().wait(for: [front], timeout: 3), .completed, "window \(identifier) in front")
     }
 }

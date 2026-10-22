@@ -201,8 +201,10 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
 - **`app.windows.firstMatch` follows the front window**: an element kept from it before a second window opens then
   means the new window, so "window 1" checks passed on window 2 (seen in the final run's screenshots). Window tests
   keep `app.windows[identifier]`.
-- **New windows overlap all but about 29 pt**: a click meant for the window behind lands on the front one. The window
-  tests raise a window by clicking a point the other window does not cover.
+- **New windows overlap all but about 29 pt here, and fully on CI** (1024×768: both windows at `{0, 31, 1024, 674}`),
+  so a click meant for the window behind lands on the front one; on CI the close button closed window 2. The window
+  tests raise a window with Window ▸ Cycle Through Windows (⌘`) and wait until `app.windows.firstMatch` (the front
+  window) is it. The first CI run failed three window tests on this; local runs had passed.
 - **Hand check of restore:** two windows came back, window 2 with its sidebar hidden and tab t2 selected, window 1 with
   its sidebar and t1; the window quit in full screen came back out of it (`/tmp/oriel-shots/16/restore/`).
   After the spec review's change: ⌘N in a full-screen window opened window 3 in full screen and it stayed there; a
