@@ -13,9 +13,9 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 
 1. **Font size keys.** View ▸ Bigger (⌘+ and ⌘=), Smaller (⌘-), Actual Size (⌘0) change the font size
    setting (one `@AppStorage` key, 8–32, default 13). This is the design's text size setting; the
-   terminal follows it. SwiftUI Commands cannot hide a menu item, so the second shortcut (⌘=) is a
-   zero-size, zero-opacity `Button` with `.keyboardShortcut` in the window's content (not `.hidden()`,
-   whose shortcuts do not fire). The menu shows the first shortcut. Phase 20 uses the same trick.
+   terminal follows it. SwiftUI Commands cannot hide a menu item, so the menu shows ⌘+ and an
+   `NSEvent` key monitor takes ⌘= (an invisible button with the shortcut never got ⌘= on CI; see
+   Findings).
 2. **Apply the size live.** One shared `TerminalController`; on a change, call
    `controller.setTerminalConfiguration(_:)` with the new size; live surfaces take it. Each surface's grid
    changes, so cards resize their PTYs through the existing resize path and its 100 ms settle. No extra
@@ -56,6 +56,11 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
   JetBrains Mono. The controller's base sets `NSFont.monospacedSystemFont(…).familyName`
   (`.AppleSystemUIFontMonospaced`), which CoreText (and so libghostty) resolves to SF Mono. Every grid got
   a little narrower than before phase 11.
+- **⌘= is an `NSEvent` local key monitor, not the phase's invisible button.** The zero-size, zero-opacity
+  `Button` with `.keyboardShortcut("=")` worked on this Mac in every run but never got ⌘= on CI (three CI
+  runs, also after the fixes under Learned): the grid stayed at the ⌘+ size. The monitor (in `OrielApp.init`,
+  ⌘ alone plus "=") calls `stepFontSize(1)` before any view or menu sees the key. Phase 20's second
+  shortcuts should use the same monitor.
 
 ### Decisions
 
@@ -69,9 +74,9 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
   typed ∫ on this Mac's (ABC), so Option depended on the layout. The `ponytail:` note in `herdrKey` keeps
   the Option-as-Alt idea for the Settings window (herdr takes `alt+<any ASCII character>`, tested).
 - **Menu: View ▸ Bigger (⌘+), Smaller (⌘-), Actual Size (⌘0)** after the appearance pickers, each disabled
-  at its end of 8–32 (Actual Size at 13). ⌘= is a zero-size, zero-opacity, accessibility-hidden button in
-  `ContentView`'s background. Bigger and Smaller (both keys) go through `PaneTerminal.stepFontSize`, which
-  reads the stored value (see Learned).
+  at its end of 8–32 (Actual Size at 13). Bigger and Smaller go through `PaneTerminal.stepFontSize`, which
+  reads the stored value and clamps (see Learned).
+
 - **`Commands.swift`.** `OrielApp.swift` passed SwiftLint's 400-line limit during the phase, so the menu
   commands and their focused values moved to their own file (a pure move, its own commit).
 - **The test writes the user's defaults and puts them back.** The UI tests share the app's defaults (same
@@ -94,9 +99,9 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
   into an underline, `\e[0 q` brought back the block, and vim's insert-mode bar shows.
 - **SwiftUI keeps a keyboard shortcut's first action.** The invisible ⌘= button's action kept its first
   `@AppStorage` copy: after another key changed the size, ⌘= added 1 to the size it last set itself
-  (13 → 17). `.id(fontSize)` on the button fixed it locally but not on CI, where ⌘= came right after ⌘+,
-  before the view rebuilt. Reading `UserDefaults` in the action fixes it. `testFontSizeKeys` presses ⌘=
-  right after ⌘+ and again after ⌘0. Phase 20's second shortcuts must read current state too.
+  (13 → 17). `.id(fontSize)` on the button fixed it locally; reading `UserDefaults` in the action
+  (`stepFontSize`) fixed it for good. Neither made the button work on CI, hence the monitor.
+  `testFontSizeKeys` presses ⌘= right after ⌘+ and again after ⌘0.
 - **libghostty-spm drops selection-clipboard writes**, so Ghostty's `copy-on-select = true` copies nowhere;
   a future switch needs `clipboard` (checked by hand: a drag then put the text on the pasteboard).
 - **Global hotkeys eat test keys.** On this Mac Raycast takes ⌥⇧B and a scratchpad takes ⌥.; synthesized
