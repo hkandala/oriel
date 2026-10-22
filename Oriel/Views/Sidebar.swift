@@ -16,6 +16,17 @@
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
+            HStack(spacing: 0) {
+                pagesAndFooter
+                    // On the window background, as in the reference: only the pane cards are lighter.
+                    .frame(width: width - 6)
+                ResizeHandle(width: $width)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("sidebar")
+        }
+
+        private var pagesAndFooter: some View {
             VStack(spacing: 0) {
                 ScrollView(.horizontal) {
                     HStack(spacing: 0) {
@@ -57,11 +68,6 @@
                 }
                 .padding(8)
             }
-            // On the window background, as in the reference: only the pane cards are lighter.
-            .frame(width: width)
-            .overlay(alignment: .trailing) { ResizeHandle(width: $width) }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("sidebar")
         }
     }
 
@@ -303,7 +309,7 @@
         }
     }
 
-    /// The 6 pt handle on the sidebar's trailing edge: a drag resizes it within `Sidebar.widths`.
+    /// The 6 pt handle at the sidebar's trailing edge, beside the pages: a drag resizes it within `Sidebar.widths`.
     private struct ResizeHandle: View {
         @Binding var width: Double
         @State private var start: Double?
@@ -317,8 +323,6 @@
                     width = min(max(start + drag.translation.width, Sidebar.widths.lowerBound),
                                 Sidebar.widths.upperBound)
                 }.onEnded { _ in start = nil })
-                // Its middle on the edge.
-                .offset(x: 3)
                 .accessibilityElement()
                 .accessibilityLabel("Sidebar Width")
                 .accessibilityIdentifier("sidebar.resize")

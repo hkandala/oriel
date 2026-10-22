@@ -17,3 +17,8 @@ custom_rules:
     regex: 'Color\((red|white|hue):|Color\((\.sRGB|\.displayP3|nsColor|uiColor|cgColor)|Color\.(white|black|gray|red|green|blue|orange|yellow|pink|purple|mint|teal|cyan|indigo|brown)\b|[(\[ ]\.(white|black|gray|red|green|blue|orange|yellow|pink|purple|mint|teal|cyan|indigo|brown)(\.opacity|\))'
     message: 'Draw with the Look tokens in Style.swift (D44)'
     severity: error
+  herdr_commands: # plan/ui-layout.md: never send the user to herdr; the app shows the button that does it
+    included: '/Oriel/'
+    regex: '\b(Text|Label|message|Button)\([^\n]*"[^"\n]*(herdr --|herdr (session|workspace|tab|pane|server|attach)\b|in herdr\b)'
+    message: 'No UI text tells the user to run herdr: show the button that does it'
+    severity: error

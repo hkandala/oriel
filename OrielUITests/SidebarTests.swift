@@ -26,9 +26,9 @@ extension OrielUITests {
         let two = env("ORIEL_SESSION2"), three = env("ORIEL_SESSION3")
         XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
         openSessionSheet()
-        XCTAssertTrue(element("open-session.session.\(two)").label.contains("opens it"))
-        XCTAssertTrue(element("open-session.session.\(three)").label.contains("starts it"))
-        XCTAssertTrue(element("open-session.open.\(one)").label.contains("open"))
+        expect("open-session.session.\(two)", under: "Running", above: "Stopped")
+        expect("open-session.session.\(three)", under: "Stopped", above: "Open in this window")
+        expect("open-session.open.\(one)", under: "Open in this window", above: nil)
         // Empty field: a new name is offered first.
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'open-session.new.'"))
             .firstMatch.isSelected)
@@ -74,7 +74,7 @@ extension OrielUITests {
         app.typeText(five)
         let row = element("open-session.session.\(five)")
         XCTAssertTrue(row.wait(for: \.isSelected, toEqual: true, timeout: 2))
-        XCTAssertTrue(row.label.contains("starts it"))
+        expect(row.identifier, under: "Stopped", above: nil)
         app.typeKey(.return, modifierFlags: [])
 
         try poll(timeout: connect) { header == five }
@@ -92,7 +92,9 @@ extension OrielUITests {
         XCTAssertFalse(element("sidebar.dot.\(one)").exists)
         try await Self.call(two, "session.snapshot", [:])
 
-        element("sidebar.header").rightClick()
+        // At its center: the page that slid away may leave it unhittable for a moment.
+        element("sidebar.header").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
+        XCTAssertTrue(app.menuItems["Close Page"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.menuItems["Close Page"].isEnabled)
         app.typeKey(.escape, modifierFlags: [])
     }
@@ -128,13 +130,14 @@ extension OrielUITests {
         // commit ahead of it, and a linked worktree.
         let root = "/tmp/oriel-e2e-git-\(Int.random(in: 10000 ... 99999))"
         let git = "git -c user.name=e2e -c user.email=e2e@oriel"
-        let script = "mkdir -p \(root) && cd \(root) && git init -q -b main repo && cd repo && "
+        // In a subshell: w2 stays in /tmp, a folder outside any repository.
+        let script = "(mkdir -p \(root) && cd \(root) && git init -q -b main repo && cd repo && "
             + "\(git) commit -q --allow-empty -m one && git clone -q --bare . ../up.git && "
             + "git remote add origin ../up.git && git fetch -q origin && git branch -q -u origin/main && "
-            + "\(git) commit -q --allow-empty -m two && git worktree add -q ../tree -b feature && echo built-$((6*7))"
+            + "\(git) commit -q --allow-empty -m two && git worktree add -q ../tree -b feature) && echo built-$((6*7))"
         try await Self.call(one, "pane.send_text", ["pane_id": "w2:p1", "text": "\(script)\r"])
         addTeardownBlock { [one] in
-            _ = try? await Self.call(one, "pane.send_text", ["pane_id": "w2:p1", "text": "cd /tmp; rm -rf \(root)\r"])
+            _ = try? await Self.call(one, "pane.send_text", ["pane_id": "w2:p1", "text": "rm -rf \(root)\r"])
         }
         try await waitFor("w2:p1") { $0.contains("\nbuilt-42") }
         let made = try await Self.call(one, "workspace.create", ["cwd": "\(root)/repo", "label": "repo",
@@ -157,8 +160,12 @@ extension OrielUITests {
         keepScreenshot("git rows")
 
         // A new commit shows within the 10 s refresh.
-        try await Self.call(one, "pane.send_text", ["pane_id": "w2:p1",
-                                                    "text": "cd \(root)/repo && \(git) commit -q --allow-empty -m 3\r"])
+        try await Self.call(
+            one,
+            "pane.send_text",
+            ["pane_id": "w2:p1",
+             "text": "(cd \(root)/repo && \(git) commit -q --allow-empty -m 3)\r"],
+        )
         try poll(timeout: 11) { repoRow.value as? String == "main ahead 2 behind 0" }
 
         // The filter matches branches; a matching worktree keeps its repository's row.
@@ -177,7 +184,15 @@ extension OrielUITests {
         let made = try await poll("a new workspace") { () async throws -> String? in
             try await workspaceIDs().first { !before.contains($0) }
         }
-        addTeardownBlock { [one] in _ = try? await Self.call(one, "workspace.close", ["workspace_id": made]) }
+        addTeardownBlock { [one] in
+            // Unless the test closed it.
+            let snapshot = try? await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
+            if (snapshot?["workspaces"] as? [[String: Any]])?.contains(where: { $0["workspace_id"] as? String == made })
+                == true
+            {
+                _ = try? await Self.call(one, "workspace.close", ["workspace_id": made])
+            }
+        }
         let row = element("workspace.\(made)")
         XCTAssertTrue(row.wait(for: \.isSelected, toEqual: true, timeout: 3))
 
@@ -202,7 +217,10 @@ extension OrielUITests {
 
         row.rightClick()
         app.menuItems["Close Workspace"].click()
-        app.buttons["Close Workspace"].click()
+        // D41: it asks, with the tab and pane count.
+        XCTAssertTrue(app.sheets.staticTexts["Its tab, pane and everything running in it will end, here and in every "
+                + "herdr client. This cannot be undone."].waitForExistence(timeout: 2))
+        app.sheets.buttons["Close Workspace"].click()
         try await poll("herdr to close it") { () async throws -> Bool? in
             try await workspaceIDs().contains(made) ? nil : true
         }
@@ -211,11 +229,11 @@ extension OrielUITests {
 
     func testSidebarHandleResizesWithinItsBounds() {
         let sidebar = element("sidebar"), handle = element("sidebar.resize")
-        XCTAssertTrue(handle.waitForExistence(timeout: connect))
+        XCTAssertTrue(element("pane.w1:p1").waitForExistence(timeout: connect))
         let start = sidebar.frame.width
         let drag = { (offset: CGFloat) in
             let from = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-            from.press(forDuration: 0.1, thenDragTo: from.withOffset(CGVector(dx: offset, dy: 0)))
+            from.click(forDuration: 0.2, thenDragTo: from.withOffset(CGVector(dx: offset, dy: 0)))
         }
         drag(60)
         XCTAssertEqual(sidebar.frame.width, start + 60, accuracy: 2)
@@ -224,6 +242,15 @@ extension OrielUITests {
         drag(600)
         XCTAssertEqual(sidebar.frame.width, 480, accuracy: 1)
         drag(start - 480)
+    }
+
+    /// The sheet's row sits in this group: below its header, above the next one.
+    private func expect(_ row: String, under section: String, above next: String?) {
+        let frame = element(row).frame
+        XCTAssertGreaterThan(frame.minY, element("open-session.section.\(section)").frame.maxY, row)
+        if let next {
+            XCTAssertLessThan(frame.maxY, element("open-session.section.\(next)").frame.minY, row)
+        }
     }
 
     /// Opens the session's page through the sheet.

@@ -59,6 +59,7 @@ struct FilterList: View {
                                 if let section = item.section, !section.isEmpty {
                                     Text(section).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
                                         .padding(.horizontal, 8).padding(.top, offset > 0 ? 6 : 0)
+                                        .accessibilityIdentifier("\(name).section.\(section)")
                                 } else {
                                     Divider().padding(4)
                                 }
