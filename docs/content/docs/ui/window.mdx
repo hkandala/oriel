@@ -162,10 +162,12 @@ One capsule per herdr tab of the selected workspace (D42).
   keyboard; the sidebar does not change. With nobody waiting it says "Nobody
   needs you". There is no footer.
 - The panel stays while the pointer moves into it (0.15 s grace). It closes
-  when the pointer leaves both, on any click outside it, or with Esc. It does
-  not open while a mouse button is down.
+  when the pointer leaves both, on a click or a scroll outside it, or with
+  Esc. It does not open while a mouse button is down. It fades and grows in
+  from 0.97 over 0.13 s.
 - The panel is drawn inside the window, not as a popover window, so the
-  terminal keeps the keyboard. The hover card uses the same panel.
+  terminal keeps the keyboard. It is drawn over the whole window, so no
+  scroll view clips it. The hover card uses the same panel.
 
 ## Sidebar
 

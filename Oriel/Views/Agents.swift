@@ -131,7 +131,6 @@ struct StatusBadge: View {
         let pane: HostStore.Pane
         let page: Page
         var picked: () -> Void = {}
-        @Environment(\.look) private var look
 
         var body: some View {
             Button {

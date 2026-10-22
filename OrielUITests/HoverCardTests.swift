@@ -68,9 +68,12 @@ extension OrielUITests {
         XCTAssertTrue(button.waitForExistence(timeout: connect))
         XCTAssertEqual(button.label, "New Tab ⌘T")
         button.hover()
+        // The help tag's text: on CI its label was empty.
         let tip = app.helpTags.firstMatch
-        XCTAssertTrue(tip.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertEqual(tip.label, "New Tab ⌘T", tip.debugDescription)
+        XCTAssertTrue(tip.waitForExistence(timeout: 5))
+        let texts = [tip.label, tip.title, tip.value as? String ?? ""]
+            + tip.descendants(matching: .any).allElementsBoundByIndex.flatMap { [$0.label, $0.value as? String ?? ""] }
+        XCTAssertTrue(texts.contains("New Tab ⌘T"), "\(texts) \(tip.debugDescription)")
         // The tip is a window of its own: the screen, not the app's window.
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "tooltip"
