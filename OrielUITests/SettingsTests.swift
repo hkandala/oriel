@@ -38,9 +38,9 @@ extension OrielUITests {
         app.typeKey("=", modifierFlags: .command)
         try await expectGrid(terminal, smallerThan: bigger)
         app.typeKey("-", modifierFlags: .command)
-        expectGrid(terminal, bigger)
+        try await expectGrid(terminal, bigger)
         app.typeKey("0", modifierFlags: .command)
-        expectGrid(terminal, actual)
+        try await expectGrid(terminal, actual)
         try await expectPTYSize("w1:p1")
     }
 
@@ -82,9 +82,8 @@ extension OrielUITests {
         }
     }
 
-    private func expectGrid(_ terminal: XCUIElement, _ grid: String) {
-        let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", grid), object: terminal)
-        XCTAssertEqual(XCTWaiter().wait(for: [shown], timeout: 3), .completed, grid)
+    private func expectGrid(_ terminal: XCUIElement, _ grid: String) async throws {
+        try await poll("the grid \(grid)") { terminal.value as? String == grid ? true : nil }
     }
 
     /// The pid of the pane's `terminal session` run.
