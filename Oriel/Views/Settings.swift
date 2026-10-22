@@ -58,10 +58,13 @@
                     Text("System Monospaced").tag("")
                     ForEach(families, id: \.self) { Text($0).tag($0) }
                 }
+                .accessibilityIdentifier("settings.font")
                 LabeledContent("Font Size") {
-                    Stepper("\(fontSize) pt", value: $fontSize, in: PaneTerminal.fontSizes)
+                    Text("\(fontSize) pt")
+                    Stepper("Font Size", value: $fontSize, in: PaneTerminal.fontSizes)
+                        .labelsHidden()
                         .accessibilityIdentifier("settings.fontSize")
-                        .accessibilityLabel("Font Size").accessibilityValue("\(fontSize) points")
+                        .accessibilityValue("\(fontSize) points")
                 }
                 Picker("Cursor Style", selection: $cursorStyle) {
                     Text("Block").tag(TerminalCursorStyle.block)
