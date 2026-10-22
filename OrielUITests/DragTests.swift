@@ -60,7 +60,7 @@ extension OrielUITests {
         try await poll("the pane split right in that tab") { () async throws -> Bool? in
             try await order(other) == [third, fourth, second] ? true : nil
         }
-        XCTAssertTrue(capsule.isSelected)
+        XCTAssertTrue(capsule.has(\.isSelected, true, within: 2))
     }
 
     func testDropsOnTheTrackEndAWorkspaceRowAndEmptySidebarMoveThePane() async throws {
