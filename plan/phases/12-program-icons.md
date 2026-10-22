@@ -81,3 +81,78 @@ tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, 
   stack, next to the card headers of that tab.
 
 ## Findings
+
+### Deviations
+
+- **The title prefix matches herdr's stripped title, so `✳` is gone from the catalog.** herdr's
+  `terminal_title_stripped` drops status glyphs (`✳ hello` → `hello`, `⠋ Claude Code` → `Claude Code`) and keeps
+  `π`. A prefix matches the whole title or its start up to a space, so the two-word "Claude Code" works; claude's
+  `✳` could never match and was removed in `tools/build.mjs`.
+- **A Node CLI's script comes before the process name.** The phase's order (name, argv0, then the script suffix)
+  would always say `node` for `pi`, because the catalog has a `node` icon. For a `node` or `bun` process the
+  script's path suffix is checked first, then the script's base name, then name and argv0. Only a runtime's
+  script counts (vim editing a file named `git` stays vim).
+- **The script's base name also matches `match.process`.** A CLI run through its npm bin link has the link as
+  `argv[1]` (`node /opt/homebrew/bin/gemini`), not the package path (checked with a symlinked script), so the
+  `scriptSuffix` values only catch launches by the package path.
+- **No `display_agent`.** herdr's `display_agent` is a human label set through `pane.report_metadata`, not an
+  agent kind (`resources/research/herdr/herdr-core.md`), so it would rarely match `match.agent`; only `agent` is decoded.
+  Phase 15 reads it from `snapshot.agents[]` if it needs it.
+- **The asset catalog is generated.** `tools/build.mjs` also writes `Oriel/Assets.xcassets/program.<id>.imageset`
+  (the SVG, template, vector data kept), so a fix goes into the tool, not the asset catalog. The build is
+  deterministic: rerunning it changed no other SVG.
+- **`ProgramTile(icon:letter:)` has no `size`.** Every tile today is 22×18; a later phase adds a size when it
+  needs one.
+- **Sidebar tab rows show the plain `terminal` tile** (no stack, no value), as the phase asks: phase 14 replaces
+  them.
+- **With only the shell running, the card header shows the folder alone**, not "zsh ~": `program(_:)` stays nil
+  for the shell (the close check needs that), so the app does not know the shell's name.
+
+### Decisions
+
+- **`Program { name, argv0, script }` in HerdrKit**; `script` is the first argv element after argv0 that is not
+  an option. `program(_:)` returns it (nil while only the shell runs); the close dialog uses its `name`.
+- **Matcher:** `[ProgramIcon].iconID(agent:program:title:) -> String` in `HerdrKit/ProgramIcon.swift`, tested
+  against the real `resources/icons/catalog.json` (read by path), so the catalog's values are tested too.
+  `ProgramIcon` decodes only `id`, `tile` and `match`.
+- **The app bundles `catalog.json` by a file reference** in the project (not a copy, not a Swift table): one
+  source, read once into a global `programIcons`.
+- **Credits:** `Oriel/Credits.rtf` (the About panel reads it). RTF, not HTML: HTML import sets black text, which
+  vanishes in a dark About panel.
+- **Capsule accessibility value:** `"in view; icons: vim, sleep, nano"` (front first); `"icons: …"` when not in
+  view. Two older tests now check the `in view` prefix.
+- **Stack layers:** each tile in front cuts a 1 pt ring (`destinationOut` in a compositing group) out of the
+  tiles behind, instead of a ring in a background color: Glass has no solid background color.
+- **Front tile:** the keyboard card (the store's per-tab keyboard terminal, now observed), else herdr's focused
+  pane. Others in herdr's order, up to 5.
+- **Header name:** herdr's agent, else the foreground process's name ("vim /private/tmp"); the label still wins.
+- **`HostModels.swift`.** The store's nested `Workspace`, `Tab` and `Pane` moved to an extension in their own file:
+  `HostStore.swift` passed SwiftLint's 400-line and 250-line body limits.
+- **Weak 1x icons**, fixed in `tools/build.mjs`: fish → Phosphor fish-simple, podman → Phosphor package (Podman
+  purple), java → Phosphor coffee (Java orange), jupyter → Phosphor planet (Jupyter orange); postgres and aws keep
+  their marks, thickened by a new `bold` option (the union of copies shifted around a small circle: 0.3 and 0.35
+  units at 24).
+- **Catalog fixes from npm's `bin` fields:** claude's native binary is `claude.exe`; gemini's script is
+  `@google/gemini-cli/bundle/gemini.js`; qwen's is `@qwen-code/qwen-code/cli-entry.js`. The old paths stay for
+  older installs.
+
+### Assumptions
+
+- **A spinner title floods `pane.updated`** (one event per frame, measured: 30 title changes, 30 events). The
+  snapshot pacing (one read in flight plus one again) absorbs it; the program is asked again only when the
+  stripped title changes, which spinners do not touch. Not measured with a real working agent.
+
+### Learned
+
+- **herdr sends `pane.updated` on a title change** (not on `cd`); it is now in the subscription. The 30 s beat
+  is no longer the only way a title reaches the app.
+- **herdr reports no foreground process for a setuid program** (`top`): `process_info` has no
+  `foreground_processes`. Decoding then fails, the icon stays `terminal`, and the close check asks ("A
+  program"), which is the safe side. The e2e test uses nano instead (macOS's `nano` is `pico`).
+- **A SwiftUI `.task` on a card in the strip's `LazyHStack` got cancelled** when a page was built and dropped
+  during a scroll; the cancelled `process_info` call failed and the pane was never asked again (the logs tab
+  stayed `terminal`). The card now starts an unstructured `Task` in `onAppear`, and a failed ask clears `asked`.
+- **An `XCTNSPredicateExpectation` checks about once a second**, so "within 2 s" failed at ~1.2 s real time. The
+  icon test polls every 100 ms with the suite's `poll`.
+- **Return reaches `keyDown` with key code 36 (76 on the keypad)** for XCUITest's `typeKey(.return)`; plain Return
+  goes to libghostty, so the hook sits before the key routing.
