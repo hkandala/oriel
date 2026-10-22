@@ -55,7 +55,7 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    debug branches or draft PRs.
 2. **Too many GUI runs.** ~80 minutes of GUI lock in phase 11, two full suites by reviewers and one more
    by the agent. Rule: the GUI budget above.
-3. **Waiting for CI.** A CI run takes ~10 minutes. Rule: never sit waiting on CI between steps; push and
+3. **Waiting for CI.** A CI run takes ~6 minutes. Rule: never sit waiting on CI between steps; push and
    keep working. Check CI once at the end; one red run on a late commit is fixed, not re-run.
 4. **Too many review rounds for a small phase.** Rule: a small phase (a few files, no new view) gets one
    round; later rounds only for the reviewer whose blocker or should was fixed. A round's nits are fixed
@@ -100,6 +100,10 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
 17. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
 18. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
+19. **Fast tests** (e2e-speed): wait with `exists(within:)`, `vanishes(within:)`, `has(_:_:within:)`, `until`
+   or `poll`; XCTest's own waits take over a second even when the condition holds (lint rejects them). Fail
+   async helpers with a throw, not XCTFail, and keep tearDown sync (else a failure hangs for 2 minutes). Relaunch the app only when the
+   launch is under test (~2.5 s each). Keep a test under ~30 s; CI splits the suite by name into 4 jobs.
 
 ## The phase loop (inside each phase agent)
 

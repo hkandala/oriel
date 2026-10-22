@@ -24,7 +24,7 @@ Findings from the `ci` runs of 2026-10-21 and 22 (40 runs: 17 green, 12 red, 11 
   rests on a page when its offset is within a point of it; the assertion prints both values if it comes
   back.
 - **Timeouts were not the problem.** e2e takes 8–12 min of its 20; no test hit the 120 s allowance except
-  after a real failure (a poll that never passes runs out its tries).
+  after a real failure, and those hung in teardown until the allowance (fixed, see Speed).
 
 ## Keeping CI green
 
@@ -34,6 +34,80 @@ Findings from the `ci` runs of 2026-10-21 and 22 (40 runs: 17 green, 12 red, 11 
   say which step and what the window showed; guessing costs runs.
 - CI is a 1x, 1024 × 674 pt window on a VM, US layout. Grid and pixel checks must
   hold at 1x.
-- Wait on conditions (`waitForExistence`, `wait(for:toEqual:)`, `poll`), never a bare sleep; a sleep is
+- Wait on conditions (`exists(within:)`, `has(_:_:within:)`, `until`, `poll`), never a bare sleep; a sleep is
   only the pause inside a poll.
 - Check a fix with `gh run rerun <id>` on the same commit, not only one green run.
+
+## Speed
+
+Measured 2026-10-22 from the xcresults of green run 39843820616 (before) and the runs after the change.
+
+### Where the time went (before)
+
+| Part | Time |
+|---|---|
+| CI run, push to done | 18 min 43 s (one e2e job: lint and build ran beside it) |
+| HerdrKit tests (`make test`) | 39 s |
+| Build for testing | ~70 s |
+| 72 UI tests | 966 s (16 min): 167 s setUp, 782 s bodies, 17 s tearDown |
+| One app launch (terminate the last one, launch, idle) | ~2.3 s, 79 per run (~3 min) |
+
+- **XCTest's waits cost a second each.** `waitForExistence`, `waitForNonExistence`, `wait(for:toEqual:)` and
+  `XCTNSPredicateExpectation` check about once a second, and take 1.2 s even when the condition already
+  holds (a probe test: 1.24 s for an element on screen; `.exists` is 0.2 s). The suite had about 380 of them,
+  plus `hasKeyboard` on a predicate expectation: roughly a third of the test time.
+- **One job ran everything in a row.** The tests are independent (each launches the app, the e2e script
+  makes fresh herdr sessions), so they split across machines with no change.
+- **A failure in an async test cost 2 more minutes and its recording.** With `continueAfterFailure = false`
+  XCTest stops the test inside the main actor's job and runs teardown there; anything in teardown that awaits
+  the main actor (an `async` tearDown, a `@MainActor` teardown block with `await`) then waits until the 120 s
+  allowance (spindump in run 39863167622; two such failures in 39868989432). A probe test failed in 5.9 s after
+  the fix.
+- Not worth it: per-test setUp is ~2.5 s of each test (terminate ~1.4 s), so merging tests to share a launch
+  saves little and costs isolation. Build and setup take 65–105 s per job; a package cache did not shorten
+  them (see below), a full DerivedData cache was not tried. `-parallel-testing-enabled` runs clones on one
+  Mac, which UI tests cannot share (one mouse, one app bundle id).
+
+### What changed
+
+- **100 ms waits** (3bf94a4): `exists(within:)`, `vanishes(within:)`, `has(_:_:within:)` on `XCUIElement` and
+  `until(_:_:)` replace XCTest's waits; a SwiftLint rule (`fast_waits`) rejects the old ones in the UI tests.
+- **4 parallel e2e jobs** (10cd9e1, 2e6ff98): `make e2e SHARD=i/4` runs every 4th test by name (by name, not
+  file order: files hold similar tests). lint, both builds and the HerdrKit tests share one job, so a run
+  needs 5 macOS runners, the account's limit; a second run at the same time queues.
+- **No teardown waits for the main actor** (6c76c1a, 886a4a4): a timed-out `poll` throws instead of calling
+  XCTFail, tearDown is sync, and async teardown blocks use the nonisolated `ids(_:in:)`. A failure now shows at
+  once and keeps its screen recording.
+- **Tried and dropped: caching Swift packages** (16081ad, 99af648). libghostty's 190 MB xcframework restored in
+  2 s, but build plus session setup stayed 65–105 s per job with or without it.
+- **Races the slow waits hid:** `newTab` now waits for the capsule to be hittable (it slides in; a click 0.2 s
+  after it appears missed it). Expect a few more of these: a wait that passes at once can expose an animation.
+- No test removed or merged.
+
+### Before and after
+
+| | Before (39843820616) | After (39870619668) | After (39871268934) |
+|---|---|---|---|
+| CI run, push to done | 18 min 43 s | 5 min 37 s | 6 min 25 s |
+| Slowest e2e job | 18 min 38 s | 5 min 32 s | 6 min 20 s |
+| UI test time, all tests | 966 s (72 tests) | 682 s (76 tests) | 770 s (76 tests) |
+| The 71 tests in both | 950 s | 636 s | 716 s |
+
+Other green runs after the change: 39863083184 (7 min 42 s), 39866497406 (8 min 22 s, its jobs shared the
+5 runners with a second run), 39868394263 (5 min 2 s). The same tests vary by ±15 % between runs on CI's VMs,
+and the 4 jobs end up to a minute apart (split by name, not by time).
+
+Flakes seen in these runs, left to their owners: `testHoldingOverACapsuleSpringLoadsItsTabAndADropSplitsRight`
+(the drop after the unzoom split nothing; also before the change, 39836126263), `testDropOnACardsCenter…`
+(no keyboard on the card dropped on a left edge, once, 39868989432; phase 18's hand checks saw the same), and
+HerdrKit's `reads at once, one at a time…` (first read over its 100 ms bound, once, 39866693109).
+
+### Writing fast tests
+
+- Wait with `exists(within:)`, `vanishes(within:)`, `has(_:_:within:)`, `until` or `poll` (lint enforces it).
+- Fail an async helper with a thrown error, never XCTFail; keep tearDown sync and async teardown blocks off the
+  main actor (the 2-minute hang).
+- A launch costs ~2.5 s: relaunch only when the launch is what the test checks.
+- Each element query takes 0.1–0.2 s and each click about 1 s: check the outcome through one herdr call or one
+  accessibility value, not a walk over many elements.
+- Keep a test under ~30 s: one long test sets its shard's time. New tests join a shard by name on their own.
