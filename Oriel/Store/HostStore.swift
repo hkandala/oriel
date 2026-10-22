@@ -38,8 +38,11 @@ final class HostStore {
         }
     }
 
-    /// After each snapshot, with the agent changes since the last one: the page settles its selection on it.
-    @ObservationIgnored var onSnapshot: (([Seen.Change]) -> Void)?
+    #if os(macOS)
+        /// The windows that have its page open, the controller first (D66): the window where the user last typed or
+        /// clicked in a card of the session. The others watch.
+        var windows: [WindowPages] = []
+    #endif
     @ObservationIgnored private(set) var client: (any Multiplexer)?
     @ObservationIgnored private var task: Task<Void, Never>?
     /// Workspaces with a git run in flight: one at a time each.
@@ -52,6 +55,11 @@ final class HostStore {
 
     /// The app's stores, one per session open in a window (design D43). A session with no page has none.
     private static var open: [String: HostStore] = [:]
+
+    /// Every open session's store, each once however many windows show it.
+    static var all: [HostStore] {
+        open.values.sorted { $0.session < $1.session }
+    }
 
     #if os(macOS)
         /// The session's store, made and connected on first use; `start` starts its server first (stopped or new).
@@ -113,7 +121,7 @@ final class HostStore {
                 case let .snapshot(snapshot):
                     let changes = apply(snapshot)
                     state = .live
-                    onSnapshot?(changes)
+                    snapshotted(changes)
                     // After the first snapshot, so the session list never delays the layout.
                     if !loadedSessions {
                         loadedSessions = true
@@ -124,7 +132,7 @@ final class HostStore {
                     // First, to tell "not running" from other failures without a flash of the other text.
                     await loadSessions()
                     state = .failed(error)
-                    onSnapshot?([])
+                    snapshotted([])
                 }
             }
         }

@@ -155,11 +155,19 @@
 
     /// The machine's icon and a chevron; its menu lists the machines (This Mac only for now) and Add Remote Host.
     private struct MachineButton: View {
+        @Environment(\.openWindow) private var openWindow
+
         var body: some View {
             Menu {
-                // The current machine: picking it does nothing. macOS 27 draws no images in these menus (an AppKit
+                // The current machine: picking it does nothing; ⌥-click opens it in a new window, as ⌘N.
+                // ponytail: no machine id is stored until remote machines exist; then `WindowGroup(id:for:)` and
+                // `openWindow(id:value:)` carry it. macOS 27 draws no images in these menus (an AppKit
                 // NSMenuItem.image does not show either); the icons are here for systems that do.
-                Toggle(isOn: .constant(true)) { Label("This Mac", systemImage: thisMacIcon) }
+                Toggle(isOn: Binding { true } set: { _ in
+                    if NSEvent.modifierFlags.contains(.option) {
+                        openWindow(id: "main")
+                    }
+                }) { Label("This Mac", systemImage: thisMacIcon) }
                 Divider()
                 // ponytail: no-op until remote hosts
                 Button("Add Remote Host…", systemImage: "plus") {}

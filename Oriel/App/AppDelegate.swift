@@ -12,20 +12,42 @@
             center.requestAuthorization(options: [.alert, .badge]) { _, _ in }
         }
 
-        /// A row per pane that needs you or finished, then New Tab.
+        /// A window macOS restores in full screen keeps AppKit's empty title bar over the title row, so windows leave
+        /// full screen before the app quits and never restore in it.
+        func applicationShouldTerminate(_ app: NSApplication) -> NSApplication.TerminateReply {
+            let full = app.windows.filter { $0.styleMask.contains(.fullScreen) }
+            guard !full.isEmpty else { return .terminateNow }
+            for window in full {
+                observers.append(NotificationCenter.default.addObserver(
+                    forName: NSWindow.didExitFullScreenNotification, object: window, queue: .main,
+                ) { _ in
+                    MainActor.assumeIsolated {
+                        if !app.windows.contains(where: { $0.styleMask.contains(.fullScreen) }) {
+                            app.reply(toApplicationShouldTerminate: true)
+                        }
+                    }
+                })
+                window.toggleFullScreen(nil)
+            }
+            return .terminateLater
+        }
+
+        private var observers: [NSObjectProtocol] = []
+
+        /// A row per pane that needs you or finished, each session once over every window, then New Tab.
         func applicationDockMenu(_: NSApplication) -> NSMenu? {
             let menu = NSMenu()
-            for page in WindowPages.main?.list ?? [] {
-                for pane in page.store.panes {
+            for store in HostStore.all {
+                for pane in store.panes {
                     guard let state = pane.state, state >= .finishedUnseen else { continue }
-                    let workspace = page.store.workspace(of: pane.tabID)?.label ?? ""
+                    let workspace = store.workspace(of: pane.tabID)?.label ?? ""
                     let item = NSMenuItem(
-                        title: "\(pane.agentName ?? "agent") \(state.word) · \(page.id) · \(workspace)",
+                        title: "\(pane.agentName ?? "agent") \(state.word) · \(store.session) · \(workspace)",
                         action: #selector(pick),
                         keyEquivalent: "",
                     )
                     item.target = self
-                    item.representedObject = Notifications.id(pane, page)
+                    item.representedObject = Notifications.id(pane, session: store.session)
                     menu.addItem(item)
                 }
             }
@@ -44,7 +66,7 @@
 
         @objc private func newTab() {
             NSApp.activate()
-            Task { await WindowPages.main?.current?.newTab() }
+            Task { await WindowPages.windows.first?.current?.newTab() }
         }
 
         /// While the app is active too: it posts only for panes the user is not looking at.
@@ -80,7 +102,8 @@
                 let center = UNUserNotificationCenter.current()
                 let delivered = await center.deliveredNotifications().map(\.request.identifier)
                 // After the wait: a later snapshot's new one must not go.
-                let holding = Set(store.panes.filter { $0.state ?? .idle >= .finishedUnseen }.map { id($0, page) })
+                let holding = Set(store.panes.filter { $0.state ?? .idle >= .finishedUnseen }
+                    .map { id($0, session: page.id) })
                 let gone = delivered.filter { $0.hasPrefix("local|\(page.id)|") && !holding.contains($0) }
                 center.removeDeliveredNotifications(withIdentifiers: gone)
             }
@@ -90,18 +113,19 @@
                 content.title = "\(pane.agentName ?? "agent") \(change.state.word)"
                 content.body = "\(page.id) · \(page.place(pane))"
                 UNUserNotificationCenter.current()
-                    .add(UNNotificationRequest(identifier: id(pane, page), content: content, trigger: nil))
+                    .add(UNNotificationRequest(identifier: id(pane, session: page.id), content: content, trigger: nil))
             }
         }
 
         /// The user looks at these panes.
-        static func remove(_ panes: [HostStore.Pane], of page: Page) {
-            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: panes.map { id($0, page) })
+        static func remove(_ panes: [HostStore.Pane], session: String) {
+            UNUserNotificationCenter.current()
+                .removeDeliveredNotifications(withIdentifiers: panes.map { id($0, session: session) })
         }
 
         /// One per terminal, so a newer one replaces the older; the Dock menu's rows carry it too.
-        static func id(_ pane: HostStore.Pane, _ page: Page) -> String {
-            "local|\(page.id)|\(pane.terminalID ?? pane.id)"
+        static func id(_ pane: HostStore.Pane, session: String) -> String {
+            "local|\(session)|\(pane.terminalID ?? pane.id)"
         }
     }
 #endif

@@ -9,7 +9,7 @@ struct OrielApp: App {
 
         init() {
             SwipeRouter.install()
-            // One window; no tab bar or tab menu items of AppKit's own.
+            // Windows, not window tabs: no tab bar or tab menu items of AppKit's own.
             NSWindow.allowsAutomaticWindowTabbing = false
             // Before any surface exists, so none starts at libghostty's default size.
             PaneTerminal.setFontSize(fontSize)
@@ -28,7 +28,7 @@ struct OrielApp: App {
 
     var body: some Scene {
         #if os(macOS)
-            Window("Oriel", id: "main") {
+            WindowGroup(id: "main") {
                 ContentView()
             }
             .windowToolbarStyle(.unifiedCompact)
@@ -51,7 +51,8 @@ struct OrielApp: App {
         /// The open pages' names and the one in view (D43), for a window macOS restores.
         @SceneStorage("pages") private var savedPages = ""
         @SceneStorage("page") private var savedPage = ""
-        /// Per window (phase 16 opens more).
+        /// Each page's selected workspace and tabs, as JSON.
+        @SceneStorage("selection") private var savedSelection = ""
         @SceneStorage("sidebar") private var sidebar = true
         @SceneStorage("sidebarWidth") private var sidebarWidth = 240.0
         /// The sidebar shows the Agents view instead of the workspaces.
@@ -67,11 +68,11 @@ struct OrielApp: App {
             }
             .task {
                 await restore()
-                WindowPages.main = pages
-                pages.showPending()
+                pages.opened()
             }
             .onChange(of: pages.list.map(\.id)) { savedPages = $1.joined(separator: " ") }
             .onChange(of: pages.current?.id) { savedPage = $1 ?? "" }
+            .onChange(of: selection) { savedSelection = $1 }
             // Git status for the page in view of a visible window: now and every 10 s (D67).
             .task(id: scenePhase == .active ? pages.current?.id : nil) {
                 // At once for every page, not in a cancelled task's late cleanup.
@@ -86,8 +87,24 @@ struct OrielApp: App {
             }
         }
 
+        /// Each page's selection, for `savedSelection`; sorted keys, so the same selection is the same text.
+        private var selection: String {
+            let pages = Dictionary(uniqueKeysWithValues: pages.list.map { page in
+                (page.id, Selection(workspace: page.selectedWorkspaceID, tabs: page.selectedTabIDs))
+            })
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            return (try? encoder.encode(pages)).map { String(decoding: $0, as: UTF8.self) } ?? ""
+        }
+
+        private struct Selection: Codable {
+            var workspace: String?
+            var tabs: [String: String]
+        }
+
         /// `-session` on the command line if given, else the restored window's pages that still run, else
-        /// `default`; the first page is started when it is stopped. Never another session by itself.
+        /// `default`; the first page is started when it is stopped. Never another session by itself. Each page gets
+        /// its saved selection back; an id that is gone falls back to herdr's focus on the next snapshot.
         private func restore() async {
             guard pages.list.isEmpty else { return }
             // A run against a throwaway session must open only it.
@@ -106,6 +123,17 @@ struct OrielApp: App {
             }
             if pages.list.isEmpty {
                 pages.open(argument ?? "default", start: true)
+            }
+            let selection = (try? JSONDecoder().decode([String: Selection].self, from: Data(savedSelection.utf8))) ??
+                [:]
+            for page in pages.list {
+                guard let saved = selection[page.id] else { continue }
+                page.selectedWorkspaceID = saved.workspace
+                page.selectedTabIDs = saved.tabs
+                // A store another window has loaded settles now; a new one on its first snapshot.
+                if page.store.state == .live {
+                    page.settle()
+                }
             }
         }
     }
@@ -142,7 +170,7 @@ struct OrielApp: App {
                             .padding(.top, 4)
                             .transition(.move(edge: .leading).combined(with: .opacity))
                     }
-                    Detail(page: page)
+                    Detail(pages: pages, page: page)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 // Rex's collapse time; the toggle and ⌃⌘S only flip the value.
@@ -193,7 +221,7 @@ struct OrielApp: App {
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
             // In full screen the empty toolbar would cover the title row; it shows on hover only.
             .windowToolbarFullScreenVisibility(.onHover)
-            .background(FullScreenReader(fullScreen: $fullScreen))
+            .background(WindowReader(pages: pages, fullScreen: $fullScreen))
             .navigationTitle(page.selectedTab.map { "\(page.titleText($0)) - \(page.id)" } ?? HostStore.name(page.id))
             // Every window, sheet and menu, and the terminals' palettes, follow the app's appearance.
             .onChange(of: appearance, initial: true) {
@@ -274,8 +302,10 @@ struct OrielApp: App {
         }
     }
 
-    /// Whether this view's window is in full screen (or on its way in), from its style and its notifications.
-    private struct FullScreenReader: NSViewRepresentable {
+    /// The window's AppKit side: whether it is in full screen (or on its way in), from its style and its
+    /// notifications, and its close, which ends the window's pages (D66 hand-off).
+    private struct WindowReader: NSViewRepresentable {
+        let pages: WindowPages
         @Binding var fullScreen: Bool
 
         func makeNSView(context _: Context) -> Reader {
@@ -283,11 +313,13 @@ struct OrielApp: App {
         }
 
         func updateNSView(_ reader: Reader, context _: Context) {
+            reader.pages = pages
             reader.changed = { fullScreen = $0 }
         }
 
         final class Reader: NSView {
             var changed: (Bool) -> Void = { _ in }
+            weak var pages: WindowPages?
             private var observers: [NSObjectProtocol] = []
 
             override func viewDidMoveToWindow() {
@@ -295,14 +327,15 @@ struct OrielApp: App {
                 observers.forEach(NotificationCenter.default.removeObserver)
                 observers = []
                 guard let window else { return }
-                // A window macOS restores in full screen keeps AppKit's empty title bar over the title row (the
-                // toolbar's on-hover full screen look holds only when the user enters). Its frame still comes back
-                // (frame autosave); full screen does not.
-                window.isRestorable = false
+                pages?.window = window
+                let center = NotificationCenter.default
+                let close = NSWindow.willCloseNotification
+                observers.append(center.addObserver(forName: close, object: window, queue: .main) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.pages?.closed() }
+                })
                 let notifications = [NSWindow.willEnterFullScreenNotification: true,
                                      NSWindow.willExitFullScreenNotification: false]
                 for (name, value) in notifications {
-                    let center = NotificationCenter.default
                     observers.append(center.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
                         MainActor.assumeIsolated { self?.changed(value) }
                     })
@@ -341,58 +374,4 @@ struct OrielApp: App {
         func updateNSView(_: NSVisualEffectView, context _: Context) {}
     }
 
-    /// The page's selected workspace's tabs, or why there is nothing to show.
-    private struct Detail: View {
-        let page: Page
-
-        var body: some View {
-            let store = page.store
-            switch store.state {
-            case .connecting:
-                ProgressView("Connecting to \(HostStore.name(store.session))")
-            case .live:
-                if let workspace = page.selectedWorkspace {
-                    Strip(workspace: workspace, page: page)
-                        .overlay(alignment: .bottom) {
-                            if let notice = store.notice {
-                                Text(notice).padding(8).glassEffect().padding(gap * 2)
-                                    .accessibilityIdentifier("detail.notice")
-                            }
-                        }
-                } else {
-                    NewWorkspaceButton(page: page)
-                }
-            case .failed(.notFound):
-                message("herdr is not installed", "Install it in a terminal:",
-                        "curl -fsSL https://herdr.dev/install.sh | sh")
-            case let .failed(.unsupported(text)):
-                message("herdr is too old", text + ". Update it in a terminal:", "herdr update")
-            case .failed where !store.isRunning:
-                message("\(store.session) is not running", "Start it to see its workspaces.", nil, start: true)
-            case let .failed(error):
-                message("No answer from herdr", error.localizedDescription, nil)
-            }
-        }
-
-        /// What is wrong and the command that fixes it; a stopped session gets a Start button instead (design D47).
-        private func message(_ title: String, _ text: String, _ command: String?, start: Bool = false) -> some View {
-            ContentUnavailableView {
-                Label(title, systemImage: "terminal")
-            } description: {
-                Text(text)
-                // Why a start failed.
-                if let notice = page.store.notice {
-                    Text(notice).accessibilityIdentifier("detail.notice")
-                }
-                if let command {
-                    Text(command).monospaced().textSelection(.enabled)
-                }
-            } actions: {
-                if start {
-                    Button("Start \(page.store.session)") { Task { await page.store.start() } }
-                        .accessibilityIdentifier("detail.start")
-                }
-            }
-        }
-    }
 #endif

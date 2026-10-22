@@ -34,21 +34,24 @@
         /// Gives this terminal the keyboard, now or once it is in a window.
         func takeKeyboard() {
             wantsKeyboard = window == nil
-            Self.request += 1
-            pending = Self.request
+            claimed = true
             claimKeyboard()
         }
 
-        /// Counts keyboard requests across terminals; only the latest wins, so an older one cannot steal the
-        /// keyboard back.
-        private static var request = 0
-        /// The request this view acts on.
-        private var pending = 0
+        /// This view holds its window's latest keyboard request: the registry drops the others' (`dropClaim`), so an
+        /// older one cannot steal the keyboard back. Per window: a claim in one window leaves another's alone.
+        private var claimed = false
+
+        /// Another terminal of the window asked for the keyboard.
+        func dropClaim() {
+            wantsKeyboard = false
+            claimed = false
+        }
 
         /// After SwiftUI's update: a first responder set during one (a tab that just arrived) is undone.
         private func claimKeyboard() {
             DispatchQueue.main.async { [weak self] in
-                guard let self, pending == Self.request else { return }
+                guard let self, claimed else { return }
                 // Out of the window for a moment (SwiftUI moves it to a new host when a split closes): claim it
                 // once it is in again, or the keyboard goes nowhere.
                 guard let window else {
@@ -66,7 +69,7 @@
         override func viewWillMove(toWindow newWindow: NSWindow?) {
             if newWindow == nil, window?.firstResponder === self {
                 wantsKeyboard = true
-                pending = Self.request
+                claimed = true
             }
             super.viewWillMove(toWindow: newWindow)
         }
@@ -305,6 +308,9 @@
     /// work).
     struct TerminalHost: NSViewRepresentable {
         let terminal: PaneTerminal
+        /// The content's opacity. On the host view: SwiftUI's `opacity` moved the terminal's accessibility frame half a
+        /// card down, so clicks at its center missed it.
+        let alpha: CGFloat
 
         func makeNSView(context _: Context) -> NSView {
             let host = NSView()
@@ -315,20 +321,25 @@
             return host
         }
 
-        func updateNSView(_: NSView, context _: Context) {}
+        func updateNSView(_ host: NSView, context _: Context) {
+            host.alphaValue = alpha
+        }
     }
 
     /// A card's terminal, with what to do when it does not stream.
     struct TerminalCard: View {
         let terminal: PaneTerminal
+        /// Another window controls the session (D66): the content dims a little, and the window's capsule offers Take
+        /// Back instead of the card.
+        let watched: Bool
 
         var body: some View {
-            TerminalHost(terminal: terminal)
+            TerminalHost(terminal: terminal, alpha: watched ? 0.85 : 1)
                 // A new terminal in the same spot (panes swapped) needs a new host to adopt it.
                 .id(ObjectIdentifier(terminal))
                 .overlay(alignment: .bottom) {
                     switch terminal.state {
-                    case .watching:
+                    case .watching where !watched:
                         Button("In use elsewhere · Take back", action: terminal.takeBack)
                             .buttonStyle(.glass)
                             .accessibilityIdentifier("pane.\(terminal.paneID).take-back")
@@ -339,7 +350,7 @@
                             Text(text).font(.caption).foregroundStyle(.secondary)
                         }
                         .padding(gap)
-                    case .idle, .live:
+                    case .idle, .live, .watching:
                         EmptyView()
                     }
                 }

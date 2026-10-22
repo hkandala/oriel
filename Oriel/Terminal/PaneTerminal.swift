@@ -55,43 +55,12 @@
         @ObservationIgnored private var shown = false
         /// Counts streams, so a stream that is ending cannot change the state of the next one.
         @ObservationIgnored private var generation = 0
-
-        /// The text size setting (design: theme and accessibility).
-        static let fontSize = 13
-        static let fontSizes = 8 ... 32
-
-        /// `keybind = clear`: app shortcuts reach the menu. Transparent, so the card shows through.
-        /// No padding, so cells map from the view's origin; no scrollback, herdr keeps it. The system
-        /// monospaced font (SF Mono) rather than libghostty's own JetBrains Mono.
-        private static let controller = TerminalController {
-            $0.withCustom("keybind", "clear")
-            $0.withFontFamily(NSFont.monospacedSystemFont(ofSize: 0, weight: .regular).familyName ?? "Menlo")
-            $0.withBackgroundOpacity(0)
-            $0.withWindowPaddingX(0)
-            $0.withWindowPaddingY(0)
-            $0.withCustom("window-padding-balance", "false")
-            $0.withCustom("scrollback-limit", "0")
-            // Option types characters on every layout (on CI's, libghostty sent Alt by default).
-            $0.withCustom("macos-option-as-alt", "false")
-        }
-
-        /// Bigger or Smaller, from the stored value: the key monitor in `OrielApp.init` has no `@AppStorage`.
-        static func stepFontSize(_ step: Int) {
-            let defaults = UserDefaults.standard
-            let size = clamped(defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step
-            defaults.set(clamped(size), forKey: "fontSize")
-        }
-
-        /// Every surface takes a new text size at once, and its stream stays open; its grid changes, so the
-        /// card resizes its PTY.
-        static func setFontSize(_ size: Int) {
-            controller.setTerminalConfiguration(TerminalConfiguration { $0.withFontSize(Float(clamped(size))) })
-        }
-
-        /// In 8–32: a hand-edited default (`defaults write`) can be out of range.
-        private static func clamped(_ size: Int) -> Int {
-            min(max(size, fontSizes.lowerBound), fontSizes.upperBound)
-        }
+        /// Another window controls the session (D66): a new stream watches.
+        @ObservationIgnored var watches: () -> Bool = { false }
+        /// A key press, paste or click in the card (D8's triggers), before it is handled.
+        @ObservationIgnored var onInput: () -> Void = {}
+        /// Shown lately, by its window (the registry): not evicted while it is.
+        @ObservationIgnored var inView = false
 
         init(terminalID: String, paneID: String, client: any Multiplexer) {
             self.terminalID = terminalID
@@ -146,6 +115,13 @@
             open(takeover: true)
         }
 
+        /// Control of the session moved between windows (D66): this window's streams take over, or watch.
+        func control(_ controls: Bool) {
+            if shown, observing == controls {
+                open(observe: !controls, takeover: controls)
+            }
+        }
+
         func keys(_ keys: [String]) {
             enqueue(.keys(keys))
         }
@@ -153,6 +129,9 @@
         func mouse(_ action: TerminalStream.MouseAction, _ button: TerminalStream.MouseButton,
                    column: Int, row: Int, modifiers: Int)
         {
+            if action == .down {
+                onInput()
+            }
             if state == .watching, action == .down {
                 takeBack()
             } else if state == .live {
@@ -171,7 +150,7 @@
         private func open(observe: Bool = false, takeover: Bool = false) {
             guard shown, let grid else { return }
             end()
-            observing = observe
+            observing = observe || !takeover && watches()
             let generation = generation
             let previous = run
             run = Task {
@@ -313,6 +292,7 @@
             } else {
                 pending.append(input)
             }
+            onInput()
             if state == .watching {
                 takeBack()
             }
@@ -334,6 +314,46 @@
                 }
                 draining = nil
             }
+        }
+    }
+
+    /// The text size and the one configuration every surface shares.
+    extension PaneTerminal {
+        /// The text size setting (design: theme and accessibility).
+        static let fontSize = 13
+        static let fontSizes = 8 ... 32
+
+        /// `keybind = clear`: app shortcuts reach the menu. Transparent, so the card shows through.
+        /// No padding, so cells map from the view's origin; no scrollback, herdr keeps it. The system
+        /// monospaced font (SF Mono) rather than libghostty's own JetBrains Mono.
+        private static let controller = TerminalController {
+            $0.withCustom("keybind", "clear")
+            $0.withFontFamily(NSFont.monospacedSystemFont(ofSize: 0, weight: .regular).familyName ?? "Menlo")
+            $0.withBackgroundOpacity(0)
+            $0.withWindowPaddingX(0)
+            $0.withWindowPaddingY(0)
+            $0.withCustom("window-padding-balance", "false")
+            $0.withCustom("scrollback-limit", "0")
+            // Option types characters on every layout (on CI's, libghostty sent Alt by default).
+            $0.withCustom("macos-option-as-alt", "false")
+        }
+
+        /// Bigger or Smaller, from the stored value: the key monitor in `OrielApp.init` has no `@AppStorage`.
+        static func stepFontSize(_ step: Int) {
+            let defaults = UserDefaults.standard
+            let size = clamped(defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step
+            defaults.set(clamped(size), forKey: "fontSize")
+        }
+
+        /// Every surface takes a new text size at once, and its stream stays open; its grid changes, so the
+        /// card resizes its PTY.
+        static func setFontSize(_ size: Int) {
+            controller.setTerminalConfiguration(TerminalConfiguration { $0.withFontSize(Float(clamped(size))) })
+        }
+
+        /// In 8–32: a hand-edited default (`defaults write`) can be out of range.
+        private static func clamped(_ size: Int) -> Int {
+            min(max(size, fontSizes.lowerBound), fontSizes.upperBound)
         }
     }
 #endif

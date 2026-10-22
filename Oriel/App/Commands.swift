@@ -36,6 +36,7 @@
         @AppStorage("appearance") private var appearance = Appearance.dark
         @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
         @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
+        @Environment(\.openWindow) private var openWindow
 
         var body: some Commands {
             let list = list
@@ -61,6 +62,7 @@
         var list: [Command] {
             let tabs = page?.selectedWorkspace?.tabs ?? []
             return [
+                Command(section: .file, title: "New Window", key: .init("n")) { openWindow(id: "main") },
                 Command(section: .file, title: "New Tab", key: .init("t"), enabled: page?.selectedWorkspace != nil) {
                     Task { await page?.newTab() }
                 },

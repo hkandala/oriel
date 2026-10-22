@@ -79,8 +79,8 @@
             }
         }
 
-        /// The strip, for wheel clicks; it registers itself.
-        fileprivate weak static var strip: StripAnchor.Anchor?
+        /// Every window's strip, for wheel clicks; each registers itself.
+        fileprivate static let strips = NSHashTable<StripAnchor.Anchor>.weakObjects()
         /// Where the current sideways gesture goes; nil while it goes the usual way.
         private weak static var target: NSScrollView?
         private static var picked = false
@@ -113,7 +113,9 @@
         /// (a mouse, which would only nudge a paged strip) turns one page.
         private static func wheel(_ event: NSEvent, sideways deltaX: CGFloat) -> Bool {
             guard deltaX != 0, let scrollView = scrollView(event) else { return false }
-            if !event.hasPreciseScrollingDeltas, let strip, strip.enclosingScrollView === scrollView {
+            if !event.hasPreciseScrollingDeltas,
+               let strip = strips.allObjects.first(where: { $0.enclosingScrollView === scrollView })
+            {
                 if Date.now.timeIntervalSince(wheeled) > 0.3 {
                     strip.step(deltaX > 0 ? -1 : 1)
                 }
@@ -167,7 +169,7 @@
             override func viewDidMoveToWindow() {
                 super.viewDidMoveToWindow()
                 if window != nil {
-                    SwipeRouter.strip = self
+                    SwipeRouter.strips.add(self)
                 }
             }
 
@@ -297,7 +299,7 @@
                 .background { Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) } }
                 Group {
                     if let terminal {
-                        TerminalCard(terminal: terminal).padding([.horizontal, .bottom], gap)
+                        TerminalCard(terminal: terminal, watched: page.watched).padding([.horizontal, .bottom], gap)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

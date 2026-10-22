@@ -135,9 +135,10 @@ final class OrielUITests: XCTestCase {
 
 /// Helpers shared by the test files.
 extension OrielUITests {
-    /// `stty size` in the pane prints the grid its card shows (the terminal's accessibility value).
-    func expectPTYSize(_ pane: String) async throws {
-        let terminal = element("terminal.\(pane)")
+    /// `stty size` in the pane prints the grid its card shows (the terminal's accessibility value), in this window
+    /// when there are several.
+    func expectPTYSize(_ pane: String, in window: XCUIElement? = nil) async throws {
+        let terminal = (window ?? app).descendants(matching: .any)["terminal.\(pane)"]
         try await waitForPrompt(pane)
         try await poll("stty size in \(pane) to match its card", times: 30) { () async throws -> String? in
             guard terminal.exists, let grid = terminal.value as? String, !grid.isEmpty else { return nil }

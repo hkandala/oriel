@@ -34,6 +34,11 @@
             self.terminals = terminals
         }
 
+        /// Another window controls the session (D66): this page's cards watch.
+        var watched: Bool {
+            store.windows.first.map { $0.terminals !== terminals } ?? false
+        }
+
         var selectedWorkspace: HostStore.Workspace? {
             store.workspaces.first { $0.id == selectedWorkspaceID }
         }
@@ -205,129 +210,6 @@
         /// The snapshot after it selects the new workspace.
         func newWorkspace(label: String? = nil) async {
             arriving = await store.newWorkspace(label: label)?.id ?? arriving
-        }
-    }
-
-    /// The pages of one window, in order, and the one in view (design D43). Each page's store is the app's one
-    /// store of that session; one `PaneViewRegistry` holds every page's terminals.
-    /// ponytail: nothing disconnects the stores when the window closes: the app's one `Window` scene quits with it.
-    /// Phase 16's windows disconnect their pages on close.
-    @MainActor @Observable
-    final class WindowPages {
-        private(set) var list: [Page] = []
-        /// The page in view; nil only until the first page opens.
-        private(set) var current: Page?
-        let terminals = PaneViewRegistry()
-
-        /// The app's one window's pages, for the Dock menu and notification clicks; set once the window restored
-        /// its pages (a `@State` initial value is made again with each view, so not in `init`).
-        /// ponytail: one window; phase 16 picks the window (the key one, else any showing the session).
-        weak static var main: WindowPages?
-        /// A notification or Dock row clicked before its page or pane was there (a click that started the app).
-        private static var pending: String?
-
-        init() {
-            terminals.onKeyboard = { [weak self] terminalID in self?.current?.tookKeyboard(terminalID) }
-            // Return may have started or ended a program.
-            terminals.onReturn = { [weak self] terminalID in
-                guard let store = self?.current?.store,
-                      let pane = store.panes.first(where: { $0.terminalID == terminalID }) else { return }
-                Task {
-                    try? await Task.sleep(for: .seconds(1))
-                    await store.askProgram(pane.id)
-                }
-            }
-        }
-
-        /// Shows the session's page; one not open yet opens after the page in view, its store connecting (`start`:
-        /// its server is started first).
-        func open(_ session: String, start: Bool = false) {
-            if let page = list.first(where: { $0.id == session }) {
-                show(page)
-                return
-            }
-            let store = HostStore.named(session, start: start)
-            let page = Page(store: store, terminals: terminals)
-            store.onSnapshot = { [weak self, weak page] changes in
-                guard let self, let page else { return }
-                page.settle()
-                showTerminals()
-                Notifications.post(changes, page)
-                showPending()
-            }
-            page.settle()
-            list.insert(
-                page,
-                at: current.flatMap { current in list.firstIndex { $0 === current } }.map { $0 + 1 } ?? list.endIndex,
-            )
-            show(page)
-        }
-
-        func show(_ page: Page) {
-            current = page
-            showTerminals()
-        }
-
-        /// Removes the page from the window; its store disconnects and its terminals close. Never the last page.
-        func close(_ page: Page) {
-            guard list.count > 1, let index = list.firstIndex(where: { $0 === page }) else { return }
-            list.remove(at: index)
-            if current === page {
-                show(list[max(index - 1, 0)])
-            }
-            Notifications.remove(page.store.panes, of: page)
-            page.store.disconnect()
-            showTerminals()
-        }
-
-        /// The tab the user looks at (D14): the selected tab of the page in view while the window is key; none on the
-        /// other pages. Its panes' notifications go.
-        func look(key: Bool) {
-            for page in list {
-                let tabID = key && page === current ? page.selectedTab?.id : nil
-                page.store.lookingTabID = tabID
-                if let tabID {
-                    Notifications.remove(page.store.panes.filter { $0.tabID == tabID }, of: page)
-                }
-            }
-        }
-
-        /// Selects an agent's pane from outside the window (a notification, the Dock menu) by its notification id,
-        /// "local|‹session›|‹terminal id›": the terminal outlives a pane id that changed. A page that is not open
-        /// opens; the pane is selected once a snapshot shows it.
-        static func go(to id: String) {
-            pending = id
-            main?.showPending()
-        }
-
-        func showPending() {
-            guard let id = Self.pending else { return }
-            let parts = id.split(separator: "|", maxSplits: 2).map(String.init)
-            guard parts.count == 3 else {
-                Self.pending = nil
-                return
-            }
-            guard let page = list.first(where: { $0.id == parts[1] }) else {
-                open(parts[1])
-                return
-            }
-            guard let pane = page.store.panes.first(where: { ($0.terminalID ?? $0.id) == parts[2] }) else {
-                // Gone: a dead click does not wait for ever.
-                Self.pending = page.store.state == .connecting ? id : nil
-                return
-            }
-            Self.pending = nil
-            show(page)
-            page.go(to: pane)
-        }
-
-        /// Streams the shown tab of the page in view (see the registry), drops the terminals of closed panes and
-        /// pages.
-        func showTerminals() {
-            guard let current else { return }
-            let alive = Set(list.flatMap { $0.store.panes.compactMap(\.terminalID) })
-            terminals.show(current.shownTerminals, alive: alive, client: current.store.client)
-            current.shown(alive: alive)
         }
     }
 #endif

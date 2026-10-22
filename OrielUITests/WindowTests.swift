@@ -1,0 +1,151 @@
+import XCTest
+
+/// Several windows (phase 16): windows on one session share its store and agree on one controller (D66); the other
+/// watches with the control capsule. Session one's t1 is p1 | (p2 / p3), t2 holds p4.
+extension OrielUITests {
+    func testSecondWindowWatchesUntilItsUserTypes() async throws {
+        let (first, second) = try newWindow()
+        // Window 1 opened the session first: it controls, window 2 watches.
+        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
+        XCTAssertFalse(element("notice.controlled", in: first).exists)
+        let terminal = try await terminalID("w1:p1")
+        try await expectStreams(terminal, control: 1, observe: 1)
+        // A wider card than window 1's, so the PTY size tells the windows apart.
+        app.typeKey("s", modifierFlags: [.command, .control])
+        keepScreenshot("window 1 controls", of: first)
+        keepScreenshot("window 2 watches", of: second)
+
+        // Typing in window 2 makes it the controller, and the key is sent.
+        element("terminal.w1:p1", in: second).click()
+        XCTAssertTrue(element("notice.controlled", in: first).waitForExistence(timeout: 3))
+        XCTAssertFalse(element("notice.controlled", in: second).exists)
+        app.typeText("echo one-$((40+2))")
+        app.typeKey(.return, modifierFlags: [])
+        try await waitFor("w1:p1") { $0.contains("\none-42") }
+        // Window 1 still streams the pane, now watching it.
+        try await expectStreams(terminal, control: 1, observe: 1)
+        try await expectPTYSize("w1:p1", in: second)
+
+        // Take Back in window 1: the capsule moves to window 2.
+        raise(first)
+        element("notice.controlled.take-back", in: first).click()
+        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: 3))
+        XCTAssertFalse(element("notice.controlled", in: first).exists)
+        try await expectPTYSize("w1:p1", in: first)
+
+        // Each window keeps its own selection.
+        raise(second)
+        element("tab.w1:t2", in: second).click()
+        XCTAssertTrue(element("tab.w1:t2", in: second).wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("tab.w1:t1", in: first).isSelected)
+    }
+
+    func testClosingTheControllingWindowHandsControlOver() async throws {
+        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        // One events stream per session, however many windows show it (request bridges come and go).
+        try await poll("one bridge run") { () async throws -> Bool? in try await bridges(one) == 1 ? true : nil }
+        let (first, second) = try newWindow()
+        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
+        try await poll("still one bridge run") { () async throws -> Bool? in try await bridges(one) == 1 ? true : nil }
+        app.typeKey("s", modifierFlags: [.command, .control])
+
+        // Window 1 controls and closes: window 2 takes over at its own card size.
+        first.buttons[XCUIIdentifierCloseWindow].click()
+        XCTAssertTrue(first.waitForNonExistence(timeout: 3))
+        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
+        try await expectPTYSize("w1:p1", in: second)
+        try await expectStreams(terminalID("w1:p1"), control: 1, observe: 0)
+    }
+
+    func testWindowsOnDifferentSessionsEachControlTheirOwn() async throws {
+        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        let first = app.windows.firstMatch
+        let identifier = first.identifier
+        // ⌥-click on This Mac opens a window, as ⌘N.
+        element("titlebar.machine", in: first).click()
+        XCUIElement.perform(withKeyModifiers: .option) { app.menuItems["This Mac"].click() }
+        let second = try otherWindow(than: identifier)
+        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
+
+        // Window 2 opens session two and closes its page of session one.
+        element("sidebar.open-session", in: second).click()
+        element("open-session.session.\(two)", in: second).click()
+        XCTAssertTrue(element("sidebar.dot.\(two)", in: second).waitForExistence(timeout: connect))
+        element("sidebar.dot.\(one)", in: second).click()
+        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: 3))
+        // At its center: the page that slid away may leave it unhittable for a moment.
+        element("sidebar.header", in: second).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
+        app.menuItems["Close Page"].click()
+        XCTAssertTrue(element("sidebar.dot.\(one)", in: second).waitForNonExistence(timeout: 3))
+
+        XCTAssertTrue(element("terminal.w1:p1", in: second).waitForExistence(timeout: connect))
+        XCTAssertFalse(element("notice.controlled", in: second).exists)
+        XCTAssertFalse(element("notice.controlled", in: first).exists)
+        let gamma = try await Self.call(two, "pane.get", ["pane_id": "w1:p1"])["pane"] as? [String: Any]
+        try await expectStreams(XCTUnwrap(gamma?["terminal_id"] as? String), control: 1, observe: 0, session: two)
+        try await expectStreams(terminalID("w1:p1"), control: 1, observe: 0)
+        keepScreenshot("window 1 on session one", of: first)
+        keepScreenshot("window 2 on session two", of: second)
+    }
+
+    // MARK: Helpers
+
+    /// ⌘N once the first window shows session one: the first window and the new one.
+    private func newWindow() throws -> (XCUIElement, XCUIElement) {
+        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        let first = app.windows.firstMatch
+        let identifier = first.identifier
+        app.typeKey("n", modifierFlags: .command)
+        return try (app.windows[identifier], otherWindow(than: identifier))
+    }
+
+    /// The window that is not this one, once there are two; it shows session one.
+    private func otherWindow(than identifier: String) throws -> XCUIElement {
+        XCTAssertTrue(app.windows.element(boundBy: 1).waitForExistence(timeout: 3))
+        XCTAssertEqual(app.windows.count, 2)
+        let other = try XCTUnwrap(app.windows.allElementsBoundByIndex.map(\.identifier).first { $0 != identifier })
+        let window = app.windows[other]
+        XCTAssertTrue(element("terminal.w1:p1", in: window).waitForExistence(timeout: connect))
+        return window
+    }
+
+    private func element(_ identifier: String, in window: XCUIElement) -> XCUIElement {
+        window.descendants(matching: .any)[identifier]
+    }
+
+    /// The terminal's `control` and `observe` runs, any client's, settle at these counts.
+    private func expectStreams(_ terminal: String, control: Int, observe: Int, session: String? = nil) async throws {
+        try await poll("\(control) control and \(observe) observe runs of \(terminal)") { () async throws -> Bool? in
+            let runs = try await streams(session ?? one).filter { $0.contains(terminal) }
+            let controls = runs.count { $0.contains("session control") },
+                observes = runs.count { $0.contains("observe") }
+            return controls == control && observes == observe ? true : nil
+        }
+    }
+
+    private func bridges(_ session: String) async throws -> Int {
+        let (data, _) = try await Self.post("\(session)/children", Data())
+        return String(decoding: data, as: UTF8.self).split(separator: "\n").count { $0.contains("remote-api-bridge") }
+    }
+
+    /// Brings the window to the front: a click on a part the other window does not cover (macOS offsets a new window
+    /// by about 29 pt), in its title row right of the tabs, else below its cards.
+    private func raise(_ window: XCUIElement) {
+        let frame = window.frame
+        let others = app.windows.allElementsBoundByIndex.filter { $0.identifier != window.identifier }.map(\.frame)
+        let points = [CGVector(dx: frame.width * 0.75, dy: 8), CGVector(dx: frame.width / 2, dy: frame.height - 3)]
+        guard let point = points.first(where: { point in
+            !others.contains { $0.contains(CGPoint(x: frame.minX + point.dx, y: frame.minY + point.dy)) }
+        }) else { return XCTFail("window \(window.identifier) is covered") }
+        window.coordinate(withNormalizedOffset: .zero).withOffset(point).click()
+    }
+
+    /// The window in front, so no other window covers it.
+    private func keepScreenshot(_ name: String, of window: XCUIElement) {
+        raise(window)
+        let attachment = XCTAttachment(screenshot: window.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+}

@@ -251,8 +251,9 @@ struct StatusBadge: View {
         @Environment(\.appearsActive) private var appearsActive
 
         func body(content: Content) -> some View {
-            let needsYou = pages.list
-                .reduce(0) { count, page in count + page.store.panes.count { $0.state == .needsYou } }
+            // Each session once over every window. This window's list is read too, so a page it opens or closes counts.
+            let needsYou = pages.list.isEmpty ? 0 : HostStore.all
+                .reduce(0) { count, store in count + store.panes.count { $0.state == .needsYou } }
             content
                 // A text leaf, as `window.look`.
                 .background(alignment: .topLeading) {
