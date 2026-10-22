@@ -27,8 +27,11 @@ title that says what it does now, for example "Turn On Focus Follows Mouse"
 - The text size is the terminal font size. A change applies to every terminal
   at once, without opening its stream again; each card's grid changes, so the
   PTYs resize.
-- Fade and focus follows mouse: [Fade](/docs/layout#fade),
-  [Moving the keyboard](/docs/layout#moving-the-keyboard).
+- Fade inactive panes (key `fadeInactivePanes`): off draws every card at
+  full strength, in key and non-key windows ([Fade](/docs/layout#fade)).
+- Focus follows mouse (key `focusFollowsMouse`): a card gets the keyboard
+  when the pointer rests on it for 0.15 s, only in the key window
+  ([Moving the keyboard](/docs/layout#moving-the-keyboard)).
 
 ## Fixed defaults
 

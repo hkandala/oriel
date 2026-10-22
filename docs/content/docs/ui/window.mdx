@@ -348,8 +348,11 @@ A peek at what runs in a tab (D63).
 - One page per tab, full width, paged.
 - Inside a page, pane cards follow herdr's split tree, with an 8 pt gap
   between them. The gap is the divider: drag it to resize (a grip shows on
-  hover), double-click it to reset it to 0.5, and ⌃⌘= balances the tab.
-- Cards without the keyboard fade (D64). Layout changes animate.
+  hover and while dragged), double-click it to reset it to 0.5, and ⌃⌘=
+  balances the tab. A split made in the app gives the panes in its row equal
+  shares.
+- Cards without the keyboard fade (D64). Layout changes animate over 0.2 s;
+  a divider drag follows the pointer.
 
 How it works: [Layout and sizing](/docs/layout).
 
@@ -357,11 +360,11 @@ How it works: [Layout and sizing](/docs/layout).
 
 - **Card.** Radius 10. It fades in over 0.2 s when its terminal's first frame
   arrives.
-- **Header.** 36 pt tall: the program glyph (16 pt, secondary), then herdr's
-  pane label if set, else the program's name and the folder in secondary
-  text, for example "vim ~/code" or "zsh ~"
-  ([Program icons](/docs/ui/program-icons)). On the trailing
-  side, four 22 pt buttons, 2 pt apart: Split Right, Split Down, Zoom and
+- **Header.** 36 pt tall. 6 pt in from the leading edge: the program glyph
+  (16 pt, secondary), then herdr's pane label if set, else the program's name
+  and the folder in secondary text, for example "vim ~/code" or "zsh ~"
+  ([Program icons](/docs/ui/program-icons)). 8 pt in from the trailing
+  edge, four 22 × 22 pt buttons, 2 pt apart: Split Right, Split Down, Zoom and
   Close. Zoom is disabled when the tab has one pane.
 - On macOS the buttons show on the keyboard card and on a hovered card. On iOS
   they always show.
@@ -370,11 +373,19 @@ How it works: [Layout and sizing](/docs/layout).
   the card again from the machine
   ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
 - **Context menu** on the header (inside the terminal, the program keeps its
-  own right-click): Split Right, Split Down, Split Left,
-  Split Up, Zoom or Restore, Move to New Tab, Move to Tab ▸ (the workspace's
-  other tabs), Move to New Workspace, Rename Pane…, Close Pane.
+  own right-click):
+  - Split Right (⌘D), Split Down (⇧⌘D), Split Left, Split Up, Zoom Pane or
+    Restore Pane (⇧⌘↩).
+  - Move to New Tab, Move to Tab ▸ (the workspace's other tabs; disabled when
+    the workspace has one tab), Move to New Workspace, Rename Pane….
+  - Close Pane (⌘W).
+- The same items are in View ▸ Pane in the menu bar, for the keyboard card
+  (the zoomed card of the selected tab, when there is one). Close Pane stays
+  in the File menu.
+- After a move, the window selects the tab the pane went to, and the pane
+  keeps the keyboard.
 - **Rename Pane** puts a text field in the header. Enter saves the label; an
-  empty name clears it.
+  empty name clears it; Esc cancels. Then the keyboard goes back to the card.
 - Drag the header to move the pane ([Drag and drop](/docs/ui/drag-and-drop)).
 - Close asks first unless the pane runs only its shell.
 - ⌘-click on a link in a terminal opens it in the default browser, `http` and
@@ -410,7 +421,7 @@ How the messages, the reply box and the key buttons work:
 - A zoomed card shows only two buttons: Restore (white on an accent circle)
   and Close.
 - A split from the zoomed card restores the layout first, so the new pane
-  shows.
+  shows. Moving the keyboard to a hidden card restores it too.
 - Restore or ⇧⌘↩ restores the layout. Esc is not used, because the program in
   the pane needs it.
 

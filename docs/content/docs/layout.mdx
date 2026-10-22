@@ -55,64 +55,88 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
 ## Dividers
 
 - **Hit area.** Each split's 8 pt gap is its divider, with a 16 pt hit area
-  centered on it and the resize cursor. On hover a grip shows: a 36 × 3 pt
-  capsule in the hover color, which fades in over 0.2 s.
-- **Drag.** The split moves in the view at once: the app holds its own ratio
-  for that split until the next snapshot shows herdr's. On release the app
-  sends `layout.set_split_ratio {tab_id, path, ratio}`, with the ratio kept in
-  herdr's 0.1–0.9. Terminals keep their 100 ms resize settle, so a drag does
-  not flood herdr with PTY resizes.
+  centered on it and the column or row resize pointer. On hover, and while it
+  is dragged, a grip shows: a 36 × 3 pt capsule (3 × 36 pt for a side-by-side
+  split) in the secondary color at 0.6 opacity (gorex's muted icon color). It
+  fades in over 0.2 s.
+- **Drag.** The split moves in the view at once. The app holds its own ratio
+  for that split until herdr's snapshot shows a new ratio, herdr refuses the
+  write, or herdr already has that ratio. On release the app sends
+  `layout.set_split_ratio {tab_id, path, ratio}`, with the ratio kept in
+  0.1–0.9. Terminals keep their 100 ms resize settle, so a drag does not
+  flood herdr with PTY resizes.
 - **Double-click** a divider: ratio 0.5.
-- **Equal splits.** herdr halves the pane it splits (50 / 25 / 25). After a
-  split made in Oriel, the app evens out the run of same-direction splits
-  that holds the new pane, so three panes in a row get a third each, as in
-  Rex. A child split in the other direction counts as one unit; each split
-  gets "units on its first side ÷ units under it", one
-  `layout.set_split_ratio` per split.
+- **Equal splits.** herdr halves the pane it splits (50 / 25 / 25). After
+  every split the app makes (the header buttons, the menus, ⌘D, ⇧⌘D), the app
+  reads a fresh snapshot and evens out the run of same-direction splits that
+  holds the new pane, so three panes in a row get a third each, as in Rex:
+  - A child split in the other direction counts as one unit.
+  - Each split gets "units on its first side ÷ units under it".
+  - One `layout.set_split_ratio` per split whose ratio changes, then the app
+    reads the snapshot.
+  - Closing a pane does not rebalance.
 - **Balance** (⌃⌘=, View ▸ Pane ▸ Balance Splits) applies the same rule to
-  every run in the tab.
-- **Keys.** ⌃⌘ and an arrow resizes the keyboard card by 5 % that way
-  (`pane.resize {pane_id, direction, amount: 0.05}`).
+  every split of the selected tab; an even tab sends nothing.
+- **Keys.** ⌃⌘ and an arrow sends
+  `pane.resize {pane_id, direction, amount: 0.05}` for the keyboard card.
+  herdr moves the nearest divider that way: right and down raise its ratio,
+  left and up lower it. With no divider that way, herdr returns
+  `changed:false`.
 - **Accessibility.** Each divider is an adjustable element, "Divider between
-  ‹a› and ‹b›", with the ratio as a percent. Increment and decrement move it
-  5 % and send the ratio.
+  ‹a› and ‹b›", where ‹a› and ‹b› are the first pane title of each side. Its
+  value is the ratio as a percent. Increment and decrement move it 5 % and
+  send the ratio. Its identifier is `divider.<tab id>.<path>`, with the path
+  as `0` and `1` digits, or `root` for the root split.
 
 ## Fade
 
 The card with the keyboard is drawn at full strength; the others fade (D64).
-The fade is the opacity of the card's content, not an overlay, so card edges
-stay crisp:
+The fade is the opacity of the card's terminal content (its host view), not an
+overlay, so card edges stay crisp:
 
 | Card | Window is key | Window is not key |
 |---|---|---|
 | Keyboard card | 1.0 | 0.8 (0.85 in light) |
 | Other cards | 0.7 | 0.5 |
 
-Each card also takes the fill of its state from the look's tokens
-([Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style)).
-One setting, **Fade inactive panes** (on by default), turns both fades off.
+- In a window that watches the session, its 0.85 dim (D66) multiplies with
+  these values.
+- The keyboard card keeps the keyboard-card fill and stroke; the others take
+  the plain card fill, from the look's tokens
+  ([Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style)).
+- The card's accessibility value says the fade, for example "content 70%".
+- One setting, View ▸ **Fade Inactive Panes** (on by default), turns both
+  fades off.
 
 ## Layout motion
 
 - When the tree changes (a split, a close, a move, a ratio from herdr), card
   frames animate over 0.2 s, ease-out.
-- If terminals flicker when they resize during the motion, each terminal
-  keeps its old size, clipped by its card, until the motion ends, and then
-  resizes once.
+- A divider drag follows the pointer with no animation.
 - Reduce Motion: no animation.
 
 ## Moving the keyboard
 
 The keyboard card is the app's own (see below). Keys move it, and never call
 herdr's focus methods (D13):
-- ⌥⌘ and an arrow: the nearest card that way. Cards that overlap on the other
-  axis come first, then the nearest center.
-- ⌘[ and ⌘]: the previous and next card in the tree's order, round the ends.
-- ⌥⇧⌘ and an arrow: moves the keyboard card that way with
-  `pane.swap {pane_id, direction}`. The keyboard follows the pane.
-- **Focus follows mouse** (a setting, off by default): a card gets the
-  keyboard when the pointer rests on it for 0.15 s. Never while a mouse button
-  is down or the palette or a menu is open.
+- ⌥⌘ and an arrow (View ▸ Pane ▸ Select Pane Left, Right, Up, Down): the
+  keyboard goes to the card that herdr's read-only
+  `pane.neighbor {pane_id, direction}` names. One call per key, so the app
+  has no geometry code of its own for this.
+- ⌘[ and ⌘] (Select Previous Pane, Select Next Pane): the previous and next
+  card in the tree's order, round the ends.
+- Moving the keyboard to a card that a zoom hides restores the zoom.
+- ⌥⇧⌘ and an arrow (Move Pane): swaps the keyboard card with its neighbor
+  that way, with `pane.swap {pane_id, direction, focus:false}`. The keyboard
+  stays with the pane.
+- After a move to a new tab, another tab or a new workspace, the window
+  selects the tab the pane went to, and the pane keeps the keyboard. A pane
+  moved to another workspace gets a new pane id; its terminal and card stay.
+- **Focus follows mouse** (View ▸ Pane ▸ Focus Follows Mouse, off by
+  default): a card gets the keyboard when the pointer rests on it for
+  0.15 s. Only in the key window, never while a mouse button is down, and
+  never while the user types in a text field (the palette, a rename, a
+  filter). An open menu blocks hover by itself.
 
 ## Zoom is the app's own
 
