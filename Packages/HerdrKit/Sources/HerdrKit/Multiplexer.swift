@@ -64,6 +64,8 @@ public protocol Multiplexer: Sendable {
     func move(tab tabID: String, to index: Int) async throws
     /// Logical keys (`ctrl+c`), encoded by the multiplexer for the program's input modes.
     func sendKeys(_ keys: [String], pane paneID: String) async throws
+    /// Text typed at the pane's cursor, then logical keys (`enter`).
+    func sendInput(_ text: String, keys: [String], pane paneID: String) async throws
 }
 
 /// A way from a pane, for keys that move the keyboard, swap or resize.
@@ -178,5 +180,9 @@ extension HerdrClient: Multiplexer {
 
     public nonisolated func sendKeys(_ keys: [String], pane paneID: String) async throws {
         let _: Created = try await call("pane.send_keys", ["pane_id": paneID, "keys": keys])
+    }
+
+    public nonisolated func sendInput(_ text: String, keys: [String], pane paneID: String) async throws {
+        let _: Created = try await call("pane.send_input", ["pane_id": paneID, "text": text, "keys": keys])
     }
 }
