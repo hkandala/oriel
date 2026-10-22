@@ -28,12 +28,23 @@ final class HostStore {
     /// Set while the session's page is in view in a visible window: git status runs only then (D67).
     var showsGit = false
 
-    /// After each snapshot: the page settles its selection on it.
-    @ObservationIgnored var onSnapshot: (() -> Void)?
+    /// The tab the user looks at (D14): selected on the page in view of the key window. Its finishes are seen.
+    @ObservationIgnored var lookingTabID: String? {
+        didSet {
+            if lookingTabID != oldValue {
+                _ = seen.look(looking)
+                showStates()
+            }
+        }
+    }
+
+    /// After each snapshot, with the agent changes since the last one: the page settles its selection on it.
+    @ObservationIgnored var onSnapshot: (([Seen.Change]) -> Void)?
     @ObservationIgnored private(set) var client: (any Multiplexer)?
     @ObservationIgnored private var task: Task<Void, Never>?
     /// Workspaces with a git run in flight: one at a time each.
     @ObservationIgnored private var gitRuns: Set<String> = []
+    @ObservationIgnored private var seen = Seen()
 
     private init(session: String) {
         self.session = session
@@ -100,9 +111,9 @@ final class HostStore {
             for await update in await client.updates() {
                 switch update {
                 case let .snapshot(snapshot):
-                    apply(snapshot)
+                    let changes = apply(snapshot)
                     state = .live
-                    onSnapshot?()
+                    onSnapshot?(changes)
                     // After the first snapshot, so the session list never delays the layout.
                     if !loadedSessions {
                         loadedSessions = true
@@ -113,7 +124,7 @@ final class HostStore {
                     // First, to tell "not running" from other failures without a flash of the other text.
                     await loadSessions()
                     state = .failed(error)
-                    onSnapshot?()
+                    onSnapshot?([])
                 }
             }
         }
@@ -152,16 +163,28 @@ final class HostStore {
         sessions = await (try? client.sessions()) ?? sessions
     }
 
-    private func apply(_ snapshot: Snapshot) {
+    /// The panes of the tab the user looks at.
+    private var looking: Set<String> {
+        Set(panes.filter { $0.tabID == lookingTabID }.map(\.id))
+    }
+
+    /// Each pane's agent state from the ledger.
+    private func showStates() {
+        for pane in panes {
+            pane.state = seen.states[pane.id]
+            pane.since = seen.since[pane.id]
+        }
+    }
+
+    /// The snapshot onto the objects; its agent changes.
+    private func apply(_ snapshot: Snapshot) -> [Seen.Change] {
         let tabs = Dictionary(grouping: snapshot.tabs, by: \.workspaceID)
         reuse(self, \.workspaces, snapshot.workspaces, Workspace.init(id:)) { workspace, new in
             workspace.label = new.label
-            workspace.status = new.agentStatus
             workspace.activeTabID = new.activeTabID
             workspace.worktree = new.worktree
             reuse(workspace, \.tabs, tabs[new.id] ?? [], Tab.init(id:)) { tab, new in
                 tab.label = new.label
-                tab.status = new.agentStatus
                 tab.tree = snapshot.trees[new.id]
             }
         }
@@ -176,7 +199,14 @@ final class HostStore {
             pane.tabID = new.tabID
             pane.terminalID = new.terminalID
         }
+        let agents = Dictionary(snapshot.agents.map { ($0.paneID, $0) }, uniquingKeysWith: { first, _ in first })
+        for pane in panes {
+            pane.agentName = agents[pane.id].flatMap { $0.displayAgent ?? $0.agent }
+        }
+        let changes = seen.update(snapshot.agents, looking: looking)
+        showStates()
         Task { await updateGit(all: false) }
+        return changes
     }
 
     /// Asks what the pane runs: once when it is new, and again when another terminal (herdr reused the id), agent or

@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct OrielApp: App {
     #if os(macOS)
+        @NSApplicationDelegateAdaptor private var delegate: AppDelegate
         @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
 
         init() {
@@ -53,12 +54,15 @@ struct OrielApp: App {
         /// Per window (phase 16 opens more).
         @SceneStorage("sidebar") private var sidebar = true
         @SceneStorage("sidebarWidth") private var sidebarWidth = 240.0
+        /// The sidebar shows the Agents view instead of the workspaces.
+        @SceneStorage("agents") private var agents = false
         @Environment(\.scenePhase) private var scenePhase
 
         var body: some View {
             Group {
                 if let page = pages.current {
-                    WindowContent(pages: pages, page: page, sidebar: $sidebar, sidebarWidth: $sidebarWidth)
+                    WindowContent(pages: pages, page: page, sidebar: $sidebar, agents: $agents,
+                                  sidebarWidth: $sidebarWidth)
                 }
             }
             .task { await restore() }
@@ -107,6 +111,7 @@ struct OrielApp: App {
         let pages: WindowPages
         let page: Page
         @Binding var sidebar: Bool
+        @Binding var agents: Bool
         @Binding var sidebarWidth: Double
         /// The one floating panel open: the workspace menu or the palette.
         @State private var panel: Panel?
@@ -122,11 +127,13 @@ struct OrielApp: App {
             let look = Look(style: style, dark: colorScheme == .dark)
             let store = page.store
             VStack(spacing: 0) {
-                TitleBar(page: page, fullScreen: fullScreen, sidebar: $sidebar, palette: open(.palette),
-                         workspaceMenu: open(.workspaces), workspaceButtonX: $workspaceButtonX)
+                TitleBar(page: page, fullScreen: fullScreen, sidebar: $sidebar, agents: $agents,
+                         palette: open(.palette), workspaceMenu: open(.workspaces), workspaceButtonX: $workspaceButtonX)
+                    // Its hover panel hangs over the sidebar and the cards.
+                    .zIndex(1)
                 HStack(spacing: 0) {
                     if sidebar {
-                        Sidebar(pages: pages, width: $sidebarWidth) { openingSession = true }
+                        Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { openingSession = true }
                             .padding([.leading, .bottom], gap)
                             .padding(.top, 4)
                             .transition(.move(edge: .leading).combined(with: .opacity))
@@ -173,6 +180,7 @@ struct OrielApp: App {
                     .accessibilitySortPriority(-1)
                     .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
             }
+            .modifier(AgentsWatch(pages: pages, page: page))
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)
             .containerBackground(for: .window) { WindowBackground(look: look) }
@@ -194,6 +202,7 @@ struct OrielApp: App {
             .focusedSceneValue(\.page, page)
             .focusedSceneValue(\.palette, open(.palette))
             .focusedSceneValue(\.sidebar, $sidebar)
+            .focusedSceneValue(\.agents, $agents)
             .focusedSceneValue(\.openSession, $openingSession)
             // The workspace menu belongs to the collapsed sidebar's button.
             .onChange(of: sidebar) {

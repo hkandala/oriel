@@ -1,4 +1,5 @@
 #if os(macOS)
+    import HerdrKit
     import SwiftUI
 
     /// The selected workspace's tabs in the title row (D42): equal widths on a track, one marker that follows the
@@ -171,17 +172,29 @@
         let closing: () -> Void
         @State private var renaming = false
         @State private var draft = ""
+        /// "codex needs you" for 3 s in place of the title.
+        @State private var announcement: String?
+        @State private var bounces = 0
         @FocusState private var focused: Bool
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
             let store = page.store
             let selected = workspace.id == page.selectedWorkspaceID && tab.id == page.selectedTabIDs[workspace.id]
             let stack = page.stack(tab)
             let title = page.title(tab)
+            let agent = store.strongest([tab.id])
+            let working = !selected && store.panes.contains { $0.tabID == tab.id && $0.state == .working }
             // The strip scrolls to the new selection and the marker follows, as during a swipe.
             Button { page.select(workspace, tab: tab.id) } label: {
                 HStack(spacing: 8) {
-                    IconStack(panes: stack)
+                    IconStack(panes: stack, badge: agent?.state)
+                        .keyframeAnimator(initialValue: 1.0, trigger: bounces) { content, scale in
+                            content.scaleEffect(scale)
+                        } keyframes: { _ in
+                            SpringKeyframe(1.15, duration: 0.15)
+                            SpringKeyframe(1, duration: 0.3)
+                        }
                         .overlay(alignment: .leading) {
                             if let keycap {
                                 Text("⌘\(keycap)").font(.system(size: 10, weight: .semibold)).fixedSize().padding(
@@ -193,11 +206,9 @@
                                                         removal: .opacity.animation(.easeOut(duration: 0.1))))
                             }
                         }
-                    FadeText(
-                        text: Text(
-                            "\(title.name)\(Text(title.folder.map { " \($0)" } ?? "").foregroundStyle(.secondary))",
-                        ),
-                    )
+                    FadeText(text: announcement.map { Text($0) } ?? Text(
+                        "\(title.name)\(Text(title.folder.map { " \($0)" } ?? "").foregroundStyle(.secondary))",
+                    ))
                     .opacity(renaming ? 0 : 1)
                 }
                 .padding(.leading, 8)
@@ -213,7 +224,9 @@
             // On the capsule alone: the rename field and the × over it have their own.
             .accessibilityIdentifier("tab.\(tab.id)")
             .accessibilityAddTraits(selected ? .isSelected : [])
-            .accessibilityValue((lit ? "in view; " : "") + "icons: " + stack.map(\.iconID).joined(separator: ", "))
+            .accessibilityValue([lit ? "in view" : nil, agent.flatMap { agent in
+                agent.state == .idle ? nil : "\(agent.agentName ?? "agent"), \(agent.state?.word ?? "")"
+            }, "icons: " + stack.map(\.iconID).joined(separator: ", ")].compactMap(\.self).joined(separator: "; "))
             .accessibilityAction(named: "Close Tab") { store.closing = .tab(tab.id) }
             // Over the button, after the icons: in the button's label it could not take the keyboard.
             .overlay(alignment: .leading) {
@@ -230,6 +243,12 @@
                         .padding(.leading, 8 + 22 + CGFloat(max(stack.count - 1, 0)) * 4 + 8)
                         .padding(.trailing, 8)
                         .accessibilityIdentifier("tab.\(tab.id).rename")
+                }
+            }
+            // The status slot: × while hovered, else the working dots (not on the selected tab).
+            .overlay(alignment: .trailing) {
+                if working, !hovering || renaming || width < 52 {
+                    WorkingDots().padding(.trailing, 10)
                 }
             }
             .overlay(alignment: .trailing) {
@@ -250,6 +269,24 @@
                 }
             }
             .contextMenu { menu }
+            .onChange(of: agent?.state) { old, new in
+                guard let new, new == .needsYou || new == .finishedUnseen, old != new, !selected else { return }
+                announce("\(agent?.agentName ?? "agent") \(new.word)")
+            }
+        }
+
+        /// The front icon bounces once and the title says what happened for 3 s.
+        private func announce(_ text: String) {
+            if !reduceMotion {
+                bounces += 1
+            }
+            announcement = text
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                if announcement == text {
+                    announcement = nil
+                }
+            }
         }
 
         @ViewBuilder

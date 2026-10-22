@@ -6,6 +6,7 @@
         @Entry var page: Page?
         @Entry var palette: Binding<Bool>?
         @Entry var sidebar: Binding<Bool>?
+        @Entry var agents: Binding<Bool>?
         @Entry var openSession: Binding<Bool>?
     }
 
@@ -29,7 +30,8 @@
     struct AppCommands: Commands {
         @FocusedValue(\.page) private var page
         @FocusedBinding(\.palette) private var palette
-        @FocusedBinding(\.sidebar) private var sidebar
+        @FocusedValue(\.sidebar) private var sidebar
+        @FocusedValue(\.agents) private var agents
         @FocusedBinding(\.openSession) private var openSession
         @AppStorage("appearance") private var appearance = Appearance.dark
         @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
@@ -73,7 +75,13 @@
                     NSApp.keyWindow?.performClose(nil)
                 },
                 Command(section: .view, title: "Toggle Sidebar", key: .init("s", modifiers: [.command, .control]),
-                        enabled: sidebar != nil) { sidebar?.toggle() },
+                        enabled: sidebar != nil) { sidebar?.wrappedValue.toggle() },
+                Command(section: .view, title: "Show Agents", key: .init("."), enabled: agents != nil && sidebar != nil,
+                        checked: agents?.wrappedValue == true && sidebar?.wrappedValue == true, action: {
+                            if let agents, let sidebar {
+                                toggleAgents(agents, sidebar)
+                            }
+                        }),
                 Command(section: .view, title: "Command Palette", key: .init("k"), enabled: palette != nil) {
                     palette?.toggle()
                 },

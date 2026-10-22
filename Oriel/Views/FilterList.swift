@@ -1,3 +1,4 @@
+import HerdrKit
 import SwiftUI
 
 /// A filter field over rows: type to filter, arrows move, Enter acts (Esc is the panel's). The palette, the
@@ -8,6 +9,8 @@ struct FilterList: View {
         var symbol: String?
         /// A pane's program tile instead of the symbol.
         var pane: HostStore.Pane?
+        /// A workspace's state icon instead of the symbol.
+        var state: AgentState?
         let title: String
         var detail = ""
         /// Where it changes from the row before: a header above the row, or a divider when empty.
@@ -65,7 +68,7 @@ struct FilterList: View {
                                 }
                             }
                             Button { act(item) } label: {
-                                MenuRow(symbol: item.symbol, pane: item.pane, title: item.title,
+                                MenuRow(symbol: item.symbol, pane: item.pane, state: item.state, title: item.title,
                                         detail: item.busy ? "" : item.detail, selected: offset == index)
                                     .overlay(alignment: .trailing) {
                                         if item.busy {

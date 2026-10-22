@@ -136,6 +136,16 @@
             }
         }
 
+        /// Selects the pane's workspace and tab and gives the pane the keyboard (never herdr focus, D13).
+        func go(to pane: HostStore.Pane) {
+            guard let workspace = store.workspace(of: pane.tabID) else { return }
+            select(workspace, tab: pane.tabID)
+            if let terminalID = pane.terminalID {
+                keyboardTerminals[pane.tabID] = terminalID
+            }
+            focusKeyboardCard()
+        }
+
         /// Selects the tab before or after the selected one, round the ends.
         func step(_ offset: Int) {
             guard let workspace = selectedWorkspace, !workspace.tabs.isEmpty else { return }
@@ -202,7 +212,12 @@
         private(set) var current: Page?
         let terminals = PaneViewRegistry()
 
+        /// The app's one window's pages, for the Dock menu and notification clicks.
+        /// ponytail: one window; phase 16 picks the window (the key one, else any showing the session).
+        weak static var main: WindowPages?
+
         init() {
+            Self.main = self
             terminals.onKeyboard = { [weak self] terminalID in self?.current?.tookKeyboard(terminalID) }
             // Return may have started or ended a program.
             terminals.onReturn = { [weak self] terminalID in
@@ -224,9 +239,11 @@
             }
             let store = HostStore.named(session, start: start)
             let page = Page(store: store, terminals: terminals)
-            store.onSnapshot = { [weak self, weak page] in
-                page?.settle()
-                self?.showTerminals()
+            store.onSnapshot = { [weak self, weak page] changes in
+                guard let self, let page else { return }
+                page.settle()
+                showTerminals()
+                Notifications.post(changes, page)
             }
             page.settle()
             list.insert(
@@ -250,6 +267,27 @@
             }
             page.store.disconnect()
             showTerminals()
+        }
+
+        /// The tab the user looks at (D14): the selected tab of the page in view while the window is key; none on the
+        /// other pages. Its panes' notifications go.
+        func look(key: Bool) {
+            for page in list {
+                let tabID = key && page === current ? page.selectedTab?.id : nil
+                page.store.lookingTabID = tabID
+                if let tabID {
+                    Notifications.remove(page.store.panes.filter { $0.tabID == tabID }, of: page)
+                }
+            }
+        }
+
+        /// Selects an agent's pane from outside the window (a notification, the Dock menu), by its terminal: a
+        /// notification outlives a pane id that changed.
+        func go(toTerminal terminalID: String, in session: String) {
+            guard let page = list.first(where: { $0.id == session }),
+                  let pane = page.store.panes.first(where: { $0.terminalID == terminalID }) else { return }
+            show(page)
+            page.go(to: pane)
         }
 
         /// Streams the shown tab of the page in view (see the registry), drops the terminals of closed panes and

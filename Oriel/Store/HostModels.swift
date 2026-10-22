@@ -19,7 +19,6 @@ extension HostStore {
     final class Workspace: Identifiable {
         let id: String
         var label = ""
-        var status = AgentStatus.idle
         var tabs: [Tab] = []
         /// herdr's active tab: a page's first selection in it.
         var activeTabID = ""
@@ -38,7 +37,6 @@ extension HostStore {
     final class Tab: Identifiable {
         let id: String
         var label = ""
-        var status = AgentStatus.idle
         var tree: SplitNode?
 
         init(id: String) {
@@ -59,6 +57,12 @@ extension HostStore {
         var agent: String?
         /// The terminal title without herdr's status glyphs.
         var terminalTitle: String?
+        /// Its agent's state (D14); nil without an agent.
+        var state: AgentState?
+        /// When the app saw the state change, for the ages.
+        var since: Date?
+        /// The agent's name: herdr's `display_agent`, else its kind.
+        var agentName: String?
         /// What runs in the foreground (the shell when nothing else does), from the last `pane.process_info`.
         var program: Program?
         /// herdr was asked for the program at least once.
@@ -101,6 +105,11 @@ extension HostStore {
     /// "This Mac" for the default session, "This Mac · ‹session›" for the others.
     static func name(_ session: String) -> String {
         session == "default" ? "This Mac" : "This Mac · \(session)"
+    }
+
+    /// The pane of these tabs with the strongest state (needs you > finished > working > idle); nil without agents.
+    func strongest(_ tabIDs: [String]) -> Pane? {
+        panes.filter { $0.state != nil && tabIDs.contains($0.tabID) }.max { $0.state ?? .idle < $1.state ?? .idle }
     }
 
     func workspace(of tabID: String) -> Workspace? {

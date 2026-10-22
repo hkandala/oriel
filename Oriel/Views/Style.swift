@@ -147,23 +147,6 @@ struct Pill<S: InsettableShape>: View {
     }
 }
 
-/// ◔ working, ▲ needs you; nothing when idle. Static: no animation, so nothing redraws while agents work.
-struct StatusGlyph: View {
-    let status: AgentStatus
-    @Environment(\.look) private var look
-
-    var body: some View {
-        switch status {
-        case .working:
-            Text("◔").foregroundStyle(look.working).accessibilityLabel("working")
-        case .blocked:
-            Text("▲").foregroundStyle(look.needsYou).accessibilityLabel("needs you")
-        default:
-            EmptyView()
-        }
-    }
-}
-
 /// The program icon catalog (`resources/icons/catalog.json`, bundled).
 let programIcons: [ProgramIcon] = {
     // Without it every pane would draw the neutral tile: loud in a debug build.
@@ -231,6 +214,8 @@ private struct ProgramMark: View {
 /// around each tile in front keeps the layers apart on any background.
 struct IconStack: View {
     let panes: [HostStore.Pane]
+    /// The front tile's badge: the tab's state.
+    var badge: AgentState?
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -240,6 +225,7 @@ struct IconStack: View {
                     RoundedRectangle(cornerRadius: 6, style: .continuous).frame(width: 24, height: 20)
                         .blendMode(.destinationOut)
                     ProgramTile(icon: pane.iconID, letter: pane.letter)
+                        .overlay(alignment: .topTrailing) { StatusBadge(state: index == 0 ? badge : nil) }
                 }
                 .frame(width: 22, height: 18)
                 .offset(x: CGFloat(index) * 4)
@@ -293,6 +279,7 @@ struct ChromeStyle: ButtonStyle {
 struct MenuRow: View {
     var symbol: String?
     var pane: HostStore.Pane?
+    var state: AgentState?
     let title: String
     var detail = ""
     /// On the accent pill.
@@ -302,6 +289,8 @@ struct MenuRow: View {
         HStack(spacing: 8) {
             if let pane {
                 ProgramTile(icon: pane.iconID, letter: pane.letter)
+            } else if let state {
+                StateIcon(state: state).frame(width: 22)
             } else {
                 // As wide as a program tile, so the titles line up.
                 Image(systemName: symbol ?? "circle").opacity(symbol == nil ? 0 : 1).frame(width: 22)

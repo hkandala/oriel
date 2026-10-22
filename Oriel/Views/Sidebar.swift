@@ -8,8 +8,11 @@
         static let widths: ClosedRange<Double> = 227 ... 480
 
         let pages: WindowPages
+        /// The Agents view instead of the workspaces.
+        let agents: Bool
         @Binding var width: Double
         let openSession: () -> Void
+        @SceneStorage("agentSort") private var sort = AgentSort.priority
         @State private var filter = ""
         /// The page in view, as the scroll view has it.
         @State private var position = ScrollPosition(idType: String.self)
@@ -31,7 +34,7 @@
                 ScrollView(.horizontal) {
                     HStack(spacing: 0) {
                         ForEach(pages.list) { page in
-                            SidebarPage(page: page, pages: pages, filter: filter)
+                            SidebarPage(page: page, pages: pages, filter: filter, agents: agents ? $sort : nil)
                                 .containerRelativeFrame(.horizontal)
                                 // Only the page in view, for VoiceOver and the tests: the others are off to the side.
                                 .accessibilityHidden(page !== pages.current)
@@ -76,6 +79,8 @@
         let page: Page
         let pages: WindowPages
         let filter: String
+        /// The Agents view's order while it is on.
+        let agents: Binding<AgentSort>?
         typealias Row = (workspace: HostStore.Workspace, parent: HostStore.Workspace?)
 
         /// Rows above or below the scrolled list's edges, for the fades.
@@ -85,18 +90,25 @@
             let store = page.store
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text(page.id).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(agents == nil ? page.id : "\(page.id) · agents").font(.system(size: 11))
+                        .foregroundStyle(.secondary).lineLimit(1)
                         .accessibilityIdentifier("sidebar.header")
                     Spacer()
-                    IconButton(symbol: "plus", help: "New Workspace") { Task { await page.newWorkspace() } }
-                        .disabled(store.state != .live || store.writing)
-                        .accessibilityIdentifier("sidebar.new-workspace")
+                    if let agents {
+                        SortMenu(sort: agents)
+                    } else {
+                        IconButton(symbol: "plus", help: "New Workspace") { Task { await page.newWorkspace() } }
+                            .disabled(store.state != .live || store.writing)
+                            .accessibilityIdentifier("sidebar.new-workspace")
+                    }
                 }
                 .padding(.leading, 16)
                 .padding(.trailing, 8)
                 .contentShape(.rect)
                 .contextMenu { ClosePage(page: page, pages: pages) }
-                if store.state == .live, store.workspaces.isEmpty {
+                if let agents {
+                    AgentsList(page: page, filter: filter, sort: agents.wrappedValue)
+                } else if store.state == .live, store.workspaces.isEmpty {
                     NewWorkspaceButton(page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
@@ -142,6 +154,32 @@
                 guard let head = group.first, !shown.isEmpty else { return [] }
                 return (shown.first === head ? shown : [head] + shown).map { Row($0, $0 === head ? nil : head) }
             }
+        }
+    }
+
+    /// The Agents view's order: Priority or Workspace order.
+    private struct SortMenu: View {
+        @Binding var sort: AgentSort
+
+        var body: some View {
+            Menu {
+                Picker("Sort", selection: $sort) {
+                    Text("Priority").tag(AgentSort.priority)
+                    Text("Workspace order").tag(AgentSort.workspace)
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+            } label: {
+                Text(
+                    "\(Image(systemName: "arrow.up.arrow.down")) \(sort == .priority ? "Priority" : "Workspace order")",
+                )
+                .font(.system(size: 11)).foregroundStyle(.secondary).padding(.horizontal, 6).frame(height: 22)
+            }
+            .menuStyle(.button)
+            .buttonStyle(ChromeStyle(radius: 6))
+            .fixedSize()
+            .accessibilityIdentifier("agents.sort")
+            .accessibilityValue(sort.rawValue)
         }
     }
 
@@ -209,12 +247,12 @@
         var body: some View {
             let selected = workspace.id == page.selectedWorkspaceID
             let git = workspace.git
+            let state = page.store.strongest(workspace.tabs.map(\.id))?.state
             let height: CGFloat = git == nil ? 30 : 44
             Button { page.select(workspace) } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        // Phase 15's state icons.
-                        Color.clear.frame(width: 14, height: 14)
+                        StateIcon(state: state)
                         Text(workspace.label).font(.system(size: 13)).lineLimit(1).opacity(renaming ? 0 : 1)
                     }
                     if let git {
@@ -240,7 +278,7 @@
             .simultaneousGesture(TapGesture(count: 2).onEnded { startRenaming() })
             .accessibilityIdentifier("workspace.\(workspace.id)")
             .accessibilityAddTraits(selected ? .isSelected : [])
-            .accessibilityValue([git.map { "\($0.branch) ahead \($0.ahead) behind \($0.behind)" },
+            .accessibilityValue([state?.word, git.map { "\($0.branch) ahead \($0.ahead) behind \($0.behind)" },
                                  parent.map { "worktree of \($0.label)" }].compactMap(\.self).joined(separator: ", "))
             .overlay(alignment: .leading) {
                 if renaming {

@@ -4,7 +4,7 @@
     import SwiftUI
 
     /// The title row (D45): sidebar toggle, machine button, workspace button while the sidebar is collapsed, the tab
-    /// bar, then ⌘ and +.
+    /// bar, then Agents, ⌘ and +.
     struct TitleBar: View {
         /// The compact toolbar's height, so the row centers on the traffic lights.
         static let height: CGFloat = 40
@@ -17,6 +17,8 @@
         let page: Page
         let fullScreen: Bool
         @Binding var sidebar: Bool
+        /// The sidebar shows the Agents view.
+        @Binding var agents: Bool
         @Binding var palette: Bool
         @Binding var workspaceMenu: Bool
         /// Where the workspace button starts in the window, for its menu.
@@ -43,6 +45,8 @@
                 } else {
                     Spacer(minLength: 0)
                 }
+                // ⌘. is the menu's.
+                AgentsButton(page: page, showing: sidebar && agents) { toggleAgents($agents, $sidebar) }
                 // ⌘K is the menu's.
                 IconButton(symbol: "command", help: "Commands") { palette.toggle() }
                     .accessibilityIdentifier("titlebar.palette")
@@ -57,6 +61,48 @@
             .contentShape(.rect)
             // The title bar is hidden, so the row's empty space moves the window.
             .gesture(WindowDragGesture())
+        }
+    }
+
+    /// The Agents button and ⌘.: the Agents view on (opening a collapsed sidebar), or back to the Workspaces view.
+    func toggleAgents(_ agents: Binding<Bool>, _ sidebar: Binding<Bool>) {
+        if agents.wrappedValue, sidebar.wrappedValue {
+            agents.wrappedValue = false
+        } else {
+            agents.wrappedValue = true
+            sidebar.wrappedValue = true
+        }
+    }
+
+    /// Outline chat bubbles, the front one filled while the Agents view is on; an amber dot while an agent of the
+    /// page in view needs you. Its hover lists them (no tooltip).
+    private struct AgentsButton: View {
+        let page: Page
+        /// The Agents view is on.
+        let showing: Bool
+        let toggle: () -> Void
+        @Environment(\.look) private var look
+
+        var body: some View {
+            let waiting = page.store.panes.count { $0.state == .needsYou }
+            Button(action: toggle) {
+                Image(systemName: "bubble.left.and.bubble.right")
+                    // ponytail: rough; the custom symbol with only the front bubble filled comes next.
+                    .symbolVariant(showing ? .fill : .none)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+                    .overlay(alignment: .topTrailing) {
+                        if waiting > 0 {
+                            Circle().fill(look.needsYou).frame(width: 7, height: 7).offset(x: 3, y: -2)
+                        }
+                    }
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(ChromeStyle(radius: 7))
+            .accessibilityLabel("Agents")
+            .accessibilityIdentifier("titlebar.agents")
+            .accessibilityValue("\(waiting) need you")
+            .hoverPanel { close in NeedsYouPanel(page: page, close: close) }
         }
     }
 
@@ -188,8 +234,10 @@
         private func items(_ filter: String) -> [FilterList.Item] {
             let workspaces = pages.list.flatMap { page in
                 page.store.workspaces.filter { $0.label.matches(filter) }.map { workspace in
-                    // The state icon comes in phase 15. Another page's workspace shows that page.
-                    FilterList.Item(id: "\(page.id).\(workspace.id)", title: workspace.label,
+                    // Another page's workspace shows that page.
+                    FilterList.Item(id: "\(page.id).\(workspace.id)",
+                                    state: page.store.strongest(workspace.tabs.map(\.id))?.state,
+                                    title: workspace.label,
                                     detail: workspace.git?.branch ?? "", section: page.id, act: {
                                         pages.show(page)
                                         page.select(workspace)
