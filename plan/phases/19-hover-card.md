@@ -18,7 +18,7 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
 2. **Where.** Under a capsule (centered, 6 pt below the bar), to the right of an Agents row (6 pt
    from the sidebar edge). Kept inside the window. For an Agents row the card shows that
    row's tab.
-3. **Look.** A glass panel (system `glassEffect`, radius 12), at most 280 pt wide (built 280 pt: see Findings), fade and scale in
+3. **Look.** A glass panel (system `glassEffect`, radius 12), at most 280 pt wide, fade and scale in
    from 0.97 over 0.13 s.
 4. **Content**, top to bottom:
    - The tab title, the folder part dimmed, and the tab's rolled-up status capsule (phase 15) if any.
@@ -71,6 +71,7 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
 - **The card is always 280 pt wide**, not "at most" (E2E review): narrower cards widened when the screen lines
   came in after the card showed, so the card jumped sideways; a narrow card's minimap was tiny too.
 - **"6 pt below the bar"** is 6 pt below the 40 pt title row, so 9 pt below the 34 pt capsule.
+- **The 0.97 scale stays under Reduce Motion**: 3 % over 0.13 s is less motion than the fade; not worth a modifier.
 - **Esc goes to a text field that edits** (a rename, the sidebar filter) while a panel is open; the panel closes
   either way. Over a terminal Esc only closes the panel, as phase 15's did.
 - **The tooltip test reads the button's label, not the help tag** (20-minute rule): macOS shows the tip as an
