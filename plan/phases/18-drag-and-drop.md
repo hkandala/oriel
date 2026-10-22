@@ -232,3 +232,32 @@ at the end of a drag. All in `ORIEL_SESSION`, in a new workspace that the test c
 8. A full track (about 12 tabs): the `+` is highlighted. A sidebar with no empty space under its rows: is the
    ghost "New Workspace" row reachable?
 9. The preview (the header's snapshot) in full screen and with the sidebar collapsed.
+
+### Hand checks (2026-10-22, herdr 0.9.5, real mouse via CGEvent, shots in `/tmp/oriel-shots/18/hand/`)
+
+| # | Result | Evidence |
+|---|---|---|
+| 1 | pass | Right and bottom split beside the card, left and top end left of / above it (herdr order checked after each). A card's center there: no indicator. The 0.2 s pulse is too short for still frames (not seen). `01*` |
+| 2 | pass | The row spring-loads and its tabs show; a drop on its capsule splits right of the last card, on a card's left edge lands left of it (new pane id, same terminal); a drop on the row: a new tab. `02*` |
+| 3 | pass | Esc before and after a spring-load: no herdr write, the card back at full opacity, no indicator, a second drag starts. The spring-loaded workspace stays selected. `03*` |
+| 4 | pass | macOS shows the plain arrow, no badge, for `.forbidden` (own card) as for `.move`: the `.tab` case in `RowsDrop` can go. `04b`, `04c` |
+| 5 | pass | Header, capsule and row drags leave the window in place; the title row's empty space and the space right after the tabs move it. A click selects a capsule, a double-click renames, a header's double-click zooms and unzooms. `05*` |
+| 6 | pass | A drop beside the window or on a second Oriel window (opened from the menu): no write, the source card back at full opacity, the next drag starts. `06*` |
+| 7 | fail | No flash of the passing tab (six title-row frames during the drop) and the moved card has the keyboard, but a stale drop indicator stays on the moved card (bug 1). `07*` |
+| 8 | half | A full track (13 tabs): the `+` is highlighted. A sidebar full of rows (31): the ghost "New Workspace" row is out of reach, as the list does not scroll while you drag; the last visible row spring-loads instead. `08*` |
+| 9 | pass | Full screen and a collapsed sidebar: the preview is the header under the pointer, the card dims. `09*` |
+
+- **Bug 1: a drop target's highlight stays after the drop.** Seen three ways: after a drop on a workspace row, the
+  row's indicator stays with no drag running, until a later drag leaves the sidebar (`02g`, `03a`); after a drop on
+  a capsule, that capsule lights up again during every later pane drag in that workspace (`TabBar.swift:62` hides
+  it between drags) (`03i`); after a drop on a card in the same tab (an edge re-place or a center swap), the moved
+  card, now under the pointer, keeps an indicator until a drag passes over it (`07z`, `07x`, `07b`). Not seen after
+  drops on cards in another tab (`01g`). Guess: `performDrop` clears the state (`Drag.swift:132`,
+  `ListDrops.swift:58`, `ListDrops.swift:145`), then a `dropUpdated` arrives before the session ends and sets it
+  again, and no `dropExited` follows. Fix: clear the views' drop state when `page.dragging` goes nil (`PaneCard`
+  `zone`, `Sidebar` `drop`, `TabBar` `over`), and gate the overlays at `PaneCard.swift:68` and
+  `Sidebar.swift:151,158` on `page.dragging != nil`, as `TabBar.swift:62` does.
+- **Keyboard after a move into another tab**: right and bottom give the moved card the keyboard; left and top
+  (move, then swap) leave it on the card that had it (`01g` vs `01m`). The phase asks for it only after a same-tab
+  re-place.
+- **A drag to the top screen edge opens Mission Control** (macOS); not a bug, but avoid it in hand runs.
