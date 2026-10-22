@@ -45,6 +45,13 @@ extension OrielUITests {
         // Not herdr's 50 / 25 / 25.
         let panes = try await order(tab)
         try await expectWidths(tab, Dictionary(uniqueKeysWithValues: panes.map { ($0, 1.0 / 3) }))
+        // After the motion each terminal fits its card again (it holds its size while cards move).
+        for pane in panes {
+            try await poll("terminal \(pane) fits its card") { () async throws -> Bool? in
+                abs(element("terminal.\(pane)").frame.width - (element("pane.\(pane)").frame.width - 2 * 8)) <= 2
+                    ? true : nil
+            }
+        }
     }
 
     func testKeysMoveTheKeyboardSwapAndResize() async throws {
@@ -56,10 +63,10 @@ extension OrielUITests {
         element("terminal.\(first)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
 
-        // Round the ends: before the first card is the last.
-        app.typeKey("[", modifierFlags: .command)
+        app.typeKey(.rightArrow, modifierFlags: [.command, .option])
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
-        app.typeKey(.leftArrow, modifierFlags: [.command, .option])
+        // Round the ends: after the last card is the first.
+        app.typeKey("]", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
 
         app.typeKey(.rightArrow, modifierFlags: [.command, .control])
@@ -72,10 +79,14 @@ extension OrielUITests {
         }
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
 
-        // Focus follows mouse: a pointer resting on the other card takes the keyboard there.
+        // Focus follows mouse: a pointer resting on the other card takes the keyboard there, also once a rename
+        // that held it back ends (Esc gives the keyboard back to the first card first).
         pick("Pane", "Focus Follows Mouse")
         addTeardownBlock { @MainActor in self.pick("Pane", "Focus Follows Mouse") }
+        paneMenu(first, "Rename Pane…")
+        XCTAssertTrue(hasKeyboard(element("pane.\(first).rename")))
         hoverHeader(second)
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
     }
 
@@ -105,8 +116,9 @@ extension OrielUITests {
 
         let before = try await tabIDs()
         paneMenu(pane, "Move to New Tab")
-        // No teardown: the move to a new workspace below takes its only pane, which closes it.
         let moved = try await newTabID(after: before)
+        // Gone already after the move to a new workspace below, which takes its only pane.
+        addTeardownBlock { [one] in try? await Self.quietly(one, "tab.close", ["tab_id": moved]) }
         try await poll("the pane in the new tab") { () async throws -> Bool? in
             try await order(moved) == [pane] ? true : nil
         }
@@ -115,16 +127,21 @@ extension OrielUITests {
 
         // To a new workspace: a new pane id, the same terminal, and it keeps the keyboard.
         let terminal = try await terminalID(pane)
+        let workspaces = try await (snapshot()?["workspaces"] as? [[String: Any]] ?? []).compactMap {
+            $0["workspace_id"] as? String
+        }
+        addTeardownBlock { [one] in
+            let now = try await Self.call(one, "workspace.list", [:])["workspaces"] as? [[String: Any]] ?? []
+            for case let id as String in now.map({ $0["workspace_id"] }) where !workspaces.contains(id) {
+                try await Self.call(one, "workspace.close", ["workspace_id": id, "close_group": false])
+            }
+        }
         paneMenu(pane, "Move to New Workspace")
         let away = try await poll("the pane in a new workspace") { () async throws -> String? in
             let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
             return panes.first { $0["terminal_id"] as? String == terminal && $0["pane_id"] as? String != pane }?[
                 "pane_id",
             ] as? String
-        }
-        let workspace = String(away.prefix { $0 != ":" })
-        addTeardownBlock { [one] in
-            _ = try? await Self.call(one, "workspace.close", ["workspace_id": workspace, "close_group": false])
         }
         XCTAssertTrue(hasKeyboard(element("terminal.\(away)")))
     }
@@ -212,9 +229,15 @@ extension OrielUITests {
     func restoreHerdrFocusAfter() {
         addTeardownBlock { [one] in
             for _ in 0 ..< 2 {
-                _ = try? await Self.call(one, "pane.swap", ["source_pane_id": "w1:p1", "target_pane_id": "w1:p2"])
+                try await Self.call(one, "pane.swap", ["source_pane_id": "w1:p1", "target_pane_id": "w1:p2"])
             }
         }
+    }
+
+    /// A herdr call whose failure is fine (a teardown for something a step may have closed already).
+    nonisolated static func quietly(_ session: String, _ method: String, _ params: [String: Any]) async throws {
+        let body = try JSONSerialization.data(withJSONObject: ["id": "1", "method": method, "params": params])
+        try await post(session, body + Data("\n".utf8))
     }
 
     func root(_ tab: String) async throws -> [String: Any] {

@@ -316,7 +316,6 @@
         func makeNSView(context _: Context) -> Host {
             let host = Host()
             host.clipsToBounds = true
-            terminal.view.autoresizingMask = []
             host.addSubview(terminal.view)
             return host
         }
@@ -332,7 +331,7 @@
             var holding = false {
                 didSet {
                     if !holding {
-                        fit()
+                        subviews.first?.frame = bounds
                     }
                 }
             }
@@ -340,12 +339,8 @@
             override func resizeSubviews(withOldSize _: NSSize) {
                 // A terminal that never had a size takes one at once.
                 if !holding || subviews.first?.frame.isEmpty == true {
-                    fit()
+                    subviews.first?.frame = bounds
                 }
-            }
-
-            private func fit() {
-                subviews.first?.frame = bounds
             }
         }
     }

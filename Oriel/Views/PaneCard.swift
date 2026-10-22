@@ -22,8 +22,8 @@
             let zoomed = page.zoomedPaneID == id
             let terminal = pane.flatMap(page.terminal)
             // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
-            let keyboard = pane.flatMap { page.keyboardTerminals[$0.tabID] }
-            let lit = keyboard.map { $0 == pane?.terminalID } ?? pane?.focused ?? false
+            let lit = pane.map { page.keyboardCard($0.tabID) === $0 } ?? false
+            let follow = hovering && followMouse && !zoomedAway && active
             // Rex's content opacities; the watching window's dim (D66) multiplies.
             let content = (fade ? lit ? active ? 1 : scheme == .dark ? 0.8 : 0.85 : active ? 0.7 : 0.5 : 1)
                 * (page.watched ? 0.85 : 1)
@@ -51,20 +51,19 @@
                     // The buttons show on hover only and the context menu is on the header: VoiceOver acts on the card.
                     .accessibilityActions {
                         let commands = AppCommands.pane(page) { pane }.filter { $0.enabled && $0.menu.isEmpty }
-                        ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
+                        ForEach(commands, id: \.title) { command in
                             Button(command.title, action: command.action)
                         }
                     }
             }
             .onHover { hovering = $0 }
-            .task(id: hovering && followMouse && !zoomedAway && active) {
+            .task(id: follow) {
                 // Focus follows mouse: a pointer resting 0.15 s on another card, in a key window, no mouse button
                 // down, no text field typing, not under a zoomed card. Checked every 0.15 s while it rests, so a
                 // rename or a drag that ends under it still counts; once (keys may move the keyboard away again).
-                guard hovering, followMouse, !zoomedAway, active, !lit else { return }
+                guard follow, !lit else { return }
                 while await (try? Task.sleep(for: .milliseconds(150))) != nil {
-                    guard let pane = store.pane(id),
-                          page.keyboardTerminals[pane.tabID] != pane.terminalID else { return }
+                    guard let pane = store.pane(id), page.keyboardCard(pane.tabID) !== pane else { return }
                     if NSEvent.pressedMouseButtons == 0, !(NSApp.keyWindow?.firstResponder is NSText) {
                         page.go(to: pane)
                         return

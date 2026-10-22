@@ -91,7 +91,8 @@ extension HostStore {
         }
 
         var cardTitle: String {
-            [header.name, header.folder].compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " ")
+            let (name, folder) = header
+            return [name, folder].compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " ")
         }
 
         /// The program's name for the card header: herdr's agent, else the foreground process ("zsh" for the shell).

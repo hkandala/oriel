@@ -238,7 +238,7 @@
                 sections.flatMap { section in commands.filter { $0.section == section } }
             } ?? commands
             ForEach(Array(shown.enumerated()), id: \.offset) { index, command in
-                if index > 0, let sections, shown[index - 1].section != command.section, sections.count > 1 {
+                if index > 0, sections != nil, shown[index - 1].section != command.section {
                     Divider()
                 }
                 Group {

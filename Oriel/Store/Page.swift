@@ -21,7 +21,7 @@
         /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
         var stripPage = 0.0
         /// The terminal that last had the keyboard in each tab. Observed: the tab's icon stack puts it in front.
-        private(set) var keyboardTerminals: [String: String] = [:]
+        private var keyboardTerminals: [String: String] = [:]
         /// The tab whose terminal last got the keyboard from the app.
         @ObservationIgnored private var keyboardTabID: String?
         /// A tab this page just made, selected once a snapshot shows it.
@@ -67,7 +67,7 @@
                     ? workspace.activeTabID : workspace.tabs.first?.id
             }
             // Gone, or alone in its tab (moved, or its neighbor closed).
-            if let id = zoomedPaneID, !canZoom(id) || store.pane(id) == nil {
+            if let id = zoomedPaneID, store.panes.count(where: { $0.tabID == store.pane(id)?.tabID }) < 2 {
                 zoomedPaneID = nil
             }
             if let id = arriving, let workspace = store.workspace(of: id) {
@@ -99,10 +99,14 @@
                 return pane
             }
             // A text field has the keyboard: the card that had it last.
-            let tab = selectedTab?.id
-            return store.panes.first { $0.tabID == tab && $0.terminalID != nil && $0.terminalID == tab.flatMap {
-                keyboardTerminals[$0]
-            } } ?? store.panes.first { $0.tabID == tab && $0.focused }
+            return keyboardCard(selectedTab?.id)
+        }
+
+        /// The tab's card that last had the keyboard, else herdr's focused pane. Observed, unlike the first responder.
+        func keyboardCard(_ tabID: String?) -> HostStore.Pane? {
+            let terminalID = tabID.flatMap { keyboardTerminals[$0] }
+            return store.panes.first { $0.tabID == tabID && $0.terminalID != nil && $0.terminalID == terminalID }
+                ?? store.panes.first { $0.tabID == tabID && $0.focused }
         }
 
         /// The selected tab's terminals (terminal id → pane id): the ones that stream.
@@ -246,10 +250,7 @@
         func newTab(in workspace: HostStore.Workspace? = nil) async {
             guard let workspace = workspace ?? selectedWorkspace else { return }
             // Another workspace's: the keyboard card of its selected tab.
-            let tab = selectedTabIDs[workspace.id]
-            let pane = workspace.id == selectedWorkspaceID ? keyboardPane
-                : store.panes.first { $0.tabID == tab && $0.terminalID == tab.flatMap { keyboardTerminals[$0] } }
-                ?? store.panes.first { $0.tabID == tab && $0.focused }
+            let pane = workspace.id == selectedWorkspaceID ? keyboardPane : keyboardCard(selectedTabIDs[workspace.id])
             arriving = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id) ?? arriving
         }
 

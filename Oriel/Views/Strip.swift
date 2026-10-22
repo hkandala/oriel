@@ -74,19 +74,19 @@
     private struct Motion<Content: View>: View {
         let tree: SplitNode
         @ViewBuilder let content: Content
-        @State private var moves = 0
+        @State private var moving = false
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
             content
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: tree)
-                .environment(\.layoutMoving, moves > 0)
-                .onChange(of: tree) {
+                .environment(\.layoutMoving, moving)
+                // Also as the page appears: harmless, a terminal that never had a size fits at once.
+                .task(id: tree) {
                     guard !reduceMotion else { return }
-                    moves += 1
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(200))
-                        moves -= 1
+                    moving = true
+                    if await (try? Task.sleep(for: .milliseconds(200))) != nil {
+                        moving = false
                     }
                 }
         }
@@ -242,7 +242,7 @@
                         if !zoomed.0, !zoomed.1 {
                             // The panes beside the divider.
                             let names = [first.paneIDs.last, second.paneIDs.first]
-                                .map { page.store.pane($0 ?? "")?.cardTitle ?? "terminal" }
+                                .map { $0.flatMap(page.store.pane)?.cardTitle ?? "terminal" }
                             let key = path.isEmpty ? "root" : path.map { $0 ? "1" : "0" }.joined()
                             SplitDivider(right: right, total: total, ratio: shown, held: $held,
                                          label: "Divider between \(names[0]) and \(names[1])",
@@ -283,6 +283,8 @@
                 while page.store.writing {
                     try? await Task.sleep(for: .milliseconds(50))
                 }
+                // A newer change replaced it while it waited.
+                guard held == value else { return }
                 if await !page.store.setRatio(tab: tabID, path: path, ratio: value) {
                     held = nil
                 }
@@ -348,13 +350,15 @@
         }
 
         private func set(_ value: Double) {
-            hold(value)
-            send(held ?? value)
+            send(hold(value))
         }
 
         /// In herdr's 0.1–0.9, so the view shows what herdr keeps.
-        private func hold(_ value: Double) {
-            held = min(max(value, 0.1), 0.9)
+        @discardableResult
+        private func hold(_ value: Double) -> Double {
+            let clamped = min(max(value, 0.1), 0.9)
+            held = clamped
+            return clamped
         }
     }
 
