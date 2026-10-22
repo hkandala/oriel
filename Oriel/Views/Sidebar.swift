@@ -38,6 +38,7 @@
                                 .containerRelativeFrame(.horizontal)
                                 // Only the page in view, for VoiceOver and the tests: the others are off to the side.
                                 .accessibilityHidden(page !== pages.current)
+                                .environment(\.offscreen, page !== pages.current)
                         }
                     }
                     .scrollTargetLayout()

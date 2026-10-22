@@ -78,6 +78,7 @@ struct FilterList: View {
                             }
                             .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
                             .accessibilityIdentifier("\(name).\(item.id)")
+                            .accessibilityValue(item.state?.word ?? "")
                             .accessibilityAddTraits(offset == index ? .isSelected : [])
                         }
                         if items.isEmpty {

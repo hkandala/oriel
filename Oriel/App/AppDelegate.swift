@@ -39,7 +39,7 @@
         @objc private func pick(_ item: NSMenuItem) {
             guard let id = item.representedObject as? String else { return }
             NSApp.activate()
-            WindowPages.main?.go(to: id)
+            WindowPages.go(to: id)
         }
 
         @objc private func newTab() {
@@ -64,7 +64,7 @@
             let id = response.notification.request.identifier
             await MainActor.run {
                 NSApp.activate()
-                WindowPages.main?.go(to: id)
+                WindowPages.go(to: id)
             }
         }
     }
@@ -72,11 +72,16 @@
     /// The app's notifications (D31): needs you and finished, for every open page; no sounds.
     @MainActor
     enum Notifications {
-        /// Posts the snapshot's new needs-you and finishes, except for panes the user looks at.
+        /// Posts the snapshot's new needs-you and finishes, except for panes the user looks at; a pane that went on
+        /// to work or idle loses its old one.
         static func post(_ changes: [Seen.Change], _ page: Page) {
             let store = page.store
-            for change in changes where change.state >= .finishedUnseen {
-                guard let pane = store.pane(change.paneID), pane.tabID != store.lookingTabID else { continue }
+            for change in changes {
+                guard let pane = store.pane(change.paneID) else { continue }
+                guard change.state >= .finishedUnseen, pane.tabID != store.lookingTabID else {
+                    remove([pane], of: page)
+                    continue
+                }
                 let content = UNMutableNotificationContent()
                 content.title = "\(pane.agentName ?? "agent") \(change.state.word)"
                 content.body = "\(page.id) · \(page.place(pane))"

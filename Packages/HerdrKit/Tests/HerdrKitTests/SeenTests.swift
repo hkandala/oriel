@@ -2,8 +2,11 @@ import Foundation
 @testable import HerdrKit
 import Testing
 
-private func agent(_ status: AgentStatus, _ completion: Int? = nil, pane: String = "w1:p1") -> Agent {
-    Agent(paneID: pane, terminalID: nil, agent: "codex", displayAgent: nil, status: status, completionSeq: completion)
+private func agent(_ status: AgentStatus, _ completion: Int? = nil, pane: String = "w1:p1",
+                   terminal: String? = nil) -> Agent
+{
+    Agent(paneID: pane, terminalID: terminal, agent: "codex", displayAgent: nil, status: status,
+          completionSeq: completion)
 }
 
 @Test func `the first sighting counts as seen and reports nothing`() {
@@ -76,4 +79,17 @@ private func agent(_ status: AgentStatus, _ completion: Int? = nil, pane: String
     // Back with an old finish: a first sighting again.
     _ = seen.update([agent(.idle, 5)], looking: [])
     #expect(seen.states["w1:p1"] == .idle)
+}
+
+@Test func `an agent is its terminal: a move keeps its finish, a reused pane id starts over`() {
+    var seen = Seen()
+    _ = seen.update([agent(.working, terminal: "t1")], looking: [])
+    _ = seen.update([agent(.idle, 4, terminal: "t1")], looking: [])
+    // Moved to another workspace: a new pane id, the same terminal.
+    let moved = seen.update([agent(.idle, 4, pane: "w2:p1", terminal: "t1")], looking: [])
+    #expect(moved.isEmpty)
+    #expect(seen.states["t1"] == .finishedUnseen)
+    // herdr gives the old pane id to a new terminal that already finished: a first sighting.
+    _ = seen.update([agent(.idle, 9, terminal: "t2")], looking: [])
+    #expect(seen.states["t2"] == .idle)
 }

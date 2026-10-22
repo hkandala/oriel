@@ -163,16 +163,17 @@ final class HostStore {
         sessions = await (try? client.sessions()) ?? sessions
     }
 
-    /// The panes of the tab the user looks at.
+    /// The panes of the tab the user looks at, as `Seen` keys them.
     private var looking: Set<String> {
-        Set(panes.filter { $0.tabID == lookingTabID }.map(\.id))
+        Set(panes.filter { $0.tabID == lookingTabID }.map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) })
     }
 
     /// Each pane's agent state from the ledger.
     private func showStates() {
         for pane in panes {
-            pane.state = seen.states[pane.id]
-            pane.since = seen.since[pane.id]
+            let key = Seen.key(terminalID: pane.terminalID, paneID: pane.id)
+            pane.state = seen.states[key]
+            pane.since = seen.since[key]
         }
     }
 

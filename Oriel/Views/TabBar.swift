@@ -206,7 +206,8 @@
                                                         removal: .opacity.animation(.easeOut(duration: 0.1))))
                             }
                         }
-                    FadeText(text: announcement.map { Text($0) } ?? Text(
+                    // Not once the user selected the tab.
+                    FadeText(text: announcement.flatMap { selected ? nil : Text($0) } ?? Text(
                         "\(title.name)\(Text(title.folder.map { " \($0)" } ?? "").foregroundStyle(.secondary))",
                     ))
                     .opacity(renaming ? 0 : 1)

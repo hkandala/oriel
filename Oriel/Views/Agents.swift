@@ -42,9 +42,10 @@ enum AgentSort: String {
 struct WorkingDots: View {
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.offscreen) private var offscreen
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 15, paused: reduceMotion)) { context in
+        TimelineView(.animation(minimumInterval: 1 / 15, paused: reduceMotion || offscreen)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
             HStack(spacing: 2) {
                 ForEach(0 ..< 3, id: \.self) { index in
@@ -67,6 +68,11 @@ struct WorkingDots: View {
         default: 0.3
         }
     }
+}
+
+extension EnvironmentValues {
+    /// A sidebar page off to the side: its dots stand still.
+    @Entry var offscreen = false
 }
 
 /// A workspace's state: an amber dot, the working dots, a green dot or a gray ring; nothing without an agent.
@@ -123,7 +129,7 @@ struct StatusBadge: View {
             }
             .buttonStyle(ChromeStyle(radius: 10))
             .accessibilityIdentifier("agent.\(pane.id)")
-            .accessibilityLabel(pane.agentName ?? "agent")
+            .accessibilityLabel("\(pane.agentName ?? "agent"), \(page.place(pane))")
             .accessibilityValue(pane.state?.capsule ?? "")
         }
 
@@ -171,10 +177,7 @@ struct StatusBadge: View {
     extension HostStore {
         /// The agent panes in herdr's order of workspaces, tabs and panes.
         var agentPanes: [Pane] {
-            let order = workspaces.flatMap(\.tabs).map(\.id)
-            return panes.filter { $0.state != nil }.sorted {
-                order.firstIndex(of: $0.tabID) ?? 0 < order.firstIndex(of: $1.tabID) ?? 0
-            }
+            workspaces.flatMap(\.tabs).flatMap { tab in panes.filter { $0.tabID == tab.id && $0.state != nil } }
         }
     }
 
@@ -310,7 +313,8 @@ struct StatusBadge: View {
             guard over != open, !over || NSEvent.pressedMouseButtons == 0 else { return }
             pending = Task {
                 try? await Task.sleep(for: .milliseconds(over ? 250 : 150))
-                if !Task.isCancelled {
+                // A drag may have started meanwhile.
+                if !Task.isCancelled, !over || NSEvent.pressedMouseButtons == 0 {
                     show(over)
                 }
             }

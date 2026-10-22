@@ -219,12 +219,14 @@
         private(set) var current: Page?
         let terminals = PaneViewRegistry()
 
-        /// The app's one window's pages, for the Dock menu and notification clicks.
+        /// The app's one window's pages, for the Dock menu and notification clicks; set once the window restored
+        /// its pages (a `@State` initial value is made again with each view, so not in `init`).
         /// ponytail: one window; phase 16 picks the window (the key one, else any showing the session).
         weak static var main: WindowPages?
+        /// A notification or Dock row clicked before its page or pane was there (a click that started the app).
+        private static var pending: String?
 
         init() {
-            Self.main = self
             terminals.onKeyboard = { [weak self] terminalID in self?.current?.tookKeyboard(terminalID) }
             // Return may have started or ended a program.
             terminals.onReturn = { [weak self] terminalID in
@@ -251,6 +253,7 @@
                 page.settle()
                 showTerminals()
                 Notifications.post(changes, page)
+                showPending()
             }
             page.settle()
             list.insert(
@@ -272,6 +275,7 @@
             if current === page {
                 show(list[max(index - 1, 0)])
             }
+            Notifications.remove(page.store.panes, of: page)
             page.store.disconnect()
             showTerminals()
         }
@@ -289,11 +293,26 @@
         }
 
         /// Selects an agent's pane from outside the window (a notification, the Dock menu) by its notification id,
-        /// "local|‹session›|‹terminal id›": the terminal outlives a pane id that changed.
-        func go(to id: String) {
+        /// "local|‹session›|‹terminal id›": the terminal outlives a pane id that changed. A page that is not open
+        /// opens; the pane is selected once a snapshot shows it.
+        static func go(to id: String) {
+            pending = id
+            main?.showPending()
+        }
+
+        func showPending() {
+            guard let id = Self.pending else { return }
             let parts = id.split(separator: "|", maxSplits: 2).map(String.init)
-            guard parts.count == 3, let page = list.first(where: { $0.id == parts[1] }),
-                  let pane = page.store.panes.first(where: { $0.terminalID == parts[2] }) else { return }
+            guard parts.count == 3 else {
+                Self.pending = nil
+                return
+            }
+            guard let page = list.first(where: { $0.id == parts[1] }) else {
+                open(parts[1])
+                return
+            }
+            guard let pane = page.store.panes.first(where: { $0.terminalID == parts[2] }) else { return }
+            Self.pending = nil
             show(page)
             page.go(to: pane)
         }

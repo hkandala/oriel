@@ -65,7 +65,11 @@ struct OrielApp: App {
                                   sidebarWidth: $sidebarWidth)
                 }
             }
-            .task { await restore() }
+            .task {
+                await restore()
+                WindowPages.main = pages
+                pages.showPending()
+            }
             .onChange(of: pages.list.map(\.id)) { savedPages = $1.joined(separator: " ") }
             .onChange(of: pages.current?.id) { savedPage = $1 ?? "" }
             // Git status for the page in view of a visible window: now and every 10 s (D67).
