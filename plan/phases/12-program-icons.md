@@ -1,10 +1,12 @@
 # Phase 12: program icons
 
-Goal: every pane, tab and row shows the icon of the program that runs in it, like Rex: a colored
-rounded tile in tabs and rows, a plain glyph in card headers, and a stack of icons for a tab with
-several panes.
+Goal: every pane and tab shows the icon of the program that runs in it, like Rex: a colored rounded
+tile in tab capsules and Agents rows, a plain glyph in card headers, and overlapping tiles, one per
+pane, for a tab with several panes. The sidebar has no tab rows (`plan/ui-layout.md`), so it shows no
+program icons.
 
-Read first: `plan/ui-polish.md`, `resources/icons/` (`catalog.json`, `svg/`, `SOURCES.md`,
+Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, item 5), `resources/mockups/layout.html`
+(scene A, the tab bar), `resources/icons/` (`catalog.json`, `svg/`, `SOURCES.md`,
 `contact-sheet.png`), `resources/research/clients/rex-ui.md` (tab icon, icon stack, how Rex matches
 programs), `docs/content/docs/ui/window.mdx` (tab bar: "the icon of the pane last selected in that
 tab"), `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses`).
@@ -46,11 +48,13 @@ tab"), `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses
      (the SVGs carry their own optical padding), a 1 px dark outline and a faint top highlight, as in
      Rex. Replaces `IconTile`.
    - `ProgramGlyph(icon:)`: the glyph alone at 16 pt in `.secondary`, for card headers.
-   - `IconStack(icons:max:)`: up to 5 tiles (title-bar tabs) or 3 (sidebar rows), each 4 pt to the
+   - `IconStack(icons:)`: one tile per pane of the tab, up to 5, overlapping: each tile 4 pt to the
      right of the one in front, the keyboard card's icon in front, a 1 px separation ring in the
-     background color so the stack reads as layers.
+     background color so the stack reads as layers. A one-pane tab shows one tile.
 6. **Where they show:**
-   - Title-bar tab capsule and sidebar tab row: the tab's `IconStack` (one tile for a one-pane tab).
+   - Title-bar tab capsule: the tab's `IconStack`. Today's sidebar tab rows get nothing new: phase 14
+     replaces them with workspace rows.
+   - Agents rows (phase 15) and hover card rows (phase 19): the pane's `ProgramTile`.
    - Card header: `ProgramGlyph`, then the program's title in primary text and the folder in
      secondary text (Rex: "zsh ~", "bash /private/tmp"). The pane's herdr label still wins when set.
    - Palette rows for tabs: the stack's front tile.
@@ -70,5 +74,5 @@ tab"), `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses
 
 ## Done when
 
-- Screenshot of a tab bar and sidebar with at least six different programs, and a three-pane tab's
-  stack.
+- Screenshot of a tab bar with at least six different programs, and a three-pane tab's overlapping
+  stack, next to the card headers of that tab.

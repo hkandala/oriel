@@ -1,30 +1,32 @@
 ---
 title: "Machines and SSH"
-description: "What a machine is, macOS and iOS connections, the health check, SSH sessions and checks on connect"
+description: "What a machine is, its sessions, macOS and iOS connections, the health check, SSH sessions and checks on connect"
 ---
 
 ## What a machine is
 
-- A **machine** is one herdr session that the app connects to. It is one
-  entry in the machine list and has one sidebar page.
-- A **host** is the computer a machine runs on. Two sessions on one host
-  share one SSH connection (ControlMaster) and nothing else: each session
-  has its own events, streams and state folder.
-- On this Mac, each running herdr session is a machine. The `default`
-  session is "This Mac". Another session is named "This Mac · ‹session›".
+- A **machine** is a host: a computer that runs herdr (D43). This Mac now,
+  SSH hosts later. Each machine has its own icon, because the title row's
+  machine button shows only the icon ([Machine button](/docs/ui/window#machine-button)).
+- A machine runs several herdr **sessions** (`default`, `pi-herd`, …), each
+  one herdr server. The sessions of one machine share one SSH connection
+  (ControlMaster) and nothing else: each session has its own events, streams
+  and state folder.
+- A window shows one machine. Its sidebar has one page per session open in
+  that window ([Sidebar](/docs/ui/window#sidebar)).
 
 ## The machine list
 
 - **The app keeps its own list of remote machines**, on macOS and iOS alike
-  (D54): target, session, label and id, in `UserDefaults`. One code path on
-  both platforms.
-- **This Mac's sessions** come from `herdr session list --json`, when herdr is
-  installed on the Mac. The `default` session always shows (even when it is
-  stopped, so the app can say how to start it). Other sessions show while
-  they run. herdr on the Mac is needed only for these, not for remote
-  machines.
-- **herdr's machines (macOS):** when herdr is on the Mac, the Add Machine
-  sheet lists the enabled entries of `herdr machine list --json`
+  (D54): name, SSH target, icon and id, in `UserDefaults`. One code path on
+  both platforms. Remote machines come after This Mac.
+- **This Mac** is always in the list, with the laptop icon.
+- **A machine's sessions** come from `herdr session list --json`, run on that
+  machine. The Open Session sheet lists them
+  ([Open Session](/docs/ui/window#open-session)). herdr on the Mac is needed
+  only for This Mac's sessions, not for remote machines.
+- **herdr's machines (macOS):** when herdr is on the Mac, the Add Remote Host
+  sheet lists the targets of the enabled entries of `herdr machine list --json`
   (`{id, label, target, session, enabled}`) that are not in the app's list,
   each with a checkbox. While the app's list is empty, they start checked.
   The app never writes herdr's list.
@@ -89,21 +91,27 @@ description: "What a machine is, macOS and iOS connections, the health check, SS
 - [Spike S7](/docs/build-order#s7-ios-transport) tests Citadel's exec
   channels before the iOS work starts.
 
-## All machines at once
+## Open sessions
 
-- Every machine keeps its control plane open (one event stream plus short
-  calls), so Activity, notifications and pills cover every machine.
-- Only the selected machine streams terminals. Switching machines closes the
-  old machine's streams and opens the new one's.
+- A session is open while it has a page in at least one window. Each open
+  session has one `HostStore`, shared by every window that shows it
+  ([Architecture](/docs/architecture#pieces)).
+- An open session keeps its control plane open (one event stream plus short
+  calls), so the Agents button, notifications, the Dock and pills cover every
+  open session in every window.
+- A session with no page has no store, no snapshot reads and no event stream.
+  A machine with many sessions costs nothing until the user opens them.
+- Terminals stream only for the tabs shown in a window
+  ([What streams](/docs/talking-to-herdr#what-streams)).
 
 ## Health check
 
-One loop per machine checks that it answers.
+One loop per open session checks that it answers.
 - The check is `session.snapshot`, the read the app needs anyway. It carries
   herdr's version and catches any event the app missed.
-- It runs every 30 s while the machine is healthy. A failed read switches it
+- It runs every 30 s while the session is healthy. A failed read switches it
   to every 2 s, so a session started again in a terminal comes back at once.
-- A machine counts as live only while the check answers. While it fails, its
+- A session counts as live only while the check answers. While it fails, its
   cards gray out.
 - On a remote machine a failed check also restarts the connection: on macOS
   `ssh -O exit`, then a new ControlMaster; on iOS a new Citadel connection.
@@ -117,7 +125,7 @@ One loop per machine checks that it answers.
 ## SSH sessions
 
 - OpenSSH allows 10 sessions per connection by default (`MaxSessions`).
-  Machines on one host share their connection, so they share that limit.
+  The sessions of one machine share its connection, so they share that limit.
   This Mac uses no SSH and has no limit.
 - The app opens a channel when it needs one: a call, a stream, a chat tail,
   a plugin `run`.
@@ -135,8 +143,9 @@ One loop per machine checks that it answers.
    ([herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine)). If
    the server is not running:
    - **This Mac:** a **Start** button, next to the command to run in a
-     terminal. Picking a stopped session or making a new one starts it the
-     same way; a new server gets one workspace in `$HOME`. The app starts the
+     terminal. A window starts the `default` session this way when it is
+     stopped. In the Open Session sheet, a stopped session or a new name
+     starts the same way; a new server gets one workspace in `$HOME`. The app starts the
      server as a one-shot launchd job (D47). launchd, not the app, is the
      server's parent and "responsible process": macOS privacy prompts never
      name Oriel, the server has its own process group, and it outlives the app.

@@ -1,12 +1,13 @@
-# Phase 19: find, links, states and finish
+# Phase 21: find, links, states and finish
 
 Goal: the last Rex features that work over herdr (find in a pane, opening links), Rex-style empty
-states and notices, small launch and Dock touches, and a final pass over the whole UI against the Rex
-references.
+states and notices, the "Controlled in another window" state, the Open Session failures, small launch
+and Dock touches, and a final pass over the whole UI against the Rex references and the mock-ups.
 
-Read first: `plan/ui-polish.md`, `resources/research/clients/rex-ui.md` (find bar, empty and loading
-states, notices, launch cover), `docs/content/docs/ui/states.mdx`, `docs/content/docs/talking-to-herdr.mdx`
-(scrolling, queries and links; `pane.read`), `Oriel/App/OrielApp.swift` (`Detail`, notice).
+Read first: `plan/ui-polish.md`, `plan/ui-layout.md`, `resources/research/clients/rex-ui.md` (find
+bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/states.mdx`,
+`docs/content/docs/talking-to-herdr.mdx` (scrolling, queries and links; `pane.read`),
+`Oriel/App/OrielApp.swift` (`Detail`, notice).
 
 ## Build
 
@@ -42,30 +43,42 @@ states, notices, launch cover), `docs/content/docs/ui/states.mdx`, `docs/content
    - Connecting: "Connecting to ‹machine›" with a spinner, after 0.3 s (no flash on a fast connect).
    - Reconnecting: "Reconnecting to ‹machine›", cards dimmed to 0.5 (design: gray cards), "Attempt N
      failed. Trying again." under it.
-   - A workspace with no tabs (rare in herdr): "Open a new tab to start a terminal." and a New Tab
-     button with its shortcut.
-   - No workspaces: "No workspaces" and a New Workspace button (today it shows a command).
-   - Keep the herdr install, too old and not running states (D38, D47).
-6. **Notice.** Today's 4 s notice becomes a capsule at the bottom center of the strip, 30 pt above the
+   - A workspace with no tabs (rare in herdr): only a New Tab button with its shortcut, no text.
+   - No workspaces: only a New Workspace button, no text (today it shows a command).
+   - Keep the herdr install, too old and not running states (D38, D47). The not running state is per
+     page: a page whose session stops while it is open shows it with **Start**; the page stays open.
+   - **Controlled in another window** (phase 16): the watching window's capsule gets the notice look
+     of step 6 (info tone, `macwindow.on.rectangle`, the **Take Back** button, no ✕). It sits under a
+     notice when both show. VoiceOver reads "Controlled in another window" when it appears.
+6. **Open Session failures** (the sheet from phase 14):
+   - Starting a session (create or stopped) fails, or its server does not answer within 10 s: the
+     row's spinner stops, the sheet stays open, and the notice says "Could not start ‹session›" with
+     herdr's reason and **Retry**.
+   - A running session that stopped since the list was read: Open starts it (as for a stopped one).
+   - A name created elsewhere since the list was read: Create opens that running session.
+   - Opening a page fails to connect (the bridge errors): the page shows the reconnecting state.
+   No other text goes into the sheet.
+7. **Notice.** Today's 4 s notice becomes a capsule at the bottom center of the strip, 30 pt above the
    bottom: glass, a tone color for the leading symbol (error red, warning amber, info blue), an
    optional action button ("Retry"), a ✕. Same text rules as now.
-7. **Launch.** Cards fade in (0.2 s) when their terminal's first frame arrives, instead of popping in
+8. **Launch.** Cards fade in (0.2 s) when their terminal's first frame arrives, instead of popping in
    empty.
-8. **Dock drop.** Folders dropped on the Dock icon (add `public.folder` to the document types, Viewer,
+9. **Dock drop.** Folders dropped on the Dock icon (add `public.folder` to the document types, Viewer,
    Alternate) open a new workspace in each folder (`workspace.create {cwd, focus:false}`), selected
-   when it appears.
-9. **Window restore.** `@SceneStorage` keeps the selected workspace and tab and the sidebar state
-   (design `data.mdx`); a restored id that is gone falls back to herdr's focused workspace.
+   when it appears, in the session of the key window's page in view. (Window restore is phase 16.)
 
 ### Final pass
 
-10. Compare every screen with the Rex references side by side (tab bar, sidebar, Activity, hover card,
-    cards, palette, Settings, light and dark, Glass and Classic). Fix spacing, font weights, colors
-    and timings until they match in spirit. List what you changed in the findings.
+10. Compare every screen with the Rex references and `resources/mockups/layout.html` side by side (title
+    row and tab bar, machine and workspace menus, sidebar pages, Agents popover and view, Open Session
+    sheet, two windows, hover card, cards, palette, Settings, light and dark, Glass and Classic). Fix
+    spacing, font weights, colors and timings until they match in spirit. List what you changed in the
+    findings.
 11. Update the docs site's mock-ups to the new look: the components in `docs/components/design/`
     (main window, split demo, chat card) and the interactive overview `docs/public/overview/index.html`.
     If that is large, record it as the next task instead.
-12. **Docs.** `ui/states.mdx` (new texts), `ui/window.mdx` (find bar, notice), the keyboard table (⌘F,
+12. **Docs.** `ui/states.mdx` (new texts, Open Session failures, the watching window),
+    `ui/window.mdx` (find bar, notice), the keyboard table (⌘F,
     ⌘G), `features.mdx` (final list), `inspirations.mdx` ("What we take" from Rex).
 
 ## e2e
@@ -76,6 +89,13 @@ states, notices, launch cover), `docs/content/docs/ui/states.mdx`, `docs/content
   launch argument that records opened URLs instead of opening them).
 - Stop the session's server: the reconnecting state shows; start it: the cards come back.
 - A failed write shows the notice capsule with its symbol.
+- Stop the server of a second open page (two throwaway sessions): that page shows the not running
+  state with Start; Start brings its workspaces back; the first page is not touched.
+- A start that fails: the sheet stays open and the notice shows "Could not start" with Retry. Make it
+  fail with the smallest hook that works (for example a launch argument that sets the start timeout to
+  0 s); if none is small, check it by hand and record it.
+- Two windows on one throwaway session: the watching window's capsule has the notice look and Take
+  Back works.
 
 ## Done when
 

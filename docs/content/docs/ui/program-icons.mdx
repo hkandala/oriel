@@ -3,16 +3,17 @@ title: "Program icons"
 description: "Where program icons show, how a pane gets its icon, when the app asks herdr, and the icon catalog"
 ---
 
-Every pane, tab and row shows the icon of the program that runs in it (D60).
+Every pane, tab and agent row shows the icon of the program that runs in it
+(D60).
 
 ## Where icons show
 
 | Place | Look |
 |---|---|
-| Title-bar tab capsule | a stack of up to 5 tiles, one per pane |
-| Sidebar tab row | a stack of up to 3 tiles |
+| Title-bar tab capsule | one tile for a one-pane tab; for several panes, up to 5 tiles overlapping, one per pane |
 | Card header | the glyph alone, 16 pt, in secondary color, then the program's name and the folder |
-| Hover card, Activity rows | the pane's tile or glyph |
+| Agents view and Agents popover rows | the pane's tile, with its badge |
+| Hover card | the pane's glyph in each pane row |
 | Palette rows for tabs | the front tile of the tab's stack |
 
 - **Tile.** A rounded rect, 22 × 18 pt, radius 5, in the catalog's tile
@@ -20,7 +21,9 @@ Every pane, tab and row shows the icon of the program that runs in it (D60).
   dark outline and a faint highlight at the top.
 - **Stack.** The keyboard card's icon is in front. Each tile behind sits 4 pt
   to the right of the one in front, with a 1 px ring in the background color,
-  so the stack reads as layers.
+  so the overlapping tiles read as layers.
+- The sidebar has no tab rows, so it shows no tab icons. Workspace rows show
+  a state icon, not program icons.
 - **Badges.** Needs you and finished show as a dot on the front tile
   ([Status](/docs/ui/theme-and-accessibility#status)).
 - In the card header, herdr's pane label wins over the program's name when

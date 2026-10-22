@@ -3,35 +3,39 @@ title: "Features"
 description: "Everything Oriel does, in one list"
 ---
 
-Try the main window below. Each part has its own page under UI design. The
-[interactive overview](/overview/index.html) has mock-ups of the main screens
-on one page.
+Each part of the window has its own page under UI design. The
+[main window mock-ups](/mockups/layout.html) show every scene on one page.
 
-<MacWindow />
+![Main window with the sidebar open](/mockups/A.jpg)
 
 ## Machines and workspaces
 
-- Every running herdr session on this Mac, plus every SSH machine, all
-  connected at once. herdr on the Mac is needed only for This Mac.
-- A sidebar page per machine. Swipe the sidebar sideways to switch machines,
-  like Arc's spaces. The whole window follows.
-- Workspaces are sections with their tabs (and later their agents) as rows. Collapse a section, rename
-  it in place, add a tab from its header, reorder or close it. A collapsed
-  workspace shows how many of its agents need you.
-- The sidebar resizes from 227 to 480 pt and keeps its width.
-- **Activity** (the eye button, ⌘.): the agents that need you or finished and
-  that you have not seen, and the working ones on request, in the sidebar or a
-  popup.
+- A machine is a computer: This Mac now, SSH hosts later, each with its own
+  icon. herdr on the Mac is needed only for This Mac.
+- Several windows (⌘N). Each window shows one machine and keeps its own
+  selection. When two windows show the same session, the one you last typed
+  in controls it, and the other offers **Take Back**.
+- A sidebar page per herdr session you open in the window. Swipe the sidebar
+  sideways to switch sessions, like Arc's spaces. **Open Session** (⇧⌘N)
+  creates a session, starts a stopped one or opens a running one as a page.
+- Workspace rows like herdr's: a state icon, the name, the git branch with
+  ahead and behind counts, and linked worktrees indented under their
+  repository. Rename in place, add a tab, reorder or close a workspace.
+- The sidebar resizes from 227 to 480 pt; each window keeps its width.
+- **Agents** (the chat bubbles, ⌘.): rest on the button to see who needs you,
+  or click it for every agent of the session, sorted by priority or by
+  workspace order.
 
 ## Tabs and panes
 
 - A strip of tabs: each herdr tab is one page. Swipe sideways through them.
   The tab bar lights every tab whose page is visible and selects the tab when
   the swipe stops. The window title follows the selected tab.
-- Rex's tab bar: equal-width capsules on a track, a sliding selection, titles
-  that fade instead of cutting off, × on hover, a context menu, rename in
-  place, drag to reorder, and ⌘1…⌘9 keycaps when you hold ⌘.
-- Program icons: each tab shows a stack of the icons of the programs in its
+- Rex's tab bar, always in the title row: equal-width capsules on a track, a
+  sliding selection, titles that fade instead of cutting off, × on hover, a
+  context menu, rename in place, drag to reorder, and ⌘1…⌘9 keycaps when you
+  hold ⌘.
+- Program icons: each tab shows the overlapping icons of the programs in its
   panes, with three working dots and badges for **needs you** and
   **finished**.
 - The hover card: rest on a tab to see its splits and panes, and the last
@@ -42,11 +46,11 @@ on one page.
   rename a pane, move it to another tab or workspace from its context menu.
 - Cards without the keyboard fade. Layout changes animate.
 - Zoom a pane to fill the window, then return.
-- Drag a pane to swap it, split it into another tab, or move it to another
-  workspace.
+- Drag a pane to swap it, place it beside another card, split it into
+  another tab, or move it to another workspace, within what herdr allows.
 - Find in a pane (⌘F), and ⌘-click links.
 - A command palette (⌘K) with every command and its shortcut, sub-pages for
-  renames, sessions, appearance and folders, Go to Directory and Insert Path.
+  renames, appearance and folders, Go to Directory and Insert Path.
 
 ## Pane kinds
 

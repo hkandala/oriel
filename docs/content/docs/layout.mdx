@@ -1,6 +1,6 @@
 ---
 title: "Layout and sizing"
-description: "The split tree, drawing, dividers, fade, motion, keyboard moves, zoom, PTY size, selection and seen"
+description: "The split tree, drawing, dividers, fade, motion, keyboard moves, zoom, PTY size, selection per window and seen"
 ---
 
 ## What herdr returns
@@ -114,7 +114,7 @@ herdr's focus methods (D13):
 
 ## Zoom is the app's own
 
-- One zoomed card, in memory.
+- One zoomed card per window, in memory.
 - It is drawn by the split tree itself: each split above the zoomed card
   stacks its two sides, the zoomed side at the full size and the other hidden
   at the size it has without zoom. The same views stay in place, so no
@@ -128,6 +128,10 @@ herdr's focus methods (D13):
 
 ## PTY size has one owner
 
+- One window controls each session (D66), so the PTY of a pane follows the
+  card size in that window. A window that watches the session opens
+  `observe`, which clips or pads to its own card size
+  ([Control between windows](/docs/talking-to-herdr#control-between-windows)).
 - While our `control` stream is attached, herdr locks that PTY to our size
   and ignores herdr TUI layout resizes. After release the PTY keeps our size
   until a herdr TUI lays the tab out again.
@@ -136,11 +140,17 @@ herdr's focus methods (D13):
 
 ## Selection and "seen" are the app's own
 
-- The selected machine, workspace, tab and focused card live in memory, plus
-  `@SceneStorage` to restore the window. A restore id that is gone falls back
-  to herdr's focused workspace.
-- The card with the keyboard is the app's own too, one per tab: coming back
-  to a tab gives the keyboard to the card the user last used there. herdr's
+- Selection is per window. Each window has its own machine, open pages,
+  current page, workspace, tab, keyboard card, zoom, sidebar view and sidebar
+  width, in memory, plus `@SceneStorage` to restore the window
+  ([Data](/docs/data#every-piece-of-data)). A workspace or tab that is gone
+  falls back to herdr's focused workspace.
+- Control is per session, across windows (D66): the window where the user
+  last typed or clicked in a terminal controls that session's panes. It is
+  not part of a window's selection.
+- The card with the keyboard is the app's own too, one per tab in each
+  window: coming back to a tab gives the keyboard to the card the user last
+  used there. herdr's
   focused pane only picks it the first time a tab is shown, the same kind of
   fallback, and the app never tells herdr.
 - **The app never calls herdr's focus methods** (`pane.focus`, `tab.focus`,
@@ -160,10 +170,10 @@ herdr's focus methods (D13):
   - herdr's own `done` status is not used, because herdr goes straight to
     `idle` when a herdr TUI is already looking at that tab.
   - The first time the app sees an agent, it records the agent's current
-    `completion_seq` as seen, so old finishes do not flood Activity or
-    the notifications.
+    `completion_seq` as seen, so old finishes do not flood the Agents
+    view or the notifications.
   - Viewing the agent's pane records the current value.
-  - Each device keeps its own seen values. Seeing an agent on one device does
-    not clear it on another.
+  - Each device keeps its own seen values, shared by its windows. Seeing an
+    agent on one device does not clear it on another.
   - Simpler choice: finishes that happen while the app is closed are not
     shown. Revisit when users ask for a list of finishes they missed.

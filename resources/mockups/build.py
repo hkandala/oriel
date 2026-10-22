@@ -1,7 +1,7 @@
-"""Builds plan/mockups/layout.html: static mock-ups of Oriel's main window for review.
+"""Builds resources/mockups/layout.html: static mock-ups of Oriel's main window for review.
 
-Run from the repo root: python3 plan/mockups/build.py
-Open plan/mockups/layout.html in a browser; add ?scene=A (B, C, ...) to show one scene.
+Run from the repo root: python3 resources/mockups/build.py
+Open resources/mockups/layout.html in a browser; add ?scene=A (B, C, ...) to show one scene.
 Program icons come from resources/icons (catalog.json + svg/), inlined so the page opens from disk.
 """
 
@@ -347,6 +347,11 @@ def window(sidebar=None, popup=None, session="default", machine_icon="laptop", w
             f'<div class="content">{side}{strip(watching)}</div>{popup or ""}</div>')
 
 
+def drag_overlay():
+    return ('<div class="ghost"><div class="chead">' + glyph("pi") + '<span class="ttl">pi <span class="dim">~/code/oriel'
+            '</span></span></div></div><div class="dropind"></div>')
+
+
 def pair(left, right, l1, l2):
     return (f'<div class="pair"><div class="mini">{left}<div class="mlabel">{l1}</div></div>'
             f'<div class="mini">{right}<div class="mlabel">{l2}</div></div></div>')
@@ -390,6 +395,11 @@ SCENES = [
      "(the first bubble fills while it is on): one row per agent pane, even when a tab holds several. Sorted by "
      "priority (needs you, working, done, idle) or by workspace order. Idle agents show by default. A sideways "
      "swipe shows the next session's agents. A click opens that workspace, tab and pane.", window("agents")),
+    ("K", "Dragging a pane by its header",
+     "A drop on the center of a card in the same tab swaps the two; a drop on an edge places the pane beside "
+     "that card (the indicator shows the half it will take). Holding over a tab capsule for 0.65 s pages to "
+     "that tab; a drop on the tab track's empty end makes a new tab; a drop on a workspace row makes a new tab "
+     "there; a drop on empty sidebar space makes a new workspace.", window("ws", drag_overlay())),
     ("I", "Two windows, same machine, different sessions",
      "Each window shows one machine and controls the session on its page. Two windows on different sessions "
      "both control their own session.",
@@ -406,12 +416,13 @@ CSS = (pathlib.Path(__file__).with_name("layout.css")).read_text()
 html = ["<!doctype html><html><head><meta charset='utf-8'><title>Oriel layout mock-ups</title>",
         f"<style>{CSS}</style></head><body><h1>Oriel main window: mock-ups for review</h1>",
         "<p class='lead'>Static mock-ups (dark, Glass). Sample data: This Mac runs two herdr sessions, default "
-        "(five workspaces) and pi-herd (two). Built by <code>plan/mockups/build.py</code>; "
+        "(five workspaces) and pi-herd (two). Built by <code>resources/mockups/build.py</code>; "
         "add <code>?scene=A</code> to the URL for one scene.</p>"]
 for letter, name, text, win in SCENES:
     html.append(f"<section data-s='{letter}'><h2>{letter}. {name}</h2><p>{text}</p>{win}</section>")
-html.append("<script>const q=new URLSearchParams(location.search).get('scene');"
-            "if(q)document.querySelectorAll('section').forEach(s=>{if(s.dataset.s!==q)s.remove()})</script>"
-            "</body></html>")
+html.append("<script>const u=new URLSearchParams(location.search),q=u.get('scene');"
+            "if(q)document.querySelectorAll('section').forEach(s=>{if(s.dataset.s!==q)s.remove()});"
+            "if(u.has('bare')){document.querySelectorAll('h1,.lead,h2,section>p').forEach(e=>e.remove());"
+            "document.body.style.padding='12px'}</script></body></html>")
 (pathlib.Path(__file__).with_name("layout.html")).write_text("".join(html))
-print("wrote plan/mockups/layout.html")
+print("wrote resources/mockups/layout.html")

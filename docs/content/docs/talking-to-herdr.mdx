@@ -1,6 +1,6 @@
 ---
 title: "Talking to herdr"
-description: "Run and dial, requests, events, reconcile, the terminal plane and writes"
+description: "Run and dial, requests, events, reconcile, the terminal plane, control between windows, git status and writes"
 ---
 
 ## Run and dial
@@ -107,7 +107,9 @@ the work. A later server helper would sit behind the same two calls
 
 ## Events
 
-- One long-lived bridge run per machine carries `events.subscribe`.
+- One long-lived bridge run per open session carries `events.subscribe`. A
+  session without a page in any window has none
+  ([Open sessions](/docs/machines#open-sessions)).
 - Subscriptions (herdr accepts no wildcards):
   - `workspace.created|updated|metadata_updated|renamed|moved|reordered|closed`
   - `tab.created|closed|renamed|moved`
@@ -120,7 +122,7 @@ the work. A later server helper would sit behind the same two calls
     app ignores herdr's focus.
 - **Any event line means "read `session.snapshot` again".** Event payloads
   are never decoded.
-- **Snapshot pacing, per machine:** at most one `session.snapshot` is in
+- **Snapshot pacing, per session:** at most one `session.snapshot` is in
   flight. An event, or the app's own write, starts a read at once if none is
   in flight; otherwise it sets "read again", and the read that ends with it
   set starts one more. A read takes 20–130 ms, so it batches the events that
@@ -136,11 +138,12 @@ the work. A later server helper would sit behind the same two calls
 <Flow steps={[['herdr event', 'any line on the stream'], ['pacing', 'one read in flight, then read again if needed'], ['session.snapshot', 'workspaces, tabs, panes, agents, layouts'], ['reconcile', 'stable objects, changed fields only'], ['views update', 'one row, not the window']]} />
 
 - One snapshot holds every workspace, tab, pane, agent and layout.
-- The HostStore applies it to stable `@Observable` objects (`Workspace`,
+- The session's HostStore applies it to stable `@Observable` objects (`Workspace`,
   `Tab`, `Pane`) keyed by id, and sets only the fields that changed. A status
   change redraws one row, not the window.
-- Ids are scoped by machine (two machines can both have `w1:p1`). Every
-  card is keyed by `(machine, terminal_id)`, which survives every move. A
+- Ids are scoped by session (two sessions can both have `w1:p1`). Every
+  card is keyed by `(machine, session, terminal_id)`, which survives every
+  move. A
   herdr cold restart gives new terminal ids, so cards are built again, which
   reads their state from the machine. A web or plugin pane's instance id only
   names its state file ([Labels and instance ids](/docs/plugins/labels)).
@@ -174,9 +177,10 @@ One path is [Future work](/docs/future-work).
 
 ### What streams
 
-- The panes of the selected tab on the selected machine.
-- On the Mac, the panes of recently shown tabs keep their `control` streams,
-  up to about 24 terminals, least recently shown first out (D46). Their
+- The panes of the selected tab in each window.
+- On the Mac, the panes of recently shown tabs keep their streams, up to
+  about 24 terminals across all windows, least recently shown first out
+  (D46). Their
   surfaces stop drawing but keep reading: a surface draws only while its page
   is in the window (in view, or next to it: the strip keeps neighbor pages laid
   out).
@@ -214,6 +218,26 @@ One path is [Future work](/docs/future-work).
    card ([What streams](#what-streams)). herdr frees the pane at once.
 6. **Background:** a Mac app that becomes inactive keeps its streams. An iOS
    app closes its streams when it goes to the background.
+
+### Control between windows
+
+Two windows on the Mac can show the same session. Control is per session
+(D66):
+1. The window where the user last typed, pasted or clicked in a terminal card
+   of the session holds that session's `control` streams.
+2. Another window that shows the session opens `observe` streams for its
+   cards, at its own card size. Its cards dim a little, and it shows
+   "Controlled in another window · Take Back"
+   ([Control capsule](/docs/ui/window#control-capsule)).
+3. Take Back, or a key press, paste or click in a terminal card of the
+   watching window, moves control: that window opens its streams again as
+   `control` with `--takeover`, and the other window opens `observe`. Keys
+   typed before the first frame are queued, as for a device.
+4. The session's `HostStore` records which window controls it, so its
+   windows never take over from each other by themselves.
+5. Windows on different sessions each control their own session.
+6. Another device can still hold a single pane. That card shows "In use
+   elsewhere · Take back", as in [One controller per pane](#one-controller-per-pane).
 
 ### Watching on a narrow screen
 
@@ -255,13 +279,31 @@ handshake fails, it exits 1 with the reason on stderr.
 - **Links** in terminal output open on this device with ⌘-click, and only
   `http` or `https`.
 
+## Git status
+
+The sidebar's workspace rows show the branch and the ahead and behind counts
+(D67). herdr's snapshot has no branch, so the app asks git on the machine:
+- **Command.** `git -C <root> status --porcelain=v2 --branch`, through
+  `Exec.run`, so it works the same on This Mac and over SSH. The root is the
+  workspace's `worktree.checkout_path`, else the cwd of its first pane.
+- **Parse.** The `# branch.head` line gives the branch, and
+  `# branch.ab +A -B` gives ahead and behind. The app reads no other line. A
+  failed run (not a git repository, git missing) means the row has no git
+  line.
+- **When.** When a snapshot changes, and every 10 s, for the page in view in
+  each window only. One run per workspace at a time. Hidden pages never run.
+- **Worktrees.** herdr's `worktree.is_linked_worktree` and `repo_key` place a
+  linked worktree under its repository's workspace. No git run is needed for
+  that.
+- The result lives in memory on the session's `HostStore`.
+
 ## Writes are herdr calls
 
 | User action | herdr call |
 |---|---|
-| New workspace | `workspace.create {cwd, label}` |
+| New workspace (page header `+`, workspace menu) | `workspace.create {cwd, label}` in that page's session |
 | Folder dropped on the Dock icon | `workspace.create {cwd}`, one per folder |
-| New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a section header's `+`, that workspace's keyboard card, or `$HOME` |
+| New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a workspace row's New Tab, that workspace's keyboard card, or `$HOME` |
 | Split right or down | `pane.split {target_pane_id, direction: right or down, ratio, cwd}` |
 | Split left or up | `pane.split` right or down, then `pane.swap` of the old and the new pane (herdr splits only right and down) |
 | Autobalance after a split (setting) | then one `layout.set_split_ratio` per split, as for ⌃⌘= |
@@ -273,13 +315,17 @@ handshake fails, it exits 1 with the reason on stderr.
 | Move to New Tab (card menu) | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Move to Tab ▸ (card menu) | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
 | Move to New Workspace (card menu) | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
+| Drop on an edge of a pane in the same tab | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}`, then `pane.move {pane_id, destination:{type:"tab", tab_id, split, target_pane_id}}` back beside the target (right or down), then `pane.swap` for left or top; the snapshot is read after each step (herdr refuses a move into the pane's own tab with `same_tab`) |
 | Drop on an edge of a pane in another tab | `pane.move {pane_id, destination:{type:"tab", tab_id, split, target_pane_id}}`; for left or top, then `pane.swap` |
-| Drop on a tab capsule or sidebar tab row | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
+| Drop on a tab capsule | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
 | Drop on the tab track's empty end or `+` | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
-| Drop on a sidebar workspace | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
-| Drop on empty sidebar space | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
+| Drop on a workspace row | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
+| Drop on empty space at the bottom of the sidebar page | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
 | Move Tab Left or Right, drag a tab | `tab.move {tab_id, insert_index}`, inside its workspace only |
-| Move Up or Down, drag a workspace | `workspace.move {workspace_id, insert_index}` |
+| Move Up or Down, drag a workspace | `workspace.move {workspace_id, insert_index}`; `workspace.move_block` for a repository with its linked worktrees |
+| Open Session: a new name or a stopped session | starts `herdr --session S server` (a launchd job on This Mac, D47; `nohup` on a remote machine), waits for `session.snapshot`, then opens the page ([Checks on connect](/docs/machines#checks-on-connect)) |
+| Open Session: a running session | no write; the page's `HostStore` connects |
+| Close Page | no herdr call; the page's store disconnects when no window shows it, and the session keeps running |
 | Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`); web and plugin panes close at once (known by their label), and the app removes their [state file](/docs/plugins/state#the-instance-state-file) |
 | Close a tab or workspace | `tab.close` / `workspace.close`; always asks, with the pane count |
 | Close Other Tabs | one `tab.close` per other tab; asks once, with the total pane count |
@@ -295,7 +341,10 @@ handshake fails, it exits 1 with the reason on stderr.
 - Every create and move passes `focus:false`, so herdr's focus never moves.
 - `pane.move` and `pane.swap` can succeed with `changed:false` and a `reason`
   (`same_tab`, `zoomed_tab`, `cross_tab`, `no_neighbor`). The app shows the
-  reason.
+  reason. Its drag targets avoid `same_tab` and `cross_tab` by design
+  ([Drag and drop](/docs/ui/drag-and-drop#what-herdr-allows)).
+- A drop that takes several steps stops at the first step that fails. The
+  pane stays where it got to, and the notice says so.
 - After its own write, the app reads the snapshot at once and keeps the drag
   preview until the snapshot arrives. It never patches its own state by hand.
 - `pane.swap` makes herdr focus that tab and mark it seen. The herdr TUI does

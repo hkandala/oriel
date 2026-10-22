@@ -1,7 +1,7 @@
 # Main window layout (agreed with the user)
 
 The source of truth for the window's layout in phases 10–21. The mock-ups are
-`plan/mockups/layout.html` (scenes A–J; `plan/mockups/build.py` rebuilds them). Where this file and an
+`resources/mockups/layout.html` (scenes A–J; `resources/mockups/build.py` rebuilds them). Where this file and an
 older design page disagree, this file wins until the page is updated.
 
 ## Words
@@ -40,7 +40,8 @@ Left to right:
 3. **Machine button** (above).
 4. **Workspace button**, only while the sidebar is collapsed: an outline folder icon, then
    "‹session› | ‹workspace›" (session dimmed, a thin vertical line, workspace in primary text), a chevron.
-   Its menu: a filter field ("Filter or create…"), every workspace of every session open in this window,
+   Its menu: a filter field ("Filter or create…"; a typed name that matches nothing offers
+   "New Workspace “‹text›”"), every workspace of every session open in this window,
    **grouped under a session header** (rows show only the workspace's state icon, its name and its branch on
    the right), then New Workspace and "Open Session…" (⇧⌘N).
 5. **Tab bar**: the selected workspace's tabs, always in the title row, whether the sidebar is open or
@@ -49,9 +50,11 @@ Left to right:
    icon.
 6. Spacer.
 7. **Agents button**: outline chat bubbles. The first bubble fills while the Agents view is on (no
-   highlight). An amber dot when an agent of the current session needs you. ⌘. toggles the Agents view.
-   - **Hover** (0.25 s): a popover under the button lists the agents of the current session that need you
-     (same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
+   highlight). An amber dot when an agent of the current session needs you. A click (or ⌘.) toggles the
+   Agents view; with the sidebar collapsed, a click opens the sidebar in the Agents view. No tooltip
+   (the hover popover takes its place).
+   - **Hover** (0.25 s): a popover under the button with a small header "Needs you · ‹session›" lists the
+     agents of the current session that need you (same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
      does not change. With nobody waiting: "Nobody needs you". No footer text.
 8. **⌘** (command palette, ⌘K) and **+** (new tab, ⌘T).
 

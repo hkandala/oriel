@@ -10,13 +10,13 @@ Interface Style, Settings ▸ General and the palette.
 - **Appearance:** Auto (follows macOS), Light or Dark. Dark is the default.
 - **Interface style:** Glass or Classic. Glass is the default.
   - Glass: the window background is a behind-window blur under a tint, so
-    the desktop shows through softly. The selected tab and sidebar row are
+    the desktop shows through softly. The selected tab and workspace row are
     Liquid Glass capsules.
   - Classic: an opaque window with no blur. The selected tab and row are
     plain raised pills.
 - In both styles the sidebar sits flat on the window background, and pane
   cards are translucent fills with thin edges, never glass. Popovers, the
-  palette, the hover card, the Activity panel, the find bar, notices and
+  palette, the hover card, the Agents popover, the find bar, notices and
   tooltips use the system glass.
 - Pane cards have a 10 pt radius. The 8 pt gap between cards is the one fixed
   layout size.
@@ -41,8 +41,8 @@ no other themes.
 
 ## Status
 
-The status words and colors are the same everywhere (tabs, sidebar rows,
-Activity, the hover card, pills, notifications):
+The status words and colors are the same everywhere (tabs, workspace rows,
+the Agents view and popover, the hover card, pills, notifications):
 
 | Shown as | Word | Dark | Light | herdr status |
 |---|---|---|---|---|
@@ -56,9 +56,11 @@ Activity, the hover card, pills, notifications):
   second or less, only while visible.
 - **Badges.** A 7 pt dot on the top right of the front program icon, with a
   1.5 pt ring in the background color.
-- In Activity and the hover card, status is a capsule: the word in the color,
-  on a 0.15 fill of it.
-- Idle agents show nothing.
+- In the Agents view and popover and the hover card, status is a capsule:
+  the word in the color, on a 0.15 fill of it. The Agents view also shows
+  "Idle" in gray.
+- A workspace row shows an idle agent as a gray ring. Tabs show nothing for
+  idle agents.
 
 ## Accessibility
 
@@ -91,8 +93,9 @@ defined once. A command with two shortcuts has a hidden second menu item.
 | Keys | Action | Menu |
 |---|---|---|
 | ⌘, | Settings | Oriel |
+| ⌘N | New Window, on the same machine | File |
 | ⌘T | new tab, in the keyboard card's folder | File |
-| ⇧⌘N | new session | File |
+| ⇧⌘N | Open Session (the sheet) | File |
 | ⇧⌘G | Go to Directory (in a card that runs only its shell) | File |
 | ⌘W | close the pane (asks first unless the pane runs only its shell) | File |
 | ⌥⌘W | close the tab (asks) | File |
@@ -101,7 +104,7 @@ defined once. A command with two shortcuts has a hidden second menu item.
 | ⌘F | find in the keyboard card | Edit |
 | ⌘G, or Enter in the find bar | next match (⇧Enter: previous match) | Edit |
 | ⌘K and ⇧⌘P | the command palette | View |
-| ⌘. | show or hide Activity | View |
+| ⌘. | show or hide the Agents view | View |
 | ⌃⌘S | show or hide the sidebar | View |
 | ⌘D, ⇧⌘D | split right, split down | View ▸ Pane |
 | ⇧⌘↩ | zoom or restore the card | View ▸ Pane |
@@ -115,17 +118,17 @@ defined once. A command with two shortcuts has a hidden second menu item.
 | ⌘1 … ⌘9 | switch tabs | Window |
 | ⇧⌘[ and ⌃⇧⇥, ⇧⌘] and ⌃⇥ | previous and next tab | Window |
 | ⌃⇧PgUp, ⌃⇧PgDn | move the tab left, right | Window |
-| ⌃⌥1 … ⌃⌥9 | switch machines | Window |
+| ⌃⌥1 … ⌃⌥9 | switch to the first nine session pages | Window |
 | hold ⌘ for 0.7 s | keycap hints on the first nine tabs | |
 
-New Workspace, Close Workspace, Change Session, and Previous and Next Session
+New Workspace, Close Workspace, Close Page, and Previous and Next Session
 have no shortcut. In the palette: ↩ runs, ⎋ goes back or closes, ⌫ on an empty
 field goes back. In the folder browser: → or ↩ goes in, ← goes up, ⌘↩ chooses.
 
 Rex shortcuts not taken, and why:
-- ⌘K stays the palette (D48), so Change Session has no shortcut (it is ⌘K in
-  Rex). ⇧⌘P also opens the palette for Rex users.
-- ⌘N (new window) is not used: one main window (D34).
+- ⌘K stays the palette (D48), so Change Session (⌘K in Rex) is not taken;
+  sessions open with Open Session (⇧⌘N). ⇧⌘P also opens the palette for Rex
+  users.
 - ⌘/ (sidebar) is not used: ⌃⌘S is the macOS sidebar key.
 - ⌘R (refresh) is not needed: the snapshot is live.
 - Find Previous has no shortcut: ⇧⌘G is Go to Directory.
@@ -133,4 +136,4 @@ Rex shortcuts not taken, and why:
 Plugins cannot claim these keys.
 
 How it works: [Platform and code](/docs/platform),
-[Activity and notifications](/docs/status#activity-and-notifications).
+[Agents and notifications](/docs/status#agents-and-notifications).

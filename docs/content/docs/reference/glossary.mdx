@@ -7,28 +7,32 @@ description: "The words these docs use"
 |---|---|
 | multiplexer | a program that keeps terminals alive in panes, tabs and workspaces, such as herdr or tmux. The app talks to one through the `Multiplexer` interface |
 | herdr TUI | herdr's own text interface, run in a terminal app |
-| session | a named herdr server on a host (`default` unless named) |
-| machine | one herdr session that the app connects to: one entry in the machine list, one sidebar page. Sessions on one host share one SSH connection |
-| host | the computer a machine runs on |
-| This Mac | the `default` herdr session on the Mac the app runs on. Other local sessions are "This Mac · ‹session›" |
-| `HostStore` | the app's live model of one machine |
-| machine page | one machine's page in the sidebar; pages swipe sideways |
+| machine / host | a computer that runs herdr: This Mac now, SSH hosts later. Each machine has its own icon and one entry in the machine list. Its sessions share one SSH connection |
+| This Mac | the Mac the app runs on |
+| session | one herdr server on a machine (`default`, `pi-herd`, …) |
+| page | one session's page in the sidebar. A window shows only the sessions the user opened in it; pages swipe sideways |
+| window | an Oriel window. It shows one machine and keeps its own selection; the user can open several |
+| `HostStore` | the app's live model of one open session, shared by every window that has its page |
+| machine button / workspace button | the title-row button with the machine's icon / the title-row button "‹session› \| ‹workspace›", shown while the sidebar is collapsed |
+| Open Session | the sheet that adds a session to the window as a page: it creates a session, starts a stopped one or opens a running one (⇧⌘N) |
 | strip / tab page | the main area that pages sideways / one tab's page in it |
 | tab capsule | one tab in the tab bar |
 | lit tab | a tab whose page is visible in the strip |
 | pane card | how the app draws one herdr pane: a header plus content |
 | keyboard card | the card that gets typed keys, one per tab; the app's own choice, never herdr's focus |
 | program icon | the icon of the program that runs in a pane, from Oriel's own catalog; a tab shows a stack of them |
-| hover card | the panel that shows a tab's splits and panes when the pointer rests on the tab |
+| hover card | the panel that shows a tab's splits and panes when the pointer rests on a title-bar tab or an Agents row |
 | Glass / Classic | the two interface styles: a window with a behind-window blur / an opaque window |
 | Appearance | Auto, Light or Dark |
 | pill / pill card / peek | the floating status capsule on the Mac screen edge / the small window for one agent next to it / a pill card that slides out by itself without taking the keyboard |
-| Activity | the list of agents that need you, finished (not seen) or work, shown in the sidebar or a popup with the eye button or ⌘. |
+| Agents button / Agents view | the title-row button with chat bubbles; resting on it lists the agents of the current session that need you / the sidebar page's list of every agent of its session, turned on with the button or ⌘. |
+| Take Back | the button that moves control of a session to this window, or of a pane to this device |
 | OSC 7501 | the Program Status Protocol: an escape sequence a program writes to its terminal to report idle, working, blocked, done or error. herdr does not read it yet; the app reads status only from herdr |
 | working dots | three dots that pulse in step on every tab while an agent works (blue) |
 | badge | a small dot on a program icon or button: amber when an agent needs you, green when a finish is not seen |
 | status word | working (blue), needs you (amber), finished (green); always next to a dot or badge for VoiceOver |
 | seen | this device has shown the agent's last finish to the user |
+| git state | a workspace row's branch and its ahead and behind counts, from `git status` on the machine |
 | PTY | the pseudo-terminal a shell runs in; it has one size |
 | frame | one message of ANSI bytes from `terminal session` |
 | control / observe | the two stream kinds: control types and resizes; observe only watches |

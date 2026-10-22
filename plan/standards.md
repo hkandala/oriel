@@ -32,8 +32,8 @@ before writing code. In short:
 - Decoding: hand-written, lenient `Decodable` models with only the fields the app uses
   (design D6). Unknown fields and enum values must not fail decoding.
 - Platform code: `#if os(macOS)` at the smallest scope that works.
-- Names follow the design's terms: machine, session, workspace, tab, pane, card, strip,
-  HostStore, PaneViewRegistry.
+- Names follow the design's terms: machine, session, page, window, workspace, tab, pane,
+  card, strip, HostStore, PaneViewRegistry.
 - Comments explain why, not what. No commented-out code.
 
 ## SwiftUI and look
@@ -48,7 +48,7 @@ before writing code. In short:
 - Use the system glass APIs (`glassEffect`, `glassEffectID`, `GlassEffectContainer`). No
   other custom blur.
 - Every control and region an e2e test touches has an `accessibilityIdentifier`
-  (`titlebar.session-picker`, `tab.<tab_id>`, `pane.<pane_id>`, ...).
+  (`titlebar.machine-button`, `tab.<tab_id>`, `pane.<pane_id>`, ...).
 - No hardcoded sizes where layout can decide; the 8 pt gap between cards is the one fixed
   number (design: Layout and sizing).
 

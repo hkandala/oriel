@@ -3,8 +3,8 @@
 Goal: a native Settings window (⌘,) with a few basic settings, and the terminal options Rex has that
 work over herdr. Later phases add their settings to this window.
 
-Read first: `plan/ui-polish.md`, `resources/research/clients/rex-ui.md` (settings window, terminal
-settings), `docs/content/docs/data.mdx` (per-device settings live in app storage),
+Read first: `plan/ui-polish.md`, `plan/ui-layout.md`, `resources/research/clients/rex-ui.md` (settings
+window, terminal settings), `docs/content/docs/data.mdx` (per-device settings live in app storage),
 `docs/content/docs/ui/theme-and-accessibility.mdx` (text size), `Oriel/Terminal/PaneTerminal.swift`,
 `Oriel/Terminal/PaneSurfaceView.swift` (Option key mapping, `ponytail:` note).
 
@@ -15,12 +15,12 @@ settings), `docs/content/docs/data.mdx` (per-device settings live in app storage
    - **General**: Appearance (Auto / Light / Dark, segmented), Interface Style (Glass / Classic, two
      cards with a small picture each, like Rex's interface cards; SF Symbols or a drawn mini window are
      fine). Later phases add tab settings here.
-   - **Panes**: empty in this phase except a caption; phase 15 fills it. Do not show an empty tab: add
-     the tab in phase 15 instead.
+   - **Panes**: empty in this phase except a caption; phase 17 fills it. Do not show an empty tab: add
+     the tab in phase 17 instead.
    - **Terminal**: font family (a picker of installed monospaced fonts, default the system monospaced
      font), font size (stepper 8–32, default 13), cursor style (Block / Bar / Underline), blinking
      cursor (toggle), Option key acts as Alt (Off / Both / Left / Right), copy on select (toggle).
-   - **Notifications**: added by phase 14.
+   - **Notifications**: added by phase 15.
    Keep each setting one `@AppStorage` key. Settings that are not in this list do not exist.
 2. **Font size keys.** View ▸ Bigger (⌘+ and ⌘=), Smaller (⌘-), Actual Size (⌘0) change the font
    size setting (8–32). This is the design's text size setting; the terminal follows it.

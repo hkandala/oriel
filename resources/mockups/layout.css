@@ -149,3 +149,8 @@ code { font: 12px ui-monospace, Menlo, monospace; }
 .snip { overflow: hidden; } .opt { min-width: 0; }
 .popup.needs { right: 60px; width: 300px; } .popup.needs .agent { height: 44px; }
 .prow.small { font-size: 11px; color: var(--dim); }
+
+.ghost { position: absolute; left: 560px; top: 210px; width: 220px; height: 120px; border-radius: 10px; opacity: .85; z-index: 30;
+  background: rgba(60,60,66,.95); box-shadow: 0 18px 40px rgba(0,0,0,.5), inset 0 0 0 .7px rgba(255,255,255,.2); transform: rotate(-1.5deg); }
+.dropind { position: absolute; right: 16px; top: 52px; width: 205px; bottom: 16px; border-radius: 10px; z-index: 25;
+  background: color-mix(in srgb, #2f81f7 20%, transparent); box-shadow: inset 0 0 0 2px #2f81f7; }

@@ -1,44 +1,72 @@
 ---
 title: "Drag and drop"
-description: "Moving panes by dragging their header, and reordering tabs and workspaces"
+description: "Moving panes by dragging their header, and reordering tabs and workspaces, within what herdr allows"
 ---
+
+## What herdr allows
+
+Oriel offers only moves that herdr can make, and builds the rest from herdr
+calls (D69). What herdr 0.9.5 allows, tested on a throwaway session:
+
+| herdr call | Allowed | Refused |
+|---|---|---|
+| `pane.swap {source_pane_id, target_pane_id}` (or `{pane_id, direction}`) | two panes of the same tab | panes of different tabs (`changed:false`, `reason:"cross_tab"`) |
+| `pane.move {destination:{type:"tab", tab_id, split, target_pane_id?, ratio?}}` | into another tab of any workspace of the session, split right or down beside `target_pane_id` (or the tab's whole layout when it is left out), with an optional ratio | into its own tab (`reason:"same_tab"`) |
+| `pane.move {destination:{type:"new_tab", workspace_id?, label?}}` | a new tab in any workspace of the session | — |
+| `pane.move {destination:{type:"new_workspace", label?, tab_label?}}` | a new workspace | — |
+| `tab.move {tab_id, insert_index}` | reorder inside its workspace | a move to another workspace |
+| `workspace.move {workspace_id, insert_index}`, `workspace.move_block` | reorder workspaces | — |
+
+- A pane moved to another workspace gets a new pane id. Its terminal id
+  stays, so its card stays.
+- Moving the last pane of a tab closes that tab.
+- Nothing moves between sessions or machines: each session is its own herdr
+  server.
+- herdr splits only right or down. A drop on a left or top edge is a move (or
+  a split) and then a swap.
 
 ## Panes
 
 Drag a card by its header (the title area, not its buttons) by 4 pt or more.
 With pane headers hidden, hold ⌥ and drag the card's edge.
 
-<DropZones caption="Center: a card in the same tab only. Edges: a card in another tab." />
+![Dragging a pane onto the right edge of another card](/mockups/K.jpg)
 
 - **Preview.** A snapshot of the card (its header and the top of its
   content) at half size follows the pointer. The card in place dims to 0.4.
 - **Indicator.** A rounded rect (radius 10) filled with the accent color at
   0.2, with a 2 pt accent stroke. It moves between targets over 0.12 s.
 
-| Drop on | Indicator | Result |
-|---|---|---|
-| the center third of a card in the same tab | the whole card | swap the two panes |
-| an edge band (the outer quarter) of a card in another tab | that half of the card | split there |
-| a tab capsule or a sidebar tab row | the capsule or row lit | move into that tab, split right |
-| the empty end of the tab track, or `+` | a ghost capsule at the end | new tab in this workspace |
-| a workspace header in the sidebar | the header lit | new tab in that workspace |
-| empty sidebar space | a ghost row "New Workspace" | new workspace |
+| Drop on | Indicator | Result | herdr calls |
+|---|---|---|---|
+| the center third of another card in the same tab | the whole card | swap the two panes | `pane.swap` |
+| an edge band (the outer quarter) of another card in the same tab | that half of the card | put the pane beside that card | `pane.move` to a new tab, then `pane.move` back beside the target (right or down), then `pane.swap` for left or top |
+| a tab capsule in the title row | the capsule lit | move into that tab, split right of its layout | `pane.move {type:"tab", tab_id, split:"right"}` |
+| an edge band of a card in another tab (after spring-loading) | that half of the card | split beside that card | `pane.move {type:"tab", tab_id, split, target_pane_id}`, then `pane.swap` for left or top |
+| the empty end of the tab track, or `+` | a ghost capsule at the end | a new tab in the selected workspace | `pane.move {type:"new_tab", workspace_id}` |
+| a workspace row in the sidebar | the row lit | a new tab in that workspace | `pane.move {type:"new_tab", workspace_id}` |
+| empty space at the bottom of the sidebar page | a ghost row "New Workspace" | a new workspace | `pane.move {type:"new_workspace"}` |
+| another session's page dots, the Agents view | none; the pointer shows that it is not a target | — | — |
 
-- **Spring-loading.** Hold over a capsule or row for 0.65 s: that tab is
-  selected, the strip pages there and the capsule pulses once (to 1.04 over
-  0.2 s). Then drop on a card there.
-- Inside one tab only swap is offered. A pane cannot move to another machine.
-- One write per drop, then the snapshot. If herdr refuses or changes nothing,
-  its reason shows in the notice.
+- **Spring-loading.** Hold over a tab capsule for 0.65 s: the strip pages to
+  that tab and the capsule pulses once (to 1.04 over 0.2 s). Then drop on a
+  card there. Hold over a workspace row for 0.65 s: the workspace is
+  selected, so its tabs show and the drop can go on a capsule or a card.
+- **A step fails.** If a later step of a drop fails, the pane stays where it
+  got to, and the notice says so.
+- After each write the app reads the snapshot, and the next step uses the
+  pane id from it. If herdr refuses or changes nothing, its reason shows in
+  the notice.
 - Esc cancels a drag. A failed write leaves the layout as herdr has it.
 - The card's context menu has the same moves (Move to New Tab, Move to Tab ▸,
   Move to New Workspace). That is the only path on iPhone.
 
 ## Tabs and workspaces
 
-- Drag a title-bar capsule or a sidebar tab row to reorder the tabs of its
-  workspace. The others slide apart over 0.22 s. A tab cannot move to another
-  workspace, because herdr moves tabs only inside one.
-- Drag a sidebar section header to reorder the workspaces.
+| Drag | Result | herdr call |
+|---|---|---|
+| a tab capsule along the tab track | reorder the workspace's tabs; the others slide apart over 0.22 s | `tab.move` |
+| a tab capsule onto a workspace row | not a target: herdr moves tabs only inside a workspace | — |
+| a workspace row up or down its page | reorder the session's workspaces; a linked worktree moves with its repository's group | `workspace.move`, or `workspace.move_block` for a group |
 
 How it works: [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls).

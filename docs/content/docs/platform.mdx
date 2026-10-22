@@ -9,14 +9,17 @@ description: "One codebase, dependencies, the strip, the tab bar and tests"
   iOS), and one local Swift package, `HerdrKit`.
 - Minimum OS: macOS 26 and iOS 26 (Liquid Glass; one
   minimum means no fallbacks). Building needs Xcode 27.
-- **One main window** (`Window` on macOS, multiple scenes off on iPad), so two
-  windows never fight over control of the same panes. The pill panel is the
-  only other window, and it opens no terminal stream.
+- **Several windows on macOS** (`WindowGroup`; File ▸ New Window, ⌘N). Each
+  window shows one machine and has its own state: open pages and selection.
+  Windows that show the same session share its `HostStore`, and control
+  passes between them per session, so two windows never fight over a pane
+  (D66). iPad keeps one scene. The pill panel is the only other window, and
+  it opens no terminal stream.
 - iPhone uses its own `NavigationStack` layout instead of a collapsed split
   view.
 - macOS only: `ProcessExec`, the pill panel, the askpass script, the Local
   Network preflight, scroll routing with `NSEvent`, the AppKit terminal
-  subclass, the Dock badge, the `Window` and `Settings` scenes. iOS only:
+  subclass, the Dock badge, the `WindowGroup` and `Settings` scenes. iOS only:
   `CitadelExec`, the UIKit terminal subclass, the compact layout.
 - Signing: macOS has App Sandbox off and Hardened Runtime on, and ships as a
   notarized Developer ID download (it runs the `herdr` CLI and `ssh`). iOS
@@ -85,9 +88,10 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
 
 ## Other details
 
-- Drag and drop: a `Transferable` pane reference (machine id + pane id),
+- Drag and drop: a `Transferable` pane reference (machine id, session and pane id),
   declared in the Info.plist. Tab capsules spring-load. During a drag, drop
-  zones sit above each card's surface. Drops on another machine are refused.
+  zones sit above each card's surface. Drops on another session or machine
+  are refused.
 - iOS key bar: libghostty-spm's `inputAccessoryItems`.
 - Plugin bridge: `window.oriel`, injected into each plugin page; every call
   checks the card's machine binding in Swift.

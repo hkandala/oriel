@@ -8,12 +8,12 @@ show their words and at most one button.
 
 | State | What the user sees |
 |---|---|
-| herdr not installed on This Mac (macOS) | how to install herdr, on the This Mac page; remote machines work without it |
+| herdr not installed on This Mac (macOS) | how to install herdr, in a window on This Mac; remote machines work without it |
 | Connecting | "Connecting to ‹machine›" with a spinner, after 0.3 s, so a fast connect shows nothing |
 | herdr missing on a remote machine | the install command |
 | herdr older than 0.9.3 | "herdr 0.9.3 or newer is needed"; before 0.9.1 (no `remote-api-bridge`) "No answer from herdr" |
 | herdr updated but not restarted | "Restart herdr on ‹machine›" (terminal streams fail; the API works) |
-| herdr server not running on This Mac | "‹session› is not running", a **Start** button (a launchd job, D47) and the command to run in a terminal |
+| herdr server not running on This Mac | "‹session› is not running", a **Start** button (a launchd job, D47) and the command to run in a terminal; a new window starts `default` by itself |
 | herdr server not running on a remote machine | a **Start herdr** button |
 | SSH auth failed | ssh's message in plain words |
 | Host key changed | the connection is blocked; the new fingerprint is shown |
@@ -23,6 +23,7 @@ show their words and at most one button.
 | No SSH session left on the connection | the card shows its last image and **Retry** |
 | Local Network access denied | "Allow Local Network access for Oriel in System Settings › Privacy & Security" |
 | Pane in use on another device | the content (watching) and "In use elsewhere · Take back" |
+| Session controlled in another window | cards dim a little; a bottom capsule "Controlled in another window" with **Take Back** ([Control capsule](/docs/ui/window#control-capsule)) |
 | Close a pane that runs a program | "Close ‹title›? ‹program› is running." (a pane that runs only its shell, a web page or a plugin pane closes at once) |
 | Close a tab or workspace | always asks, with the pane count |
 | No workspaces | "No workspaces" and a **New Workspace** button |
@@ -30,9 +31,15 @@ show their words and at most one button.
 | New tab or split | the pane picker; herdr is called only after a pick |
 | Agent did not start (10 s) | "Agent did not start" and the last screen lines |
 | Move refused by herdr | herdr's reason in words, in the notice |
+| A drop step failed | the pane stays where it got to; the notice says so |
+| Open Session: the name is not a valid herdr name | no Create row |
+| Open Session: the session did not start | the notice: "‹session› did not start" and **Retry**; no page opens |
+| Open Session: a running session stopped before it opened | the notice: "‹session› is not running"; no page opens |
+| A restored page's session no longer runs | the page is skipped |
+| Close Page on the last page | Close Page is disabled |
 | A write failed | the notice: a capsule with a red symbol, the error and **Retry** when a retry can help |
 | A card's first frame has not arrived | the card fades in over 0.2 s when it arrives |
-| Activity is empty | "Nothing needs you" |
+| Nobody needs you (Agents button hover) | "Nobody needs you" |
 | Web page failed | WebKit's error in the card |
 | Server refuses port forwarding | "‹machine› does not allow port forwarding" in the web card; Tailscale or LAN addresses still load |
 | Web address from the machine, origin not approved | "Open ‹url›?" with an Open button ([Web page](/docs/plugins/web-page#when-a-page-loads-by-itself)) |

@@ -7,13 +7,14 @@ description: "Every herdr call and command the app uses, and the ones it never u
 
 | Call | Used for | Page |
 |---|---|---|
-| `session.snapshot` | all state and herdr's version, read after events; the health check every 30 s; waiting for a server the app started | [Reconcile](/docs/talking-to-herdr#reconcile) |
+| `session.snapshot` | all state and herdr's version of an open session, read after events and after every write; the health check every 30 s; waiting for a server the app started | [Reconcile](/docs/talking-to-herdr#reconcile) |
 | `events.subscribe` (long-lived) | "read the snapshot again" | [Events](/docs/talking-to-herdr#events) |
 | `integration.list` | the agent picker, when it opens | [Agent](/docs/plugins/terminal-and-agent#agent) |
-| `workspace.create` \| `close` \| `rename` \| `move` | sidebar actions: new, close, rename in place, Move Up and Down, drag to reorder; folders dropped on the Dock icon | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
-| `tab.create` \| `close` \| `rename` \| `move` | tab bar and sidebar actions: new (also from a section header), close, Close Other Tabs, rename, Move Tab Left and Right, drag to reorder | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
-| `pane.split` \| `close` \| `move` | split (left and up add a swap), close, Move to New Tab, Move to Tab, Move to New Workspace, drag, placing a new web or plugin pane | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
-| `pane.swap` | drag onto a card in the same tab; split left and up; with `direction`, ⌥⇧⌘ and an arrow | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
+| `workspace.create` \| `close` \| `rename` \| `move` | sidebar actions: new (page header `+`, workspace menu), close, rename in place, Move Up and Down, drag to reorder; folders dropped on the Dock icon |
+| `workspace.move_block` | drag a repository's workspace with its linked worktrees | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
+| `tab.create` \| `close` \| `rename` \| `move` | tab bar and sidebar actions: new (also from a workspace row), close, Close Other Tabs, rename, Move Tab Left and Right, drag to reorder | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
+| `pane.split` \| `close` \| `move` | split (left and up add a swap), close, Move to New Tab, Move to Tab, Move to New Workspace, drag (an edge of a card in the same tab is two moves and a swap), placing a new web or plugin pane | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
+| `pane.swap` | drag onto a card in the same tab; the last step of a drop on a left or top edge; split left and up; with `direction`, ⌥⇧⌘ and an arrow | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.resize` | ⌃⌘ and an arrow, 5 % per press | [Dividers](/docs/layout#dividers) |
 | `layout.apply` | create a web or plugin pane with its label and placeholder command, in a new tab; never with `tab_id` (it replaces the tab) | [Labels](/docs/plugins/labels#create) |
 | `pane.rename` | Rename Pane; web address edits, `setArg` | [Labels](/docs/plugins/labels) |
@@ -36,9 +37,10 @@ description: "Every herdr call and command the app uses, and the ones it never u
 herdr --session S remote-api-bridge
 herdr --session S terminal session control|observe <terminal_id> \
     --cols C --rows R [--takeover]
-herdr session list --json                           # macOS
-herdr machine list --json                           # macOS, the Add Machine sheet
+herdr --session S session list --json               # each machine, for the Open Session sheet
+herdr machine list --json                           # macOS, the Add Remote Host sheet
 herdr --session S server        # remote: nohup, on request; This Mac: a launchd job (D47)
+git -C <root> status --porcelain=v2 --branch     # not herdr: git state of a workspace row (D67)
 ```
 
 ## Tests only

@@ -1,11 +1,11 @@
 ---
 title: "Status, notifications and pills"
-description: "Activity, notifications, the Dock and how the floating pills work"
+description: "The Agents button and view, notifications, the Dock and how the floating pills work"
 ---
 
-## Activity and notifications
+## Agents and notifications
 
-- Tab capsules, sidebar rows, Activity, the hover card, notifications, the
+- Tab capsules, workspace rows, the Agents button and view, the hover card, notifications, the
   Dock and the pills all read `agent_status` and `completion_seq` from the
   snapshot. No extra calls.
 - Status comes only from the multiplexer's API (D55), never from
@@ -13,22 +13,29 @@ description: "Activity, notifications, the Dock and how the floating pills work"
 - **"Finished, not seen"** = `completion_seq` in `snapshot.agents[]` is not
   null and differs from the value this device recorded as seen. How "seen"
   works: [Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own).
-- Each pane is working, needs you, finished (not seen) or nothing. A tab and a
-  workspace show the strongest state of their panes: needs you, then finished,
-  then working.
-- Each change carries the time the app saw it. Activity shows its age from
-  that time.
+- Each agent pane is working, needs you, finished (not seen) or idle. A tab
+  and a workspace show the strongest state of their panes: needs you, then
+  finished, then working.
+- Each change carries the time the app saw it. The Agents view shows its age
+  from that time.
 
-### Activity
+### Agents
 
-The Activity view replaces a fixed status area (D61). The eye button in the
-title row, ⌘. or View ▸ Show Activity turns it on. It filters the tab list to
-the tabs with a working agent, an agent that needs you, or a finish not seen
-yet: in the sidebar, or as a popup when the sidebar is hidden. The selected
-tab stays listed while selected; a tab with nothing left leaves the list when
-the user moves on. A click on a row selects that machine, workspace, tab and
-pane, so the finish is seen. The look is in
-[Main window: Activity](/docs/ui/window#activity).
+The Agents button replaces Activity (D61). It covers the session of the
+window's current page.
+- **The dot.** The button shows an amber dot while an agent of that session
+  needs you.
+- **Hover.** Resting the pointer on the button for 0.25 s lists the agents of
+  that session that need you. A click on one selects its workspace, tab and
+  pane; the sidebar does not change.
+- **Agents view.** A click or ⌘. turns the sidebar page into the list of every
+  agent pane of that session, idle ones too, sorted by priority (needs you,
+  working, done, idle) or by workspace order. A click on a row selects that
+  workspace, tab and pane and gives the pane the keyboard, so its finish is
+  seen.
+
+The look is in [Main window: Agents button](/docs/ui/window#agents-button)
+and [Agents view](/docs/ui/window#agents-view).
 
 ### Notifications
 
@@ -40,8 +47,8 @@ The app makes notifications itself, from snapshot changes:
 - The app posts them only while it is not active or the pane is not shown.
 - The first snapshot after app launch never notifies. After a reconnect,
   changes against the last known state do notify.
-- The id is `"<machine>|<terminal_id>"`, so a newer notification replaces
-  the older one. It is removed when the pane is seen.
+- The id is `"<machine>|<session>|<terminal_id>"`, so a newer notification
+  replaces the older one. It is removed when the pane is seen.
 - A click opens the app at that pane.
 - Settings ▸ Notifications has, for needs you and for finished: Notify (on),
   Badge the Dock icon (on for needs you, off for finished) and Play a sound
@@ -113,7 +120,7 @@ The look and behavior are in [Floating pills (macOS)](/docs/ui/pills).
   or opening a pill card does not mark an agent seen. **Mark seen**, a reply
   or **Open in app** does.
 - **Accessibility:** each glyph and row has a label ("codex, needs you,
-  infra") and an Open action. The pill is never the only path. Activity,
-  notifications and the Dock badge remain.
+  infra") and an Open action. The pill is never the only path. The Agents
+  view, notifications and the Dock badge remain.
 - Simpler choices: no dragging, no notch placement, no global hotkey, no
   per-workspace pills. Revisit each one when users ask for it.

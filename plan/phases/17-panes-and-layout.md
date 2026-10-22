@@ -1,14 +1,15 @@
-# Phase 15: pane cards and layout
+# Phase 17: pane cards and layout
 
 Goal: pane cards look and act like Rex's (header, buttons, fade, context menu), and the split layout
 can be changed by hand: drag, double-click and keys on dividers, balance, focus and move panes with
 keys.
 
-Read first: `plan/ui-polish.md`, `resources/research/clients/rex-ui.md` (panes, dividers, zoom, fade,
-pane actions), `resources/inspirations/rex-app/three-splits.jpg`, `zoomed-pane.jpg`,
-`docs/content/docs/layout.mdx`, `docs/content/docs/ui/window.mdx` (pane card, zoom),
-`docs/content/docs/talking-to-herdr.mdx` (writes table), decisions D10, D11, D13, D41, D42,
-`Oriel/Views/Strip.swift` (`SplitLayout`, `PaneCard`), `Packages/HerdrKit/Sources/HerdrKit/SplitNode.swift`.
+Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (drag and drop table: what herdr allows),
+`resources/research/clients/rex-ui.md` (panes, dividers, zoom, fade, pane actions),
+`resources/inspirations/rex-app/three-splits.jpg`, `zoomed-pane.jpg`, `docs/content/docs/layout.mdx`,
+`docs/content/docs/ui/window.mdx` (pane card, zoom), `docs/content/docs/talking-to-herdr.mdx` (writes
+table), decisions D10, D11, D13, D41, D42, `Oriel/Views/Strip.swift` (`SplitLayout`, `PaneCard`),
+`Packages/HerdrKit/Sources/HerdrKit/SplitNode.swift`.
 
 ## Build
 
@@ -25,7 +26,7 @@ pane actions), `resources/inspirations/rex-app/three-splits.jpg`, `zoomed-pane.j
    at opacity 0.7 and uses the phase 10 "no keyboard" card fill; the keyboard card is 1.0 with the
    keyboard-card fill and stroke. In a window that is not key: 0.5 for the others, 0.8 (dark) or 0.85
    (light) for the keyboard card. Settings ▸ Panes: **Fade inactive panes** (on) and **Fade panes in
-   inactive windows** (on).
+   inactive windows** (on). The watching window's 0.85 dim (phase 16) multiplies with these.
 4. **Show pane headers** (Settings ▸ Panes, on). Off: no header; the card is all terminal; actions stay
    in the context menu, the menu bar and the palette.
 5. **Context menu** on the header and on the card's edge (not inside the terminal, which keeps its own
@@ -34,7 +35,9 @@ pane actions), `resources/inspirations/rex-app/three-splits.jpg`, `zoomed-pane.j
    - Split Left / Up: `pane.split` right / down, then `pane.swap` of the old and the new pane (herdr
      splits only right and down).
    - Move to New Tab: `pane.move {destination: {type: "new_tab", workspace_id}}`; to a tab:
-     `{type: "tab", tab_id, split: "right"}`; new workspace: `{type: "new_workspace"}`.
+     `{type: "tab", tab_id, split: "right"}`; new workspace: `{type: "new_workspace"}`. Move to Tab ▸
+     lists only other tabs: herdr refuses a move into the pane's own tab (`reason:"same_tab"`). A
+     pane moved to another workspace gets a new pane id; its terminal id stays, so its card stays.
    - Rename: an inline field in the header, `pane.rename {pane_id, label}`; an empty name clears the
      label. Labels that start with `oriel:` are the app's own (plugins, later) and are not offered.
    - All with `focus:false` where herdr takes it; read the snapshot after.

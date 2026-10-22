@@ -1,24 +1,45 @@
 ---
 title: "Main window (Mac and iPad)"
-description: "The title row, tab bar, sidebar, Activity, hover card, strip, pane cards, zoom, find bar, notices and the palette"
+description: "Windows, the title row, tab bar, Agents button, sidebar pages, Agents view, Open Session, hover card, strip, pane cards, zoom, find bar, notices and the palette"
 ---
 
-<MacWindow />
+![Main window with the sidebar open](/mockups/A.jpg)
+
+All scenes: the [main window mock-ups](/mockups/layout.html).
+
+## Windows
+
+![Two windows on the same session: one controls, one watches](/mockups/J.jpg)
+
+- Each window shows one machine
+  ([What a machine is](/docs/machines#what-a-machine-is)). File ▸ New Window
+  (⌘N) opens another window on the same machine (D34). Two windows can show
+  different machines or the same machine.
+- Two windows on the same machine share the live data of each session. Each
+  window keeps its own selection: page, workspace, tab, keyboard card, zoom,
+  sidebar view and sidebar width.
+- Control is per session (D66). When two windows show the same session, the
+  window where the user last typed or clicked in a terminal controls that
+  session's panes. The other window watches: its cards dim a little and a
+  [control capsule](#control-capsule) offers **Take Back**. Two windows on
+  different sessions each control their own session.
 
 ## Title row
 
-One row, 40 pt tall (D45). From left to right:
-- The sidebar toggle, always shown (⌃⌘S). It switches between the two views:
-  the sidebar with tabs as rows, and the tab bar in the title row. There is no
-  setting for this, unlike Rex. The sidebar slides in and out over 0.3 s.
-- The session button: a laptop icon, plus the session name (up to 224 pt)
-  only when more than one herdr session runs. A click opens the session list.
-- The tab bar, while the sidebar is hidden.
-- On the right: the eye (Activity, ⌘.), ⌘ (the command palette) and `+` (new
-  tab).
-
-The eye is `eye`, and `eye.fill` while Activity is on. It has a dot badge:
-amber when an agent needs you, else green when a finish is not seen yet.
+One row, 40 pt tall, always the same (D45). From left to right:
+1. The traffic lights.
+2. The sidebar toggle, always shown (⌃⌘S). It has no highlight when the
+   sidebar is open. The icon changes instead: an outline window with a sidebar
+   line while the sidebar is closed, and the sidebar part filled while it is
+   open. The sidebar slides in and out over 0.3 s.
+3. The [machine button](#machine-button).
+4. The [workspace button](#workspace-button), only while the sidebar is
+   collapsed.
+5. The [tab bar](#tab-bar): the selected workspace's tabs, whether the sidebar
+   is open or collapsed.
+6. A spacer.
+7. The [Agents button](#agents-button).
+8. ⌘ (the command palette, ⌘K) and `+` (new tab, ⌘T).
 
 Each title-row button and each card header button shows a tooltip after the
 pointer rests on it for 0.5 s: a small glass label with the action's name and
@@ -28,11 +49,40 @@ its shortcut as keycap chips, for example "New Tab ⌘T". It fades in over
 The window title is "‹tab title› - ‹session›", so the Window menu and Mission
 Control show it.
 
+## Machine button
+
+![The machine menu](/mockups/E.jpg)
+
+- The machine's icon and a small chevron, with no name.
+- The menu lists the machines, each with its icon and name, and a checkmark
+  on the current one. Then "Add Remote Host…"
+  ([Add a machine](/docs/ui/add-a-machine)).
+- Picking a machine replaces the window's pages with that machine's
+  `default` session.
+  ⌥-click on a machine opens it in a new window. The menu does not show this
+  as an item.
+- Until remote machines are built, the menu lists This Mac, and Add Remote
+  Host is a placeholder.
+
+## Workspace button
+
+![Sidebar collapsed, workspace menu open](/mockups/D.jpg)
+
+Shown only while the sidebar is collapsed, after the machine button.
+- An outline folder icon, then "‹session› | ‹workspace›": the session in
+  secondary text, a thin vertical line, the workspace in primary text. Then a
+  chevron.
+- The menu starts with a filter field ("Filter or create…"). Then every
+  workspace of every session open in this window, grouped under a session
+  header. A row shows the workspace's state icon, its name and its branch on
+  the right. At the end: New Workspace and "Open Session…" (⇧⌘N).
+- Picking a workspace of another session also moves the window to that
+  session's page.
+
 ## Tab bar
 
-The tab bar is in the title row while the sidebar is hidden. While the sidebar
-is shown, the tabs are its rows under each workspace (D45). One capsule per
-herdr tab (D42).
+The tab bar is always in the title row. The sidebar never lists tabs (D45).
+One capsule per herdr tab of the selected workspace (D42).
 - **Track.** A capsule 34 pt tall sits behind the tabs. It is hidden when the
   workspace has one tab.
 - **Width.** All tabs share one width: the space less the 1 pt gaps, divided
@@ -52,9 +102,10 @@ herdr tab (D42).
   Rex's spring (stiffness 520, damping 46). Reduce Motion makes it jump. Glass
   draws it as a Liquid Glass capsule, Classic as a plain raised pill.
 - **Hover.** The hovered tab gets the hover fill over 0.14 s.
-- **Content.** The tab's program icon stack (up to 5 icons, the keyboard
-  card's in front, [Program icons](/docs/ui/program-icons)), the title, and
-  one status slot.
+- **Content.** The program icons, the title, and one status slot. A tab with
+  several panes shows its panes' icons overlapping: up to 5, 4 pt apart, the
+  keyboard card's icon in front. A tab with one pane shows one icon
+  ([Program icons](/docs/ui/program-icons)).
 - **Title.** One line. When it does not fit, its end fades out over 16 pt; it
   never shows an ellipsis. The folder part is in secondary text. The title is
   herdr's tab label. When the label is herdr's default (a bare number), the
@@ -68,103 +119,148 @@ herdr tab (D42).
   finished, its front icon bounces once and its title shows "‹agent› needs
   you" or "‹agent› finished" for 3 s. A long text scrolls once (30 pt/s)
   instead of fading. Reduce Motion turns the bounce off.
-- **Context menu** on a capsule and on a sidebar tab row: Rename Tab, Move Tab
-  Left, Move Tab Right, Close Tab, Close Other Tabs. Close Other Tabs asks once,
-  with the total pane count. Rename puts a text field in place of the title:
-  Enter saves, Esc cancels.
+- **Context menu** on a capsule: Rename Tab, Move Tab Left, Move Tab Right,
+  Close Tab, Close Other Tabs. Close Other Tabs asks once, with the total pane
+  count. Rename puts a text field in place of the title: Enter saves, Esc
+  cancels.
 - **Keycap hints.** If the user holds ⌘ for 0.7 s while the window is key,
-  each of the first nine tabs (capsules, or the rows of the selected workspace)
-  shows a keycap "⌘1"… over its icon. They fade in over 0.13 s and out over
-  0.1 s when ⌘ is released.
+  each of the first nine capsules shows a keycap "⌘1"… over its icon. They
+  fade in over 0.13 s and out over 0.1 s when ⌘ is released.
 - Drag a capsule to reorder the tabs ([Drag and drop](/docs/ui/drag-and-drop)).
 - Rest the pointer on a capsule to see the [hover card](#hover-card).
 
+## Agents button
+
+![Hover on the Agents button: who needs you](/mockups/G.jpg)
+
+- Outline chat bubbles. The first bubble fills while the
+  [Agents view](#agents-view) is on; the button has no highlight.
+- An amber dot shows when an agent of the current session needs you.
+- A click or ⌘. turns the Agents view on and off (D61).
+- **Hover.** When the pointer rests on the button for 0.25 s, a glass popover
+  under it lists the agents of the current session that need you, under the
+  header "Needs you · ‹session›". The rows are the same as in the Agents view.
+  A click on a row goes to that workspace, tab and pane; the sidebar does not
+  change. With nobody waiting it says "Nobody needs you". The popover has no
+  footer.
+
 ## Sidebar
 
-Flat on the window background, with no panel (D44).
-- Middle: the machine pages, swiped sideways. Each page starts with the
-  machine's name in a small line.
-- Below them, fixed: page dots (one per machine, clickable).
-- Bottom, fixed: a Filter field, New Workspace and Add Machine.
-- While Activity is on, the sidebar's rows are filtered to
-  [Activity](#activity). The bottom of the sidebar never shows agent activity.
+Flat on the window background, with no panel (D44). Arc-style pages, one per
+session open in this window (D43).
+- **Open sessions, not all sessions.** A window starts with one page: the
+  machine's `default` session, started if it is stopped. It never loads the
+  other sessions by itself. The user adds pages with
+  [Open Session](#open-session), as many as they like. Only open pages have a
+  `HostStore`, snapshot reads and an event stream.
+- **Close Page.** The context menu of the page header and of its page dot has
+  Close Page. It removes the page from this window and disconnects its store.
+  The herdr session keeps running and stays in the Open Session list. The last
+  page cannot close.
+- **Restore.** A window that macOS restores opens the pages it had again. A
+  session that no longer runs is skipped. A new window (⌘N) opens with
+  `default` only.
+- **Pages.** A sideways swipe on the sidebar moves to the next or previous
+  open page ([Swiping](/docs/ui/swiping)). Page dots at the bottom of the page
+  show where you are; a click on a dot switches.
+- **Page header.** The session's name, small and in secondary text, and a `+`
+  that makes a new workspace in that session.
+- **Middle.** The [workspace rows](#workspace-rows), or the
+  [Agents view](#agents-view) while it is on. 18 pt fades show at the top and
+  bottom of the list when content is under them.
+- **Footer.** The filter field, which filters the rows of the current view,
+  and one button, **Open Session** (⇧⌘N), which opens the
+  [Open Session](#open-session) sheet.
 - **Width.** 240 pt by default. Drag the 6 pt handle at the trailing edge to
-  resize it between 227 and 480 pt. The width is kept per device. During the
-  drag the strip keeps its pages whole.
+  resize it between 227 and 480 pt. Each window keeps its own width. During
+  the drag the strip keeps its pages whole.
 
-A machine is one herdr session ([machine](/docs/reference/glossary)). The
-machine page of a non-default session on this Mac is named
-"This Mac · ‹session›".
+The sidebar never shows tabs, and its bottom never shows agent activity.
 
-**Now.** One machine page, the Filter field, New Workspace and Add Remote Host
-(a placeholder). Machine pages and agent rows come later.
+## Workspace rows
 
-## Machine page
-
-- herdr's workspaces, in herdr's order, as section headers, with their tabs
-  as rows.
-- **Rows.** 30 pt tall, 2 pt apart: the icon stack (up to 3 icons), the title
-  and the status slot. The selected tab is a raised pill, radius 10 (D45).
-- **Sticky headers.** A workspace header stays at the top while its tabs
-  scroll under it. 18 pt fades show at the top and bottom of the list when
-  content is under them.
-- **Collapse.** A chevron collapses a section (it turns over 0.18 s). A
-  collapsed workspace shows the number of its agents that need you, in the
-  needs-you color, and the working dots when one works. The collapse state is
-  kept per device.
-- **Header actions.** On hover, a `+` at the trailing end makes a new tab in
-  that workspace, in the folder of its keyboard card (or `$HOME`). The header's
-  context menu: New Tab, Rename Workspace, Move Up, Move Down, Close Workspace.
-  Close Workspace always asks, with the tab and pane count.
-- **Rename.** A double-click on a workspace or tab title puts a text field in
-  its place: Enter saves, Esc cancels.
-- Drag rows and headers to reorder them
-  ([Drag and drop](/docs/ui/drag-and-drop)).
-- Later a workspace also lists its agent panes (icon, name, status), and the
-  collapsed count covers them.
-- Clicking a workspace selects it in the app only
+One row per herdr workspace of the session, in herdr's order, like herdr's
+Spaces panel.
+- **Line 1.** The workspace's state icon and its name. The state icon is the
+  strongest state of its panes: an amber dot (needs you), the three working
+  dots (working), a green dot (finished, not seen), a gray ring (an idle
+  agent), or nothing (no agent).
+- **Line 2**, only for a git repository: a branch glyph, the branch, then
+  ↑ahead in green and ↓behind in red when they are not zero. There is no
+  changed-file count. A workspace that is not a git repository has one line
+  and no text about git (D67,
+  [Git status](/docs/talking-to-herdr#git-status)).
+- **Size.** 44 pt with two lines, 30 pt with one, 2 pt apart. The selected
+  workspace is a raised pill, radius 10.
+- **Worktrees.** A workspace that herdr marks as a linked git worktree
+  (`worktree.is_linked_worktree`, with the same `repo_key`) sits indented
+  under the workspace of its repository, with a thin guide line, as in herdr.
+- **Click** selects the workspace in the app only
   ([Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own)).
+- **Context menu.** New Tab, Rename Workspace, Move Up, Move Down, Close
+  Workspace. New Tab opens in the folder of the workspace's keyboard card (or
+  `$HOME`). Close Workspace always asks, with the tab and pane count.
+- **Rename.** A double-click on the name puts a text field in its place:
+  Enter saves, Esc cancels.
+- Drag a row to reorder the workspaces
+  ([Drag and drop](/docs/ui/drag-and-drop)).
 
-## Activity
+## Agents view
 
-Activity is a filter on the tab list, as in Rex (D61). The eye, ⌘. or View ▸
-Show Activity turns it on and off. The bottom of the sidebar never shows
-agent activity.
-- **What it lists.** Only the tabs that have a working agent, an agent that
-  needs you, or a finish not seen yet. They keep their workspace sections; a
-  section with no such tab is hidden. **Show idle agents** (the list's footer
-  toggle, off by default) also keeps tabs whose agents are idle and seen.
-- **Where.** With the sidebar shown, the sidebar's rows are filtered in place.
-  With the sidebar hidden, the same list is a floating glass panel under the
-  eye, 320 pt wide and at most 480 pt tall. Esc closes the panel.
-- **Row.** 44 pt, two lines. Line 1: the tab's icon stack, the tab title and
-  the tab's status capsule on the right: "Needs you" (amber), "Done" (green)
-  or "Working" (blue), text in the color on a 0.15 fill of it. A tab shows its
-  strongest state: needs you, then done, then working. Line 2: the agent's
-  name and status word ("claude · needs you") in secondary text, and the age
-  on the right ("now", "3m", "2h"), counted from the time the app saw the
-  change. A tab with several agents names the one with the strongest state.
-- **Order.** herdr's order of workspaces and tabs, as in the full list, so
-  rows do not jump when a status changes.
-- **Selection stays.** The selected tab stays in the list while it is
-  selected, even when nothing is left to show for it. When the user selects
-  another tab, a tab with nothing left leaves the list (0.22 s). Rows never
-  leave while the pointer is over the list.
-- A click selects the workspace and tab and gives the keyboard to the pane
-  with the strongest state, so its finish is seen.
-- With nothing to show: "No agents are working or waiting".
+![The Agents view of one session](/mockups/H.jpg)
 
-How it works: [Activity and notifications](/docs/status#activity-and-notifications).
+The Agents button turns the sidebar page into a list of the agents of that
+session only (D61). A sideways swipe shows the next open session's agents.
+- **Header.** "‹session› · agents" and a sort menu: **Priority** (the groups
+  Needs you, Working, Done and Idle, each with a count) or **Workspace order**
+  (herdr's order of workspaces and tabs).
+- **Rows.** One row per agent pane, even when several share a tab. 44 pt, two
+  lines. Line 1: the program tile with its badge, the agent's name, and the
+  status capsule on the right: "Needs you" (amber), "Working" (blue), "Done"
+  (green) or "Idle" (gray), the text in the color on a 0.15 fill of it. Line
+  2: "‹workspace› · ‹tab›" in secondary text, and the age on the right ("now",
+  "3m", "2h"), counted from the time the app saw the change.
+- Idle agents show by default.
+- A click goes to that workspace, tab and pane and gives the pane the
+  keyboard, which records a finish as seen.
+- Rest the pointer on a row to see the [hover card](#hover-card) of its tab.
+
+How it works: [Agents and notifications](/docs/status#agents-and-notifications).
+
+## Open Session
+
+![The Open Session sheet](/mockups/F.jpg)
+
+The one place to create or open a session, as a page of this window (D68).
+The footer's Open Session button, the workspace menu's "Open Session…" and
+⇧⌘N open it. The sheet is titled "Open Session".
+- A text field, "Name a new session, or find one", empty at first.
+- The list, filtered by the field:
+  - **New:** "Create session “‹typed name›”" when the text is a valid new
+    herdr session name. With an empty field: "Create session “‹name›”" with a
+    suggested two-word name.
+  - **Running** sessions that are not open in this window ("opens it"), and
+    **Stopped** sessions ("starts it").
+  - Last, the sessions already open in this window ("open").
+- The arrows move the highlight. Enter or **Open** acts on the highlighted row:
+  - a new name: create and start the session, then open it as a new page;
+  - a running session: open it as a new page, and its store connects;
+  - a stopped session: start it (a launchd job on This Mac, D47), then open
+    it as a new page;
+  - an open session: switch to its page.
+- **Cancel** or Esc closes the sheet.
+
+How it works: [Checks on connect](/docs/machines#checks-on-connect).
 
 ## Hover card
 
 A peek at what runs in a tab (D63).
-- **When.** The pointer rests 0.25 s on a title-bar capsule, a sidebar tab row
-  or an Activity row. The card stays while the pointer moves into it (0.15 s
+- **When.** The pointer rests 0.25 s on a title-bar capsule or an Agents
+  row. The card stays while the pointer moves into it (0.15 s
   grace). It goes when the pointer leaves, on a click elsewhere, on a scroll,
   and with Esc. One card at a time, and none during a drag.
 - **Where.** Centered 6 pt under a capsule, or 6 pt right of the sidebar edge
-  for a row. It stays inside the window.
+  for an Agents row. It stays inside the window.
 - **Look.** A glass panel, radius 12, at most 280 pt wide. It fades and grows
   in from 0.97 over 0.13 s.
 - **Content**, top to bottom:
@@ -264,6 +360,18 @@ A short message after a failed action or a refused move.
   "Retry") and ×.
 - It goes after 4 s.
 
+## Control capsule
+
+A window that watches a session another window controls (D66).
+- Its cards dim a little, and a capsule at the bottom center of the strip says
+  "Controlled in another window", with **Take Back**.
+- Take Back, or a key press, paste or click in one of its terminal cards,
+  moves control of the session to this window. The other window then watches
+  and shows the capsule.
+- A pane that another device holds shows "In use elsewhere · Take back" in its
+  card instead
+  ([One controller per pane](/docs/talking-to-herdr#one-controller-per-pane)).
+
 ## Command palette
 
 ⌘K, ⇧⌘P or the title-bar ⌘ button opens it (D48).
@@ -273,14 +381,13 @@ A short message after a failed action or a refused move.
   an accent pill, radius 8.
 - **Sections.** With an empty field: the five commands run last (kept in
   memory), then the page's items. Then Commands, Tabs, Workspaces and Sessions.
-- **Footer.** Under a hairline, keycap chips: "↩ Run", "⎋ Close", and "⌫ Back"
-  on a sub-page.
+  Sessions lists the pages open in this window; Open Session… opens the
+  [Open Session](#open-session) sheet.
 - **Matching.** Fuzzy, in the order of the typed letters, over titles and
   keywords: "split" finds Split Right, "dark" finds Appearance ▸ Dark. On a
   tie, commands come before tabs, and shorter titles first.
 - **Sub-pages.** ⌫ on an empty field or Esc goes back one page; Esc on the
   first page closes the palette.
-  - Change Session ›: the sessions, running ones first.
   - Rename Tab ›, Rename Workspace ›, Rename Pane ›: the field holds the
     current name; Enter saves.
   - Move Pane to Tab ›: the workspace's tabs, New Tab and New Workspace.

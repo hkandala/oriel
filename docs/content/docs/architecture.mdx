@@ -12,11 +12,12 @@ description: "The pieces of the app and how they reach each machine"
 | `HerdrKit` (Swift package) | both | `Exec`, the `Multiplexer` interface and its herdr implementation: `call()`, the event stream, snapshot decoding, the split-tree rebuild, the label parser, transcript parsers, the remote command envelope |
 | `ProcessExec` | macOS | `Process` with pipes; an argv prefix makes it local or remote; `dial` through `ssh -W` or `-O forward` |
 | `CitadelExec` | iOS | the Citadel SSH client, exec and `direct-tcpip` channels, a Secure Enclave key |
-| `HostStore` | both | the app's live model of one machine: snapshot, events, streams, seen state |
+| `HostStore` | both | the app's live model of one open session: snapshot, events, streams, seen state, git state, and which window controls it. One per session, shared by every window that shows it |
+| Window state | both | one per window: its machine, its open pages and its selection (page, workspace, tab, keyboard card, zoom, sidebar view and width), restored with `@SceneStorage` |
 | `PaneViewRegistry` | both | owns terminal views, web pages and plugin cards, so scrolling never destroys them |
 | `PluginRegistry` | both | core plugins plus installed and linked plugins; manifests; consent |
 | `PluginHost` | both | one web page per plugin card; the bridge (`window.oriel`) to `run`, `dial` and the API |
-| Views | both | sidebar, tab bar, strip, cards, chat, status, pills, sheets |
+| Views | both | title row, sidebar pages, Agents view, tab bar, strip, cards, chat, status, pills, sheets |
 
 `Exec` and `Multiplexer` are the only protocols. `HerdrKit` is a separate
 package, so its single test target runs with `swift test`.
@@ -39,7 +40,7 @@ interface and the app's own model types, never herdr's JSON or argv.
 | Agent status | per agent pane: working, needs you, idle, and a finish counter | `agent_status`, `completion_seq`, [Status](/docs/status) |
 
 Agent status comes only from the interface, never from escape sequences in
-the app's terminal surfaces (D55, [Status](/docs/status#activity-and-notifications)).
+the app's terminal surfaces (D55, [Status](/docs/status#agents-and-notifications)).
 
 In code, `Multiplexer` lives in `HerdrKit` (`Multiplexer.swift`) next to its
 only conformer, `HerdrClient`. It has only what the app uses today: the session
