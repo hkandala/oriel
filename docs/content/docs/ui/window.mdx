@@ -30,8 +30,11 @@ One row, 40 pt tall, always the same (D45). From left to right:
 1. The traffic lights.
 2. The sidebar toggle, always shown (⌃⌘S). It has no highlight when the
    sidebar is open. The icon changes instead: an outline window with a sidebar
-   line while the sidebar is closed, and the sidebar part filled while it is
-   open. The sidebar slides in and out over 0.3 s.
+   line while the sidebar is closed (`sidebar.left`), and the sidebar part
+   filled while it is open (`sidebar.left` under
+   `rectangle.leftthird.inset.filled`). The sidebar slides in and out over
+   0.3 s, and does not slide under Reduce Motion. Each window keeps its own
+   choice. Items in the row are 8 pt apart.
 3. The [machine button](#machine-button).
 4. The [workspace button](#workspace-button), only while the sidebar is
    collapsed.
@@ -52,7 +55,8 @@ Control show it.
 
 ![The machine menu](/mockups/E.jpg)
 
-- The machine's icon and a small chevron, with no name.
+- The machine's icon and a small chevron, with no name. This Mac is a
+  laptop when it has an internal battery, else a desktop.
 - The menu lists the machines, each with its icon and name, and a checkmark
   on the current one. Then "Add Remote Host…"
   ([Add a machine](/docs/ui/add-a-machine)).
@@ -70,11 +74,17 @@ Control show it.
 Shown only while the sidebar is collapsed, after the machine button.
 - An outline folder icon, then "‹session› | ‹workspace›": the session in
   secondary text, a thin vertical line, the workspace in primary text. Then a
-  chevron.
+  chevron. At most 260 pt wide; a workspace name that does not fit fades out
+  at its end over 16 pt.
 - The menu starts with a filter field ("Filter or create…"). Then every
   workspace of every session open in this window, grouped under a session
   header. A row shows the workspace's state icon, its name and its branch on
   the right. At the end: New Workspace and "Open Session…" (⇧⌘N).
+- The menu is a glass panel under the button, 300 pt wide and at most 420 pt
+  tall, built from the palette's filter list. Rows are 26 pt. Arrows move,
+  Enter acts, Esc closes. A typed name that matches no workspace shows
+  "New Workspace “‹name›”" first; Enter makes it in the selected workspace's
+  session and selects it.
 - Picking a workspace of another session also moves the window to that
   session's page.
 

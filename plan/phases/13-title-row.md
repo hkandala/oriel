@@ -151,3 +151,71 @@ expects.
   the machine menu; the workspace menu; keycap hints showing; light and dark.
 
 ## Findings
+
+### Deviations
+
+- **The open sidebar icon is two SF Symbols.** `rectangle.leftthird.inset.filled` alone drew a bar too thin to
+  tell from `sidebar.left` at 13 pt (orchestrator). The open icon is `sidebar.left` with
+  `rectangle.leftthird.inset.filled` over it: the same outline, the sidebar part filled. No custom symbol.
+- **The session picker sits right after the sidebar toggle**, before the machine button, until phase 14 removes it
+  ("stays where it is"); the session list still opens under it (`TitleBar.picker` is now 36 for the 8 pt spacing).
+- **Capsules have no status glyph now.** The trailing slot holds only × (item 18: "× now"); the old ◔ ▲ glyph left
+  the capsules. Workspace rows keep theirs until phase 15's badges and dots.
+- **Cards still ask for their program as they show**, now on every appearance, not only the first. With 18b the
+  snapshot asks when a pane is new, before a program typed later runs; a tab shown again would keep that old
+  answer (phase 12's icon test caught it).
+- **Workspace rows are plain rows.** With the tab rows gone the sidebar shows one 30 pt row per workspace, the
+  selected one on the look's pill (`workspace.<id>`, selected trait), so the selection still shows until phase 14
+  restyles them. The sidebar filter filters workspaces.
+
+### Decisions
+
+- **One command list:** `Command {section, title, key, enabled, checked, action}` in `Commands.swift`;
+  `AppCommands.list` builds it from the focused store, palette, sidebar and settings, and the menu bar draws it by
+  section (a choice section becomes a submenu of toggles: Appearance, Interface Style). It replaced `ActionCommands`
+  and `TabCommands`. This phase's entry: View ▸ Toggle Sidebar (⌃⌘S). The tab context menu acts on its capsule, so
+  its items are not in the list (phase 20 adds Move Tab Left/Right and Rename Tab › to the list).
+- **One filter list:** `FilterList` (field, rows with optional section headers or dividers, arrows, Enter) is the
+  palette's list and the workspace menu; its rows are 26 pt (`MenuRow` everywhere). `name` gives the ids:
+  `palette.*`, `workspaces.*` (`workspaces.filter`, `workspaces.<workspace id>`, `workspaces.create`,
+  `workspaces.new`).
+- **Tab widths:** `(space − (n − 1)) / n` clamped to 64…220; `space` is the bar's own width in the row, measured
+  with `onGeometryChange` on a `frame(minWidth: 0, maxWidth: .infinity)`. The marker's x is `page × (width + 1)`:
+  equal widths make the frame table of phase 05 unnecessary.
+- **Rex's spring for the marker** comes from the strip: a selection scrolls the strip with
+  `.spring(response: 0.28, dampingFraction: 1)` and the marker follows the page, as during a swipe.
+- **Edge fades only while the bar scrolls** (the mask grows 16 pt past both ends when the tabs fit).
+- **Workspace button cap:** a 12-line `Capped` layout offers at most 260 pt and takes the button's own size;
+  `frame(maxWidth:)` would take the whole offer. `FadeText` is a `ViewThatFits`: the plain text when it fits, else
+  the masked copy.
+- **Close Other Tabs:** `Close.otherTabs(tab)`, one dialog with the other tabs' total pane count, then one
+  `tab.close` per tab in one write.
+- **Tab title:** `HostStore.title(_:)`; a label made only of digits is herdr's default (herdr renumbers it as tabs
+  move: a moved tab "1" became "2"). The window title and the ⌘1…⌘9 menu items use it too.
+- **Machine icon:** `IOPSCopyPowerSourcesList` once into a global `thisMacIcon`.
+
+### Assumptions
+
+- **herdr's `tab.move` index** is the position before the tab is removed: it inserts before the tab now at
+  `insert_index` (0…count; spike: `[t1,t2,t3]`, t1 to 2 gave `[t2,t1,t3]`). Move Right sends index + 2.
+- **A new pane's first ask waits 1 s**: asked at once, a new shell answered `sort` (a startup program of the zsh
+  config) and the tab kept the placeholder "S". The same heuristic as after Return.
+- **The machine menu's checkmark is not checkable in XCUITest** (`isSelected` is false on a checked item; phase
+  10 had the same); the machine menu screenshot shows it.
+
+### Learned
+
+- **A view that measures the space it gets must not take its measured width as its minimum.** The tab bar had a
+  fixed inner width from its last measurement inside a `maxWidth: .infinity` frame; that frame's minimum was the
+  inner width, so when the workspace button appeared the row overflowed and pushed ⌘ and + out of the window, and
+  the measurement kept the old value. `minWidth: 0` fixed it.
+- **`background(alignment:) { A; B }` centers B in A**: the builder is a ZStack with its own center alignment.
+  The marker sat on the middle tab until it got an explicit `ZStack(alignment: .leading)`.
+- **A TextField in a Button's label never takes the keyboard**, and an `accessibilityIdentifier` after an overlay
+  renames the overlay's field too: the rename field is an overlay after the capsule's own accessibility modifiers.
+- **A `Menu` label of two images gives two menu buttons** with the same identifier; one `Text` with both images
+  is one element.
+- **`ScrollViewReader.scrollTo(id)` picks the first view with that id**: with a divider and a capsule per tab it
+  scrolled to the divider; one `HStack` per tab fixed it.
+- **The window is wider than 1200 pt on this Mac** (restored frame), so 12 tabs fit at 64+ pt there; the 12-tab
+  test makes as many tabs as the row needs to scroll (12 on a 1200 pt window).
