@@ -21,8 +21,8 @@ extension OrielUITests {
             keepScreenshot(look)
         }
         // Auto follows macOS, from the other appearance so that an Auto that does nothing fails.
-        let system = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark" ? "dark" : "light"
-        let other = system == "dark" ? "light" : "dark"
+        let (system, other) = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
+            ? ("dark", "light") : ("light", "dark")
         pick("Appearance", other.capitalized)
         expectLook("classic \(other)")
         pick("Appearance", "Auto")
