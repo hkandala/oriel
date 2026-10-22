@@ -85,7 +85,9 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
   `glass-untinted.jpg`). Rex's Modern dark window also has a backdrop of black 0.6, blended `overlay`.
   With it (`Look.backdrop`, Glass dark only) the window measures `#353536`–`#393939`.
 - **Classic dark card fill is white 0.018, not 0.035.** The table says white 0.035 and "`#222` on
-  `#1e1e1e`", but 0.035 gives `#262626`. White 0.018 gives `#222`, as the table names and Rex shows.
+  `#1e1e1e`", but 0.035 gives `#262626`. White 0.018 gives `#222`, as the table names and Rex shows. The
+  keyboard card adds black 0.1 (Rex's System `activePane`), so it lands at `#1f1f1f`, one step from the
+  window; its 0.8 pt stroke marks it.
 - **Classic light window is plain `#f6f6f6`.** With the table's white 0.5 on top, the window measured
   `#fbfbfb` and the cards `#fdfdfd`–`#fefefe`, nearly flat. Plain `#f6f6f6` gives Rex's light steps
   (window `#f3f3f3`, card `#fbfbfb` in `light-mode.jpg`). The theme page says `#f6f6f6`.
@@ -120,6 +122,9 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
   matched.
 - **No custom terminal theme.** libghostty-spm's defaults (Alabaster light, Afterglow dark) read well:
   prompt, `ls -G`, `git log --color`, vim syntax colors.
+- **Glass dark cards stay lighter than the window.** The table's white 0.04 is kept. In Rex's shot the
+  cards without the keyboard are darker than the window, from Rex's per-pane backdrop; phase 17's fade
+  brings that contrast.
 
 ### Assumptions
 
