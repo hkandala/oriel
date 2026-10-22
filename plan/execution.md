@@ -50,7 +50,8 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    Rule: a phase that adds a new window, panel or screen shows the orchestrator one screenshot of its
    first rough version before it polishes or tests it. Phases 13, 14, 15 and 19 do this.
 6. **Time box.** A phase reports to the orchestrator when it passes 2 hours, with what is left.
-7. **Docs-only pushes** do not need the e2e job (the CI agent adds the path filter).
+7. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
+   first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
 
 ## The phase loop (inside each phase agent)
 
