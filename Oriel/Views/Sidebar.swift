@@ -261,7 +261,8 @@
                         .accessibilityIdentifier("workspace.\(workspace.id).rename")
                 }
             }
-            .contextMenu { menu }
+            // Writes only while the session runs: a stopped one keeps its last rows.
+            .contextMenu { menu.disabled(page.store.state != .live) }
             .padding(.leading, parent == nil ? 0 : 14)
             // From the repository's state slot (8 + 7 pt in) down along its worktrees.
             .background(alignment: .topLeading) {
@@ -274,13 +275,8 @@
             }
         }
 
-        /// Writes only while the session runs: a stopped one keeps its last rows.
-        private var menu: some View {
-            menuItems.disabled(page.store.state != .live)
-        }
-
         @ViewBuilder
-        private var menuItems: some View {
+        private var menu: some View {
             let store = page.store
             let first = ends.first == workspace.id, last = ends.last == workspace.id
             Button("New Tab") { Task { await page.newTab(in: workspace) } }
