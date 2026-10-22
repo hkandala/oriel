@@ -76,11 +76,12 @@
         /// ones that no longer hold (the pane works, idles, closed or lost its agent).
         static func post(_ changes: [Seen.Change], _ page: Page) {
             let store = page.store
-            let holding = Set(store.panes.filter { $0.state ?? .idle >= .finishedUnseen }.map { id($0, page) })
             Task {
                 let center = UNUserNotificationCenter.current()
-                let gone = await center.deliveredNotifications().map(\.request.identifier)
-                    .filter { $0.hasPrefix("local|\(page.id)|") && !holding.contains($0) }
+                let delivered = await center.deliveredNotifications().map(\.request.identifier)
+                // After the wait: a later snapshot's new one must not go.
+                let holding = Set(store.panes.filter { $0.state ?? .idle >= .finishedUnseen }.map { id($0, page) })
+                let gone = delivered.filter { $0.hasPrefix("local|\(page.id)|") && !holding.contains($0) }
                 center.removeDeliveredNotifications(withIdentifiers: gone)
             }
             for change in changes where change.state >= .finishedUnseen {

@@ -313,9 +313,7 @@
             }
             guard let pane = page.store.panes.first(where: { ($0.terminalID ?? $0.id) == parts[2] }) else {
                 // Gone: a dead click does not wait for ever.
-                if page.store.state != .connecting {
-                    Self.pending = nil
-                }
+                Self.pending = page.store.state == .connecting ? id : nil
                 return
             }
             Self.pending = nil

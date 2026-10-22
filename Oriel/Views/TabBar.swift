@@ -287,8 +287,7 @@
             announcement = text
             announcing?.cancel()
             announcing = Task {
-                try? await Task.sleep(for: .seconds(3))
-                if !Task.isCancelled {
+                if await (try? Task.sleep(for: .seconds(3))) != nil {
                     announcement = nil
                 }
             }
