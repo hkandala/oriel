@@ -248,8 +248,6 @@
                 }
                 return prefix + (shift && named != "esc" ? "shift+" : "") + named
             }
-            // The layout's letter (Dvorak, AZERTY), else the key's US character (Ctrl+С on a Russian
-            // layout is Ctrl+C). Shift is dropped, as xterm does: Ctrl+Shift+C is Ctrl+C.
             if option, !control, UserDefaults.standard.bool(forKey: "optionAsAlt") {
                 // Settings ▸ Terminal: the layout's character with Shift (⌥⇧B is Alt+B, ⌥. Alt+.), else the
                 // key's US one.
@@ -257,6 +255,8 @@
                 let key = typed.count == 1 && typed.first?.isASCII == true && typed != " " ? typed : ansi[event.keyCode]
                 return key.map { "alt+" + $0 }
             }
+            // The layout's letter (Dvorak, AZERTY), else the key's US character (Ctrl+С on a Russian
+            // layout is Ctrl+C). Shift is dropped, as xterm does: Ctrl+Shift+C is Ctrl+C.
             guard control else { return nil }
             if let letter = event.charactersIgnoringModifiers?.lowercased(), letter.count == 1,
                letter.first?.isASCII == true, letter.first?.isLetter == true
