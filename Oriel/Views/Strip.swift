@@ -37,8 +37,10 @@ struct Strip: View {
         .scrollPosition($position, anchor: .leading)
         .scrollIndicators(.never)
         .onScrollGeometryChange(for: Double.self) {
-            // To a thousandth, so a page at rest is a whole number (one lit tab) despite rounding.
-            ($0.contentOffset.x / max($0.containerSize.width, 1) * 1000).rounded() / 1000
+            // Within a point of a page, the strip rests on it (one lit tab): on CI (a 1x display) it once came to rest
+            // just past the first page after the sidebar hid, with both capsules lit. Else to a thousandth.
+            let width = max($0.containerSize.width, 1), page = $0.contentOffset.x / width
+            return abs(page - page.rounded()) * width < 1 ? page.rounded() : (page * 1000).rounded() / 1000
         } action: {
             store.page = $1
         }

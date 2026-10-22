@@ -93,7 +93,8 @@ final class OrielUITests: XCTestCase {
         let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             first.value as? String == "in view" && second.value as? String == ""
         }, object: nil)
-        XCTAssertEqual(XCTWaiter().wait(for: [settled], timeout: 2), .completed)
+        XCTAssertEqual(XCTWaiter().wait(for: [settled], timeout: 2), .completed,
+                       "t1 \(first.value ?? "nil"), t2 \(second.value ?? "nil")")
         second.click()
         XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
         let marked = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == 'in view'"), object: second)
