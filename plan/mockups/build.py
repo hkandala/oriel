@@ -186,7 +186,7 @@ def ws_label(session, name, style):
     return f'<span class="dim">{session}</span>{sep}<span>{name}</span>'
 
 
-def title_row(sidebar_open, agents_view, machine_icon="laptop", session="default", style="dot", ws_icon="o:folder"):
+def title_row(sidebar_open, agents_view, machine_icon="laptop", session="default", style="line", ws_icon="o:folder"):
     machine = (f'<span class="pick icononly" title="Machine (⌥-click: open in a new window)">{ui(machine_icon)}'
                f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
     workspace = ("" if sidebar_open else
@@ -299,18 +299,25 @@ def machine_menu():
             f'<div class="prow"><span class="mi">{ui("plus")}</span>Add Remote Host…</div></div>')
 
 
-def workspace_menu(style="dot"):
+def workspace_menu():
     rows = ['<div class="pfilter">Filter or create…</div>']
     for session, wss in SESSIONS.items():
+        rows.append(f'<div class="pg">{session}</div>')
         for name, status, branch, *_rest in wss:
             cur = session == "default" and name == SELECTED_WS
             git = f'<span class="kb">{branch}</span>' if branch else ""
             rows.append(f'<div class="prow{" cur" if cur else ""}"><span class="sicon">{state_icon(status)}</span>'
-                        f'<span class="plabel">{ws_label(session, name, style)}</span>{git}</div>')
+                        f'<span class="plabel">{name}</span>{git}</div>')
     rows.append(f'<div class="psep"></div><div class="prow"><span class="mi">{ui("plus")}</span>New Workspace</div>'
                 f'<div class="prow"><span class="mi">{ui("plusstack")}</span>New or Open Session…'
                 f'<span class="kb">⇧⌘N</span></div>')
     return f'<div class="popup wsm">{"".join(rows)}</div>'
+
+
+def needs_popover():
+    rows = [agent_row(a) for a in AGENTS["default"] if a[2] == "needs"]
+    return ('<div class="popup needs"><div class="pg">Needs you <span class="dim">· default</span></div>'
+            f'{"".join(rows)}<div class="psep"></div><div class="prow small">Click the button for all agents</div></div>')
 
 
 def session_sheet():
@@ -328,7 +335,7 @@ def session_sheet():
 
 # ---------------------------------------------------------------- windows
 def window(sidebar=None, popup=None, session="default", machine_icon="laptop", watching=False, agents=False,
-           style="dot", ws_icon="o:folder"):
+           style="line", ws_icon="o:folder"):
     side = ""
     if sidebar == "ws":
         side = sidebar_workspaces(session)
@@ -343,57 +350,24 @@ def pair(left, right, l1, l2):
             f'<div class="mini">{right}<div class="mlabel">{l2}</div></div></div>')
 
 
-def title_snippet(inner):
-    return f'<div class="snip"><div class="titlerow">{traffic()}{inner}</div></div>'
-
-
-def label_options():
-    cells = []
-    for style, name in (("dot", "Dot: default · oriel"), ("line", "Line: default | oriel")):
-        btn = (f'<span class="btn">{ui("o:sidebarclosed")}</span><span class="pick icononly">{ui("laptop")}'
-               f'<span class="caret">{ui("chev", "ic xs")}</span></span><span class="pick">{ui("o:folder")}'
-               f'<span class="pname">{ws_label("default", "oriel", style)}</span><span class="caret">'
-               f'{ui("chev", "ic xs")}</span></span>')
-        cells.append(f'<div class="opt">{title_snippet(btn)}<div class="optname">{name}</div></div>')
-    return f'<div class="opts two">{"".join(cells)}</div>'
-
-
-def ws_icon_options():
-    names = [("o:folder", "Folder"), ("o:squarestack", "Square stack"), ("o:rect3", "Three panels"), ("o:tray", "Tray"),
-             ("o:grid", "Grid"), ("o:briefcase", "Briefcase"), ("o:cube", "Cube"), ("o:sidebarlist", "Sidebar list")]
-    cells = []
-    for i, (n, label) in enumerate(names):
-        btn = (f'<span class="pick icononly">{ui("laptop")}<span class="caret">{ui("chev", "ic xs")}</span></span>'
-               f'<span class="pick">{ui(n)}<span class="pname">{ws_label("default", "oriel", "dot")}</span>'
-               f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
-        cells.append(f'<div class="opt">{title_snippet(btn)}<div class="optname">{i + 1}. {label}</div></div>')
-    return f'<div class="opts">{"".join(cells)}</div>'
-
-
 SCENES = [
     ("A", "Sidebar open: workspaces of one session",
-     "Title row: sidebar toggle (its icon shows the panel filled while the sidebar is open; no highlight), the machine (icon only), the selected workspace's tabs (always in the title "
-     "row), and on the right the Agents toggle (outline chat bubbles), ⌘ and +. The sidebar lists the "
-     "workspaces of one herdr session, like herdr: state icon and name, then the git branch with ahead and "
-     "behind counts. A workspace that is not a git repository shows one line. oriel-rex-ui is a git worktree "
-     "of oriel, so it sits under oriel. The footer has the filter and New or Open Session. A sideways swipe on "
-     "the strip pages through the tabs; a sideways swipe on the sidebar changes the session.", window("ws")),
+     "Title row: sidebar toggle (its icon shows the panel filled while the sidebar is open), the machine "
+     "(icon only), the selected workspace's tabs (always in the title row), and on the right the Agents button "
+     "(outline chat bubbles, amber dot when an agent needs you), \u2318 and +. The sidebar lists the workspaces "
+     "of one herdr session, like herdr: state icon and name, then the git branch with ahead and behind counts. "
+     "A workspace that is not a git repository shows one line. oriel-rex-ui is a git worktree of oriel, so it "
+     "sits under oriel. The footer has the filter and New or Open Session. A sideways swipe on the strip pages "
+     "through the tabs; a sideways swipe on the sidebar changes the session.", window("ws")),
     ("B", "After a sideways swipe on the sidebar: the next session on this machine",
      "One sidebar page per running herdr session on the machine (here default and pi-herd), Arc style, with "
      "page dots; a click on a dot also switches.", window("ws", session="pi-herd")),
     ("C", "Sidebar collapsed: only the tabs",
-     "A workspace button appears next to the machine: session, then workspace, in one line (option 1: a dot). "
-     "The strip still pages sideways between the tabs.", window(None)),
-    ("C2", "Workspace button: label options",
-     "Pick one: a dot or a thin line between the session and the workspace.", label_options()),
-    ("C3", "Workspace button: icon options (outline)",
-     "Pick one. All are outline glyphs, like the other title-row icons.", ws_icon_options()),
-    ("D", "Workspace menu open (dot style)",
-     "Every workspace of every running session on this machine, as \u201csession · workspace\u201d, with the "
-     "branch on the right. New or Open Session opens the session sheet.", window(None, workspace_menu("dot"))),
-    ("D2", "Workspace menu open (line style)",
-     "The same menu with a thin line between the session and the workspace.",
-     window(None, workspace_menu("line"), style="line")),
+     "A workspace button appears next to the machine: folder icon, then \u201csession | workspace\u201d. The strip "
+     "still pages sideways between the tabs.", window(None)),
+    ("D", "Workspace menu open",
+     "Every workspace of every running session on this machine, grouped under its session, with the branch on "
+     "the right. New or Open Session opens the session sheet.", window(None, workspace_menu())),
     ("E", "Machine menu open",
      "Closed, the button shows only the machine's icon; open, the menu shows names. Picking a machine replaces "
      "the window's sessions with that machine's; \u2325-click opens it in a new window instead (not shown in "
@@ -401,23 +375,27 @@ SCENES = [
      window("ws", machine_menu())),
     ("F", "New or Open Session sheet",
      "The sidebar's New Session button and the workspace menu both open this sheet. Type a new name to make a "
-     "session, or pick a stopped session to start it (a running one just switches to its page). One sheet "
-     "replaces a separate Open Stopped Session item.", window("ws", session_sheet())),
-    ("G", "Agents view: the agents of this session",
-     "The Agents toggle (right side, outline chat bubbles) turns the sidebar into a list of the agents of the "
-     "session on this page: one row per agent pane, even when a tab holds several. Sorted by priority (needs "
-     "you, working, done, idle) or by workspace order. Idle agents show by default. A sideways swipe shows the "
-     "next session's agents. A click opens that workspace, tab and pane.", window("agents")),
-    ("H", "Two windows, same machine, different sessions",
+     "session, or pick a stopped session to start it (a running one just switches to its page).",
+     window("ws", session_sheet())),
+    ("G", "Hover the Agents button: who needs you",
+     "Resting the pointer on the chat bubbles shows the agents of this session that need you. A click on one "
+     "goes straight to its pane; the sidebar stays as it is. A click on the button itself opens the Agents view.",
+     window("ws", needs_popover())),
+    ("H", "Agents view: the agents of this session",
+     "A click on the Agents button turns the sidebar into a list of the agents of the session on this page "
+     "(the first bubble fills while it is on): one row per agent pane, even when a tab holds several. Sorted by "
+     "priority (needs you, working, done, idle) or by workspace order. Idle agents show by default. A sideways "
+     "swipe shows the next session's agents. A click opens that workspace, tab and pane.", window("agents")),
+    ("I", "Two windows, same machine, different sessions",
      "Each window shows one machine and controls the session on its page. Two windows on different sessions "
      "both control their own session.",
-     pair(window("ws"), window("ws", session="pi-herd"), "Window 1 · This Mac · default (controls)",
-          "Window 2 · This Mac · pi-herd (controls)")),
-    ("I", "Two windows, same session",
+     pair(window("ws"), window("ws", session="pi-herd"), "Window 1 \u00b7 This Mac \u00b7 default (controls)",
+          "Window 2 \u00b7 This Mac \u00b7 pi-herd (controls)")),
+    ("J", "Two windows, same session",
      "When two windows show the same session, the window where you typed last controls it; the other watches "
      "and offers Take Back. Control is per session, not per pane.",
-     pair(window("ws"), window("ws", watching=True), "Window 1 · default (controls)",
-          "Window 2 · default (watching)")),
+     pair(window("ws"), window("ws", watching=True), "Window 1 \u00b7 default (controls)",
+          "Window 2 \u00b7 default (watching)")),
 ]
 
 CSS = (pathlib.Path(__file__).with_name("layout.css")).read_text()

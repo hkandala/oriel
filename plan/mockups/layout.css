@@ -147,3 +147,5 @@ code { font: 12px ui-monospace, Menlo, monospace; }
 .pick .pname { white-space: nowrap; }
 .opts { grid-template-columns: repeat(4, minmax(0, 1fr)); } .opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .snip { overflow: hidden; } .opt { min-width: 0; }
+.popup.needs { right: 60px; width: 300px; } .popup.needs .agent { height: 44px; }
+.prow.small { font-size: 11px; color: var(--dim); }
