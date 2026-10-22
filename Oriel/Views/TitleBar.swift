@@ -129,6 +129,7 @@
     /// `sidebar.left`, with its sidebar part filled while open. No highlight: the icon says open or closed.
     /// `rectangle.leftthird.inset.filled` alone drew too thin a bar at 13 pt to tell the two apart.
     private struct SidebarToggle: View {
+        static let help = "Toggle Sidebar \(KeyboardShortcut.toggleSidebar.glyphs)"
         @Binding var open: Bool
 
         var body: some View {
@@ -145,8 +146,8 @@
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(ChromeStyle(radius: 7))
-            .help("Toggle Sidebar \(KeyboardShortcut.toggleSidebar.glyphs)")
-            .accessibilityLabel("Toggle Sidebar \(KeyboardShortcut.toggleSidebar.glyphs)")
+            .help(Self.help)
+            .accessibilityLabel(Self.help)
         }
     }
 

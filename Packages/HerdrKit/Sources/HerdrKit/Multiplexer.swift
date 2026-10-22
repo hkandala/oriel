@@ -28,6 +28,7 @@ public protocol Multiplexer: Sendable {
 
     /// The text on the pane's screen now.
     func screen(_ paneID: String) async throws -> String
+
     /// The nearest pane that way, if any. Read only.
     func neighbor(of paneID: String, _ heading: Heading) async throws -> String?
 

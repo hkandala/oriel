@@ -238,7 +238,6 @@
             let store = page.store
             let selected = workspace.id == page.selectedWorkspaceID && tab.id == page.selectedTabIDs[workspace.id]
             let stack = page.stack(tab)
-            let title = page.title(tab)
             let agent = store.strongest([tab.id])
             let working = !selected && store.panes.contains { $0.tabID == tab.id && $0.state == .working }
             // The strip scrolls to the new selection and the marker follows, as during a swipe.
@@ -263,10 +262,8 @@
                             }
                         }
                     // Not once the user selected the tab.
-                    FadeText(text: announcement.flatMap { selected ? nil : Text($0) } ?? Text(
-                        "\(title.name)\(Text(title.folder.map { " \($0)" } ?? "").foregroundStyle(.secondary))",
-                    ))
-                    .opacity(renaming ? 0 : 1)
+                    FadeText(text: announcement.flatMap { selected ? nil : Text($0) } ?? page.titleLabel(tab))
+                        .opacity(renaming ? 0 : 1)
                 }
                 .padding(.leading, 8)
                 // The title's fade ends under the ×'s 28 pt.
@@ -385,6 +382,14 @@
             guard renaming else { return }
             renaming = false
             page.focusKeyboardCard()
+        }
+    }
+
+    extension Page {
+        /// The title with its folder dimmed, for the capsule and the hover card.
+        func titleLabel(_ tab: HostStore.Tab) -> Text {
+            let title = title(tab)
+            return Text("\(title.name)\(Text(title.folder.map { " \($0)" } ?? "").foregroundStyle(.secondary))")
         }
     }
 #endif

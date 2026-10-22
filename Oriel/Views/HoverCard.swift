@@ -166,17 +166,13 @@
             let store = page.store
             if let workspace = store.workspace(of: tabID), let tab = workspace.tabs.first(where: { $0.id == tabID }) {
                 let panes = store.panes.filter { $0.tabID == tabID }
-                let title = page.title(tab)
                 VStack(alignment: .leading, spacing: 4) {
                     Button {
                         page.select(workspace, tab: tabID)
                         close()
                     } label: {
                         HStack(spacing: 8) {
-                            FadeText(text: Text(
-                                "\(title.name)\(Text(title.folder.map { " \($0)" } ?? "").foregroundStyle(.secondary))",
-                            ))
-                            .fontWeight(.medium)
+                            FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
                             Spacer(minLength: 0)
                             if let state = store.strongest([tabID])?.state {
                                 StateCapsule(state: state)
