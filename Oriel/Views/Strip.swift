@@ -234,7 +234,6 @@ private struct PaneCard: View {
     var body: some View {
         let pane = store.pane(id)
         let title = pane?.title ?? "terminal"
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         let zoomed = store.zoomedPaneID == id
         #if os(macOS)
             let terminal = pane?.terminalID.flatMap { store.terminals.terminal($0, pane: id) }
@@ -291,9 +290,10 @@ private struct PaneCard: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .clipShape(CardSurface.shape)
         // The card's element is its background: a container would merge into a one-pane page's.
         .background {
-            shape.fill(Color.card).accessibilityElement().accessibilityLabel(title)
+            CardSurface(keyboard: lit).accessibilityElement().accessibilityLabel(title)
                 .accessibilityIdentifier("pane.\(id)")
                 // The split buttons show on hover only; VoiceOver splits from the card.
                 .accessibilityAction(named: "Split Right") { Task { await store.split(id, .right) } }
@@ -301,15 +301,6 @@ private struct PaneCard: View {
                 .accessibilityAction(named: zoomed ? "Restore" : "Zoom") { store.zoom(id) }
                 .accessibilityAction(named: "Close") { Task { await store.close(pane: id) } }
         }
-        .overlay {
-            // Cards without the keyboard are a little darker, a hovered one less so; the terminal's text
-            // keeps its own contrast.
-            if !lit {
-                shape.fill(.black.opacity(hovering ? 0.08 : 0.15)).allowsHitTesting(false)
-            }
-        }
-        .overlay(shape.strokeBorder(Color.hairline))
-        .clipShape(shape)
         .onHover { hovering = $0 }
         .accessibilityHidden(zoomedAway)
     }

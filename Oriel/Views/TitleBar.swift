@@ -49,8 +49,8 @@ struct TitleBar: View {
     }
 }
 
-/// The workspace's tabs as capsules on one glass marker that follows the strip's scroll offset: between two
-/// capsules while the strip is between their pages. The tabs whose pages are in view are lit.
+/// The workspace's tabs as capsules on one marker, the look's pill, that follows the strip's scroll offset: between
+/// two capsules while the strip is between their pages. The tabs whose pages are in view are lit.
 private struct TabBar: View {
     let workspace: HostStore.Workspace
     let page: Double
@@ -86,13 +86,7 @@ private struct TabBar: View {
             }
             .scrollIndicators(.never)
             // Capsules fade out at the edges instead of being cut.
-            .mask {
-                HStack(spacing: 0) {
-                    LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing).frame(width: 8)
-                    Color.black
-                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 16)
-                }
-            }
+            .fadedEdges(leading: 8, trailing: 16)
             .onChange(of: workspace.selectedTabID, initial: true) { old, new in
                 if let new {
                     withAnimation(old != new && !reduceMotion ? .default : nil) { proxy.scrollTo(new) }
@@ -107,9 +101,8 @@ private struct TabBar: View {
         let index = Int(page), fraction = page - Double(index)
         let frame = { tabs.indices.contains($0) ? frames[tabs[$0].id] : nil }
         let from = frame(index) ?? .zero, next = frame(index + 1) ?? from
-        return Color.clear
+        return Pill(shape: .capsule)
             .frame(width: from.width + (next.width - from.width) * fraction, height: from.height)
-            .glassEffect(.regular, in: .capsule)
             .offset(x: from.minX + (next.minX - from.minX) * fraction, y: from.minY)
             .allowsHitTesting(false)
     }

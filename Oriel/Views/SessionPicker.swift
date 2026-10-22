@@ -105,7 +105,6 @@ struct SessionList: View {
         .padding(8)
         .frame(width: 260)
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.35), radius: 16, y: 6)
         .task { await store.loadSessions() }
     }
 

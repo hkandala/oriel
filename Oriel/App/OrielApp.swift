@@ -27,7 +27,6 @@ struct OrielApp: App {
         #else
             WindowGroup {
                 ContentUnavailableView("Oriel for iOS is coming", systemImage: "iphone")
-                    .preferredColorScheme(.dark)
             }
         #endif
     }
@@ -44,8 +43,12 @@ struct OrielApp: App {
         @State private var picking = false
         @State private var fullScreen = false
         @State private var palette = false
+        @AppStorage("appearance") private var appearance = Appearance.dark
+        @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
+        @Environment(\.colorScheme) private var colorScheme
 
         var body: some View {
+            let look = Look(style: style, dark: colorScheme == .dark)
             VStack(spacing: 0) {
                 TitleBar(store: store, fullScreen: fullScreen, sidebar: $sidebar, picking: $picking, palette: $palette)
                 HStack(spacing: 0) {
@@ -84,9 +87,13 @@ struct OrielApp: App {
             } message: { _ in
                 Text(dialog?.message ?? "")
             }
+            .environment(\.look, look)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("window.look")
+            .accessibilityValue(look.name)
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)
-            .containerBackground(for: .window) { Frosted().overlay(Color.tint) }
+            .containerBackground(for: .window) { WindowBackground(look: look) }
             .toolbar { ToolbarSpacer(.flexible) }
             .toolbar(removing: .title)
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
@@ -94,7 +101,14 @@ struct OrielApp: App {
             .windowToolbarFullScreenVisibility(.onHover)
             .background(FullScreenReader(fullScreen: $fullScreen))
             .navigationTitle(store.selectedTab?.label ?? HostStore.name(store.session))
-            .preferredColorScheme(.dark)
+            // Every window, sheet and menu, and the terminals' palettes, follow the app's appearance.
+            .onChange(of: appearance, initial: true) {
+                NSApp.appearance = switch appearance {
+                case .auto: nil
+                case .light: NSAppearance(named: .aqua)
+                case .dark: NSAppearance(named: .darkAqua)
+                }
+            }
             .focusedSceneValue(\.store, $store)
             // The menu's ⌘1…⌘9 tabs step aside while the session list has its own ⌘1…⌘9.
             .focusedSceneValue(\.tabs, picking ? nil : store)
@@ -145,6 +159,8 @@ struct OrielApp: App {
     private struct ActionCommands: Commands {
         @FocusedBinding(\.store) private var store
         @FocusedBinding(\.palette) private var palette
+        @AppStorage("appearance") private var appearance = Appearance.dark
+        @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
 
         var body: some Commands {
             CommandGroup(replacing: .newItem) {
@@ -185,6 +201,16 @@ struct OrielApp: App {
                 }
                 .keyboardShortcut(.return, modifiers: [.command, .shift])
                 .disabled(store?.keyboardPane == nil)
+                Divider()
+                Picker("Appearance", selection: $appearance) {
+                    Text("Auto").tag(Appearance.auto)
+                    Text("Light").tag(Appearance.light)
+                    Text("Dark").tag(Appearance.dark)
+                }
+                Picker("Interface Style", selection: $style) {
+                    Text("Glass").tag(InterfaceStyle.glass)
+                    Text("Classic").tag(InterfaceStyle.classic)
+                }
             }
         }
     }
@@ -257,13 +283,26 @@ struct OrielApp: App {
         }
     }
 
-    /// The window's frosted background. SwiftUI's materials blur only what is inside the window.
+    /// Glass: the desktop blurred behind the window, under the look's tint. Classic: the look's opaque color.
+    private struct WindowBackground: View {
+        let look: Look
+
+        var body: some View {
+            if look.style == .glass {
+                Frosted().overlay(look.backdrop.blendMode(BlendMode.overlay)).overlay(look.window)
+            } else {
+                look.window
+            }
+        }
+    }
+
+    /// The Glass window's blur of the desktop. SwiftUI's materials blur only what is inside the window.
     private struct Frosted: NSViewRepresentable {
         func makeNSView(context _: Context) -> NSVisualEffectView {
             let view = NSVisualEffectView()
             view.blendingMode = .behindWindow
             view.material = .hudWindow
-            // Blurred in an inactive window too, so the dark look holds.
+            // Blurred in an inactive window too, so the look holds.
             view.state = .active
             return view
         }

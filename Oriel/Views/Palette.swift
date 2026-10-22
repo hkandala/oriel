@@ -66,9 +66,7 @@ struct Palette: View {
         }
         .padding(8)
         .frame(width: 480)
-        // A little darker than the session list: it floats over terminal text.
-        .glassEffect(.regular.tint(.black.opacity(0.35)), in: .rect(cornerRadius: 14))
-        .shadow(color: .black.opacity(0.35), radius: 20, y: 8)
+        .glassEffect(.regular, in: .rect(cornerRadius: 14))
         .onChange(of: filter) { self.index = 0 }
         .task { await store.loadSessions() }
     }
