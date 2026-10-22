@@ -58,7 +58,12 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    sizes allow rounding. Avoid ⌥⇧ chords in tests (global hotkeys of other apps take them).
 8. **Build the parts that cannot change first.** Menus, keys, defaults and herdr calls before the look of a
    new view; the look is the part most likely to change after the screenshot.
-9. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
+9. **Spike herdr first** (phase 12): five minutes with one throwaway session to see what the snapshot,
+   events and the calls the phase needs really send. It settles questions before they cost test runs.
+10. **Fast waits, no reruns to look.** Poll accessibility values every 100 ms (the `poll` helper in the UI
+   tests), not `XCTNSPredicateExpectation` (about once a second). When a single test fails, look at the
+   last frames of its screen recording in the xcresult (ffmpeg on the mp4) before running it again.
+11. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
 
 ## The phase loop (inside each phase agent)
@@ -212,7 +217,7 @@ here what the user should check at the end.
 |---|---|---|---|
 | 10 | phase10-appearance | done | 25 commits, 4 rounds, 2h12m; verifier never found anything |
 | 11 | phase11-settings | done | 44 commits, 4 rounds, ~3h40m; Settings window dropped by the user; ~85 min GUI lock |
-| 12 | | not started | |
+| 12 | phase12-program-icons | done | 16 commits, 3 rounds, 1h07m, ~20 min GUI lock |
 | 13 | | not started | |
 | 14 | | not started | |
 | 15 | | not started | |

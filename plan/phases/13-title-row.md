@@ -100,6 +100,10 @@ The row stays 40 pt (no private API for a taller one). Its items are 8 pt apart.
     herdr tab label; when the label is herdr's default (a bare number), the title is the keyboard
     card's program and folder ("zsh ~", "pi oriel", D65). The folder part is in secondary text. Then
     a trailing status slot (× now; phase 15 adds working dots).
+18b. **Icons of tabs never shown.** Phase 12 asks herdr for a pane's program the first time its card
+    shows, so a tab that was never shown keeps the `terminal` icon while a program with no agent or title
+    match runs in it (phase 12 Findings). The tab bar shows every tab, so ask once per pane when it first
+    appears in a snapshot (`process_info`, the same ask and per-pane counter as phase 12).
 19. **Context menu** on a capsule: Rename Tab, Move Tab Left, Move Tab Right, Close Tab, Close Other
     Tabs (asks once with the total pane count, D41). Move = `tab.move {tab_id, insert_index}`. Rename =
     an inline text field in place of the title (Enter saves with `tab.rename {tab_id, label}`, Esc
