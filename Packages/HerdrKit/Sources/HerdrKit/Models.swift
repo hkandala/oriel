@@ -150,6 +150,15 @@ struct Change: Decodable {
 }
 
 /// `pane.neighbor`: the nearest pane that way, if any.
+/// `pane.read`.
+struct Read: Decodable {
+    struct Text: Decodable {
+        let text: String
+    }
+
+    let read: Text
+}
+
 struct Neighbor: Decodable {
     let neighbor: NeighborPane
 }

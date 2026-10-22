@@ -26,6 +26,8 @@ public protocol Multiplexer: Sendable {
     func terminal(_ terminalID: String, cols: Int, rows: Int, observe: Bool, takeover: Bool) async throws
         -> TerminalStream
 
+    /// The text on the pane's screen now.
+    func screen(_ paneID: String) async throws -> String
     /// The nearest pane that way, if any. Read only.
     func neighbor(of paneID: String, _ heading: Heading) async throws -> String?
 
@@ -79,6 +81,10 @@ public enum Destination: Sendable {
 }
 
 extension HerdrClient: Multiplexer {
+    public nonisolated func screen(_ paneID: String) async throws -> String {
+        try await (call("pane.read", ["pane_id": paneID, "source": "visible", "format": "text"]) as Read).read.text
+    }
+
     public nonisolated func neighbor(of paneID: String, _ heading: Heading) async throws -> String? {
         try await (call("pane.neighbor", ["pane_id": paneID, "direction": heading.rawValue]) as Neighbor).neighbor
             .paneID

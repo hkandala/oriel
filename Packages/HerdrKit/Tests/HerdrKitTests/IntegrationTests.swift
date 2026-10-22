@@ -283,6 +283,8 @@ func `changes a layout in a throwaway herdr session`() async throws {
         #expect(try await client.snapshot().trees["w1:t1"]?.evened().isEmpty == true)
         #expect(try await client.neighbor(of: "w1:p1", .right) == second.id)
         #expect(try await client.neighbor(of: "w1:p1", .left) == nil)
+        // Decodes herdr's reply; the prompt may not have drawn yet.
+        _ = try await client.screen("w1:p1")
         try await client.swap("w1:p1", .right)
         #expect(try await client.snapshot().trees["w1:t1"]?.paneIDs == [second.id, "w1:p1", third.id])
         try await client.rename(pane: "w1:p1", label: "named")
