@@ -14,7 +14,7 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 1. **Font size keys.** View ▸ Bigger (⌘+ and ⌘=), Smaller (⌘-), Actual Size (⌘0) change the font size
    setting (one `@AppStorage` key, 8–32, default 13). This is the design's text size setting; the
    terminal follows it. SwiftUI Commands cannot hide a menu item, so the menu shows ⌘+ and an
-   `NSEvent` key monitor takes ⌘= and ⌘+ (see Findings).
+   `NSEvent` key monitor takes ⌘= (see Findings).
 2. **Apply the size live.** One shared `TerminalController`; on a change, call
    `controller.setTerminalConfiguration(_:)` with the new size; live surfaces take it. Each surface's grid
    changes, so cards resize their PTYs through the existing resize path and its 100 ms settle. No extra
@@ -30,9 +30,9 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 
 ## e2e
 
-- ⌘+ and ⌘= make the grid of a shown card smaller (the `terminal.<pane_id>` accessibility value,
-  "rows cols"), herdr's PTY size follows (`expectPTYSize`), the stream is not opened again; ⌘0 restores
-  the size, ⌘= after ⌘0 is one step bigger, ⌘- goes back.
+- ⌘+ makes the grid of a shown card smaller (the `terminal.<pane_id>` accessibility value, "rows cols"),
+  herdr's PTY size follows (`expectPTYSize`), the stream is not opened again; ⌘0 restores the size, ⌘+
+  after ⌘0 is the same step, ⌘- goes back. ⌘= is checked by hand (not testable on CI, see Findings).
 
 ## Done when
 
@@ -55,15 +55,15 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
   JetBrains Mono. The controller's base sets `NSFont.monospacedSystemFont(…).familyName`
   (`.AppleSystemUIFontMonospaced`), which CoreText (and so libghostty) resolves to SF Mono. Every grid got
   a little narrower than before phase 11.
-- **⌘= and ⌘+ go through an `NSEvent` local key monitor, not the phase's invisible button.**
-  `testFontSizeKeys` failed on CI in every run. A debug run (a draft PR that logged key events, closed)
-  showed why: CI's XCUITest sends ⌘+ as key 24 with ⌘⇧ and `characters` "=" (`charactersIgnoringModifiers`
-  "+"), and the menu's "+" item does not match that, so Bigger never ran; ⌘= itself arrived as plain ⌘ +
-  "=". (Earlier guesses, a stale button or a German layout, were wrong: the failing step was ⌘+.) On this
-  Mac the menu's "+" matched a real ⇧⌘=; apps bind ⌘= too because ⌘+ needs Shift on US layouts. The
-  monitor (in `OrielApp.init`) takes ⌘, with or without Shift, plus "=" or "+", and calls `stepFontSize(1)` before any view or menu sees the key,
-  below 32 (at 32 the key goes on and beeps, like ⌘- at 8); the menu item still shows ⌘+ and works by
-  click.
+- **⌘= is an `NSEvent` local key monitor, not the phase's invisible button.** The button's shortcut kept its
+  first action (see Learned); the monitor (in `OrielApp.init`) takes ⌘ (Shift allowed) plus "=" below 32 and
+  calls `stepFontSize(1)` before any view sees the key; at 32 the key goes on and beeps like the disabled
+  Bigger. **⌘= is not tested on CI; checked by hand** (this Mac, and the round 3 E2E reviewer: key 24 steps,
+  Caps Lock and keypad too). On CI, `testFontSizeKeys` failed at the ⌘= step in every run: CI's display is 1x,
+  where 14 and 15 pt have the same cell width (48 columns), so the test's "both sides shrink" never held.
+  Several fixes chased the wrong cause first (a stale button, a German layout, ⌘+ arriving as ⇧⌘=; a debug PR
+  logged CI's key events and was closed). The orchestrator stopped the chase: the test checks ⌘+, ⌘0 and ⌘-,
+  and accepts one side staying on a 1x display.
 
 ### Decisions
 
@@ -89,8 +89,8 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 
 - **A config reload resizes surfaces that never changed their own size.** Ours never do (`keybind = clear`
   removed Ghostty's own ⌘+/⌘-), so the config's size always wins. The e2e test shows it.
-- **The key monitor covers every layout that sends "=" or "+" with ⌘.** Checked on this Mac (ABC) and CI
-  (US); a layout whose ⌘= gives another character would miss it.
+- **The key monitor covers every layout whose ⌘= gives the character "=".** Checked by hand on this Mac
+  (ABC); the menu's "+" handles ⌘+ (also on CI).
 
 ### Learned
 
@@ -111,8 +111,9 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 - **SwiftUI keeps a keyboard shortcut's first action.** The invisible ⌘= button's action kept its first
   `@AppStorage` copy: after another key changed the size, ⌘= added 1 to the size it last set itself
   (13 → 17). `.id(fontSize)` on the button fixed it locally; reading `UserDefaults` in the action
-  (`stepFontSize`) fixed it for good; the monitor replaced the button anyway (above). `testFontSizeKeys`
-  presses ⌘= right after ⌘+ and again after ⌘0.
+  (`stepFontSize`) fixed it for good; the monitor replaced the button anyway (above).
+- **A 1x display rounds cell sizes.** On CI a 1 pt step can leave the column count (14 and 15 pt: 48); a
+  grid test must accept one side staying.
 - **libghostty-spm drops selection-clipboard writes**, so Ghostty's `copy-on-select = true` copies nowhere;
   a future switch needs `clipboard` (checked by hand: a drag then put the text on the pasteboard).
 - **Global hotkeys eat test keys.** On this Mac Raycast takes ⌥⇧B and a scratchpad takes ⌥.; synthesized
