@@ -72,6 +72,7 @@ struct OrielApp: App {
         @State private var palette = false
         @AppStorage("appearance") private var appearance = Appearance.dark
         @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
+        @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
         @Environment(\.colorScheme) private var colorScheme
 
         var body: some View {
@@ -123,6 +124,14 @@ struct OrielApp: App {
                     // Last for VoiceOver: it is for tests more than for people.
                     .accessibilitySortPriority(-1)
                     .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
+            }
+            // View ▸ Bigger's second key: a menu item shows one. Zero size and opacity, not `hidden()`, whose
+            // shortcuts do not fire.
+            .background {
+                Button("Bigger") { fontSize += 1 }
+                    .keyboardShortcut("=")
+                    .disabled(fontSize >= PaneTerminal.fontSizes.upperBound)
+                    .frame(width: 0, height: 0).opacity(0).accessibilityHidden(true)
             }
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)

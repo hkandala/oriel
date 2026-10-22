@@ -15,6 +15,7 @@
         @FocusedBinding(\.palette) private var palette
         @AppStorage("appearance") private var appearance = Appearance.dark
         @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
+        @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
 
         var body: some Commands {
             CommandGroup(replacing: .newItem) {
@@ -65,6 +66,17 @@
                     Text("Glass").tag(InterfaceStyle.glass)
                     Text("Classic").tag(InterfaceStyle.classic)
                 }
+                Divider()
+                // The text size (design: theme and accessibility); ContentView holds the second key, ⌘=.
+                Button("Bigger") { fontSize += 1 }
+                    .keyboardShortcut("+")
+                    .disabled(fontSize >= PaneTerminal.fontSizes.upperBound)
+                Button("Smaller") { fontSize -= 1 }
+                    .keyboardShortcut("-")
+                    .disabled(fontSize <= PaneTerminal.fontSizes.lowerBound)
+                Button("Actual Size") { fontSize = PaneTerminal.fontSize }
+                    .keyboardShortcut("0")
+                    .disabled(fontSize == PaneTerminal.fontSize)
             }
         }
     }
