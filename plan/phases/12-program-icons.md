@@ -9,7 +9,7 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, item 5), `resou
 (scene A, the tab bar), `resources/icons/` (`catalog.json`, `svg/`, `SOURCES.md`,
 `contact-sheet.png`), `resources/research/clients/rex-ui.md` (tab icon, icon stack, how Rex matches
 programs), `docs/content/docs/ui/window.mdx` (tab bar: "the icon of the pane last selected in that
-tab"), `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses`).
+tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses`).
 
 ## Build
 
@@ -40,7 +40,11 @@ tab"), `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses
 4. **When to ask herdr for the process** (no polling; one bridge call each):
    - the first time a pane is shown in a card;
    - 1 s after the user presses Return in that card;
-   - when a snapshot shows the pane's `terminal_title_stripped` or `agent` changed.
+   - when a snapshot shows the pane's `agent` changed;
+   - on a title change (`terminal_title_stripped`): the events stream does not subscribe to
+     `pane.updated` today, so a title change waits for the 30 s beat. Spike: if herdr sends
+     `pane.updated` on a title change, add it to the subscription and record it; else drop this
+     trigger, because the Return trigger covers it.
    Keep the result on `HostStore.Pane` (`program`), so the views only read.
 5. **Views** (in `Style.swift` or one new `ProgramIcon.swift` if it passes ~200 lines):
    - `ProgramTile(icon:size:)`: the catalog's tile background and glyph color, rounded rect
@@ -54,13 +58,12 @@ tab"), `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses
 6. **Where they show:**
    - Title-bar tab capsule: the tab's `IconStack`. Today's sidebar tab rows get nothing new: phase 14
      replaces them with workspace rows.
-   - Agents rows (phase 15) and hover card rows (phase 19): the pane's `ProgramTile`.
+   - Agents rows (phase 15): the pane's `ProgramTile`. Hover card rows (phase 19): `ProgramGlyph`.
    - Card header: `ProgramGlyph`, then the program's title in primary text and the folder in
      secondary text (Rex: "zsh ~", "bash /private/tmp"). The pane's herdr label still wins when set.
    - Palette rows for tabs: the stack's front tile.
-7. **Docs.** A short design page `docs/content/docs/ui/program-icons.mdx`: where icons show, the match
-   order, when the app asks herdr, the catalog and its licenses. Add it to `ui/meta.json`. Update
-   `ui/window.mdx` (tab capsule, pane card header) and `reference/herdr-calls.mdx` (`pane.process_info`
+7. **Docs.** Make `docs/content/docs/ui/program-icons.mdx` (where icons show, the match order, when the
+   app asks herdr, the catalog and its licenses) match what you built. Update `ui/window.mdx` (tab capsule, pane card header) and `reference/herdr-calls.mdx` (`pane.process_info`
    is now also used for icons).
 
 ## e2e
@@ -76,3 +79,5 @@ tab"), `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses
 
 - Screenshot of a tab bar with at least six different programs, and a three-pane tab's overlapping
   stack, next to the card headers of that tab.
+
+## Findings
