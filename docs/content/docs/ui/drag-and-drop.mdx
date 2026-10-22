@@ -52,11 +52,20 @@ Drag a card by its header (the title area, not its buttons) by 4 pt or more.
   that tab and the capsule pulses once (to 1.04 over 0.2 s). Then drop on a
   card there. Hold over a workspace row for 0.65 s: the workspace is
   selected, so its tabs show and the drop can go on a capsule or a card.
+  The pane's own tab's capsule does not spring-load.
+- **Equal splits.** A pane moved into a tab (an edge or a capsule) then gets
+  an equal share of the run of same-direction splits that holds it, as after
+  a split.
 - **A step fails.** If a later step of a drop fails, the pane stays where it
-  got to, and the notice says so.
-- Every `pane.move` passes `focus:false`. After each write the app reads the snapshot, and the next step uses the
-  pane id from it. If herdr refuses or changes nothing, its reason shows in
-  the notice.
+  got to, and the notice says so ("Moved the pane to a new tab: herdr refused
+  the next step").
+- Every `pane.move` passes `focus:false`. Each step uses the pane id from
+  herdr's reply to the step before; the app reads the snapshot after the
+  drop. If herdr refuses or changes nothing, the notice says why ("The pane
+  is already in that tab", "Panes of two tabs cannot swap", "The tab is
+  zoomed in herdr").
+- After the drop, the page shows the pane's tab and the pane has the
+  keyboard.
 - Esc cancels a drag. A failed write leaves the layout as herdr has it.
 - The card's context menu has the same moves (Move to New Tab, Move to Tab ▸,
   Move to New Workspace). That is the only path on iPhone.
@@ -67,6 +76,10 @@ Drag a card by its header (the title area, not its buttons) by 4 pt or more.
 |---|---|---|
 | a tab capsule along the tab track | reorder the workspace's tabs; the others slide apart over 0.22 s | `tab.move` |
 | a tab capsule onto a workspace row | not a target: herdr moves tabs only inside a workspace | — |
-| a workspace row up or down its page | reorder the session's workspaces; a linked worktree moves with its repository's group | `workspace.move`, or `workspace.move_block` for a group |
+| a workspace row up or down its page | reorder the session's workspaces; the rows slide apart over 0.22 s; a repository's linked worktrees move with it; a worktree moves only among its repository's worktrees | `workspace.move_block {workspace_ids, before_workspace_id}`, as Move Up and Move Down |
+
+- A dragged capsule or row dims to 0.4 in place while the system drag image
+  follows the pointer.
+- While the sidebar's filter hides rows, workspace rows do not reorder.
 
 How it works: [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls).
