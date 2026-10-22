@@ -15,25 +15,30 @@
     }
 
     private struct GeneralSettings: View {
+        var body: some View {
+            Form {
+                LookPickers().pickerStyle(.segmented)
+            }
+            .formStyle(.grouped)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Appearance and Interface Style (D44), in Settings ▸ General and View (submenus there).
+    struct LookPickers: View {
         @AppStorage("appearance") private var appearance = Appearance.dark
         @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
 
         var body: some View {
-            Form {
-                Picker("Appearance", selection: $appearance) {
-                    Text("Auto").tag(Appearance.auto)
-                    Text("Light").tag(Appearance.light)
-                    Text("Dark").tag(Appearance.dark)
-                }
-                .pickerStyle(.segmented)
-                Picker("Interface Style", selection: $style) {
-                    Text("Glass").tag(InterfaceStyle.glass)
-                    Text("Classic").tag(InterfaceStyle.classic)
-                }
-                .pickerStyle(.segmented)
+            Picker("Appearance", selection: $appearance) {
+                Text("Auto").tag(Appearance.auto)
+                Text("Light").tag(Appearance.light)
+                Text("Dark").tag(Appearance.dark)
             }
-            .formStyle(.grouped)
-            .fixedSize(horizontal: false, vertical: true)
+            Picker("Interface Style", selection: $style) {
+                Text("Glass").tag(InterfaceStyle.glass)
+                Text("Classic").tag(InterfaceStyle.classic)
+            }
         }
     }
 

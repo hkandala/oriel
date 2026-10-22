@@ -13,8 +13,6 @@
     struct ActionCommands: Commands {
         @FocusedBinding(\.store) private var store
         @FocusedBinding(\.palette) private var palette
-        @AppStorage("appearance") private var appearance = Appearance.dark
-        @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
         @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
 
         var body: some Commands {
@@ -57,15 +55,7 @@
                 .keyboardShortcut(.return, modifiers: [.command, .shift])
                 .disabled(store?.keyboardPane == nil)
                 Divider()
-                Picker("Appearance", selection: $appearance) {
-                    Text("Auto").tag(Appearance.auto)
-                    Text("Light").tag(Appearance.light)
-                    Text("Dark").tag(Appearance.dark)
-                }
-                Picker("Interface Style", selection: $style) {
-                    Text("Glass").tag(InterfaceStyle.glass)
-                    Text("Classic").tag(InterfaceStyle.classic)
-                }
+                LookPickers()
                 Divider()
                 // The text size (design: theme and accessibility); ContentView holds the second key, ⌘=.
                 Button("Bigger") { fontSize += 1 }
