@@ -31,12 +31,6 @@
         /// A submenu instead of an action.
         var menu: [Command] = []
         var action: () -> Void = {}
-
-        /// The same command in another section.
-        func `in`(_ section: Section) -> Command {
-            Command(section: section, title: title, key: key, enabled: enabled, checked: checked, menu: menu,
-                    action: action)
-        }
     }
 
     /// The menu bar, drawn from the command list; the shortcuts work wherever the keyboard is.
@@ -166,8 +160,10 @@
                     + [Command(section: .close, title: "Close Pane", key: .init("w"), enabled: false)]
             }
             let store = page.store, workspace = store.workspace(of: pane.tabID), zoomed = page.zoomedPaneID == pane.id
-            let act = { (title: String, key: KeyboardShortcut?, run: @escaping (HostStore.Pane) async -> Void) in
-                Command(section: .pane, title: title, key: key) {
+            func act(_ title: String, _ key: KeyboardShortcut? = nil, _ section: Command.Section = .pane,
+                     _ run: @escaping (HostStore.Pane) async -> Void) -> Command
+            {
+                Command(section: section, title: title, key: key) {
                     if let pane = target() {
                         Task { await run(pane) }
                     }
@@ -176,8 +172,8 @@
             return [
                 act("Split Right", .init("d")) { await page.split($0.id, .right) },
                 act("Split Down", .init("d", modifiers: [.command, .shift])) { await page.split($0.id, .down) },
-                act("Split Left", nil) { await page.split($0.id, .right, before: true) },
-                act("Split Up", nil) { await page.split($0.id, .down, before: true) },
+                act("Split Left") { await page.split($0.id, .right, before: true) },
+                act("Split Up") { await page.split($0.id, .down, before: true) },
                 Command(section: .pane, title: zoomed ? "Restore Pane" : "Zoom Pane",
                         key: .init(.return, modifiers: [.command, .shift]),
                         enabled: zoomed || store.panes.count { $0.tabID == pane.tabID } > 1, action: {
@@ -185,19 +181,19 @@
                                 page.zoom(pane.id)
                             }
                         }),
-                act("Move to New Tab", nil) { pane in
+                act("Move to New Tab", nil, .paneMove) { pane in
                     if let workspace = store.workspace(of: pane.tabID) {
                         await page.move(pane, to: .newTab(workspaceID: workspace.id))
                     }
-                }.in(.paneMove),
+                },
                 // herdr refuses a move into the pane's own tab.
                 Command(section: .paneMove, title: "Move to Tab", enabled: (workspace?.tabs.count ?? 0) > 1,
                         menu: (workspace?.tabs ?? []).filter { $0.id != pane.tabID }.map { other in
-                            act(page.titleText(other), nil) { await page.move($0, to: .tab(other.id)) }
+                            act(page.titleText(other)) { await page.move($0, to: .tab(other.id)) }
                         }),
-                act("Move to New Workspace", nil) { await page.move($0, to: .newWorkspace) }.in(.paneMove),
-                act("Rename Pane…", nil) { page.renamingPaneID = $0.id }.in(.paneMove),
-                act("Close Pane", .init("w")) { await store.close(pane: $0.id) }.in(.close),
+                act("Move to New Workspace", nil, .paneMove) { await page.move($0, to: .newWorkspace) },
+                act("Rename Pane…", nil, .paneMove) { page.renamingPaneID = $0.id },
+                act("Close Pane", .init("w"), .close) { await store.close(pane: $0.id) },
             ]
         }
 
