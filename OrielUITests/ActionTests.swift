@@ -176,42 +176,6 @@ extension OrielUITests {
         try await expectPTYSize("w1:p2")
     }
 
-    func testNewSessionFromTheFilterIsSelected() throws {
-        let name = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION4"])
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
-        openSessions()
-        app.typeText(name)
-        XCTAssertTrue(element("sessions.new").label.contains(name))
-        app.typeKey(.return, modifierFlags: [])
-
-        // The app starts the server and makes its first workspace; session one's w2 goes.
-        XCTAssertTrue(element("workspace.w2").waitForNonExistence(timeout: connect))
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
-        element("titlebar.session-picker").click()
-        XCTAssertTrue(element("session.\(name)").wait(for: \.isSelected, toEqual: true, timeout: 3))
-    }
-
-    func testShowStoppedRevealsStoppedSessionsAndPickingOneStartsIt() throws {
-        let stopped = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION3"])
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
-        openSessions()
-        XCTAssertTrue(element("session.\(one)").exists)
-        // Other stopped sessions on this Mac may push its row out of the list's scroll view.
-        app.typeText(stopped)
-        XCTAssertFalse(element("session.\(stopped)").exists)
-        element("sessions.show-stopped").click()
-        XCTAssertTrue(element("session.\(stopped)").waitForExistence(timeout: 2))
-        keepScreenshot("show stopped")
-        element("sessions.show-stopped").click()
-        XCTAssertTrue(element("session.\(stopped)").waitForNonExistence(timeout: 2))
-
-        // Picking a stopped session starts it (a launchd job) and gives it a workspace.
-        element("sessions.show-stopped").click()
-        element("session.\(stopped)").click()
-        XCTAssertTrue(element("workspace.w2").waitForNonExistence(timeout: connect))
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
-    }
-
     func testPaletteFiltersAndJumps() {
         XCTAssertTrue(element("tab.w1:t2").waitForExistence(timeout: connect))
         let filter = openPalette()

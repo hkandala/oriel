@@ -10,7 +10,7 @@
         static let radius: CGFloat = 16.5
 
         let workspace: HostStore.Workspace
-        let store: HostStore
+        let page: Page
         /// The row's free space.
         @State private var space: CGFloat = 0
         @State private var hovered: String?
@@ -29,7 +29,7 @@
             let width = kept ?? min(max((space - (count - 1)) / count, 64), 220)
             let content = count * width + count - 1
             // Pages floor(x/w) through ceil((x+w)/w) − 1, that is floor(page)...ceil(page).
-            let lit = Int(store.page.rounded(.down)) ... Int(store.page.rounded(.up))
+            let lit = Int(page.stripPage.rounded(.down)) ... Int(page.stripPage.rounded(.up))
             ScrollViewReader { proxy in
                 ScrollView(.horizontal) {
                     HStack(spacing: 0) {
@@ -40,12 +40,12 @@
                                     // Hidden next to the marker, the selected tab and the pointer.
                                     let quiet = lit.contains(index) || lit.contains(index - 1)
                                         || [tab.id, tabs[index - 1].id]
-                                        .contains { $0 == hovered || $0 == workspace.selectedTabID }
+                                        .contains { $0 == hovered || $0 == page.selectedTabIDs[workspace.id] }
                                     Rectangle().fill(.separator).frame(width: 1, height: Self.height - 18)
                                         .opacity(quiet ? 0 : 1)
                                         .animation(.easeInOut(duration: 0.2), value: quiet)
                                 }
-                                TabButton(tab: tab, workspace: workspace, store: store, lit: lit.contains(index),
+                                TabButton(tab: tab, workspace: workspace, page: page, lit: lit.contains(index),
                                           hovering: hovered == tab.id, width: width,
                                           keycap: hints && index < 9 ? index + 1 : nil) { kept = width }
                                     .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
@@ -77,11 +77,11 @@
                 .onHover { inside in
                     insideBar = inside
                     // Not while the close dialog is up: a Return there keeps the pointer over the next ×.
-                    if !inside, store.closing == nil {
+                    if !inside, page.store.closing == nil {
                         settle()
                     }
                 }
-                .onChange(of: store.closing == nil) { _, closed in
+                .onChange(of: page.store.closing == nil) { _, closed in
                     if closed, !insideBar {
                         settle()
                     }
@@ -90,7 +90,7 @@
                 // shrinks (a workspace button that appears pushed ⌘ and + out of the window).
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { space = $0 }
-                .onChange(of: workspace.selectedTabID, initial: true) { old, new in
+                .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { old, new in
                     if let new {
                         withAnimation(old != new && !reduceMotion ? .tab : nil) { proxy.scrollTo(new) }
                     }
@@ -126,10 +126,10 @@
         /// The look's pill on the page in view, between two tabs while the strip is between their pages. The strip
         /// moves with Rex's spring after a click or a key, so the marker does too.
         private func marker(count: Int, width: CGFloat) -> some View {
-            let page = min(max(store.page, 0), Double(max(count - 1, 0)))
+            let offset = min(max(page.stripPage, 0), Double(max(count - 1, 0)))
             return Pill(shape: RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
                 .frame(width: width, height: Self.height)
-                .offset(x: page * (width + 1))
+                .offset(x: offset * (width + 1))
                 .allowsHitTesting(false)
         }
 
@@ -160,7 +160,7 @@
     private struct TabButton: View {
         let tab: HostStore.Tab
         let workspace: HostStore.Workspace
-        let store: HostStore
+        let page: Page
         /// Its page is in view.
         let lit: Bool
         let hovering: Bool
@@ -174,14 +174,12 @@
         @FocusState private var focused: Bool
 
         var body: some View {
-            let selected = workspace.id == store.selectedWorkspaceID && tab.id == workspace.selectedTabID
-            let stack = store.stack(tab)
-            let title = store.title(tab)
-            Button {
-                store.selectedWorkspaceID = workspace.id
-                // The strip scrolls to the new selection and the marker follows, as during a swipe.
-                workspace.selectedTabID = tab.id
-            } label: {
+            let store = page.store
+            let selected = workspace.id == page.selectedWorkspaceID && tab.id == page.selectedTabIDs[workspace.id]
+            let stack = page.stack(tab)
+            let title = page.title(tab)
+            // The strip scrolls to the new selection and the marker follows, as during a swipe.
+            Button { page.select(workspace, tab: tab.id) } label: {
                 HStack(spacing: 8) {
                     IconStack(panes: stack)
                         .overlay(alignment: .leading) {
@@ -256,7 +254,7 @@
 
         @ViewBuilder
         private var menu: some View {
-            let tabs = workspace.tabs
+            let tabs = workspace.tabs, store = page.store
             Button("Rename Tab") { startRenaming() }
             Button("Move Tab Left") { Task { await store.move(tab: tab.id, by: -1) } }
                 .disabled(tabs.first?.id == tab.id)
@@ -277,7 +275,7 @@
         private func rename() {
             let label = draft.trimmingCharacters(in: .whitespaces)
             if !label.isEmpty, label != tab.label {
-                Task { await store.rename(tab: tab.id, label: label) }
+                Task { await page.store.rename(tab: tab.id, label: label) }
             }
             stopRenaming()
         }
@@ -286,7 +284,7 @@
         private func stopRenaming() {
             guard renaming else { return }
             renaming = false
-            store.focusKeyboardCard()
+            page.focusKeyboardCard()
         }
     }
 #endif

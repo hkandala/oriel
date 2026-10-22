@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// A filter field over rows: type to filter, arrows move, Enter acts (Esc is the panel's). The palette and the
-/// workspace menu.
+/// A filter field over rows: type to filter, arrows move, Enter acts (Esc is the panel's). The palette, the
+/// workspace menu and the Open Session sheet.
 struct FilterList: View {
     struct Item {
         let id: String
@@ -12,6 +12,8 @@ struct FilterList: View {
         var detail = ""
         /// Where it changes from the row before: a header above the row, or a divider when empty.
         var section: String?
+        /// A spinner in place of the detail.
+        var busy = false
         let act: () -> Void
     }
 
@@ -23,6 +25,8 @@ struct FilterList: View {
     /// The row lit until something is typed.
     var start = 0
     let maxHeight: CGFloat
+    /// The lit row's id, for a button outside the list that acts on it.
+    var lit: Binding<String?>?
     /// After a row acted.
     let done: () -> Void
     @State private var filter = ""
@@ -60,8 +64,13 @@ struct FilterList: View {
                                 }
                             }
                             Button { act(item) } label: {
-                                MenuRow(symbol: item.symbol, pane: item.pane, title: item.title, detail: item.detail,
-                                        selected: offset == index)
+                                MenuRow(symbol: item.symbol, pane: item.pane, title: item.title,
+                                        detail: item.busy ? "" : item.detail, selected: offset == index)
+                                    .overlay(alignment: .trailing) {
+                                        if item.busy {
+                                            ProgressView().controlSize(.small).padding(.trailing, 8)
+                                        }
+                                    }
                             }
                             .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
                             .accessibilityIdentifier("\(name).\(item.id)")
@@ -84,6 +93,7 @@ struct FilterList: View {
         }
         // A cleared filter lights the start row again (the selected workspace).
         .onChange(of: filter) { self.index = filter.isEmpty ? nil : 0 }
+        .onChange(of: items.isEmpty ? nil : items[index].id, initial: true) { lit?.wrappedValue = $1 }
     }
 
     private func current(_ items: [Item]) -> Int {

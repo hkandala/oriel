@@ -1,6 +1,6 @@
 import XCTest
 
-/// Failure paths (phase 6): a session that stops, a pane closed in herdr, session switches and quit. A takeover is
+/// Failure paths (phase 6): a session that stops, a pane closed in herdr, a page that closes and quit. A takeover is
 /// in TerminalTests.
 /// Streams are counted through the helper (`pgrep` on the session's `terminal session` runs).
 extension OrielUITests {
@@ -57,18 +57,23 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(first)").exists)
     }
 
-    func testSwitchingSessionsAndQuittingLeaveNoStreams() async throws {
+    func testClosingAPageAndQuittingLeaveNoStreams() async throws {
         let two = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION2"])
         XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
         XCTAssertTrue(element("tab.w1:t1").isSelected)
-        // t1's three cards stream; the other session's one card once it shows.
+        // t1's three cards stream; the other session's one card once its page shows. The first page's stay in the
+        // window's cache of recent terminals.
         try await expectStreams(3, 0, two)
-        for _ in 0 ..< 3 {
-            pickSession(two)
-            XCTAssertTrue(element("workspace.w2").waitForNonExistence(timeout: connect))
-            try await expectStreams(0, 1, two)
-            pickSession(one)
-            XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        for _ in 0 ..< 2 {
+            openPage(two)
+            try await expectStreams(3, 1, two)
+            element("sidebar.header").rightClick()
+            app.menuItems["Close Page"].click()
+            XCTAssertTrue(element("sidebar.dot.\(two)").waitForNonExistence(timeout: 2))
+            // Its events stream and bridges end too.
+            try await poll("no herdr runs on two") { () async throws -> Bool? in
+                try await Self.post("\(two)/children", Data()).data.isEmpty ? true : nil
+            }
             try await expectStreams(3, 0, two)
         }
 
@@ -79,11 +84,6 @@ extension OrielUITests {
             let left = try await (Self.post("\(one)/children", Data()), Self.post("\(two)/children", Data()))
             return left.0.data.isEmpty && left.1.data.isEmpty ? true : nil
         }
-    }
-
-    private func pickSession(_ name: String) {
-        openSessions()
-        element("session.\(name)").click()
     }
 
     private func expectStreams(_ inOne: Int, _ inTwo: Int, _ two: String) async throws {

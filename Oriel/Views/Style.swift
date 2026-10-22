@@ -74,6 +74,16 @@ struct Look {
         dark ? Color(hex: 0xD29922) : Color(hex: 0x9D5C00)
     }
 
+    /// Also a workspace row's ↑ahead.
+    var finished: Color {
+        dark ? Color(hex: 0x3FB950) : Color(hex: 0x116329)
+    }
+
+    /// Also a workspace row's ↓behind.
+    var error: Color {
+        dark ? Color(hex: 0xF85149) : Color(hex: 0xCF222E)
+    }
+
     private func pick<Value>(_ glassDark: Value, _ glassLight: Value, _ classicDark: Value,
                              _ classicLight: Value) -> Value
     {

@@ -2,12 +2,11 @@
     import SwiftUI
 
     extension FocusedValues {
-        /// The window's store, for the menu commands.
-        @Entry var store: Binding<HostStore>?
+        /// The window's page in view, for the menu commands.
+        @Entry var page: Page?
         @Entry var palette: Binding<Bool>?
         @Entry var sidebar: Binding<Bool>?
-        /// The store for the tab commands; nil while the session list is open.
-        @Entry var tabs: HostStore?
+        @Entry var openSession: Binding<Bool>?
     }
 
     /// One command (D48). The menu bar reads the one list of them (`AppCommands.list`); the palette will too.
@@ -28,10 +27,10 @@
 
     /// The menu bar, drawn from the command list; the shortcuts work wherever the keyboard is.
     struct AppCommands: Commands {
-        @FocusedBinding(\.store) private var store
+        @FocusedValue(\.page) private var page
         @FocusedBinding(\.palette) private var palette
         @FocusedBinding(\.sidebar) private var sidebar
-        @FocusedValue(\.tabs) private var tabStore
+        @FocusedBinding(\.openSession) private var openSession
         @AppStorage("appearance") private var appearance = Appearance.dark
         @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
         @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
@@ -58,20 +57,16 @@
         }
 
         var list: [Command] {
-            let tabs = tabStore?.selectedWorkspace?.tabs ?? []
+            let tabs = page?.selectedWorkspace?.tabs ?? []
             return [
-                Command(section: .file, title: "New Tab", key: .init("t"), enabled: store?.selectedWorkspace != nil) {
-                    Task { await store?.newTab() }
+                Command(section: .file, title: "New Tab", key: .init("t"), enabled: page?.selectedWorkspace != nil) {
+                    Task { await page?.newTab() }
                 },
-                Command(section: .file, title: "New Session", key: .init("n", modifiers: [.command, .shift]),
-                        enabled: store != nil, action: {
-                            if let sessions = store?.sessions {
-                                store = HostStore(session: sessions.newName, start: true)
-                            }
-                        }),
-                Command(section: .close, title: "Close Pane", key: .init("w"), enabled: store?.keyboardPane != nil) {
-                    if let store, let pane = store.keyboardPane {
-                        Task { await store.close(pane: pane.id) }
+                Command(section: .file, title: "Open Session…", key: .init("n", modifiers: [.command, .shift]),
+                        enabled: openSession != nil) { openSession = true },
+                Command(section: .close, title: "Close Pane", key: .init("w"), enabled: page?.keyboardPane != nil) {
+                    if let page, let pane = page.keyboardPane {
+                        Task { await page.store.close(pane: pane.id) }
                     }
                 },
                 Command(section: .close, title: "Close Window", key: .init("w", modifiers: [.command, .shift])) {
@@ -83,12 +78,12 @@
                     palette?.toggle()
                 },
                 Command(section: .view, title: "Zoom Pane", key: .init(.return, modifiers: [.command, .shift]),
-                        enabled: store?.keyboardPane != nil, action: {
-                            guard let store else { return }
-                            if let zoomed = store.zoomedPaneID, store.pane(zoomed)?.tabID == store.selectedTab?.id {
-                                store.zoom(zoomed)
-                            } else if let pane = store.keyboardPane {
-                                store.zoom(pane.id)
+                        enabled: page?.keyboardPane != nil, action: {
+                            guard let page else { return }
+                            if let zoomed = page.zoomedPaneID, page.store.pane(zoomed)?.tabID == page.selectedTab?.id {
+                                page.zoom(zoomed)
+                            } else if let pane = page.keyboardPane {
+                                page.zoom(pane.id)
                             }
                         }),
             ] + [Appearance.auto, .light, .dark].map { value in
@@ -114,15 +109,17 @@
                     fontSize = PaneTerminal.fontSize
                 },
                 Command(section: .tabSteps, title: "Show Previous Tab", key: .init("[", modifiers: [.command, .shift]),
-                        enabled: tabs.count > 1) { tabStore?.step(-1) },
+                        enabled: tabs.count > 1) { page?.step(-1) },
                 Command(section: .tabSteps, title: "Show Next Tab", key: .init("]", modifiers: [.command, .shift]),
-                        enabled: tabs.count > 1) { tabStore?.step(1) },
+                        enabled: tabs.count > 1) { page?.step(1) },
             ] + tabs.prefix(9).enumerated().map { index, tab in
-                Command(section: .tabs, title: tabStore?.titleText(tab) ?? tab.label,
+                Command(section: .tabs, title: page?.titleText(tab) ?? tab.label,
                         key: KeyboardShortcut(KeyEquivalent(Character("\(index + 1)"))), action: {
                             // The workspace when the key is pressed: the menu may be older than a workspace switch.
-                            if let workspace = tabStore?.selectedWorkspace, workspace.tabs.indices.contains(index) {
-                                workspace.selectedTabID = workspace.tabs[index].id
+                            if let page, let workspace = page.selectedWorkspace,
+                               workspace.tabs.indices.contains(index)
+                            {
+                                page.select(workspace, tab: workspace.tabs[index].id)
                             }
                         })
             }

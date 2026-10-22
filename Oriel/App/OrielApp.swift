@@ -45,16 +45,58 @@ struct OrielApp: App {
 }
 
 #if os(macOS)
-    /// One for the app's life: it reads the login shell's environment once.
-    private let exec = Task { await ProcessExec() }
-
     struct ContentView: View {
-        /// `-session <name>` on the command line lands in UserDefaults.
-        @State private var store = HostStore(session: UserDefaults.standard.string(forKey: "session") ?? "default")
+        @State private var pages = WindowPages()
+        /// The open pages' names and the one in view (D43), for a window macOS restores.
+        @SceneStorage("pages") private var savedPages = ""
+        @SceneStorage("page") private var savedPage = ""
         /// Per window (phase 16 opens more).
         @SceneStorage("sidebar") private var sidebar = true
-        /// The one floating panel open: the session list, the workspace menu or the palette.
+        @SceneStorage("sidebarWidth") private var sidebarWidth = 240.0
+        @Environment(\.scenePhase) private var scenePhase
+
+        var body: some View {
+            Group {
+                if let page = pages.current {
+                    WindowContent(pages: pages, page: page, sidebar: $sidebar, sidebarWidth: $sidebarWidth)
+                }
+            }
+            .task { await restore() }
+            .onChange(of: pages.list.map(\.id)) { savedPages = $1.joined(separator: " ") }
+            .onChange(of: pages.current?.id) { savedPage = $1 ?? "" }
+            .onChange(of: scenePhase, initial: true) { pages.visible = scenePhase == .active }
+        }
+
+        /// The pages a restored window had that still run; else the first page: `-session` (in UserDefaults from
+        /// the command line), else `default`, started when it is stopped. Never another session by itself.
+        private func restore() async {
+            guard pages.list.isEmpty else { return }
+            let saved = savedPages.split(separator: " ").map(String.init)
+            if !saved.isEmpty {
+                let client: any Multiplexer = await HerdrClient(session: saved[0], exec: exec.value)
+                let running = await Set((try? client.sessions())?.filter(\.running).map(\.name) ?? [])
+                for name in saved where running.contains(name) {
+                    pages.open(name)
+                }
+                if let page = pages.list.first(where: { $0.id == savedPage }) {
+                    pages.show(page)
+                }
+            }
+            if pages.list.isEmpty {
+                pages.open(UserDefaults.standard.string(forKey: "session") ?? "default", start: true)
+            }
+        }
+    }
+
+    /// The window once it has a page: the title row, the sidebar and the page's selected workspace.
+    private struct WindowContent: View {
+        let pages: WindowPages
+        let page: Page
+        @Binding var sidebar: Bool
+        @Binding var sidebarWidth: Double
+        /// The one floating panel open: the workspace menu or the palette.
         @State private var panel: Panel?
+        @State private var openingSession = false
         @State private var workspaceButtonX: CGFloat = 0
         @State private var fullScreen = false
         @AppStorage("appearance") private var appearance = Appearance.dark
@@ -64,43 +106,38 @@ struct OrielApp: App {
 
         var body: some View {
             let look = Look(style: style, dark: colorScheme == .dark)
+            let store = page.store
             VStack(spacing: 0) {
-                TitleBar(store: store, fullScreen: fullScreen, sidebar: $sidebar, picking: open(.sessions),
-                         palette: open(.palette), workspaceMenu: open(.workspaces),
-                         workspaceButtonX: $workspaceButtonX)
+                TitleBar(page: page, fullScreen: fullScreen, sidebar: $sidebar, palette: open(.palette),
+                         workspaceMenu: open(.workspaces), workspaceButtonX: $workspaceButtonX)
                 HStack(spacing: 0) {
                     if sidebar {
-                        Sidebar(store: store)
+                        Sidebar(pages: pages, width: $sidebarWidth) { openingSession = true }
                             .padding([.leading, .bottom], gap)
                             .padding(.top, 4)
                             .transition(.move(edge: .leading).combined(with: .opacity))
                     }
-                    Detail(store: $store)
+                    Detail(page: page)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 // Rex's collapse time; the toggle and ⌃⌘S only flip the value.
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: sidebar)
             }
             .overlay {
-                if panel == .sessions {
-                    SessionList(store: $store, open: open(.sessions))
-                        .padding(.leading, TitleBar.inset(fullScreen: fullScreen) + TitleBar.picker)
-                        .padding(.top, TitleBar.height + 4)
-                        .floatingPanel(open: open(.sessions), alignment: .topLeading)
-                }
                 if panel == .workspaces {
-                    WorkspaceMenu(store: store, open: open(.workspaces))
+                    WorkspaceMenu(pages: pages, page: page, open: open(.workspaces)) { openingSession = true }
                         .padding(.leading, workspaceButtonX)
                         .padding(.top, TitleBar.height)
                         .floatingPanel(open: open(.workspaces), alignment: .topLeading)
                 }
                 if panel == .palette {
-                    Palette(store: $store, open: open(.palette)).padding(.top, 96).floatingPanel(
+                    Palette(pages: pages, page: page, open: open(.palette)).padding(.top, 96).floatingPanel(
                         open: open(.palette),
                         alignment: .top,
                     )
                 }
             }
+            .sheet(isPresented: $openingSession) { OpenSession(pages: pages) }
             .confirmationDialog(dialog?.title ?? "", isPresented: Binding { store.closing != nil } set: {
                 if !$0 {
                     store.closing = nil
@@ -131,8 +168,7 @@ struct OrielApp: App {
             // In full screen the empty toolbar would cover the title row; it shows on hover only.
             .windowToolbarFullScreenVisibility(.onHover)
             .background(FullScreenReader(fullScreen: $fullScreen))
-            .navigationTitle(store.selectedTab.map { "\(store.titleText($0)) - \(store.session)" }
-                ?? HostStore.name(store.session))
+            .navigationTitle(page.selectedTab.map { "\(page.titleText($0)) - \(page.id)" } ?? HostStore.name(page.id))
             // Every window, sheet and menu, and the terminals' palettes, follow the app's appearance.
             .onChange(of: appearance, initial: true) {
                 NSApp.appearance = switch appearance {
@@ -141,31 +177,27 @@ struct OrielApp: App {
                 case .dark: NSAppearance(named: .darkAqua)
                 }
             }
-            .focusedSceneValue(\.store, $store)
-            // The menu's ⌘1…⌘9 tabs step aside while the session list has its own ⌘1…⌘9.
-            .focusedSceneValue(\.tabs, panel == .sessions ? nil : store)
+            .focusedSceneValue(\.page, page)
             .focusedSceneValue(\.palette, open(.palette))
             .focusedSceneValue(\.sidebar, $sidebar)
+            .focusedSceneValue(\.openSession, $openingSession)
             // The workspace menu belongs to the collapsed sidebar's button.
             .onChange(of: sidebar) {
                 if sidebar, panel == .workspaces {
                     panel = nil
                 }
             }
-            // A closed panel gives the keys back.
-            .onChange(of: panel) {
-                if panel == nil {
-                    store.focusKeyboardCard()
+            // A closed panel or sheet gives the keys back.
+            .onChange(of: panel == nil && !openingSession) { _, closed in
+                if closed {
+                    page.focusKeyboardCard()
                 }
             }
-            // A new store (session switch) cancels the old one's run, which drops its client.
-            .task(id: ObjectIdentifier(store)) { await store.run(exec: exec.value) }
-            // Here, not in the detail: a failed or empty session must release its terminals too.
-            .onChange(of: store.shownTerminals) { store.showTerminals() }
+            .onChange(of: page.shownTerminals) { pages.showTerminals() }
         }
 
         enum Panel {
-            case sessions, workspaces, palette
+            case workspaces, palette
         }
 
         /// Whether this panel is the open one; opening it closes the other.
@@ -175,21 +207,29 @@ struct OrielApp: App {
 
         /// The close dialog's text (design D41): a close ends processes on every device and cannot be undone.
         private var dialog: (title: String, message: String)? {
+            let store = page.store
             let end = " will end, here and in every herdr client. This cannot be undone."
+            let panes = { (tabs: [String]) in store.panes.count { tabs.contains($0.tabID) } }
+            let them = { (count: Int) in
+                "\(count == 1 ? "pane" : "\(count) panes") and everything running in \(count == 1 ? "it" : "them")"
+            }
             switch store.closing {
             case let .tab(id):
                 let tab = store.workspaces.flatMap(\.tabs).first { $0.id == id }
-                let count = store.panes.count { $0.tabID == id }
-                return ("Close the tab “\(tab.map(store.titleText) ?? id)”?",
-                        "Its \(count == 1 ? "pane" : "\(count) panes") and everything running in "
-                            + "\(count == 1 ? "it" : "them")" + end)
+                return ("Close the tab “\(tab.map(page.titleText) ?? id)”?", "Its " + them(panes([id])) + end)
             case let .otherTabs(others):
-                let count = store.panes.count { others.contains($0.tabID) }
                 return ("Close \(others.count == 1 ? "the other tab" : "the \(others.count) other tabs")?",
-                        "Their \(count == 1 ? "pane" : "\(count) panes") and everything running in "
-                            + "\(count == 1 ? "it" : "them")" + end)
+                        "Their " + them(panes(others)) + end)
             case let .pane(id, program):
                 return ("Close “\(store.pane(id)?.title ?? id)”?", "\(program) is running in it" + end)
+            case let .workspace(id):
+                let workspace = store.workspaces.first { $0.id == id }
+                let worktrees = store.worktrees(of: id)
+                let tabs = ([workspace].compactMap(\.self) + worktrees).flatMap(\.tabs).map(\.id)
+                let also = worktrees.isEmpty ? "" : worktrees.count == 1 ? " and its worktree’s workspace"
+                    : " and its \(worktrees.count) worktrees’ workspaces"
+                return ("Close the workspace “\(workspace?.label ?? id)”\(also)?",
+                        "\(tabs.count == 1 ? "Its tab" : "Its \(tabs.count) tabs"), " + them(panes(tabs)) + end)
             case nil:
                 return nil
             }
@@ -202,6 +242,7 @@ struct OrielApp: App {
             case .pane: "Close Pane"
             case .tab: "Close Tab"
             case .otherTabs: "Close Tabs"
+            case .workspace: "Close Workspace"
             }
         }
     }
@@ -273,17 +314,20 @@ struct OrielApp: App {
         func updateNSView(_: NSVisualEffectView, context _: Context) {}
     }
 
-    /// The selected workspace's tabs, or why there is nothing to show.
+    // The selected workspace's tabs, or why there is nothing to show.
+
+    /// The page's selected workspace's tabs, or why there is nothing to show.
     private struct Detail: View {
-        @Binding var store: HostStore
+        let page: Page
 
         var body: some View {
+            let store = page.store
             switch store.state {
             case .connecting:
                 ProgressView("Connecting to \(HostStore.name(store.session))")
             case .live:
-                if let workspace = store.selectedWorkspace {
-                    Strip(workspace: workspace, store: store)
+                if let workspace = page.selectedWorkspace {
+                    Strip(workspace: workspace, page: page)
                         .overlay(alignment: .bottom) {
                             if let notice = store.notice {
                                 Text(notice).padding(8).glassEffect().padding(gap * 2)
@@ -291,8 +335,7 @@ struct OrielApp: App {
                             }
                         }
                 } else {
-                    message("No workspaces", "Create one in herdr:",
-                            "herdr --session \(store.session) workspace create")
+                    NewWorkspaceButton(page: page)
                 }
             case .failed(.notFound):
                 message("herdr is not installed", "Install it in a terminal:",
@@ -300,14 +343,13 @@ struct OrielApp: App {
             case let .failed(.unsupported(text)):
                 message("herdr is too old", text + ". Update it in a terminal:", "herdr update")
             case .failed where !store.isRunning:
-                message("\(HostStore.name(store.session)) is not running", "Start it here, or in a terminal:",
-                        "herdr --session \(store.session) server", start: true)
+                message("\(store.session) is not running", "Start it to see its workspaces.", nil, start: true)
             case let .failed(error):
                 message("No answer from herdr", error.localizedDescription, nil)
             }
         }
 
-        /// What is wrong and the command that fixes it; a stopped session also gets a Start button (design D47).
+        /// What is wrong and the command that fixes it; a stopped session gets a Start button instead (design D47).
         private func message(_ title: String, _ text: String, _ command: String?, start: Bool = false) -> some View {
             ContentUnavailableView {
                 Label(title, systemImage: "terminal")
@@ -318,7 +360,7 @@ struct OrielApp: App {
                 }
             } actions: {
                 if start {
-                    Button("Start \(store.session)") { store = HostStore(session: store.session, start: true) }
+                    Button("Start \(page.store.session)") { Task { await page.store.start() } }
                         .accessibilityIdentifier("detail.start")
                 }
             }

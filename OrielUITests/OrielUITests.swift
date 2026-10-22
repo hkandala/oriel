@@ -88,29 +88,6 @@ final class OrielUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter().wait(for: [marked], timeout: 2), .completed)
     }
 
-    func testSwitchesSessions() {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
-        openSessions()
-        let other = element("session.\(two)")
-        XCTAssertTrue(element("session.\(one)").exists)
-        other.click()
-
-        let gamma = app.buttons.matching(NSPredicate(format: "identifier == 'workspace.w1' AND label == 'gamma'"))
-        XCTAssertTrue(gamma.firstMatch.waitForExistence(timeout: connect))
-        XCTAssertFalse(element("workspace.w2").exists)
-    }
-
-    func testSessionFilterNarrowsTheList() {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
-        // The field has the keyboard as soon as the list opens.
-        openSessions()
-        XCTAssertTrue(element("session.\(one)").exists)
-        app.typeText(two)
-        XCTAssertTrue(element("session.\(one)").waitForNonExistence(timeout: 2))
-        XCTAssertTrue(element("session.\(two)").exists)
-        keepScreenshot("session filter")
-    }
-
     func testSidebarFilterNarrowsTheWorkspaces() {
         XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
         let filter = element("sidebar.filter")
@@ -138,17 +115,6 @@ final class OrielUITests: XCTestCase {
         let snapshot = try await snapshot()
         XCTAssertEqual((snapshot?["panes"] as? [[String: Any]])?.count { $0["tab_id"] as? String == tab }, 2)
         keepScreenshot("split")
-    }
-
-    func testSessionListClosesOnEscapeAndOutsideClick() {
-        XCTAssertTrue(element("pane.w1:p1").waitForExistence(timeout: connect))
-        let filter = openSessions()
-        app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(filter.waitForNonExistence(timeout: 2))
-
-        openSessions()
-        element("pane.w1:p1").click()
-        XCTAssertTrue(filter.waitForNonExistence(timeout: 2))
     }
 
     func testSelectsAnotherTabWhenTheSelectedOneCloses() async throws {
@@ -290,16 +256,6 @@ extension OrielUITests {
         XCTAssertEqual(status, 200)
         return String(decoding: data, as: UTF8.self).split(separator: "\n").map(String.init)
             .filter { $0.contains("terminal session") }
-    }
-
-    /// Opens the session list; its filter has the keyboard.
-    @discardableResult
-    func openSessions() -> XCUIElement {
-        element("titlebar.session-picker").click()
-        let filter = element("sessions.filter")
-        XCTAssertTrue(filter.waitForExistence(timeout: 2))
-        XCTAssertTrue(hasKeyboard(filter))
-        return filter
     }
 
     /// ⌘K; the palette's filter has the keyboard.

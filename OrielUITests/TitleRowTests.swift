@@ -50,11 +50,11 @@ extension OrielUITests {
         let button = element("titlebar.workspace")
         XCTAssertTrue(button.waitForExistence(timeout: 2))
         let filter = openWorkspaceMenu()
-        XCTAssertTrue(element("workspaces.w1").isSelected)
+        XCTAssertTrue(element("workspaces.\(one).w1").isSelected)
         keepScreenshot("workspace menu")
         // Arrows move; Esc closes.
         app.typeKey(.downArrow, modifierFlags: [])
-        XCTAssertTrue(element("workspaces.w2").wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("workspaces.\(one).w2").wait(for: \.isSelected, toEqual: true, timeout: 2))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(filter.waitForNonExistence(timeout: 2))
         openWorkspaceMenu()
@@ -82,7 +82,7 @@ extension OrielUITests {
 
         // Picking another workspace shows its tabs.
         openWorkspaceMenu()
-        element("workspaces.w2").click()
+        element("workspaces.\(one).w2").click()
         XCTAssertTrue(element("tab.w2:t1").waitForExistence(timeout: 2))
         XCTAssertTrue(element("tab.\(made):t1").waitForNonExistence(timeout: 2))
         XCTAssertEqual(button.value as? String, "\(one) | beta")

@@ -1,24 +1,22 @@
 #if os(macOS)
+    import HerdrKit
     import IOKit.ps
     import SwiftUI
 
-    /// The title row (D45): sidebar toggle, session picker (until phase 14), machine button, workspace button while
-    /// the sidebar is collapsed, the tab bar, then ⌘ and +.
+    /// The title row (D45): sidebar toggle, machine button, workspace button while the sidebar is collapsed, the tab
+    /// bar, then ⌘ and +.
     struct TitleBar: View {
         /// The compact toolbar's height, so the row centers on the traffic lights.
         static let height: CGFloat = 40
-        /// The session picker button starts this far into the row: the 28 pt sidebar toggle and the row's 8 pt spacing.
-        static let picker: CGFloat = 36
 
         /// Where the row starts: after the traffic lights, which AppKit owns; full screen has none.
         static func inset(fullScreen: Bool) -> CGFloat {
             fullScreen ? gap : 78
         }
 
-        let store: HostStore
+        let page: Page
         let fullScreen: Bool
         @Binding var sidebar: Bool
-        @Binding var picking: Bool
         @Binding var palette: Bool
         @Binding var workspaceMenu: Bool
         /// Where the workspace button starts in the window, for its menu.
@@ -30,19 +28,18 @@
                 SidebarToggle(open: $sidebar)
                     .accessibilityIdentifier("titlebar.sidebar")
                     .accessibilityValue(sidebar ? "open" : "closed")
-                SessionPicker(store: store, open: $picking)
                 MachineButton()
-                if !sidebar, let workspace = store.selectedWorkspace {
+                if !sidebar, let workspace = page.selectedWorkspace {
                     Capped(width: 260) {
-                        WorkspaceButton(session: store.session, workspace: workspace.label, open: $workspaceMenu)
+                        WorkspaceButton(session: page.id, workspace: workspace.label, open: $workspaceMenu)
                     }
                     .layoutPriority(1)
                     .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: {
                         workspaceButtonX = $0
                     }
                 }
-                if store.state == .live, let workspace = store.selectedWorkspace {
-                    TabBar(workspace: workspace, store: store)
+                if page.store.state == .live, let workspace = page.selectedWorkspace {
+                    TabBar(workspace: workspace, page: page)
                 } else {
                     Spacer(minLength: 0)
                 }
@@ -50,8 +47,8 @@
                 IconButton(symbol: "command", help: "Commands") { palette.toggle() }
                     .accessibilityIdentifier("titlebar.palette")
                 // ⌘T is the menu's.
-                IconButton(symbol: "plus", help: "New Tab") { Task { await store.newTab() } }
-                    .disabled(store.selectedWorkspace == nil || store.writing)
+                IconButton(symbol: "plus", help: "New Tab") { Task { await page.newTab() } }
+                    .disabled(page.selectedWorkspace == nil || page.store.writing)
                     .accessibilityIdentifier("titlebar.new-tab")
             }
             .padding(.leading, Self.inset(fullScreen: fullScreen))
@@ -170,15 +167,18 @@
         }
     }
 
-    /// The workspace button's menu: every workspace of the window's session under its header, a typed name that
-    /// matches none to make, and New Workspace.
+    /// The workspace button's menu: every workspace of every page of the window under its session's header, with
+    /// its branch; a typed name that matches none to make in the page in view, New Workspace and Open Session.
     struct WorkspaceMenu: View {
-        let store: HostStore
+        let pages: WindowPages
+        let page: Page
         @Binding var open: Bool
+        let openSession: () -> Void
 
         var body: some View {
+            let rows = pages.list.flatMap { page in page.store.workspaces.map { (page, $0) } }
             FilterList(prompt: "Filter or create…", name: "workspaces", items: items,
-                       start: store.workspaces.firstIndex { $0.id == store.selectedWorkspaceID } ?? 0,
+                       start: rows.firstIndex { $0.0 === page && $0.1.id == page.selectedWorkspaceID } ?? 0,
                        maxHeight: 340) { open = false }
                 .padding(8)
                 .frame(width: 300)
@@ -186,22 +186,29 @@
         }
 
         private func items(_ filter: String) -> [FilterList.Item] {
-            let workspaces = store.workspaces.filter { $0.label.matches(filter) }.map { workspace in
-                // The state icon (phase 15) and the branch (phase 14) come later.
-                FilterList.Item(id: workspace.id, title: workspace.label, section: store.session) {
-                    store.selectedWorkspaceID = workspace.id
+            let workspaces = pages.list.flatMap { page in
+                page.store.workspaces.filter { $0.label.matches(filter) }.map { workspace in
+                    // The state icon comes in phase 15. Another page's workspace shows that page.
+                    FilterList.Item(id: "\(page.id).\(workspace.id)", title: workspace.label,
+                                    detail: workspace.git?.branch ?? "", section: page.id, act: {
+                                        pages.show(page)
+                                        page.select(workspace)
+                                    })
                 }
             }
             let typed = filter.trimmingCharacters(in: .whitespaces)
             let create = typed.isEmpty || !workspaces.isEmpty ? [] : [
                 FilterList.Item(id: "create", symbol: "plus", title: "New Workspace “\(typed)”") {
-                    Task { await store.newWorkspace(label: typed) }
+                    Task { await page.newWorkspace(label: typed) }
                 },
             ]
-            let new = FilterList.Item(id: "new", symbol: "plus", title: "New Workspace", section: "") {
-                Task { await store.newWorkspace() }
-            }
-            return create + workspaces + [new]
+            return create + workspaces + [
+                FilterList.Item(id: "new", symbol: "plus", title: "New Workspace", section: "") {
+                    Task { await page.newWorkspace() }
+                },
+                FilterList.Item(id: "open-session", symbol: "plus.square.on.square", title: "Open Session…",
+                                detail: "⇧⌘N", section: "", act: openSession),
+            ]
         }
     }
 #endif

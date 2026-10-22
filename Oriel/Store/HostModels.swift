@@ -11,6 +11,8 @@ extension HostStore {
         case tab(String)
         /// The other tabs of a workspace, as they were when the user asked: a tab made since is not closed.
         case otherTabs([String])
+        /// A workspace, with its linked worktrees' workspaces when it has any.
+        case workspace(String)
     }
 
     @MainActor @Observable
@@ -19,8 +21,13 @@ extension HostStore {
         var label = ""
         var status = AgentStatus.idle
         var tabs: [Tab] = []
-        /// The app's own selection, never herdr's focus. Starts at herdr's active tab.
-        var selectedTabID: String?
+        /// herdr's active tab: a page's first selection in it.
+        var activeTabID = ""
+        var worktree: Worktree?
+        /// The branch of its root (`worktree.checkout_path`, else its first pane's cwd); nil when not a repository.
+        var git: GitStatus?
+        /// The root of the last git run.
+        @ObservationIgnored var gitRoot: String?
 
         init(id: String) {
             self.id = id
@@ -96,31 +103,24 @@ extension HostStore {
         session == "default" ? "This Mac" : "This Mac · \(session)"
     }
 
-    /// Selects the tab before or after the selected one, round the ends.
-    func step(_ offset: Int) {
-        guard let workspace = selectedWorkspace, !workspace.tabs.isEmpty else { return }
-        let tabs = workspace.tabs
-        let index = tabs.firstIndex { $0.id == workspace.selectedTabID } ?? 0
-        workspace.selectedTabID = tabs[(index + offset + tabs.count) % tabs.count].id
-    }
-
-    /// The tab's title, from herdr's label; herdr's default label (a bare number) gives the front card's program
-    /// and folder instead (D65).
-    func title(_ tab: Tab) -> (name: String, folder: String?) {
-        guard !tab.label.isEmpty, tab.label.allSatisfy(\.isNumber), let pane = stack(tab).first,
-              let name = pane.programName else { return (tab.label, nil) }
-        // The folder's name ("pi oriel"), as in Rex: a tab is narrow.
-        return (name, pane.folder.map { $0 == "~" ? $0 : ($0 as NSString).lastPathComponent })
-    }
-
     func workspace(of tabID: String) -> Workspace? {
         workspaces.first { $0.tabs.contains { $0.id == tabID } }
     }
 
-    /// The title in one string, for the window title and menus.
-    func titleText(_ tab: Tab) -> String {
-        let title = title(tab)
-        return [title.name, title.folder ?? ""].filter { !$0.isEmpty }.joined(separator: " ")
+    /// The workspace of the repository a linked worktree's workspace sits under: the first one with the same
+    /// `repo_key` that is not a linked worktree.
+    func parent(of workspace: Workspace) -> Workspace? {
+        guard let worktree = workspace.worktree, worktree.isLinkedWorktree else { return nil }
+        return workspaces.first { $0.worktree?.repoKey == worktree.repoKey && $0.worktree?.isLinkedWorktree == false }
+    }
+
+    func worktrees(of workspaceID: String) -> [Workspace] {
+        workspaces.filter { parent(of: $0)?.id == workspaceID }
+    }
+
+    /// The sidebar's rows in groups: each workspace in herdr's order, its linked worktrees right after it.
+    var groups: [[Workspace]] {
+        workspaces.filter { parent(of: $0) == nil }.map { [$0] + worktrees(of: $0.id) }
     }
 }
 
