@@ -102,11 +102,11 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
   dirty in light. The keyboard card's fill and stroke now mark it. Phase 17 adds the content fade (D64).
 - **Floating panels lost their custom look.** The palette's black tint and both panels' shadows are gone.
   Plain system glass adapts to each appearance and stays readable over terminal text in all four looks.
-
 - **Classic dark pill has no white 0.2 `overlay` layer.** The pill sits in layers of its own (the tab
   bar's masked scroll view, the sidebar row), so the overlay blend had nothing under it and acted as a
-  plain white 0.2 fill: `#6c6c6c` in the tab bar, `#4a4a4a` in the sidebar, against Rex's `#363636`.
-  Without it (white 0.08 and the 0.8 pt `plusLighter` rim) both measure `#3e3e3e` on the `#282828` window.
+  plain white 0.2 fill: `#6c6c6c` in the tab bar, `#4a4a4a` in the sidebar, against Rex's `#363636` (Display P3 reads).
+  Without it (the table's white 0.08 and the 0.8 pt `plusLighter` rim) both measure `#303030` on the
+  `#1e1e1e` window (sRGB), against Rex's `#292929`: a little brighter, kept at the table's value.
 - **Card shadows are weaker than the table.** The shadow is a `ShadowStyle` on the translucent card fill,
   so its strength is multiplied by the fill's alpha: about black 0.01 in Glass light (table 0.1) and 0.036
   in Classic light (table 0.06). The light cards are separated mostly by their stroke, as in Rex's light
