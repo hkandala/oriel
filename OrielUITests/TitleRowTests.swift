@@ -55,7 +55,7 @@ extension OrielUITests {
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(filter.waitForNonExistence(timeout: 2))
         let made = try await poll("herdr to have \(name)") { () async throws -> String? in
-            let snapshot = try await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
+            let snapshot = try await self.snapshot()
             let workspaces = snapshot?["workspaces"] as? [[String: Any]] ?? []
             return workspaces.first { $0["label"] as? String == name }?["workspace_id"] as? String
         }
@@ -194,7 +194,7 @@ extension OrielUITests {
 
     /// The workspace's tabs in herdr's order.
     private func tabsOf(_ workspace: String) async throws -> [(id: String, label: String)] {
-        let snapshot = try await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
+        let snapshot = try await snapshot()
         return (snapshot?["tabs"] as? [[String: Any]] ?? []).filter { $0["workspace_id"] as? String == workspace }
             .compactMap { tab in (tab["tab_id"] as? String).map { ($0, tab["label"] as? String ?? "") } }
     }

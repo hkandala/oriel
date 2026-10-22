@@ -65,7 +65,7 @@ extension OrielUITests {
         keepScreenshot("close tab dialog")
         confirm.click()
         XCTAssertTrue(row.waitForNonExistence(timeout: 3))
-        let snapshot = try await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
+        let snapshot = try await snapshot()
         XCTAssertFalse((snapshot?["tabs"] as? [[String: Any]] ?? []).contains { $0["tab_id"] as? String == tab })
     }
 
@@ -112,7 +112,7 @@ extension OrielUITests {
         app.typeKey("t", modifierFlags: .command)
         let tab = try await newTabID(after: before)
         XCTAssertTrue(element("tab.\(tab)").wait(for: \.isSelected, toEqual: true, timeout: 3))
-        let snapshot = try await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
+        let snapshot = try await snapshot()
         let pane = try XCTUnwrap((snapshot?["panes"] as? [[String: Any]])?.first { $0["tab_id"] as? String == tab })
         XCTAssertEqual(pane["cwd"] as? String, "/usr")
         return try XCTUnwrap(pane["pane_id"] as? String)

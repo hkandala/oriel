@@ -6,6 +6,8 @@
     /// than 64 pt.
     struct TabBar: View {
         static let height: CGFloat = 34
+        /// min(height / 2, 16.5), as in Rex.
+        static let radius: CGFloat = 16.5
 
         let workspace: HostStore.Workspace
         let store: HostStore
@@ -41,8 +43,8 @@
                                         .animation(.easeInOut(duration: 0.2), value: quiet)
                                 }
                                 TabButton(tab: tab, workspace: workspace, store: store, lit: lit.contains(index),
-                                          width: width, keycap: index < 9 ? index + 1 : nil,
-                                          hints: hints) { kept = width }
+                                          hovering: hovered == tab.id, width: width,
+                                          keycap: hints && index < 9 ? index + 1 : nil) { kept = width }
                                     .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
                             }
                         }
@@ -71,7 +73,7 @@
                 .frame(width: max(min(content, space), 0))
                 .onHover { inside in
                     if !inside, kept != nil {
-                        withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 1)) { kept = nil }
+                        withAnimation(reduceMotion ? nil : .tab) { kept = nil }
                     }
                 }
                 // minWidth 0: the row's free space, not the tabs' width, which follows it; else the bar never
@@ -97,7 +99,7 @@
         /// moves with Rex's spring after a click or a key, so the marker does too.
         private func marker(count: Int, width: CGFloat) -> some View {
             let page = min(max(store.page, 0), Double(max(count - 1, 0)))
-            return Pill(shape: RoundedRectangle(cornerRadius: min(Self.height / 2, 16.5), style: .continuous))
+            return Pill(shape: RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
                 .frame(width: width, height: Self.height)
                 .offset(x: page * (width + 1))
                 .allowsHitTesting(false)
@@ -132,13 +134,12 @@
         let store: HostStore
         /// Its page is in view.
         let lit: Bool
+        let hovering: Bool
         let width: CGFloat
-        /// ⌘1…⌘9.
+        /// ⌘1…⌘9 while ⌘ is held.
         let keycap: Int?
-        let hints: Bool
         /// Before a close from its ×.
         let closing: () -> Void
-        @State private var hovering = false
         @State private var renaming = false
         @State private var draft = ""
         @FocusState private var focused: Bool
@@ -155,7 +156,7 @@
                 HStack(spacing: 8) {
                     IconStack(panes: stack)
                         .overlay(alignment: .leading) {
-                            if hints, let keycap {
+                            if let keycap {
                                 Text("⌘\(keycap)").font(.system(size: 10, weight: .semibold)).fixedSize().padding(
                                     .horizontal,
                                     4,
@@ -177,7 +178,7 @@
                 .frame(width: width, height: TabBar.height, alignment: .leading)
             }
             // The selection is the tab bar's marker.
-            .buttonStyle(ChromeStyle(radius: min(TabBar.height / 2, 16.5)))
+            .buttonStyle(ChromeStyle(radius: TabBar.radius))
             // On the capsule alone: the rename field and the × over it have their own.
             .accessibilityIdentifier("tab.\(tab.id)")
             .accessibilityAddTraits(selected ? .isSelected : [])
@@ -194,14 +195,7 @@
                                 stopRenaming()
                             }
                         }
-                        .task {
-                            // ponytail: focus asked for as the field appears is dropped (see FilterField); ask until
-                            // it holds, for up to 1 s.
-                            for _ in 0 ..< 20 where !focused {
-                                try? await Task.sleep(for: .milliseconds(50))
-                                focused = true
-                            }
-                        }
+                        .focusSoon($focused)
                         .padding(.leading, 8 + 22 + CGFloat(max(stack.count - 1, 0)) * 4 + 8)
                         .padding(.trailing, 8)
                         .accessibilityIdentifier("tab.\(tab.id).rename")
@@ -224,7 +218,6 @@
                     .padding(.trailing, 6)
                 }
             }
-            .onHover { hovering = $0 }
             .contextMenu { menu }
         }
 

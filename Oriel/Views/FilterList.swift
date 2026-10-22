@@ -120,16 +120,7 @@ struct FilterField: View {
                 TextField(prompt, text: $text)
                     .textFieldStyle(.plain)
                     .focused($focused)
-                    .task {
-                        // ponytail: focus asked for as the field appears is dropped (AppKit has not made it a
-                        // key view yet), and a single later ask was sometimes dropped too (⌘K, then typing went
-                        // nowhere); ask every 50 ms until it holds, for up to 1 s. Upgrade: an AppKit field that
-                        // takes first responder in viewDidMoveToWindow.
-                        for _ in 0 ..< 20 where !focused {
-                            try? await Task.sleep(for: .milliseconds(50))
-                            focused = true
-                        }
-                    }
+                    .focusSoon($focused)
                     .onChange(of: focused) { editing = focused }
                     .accessibilityIdentifier(identifier)
             } else {
@@ -146,5 +137,20 @@ struct FilterField: View {
         .background(.primary.opacity(0.07), in: .capsule)
         .contentShape(.capsule)
         .onTapGesture { editing = true }
+    }
+}
+
+extension View {
+    /// Focuses the field as it appears.
+    func focusSoon(_ focused: FocusState<Bool>.Binding) -> some View {
+        task {
+            // ponytail: focus asked for as the field appears is dropped (AppKit has not made it a key view yet), and
+            // a single later ask was sometimes dropped too (⌘K, then typing went nowhere); ask every 50 ms until it
+            // holds, for up to 1 s. Upgrade: an AppKit field that takes first responder in viewDidMoveToWindow.
+            for _ in 0 ..< 20 where !focused.wrappedValue {
+                try? await Task.sleep(for: .milliseconds(50))
+                focused.wrappedValue = true
+            }
+        }
     }
 }

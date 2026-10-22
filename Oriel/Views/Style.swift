@@ -4,6 +4,11 @@ import SwiftUI
 /// The gap between cards, the one fixed size.
 let gap: CGFloat = 8
 
+extension Animation {
+    /// Rex's tab spring (stiffness 520, damping 46, critically damped).
+    static let tab = Animation.spring(response: 0.28, dampingFraction: 1)
+}
+
 /// The appearance setting (D44): Auto follows macOS.
 enum Appearance: String {
     case auto, light, dark

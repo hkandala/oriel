@@ -312,14 +312,11 @@ extension HostStore {
         await write { try await $0.rename(tab: tabID, label: label) }
     }
 
-    /// One place left (-1) or right (1) in its workspace.
+    /// One place left (-1) or right (1) in its workspace; the menu disables the ends.
     func move(tab tabID: String, by offset: Int) async {
-        guard let tabs = workspaces.first(where: { $0.tabs.contains { $0.id == tabID } })?.tabs,
-              let index = tabs.firstIndex(where: { $0.id == tabID }) else { return }
+        guard let index = workspace(of: tabID)?.tabs.firstIndex(where: { $0.id == tabID }) else { return }
         // herdr inserts before the tab now at the index, so one place right is two on.
-        let target = offset > 0 ? index + 1 + offset : index + offset
-        guard tabs.indices.contains(index + offset) else { return }
-        await write { try await $0.move(tab: tabID, to: target) }
+        await write { try await $0.move(tab: tabID, to: index + (offset > 0 ? 2 : -1)) }
     }
 
     /// Closes a pane that runs only its shell; asks first when anything else runs (design D41).
@@ -345,7 +342,7 @@ extension HostStore {
         case let .pane(id, _): await write { try await $0.close(pane: id) }
         case let .tab(id): await write { try await $0.close(tab: id) }
         case let .otherTabs(id):
-            let others = workspaces.first { $0.tabs.contains { $0.id == id } }?.tabs.map(\.id).filter { $0 != id } ?? []
+            let others = otherTabs(id)
             await write { client in
                 for other in others {
                     try await client.close(tab: other)

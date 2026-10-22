@@ -53,11 +53,10 @@ struct OrielApp: App {
         @State private var store = HostStore(session: UserDefaults.standard.string(forKey: "session") ?? "default")
         /// Per window (phase 16 opens more).
         @SceneStorage("sidebar") private var sidebar = true
-        @State private var picking = false
-        @State private var workspaceMenu = false
+        /// The one floating panel open: the session list, the workspace menu or the palette.
+        @State private var panel: Panel?
         @State private var workspaceButtonX: CGFloat = 0
         @State private var fullScreen = false
-        @State private var palette = false
         @AppStorage("appearance") private var appearance = Appearance.dark
         @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
         @Environment(\.colorScheme) private var colorScheme
@@ -66,8 +65,9 @@ struct OrielApp: App {
         var body: some View {
             let look = Look(style: style, dark: colorScheme == .dark)
             VStack(spacing: 0) {
-                TitleBar(store: store, fullScreen: fullScreen, sidebar: $sidebar, picking: $picking,
-                         palette: $palette, workspaceMenu: $workspaceMenu, workspaceButtonX: $workspaceButtonX)
+                TitleBar(store: store, fullScreen: fullScreen, sidebar: $sidebar, picking: open(.sessions),
+                         palette: open(.palette), workspaceMenu: open(.workspaces),
+                         workspaceButtonX: $workspaceButtonX)
                 HStack(spacing: 0) {
                     if sidebar {
                         Sidebar(store: store)
@@ -82,21 +82,21 @@ struct OrielApp: App {
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: sidebar)
             }
             .overlay {
-                if picking {
-                    SessionList(store: $store, open: $picking)
+                if panel == .sessions {
+                    SessionList(store: $store, open: open(.sessions))
                         .padding(.leading, TitleBar.inset(fullScreen: fullScreen) + TitleBar.picker)
                         .padding(.top, TitleBar.height + 4)
-                        .floatingPanel(open: $picking, alignment: .topLeading)
+                        .floatingPanel(open: open(.sessions), alignment: .topLeading)
                 }
-                if workspaceMenu, !sidebar {
-                    WorkspaceMenu(store: store, open: $workspaceMenu)
+                if panel == .workspaces, !sidebar {
+                    WorkspaceMenu(store: store, open: open(.workspaces))
                         .padding(.leading, workspaceButtonX)
                         .padding(.top, TitleBar.height)
-                        .floatingPanel(open: $workspaceMenu, alignment: .topLeading)
+                        .floatingPanel(open: open(.workspaces), alignment: .topLeading)
                 }
-                if palette {
-                    Palette(store: $store, open: $palette).padding(.top, 96).floatingPanel(
-                        open: $palette,
+                if panel == .palette {
+                    Palette(store: $store, open: open(.palette)).padding(.top, 96).floatingPanel(
+                        open: open(.palette),
                         alignment: .top,
                     )
                 }
@@ -143,23 +143,12 @@ struct OrielApp: App {
             }
             .focusedSceneValue(\.store, $store)
             // The menu's ⌘1…⌘9 tabs step aside while the session list has its own ⌘1…⌘9.
-            .focusedSceneValue(\.tabs, picking ? nil : store)
-            .focusedSceneValue(\.palette, $palette)
+            .focusedSceneValue(\.tabs, panel == .sessions ? nil : store)
+            .focusedSceneValue(\.palette, open(.palette))
             .focusedSceneValue(\.sidebar, $sidebar)
-            // One panel at a time; a closed one gives the keys back.
-            .onChange(of: palette) {
-                if palette {
-                    picking = false
-                    workspaceMenu = false
-                } else {
-                    store.focusKeyboardCard()
-                }
-            }
-            .onChange(of: workspaceMenu) {
-                if workspaceMenu {
-                    picking = false
-                    palette = false
-                } else {
+            // A closed panel gives the keys back.
+            .onChange(of: panel) {
+                if panel == nil {
                     store.focusKeyboardCard()
                 }
             }
@@ -167,6 +156,15 @@ struct OrielApp: App {
             .task(id: ObjectIdentifier(store)) { await store.run(exec: exec.value) }
             // Here, not in the detail: a failed or empty session must release its terminals too.
             .onChange(of: store.shownTerminals) { store.showTerminals() }
+        }
+
+        enum Panel {
+            case sessions, workspaces, palette
+        }
+
+        /// Whether this panel is the open one; opening it closes the other.
+        private func open(_ which: Panel) -> Binding<Bool> {
+            Binding { panel == which } set: { panel = $0 ? which : panel == which ? nil : panel }
         }
 
         /// The close dialog's text (design D41): a close ends processes on every device and cannot be undone.
@@ -180,8 +178,7 @@ struct OrielApp: App {
                         "Its \(count == 1 ? "pane" : "\(count) panes") and everything running in "
                             + "\(count == 1 ? "it" : "them")" + end)
             case let .otherTabs(id):
-                let others = store.workspaces.first { $0.tabs.contains { $0.id == id } }?.tabs.map(\.id)
-                    .filter { $0 != id } ?? []
+                let others = store.otherTabs(id)
                 let count = store.panes.count { others.contains($0.tabID) }
                 return ("Close \(others.count == 1 ? "the other tab" : "the \(others.count) other tabs")?",
                         "Their \(count == 1 ? "pane" : "\(count) panes") and everything running in "

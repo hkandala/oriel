@@ -56,11 +56,8 @@ struct Strip: View {
         .onChange(of: [workspace.id, workspace.selectedTabID], initial: true) { old, new in
             guard let target = workspace.selectedTabID, position.viewID(type: String.self) != target else { return }
             let animate = old != new && old.first == new.first && !reduceMotion
-            // Rex's tab spring (stiffness 520, damping 46); the tab marker follows the scroll.
-            withAnimation(animate ? .spring(response: 0.28, dampingFraction: 1) : nil) { position.scrollTo(
-                id: target,
-                anchor: .leading,
-            ) }
+            // The tab marker follows the scroll.
+            withAnimation(animate ? .tab : nil) { position.scrollTo(id: target, anchor: .leading) }
             if old.first != new.first {
                 // Another workspace's pages lay out in this same update, and a scroll to one of them can miss (a
                 // new workspace came up blank): scroll again once they have.

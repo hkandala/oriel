@@ -15,15 +15,6 @@
         /// Its group in the menu bar; groups are divided from each other.
         enum Section {
             case file, close, view, appearance, interfaceStyle, size, tabSteps, tabs
-
-            /// The submenu a choice sits in.
-            var submenu: String? {
-                switch self {
-                case .appearance: "Appearance"
-                case .interfaceStyle: "Interface Style"
-                default: nil
-                }
-            }
         }
 
         let section: Section
@@ -53,8 +44,8 @@
             CommandGroup(after: .sidebar) {
                 items(list, .view)
                 Divider()
-                items(list, .appearance)
-                items(list, .interfaceStyle)
+                Menu("Appearance") { items(list, .appearance) }
+                Menu("Interface Style") { items(list, .interfaceStyle) }
                 Divider()
                 items(list, .size)
             }
@@ -137,19 +128,8 @@
             }
         }
 
-        /// A section's commands; a choice section in its submenu.
-        @ViewBuilder
         private func items(_ list: [Command], _ section: Command.Section) -> some View {
-            let commands = list.filter { $0.section == section }
-            if let submenu = section.submenu {
-                Menu(submenu) { rows(commands) }
-            } else {
-                rows(commands)
-            }
-        }
-
-        private func rows(_ commands: [Command]) -> some View {
-            ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
+            ForEach(Array(list.filter { $0.section == section }.enumerated()), id: \.offset) { _, command in
                 Group {
                     if let checked = command.checked {
                         Toggle(command.title, isOn: Binding { checked } set: { _ in command.action() })

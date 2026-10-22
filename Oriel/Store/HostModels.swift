@@ -103,6 +103,15 @@ extension HostStore {
         return (pane.programName ?? "", pane.folder)
     }
 
+    func workspace(of tabID: String) -> Workspace? {
+        workspaces.first { $0.tabs.contains { $0.id == tabID } }
+    }
+
+    /// The ids of the tab's workspace's other tabs, for Close Other Tabs.
+    func otherTabs(_ tabID: String) -> [String] {
+        workspace(of: tabID)?.tabs.map(\.id).filter { $0 != tabID } ?? []
+    }
+
     /// The title in one string, for the window title and menus.
     func titleText(_ tab: Tab) -> String {
         let title = title(tab)

@@ -135,7 +135,7 @@ final class OrielUITests: XCTestCase {
             .matching(NSPredicate(format: "identifier MATCHES %@", #"pane\.[^.]+"#))
         XCTAssertTrue(cards.element(boundBy: 1).waitForExistence(timeout: 2))
         XCTAssertLessThan(cards.element(boundBy: 0).frame.maxX, cards.element(boundBy: 1).frame.minX)
-        let snapshot = try await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
+        let snapshot = try await snapshot()
         XCTAssertEqual((snapshot?["panes"] as? [[String: Any]])?.count { $0["tab_id"] as? String == tab }, 2)
         keepScreenshot("split")
     }
@@ -259,8 +259,13 @@ extension OrielUITests {
         return processes.compactMap { $0["name"] as? String }
     }
 
+    /// Session one's `session.snapshot`.
+    func snapshot() async throws -> [String: Any]? {
+        try await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
+    }
+
     func tabIDs() async throws -> [String] {
-        let snapshot = try await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
+        let snapshot = try await snapshot()
         return (snapshot?["tabs"] as? [[String: Any]] ?? []).compactMap { $0["tab_id"] as? String }
     }
 
