@@ -93,6 +93,8 @@ struct OrielApp: App {
             .background(alignment: .topLeading) {
                 Color.clear.frame(width: 1, height: 1).accessibilityElement().accessibilityAddTraits(.isStaticText)
                     .accessibilityLabel("Appearance").accessibilityIdentifier("window.look")
+                    // Last for VoiceOver: it is for tests more than for people.
+                    .accessibilitySortPriority(-1)
                     .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
             }
             // The title bar row takes the hidden title bar's line.
