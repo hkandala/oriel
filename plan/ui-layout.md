@@ -52,7 +52,7 @@ Left to right:
    highlight). An amber dot when an agent of the current session needs you. ⌘. toggles the Agents view.
    - **Hover** (0.25 s): a popover under the button lists the agents of the current session that need you
      (same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
-     does not change. With nobody waiting: "Nobody needs you". Footer hint: "Click for all agents".
+     does not change. With nobody waiting: "Nobody needs you". No footer text.
 8. **⌘** (command palette, ⌘K) and **+** (new tab, ⌘T).
 
 The strip under the title row still pages sideways between the selected workspace's tabs (swipe, ⇧⌘[ ⇧⌘],

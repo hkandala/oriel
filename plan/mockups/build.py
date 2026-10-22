@@ -317,7 +317,7 @@ def workspace_menu():
 def needs_popover():
     rows = [agent_row(a) for a in AGENTS["default"] if a[2] == "needs"]
     return ('<div class="popup needs"><div class="pg">Needs you <span class="dim">· default</span></div>'
-            f'{"".join(rows)}<div class="psep"></div><div class="prow small">Click the button for all agents</div></div>')
+            f'{"".join(rows)}</div>')
 
 
 def session_sheet():
