@@ -39,6 +39,10 @@ final class OrielUITests: XCTestCase {
         // No window state from earlier runs.
         app.launchArguments = ["-session", one, "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
+        // Off the title row: a pointer left on a capsule by the last test would open its hover card.
+        if app.windows.firstMatch.waitForExistence(timeout: 5) {
+            app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.9)).hover()
+        }
     }
 
     func testShowsWorkspacesTabsAndSplits() {

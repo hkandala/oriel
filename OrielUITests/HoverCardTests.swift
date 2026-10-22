@@ -50,8 +50,9 @@ extension OrielUITests {
 
     func testAgentsRowShowsItsTabsCard() async throws {
         XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
-        let (tab, pane) = try await newTab("build", in: "w1")
+        let (tab, pane) = try await newTab("build")
         try await split(pane)
+        element("workspace.w1").click()
         try await report(pane, "working")
         app.typeKey(".", modifierFlags: .command)
         let row = element("agent.\(pane)")
@@ -61,11 +62,13 @@ extension OrielUITests {
         let card = element("hovercard")
         XCTAssertTrue(card.waitForExistence(timeout: 2))
         XCTAssertEqual(rows(of: card).count, 2)
-        XCTAssertTrue(element("hovercard.\(pane)").exists)
+        XCTAssertEqual(card.label, "Panes of build")
         XCTAssertGreaterThan(card.frame.minX, element("sidebar").frame.maxX)
-        // A click on the title selects the tab.
+        // A click on the title selects the tab and its workspace.
         element("hovercard.title").click()
         XCTAssertTrue(element("tab.\(tab)").wait(for: \.isSelected, toEqual: true, timeout: 2))
+        app.typeKey(".", modifierFlags: .command)
+        XCTAssertTrue(element("workspace.w2").wait(for: \.isSelected, toEqual: true, timeout: 2))
         XCTAssertTrue(card.waitForNonExistence(timeout: 2))
     }
 
@@ -75,11 +78,14 @@ extension OrielUITests {
         let button = element("titlebar.new-tab")
         XCTAssertTrue(button.waitForExistence(timeout: connect))
         XCTAssertEqual(button.label, "New Tab ⌘T")
+        XCTAssertEqual(element("titlebar.palette").label, "Command Palette ⌘K")
+        XCTAssertEqual(element("sidebar.open-session").label, "Open Session ⇧⌘N")
     }
 
     /// The card's pane rows.
     private func rows(of card: XCUIElement) -> [XCUIElement] {
-        card.descendants(matching: .button).matching(NSPredicate(format: "identifier BEGINSWITH 'hovercard.w'"))
+        card.descendants(matching: .button)
+            .matching(NSPredicate(format: "identifier BEGINSWITH 'hovercard.' AND identifier != 'hovercard.title'"))
             .allElementsBoundByIndex
     }
 }
