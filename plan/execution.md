@@ -31,8 +31,41 @@ next phase.
 7. Update the phase file's `## Findings` section (what you learned, numbers you measured, choices you made)
    and the design pages the phase changed, so they match the code. Commit and push.
 8. Confirm CI is green on the last push (`gh run list --limit 3`).
-9. Report to the orchestrator: what was built, the commits, how it was tested, screenshot paths, the review
-   rounds and their final verdicts, anything left open.
+9. Write `plan/metrics/NN.json` (format below), commit it with the phase, and report to the orchestrator:
+   what was built, the commits, how it was tested, screenshot paths, the review rounds and their final
+   verdicts, how valuable each reviewer was, anything left open.
+
+## Metrics (for the dashboard after phase 21)
+
+The user wants to learn which reviews are a must and which add little, and how long each part takes. Each
+phase agent records, in `plan/metrics/NN.json`:
+
+```json
+{
+  "phase": 10, "agent": "phase10-appearance",
+  "started": "2026-10-21T19:20:00-07:00", "finished": "…",
+  "base": "<sha before the phase>", "head": "<last sha>",
+  "commits": 9, "files_changed": 14, "insertions": 420, "deletions": 180,
+  "review_rounds": 2,
+  "reviews": [
+    {"name": "phase10-spec-review", "role": "spec", "round": 1,
+     "started": "…", "finished": "…", "minutes": 12,
+     "findings": {"blocker": 0, "should": 3, "nit": 4},
+     "genuine": 5, "rejected": 2,
+     "value": 4, "note": "one sentence: what it caught that nothing else would have"}
+  ],
+  "self_review_findings": 3,
+  "e2e_runs": 3, "ci_green": true,
+  "notes": "anything that slowed the phase down"
+}
+```
+
+- `genuine`: findings that led to a real change; `rejected`: wrong, duplicate or not worth it.
+- `value`: 1 (nothing new) to 5 (caught a real bug nothing else caught). Be honest; low scores are useful.
+- Times come from when you started each agent and when it replied.
+
+After phase 21 the orchestrator builds a dashboard from these files (time per phase, changes, review
+agents, rounds, time and value per reviewer role).
 
 ## Briefs the phase agent sends
 
