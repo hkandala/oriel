@@ -28,15 +28,18 @@
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(store == nil)
             }
-            // ⌘W closes the keyboard card, ⇧⌘W the window (design: keyboard).
+            // ⌘W closes the keyboard card, ⇧⌘W the window (design: keyboard). In a window without a store
+            // (Settings) ⌘W closes the window.
             CommandGroup(replacing: .saveItem) {
-                Button("Close Pane") {
+                Button(store == nil ? "Close" : "Close Pane") {
                     if let store, let pane = store.keyboardPane {
                         Task { await store.close(pane: pane.id) }
+                    } else if store == nil {
+                        NSApp.keyWindow?.performClose(nil)
                     }
                 }
                 .keyboardShortcut("w")
-                .disabled(store?.keyboardPane == nil)
+                .disabled(store != nil && store?.keyboardPane == nil)
                 Button("Close Window") { NSApp.keyWindow?.performClose(nil) }
                     .keyboardShortcut("w", modifiers: [.command, .shift])
             }
