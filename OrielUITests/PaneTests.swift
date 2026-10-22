@@ -50,6 +50,7 @@ extension OrielUITests {
     func testKeysMoveTheKeyboardSwapAndResize() async throws {
         let (tab, first) = try await newTab("keys")
         let second = try await split(first)
+        restoreHerdrFocusAfter()
         element("tab.\(tab)").click()
         XCTAssertTrue(element("terminal.\(second)").waitForExistence(timeout: 3))
         element("terminal.\(first)").click()
@@ -80,6 +81,7 @@ extension OrielUITests {
 
     func testContextMenuSplitsLeftRenamesAndMovesToNewTab() async throws {
         let (tab, pane) = try await newTab("menu")
+        restoreHerdrFocusAfter()
         element("tab.\(tab)").click()
         XCTAssertTrue(element("terminal.\(pane)").waitForExistence(timeout: 3))
 
@@ -103,8 +105,8 @@ extension OrielUITests {
 
         let before = try await tabIDs()
         paneMenu(pane, "Move to New Tab")
+        // No teardown: the move to a new workspace below takes its only pane, which closes it.
         let moved = try await newTabID(after: before)
-        addTeardownBlock { [one] in _ = try? await Self.call(one, "tab.close", ["tab_id": moved]) }
         try await poll("the pane in the new tab") { () async throws -> Bool? in
             try await order(moved) == [pane] ? true : nil
         }
@@ -202,6 +204,17 @@ extension OrielUITests {
             keepScreenshot(screenshot)
         }
         entry.click()
+    }
+
+    /// `pane.swap` moves herdr's focus to the swapped pane (herdr 0.9.5 ignores `focus:false` there), and the app
+    /// opens on herdr's focused workspace and tab. After the test, a swap of w1:p1 with w1:p2 and back puts the
+    /// focus on w1:t1 and w1:p1 again, where the other tests expect it, without a focus call.
+    func restoreHerdrFocusAfter() {
+        addTeardownBlock { [one] in
+            for _ in 0 ..< 2 {
+                _ = try? await Self.call(one, "pane.swap", ["source_pane_id": "w1:p1", "target_pane_id": "w1:p2"])
+            }
+        }
     }
 
     func root(_ tab: String) async throws -> [String: Any] {

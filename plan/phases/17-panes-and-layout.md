@@ -183,6 +183,10 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
   a path that ends at a pane fails `split_not_found`; herdr clamps to 0.1–0.9 itself. `pane.resize {direction,
   amount}` moves the nearest divider that way (right and down raise the ratio; `changed:false, reason:"unchanged"`
   with none). `pane.neighbor` returns `neighbor_pane_id`, left out when there is none. `pane.swap {pane_id,
-  direction}` and `pane.move` keep herdr's focus with `focus:false`; `pane.rename {label: null}` clears a label.
+  direction}` moves herdr's focus to the swapped pane's tab, `focus:false` or not (the snapshot's
+  `focused_workspace_id` followed a swap in w2); `pane.move` keeps it with `focus:false`; `pane.rename {label:
+  null}` clears a label. So Split Left / Up and Move Pane move herdr's focus, as drag swaps already did (accepted
+  in talking-to-herdr). The swapping tests swap w1:p1 and w1:p2 there and back in teardown, so the next launch
+  opens on w1:t1 again without a focus call: after one swap test, the next test's app opened on w2.
 - **The keyboard card stays after a re-activation** (the phase 12 lead): the fade test opens a second window,
   closes it, and window 1's card is still the keyboard card at 100 %. Not reproduced otherwise.

@@ -31,7 +31,8 @@ public protocol Multiplexer: Sendable {
 
     /// Actions. None moves the multiplexer's focus.
     func split(_ paneID: String, _ direction: SplitNode.Direction) async throws -> Pane?
-    /// Swaps the pane with its nearest neighbor that way, in the same tab.
+    /// Swaps the pane with its nearest neighbor that way, in the same tab. Moves herdr's focus to that tab (herdr
+    /// 0.9.5 has no way around it).
     func swap(_ paneID: String, _ heading: Heading) async throws
     /// Moves the nearest divider that way by `amount` of its split.
     func resize(_ paneID: String, _ heading: Heading, amount: Double) async throws
@@ -87,8 +88,8 @@ extension HerdrClient: Multiplexer {
     }
 
     public nonisolated func swap(_ paneID: String, _ heading: Heading) async throws {
-        let _: Created = try await call("pane.swap", ["pane_id": paneID, "direction": heading.rawValue,
-                                                      "focus": false])
+        // herdr 0.9.5 focuses the swapped pane's tab whatever `focus` says.
+        let _: Created = try await call("pane.swap", ["pane_id": paneID, "direction": heading.rawValue])
     }
 
     public nonisolated func resize(_ paneID: String, _ heading: Heading, amount: Double) async throws {
