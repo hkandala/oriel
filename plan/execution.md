@@ -230,6 +230,20 @@ test`. Pass only when every item is done and every check is green."
 > report to it at 2 hours. When done, reply with the step 9 report, including which reviewers were a must
 > and which added little, and your top 3 lessons for speed.
 
+## After phase 22: final review and report (user's request)
+
+1. **Final whole-repo review**, read only, in parallel: a ponytail reviewer (unneeded complexity,
+   duplication, dead code, abstractions, over-long files), a bugs and edge cases reviewer (races, leaks,
+   error paths, herdr safety rules, multi-window and restore cases), and a spec reviewer (the app against
+   `plan/ui-layout.md`, `plan/ui-polish.md` and the design pages; docs against the code). Each reports a
+   numbered list with file:line, severity and the fix.
+2. **Fix** every blocker and should with one fixer agent (small commits, CI green), nits fixed or
+   answered; a second short round only for the reviewers whose blockers or shoulds were fixed.
+3. **Metrics dashboard** from `plan/metrics/*.json` and git/CI data: time per phase, commits and lines,
+   review agents and rounds, minutes and value per reviewer role, GUI-lock minutes, CI runs; one HTML page
+   (`resources/metrics/dashboard.html`, no external assets) plus a short summary of which reviews were a
+   must. Then report to the user with the "For the user to check at the end" list.
+
 ## Decisions without the user
 
 The user is not asked during phases 10–21. The orchestrator decides open questions from the design and the
@@ -282,3 +296,5 @@ here what the user should check at the end.
 | 19 | phase19-hover-card | done | 18 commits, 2 rounds, 2h08m, mostly CI |
 | 20 | | not started | |
 | 21 | | not started | |
+| 22 | | not started | |
+| Final review | | not started | |

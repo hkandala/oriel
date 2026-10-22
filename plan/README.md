@@ -148,6 +148,7 @@ The full list of what is built and what is left out, feature by feature, is
 | 19 | Hover card and tooltips | [phases/19-hover-card.md](phases/19-hover-card.md) |
 | 20 | Command palette and the key map | [phases/20-palette-and-keys.md](phases/20-palette-and-keys.md) |
 | 21 | Find, links, states and finish | [phases/21-find-and-finish.md](phases/21-find-and-finish.md) |
+| 22 | Visual match with Rex | [phases/22-visual-match.md](phases/22-visual-match.md) |
 
 The phases run in this order, one implementer at a time ([rules.md](rules.md)); each builds on the
 tokens and views of the ones before.
