@@ -75,8 +75,7 @@
             $0.withCustom("macos-option-as-alt", "false")
         }
 
-        /// Bigger or Smaller. From the stored value, not a view's copy: SwiftUI keeps a keyboard shortcut's first
-        /// action, whose `@AppStorage` copy then lags (⌘= added to the size it last set itself).
+        /// Bigger or Smaller, from the stored value: the ⌘= key monitor in `OrielApp.init` has no `@AppStorage`.
         static func stepFontSize(_ step: Int) {
             let defaults = UserDefaults.standard
             let size = clamped(defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step
