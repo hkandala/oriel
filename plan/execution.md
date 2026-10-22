@@ -32,7 +32,7 @@ for a small phase. The budget per phase:
   `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB`,
   `gh run list --workflow ci.yml --event workflow_dispatch --limit 1` for the id, `gh run watch <id>`. Such a run
   skips lint, build and HerdrKit tests, and never cancels a push run or another dispatch. On failure:
-  `gh run download <id> -n e2e-xcresult`, then `xcrun xcresulttool` and ffmpeg on the recording (plan/ci.md).
+  `gh run download <id> -n e2e-xcresult-0`, then `xcrun xcresulttool` and ffmpeg on the recording (plan/ci.md).
   Locally the same is `make e2e ONLY=…`. The full suite still runs on the phase's last code push.
 - When the user pauses GUI work, the orchestrator holds `/tmp/oriel-gui.lock` with owner "user". Nobody
   removes or works around it; agents keep building, testing without GUI and pushing (CI runs e2e).
@@ -65,7 +65,7 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    first rough version before it polishes or tests it. Phases 13, 14, 15 and 19 do this.
 6. **Time box.** A phase reports to the orchestrator when it passes 2 hours, with what is left.
 7. **Read the CI result first.** Before guessing at a CI-only failure, open the failing step and its values
-   in the CI result bundle (`gh run download <id> -n e2e-xcresult`). CI's display is 1x: tests on grid
+   in the CI result bundle (`gh run download <id> -p 'e2e-xcresult-*'`, one per shard). CI's display is 1x: tests on grid
    sizes allow rounding. Avoid ⌥⇧ chords in tests (global hotkeys of other apps take them).
 8. **Build the parts that cannot change first.** Menus, keys, defaults and herdr calls before the look of a
    new view; the look is the part most likely to change after the screenshot.

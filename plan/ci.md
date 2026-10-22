@@ -28,7 +28,7 @@ Findings from the `ci` runs of 2026-10-21 and 22 (40 runs: 17 green, 12 red, 11 
 
 ## Keeping CI green
 
-- A test that fails only on CI: read the xcresult first (`gh run download <id> -n e2e-xcresult`,
+- A test that fails only on CI: read the xcresult first (`gh run download <id> -p 'e2e-xcresult-*'`, one per shard,
   `xcrun xcresulttool get test-results tests|activities --path …`, `xcresulttool export attachments` for
   the screen recording; `ffmpeg -ss <s> -frames:v 1` gets a frame). The activity times and the video
   say which step and what the window showed; guessing costs runs.
