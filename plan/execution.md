@@ -208,6 +208,9 @@ here what the user should check at the end.
   lighter than the window until phase 17's fade.
 - Phase 11: the Settings window is dropped for now (comes back after its mock-ups). ⌘= (second Bigger key)
   has no CI test; try it by hand. Phase 11's osascript keys may have landed in your browser or Raycast.
+- Phase 13: the machine menu has no icons (macOS 27 draws no item images in app menus). A tab renamed
+  to only digits shows the program title (herdr's default labels are digits). Tab status glyphs come back
+  in phase 15.
 - The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
   at Glass Dark.
 
@@ -218,7 +221,7 @@ here what the user should check at the end.
 | 10 | phase10-appearance | done | 25 commits, 4 rounds, 2h12m; verifier never found anything |
 | 11 | phase11-settings | done | 44 commits, 4 rounds, ~3h40m; Settings window dropped by the user; ~85 min GUI lock |
 | 12 | phase12-program-icons | done | 16 commits, 3 rounds, 1h07m, ~20 min GUI lock |
-| 13 | | not started | |
+| 13 | phase13-title-row | done | 15 commits, 3 rounds, 1h55m, ~35 min GUI lock |
 | 14 | | not started | |
 | 15 | | not started | |
 | 16 | | not started | |

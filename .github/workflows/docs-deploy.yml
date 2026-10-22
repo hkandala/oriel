@@ -27,6 +27,11 @@ jobs:
     env:
       PROD: ${{ github.ref == 'refs/heads/main' }}
     steps:
+      # Vercel's free plan allows 100 deploys a day. Wait, so a burst of docs pushes (a phase's commits)
+      # ends in one deploy: a newer push cancels this run (cancel-in-progress).
+      - name: wait for more pushes
+        if: env.PROD == 'true' && github.event_name == 'push'
+        run: sleep 900
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
