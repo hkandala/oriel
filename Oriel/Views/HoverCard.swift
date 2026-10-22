@@ -11,8 +11,9 @@
         /// Under the Agents button, the trailing edges lined up.
         static let underTrailing = PanelPlace(trigger: .bottomTrailing, panel: .topTrailing,
                                               offset: CGSize(width: 0, height: 4))
-        /// Centered 6 pt under the title row, which ends 3 pt below a tab capsule.
-        static let under = PanelPlace(trigger: .bottom, panel: .top, offset: CGSize(width: 0, height: 9))
+        /// Centered under a tab capsule, 6 pt below the title row.
+        static let under = PanelPlace(trigger: .bottom, panel: .top,
+                                      offset: CGSize(width: 0, height: (TitleBar.height - TabBar.height) / 2 + 6))
         /// Right of an Agents view row, 6 pt from the sidebar's edge. ponytail: mirrors the Agents list's 8 pt padding
         /// and the sidebar's 6 pt width handle between the row and the edge; anchor on the sidebar if either changes.
         static let beside = PanelPlace(trigger: .topTrailing, panel: .topLeading,
@@ -35,6 +36,7 @@
         /// trigger clips it, and there is one at a time.
         func hoverPanelHost() -> some View {
             overlayPreferenceValue(OpenPanelKey.self) { open in
+                // Always here, so the panel is the view inserted and scales about its own edge, not the window's.
                 GeometryReader { proxy in
                     PanelLayout(trigger: open.map { proxy[$0.trigger] } ?? .zero, place: open?.place ?? .under) {
                         // In only: the panel would lose its place on the way out.
