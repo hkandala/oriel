@@ -67,7 +67,7 @@
                     Text("Classic").tag(InterfaceStyle.classic)
                 }
                 Divider()
-                // The text size (design: theme and accessibility); OrielApp's key monitor holds ⌘=.
+                // The text size (design: theme and accessibility); OrielApp's key monitor takes ⌘= and ⌘+.
                 Button("Bigger") { PaneTerminal.stepFontSize(1) }
                     .keyboardShortcut("+")
                     .disabled(fontSize >= PaneTerminal.fontSizes.upperBound)

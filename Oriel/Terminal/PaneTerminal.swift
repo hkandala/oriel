@@ -75,7 +75,7 @@
             $0.withCustom("macos-option-as-alt", "false")
         }
 
-        /// Bigger or Smaller, from the stored value: the ⌘= key monitor in `OrielApp.init` has no `@AppStorage`.
+        /// Bigger or Smaller, from the stored value: the key monitor in `OrielApp.init` has no `@AppStorage`.
         static func stepFontSize(_ step: Int) {
             let defaults = UserDefaults.standard
             let size = clamped(defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step
