@@ -104,7 +104,9 @@
             {
                 // ⌃⌘F: AppKit's window toggles full screen only for keys no view takes; libghostty takes all.
                 window?.toggleFullScreen(nil)
-            } else {
+            } else if !event.modifierFlags.contains(.command) {
+                // A ⌘ key no menu item took (a disabled one, such as ⌘0 at the default size, or ⌘9 without a
+                // ninth tab) goes nowhere: libghostty, with no key bindings, would type its character.
                 super.keyDown(with: event)
             }
         }
