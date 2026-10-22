@@ -152,22 +152,25 @@
             let store = page.store
             return HStack(spacing: 2) {
                 if !zoomed {
-                    IconButton(symbol: "rectangle.split.2x1", help: "Split Right", size: 22) {
+                    IconButton(symbol: "rectangle.split.2x1", help: "Split Right", key: .splitRight, size: 22) {
                         Task { await page.split(id, .right) }
                     }
                     .accessibilityIdentifier("pane.\(id).split-right")
-                    IconButton(symbol: "rectangle.split.1x2", help: "Split Down", size: 22) {
+                    IconButton(symbol: "rectangle.split.1x2", help: "Split Down", key: .splitDown, size: 22) {
                         Task { await page.split(id, .down) }
                     }
                     .accessibilityIdentifier("pane.\(id).split-down")
                 }
                 IconButton(symbol: zoomed ? "arrow.down.right.and.arrow.up.left"
-                    : "arrow.up.left.and.arrow.down.right", help: zoomed ? "Restore" : "Zoom", size: 22,
+                    : "arrow.up.left.and.arrow.down.right", help: zoomed ? "Restore Pane" : "Zoom Pane", key: .zoom,
+                    size: 22,
                     accent: zoomed) { page.zoom(id) }
                     .accessibilityIdentifier("pane.\(id).zoom")
                     .disabled(!page.canZoom(id))
-                IconButton(symbol: "xmark", help: "Close", size: 22) { Task { await store.close(pane: id) } }
-                    .accessibilityIdentifier("pane.\(id).close")
+                IconButton(symbol: "xmark", help: "Close Pane", key: .closePane, size: 22) {
+                    Task { await store.close(pane: id) }
+                }
+                .accessibilityIdentifier("pane.\(id).close")
             }
             .disabled(store.writing)
         }

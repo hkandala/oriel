@@ -168,7 +168,7 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(first).zoom").wait(for: \.isEnabled, toEqual: true, timeout: 2))
         element("pane.\(first).zoom").click()
         XCTAssertTrue(element("pane.\(second)").waitForNonExistence(timeout: 2))
-        XCTAssertEqual(element("pane.\(first).zoom").label, "Restore")
+        XCTAssertEqual(element("pane.\(first).zoom").label, "Restore Pane ⇧⌘↩")
         XCTAssertTrue(element("pane.\(first).close").exists)
         XCTAssertFalse(element("pane.\(first).split-right").exists)
         XCTAssertFalse(element("pane.\(first).split-down").exists)
@@ -177,7 +177,7 @@ extension OrielUITests {
         // Its neighbor gone, the card is alone: the zoom ends.
         try await Self.call(one, "pane.close", ["pane_id": second])
         XCTAssertTrue(element("pane.\(first).split-right").waitForExistence(timeout: 3))
-        XCTAssertEqual(element("pane.\(first).zoom").label, "Zoom")
+        XCTAssertEqual(element("pane.\(first).zoom").label, "Zoom Pane ⇧⌘↩")
         XCTAssertFalse(element("pane.\(first).zoom").isEnabled)
     }
 

@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 /// The gap between cards, the one fixed size.
-let gap: CGFloat = 8
+nonisolated let gap: CGFloat = 8
 
 extension Animation {
     /// Rex's tab spring (stiffness 520, damping 46, critically damped).
@@ -333,16 +333,19 @@ struct FadeText: View {
     }
 }
 
-/// An SF Symbol button for the title bar, the sidebar and card headers.
+/// An SF Symbol button for the title bar, the sidebar and card headers. Its tooltip and VoiceOver label say the action
+/// and its shortcut ("New Tab ⌘T").
 struct IconButton: View {
     let symbol: String
     let help: String
+    var key: KeyboardShortcut?
     var size: CGFloat = 28
     /// White on an accent circle (a zoomed card's Restore).
     var accent = false
     let action: () -> Void
 
     var body: some View {
+        let help = key.map { "\(help) \($0.glyphs)" } ?? help
         Button(action: action) {
             Image(systemName: symbol)
                 .fontWeight(.medium)

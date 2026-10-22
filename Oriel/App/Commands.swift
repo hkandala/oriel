@@ -1,6 +1,26 @@
+import SwiftUI
+
+/// The shortcuts the menu bar and the chrome buttons' tooltips share.
+extension KeyboardShortcut {
+    static let newTab = KeyboardShortcut("t")
+    static let openSession = KeyboardShortcut("n", modifiers: [.command, .shift])
+    static let toggleSidebar = KeyboardShortcut("s", modifiers: [.command, .control])
+    static let palette = KeyboardShortcut("k")
+    static let splitRight = KeyboardShortcut("d")
+    static let splitDown = KeyboardShortcut("d", modifiers: [.command, .shift])
+    static let zoom = KeyboardShortcut(.return, modifiers: [.command, .shift])
+    static let closePane = KeyboardShortcut("w")
+
+    /// As the menu bar draws it: "⇧⌘N".
+    var glyphs: String {
+        let modifiers: [(EventModifiers, String)] = [(.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")]
+        return modifiers.filter { self.modifiers.contains($0.0) }.map(\.1).joined()
+            + (key == .return ? "↩" : String(key.character).uppercased())
+    }
+}
+
 #if os(macOS)
     import HerdrKit
-    import SwiftUI
 
     extension FocusedValues {
         /// The window's page in view, for the menu commands.
@@ -73,15 +93,15 @@
             let tabs = page?.selectedWorkspace?.tabs ?? []
             return [
                 Command(section: .file, title: "New Window", key: .init("n")) { openWindow(id: "main") },
-                Command(section: .file, title: "New Tab", key: .init("t"), enabled: page?.selectedWorkspace != nil) {
+                Command(section: .file, title: "New Tab", key: .newTab, enabled: page?.selectedWorkspace != nil) {
                     Task { await page?.newTab() }
                 },
-                Command(section: .file, title: "Open Session…", key: .init("n", modifiers: [.command, .shift]),
+                Command(section: .file, title: "Open Session…", key: .openSession,
                         enabled: openSession != nil) { openSession = true },
                 Command(section: .close, title: "Close Window", key: .init("w", modifiers: [.command, .shift])) {
                     NSApp.keyWindow?.performClose(nil)
                 },
-                Command(section: .view, title: "Toggle Sidebar", key: .init("s", modifiers: [.command, .control]),
+                Command(section: .view, title: "Toggle Sidebar", key: .toggleSidebar,
                         enabled: sidebar != nil) { sidebar?.wrappedValue.toggle() },
                 Command(section: .view, title: "Show Agents", key: .init("."), enabled: agents != nil && sidebar != nil,
                         checked: agents?.wrappedValue == true && sidebar?.wrappedValue == true, action: {
@@ -89,7 +109,7 @@
                                 toggleAgents(agents, sidebar)
                             }
                         }),
-                Command(section: .view, title: "Command Palette", key: .init("k"), enabled: palette != nil) {
+                Command(section: .view, title: "Command Palette", key: .palette, enabled: palette != nil) {
                     palette?.toggle()
                 },
                 Command(section: .view, title: "Fade Inactive Panes", checked: fade) { fade.toggle() },
@@ -158,11 +178,11 @@
                 }
             }
             return [
-                act("Split Right", .init("d")) { await $0.split($1.id, .right) },
-                act("Split Down", .init("d", modifiers: [.command, .shift])) { await $0.split($1.id, .down) },
+                act("Split Right", .splitRight) { await $0.split($1.id, .right) },
+                act("Split Down", .splitDown) { await $0.split($1.id, .down) },
                 act("Split Left") { await $0.split($1.id, .right, before: true) },
                 act("Split Up") { await $0.split($1.id, .down, before: true) },
-                act(zoomed ? "Restore Pane" : "Zoom Pane", .init(.return, modifiers: [.command, .shift]),
+                act(zoomed ? "Restore Pane" : "Zoom Pane", .zoom,
                     enabled: pane.map { page?.canZoom($0.id) == true } ?? false) { $0.zoom($1.id) },
                 act("Move to New Tab", nil, .paneMove) { page, pane in
                     if let workspace = page.store.workspace(of: pane.tabID) {
@@ -176,7 +196,7 @@
                         }),
                 act("Move to New Workspace", nil, .paneMove) { await $0.move($1, to: .newWorkspace) },
                 act("Rename Pane…", nil, .paneMove) { $0.renamingPaneID = $1.id },
-                act("Close Pane", .init("w"), .close) { await $0.store.close(pane: $1.id) },
+                act("Close Pane", .closePane, .close) { await $0.store.close(pane: $1.id) },
             ]
         }
 

@@ -67,8 +67,13 @@
                     FilterField(prompt: "Filter", text: $filter, identifier: "sidebar.filter")
                         .onExitCommand { filter = "" }
                         .padding(.trailing, 4)
-                    IconButton(symbol: "plus.square.on.square", help: "Open Session ⇧⌘N", action: openSession)
-                        .accessibilityIdentifier("sidebar.open-session")
+                    IconButton(
+                        symbol: "plus.square.on.square",
+                        help: "Open Session",
+                        key: .openSession,
+                        action: openSession,
+                    )
+                    .accessibilityIdentifier("sidebar.open-session")
                 }
                 .padding(8)
             }
