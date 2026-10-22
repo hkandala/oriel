@@ -184,8 +184,13 @@ extension OrielUITests {
             }
             try await Task.sleep(for: .milliseconds(100))
         }
-        XCTFail("waited for \(what)")
-        throw CancellationError()
+        // A throw, not XCTFail: XCTFail in async code stops the test inside the main actor's job, where its async
+        // teardown blocks wait for the main actor until the 2-minute allowance runs out.
+        throw Waited(description: "waited for \(what)")
+    }
+
+    struct Waited: Error, CustomStringConvertible {
+        let description: String
     }
 
     /// Shows a card's header buttons. Over the header, not the card's center: SwiftUI does not see the
