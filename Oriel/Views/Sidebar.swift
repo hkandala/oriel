@@ -90,9 +90,17 @@
             let store = page.store
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text(agents == nil ? page.id : "\(page.id) · agents").font(.system(size: 11))
-                        .foregroundStyle(.secondary).lineLimit(1)
-                        .accessibilityIdentifier("sidebar.header")
+                    // A long session name gives way in its middle; " · agents" stays.
+                    HStack(spacing: 0) {
+                        Text(page.id).truncationMode(.middle)
+                        if agents != nil {
+                            Text(" · agents").fixedSize()
+                        }
+                    }
+                    .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    .accessibilityElement(children: .ignore).accessibilityAddTraits(.isStaticText)
+                    .accessibilityValue(agents == nil ? page.id : "\(page.id) · agents")
+                    .accessibilityIdentifier("sidebar.header")
                     Spacer()
                     if let agents {
                         SortMenu(sort: agents)

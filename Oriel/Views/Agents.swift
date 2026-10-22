@@ -309,8 +309,9 @@ struct StatusBadge: View {
                                 hovered()
                             }
                             .fixedSize()
-                            // Its top on the trigger's bottom.
-                            .alignmentGuide(.bottom) { $0[.top] - 4 }
+                            // Hangs from the trigger's bottom.
+                            .offset(y: 4)
+                            .frame(height: 0, alignment: .top)
                     }
                 }
                 .onDisappear { show(false) }

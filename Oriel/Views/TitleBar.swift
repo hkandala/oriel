@@ -58,9 +58,9 @@
             .padding(.leading, Self.inset(fullScreen: fullScreen))
             .padding(.trailing, gap)
             .frame(height: Self.height)
-            .contentShape(.rect)
-            // The title bar is hidden, so the row's empty space moves the window.
-            .gesture(WindowDragGesture())
+            // The title bar is hidden, so the row's empty space moves the window. Behind the row, not a content shape
+            // on it: that would cut off the Agents button's panel hanging below.
+            .background { Color.clear.contentShape(.rect).gesture(WindowDragGesture()) }
         }
     }
 
@@ -86,17 +86,24 @@
         var body: some View {
             let waiting = page.store.panes.count { $0.state == .needsYou }
             Button(action: toggle) {
-                Image(systemName: "bubble.left.and.bubble.right")
-                    // ponytail: rough; the custom symbol with only the front bubble filled comes next.
-                    .symbolVariant(showing ? .fill : .none)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
-                    .overlay(alignment: .topTrailing) {
-                        if waiting > 0 {
-                            Circle().fill(look.needsYou).frame(width: 7, height: 7).offset(x: 3, y: -2)
-                        }
+                // The front bubble filled: the `.fill` symbol's front layer alone over the outline (`.fill` fills
+                // both).
+                // Both line up at their bottoms.
+                ZStack(alignment: .bottom) {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                    if showing {
+                        Image(systemName: "bubble.left.and.bubble.right.fill").symbolRenderingMode(.palette)
+                            .foregroundStyle(HierarchicalShapeStyle.secondary, Color.clear)
                     }
-                    .frame(width: 28, height: 28)
+                }
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+                .overlay(alignment: .topTrailing) {
+                    if waiting > 0 {
+                        Circle().fill(look.needsYou).frame(width: 7, height: 7).offset(x: 3, y: -2)
+                    }
+                }
+                .frame(width: 28, height: 28)
             }
             .buttonStyle(ChromeStyle(radius: 7))
             .accessibilityLabel("Agents")

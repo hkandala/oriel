@@ -249,6 +249,8 @@
             .overlay(alignment: .trailing) {
                 if working, !hovering || renaming || width < 52 {
                     WorkingDots().padding(.trailing, 10)
+                        .accessibilityElement().accessibilityLabel("working")
+                        .accessibilityIdentifier("tab.\(tab.id).working")
                 }
             }
             .overlay(alignment: .trailing) {
