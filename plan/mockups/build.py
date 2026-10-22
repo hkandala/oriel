@@ -48,11 +48,29 @@ UI.update({
     "wand": '<path d="M14.6 6.6l2.8 2.8L6.8 20 4 17.2zM17 2l.8 2.2L20 5l-2.2.8L17 8l-.8-2.2L14 5l2.2-.8zM20.5 9l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6zM10 2.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4L8 4.5l1.4-.6z"/>',
     "stackperson": '<path d="M6 2h12v2H6zM4 5h16v2H4zm-1 3h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zm9 2.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM7.5 19h9c0-2.2-2-3.5-4.5-3.5S7.5 16.8 7.5 19z"/>',
 })
-AGENT_ICON = "sparkles"
 UI["sparkles"] = UI["agents"]
+# Outline (stroked) glyphs.
+UIO = {
+    "bubbles": '<path d="M4 4.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8.5L5 16v-2.5H4A1.5 1.5 0 0 1 2.5 12V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M15.5 8.5H20A1.5 1.5 0 0 1 21.5 10v6a1.5 1.5 0 0 1-1.5 1.5h-1V20l-3.5-2.5H11a1.5 1.5 0 0 1-1.5-1.5v-2.5"/>',
+    "folder": '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2h8.8A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>',
+    "squarestack": '<rect x="7.5" y="3.5" width="13" height="13" rx="2"/><path d="M16.5 20.5h-11a2 2 0 0 1-2-2v-11"/>',
+    "rect3": '<rect x="3.5" y="4" width="17" height="6" rx="1.5"/><rect x="3.5" y="14" width="7.5" height="6" rx="1.5"/><rect x="13" y="14" width="7.5" height="6" rx="1.5"/>',
+    "tray": '<path d="M3.5 13.5l2.4-7.3A1.5 1.5 0 0 1 7.3 5h9.4a1.5 1.5 0 0 1 1.4 1.2l2.4 7.3v5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M3.5 13.5h5l1 2h5l1-2h5"/>',
+    "grid": '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+    "briefcase": '<rect x="3" y="7" width="18" height="12.5" rx="2"/><path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7M3 12.5h18"/>',
+    "cube": '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+    "sidebarclosed": '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M9 4.5v15"/>',
+    "sidebaropen": '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M9 4.5v15"/><path d="M5.6 4.5H9v15H5.6A2.6 2.6 0 0 1 3 16.9V7.1a2.6 2.6 0 0 1 2.6-2.6z" fill="currentColor"/>',
+    "bubblesfill": '<path fill="currentColor" d="M4 4.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8.5L5 16v-2.5H4A1.5 1.5 0 0 1 2.5 12V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M15.5 8.5H20A1.5 1.5 0 0 1 21.5 10v6a1.5 1.5 0 0 1-1.5 1.5h-1V20l-3.5-2.5H11a1.5 1.5 0 0 1-1.5-1.5v-2.5"/>',
+    "sidebarlist": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1.5M5.5 11h1.5M5.5 14h1.5"/>',
+}
+AGENT_ICON = "o:bubbles"
 
 
 def ui(name, cls="ic"):
+    if name.startswith("o:"):
+        return (f'<svg class="{cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" '
+                f'stroke-linecap="round" stroke-linejoin="round">{UIO[name[2:]]}</svg>')
     return f'<svg class="{cls}" viewBox="0 0 24 24" fill="currentColor">{UI[name]}</svg>'
 
 
@@ -158,19 +176,25 @@ def tabbar():
 
 
 def agents_button(on, icon=None):
-    return (f'<span class="btn{" on" if on else ""}" title="Agents ⌘.">{ui(icon or AGENT_ICON)}'
+    glyph_name = icon or ("o:bubblesfill" if on else AGENT_ICON)
+    return (f'<span class="btn" title="Agents ⌘.">{ui(glyph_name)}'
             f'<span class="ebadge amber"></span></span>')
 
 
-def title_row(sidebar_open, agents_view, machine_icon="laptop", session="default"):
+def ws_label(session, name, style):
+    sep = '<span class="psep2">·</span>' if style == "dot" else '<span class="pbar"></span>'
+    return f'<span class="dim">{session}</span>{sep}<span>{name}</span>'
+
+
+def title_row(sidebar_open, agents_view, machine_icon="laptop", session="default", style="dot", ws_icon="o:folder"):
     machine = (f'<span class="pick icononly" title="Machine (⌥-click: open in a new window)">{ui(machine_icon)}'
                f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
     workspace = ("" if sidebar_open else
-                 f'<span class="pick two" title="Workspace">{ui("folder", "ic sm")}'
-                 f'<span class="pcol"><span class="pname">oriel</span><span class="psub">{session}</span></span>'
+                 f'<span class="pick" title="Workspace">{ui(ws_icon)}'
+                 f'<span class="pname">{ws_label(session, "oriel", style)}</span>'
                  f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
     return (f'<div class="titlerow">{traffic()}'
-            f'<span class="btn{" on" if sidebar_open else ""}" title="Toggle Sidebar ⌃⌘S">{ui("sidebar")}</span>'
+            f'<span class="btn" title="Toggle Sidebar ⌃⌘S">{ui("o:sidebaropen" if sidebar_open else "o:sidebarclosed")}</span>'
             f'{machine}{workspace}{tabbar()}<span class="spacer"></span>{agents_button(agents_view)}'
             f'<span class="btn" title="Command Palette ⌘K">{ui("cmd")}</span>'
             f'<span class="btn" title="New Tab ⌘T">{ui("plus")}</span></div>')
@@ -183,8 +207,6 @@ def git_line(branch, ahead, behind, changed):
                                   f'<span class="behind">↓{behind}</span>' if behind else ""] if x)
     if counts:
         parts.append(counts)
-    if changed:
-        parts.append(f'<span class="changed">{changed} changed</span>')
     return f'<span class="l2">{" · ".join(parts)}</span>'
 
 
@@ -212,7 +234,7 @@ def page(session):
 
 def footer():
     return (f'<div class="foot"><span class="filter">{ui("filter", "ic xs")} Filter</span>'
-            f'<span class="sbtn" title="New Session ⇧⌘N">{ui("plusstack", "ic sm")}</span></div>')
+            f'<span class="sbtn" title="New or Open Session… ⇧⌘N">{ui("plusstack", "ic sm")}</span></div>')
 
 
 def sidebar_workspaces(session="default"):
@@ -273,35 +295,46 @@ def machine_menu():
     rows = [f'<div class="prow{" cur" if cur else ""}"><span class="mi">{ui(icon)}</span>{name}'
             f'{"<span class=kb>" + ui("check", "ic xs") + "</span>" if cur else ""}</div>'
             for name, icon, cur in MACHINES]
-    sub = "".join(f'<div class="prow">{s}</div>' for s in STOPPED)
     return (f'<div class="popup mach">{"".join(rows)}<div class="psep"></div>'
-            f'<div class="prow hov"><span class="mi">{ui("plusstack")}</span>Open Stopped Session'
-            f'<span class="kb">▸</span></div>'
-            f'<div class="prow"><span class="mi">{ui("plus")}</span>Add Remote Host…</div></div>'
-            f'<div class="popup submenu">{sub}</div>')
+            f'<div class="prow"><span class="mi">{ui("plus")}</span>Add Remote Host…</div></div>')
 
 
-def workspace_menu():
+def workspace_menu(style="dot"):
     rows = ['<div class="pfilter">Filter or create…</div>']
     for session, wss in SESSIONS.items():
         for name, status, branch, *_rest in wss:
             cur = session == "default" and name == SELECTED_WS
-            sub = f'{session}{" · " + branch if branch else ""}'
-            rows.append(f'<div class="prow two{" cur" if cur else ""}"><span class="sicon">{state_icon(status)}</span>'
-                        f'<span class="pcol"><span>{name}</span><span class="psub">{sub}</span></span></div>')
+            git = f'<span class="kb">{branch}</span>' if branch else ""
+            rows.append(f'<div class="prow{" cur" if cur else ""}"><span class="sicon">{state_icon(status)}</span>'
+                        f'<span class="plabel">{ws_label(session, name, style)}</span>{git}</div>')
     rows.append(f'<div class="psep"></div><div class="prow"><span class="mi">{ui("plus")}</span>New Workspace</div>'
-                f'<div class="prow"><span class="mi">{ui("plusstack")}</span>New Session<span class="kb">⇧⌘N</span></div>')
+                f'<div class="prow"><span class="mi">{ui("plusstack")}</span>New or Open Session…'
+                f'<span class="kb">⇧⌘N</span></div>')
     return f'<div class="popup wsm">{"".join(rows)}</div>'
 
 
+def session_sheet():
+    running = [s for s in SESSIONS]
+    rows = "".join(f'<div class="prow{" cur" if i == 0 else ""}"><span class="mi">{ui("plusstack")}</span>{name}'
+                   f'<span class="kb">stopped</span></div>' for i, name in enumerate(STOPPED))
+    run = "".join(f'<div class="prow"><span class="mi">{ui("check", "ic xs")}</span>{name}<span class="kb">running</span></div>'
+                  for name in running)
+    return ('<div class="sheet wide"><div class="stitle">New or Open Session</div>'
+            '<div class="field big">pi<span class="caretbar"></span><span class="hint">Type a name, or pick a session below</span></div>'
+            f'<div class="slist"><div class="pg">Stopped</div>{rows}<div class="pg">Running</div>{run}</div>'
+            '<div class="sbtns"><span class="note">Enter on a stopped session starts it. A new name makes a new session.</span>'
+            '<span class="bt">Cancel</span><span class="bt primary">Open</span></div></div>')
+
+
 # ---------------------------------------------------------------- windows
-def window(sidebar=None, popup=None, session="default", machine_icon="laptop", watching=False, agents=False):
+def window(sidebar=None, popup=None, session="default", machine_icon="laptop", watching=False, agents=False,
+           style="dot", ws_icon="o:folder"):
     side = ""
     if sidebar == "ws":
         side = sidebar_workspaces(session)
     elif sidebar == "agents":
         side = sidebar_agents(session)
-    return (f'<div class="win">{title_row(sidebar is not None, agents or sidebar == "agents", machine_icon, session)}'
+    return (f'<div class="win">{title_row(sidebar is not None, agents or sidebar == "agents", machine_icon, session, style, ws_icon)}'
             f'<div class="content">{side}{strip(watching)}</div>{popup or ""}</div>')
 
 
@@ -310,49 +343,71 @@ def pair(left, right, l1, l2):
             f'<div class="mini">{right}<div class="mlabel">{l2}</div></div></div>')
 
 
-def icon_options():
-    names = [("sparkles", "Sparkles"), ("robot", "Robot"), ("people", "People"), ("statuslist", "Status list"),
-             ("bubbles", "Chat bubbles"), ("pulse", "Pulse"), ("wand", "Wand"), ("stackperson", "Stack with person")]
-    cells = "".join(f'<div class="opt"><div class="optbar"><span class="btn on">{ui(n)}<span class="ebadge amber">'
-                    f'</span></span><span class="btn">{ui(n)}</span><span class="btn">{ui("cmd")}</span>'
-                    f'<span class="btn">{ui("plus")}</span></div><div class="optname">{i + 1}. {label}</div></div>'
-                    for i, (n, label) in enumerate(names))
-    return f'<div class="opts">{cells}</div>'
+def title_snippet(inner):
+    return f'<div class="snip"><div class="titlerow">{traffic()}{inner}</div></div>'
+
+
+def label_options():
+    cells = []
+    for style, name in (("dot", "Dot: default · oriel"), ("line", "Line: default | oriel")):
+        btn = (f'<span class="btn">{ui("o:sidebarclosed")}</span><span class="pick icononly">{ui("laptop")}'
+               f'<span class="caret">{ui("chev", "ic xs")}</span></span><span class="pick">{ui("o:folder")}'
+               f'<span class="pname">{ws_label("default", "oriel", style)}</span><span class="caret">'
+               f'{ui("chev", "ic xs")}</span></span>')
+        cells.append(f'<div class="opt">{title_snippet(btn)}<div class="optname">{name}</div></div>')
+    return f'<div class="opts two">{"".join(cells)}</div>'
+
+
+def ws_icon_options():
+    names = [("o:folder", "Folder"), ("o:squarestack", "Square stack"), ("o:rect3", "Three panels"), ("o:tray", "Tray"),
+             ("o:grid", "Grid"), ("o:briefcase", "Briefcase"), ("o:cube", "Cube"), ("o:sidebarlist", "Sidebar list")]
+    cells = []
+    for i, (n, label) in enumerate(names):
+        btn = (f'<span class="pick icononly">{ui("laptop")}<span class="caret">{ui("chev", "ic xs")}</span></span>'
+               f'<span class="pick">{ui(n)}<span class="pname">{ws_label("default", "oriel", "dot")}</span>'
+               f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
+        cells.append(f'<div class="opt">{title_snippet(btn)}<div class="optname">{i + 1}. {label}</div></div>')
+    return f'<div class="opts">{"".join(cells)}</div>'
 
 
 SCENES = [
     ("A", "Sidebar open: workspaces of one session",
-     "Title row: sidebar toggle, the machine (icon only), the selected workspace's tabs (always in the title "
-     "row), and on the right the Agents toggle, ⌘ and +. The sidebar lists the workspaces of one herdr session, "
-     "like herdr: state icon and name, then the git branch, ahead and behind counts and the number of changed "
-     "files. A workspace that is not a git repository shows one line. oriel-rex-ui is a git worktree of the "
-     "oriel repository: herdr groups a linked worktree's workspace under the workspace it came from, so it is "
-     "indented under oriel. The footer has only the filter and New Session. A sideways swipe on the strip "
-     "pages through the tabs; a sideways swipe on the sidebar changes the session.", window("ws")),
+     "Title row: sidebar toggle (its icon shows the panel filled while the sidebar is open; no highlight), the machine (icon only), the selected workspace's tabs (always in the title "
+     "row), and on the right the Agents toggle (outline chat bubbles), ⌘ and +. The sidebar lists the "
+     "workspaces of one herdr session, like herdr: state icon and name, then the git branch with ahead and "
+     "behind counts. A workspace that is not a git repository shows one line. oriel-rex-ui is a git worktree "
+     "of oriel, so it sits under oriel. The footer has the filter and New or Open Session. A sideways swipe on "
+     "the strip pages through the tabs; a sideways swipe on the sidebar changes the session.", window("ws")),
     ("B", "After a sideways swipe on the sidebar: the next session on this machine",
      "One sidebar page per running herdr session on the machine (here default and pi-herd), Arc style, with "
-     "page dots; a click on a dot also switches. The tabs in the title row belong to the selected workspace.",
-     window("ws", session="pi-herd")),
+     "page dots; a click on a dot also switches.", window("ws", session="pi-herd")),
     ("C", "Sidebar collapsed: only the tabs",
-     "A workspace button appears next to the machine, with the session name in small text under the workspace "
-     "name. The strip still pages sideways between the tabs.", window(None)),
-    ("D", "Sidebar collapsed, workspace menu open",
-     "Every workspace of every running session on this machine. Each row has the session (and branch) in small "
-     "text under the workspace name.", window(None, workspace_menu())),
+     "A workspace button appears next to the machine: session, then workspace, in one line (option 1: a dot). "
+     "The strip still pages sideways between the tabs.", window(None)),
+    ("C2", "Workspace button: label options",
+     "Pick one: a dot or a thin line between the session and the workspace.", label_options()),
+    ("C3", "Workspace button: icon options (outline)",
+     "Pick one. All are outline glyphs, like the other title-row icons.", ws_icon_options()),
+    ("D", "Workspace menu open (dot style)",
+     "Every workspace of every running session on this machine, as \u201csession · workspace\u201d, with the "
+     "branch on the right. New or Open Session opens the session sheet.", window(None, workspace_menu("dot"))),
+    ("D2", "Workspace menu open (line style)",
+     "The same menu with a thin line between the session and the workspace.",
+     window(None, workspace_menu("line"), style="line")),
     ("E", "Machine menu open",
      "Closed, the button shows only the machine's icon; open, the menu shows names. Picking a machine replaces "
-     "the window's sessions with that machine's; ⌥-click opens it in a new window instead (not shown in the "
-     "menu). Pages show only running sessions; Open Stopped Session lists the stopped ones and starts the one "
-     "you pick. Add Remote Host stays a placeholder until remote machines are built.",
+     "the window's sessions with that machine's; \u2325-click opens it in a new window instead (not shown in "
+     "the menu). Add Remote Host stays a placeholder until remote machines are built.",
      window("ws", machine_menu())),
-    ("F", "Agents view: the agents of this session",
-     "The Agents toggle (right side) turns the sidebar into a list of the agents of the session on this page: "
-     "one row per agent pane, even when a tab holds several. Sorted by priority (needs you, working, done, "
-     "idle) or by workspace order. Idle agents show by default. A sideways swipe shows the next session's "
-     "agents. A click opens that workspace, tab and pane.", window("agents")),
-    ("G", "Agents toggle: icon options",
-     "Pick one. Each option is shown on (left, with the needs-you badge) and off, next to ⌘ and +.",
-     icon_options()),
+    ("F", "New or Open Session sheet",
+     "The sidebar's New Session button and the workspace menu both open this sheet. Type a new name to make a "
+     "session, or pick a stopped session to start it (a running one just switches to its page). One sheet "
+     "replaces a separate Open Stopped Session item.", window("ws", session_sheet())),
+    ("G", "Agents view: the agents of this session",
+     "The Agents toggle (right side, outline chat bubbles) turns the sidebar into a list of the agents of the "
+     "session on this page: one row per agent pane, even when a tab holds several. Sorted by priority (needs "
+     "you, working, done, idle) or by workspace order. Idle agents show by default. A sideways swipe shows the "
+     "next session's agents. A click opens that workspace, tab and pane.", window("agents")),
     ("H", "Two windows, same machine, different sessions",
      "Each window shows one machine and controls the session on its page. Two windows on different sessions "
      "both control their own session.",

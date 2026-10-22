@@ -136,3 +136,14 @@ code { font: 12px ui-monospace, Menlo, monospace; }
 .opt { background: rgba(30,30,34,.9); border-radius: 12px; padding: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
 .optbar { display: flex; gap: 6px; } .optname { margin-top: 8px; color: #b9bcc4; font-size: 12px; }
 .opt .btn .ic { width: 17px; height: 17px; }
+.psep2 { margin: 0 5px; color: var(--dim); } .pbar { display: inline-block; width: 1px; height: 12px; background: rgba(255,255,255,.25); margin: 0 7px; vertical-align: -1px; }
+.pick .pname { font-weight: 500; } .plabel { flex: 1; }
+.snip { background: radial-gradient(600px 200px at 20% 0%, rgba(70,84,130,.3), transparent), #232327; border-radius: 10px; padding: 2px 0; }
+.opts.two { grid-template-columns: repeat(2, 1fr); max-width: 780px; }
+.sheet.wide { width: 420px; } .field.big { font-size: 14px; padding: 8px 10px; display: flex; align-items: center; }
+.caretbar { width: 1px; height: 16px; background: #fff; margin-left: 1px; } .hint { margin-left: auto; color: var(--dim); font-size: 11px; }
+.slist { margin-top: 10px; max-height: 230px; overflow: hidden; background: rgba(0,0,0,.15); border-radius: 8px; padding: 4px; }
+.note { margin-right: auto; color: var(--dim); font-size: 11px; max-width: 200px; line-height: 1.3; }
+.pick .pname { white-space: nowrap; }
+.opts { grid-template-columns: repeat(4, minmax(0, 1fr)); } .opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.snip { overflow: hidden; } .opt { min-width: 0; }
