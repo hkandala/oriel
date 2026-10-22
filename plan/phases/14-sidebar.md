@@ -263,6 +263,11 @@ the helper. Launch with `-ApplePersistenceIgnoreState YES`.
 - **`workspace.move {insert_index}`** inserts before the workspace now at the index (like `tab.move`).
   `workspace.move_block` without `before_workspace_id` moves the block last.
 
+- **Checked by hand** (E2E reviewer, round 1, mouse-only CGEvents): a sideways swipe over the sidebar pages
+  sessions and over the strip pages tabs, never both; each page keeps its selected tab; pages stay aligned after a
+  width drag. Screenshots: `/tmp/oriel-shots/14/final/` (light and dark: two pages, git rows with ↑1 ↓1 and a
+  worktree, the sheet with all four groups, the empty page).
+
 ### Assumptions
 
 - **Terminal ids do not repeat across sessions** (`term_` and 14 hex digits that follow the clock); the window's
