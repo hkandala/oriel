@@ -12,6 +12,14 @@ struct OrielApp: App {
             NSWindow.allowsAutomaticWindowTabbing = false
             // Before any surface exists, so none starts at libghostty's default size.
             PaneTerminal.setFontSize(fontSize)
+            // ⌘= is View ▸ Bigger's second key (a menu item shows one). A monitor, not an invisible button with
+            // the shortcut: on CI that button never got ⌘=.
+            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+                      event.charactersIgnoringModifiers == "=" else { return event }
+                MainActor.assumeIsolated { PaneTerminal.stepFontSize(1) }
+                return nil
+            }
         }
     #endif
 
@@ -101,13 +109,6 @@ struct OrielApp: App {
                     // Last for VoiceOver: it is for tests more than for people.
                     .accessibilitySortPriority(-1)
                     .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
-            }
-            // View ▸ Bigger's second key: a menu item shows one. Zero size and opacity, not `hidden()`, whose
-            // shortcuts do not fire.
-            .background {
-                Button("Bigger") { PaneTerminal.stepFontSize(1) }
-                    .keyboardShortcut("=")
-                    .frame(width: 0, height: 0).opacity(0).accessibilityHidden(true)
             }
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)
