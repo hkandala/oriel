@@ -234,6 +234,14 @@ test`. Pass only when every item is done and every check is green."
 > report to it at 2 hours. When done, reply with the step 9 report, including which reviewers were a must
 > and which added little, and your top 3 lessons for speed.
 
+## Parallel work in worktrees (user, 2026-10-22)
+
+Independent work runs in parallel, each agent in its own git worktree (`/Users/hkandala/code/oriel-<name>`),
+pushing straight to `main` after `git pull --rebase`. Phase 22 runs next to phase 20 and then phase 21:
+phase 22 owns the `Look` token values and the sizes of the title row, tab bar, cards and sidebar; phases 20
+and 21 own their own views (palette; find bar, notices, empty states) and use the tokens. The GUI lock and
+the 5 CI macOS runners are shared. The final review starts when 21 and 22 are both done.
+
 ## After phase 22: final review and report (user's request)
 
 1. **Final whole-repo review**, read only, in parallel: a ponytail reviewer (unneeded complexity,
