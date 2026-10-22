@@ -166,7 +166,7 @@ extension OrielUITests {
         return created.pane
     }
 
-    private func waitForValue(_ identifier: String, containing text: String) async throws {
+    func waitForValue(_ identifier: String, containing text: String) async throws {
         try await poll("\(identifier) to say \(text)") { () async throws -> Bool? in
             (element(identifier).value as? String)?.contains(text) == true ? true : nil
         }

@@ -181,8 +181,6 @@ struct OrielApp: App {
             VStack(spacing: 0) {
                 TitleBar(page: page, fullScreen: fullScreen, sidebar: $sidebar, agents: $agents,
                          palette: open(.palette), workspaceMenu: open(.workspaces), workspaceButtonX: $workspaceButtonX)
-                    // Its hover panel hangs over the sidebar and the cards.
-                    .zIndex(1)
                 HStack(spacing: 0) {
                     if sidebar {
                         Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { openingSession = true }
@@ -196,6 +194,7 @@ struct OrielApp: App {
                 // Rex's collapse time; the toggle and ⌃⌘S only flip the value.
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: sidebar)
             }
+            .hoverPanelHost()
             .overlay {
                 if panel == .workspaces {
                     WorkspaceMenu(pages: pages, page: page, open: open(.workspaces)) { openingSession = true }

@@ -93,6 +93,19 @@ struct StateIcon: View {
     }
 }
 
+/// "Needs you", "Working", "Done" or "Idle" in the state's color.
+struct StateCapsule: View {
+    let state: AgentState
+    @Environment(\.look) private var look
+
+    var body: some View {
+        Text(state.capsule).font(.system(size: 11, weight: .medium))
+            .foregroundStyle(state.color(look))
+            .padding(.horizontal, 6).padding(.vertical, 1)
+            .background(state.color(look).opacity(0.15), in: .rect(cornerRadius: 4))
+    }
+}
+
 /// The 7 pt dot on a program tile's top-right for needs you and finished, cutting a 1.5 pt ring out of the
 /// tile (Glass has no solid background color). In the tile's compositing group.
 struct StatusBadge: View {
@@ -142,10 +155,7 @@ struct StatusBadge: View {
                     HStack {
                         Text(pane.agentName ?? "agent").font(.system(size: 13)).lineLimit(1)
                         Spacer(minLength: 4)
-                        Text(state.capsule).font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(state.color(look))
-                            .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(state.color(look).opacity(0.15), in: .rect(cornerRadius: 4))
+                        StateCapsule(state: state)
                     }
                     HStack {
                         Text(page.place(pane)).lineLimit(1)
@@ -200,16 +210,22 @@ struct StatusBadge: View {
                                 Text("\(state.capsule) \(group.count)").font(.system(size: 11, weight: .medium))
                                     .foregroundStyle(.secondary).padding(.horizontal, 8).padding(.top, 6)
                                     .accessibilityIdentifier("agents.group.\(state.capsule)")
-                                ForEach(group) { AgentButton(pane: $0, page: page) }
+                                ForEach(group, content: row)
                             }
                         }
                     } else {
-                        ForEach(rows) { AgentButton(pane: $0, page: page) }
+                        ForEach(rows, content: row)
                     }
                 }
                 .padding([.horizontal, .bottom], 8)
             }
             .scrollIndicators(.never)
+        }
+
+        /// Its hover shows the pane's tab.
+        private func row(_ pane: HostStore.Pane) -> some View {
+            AgentButton(pane: pane, page: page)
+                .hoverPanel(place: .beside) { close in HoverCard(tabID: pane.tabID, page: page, close: close) }
         }
     }
 
@@ -269,84 +285,6 @@ struct StatusBadge: View {
                 .onChange(of: [page.id, page.selectedTab?.id ?? "", appearsActive ? "key" : ""], initial: true) {
                     pages.look(key: appearsActive)
                 }
-        }
-    }
-
-    extension View {
-        /// A panel that opens under this view after the pointer rests on it 0.25 s, stays while the pointer moves
-        /// into it (0.15 s grace), and closes when the pointer leaves both, on a click outside it, or with Esc. Not
-        /// while a mouse button is down (a drag). In the window, not a `.popover`: a popover is a window that takes the
-        /// keyboard when it shows, and a resting pointer must not take keys from the terminal.
-        func hoverPanel(@ViewBuilder _ panel: @escaping (_ close: @escaping () -> Void) -> some View) -> some View {
-            modifier(HoverPanel(panel: panel))
-        }
-    }
-
-    private struct HoverPanel<Panel: View>: ViewModifier {
-        let panel: (_ close: @escaping () -> Void) -> Panel
-        @State private var open = false
-        @State private var overTrigger = false
-        @State private var overPanel = false
-        @State private var pending: Task<Void, Never>?
-        @State private var monitor: Any?
-
-        func body(content: Content) -> some View {
-            content
-                .onHover { overTrigger = $0
-                    hovered()
-                }
-                // A click is not a rest: no panel until the pointer comes back (onHover fires only on entering).
-                .simultaneousGesture(TapGesture().onEnded {
-                    overTrigger = false
-                    hovered()
-                })
-                .overlay(alignment: .bottomTrailing) {
-                    if open {
-                        panel { show(false) }
-                            .onHover { overPanel = $0
-                                hovered()
-                            }
-                            .fixedSize()
-                            // Hangs from the trigger's bottom.
-                            .offset(y: 4)
-                            .frame(height: 0, alignment: .top)
-                    }
-                }
-                .onDisappear { show(false) }
-        }
-
-        private func hovered() {
-            pending?.cancel()
-            let over = overTrigger || overPanel
-            guard over != open, !over || NSEvent.pressedMouseButtons == 0 else { return }
-            pending = Task {
-                try? await Task.sleep(for: .milliseconds(over ? 250 : 150))
-                // A drag may have started meanwhile.
-                if !Task.isCancelled, !over || NSEvent.pressedMouseButtons == 0 {
-                    show(over)
-                }
-            }
-        }
-
-        private func show(_ value: Bool) {
-            pending?.cancel()
-            open = value
-            if value, monitor == nil {
-                let events: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .keyDown]
-                monitor = NSEvent.addLocalMonitorForEvents(matching: events) { event in
-                    guard event.type != .keyDown || event.keyCode == 53 else { return event }
-                    let escape = event.type == .keyDown
-                    MainActor.assumeIsolated {
-                        if escape || !overPanel {
-                            show(false)
-                        }
-                    }
-                    return escape ? nil : event
-                }
-            } else if !value, let monitor {
-                NSEvent.removeMonitor(monitor)
-                self.monitor = nil
-            }
         }
     }
 #endif

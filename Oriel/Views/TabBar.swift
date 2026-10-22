@@ -286,6 +286,9 @@
                 agent.state == .idle ? nil : "\(agent.agentName ?? "agent"), \(agent.state?.word ?? "")"
             }, "icons: " + stack.map(\.iconID).joined(separator: ", ")].compactMap(\.self).joined(separator: "; "))
             .accessibilityAction(named: "Close Tab") { store.closing = .tab(tab.id) }
+            .hoverPanel(place: .under, action: "Show Panes") { close in
+                HoverCard(tabID: tab.id, page: page, close: close)
+            }
             // Over the button, after the icons: in the button's label it could not take the keyboard.
             .overlay(alignment: .leading) {
                 if renaming {

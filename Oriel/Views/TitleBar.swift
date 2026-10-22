@@ -54,10 +54,10 @@
                     page.focusKeyboardCard()
                 }
                 // ⌘K is the menu's.
-                IconButton(symbol: "command", help: "Commands") { palette.toggle() }
+                IconButton(symbol: "command", help: "Command Palette", key: .palette) { palette.toggle() }
                     .accessibilityIdentifier("titlebar.palette")
                 // ⌘T is the menu's.
-                IconButton(symbol: "plus", help: "New Tab") { Task { await page.newTab() } }
+                IconButton(symbol: "plus", help: "New Tab", key: .newTab) { Task { await page.newTab() } }
                     .disabled(page.selectedWorkspace == nil || page.store.writing)
                     .accessibilityIdentifier("titlebar.new-tab")
                     // Highlighted too: a full track has no room for the ghost capsule.
@@ -73,8 +73,7 @@
             .padding(.leading, Self.inset(fullScreen: fullScreen))
             .padding(.trailing, gap)
             .frame(height: Self.height)
-            // The title bar is hidden, so the row's empty space moves the window. Behind the row, not a content shape
-            // on it: that would cut off the Agents button's panel hanging below.
+            // The title bar is hidden, so the row's empty space moves the window.
             .background { Color.clear.contentShape(.rect).gesture(WindowDragGesture()) }
         }
     }
@@ -123,7 +122,7 @@
             .accessibilityLabel("Agents")
             .accessibilityIdentifier("titlebar.agents")
             .accessibilityValue("\(waiting) need you")
-            .hoverPanel { close in NeedsYouPanel(page: page, close: close) }
+            .hoverPanel(place: .underTrailing) { close in NeedsYouPanel(page: page, close: close) }
         }
     }
 
@@ -146,8 +145,8 @@
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(ChromeStyle(radius: 7))
-            .help("Toggle Sidebar")
-            .accessibilityLabel("Toggle Sidebar")
+            .help("Toggle Sidebar \(KeyboardShortcut.toggleSidebar.glyphs)")
+            .accessibilityLabel("Toggle Sidebar \(KeyboardShortcut.toggleSidebar.glyphs)")
         }
     }
 
@@ -222,6 +221,7 @@
             }
             .buttonStyle(ChromeStyle(selected: open, radius: 7))
             .accessibilityIdentifier("titlebar.workspace")
+            .help("Workspace")
             .accessibilityLabel("Workspace")
             .accessibilityValue("\(session) | \(workspace)")
         }
