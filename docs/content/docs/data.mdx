@@ -28,7 +28,7 @@ One rule decides where each new thing goes (D57):
 | Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults` (on macOS the add sheet offers `herdr machine list`) |
 | iOS SSH key and pinned host keys | app, disk | Secure Enclave, Keychain |
 | Settings: appearance, interface style, tab, pane, terminal and notification options ([Settings](/docs/ui/settings)); pill settings | app, disk | app storage (`UserDefaults`) |
-| Per window: the machine, the names of its open pages, the current page, the workspace and tab per page, sidebar shown or hidden, sidebar view (workspaces or agents) and its sort, and sidebar width | app, disk | `@SceneStorage`, one set per window |
+| Per window: the machine (once remote machines exist), the names of its open pages, the current page, the workspace and tab per page, sidebar shown or hidden, sidebar view (workspaces or agents) and its sort, and sidebar width | app, disk | `@SceneStorage`, one set per window |
 | Plugin code and source record | app, disk | `Application Support/Oriel/plugins/` |
 | Plugin consent and This Mac answers | app, disk | `UserDefaults` |
 | Plugin preferences | app, disk | `UserDefaults`, passwords in the Keychain |

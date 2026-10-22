@@ -161,7 +161,8 @@ the helper. Launch with `-ApplePersistenceIgnoreState YES`.
   under "Stopped" and `ORIEL_SESSION` under "Open in this window". Pick `ORIEL_SESSION2`: two pages,
   two dots, the header shows it. Click the first dot: the header shows `ORIEL_SESSION`.
 - ⇧⌘N, type `ORIEL_SESSION4`'s name, Enter: `herdr session list` shows it running and a third page
-  shows it.
+  shows it. This test replaces today's picker test that creates `ORIEL_SESSION4`
+  (`ActionTests.swift`), the only name a test can create.
 - Stop `ORIEL_SESSION5` through the helper's `/stop`; Open Session lists it under "Stopped"; Enter: it
   runs again and its page shows.
 - Close Page on `ORIEL_SESSION2` (header context menu): the page and its dot go, and

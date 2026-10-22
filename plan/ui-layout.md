@@ -87,8 +87,8 @@ The strip under the title row still pages sideways between the selected workspac
   - A workspace herdr marks as a linked git worktree (`worktree.is_linked_worktree`, same `repo_key`) sits
     indented under the workspace of its repository, with a thin guide line, as in herdr.
   - Git data: the app runs `git -C <root> status --porcelain=v2 --branch` on the machine through `Exec.run`
-    (root = `worktree.checkout_path`, else the cwd of the workspace's first pane). It runs when a snapshot
-    changes and every 10 s for the page in view, one run per workspace, never for hidden pages.
+    (root = `worktree.checkout_path`, else the cwd of the workspace's first pane). It runs when a workspace
+    is new or its root changed, and every 10 s for the page in view, one run per workspace, never for hidden pages.
   - Click: select the workspace (app only, never herdr focus). Context menu: New Tab, Rename Workspace,
     Move Up, Move Down, Close Workspace. Double-click the name to rename. Drag to reorder (phase 18).
 - **Agents view** (the Agents button): the same page, listing the agents of **that session only**; a sideways

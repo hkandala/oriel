@@ -331,7 +331,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Close a tab or workspace | `tab.close` / `workspace.close`; always asks, with the pane count |
 | Close Other Tabs | one `tab.close` per other tab; asks once, with the total pane count |
 | Rename a tab or workspace | `tab.rename` / `workspace.rename` |
-| Rename a pane | `pane.rename {pane_id, label}`; an empty name clears the label; `oriel:` labels are not offered |
+| Rename a pane | `pane.rename {pane_id, label}`; an empty name clears the label |
 | Go to Directory (⇧⌘G) | `pane.send_input` of `cd -- '‹path›'` and Return, only when the pane runs only its shell |
 | Insert Path (⌃⌘I) | `pane.send_input` of the shell-quoted path, no Return |
 | Find next or previous (⌘F) | `pane.scroll {pane_id, offset_from_bottom}` to the match; offset 0 when the bar closes |

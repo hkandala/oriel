@@ -68,7 +68,7 @@ tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, 
 
 ## e2e
 
-- In a throwaway session, start `vim` in one pane and `sleep 600` in another; the tab's capsule
+- In `ORIEL_SESSION`, in a new workspace closed after, start `vim` in one pane and `sleep 600` in another; the tab's capsule
   accessibility value lists the icon ids (for example `icons: vim, sleep`), and the card headers show
   the program names. Quit `vim`; the icon goes back to `terminal` within 2 s of Return.
 - A pane where the test reports an agent (`pane.report_agent` through the helper, agent `claude`)

@@ -82,8 +82,8 @@ swap and move), `docs/content/docs/platform.mdx`, D13, D35, D69.
    `workspace.move {workspace_id, insert_index}`. A row with linked worktree children moves with them:
    `workspace.move_block {workspace_ids: [parent, children…], before_workspace_id}`. A child dragged
    alone stays in its parent's group (it reorders only among its siblings).
-10. **Escape** cancels a drag (the system drag does this). A failed write leaves the layout as herdr
-    has it.
+10. **Escape** cancels a drag (the system drag does this; with the `NSEvent` monitor, handle Esc). A
+    failed write leaves the layout as herdr has it.
 11. **Docs.** Rewrite `ui/drag-and-drop.mdx` with the tables above (targets, refusals, the same-tab
     re-place, timings, indicator, tab and workspace reorder) and the writes table in
     `talking-to-herdr.mdx` (`pane.move` chains, `workspace.move_block`). Change D69 if the build
