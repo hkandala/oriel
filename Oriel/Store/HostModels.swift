@@ -4,6 +4,15 @@ import Observation
 
 /// The stable objects snapshots land on (see `HostStore`).
 extension HostStore {
+    /// A close waiting for the user's yes (design D41).
+    enum Close {
+        /// The pane and the program running in it.
+        case pane(String, program: String)
+        case tab(String)
+        /// The other tabs of a workspace, as they were when the user asked: a tab made since is not closed.
+        case otherTabs([String])
+    }
+
     @MainActor @Observable
     final class Workspace: Identifiable {
         let id: String

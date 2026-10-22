@@ -143,10 +143,10 @@
             Button { open.toggle() } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "folder").fontWeight(.medium).foregroundStyle(.secondary)
-                    // A long session name gives way first, so the button stays within its 260 pt.
-                    Text(session).foregroundStyle(.secondary).lineLimit(1)
+                    // A long session name stops at 110 pt, so a long workspace name fades instead of hiding it.
+                    Capped(width: 110) { Text(session).foregroundStyle(.secondary).lineLimit(1) }.layoutPriority(1)
                     Rectangle().fill(.separator).frame(width: 1, height: 12)
-                    FadeText(text: Text(workspace)).layoutPriority(1)
+                    FadeText(text: Text(workspace))
                     Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
                 }
                 .fontWeight(.medium)

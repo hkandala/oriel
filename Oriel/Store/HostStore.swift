@@ -11,15 +11,6 @@ final class HostStore {
         case failed(HerdrError)
     }
 
-    /// A close waiting for the user's yes (design D41).
-    enum Close {
-        /// The pane and the program running in it.
-        case pane(String, program: String)
-        case tab(String)
-        /// The other tabs of a workspace, as they were when the user asked: a tab made since is not closed.
-        case otherTabs([String])
-    }
-
     let session: String
     /// Start the session's server first: it is stopped or new.
     private let start: Bool
@@ -342,8 +333,10 @@ extension HostStore {
         switch close {
         case let .pane(id, _): await write { try await $0.close(pane: id) }
         case let .tab(id): await write { try await $0.close(tab: id) }
-        case let .otherTabs(others):
-            // At once: one by one, 20 tabs took seconds and the bar showed each step.
+        case let .otherTabs(asked):
+            // Not ones closed meanwhile (their close would fail the rest), and all at once: one by one, 20 tabs took
+            // seconds and the bar showed each step.
+            let others = asked.filter { workspace(of: $0) != nil }
             await write { client in
                 try await withThrowingTaskGroup { group in
                     for other in others {

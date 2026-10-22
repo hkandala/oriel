@@ -39,7 +39,8 @@
                                 if index > 0 {
                                     // Hidden next to the marker and the pointer.
                                     let quiet = lit.contains(index) || lit.contains(index - 1)
-                                        || [tab.id, tabs[index - 1].id].contains(hovered)
+                                        || [tab.id, tabs[index - 1].id]
+                                        .contains { $0 == hovered || $0 == workspace.selectedTabID }
                                     Rectangle().fill(.separator).frame(width: 1, height: Self.height - 18)
                                         .opacity(quiet ? 0 : 1)
                                         .animation(.easeInOut(duration: 0.2), value: quiet)
@@ -138,6 +139,7 @@
             MainActor.assumeIsolated {
                 pendingHints?.cancel()
                 let command = event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command
+                // ponytail: any key window of the app; phase 16's windows need this bar's own window here.
                 if event.type == .flagsChanged, command, event.window?.isKeyWindow == true {
                     pendingHints = Task {
                         try? await Task.sleep(for: .milliseconds(700))

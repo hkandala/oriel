@@ -207,6 +207,10 @@ expects.
   being active (`appearsActive`), as ⌘-Tab sends the ⌘ release to the other app.
 - **Kept widths** settle when the pointer leaves the bar, but not while the close dialog is up; when the dialog
   ends with the pointer outside the bar, they settle then.
+- **Workspace button text:** the session name stops at 110 pt (`Capped`), the workspace name takes the rest of
+  the 260 pt and fades; a long workspace name never hides the session.
+- **Dividers** hide next to the selected tab too, not only the lit ones, so they do not flash while the strip
+  springs to a new tab.
 - **One open panel:** `ContentView.panel` (`sessions`, `workspaces`, `palette`) replaces three Bools; opening the
   sidebar closes the workspace menu.
 - **Tab title:** `HostStore.title(_:)`; a label made only of digits is herdr's default (herdr renumbers it as tabs

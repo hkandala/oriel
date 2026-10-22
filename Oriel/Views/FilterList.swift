@@ -82,7 +82,8 @@ struct FilterList: View {
                 }
             }
         }
-        .onChange(of: filter) { self.index = 0 }
+        // A cleared filter lights the start row again (the selected workspace).
+        .onChange(of: filter) { self.index = filter.isEmpty ? nil : 0 }
     }
 
     private func current(_ items: [Item]) -> Int {

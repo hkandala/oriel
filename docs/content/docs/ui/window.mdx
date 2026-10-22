@@ -116,8 +116,9 @@ One capsule per herdr tab of the selected workspace (D42).
   ([Program icons](/docs/ui/program-icons)).
 - **Title.** One line. When it does not fit, its end fades out over 16 pt; it
   never shows an ellipsis. The folder part is in secondary text. The title is
-  herdr's tab label. When the label is herdr's default (a bare number), the
-  title is the keyboard card's program and folder, for example "zsh ~" (D65).
+  herdr's tab label. When the label is herdr's default (only digits), the
+  title is the keyboard card's program and its folder's name, for example
+  "zsh ~" or "pi oriel" (D65).
 - **Status slot.** × only on the hovered tab (a 22 pt hit area over the
   title's fade, so the tab's width never changes; hidden when the tab is
   narrower than 52 pt). Otherwise three working dots, on every tab with a
@@ -130,8 +131,8 @@ One capsule per herdr tab of the selected workspace (D42).
   title. Reduce Motion turns the bounce off.
 - **Context menu** on a capsule: Rename Tab, Move Tab Left, Move Tab Right,
   Close Tab, Close Other Tabs. Close Other Tabs asks once, with the total pane
-  count. Rename puts a text field in place of the title: Enter saves, Esc
-  cancels.
+  count. Rename (or a double-click anywhere on the capsule) puts a text field
+  in place of the title: Enter saves, Esc cancels.
 - **Keycap hints.** If the user holds ⌘ for 0.7 s while the window is key,
   each of the first nine capsules shows a keycap "⌘1"… over its icon. They
   fade in over 0.13 s and out over 0.1 s when ⌘ is released.
