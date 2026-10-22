@@ -70,6 +70,9 @@
             $0.withWindowPaddingY(0)
             $0.withCustom("window-padding-balance", "false")
             $0.withCustom("scrollback-limit", "0")
+            // Option types characters on every layout (on CI's, libghostty sent Alt by default); Option as Alt
+            // goes through herdr's key names (`PaneSurfaceView.herdrKey`).
+            $0.withCustom("macos-option-as-alt", "false")
         }
 
         init(terminalID: String, paneID: String, client: any Multiplexer) {
