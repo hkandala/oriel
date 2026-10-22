@@ -52,18 +52,27 @@
             let typed = filter.trimmingCharacters(in: .whitespaces)
             let new = typed.isEmpty ? suggested : typed
             let create = Session.isValidName(new) && !sessions.contains { $0.name == new } && !open.contains(new)
-                ? [item("new.\(new)", "Create session “\(new)”", "New", new)] : []
+                ? [item("new.\(new)", "plus", "Create session “\(new)”", "New", new)] : []
             let others = sessions.filter { !open.contains($0.name) && $0.name.matches(filter) }
             return create
-                + others.filter(\.running).map { item("session.\($0.name)", $0.name, "Running", $0.name) }
+                + others.filter(\.running).map { item(
+                    "session.\($0.name)",
+                    "plus.square.on.square",
+                    $0.name,
+                    "Running",
+                    $0.name,
+                ) }
                 + others.filter { !$0.running }
-                .map { item("session.\($0.name)", $0.name, "Stopped", $0.name) }
-                + open.filter { $0.matches(filter) }.map { item("open.\($0)", $0, "Open in this window", $0) }
+                .map { item("session.\($0.name)", "plus.square.on.square", $0.name, "Stopped", $0.name) }
+                + open.filter { $0.matches(filter) }
+                .map { item("open.\($0)", "checkmark", $0, "Open in this window", $0) }
         }
 
         /// The group headers say what a row does; no hint text on the rows.
-        private func item(_ id: String, _ title: String, _ section: String, _ session: String) -> FilterList.Item {
-            FilterList.Item(id: id, title: title, section: section, busy: starting == session) {
+        private func item(_ id: String, _ symbol: String, _ title: String, _ section: String,
+                          _ session: String) -> FilterList.Item
+        {
+            FilterList.Item(id: id, symbol: symbol, title: title, section: section, busy: starting == session) {
                 act(id)
             }
         }

@@ -311,7 +311,9 @@ struct MenuRow: View {
             Text(title).lineLimit(1).truncationMode(.middle).layoutPriority(1)
             Spacer(minLength: 4)
             // Readable on the accent pill too.
-            Text(detail).foregroundStyle(selected ? Color.white.opacity(0.75) : .secondary).lineLimit(1).fixedSize()
+            // A long branch gives way to the title.
+            Text(detail).foregroundStyle(selected ? Color.white.opacity(0.75) : .secondary).lineLimit(1)
+                .truncationMode(.middle)
         }
         .padding(.horizontal, 8)
         .frame(height: 26)

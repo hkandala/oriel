@@ -267,15 +267,20 @@
             .background(alignment: .topLeading) {
                 if parent != nil || guideBelow {
                     Rectangle().fill(.separator).frame(width: 1)
-                        .padding(.top, parent == nil ? 22 : -2)
+                        .padding(.top, parent == nil ? 22 : 0)
                         .padding(.bottom, guideBelow ? -2 : height / 2)
                         .padding(.leading, 15)
                 }
             }
         }
 
-        @ViewBuilder
+        /// Writes only while the session runs: a stopped one keeps its last rows.
         private var menu: some View {
+            menuItems.disabled(page.store.state != .live)
+        }
+
+        @ViewBuilder
+        private var menuItems: some View {
             let store = page.store
             let first = ends.first == workspace.id, last = ends.last == workspace.id
             Button("New Tab") { Task { await page.newTab(in: workspace) } }

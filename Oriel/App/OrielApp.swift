@@ -82,7 +82,9 @@ struct OrielApp: App {
         /// the command line), else `default`, started when it is stopped. Never another session by itself.
         private func restore() async {
             guard pages.list.isEmpty else { return }
-            let saved = savedPages.split(separator: " ").map(String.init)
+            // `-session` wins over a restored window: a run against a throwaway session opens only it.
+            let argument = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)["session"]
+            let saved = argument == nil ? savedPages.split(separator: " ").map(String.init) : []
             if !saved.isEmpty {
                 let client: any Multiplexer = await HerdrClient(session: saved[0], exec: exec.value)
                 let running = await Set((try? client.sessions())?.filter(\.running).map(\.name) ?? [])

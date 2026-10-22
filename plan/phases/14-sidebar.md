@@ -204,17 +204,27 @@ the helper. Launch with `-ApplePersistenceIgnoreState YES`.
 - **Move Up and Move Down are one `workspace.move_block`** for a single workspace too: `before_workspace_id` is the
   next group's first workspace (or none, for last), so there is no index arithmetic. A worktree row has them
   disabled: it sits under its repository in any herdr order.
-- **`--untracked-files=no`** on the git run: the rows show no file counts, and the untracked scan is the slow part
-  in a big repository.
+- **`--untracked-files=no` and `--no-optional-locks`** on the git run: the rows show no file counts, and the
+  untracked scan is the slow part in a big repository; without optional locks a run every 10 s cannot leave
+  `index.lock` in the way of the user's own `git commit` (spec review; VS Code does the same). Workspaces run one
+  after another, not all at once.
 - **git is usable unless** it resolves only to `/usr/bin/git` and `xcode-select -p` fails; a git elsewhere in the
   login shell's PATH (Homebrew) runs without the developer tools.
 - **The first page always starts its session** (`start: true`); a server that already runs is left alone, and only
-  a server the app started gets its first workspace (`startServer()` now returns whether it started one).
+  a server the app started gets its first workspace (`startServer()` now returns whether it started one). A failed
+  start shows its error and connects anyway, so the page says "not running" with Start instead of a dead end.
+- **`-session` on the command line wins over restored pages** (E2E review): a run against a throwaway session must
+  never reopen `default` or another session from an earlier window. It is read from the argument domain only.
 - **The Start button no longer replaces the store**: `HostStore.start()` starts the server and the running store's
   health check finds it again.
 - **The width handle sits beside the pages** (the sidebar's last 6 pt), not over the pages' scroll view or the strip.
 - **The palette's sessions open as pages** (phase 20 rebuilds the palette).
-- **The not-running page says "Start it to see its workspaces."** with the Start button, no herdr command.
+- **The not-running page says "Start it to see its workspaces."** with the Start button, no herdr command; why a
+  start failed shows under it. A stopped session keeps its last rows, with their write menu items disabled.
+- **"herdr update" stays** on the too-old page: it updates herdr itself, not a session; phase 21 words the failure
+  pages. The lint rule matches one line, so a string wrapped onto the next line passes (a regex limit).
+- **The double-click to rename is on the whole row**, as the tab capsules (phase 13: a tap gesture on a short title
+  missed most double-clicks).
 
 ### Decisions
 
@@ -230,6 +240,10 @@ the helper. Launch with `-ApplePersistenceIgnoreState YES`.
   `open-session.open`, `open-session.notice`; the workspace menu's rows are `workspaces.<session>.<workspace id>`.
   Pages not in view are hidden from accessibility, so ids repeat safely across pages.
 - **Scene storage keys:** `pages` (names joined by spaces: herdr names have none), `page`, `sidebarWidth`.
+- **Sheet rows** show a symbol (`plus` for Create, `plus.square.on.square` for sessions, `checkmark` for the open
+  ones), as the mock-up does, so their titles line up under the group headers.
+- **A menu row's detail truncates** (middle) instead of keeping its full width, so a long branch in the workspace
+  menu gives way to the title.
 - **Visible window** = `scenePhase == .active`. The git refresh is one `.task(id:)` in `ContentView` keyed by the
   page in view while active: it sets the store's `showsGit`, runs now and every 10 s, and SwiftUI cancels it.
 - **Look:** `finished` (`#3fb950` / `#116329`) and `error` (`#f85149` / `#cf222e`) tokens, for ↑ahead and ↓behind.
