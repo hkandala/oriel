@@ -153,7 +153,11 @@
             let pane = tabPanes.first { $0.terminalID == keyboardTerminals[tab.id] }
                 ?? tabPanes.first(where: \.focused) ?? tabPanes.first
             if let pane, let terminalID = pane.terminalID {
-                keyboardTabID = tab.id
+                // Not while the card it should go to is not in the tab yet (a move whose snapshot has not come): the
+                // next snapshot tries again (`shown`).
+                if keyboardTerminals[tab.id] == nil || pane.terminalID == keyboardTerminals[tab.id] {
+                    keyboardTabID = tab.id
+                }
                 // Made now if its card has not drawn yet (a tab just jumped to); it takes the keyboard once it is in
                 // the window.
                 _ = terminal(pane)
@@ -278,15 +282,13 @@
             arriving = moved.tabID
             // In case the snapshot after the move came in already.
             settle()
-            // The write reads the snapshot without waiting for it: until a snapshot shows the pane in its tab, the next
-            // snapshot gives it the keyboard (`shown`), also when the tab stays selected (a spring-loaded tab, a
-            // re-place). Before, a left or top drop in another tab left the keyboard on the tab's old card.
-            if store.panes.contains(where: { $0.terminalID == terminalID && $0.tabID == moved.tabID }) {
-                if moved.tabID == selectedTab?.id {
-                    focusKeyboardCard()
-                }
-            } else {
-                keyboardTabID = nil
+            // The write reads the snapshot without waiting for it, so the store may not show the pane in its tab yet:
+            // then `focusKeyboardCard` leaves `keyboardTabID` unset and the next snapshot gives it the keyboard
+            // (`shown`), also when the tab stays selected (a spring-loaded tab, a re-place). Before, a left or top drop
+            // in another tab left the keyboard on the tab's old card.
+            keyboardTabID = nil
+            if moved.tabID == selectedTab?.id {
+                focusKeyboardCard()
             }
         }
 

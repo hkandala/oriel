@@ -77,7 +77,8 @@ swap and move), `docs/content/docs/platform.mdx`, D13, D35, D69.
 
 8. **Tabs.** Drag a capsule along the tab track to reorder inside its workspace: the others slide
    apart (0.22 s, curve 0.2 0.9 0.3 1); on drop `tab.move {tab_id, insert_index}`. A capsule over a
-   workspace row is not a target (herdr moves tabs only inside a workspace): the forbidden cursor.
+   workspace row is not a target (herdr moves tabs only inside a workspace): the forbidden cursor (none on macOS:
+   see Follow-up).
 9. **Workspaces.** Drag a workspace row up or down its page: the rows slide apart as tabs do; on drop
    `workspace.move {workspace_id, insert_index}`. A row with linked worktree children moves with them:
    `workspace.move_block {workspace_ids: [parent, children…], before_workspace_id}`. A child dragged
@@ -277,3 +278,9 @@ at the end of a drag. All in `ORIEL_SESSION`, in a new workspace that the test c
 - **The page header's `+` takes a pane** for a new workspace, highlighted while a pane is over it: a full page has
   no empty space under its rows, and the list does not scroll during a drag.
 - **No forbidden case for a tab over the rows**: macOS shows the plain arrow for `.forbidden` (hand check 4).
+- **Late drop callbacks** (spec review): a `dropUpdated` or `dropEntered` may also come after the session ended, so
+  targets clear their state when a drag starts as well as when it ends, ignore updates with no drag, and a
+  spring-load fires only while a pane is dragged. `focusKeyboardCard` records the tab as given the keyboard only
+  when the card it should go to is in the tab, so any snapshot that comes before the moved pane shows retries.
+- **`drop.indicator` is in the accessibility tree** (checked by hand: an AX query during a CGEvent drag found it
+  over the target card, and none after the drop), so the e2e `vanishes` checks would catch a highlight left behind.

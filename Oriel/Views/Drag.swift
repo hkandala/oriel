@@ -157,7 +157,9 @@
         }
 
         func dropEntered(info _: DropInfo) {
-            withAnimation(.easeOut(duration: 0.12)) { over = true }
+            if page.dragging?.paneID != nil {
+                withAnimation(.easeOut(duration: 0.12)) { over = true }
+            }
         }
 
         func dropUpdated(info _: DropInfo) -> DropProposal? {
@@ -182,14 +184,11 @@
     }
 
     extension View {
-        /// Clears a target's drop state when the drag ends: after a drop, a `dropUpdated` can come after `performDrop`
-        /// with no `dropExited` to follow (seen by hand: the highlight stayed).
+        /// Clears a target's drop state when a drag starts or ends: after a drop, a `dropUpdated` can come after
+        /// `performDrop` with no `dropExited` to follow (seen by hand: the highlight stayed), even after the session
+        /// ended.
         func clearsDrop(_ page: Page, _ clear: @escaping () -> Void) -> some View {
-            onChange(of: page.dragging == nil) { _, ended in
-                if ended {
-                    clear()
-                }
-            }
+            onChange(of: page.dragging == nil) { clear() }
         }
 
         /// Starts a drag of `item` after 4 pt; the view's frame is the preview.

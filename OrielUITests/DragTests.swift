@@ -117,6 +117,7 @@ extension OrielUITests {
             let place = try await place(of: terminal)
             return place.map { !workspaces.contains(workspace(of: $0.tab)) } == true ? place?.pane : nil
         }
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
 
         // The page header's `+`: a new workspace too (a full page has no empty space under its rows).
         let before = try await workspaceIDs()
@@ -126,6 +127,7 @@ extension OrielUITests {
             let place = try await place(of: terminal)
             return place.map { !before.contains(workspace(of: $0.tab)) } == true ? true : nil
         }
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
     }
 
     func testDraggingTheThirdCapsuleFirstReordersHerdrsTabs() async throws {

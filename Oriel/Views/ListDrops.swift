@@ -23,6 +23,8 @@
         }
 
         func dropUpdated(info: DropInfo) -> DropProposal? {
+            // A late update after the drag ended.
+            guard page.dragging != nil else { return nil }
             let place = info.location.x / max(slot, 1)
             if let id = page.dragging?.paneID {
                 let index = min(max(Int(place), 0), tabs.count - 1)
@@ -35,7 +37,8 @@
                     spring?.cancel()
                     let tabID = tabs[index].id
                     spring = Task {
-                        if await (try? Task.sleep(for: springDelay)) != nil {
+                        // Not after the drag ended (a late update).
+                        if await (try? Task.sleep(for: springDelay)) != nil, page.dragging?.paneID != nil {
                             springLoad(tabID)
                         }
                     }
@@ -104,6 +107,8 @@
         }
 
         func dropUpdated(info: DropInfo) -> DropProposal? {
+            // A late update after the drag ended.
+            guard page.dragging != nil else { return nil }
             let pointY = info.location.y
             if case let .workspace(id) = page.dragging {
                 let index = blocks(id).count { block in middle(block) < pointY }
@@ -125,7 +130,8 @@
                 state.spring?.cancel()
                 if let row {
                     state.spring = Task {
-                        if await (try? Task.sleep(for: springDelay)) != nil {
+                        // Not after the drag ended (a late update).
+                        if await (try? Task.sleep(for: springDelay)) != nil, page.dragging?.paneID != nil {
                             page.select(row)
                         }
                     }
