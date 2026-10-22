@@ -84,7 +84,7 @@ struct StateIcon: View {
         Group {
             switch state {
             case .working: WorkingDots()
-            case .idle: Circle().stroke(.secondary, lineWidth: 1.5).frame(width: 7, height: 7)
+            case .idle: Circle().strokeBorder(.secondary, lineWidth: 1.5).frame(width: 7, height: 7)
             case let .some(state): Circle().fill(state.color(look)).frame(width: 7, height: 7)
             case nil: Color.clear
             }
@@ -286,19 +286,15 @@ struct StatusBadge: View {
         @State private var overPanel = false
         @State private var pending: Task<Void, Never>?
         @State private var monitor: Any?
-        /// The trigger was clicked: no panel until the pointer leaves it.
-        @State private var clicked = false
 
         func body(content: Content) -> some View {
             content
                 .onHover { overTrigger = $0
-                    if !overTrigger {
-                        clicked = false
-                    }
                     hovered()
                 }
+                // A click is not a rest: no panel until the pointer comes back (onHover fires only on entering).
                 .simultaneousGesture(TapGesture().onEnded {
-                    clicked = true
+                    overTrigger = false
                     hovered()
                 })
                 .overlay(alignment: .bottomTrailing) {
@@ -318,7 +314,7 @@ struct StatusBadge: View {
 
         private func hovered() {
             pending?.cancel()
-            let over = overTrigger && !clicked || overPanel
+            let over = overTrigger || overPanel
             guard over != open, !over || NSEvent.pressedMouseButtons == 0 else { return }
             pending = Task {
                 try? await Task.sleep(for: .milliseconds(over ? 250 : 150))
@@ -335,16 +331,14 @@ struct StatusBadge: View {
             if value, monitor == nil {
                 let events: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .keyDown]
                 monitor = NSEvent.addLocalMonitorForEvents(matching: events) { event in
-                    let escape = event.type == .keyDown && event.keyCode == 53
-                    guard escape || event.type != .keyDown else { return event }
-                    let inside = MainActor.assumeIsolated {
-                        let inside = !escape && overPanel
-                        if !inside {
+                    guard event.type != .keyDown || event.keyCode == 53 else { return event }
+                    let escape = event.type == .keyDown
+                    MainActor.assumeIsolated {
+                        if escape || !overPanel {
                             show(false)
                         }
-                        return inside
                     }
-                    return escape && !inside ? nil : event
+                    return escape ? nil : event
                 }
             } else if !value, let monitor {
                 NSEvent.removeMonitor(monitor)

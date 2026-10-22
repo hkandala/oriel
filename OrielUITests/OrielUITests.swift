@@ -6,7 +6,7 @@ import XCTest
 @MainActor
 final class OrielUITests: XCTestCase {
     var one = ""
-    private var two = ""
+    var two = ""
     let app = XCUIApplication()
     /// The app's first snapshot: login shell, herdr checks and a few herdr runs; slow on CI runners.
     let connect: TimeInterval = 30

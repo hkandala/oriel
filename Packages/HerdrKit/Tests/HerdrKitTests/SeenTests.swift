@@ -56,7 +56,7 @@ private func agent(_ status: AgentStatus, _ completion: Int? = nil, pane: String
     var seen = Seen()
     _ = seen.update([agent(.idle, 8)], looking: [])
     #expect(seen.states["w1:p1"] == .idle)
-    // Different, not greater: herdr's counter starts at 0 again when it restarts.
+    // Different, not greater (design: layout, "seen"): the rule holds for an agent without a terminal id too.
     _ = seen.update([agent(.working)], looking: [])
     #expect(seen.update([agent(.idle, 2)], looking: []).map(\.state) == [.finishedUnseen])
 }

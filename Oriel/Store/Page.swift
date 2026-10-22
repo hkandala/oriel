@@ -311,7 +311,13 @@
                 open(parts[1])
                 return
             }
-            guard let pane = page.store.panes.first(where: { $0.terminalID == parts[2] }) else { return }
+            guard let pane = page.store.panes.first(where: { ($0.terminalID ?? $0.id) == parts[2] }) else {
+                // Gone: a dead click does not wait for ever.
+                if page.store.state != .connecting {
+                    Self.pending = nil
+                }
+                return
+            }
             Self.pending = nil
             show(page)
             page.go(to: pane)

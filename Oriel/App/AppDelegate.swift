@@ -16,8 +16,8 @@
         func applicationDockMenu(_: NSApplication) -> NSMenu? {
             let menu = NSMenu()
             for page in WindowPages.main?.list ?? [] {
-                for pane in page.store.panes where pane.state == .needsYou || pane.state == .finishedUnseen {
-                    guard let state = pane.state, let terminalID = pane.terminalID else { continue }
+                for pane in page.store.panes {
+                    guard let state = pane.state, state >= .finishedUnseen else { continue }
                     let workspace = page.store.workspace(of: pane.tabID)?.label ?? ""
                     let item = NSMenuItem(
                         title: "\(pane.agentName ?? "agent") \(state.word) · \(page.id) · \(workspace)",
@@ -25,7 +25,7 @@
                         keyEquivalent: "",
                     )
                     item.target = self
-                    item.representedObject = [page.id, terminalID]
+                    item.representedObject = Notifications.id(pane, page)
                     menu.addItem(item)
                 }
             }
@@ -72,16 +72,19 @@
     /// The app's notifications (D31): needs you and finished, for every open page; no sounds.
     @MainActor
     enum Notifications {
-        /// Posts the snapshot's new needs-you and finishes, except for panes the user looks at; a pane that went on
-        /// to work or idle loses its old one.
+        /// Posts the snapshot's new needs-you and finishes, except for panes the user looks at, and removes the page's
+        /// ones that no longer hold (the pane works, idles, closed or lost its agent).
         static func post(_ changes: [Seen.Change], _ page: Page) {
             let store = page.store
-            for change in changes {
-                guard let pane = store.pane(change.paneID) else { continue }
-                guard change.state >= .finishedUnseen, pane.tabID != store.lookingTabID else {
-                    remove([pane], of: page)
-                    continue
-                }
+            let holding = Set(store.panes.filter { $0.state ?? .idle >= .finishedUnseen }.map { id($0, page) })
+            Task {
+                let center = UNUserNotificationCenter.current()
+                let gone = await center.deliveredNotifications().map(\.request.identifier)
+                    .filter { $0.hasPrefix("local|\(page.id)|") && !holding.contains($0) }
+                center.removeDeliveredNotifications(withIdentifiers: gone)
+            }
+            for change in changes where change.state >= .finishedUnseen {
+                guard let pane = store.pane(change.paneID), pane.tabID != store.lookingTabID else { continue }
                 let content = UNMutableNotificationContent()
                 content.title = "\(pane.agentName ?? "agent") \(change.state.word)"
                 content.body = "\(page.id) · \(page.place(pane))"

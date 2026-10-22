@@ -174,6 +174,7 @@
         @State private var draft = ""
         /// "codex needs you" for 3 s in place of the title.
         @State private var announcement: String?
+        @State private var announcing: Task<Void, Never>?
         @State private var bounces = 0
         @FocusState private var focused: Bool
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -284,9 +285,10 @@
                 bounces += 1
             }
             announcement = text
-            Task {
+            announcing?.cancel()
+            announcing = Task {
                 try? await Task.sleep(for: .seconds(3))
-                if announcement == text {
+                if !Task.isCancelled {
                     announcement = nil
                 }
             }

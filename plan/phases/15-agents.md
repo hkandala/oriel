@@ -166,7 +166,8 @@ needs another name adds it to e2e.sh and the helper.
 - **The whole icon stack bounces**, not only its front tile: the stack is one composited view (its ring cuts).
 - **Dots and badges read the panes, not the rollup alone.** A tab's badge is its strongest pane's state (needs you
   or finished); its dots show while any of its panes works, so a tab with one agent waiting and one working shows
-  both.
+  both. The bounce and the announcement follow the strongest pane only: a second pane finishing in a tab where
+  one already needs you does not bounce it.
 - **No notification banner on this Mac.** The dev build is ad-hoc signed (`CODE_SIGN_IDENTITY = "-"`);
   `requestAuthorization` returns an error and Notification Center stores the requests with no visibility (seen in
   `log show`). The code path posts (logged "Added notification request"); a banner screenshot needs a signed build.

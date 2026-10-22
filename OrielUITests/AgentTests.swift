@@ -46,17 +46,16 @@ extension OrielUITests {
     }
 
     func testAnotherSessionsAgentCountsInTheDockBadgeOnly() async throws {
-        let two = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION2"])
         XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
         openPage(two)
         element("sidebar.dot.\(one)").click()
         XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: 2))
 
-        try await report("w1:p1", "blocked", session: two)
-        addTeardownBlock {
+        addTeardownBlock { [two] in
             _ = try? await Self.call(two, "pane.release_agent", ["pane_id": "w1:p1", "source": "oriel-e2e",
                                                                  "agent": "codex"])
         }
+        try await report("w1:p1", "blocked", session: two)
         try await poll("the badge to count the other page") { element("app.badge").value as? String == "1" ? true : nil
         }
         XCTAssertEqual(element("titlebar.agents").value as? String, "0 need you")
@@ -64,6 +63,7 @@ extension OrielUITests {
         try await waitForValue("titlebar.agents", containing: "1 need you")
         // Its Agents view lists it.
         app.typeKey(".", modifierFlags: .command)
+        try await waitForValue("sidebar.header", containing: "\(two) · agents")
         try await waitForValue("agent.w1:p1", containing: "Needs you")
     }
 
@@ -93,22 +93,23 @@ extension OrielUITests {
         element("sidebar.filter").click()
         element("sidebar.filter").typeText("beta")
         XCTAssertTrue(rows[1].waitForNonExistence(timeout: 2))
-        XCTAssertTrue(rows[0].exists && rows[2].exists && !rows[3].exists)
+        XCTAssertEqual(rows.map(\.exists), [true, false, true, false])
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(rows[3].waitForExistence(timeout: 2))
 
         element("agents.sort").click()
         app.menuItems["Workspace order"].click()
         try await waitForValue("agents.sort", containing: "workspace")
-        let order = [idle, working, blocked, done].map { element("agent.\($0)").frame.minY }
-        XCTAssertEqual(order, order.sorted())
-        XCTAssertFalse(element("agents.group.Idle").exists)
+        XCTAssertTrue(element("agents.group.Idle").waitForNonExistence(timeout: 2))
+        try await poll("rows in workspace order") { () -> Bool? in
+            let order = [idle, working, blocked, done].map { element("agent.\($0)").frame.minY }
+            return order == order.sorted() ? true : nil
+        }
         keepScreenshot("agents view in workspace order")
 
         app.typeKey(".", modifierFlags: .command)
-        try await waitForValue("sidebar.header", containing: one)
-        XCTAssertFalse((element("sidebar.header").value as? String ?? "").contains("agents"))
-        XCTAssertTrue(element("workspace.w1").exists)
+        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: 2))
+        XCTAssertEqual(element("sidebar.header").value as? String, one)
     }
 
     func testAFinishShowsDoneUntilItsRowIsClicked() async throws {
