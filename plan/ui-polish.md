@@ -204,5 +204,5 @@ the snapshot.
 | Doom-melt transition, selection pulse and copy shine | Decoration with a GPU cost |
 | Per-pane font size | One text size for the app (design) |
 | Paste of unsafe text confirmation, recent paths | Small; revisit on request |
-| Agent integration installer (Rex "Install Rex for Agents") | herdr has `integration.install`, but it writes agent config files. Revisit with a Settings ▸ Agents page |
+| Agent integration installer (Rex "Install Rex for Agents") | herdr has `integration.install`, but it writes agent config files. Revisit with the Settings window (D62, future work) |
 | Attention badge on the machine button for other sessions | Pages show their state in the Agents view and on workspace rows; the Dock badge counts every open page |

@@ -3,7 +3,7 @@
 Goal: Rex's way of showing agent activity, on herdr's data, in the layout of `plan/ui-layout.md`:
 working dots and status badges in tabs, state icons on workspace rows, a "seen" state for finishes,
 the Agents button with its needs-you popover, the session-scoped Agents view, notifications, the Dock
-badge, sounds and a Dock menu. This replaces the design's status area and the Activity view of the
+badge (no sounds) and a Dock menu. This replaces the design's status area and the Activity view of the
 earlier plan.
 
 Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row item 7, Agents view),
