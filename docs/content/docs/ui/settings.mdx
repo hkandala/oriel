@@ -37,8 +37,8 @@ What they do: [Fade](/docs/layout#fade),
 
 | Setting | Choices | Default |
 |---|---|---|
-| Font | the installed monospaced fonts | the system monospaced font |
-| Font size | 8 to 32 pt (also ⌘+, ⌘-, ⌘0) | 13 |
+| Font | the installed monospaced fonts | the system monospaced font (SF Mono) |
+| Font size | 8 to 32 pt (also View ▸ Bigger ⌘+ or ⌘=, Smaller ⌘-, Actual Size ⌘0) | 13 |
 | Cursor style | Block, Bar, Underline | Block |
 | Blinking cursor | on, off | on |
 | Option key acts as Alt | on, off | off |
@@ -46,9 +46,13 @@ What they do: [Fade](/docs/layout#fade),
 
 - A change applies to every terminal at once, without opening its stream
   again. A new font or size changes each card's grid, so the PTYs resize.
-- With Option as Alt on, an Option chord on a letter or digit goes to the
-  program as Alt and that key, for either Option key. ⌥← and ⌥→ always move by
-  word.
+- The cursor style is the default shape. A program that asks for its own
+  shape (vim's bar in insert mode) gets it: herdr's frames carry the request.
+- With Option as Alt on, an Option chord on a letter, digit or symbol key
+  goes to the program as Alt and that key, Shift included (⌥⇧B is Alt+B), for
+  either Option key. ⌥← and ⌥→ always move by word. Off, Option types the
+  macOS characters (⌥B is ∫).
+- Copy on select puts the selected text on the pasteboard.
 
 ## Notifications
 
