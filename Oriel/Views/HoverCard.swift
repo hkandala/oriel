@@ -11,8 +11,8 @@
         /// Under the Agents button, the trailing edges lined up.
         static let underTrailing = PanelPlace(trigger: .bottomTrailing, panel: .topTrailing,
                                               offset: CGSize(width: 0, height: 4))
-        /// Centered 6 pt under a tab capsule.
-        static let under = PanelPlace(trigger: .bottom, panel: .top, offset: CGSize(width: 0, height: 6))
+        /// Centered 6 pt under the title row, which ends 3 pt below a tab capsule.
+        static let under = PanelPlace(trigger: .bottom, panel: .top, offset: CGSize(width: 0, height: 9))
         /// Right of an Agents view row, 6 pt from the sidebar's edge. ponytail: mirrors the Agents list's 8 pt padding
         /// and the sidebar's 6 pt width handle between the row and the edge; anchor on the sidebar if either changes.
         static let beside = PanelPlace(trigger: .topTrailing, panel: .topLeading,
@@ -206,7 +206,8 @@
                     }
                 }
                 .padding(6)
-                .frame(maxWidth: 280, alignment: .leading)
+                // Not narrower when it fits: the screen lines come in after it shows and would widen it.
+                .frame(width: 280, alignment: .leading)
                 .glassEffect(.regular, in: .rect(cornerRadius: 12))
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Panes of \(page.titleText(tab))")
