@@ -98,8 +98,8 @@ public struct Program: Equatable, Sendable {
     public let name: String
     public let argv0: String?
     /// The first argument that is not an option: the script a `node` or `bun` runs (`pi`'s cli.js).
-    /// ponytail: `node --require x.js cli.js` or `bun run dev` pick the wrong one; only the base-name fallback
-    /// reads it.
+    /// ponytail: `node --require x.js cli.js` or `bun run dev` pick the wrong one (the header and the base-name
+    /// match); skip option values if it matters.
     public let script: String?
     /// Only the pane's shell runs.
     public let isShell: Bool
@@ -140,7 +140,7 @@ struct PaneProcesses: Decodable {
     /// it is still a shell.
     var program: Program? {
         let program = foregroundProcesses.first { $0.pid != shellPID || !$0.isShell }
-        return (program ?? foregroundProcesses.first { $0.pid == shellPID }).map { process in
+        return (program ?? foregroundProcesses.first).map { process in
             Program(name: process.name, argv0: process.argv0,
                     script: process.argv?.dropFirst().first { !$0.hasPrefix("-") }, isShell: program == nil)
         }

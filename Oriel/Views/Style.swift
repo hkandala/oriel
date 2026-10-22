@@ -151,12 +151,14 @@ struct StatusGlyph: View {
 
 /// The program icon catalog (`resources/icons/catalog.json`, bundled).
 let programIcons: [ProgramIcon] = {
+    // Without it every pane would draw the neutral tile: loud in a debug build.
+    guard let url = Bundle.main.url(forResource: "catalog", withExtension: "json") else {
+        assertionFailure("no catalog.json in the app")
+        return []
+    }
     do {
-        let url = try Bundle.main
-            .url(forResource: "catalog", withExtension: "json") ?? { throw CocoaError(.fileNoSuchFile) }()
         return try JSONDecoder().decode([ProgramIcon].self, from: Data(contentsOf: url))
     } catch {
-        // Every pane would draw the neutral tile: loud in a debug build.
         assertionFailure("program icon catalog: \(error)")
         return []
     }

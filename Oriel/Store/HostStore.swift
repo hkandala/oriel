@@ -213,8 +213,7 @@ final class HostStore {
         }
     }
 
-    /// Asks herdr what runs in the pane (one `pane.process_info`); its icon follows. Only the latest of asks that
-    /// finish out of order lands. A failed first ask is made again the next time the card shows.
+    /// One `pane.process_info`; the icon follows. Only the latest ask lands; a failed first one is made again.
     func askProgram(_ paneID: String) async {
         guard let client, let pane = pane(paneID) else { return }
         pane.asked = true
@@ -255,13 +254,14 @@ final class HostStore {
         }
         let focused = snapshot.focusedPaneIDs
         reuse(self, \.panes, snapshot.panes, Pane.init(id:)) { pane, new in
-            if new.terminalID != pane.terminalID { // herdr reused the id for another pane
-                (pane.program, pane.asked) = (nil, false)
+            // Another terminal (herdr reused the id), agent or title word: the program may have changed. A progress
+            // title ("build 51%") changes on and on; its first word does not.
+            let reused = new.terminalID != pane.terminalID
+            if reused {
+                pane.program = nil
             }
-            // A new agent or title word: the program may have changed. A progress title ("build 51%") changes on
-            // and on; its first word does not.
             let word = { (title: String?) in title?.split(separator: " ").first }
-            if pane.asked, new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
+            if pane.asked, reused || new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
                 Task { await askProgram(pane.id) }
             }
             pane.agent = new.agent
@@ -318,7 +318,7 @@ extension HostStore {
         guard let client else { return }
         let program: String?
         do {
-            program = try await client.program(paneID).flatMap { $0.isShell ? nil : $0.name }
+            program = try await client.program(paneID).flatMap { $0.isShell ? nil : $0.title }
         } catch {
             // Unknown: ask.
             program = "A program"
