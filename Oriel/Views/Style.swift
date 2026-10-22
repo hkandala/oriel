@@ -101,7 +101,7 @@ struct CardSurface: View {
     var body: some View {
         let shape = Self.shape, edge = look.edge(keyboard: keyboard)
         shape.fill(look.cardFill.shadow(look.cardShadow))
-            .overlay { shape.fill(keyboard ? look.keyboardFill : .clear) }
+            .overlay(shape.fill(keyboard ? look.keyboardFill : .clear))
             .overlay(shape.strokeBorder(look.rim, lineWidth: 0.7).blendMode(.plusLighter))
             .overlay(shape.inset(by: -edge.width / 2).stroke(edge.color, lineWidth: edge.width))
     }
@@ -180,15 +180,13 @@ struct ChromeStyle: ButtonStyle {
             configuration.label
                 .contentShape(shape)
                 .background {
-                    if style.selected {
-                        if let tint = style.tint {
-                            shape.fill(tint)
-                        } else {
-                            Pill(shape: shape)
-                        }
-                    } else {
+                    if !style.selected {
                         // The same in both styles, and they follow the appearance by themselves (D44).
                         shape.fill(.primary.opacity(configuration.isPressed ? 0.08 : hovering && enabled ? 0.05 : 0))
+                    } else if let tint = style.tint {
+                        shape.fill(tint)
+                    } else {
+                        Pill(shape: shape)
                     }
                 }
                 .opacity(enabled ? 1 : 0.4)
