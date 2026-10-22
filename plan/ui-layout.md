@@ -1,7 +1,7 @@
 # Main window layout (agreed with the user)
 
 The source of truth for the window's layout in phases 10–21. The mock-ups are
-`resources/mockups/layout.html` (scenes A–J; `resources/mockups/build.py` rebuilds them). Where this file and an
+`resources/mockups/layout.html` (scenes A–K; `resources/mockups/build.py` rebuilds them). Where this file and an
 older design page disagree, this file wins until the page is updated.
 
 ## Words
@@ -56,7 +56,7 @@ Left to right:
    - **Hover** (0.25 s): a popover under the button with a small header "Needs you · ‹session›" lists the
      agents of the current session that need you (same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
      does not change. With nobody waiting: "Nobody needs you". No footer text.
-8. **⌘** (command palette, ⌘K) and **+** (new tab, ⌘T).
+8. **⌘** (command palette, ⌘K; ⇧⌘P also opens it (Rex's key); its field says "Search") and **+** (new tab, ⌘T).
 
 The strip under the title row still pages sideways between the selected workspace's tabs (swipe, ⇧⌘[ ⇧⌘],
 ⌃⇥).
@@ -98,7 +98,7 @@ The strip under the title row still pages sideways between the selected workspac
   - One row per agent pane, even when several share a tab. Row 44 pt: the program tile with its badge, the
     agent's name, the status capsule on the right ("Needs you" amber, "Working" blue, "Done" green, "Idle"
     gray); line 2 "‹workspace› · ‹tab›" and the age ("now", "3m", "2h").
-  - Idle agents show by default. A click goes to that workspace, tab and pane, and records a finish as seen.
+  - Idle agents show. A click goes to that workspace, tab and pane, and records a finish as seen.
 - **Footer**: the filter field (filters the rows of the current view) and one button, **Open Session**
   (⇧⌘N), which opens the sheet below. No New Workspace and no Add Remote Host here.
 - Width 240 pt, resizable 227–480 pt (kept per window).
@@ -106,9 +106,9 @@ The strip under the title row still pages sideways between the selected workspac
 ## Open Session sheet
 
 The one place to create or open a session. The footer's Open Session button, the workspace menu's
-"Open Session…" and ⇧⌘N open it. The UI never says "New or Open"; the sheet is titled "Open Session".
+"Open Session…" and ⇧⌘N open it. The sheet is titled "Open Session".
 - A text field ("Name a new session, or find one"), empty at first.
-- The list, filtered by the field:
+- The list, filtered by the field, in groups with the headers "New", "Running", "Stopped" and "Open in this window":
   - **New**: "Create session “‹typed name›”" when the text is a valid new herdr name; with an empty field,
     "Create session “‹two-word name›”" with a suggested name.
   - **Running** sessions not open in this window ("opens it") and **Stopped** sessions ("starts it").
@@ -141,7 +141,8 @@ Drag a card by its header (4 pt to start). Every target Oriel offers:
 |---|---|---|
 | the center of another card in the same tab | swap the two | `pane.swap` |
 | the left, right, top or bottom edge of another card in the same tab | re-place the pane beside that card | `pane.move` to a new tab, then `pane.move` back beside the target (right or down), then `pane.swap` for left or top. If a later step fails, the pane stays where it got to and the notice says so |
-| a tab capsule in the title row | the tab pages into view after 0.65 s (spring-loading), so the drop lands on a card there; a drop on the capsule itself moves the pane into that tab, split right of its layout | `pane.move {type:"tab", split:"right"}` |
+| another tab's capsule in the title row | the tab pages into view after 0.65 s (spring-loading), so the drop lands on a card there; a drop on the capsule itself moves the pane into that tab, split right of its layout | `pane.move {type:"tab", split:"right"}` |
+| the pane's own tab capsule | not a target (herdr refuses `same_tab`) | — |
 | an edge of a card in another tab (after spring-loading) | split beside that card | `pane.move {type:"tab", tab_id, split, target_pane_id}`, then `pane.swap` for left or top |
 | the empty end of the tab track, or the `+` | a new tab in the selected workspace | `pane.move {type:"new_tab", workspace_id}` |
 | a workspace row in the sidebar | a new tab in that workspace; holding 0.65 s selects the workspace instead, so its tabs show and the drop can go on a capsule or card | `pane.move {type:"new_tab", workspace_id}` |
@@ -156,7 +157,8 @@ Tabs and workspaces:
 | a tab capsule onto a workspace row | not a target: herdr moves tabs only inside a workspace | — |
 | a workspace row up or down its page | reorder the session's workspaces (a worktree child moves with its parent group) | `workspace.move` (`workspace.move_block` for a group) |
 
-The look and timings (drop indicator, preview, spring-load pulse) are in phase 18.
+Every `pane.move` passes `focus:false`. The look and timings (drop indicator, preview, spring-load pulse) are in
+phase 18.
 
 ## Removed by this layout
 

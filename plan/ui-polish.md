@@ -5,7 +5,7 @@ This file is the scope of phases 10–21. It lists every interface feature of Su
 which phase, and with which herdr call. It also lists what Oriel leaves out, and why.
 
 The window's layout comes from [ui-layout.md](ui-layout.md), agreed with the user, with the mock-ups in
-`resources/mockups/layout.html` (scenes A–J). Where this file and ui-layout.md disagree, ui-layout.md wins.
+`resources/mockups/layout.html` (scenes A–K). Where this file and ui-layout.md disagree, ui-layout.md wins.
 
 The Rex research is in `resources/research/clients/rex-ui.md` (UI, sizes, timings, materials) and
 `resources/research/clients/rex-server.md` (protocol). Screenshots are in
@@ -54,13 +54,13 @@ the snapshot.
 | Material values per style, appearance and key or non-key window | A small token table per style and appearance (`Style.swift`) | 10 | — |
 | Terminal palette per appearance | libghostty-spm's light and dark palettes, switched with the appearance | 10 | — |
 | Pane card radius 10, window corners from macOS | Same | 10 | — |
-| Fade inactive panes: content opacity 0.7; in a window that is not key 0.5, the focused card 0.8 (0.85 light) | Same, as a setting (on by default). Replaces today's black overlay | 17 | — |
+| Fade inactive panes: content opacity 0.7; in a window that is not key 0.5, the focused card 0.8 (0.85 light) | Same, as one setting, "Fade inactive panes" (on by default). Replaces today's black overlay | 17 | — |
 | Window title "‹tab› - ‹session›" | Same, with the session of the page in view | 13 | — |
 | Settings window | Native Settings scene, four tabs: General, Panes, Terminal, Notifications | 11 | — |
 | Terminal font, size (⌘0, ⌘+, ⌘-), cursor style and blink, Option as Alt, copy on select | Same, in Settings ▸ Terminal | 11 | — |
 | Program icons per process | Our own SVG catalog, matched by herdr's `agent`, the terminal title and the foreground process | 12 | `pane.process_info` |
 | Several windows (File ▸ New Window ⌘N) | Same, a machine per window; ⌥-click a machine in the machine menu opens it in a new window | 16 | — |
-| Windows restore their state | `@SceneStorage`: machine, open pages, selection, sidebar view and width | 16 | — |
+| Windows restore their state | `@SceneStorage`: open pages, selection, sidebar view, sort and width | 16 | — |
 | Empty and loading states with clear words and one button | Same words, our layout; no hint text | 21 | — |
 | Floating notices (toast) | Today's notice restyled: a bottom capsule, a tone color, an optional action | 21 | — |
 | Cards fade in when their first frame arrives (launch cover) | Same | 21 | — |
@@ -76,7 +76,7 @@ the snapshot.
 | Session button shows the name only when more than one session runs | Replaced: a workspace button while the sidebar is collapsed, "‹session› \| ‹workspace›"; its menu lists the workspaces of the open sessions grouped by session, with New Workspace and Open Session… | 13, 14 | `workspace.create {label}` |
 | Tab placement is a setting (Above / Left / Right) | No setting: the tab bar is always in the title row, with the sidebar open or collapsed | 13 | — |
 | A 34 pt capsule track behind the tabs, hidden when there is one tab | Same | 13 | — |
-| Equal-width tabs: (space − gaps) ÷ count, at most 220 pt, at least 64 pt, then scroll with edge fades | Same. "Tabs fill the bar" setting removes the 220 pt cap | 13 | — |
+| Equal-width tabs: (space − gaps) ÷ count, at most 220 pt, at least 64 pt, then scroll with edge fades | Same | 13 | — |
 | 1 pt dividers, hidden next to the selected and the hovered tab | Same | 13 | — |
 | One sliding selection capsule, radius min(h/2, 16.5), spring (stiffness 520, damping 46) | Our glass marker keeps following the strip's scroll; clicks and keys move it with Rex's spring | 13 | — |
 | Hover fill, 0.14 s | Same | 13 | — |
@@ -141,7 +141,7 @@ the snapshot.
 | Click a row: select the tab and give that pane the keyboard | Same | 19 | — |
 | Pane minimap (tiles of the split layout) | Same, at the top of the card | 19 | — |
 | Status message of a blocked program | herdr 0.9.5 sends no message. The card shows the last 3 lines of a blocked agent's screen instead | 19 | `pane.read {source:"visible"}` |
-| Tooltips with keycaps on chrome buttons | Same, except the Agents button (its hover is the popover) | 19 | — |
+| Tooltips with keycaps on chrome buttons | Native tooltips (`.help`) with the name and the shortcut, except the Agents button (its hover is the popover) | 19 | — |
 
 ### Pane cards and layout
 
@@ -150,14 +150,12 @@ the snapshot.
 | Header 36 pt: program glyph, program name, folder in secondary text | Same | 12, 17 | — |
 | Four 22 pt buttons (split right, split down, zoom, close) on the focused card and on hover | Same | 17 | — |
 | Zoom disabled with one pane; a zoomed card shows only Restore (accent circle) and Close | Same | 17 | — |
-| Show pane headers (setting) | Same | 17 | — |
 | Card context menu: Split Right, Down, Left, Up; Zoom; Move to New Tab; Move to Tab ▸; Move to New Workspace; Rename; Close | Same. Left and Up are a split then a swap | 17 | `pane.split`, `pane.swap`, `pane.move`, `pane.rename` |
 | Dividers: 16 pt hit area over the 8 pt gap, resize cursor, live drag, sent on release | Same (and design: a grip on hover) | 17 | `layout.set_split_ratio` |
 | Double-click a divider: 0.5 | Same | 17 | `layout.set_split_ratio` |
 | Balance splits (⌃⌘=) | Same | 17 | `layout.set_split_ratio` |
 | Resize with keys (⌃⌘ arrows) | Same, 5 % per press | 17 | `pane.resize` |
 | Dividers as accessibility sliders | Same | 17 | — |
-| Autobalance splits on creation (setting) | Same | 17 | `layout.set_split_ratio` |
 | Focus pane left, right, up, down (⌥⌘ arrows), previous and next (⌘[, ⌘]) | Same; the app's own keyboard card, never herdr focus | 17 | — |
 | Move pane left, right, up, down (⌥⇧⌘ arrows) | Same | 17 | `pane.swap {direction}` |
 | Focus follows mouse (setting) | Same | 17 | — |
@@ -171,12 +169,12 @@ the snapshot.
 | Rex feature | Oriel | P | herdr |
 |---|---|---|---|
 | Sections: commands, tabs, workspaces, sessions; fuzzy match with keywords | Same; sessions are the open pages, and Open Session… opens the sheet for the others | 20 | — |
-| Rows 28 pt, accent selection, shortcut glyphs on the right, › for sub-pages, a footer with key hints | Same | 20 | — |
-| Sub-pages: Change Session, Rename Tab, Rename Workspace, Rename Pane, Move Pane to Tab, Go to Directory, Insert Path, Appearance, Interface Style, Font Size, Cursor Style | Same, except Change Session: the Open Session sheet and the sidebar pages do that job | 20 | the write of each command |
+| Rows 28 pt, accent selection, shortcut glyphs on the right, › for sub-pages, a footer with key hints | Same, without the footer (no hint text in the UI) | 20 | — |
+| Sub-pages: Change Session, Rename Tab, Rename Workspace, Rename Pane, Move Pane to Tab, Go to Directory, Insert Path, Appearance, Interface Style, Font Size, Cursor Style | Same, except Change Session (the Open Session sheet and the sidebar pages do that job) and Go to Directory and Insert Path (they open the system folder panel) | 20 | the write of each command |
 | Live preview while a choice is highlighted (0.75 s) | Same, for Appearance and Interface Style | 20 | — |
 | Settings as commands ("Turn On Focus Follows Mouse") | Same | 20 | — |
-| Go to Directory (⇧⌘G): browse folders, then `cd` in the pane | Same, only when the pane runs only its shell | 20 | `FileManager` on This Mac, then `pane.send_input` |
-| Insert Path (⌃⌘I): browse, then type the quoted path | Same | 20 | `FileManager` on This Mac, then `pane.send_input` |
+| Go to Directory (⇧⌘G): browse folders, then `cd` in the pane | Same, with `NSOpenPanel` at the pane's folder, only when the pane runs only its shell | 20 | `pane.send_input` |
+| Insert Path (⌃⌘I): browse, then type the quoted path | Same, with `NSOpenPanel` | 20 | `pane.send_input` |
 | Rex's default shortcuts | Adopted where they do not clash with the design (table in phase 20); ⌘N is New Window, as in Rex | 20 | — |
 
 ## Left out
@@ -189,6 +187,7 @@ the snapshot.
 | 41 themes, the theme editor, Ghostty and iTerm theme import, "Tint with theme" | The user wants only light, dark, Glass and Classic |
 | Key sequences, modes, the which-key panel, custom shortcuts, the shortcut recorder, Lua | Oriel has no key sequences; macOS menus hold the shortcuts |
 | Traffic lights moved into the tab bar or a pane header | Needs private AppKit API (`setCustomTitlebarHeight:`) |
+| Settings for full-width tabs, hidden pane headers, balancing after each split, and a second fade for windows that are not key | README item 9 asks for a few basic settings; ⌃⌘= balances on request |
 | Sidebar on the right, tab placement setting, icon count, icon tint and shell icon themes, hiding single chrome or pane buttons | Settings nobody asked for; one layout (the tab bar is always in the title row) |
 | Tabs as sidebar rows, collapsible workspace sections, keycap hints on sidebar rows | The agreed layout puts tabs only in the title row (ui-layout.md) |
 | "Include idle processes" toggle, any status area at the bottom of the sidebar | The Agents view always shows idle agents; the Agents button holds the rest |
