@@ -126,7 +126,9 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 - **Terminals hold their size during layout motion** (item 16's fallback, E2E review): resized at every animation
   frame, a neighbor's terminal went blank (cursor only) from about +95 to +280 ms after a split. `Motion` (in
   `Strip.swift`) sets `layoutMoving` for 0.2 s after each tree change; `TerminalHost.Host` then keeps the terminal
-  view's frame, clipped, and fits it once when the motion ends (a terminal that never had a size fits at once).
+  view's frame, clipped, and fits it once when the motion ends (a terminal that never had a size fits at once). Not
+  as a page appears: held then, a terminal attached at a passing launch size and resized right after (the first full
+  run failed `testCardsAttachAtTheirSize` on it).
 - **The grip's color** is gorex's muted icon color at 0.6 (`Look.grip`): the hover fill (`.primary` at 0.05) is
   invisible on a 3 pt capsule.
 - **The keyboard card while a text field types** (spec review): the lit card and the menu bar's pane items follow the
