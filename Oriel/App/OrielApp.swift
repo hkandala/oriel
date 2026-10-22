@@ -107,6 +107,13 @@ struct OrielApp: App {
         /// its saved selection back; an id that is gone falls back to herdr's focus on the next snapshot.
         private func restore() async {
             guard pages.list.isEmpty else { return }
+            // A window macOS restores gets its scene storage a moment after it first shows; a restored window always
+            // saved its pages.
+            if AppDelegate.restoring {
+                for _ in 0 ..< 50 where savedPages.isEmpty {
+                    try? await Task.sleep(for: .milliseconds(20))
+                }
+            }
             // A run against a throwaway session must open only it.
             let argument = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)["session"]
                 as? String
@@ -303,7 +310,9 @@ struct OrielApp: App {
     }
 
     /// The window's AppKit side: whether it is in full screen (or on its way in), from its style and its
-    /// notifications, and its close, which ends the window's pages (D66 hand-off).
+    /// notifications, and its close, which ends the window's pages (D66 hand-off). A window macOS restores in full
+    /// screen keeps AppKit's empty title bar over the title row (the toolbar's on-hover full screen look holds only
+    /// when the user enters), so it leaves full screen again: windows never restore in it.
     private struct WindowReader: NSViewRepresentable {
         let pages: WindowPages
         @Binding var fullScreen: Bool
@@ -340,9 +349,15 @@ struct OrielApp: App {
                         MainActor.assumeIsolated { self?.changed(value) }
                     })
                 }
-                // After SwiftUI's update, which may not change state.
+                // After SwiftUI's update, which may not change state. Full screen already: macOS restored it so (the
+                // reader joins once the window shows its first page, before the user can act).
                 let full = window.styleMask.contains(.fullScreen)
-                DispatchQueue.main.async { [weak self] in self?.changed(full) }
+                DispatchQueue.main.async { [weak self] in
+                    self?.changed(full)
+                    if full {
+                        window.toggleFullScreen(nil)
+                    }
+                }
             }
         }
     }

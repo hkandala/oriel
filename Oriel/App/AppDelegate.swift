@@ -5,34 +5,24 @@
 
     /// The notification delegate (set at launch, so a click that starts the app is not lost) and the Dock menu.
     final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+        /// macOS restores windows: from its decode of the app's state until launch ends. Their scene storage comes back
+        /// a moment after they first show, and their full screen meanwhile.
+        static var restoring = false
+
+        func application(_: NSApplication, didDecodeRestorableState _: NSCoder) {
+            Self.restoring = true
+        }
+
+        func applicationDidFinishLaunching(_: Notification) {
+            Self.restoring = false
+        }
+
         func applicationWillFinishLaunching(_: Notification) {
             let center = UNUserNotificationCenter.current()
             center.delegate = self
             // macOS asks the user once; later calls answer at once. The Dock badge shows only with `.badge` allowed.
             center.requestAuthorization(options: [.alert, .badge]) { _, _ in }
         }
-
-        /// A window macOS restores in full screen keeps AppKit's empty title bar over the title row, so windows leave
-        /// full screen before the app quits and never restore in it.
-        func applicationShouldTerminate(_ app: NSApplication) -> NSApplication.TerminateReply {
-            let full = app.windows.filter { $0.styleMask.contains(.fullScreen) }
-            guard !full.isEmpty else { return .terminateNow }
-            for window in full {
-                observers.append(NotificationCenter.default.addObserver(
-                    forName: NSWindow.didExitFullScreenNotification, object: window, queue: .main,
-                ) { _ in
-                    MainActor.assumeIsolated {
-                        if !app.windows.contains(where: { $0.styleMask.contains(.fullScreen) }) {
-                            app.reply(toApplicationShouldTerminate: true)
-                        }
-                    }
-                })
-                window.toggleFullScreen(nil)
-            }
-            return .terminateLater
-        }
-
-        private var observers: [NSObjectProtocol] = []
 
         /// A row per pane that needs you or finished, each session once over every window, then New Tab.
         func applicationDockMenu(_: NSApplication) -> NSMenu? {
