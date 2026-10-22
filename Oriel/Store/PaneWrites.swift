@@ -1,6 +1,7 @@
 import HerdrKit
 
-/// Pane and layout writes (phase 17); each is one `write`, then a snapshot read.
+/// Layout writes: panes and splits (phase 17), tab and workspace order (phases 13, 14, 18); each is one `write`,
+/// then a snapshot read.
 extension HostStore {
     /// Split Right or Down, or Left or Up (`before`): herdr splits only right and down, so a swap puts the new pane
     /// first. Then the run of same-direction splits holding the new pane is evened out, from herdr's tree after
@@ -42,6 +43,48 @@ extension HostStore {
         await write { try await $0.swap(paneID, heading) }
     }
 
+    /// Two cards of one tab trade places (a drop on a card's center).
+    func swap(_ paneID: String, with targetID: String) async {
+        await write { try await $0.swap(paneID, with: targetID) }
+    }
+
+    /// A drop beside a card (an edge), or on a tab's capsule (no target: right of the tab's layout). herdr splits only
+    /// right or down, so a left or top edge swaps after; it refuses a move into the pane's own tab, so the pane goes
+    /// to a new tab first. Then the run of splits holding it is evened out, as after a split. If a later step fails,
+    /// the pane stays where it got to and the notice says so. The pane where it went.
+    func place(_ paneID: String, in tabID: String, beside targetID: String? = nil,
+               _ edge: Heading = .right) async -> HerdrKit.Pane?
+    {
+        var placed: HerdrKit.Pane?
+        await write { client in
+            var id = paneID, done: String?
+            do {
+                if pane(paneID)?.tabID == tabID, let workspaceID = workspace(of: tabID)?.id {
+                    guard let away = try await client.move(pane: id, to: .newTab(workspaceID: workspaceID))
+                    else { return }
+                    id = away.id
+                    done = "Moved the pane to a new tab"
+                }
+                let split: SplitNode.Direction = edge == .left || edge == .right ? .right : .down
+                guard let moved = try await client.move(pane: id, to: .tab(tabID, beside: targetID, split: split))
+                else { return }
+                placed = moved
+                if let targetID, edge == .left || edge == .up {
+                    done = "Moved the pane beside the card"
+                    try await client.swap(moved.id, with: targetID)
+                }
+                done = nil
+                let tree = try await client.snapshot().trees[tabID]
+                for change in tree?.evened(around: moved.id) ?? [] {
+                    try await client.setRatio(tab: tabID, path: change.path, ratio: change.ratio)
+                }
+            } catch {
+                throw done.map { HerdrError.failed("\($0): herdr refused the next step") } ?? error
+            }
+        }
+        return placed
+    }
+
     /// The pane where it went: a move to another workspace gives it a new id.
     func move(_ paneID: String, to destination: Destination) async -> HerdrKit.Pane? {
         var moved: HerdrKit.Pane?
@@ -52,5 +95,33 @@ extension HostStore {
     /// An empty label clears it.
     func rename(pane paneID: String, label: String) async {
         await write { try await $0.rename(pane: paneID, label: label.isEmpty ? nil : label) }
+    }
+
+    /// One place left (-1) or right (1); none past the ends (a snapshot may land after the menu opened).
+    func move(tab tabID: String, by offset: Int) async {
+        guard let tabs = workspace(of: tabID)?.tabs, let index = tabs.firstIndex(where: { $0.id == tabID }),
+              tabs.indices.contains(index + offset) else { return }
+        // herdr inserts before the tab now at the index, so one place right is two on.
+        await move(tab: tabID, to: index + (offset > 0 ? 2 : -1))
+    }
+
+    /// Before the tab now at `index` (the count puts it last).
+    func move(tab tabID: String, to index: Int) async {
+        await write { try await $0.move(tab: tabID, to: index) }
+    }
+
+    /// One row group (a workspace and its worktrees) up (-1) or down (1) past the next group; none past the ends.
+    func move(workspace workspaceID: String, by offset: Int) async {
+        let groups = groups
+        guard let index = groups.firstIndex(where: { $0.first?.id == workspaceID }),
+              groups.indices.contains(index + offset) else { return }
+        let before = offset < 0 ? groups[index - 1].first?.id : groups.indices.contains(index + 2)
+            ? groups[index + 2].first?.id : nil
+        await move(workspaces: groups[index].map(\.id), before: before)
+    }
+
+    /// The workspaces, in this order, before another one, or last.
+    func move(workspaces workspaceIDs: [String], before workspaceID: String?) async {
+        await write { try await $0.move(workspaces: workspaceIDs, before: workspaceID) }
     }
 }

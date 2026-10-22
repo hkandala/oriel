@@ -21,6 +21,8 @@
 
         /// The zoomed card's tab when it zoomed: a move to another tab (by any window or client) ends the zoom.
         @ObservationIgnored private var zoomedTabID: String?
+        /// What this window drags now; the drag source clears it when the drag ends.
+        var dragging: Dragged?
         /// The card whose header shows the rename field.
         var renamingPaneID: String?
         /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
@@ -247,11 +249,41 @@
         /// The pane goes to another tab or workspace; the page follows it there and it keeps the keyboard.
         func move(_ pane: HostStore.Pane, to destination: Destination) async {
             let terminalID = pane.terminalID
-            guard let moved = await store.move(pane.id, to: destination) else { return }
+            await follow(store.move(pane.id, to: destination), terminalID)
+        }
+
+        /// A dragged pane dropped: as a move, the page follows it and it keeps the keyboard. A re-place in its own tab
+        /// keeps that tab selected throughout (its pass through a new tab never shows).
+        func drop(_ paneID: String, on target: DropTarget) async {
+            guard let pane = store.pane(paneID) else { return }
+            let terminalID = pane.terminalID
+            switch target {
+            case let .card(targetID, nil):
+                await store.swap(paneID, with: targetID)
+                go(to: pane)
+            case let .card(targetID, edge?):
+                guard let tabID = store.pane(targetID)?.tabID else { return }
+                await follow(store.place(paneID, in: tabID, beside: targetID, edge), terminalID)
+            case let .tab(tabID):
+                await follow(store.place(paneID, in: tabID), terminalID)
+            case let .newTab(workspaceID):
+                await follow(store.move(paneID, to: .newTab(workspaceID: workspaceID)), terminalID)
+            case .newWorkspace:
+                await follow(store.move(paneID, to: .newWorkspace), terminalID)
+            }
+        }
+
+        /// The page goes to the moved pane's tab once a snapshot shows it, and the pane has the keyboard there.
+        private func follow(_ moved: HerdrKit.Pane?, _ terminalID: String?) {
+            guard let moved else { return }
             keyboardTerminals[moved.tabID] = terminalID
             arriving = moved.tabID
             // In case the snapshot after the move came in already.
             settle()
+            // Still in the selected tab: no tab change gives it the keyboard.
+            if moved.tabID == selectedTab?.id {
+                focusKeyboardCard()
+            }
         }
 
         /// A new tab in the workspace (the selected one by default), in its keyboard card's directory, else home;

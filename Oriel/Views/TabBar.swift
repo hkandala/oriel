@@ -12,6 +12,13 @@
 
         let workspace: HostStore.Workspace
         let page: Page
+        /// A pane dragged over the track's end or the `+`: a ghost capsule at the end.
+        @Binding var ghost: Bool
+        /// A drag over the track: the capsule a pane is over, or the place a dragged tab goes.
+        @State private var over: Int?
+        @State private var spring: Task<Void, Never>?
+        /// The capsule that just spring-loaded, scaled up for a moment.
+        @State private var pulsing: String?
         /// The row's free space.
         @State private var space: CGFloat = 0
         @State private var hovered: String?
@@ -50,9 +57,20 @@
                                           hovering: hovered == tab.id, width: width,
                                           keycap: hints && index < 9 ? index + 1 : nil) { kept = width }
                                     .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
+                                    .overlay {
+                                        if case .pane = page.dragging, over == index {
+                                            DropIndicator(radius: Self.radius)
+                                        }
+                                    }
+                                    .scaleEffect(pulsing == tab.id ? 1.04 : 1)
+                                    .opacity(page.dragging == .tab(tab.id) ? 0.4 : 1)
+                                    .offset(x: shift(index, width: width))
                             }
                         }
                     }
+                    // In the content's space: the capsule under the pointer, wherever the track scrolled.
+                    .onDrop(of: [.orielDrag], delegate: TrackDrop(tabs: tabs, page: page, slot: width + 1,
+                                                                  over: $over, spring: $spring, springLoad: springLoad))
                     .background {
                         ZStack(alignment: .leading) {
                             Capsule().fill(.primary.opacity(0.05)).opacity(tabs.count > 1 ? 1 : 0)
@@ -90,6 +108,19 @@
                 // minWidth 0: the row's free space, not the tabs' width, which follows it; else the bar never
                 // shrinks (a workspace button that appears pushed ⌘ and + out of the window).
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                // The track's empty end, behind the tabs: a new tab in the workspace.
+                .background(alignment: .leading) {
+                    Color.clear.contentShape(.rect)
+                        .overlay(alignment: .leading) {
+                            if ghost, content + 1 + width <= space {
+                                DropIndicator(radius: Self.radius).frame(width: width, height: Self.height)
+                                    .offset(x: content + 1)
+                            }
+                        }
+                        .onDrop(of: [.orielDrag], delegate: PaneDrop(page: page,
+                                                                     target: .newTab(workspaceID: workspace.id),
+                                                                     over: $ghost))
+                }
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { space = $0 }
                 .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { old, new in
                     if let new {
@@ -114,6 +145,25 @@
                     pendingHints?.cancel()
                     hints = false
                 }
+            }
+        }
+
+        /// A tab dragged along the track: it and the tabs it passes trade places as it goes (the others slide apart).
+        private func shift(_ index: Int, width: CGFloat) -> CGFloat {
+            guard case let .tab(id) = page.dragging, let slot = over,
+                  let from = workspace.tabs.firstIndex(where: { $0.id == id }) else { return 0 }
+            let place = slot > from ? slot - 1 : slot
+            return (width + 1) * CGFloat(index == from ? place - from
+                : from < index && index <= place ? -1 : place <= index && index < from ? 1 : 0)
+        }
+
+        /// Holding a pane over a capsule selects its tab, which pulses once.
+        private func springLoad(_ tabID: String) {
+            page.select(workspace, tab: tabID)
+            withAnimation(.easeOut(duration: 0.1)) { pulsing = tabID }
+            Task {
+                try? await Task.sleep(for: .milliseconds(100))
+                withAnimation(.easeOut(duration: 0.1)) { pulsing = nil }
             }
         }
 
@@ -220,6 +270,7 @@
             }
             // The selection is the tab bar's marker.
             .buttonStyle(ChromeStyle(radius: TabBar.radius))
+            .dragSource(.tab(tab.id), page: page)
             // Anywhere on the capsule, beside the click that selects (a tap gesture in the label missed clicks past a
             // short title).
             .simultaneousGesture(TapGesture(count: 2).onEnded { startRenaming() })

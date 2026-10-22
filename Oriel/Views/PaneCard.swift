@@ -9,6 +9,9 @@
         let page: Page
         @State private var hovering = false
         @State private var draft = ""
+        /// A dragged pane over this card: an edge, or the center (`.some(nil)`).
+        @State private var zone: Heading??
+        @State private var size = CGSize.zero
         @FocusState private var renaming: Bool
         @Environment(\.zoomedAway) private var zoomedAway
         @Environment(\.appearsActive) private var active
@@ -60,6 +63,19 @@
                         }
                     }
             }
+            .opacity(page.dragging == .pane(id) ? 0.4 : 1)
+            .overlay(alignment: .topLeading) {
+                if let zone {
+                    let half = CGSize(width: size.width / 2, height: size.height / 2)
+                    DropIndicator()
+                        .frame(width: zone == .left || zone == .right ? half.width : size.width,
+                               height: zone == .up || zone == .down ? half.height : size.height)
+                        .offset(x: zone == .right ? half.width : 0, y: zone == .down ? half.height : 0)
+                        .transition(.opacity)
+                }
+            }
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+            .onDrop(of: [.orielDrag], delegate: CardDrop(paneID: id, page: page, size: size, zone: $zone))
             .onHover { hovering = $0 }
             .task(id: follow) {
                 // Focus follows mouse: a pointer resting 0.15 s on another card, in a key window, no mouse button
@@ -122,7 +138,10 @@
             // A card narrower than its header cuts the header (the card clips) instead of growing.
             .frame(minWidth: 0, maxWidth: .infinity, minHeight: 36, maxHeight: 36, alignment: .leading)
             // Behind the header, so its buttons still take their own clicks.
-            .background { Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) } }
+            .background {
+                Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) }
+                    .dragSource(.pane(id), page: page)
+            }
             .contextMenu {
                 CommandItems(commands: AppCommands.pane(page) { pane }, sections: [.pane, .paneMove, .close])
             }

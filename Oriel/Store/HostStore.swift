@@ -298,24 +298,6 @@ extension HostStore {
         await write { try await $0.rename(workspace: workspaceID, label: label) }
     }
 
-    /// One place left (-1) or right (1); none past the ends (a snapshot may land after the menu opened).
-    func move(tab tabID: String, by offset: Int) async {
-        guard let tabs = workspace(of: tabID)?.tabs, let index = tabs.firstIndex(where: { $0.id == tabID }),
-              tabs.indices.contains(index + offset) else { return }
-        // herdr inserts before the tab now at the index, so one place right is two on.
-        await write { try await $0.move(tab: tabID, to: index + (offset > 0 ? 2 : -1)) }
-    }
-
-    /// One row group (a workspace and its worktrees) up (-1) or down (1) past the next group; none past the ends.
-    func move(workspace workspaceID: String, by offset: Int) async {
-        let groups = groups
-        guard let index = groups.firstIndex(where: { $0.first?.id == workspaceID }),
-              groups.indices.contains(index + offset) else { return }
-        let before = offset < 0 ? groups[index - 1].first?.id : groups.indices.contains(index + 2)
-            ? groups[index + 2].first?.id : nil
-        await write { try await $0.move(workspaces: groups[index].map(\.id), before: before) }
-    }
-
     /// Closes a pane that runs only its shell; asks first when anything else runs (design D41).
     func close(pane paneID: String) async {
         guard let client else { return }
