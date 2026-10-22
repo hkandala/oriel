@@ -151,7 +151,7 @@ Stage A (stream level, against throwaway sessions; no GUI yet).
   clicks moving the keyboard between cards, a click in `vim` with `mouse=a` landing on the
   right line, the wheel in long output (herdr's viewport moved) and in `vim`, window resize
   (`stty size` 27 73 → 33 102 and back), Nerd Font icons and box drawing, `top`, tab switch
-  release, a split button making a live card, take over by another client then Take back by
+  release, a split button making a live card, take over by another client then Take Back by
   typing. htop is not installed on this Mac; `top` stood in.
 - **e2e.** Each card's terminal view is an accessibility element `terminal.<pane_id>` whose
   value is its grid as `stty size` prints it, so tests compare it with the PTY. The helper's

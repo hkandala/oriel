@@ -8,7 +8,7 @@ Goal: v0 is solid end to end and documented; CI green; nothing extra.
    - herdr session stopped while the app runs → clear state, recovers when restarted;
    - a pane closed in herdr while streaming → card disappears, no crash, no zombie
      `herdr` children (`pgrep -f "terminal session"` after quit is empty);
-   - another client takes over a pane → card shows "In use elsewhere · Take back"; Take
+   - another client takes over a pane → card shows "In use elsewhere · Take Back"; Take
      back works;
    - switching sessions repeatedly leaks no processes.
 2. **Ponytail audit** of the whole app with the ponytail-audit skill; delete what is not
@@ -50,7 +50,7 @@ Goal: v0 is solid end to end and documented; CI green; nothing extra.
   (herdr ends it: `terminal … not found`/exited); no zombie children (`ps` shows no `Z` child of the app).
   e2e: `testPaneClosedInHerdrDropsItsCardAndStream`.
 - **Takeover.** Another client's `control --takeover` closes our stream with `taken over`; the card watches
-  with `observe` and shows "In use elsewhere · Take back" (now `pane.<id>.take-back`); Take back reattaches
+  with `observe` and shows "In use elsewhere · Take Back" (now `pane.<id>.take-back`); Take Back reattaches
   with `--takeover`, and typing reaches the pane. e2e: `testTakenOverCardOffersTakeBack`.
 - **Session switches.** Three round trips between two sessions, then ⌘Q: the old session has no
   `terminal session` runs after each switch, the shown one has exactly its tab's cards, and after quit there
