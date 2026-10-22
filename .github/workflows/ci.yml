@@ -34,7 +34,7 @@ jobs:
   # HerdrKit's integration tests and the UI tests both need herdr.
   test-e2e:
     runs-on: xcode-27
-    timeout-minutes: 20
+    timeout-minutes: 35 # the suite grows each phase: 13 min at phase 13, 19 min at phase 17
     env:
       HERDR_VERSION: 0.9.5
       HERDR_SHA256: fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2
