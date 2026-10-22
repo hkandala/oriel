@@ -18,10 +18,7 @@
                         Group {
                             if let tree = tab.tree {
                                 // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
-                                SplitLayout(node: tree, page: page, tabID: tab.id)
-                                    // Layout motion: splits, closes, moves and herdr's ratios; a drag follows the
-                                    // pointer.
-                                    .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: tree)
+                                Motion(tree: tree) { SplitLayout(node: tree, page: page, tabID: tab.id) }
                                     .padding([.horizontal, .bottom], gap)
                                     .padding(.top, 4)
                             } else {
@@ -68,6 +65,30 @@
                     Task { position.scrollTo(id: target, anchor: .leading) }
                 }
             }
+        }
+    }
+
+    /// Layout motion (item 16): when the tree changes (a split, a close, a move, a ratio from herdr), card frames
+    /// animate 0.2 s ease-out, and terminals keep their size, clipped by their card, until the motion ends (a
+    /// terminal resized at every frame went blank). A divider drag follows the pointer. Reduce Motion: no animation.
+    private struct Motion<Content: View>: View {
+        let tree: SplitNode
+        @ViewBuilder let content: Content
+        @State private var moves = 0
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        var body: some View {
+            content
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: tree)
+                .environment(\.layoutMoving, moves > 0)
+                .onChange(of: tree) {
+                    guard !reduceMotion else { return }
+                    moves += 1
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(200))
+                        moves -= 1
+                    }
+                }
         }
     }
 
@@ -340,6 +361,8 @@
     extension EnvironmentValues {
         /// The card is under a zoomed card: hidden, but there, so its terminal keeps its size.
         @Entry var zoomedAway = false
+        /// Cards are moving: terminals keep their size until they stop.
+        @Entry var layoutMoving = false
     }
 
     private extension SplitNode {

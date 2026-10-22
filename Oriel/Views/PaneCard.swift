@@ -23,7 +23,7 @@
             let terminal = pane.flatMap(page.terminal)
             // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
             let keyboard = pane.flatMap { page.keyboardTerminals[$0.tabID] }
-            let lit = keyboard.map { $0 == pane?.terminalID } ?? pane?.focused ?? true
+            let lit = keyboard.map { $0 == pane?.terminalID } ?? pane?.focused ?? false
             // Rex's content opacities; the watching window's dim (D66) multiplies.
             let content = (fade ? lit ? active ? 1 : scheme == .dark ? 0.8 : 0.85 : active ? 0.7 : 0.5 : 1)
                 * (page.watched ? 0.85 : 1)
@@ -57,13 +57,19 @@
                     }
             }
             .onHover { hovering = $0 }
-            .task(id: hovering && followMouse && !lit && !zoomedAway) {
-                // Focus follows mouse: a pointer resting 0.15 s, no button down, no text field typing, a key window,
-                // not under a zoomed card.
-                guard hovering, followMouse, !lit, !zoomedAway, active, let pane,
-                      await (try? Task.sleep(for: .milliseconds(150))) != nil, NSEvent.pressedMouseButtons == 0,
-                      !(NSApp.keyWindow?.firstResponder is NSText) else { return }
-                page.go(to: pane)
+            .task(id: hovering && followMouse && !zoomedAway && active) {
+                // Focus follows mouse: a pointer resting 0.15 s on another card, in a key window, no mouse button
+                // down, no text field typing, not under a zoomed card. Checked every 0.15 s while it rests, so a
+                // rename or a drag that ends under it still counts; once (keys may move the keyboard away again).
+                guard hovering, followMouse, !zoomedAway, active, !lit else { return }
+                while await (try? Task.sleep(for: .milliseconds(150))) != nil {
+                    guard let pane = store.pane(id),
+                          page.keyboardTerminals[pane.tabID] != pane.terminalID else { return }
+                    if NSEvent.pressedMouseButtons == 0, !(NSApp.keyWindow?.firstResponder is NSText) {
+                        page.go(to: pane)
+                        return
+                    }
+                }
             }
             .accessibilityHidden(zoomedAway)
         }

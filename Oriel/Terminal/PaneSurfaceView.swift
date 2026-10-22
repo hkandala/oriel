@@ -311,18 +311,42 @@
         /// The content's opacity. On the host view: SwiftUI's `opacity` moved the terminal's accessibility frame half a
         /// card down, so clicks at its center missed it.
         let alpha: CGFloat
+        @Environment(\.layoutMoving) private var moving
 
-        func makeNSView(context _: Context) -> NSView {
-            let host = NSView()
-            let view = terminal.view
-            view.frame = host.bounds
-            view.autoresizingMask = [.width, .height]
-            host.addSubview(view)
+        func makeNSView(context _: Context) -> Host {
+            let host = Host()
+            host.clipsToBounds = true
+            terminal.view.autoresizingMask = []
+            host.addSubview(terminal.view)
             return host
         }
 
-        func updateNSView(_ host: NSView, context _: Context) {
+        func updateNSView(_ host: Host, context _: Context) {
             host.alphaValue = alpha
+            host.holding = moving
+        }
+
+        /// Fits the terminal to itself, except while cards move (layout motion): then the terminal keeps its size,
+        /// clipped, and fits once when they stop.
+        final class Host: NSView {
+            var holding = false {
+                didSet {
+                    if !holding {
+                        fit()
+                    }
+                }
+            }
+
+            override func resizeSubviews(withOldSize _: NSSize) {
+                // A terminal that never had a size takes one at once.
+                if !holding || subviews.first?.frame.isEmpty == true {
+                    fit()
+                }
+            }
+
+            private func fit() {
+                subviews.first?.frame = bounds
+            }
         }
     }
 

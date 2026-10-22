@@ -16,7 +16,7 @@ extension OrielUITests {
         // ⌃⌘= through its menu item: a global hotkey on this Mac takes the key before the app sees it.
         pick("Pane", "Balance Splits")
         try await expectWidths(tab, [first: 1 / 3, second: 1 / 3, third: 1 / 3])
-        XCTAssertTrue(hasValue(divider, "33%", timeout: 2))
+        expectValue(divider, "33%")
 
         // The row less the page's two edges and the root's gap.
         let total = element("page.\(tab)").frame.width - 3 * 8
@@ -28,7 +28,7 @@ extension OrielUITests {
 
         divider.doubleClick()
         try await expectRatio(tab, at: [], 0.5)
-        XCTAssertTrue(hasValue(divider, "50%", timeout: 2))
+        expectValue(divider, "50%")
     }
 
     func testSplitRightTwiceGivesThirds() async throws {
@@ -55,9 +55,10 @@ extension OrielUITests {
         element("terminal.\(first)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
 
-        app.typeKey(.rightArrow, modifierFlags: [.command, .option])
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        // Round the ends: before the first card is the last.
         app.typeKey("[", modifierFlags: .command)
+        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        app.typeKey(.leftArrow, modifierFlags: [.command, .option])
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
 
         app.typeKey(.rightArrow, modifierFlags: [.command, .control])
@@ -109,6 +110,21 @@ extension OrielUITests {
         }
         // The page follows the pane.
         XCTAssertTrue(element("tab.\(moved)").wait(for: \.isSelected, toEqual: true, timeout: 3))
+
+        // To a new workspace: a new pane id, the same terminal, and it keeps the keyboard.
+        let terminal = try await terminalID(pane)
+        paneMenu(pane, "Move to New Workspace")
+        let away = try await poll("the pane in a new workspace") { () async throws -> String? in
+            let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
+            return panes.first { $0["terminal_id"] as? String == terminal && $0["pane_id"] as? String != pane }?[
+                "pane_id",
+            ] as? String
+        }
+        let workspace = String(away.prefix { $0 != ":" })
+        addTeardownBlock { [one] in
+            _ = try? await Self.call(one, "workspace.close", ["workspace_id": workspace, "close_group": false])
+        }
+        XCTAssertTrue(hasKeyboard(element("terminal.\(away)")))
     }
 
     func testZoomIsDisabledAloneAndAZoomedCardShowsRestoreAndClose() async throws {
@@ -137,8 +153,8 @@ extension OrielUITests {
         element("terminal.w1:p1").click()
         XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
         let keyboard = element("pane.w1:p1"), other = element("pane.w1:p2")
-        XCTAssertTrue(hasValue(keyboard, "content 100%", timeout: 2))
-        XCTAssertTrue(hasValue(other, "content 70%", timeout: 2))
+        expectValue(keyboard, "content 100%")
+        expectValue(other, "content 70%")
         keepScreenshot("faded cards, key window")
 
         // The setting turns the fade off; back on after a failure too (the app's defaults are the user's).
@@ -151,24 +167,24 @@ extension OrielUITests {
         }
         app.menuBars.menuBarItems["View"].click()
         app.menuBars.menuItems["Fade Inactive Panes"].click()
-        XCTAssertTrue(hasValue(other, "content 100%", timeout: 2))
+        expectValue(other, "content 100%")
         keepScreenshot("unfaded cards")
         app.menuBars.menuBarItems["View"].click()
         app.menuBars.menuItems["Fade Inactive Panes"].click()
-        XCTAssertTrue(hasValue(other, "content 70%", timeout: 2))
+        expectValue(other, "content 70%")
 
         // A window that is not key: 0.5 for the others, 0.8 (0.85 in light) for the keyboard card.
         let (first, _) = try newWindow()
         let card = element("pane.w1:p1", in: first)
-        XCTAssertTrue(hasValue(element("pane.w1:p2", in: first), "content 50%", timeout: 3))
-        XCTAssertTrue(["content 80%", "content 85%"].contains(card.value as? String ?? ""), "\(card.value ?? "")")
+        expectValue(element("pane.w1:p2", in: first), "content 50%")
+        expectValue(card, "content 80%", "content 85%")
         let shot = XCTAttachment(screenshot: first.screenshot())
         shot.name = "faded cards, window not key"
         shot.lifetime = .keepAlways
         add(shot)
         app.typeKey("w", modifierFlags: [.command, .shift])
         // Key again, the keyboard is still on the card it was on (phase 12 saw it move once after a re-activation).
-        XCTAssertTrue(hasValue(card, "content 100%", timeout: 3))
+        expectValue(card, "content 100%")
         XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
     }
 }
@@ -234,17 +250,15 @@ extension OrielUITests {
         }
     }
 
-    /// Polls the element's accessibility value every 100 ms.
-    func hasValue(_ element: XCUIElement, _ value: String, timeout: TimeInterval = 2) -> Bool {
-        let end = Date.now.addingTimeInterval(timeout)
-        while Date.now < end {
-            if element.value as? String == value {
-                return true
+    /// Polls the element's accessibility value every 100 ms, for 3 s, until it is one of these.
+    func expectValue(_ element: XCUIElement, _ values: String...) {
+        for _ in 0 ..< 30 {
+            if values.contains(element.value as? String ?? "") {
+                return
             }
             Thread.sleep(forTimeInterval: 0.1)
         }
-        XCTFail("\(element.identifier) has \(element.value ?? "no value"), not \(value)")
-        return false
+        XCTFail("\(element.identifier) has \(element.value ?? "no value"), not \(values)")
     }
 
     func label(_ pane: String) async throws -> String? {
