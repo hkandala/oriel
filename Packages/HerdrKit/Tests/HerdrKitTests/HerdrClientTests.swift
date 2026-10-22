@@ -91,9 +91,9 @@ final class FakeExec: Exec {
 }
 
 /// Polls until the condition holds or the timeout passes.
-func eventually(within timeout: Duration = .seconds(3), _ condition: () -> Bool) async -> Bool {
+func eventually(within timeout: Duration = .seconds(3), _ condition: () async -> Bool) async -> Bool {
     let deadline = ContinuousClock.now + timeout
-    while !condition() {
+    while await !condition() {
         guard ContinuousClock.now < deadline else { return false }
         try? await Task.sleep(for: .milliseconds(10))
     }

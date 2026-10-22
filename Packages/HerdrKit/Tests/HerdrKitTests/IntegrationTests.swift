@@ -8,23 +8,34 @@ private let script = URL(filePath: #filePath)
     .deletingLastPathComponent().deletingLastPathComponent()
     .appending(path: "scripts/herdr-session.sh").path
 
+/// Awaits the command's exit instead of blocking a thread: tests run in parallel on Swift's cooperative pool, which
+/// has one thread per core, and a session start in `waitUntilExit` (up to seconds) held them; the timing test of
+/// the snapshot pacing then saw its read start 100 ms late on CI's small VM.
 @discardableResult
-private func shell(_ argv: String...) -> Int32 {
-    let process = Process()
-    process.executableURL = URL(filePath: "/usr/bin/env")
-    process.arguments = argv
-    process.standardOutput = FileHandle.nullDevice
-    do { try process.run() } catch { return -1 }
-    process.waitUntilExit()
-    return process.terminationStatus
+private func shell(_ argv: String...) async -> Int32 {
+    await withCheckedContinuation { continuation in
+        let process = Process()
+        process.executableURL = URL(filePath: "/usr/bin/env")
+        process.arguments = argv
+        process.standardOutput = FileHandle.nullDevice
+        process.terminationHandler = { continuation.resume(returning: $0.terminationStatus) }
+        do { try process.run() } catch { continuation.resume(returning: -1) }
+    }
 }
+
+private let herdrInstalled: @Sendable () async -> Bool = { await shell("which", "herdr") == 0 }
 
 /// A client for a new throwaway session, removed after `body`.
 private func withSession(_ exec: any Exec, _ body: (HerdrClient) async throws -> Void) async throws {
     let session = "oriel-e2e-\(UUID().uuidString.prefix(6).lowercased())"
-    try #require(shell(script, "up", session) == 0)
-    defer { shell(script, "down", session) }
-    try await body(HerdrClient(session: session, exec: exec))
+    try #require(await shell(script, "up", session) == 0)
+    do {
+        try await body(HerdrClient(session: session, exec: exec))
+    } catch {
+        await shell(script, "down", session)
+        throw error
+    }
+    await shell(script, "down", session)
 }
 
 /// Counts `events.subscribe` requests, so a test can tell a read caused by an event from one after
@@ -58,7 +69,7 @@ private final class SubscribeCounter: Exec {
     }
 }
 
-@Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
+@Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `talks to a throwaway herdr session`() async throws {
     let exec = await SubscribeCounter(ProcessExec())
     try await withSession(exec) { client in try await talk(client, exec) }
@@ -174,7 +185,7 @@ private func closedReason(_ events: inout AsyncStream<TerminalStream.Event>.Iter
     return nil
 }
 
-@Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
+@Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `controls a throwaway terminal`() async throws {
     try await withSession(ProcessExec(), control)
 }
@@ -216,9 +227,9 @@ private func control(_ client: HerdrClient) async throws {
         #expect(watched.full && watched.width == 60)
         // observe ignores stdin's end; its wrapper ends it, though the pane prints nothing.
         let observer = try await "^\(client.herdr()) --session \(client.session) terminal session observe"
-        #expect(shell("pgrep", "-f", observer) == 0)
+        #expect(await shell("pgrep", "-f", observer) == 0)
         watcher.close()
-        #expect(await eventually { shell("pgrep", "-f", observer) == 1 })
+        #expect(await eventually { await shell("pgrep", "-f", observer) == 1 })
 
         // Taken over: a controller with --takeover wins, the first one hears it.
         let taker = try await client.terminal(terminal, cols: 60, rows: 12, takeover: true)
@@ -231,7 +242,7 @@ private func control(_ client: HerdrClient) async throws {
 
 /// The server the app starts gets the CLI's user keys: with `XDG_CONFIG_HOME` elsewhere, both find the session
 /// there (design: XDG fix). The app's own keys stay out (D47), and herdr runs by its absolute path.
-@Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
+@Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `a started server shares the CLI's paths`() async throws {
     struct Moved: Exec {
         let base: ProcessExec
@@ -248,7 +259,7 @@ func `a started server shares the CLI's paths`() async throws {
     let config = "/tmp/oriel-xdg-\(UUID().uuidString.prefix(6))"
     let session = "oriel-e2e-\(UUID().uuidString.prefix(6).lowercased())"
     defer {
-        shell("launchctl", "bootout", "gui/\(getuid())/dev.hkandala.oriel.herdr.\(session)")
+        await shell("launchctl", "bootout", "gui/\(getuid())/dev.hkandala.oriel.herdr.\(session)")
         try? FileManager.default.removeItem(atPath: config)
         try? FileManager.default.removeItem(at: URL.libraryDirectory.appending(path: "Logs/Oriel/\(session).log"))
     }
@@ -266,7 +277,7 @@ func `a started server shares the CLI's paths`() async throws {
     #expect(job.contains("XDG_CONFIG_HOME") && !job.contains("__CFBundleIdentifier"))
 }
 
-@Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
+@Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `changes a layout in a throwaway herdr session`() async throws {
     try await withSession(ProcessExec()) { client in
         let _: Created = try await client.call("workspace.create", ["cwd": "/tmp", "focus": false])
@@ -298,7 +309,7 @@ func `changes a layout in a throwaway herdr session`() async throws {
     }
 }
 
-@Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
+@Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `moves beside a pane, swaps by id, and throws herdr's refusals`() async throws {
     try await withSession(ProcessExec()) { client in
         let _: Created = try await client.call("workspace.create", ["cwd": "/tmp", "focus": false])
