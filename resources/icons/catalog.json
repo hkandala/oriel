@@ -811,14 +811,14 @@
     },
     "svg": "svg/fish.svg",
     "monochrome": true,
-    "brandColor": "#34c534",
+    "brandColor": "#2b2d31",
     "tile": {
       "background": "#2b2d31",
       "glyph": "#7ee787"
     },
-    "source": "Simple Icons",
-    "license": "CC0-1.0",
-    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/fishshell.svg"
+    "source": "Phosphor Icons",
+    "license": "MIT",
+    "url": "https://phosphoricons.com/?q=fish-simple (@phosphor-icons/core assets/fill/fish-simple-fill.svg)"
   },
   {
     "id": "nushell",
@@ -1274,9 +1274,9 @@
       "background": "#892ca0",
       "glyph": "#ffffff"
     },
-    "source": "Simple Icons",
-    "license": "CC0-1.0",
-    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/podman.svg"
+    "source": "Phosphor Icons",
+    "license": "MIT",
+    "url": "https://phosphoricons.com/?q=package (@phosphor-icons/core assets/fill/package-fill.svg)"
   },
   {
     "id": "kubernetes",
@@ -2059,9 +2059,9 @@
       "background": "#e27732",
       "glyph": "#ffffff"
     },
-    "source": "Simple Icons",
-    "license": "CC0-1.0",
-    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/jupyter.svg"
+    "source": "Phosphor Icons",
+    "license": "MIT",
+    "url": "https://phosphoricons.com/?q=planet (@phosphor-icons/core assets/fill/planet-fill.svg)"
   },
   {
     "id": "node",
@@ -2210,14 +2210,14 @@
     },
     "svg": "svg/java.svg",
     "monochrome": true,
-    "brandColor": "#000000",
+    "brandColor": "#e76f00",
     "tile": {
-      "background": "#2b2d31",
+      "background": "#ca701d",
       "glyph": "#ffffff"
     },
-    "source": "Simple Icons",
-    "license": "CC0-1.0",
-    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/openjdk.svg"
+    "source": "Phosphor Icons",
+    "license": "MIT",
+    "url": "https://phosphoricons.com/?q=coffee (@phosphor-icons/core assets/fill/coffee-fill.svg)"
   },
   {
     "id": "swift",

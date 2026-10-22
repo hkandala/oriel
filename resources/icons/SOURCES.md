@@ -1,6 +1,6 @@
 # Program icon sources
 
-Every SVG in `svg/` and its source. Counts: Simple Icons (CC0-1.0): 68, oh-my-pi repo (MIT): 1, Lobe Icons (MIT): 14, Phosphor Icons (MIT): 12, original (CC0-1.0): 8, aider repo (Apache-2.0): 1, jj repo (Apache-2.0): 1, Devicon (MIT): 1.
+Every SVG in `svg/` and its source. Counts: Simple Icons (CC0-1.0): 64, oh-my-pi repo (MIT): 1, Lobe Icons (MIT): 14, Phosphor Icons (MIT): 16, original (CC0-1.0): 8, aider repo (Apache-2.0): 1, jj repo (Apache-2.0): 1, Devicon (MIT): 1.
 
 Notes:
 - One style: a single solid path per icon, `fill="currentColor"`, no strokes, no gradients, no text. Each glyph is fitted into a 24x24 viewBox (about 18 units for wide or tall marks, about 16 for square or dense ones) and optically centered. `tools/build.mjs` generates everything here; see `tools/README.md`.
@@ -44,7 +44,7 @@ Notes:
 | terminal | Phosphor Icons | MIT | https://phosphoricons.com/?q=terminal-window (@phosphor-icons/core assets/fill/terminal-window-fill.svg) | fallback for any unmatched pane |
 | zsh | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/zsh.svg |  |
 | bash | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/gnubash.svg |  |
-| fish | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/fishshell.svg |  |
+| fish | Phosphor Icons | MIT | https://phosphoricons.com/?q=fish-simple (@phosphor-icons/core assets/fill/fish-simple-fill.svg) | the fish shell mark is thin lines that vanish at 1x; generic fish glyph |
 | nushell | original | CC0-1.0 | — | the Nushell mark is the "nu>" wordmark; solid "nu" monogram |
 | vim | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/vim.svg |  |
 | neovim | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/neovim.svg |  |
@@ -65,7 +65,7 @@ Notes:
 | tmux | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/tmux.svg |  |
 | yazi | Phosphor Icons | MIT | https://phosphoricons.com/?q=folder-open (@phosphor-icons/core assets/fill/folder-open-fill.svg) | no yazi logo SVG; generic file-manager glyph |
 | docker | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/docker.svg |  |
-| podman | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/podman.svg |  |
+| podman | Phosphor Icons | MIT | https://phosphoricons.com/?q=package (@phosphor-icons/core assets/fill/package-fill.svg) | the Podman seal is fine detail that reads as a blob at 1x; generic container glyph |
 | kubernetes | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/kubernetes.svg | k9s has no permissive SVG mark; shares the Kubernetes wheel |
 | terraform | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/terraform.svg |  |
 | packer | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/packer.svg |  |
@@ -73,7 +73,7 @@ Notes:
 | vagrant | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/vagrant.svg |  |
 | vault | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/vault.svg |  |
 | consul | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/consul.svg |  |
-| aws | Lobe Icons | MIT | https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/aws.svg) | "aws" letters dropped; the smile arrow alone |
+| aws | Lobe Icons | MIT | https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/aws.svg) | "aws" letters dropped; the smile arrow alone, thickened for 1x |
 | gcloud | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/googlecloud.svg |  |
 | azure | Lobe Icons | MIT | https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/azure.svg) |  |
 | vercel | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/vercel.svg |  |
@@ -96,19 +96,19 @@ Notes:
 | pnpm | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/pnpm.svg |  |
 | yarn | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/yarn.svg |  |
 | vite | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/vite.svg |  |
-| postgres | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/postgresql.svg |  |
+| postgres | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/postgresql.svg | thickened: its thin outlines vanish at 1x |
 | sqlite | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/sqlite.svg |  |
 | database | Phosphor Icons | MIT | https://phosphoricons.com/?q=database (@phosphor-icons/core assets/fill/database-fill.svg) | generic database glyph |
 | python | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/python.svg |  |
 | uv | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/uv.svg |  |
-| jupyter | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/jupyter.svg |  |
+| jupyter | Phosphor Icons | MIT | https://phosphoricons.com/?q=planet (@phosphor-icons/core assets/fill/planet-fill.svg) | the Jupyter orbits are thin at 1x; generic planet glyph |
 | node | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/nodedotjs.svg |  |
 | bun | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/bun.svg |  |
 | deno | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/deno.svg |  |
 | ruby | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/ruby.svg |  |
 | go | original | CC0-1.0 | — | Simple Icons "go" is the GO wordmark; solid "G" monogram |
 | rust | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/rust.svg |  |
-| java | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/openjdk.svg |  |
+| java | Phosphor Icons | MIT | https://phosphoricons.com/?q=coffee (@phosphor-icons/core assets/fill/coffee-fill.svg) | the OpenJDK mark is thin at 1x; generic coffee cup in Java orange |
 | swift | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/swift.svg |  |
 | zig | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/zig.svg |  |
 | clang | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/llvm.svg |  |

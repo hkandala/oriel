@@ -46,7 +46,7 @@ const ORIG = {
 };
 
 // [id, title, kind, src, match, extra]. extra: brandColor, generic (dark tile + green glyph), knock (colors that cut holes),
-// keep (filter subpaths by source bounds), size (override fit), notes.
+// keep (filter subpaths by source bounds), size (override fit), bold (thicken by this many units at 24), notes.
 const E = [
   // agents
   ['pi', 'Pi', 'agent', 'si:pi', { agent: ['pi'], process: ['pi'], titlePrefix: ['π'], scriptSuffix: ['pi-coding-agent/dist/cli.js', 'pi-coding-agent/dist/bundle/cli.js'] }],
@@ -84,7 +84,7 @@ const E = [
   ['terminal', 'Shell', 'shell', 'ph:terminal-window', { process: ['sh', 'dash', 'ksh', 'tcsh', 'csh', 'login'] }, { notes: 'fallback for any unmatched pane' }],
   ['zsh', 'zsh', 'shell', 'si:zsh', { process: ['zsh', '-zsh'] }],
   ['bash', 'bash', 'shell', 'si:gnubash', { process: ['bash', '-bash'] }],
-  ['fish', 'fish', 'shell', 'si:fishshell', { process: ['fish', '-fish'] }],
+  ['fish', 'fish', 'shell', 'ph:fish-simple', { process: ['fish', '-fish'] }, { notes: 'the fish shell mark is thin lines that vanish at 1x; generic fish glyph' }],
   ['nushell', 'Nushell', 'shell', 'orig', { process: ['nu'] }, { brandColor: '#4e9a06', notes: 'the Nushell mark is the "nu>" wordmark; solid "nu" monogram' }],
   // editors
   ['vim', 'Vim', 'editor', 'si:vim', { process: ['vim', 'vi', 'view', 'vimdiff', 'gvim'] }],
@@ -109,7 +109,7 @@ const E = [
   ['yazi', 'Yazi', 'tool', 'ph:folder-open', { process: ['yazi', 'ranger', 'lf', 'nnn', 'mc'] }, { generic: true, brandColor: '#e7904a', notes: 'no yazi logo SVG; generic file-manager glyph' }],
   // containers / cloud
   ['docker', 'Docker', 'tool', 'si:docker', { process: ['docker', 'docker-compose', 'lazydocker', 'colima'] }],
-  ['podman', 'Podman', 'tool', 'si:podman', { process: ['podman'] }],
+  ['podman', 'Podman', 'tool', 'ph:package', { process: ['podman'] }, { brandColor: '#892ca0', notes: 'the Podman seal is fine detail that reads as a blob at 1x; generic container glyph' }],
   ['kubernetes', 'Kubernetes', 'tool', 'si:kubernetes', { process: ['kubectl', 'kubectx', 'kubens', 'k9s', 'helm', 'minikube', 'kind'] }, { notes: 'k9s has no permissive SVG mark; shares the Kubernetes wheel' }],
   ['terraform', 'Terraform', 'tool', 'si:terraform', { process: ['terraform', 'tofu'] }],
   ['packer', 'Packer', 'tool', 'si:packer', { process: ['packer'] }],
@@ -117,7 +117,7 @@ const E = [
   ['vagrant', 'Vagrant', 'tool', 'si:vagrant', { process: ['vagrant'] }],
   ['vault', 'Vault', 'tool', 'si:vault', { process: ['vault'] }],
   ['consul', 'Consul', 'tool', 'si:consul', { process: ['consul'] }],
-  ['aws', 'AWS CLI', 'tool', 'lobe:aws', { process: ['aws', 'sam', 'cdk'] }, { brandColor: '#ff9900', keep: (b) => b.top > 13, notes: '"aws" letters dropped; the smile arrow alone' }],
+  ['aws', 'AWS CLI', 'tool', 'lobe:aws', { process: ['aws', 'sam', 'cdk'] }, { brandColor: '#ff9900', keep: (b) => b.top > 13, bold: 0.35, notes: '"aws" letters dropped; the smile arrow alone, thickened for 1x' }],
   ['gcloud', 'Google Cloud', 'tool', 'si:googlecloud', { process: ['gcloud', 'gsutil', 'bq'] }],
   ['azure', 'Azure CLI', 'tool', 'lobe:azure', { process: ['az'] }, { brandColor: '#0669bc' }],
   ['vercel', 'Vercel', 'tool', 'si:vercel', { process: ['vercel', 'vc'] }],
@@ -142,20 +142,20 @@ const E = [
   ['yarn', 'Yarn', 'tool', 'si:yarn', { process: ['yarn'] }],
   ['vite', 'Vite', 'tool', 'si:vite', { process: ['vite', 'vitest'] }],
   // databases
-  ['postgres', 'PostgreSQL', 'tool', 'si:postgresql', { process: ['psql', 'postgres', 'pgcli', 'pg_dump', 'pg_restore'] }],
+  ['postgres', 'PostgreSQL', 'tool', 'si:postgresql', { process: ['psql', 'postgres', 'pgcli', 'pg_dump', 'pg_restore'] }, { bold: 0.3, notes: 'thickened: its thin outlines vanish at 1x' }],
   ['sqlite', 'SQLite', 'tool', 'si:sqlite', { process: ['sqlite3', 'sqlite', 'litecli'] }],
   ['database', 'Database', 'tool', 'ph:database', { process: ['mysql', 'mariadb', 'mycli', 'redis-cli', 'mongosh', 'mongo', 'duckdb', 'clickhouse', 'usql'] }, { generic: true, notes: 'generic database glyph' }],
   // languages
   ['python', 'Python', 'language', 'si:python', { process: ['python', 'python2', 'python2.7', 'python3', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'ipython', 'pip', 'pip3'] }],
   ['uv', 'uv', 'language', 'si:uv', { process: ['uv', 'uvx'] }],
-  ['jupyter', 'Jupyter', 'language', 'si:jupyter', { process: ['jupyter', 'jupyter-notebook', 'jupyter-lab', 'jupyter-console', 'jupyter-qtconsole'] }],
+  ['jupyter', 'Jupyter', 'language', 'ph:planet', { process: ['jupyter', 'jupyter-notebook', 'jupyter-lab', 'jupyter-console', 'jupyter-qtconsole'] }, { brandColor: '#f37626', notes: 'the Jupyter orbits are thin at 1x; generic planet glyph' }],
   ['node', 'Node.js', 'language', 'si:nodedotjs', { process: ['node'] }],
   ['bun', 'Bun', 'language', 'si:bun', { process: ['bun', 'bunx'] }],
   ['deno', 'Deno', 'language', 'si:deno', { process: ['deno'] }],
   ['ruby', 'Ruby', 'language', 'si:ruby', { process: ['ruby', 'irb', 'bundle', 'bundler', 'rails', 'rake', 'gem'] }],
   ['go', 'Go', 'language', 'orig', { process: ['go', 'gopls', 'dlv'] }, { brandColor: '#00add8', notes: 'Simple Icons "go" is the GO wordmark; solid "G" monogram' }],
   ['rust', 'Rust', 'language', 'si:rust', { process: ['cargo', 'rustc', 'rustup', 'bacon'] }],
-  ['java', 'Java', 'language', 'si:openjdk', { process: ['java', 'javac', 'jshell', 'gradle', 'mvn'] }],
+  ['java', 'Java', 'language', 'ph:coffee', { process: ['java', 'javac', 'jshell', 'gradle', 'mvn'] }, { brandColor: '#e76f00', notes: 'the OpenJDK mark is thin at 1x; generic coffee cup in Java orange' }],
   ['swift', 'Swift', 'language', 'si:swift', { process: ['swift', 'swiftc', 'xcodebuild', 'xcrun'] }],
   ['zig', 'Zig', 'language', 'si:zig', { process: ['zig'] }],
   ['clang', 'Clang / LLVM', 'language', 'si:llvm', { process: ['clang', 'clang++', 'clang-cpp', 'clang-cl', 'lldb', 'clangd'] }],
@@ -258,6 +258,8 @@ for (const [id, title, kind, src, match, x = {}] of E) {
   if (type === 'si') brandColor ??= '#' + Object.values(si).find((i) => i?.slug === arg).hex;
   let p; try { p = shape(raw, x); } catch (e) { throw new Error(`${id}: ${e.message}`); }
   const f = fit(p, x.size);
+  // Thicken: the union of copies shifted around a circle of radius `bold`.
+  if (x.bold) for (let k = 0; k < 16; k++) { const t = (k * Math.PI) / 8; p = p.unite(p.clone({ insert: false }).translate(new paper.Point(Math.cos(t) * x.bold, Math.sin(t) * x.bold)), { insert: false }); }
   fits.push(`${id}:${f.T.toFixed(1)}/${f.density.toFixed(2)}`);
   fs.writeFileSync(path.join(OUT, 'svg', `${id}.svg`), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="${p.getPathData(null, 2)}"/></svg>\n`);
   const generic = kind === 'shell' || !!x.generic;
