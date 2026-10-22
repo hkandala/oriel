@@ -206,10 +206,10 @@ One path is [Future work](/docs/future-work).
 
 1. **Mac:** open as `control` without `--takeover`. If herdr refuses (another
    device holds the pane), open as `observe` and show "In use elsewhere ·
-   Take back".
+   Take Back".
 2. **iPhone and iPad:** open as `observe`. Looking never resizes the PTY.
 3. On any device, the first key press, paste, or click or tap inside a
-   watching card, or **Take back**, opens the stream again with
+   watching card, or **Take Back**, opens the stream again with
    `--takeover`. Keys typed before the new stream's first frame are queued
    and sent in order.
 4. Nothing else takes control. A watcher stays a watcher until its user acts,
@@ -228,16 +228,18 @@ Two windows on the Mac can show the same session. Control is per session
 2. Another window that shows the session opens `observe` streams for its
    cards, at its own card size. Its cards dim a little, and it shows
    "Controlled in another window · Take Back"
-   ([Control capsule](/docs/ui/window#control-capsule)).
+   ([Control capsule](/docs/ui/window#control-capsule)). Its cards show no
+   per-card "In use elsewhere" label: the capsule covers them.
 3. Take Back, or a key press, paste or click in a terminal card of the
    watching window, moves control: that window opens its streams again as
-   `control` with `--takeover`, and the other window opens `observe`. Keys
+   `control` with `--takeover`. herdr's takeover ends the other window's
+   streams, and they open again as `observe` (D8). Keys
    typed before the first frame are queued, as for a device.
 4. The session's `HostStore` records which window controls it, so its
    windows never take over from each other by themselves.
 5. Windows on different sessions each control their own session.
 6. Another device can still hold a single pane. That card shows "In use
-   elsewhere · Take back", as in [One controller per pane](#one-controller-per-pane).
+   elsewhere · Take Back", as in [One controller per pane](#one-controller-per-pane).
 
 ### Watching on a narrow screen
 
@@ -254,7 +256,7 @@ handshake fails, it exits 1 with the reason on stderr.
 
 | Reason contains | The app |
 |---|---|
-| `already has an attached client` | watches; shows Take back |
+| `already has an attached client` | watches; shows Take Back |
 | `taken over` | watches; never takes back by itself |
 | `not found` or `exited` | drops the card; waits for the snapshot |
 | `detached` | does nothing (this device closed the stream) |
@@ -272,8 +274,8 @@ handshake fails, it exits 1 with the reason on stderr.
   patch (`suppressesTerminalResponses`). [Spike S1](/docs/build-order#s1-strip)
   checks it.
 - **Find** (⌘F) reads the pane's recent text with
-  `pane.read {source:"recent", lines: 5000, format:"text"}` when the bar opens
-  and 0.3 s after each edit, and searches it on the device. Next and previous
+  `pane.read {source:"recent", lines: 5000, format:"text"}` once when the bar
+  opens, and searches it on the device on each edit. Next and previous
   scroll herdr's shared viewport with `pane.scroll`, so a herdr TUI on the
   same pane scrolls too.
 - **Links** in terminal output open on this device with ⌘-click, and only
@@ -306,7 +308,6 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a workspace row's New Tab, that workspace's keyboard card, or `$HOME` |
 | Split right or down | `pane.split {target_pane_id, direction: right or down, ratio, cwd}` |
 | Split left or up | `pane.split` right or down, then `pane.swap` of the old and the new pane (herdr splits only right and down) |
-| Autobalance after a split (setting) | then one `layout.set_split_ratio` per split, as for ⌃⌘= |
 | Drag a divider | `layout.set_split_ratio {tab_id, path, ratio}` on release; ratio kept in 0.1–0.9 |
 | Double-click a divider | `layout.set_split_ratio` with ratio 0.5 |
 | Balance splits (⌃⌘=) | one `layout.set_split_ratio` per split; ratio = leaves on the first side ÷ all leaves under the split |
@@ -317,7 +318,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Move to New Workspace (card menu) | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
 | Drop on an edge of a pane in the same tab | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}`, then `pane.move {pane_id, destination:{type:"tab", tab_id, split, target_pane_id}}` back beside the target (right or down), then `pane.swap` for left or top; the snapshot is read after each step (herdr refuses a move into the pane's own tab with `same_tab`) |
 | Drop on an edge of a pane in another tab | `pane.move {pane_id, destination:{type:"tab", tab_id, split, target_pane_id}}`; for left or top, then `pane.swap` |
-| Drop on a tab capsule | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
+| Drop on another tab's capsule | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` |
 | Drop on the tab track's empty end or `+` | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Drop on a workspace row | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Drop on empty space at the bottom of the sidebar page | `pane.move {pane_id, destination:{type:"new_workspace"}}` |

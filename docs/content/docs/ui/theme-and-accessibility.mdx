@@ -16,8 +16,8 @@ Interface Style, Settings ▸ General and the palette.
     plain raised pills.
 - In both styles the sidebar sits flat on the window background, and pane
   cards are translucent fills with thin edges, never glass. Popovers, the
-  palette, the hover card, the Agents popover, the find bar, notices and
-  tooltips use the system glass.
+  palette, the hover card, the Agents popover, the find bar and notices use
+  the system glass. Tooltips are the system's.
 - Pane cards have a 10 pt radius. The 8 pt gap between cards is the one fixed
   layout size.
 
@@ -29,9 +29,11 @@ and appearance, with values measured from Rex and tuned by eye. In short:
 | Window background | behind-window blur + a tint at 0.5 (`#1e1e1e` dark, white light) | opaque `#1e1e1e` dark, `#f6f6f6` light |
 | Card fill | white 0.04 dark, 0.10 light; a step brighter on the keyboard card | white 0.035 dark, 0.6 light; a step apart on the keyboard card |
 | Card edges | a thin inner rim and a 1 pt outer stroke; a light shadow in light | a 0.7 pt outer stroke; a light shadow in light |
-| Hover and pressed fill (rows, tabs, buttons) | white 0.05 and 0.08 in dark, black in light | the same |
-| Tab track | white 0.05 in dark, black 0.05 in light | the same |
 | Selected tab and row | Liquid Glass capsule | a raised pill with a fine stroke |
+
+The hover and pressed fills (rows, tabs, buttons) and the tab track are the
+same in both styles: the primary color at 0.05 and 0.08 (track 0.05), which
+follows the appearance by itself, so they are not tokens.
 
 Terminals keep a transparent background, so the card shows through. Their
 text uses one light and one dark palette (libghostty-spm's defaults), which
@@ -49,6 +51,7 @@ the Agents view and popover, the hover card, pills, notifications):
 | three working dots | working | `#58a6ff` | `#0667d8` | `working` |
 | an amber badge on the program icon | needs you | `#d29922` | `#9d5c00` | `blocked` |
 | a green badge on the program icon | finished | `#3fb950` | `#116329` | finished and not yet seen by this device |
+| ↓behind on a workspace row, the error tone of a notice | error | `#f85149` | `#cf222e` | — |
 
 - **Working dots.** Three dots, 3.5 pt, in a 14 pt box. Each dot's opacity
   goes 0.3 → 0.85 → 0.3 over 1.2 s, each dot 0.2 s after the one before. The
@@ -103,7 +106,7 @@ defined once. A command with two shortcuts has a hidden second menu item.
 | ⌃⌘I | Insert Path | Edit |
 | ⌘F | find in the keyboard card | Edit |
 | ⌘G, or Enter in the find bar | next match (⇧Enter: previous match) | Edit |
-| ⌘K and ⇧⌘P | the command palette | View |
+| ⌘K | the command palette; ⇧⌘P also opens it (Rex's key) | View |
 | ⌘. | show or hide the Agents view | View |
 | ⌃⌘S | show or hide the sidebar | View |
 | ⌘D, ⇧⌘D | split right, split down | View ▸ Pane |
@@ -118,20 +121,20 @@ defined once. A command with two shortcuts has a hidden second menu item.
 | ⌘1 … ⌘9 | switch tabs | Window |
 | ⇧⌘[ and ⌃⇧⇥, ⇧⌘] and ⌃⇥ | previous and next tab | Window |
 | ⌃⇧PgUp, ⌃⇧PgDn | move the tab left, right | Window |
-| ⌃⌥1 … ⌃⌥9 | switch to the first nine session pages | Window |
 | hold ⌘ for 0.7 s | keycap hints on the first nine tabs | |
 
-New Workspace, Close Workspace, Close Page, and Previous and Next Session
-have no shortcut. In the palette: ↩ runs, ⎋ goes back or closes, ⌫ on an empty
-field goes back. In the folder browser: → or ↩ goes in, ← goes up, ⌘↩ chooses.
+New Workspace, Close Workspace, Close Page, Previous Page and Next Page have
+no shortcut. In the palette: ↩ runs, ⎋ goes back or closes, ⌫ on an empty
+field goes back.
 
 Rex shortcuts not taken, and why:
 - ⌘K stays the palette (D48), so Change Session (⌘K in Rex) is not taken;
-  sessions open with Open Session (⇧⌘N). ⇧⌘P also opens the palette for Rex
-  users.
+  sessions open with Open Session (⇧⌘N). ⇧⌘P also opens it (Rex's key).
 - ⌘/ (sidebar) is not used: ⌃⌘S is the macOS sidebar key.
 - ⌘R (refresh) is not needed: the snapshot is live.
 - Find Previous has no shortcut: ⇧⌘G is Go to Directory.
+- ⇧⌘← and ⇧⌘↑ (Split Left, Split Up) would steal select-to-line-start from
+  text fields.
 
 Plugins cannot claim these keys.
 

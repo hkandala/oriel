@@ -28,14 +28,14 @@ One rule decides where each new thing goes (D57):
 | Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults` (on macOS the add sheet offers `herdr machine list`) |
 | iOS SSH key and pinned host keys | app, disk | Secure Enclave, Keychain |
 | Settings: appearance, interface style, tab, pane, terminal and notification options ([Settings](/docs/ui/settings)); pill settings | app, disk | app storage (`UserDefaults`) |
-| Per window: the machine, the names of its open pages, the current page, the workspace and tab per page, sidebar shown or hidden, sidebar view (workspaces or agents) and sidebar width | app, disk | `@SceneStorage`, one set per window |
+| Per window: the machine, the names of its open pages, the current page, the workspace and tab per page, sidebar shown or hidden, sidebar view (workspaces or agents) and its sort, and sidebar width | app, disk | `@SceneStorage`, one set per window |
 | Plugin code and source record | app, disk | `Application Support/Oriel/plugins/` |
 | Plugin consent and This Mac answers | app, disk | `UserDefaults` |
 | Plugin preferences | app, disk | `UserDefaults`, passwords in the Keychain |
 | Approved web origins per machine, the web safe list | app, disk | `UserDefaults` |
 | Web cookies | WebKit | one data store per machine |
 | Per window: zoomed card and keyboard card per tab. Per session: which window controls it ([Control between windows](/docs/talking-to-herdr#control-between-windows)). Chat or terminal per pane, drafts | app, per device | memory |
-| Seen values and the time of each status change (Agents view), program icons, git state of each workspace, the Agents view's sort, recent palette commands, a divider's ratio while it is dragged | app, per device | memory |
+| Seen values and the time of each status change (Agents view), program icons, git state of each workspace, a divider's ratio while it is dragged | app, per device | memory |
 | ControlMaster sockets, port forwards | app | `~/Library/Caches/oriel/` (macOS), while running |
 
 `<session>` is the herdr session name. `$HOME` is the machine's home folder;

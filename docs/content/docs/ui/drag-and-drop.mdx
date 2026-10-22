@@ -28,23 +28,23 @@ calls (D69). What herdr 0.9.5 allows, tested on a throwaway session:
 ## Panes
 
 Drag a card by its header (the title area, not its buttons) by 4 pt or more.
-With pane headers hidden, hold ⌥ and drag the card's edge.
 
 ![Dragging a pane onto the right edge of another card](/mockups/K.jpg)
 
-- **Preview.** A snapshot of the card (its header and the top of its
-  content) at half size follows the pointer. The card in place dims to 0.4.
+- **Preview.** The drag image, a snapshot of the card's header, follows the
+  pointer. The card in place dims to 0.4.
 - **Indicator.** A rounded rect (radius 10) filled with the accent color at
   0.2, with a 2 pt accent stroke. It moves between targets over 0.12 s.
 
 | Drop on | Indicator | Result | herdr calls |
 |---|---|---|---|
-| the center third of another card in the same tab | the whole card | swap the two panes | `pane.swap` |
-| an edge band (the outer quarter) of another card in the same tab | that half of the card | put the pane beside that card | `pane.move` to a new tab, then `pane.move` back beside the target (right or down), then `pane.swap` for left or top |
-| a tab capsule in the title row | the capsule lit | move into that tab, split right of its layout | `pane.move {type:"tab", tab_id, split:"right"}` |
+| the center of another card in the same tab (all but the edge bands) | the whole card | swap the two panes | `pane.swap` |
+| an edge band of another card in the same tab: the outer quarter on each side is that edge | that half of the card | put the pane beside that card | `pane.move` to a new tab, then `pane.move` back beside the target (right or down), then `pane.swap` for left or top |
+| the pane's own tab capsule | none | not a target (herdr refuses `same_tab`) | — |
+| another tab's capsule in the title row | the capsule highlighted | move into that tab, split right of its layout | `pane.move {type:"tab", tab_id, split:"right"}` |
 | an edge band of a card in another tab (after spring-loading) | that half of the card | split beside that card | `pane.move {type:"tab", tab_id, split, target_pane_id}`, then `pane.swap` for left or top |
 | the empty end of the tab track, or `+` | a ghost capsule at the end | a new tab in the selected workspace | `pane.move {type:"new_tab", workspace_id}` |
-| a workspace row in the sidebar | the row lit | a new tab in that workspace | `pane.move {type:"new_tab", workspace_id}` |
+| a workspace row in the sidebar | the row highlighted | a new tab in that workspace | `pane.move {type:"new_tab", workspace_id}` |
 | empty space at the bottom of the sidebar page | a ghost row "New Workspace" | a new workspace | `pane.move {type:"new_workspace"}` |
 | another session's page dots, the Agents view | none; the pointer shows that it is not a target | — | — |
 
@@ -54,7 +54,7 @@ With pane headers hidden, hold ⌥ and drag the card's edge.
   selected, so its tabs show and the drop can go on a capsule or a card.
 - **A step fails.** If a later step of a drop fails, the pane stays where it
   got to, and the notice says so.
-- After each write the app reads the snapshot, and the next step uses the
+- Every `pane.move` passes `focus:false`. After each write the app reads the snapshot, and the next step uses the
   pane id from it. If herdr refuses or changes nothing, its reason shows in
   the notice.
 - Esc cancels a drag. A failed write leaves the layout as herdr has it.

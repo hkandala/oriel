@@ -41,10 +41,9 @@ One row, 40 pt tall, always the same (D45). From left to right:
 7. The [Agents button](#agents-button).
 8. ⌘ (the command palette, ⌘K) and `+` (new tab, ⌘T).
 
-Each title-row button and each card header button shows a tooltip after the
-pointer rests on it for 0.5 s: a small glass label with the action's name and
-its shortcut as keycap chips, for example "New Tab ⌘T". It fades in over
-0.13 s.
+Each title-row button except the Agents button, the page header's `+`, the
+footer's Open Session button and each card header button shows the system
+tooltip with the action's name and its shortcut, for example "New Tab ⌘T".
 
 The window title is "‹tab title› - ‹session›", so the Window menu and Mission
 Control show it.
@@ -88,8 +87,7 @@ One capsule per herdr tab of the selected workspace (D42).
 - **Width.** All tabs share one width: the space less the 1 pt gaps, divided
   by the count, at most 220 pt and at least 64 pt. Below 64 pt the bar scrolls
   sideways, with edge fades (8 pt leading, 16 pt trailing), and keeps the
-  selected tab in view. The setting **Tabs fill the bar** removes the 220 pt
-  limit.
+  selected tab in view.
 - **After a close**, the widths stay as they were while the pointer stays in
   the bar, so the next × is under the pointer. They settle when the pointer
   leaves.
@@ -117,8 +115,8 @@ One capsule per herdr tab of the selected workspace (D42).
   ([Theme and accessibility](/docs/ui/theme-and-accessibility#status)).
 - **Announcement.** When a tab that is not selected turns to needs you or
   finished, its front icon bounces once and its title shows "‹agent› needs
-  you" or "‹agent› finished" for 3 s. A long text scrolls once (30 pt/s)
-  instead of fading. Reduce Motion turns the bounce off.
+  you" or "‹agent› finished" for 3 s. A long text fades at its end like any
+  title. Reduce Motion turns the bounce off.
 - **Context menu** on a capsule: Rename Tab, Move Tab Left, Move Tab Right,
   Close Tab, Close Other Tabs. Close Other Tabs asks once, with the total pane
   count. Rename puts a text field in place of the title: Enter saves, Esc
@@ -136,7 +134,8 @@ One capsule per herdr tab of the selected workspace (D42).
 - Outline chat bubbles. The first bubble fills while the
   [Agents view](#agents-view) is on; the button has no highlight.
 - An amber dot shows when an agent of the current session needs you.
-- A click or ⌘. turns the Agents view on and off (D61).
+- A click or ⌘. turns the Agents view on and off (D61). With the sidebar
+  collapsed, a click opens the sidebar in the Agents view.
 - **Hover.** When the pointer rests on the button for 0.25 s, a glass popover
   under it lists the agents of the current session that need you, under the
   header "Needs you · ‹session›". The rows are the same as in the Agents view.
@@ -220,7 +219,7 @@ session only (D61). A sideways swipe shows the next open session's agents.
   (green) or "Idle" (gray), the text in the color on a 0.15 fill of it. Line
   2: "‹workspace› · ‹tab›" in secondary text, and the age on the right ("now",
   "3m", "2h"), counted from the time the app saw the change.
-- Idle agents show by default.
+- Idle agents show.
 - A click goes to that workspace, tab and pane and gives the pane the
   keyboard, which records a finish as seen.
 - Rest the pointer on a row to see the [hover card](#hover-card) of its tab.
@@ -235,7 +234,8 @@ The one place to create or open a session, as a page of this window (D68).
 The footer's Open Session button, the workspace menu's "Open Session…" and
 ⇧⌘N open it. The sheet is titled "Open Session".
 - A text field, "Name a new session, or find one", empty at first.
-- The list, filtered by the field:
+- The list, filtered by the field, in groups with the headers "New",
+  "Running", "Stopped" and "Open in this window":
   - **New:** "Create session “‹typed name›”" when the text is a valid new
     herdr session name. With an empty field: "Create session “‹name›”" with a
     suggested two-word name.
@@ -303,16 +303,12 @@ How it works: [Layout and sizing](/docs/layout).
   plugin|term switch. Plugin and web cards also have **Refresh**, which loads
   the card again from the machine
   ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
-- **Show pane headers** (a setting, on by default). When it is off, the card
-  is all content, and its actions stay in the context menu, the menu bar and
-  the palette.
-- **Context menu** on the header and on the card's edge (inside the terminal,
-  the program keeps its own right-click): Split Right, Split Down, Split Left,
+- **Context menu** on the header (inside the terminal, the program keeps its
+  own right-click): Split Right, Split Down, Split Left,
   Split Up, Zoom or Restore, Move to New Tab, Move to Tab ▸ (the workspace's
   other tabs), Move to New Workspace, Rename Pane…, Close Pane.
 - **Rename Pane** puts a text field in the header. Enter saves the label; an
-  empty name clears it. Labels that start with `oriel:` belong to the app and
-  are not offered for rename.
+  empty name clears it.
 - Drag the header to move the pane ([Drag and drop](/docs/ui/drag-and-drop)).
 - Close asks first unless the pane runs only its shell.
 - ⌘-click on a link in a terminal opens it in the default browser, `http` and
@@ -325,8 +321,9 @@ How it works: [Layout and sizing](/docs/layout).
   count ("3 of 12"), ↑ and ↓ buttons, and ×. One bar per card.
 - ⌘G or Enter goes to the next match, ⇧Enter to the previous one. Esc closes
   the bar.
-- The text comes from herdr and the search is case blind. A match scrolls
-  herdr's viewport into view and gets a highlight. Closing the bar scrolls back
+- The text comes from herdr, read once when the bar opens, and the search is
+  case blind. Next or previous scrolls herdr's viewport to the match, with the
+  match line centered. Closing the bar scrolls back
   to the bottom. herdr's viewport is shared, so a herdr TUI on the same pane
   scrolls too.
 
@@ -368,19 +365,18 @@ A window that watches a session another window controls (D66).
 - Take Back, or a key press, paste or click in one of its terminal cards,
   moves control of the session to this window. The other window then watches
   and shows the capsule.
-- A pane that another device holds shows "In use elsewhere · Take back" in its
+- A pane that another device holds shows "In use elsewhere · Take Back" in its
   card instead
   ([One controller per pane](/docs/talking-to-herdr#one-controller-per-pane)).
 
 ## Command palette
 
-⌘K, ⇧⌘P or the title-bar ⌘ button opens it (D48).
-- 480 pt wide. The search field says "Search commands, tabs and sessions…".
+⌘K or the title-bar ⌘ button opens it (D48). ⇧⌘P also opens it (Rex's key).
+- 480 pt wide. The search field says "Search".
 - **Rows.** 28 pt: a symbol, the title, and on the right the shortcut in
   secondary glyphs, or › for a row that opens a sub-page. The selected row is
   an accent pill, radius 8.
-- **Sections.** With an empty field: the five commands run last (kept in
-  memory), then the page's items. Then Commands, Tabs, Workspaces and Sessions.
+- **Sections.** With an empty field: the page's items first. Then Commands, Tabs, Workspaces and Sessions.
   Sessions lists the pages open in this window; Open Session… opens the
   [Open Session](#open-session) sheet.
 - **Matching.** Fuzzy, in the order of the typed letters, over titles and
@@ -390,16 +386,16 @@ A window that watches a session another window controls (D66).
   first page closes the palette.
   - Rename Tab ›, Rename Workspace ›, Rename Pane ›: the field holds the
     current name; Enter saves.
-  - Move Pane to Tab ›: the workspace's tabs, New Tab and New Workspace.
-  - Go to Directory › (⇧⌘G): a folder browser that starts in the keyboard
-    card's folder. → or Enter goes into a folder, ← goes up, ⌘↩ chooses the
-    shown folder. Choosing types `cd -- '‹path›'` and Return into the card.
-    Enabled only when the card runs only its shell.
-  - Insert Path › (⌃⌘I): the same browser with files too. Choosing types the
-    shell-quoted path at the cursor, without Return.
+  - Move Pane to Tab ›: the workspace's other tabs, New Tab and New
+    Workspace.
   - Appearance › and Interface Style ›: a row highlighted for 0.75 s previews
     on the window. Enter keeps it; Esc restores the old one.
   - Font Size ›, Cursor Style ›.
+- **Go to Directory** (⇧⌘G) opens the system folder panel at the keyboard
+  card's folder. Choosing a folder types `cd -- '‹path›'` and Return into the
+  card. Enabled only when the card runs only its shell.
+- **Insert Path** (⌃⌘I) opens the same panel with files too. Choosing types
+  the shell-quoted path at the cursor, without Return.
 - **Settings as commands.** Each on/off setting is one command whose title
   says what it does now: "Turn On Focus Follows Mouse" or "Turn Off Focus
   Follows Mouse".

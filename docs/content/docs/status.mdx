@@ -40,8 +40,8 @@ and [Agents view](/docs/ui/window#agents-view).
 ### Notifications
 
 The app makes notifications itself, from snapshot changes:
-- A pane's status becomes `blocked`: "codex needs you", with "‹workspace› ·
-  ‹tab›" as the body.
+- A pane's status becomes `blocked`: "codex needs you", with "‹session› ·
+  ‹workspace› · ‹tab›" as the body.
 - `completion_seq` changes to a new non-null value: "pi finished", with the
   same body, unless the user is looking at that pane.
 - The app posts them only while it is not active or the pane is not shown.
@@ -63,7 +63,7 @@ The app makes notifications itself, from snapshot changes:
 - **Sounds:** one system sound per status, "Funk" for needs you and "Glass"
   for finished, off by default.
 - **Dock menu:** a row per pane that needs you or finished ("codex needs you ·
-  infra"; a click selects it), a separator, then New Tab.
+  default · infra"; a click selects it), a separator, then New Tab.
 - While the pill is on screen, notifications are posted as `.passive`
   (Notification Center, no banner). The exception is when VoiceOver or Switch
   Control is on, because those users cannot reach the pill.

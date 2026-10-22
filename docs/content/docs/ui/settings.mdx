@@ -17,8 +17,7 @@ what it does now, for example "Turn On Focus Follows Mouse" (D48).
 | Setting | Choices | Default |
 |---|---|---|
 | Appearance | Auto, Light, Dark (segmented) | Dark |
-| Interface Style | Glass, Classic (two cards, each with a small picture) | Glass |
-| Tabs fill the bar | on, off: off caps title-bar tabs at 220 pt | off |
+| Interface Style | Glass, Classic (segmented) | Glass |
 
 Appearance and Interface Style are also in View ▸ Appearance and View ▸
 Interface Style
@@ -28,14 +27,10 @@ Interface Style
 
 | Setting | Choices | Default |
 |---|---|---|
-| Show pane headers | on, off | on |
 | Fade inactive panes | on, off | on |
-| Fade panes in inactive windows | on, off | on |
-| Autobalance splits | on, off: balance the tab after each split | off |
 | Focus follows mouse | on, off | off |
 
-What they do: [Pane card](/docs/ui/window#pane-card),
-[Fade](/docs/layout#fade), [Dividers](/docs/layout#dividers),
+What they do: [Fade](/docs/layout#fade),
 [Moving the keyboard](/docs/layout#moving-the-keyboard).
 
 ## Terminal
@@ -46,14 +41,13 @@ What they do: [Pane card](/docs/ui/window#pane-card),
 | Font size | 8 to 32 pt (also ⌘+, ⌘-, ⌘0) | 13 |
 | Cursor style | Block, Bar, Underline | Block |
 | Blinking cursor | on, off | on |
-| Option key acts as Alt | Off, Both, Left, Right | Off |
+| Option key acts as Alt | on, off | off |
 | Copy on select | on, off | off |
 
 - A change applies to every terminal at once, without opening its stream
-  again. A new font or size changes each card's grid, so the PTYs resize once,
-  0.3 s after the last change.
+  again. A new font or size changes each card's grid, so the PTYs resize.
 - With Option as Alt on, an Option chord on a letter or digit goes to the
-  program as Alt and that key, for the chosen side. ⌥← and ⌥→ always move by
+  program as Alt and that key, for either Option key. ⌥← and ⌥→ always move by
   word.
 
 ## Notifications

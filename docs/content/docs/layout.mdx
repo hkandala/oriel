@@ -66,8 +66,6 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
 - **Balance** (⌃⌘=, View ▸ Pane ▸ Balance Splits): each split gets the ratio
   "leaves on its first side ÷ all leaves under it", so every pane gets the
   same share. One `layout.set_split_ratio` per split.
-- **Autobalance** (a setting, off by default): after a split, the app balances
-  the tab.
 - **Keys.** ⌃⌘ and an arrow resizes the keyboard card by 5 % that way
   (`pane.resize {pane_id, direction, amount: 0.05}`).
 - **Accessibility.** Each divider is an adjustable element, "Divider between
@@ -87,8 +85,7 @@ stay crisp:
 
 Each card also takes the fill of its state from the look's tokens
 ([Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style)).
-Two settings, both on by default, turn the fades off: **Fade inactive panes**
-and **Fade panes in inactive windows**.
+One setting, **Fade inactive panes** (on by default), turns both fades off.
 
 ## Layout motion
 
@@ -114,7 +111,7 @@ herdr's focus methods (D13):
 
 ## Zoom is the app's own
 
-- One zoomed card per window, in memory.
+- One zoomed card per page in each window, in memory.
 - It is drawn by the split tree itself: each split above the zoomed card
   stacks its two sides, the zoomed side at the full size and the other hidden
   at the size it has without zoom. The same views stay in place, so no

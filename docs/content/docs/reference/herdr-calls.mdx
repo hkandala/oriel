@@ -10,7 +10,7 @@ description: "Every herdr call and command the app uses, and the ones it never u
 | `session.snapshot` | all state and herdr's version of an open session, read after events and after every write; the health check every 30 s; waiting for a server the app started | [Reconcile](/docs/talking-to-herdr#reconcile) |
 | `events.subscribe` (long-lived) | "read the snapshot again" | [Events](/docs/talking-to-herdr#events) |
 | `integration.list` | the agent picker, when it opens | [Agent](/docs/plugins/terminal-and-agent#agent) |
-| `workspace.create` \| `close` \| `rename` \| `move` | sidebar actions: new (page header `+`, workspace menu), close, rename in place, Move Up and Down, drag to reorder; folders dropped on the Dock icon |
+| `workspace.create` \| `close` \| `rename` \| `move` | sidebar actions: new (page header `+`, workspace menu), close, rename in place, Move Up and Down, drag to reorder; folders dropped on the Dock icon | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `workspace.move_block` | drag a repository's workspace with its linked worktrees | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `tab.create` \| `close` \| `rename` \| `move` | tab bar and sidebar actions: new (also from a workspace row), close, Close Other Tabs, rename, Move Tab Left and Right, drag to reorder | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.split` \| `close` \| `move` | split (left and up add a swap), close, Move to New Tab, Move to Tab, Move to New Workspace, drag (an edge of a card in the same tab is two moves and a swap), placing a new web or plugin pane | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |

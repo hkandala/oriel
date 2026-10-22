@@ -252,8 +252,8 @@ to herdr's control and observe, and D8 maps onto it:
 | D8 step | Rex |
 |---|---|
 | Mac opens without takeover | `session.own_block {block_ids, mode: "request"}` |
-| refused: watch, show Take back | the result's `owner` is not Oriel's client id |
-| first key, paste or click, or Take back | `session.own_block {mode: "take"}` |
+| refused: watch, show Take Back | the result's `owner` is not Oriel's client id |
+| first key, paste or click, or Take Back | `session.own_block {mode: "take"}` |
 | "taken over" | `block_owner_changed {previous: <me>, reason: "take"}` |
 | iPhone and iPad watch | no `own_block` call; stream only |
 | card no longer shown | close the data socket, then `session.disown_block` |
@@ -332,7 +332,7 @@ Oriel never calls focus methods.
 | GHOSTSNP is "v1, work in progress" | a decoder breaks after a Rex update | first version skips the snapshot and seeds with `format vt` |
 | The resize APC races the card size | wrapped or broken lines | resize the surface only at the APC |
 | A watcher gets the owner's grid | clipped or scaled cards on small screens | pin the surface grid to the APC size |
-| Rex.app and Oriel claim the same block | the PTY size changes hands | accepted; Take back as with herdr |
+| Rex.app and Oriel claim the same block | the PTY size changes hands | accepted; Take Back as with herdr |
 | Agents without OSC 7501 | no status for those agents | show the agent by process name only |
 | `nc` missing on a machine | no connection | `socat` or `python3`; a clear message |
 | `format` over 1 MiB | no seeded history | `trim`, or start with no history |

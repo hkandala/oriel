@@ -3,8 +3,8 @@ title: "States"
 description: "What the user sees in every connection, pane and error state"
 ---
 
-Empty and loading states (connecting, reconnecting, no workspaces, no tabs)
-show their words and at most one button.
+Connecting and reconnecting states show at most one line of words and one
+button. Empty states (no workspaces, no tabs) show only the button.
 
 | State | What the user sees |
 |---|---|
@@ -13,28 +13,28 @@ show their words and at most one button.
 | herdr missing on a remote machine | the install command |
 | herdr older than 0.9.3 | "herdr 0.9.3 or newer is needed"; before 0.9.1 (no `remote-api-bridge`) "No answer from herdr" |
 | herdr updated but not restarted | "Restart herdr on ‹machine›" (terminal streams fail; the API works) |
-| herdr server not running on This Mac | "‹session› is not running", a **Start** button (a launchd job, D47) and the command to run in a terminal; a new window starts `default` by itself |
+| herdr server not running on This Mac | "‹session› is not running", a **Start** button (a launchd job, D47); a new window starts `default` by itself |
 | herdr server not running on a remote machine | a **Start herdr** button |
 | SSH auth failed | ssh's message in plain words |
 | Host key changed | the connection is blocked; the new fingerprint is shown |
-| Connection lost (Reconnecting) | "Reconnecting to ‹machine›" and "Attempt N failed. Trying again."; cards dim to 0.5; the app retries every 2 s without prompts, then reads a fresh snapshot ([Health check](/docs/machines#health-check)) |
+| Connection lost (Reconnecting) | "Reconnecting to ‹machine›" with a spinner; cards dim to 0.5; the app retries every 2 s without prompts, then reads a fresh snapshot ([Health check](/docs/machines#health-check)) |
 | Reconnecting needs a password or code | **Reconnect**; only this button may prompt |
 | Request timed out (10 s) | "‹machine› did not answer · Retry" in the card or sheet |
 | No SSH session left on the connection | the card shows its last image and **Retry** |
 | Local Network access denied | "Allow Local Network access for Oriel in System Settings › Privacy & Security" |
-| Pane in use on another device | the content (watching) and "In use elsewhere · Take back" |
+| Pane in use on another device | the content (watching) and "In use elsewhere · Take Back" |
 | Session controlled in another window | cards dim a little; a bottom capsule "Controlled in another window" with **Take Back** ([Control capsule](/docs/ui/window#control-capsule)) |
 | Close a pane that runs a program | "Close ‹title›? ‹program› is running." (a pane that runs only its shell, a web page or a plugin pane closes at once) |
 | Close a tab or workspace | always asks, with the pane count |
-| No workspaces | "No workspaces" and a **New Workspace** button |
-| A workspace with no tabs | "Open a new tab to start a terminal." and a **New Tab** button with its shortcut |
+| No workspaces | a **New Workspace** button, no text |
+| A workspace with no tabs | a **New Tab** button with its shortcut, no text |
 | New tab or split | the pane picker; herdr is called only after a pick |
 | Agent did not start (10 s) | "Agent did not start" and the last screen lines |
 | Move refused by herdr | herdr's reason in words, in the notice |
 | A drop step failed | the pane stays where it got to; the notice says so |
 | Open Session: the name is not a valid herdr name | no Create row |
-| Open Session: the session did not start | the notice: "‹session› did not start" and **Retry**; no page opens |
-| Open Session: a running session stopped before it opened | the notice: "‹session› is not running"; no page opens |
+| Open Session: the session did not start | the row's spinner stops, the sheet stays open, the notice: "Could not start ‹session›", herdr's reason and **Retry** |
+| Open Session: a running session stopped before it opened | Open starts it, as for a stopped session |
 | A restored page's session no longer runs | the page is skipped |
 | Close Page on the last page | Close Page is disabled |
 | A write failed | the notice: a capsule with a red symbol, the error and **Retry** when a retry can help |
