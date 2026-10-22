@@ -133,6 +133,16 @@ that run. Pass only when every item is done and every check is green."
 > agents and loop until a clean pass. When done, reply with the report described in step 9. Ask the
 > orchestrator only when the design does not answer a question.
 
+## Decisions without the user
+
+The user is not asked during phases 10–21. The orchestrator decides open questions from the design and the
+ponytail rules, records each choice in the design pages, keeps going until phase 21 is done, and lists
+here what the user should check at the end.
+
+### For the user to check at the end
+
+- (none yet)
+
 ## Progress log
 
 | Phase | Agent | Status | Notes |
