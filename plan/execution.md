@@ -31,6 +31,27 @@ for a small phase. The budget per phase:
 - CI runs the full suite on every push; a failure only on CI is investigated from CI logs, not with more
   local runs. The user may step in for a moment; then wait and go on.
 
+## Speed rules (lessons from phases 10 and 11)
+
+Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time went, and the rule:
+
+1. **Chasing a CI-only failure.** Phase 11 spent ~2 hours and ~10 CI runs on one ⌘= key that XCUITest on
+   CI does not deliver. Rule: a failure that shows only on CI gets 20 minutes from its logs. Then
+   simplify the test (or the feature) and record it in Findings, or hand it to the orchestrator. No
+   debug branches or draft PRs.
+2. **Too many GUI runs.** ~80 minutes of GUI lock in phase 11, two full suites by reviewers and one more
+   by the agent. Rule: the GUI budget above.
+3. **Waiting for CI.** A CI run takes ~10 minutes. Rule: never sit waiting on CI between steps; push and
+   keep working. Check CI once at the end; one red run on a late commit is fixed, not re-run.
+4. **Too many review rounds for a small phase.** Rule: a small phase (a few files, no new view) gets one
+   round; later rounds only for the reviewer whose blocker or should was fixed. A round's nits are fixed
+   or answered without another round.
+5. **Design changes mid-phase.** The Settings window was redesigned and then dropped after it was built.
+   Rule: a phase that adds a new window, panel or screen shows the orchestrator one screenshot of its
+   first rough version before it polishes or tests it. Phases 13, 14, 15 and 19 do this.
+6. **Time box.** A phase reports to the orchestrator when it passes 2 hours, with what is left.
+7. **Docs-only pushes** do not need the e2e job (the CI agent adds the path filter).
+
 ## The phase loop (inside each phase agent)
 
 1. Pull `origin/main`. Read `AGENTS.md`, `plan/README.md`, `plan/rules.md`, `plan/standards.md`,
