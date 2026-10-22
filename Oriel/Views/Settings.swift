@@ -61,6 +61,7 @@
                 LabeledContent("Font Size") {
                     Stepper("\(fontSize) pt", value: $fontSize, in: PaneTerminal.fontSizes)
                         .accessibilityIdentifier("settings.fontSize")
+                        .accessibilityLabel("Font Size").accessibilityValue("\(fontSize) points")
                 }
                 Picker("Cursor Style", selection: $cursorStyle) {
                     Text("Block").tag(TerminalCursorStyle.block)
