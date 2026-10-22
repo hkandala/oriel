@@ -58,11 +58,6 @@ jobs:
         shard: ${{ fromJSON(inputs.only_testing && '[0]' || '[0, 1, 2, 3]') }}
     steps:
       - uses: actions/checkout@v7
-      # libghostty's 190 MB xcframework, fetched again by every job otherwise.
-      - uses: actions/cache@v6
-        with:
-          path: .build/DerivedData/SourcePackages
-          key: packages-${{ hashFiles('Oriel.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
       - run: brew install xcbeautify
       - *install-herdr
       - if: ${{ inputs.only_testing }}
