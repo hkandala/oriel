@@ -70,8 +70,8 @@ window, terminal settings), `docs/content/docs/data.mdx` (per-device settings li
   JetBrains Mono. "System Monospaced" (stored as an empty string) is rendered as
   `NSFont.monospacedSystemFont(…).familyName`, `.AppleSystemUIFontMonospaced`, which CoreText (and so
   libghostty) resolves to SF Mono. Every grid got a little narrower than before phase 11.
-- **The Font Size row is a `LabeledContent` with a stepper labeled "13 pt".** SwiftUI's stepper with a
-  value field (`Stepper(value:in:step:format:)`) needs a floating point value; the setting is an `Int`.
+- **The Font Size row is a `LabeledContent` with "13 pt" and a stepper.** SwiftUI's stepper with a value
+  field (`Stepper(value:in:step:format:)`) needs a floating point value; the setting is an `Int`.
 
 ### Decisions
 
@@ -84,6 +84,9 @@ window, terminal settings), `docs/content/docs/data.mdx` (per-device settings li
   scene-level `onChange(of:)`. The controller's base keeps the fixed
   options (`keybind = clear`, transparent, no padding, no scrollback); `setTerminalConfiguration` lays the
   settings on top. Several windows (phase 16) share it as they are.
+- **`macos-option-as-alt = false` in the controller's base.** With it unset, libghostty sent Alt for ⌥B on
+  CI's keyboard layout (U.S.) and typed ∫ on this Mac's (ABC), so "off" depended on the layout. Now off
+  always types the macOS character, and on always goes through herdr's key names.
 - **Option as Alt is read per key press** (`UserDefaults.standard.bool(forKey: "optionAsAlt")` in
   `PaneSurfaceView.herdrKey`): no state to keep in sync, and it is cheap.
 - **`copy-on-select = clipboard`.** libghostty-spm advertises a selection clipboard and drops writes to it,
@@ -98,7 +101,12 @@ window, terminal settings), `docs/content/docs/data.mdx` (per-device settings li
 - **⌘= works only in the main window.** The invisible button lives in its content; in the Settings window
   ⌘+, ⌘- and ⌘0 (menu items) still work.
 - **Settings tabs are found by label in tests.** SwiftUI's Settings tabs take no accessibility identifier;
-  `testSettingsFontSizeResizesTheGrid` clicks the toolbar button "Terminal".
+  `testSettingsFontAndSizeResizeTheGrid` clicks the toolbar button "Terminal".
+- **A stored font size outside 8–32** (`defaults write`, a launch argument) is clamped before it reaches
+  libghostty.
+- **Tests write the user's defaults and put them back.** The UI tests share the app's defaults (same bundle
+  id, and the sandboxed runner cannot delete keys). Teardown blocks put the font size back with ⌘0 and the
+  font test picks System Monospaced again; only a crash mid-test leaves a change behind, as in phase 10.
 - **The font picker lists `NSFontManager.availableFontFamilies` whose regular face is fixed pitch** (on this
   Mac: Andale Mono, Anonymous Pro, Courier New, Fira Code, JetBrains Mono, Menlo, Monaco, PT Mono).
 - **`Commands.swift`.** `OrielApp.swift` passed SwiftLint's 400-line limit, so the menu commands and their
@@ -115,7 +123,7 @@ window, terminal settings), `docs/content/docs/data.mdx` (per-device settings li
 ### Learned
 
 - **The terminal follows without a new stream.** A font size step changed `w1:p1`'s grid and its PTY
-  (`stty size`), and the pid of its `terminal session` run stayed the same (`testSettingsFontSizeResizesTheGrid`).
+  (`stty size`), and the pid of its `terminal session` run stayed the same (`testSettingsFontAndSizeResizeTheGrid`, which also switches the font to Menlo and back).
   One step is one resize per surface through the existing 100 ms settle; no flood, so no extra debounce.
 - **Cursor shape.** The setting's shape shows (bar and underline seen in screenshots). herdr's frames carry a
   program's DECSCUSR: `printf '\e[4 q'` turned the block cursor into an underline, and `\e[0 q` brought back
@@ -132,6 +140,8 @@ window, terminal settings), `docs/content/docs/data.mdx` (per-device settings li
 - **Screenshots** of both tabs in light and dark: `/tmp/oriel-shots/11/settings-{general,terminal}-{light,dark}.png`.
 - **The Settings scene remembers its tab** (`com_apple_SwiftUI_Settings_selectedTabIndex`) and its frame, so
   a test clicks the tab it needs rather than assuming General.
+- **⌥Space with Option as Alt** maps to `alt+space` (herdr gives ESC SPC). It did not reach the pane on
+  this Mac in a manual check, likely a global hotkey; not covered by a test for the same reason.
 - **Launch arguments pin a setting without persisting it.** `testOptionKeyActsAsAlt` relaunches with
   `-optionAsAlt YES` / `NO`; the font size tests change the persistent value and put it back with ⌘0 in a
   teardown block.
