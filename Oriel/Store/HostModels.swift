@@ -99,17 +99,12 @@ extension HostStore {
     /// and folder instead (D65).
     func title(_ tab: Tab) -> (name: String, folder: String?) {
         guard !tab.label.isEmpty, tab.label.allSatisfy(\.isNumber), let pane = stack(tab).first,
-              pane.programName != nil || pane.folder != nil else { return (tab.label, nil) }
-        return (pane.programName ?? "", pane.folder)
+              let name = pane.programName else { return (tab.label, nil) }
+        return (name, pane.folder)
     }
 
     func workspace(of tabID: String) -> Workspace? {
         workspaces.first { $0.tabs.contains { $0.id == tabID } }
-    }
-
-    /// The ids of the tab's workspace's other tabs, for Close Other Tabs.
-    func otherTabs(_ tabID: String) -> [String] {
-        workspace(of: tabID)?.tabs.map(\.id).filter { $0 != tabID } ?? []
     }
 
     /// The title in one string, for the window title and menus.

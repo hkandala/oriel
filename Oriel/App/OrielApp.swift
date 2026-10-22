@@ -88,7 +88,7 @@ struct OrielApp: App {
                         .padding(.top, TitleBar.height + 4)
                         .floatingPanel(open: open(.sessions), alignment: .topLeading)
                 }
-                if panel == .workspaces, !sidebar {
+                if panel == .workspaces {
                     WorkspaceMenu(store: store, open: open(.workspaces))
                         .padding(.leading, workspaceButtonX)
                         .padding(.top, TitleBar.height)
@@ -146,6 +146,12 @@ struct OrielApp: App {
             .focusedSceneValue(\.tabs, panel == .sessions ? nil : store)
             .focusedSceneValue(\.palette, open(.palette))
             .focusedSceneValue(\.sidebar, $sidebar)
+            // The workspace menu belongs to the collapsed sidebar's button.
+            .onChange(of: sidebar) {
+                if sidebar, panel == .workspaces {
+                    panel = nil
+                }
+            }
             // A closed panel gives the keys back.
             .onChange(of: panel) {
                 if panel == nil {
@@ -177,8 +183,7 @@ struct OrielApp: App {
                 return ("Close the tab “\(tab.map(store.titleText) ?? id)”?",
                         "Its \(count == 1 ? "pane" : "\(count) panes") and everything running in "
                             + "\(count == 1 ? "it" : "them")" + end)
-            case let .otherTabs(id):
-                let others = store.otherTabs(id)
+            case let .otherTabs(others):
                 let count = store.panes.count { others.contains($0.tabID) }
                 return ("Close \(others.count == 1 ? "the other tab" : "the \(others.count) other tabs")?",
                         "Their \(count == 1 ? "pane" : "\(count) panes") and everything running in "

@@ -90,8 +90,9 @@
     /// This Mac's icon: a laptop when it has an internal battery (`hw.model` no longer says MacBook on M2 and later
     /// laptops).
     let thisMacIcon: String = {
-        let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
-        let sources = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
+        guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+              let sources = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef]
+        else { return "desktopcomputer" }
         let battery = sources.contains { source in
             let description = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any]
             return description?[kIOPSTypeKey] as? String == kIOPSInternalBatteryType
@@ -137,9 +138,10 @@
             Button { open.toggle() } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "folder").fontWeight(.medium).foregroundStyle(.secondary)
-                    Text(session).foregroundStyle(.secondary).lineLimit(1).fixedSize()
+                    // A long session name gives way first, so the button stays within its 260 pt.
+                    Text(session).foregroundStyle(.secondary).lineLimit(1)
                     Rectangle().fill(.separator).frame(width: 1, height: 12)
-                    FadeText(text: Text(workspace))
+                    FadeText(text: Text(workspace)).layoutPriority(1)
                     Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
                 }
                 .fontWeight(.medium)

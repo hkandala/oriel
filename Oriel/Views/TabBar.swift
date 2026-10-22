@@ -20,6 +20,8 @@
         @State private var hints = false
         @State private var pendingHints: Task<Void, Never>?
         @State private var monitor: Any?
+        @State private var insideBar = false
+        @Environment(\.appearsActive) private var appearsActive
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
@@ -72,8 +74,15 @@
                 }
                 .frame(width: max(min(content, space), 0))
                 .onHover { inside in
-                    if !inside, kept != nil {
-                        withAnimation(reduceMotion ? nil : .tab) { kept = nil }
+                    insideBar = inside
+                    // Not while the close dialog is up: a Return there keeps the pointer over the next ×.
+                    if !inside, store.closing == nil {
+                        settle()
+                    }
+                }
+                .onChange(of: store.closing == nil) { _, closed in
+                    if closed, !insideBar {
+                        settle()
                     }
                 }
                 // minWidth 0: the row's free space, not the tabs' width, which follows it; else the bar never
@@ -82,16 +91,34 @@
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { space = $0 }
                 .onChange(of: workspace.selectedTabID, initial: true) { old, new in
                     if let new {
-                        withAnimation(old != new && !reduceMotion ? .default : nil) { proxy.scrollTo(new) }
+                        withAnimation(old != new && !reduceMotion ? .tab : nil) { proxy.scrollTo(new) }
                     }
                 }
             }
             .frame(height: Self.height + 10)
-            .onAppear { monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown], handler: watch)
+            .onAppear {
+                if monitor == nil {
+                    monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown], handler: watch)
+                }
             }
             .onDisappear {
+                pendingHints?.cancel()
                 monitor.map(NSEvent.removeMonitor)
                 monitor = nil
+            }
+            // ⌘-Tab away: the ⌘ release goes to the other app.
+            .onChange(of: appearsActive) {
+                if !appearsActive {
+                    pendingHints?.cancel()
+                    hints = false
+                }
+            }
+        }
+
+        /// Back to widths for the space, once the pointer left after a close.
+        private func settle() {
+            if kept != nil {
+                withAnimation(reduceMotion ? nil : .tab) { kept = nil }
             }
         }
 
@@ -114,7 +141,7 @@
                 if event.type == .flagsChanged, command, event.window?.isKeyWindow == true {
                     pendingHints = Task {
                         try? await Task.sleep(for: .milliseconds(700))
-                        if !Task.isCancelled {
+                        if !Task.isCancelled, NSApp.isActive {
                             hints = true
                         }
                     }
@@ -174,7 +201,9 @@
                     .opacity(renaming ? 0 : 1)
                     .onTapGesture(count: 2) { startRenaming() }
                 }
-                .padding(.horizontal, 8)
+                .padding(.leading, 8)
+                // The title's fade ends under the ×'s 28 pt.
+                .padding(.trailing, 12)
                 .frame(width: width, height: TabBar.height, alignment: .leading)
             }
             // The selection is the tab bar's marker.
@@ -231,7 +260,7 @@
                 .disabled(tabs.last?.id == tab.id)
             Divider()
             Button("Close Tab") { store.closing = .tab(tab.id) }
-            Button("Close Other Tabs") { store.closing = .otherTabs(tab.id) }
+            Button("Close Other Tabs") { store.closing = .otherTabs(tabs.map(\.id).filter { $0 != tab.id }) }
                 .disabled(tabs.count < 2)
         }
 

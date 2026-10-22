@@ -16,8 +16,8 @@ final class HostStore {
         /// The pane and the program running in it.
         case pane(String, program: String)
         case tab(String)
-        /// Every tab of its workspace but this one.
-        case otherTabs(String)
+        /// The other tabs of a workspace, as they were when the user asked: a tab made since is not closed.
+        case otherTabs([String])
     }
 
     let session: String
@@ -312,9 +312,11 @@ extension HostStore {
         await write { try await $0.rename(tab: tabID, label: label) }
     }
 
-    /// One place left (-1) or right (1) in its workspace; the menu disables the ends.
+    /// One place left (-1) or right (1) in its workspace; none past the ends (a snapshot may land after the menu
+    /// opened).
     func move(tab tabID: String, by offset: Int) async {
-        guard let index = workspace(of: tabID)?.tabs.firstIndex(where: { $0.id == tabID }) else { return }
+        guard let tabs = workspace(of: tabID)?.tabs, let index = tabs.firstIndex(where: { $0.id == tabID }),
+              tabs.indices.contains(index + offset) else { return }
         // herdr inserts before the tab now at the index, so one place right is two on.
         await write { try await $0.move(tab: tabID, to: index + (offset > 0 ? 2 : -1)) }
     }
@@ -341,8 +343,7 @@ extension HostStore {
         switch close {
         case let .pane(id, _): await write { try await $0.close(pane: id) }
         case let .tab(id): await write { try await $0.close(tab: id) }
-        case let .otherTabs(id):
-            let others = otherTabs(id)
+        case let .otherTabs(others):
             await write { client in
                 for other in others {
                     try await client.close(tab: other)
@@ -377,6 +378,8 @@ extension HostStore {
             await client.refresh()
         } catch {
             writing = false
+            // Part of it may have happened (Close Other Tabs).
+            await client.refresh()
             await show(error.localizedDescription)
         }
     }

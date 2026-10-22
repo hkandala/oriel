@@ -74,9 +74,15 @@ extension OrielUITests {
     func testTabContextMenuRenamesAndMoves() async throws {
         let (workspace, tabs) = try await newWorkspace(tabs: 3)
         keepScreenshot("three tabs")
+        let field = element("tab.\(tabs[0]).rename")
+        // A double-click on the title starts it too; Esc cancels.
+        element("tab.\(tabs[0])").doubleClick()
+        XCTAssertTrue(field.waitForExistence(timeout: 2))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(field.waitForNonExistence(timeout: 2))
+
         element("tab.\(tabs[0])").rightClick()
         app.menuItems["Rename Tab"].click()
-        let field = element("tab.\(tabs[0]).rename")
         XCTAssertTrue(field.waitForExistence(timeout: 2))
         XCTAssertTrue(hasKeyboard(field))
         app.typeKey("a", modifierFlags: .command)
@@ -91,6 +97,12 @@ extension OrielUITests {
         app.menuItems["Move Tab Right"].click()
         try await poll("the new order") { () async throws -> Bool? in
             try await tabsOf(workspace).map(\.id) == [tabs[1], tabs[0], tabs[2]] ? true : nil
+        }
+        // The moved tab stays selected, and the marker stays on it.
+        let moved = element("tab.\(tabs[0])")
+        XCTAssertTrue(moved.isSelected)
+        try await poll("the marker on the moved tab") {
+            (moved.value as? String)?.hasPrefix("in view") == true ? true : nil
         }
     }
 
