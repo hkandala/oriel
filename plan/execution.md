@@ -93,8 +93,12 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    from them are screenshots. XCUITest runs nothing during a drag: let the outcome after the drop prove
    the mid-drag behavior. Spike each herdr call in the exact shape the code and tests send (defaults
    such as a missing `target_pane_id` differ).
-16. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
-17. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
+16. **One push per review round while CI runs** (phase 19): a push cancels the full run in flight
+   (cancel-in-progress). Batch fixes; use ad-hoc `only_testing` runs for single checks. Don't spend CI
+   time on what XCUITest cannot read (help-tag text): assert the same string another way. Give the e2e
+   reviewer the CI recordings.
+17. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
+18. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
 
 ## The phase loop (inside each phase agent)
@@ -275,6 +279,6 @@ here what the user should check at the end.
 | 16 | phase16-windows | done | 12 commits, 3 rounds, 1h47m, ~50 min GUI lock |
 | 17 | phase17-panes | done | 18 commits, 4 rounds, 1h56m, ~55 min GUI lock |
 | 18 | phase18-drag-drop | done | 14 commits, 2 rounds, 2h56m, CI only (GUI paused) |
-| 19 | | not started | |
+| 19 | phase19-hover-card | done | 18 commits, 2 rounds, 2h08m, mostly CI |
 | 20 | | not started | |
 | 21 | | not started | |

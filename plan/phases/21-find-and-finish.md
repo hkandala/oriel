@@ -86,6 +86,9 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
     ⌘G), `features.mdx` (final list), `inspirations.mdx` ("What we take" from Rex).
 
 
+- **Programs of panes never shown.** Phase 19 Findings: a pane in a tab that never showed reads
+  "terminal" in the hover card, because the app asks herdr for a pane's program only when its card shows
+  or when it is new (phase 13). Ask once per pane on the first snapshot too (same ask and counter).
 - **Restore without the system setting.** Window restore (phase 16) works only when macOS keeps windows
   on quit, which is off by default. Register `NSQuitAlwaysKeepsWindows = true` in the app's own defaults
   (`UserDefaults.standard.register`), so Oriel restores its windows and pages after a normal quit.
