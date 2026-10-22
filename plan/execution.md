@@ -34,6 +34,11 @@ for a small phase. The budget per phase:
   skips lint, build and HerdrKit tests, and never cancels a push run or another dispatch. On failure:
   `gh run download <id> -n e2e-xcresult-0`, then `xcrun xcresulttool` and ffmpeg on the recording (plan/ci.md).
   Locally the same is `make e2e ONLY=…`. The full suite still runs on the phase's last code push.
+- **Hold the lock for one run only** (several agents share it): take it for one XCUITest run or one launch
+  for screenshots and release it in the same shell command, also on failure (`trap`). Never hold it while
+  reading results, editing, building or waiting for CI or reviewers. At most 10 minutes per hold; the one
+  final full `make e2e` is the only exception. The owner file says `<agent> <time>`. Waited more than 20
+  minutes: tell the orchestrator. Never remove someone else's lock.
 - When the user pauses GUI work, the orchestrator holds `/tmp/oriel-gui.lock` with owner "user". Nobody
   removes or works around it; agents keep building, testing without GUI and pushing (CI runs e2e).
 - Never send keys with `osascript` / System Events or similar: when Oriel loses focus, the keys land in the
