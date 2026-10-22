@@ -28,6 +28,7 @@ private func leaf(_ id: String) -> SplitNode {
     #expect(snapshot.panes[0].terminalID?.hasPrefix("term_") == true)
     #expect(snapshot.panes[0].tabID == "w1:t1")
     #expect(snapshot.panes[0].cwd == "/private/tmp")
+    #expect(snapshot.panes.compactMap(\.agent).first == "pi")
     #expect(snapshot.focusedPaneIDs == ["w1:p1", "w1:p5", "w2:p1", "w2:p4", "w2:p5"])
     #expect(snapshot.workspaces[1].agentStatus == .working)
     #expect(snapshot.agents.map(\.paneID) == ["w1:p1", "w2:p2"])
@@ -94,10 +95,13 @@ private func leaf(_ id: String) -> SplitNode {
     #expect(try info(#"{"pid":7,"name":"zsh","argv0":"-zsh"}"#).program == nil)
     #expect(try info(#"{"pid":7,"name":"fish"}"#).program == nil)
     // `exec vim` keeps the shell's pid.
-    #expect(try info(#"{"pid":7,"name":"vim","argv0":"vim"}"#).program == "vim")
-    #expect(try info(#"{"pid":9,"name":"sleep"}"#).program == "sleep")
+    #expect(try info(#"{"pid":7,"name":"vim","argv0":"vim"}"#).program == Program(name: "vim", argv0: "vim"))
+    #expect(try info(#"{"pid":9,"name":"sleep"}"#).program == Program(name: "sleep"))
     // While the shell starts, its rc files run in the foreground too.
-    #expect(try info(#"{"pid":8,"name":"bash"},{"pid":7,"name":"zsh"}"#).program == "bash")
+    #expect(try info(#"{"pid":8,"name":"bash"},{"pid":7,"name":"zsh"}"#).program?.name == "bash")
+    // A Node CLI: the script is the first argument that is not an option.
+    let node = #"{"pid":9,"name":"node","argv0":"node","argv":["node","--no-warnings","/usr/lib/pi/dist/cli.js","-c"]}"#
+    #expect(try info(node).program?.script == "/usr/lib/pi/dist/cli.js")
     // An exited shell.
     #expect(try info("").program == nil)
 }

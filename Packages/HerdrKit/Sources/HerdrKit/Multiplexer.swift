@@ -18,7 +18,7 @@ public protocol Multiplexer: Sendable {
     /// One pane now: its cwd follows a `cd` that no event reports.
     func pane(_ paneID: String) async throws -> Pane
     /// The program the pane runs besides its shell; nil when only the shell runs (design D41).
-    func program(_ paneID: String) async throws -> String?
+    func program(_ paneID: String) async throws -> Program?
     /// A pane's terminal by its terminal id: control it, or only watch it.
     func terminal(_ terminalID: String, cols: Int, rows: Int, observe: Bool, takeover: Bool) async throws
         -> TerminalStream

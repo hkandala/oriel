@@ -98,7 +98,7 @@ public actor HerdrClient {
 
     /// The program the pane runs besides its shell; nil when only the shell runs, so a close loses nothing
     /// (design D41).
-    public nonisolated func program(_ paneID: String) async throws -> String? {
+    public nonisolated func program(_ paneID: String) async throws -> Program? {
         try await (call("pane.process_info", ["pane_id": paneID]) as ProcessInfoResult).processInfo.program
     }
 
@@ -182,7 +182,8 @@ public actor HerdrClient {
             "workspace.moved", "workspace.reordered", "workspace.closed",
             "tab.created", "tab.closed", "tab.renamed", "tab.moved",
             "pane.created", "pane.closed", "pane.moved", "pane.exited", "pane.agent_detected",
-            "layout.updated",
+            // A title change (and the app's icons follow titles).
+            "pane.updated", "layout.updated",
         ]
         // No *.focused: the app ignores herdr's focus. Each agent entry makes herdr poll that pane
         // every 100 ms, so plain shells are left out.

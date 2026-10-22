@@ -52,9 +52,15 @@ public struct Pane: Decodable, Sendable, Identifiable {
     public let tabID: String
     public let label: String?
     public let cwd: String?
+    /// herdr's agent kind (`claude`), detected or reported; `display_agent` when herdr sends one.
+    public let agent: String?
+    public let displayAgent: String?
+    /// The terminal title without the status glyphs herdr strips (`✳`, spinners).
+    public let title: String?
 
     enum CodingKeys: String, CodingKey {
-        case id = "pane_id", terminalID = "terminal_id", tabID = "tab_id", label, cwd
+        case id = "pane_id", terminalID = "terminal_id", tabID = "tab_id", label, cwd, agent
+        case displayAgent = "display_agent", title = "terminal_title_stripped"
     }
 }
 
@@ -86,11 +92,26 @@ struct ProcessInfoResult: Decodable {
     enum CodingKeys: String, CodingKey { case processInfo = "process_info" }
 }
 
+/// The program a pane runs besides its shell, as the icon matcher needs it.
+public struct Program: Equatable, Sendable {
+    public let name: String
+    public let argv0: String?
+    /// The first argument that is not an option: the script a `node` or `bun` runs (`pi`'s cli.js).
+    public let script: String?
+
+    public init(name: String, argv0: String? = nil, script: String? = nil) {
+        self.name = name
+        self.argv0 = argv0
+        self.script = script
+    }
+}
+
 struct PaneProcesses: Decodable {
     struct Process: Decodable {
         let pid: Int
         let name: String
         let argv0: String?
+        let argv: [String]?
 
         /// A login shell (`-zsh`) or a known shell by name.
         var isShell: Bool {
@@ -104,8 +125,11 @@ struct PaneProcesses: Decodable {
 
     /// What runs in the foreground besides the shell; nil when nothing does (design D41). A program the shell
     /// `exec`ed has the shell's pid, so the shell's pid counts only while it is still a shell.
-    var program: String? {
-        foregroundProcesses.first { $0.pid != shellPID || !$0.isShell }?.name
+    var program: Program? {
+        foregroundProcesses.first { $0.pid != shellPID || !$0.isShell }.map { process in
+            Program(name: process.name, argv0: process.argv0,
+                    script: process.argv?.dropFirst().first { !$0.hasPrefix("-") })
+        }
     }
 
     enum CodingKeys: String, CodingKey { case shellPID = "shell_pid", foregroundProcesses = "foreground_processes" }
