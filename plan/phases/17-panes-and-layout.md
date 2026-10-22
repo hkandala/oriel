@@ -166,8 +166,11 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 - **A zoom ends when its card is alone** in its tab (moved, or its neighbor closed), in `settle`.
 - **A divider change waits for a write in flight** instead of being refused as busy (a double-click soon after a
   drag, quick VoiceOver steps); only the latest waiting change is sent, and the held ratio stays until its snapshot.
-- **A zoomed card that moves away is no longer zoomed** (`Page.move`), and Focus Follows Mouse acts only on cards of
-  the selected tab (a palette pick to another tab left the old card hovered).
+- **A zoomed card that leaves its tab is no longer zoomed**: the page keeps the zoomed card's tab (`zoomedTabID`) and
+  `settle` drops the zoom when the card is in another tab or alone, whoever moved it. Focus Follows Mouse acts only
+  on cards of the selected tab (a palette pick to another tab left the old card hovered).
+- **A drag's release computes its ratio from the gesture**, not the held value: a snapshot during the drag can drop
+  it.
 - **Rename** ends on Enter or Esc with the keyboard back on the card; a click elsewhere only closes the field.
 - **Files:** `PaneCard` moved to `Oriel/Views/PaneCard.swift` and the pane writes to `Oriel/Store/PaneWrites.swift`
   (SwiftLint's file length).

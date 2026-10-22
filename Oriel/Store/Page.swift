@@ -15,7 +15,12 @@
         /// Each workspace's selected tab. Starts at herdr's active tab.
         var selectedTabIDs: [String: String] = [:]
         /// The app's own zoom (design D11): this card fills its tab's page.
-        var zoomedPaneID: String?
+        var zoomedPaneID: String? {
+            didSet { zoomedTabID = zoomedPaneID.flatMap(store.pane)?.tabID }
+        }
+
+        /// The zoomed card's tab when it zoomed: a move to another tab (by any window or client) ends the zoom.
+        @ObservationIgnored private var zoomedTabID: String?
         /// The card whose header shows the rename field.
         var renamingPaneID: String?
         /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
@@ -67,7 +72,7 @@
                     ? workspace.activeTabID : workspace.tabs.first?.id
             }
             // Gone, or alone in its tab (moved, or its neighbor closed).
-            if let id = zoomedPaneID, store.panes.count(where: { $0.tabID == store.pane(id)?.tabID }) < 2 {
+            if let id = zoomedPaneID, alone(id) || store.pane(id)?.tabID != zoomedTabID {
                 zoomedPaneID = nil
             }
             if let id = arriving, let workspace = store.workspace(of: id) {
@@ -83,9 +88,7 @@
         /// had the keyboard), then herdr's order.
         func stack(_ tab: HostStore.Tab) -> [HostStore.Pane] {
             let tabPanes = store.panes.filter { $0.tabID == tab.id }
-            let keyboard = keyboardTerminals[tab.id]
-            let front = tabPanes.first { $0.terminalID != nil && $0.terminalID == keyboard }
-                ?? tabPanes.first(where: \.focused)
+            let front = keyboardCard(tab.id)
             return Array(([front].compactMap(\.self) + tabPanes.filter { $0 !== front }).prefix(5))
         }
 
@@ -211,7 +214,13 @@
 
         /// Zoomed, or one of several cards in its tab.
         func canZoom(_ paneID: String) -> Bool {
-            zoomedPaneID == paneID || store.panes.count { $0.tabID == store.pane(paneID)?.tabID } > 1
+            zoomedPaneID == paneID || !alone(paneID)
+        }
+
+        /// The only card of its tab, or gone.
+        private func alone(_ paneID: String) -> Bool {
+            let tab = store.pane(paneID)?.tabID
+            return store.panes.count { $0.tabID == tab } < 2
         }
 
         /// A split restores a zoomed layout first, as tmux does: the new pane shows.
@@ -239,10 +248,6 @@
         func move(_ pane: HostStore.Pane, to destination: Destination) async {
             let terminalID = pane.terminalID
             guard let moved = await store.move(pane.id, to: destination) else { return }
-            // Not zoomed over the panes of the tab it went to.
-            if zoomedPaneID == pane.id {
-                zoomedPaneID = nil
-            }
             keyboardTerminals[moved.tabID] = terminalID
             arriving = moved.tabID
             // In case the snapshot after the move came in already.

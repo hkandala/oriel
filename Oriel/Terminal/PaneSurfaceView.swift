@@ -335,7 +335,8 @@
 
             var holding = false {
                 didSet {
-                    if !holding {
+                    // Not before its first layout (a re-hosted terminal would go 0 × 0 for a moment).
+                    if !holding, !bounds.isEmpty {
                         subviews.first?.frame = bounds
                     }
                 }

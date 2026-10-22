@@ -86,6 +86,9 @@ extension OrielUITests {
         paneMenu(first, "Rename Pane…")
         XCTAssertTrue(hasKeyboard(element("pane.\(first).rename")))
         hoverHeader(second)
+        // Two checks later the rename still has the keyboard: typing holds the move back.
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertTrue(hasKeyboard(element("pane.\(first).rename")))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
     }
@@ -118,7 +121,10 @@ extension OrielUITests {
         paneMenu(pane, "Move to New Tab")
         let moved = try await newTabID(after: before)
         // Gone already after the move to a new workspace below, which takes its only pane.
-        addTeardownBlock { [one] in try? await Self.quietly(one, "tab.close", ["tab_id": moved]) }
+        addTeardownBlock { [one] in
+            let close = try JSONSerialization.data(withJSONObject: ["method": "tab.close", "params": ["tab_id": moved]])
+            _ = try? await Self.post(one, close + Data("\n".utf8))
+        }
         try await poll("the pane in the new tab") { () async throws -> Bool? in
             try await order(moved) == [pane] ? true : nil
         }
@@ -127,13 +133,11 @@ extension OrielUITests {
 
         // To a new workspace: a new pane id, the same terminal, and it keeps the keyboard.
         let terminal = try await terminalID(pane)
-        let workspaces = try await (snapshot()?["workspaces"] as? [[String: Any]] ?? []).compactMap {
-            $0["workspace_id"] as? String
-        }
-        addTeardownBlock { [one] in
-            let now = try await Self.call(one, "workspace.list", [:])["workspaces"] as? [[String: Any]] ?? []
-            for case let id as String in now.map({ $0["workspace_id"] }) where !workspaces.contains(id) {
-                try await Self.call(one, "workspace.close", ["workspace_id": id, "close_group": false])
+        let workspaces = try await workspaceIDs()
+        XCTAssertFalse(workspaces.isEmpty)
+        addTeardownBlock { @MainActor in
+            for id in try await self.workspaceIDs() where !workspaces.contains(id) {
+                try await Self.call(self.one, "workspace.close", ["workspace_id": id, "close_group": false])
             }
         }
         paneMenu(pane, "Move to New Workspace")
@@ -238,12 +242,6 @@ extension OrielUITests {
                 try await Self.call(one, "pane.swap", ["source_pane_id": "w1:p1", "target_pane_id": "w1:p2"])
             }
         }
-    }
-
-    /// A herdr call whose failure is fine (a teardown for something a step may have closed already).
-    nonisolated static func quietly(_ session: String, _ method: String, _ params: [String: Any]) async throws {
-        let body = try JSONSerialization.data(withJSONObject: ["id": "1", "method": method, "params": params])
-        try await post(session, body + Data("\n".utf8))
     }
 
     func root(_ tab: String) async throws -> [String: Any] {

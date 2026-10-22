@@ -282,7 +282,8 @@
         /// The divider's ratio to herdr (D42). Held until the snapshot shows it; dropped when herdr refused it, or
         /// when herdr already has it (no snapshot change would drop it then).
         private func send(_ value: Double, herdr ratio: Double) {
-            guard abs(value - ratio) > 0.0005 else {
+            // herdr has it already, and no other change is on its way.
+            guard sent != asked || abs(value - ratio) > 0.0005 else {
                 held = nil
                 return
             }
@@ -337,14 +338,11 @@
                         .onHover { hovering = $0 }
                         // Global: the divider moves under the pointer, so its own space would move too.
                         .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global).onChanged { drag in
-                            let from = start ?? ratio
-                            start = from
-                            hold(from + (right ? drag.translation.width : drag.translation.height) / max(total, 1))
-                        }.onEnded { _ in
+                            hold(dragged(drag))
+                        }.onEnded { drag in
+                            // From the gesture: a snapshot during the drag may have dropped `held`.
+                            send(hold(dragged(drag)))
                             start = nil
-                            if let held {
-                                send(held)
-                            }
                         })
                         .onTapGesture(count: 2) { set(0.5) }
                         .accessibilityElement()
@@ -359,6 +357,13 @@
                 }
                 // Over both sides' edges: its hit area reaches 4 pt into each card.
                 .zIndex(2)
+        }
+
+        /// The ratio the drag points at, from the ratio when it began.
+        private func dragged(_ drag: DragGesture.Value) -> Double {
+            let from = start ?? ratio
+            start = from
+            return from + (right ? drag.translation.width : drag.translation.height) / max(total, 1)
         }
 
         private func set(_ value: Double) {

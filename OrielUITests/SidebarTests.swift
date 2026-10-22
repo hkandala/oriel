@@ -339,7 +339,7 @@ extension OrielUITests {
         }
     }
 
-    private func workspaceIDs() async throws -> [String] {
+    func workspaceIDs() async throws -> [String] {
         let snapshot = try await snapshot()
         return (snapshot?["workspaces"] as? [[String: Any]] ?? []).compactMap { $0["workspace_id"] as? String }
     }
