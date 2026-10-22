@@ -119,16 +119,30 @@ extension OrielUITests {
         XCTAssertTrue(element("titlebar.workspace").waitForExistence(timeout: 2))
         let first = element("tab.\(tabs[0])"), last = element("tab.\(tabs[11])")
         try await poll("the first tab 64 pt or wider") { first.frame.width >= 64 ? true : nil }
-        // Out of view: the bar scrolls.
-        XCTAssertFalse(last.isHittable)
+        // Past the bar's end: the bar scrolls.
+        XCTAssertGreaterThan(last.frame.maxX, element("titlebar.palette").frame.minX)
         keepScreenshot("twelve tabs")
 
         // ⇧⌘[ from the first goes round to the last: the bar scrolls to it.
         app.typeKey("[", modifierFlags: [.command, .shift])
         XCTAssertTrue(last.wait(for: \.isSelected, toEqual: true, timeout: 2))
-        XCTAssertTrue(last.wait(for: \.isHittable, toEqual: true, timeout: 2))
+        try await poll("the last tab in view") {
+            last.frame.maxX < element("titlebar.palette").frame.minX ? true : nil
+        }
         XCTAssertGreaterThanOrEqual(last.frame.width, 64)
-        XCTAssertLessThan(last.frame.maxX, element("titlebar.palette").frame.minX)
+    }
+
+    func testHoldingCommandShowsKeycaps() {
+        let tab = element("tab.w1:t2")
+        XCTAssertTrue(tab.waitForExistence(timeout: connect))
+        XCTAssertFalse(tab.label.contains("⌘2"))
+        XCUIElement.perform(withKeyModifiers: .command) {
+            let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS '⌘2'"), object: tab)
+            XCTAssertEqual(XCTWaiter().wait(for: [shown], timeout: 3), .completed)
+            keepScreenshot("keycap hints")
+        }
+        let hidden = XCTNSPredicateExpectation(predicate: NSPredicate(format: "NOT label CONTAINS '⌘2'"), object: tab)
+        XCTAssertEqual(XCTWaiter().wait(for: [hidden], timeout: 2), .completed)
     }
 
     func testWindowTitleIsTheTabTitleAndTheSession() {

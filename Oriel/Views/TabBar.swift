@@ -149,11 +149,14 @@
                 HStack(spacing: 8) {
                     IconStack(panes: stack)
                         .overlay(alignment: .leading) {
-                            if let keycap {
-                                Text("⌘\(keycap)").font(.system(size: 10, weight: .semibold)).padding(.horizontal, 4)
-                                    .padding(.vertical, 1).glassEffect(.regular, in: .rect(cornerRadius: 4))
-                                    .opacity(hints ? 1 : 0)
-                                    .animation(.easeOut(duration: hints ? 0.13 : 0.1), value: hints)
+                            if hints, let keycap {
+                                Text("⌘\(keycap)").font(.system(size: 10, weight: .semibold)).fixedSize().padding(
+                                    .horizontal,
+                                    4,
+                                )
+                                .padding(.vertical, 1).glassEffect(.regular, in: .rect(cornerRadius: 4))
+                                .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.13)),
+                                                        removal: .opacity.animation(.easeOut(duration: 0.1))))
                             }
                         }
                     FadeText(
@@ -169,6 +172,11 @@
             }
             // The selection is the tab bar's marker.
             .buttonStyle(ChromeStyle(radius: min(TabBar.height / 2, 16.5)))
+            // On the capsule alone: the rename field and the × over it have their own.
+            .accessibilityIdentifier("tab.\(tab.id)")
+            .accessibilityAddTraits(selected ? .isSelected : [])
+            .accessibilityValue((lit ? "in view; " : "") + "icons: " + stack.map(\.iconID).joined(separator: ", "))
+            .accessibilityAction(named: "Close Tab") { store.closing = .tab(tab.id) }
             // Over the button, after the icons: in the button's label it could not take the keyboard.
             .overlay(alignment: .leading) {
                 if renaming {
@@ -212,10 +220,6 @@
             }
             .onHover { hovering = $0 }
             .contextMenu { menu }
-            .accessibilityIdentifier("tab.\(tab.id)")
-            .accessibilityAddTraits(selected ? .isSelected : [])
-            .accessibilityValue((lit ? "in view; " : "") + "icons: " + stack.map(\.iconID).joined(separator: ", "))
-            .accessibilityAction(named: "Close Tab") { store.closing = .tab(tab.id) }
         }
 
         @ViewBuilder

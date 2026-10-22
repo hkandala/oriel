@@ -26,9 +26,8 @@
 
         var body: some View {
             HStack(spacing: 8) {
-                // ⌃⌘S is the menu's. No highlight: the icon says open or closed.
-                IconButton(symbol: sidebar ? "rectangle.leftthird.inset.filled" : "sidebar.left",
-                           help: "Toggle Sidebar") { sidebar.toggle() }
+                // ⌃⌘S is the menu's.
+                SidebarToggle(open: $sidebar)
                     .accessibilityIdentifier("titlebar.sidebar")
                     .accessibilityValue(sidebar ? "open" : "closed")
                 SessionPicker(store: store, open: $picking)
@@ -64,6 +63,30 @@
         }
     }
 
+    /// `sidebar.left`, with its sidebar part filled while open. No highlight: the icon says open or closed.
+    /// `rectangle.leftthird.inset.filled` alone drew too thin a bar at 13 pt to tell the two apart.
+    private struct SidebarToggle: View {
+        @Binding var open: Bool
+
+        var body: some View {
+            Button { open.toggle() } label: {
+                Image(systemName: "sidebar.left")
+                    // Its bar sits on sidebar.left's sidebar part: both are the same window outline.
+                    .overlay {
+                        if open {
+                            Image(systemName: "rectangle.leftthird.inset.filled")
+                        }
+                    }
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(ChromeStyle(radius: 7))
+            .help("Toggle Sidebar")
+            .accessibilityLabel("Toggle Sidebar")
+        }
+    }
+
     /// This Mac's icon: a laptop when it has an internal battery (`hw.model` no longer says MacBook on M2 and later
     /// laptops).
     let thisMacIcon: String = {
@@ -86,13 +109,12 @@
                 // ponytail: no-op until remote hosts
                 Button("Add Remote Host…", systemImage: "plus") {}
             } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: thisMacIcon).fontWeight(.medium)
-                    Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
-                }
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 6)
-                .frame(height: 28)
+                // One text, so the menu button is one element.
+                let chevron = Text(Image(systemName: "chevron.down")).font(.system(size: 8, weight: .bold))
+                Text("\(Image(systemName: thisMacIcon)) \(chevron)").fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .frame(height: 28)
             }
             .menuStyle(.button)
             .menuIndicator(.hidden)
