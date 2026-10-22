@@ -7,10 +7,12 @@ extension OrielUITests {
     func testSettingsFontSizeResizesTheGrid() async throws {
         let terminal = element("terminal.w1:p1")
         XCTAssertTrue(terminal.waitForExistence(timeout: connect))
+        addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
+        // From the default size: at 32 pt the arrow would be disabled.
+        app.typeKey("0", modifierFlags: .command)
         try await expectPTYSize("w1:p1")
         let before = try XCTUnwrap(terminal.value as? String)
         let stream = try await pid(of: "w1:p1")
-        addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
 
         app.typeKey(",", modifierFlags: .command)
         let tab = app.toolbars.buttons["Terminal"]
@@ -22,6 +24,9 @@ extension OrielUITests {
         try await expectPTYSize("w1:p1")
         let after = try await pid(of: "w1:p1")
         XCTAssertEqual(after, stream, "the stream was not opened again")
+        // ⌘W closes Settings, which has no pane to close.
+        app.typeKey("w", modifierFlags: .command)
+        XCTAssertTrue(tab.waitForNonExistence(timeout: 2))
     }
 
     /// ⌘+ and ⌘= make the text bigger, ⌘- smaller, and ⌘0 brings back the grid of the default size.
@@ -87,8 +92,9 @@ extension OrielUITests {
     }
 
     /// The pid of the pane's `terminal session` run.
-    private func pid(of pane: String) async throws -> String? {
+    private func pid(of pane: String) async throws -> String {
         let terminal = try await terminalID(pane)
-        return try await streams(one).first { $0.contains(terminal) }?.split(separator: " ").first.map(String.init)
+        let line = try await streams(one).first { $0.contains(terminal) }
+        return try String(XCTUnwrap(line?.split(separator: " ").first))
     }
 }
