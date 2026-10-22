@@ -106,3 +106,71 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
   unfaded cards in a key and a non-key window.
 
 ## Findings
+
+### Deviations
+
+- **⌃⌘= and ⌥⇧⌘ arrows are tested through their menu items.** On this Mac a global hotkey (BetterTouchTool or
+  Raycast) takes ⌃⌘= before the app: a one-line log in the menu action and in the terminal's `keyDown` showed
+  neither ran. The menu item (View ▸ Pane ▸ Balance Splits) works; the key binding is the same `Command`. ⌥⇧ chords
+  are avoided for the same reason (speed rule 7).
+- **Menu actions find their pane when they run.** SwiftUI rebuilds the menu bar's commands only now and then, and
+  the keyboard card is the window's first responder, which it does not observe: a captured pane or tab was the one
+  from the last rebuild (Balance first evened session one's launch tab in a test). `AppCommands.pane(page, target)`
+  takes a closure that the actions call; Balance reads the selected tab when it runs and is enabled whenever a tab
+  is selected (an even tab sends nothing). Titles and enabled states may still lag a little.
+- **The zoom rule is in `Page.zoom`**: a tab's only card does not zoom from any path (button, double-click,
+  ⇧⌘↩), as the disabled button says.
+- **The page follows a moved pane.** The phase does not say; Move to New Tab, Move to Tab and Move to New Workspace
+  select the destination tab and the pane keeps the keyboard there, as the keyboard follows a swapped pane.
+  Without it the keyboard stayed on a terminal no longer in the selected tab.
+- **No "old size during motion" fallback.** Item 16 asks for it only if terminals flicker while cards animate;
+  frames animate 0.2 s ease-out and the terminals' 100 ms resize settle sends one resize at the end.
+- **The grip's color** is gorex's muted icon color at 0.6 (`.secondary.opacity(0.6)`): the hover fill
+  (`.primary` at 0.05) is invisible on a 3 pt capsule.
+
+### Decisions
+
+- **⌥⌘ arrows use herdr's read-only `pane.neighbor`**, not card frames: one call per key and no geometry code.
+  herdr answers on its own 120 × 40 grid, whose ratios match the cards, so the neighbor matches what shows.
+- **Equal splits** are `SplitNode.evened(around:)` in HerdrKit (unit tests in `SplitNodeTests`): a split's ratio is
+  the units of its first side over its own units, where a child split the other way is one unit; with a pane, only
+  the run of same-direction splits holding it (up from its parent while the parent splits the same way, then down
+  through same-direction children); without, every split (Balance). Only changes above 0.001 are sent. A split is
+  one `write`: `pane.split`, the swap for Left/Up, a fresh `session.snapshot`, then one `layout.set_split_ratio`
+  per change; the snapshot read follows.
+- **`Multiplexer` grew** `neighbor`, `swap(pane, heading)`, `resize`, `setRatio`, `move(pane:to:)`,
+  `rename(pane:label:)`, and `split` returns the new pane. `Heading` (left/right/up/down) and `Destination` (new tab,
+  tab, new workspace) are HerdrKit enums. An integration test runs them against a throwaway session.
+- **Pane commands** (`AppCommands.pane`) are one list for View ▸ Pane and the header's context menu (sections
+  `.pane`, `.paneMove`, `.close`); keys only (select, move, resize, Balance, Focus Follows Mouse) are `.paneKeys`.
+  `Command.menu` draws Move to Tab ▸; `CommandItems` draws commands in both places. Close Pane stays in File (⌘W).
+- **The drag holds an app ratio** (`@State held` per split) until herdr's ratio changes, herdr refuses the write
+  (`write` now returns whether it went through and shows its notice without waiting 4 s), or herdr already has the
+  value. The drag uses the global coordinate space: the divider moves under the pointer.
+- **Ids and values:** `divider.<tab>.<path>` (`root`, else 0/1 digits), value "33%"; a card's value is
+  "content 70%" (its terminal opacity with the watching dim). Both carry the static-text trait: as phase 10 found,
+  a plain SwiftUI element shows XCUITest no value. `pane.<id>.rename` is the rename field.
+- **Fade** is `alphaValue` on the terminal's host view (phase 16 learned SwiftUI's `opacity` moves the terminal's
+  accessibility frame), computed in `PaneCard` from `@AppStorage("fadeInactivePanes")`, `appearsActive` and the
+  color scheme.
+- **Focus follows mouse** is a `.task(id:)` on the card's hover: 0.15 s, no mouse button down, no `NSText` first
+  responder (palette, rename, filters), key window only.
+- **Files:** `PaneCard` moved to `Oriel/Views/PaneCard.swift` and the pane writes to `Oriel/Store/PaneWrites.swift`
+  (SwiftLint's file length).
+
+### Assumptions
+
+- **A global hotkey takes ⌃⌘= on this Mac**, not macOS: CI's runner delivers it, but no test presses it.
+- **Menus block hover**, so Focus Follows Mouse needs no menu check: SwiftUI sends no hover while a menu tracks.
+- **herdr keeps exactly the ratio it is sent** (0.3333 came back 0.3333), so "herdr already has it" is a plain
+  compare.
+
+### Learned
+
+- **Spike (herdr 0.9.5):** `layout.set_split_ratio` paths are `false` = first child, `true` = second, `[]` the root;
+  a path that ends at a pane fails `split_not_found`; herdr clamps to 0.1–0.9 itself. `pane.resize {direction,
+  amount}` moves the nearest divider that way (right and down raise the ratio; `changed:false, reason:"unchanged"`
+  with none). `pane.neighbor` returns `neighbor_pane_id`, left out when there is none. `pane.swap {pane_id,
+  direction}` and `pane.move` keep herdr's focus with `focus:false`; `pane.rename {label: null}` clears a label.
+- **The keyboard card stays after a re-activation** (the phase 12 lead): the fade test opens a second window,
+  closes it, and window 1's card is still the keyboard card at 100 %. Not reproduced otherwise.
