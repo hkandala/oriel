@@ -55,3 +55,38 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
 - Screenshots: a hover card for a three-pane tab with a blocked agent; a tooltip.
 
 ## Findings
+
+### Deviations
+
+- **Hover panels are drawn at the window's root**, not hung from their trigger. The tab track is a clipping
+  `ScrollView` under a fade mask, and the Agents view is a scroll view in a paging scroll view, so a card hung
+  from a capsule or a row would be cut off. The phase 15 `hoverPanel` modifier now publishes its open panel as an
+  anchor preference (`anchorPreference`), and `hoverPanelHost()` on the window's content draws it with
+  `overlayPreferenceValue`, placed by a small `Layout` that keeps it 8 pt inside the window. The Agents button's
+  panel uses the same path (`PanelPlace.underTrailing`), so the title row's `zIndex(1)` is gone. One preference
+  slot means one panel at a time.
+- **Every hover panel fades and scales in** (0.97, 0.13 s): the transition sits on the host, so the Agents
+  button's panel gets it too (Rex fades its popups in about as fast).
+- **A scroll closes a hover panel only outside it**, like a click: the needs-you list scrolls inside its panel.
+- **"Zoom" and "Restore" are now "Zoom Pane" and "Restore Pane"** on the card header, the menu items' names, so
+  the tooltip reads as the command list does ("Zoom Pane ⇧⌘↩"); "Close" is "Close Pane ⌘W". The ⌘ button says
+  "Command Palette ⌘K" (it said "Commands"). The workspace button got `.help("Workspace")` (no shortcut).
+- **No popover role.** SwiftUI has no way to give the card AppKit's popover role; it is a contained group labelled
+  "Panes of ‹tab›" with the rows as buttons, and the capsule's accessibility action "Show Panes" opens it.
+
+### Decisions
+
+- **`PanelPlace {trigger, panel, offset}`**: the panel's unit point on the trigger's unit point. `under` (a
+  capsule: centered, 6 pt below), `beside` (an Agents row: 20 pt right of the row, which is 6 pt past the
+  sidebar's edge: the list's 8 pt padding and the 6 pt width handle lie between) and `underTrailing` (the
+  Agents button, as before).
+- **Shortcuts shared by the menu and the tooltips** are `KeyboardShortcut` statics (`.newTab`, `.palette`, …) in
+  `Commands.swift`; `glyphs` draws them as the menu does ("⇧⌘N", "⇧⌘↩"). `IconButton(key:)` appends them to its
+  `.help` and accessibility label.
+- **`Multiplexer.screen(_:)`** is `pane.read {source: "visible", format: "text"}`; the card keeps the last 3 lines
+  that are not blank, read in the card's `.task` (so once per opening, never before), one pane after another.
+- **Ids:** `hovercard`, `hovercard.title`, `hovercard.<pane id>` (value: the capsule word, then the screen lines,
+  one per line). Rows follow herdr's pane order, which is the minimap's depth-first order.
+- **Row name:** the agent's name, else the program's (`programName`), else "terminal". A pane's label is not used:
+  the phase asks for the program or agent name.
+- **`gap` is `nonisolated`**: the panel `Layout`'s methods are not main-actor isolated.
