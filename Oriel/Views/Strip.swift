@@ -302,10 +302,11 @@ private struct PaneCard: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        // The first time the card shows: what runs in it, for its icon.
-        .task(id: id) {
+        // The first time the card shows: what runs in it, for its icon. Not the view's task: a lazy page that
+        // leaves at once would cancel it.
+        .onAppear {
             if pane?.asked == false {
-                await store.askProgram(id)
+                Task { await store.askProgram(id) }
             }
         }
         .clipShape(CardSurface.shape)

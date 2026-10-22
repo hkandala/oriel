@@ -214,13 +214,15 @@ final class HostStore {
     }
 
     /// Asks herdr what runs in the pane (one `pane.process_info`); its icon follows. A failed ask keeps the last
-    /// answer.
+    /// answer, and the card asks again the next time it shows.
     func askProgram(_ paneID: String) async {
         guard let client, let pane = pane(paneID) else { return }
         pane.asked = true
         do {
             pane.program = try await client.program(paneID)
-        } catch {}
+        } catch {
+            pane.asked = false
+        }
     }
 
     /// herdr's session list again, for the picker: a session started since shows up.
