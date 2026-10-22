@@ -23,12 +23,14 @@ extension OrielUITests {
         XCTAssertTrue(element("detail.start").waitForExistence(timeout: 10))
         XCTAssertFalse(terminal.exists)
         // Its last rows stay, without writes.
-        let row = element("workspace.w1")
+        // The button: its open context menu carries the same identifier.
+        let row = app.buttons["workspace.w1"]
         row.rightClick()
         XCTAssertFalse(app.menuItems["Rename Workspace"].isEnabled)
         app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(app.menuItems["Rename Workspace"].waitForNonExistence(timeout: 2))
         row.doubleClick()
-        XCTAssertFalse(element("workspace.w1.rename").exists)
+        XCTAssertFalse(element("workspace.w1.rename").waitForExistence(timeout: 1))
         keepScreenshot("not running")
         try await poll("no stream") { () async throws -> Bool? in try await streams(five).isEmpty ? true : nil }
 

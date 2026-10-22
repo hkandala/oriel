@@ -57,6 +57,8 @@ final class HostStore {
         /// Its page closed: the events stream and every herdr run of it end; the session keeps running.
         func disconnect() {
             task?.cancel()
+            // Also ends a git loop already running for it.
+            showsGit = false
             Self.open[session] = nil
         }
 

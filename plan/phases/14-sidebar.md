@@ -273,6 +273,8 @@ the helper. Launch with `-ApplePersistenceIgnoreState YES`.
 
 - **XCUITest drags on macOS with `click(forDuration:thenDragTo:)`.** `press(forDuration:thenDragTo:)` sent the app
   no mouse down at all (an AppKit view logged none); about 20 minutes went into blaming the handle first.
+- **An open context menu carries its view's identifier**: right after a right-click, `workspace.w1` matched the row
+  and its menu; tests take `app.buttons[...]` and wait for the menu to go.
 - **A static text's text is its accessibility value** in XCUITest when it has an identifier, not its label.
 - **`worktree.create` puts worktrees in `~/.herdr/worktrees/<repo>/`**: tests must not use it (it writes outside
   the throwaway folder).
