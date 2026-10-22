@@ -18,7 +18,11 @@ struct OrielApp: App {
                 if event.modifierFlags.contains(.command) {
                     let info = "KEY \(event.characters ?? "nil") \(event.charactersIgnoringModifiers ?? "nil") "
                         + "\(event.keyCode) \(event.modifierFlags.rawValue)"
-                    MainActor.assumeIsolated { NSApp.windows.first?.title = info }
+                    MainActor.assumeIsolated {
+                        let old = NSPasteboard.general.string(forType: .string) ?? ""
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(old + " | " + info, forType: .string)
+                    }
                     NSLog("%@", info)
                 }
                 guard event.modifierFlags.intersection([.command, .control, .option]) == .command,

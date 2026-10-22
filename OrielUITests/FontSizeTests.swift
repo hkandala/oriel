@@ -56,6 +56,7 @@ extension OrielUITests {
     func testDebugKeys() async throws {
         XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
         var out: [String] = []
+        NSPasteboard.general.clearContents()
         for (key, flags) in [
             ("=", XCUIElement.KeyModifierFlags.command),
             ("+", .command),
@@ -64,7 +65,7 @@ extension OrielUITests {
         ] {
             app.typeKey(key, modifierFlags: flags)
             try await Task.sleep(for: .milliseconds(300))
-            out.append("\(key): \(app.windows.firstMatch.title)")
+            out.append("\(key): \(NSPasteboard.general.string(forType: .string) ?? "none")")
         }
         try await Self.call(one, "pane.send_text", ["pane_id": "w1:p1", "text": "clear; cat -v\r"])
         try await Task.sleep(for: .milliseconds(500))
