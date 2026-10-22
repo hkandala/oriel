@@ -99,15 +99,17 @@
         override func keyDown(with event: NSEvent) {
             if !hasMarkedText(), let key = Self.herdrKey(event) {
                 terminal?.keys([key])
-            } else if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [.command, .control],
+            } else if event.modifierFlags.intersection([.command, .control, .option, .shift]) == [.command, .control],
                       event.charactersIgnoringModifiers == "f"
             {
                 // ⌃⌘F: AppKit's window toggles full screen only for keys no view takes; libghostty takes all.
                 window?.toggleFullScreen(nil)
-            } else if !event.modifierFlags.contains(.command) {
-                // A ⌘ key no menu item took (a disabled one, such as ⌘0 at the default size, or ⌘9 without a
-                // ninth tab) goes nowhere: libghostty, with no key bindings, would type its character.
+            } else if hasMarkedText() || !event.modifierFlags.contains(.command) {
                 super.keyDown(with: event)
+            } else {
+                // A ⌘ key no menu item took (a disabled one, such as ⌘0 at the default size, or ⌘9 without a
+                // ninth tab): libghostty, with no key bindings, would type its character. AppKit's beep instead.
+                NSSound.beep()
             }
         }
 
