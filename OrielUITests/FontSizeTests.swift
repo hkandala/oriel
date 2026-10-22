@@ -8,11 +8,7 @@ extension OrielUITests {
     func testFontSizeKeys() async throws {
         let terminal = element("terminal.w1:p1")
         XCTAssertTrue(terminal.waitForExistence(timeout: connect))
-        // Back to the default, settled, so the next test does not start in the middle of a resize.
-        addTeardownBlock { @MainActor [self] in
-            app.typeKey("0", modifierFlags: .command)
-            try? await expectPTYSize("w1:p1")
-        }
+        addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
         app.typeKey("0", modifierFlags: .command)
         try await expectPTYSize("w1:p1")
         let actual = try XCTUnwrap(terminal.value as? String)
@@ -53,6 +49,7 @@ extension OrielUITests {
         app.typeKey("b", modifierFlags: .option)
         app.typeKey("1", modifierFlags: .option)
         app.typeKey(.return, modifierFlags: [])
+        // The tty's echo of the typed line (cat -v prints its own escaped copy under it).
         try await waitFor("w1:p1") { $0.split(separator: "\n").contains("∫¡") }
     }
 
