@@ -13,20 +13,22 @@ extension OrielUITests {
             try await order(tab) == [second, first, third] ? true : nil
         }
 
+        // Its own tab's capsule is not a target: no write, so no refusal shows; the drop below checks nothing moved
+        // (writes go one at a time).
         let tabs = try await tabIDs()
+        drag(third, to: element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        XCTAssertFalse(element("detail.notice").waitForExistence(timeout: 1))
+
         drag(third, to: card(second, 0.1, 0.6))
         try await poll("the pane left of its neighbor") { () async throws -> Bool? in
             try await order(tab) == [third, second, first] ? true : nil
         }
         let after = try await tabIDs()
         XCTAssertEqual(after, tabs)
+        // Its tab stayed selected, its card has the keyboard, and the three share the width, as after a split.
+        XCTAssertTrue(element("tab.\(tab)").isSelected)
         XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
-
-        // Its own tab's capsule is not a target: nothing moves.
-        drag(third, to: element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
-        try await Task.sleep(for: .milliseconds(500))
-        let still = try await order(tab)
-        XCTAssertEqual(still, [third, second, first])
+        try await expectWidths(tab, [third: 1 / 3, second: 1 / 3, first: 1 / 3])
     }
 
     func testHoldingOverACapsuleSpringLoadsItsTabAndADropSplitsRight() async throws {
@@ -40,7 +42,20 @@ extension OrielUITests {
         XCTAssertTrue(capsule.waitForExistence(timeout: 3))
         XCTAssertTrue(element("pane.\(second)").waitForExistence(timeout: 3))
 
+        // A herdr TUI zoomed that tab: herdr refuses the move (`zoomed_tab`), so only the spring-load selects it.
+        // herdr's zoom moves its focus, as a swap does.
+        restoreHerdrFocusAfter()
+        try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "on"])
         drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), hold: 1.2)
+        XCTAssertTrue(capsule.wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(app.staticTexts["The tab is zoomed in herdr"].waitForExistence(timeout: 3))
+        let still = try await order(tab)
+        XCTAssertEqual(still, [first, second])
+
+        try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "off"])
+        element("tab.\(tab)").click()
+        XCTAssertTrue(element("pane.\(second)").waitForExistence(timeout: 3))
+        drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
         try await poll("the pane split right in that tab") { () async throws -> Bool? in
             try await order(other) == [third, second] ? true : nil
         }
@@ -85,7 +100,12 @@ extension OrielUITests {
             }
         }
         XCTAssertTrue(element("pane.\(inBeta)").waitForExistence(timeout: 3))
-        drag(inBeta, to: element("sidebar").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)))
+        // 40 pt under the last row.
+        let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workspace.w'"))
+        let bottom = rows.allElementsBoundByIndex.map(\.frame.maxY).max() ?? 0
+        let sidebar = element("sidebar")
+        drag(inBeta, to: sidebar.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: sidebar.frame.width / 2, dy: bottom + 40 - sidebar.frame.minY)))
         try await poll("the pane in a new workspace") { () async throws -> Bool? in
             let place = try await place(of: terminal)
             return place.map { !workspaces.contains(workspace(of: $0.tab)) } == true ? true : nil
@@ -134,7 +154,8 @@ extension OrielUITests {
                 + "git init -q -b main repo && cd repo && git -c user.name=e2e -c user.email=e2e@oriel commit -q "
                 + "--allow-empty -m one && git worktree add -q ../tree -b feature) && echo built-$((6*7))\r"])
         addTeardownBlock { [one] in
-            _ = try? await Self.call(one, "pane.send_text", ["pane_id": "w2:p1", "text": "rm -rf \(root)\r"])
+            // Before the workspace (and its pane) closes: teardowns run last first.
+            _ = try? await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "rm -rf \(root)\r"])
         }
         try await waitFor(pane) { $0.contains("\nbuilt-42") }
         let created = try await Self.call(one, "workspace.create", ["cwd": "\(root)/repo", "label": "repo",
