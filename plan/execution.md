@@ -27,6 +27,13 @@ for a small phase. The budget per phase:
 
 - **Now:** the user is away; local GUI runs are allowed under the GUI budget until the user pauses again.
   CI ad-hoc runs stay available.
+- **Ad-hoc UI tests on CI** (when the GUI is paused; about 2.5 min for two tests). Push the commit to main
+  (`[skip ci]` in the subject for a WIP step), then:
+  `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB`,
+  `gh run list --workflow ci.yml --event workflow_dispatch --limit 1` for the id, `gh run watch <id>`. Such a run
+  skips lint, build and HerdrKit tests, and never cancels a push run or another dispatch. On failure:
+  `gh run download <id> -n e2e-xcresult`, then `xcrun xcresulttool` and ffmpeg on the recording (plan/ci.md).
+  Locally the same is `make e2e ONLY=…`. The full suite still runs on the phase's last code push.
 - When the user pauses GUI work, the orchestrator holds `/tmp/oriel-gui.lock` with owner "user". Nobody
   removes or works around it; agents keep building, testing without GUI and pushing (CI runs e2e).
 - Never send keys with `osascript` / System Events or similar: when Oriel loses focus, the keys land in the
