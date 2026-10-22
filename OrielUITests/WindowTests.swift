@@ -22,6 +22,8 @@ extension OrielUITests {
         app.typeText("echo one-$((40+2))")
         app.typeKey(.return, modifierFlags: [])
         try await waitFor("w1:p1") { $0.contains("\none-42") }
+        keepScreenshot("window 1 observes the echo", of: first)
+        raise(second)
         // Window 1 still streams the pane, now watching it.
         try await expectStreams(terminal, control: 1, observe: 1)
         try await expectPTYSize("w1:p1", in: second)
@@ -40,6 +42,13 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.w1:t1", in: first).isSelected)
         // Window 1 never showed t2, so nobody holds p4: watching, window 2 still opens it as observe.
         try await expectStreams(terminalID("w1:p4"), control: 0, observe: 1)
+        // A key press with no click takes the session, and is then sent.
+        app.typeText("echo two-$((40+3))")
+        app.typeKey(.return, modifierFlags: [])
+        try await waitFor("w1:p4") { $0.contains("\ntwo-43") }
+        XCTAssertTrue(element("notice.controlled", in: first).waitForExistence(timeout: 3))
+        XCTAssertFalse(element("notice.controlled", in: second).exists)
+        try await expectStreams(terminalID("w1:p4"), control: 1, observe: 0)
     }
 
     func testClosingTheControllingWindowHandsControlOver() async throws {
@@ -59,11 +68,33 @@ extension OrielUITests {
         try await expectStreams(terminalID("w1:p1"), control: 1, observe: 0)
     }
 
+    func testControllerClosingItsPageHandsControlOver() async throws {
+        let (first, second) = try newWindow()
+        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
+        app.typeKey("s", modifierFlags: [.command, .control])
+
+        // Window 1 controls, opens session two and closes its page of session one: window 2 takes over.
+        raise(first)
+        element("sidebar.open-session", in: first).click()
+        element("open-session.session.\(two)", in: first).click()
+        XCTAssertTrue(element("sidebar.dot.\(two)", in: first).waitForExistence(timeout: connect))
+        element("sidebar.dot.\(one)", in: first).click()
+        element("sidebar.header", in: first).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
+        app.menuItems["Close Page"].click()
+        XCTAssertTrue(element("sidebar.dot.\(one)", in: first).waitForNonExistence(timeout: 3))
+        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
+        try await expectStreams(terminalID("w1:p1"), control: 1, observe: 0)
+        try await expectPTYSize("w1:p1", in: second)
+    }
+
     func testWindowsOnDifferentSessionsEachControlTheirOwn() async throws {
         XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
         let first = app.windows.firstMatch
         let identifier = first.identifier
-        // ⌥-click on This Mac opens a window, as ⌘N.
+        // A plain click on This Mac opens nothing; ⌥-click opens a window, as ⌘N.
+        element("titlebar.machine", in: first).click()
+        app.menuItems["This Mac"].click()
+        XCTAssertFalse(app.windows.element(boundBy: 1).waitForExistence(timeout: 2))
         element("titlebar.machine", in: first).click()
         XCUIElement.perform(withKeyModifiers: .option) { app.menuItems["This Mac"].click() }
         let second = try otherWindow(than: identifier)

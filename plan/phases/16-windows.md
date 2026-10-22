@@ -131,7 +131,9 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
   (`.terminateLater`, reply after `didExitFullScreen`, even with `invalidateRestorableState`) still restored the window
   in full screen: AppKit had saved the state before. Now the window reader, which joins once the window shows its first
   page, toggles full screen off when the window is already in it then (only a restore can do that before the user
-  acts). `window.isRestorable = false` is gone.
+  acts). `window.isRestorable = false` is gone. Only windows that were in full screen when launch ended
+  (`AppDelegate.restoredFullScreen`) leave it, so a ⌘N window macOS opens in full screen from a full-screen window
+  stays there (spec review).
 - **The app keeps running with no window**, as Mac apps with `WindowGroup` do (the old `Window` scene quit with its
   window). Closing the last window disconnects every store; the Dock icon opens a new window.
 
@@ -146,9 +148,11 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
   close) hands control to the next window or, the last one gone, removes the session's notifications and disconnects
   the store. `Page.watched` is `store.windows.first` being another window (compared by registry). The store calls
   `snapshotted(changes)`: each window settles its page, and notifications post once, with the controller's page.
-- **Input hook:** `PaneTerminal.onInput` (key, paste, mouse down) → the registry's `onInput` → the window takes control
-  when it watches. A new stream asks `watches()` (the registry → the window's page) and opens `observe` while another
-  window controls; takeovers never watch.
+- **Input hook:** `PaneTerminal.onInput` (key, paste, mouse down) → the registry's `onInput(terminalID)` → the window
+  of that terminal's page takes control when it watches. A new stream asks `watches()` (the registry → the window's
+  page) and opens `observe` while another window controls; takeovers never watch. A reopen after `.held` or a live
+  update checks the stream generation first, so a reopen that control overtook does nothing, and a live-update reopen
+  asks the windows again instead of keeping its old mode.
 - **D46 shared:** one static `recent: [PaneTerminal]` over every registry; a terminal its window shows (`inView`) is
   never evicted, so a tab with more panes than 24 keeps them all, as before. A pane in two windows counts twice.
 - **Per-window statics:** the keyboard claim counter became a per-view `claimed` flag the registry drops on its own
@@ -175,12 +179,19 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
   restore after a normal quit; the hand check launched with `-NSQuitAlwaysKeepsWindows YES`. A crash or a logout
   restores either way.
 - **Scene storage comes back after the window first shows**, about 20 ms after `applicationDidFinishLaunching` (logged
-  on this Mac); a window waits for it while `AppDelegate.restoring` (set in `application(_:didDecodeRestorableState:)`,
+  on this Mac; the restored windows' `.task` ran about 150 ms before launch ended, so the wait is live); a window waits for it while `AppDelegate.restoring` (set in `application(_:didDecodeRestorableState:)`,
   cleared at launch end), at most 1 s. A restored window always saved its pages, so a non-empty `pages` is the signal.
 - **macOS restores full screen before the window's first page shows** (logged: `willEnterFullScreen` before launch
   ends, the page after the scene storage), so full screen at the reader's first sight means a restore.
 
 ### Learned
+
+- **A watching window's stream once opened `control`** (ponytail and spec review): `open` computed `observing` but
+  passed its `observe` argument to herdr, so a watched window's new stream was a plain `control` that only herdr's
+  refusal turned into watching; a pane the controller did not stream went to the watching window, at its size. The
+  window test now checks a tab only window 2 shows (p4): `observe` 1, `control` 0.
+- **"Window 1's card shows the echoed text"** is checked through herdr: the pane has the text and window 1 holds an
+  `observe` stream of it (the terminal's accessibility value is only its grid).
 
 - **Saved state lives in `$TMPDIR/dev.hkandala.oriel.savedState`** on macOS 27, not `~/Library/Saved Application
   State`. The hand check deleted it after.
