@@ -139,7 +139,7 @@ extension OrielUITests {
     }
 
     /// ⌘N once the first window shows session one: the first window and the new one.
-    private func newWindow() throws -> (XCUIElement, XCUIElement) {
+    func newWindow() throws -> (XCUIElement, XCUIElement) {
         XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
         let first = app.windows.firstMatch
         let identifier = first.identifier

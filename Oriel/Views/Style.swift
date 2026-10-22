@@ -332,16 +332,24 @@ struct FadeText: View {
 struct IconButton: View {
     let symbol: String
     let help: String
+    var size: CGFloat = 28
+    /// White on an accent circle (a zoomed card's Restore).
+    var accent = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 28)
+                .foregroundStyle(accent ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                .frame(width: size, height: size)
+                .background {
+                    if accent {
+                        Circle().fill(.tint)
+                    }
+                }
         }
-        .buttonStyle(ChromeStyle(radius: 7))
+        .buttonStyle(ChromeStyle(radius: size / 4))
         .help(help)
         .accessibilityLabel(help)
     }

@@ -18,7 +18,11 @@
                         Group {
                             if let tree = tab.tree {
                                 // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
-                                SplitLayout(node: tree, page: page).padding([.horizontal, .bottom], gap)
+                                SplitLayout(node: tree, page: page, tabID: tab.id)
+                                    // Layout motion: splits, closes, moves and herdr's ratios; a drag follows the
+                                    // pointer.
+                                    .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: tree)
+                                    .padding([.horizontal, .bottom], gap)
                                     .padding(.top, 4)
                             } else {
                                 Text("No layout for this tab").foregroundStyle(.secondary)
@@ -179,15 +183,20 @@
         }
     }
 
-    /// herdr's split tree: each split divides its rectangle by the ratio, minus the gap. Both children get an exact
-    /// size, so no card's content can push its neighbor out of the page. A zoomed card (design D11) fills the page:
-    /// each split above it stacks its sides, the zoomed side at full size, the other hidden at its own size. The same
-    /// views stay, so no terminal view changes host and only the zoomed one resizes.
+    /// herdr's split tree: each split divides its rectangle by the ratio, minus the gap, which is the split's divider.
+    /// Both children get an exact size, so no card's content can push its neighbor out of the page. A zoomed card
+    /// (design D11) fills the page: each split above it stacks its sides, the zoomed side at full size, the other
+    /// hidden at its own size. The same views stay, so no terminal view changes host and only the zoomed one resizes.
     private struct SplitLayout: View {
         let node: SplitNode
         let page: Page
+        let tabID: String
+        /// From the root, `false` = first child, as `layout.set_split_ratio` takes it.
+        var path: [Bool] = []
         /// The size without zoom, for a split above the zoomed card: it fills the page, its parts keep their size.
         var natural: CGSize?
+        /// The app's ratio while its divider is dragged or sent, until herdr's snapshot shows its own.
+        @State private var held: Double?
 
         var body: some View {
             switch node {
@@ -199,29 +208,118 @@
                     let base = natural ?? geometry.size
                     let total = max(0, (right ? base.width : base.height) - gap)
                     // A NaN or out-of-range ratio from herdr must not break the layout.
-                    let size = total * (ratio.isNaN ? 0.5 : min(max(ratio, 0), 1))
+                    let shown = held ?? (ratio.isNaN ? 0.5 : min(max(ratio, 0), 1))
+                    let size = total * shown
                     let sizes = right
                         ? (CGSize(width: size, height: base.height), CGSize(width: total - size, height: base.height))
                         : (CGSize(width: base.width, height: size), CGSize(width: base.width, height: total - size))
                     let zoomed = page.zoomedPaneID.map { (first.contains($0), second.contains($0)) } ?? (false, false)
                     let stack = zoomed.0 || zoomed.1 ? AnyLayout(ZStackLayout())
-                        : right ? AnyLayout(HStackLayout(spacing: gap)) : AnyLayout(VStackLayout(spacing: gap))
+                        : right ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
                     stack {
-                        side(first, sizes.0, zoomed: zoomed.0, away: zoomed.1, area: geometry.size)
-                        side(second, sizes.1, zoomed: zoomed.1, away: zoomed.0, area: geometry.size)
+                        side(first, sizes.0, step: false, zoomed: zoomed, area: geometry.size)
+                        if !zoomed.0, !zoomed.1 {
+                            let names = [first, second].map { page.store.pane($0.paneIDs[0])?.cardTitle ?? "terminal" }
+                            let key = path.isEmpty ? "root" : path.map { $0 ? "1" : "0" }.joined()
+                            SplitDivider(right: right, total: total, ratio: shown, held: $held,
+                                         label: "Divider between \(names[0]) and \(names[1])",
+                                         id: "divider.\(tabID).\(key)",
+                                         send: { send($0, herdr: ratio) })
+                        }
+                        side(second, sizes.1, step: true, zoomed: zoomed, area: geometry.size)
                     }
                 }
+                .onChange(of: ratio) { held = nil }
             }
         }
 
         /// One side of a split: its own size, the whole rectangle when it holds the zoomed card, or hidden under it.
-        private func side(_ node: SplitNode, _ size: CGSize, zoomed: Bool, away: Bool, area: CGSize) -> some View {
-            SplitLayout(node: node, page: page, natural: zoomed ? size : nil)
+        /// `zoomed`: whether the first and the second side hold the zoomed card.
+        private func side(_ node: SplitNode, _ size: CGSize, step: Bool, zoomed sides: (Bool, Bool),
+                          area: CGSize) -> some View
+        {
+            let zoomed = step ? sides.1 : sides.0, away = step ? sides.0 : sides.1
+            return SplitLayout(node: node, page: page, tabID: tabID, path: path + [step], natural: zoomed ? size : nil)
                 .frame(width: zoomed ? area.width : size.width, height: zoomed ? area.height : size.height)
                 // Under the zoomed side (zIndex), which covers it, so its terminal views get no clicks.
                 .opacity(away ? 0 : 1)
                 .zIndex(away ? 0 : 1)
                 .transformEnvironment(\.zoomedAway) { $0 = $0 || away }
+        }
+
+        /// The divider's ratio to herdr (D42). Held until the snapshot shows it; dropped when herdr refused it, or
+        /// when herdr already has it (no snapshot change would drop it then).
+        private func send(_ value: Double, herdr ratio: Double) {
+            guard abs(value - ratio) > 0.0005 else {
+                held = nil
+                return
+            }
+            Task {
+                if await !page.store.setRatio(tab: tabID, path: path, ratio: value) {
+                    held = nil
+                }
+            }
+        }
+    }
+
+    /// A split's 8 pt gap: a 16 pt hit area with the resize pointer, a grip on hover (gorex's 36 × 3 pt, muted at
+    /// 0.6), a drag that moves the split live and sends on release, a double-click for 0.5, and an adjustable
+    /// accessibility element (5 % steps).
+    private struct SplitDivider: View {
+        let right: Bool
+        /// The split's length without the gap.
+        let total: CGFloat
+        let ratio: Double
+        @Binding var held: Double?
+        let label: String
+        let id: String
+        let send: (Double) -> Void
+        @State private var hovering = false
+        /// The ratio when the drag began.
+        @State private var start: Double?
+
+        var body: some View {
+            Color.clear
+                .frame(width: right ? gap : nil, height: right ? nil : gap)
+                .overlay {
+                    Capsule().fill(.secondary.opacity(0.6))
+                        .frame(width: right ? 3 : 36, height: right ? 36 : 3)
+                        .opacity(hovering || start != nil ? 1 : 0)
+                        .animation(.easeOut(duration: 0.2), value: hovering || start != nil)
+                }
+                .overlay {
+                    Color.clear.contentShape(.rect)
+                        .frame(width: right ? 16 : nil, height: right ? nil : 16)
+                        .pointerStyle(right ? .columnResize : .rowResize)
+                        .onHover { hovering = $0 }
+                        // Global: the divider moves under the pointer, so its own space would move too.
+                        .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global).onChanged { drag in
+                            let from = start ?? ratio
+                            start = from
+                            let moved = right ? drag.translation.width : drag.translation.height
+                            held = min(max(from + moved / max(total, 1), 0.1), 0.9)
+                        }.onEnded { _ in
+                            start = nil
+                            if let held {
+                                send(held)
+                            }
+                        })
+                        .onTapGesture(count: 2) { set(0.5) }
+                        .accessibilityElement()
+                        .accessibilityLabel(label)
+                        .accessibilityValue("\(Int((ratio * 100).rounded()))%")
+                        .accessibilityIdentifier(id)
+                        .accessibilityAdjustableAction { direction in
+                            set(min(max(ratio + (direction == .increment ? 0.05 : -0.05), 0.1), 0.9))
+                        }
+                }
+                // Over both sides' edges: its hit area reaches 4 pt into each card.
+                .zIndex(2)
+        }
+
+        private func set(_ value: Double) {
+            held = value
+            send(value)
         }
     }
 
@@ -236,90 +334,6 @@
             case let .leaf(id): id == paneID
             case let .split(_, _, first, second): first.contains(paneID) || second.contains(paneID)
             }
-        }
-    }
-
-    /// A translucent card: a header with the pane's title and buttons, and its terminal.
-    private struct PaneCard: View {
-        let id: String
-        let page: Page
-        @State private var hovering = false
-        @Environment(\.zoomedAway) private var zoomedAway
-
-        var body: some View {
-            let store = page.store
-            let pane = store.pane(id)
-            // The label wins; else the program in primary text and the folder in secondary, as in Rex ("zsh ~").
-            let name = pane?.label == nil ? pane?.programName : nil
-            let folder = pane?.label ?? pane?.folder ?? (name == nil ? "terminal" : "")
-            let title = [name, folder].compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " ")
-            let zoomed = page.zoomedPaneID == id
-            let terminal = pane.flatMap(page.terminal)
-            // The card that has the keyboard is lit; herdr's focus until a terminal exists.
-            let lit = terminal?.hasKeyboard ?? pane?.focused ?? true
-            VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    // Clicks pass through to the header's double-click.
-                    ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
-                    let lead = name.map { "\($0) " } ?? ""
-                    Text("\(lead)\(Text(folder).foregroundStyle(name == nil ? .primary : .secondary))")
-                        .lineLimit(1)
-                        // A path keeps its end, a label its start.
-                        .truncationMode(pane?.label != nil ? .tail : name == nil ? .head : .middle)
-                        .allowsHitTesting(false)
-                    Spacer(minLength: 0)
-                    // Only on hover (and while zoomed, so Restore stays in sight); hidden, they take no width from a
-                    // narrow card.
-                    if hovering || zoomed {
-                        HStack(spacing: 0) {
-                            IconButton(symbol: "rectangle.split.2x1", help: "Split Right") {
-                                Task { await page.split(id, .right) }
-                            }
-                            .accessibilityIdentifier("pane.\(id).split-right")
-                            IconButton(symbol: "rectangle.split.1x2", help: "Split Down") {
-                                Task { await page.split(id, .down) }
-                            }
-                            .accessibilityIdentifier("pane.\(id).split-down")
-                            let zoom = zoomed ? "arrow.down.right.and.arrow.up.left"
-                                : "arrow.up.left.and.arrow.down.right"
-                            IconButton(symbol: zoom, help: zoomed ? "Restore" : "Zoom") { page.zoom(id) }
-                                .accessibilityIdentifier("pane.\(id).zoom")
-                            IconButton(symbol: "xmark", help: "Close") { Task { await store.close(pane: id) } }
-                                .accessibilityIdentifier("pane.\(id).close")
-                        }
-                        .disabled(store.writing)
-                    }
-                }
-                .fontWeight(.medium)
-                .padding(.leading, 12)
-                .padding(.trailing, 4)
-                // A card narrower than its header cuts the header (the card clips) instead of growing.
-                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 34, maxHeight: 34, alignment: .leading)
-                // Behind the header, so its buttons still take their own clicks.
-                .background { Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) } }
-                Group {
-                    if let terminal {
-                        TerminalCard(terminal: terminal, watched: page.watched).padding([.horizontal, .bottom], gap)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            // As the card shows: what runs in it now, for its icon (the snapshot's ask was when the pane was new). Not
-            // the view's task: a lazy page that leaves at once would cancel it.
-            .onAppear { Task { await store.askProgram(id) } }
-            .clipShape(CardSurface.shape)
-            // The card's element is its background: a container would merge into a one-pane page's.
-            .background {
-                CardSurface(keyboard: lit).accessibilityElement().accessibilityLabel(title)
-                    .accessibilityIdentifier("pane.\(id)")
-                    // The split buttons show on hover only; VoiceOver splits from the card.
-                    .accessibilityAction(named: "Split Right") { Task { await page.split(id, .right) } }
-                    .accessibilityAction(named: "Split Down") { Task { await page.split(id, .down) } }
-                    .accessibilityAction(named: zoomed ? "Restore" : "Zoom") { page.zoom(id) }
-                    .accessibilityAction(named: "Close") { Task { await store.close(pane: id) } }
-            }
-            .onHover { hovering = $0 }
-            .accessibilityHidden(zoomedAway)
         }
     }
 #endif

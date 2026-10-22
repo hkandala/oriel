@@ -142,7 +142,7 @@
         /// Pane is in the File menu.
         static func pane(_ page: Page?, _ pane: HostStore.Pane?) -> [Command] {
             guard let page, let pane else {
-                return ["Split Right", "Split Down", "Split Left", "Split Up", "Zoom Pane", "Balance Splits"]
+                return ["Split Right", "Split Down", "Split Left", "Split Up", "Zoom Pane"]
                     .map { Command(section: .pane, title: $0, enabled: false) }
                     + ["Move to New Tab", "Move to Tab", "Move to New Workspace", "Rename Pane…"]
                     .map { Command(section: .paneMove, title: $0, enabled: false) }
@@ -165,12 +165,6 @@
                 Command(section: .pane, title: zoomed ? "Restore Pane" : "Zoom Pane",
                         key: .init(.return, modifiers: [.command, .shift]),
                         enabled: zoomed || (tab?.tree?.paneIDs.count ?? 0) > 1) { page.zoom(id) },
-                Command(section: .pane, title: "Balance Splits", key: .init("=", modifiers: [.command, .control]),
-                        enabled: tab?.tree?.evened().isEmpty == false, action: {
-                            if let tab {
-                                Task { await store.balance(tab) }
-                            }
-                        }),
                 Command(section: .paneMove, title: "Move to New Tab") {
                     if let workspace {
                         Task { await page.move(pane, to: .newTab(workspaceID: workspace.id)) }
@@ -193,7 +187,7 @@
 
         /// Keys that move the keyboard, the pane or a divider; and Focus Follows Mouse.
         private var paneKeys: [Command] {
-            let page = page, enabled = page?.keyboardPane != nil
+            let page = page, enabled = page?.keyboardPane != nil, tab = page?.selectedTab
             let arrows: [(Heading, KeyEquivalent)] = [
                 (.left, .leftArrow), (.right, .rightArrow), (.up, .upArrow), (.down, .downArrow),
             ]
@@ -209,7 +203,15 @@
                             })
                 }
             }
-            return each("Select Pane", [.command, .option]) { page, _, heading in await page.moveKeyboard(heading) }
+            let balance = Command(section: .paneKeys, title: "Balance Splits",
+                                  key: .init("=", modifiers: [.command, .control]),
+                                  enabled: tab?.tree?.evened().isEmpty == false, action: {
+                                      if let page, let tab {
+                                          Task { await page.store.balance(tab) }
+                                      }
+                                  })
+            return [balance] +
+                each("Select Pane", [.command, .option]) { page, _, heading in await page.moveKeyboard(heading) }
                 + [
                     Command(section: .paneKeys, title: "Select Previous Pane", key: .init("["), enabled: enabled) {
                         page?.stepCard(-1)

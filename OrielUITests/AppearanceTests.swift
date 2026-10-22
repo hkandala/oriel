@@ -42,7 +42,7 @@ extension OrielUITests {
         }
     }
 
-    private func pick(_ menu: String, _ item: String) {
+    func pick(_ menu: String, _ item: String) {
         app.menuBars.menuBarItems["View"].click()
         let submenu = app.menuBars.menuItems[menu]
         submenu.hover()

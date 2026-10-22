@@ -329,12 +329,13 @@
     /// A card's terminal, with what to do when it does not stream.
     struct TerminalCard: View {
         let terminal: PaneTerminal
-        /// Another window controls the session (D66): the content dims a little, and the window's capsule offers Take
-        /// Back instead of the card.
+        /// Another window controls the session (D66): the window's capsule offers Take Back instead of the card.
         let watched: Bool
+        /// The content's opacity: the fade (D64) and the watching dim.
+        let alpha: CGFloat
 
         var body: some View {
-            TerminalHost(terminal: terminal, alpha: watched ? 0.85 : 1)
+            TerminalHost(terminal: terminal, alpha: alpha)
                 // A new terminal in the same spot (panes swapped) needs a new host to adopt it.
                 .id(ObjectIdentifier(terminal))
                 .overlay(alignment: .bottom) {
