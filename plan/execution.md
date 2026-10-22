@@ -25,11 +25,8 @@ for a small phase. The budget per phase:
 | E2E reviewer | round 1 only, at most 15 min of lock: drive the new UI through XCUITest (or by hand with screenshots) and read the tests; no full `make e2e` | later rounds, unless its own blocker was fixed (then single tests only) |
 | Spec and ponytail reviewers, verifier | none: read the code, the tests, the phase agent's final run and CI | any GUI run |
 
-- **Now (user's word, 2026-10-22):** the GUI stays paused until the user says otherwise. All UI testing
-  for the remaining phases runs on GitHub CI (ad-hoc runs with `only_testing`, see below once the e2e
-  agent adds it, and the full suite on each phase's last code push). Hand checks wait in "Hand checks
-  waiting for the GUI". A Tart VM (resources/research/dev/parallel-gui-testing.md) is pending the user's
-  decision.
+- **Now:** the user is away; local GUI runs are allowed under the GUI budget until the user pauses again.
+  CI ad-hoc runs stay available.
 - When the user pauses GUI work, the orchestrator holds `/tmp/oriel-gui.lock` with owner "user". Nobody
   removes or works around it; agents keep building, testing without GUI and pushing (CI runs e2e).
 - Never send keys with `osascript` / System Events or similar: when Oriel loses focus, the keys land in the
