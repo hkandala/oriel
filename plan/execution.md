@@ -63,7 +63,12 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
 10. **Fast waits, no reruns to look.** Poll accessibility values every 100 ms (the `poll` helper in the UI
    tests), not `XCTNSPredicateExpectation` (about once a second). When a single test fails, look at the
    last frames of its screen recording in the xcresult (ffmpeg on the mp4) before running it again.
-11. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
+11. **Log before blaming the view** (phase 14): one line written to a file from the app shows in one run
+   whether an event arrives. XCUITest drags on macOS need `click(forDuration:thenDragTo:)`;
+   `press(forDuration:thenDragTo:)` sends no mouse down. Dump `debugDescription` before guessing an
+   element's label or value.
+12. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
+13. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
 
 ## The phase loop (inside each phase agent)
@@ -211,6 +216,9 @@ here what the user should check at the end.
 - Phase 13: the machine menu has no icons (macOS 27 draws no item images in app menus). A tab renamed
   to only digits shows the program title (herdr's default labels are digits). Tab status glyphs come back
   in phase 15.
+- Phase 14: the Open Session sheet lists every herdr session on the Mac (your `default` and `pi-herd`
+  too). Workspaces the app creates in a repo are not indented as worktrees (herdr fills the worktree
+  fields only for `worktree.*` calls). The "herdr is too old" page still says to update herdr.
 - The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
   at Glass Dark.
 
@@ -222,7 +230,7 @@ here what the user should check at the end.
 | 11 | phase11-settings | done | 44 commits, 4 rounds, ~3h40m; Settings window dropped by the user; ~85 min GUI lock |
 | 12 | phase12-program-icons | done | 16 commits, 3 rounds, 1h07m, ~20 min GUI lock |
 | 13 | phase13-title-row | done | 15 commits, 3 rounds, 1h55m, ~35 min GUI lock |
-| 14 | | not started | |
+| 14 | phase14-sidebar | done | 13 commits, 3 rounds, 1h28m, ~40 min GUI lock |
 | 15 | | not started | |
 | 16 | | not started | |
 | 17 | | not started | |

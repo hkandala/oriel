@@ -91,6 +91,8 @@ swap and move), `docs/content/docs/platform.mdx`, D13, D35, D69.
 
 ## e2e
 
+XCUITest drags on macOS: `click(forDuration:thenDragTo:)` (phase 14); `press(forDuration:thenDragTo:)` sends no mouse down.
+
 XCUITest can drag (`press(forDuration:thenDragTo:withVelocity:thenHoldForDuration:)`), but it holds only
 at the end of a drag. All in `ORIEL_SESSION`, in a new workspace that the test closes after.
 
