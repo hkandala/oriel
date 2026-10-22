@@ -128,12 +128,14 @@ struct OrielApp: App {
                     .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
             }
             // View ▸ Bigger's second key: a menu item shows one. Zero size and opacity, not `hidden()`, whose
-            // shortcuts do not fire.
+            // shortcuts do not fire. A new button per size: SwiftUI keeps a shortcut's first action, which then
+            // added to the size it last set itself.
             .background {
                 Button("Bigger") { fontSize += 1 }
                     .keyboardShortcut("=")
                     .disabled(fontSize >= PaneTerminal.fontSizes.upperBound)
                     .frame(width: 0, height: 0).opacity(0).accessibilityHidden(true)
+                    .id(fontSize)
             }
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)

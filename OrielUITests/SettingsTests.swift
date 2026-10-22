@@ -42,9 +42,12 @@ extension OrielUITests {
         let bigger = try await expectGrid(terminal, smallerThan: actual)
         app.typeKey("=", modifierFlags: .command)
         try await expectGrid(terminal, smallerThan: bigger)
-        app.typeKey("-", modifierFlags: .command)
-        try await expectGrid(terminal, bigger)
         app.typeKey("0", modifierFlags: .command)
+        try await expectGrid(terminal, actual)
+        // ⌘= again, from the size another key set: one step bigger than actual.
+        app.typeKey("=", modifierFlags: .command)
+        try await expectGrid(terminal, bigger)
+        app.typeKey("-", modifierFlags: .command)
         try await expectGrid(terminal, actual)
         try await expectPTYSize("w1:p1")
     }
