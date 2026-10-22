@@ -118,7 +118,6 @@ struct Pill<S: InsettableShape>: View {
             Color.clear.glassEffect(.regular, in: shape)
         case (.classic, true):
             shape.fill(.white.opacity(0.08))
-                .overlay(shape.fill(.white.opacity(0.2)).blendMode(.overlay))
                 .overlay(shape.strokeBorder(.white.opacity(0.1), lineWidth: 0.8).blendMode(.plusLighter))
         case (.classic, false):
             shape.fill(.white)
