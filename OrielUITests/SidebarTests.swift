@@ -103,7 +103,7 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openPage(two)
         element("sidebar.header").rightClick()
-        app.menuItems["Close Page"].click()
+        app.windows.firstMatch.menuItems["Close Page"].click()
         XCTAssertTrue(until(3) { header == one })
         XCTAssertFalse(element("sidebar.dot.\(two)").exists)
         XCTAssertFalse(element("sidebar.dot.\(one)").exists)
@@ -112,8 +112,8 @@ extension OrielUITests {
 
         // At its center: the page that slid away may leave it unhittable for a moment.
         element("sidebar.header").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        XCTAssertTrue(app.menuItems["Close Page"].exists(within: 2))
-        XCTAssertFalse(app.menuItems["Close Page"].isEnabled)
+        XCTAssertTrue(app.windows.firstMatch.menuItems["Close Page"].exists(within: 2))
+        XCTAssertFalse(app.windows.firstMatch.menuItems["Close Page"].isEnabled)
         app.typeKey(.escape, modifierFlags: [])
     }
 
@@ -246,7 +246,7 @@ extension OrielUITests {
         }
 
         row.rightClick()
-        app.menuItems["Close Workspace"].click()
+        app.windows.firstMatch.menuItems["Close Workspace"].click()
         // D41: it asks, with the tab and pane count.
         XCTAssertTrue(app.sheets.staticTexts["Its tab, pane and everything running in it will end, here and in every "
                 + "herdr client. This cannot be undone."].exists(within: 2))

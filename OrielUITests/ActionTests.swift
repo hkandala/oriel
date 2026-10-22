@@ -187,15 +187,12 @@ extension OrielUITests {
         XCTAssertTrue(filter.vanishes(within: 2))
         XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
 
-        // Arrows move: "beta" lists its tab, then the workspace.
+        // A workspace of the window, from the title-row button.
         element("titlebar.palette").click()
         XCTAssertTrue(filter.exists(within: 2))
         XCTAssertTrue(hasKeyboard(filter))
         app.typeText("beta")
-        XCTAssertTrue(element("palette.workspace.w2").exists(within: 2))
-        app.typeKey(.downArrow, modifierFlags: [])
-        keepScreenshot("palette moved")
-        XCTAssertTrue(element("palette.workspace.w2").has(\.isSelected, true, within: 2))
+        XCTAssertTrue(element("palette.workspace.\(one).w2").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("page.w2:t1").exists(within: 2))
 
@@ -216,25 +213,14 @@ extension OrielUITests {
     func testPaletteEnterTakesTheMovedRowAndKeysFollow() async throws {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPalette()
-        // Rows start with w1's tabs: ↓ moves from t1 to t2.
+        // "show": Show Agents, then Show Next Tab (shorter titles first); ↓ moves to it.
+        app.typeText("show")
+        XCTAssertTrue(element("palette.command.Show Agents").has(\.isSelected, true, within: 2))
         app.typeKey(.downArrow, modifierFlags: [])
-        XCTAssertTrue(element("palette.tab.w1:t2").has(\.isSelected, true, within: 2))
+        XCTAssertTrue(element("palette.command.Show Next Tab").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
         try await waitForPrompt("w1:p4")
         try await typeAndRead("w1:p4")
-    }
-
-    func testPaletteJumpsToAnotherWorkspacesSecondTab() async throws {
-        XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
-        let (tab, _) = try await newTab("faraway")
-        element("workspace.w1").click()
-        XCTAssertTrue(element("tab.\(tab)").vanishes(within: 2))
-        openPalette()
-        app.typeText("faraway")
-        XCTAssertTrue(element("palette.tab.\(tab)").exists(within: 2))
-        app.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
-        XCTAssertTrue(element("page.\(tab)").has(\.isHittable, true, within: 3))
     }
 }

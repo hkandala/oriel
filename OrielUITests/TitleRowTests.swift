@@ -142,8 +142,8 @@ extension OrielUITests {
         XCTAssertTrue(field.vanishes(within: 2))
 
         element("tab.\(tabs[0])").rightClick()
-        XCTAssertFalse(app.menuItems["Move Tab Left"].isEnabled)
-        app.menuItems["Move Tab Right"].click()
+        XCTAssertFalse(app.windows.firstMatch.menuItems["Move Tab Left"].isEnabled)
+        app.windows.firstMatch.menuItems["Move Tab Right"].click()
         try await poll("the new order") { () async throws -> Bool? in
             try await tabsOf(workspace).map(\.id) == [tabs[1], tabs[0], tabs[2]] ? true : nil
         }

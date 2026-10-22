@@ -134,7 +134,8 @@ extension OrielUITests {
         element("sidebar.dot.\(one)", in: window).click()
         // At its center: the page that slid away may leave it unhittable for a moment.
         element("sidebar.header", in: window).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        app.menuItems["Close Page"].click()
+        // In the window, not the menu bar's File ▸ Close Page.
+        window.menuItems["Close Page"].click()
         XCTAssertTrue(element("sidebar.dot.\(one)", in: window).vanishes(within: 3))
     }
 
@@ -148,7 +149,7 @@ extension OrielUITests {
     }
 
     /// The window that is not this one, once there are two; it shows session one.
-    private func otherWindow(than identifier: String) throws -> XCUIElement {
+    func otherWindow(than identifier: String) throws -> XCUIElement {
         XCTAssertTrue(app.windows.element(boundBy: 1).exists(within: 3))
         XCTAssertEqual(app.windows.count, 2)
         let other = try XCTUnwrap(app.windows.allElementsBoundByIndex.map(\.identifier).first { $0 != identifier })

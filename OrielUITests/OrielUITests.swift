@@ -158,10 +158,16 @@ extension OrielUITests {
     }
 
     /// Polls the pane's text until `done` passes. Escaping: the compiler rejects it otherwise across files.
-    func waitFor(_ pane: String, _ done: @escaping (String) -> Bool) async throws {
-        try await poll("pane \(pane) to show it") { () async throws -> String? in
-            let text = try await read(pane)
-            return done(text) ? text : nil
+    /// The failure says what the pane showed last.
+    func waitFor(_ pane: String, times: Int = 50, _ done: @escaping (String) -> Bool) async throws {
+        var last = ""
+        do {
+            try await poll("pane \(pane) to show it", times: times) { () async throws -> String? in
+                last = try await read(pane)
+                return done(last) ? last : nil
+            }
+        } catch is Waited {
+            throw Waited(description: "waited for pane \(pane) to show it; it showed:\n\(last)")
         }
     }
 

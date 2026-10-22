@@ -118,7 +118,7 @@ extension OrielUITests {
         try await poll("no label") { () async throws -> Bool? in try await label(pane) == nil ? true : nil }
 
         let before = try await tabIDs()
-        paneMenu(pane, "Move to New Tab")
+        paneMenu(pane, "Move Pane to Tab", "New Tab")
         let moved = try await newTabID(after: before)
         // Gone already after the move to a new workspace below, which takes its only pane.
         addTeardownBlock { [one] in
@@ -144,7 +144,7 @@ extension OrielUITests {
                 try await Self.call(one, "workspace.close", ["workspace_id": id, "close_group": false])
             }
         }
-        paneMenu(pane, "Move to New Workspace")
+        paneMenu(pane, "Move Pane to Tab", "New Workspace")
         let away = try await poll("the pane in a new workspace") { () async throws -> String? in
             let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
             return panes.first { $0["terminal_id"] as? String == terminal && $0["pane_id"] as? String != pane }?[
@@ -225,7 +225,7 @@ extension OrielUITests {
 /// Helpers for the pane tests: herdr's tree of a tab, from `layout.export`.
 extension OrielUITests {
     /// Right-clicks the card's header and picks the item of its context menu.
-    func paneMenu(_ pane: String, _ item: String, screenshot: String? = nil) {
+    func paneMenu(_ pane: String, _ item: String, _ subitem: String? = nil, screenshot: String? = nil) {
         element("pane.\(pane)").coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 60, dy: 18))
             .rightClick()
         // In the window, not the menu bar's View ▸ Pane, which has the same titles.
@@ -235,6 +235,11 @@ extension OrielUITests {
             keepScreenshot(screenshot)
         }
         entry.click()
+        if let subitem {
+            let sub = entry.menuItems[subitem]
+            XCTAssertTrue(sub.exists(within: 2))
+            sub.click()
+        }
     }
 
     /// `pane.swap` moves herdr's focus to the swapped pane (herdr 0.9.5 ignores `focus:false` there), and the app

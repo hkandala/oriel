@@ -77,7 +77,7 @@ extension OrielUITests {
             openPage(two)
             try await expectStreams(3, 1, two)
             element("sidebar.header").rightClick()
-            app.menuItems["Close Page"].click()
+            app.windows.firstMatch.menuItems["Close Page"].click()
             XCTAssertTrue(element("sidebar.dot.\(two)").vanishes(within: 2))
             // Its events stream and bridges end too.
             try await poll("no herdr runs on two") { () async throws -> Bool? in
