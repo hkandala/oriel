@@ -4,6 +4,7 @@ SHELL := /bin/bash -eo pipefail
 DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
 MAC := -destination 'platform=macOS'
+comma := ,
 BEAUTIFY := $(if $(shell command -v xcbeautify),| xcbeautify $(if $(CI),--renderer github-actions))
 
 setup:
@@ -26,11 +27,13 @@ test:
 	swift test --package-path Packages/HerdrKit --scratch-path $(DERIVED_DATA)/HerdrKit
 
 # Runs the UI tests against throwaway herdr sessions, removed even when tests fail.
+# ONLY=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB runs just those.
 e2e:
 	rm -rf $(DERIVED_DATA)/e2e.xcresult
 	scripts/e2e.sh $(XCODEBUILD) $(MAC) \
 		-test-timeouts-enabled YES -default-test-execution-time-allowance 120 \
-		-resultBundlePath $(DERIVED_DATA)/e2e.xcresult test $(BEAUTIFY)
+		-resultBundlePath $(DERIVED_DATA)/e2e.xcresult $(addprefix -only-testing:,$(subst $(comma), ,$(ONLY))) \
+		test $(BEAUTIFY)
 
 run:
 	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)

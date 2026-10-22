@@ -6,16 +6,24 @@ on:
     paths-ignore: &docs-only [plan/**, docs/**, resources/**, '**/*.md']
   pull_request:
     paths-ignore: *docs-only
+  # Ad-hoc UI tests: gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,...
+  workflow_dispatch:
+    inputs:
+      only_testing:
+        description: Comma-separated -only-testing ids; empty runs everything
+        default: ''
 
 permissions:
   contents: read
 
+# A dispatch run gets its own group: it never cancels the push run or another dispatch.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
   cancel-in-progress: true
 
 jobs:
   lint:
+    if: ${{ !inputs.only_testing }}
     runs-on: xcode-27
     timeout-minutes: 15
     steps:
@@ -24,6 +32,7 @@ jobs:
       - run: make lint
 
   build:
+    if: ${{ !inputs.only_testing }}
     runs-on: xcode-27
     timeout-minutes: 15
     steps:
@@ -50,7 +59,11 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           # The app finds herdr through the login shell, like a user's rc file after install.
           echo 'export PATH="$HOME/.local/bin:$PATH"' | tee -a ~/.zshrc >> ~/.bash_profile
-      - run: make test e2e
+      - if: ${{ !inputs.only_testing }}
+        run: make test
+      - run: make e2e
+        env:
+          ONLY: ${{ inputs.only_testing }}
       # Green runs too: their screen recordings are the phases' screenshots.
       - if: always()
         uses: actions/upload-artifact@v7
