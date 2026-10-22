@@ -23,7 +23,6 @@
         @Binding var workspaceMenu: Bool
         /// Where the workspace button starts in the window, for its menu.
         @Binding var workspaceButtonX: CGFloat
-        /// A pane dragged over the tab track's end or the `+`.
         /// A pane dragged over the `+`.
         @State private var plus = false
 

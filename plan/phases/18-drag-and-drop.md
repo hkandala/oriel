@@ -208,6 +208,11 @@ at the end of a drag. All in `ORIEL_SESSION`, in a new workspace that the test c
   its tests' recordings (`xcresulttool export attachments`, then ffmpeg). Before, only failed tests kept one,
   and only failed runs uploaded the bundle.
 
+- **A `.forbidden` proposal falls through to the drop target behind** (seen in CI's recording): the track's
+  end, laid behind the whole track, lit its ghost capsule while a pane hovered its own capsule. The end target now
+  covers only the space after the tabs, and carries the row's `WindowDragGesture`, since it takes that space's
+  clicks.
+
 ### To check by hand when the GUI is free
 
 1. Spring-load to another tab, then drop on a card's edge there: right and bottom split beside it; left and top
@@ -221,7 +226,7 @@ at the end of a drag. All in `ORIEL_SESSION`, in a new workspace that the test c
    capsule over a workspace row, a row while the filter is on): whether macOS shows a forbidden pointer for a
    `.forbidden` proposal at all. If it shows the plain arrow, the `.tab` case in `RowsDrop` can go.
 5. The window does not move when a drag starts on a header, a capsule or a row; the title row's empty space
-   still moves it. A click on a capsule selects it, a double-click renames; a header's double-click zooms.
+   still moves it, also right after the tabs (the track's end target). A click on a capsule selects it, a double-click renames; a header's double-click zooms.
 6. A drop outside the window or on a second Oriel window: nothing happens, the drag state clears.
 7. A re-place in the same tab: no flash of the passing new tab in the title row; the moved card has the keyboard.
 8. A full track (about 12 tabs): the `+` is highlighted. A sidebar with no empty space under its rows: is the

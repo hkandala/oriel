@@ -109,18 +109,21 @@
                 // minWidth 0: the row's free space, not the tabs' width, which follows it; else the bar never
                 // shrinks (a workspace button that appears pushed ⌘ and + out of the window).
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                // The track's empty end, behind the tabs: a new tab in the workspace.
-                .background(alignment: .leading) {
-                    Color.clear.contentShape(.rect)
+                // The track's empty end, after the tabs (not behind them: a `.forbidden` over the pane's own capsule
+                // would fall through to it): a new tab in the workspace, shown as a ghost capsule.
+                .overlay(alignment: .leading) {
+                    // It takes the clicks of the row's empty space, so it moves the window as that space does.
+                    Color.clear.contentShape(.rect).gesture(WindowDragGesture())
                         .overlay(alignment: .leading) {
                             if end || plus, content + 1 + width <= space {
                                 DropIndicator(radius: Self.radius).frame(width: width, height: Self.height)
-                                    .offset(x: content + 1)
+                                    .padding(.leading, 1)
                             }
                         }
                         .onDrop(of: [.orielDrag], delegate: PaneDrop(page: page,
                                                                      target: .move(.newTab(workspaceID: workspace.id)),
                                                                      over: $end))
+                        .padding(.leading, min(content, space))
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { space = $0 }
                 .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { old, new in
