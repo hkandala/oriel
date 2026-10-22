@@ -64,7 +64,15 @@ struct OrielApp: App {
             .task { await restore() }
             .onChange(of: pages.list.map(\.id)) { savedPages = $1.joined(separator: " ") }
             .onChange(of: pages.current?.id) { savedPage = $1 ?? "" }
-            .onChange(of: scenePhase, initial: true) { pages.visible = scenePhase == .active }
+            // Git status for the page in view of a visible window: now and every 10 s (D67).
+            .task(id: scenePhase == .active ? pages.current?.id : nil) {
+                guard scenePhase == .active, let store = pages.current?.store else { return }
+                store.showsGit = true
+                defer { store.showsGit = false }
+                repeat {
+                    await store.updateGit(all: true)
+                } while await (try? Task.sleep(for: .seconds(10))) != nil
+            }
         }
 
         /// The pages a restored window had that still run; else the first page: `-session` (in UserDefaults from
@@ -313,8 +321,6 @@ struct OrielApp: App {
 
         func updateNSView(_: NSVisualEffectView, context _: Context) {}
     }
-
-    // The selected workspace's tabs, or why there is nothing to show.
 
     /// The page's selected workspace's tabs, or why there is nothing to show.
     private struct Detail: View {

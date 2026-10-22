@@ -26,13 +26,7 @@ final class HostStore {
     private(set) var writing = false
     var closing: Close?
     /// Set while the session's page is in view in a visible window: git status runs only then (D67).
-    var showsGit = false {
-        didSet {
-            if showsGit, !oldValue {
-                Task { await updateGit(all: true) }
-            }
-        }
-    }
+    var showsGit = false
 
     /// After each snapshot: the page settles its selection on it.
     @ObservationIgnored var onSnapshot: (() -> Void)?
@@ -216,9 +210,7 @@ final class HostStore {
                 Task {
                     let git = await GitStatus.of(root, exec: exec.value)
                     gitRuns.remove(workspace.id)
-                    if workspace.git != git {
-                        workspace.git = git
-                    }
+                    workspace.git = git
                 }
             }
         #endif

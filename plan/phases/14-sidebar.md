@@ -230,7 +230,8 @@ the helper. Launch with `-ApplePersistenceIgnoreState YES`.
   `open-session.open`, `open-session.notice`; the workspace menu's rows are `workspaces.<session>.<workspace id>`.
   Pages not in view are hidden from accessibility, so ids repeat safely across pages.
 - **Scene storage keys:** `pages` (names joined by spaces: herdr names have none), `page`, `sidebarWidth`.
-- **Visible window** = `scenePhase == .active`; the 10 s git tick is one task per window.
+- **Visible window** = `scenePhase == .active`. The git refresh is one `.task(id:)` in `ContentView` keyed by the
+  page in view while active: it sets the store's `showsGit`, runs now and every 10 s, and SwiftUI cancels it.
 - **Look:** `finished` (`#3fb950` / `#116329`) and `error` (`#f85149` / `#cf222e`) tokens, for ↑ahead and ↓behind.
 - **Lint rule `herdr_commands`:** a `Text(`, `Label(`, `message(` or `Button(` line whose string literal has
   `herdr --`, `herdr session|workspace|tab|pane|server|attach` or `in herdr` fails. "herdr update" (updating herdr

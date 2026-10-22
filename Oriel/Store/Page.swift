@@ -197,13 +197,7 @@
         private(set) var list: [Page] = []
         /// The page in view; nil only until the first page opens.
         private(set) var current: Page?
-        /// The window is on screen: git status runs only for the page in view of a visible window.
-        var visible = true {
-            didSet { updateGit() }
-        }
-
         let terminals = PaneViewRegistry()
-        @ObservationIgnored private var gitTicker: Task<Void, Never>?
 
         init() {
             terminals.onKeyboard = { [weak self] terminalID in self?.current?.tookKeyboard(terminalID) }
@@ -216,16 +210,6 @@
                     await store.askProgram(pane.id)
                 }
             }
-            // The page in view, every 10 s (D67).
-            gitTicker = Task { [weak self] in
-                while await (try? Task.sleep(for: .seconds(10))) != nil {
-                    await self?.current?.store.updateGit(all: true)
-                }
-            }
-        }
-
-        isolated deinit {
-            gitTicker?.cancel()
         }
 
         /// Shows the session's page; one not open yet opens after the page in view, its store connecting (`start`:
@@ -251,7 +235,6 @@
 
         func show(_ page: Page) {
             current = page
-            updateGit()
             showTerminals()
         }
 
@@ -273,12 +256,6 @@
             let alive = Set(list.flatMap { $0.store.panes.compactMap(\.terminalID) })
             terminals.show(current.shownTerminals, alive: alive, client: current.store.client)
             current.shown(alive: alive)
-        }
-
-        private func updateGit() {
-            for page in list {
-                page.store.showsGit = visible && page === current
-            }
         }
     }
 #endif

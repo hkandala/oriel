@@ -37,8 +37,7 @@
             .scrollIndicators(.never)
             .onScrollGeometryChange(for: Double.self) {
                 // Within a point of a page, the strip rests on it (one lit tab): on CI (a 1x display) it once came to
-                // rest
-                // just past the first page after the sidebar hid, with both capsules lit. Else to a thousandth.
+                // rest just past the first page after the sidebar hid, with both capsules lit. Else to a thousandth.
                 let width = max($0.containerSize.width, 1), page = $0.contentOffset.x / width
                 return abs(page - page.rounded()) * width < 1 ? page.rounded() : (page * 1000).rounded() / 1000
             } action: {
