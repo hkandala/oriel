@@ -12,14 +12,13 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, 
 
 ## Build
 
-1. **One command list.** A single list of commands (title, SF Symbol, shortcut, search keywords,
-   enabled, and either an action or a sub-page). The menu bar items and the palette both come from it,
-   so a title or shortcut is written once. Phases 11–19 added their commands to the menus; move them
-   into this list.
-2. **Palette layout.** Width 480 (as now). Search field "Search commands, tabs and sessions…". Rows
-   28 pt: symbol, title, and on the right the shortcut in secondary glyphs and a › for a row that opens
-   a sub-page. The selected row is an accent pill, radius 8. Sections, in order: the current page's
-   items when a filter is empty (Recent commands first: the last five run, in memory), then Commands,
+1. **One command list.** Phase 13 made the list and phases 14–19 appended to it. Add what the palette
+   needs: an SF Symbol, search keywords, and either an action or a sub-page. The menu bar items and
+   the palette both come from it, so a title or shortcut is written once.
+2. **Palette layout.** Width 480 (as now). Search field "Search". Rows 28 pt: symbol, title, and on the
+   right the shortcut in secondary glyphs and a › for a row that opens a sub-page. The selected row is
+   an accent pill, radius 8. Sections, in order: the current page's items when the filter is empty,
+   then Commands,
    Tabs (of the selected workspace), Workspaces (of every page open in the window, with the session
    name in secondary text), Sessions (the open pages; Enter shows that page). Sessions that are not
    open are not listed: the "Open Session…" command (⇧⌘N) opens the Open Session sheet for them. No
@@ -29,18 +28,18 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, 
    titles first.
 4. **Sub-pages** (a stack; ⌫ on an empty field or ⎋ goes back one page, ⎋ on the root closes):
    - Rename Tab ›, Rename Workspace ›, Rename Pane ›: the field holds the current name; Enter saves.
-   - Move Pane to Tab ›: the workspace's tabs plus "New Tab" and "New Workspace".
-   - Go to Directory › (⇧⌘G): a folder browser that starts at the keyboard card's directory (fresh
-     from `pane.get`). Rows are subfolders; → or Enter on a row goes in, ← goes up, ⌘↩ chooses the
-     shown folder. Choosing sends
-     `pane.send_input {pane_id, text: "cd -- '<path>'", keys: ["enter"]}`. Enabled only when the card
-     runs only its shell (`program(_:) == nil`, D41's check). Lists
-     folders with `FileManager` on This Mac (`ponytail:` remote machines will list through `Exec.run`).
-   - Insert Path › (⌃⌘I): the same browser with files too; choosing sends the shell-quoted path at the
-     cursor with `pane.send_input {pane_id, text}`, no Return.
+   - Move Pane to Tab ›: the workspace's other tabs, plus "New Tab" and "New Workspace".
    - Appearance › (Auto, Light, Dark) and Interface Style › (Glass, Classic): highlighting a row for
      0.75 s previews it on the window; Enter keeps it, ⎋ restores the old one.
    - Font Size ›, Cursor Style ›.
+   - **Go to Directory** (⇧⌘G, not a sub-page): an `NSOpenPanel` (`canChooseDirectories`) that starts
+     at the keyboard card's directory (fresh from `pane.get`). Choosing sends
+     `pane.send_input {pane_id, text: "cd -- '<path>'", keys: ["enter"]}`. Enabled when the keyboard
+     card's cached `program` (phase 12, `HostStore.Pane`) is the shell; check again with `program(_:)`
+     when the user picks the folder (D41's check). `ponytail:` This Mac only; remote machines need
+     another picker.
+   - **Insert Path** (⌃⌘I, not a sub-page): the same panel with `canChooseFiles` too; choosing sends
+     the shell-quoted path at the cursor with `pane.send_input {pane_id, text}`, no Return.
 5. **Settings as commands.** Each toggle in Settings is one command whose title says what it does now:
    "Turn On Focus Follows Mouse" / "Turn Off Focus Follows Mouse".
 6. **Menu bar** (Rex's structure, Oriel's commands):
@@ -55,10 +54,12 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, 
    - Window: (system items), Show Previous Tab ⇧⌘[ and ⌃⇧⇥, Show Next Tab ⇧⌘] and ⌃⇥, Move Tab Left
      ⌃⇧PgUp, Move Tab Right ⌃⇧PgDn, Previous Page, Next Page (the sidebar's session pages), the tabs on
      ⌘1…⌘9, then the open windows.
-   A command with two shortcuts gets a hidden second menu item.
+   A command with two shortcuts (⌘K and ⇧⌘P; ⇧⌘[ and ⌃⇧⇥; ⇧⌘] and ⌃⇥) uses phase 11's trick: a
+   zero-size, zero-opacity `Button` with `.keyboardShortcut` in the window's content (not `.hidden()`,
+   whose shortcuts do not fire). The menu shows the first shortcut.
 7. **Rex shortcuts not taken, and why** (record in the keyboard table): ⌘K stays the palette (D48), so
    switching sessions has no shortcut of its own (Rex's Change Session is ⌘K; Oriel uses Open
-   Session… ⇧⌘N and the sidebar's pages); ⇧⌘P also opens the palette for Rex users; ⌘N is New Window
+   Session… ⇧⌘N and the sidebar's pages); ⇧⌘P also opens it (Rex's key); ⌘N is New Window
    on the same machine, as in Rex; ⌘/ (sidebar) is not used, ⌃⌘S is the macOS sidebar key;
    ⌘R (refresh) is not needed, the snapshot is live; ⇧⌘← and ⇧⌘↑ (Split Left, Split Up)
    would steal "select to line start" from text fields, so those splits have no shortcut.
@@ -71,16 +72,17 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, 
 - ⌘K, type "split r", Enter: the keyboard card splits right.
 - ⌘K, Rename Tab ›, type a name, Enter: herdr's label changes; ⌫ on an empty field goes back.
 - ⌘K, "dark", Appearance › Light highlighted 1 s: the window previews light; ⎋ restores dark.
-- ⇧⌘G, go into a folder, ⌘↩: the pane's shell is in that folder (`pane.read` shows the `cd`, then
-  `pwd` matches).
+- ⇧⌘G, pick a folder in the open panel: the pane's shell is in that folder (`pane.read` shows the
+  `cd`, then `pwd` matches).
 - ⌃⌘I inserts a quoted path into the shell line (`pane.read`).
 - ⇧⌘P opens the palette.
 - ⌘K, "open session", Enter: the Open Session sheet opens. ⌘K, "new window", Enter: a second
-  window opens (on the `-session` throwaway session).
-- With two throwaway sessions open as pages, ⌘K, type the second session's name, Enter: the sidebar
-  shows its page.
+  window opens (on `ORIEL_SESSION`).
+- With `ORIEL_SESSION2` open as a second page, ⌘K, type its name, Enter: the sidebar shows its page.
 
 ## Done when
 
-- Screenshots: root page, a filtered list, the folder browser, a rename page.
+- Screenshots: root page, a filtered list, a rename page.
 - Every menu item has its shortcut from the one list; no shortcut is defined twice.
+
+## Findings

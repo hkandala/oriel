@@ -18,12 +18,13 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
    Try `pane.copy_search` on a throwaway pane; if it works without moving herdr's own copy mode for
    other clients, use it. Otherwise use the fallback below. Record the result in the phase findings.
 2. **Fallback.** Read the pane's text with `pane.read {source: "recent", lines: 5000, format: "text"}`
-   when the find bar opens and again 0.3 s after each edit of the query, search it locally (case
-   blind), and count matches. Next and previous scroll herdr's viewport to the match with
-   `pane.scroll {pane_id, offset_from_bottom}` (the match line's distance from the end, minus half
-   the screen), and draw a highlight over the match cells in the card. Closing the bar scrolls back to
-   the bottom (offset 0). `ponytail:` herdr's viewport is shared; scrolling it shows in a herdr TUI
-   attached to the same pane too.
+   once when the find bar opens. Search it locally on each edit (case blind) and count matches. Read
+   again only on Next or Previous after Return was pressed in the pane. Next and previous scroll
+   herdr's viewport to the match with `pane.scroll {pane_id, offset_from_bottom}` (the match line's
+   distance from the end, minus half the screen, so the match line is centered). `ponytail:` no
+   highlight over the match cells (mapping herdr's scrolled viewport to libghostty cells is fragile);
+   add it if users ask. Closing the bar scrolls back to the bottom (offset 0). herdr's viewport is
+   shared; scrolling it shows in a herdr TUI attached to the same pane too.
 3. **Find bar.** A small glass bar at the card's top right, 8 pt in: field, "3 of 12", ↑ ↓ buttons,
    ×. ⌘G next (as in Rex, Find Previous has no shortcut: ⇧⌘G is Go to Directory), Enter next, ⇧Enter
    previous, ⎋ closes. One bar per card.
@@ -31,18 +32,17 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
 ### Links
 
 4. ⌘-click on a URL in a terminal opens it in the default browser, http and https only (design).
-   Check whether libghostty-spm reports the clicked link for herdr's frames (a link-click callback or
-   OSC 8); if not, find the URL in the clicked row's text (`pane.read visible`) around the clicked
-   column. The pointer shows a hand while ⌘ is down over a URL if libghostty-spm tells us; otherwise
-   skip the hover state.
+   `PaneSurfaceView` adopts libghostty-spm's `TerminalSurfaceOpenURLDelegate`
+   (`terminalDidRequestOpenURL`: ⌘-click, the URL regex and OSC 8; open http and https only) and
+   `TerminalSurfaceHoverLinkDelegate` (a pointing-hand cursor while ⌘ is down over a link). A ⌘-click
+   is not forwarded to herdr as a mouse click (`PaneSurfaceView.mouse`).
 
 ### States and notices
 
 5. **Empty and loading states** with Rex's wording and one button each, in a `ContentUnavailableView`
    with our layout:
    - Connecting: "Connecting to ‹machine›" with a spinner, after 0.3 s (no flash on a fast connect).
-   - Reconnecting: "Reconnecting to ‹machine›", cards dimmed to 0.5 (design: gray cards), "Attempt N
-     failed. Trying again." under it.
+   - Reconnecting: "Reconnecting to ‹machine›" with a spinner, cards dimmed to 0.5.
    - A workspace with no tabs (rare in herdr): only a New Tab button with its shortcut, no text.
    - No workspaces: only a New Workspace button, no text (today it shows a command).
    - Keep the herdr install, too old and not running states (D38, D47). The not running state is per
@@ -50,12 +50,14 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
    - **Controlled in another window** (phase 16): the watching window's capsule gets the notice look
      of step 6 (info tone, `macwindow.on.rectangle`, the **Take Back** button, no ✕). It sits under a
      notice when both show. VoiceOver reads "Controlled in another window" when it appears.
+   - A pane another device holds: the card's button reads "In use elsewhere · Take Back", the one form
+     the docs use (today the code writes "back" in lowercase).
 6. **Open Session failures** (the sheet from phase 14):
    - Starting a session (create or stopped) fails, or its server does not answer within 10 s: the
      row's spinner stops, the sheet stays open, and the notice says "Could not start ‹session›" with
      herdr's reason and **Retry**.
-   - A running session that stopped since the list was read: Open starts it (as for a stopped one).
-   - A name created elsewhere since the list was read: Create opens that running session.
+   - A running session that stopped since the list was read, or a name created elsewhere since then:
+     phase 14's one path (start if not running, then open the page) covers both, with no extra code.
    - Opening a page fails to connect (the bridge errors): the page shows the reconnecting state.
    No other text goes into the sheet.
 7. **Notice.** Today's 4 s notice becomes a capsule at the bottom center of the strip, 30 pt above the
@@ -65,7 +67,9 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
    empty.
 9. **Dock drop.** Folders dropped on the Dock icon (add `public.folder` to the document types, Viewer,
    Alternate) open a new workspace in each folder (`workspace.create {cwd, focus:false}`), selected
-   when it appears, in the session of the key window's page in view. (Window restore is phase 16.)
+   when it appears, in the session of the key window's page in view. Handle `application(_:open:)` in
+   the phase 15 `NSApplicationDelegateAdaptor`, and add `.handlesExternalEvents(matching: [])` to the
+   `WindowGroup`, so a dropped folder opens no window. (Window restore is phase 16.)
 
 ### Final pass
 
@@ -75,7 +79,7 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
     spacing, font weights, colors and timings until they match in spirit. List what you changed in the
     findings.
 11. Update the docs site's mock-ups to the new look: the components in `docs/components/design/`
-    (main window, split demo, chat card) and the interactive overview `docs/public/overview/index.html`.
+    (split demo, chat card) and the interactive overview `docs/public/overview/index.html`.
     If that is large, record it as the next task instead.
 12. **Docs.** `ui/states.mdx` (new texts, Open Session failures, the watching window),
     `ui/window.mdx` (find bar, notice), the keyboard table (⌘F,
@@ -87,14 +91,16 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   herdr's scroll offset is not 0 (snapshot `scroll.offset_from_bottom`); ⎋ sets it back to 0.
 - ⌘-click on a printed `https://example.com` URL: the app asks the system to open it (test through a
   launch argument that records opened URLs instead of opening them).
-- Stop the session's server: the reconnecting state shows; start it: the cards come back.
+- Launched on `ORIEL_SESSION5`, stop its server through the helper's `/stop`: the reconnecting state
+  shows; `/start`: the cards come back.
 - A failed write shows the notice capsule with its symbol.
-- Stop the server of a second open page (two throwaway sessions): that page shows the not running
-  state with Start; Start brings its workspaces back; the first page is not touched.
-- A start that fails: the sheet stays open and the notice shows "Could not start" with Retry. Make it
-  fail with the smallest hook that works (for example a launch argument that sets the start timeout to
-  0 s); if none is small, check it by hand and record it.
-- Two windows on one throwaway session: the watching window's capsule has the notice look and Take
+- With `ORIEL_SESSION5` open as a second page, stop its server through the helper: that page shows
+  the not running state with Start; Start brings its workspaces back; the first page is not touched.
+- A start that fails: the sheet stays open and the notice shows "Could not start" with Retry. It
+  needs a sixth session name: add it to `scripts/e2e.sh` and the helper. Make it fail with the
+  smallest hook that works (for example a launch argument that sets the start timeout to 0 s); if
+  none is small, check it by hand and record it.
+- Two windows on `ORIEL_SESSION`: the watching window's capsule has the notice look and Take
   Back works.
 
 ## Done when
@@ -102,3 +108,5 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
 - The whole e2e suite is green locally and in CI.
 - A final set of screenshots in light and dark, Glass and Classic, next to the matching Rex
   references, is in the phase report.
+
+## Findings
