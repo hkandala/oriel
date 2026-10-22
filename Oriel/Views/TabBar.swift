@@ -199,7 +199,6 @@
                         ),
                     )
                     .opacity(renaming ? 0 : 1)
-                    .onTapGesture(count: 2) { startRenaming() }
                 }
                 .padding(.leading, 8)
                 // The title's fade ends under the ×'s 28 pt.
@@ -208,6 +207,9 @@
             }
             // The selection is the tab bar's marker.
             .buttonStyle(ChromeStyle(radius: TabBar.radius))
+            // Anywhere on the capsule, beside the click that selects (a tap gesture in the label missed clicks past a
+            // short title).
+            .simultaneousGesture(TapGesture(count: 2).onEnded { startRenaming() })
             // On the capsule alone: the rename field and the × over it have their own.
             .accessibilityIdentifier("tab.\(tab.id)")
             .accessibilityAddTraits(selected ? .isSelected : [])
