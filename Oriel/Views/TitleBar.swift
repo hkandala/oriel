@@ -116,6 +116,7 @@
                     .padding(.horizontal, 6)
                     .frame(height: 28)
             }
+            .labelStyle(.titleAndIcon)
             .menuStyle(.button)
             .menuIndicator(.hidden)
             .buttonStyle(ChromeStyle(radius: 7))

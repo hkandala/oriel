@@ -30,17 +30,21 @@
                 ScrollView(.horizontal) {
                     HStack(spacing: 0) {
                         ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
-                            if index > 0 {
-                                // Hidden next to the marker and the pointer.
-                                let quiet = lit.contains(index) || lit.contains(index - 1)
-                                    || [tab.id, tabs[index - 1].id].contains(hovered)
-                                Rectangle().fill(.separator).frame(width: 1, height: Self.height - 18)
-                                    .opacity(quiet ? 0 : 1)
-                                    .animation(.easeInOut(duration: 0.2), value: quiet)
+                            // One view per tab, so a scroll to its id shows the tab, not the divider before it.
+                            HStack(spacing: 0) {
+                                if index > 0 {
+                                    // Hidden next to the marker and the pointer.
+                                    let quiet = lit.contains(index) || lit.contains(index - 1)
+                                        || [tab.id, tabs[index - 1].id].contains(hovered)
+                                    Rectangle().fill(.separator).frame(width: 1, height: Self.height - 18)
+                                        .opacity(quiet ? 0 : 1)
+                                        .animation(.easeInOut(duration: 0.2), value: quiet)
+                                }
+                                TabButton(tab: tab, workspace: workspace, store: store, lit: lit.contains(index),
+                                          width: width, keycap: index < 9 ? index + 1 : nil,
+                                          hints: hints) { kept = width }
+                                    .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
                             }
-                            TabButton(tab: tab, workspace: workspace, store: store, lit: lit.contains(index),
-                                      width: width, keycap: index < 9 ? index + 1 : nil, hints: hints) { kept = width }
-                                .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
                         }
                     }
                     .background {
@@ -70,7 +74,9 @@
                         withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 1)) { kept = nil }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                // minWidth 0: the row's free space, not the tabs' width, which follows it; else the bar never
+                // shrinks (a workspace button that appears pushed ⌘ and + out of the window).
+                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { space = $0 }
                 .onChange(of: workspace.selectedTabID, initial: true) { old, new in
                     if let new {

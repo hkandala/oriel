@@ -308,7 +308,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 
 | User action | herdr call |
 |---|---|
-| New workspace (page header `+`, workspace menu) | `workspace.create {cwd, label}` in that page's session |
+| New workspace (page header `+`, workspace menu) | `workspace.create {cwd: $HOME, label, focus: false}` in that page's session (a launchd-started server's cwd is not `$HOME`); the label only when the user typed one; then the snapshot selects it |
 | Folder dropped on the Dock icon | `workspace.create {cwd}`, one per folder |
 | New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a workspace row's New Tab, that workspace's keyboard card, or `$HOME` |
 | Split right or down | `pane.split {target_pane_id, direction: right or down, ratio, cwd}` |
@@ -327,7 +327,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Drop on the tab track's empty end or `+` | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Drop on a workspace row | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Drop on empty space at the bottom of the sidebar page | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
-| Move Tab Left or Right, drag a tab | `tab.move {tab_id, insert_index}`, inside its workspace only |
+| Move Tab Left or Right, drag a tab | `tab.move {tab_id, insert_index}`, inside its workspace only. herdr inserts before the tab now at `insert_index` (0 to the count), so one place left is index − 1 and one place right is index + 2 |
 | Move Up or Down, drag a workspace | `workspace.move {workspace_id, insert_index}`; `workspace.move_block` for a repository with its linked worktrees |
 | Open Session: a new name or a stopped session | starts `herdr --session S server` (a launchd job on This Mac, D47; `nohup` on a remote machine), waits for `session.snapshot`, then opens the page ([Checks on connect](/docs/machines#checks-on-connect)) |
 | Open Session: a running session | no write; the page's `HostStore` connects |
@@ -335,7 +335,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`); web and plugin panes close at once (known by their label), and the app removes their [state file](/docs/plugins/state#the-instance-state-file) |
 | Close a tab or workspace | `tab.close` / `workspace.close`; always asks, with the pane count |
 | Close Other Tabs | one `tab.close` per other tab; asks once, with the total pane count |
-| Rename a tab or workspace | `tab.rename` / `workspace.rename` |
+| Rename a tab or workspace | `tab.rename {tab_id, label}` / `workspace.rename`; an empty or unchanged name sends nothing |
 | Rename a pane | `pane.rename {pane_id, label}`; an empty name clears the label |
 | Go to Directory (⇧⌘G) | `pane.send_input` of `cd -- '‹path›'` and Return, only when the pane runs only its shell |
 | Insert Path (⌃⌘I) | `pane.send_input` of the shell-quoted path, no Return |

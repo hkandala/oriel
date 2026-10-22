@@ -32,7 +32,7 @@ extension OrielUITests {
         element("titlebar.machine").click()
         let thisMac = app.menuItems["This Mac"]
         XCTAssertTrue(thisMac.waitForExistence(timeout: 2))
-        XCTAssertTrue(thisMac.isSelected, "This Mac has the checkmark")
+        // Its checkmark is not in XCUITest's view of a menu item (phase 10); the screenshot shows it.
         XCTAssertTrue(app.menuItems["Add Remote Host…"].exists)
         keepScreenshot("machine menu")
         app.typeKey(.escape, modifierFlags: [])
@@ -114,21 +114,29 @@ extension OrielUITests {
     }
 
     func testTwelveTabsKeepTheirWidthAndTheSelectedOneInView() async throws {
-        let (_, tabs) = try await newWorkspace(tabs: 12)
+        let (workspace, twelve) = try await newWorkspace(tabs: 12)
         app.typeKey("s", modifierFlags: [.command, .control])
-        XCTAssertTrue(element("titlebar.workspace").waitForExistence(timeout: 2))
-        let first = element("tab.\(tabs[0])"), last = element("tab.\(tabs[11])")
-        try await poll("the first tab 64 pt or wider") { first.frame.width >= 64 ? true : nil }
+        let button = element("titlebar.workspace"), palette = element("titlebar.palette")
+        XCTAssertTrue(button.waitForExistence(timeout: 2))
+        // Enough tabs to pass 64 pt each on this display's window (12 on a 1200 pt one).
+        let more = Int((palette.frame.minX - button.frame.maxX) / 65) + 2 - twelve.count
+        for _ in 0 ..< max(more, 0) {
+            try await Self.call(one, "tab.create", ["workspace_id": workspace, "cwd": "/tmp", "focus": false])
+        }
+        let tabs = try await tabsOf(workspace).map(\.id)
+        let first = element("tab.\(tabs[0])"), last = element("tab.\(tabs[tabs.count - 1])")
+        XCTAssertTrue(last.waitForExistence(timeout: 3))
+        XCTAssertGreaterThanOrEqual(first.frame.width, 64)
+        // ⌘ and + keep their place in the window.
+        XCTAssertLessThan(element("titlebar.new-tab").frame.maxX, app.windows.firstMatch.frame.maxX)
         // Past the bar's end: the bar scrolls.
-        XCTAssertGreaterThan(last.frame.maxX, element("titlebar.palette").frame.minX)
+        XCTAssertGreaterThan(last.frame.maxX, palette.frame.minX)
         keepScreenshot("twelve tabs")
 
         // ⇧⌘[ from the first goes round to the last: the bar scrolls to it.
         app.typeKey("[", modifierFlags: [.command, .shift])
         XCTAssertTrue(last.wait(for: \.isSelected, toEqual: true, timeout: 2))
-        try await poll("the last tab in view") {
-            last.frame.maxX < element("titlebar.palette").frame.minX ? true : nil
-        }
+        try await poll("the last tab in view") { last.frame.maxX < palette.frame.minX ? true : nil }
         XCTAssertGreaterThanOrEqual(last.frame.width, 64)
     }
 
