@@ -130,9 +130,10 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (sidebar, Open Session shee
       1. "Create session “‹typed name›”" when the text is a valid herdr name (`Session.isValidName`)
          that no session has; with an empty field, "Create session “‹two-word name›”" with today's
          suggested name (`lunar-ridge`).
-      2. Running sessions not open in this window, with "opens it" on the right.
-      3. Stopped sessions, with "starts it".
-      4. Sessions already open in this window, last, with "open".
+      2. Running sessions not open in this window.
+      3. Stopped sessions.
+      4. Sessions already open in this window, last.
+      No hint text on the rows ("opens it", "starts it"): the group headers say it (orchestrator).
     - Arrows move, Enter or the **Open** button acts on the highlighted row; Cancel or Esc closes.
       Create, a running session and a stopped session take one path: start the server if it is not
       running (launchd job, D47; the app makes its first workspace in `$HOME`, as `HostStore.run`
@@ -194,3 +195,69 @@ the helper. Launch with `-ApplePersistenceIgnoreState YES`.
 - Swiping between pages and the strip checked by hand (trackpad gestures are not in e2e).
 
 ## Findings
+
+### Deviations
+
+- **No hint text on the sheet's rows** (orchestrator, after the rough screenshot): no "opens it", "starts it" or
+  "open"; the group headers say it. Tests check a row's group by its place between the headers
+  (`open-session.section.<header>`).
+- **Move Up and Move Down are one `workspace.move_block`** for a single workspace too: `before_workspace_id` is the
+  next group's first workspace (or none, for last), so there is no index arithmetic. A worktree row has them
+  disabled: it sits under its repository in any herdr order.
+- **`--untracked-files=no`** on the git run: the rows show no file counts, and the untracked scan is the slow part
+  in a big repository.
+- **git is usable unless** it resolves only to `/usr/bin/git` and `xcode-select -p` fails; a git elsewhere in the
+  login shell's PATH (Homebrew) runs without the developer tools.
+- **The first page always starts its session** (`start: true`); a server that already runs is left alone, and only
+  a server the app started gets its first workspace (`startServer()` now returns whether it started one).
+- **The Start button no longer replaces the store**: `HostStore.start()` starts the server and the running store's
+  health check finds it again.
+- **The width handle sits beside the pages** (the sidebar's last 6 pt), not over the pages' scroll view or the strip.
+- **The palette's sessions open as pages** (phase 20 rebuilds the palette).
+- **The not-running page says "Start it to see its workspaces."** with the Start button, no herdr command.
+
+### Decisions
+
+- **Types:** `Page` (one session's page in a window: its store, the selection, zoom, the strip offset, keyboard cards,
+  `arriving`) and `WindowPages` (the ordered pages, the one in view, the window's one `PaneViewRegistry`) in
+  `Oriel/Store/Page.swift`. The store registry is a private static dictionary in `HostStore` (`named(_:start:)`,
+  `disconnect()`). After each snapshot the store calls `onSnapshot`; the window settles that page's selection and
+  shows the terminals. Phase 16 makes it a list for several windows.
+- **Ids:** `sidebar`, `sidebar.header` (a static text; XCUITest gives its text as the value), `sidebar.new-workspace`,
+  `sidebar.dot.<session>` (selected trait on the current one), `sidebar.open-session`, `sidebar.resize`,
+  `new-workspace` (the empty page's button, in the page and the strip), `workspace.<id>.rename`; the sheet:
+  `open-session.filter`, `open-session.new.<name>`, `open-session.session.<name>`, `open-session.open.<name>`,
+  `open-session.open`, `open-session.notice`; the workspace menu's rows are `workspaces.<session>.<workspace id>`.
+  Pages not in view are hidden from accessibility, so ids repeat safely across pages.
+- **Scene storage keys:** `pages` (names joined by spaces: herdr names have none), `page`, `sidebarWidth`.
+- **Visible window** = `scenePhase == .active`; the 10 s git tick is one task per window.
+- **Look:** `finished` (`#3fb950` / `#116329`) and `error` (`#f85149` / `#cf222e`) tokens, for ↑ahead and ↓behind.
+- **Lint rule `herdr_commands`:** a `Text(`, `Label(`, `message(` or `Button(` line whose string literal has
+  `herdr --`, `herdr session|workspace|tab|pane|server|attach` or `in herdr` fails. "herdr update" (updating herdr
+  itself) and "Restart herdr on This Mac" (a button) pass.
+
+### Spike (herdr 0.9.5)
+
+- **`workspace.create {cwd}` in a repository leaves `workspace.worktree` out.** `worktree.list`, `worktree.open` and
+  `worktree.create` fill it; `worktree.open` also fills the repository's open workspace, and needs a
+  `workspace_id` in the repository when the focused workspace is not in one (`not_git_worktree`). So rows of
+  workspaces the app made are not indented; the e2e test opens its worktree with `worktree.open`.
+- **`workspace.close` on a repository's workspace with linked-worktree workspaces** fails with
+  `workspace_group_close_required`; with `close_group: true` it closes all of them, also ones not next to it. The
+  git worktrees stay on disk. A worktree's own workspace closes alone.
+- **`workspace.move {insert_index}`** inserts before the workspace now at the index (like `tab.move`).
+  `workspace.move_block` without `before_workspace_id` moves the block last.
+
+### Assumptions
+
+- **Terminal ids do not repeat across sessions** (`term_` and 14 hex digits that follow the clock); the window's
+  registry keys by terminal id alone (`ponytail:` note).
+- **`scenePhase` leaves `.active` when the window is minimized or the app hidden**, which pauses git runs.
+
+### Learned
+
+- **XCUITest drags on macOS with `click(forDuration:thenDragTo:)`.** `press(forDuration:thenDragTo:)` sent the app
+  no mouse down at all (an AppKit view logged none); about 20 minutes went into blaming the handle first.
+- **A static text's text is its accessibility value** in XCUITest when it has an identifier, not its label.
+- **`worktree.create` puts worktrees in `~/.herdr/worktrees/<repo>/`**: tests must not use it (it writes outside
+  the throwaway folder).

@@ -40,7 +40,7 @@ herdr --session S terminal session control|observe <terminal_id> \
 herdr --session S session list --json               # each machine, for the Open Session sheet
 herdr machine list --json                           # macOS, the Add Remote Host sheet
 herdr --session S server        # remote: nohup, on request; This Mac: a launchd job (D47)
-git -C <root> status --porcelain=v2 --branch     # not herdr: git state of a workspace row (D67)
+git -C <root> status --porcelain=v2 --branch --untracked-files=no     # not herdr: git state of a workspace row (D67)
 ```
 
 ## Tests only

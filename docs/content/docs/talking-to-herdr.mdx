@@ -182,10 +182,11 @@ One path is [Future work](/docs/future-work).
 
 ### What streams
 
-- The panes of the selected tab in each window.
+- The panes of the shown tab of the page in view, in each window. Other
+  pages stream nothing.
 - On the Mac, the panes of recently shown tabs keep their streams, up to
-  about 24 terminals across all windows, least recently shown first out
-  (D46). Their
+  about 24 terminals over all pages of a window (one `PaneViewRegistry` per
+  window), least recently shown first out (D46). Their
   surfaces stop drawing but keep reading: a surface draws only while its page
   is in the window (in view, or next to it: the strip keeps neighbor pages laid
   out).
@@ -290,25 +291,37 @@ handshake fails, it exits 1 with the reason on stderr.
 
 The sidebar's workspace rows show the branch and the ahead and behind counts
 (D67). herdr's snapshot has no branch, so the app asks git on the machine:
-- **Command.** `git -C <root> status --porcelain=v2 --branch`, through
-  `Exec.run`, so it works the same on This Mac and over SSH. The root is the
-  workspace's `worktree.checkout_path`, else the cwd of its first pane.
-- **Parse.** The `# branch.head` line gives the branch, and
-  `# branch.ab +A -B` gives ahead and behind. The app reads no other line. A
-  failed run (not a git repository, git missing) means the row has no git
-  line.
-- **When.** When a snapshot changes, and every 10 s, for the page in view in
-  each window only. One run per workspace at a time. Hidden pages never run.
+- **Command.** `git -C <root> status --porcelain=v2 --branch
+  --untracked-files=no`, through `Exec.run`, so it works the same on This Mac
+  and over SSH. `git` comes from the login shell's `PATH`, like herdr. The
+  root is the workspace's `worktree.checkout_path`, else the cwd of its first
+  pane. A run that takes over 5 s is ended.
+- **Parse.** The `# branch.head` line gives the branch; when it is
+  `(detached)`, the first 7 characters of `# branch.oid`.
+  `# branch.ab +A -B` gives ahead and behind (absent without an upstream). The
+  app reads no other line. A nonzero exit means the folder is not a git
+  repository, and the row has no git line.
+- **When.** For a workspace that is new or whose root changed, and every 10 s
+  for every workspace, only for the page in view of a visible window. Hidden
+  pages never run. One run per workspace at a time.
+- **No developer tools.** At launch the app checks once where `git` is. When
+  it is only `/usr/bin/git` and `xcode-select -p` fails, the app runs no git
+  at all, so macOS never offers to install the developer tools. Rows then
+  have one line.
 - **Worktrees.** herdr's `worktree.is_linked_worktree` and `repo_key` place a
   linked worktree under its repository's workspace. No git run is needed for
-  that.
+  that. herdr 0.9.5 fills a workspace's `worktree` only after a `worktree.*`
+  call looked at it: `worktree.list`, `worktree.open` or `worktree.create`.
+  A plain `workspace.create {cwd}` in a repository leaves it out, so its row
+  is never a worktree row. `worktree.open` also fills the open workspace of
+  the worktree's repository.
 - The result lives in memory on the session's `HostStore`.
 
 ## Writes are herdr calls
 
 | User action | herdr call |
 |---|---|
-| New workspace (page header `+`, workspace menu) | `workspace.create {cwd: $HOME, label, focus: false}` in that page's session (a launchd-started server's cwd is not `$HOME`); the label only when the user typed one; then the snapshot selects it |
+| New workspace (page header `+`, workspace menu, an empty session's New Workspace) | `workspace.create {cwd: $HOME, label, focus: false}` in that page's session (a launchd-started server's cwd is not `$HOME`); the label only when the user typed one; then the snapshot selects it |
 | Folder dropped on the Dock icon | `workspace.create {cwd}`, one per folder |
 | New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a workspace row's New Tab, that workspace's keyboard card, or `$HOME` |
 | Split right or down | `pane.split {target_pane_id, direction: right or down, ratio, cwd}` |
@@ -328,23 +341,27 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Drop on a workspace row | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}` |
 | Drop on empty space at the bottom of the sidebar page | `pane.move {pane_id, destination:{type:"new_workspace"}}` |
 | Move Tab Left or Right, drag a tab | `tab.move {tab_id, insert_index}`, inside its workspace only. herdr inserts before the tab now at `insert_index` (0 to the count), so one place left is index − 1 and one place right is index + 2 |
-| Move Up or Down, drag a workspace | `workspace.move {workspace_id, insert_index}`; `workspace.move_block` for a repository with its linked worktrees |
-| Open Session: a new name or a stopped session | starts `herdr --session S server` (a launchd job on This Mac, D47; `nohup` on a remote machine), waits for `session.snapshot`, then opens the page ([Checks on connect](/docs/machines#checks-on-connect)) |
-| Open Session: a running session | no write; the page's `HostStore` connects |
+| Move Up or Down, drag a workspace | `workspace.move_block {workspace_ids, before_workspace_id}` with the row's group: the workspace and its linked worktrees, in order; without `before_workspace_id` the group goes last |
+| Open Session: a new name, a running or a stopped session | starts `herdr --session S server` when it is not running (a launchd job on This Mac, D47; `nohup` on a remote machine) and waits for `session.snapshot`; a server the app started with no workspace gets `workspace.create {cwd: $HOME}`; then the page opens and its `HostStore` connects ([Checks on connect](/docs/machines#checks-on-connect)) |
 | Close Page | no herdr call; the page's store disconnects when no window shows it, and the session keeps running |
 | Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`); web and plugin panes close at once (known by their label), and the app removes their [state file](/docs/plugins/state#the-instance-state-file) |
-| Close a tab or workspace | `tab.close` / `workspace.close`; always asks, with the pane count |
+| Close a tab | `tab.close`; always asks, with the pane count |
+| Close a workspace | `workspace.close {workspace_id, close_group}`; always asks, with the tab and pane count. `close_group: true` for a repository's workspace with linked worktree workspaces: herdr refuses the close without it (`workspace_group_close_required`), and with it closes all of them, also ones not next to it. The git worktrees stay on disk. A worktree's own workspace closes alone |
 | Close Other Tabs | one `tab.close` per other tab; asks once, with the total pane count |
-| Rename a tab or workspace | `tab.rename {tab_id, label}` / `workspace.rename`; an empty or unchanged name sends nothing |
+| Rename a tab or workspace | `tab.rename {tab_id, label}` / `workspace.rename {workspace_id, label}`; an empty or unchanged name sends nothing |
 | Rename a pane | `pane.rename {pane_id, label}`; an empty name clears the label |
 | Go to Directory (⇧⌘G) | `pane.send_input` of `cd -- '‹path›'` and Return, only when the pane runs only its shell |
 | Insert Path (⌃⌘I) | `pane.send_input` of the shell-quoted path, no Return |
 | Find next or previous (⌘F) | `pane.scroll {pane_id, offset_from_bottom}` to the match; offset 0 when the bar closes |
 | Start an agent | [agent.start steps](/docs/plugins/terminal-and-agent#agent) |
 | Keyboard resize (⌃⌘ + arrow) | `pane.resize {pane_id, direction, amount: 0.05}` on the keyboard card |
+| Git state of the workspace rows (not a write) | no herdr call: `git status` on the machine ([Git status](#git-status)) |
 
 - No close can be undone.
 - Every create and move passes `focus:false`, so herdr's focus never moves.
+- `workspace.move {workspace_id, insert_index}` inserts before the workspace
+  now at `insert_index`, like `tab.move`. The app uses `workspace.move_block`,
+  which names the workspace to go before.
 - `pane.move` and `pane.swap` can succeed with `changed:false` and a `reason`
   (`same_tab`, `zoomed_tab`, `cross_tab`, `no_neighbor`). The app shows the
   reason. Its drag targets avoid `same_tab` and `cross_tab` by design

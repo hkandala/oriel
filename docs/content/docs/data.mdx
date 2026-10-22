@@ -28,13 +28,13 @@ One rule decides where each new thing goes (D57):
 | Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults` (on macOS the add sheet offers `herdr machine list`) |
 | iOS SSH key and pinned host keys | app, disk | Secure Enclave, Keychain |
 | Settings: appearance, interface style, text size and pane options ([Settings](/docs/ui/settings)); pill settings | app, disk | app storage (`UserDefaults`) |
-| Per window: the machine (once remote machines exist), the names of its open pages, the current page, the workspace and tab per page, sidebar shown or hidden, sidebar view (workspaces or agents) and its sort, and sidebar width | app, disk | `@SceneStorage`, one set per window |
+| Per window: the machine (once remote machines exist), the names of its open pages (`pages`), the page in view (`page`), sidebar shown or hidden (`sidebar`), sidebar view (workspaces or agents) and its sort, and sidebar width (`sidebarWidth`) | app, disk | `@SceneStorage`, one set per window |
 | Plugin code and source record | app, disk | `Application Support/Oriel/plugins/` |
 | Plugin consent and This Mac answers | app, disk | `UserDefaults` |
 | Plugin preferences | app, disk | `UserDefaults`, passwords in the Keychain |
 | Approved web origins per machine, the web safe list | app, disk | `UserDefaults` |
 | Web cookies | WebKit | one data store per machine |
-| Per window: zoomed card and keyboard card per tab. Per session: which window controls it ([Control between windows](/docs/talking-to-herdr#control-between-windows)). Chat or terminal per pane, drafts | app, per device | memory |
+| Per page of a window: the selected workspace, the tab per workspace, the keyboard card per tab, the zoomed card. Per open session: its `HostStore`, made on first use. Per session: which window controls it ([Control between windows](/docs/talking-to-herdr#control-between-windows)). Chat or terminal per pane, drafts | app, per device | memory |
 | Seen values and the time of each status change (Agents view), program icons, git state of each workspace, a divider's ratio while it is dragged | app, per device | memory |
 | ControlMaster sockets, port forwards | app | `~/Library/Caches/oriel/` (macOS), while running |
 
@@ -42,10 +42,19 @@ One rule decides where each new thing goes (D57):
 commands start there, so paths are relative to it.
 
 <Callout title="Nothing the app saves describes herdr's state">
-The only exception is each window's restore state. A page whose session no
-longer runs is skipped; a workspace or tab that is gone falls back to herdr's
-focused workspace. A fresh install on a new device rebuilds
+The only exception is each window's restore state: the names of its pages.
+A page whose session no longer runs is skipped. A fresh install on a new device rebuilds
 every workspace, tab, pane, web page and plugin pane from
 herdr's labels and the machines' state files
 ([State and restore](/docs/plugins/state)).
 </Callout>
+
+## Which pages a window opens
+
+- A restored window opens the pages in `pages` again, in order, and shows
+  `page`. A name that no longer runs is skipped.
+- With none left, or in a new window, the first page is the session named by
+  the `-session` launch argument, else `default`. The app starts it when it
+  is stopped (a launchd job, D47). It never opens another session by itself.
+- Nothing writes a session name to `UserDefaults`. `-session` is read from
+  the argument domain only.

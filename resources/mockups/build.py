@@ -292,16 +292,16 @@ def needs_popover():
 
 
 def session_sheet():
-    def rows(names, icon, note):
-        return "".join(f'<div class="prow"><span class="mi">{ui(icon)}</span>{n}<span class="kb">{note}</span></div>'
-                       for n in names if "pi" in n)
+    # No hint text on the rows: the group headers say what a pick does.
+    def rows(names, icon):
+        return "".join(f'<div class="prow"><span class="mi">{ui(icon)}</span>{n}</div>' for n in names if "pi" in n)
     return ('<div class="sheet wide"><div class="stitle">Open Session</div>'
             '<div class="field big">pi<span class="caretbar"></span><span class="hint">Name a new session, or find one</span></div>'
             f'<div class="slist"><div class="pg">New</div><div class="prow cur"><span class="mi">{ui("plus")}</span>'
             'Create session \u201cpi\u201d<span class="kb">\u21a9</span></div>'
-            f'<div class="pg">Running</div>{rows(RUNNING_NOT_OPEN, "plusstack", "opens it")}'
-            f'<div class="pg">Stopped</div>{rows(STOPPED, "plusstack", "starts it")}'
-            f'<div class="pg">Open in this window</div>{rows(list(SESSIONS), "check", "open")}</div>'
+            f'<div class="pg">Running</div>{rows(RUNNING_NOT_OPEN, "plusstack")}'
+            f'<div class="pg">Stopped</div>{rows(STOPPED, "plusstack")}'
+            f'<div class="pg">Open in this window</div>{rows(list(SESSIONS), "check")}</div>'
             '<div class="sbtns"><span class="bt">Cancel</span><span class="bt primary">Open</span></div></div>')
 
 

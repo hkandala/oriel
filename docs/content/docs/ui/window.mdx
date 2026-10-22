@@ -44,12 +44,12 @@ One row, 40 pt tall, always the same (D45). From left to right:
 7. The [Agents button](#agents-button).
 8. ⌘ (the command palette, ⌘K) and `+` (new tab, ⌘T).
 
-Each title-row button except the Agents button, the page header's `+`, the
-footer's Open Session button and each card header button shows the system
-tooltip with the action's name and its shortcut, for example "New Tab ⌘T".
+Each title-row button except the Agents button shows the system tooltip with
+the action's name and its shortcut, for example "New Tab ⌘T". So do the page
+header's `+`, the footer's Open Session button and each card header button.
 
-The window title is "‹tab title› - ‹session›", so the Window menu and Mission
-Control show it.
+The window title is "‹tab title› - ‹session of the page in view›", so the
+Window menu and Mission Control show it.
 
 ## Machine button
 
@@ -78,17 +78,16 @@ Shown only while the sidebar is collapsed, after the machine button.
   chevron. At most 260 pt wide: the session name stops at 110 pt (with an
   ellipsis), and a workspace name that does not fit fades out at its end over
   16 pt.
-- The menu starts with a filter field ("Filter or create…"). Then every
-  workspace of every session open in this window, grouped under a session
-  header. A row shows the workspace's state icon, its name and its branch on
-  the right. At the end: New Workspace and "Open Session…" (⇧⌘N).
+- The menu starts with a filter field ("Filter or create…"). Then one group
+  per page open in this window, in page order, under the session's name. A
+  row shows the workspace's state icon, its name and its branch on the right.
+  At the end: New Workspace, then "Open Session…" (⇧⌘N).
 - The menu is a glass panel under the button, 300 pt wide and at most 420 pt
   tall, built from the palette's filter list. Rows are 26 pt. Arrows move,
   Enter acts, Esc closes. A typed name that matches no workspace shows
-  "New Workspace “‹name›”" first; Enter makes it in the selected workspace's
-  session and selects it.
-- Picking a workspace of another session also moves the window to that
-  session's page.
+  "New Workspace “‹name›”" first; Enter makes it in the session of the page
+  in view and selects it.
+- Picking a workspace of another page also shows that page.
 
 ## Tab bar
 
@@ -167,23 +166,32 @@ session open in this window (D43).
   [Open Session](#open-session), as many as they like. Only open pages have a
   `HostStore`, snapshot reads and an event stream.
 - **Close Page.** The context menu of the page header and of its page dot has
-  Close Page. It removes the page from this window and disconnects its store.
-  The herdr session keeps running and stays in the Open Session list. The last
-  page cannot close.
+  Close Page. It removes the page from this window. Its store disconnects, so
+  its event stream and its terminal streams end. The herdr session keeps
+  running and stays in the Open Session list. Close Page is disabled on the
+  last page.
 - **Restore.** A window that macOS restores opens the pages it had again. A
   session that no longer runs is skipped. A new window (⌘N) opens with
-  `default` only.
+  `default` only ([Data](/docs/data#which-pages-a-window-opens)).
 - **Pages.** A sideways swipe on the sidebar moves to the next or previous
-  open page ([Swiping](/docs/ui/swiping)). Page dots at the bottom of the page
-  show where you are; a click on a dot switches.
-- **Page header.** The session's name, small and in secondary text, and a `+`
-  that makes a new workspace in that session.
+  open page ([Swiping](/docs/ui/swiping)).
+- **Page dots.** At the bottom of the page, above the footer: one 6 pt dot per
+  open page, 6 pt apart. The current page's dot is in primary text color, the
+  others tertiary. A click on a dot shows its page. Hidden while one page is
+  open. VoiceOver reads each dot as its session's name.
+- **Page header.** The session's name (11 pt, secondary) and, at the trailing
+  end, a `+` that makes a new workspace in that session, in `$HOME`. The
+  snapshot after it selects the new workspace.
 - **Middle.** The [workspace rows](#workspace-rows), or the
   [Agents view](#agents-view) while it is on. 18 pt fades show at the top and
   bottom of the list when content is under them.
-- **Footer.** The filter field, which filters the rows of the current view,
-  and one button, **Open Session** (⇧⌘N), which opens the
-  [Open Session](#open-session) sheet.
+- **Empty session.** A session with no workspace shows only a New Workspace
+  button, on the page and in the strip.
+- **Footer.** The filter field and one button, **Open Session** (⇧⌘N), which
+  opens the [Open Session](#open-session) sheet. The filter keeps the rows
+  whose name or branch matches. A matching worktree also keeps its
+  repository's row. The footer has no New Workspace and no Add Remote Host:
+  the page header has `+`, and the machine menu has Add Remote Host.
 - **Width.** 240 pt by default. Drag the 6 pt handle at the trailing edge to
   resize it between 227 and 480 pt. Each window keeps its own width. During
   the drag the strip keeps its pages whole.
@@ -194,27 +202,38 @@ The sidebar never shows tabs, and its bottom never shows agent activity.
 
 One row per herdr workspace of the session, in herdr's order, like herdr's
 Spaces panel.
-- **Line 1.** The workspace's state icon and its name. The state icon is the
-  strongest state of its panes: an amber dot (needs you), the three working
-  dots (working), a green dot (finished, not seen), a gray ring (an idle
-  agent), or nothing (no agent).
+- **Line 1.** A 14 pt state slot and the name (13 pt). The state icon is the
+  strongest state of the workspace's panes: an amber dot (needs you), the
+  three working dots (working), a green dot (finished, not seen), a gray ring
+  (an idle agent), or nothing (no agent).
 - **Line 2**, only for a git repository: a branch glyph, the branch, then
-  ↑ahead in green and ↓behind in red when they are not zero. There is no
-  changed-file count. A workspace that is not a git repository has one line
-  and no text about git (D67,
+  ↑ahead in the finished color and ↓behind in the error color when they are
+  not zero. All 11 pt, secondary. There is no changed-file count. A workspace
+  that is not a git repository has one line and no text about git (D67,
   [Git status](/docs/talking-to-herdr#git-status)).
 - **Size.** 44 pt with two lines, 30 pt with one, 2 pt apart. The selected
   workspace is a raised pill, radius 10.
 - **Worktrees.** A workspace that herdr marks as a linked git worktree
-  (`worktree.is_linked_worktree`, with the same `repo_key`) sits indented
-  under the workspace of its repository, with a thin guide line, as in herdr.
+  (`worktree.is_linked_worktree`) sits right after the workspace with the same
+  `repo_key` that is not a linked worktree. It is indented 14 pt, with a 1 pt
+  guide line in the separator color from its repository's state slot down.
+  With no such workspace in the session, it is a normal row.
 - **Click** selects the workspace in the app only
   ([Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own)).
 - **Context menu.** New Tab, Rename Workspace, Move Up, Move Down, Close
-  Workspace. New Tab opens in the folder of the workspace's keyboard card (or
-  `$HOME`). Close Workspace always asks, with the tab and pane count.
-- **Rename.** A double-click on the name puts a text field in its place:
-  Enter saves, Esc cancels.
+  Workspace.
+  - New Tab opens in the folder of that workspace's keyboard card, or `$HOME`.
+  - Move Up and Move Down move a group past the next group. A group is a
+    workspace and its worktrees. Both are disabled on a worktree row (it
+    moves with its repository) and at the ends.
+  - Close Workspace always asks, with the tab and pane count. On a repository
+    with worktrees it also closes their workspaces, and the dialog says so.
+    The worktrees stay on disk.
+- **Rename.** Rename Workspace, or a double-click on the name, puts a text
+  field in its place: Enter saves, Esc cancels. An empty or unchanged name
+  sends nothing.
+- VoiceOver reads the branch with the ahead and behind counts, and "worktree
+  of ‹repository›" for a worktree row.
 - Drag a row to reorder the workspaces
   ([Drag and drop](/docs/ui/drag-and-drop)).
 
@@ -245,23 +264,30 @@ How it works: [Agents and notifications](/docs/status#agents-and-notifications).
 ![The Open Session sheet](/mockups/F.jpg)
 
 The one place to create or open a session, as a page of this window (D68).
-The footer's Open Session button, the workspace menu's "Open Session…" and
-⇧⌘N open it. The sheet is titled "Open Session".
-- A text field, "Name a new session, or find one", empty at first.
-- The list, filtered by the field, in groups with the headers "New",
-  "Running", "Stopped" and "Open in this window":
-  - **New:** "Create session “‹typed name›”" when the text is a valid new
-    herdr session name. With an empty field: "Create session “‹name›”" with a
-    suggested two-word name.
-  - **Running** sessions that are not open in this window ("opens it"), and
-    **Stopped** sessions ("starts it").
-  - Last, the sessions already open in this window ("open").
-- The arrows move the highlight. Enter or **Open** acts on the highlighted row:
-  - a new name: create and start the session, then open it as a new page;
-  - a running session: open it as a new page, and its store connects;
-  - a stopped session: start it (a launchd job on This Mac, D47), then open
-    it as a new page;
-  - an open session: switch to its page.
+It replaces the old session picker. The footer's Open Session button, the
+workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open it.
+- A sheet, 420 pt wide, titled "Open Session".
+- A text field, "Name a new session, or find one", empty and with the
+  keyboard at first.
+- The list, filtered by the field. The app reads the sessions once, when the
+  sheet opens. Groups with the headers "New", "Running", "Stopped" and "Open
+  in this window":
+  - **New:** "Create session “‹typed name›”" when the text is a valid herdr
+    session name that no session has. With an empty field: "Create session
+    “‹name›”" with a suggested two-word name.
+  - **Running** sessions that are not open in this window, then **Stopped**
+    sessions.
+  - Last, the sessions already open in this window.
+  - The rows carry no hint text: the group headers say what a pick does.
+- The arrows move the highlight. Enter or **Open** acts on the highlighted row.
+  - A new name, a running session and a stopped session take one path. The
+    app starts the server if it is not running (a launchd job on This Mac,
+    D47); a server the app started gets its first workspace in `$HOME`. Then
+    the session's page opens after the page in view and shows, and its store
+    connects.
+  - An open session: its page shows.
+- While a server starts, its row shows a spinner. A failure shows its text in
+  the sheet, and the sheet stays open.
 - **Cancel** or Esc closes the sheet.
 
 How it works: [Checks on connect](/docs/machines#checks-on-connect).

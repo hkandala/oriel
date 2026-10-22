@@ -8,11 +8,18 @@ description: "Session pages in the sidebar and tab pages in the strip"
 - Two-finger swipe on a trackpad, one finger on iOS. Pages snap.
 - **Sidebar.** A sideways swipe on the sidebar moves to the next or previous
   session page open in the window ([Sidebar](/docs/ui/window#sidebar)). The
-  page dots show where you are, and a click on a dot switches. In the Agents
-  view the same swipe shows the next session's agents.
+  page dots show where you are, and a click on a dot switches. At the first
+  or last page the swipe does nothing. In the Agents view the same swipe
+  shows the next session's agents.
 - **Strip.** A sideways swipe on the strip pages between the selected
   workspace's tabs (also ⇧⌘[ and ⇧⌘], ⌃⇥).
-- Swiping the sidebar never pages the strip, and the reverse.
+- **One target.** The app's scroll monitor locks a gesture to one axis (D35).
+  It gives a sideways gesture to the innermost scroll view under the pointer
+  that can scroll sideways (its content is wider than its frame). Over the
+  sidebar, that is the sidebar's pages, not the page's list; over the strip,
+  the strip. So swiping the sidebar never pages the strip, and the reverse.
+- A page slides with the strip's spring. Under Reduce Motion it switches
+  without motion.
 - First visit to a session page: the app shows herdr's focused workspace and
   its active tab. Later visits: the workspace and tab the user last picked
   there, in that window.

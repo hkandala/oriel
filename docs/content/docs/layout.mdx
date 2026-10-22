@@ -1,6 +1,6 @@
 ---
 title: "Layout and sizing"
-description: "The split tree, drawing, dividers, fade, motion, keyboard moves, zoom, PTY size, selection per window and seen"
+description: "The split tree, drawing, dividers, fade, motion, keyboard moves, zoom, PTY size, selection per page and seen"
 ---
 
 ## What herdr returns
@@ -142,11 +142,21 @@ herdr's focus methods (D13):
 
 ## Selection and "seen" are the app's own
 
-- Selection is per window. Each window has its own machine, open pages,
-  current page, workspace, tab, keyboard card, zoom, sidebar view and sidebar
-  width, in memory, plus `@SceneStorage` to restore the window
-  ([Data](/docs/data#every-piece-of-data)). A workspace or tab that is gone
-  falls back to herdr's focused workspace.
+- Each window has its own machine, open pages, page in view, sidebar view
+  and sidebar width ([Data](/docs/data#every-piece-of-data)).
+- Selection is per page. Each page of a window keeps its selected workspace,
+  the selected tab of each workspace, the keyboard card of each tab, its
+  zoomed card, and a tab it just made (selected once a snapshot shows it).
+  The window's page holds them in memory, not the session's `HostStore`, so
+  two windows on one session select on their own. Switching pages brings the
+  selection back.
+- A tab that is gone falls back to herdr's active tab of that workspace, else
+  its first tab. A workspace that is gone falls back to herdr's focused
+  workspace, else the first one.
+- One `PaneViewRegistry` per window holds the terminals of all its pages.
+  Only the shown tab of the page in view streams; the cache keeps about 24
+  streams over all pages (D46,
+  [What streams](/docs/talking-to-herdr#what-streams)).
 - Control is per session, across windows (D66): the window where the user
   last typed or clicked in a terminal controls that session's panes. It is
   not part of a window's selection.

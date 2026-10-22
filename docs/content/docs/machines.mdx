@@ -12,8 +12,10 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   one herdr server. The sessions of one machine share one SSH connection
   (ControlMaster) and nothing else: each session has its own events, streams
   and state folder.
-- A window shows one machine. Its sidebar has one page per session open in
-  that window ([Sidebar](/docs/ui/window#sidebar)).
+- A window shows one machine. Sessions open as pages: its sidebar has one
+  page per session the user opened in that window
+  ([Sidebar](/docs/ui/window#sidebar)). A new window opens one page, the
+  `default` session.
 
 ## The machine list
 
@@ -96,7 +98,9 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 
 - A session is open while it has a page in at least one window. Each open
   session has one `HostStore`, shared by every window that shows it
-  ([Architecture](/docs/architecture#pieces)).
+  ([Architecture](/docs/architecture#pieces)). The app keeps one registry of
+  them, by session name; a page takes its session's store from it, made on
+  first use. Close Page disconnects the store.
 - An open session keeps its control plane open (one event stream plus short
   calls), so notifications, the Dock and pills cover every open session in
   every window. The Agents button covers the page in view.
@@ -111,7 +115,7 @@ One loop per open session checks that it answers.
 - The check is `session.snapshot`, the read the app needs anyway. It carries
   herdr's version and catches any event the app missed.
 - It runs every 30 s while the session is healthy. A failed read switches it
-  to every 2 s, so a session started again in a terminal comes back at once.
+  to every 2 s, so a session started again comes back at once.
 - A session counts as live only while the check answers. While it fails, its
   cards gray out.
 - On a remote machine a failed check also restarts the connection: on macOS
@@ -143,9 +147,11 @@ One loop per open session checks that it answers.
    install command), herdr too old, or the server not running
    ([herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine)). If
    the server is not running:
-   - **This Mac:** a **Start** button. A window starts the `default` session this way when it is
-     stopped. In the Open Session sheet, a stopped session or a new name
-     starts the same way; the app makes a new server's first workspace in `$HOME`. The app starts the
+   - **This Mac:** a **Start** button. A new window's first page starts its
+     session this way when it is stopped. In the Open Session sheet, a stopped
+     session or a new name starts the same way. A server the app started gets
+     its first workspace in `$HOME`; a server that already runs is left
+     alone. The app starts the
      server as a one-shot launchd job (D47). launchd, not the app, is the
      server's parent and "responsible process": macOS privacy prompts never
      name Oriel, the server has its own process group, and it outlives the app.
