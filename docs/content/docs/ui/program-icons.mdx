@@ -17,42 +17,59 @@ Every pane, tab and agent row shows the icon of the program that runs in it
 | Palette rows for tabs | the front tile of the tab's stack |
 
 - **Tile.** A rounded rect, 22 × 18 pt, radius 5, in the catalog's tile
-  color, with the glyph at about 13 pt in the catalog's glyph color, a 1 px
-  dark outline and a faint highlight at the top.
-- **Stack.** The keyboard card's icon is in front. Each tile behind sits 4 pt
-  to the right of the one in front, with a 1 px ring in the background color,
-  so the overlapping tiles read as layers.
+  color, with the glyph's 24-unit box drawn at 17 pt (the glyphs carry their
+  own padding) in the catalog's glyph color, a 1 px dark outline and a faint
+  highlight at the top. An unknown program's tile shows its first letter.
+- **Stack.** The keyboard card's icon is in front (herdr's focused pane until
+  a card of the tab had the keyboard); the others follow in herdr's order.
+  Each tile behind sits 4 pt to the right of the one in front. A 1 pt ring
+  around each tile in front is cut out of the tiles behind it, so the layers
+  read apart on any background. The capsule's accessibility value lists the
+  icon ids, front first ("icons: vim, sleep").
 - The sidebar has no tab rows, so it shows no tab icons. Workspace rows show
-  a state icon, not program icons.
+  a state icon, not program icons. Until those rows come (phase 14), the old
+  tab rows keep a plain terminal tile.
 - **Badges.** Needs you and finished show as a dot on the front tile
   ([Status](/docs/ui/theme-and-accessibility#status)).
 - In the card header, herdr's pane label wins over the program's name when
-  it is set.
+  it is set. The name is herdr's agent, else the foreground process's name
+  ("vim /tmp"); with only the shell running, the header shows the folder.
 
 ## How a pane gets its icon
 
 The first match wins:
 1. herdr's agent kind for the pane (`agent`, or `display_agent`).
 2. The foreground process from `pane.process_info`: its name, then the base
-   name of `argv0`, then the end of a script path for programs that run
-   under `node` or `bun` (for example `pi`).
-3. The first word of the terminal title (`terminal_title_stripped`).
-4. A shell, or nothing known: the `terminal` icon. An unknown program gets a
-   neutral tile with the program's first letter.
+   name of `argv0`. A `node` or `bun` process is matched by its script
+   first: the end of the script's path (`pi-coding-agent/dist/cli.js`), then
+   its base name, because a CLI started through its bin link has the link's
+   path (`/opt/homebrew/bin/gemini`).
+3. The start of the terminal title up to a space
+   (`terminal_title_stripped`). herdr strips status glyphs such as `✳` and
+   spinners from it, so the catalog matches the words after them
+   ("Claude Code", `π`).
+4. Only the shell, or nothing known: the `terminal` icon. An unknown program
+   gets a neutral tile with the program's first letter.
 
-A login shell's leading `-` (`-zsh`) is removed before matching. The
-catalog's `match` field holds the values for each step.
+A leading `-` (`-zsh`) and a path's folder are removed before matching. The
+catalog's `match` field holds the values for each step. herdr reports no
+foreground process for a setuid program such as macOS's `top`, so its pane
+shows the `terminal` icon.
 
 ## When the app asks herdr
 
 The app asks for the foreground process with one `pane.process_info` call,
 only at these times:
-- the first time a pane shows in a card;
+- the first time a pane shows in a card (again the next time if that call
+  failed);
 - 1 s after the user presses Return in that card;
-- when a snapshot shows that the pane's terminal title or agent changed.
+- when a snapshot shows that the pane's stripped terminal title or agent
+  changed, for a pane asked before. herdr sends `pane.updated` on each title
+  change, and the events stream subscribes to it.
 
 There is no polling. The result stays on the pane in the `HostStore`, so the
-views only read it.
+views only read it. A pane that never showed in a card gets its icon from
+its agent and title alone.
 
 ## The catalog
 
@@ -73,7 +90,11 @@ views only read it.
   get `#2b2d31` with a white glyph; shells and generic tools get `#2b2d31`
   with a `#7ee787` glyph. No tile is white.
 - Brand marks belong to their owners and only name the program.
-- `resources/icons/tools/` rebuilds the whole set (`README.md` there).
-- No icon art comes from Rex. The app's credits list the icon sources.
+- `resources/icons/tools/` rebuilds the whole set (`README.md` there),
+  including the app's image sets (`Oriel/Assets.xcassets/program.<id>`,
+  templates with their vector data). The app bundles `catalog.json` as it
+  is.
+- No icon art comes from Rex. The About panel's credits list the icon
+  sources.
 
 How it works: [herdr calls](/docs/reference/herdr-calls).
