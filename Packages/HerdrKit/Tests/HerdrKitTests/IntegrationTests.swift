@@ -295,3 +295,27 @@ func `changes a layout in a throwaway herdr session`() async throws {
         #expect(away?.id.hasPrefix("w2:") == true)
     }
 }
+
+@Test(.enabled(if: shell("which", "herdr") == 0, "herdr is not on PATH"))
+func `moves beside a pane, swaps by id, and throws herdr's refusals`() async throws {
+    try await withSession(ProcessExec()) { client in
+        let _: Created = try await client.call("workspace.create", ["cwd": "/tmp", "focus": false])
+        let second = try #require(try await client.split("w1:p1", .right))
+        let other = try #require(try await client.move(pane: second.id, to: .newTab(workspaceID: "w1")))
+        // Back beside p1, under it.
+        let back = try await client.move(pane: other.id, to: .tab("w1:t1", beside: "w1:p1", split: .down))
+        #expect(back?.tabID == "w1:t1")
+        guard case let .split(direction, _, _, _)? = try await client.snapshot().trees["w1:t1"] else {
+            Issue.record("no split")
+            return
+        }
+        #expect(direction == .down)
+        try await client.swap(second.id, with: "w1:p1")
+        #expect(try await client.snapshot().trees["w1:t1"]?.paneIDs == [second.id, "w1:p1"])
+        await #expect(throws: HerdrError.refused("same_tab")) {
+            try await client.move(pane: second.id, to: .tab("w1:t1"))
+        }
+        let lone = try #require(try await client.move(pane: second.id, to: .newTab(workspaceID: "w1")))
+        await #expect(throws: HerdrError.refused("cross_tab")) { try await client.swap(lone.id, with: "w1:p1") }
+    }
+}

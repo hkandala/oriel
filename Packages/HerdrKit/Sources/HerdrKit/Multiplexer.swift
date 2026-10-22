@@ -34,11 +34,13 @@ public protocol Multiplexer: Sendable {
     /// Swaps the pane with its nearest neighbor that way, in the same tab. Moves herdr's focus to that tab (herdr
     /// 0.9.5 has no way around it).
     func swap(_ paneID: String, _ heading: Heading) async throws
+    /// Swaps two panes of one tab; panes of two tabs are refused. Moves herdr's focus as the other `swap` does.
+    func swap(_ paneID: String, with targetID: String) async throws
     /// Moves the nearest divider that way by `amount` of its split.
     func resize(_ paneID: String, _ heading: Heading, amount: Double) async throws
     /// One split's ratio; `path` from the root, `false` = first child.
     func setRatio(tab tabID: String, path: [Bool], ratio: Double) async throws
-    /// A move to another workspace gives the pane a new id.
+    /// A move to another workspace gives the pane a new id. A move into its own tab is refused.
     func move(pane paneID: String, to destination: Destination) async throws -> Pane?
     /// A nil label clears it.
     func rename(pane paneID: String, label: String?) async throws
@@ -71,8 +73,8 @@ public enum Heading: String, Sendable {
 /// Where `move(pane:to:)` puts a pane.
 public enum Destination: Sendable {
     case newTab(workspaceID: String)
-    /// Split right of the tab's whole layout.
-    case tab(String)
+    /// Split right or down beside a pane of the tab, else beside the tab's whole layout.
+    case tab(String, beside: String? = nil, split: SplitNode.Direction = .right)
     case newWorkspace
 }
 
@@ -89,8 +91,14 @@ extension HerdrClient: Multiplexer {
 
     public nonisolated func swap(_ paneID: String, _ heading: Heading) async throws {
         // herdr 0.9.5 focuses the swapped pane's tab whatever `focus` says.
+        // A swap with no card that way (`no_neighbor`) is no error: the keys do nothing at an edge.
         let _: Created = try await call("pane.swap", ["pane_id": paneID, "direction": heading.rawValue,
                                                       "focus": false])
+    }
+
+    public nonisolated func swap(_ paneID: String, with targetID: String) async throws {
+        try await (call("pane.swap", ["source_pane_id": paneID, "target_pane_id": targetID,
+                                      "focus": false]) as Swapped).swap.check()
     }
 
     public nonisolated func resize(_ paneID: String, _ heading: Heading, amount: Double) async throws {
@@ -103,13 +111,18 @@ extension HerdrClient: Multiplexer {
     }
 
     public nonisolated func move(pane paneID: String, to destination: Destination) async throws -> Pane? {
-        let place: [String: any Sendable] = switch destination {
+        var place: [String: any Sendable] = switch destination {
         case let .newTab(workspaceID): ["type": "new_tab", "workspace_id": workspaceID]
-        case let .tab(tabID): ["type": "tab", "tab_id": tabID, "split": "right"]
+        case let .tab(tabID, _, split): ["type": "tab", "tab_id": tabID, "split": split.rawValue]
         case .newWorkspace: ["type": "new_workspace"]
         }
-        return try await (call("pane.move", ["pane_id": paneID, "destination": place, "focus": false]) as Moved)
-            .moveResult.pane
+        if case let .tab(_, target?, _) = destination {
+            place["target_pane_id"] = target
+        }
+        let result = try await (call("pane.move", ["pane_id": paneID, "destination": place,
+                                                   "focus": false]) as Moved).moveResult
+        try result.check()
+        return result.pane
     }
 
     public nonisolated func rename(pane paneID: String, label: String?) async throws {

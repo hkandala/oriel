@@ -14,6 +14,8 @@ public enum HerdrError: Error, Equatable, Sendable {
     case herdr(code: String, message: String)
     /// The command failed or printed something we cannot read.
     case failed(String)
+    /// herdr changed nothing, for this reason (`same_tab`, `cross_tab`, `zoomed_tab`).
+    case refused(String)
 }
 
 extension HerdrError: LocalizedError {
@@ -23,6 +25,10 @@ extension HerdrError: LocalizedError {
         case let .unsupported(message), let .failed(message): message
         case .timeout: "herdr did not answer"
         case let .herdr(code, message): "\(message) (\(code))"
+        case .refused("same_tab"): "The pane is already in that tab"
+        case .refused("cross_tab"): "Panes of two tabs cannot swap"
+        case .refused("zoomed_tab"): "The tab is zoomed in herdr"
+        case let .refused(reason): "herdr changed nothing (\(reason))"
         }
     }
 }

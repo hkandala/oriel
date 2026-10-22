@@ -126,9 +126,27 @@ struct Created: Decodable {
 
 /// `pane.move`: the pane where it went (a move to another workspace gives it a new id).
 struct Moved: Decodable {
-    let moveResult: Created
+    let moveResult: Change
 
     enum CodingKeys: String, CodingKey { case moveResult = "move_result" }
+}
+
+/// `pane.swap`.
+struct Swapped: Decodable {
+    let swap: Change
+}
+
+/// A move or a swap: `changed:false` with herdr's reason when it refused.
+struct Change: Decodable {
+    let changed: Bool?
+    let reason: String?
+    let pane: Pane?
+
+    func check() throws {
+        if changed == false {
+            throw HerdrError.refused(reason ?? "")
+        }
+    }
 }
 
 /// `pane.neighbor`: the nearest pane that way, if any.
