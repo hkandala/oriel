@@ -183,8 +183,8 @@ needs another name adds it to e2e.sh and the helper.
 - **`Seen` (HerdrKit, value type).** `update(agents, looking:)` per snapshot, `look(_:)` when the looked-at tab
   changes; `states`, `since` (for the ages) and the changes since the last call. Keyed by terminal id (else pane id,
   spec review): a pane moved to another workspace keeps its terminal and its unseen finish, and a pane id herdr
-  gives to a new terminal is a first sighting. An agent that goes away starts over. `AgentState` is ordered idle < working < finished < needs you, so
-  a rollup is `max`.
+  gives to a new terminal is a first sighting. An agent that goes away starts over. `AgentState` is ordered idle <
+  working < finished < needs you (synthesized `Comparable`), so a rollup is `max`.
 - **The store owns it** (`HostStore.seen`, shared by the windows on a session) and copies the result onto each
   `Pane` (`state`, `since`, `agentName`), so Observation redraws only the panes that changed. Rollups are
   `HostStore.strongest(tabIDs)`.
@@ -201,16 +201,24 @@ needs another name adds it to e2e.sh and the helper.
   have taken it.
 - **A click that comes early waits** (`WindowPages.pending`): a notification that starts the app, or names a page
   closed since, opens the page and selects the pane once a snapshot shows its terminal.
-- **Notifications go when they no longer hold:** a pane that turns working or idle loses its old one, and a closed
-  page's are removed.
+- **Notifications go when they no longer hold:** each snapshot sweeps the page's delivered ones whose pane no longer
+  needs you or has an unseen finish (it works, idles, closed or lost its agent), reading the state after the
+  `deliveredNotifications()` wait so a newer snapshot's banner stays; a closed page's are removed.
+- **Kept against the ponytail review:** `Pane.state` / `since` copies of the ledger (an observed `Seen` would redraw
+  every tab and row on each snapshot; D6 wants per-pane redraws); `AgentsWatch` as a modifier (WindowContent's body
+  stopped type-checking with it inline); the sort menu as `Menu` + `ChromeStyle` label (a `.menu` Picker draws a
+  pop-up button).
+- **Dots pause on sidebar pages off to the side** (`EnvironmentValues.offscreen`): a page in the paging scroll view
+  stays rendered.
 - **Notification ids** use the terminal id, and a click finds the pane by terminal id (a pane moved to another
   workspace keeps it).
 
 ### Assumptions
 
-- **macOS pauses a `TimelineView(.animation)` that is not on screen**, so the dots cost nothing in hidden tabs or
-  windows; Reduce Motion pauses it outright.
-- **The Agents button gives the keyboard back to the card** after a click (a SwiftUI button click took it).
+- **macOS pauses a `TimelineView(.animation)` in a hidden window**; Reduce Motion and off-screen sidebar pages pause it
+  outright. Tabs scrolled out of the title row's track still tick (at most 15 fps).
+- **The Agents button gives the keyboard back to the card** after a click (E2E review: the terminal cursor went
+  hollow); other title-row buttons were left as they are.
 
 ### Learned
 
@@ -221,4 +229,7 @@ needs another name adds it to e2e.sh and the helper.
   `pane.release_agent {pane_id, source, agent}` drops only that source's report. `pane.report_metadata` needs a
   `source` too. A restarted server keeps pane ids and gives new terminal ids, so a restart is a first sighting
   (no flood); "different, not greater" still covers a pane without a terminal id.
+- **Screenshots** (final `make e2e`, 57 tests green): `/tmp/oriel-shots/15/final/` (working dots, needs-you badge,
+  finished badge, idle ring, the popover, the Agents view in both sorts). With a narrow sidebar the sort menu's
+  label gives way first ("W…"), so the session name stays readable.
 - **A static text's text is its value in XCUITest** (phase 14 again): "Nobody needs you" is read as `value`.
