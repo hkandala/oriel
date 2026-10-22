@@ -93,6 +93,7 @@
             let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
             shape.fill(Color.accentColor.opacity(0.2)).overlay(shape.strokeBorder(Color.accentColor, lineWidth: 2))
                 .allowsHitTesting(false)
+                .accessibilityElement().accessibilityLabel("Drop target").accessibilityIdentifier("drop.indicator")
         }
     }
 
@@ -181,6 +182,16 @@
     }
 
     extension View {
+        /// Clears a target's drop state when the drag ends: after a drop, a `dropUpdated` can come after `performDrop`
+        /// with no `dropExited` to follow (seen by hand: the highlight stayed).
+        func clearsDrop(_ page: Page, _ clear: @escaping () -> Void) -> some View {
+            onChange(of: page.dragging == nil) { _, ended in
+                if ended {
+                    clear()
+                }
+            }
+        }
+
         /// Starts a drag of `item` after 4 pt; the view's frame is the preview.
         func dragSource(_ item: Dragged, page: Page) -> some View {
             modifier(DragSourceModifier(item: item, page: page))

@@ -94,6 +94,8 @@
         /// Each row's frame in the list's visible space, for drops; measured while nothing is dragged.
         @State private var frames: [String: CGRect] = [:]
         @State private var drop = RowsDrop.State()
+        /// A pane dragged over the header's `+`.
+        @State private var plus = false
 
         var body: some View {
             let store = page.store
@@ -120,6 +122,15 @@
                         IconButton(symbol: "plus", help: "New Workspace") { Task { await page.newWorkspace() } }
                             .disabled(store.state != .live || store.writing)
                             .accessibilityIdentifier("sidebar.new-workspace")
+                            // A new workspace, as the ghost row under the rows, which a full page has no room for.
+                            .overlay {
+                                if plus, page.dragging != nil {
+                                    DropIndicator(radius: 7)
+                                }
+                            }
+                            .onDrop(of: [.orielDrag], delegate: PaneDrop(page: page, target: .move(.newWorkspace),
+                                                                         over: $plus))
+                            .clearsDrop(page) { plus = false }
                     }
                 }
                 .padding(.leading, 16)
@@ -148,14 +159,14 @@
                                     // Hidden by the filter or closed: no stale target.
                                     .onDisappear { frames[id] = nil }
                                     .overlay {
-                                        if drop.over == id {
+                                        if drop.over == id, page.dragging != nil {
                                             DropIndicator()
                                         }
                                     }
                                     .opacity(page.dragging == .workspace(id) ? 0.4 : 1)
                                     .offset(y: rowsDrop.shift(id))
                             }
-                            if drop.ghost {
+                            if drop.ghost, page.dragging != nil {
                                 Text("New Workspace").foregroundStyle(.secondary).padding(.horizontal, 8)
                                     .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
                                     .background { DropIndicator() }
@@ -169,6 +180,10 @@
                     .scrollIndicators(.never)
                     .coordinateSpace(.named("rows"))
                     .onDrop(of: [.orielDrag], delegate: rowsDrop)
+                    .clearsDrop(page) {
+                        drop.spring?.cancel()
+                        drop = RowsDrop.State()
+                    }
                     .onScrollGeometryChange(for: [Bool].self) { geometry in
                         [geometry.contentOffset.y > 0.5,
                          geometry.contentOffset.y + geometry.containerSize.height < geometry.contentSize.height - 0.5]

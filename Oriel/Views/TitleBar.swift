@@ -62,13 +62,14 @@
                     .accessibilityIdentifier("titlebar.new-tab")
                     // Highlighted too: a full track has no room for the ghost capsule.
                     .overlay {
-                        if plus {
+                        if plus, page.dragging != nil {
                             DropIndicator(radius: 7)
                         }
                     }
                     .onDrop(of: page.selectedWorkspaceID == nil ? [] : [.orielDrag], delegate: PaneDrop(
                         page: page, target: .move(.newTab(workspaceID: page.selectedWorkspaceID ?? "")), over: $plus,
                     ))
+                    .clearsDrop(page) { plus = false }
             }
             .padding(.leading, Self.inset(fullScreen: fullScreen))
             .padding(.trailing, gap)

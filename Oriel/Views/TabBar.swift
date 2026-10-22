@@ -72,6 +72,10 @@
                     // In the content's space: the capsule under the pointer, wherever the track scrolled.
                     .onDrop(of: [.orielDrag], delegate: TrackDrop(tabs: tabs, page: page, slot: width + 1,
                                                                   over: $over, spring: $spring, springLoad: springLoad))
+                    .clearsDrop(page) {
+                        over = nil
+                        end = false
+                    }
                     .background {
                         ZStack(alignment: .leading) {
                             Capsule().fill(.primary.opacity(0.05)).opacity(tabs.count > 1 ? 1 : 0)
@@ -115,7 +119,7 @@
                     // It takes the clicks of the row's empty space, so it moves the window as that space does.
                     Color.clear.contentShape(.rect).gesture(WindowDragGesture())
                         .overlay(alignment: .leading) {
-                            if end || plus, content + 1 + width <= space {
+                            if end || plus, page.dragging != nil, content + 1 + width <= space {
                                 DropIndicator(radius: Self.radius).frame(width: width, height: Self.height)
                                     .padding(.leading, 1)
                             }

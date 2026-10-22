@@ -65,7 +65,7 @@
             }
             .opacity(page.dragging == .pane(id) ? 0.4 : 1)
             .overlay(alignment: .topLeading) {
-                if let zone {
+                if let zone, page.dragging != nil {
                     let half = CGSize(width: size.width / 2, height: size.height / 2)
                     DropIndicator()
                         .frame(width: zone == .left || zone == .right ? half.width : size.width,
@@ -76,6 +76,7 @@
             }
             .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
             .onDrop(of: [.orielDrag], delegate: CardDrop(paneID: id, page: page, size: size, zone: $zone))
+            .clearsDrop(page) { zone = nil }
             .onHover { hovering = $0 }
             .task(id: follow) {
                 // Focus follows mouse: a pointer resting 0.15 s on another card, in a key window, no mouse button
