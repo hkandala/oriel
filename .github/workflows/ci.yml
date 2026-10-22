@@ -51,7 +51,8 @@ jobs:
           # The app finds herdr through the login shell, like a user's rc file after install.
           echo 'export PATH="$HOME/.local/bin:$PATH"' | tee -a ~/.zshrc >> ~/.bash_profile
       - run: make test e2e
-      - if: failure() || cancelled()
+      # Green runs too: their screen recordings are the phases' screenshots.
+      - if: always()
         uses: actions/upload-artifact@v7
         with:
           name: e2e-xcresult
