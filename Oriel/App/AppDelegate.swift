@@ -6,7 +6,10 @@
     /// The notification delegate (set at launch, so a click that starts the app is not lost) and the Dock menu.
     final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
         func applicationWillFinishLaunching(_: Notification) {
-            UNUserNotificationCenter.current().delegate = self
+            let center = UNUserNotificationCenter.current()
+            center.delegate = self
+            // macOS asks the user once; later calls answer at once.
+            center.requestAuthorization(options: [.alert]) { _, _ in }
         }
 
         /// A row per pane that needs you or finished, then New Tab.
@@ -34,9 +37,9 @@
         }
 
         @objc private func pick(_ item: NSMenuItem) {
-            guard let ids = item.representedObject as? [String], ids.count == 2 else { return }
+            guard let id = item.representedObject as? String else { return }
             NSApp.activate()
-            WindowPages.main?.go(toTerminal: ids[1], in: ids[0])
+            WindowPages.main?.go(to: id)
         }
 
         @objc private func newTab() {
@@ -58,11 +61,10 @@
         )
             async
         {
-            let parts = response.notification.request.identifier.split(separator: "|", maxSplits: 2).map(String.init)
-            guard parts.count == 3 else { return }
+            let id = response.notification.request.identifier
             await MainActor.run {
                 NSApp.activate()
-                WindowPages.main?.go(toTerminal: parts[2], in: parts[1])
+                WindowPages.main?.go(to: id)
             }
         }
     }
@@ -70,20 +72,16 @@
     /// The app's notifications (D31): needs you and finished, for every open page; no sounds.
     @MainActor
     enum Notifications {
-        private static var asked = false
-
         /// Posts the snapshot's new needs-you and finishes, except for panes the user looks at.
         static func post(_ changes: [Seen.Change], _ page: Page) {
             let store = page.store
-            for change in changes where change.state == .needsYou || change.state == .finishedUnseen {
-                guard let pane = store.pane(change.paneID), pane.tabID != store.lookingTabID,
-                      let tab = store.workspace(of: pane.tabID)?.tabs.first(where: { $0.id == pane.tabID })
-                else { continue }
+            for change in changes where change.state >= .finishedUnseen {
+                guard let pane = store.pane(change.paneID), pane.tabID != store.lookingTabID else { continue }
                 let content = UNMutableNotificationContent()
                 content.title = "\(pane.agentName ?? "agent") \(change.state.word)"
-                content.body = [page.id, store.workspace(of: pane.tabID)?.label ?? "", page.titleText(tab)]
-                    .joined(separator: " · ")
-                add(UNNotificationRequest(identifier: id(pane, page), content: content, trigger: nil))
+                content.body = "\(page.id) · \(page.place(pane))"
+                UNUserNotificationCenter.current()
+                    .add(UNNotificationRequest(identifier: id(pane, page), content: content, trigger: nil))
             }
         }
 
@@ -92,20 +90,9 @@
             UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: panes.map { id($0, page) })
         }
 
-        /// One per terminal, so a newer one replaces the older.
-        private static func id(_ pane: HostStore.Pane, _ page: Page) -> String {
+        /// One per terminal, so a newer one replaces the older; the Dock menu's rows carry it too.
+        static func id(_ pane: HostStore.Pane, _ page: Page) -> String {
             "local|\(page.id)|\(pane.terminalID ?? pane.id)"
-        }
-
-        private static func add(_ request: UNNotificationRequest) {
-            Task {
-                let center = UNUserNotificationCenter.current()
-                if !asked {
-                    asked = true
-                    _ = try? await center.requestAuthorization(options: [.alert, .badge])
-                }
-                try? await center.add(request)
-            }
         }
     }
 #endif

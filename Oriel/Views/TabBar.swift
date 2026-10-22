@@ -271,8 +271,8 @@
                 }
             }
             .contextMenu { menu }
-            .onChange(of: agent?.state) { old, new in
-                guard let new, new == .needsYou || new == .finishedUnseen, old != new, !selected else { return }
+            .onChange(of: agent?.state) { _, new in
+                guard let new, new >= .finishedUnseen, !selected else { return }
                 announce("\(agent?.agentName ?? "agent") \(new.word)")
             }
         }

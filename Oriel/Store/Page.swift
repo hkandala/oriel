@@ -169,6 +169,13 @@
             return [title.name, title.folder ?? ""].filter { !$0.isEmpty }.joined(separator: " ")
         }
 
+        /// "‹workspace› · ‹tab›", for agent rows and notifications.
+        func place(_ pane: HostStore.Pane) -> String {
+            let workspace = store.workspace(of: pane.tabID)
+            let tab = workspace?.tabs.first { $0.id == pane.tabID }
+            return [workspace?.label, tab.map(titleText)].compactMap(\.self).joined(separator: " · ")
+        }
+
         /// Zooms the card, or restores the layout when it is the zoomed one. The zoomed card gets the keyboard.
         func zoom(_ paneID: String) {
             zoomedPaneID = zoomedPaneID == paneID ? nil : paneID
@@ -281,11 +288,12 @@
             }
         }
 
-        /// Selects an agent's pane from outside the window (a notification, the Dock menu), by its terminal: a
-        /// notification outlives a pane id that changed.
-        func go(toTerminal terminalID: String, in session: String) {
-            guard let page = list.first(where: { $0.id == session }),
-                  let pane = page.store.panes.first(where: { $0.terminalID == terminalID }) else { return }
+        /// Selects an agent's pane from outside the window (a notification, the Dock menu) by its notification id,
+        /// "local|‹session›|‹terminal id›": the terminal outlives a pane id that changed.
+        func go(to id: String) {
+            let parts = id.split(separator: "|", maxSplits: 2).map(String.init)
+            guard parts.count == 3, let page = list.first(where: { $0.id == parts[1] }),
+                  let pane = page.store.panes.first(where: { $0.terminalID == parts[2] }) else { return }
             show(page)
             page.go(to: pane)
         }

@@ -1,22 +1,17 @@
 import Foundation
 
 /// What an agent pane shows (D14). Ordered, so a tab or a workspace shows its strongest pane.
-public enum AgentState: Int, Comparable, Sendable {
+public enum AgentState: Comparable, Sendable {
     case idle, working, finishedUnseen, needsYou
-
-    public static func < (lhs: Self, rhs: Self) -> Bool {
-        lhs.rawValue < rhs.rawValue
-    }
 }
 
 /// The app's own "seen" (D14, design: layout, Selection and "seen"): herdr's statuses plus which finishes the user
 /// has not looked at yet, from `completion_seq`. herdr's `done` is not used.
 public struct Seen: Sendable {
-    /// A pane's state changed, at the time the app saw it.
+    /// A pane's state changed.
     public struct Change: Equatable, Sendable {
         public let paneID: String
         public let state: AgentState
-        public let time: Date
     }
 
     /// Each agent pane's state.
@@ -60,7 +55,7 @@ public struct Seen: Sendable {
             if self.states[id] != state {
                 since[id] = now
                 if started {
-                    changes.append(Change(paneID: id, state: state, time: now))
+                    changes.append(Change(paneID: id, state: state))
                 }
             }
         }

@@ -86,9 +86,8 @@
         var body: some View {
             let waiting = page.store.panes.count { $0.state == .needsYou }
             Button(action: toggle) {
-                // The front bubble filled: the `.fill` symbol's front layer alone over the outline (`.fill` fills
-                // both).
-                // Both line up at their bottoms.
+                // Only the front bubble filled: `.fill` fills both, so its front layer alone (palette, back layer
+                // clear) goes over the outline; the two symbols line up at their bottoms, not their centers.
                 ZStack(alignment: .bottom) {
                     Image(systemName: "bubble.left.and.bubble.right")
                     if showing {
