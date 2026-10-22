@@ -96,9 +96,9 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
   lighter than Rex's Glass (`#393939` between the cards in `glass-untinted.jpg`). Rex's Modern dark window
   also has a backdrop of black 0.6, blended `overlay`. Adding it (`Look.backdrop`, Glass dark only) gives
   `#353536`–`#393939`.
-- **Classic dark is close to Rex.** The window is `#282828` and the keyboard card `#2d2d2d` in the
-  screenshot, the same pixels as Rex's cards in `classic-untinted.jpg`. The other cards are one step
-  lighter (`#323232`), from the table's fill values.
+- **Classic dark card fill is white 0.018.** The table's white 0.035 gives `#262626`, not the `#222` on
+  `#1e1e1e` it names (and Rex shows in `classic-untinted.jpg`). White 0.018 gives `#222`. The window is
+  `#1e1e1e` (`#282828` in a Display P3 screenshot, the same pixels as Rex's).
 - **Classic light window is plain `#f6f6f6`.** With white 0.5 over it (the table's value) the window
   measured `#fbfbfb` and the cards `#fdfdfd`–`#fefefe`, nearly flat. Plain `#f6f6f6` gives Rex's light
   steps (window `#f3f3f3`, card `#fbfbfb` in `light-mode.jpg`).
@@ -120,9 +120,11 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
   `Style.swift`: `Color(red:…)`, `Color.white`, `.white.opacity(…)`, `(.white)` and the other named
   colors. It covers the "Done when" grep on every commit. A gradient color list in a mask is not matched.
 - **Clipping.** The strip and the title-bar tabs are scroll views, which clip. The 4 pt above the cards
-  now sits inside each page, and the tab row has 4 pt above and below the capsules. Otherwise the cards'
+  now sits inside each page, and the tab row has 5 pt above and below the capsules (the shadow's radius
+  3.5 plus its offset 1.5). Otherwise the cards'
   outer stroke and the Classic pill's shadow get cut.
-- **e2e.** `testMenuSwitchesTheLook` also checks that Auto follows the system's `AppleInterfaceStyle`. The
+- **e2e.** `testMenuSwitchesTheLook` also checks that Auto follows the system's `AppleInterfaceStyle`: it
+  first picks the other appearance, so an Auto that does nothing fails. The
   menu checkmarks were checked by hand (`AXMenuItemMarkChar`). The test starts on Glass, and a teardown block goes back to Glass Dark even
   after a failure, because the menu writes to the app's persistent defaults. The UI tests share those
   defaults with the user's own Oriel (same bundle id), so a run leaves the look at Glass Dark. `testLaunchesInEachLook` relaunches with the arguments for each look and checks that
