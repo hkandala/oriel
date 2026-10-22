@@ -28,7 +28,7 @@ struct Look {
     /// Glass: the tint over the behind-window blur. Classic: the whole window.
     var window: Color {
         pick(Color(white: 0x1E / 255).opacity(0.5), .white.opacity(0.5),
-             Color(white: 0x1E / 255), Color(white: (0xF6 + 0xFF) / 2 / 255))
+             Color(white: 0x1E / 255), Color(white: 0xF6 / 255))
     }
 
     var cardFill: Color {
