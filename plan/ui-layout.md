@@ -130,7 +130,7 @@ What herdr 0.9.5 allows (tested on a throwaway session, October 2026):
 | herdr call | Allowed | Refused |
 |---|---|---|
 | `pane.swap {source_pane_id, target_pane_id}` (or `{pane_id, direction}`) | two panes of the **same tab** | panes of different tabs (`changed:false`, `reason:"cross_tab"`) |
-| `pane.move {destination:{type:"tab", tab_id, split: right\|down, target_pane_id?, ratio?}}` | into **another tab** of any workspace of the session, beside `target_pane_id` (or the tab's whole layout when omitted), with an optional ratio | into its own tab (`reason:"same_tab"`) |
+| `pane.move {destination:{type:"tab", tab_id, split: right\|down, target_pane_id?, ratio?}}` | into **another tab** of any workspace of the session, beside `target_pane_id` (or, when omitted, the tab's focused pane), with an optional ratio | into its own tab (`reason:"same_tab"`) |
 | `pane.move {destination:{type:"new_tab", workspace_id?, label?}}` | a new tab in any workspace of the session | — |
 | `pane.move {destination:{type:"new_workspace", label?, tab_label?}}` | a new workspace | — |
 | `tab.move {tab_id, insert_index}` | reorder inside its workspace | moving a tab to another workspace |
@@ -147,7 +147,7 @@ Drag a card by its header (4 pt to start). Every target Oriel offers:
 |---|---|---|
 | the center of another card in the same tab | swap the two | `pane.swap` |
 | the left, right, top or bottom edge of another card in the same tab | re-place the pane beside that card | `pane.move` to a new tab, then `pane.move` back beside the target (right or down), then `pane.swap` for left or top. If a later step fails, the pane stays where it got to and the notice says so |
-| another tab's capsule in the title row | the tab pages into view after 0.65 s (spring-loading), so the drop lands on a card there; a drop on the capsule itself moves the pane into that tab, split right of its layout | `pane.move {type:"tab", split:"right"}` |
+| another tab's capsule in the title row | the tab pages into view after 0.65 s (spring-loading), so the drop lands on a card there; a drop on the capsule itself moves the pane into that tab, split right of its last card | `pane.move {type:"tab", split:"right", target_pane_id}` |
 | the pane's own tab capsule | not a target (herdr refuses `same_tab`) | — |
 | an edge of a card in another tab (after spring-loading) | split beside that card | `pane.move {type:"tab", tab_id, split, target_pane_id}`, then `pane.swap` for left or top |
 | the empty end of the tab track, or the `+` | a new tab in the selected workspace | `pane.move {type:"new_tab", workspace_id}` |

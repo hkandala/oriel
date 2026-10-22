@@ -73,7 +73,7 @@ public enum Heading: String, Sendable {
 /// Where `move(pane:to:)` puts a pane.
 public enum Destination: Sendable {
     case newTab(workspaceID: String)
-    /// Split right or down beside a pane of the tab, else beside the tab's whole layout.
+    /// Split right or down beside a pane of the tab, else beside the tab's focused pane (herdr 0.9.5).
     case tab(String, beside: String? = nil, split: SplitNode.Direction = .right)
     case newWorkspace
 }

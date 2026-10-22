@@ -11,7 +11,7 @@ calls (D69). What herdr 0.9.5 allows, tested on a throwaway session:
 | herdr call | Allowed | Refused |
 |---|---|---|
 | `pane.swap {source_pane_id, target_pane_id}` (or `{pane_id, direction}`) | two panes of the same tab | panes of different tabs (`changed:false`, `reason:"cross_tab"`) |
-| `pane.move {destination:{type:"tab", tab_id, split, target_pane_id?, ratio?}}` | into another tab of any workspace of the session, split right or down beside `target_pane_id` (or the tab's whole layout when it is left out), with an optional ratio | into its own tab (`reason:"same_tab"`) |
+| `pane.move {destination:{type:"tab", tab_id, split, target_pane_id?, ratio?}}` | into another tab of any workspace of the session, split right or down beside `target_pane_id` (or, when it is left out, the tab's focused pane), with an optional ratio | into its own tab (`reason:"same_tab"`) |
 | `pane.move {destination:{type:"new_tab", workspace_id?, label?}}` | a new tab in any workspace of the session | — |
 | `pane.move {destination:{type:"new_workspace", label?, tab_label?}}` | a new workspace | — |
 | `tab.move {tab_id, insert_index}` | reorder inside its workspace | a move to another workspace |
@@ -41,7 +41,7 @@ Drag a card by its header (the title area, not its buttons) by 4 pt or more.
 | the center of another card in the same tab (all but the edge bands) | the whole card | swap the two panes | `pane.swap` |
 | an edge band of another card in the same tab: the outer quarter on each side is that edge | that half of the card | put the pane beside that card | `pane.move` to a new tab, then `pane.move` back beside the target (right or down), then `pane.swap` for left or top |
 | the pane's own tab capsule | none | not a target (herdr refuses `same_tab`) | — |
-| another tab's capsule in the title row | the capsule highlighted | move into that tab, split right of its layout | `pane.move {type:"tab", tab_id, split:"right"}` |
+| another tab's capsule in the title row | the capsule highlighted | move into that tab, split right of its last card | `pane.move {type:"tab", tab_id, split:"right", target_pane_id: the last card}` |
 | an edge band of a card in another tab (after spring-loading) | that half of the card | split beside that card | `pane.move {type:"tab", tab_id, split, target_pane_id}`, then `pane.swap` for left or top |
 | the empty end of the tab track, or `+` | a ghost capsule at the end (and the `+` highlighted) | a new tab in the selected workspace | `pane.move {type:"new_tab", workspace_id}` |
 | a workspace row in the sidebar | the row highlighted | a new tab in that workspace | `pane.move {type:"new_tab", workspace_id}` |

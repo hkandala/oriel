@@ -48,7 +48,8 @@ extension HostStore {
         await write { try await $0.swap(paneID, with: targetID) }
     }
 
-    /// A drop beside a card (an edge), or on a tab's capsule (no target: right of the tab's layout). herdr splits only
+    /// A drop beside a card (an edge), or on a tab's capsule (no target: right of the tab's last card, as herdr would
+    /// split its focused pane, wherever that is). herdr splits only
     /// right or down, so a left or top edge swaps after; it refuses a move into the pane's own tab, so the pane goes
     /// to a new tab first. Then the run of splits holding it is evened out, as after a split. If a later step fails,
     /// the pane stays where it got to and the notice says so. The pane where it went.
@@ -56,6 +57,7 @@ extension HostStore {
                _ edge: Heading = .right) async -> HerdrKit.Pane?
     {
         var placed: HerdrKit.Pane?
+        let targetID = targetID ?? workspace(of: tabID)?.tabs.first { $0.id == tabID }?.tree?.paneIDs.last
         await write { client in
             var id = paneID, done: String?
             do {
