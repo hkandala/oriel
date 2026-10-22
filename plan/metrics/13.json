@@ -2,7 +2,7 @@
   "phase": 13, "agent": "phase13-title-row",
   "started": "2026-10-22T01:45:00-07:00", "finished": "2026-10-22T03:40:00-07:00",
   "base": "5d98632c1ee3bf6c8137b2963f2260dedf4b1cdd", "head": "fd79017",
-  "commits": 14, "files_changed": 21, "insertions": 1500, "deletions": 581,
+  "commits": 14, "files_changed": 21, "insertions": 1473, "deletions": 581,
   "review_rounds": 3,
   "reviews": [
     {"name": "phase13-spec-review", "role": "spec", "round": 1,
