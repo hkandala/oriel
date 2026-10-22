@@ -6,7 +6,7 @@ extension OrielUITests {
     func testSecondWindowWatchesUntilItsUserTypes() async throws {
         let (first, second) = try newWindow()
         // Window 1 opened the session first: it controls, window 2 watches.
-        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
+        XCTAssertTrue(element("notice.controlled", in: second).exists(within: connect))
         XCTAssertFalse(element("notice.controlled", in: first).exists)
         let terminal = try await terminalID("w1:p1")
         try await expectStreams(terminal, control: 1, observe: 1)
@@ -19,8 +19,8 @@ extension OrielUITests {
 
         // Typing in window 2 makes it the controller, and the key is sent.
         element("terminal.w1:p1", in: second).click()
-        XCTAssertTrue(element("notice.controlled", in: first).waitForExistence(timeout: 3))
-        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
+        XCTAssertTrue(element("notice.controlled", in: first).exists(within: 3))
+        XCTAssertTrue(element("notice.controlled", in: second).vanishes(within: 3))
         app.typeText("echo one-$((40+2))")
         app.typeKey(.return, modifierFlags: [])
         try await waitFor("w1:p1") { $0.contains("\none-42") }
@@ -33,14 +33,14 @@ extension OrielUITests {
         // Take Back in window 1: the capsule moves to window 2.
         raise(first)
         element("notice.controlled.take-back", in: first).click()
-        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: 3))
-        XCTAssertTrue(element("notice.controlled", in: first).waitForNonExistence(timeout: 3))
+        XCTAssertTrue(element("notice.controlled", in: second).exists(within: 3))
+        XCTAssertTrue(element("notice.controlled", in: first).vanishes(within: 3))
         try await expectPTYSize("w1:p1", in: first)
 
         // Each window keeps its own selection.
         raise(second)
         element("tab.w1:t2", in: second).click()
-        XCTAssertTrue(element("tab.w1:t2", in: second).wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("tab.w1:t2", in: second).has(\.isSelected, true, within: 2))
         XCTAssertTrue(element("tab.w1:t1", in: first).isSelected)
         // Window 1 never showed t2, so nobody holds p4: watching, window 2 still opens it as observe.
         try await expectStreams(terminalID("w1:p4"), control: 0, observe: 1)
@@ -48,32 +48,32 @@ extension OrielUITests {
         app.typeText("echo two-$((40+3))")
         app.typeKey(.return, modifierFlags: [])
         try await waitFor("w1:p4") { $0.contains("\ntwo-43") }
-        XCTAssertTrue(element("notice.controlled", in: first).waitForExistence(timeout: 3))
-        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
+        XCTAssertTrue(element("notice.controlled", in: first).exists(within: 3))
+        XCTAssertTrue(element("notice.controlled", in: second).vanishes(within: 3))
         try await expectStreams(terminalID("w1:p4"), control: 1, observe: 0)
     }
 
     func testClosingTheControllingWindowHandsControlOver() async throws {
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         // One events stream per session, however many windows show it (request bridges come and go).
         try await poll("one bridge run") { () async throws -> Bool? in try await bridges(one) == 1 ? true : nil }
         let (first, second) = try newWindow()
-        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
+        XCTAssertTrue(element("notice.controlled", in: second).exists(within: connect))
         try await poll("still one bridge run") { () async throws -> Bool? in try await bridges(one) == 1 ? true : nil }
         app.typeKey("s", modifierFlags: [.command, .control])
 
         // Window 1 controls and closes: window 2 takes over at its own card size.
         raise(first)
         first.buttons[XCUIIdentifierCloseWindow].click()
-        XCTAssertTrue(first.waitForNonExistence(timeout: 3))
-        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
+        XCTAssertTrue(first.vanishes(within: 3))
+        XCTAssertTrue(element("notice.controlled", in: second).vanishes(within: 3))
         try await expectPTYSize("w1:p1", in: second)
         try await expectStreams(terminalID("w1:p1"), control: 1, observe: 0)
     }
 
     func testControllerClosingItsPageHandsControlOver() async throws {
         let (first, second) = try newWindow()
-        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
+        XCTAssertTrue(element("notice.controlled", in: second).exists(within: connect))
         app.typeKey("s", modifierFlags: [.command, .control])
 
         // Window 1 controls, opens session two and closes its page of session one: window 2 takes over.
@@ -83,34 +83,34 @@ extension OrielUITests {
         XCTAssertTrue(element("notice.controlled", in: second).exists)
         try await expectStreams(terminalID("w1:p1"), control: 1, observe: 1)
         closePageOne(in: first)
-        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
+        XCTAssertTrue(element("notice.controlled", in: second).vanishes(within: 3))
         try await expectStreams(terminalID("w1:p1"), control: 1, observe: 0)
         try await expectPTYSize("w1:p1", in: second)
     }
 
     func testWindowsOnDifferentSessionsEachControlTheirOwn() async throws {
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         // By identifier: `firstMatch` would follow the front window.
         let identifier = app.windows.firstMatch.identifier
         let first = app.windows[identifier]
         // A plain click on This Mac opens nothing; ⌥-click opens a window, as ⌘N.
         element("titlebar.machine", in: first).click()
         app.menuItems["This Mac"].click()
-        XCTAssertFalse(app.windows.element(boundBy: 1).waitForExistence(timeout: 2))
+        XCTAssertFalse(app.windows.element(boundBy: 1).exists(within: 2))
         element("titlebar.machine", in: first).click()
         XCUIElement.perform(withKeyModifiers: .option) { app.menuItems["This Mac"].click() }
         let second = try otherWindow(than: identifier)
-        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
+        XCTAssertTrue(element("notice.controlled", in: second).exists(within: connect))
 
         // Window 2 opens session two and closes its page of session one.
         openSessionTwo(in: second)
         // The capsule shows only while the page in view is watched.
-        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
+        XCTAssertTrue(element("notice.controlled", in: second).vanishes(within: 3))
         element("sidebar.dot.\(one)", in: second).click()
-        XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("notice.controlled", in: second).exists(within: 3))
         closePageOne(in: second)
 
-        XCTAssertTrue(element("terminal.w1:p1", in: second).waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1", in: second).exists(within: connect))
         XCTAssertFalse(element("notice.controlled", in: second).exists)
         XCTAssertFalse(element("notice.controlled", in: first).exists)
         let gamma = try await Self.call(two, "pane.get", ["pane_id": "w1:p1"])["pane"] as? [String: Any]
@@ -126,7 +126,7 @@ extension OrielUITests {
     private func openSessionTwo(in window: XCUIElement) {
         element("sidebar.open-session", in: window).click()
         element("open-session.session.\(two)", in: window).click()
-        XCTAssertTrue(element("sidebar.dot.\(two)", in: window).waitForExistence(timeout: connect))
+        XCTAssertTrue(element("sidebar.dot.\(two)", in: window).exists(within: connect))
     }
 
     /// Closes the window's page of session one from its header's context menu.
@@ -135,12 +135,12 @@ extension OrielUITests {
         // At its center: the page that slid away may leave it unhittable for a moment.
         element("sidebar.header", in: window).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
         app.menuItems["Close Page"].click()
-        XCTAssertTrue(element("sidebar.dot.\(one)", in: window).waitForNonExistence(timeout: 3))
+        XCTAssertTrue(element("sidebar.dot.\(one)", in: window).vanishes(within: 3))
     }
 
     /// ⌘N once the first window shows session one: the first window and the new one.
     func newWindow() throws -> (XCUIElement, XCUIElement) {
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         let first = app.windows.firstMatch
         let identifier = first.identifier
         app.typeKey("n", modifierFlags: .command)
@@ -149,11 +149,11 @@ extension OrielUITests {
 
     /// The window that is not this one, once there are two; it shows session one.
     private func otherWindow(than identifier: String) throws -> XCUIElement {
-        XCTAssertTrue(app.windows.element(boundBy: 1).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.windows.element(boundBy: 1).exists(within: 3))
         XCTAssertEqual(app.windows.count, 2)
         let other = try XCTUnwrap(app.windows.allElementsBoundByIndex.map(\.identifier).first { $0 != identifier })
         let window = app.windows[other]
-        XCTAssertTrue(element("terminal.w1:p1", in: window).waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1", in: window).exists(within: connect))
         return window
     }
 
@@ -179,9 +179,6 @@ extension OrielUITests {
         if app.windows.firstMatch.identifier != identifier {
             app.typeKey("`", modifierFlags: .command)
         }
-        let front = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            self.app.windows.firstMatch.identifier == identifier
-        }, object: nil)
-        XCTAssertEqual(XCTWaiter().wait(for: [front], timeout: 3), .completed, "window \(identifier) in front")
+        XCTAssertTrue(until(3) { app.windows.firstMatch.identifier == identifier }, "window \(identifier) in front")
     }
 }

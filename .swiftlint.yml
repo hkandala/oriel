@@ -22,3 +22,8 @@ custom_rules:
     regex: '\b(Text|Label|message|Button)\([^\n]*"[^"\n]*(herdr --|herdr (session|workspace|tab|pane|server|attach)\b|in herdr\b)'
     message: 'No UI text tells the user to run herdr: show the button that does it'
     severity: error
+  fast_waits: # plan/ci.md, Speed: XCTest's waits take a second or more even when the condition already holds
+    included: '/OrielUITests/'
+    regex: '\.waitFor(Non)?Existence\(|\.wait\(for: \\\.|XCTNSPredicateExpectation|XCTWaiter'
+    message: 'Wait with exists(within:), vanishes(within:), has(_:_:within:), until or poll'
+    severity: error

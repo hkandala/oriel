@@ -5,7 +5,7 @@ import XCTest
 extension OrielUITests {
     /// View ▸ Appearance and View ▸ Interface Style switch the look, with a screenshot of each of the four.
     func testMenuSwitchesTheLook() {
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         // Settings persist (in the app's own defaults): start from the defaults whatever an earlier run left, and
         // go back to them even when a step fails.
         pick("Interface Style", "Glass")
@@ -50,8 +50,6 @@ extension OrielUITests {
     }
 
     private func expectLook(_ look: String) {
-        let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", look),
-                                              object: element("window.look"))
-        XCTAssertEqual(XCTWaiter().wait(for: [shown], timeout: connect), .completed, look)
+        XCTAssertTrue(element("window.look").has(\.stringValue, look, within: connect), look)
     }
 }

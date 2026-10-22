@@ -11,7 +11,7 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         let divider = element("divider.\(tab).root")
         // The second split's divider: the app has all three panes.
-        XCTAssertTrue(element("divider.\(tab).1").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("divider.\(tab).1").exists(within: 3))
 
         // ⌃⌘= through its menu item: a global hotkey on this Mac takes the key before the app sees it.
         pick("Pane", "Balance Splits")
@@ -34,7 +34,7 @@ extension OrielUITests {
     func testSplitRightTwiceGivesThirds() async throws {
         let (tab, pane) = try await newTab("thirds")
         element("tab.\(tab)").click()
-        XCTAssertTrue(element("page.\(tab)").wait(for: \.isHittable, toEqual: true, timeout: 3))
+        XCTAssertTrue(element("page.\(tab)").has(\.isHittable, true, within: 3))
         for count in [2, 3] {
             hoverHeader(pane)
             element("pane.\(pane).split-right").click()
@@ -59,7 +59,7 @@ extension OrielUITests {
         let second = try await split(first)
         restoreHerdrFocusAfter()
         element("tab.\(tab)").click()
-        XCTAssertTrue(element("terminal.\(second)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
         element("terminal.\(first)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
 
@@ -97,7 +97,7 @@ extension OrielUITests {
         let (tab, pane) = try await newTab("menu")
         restoreHerdrFocusAfter()
         element("tab.\(tab)").click()
-        XCTAssertTrue(element("terminal.\(pane)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("terminal.\(pane)").exists(within: 3))
 
         paneMenu(pane, "Split Left", screenshot: "context menu")
         try await poll("a new pane left of the first") { () async throws -> Bool? in
@@ -133,7 +133,7 @@ extension OrielUITests {
             try await order(moved) == [pane] ? true : nil
         }
         // The page follows the pane.
-        XCTAssertTrue(element("tab.\(moved)").wait(for: \.isSelected, toEqual: true, timeout: 3))
+        XCTAssertTrue(element("tab.\(moved)").has(\.isSelected, true, within: 3))
 
         // To a new workspace: a new pane id, the same terminal, and it keeps the keyboard.
         let terminal = try await terminalID(pane)
@@ -157,17 +157,17 @@ extension OrielUITests {
     func testZoomIsDisabledAloneAndAZoomedCardShowsRestoreAndClose() async throws {
         let (tab, first) = try await newTab("zoom")
         element("tab.\(tab)").click()
-        XCTAssertTrue(element("terminal.\(first)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("terminal.\(first)").exists(within: 3))
         hoverHeader(first)
-        XCTAssertTrue(element("pane.\(first).zoom").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("pane.\(first).zoom").exists(within: 2))
         XCTAssertFalse(element("pane.\(first).zoom").isEnabled)
 
         let second = try await split(first)
-        XCTAssertTrue(element("pane.\(second)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("pane.\(second)").exists(within: 3))
         hoverHeader(first)
-        XCTAssertTrue(element("pane.\(first).zoom").wait(for: \.isEnabled, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("pane.\(first).zoom").has(\.isEnabled, true, within: 2))
         element("pane.\(first).zoom").click()
-        XCTAssertTrue(element("pane.\(second)").waitForNonExistence(timeout: 2))
+        XCTAssertTrue(element("pane.\(second)").vanishes(within: 2))
         XCTAssertEqual(element("pane.\(first).zoom").label, "Restore Pane ⇧⌘↩")
         XCTAssertTrue(element("pane.\(first).close").exists)
         XCTAssertFalse(element("pane.\(first).split-right").exists)
@@ -176,13 +176,13 @@ extension OrielUITests {
 
         // Its neighbor gone, the card is alone: the zoom ends.
         try await Self.call(one, "pane.close", ["pane_id": second])
-        XCTAssertTrue(element("pane.\(first).split-right").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("pane.\(first).split-right").exists(within: 3))
         XCTAssertEqual(element("pane.\(first).zoom").label, "Zoom Pane ⇧⌘↩")
         XCTAssertFalse(element("pane.\(first).zoom").isEnabled)
     }
 
     func testCardsWithoutTheKeyboardFade() throws {
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         element("terminal.w1:p1").click()
         XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
         let keyboard = element("pane.w1:p1"), other = element("pane.w1:p2")
@@ -230,7 +230,7 @@ extension OrielUITests {
             .rightClick()
         // In the window, not the menu bar's View ▸ Pane, which has the same titles.
         let entry = app.windows.firstMatch.menuItems[item]
-        XCTAssertTrue(entry.waitForExistence(timeout: 2))
+        XCTAssertTrue(entry.exists(within: 2))
         if let screenshot {
             keepScreenshot(screenshot)
         }
@@ -294,15 +294,10 @@ extension OrielUITests {
         }
     }
 
-    /// Polls the element's accessibility value every 100 ms, for 3 s, until it is one of these.
+    /// Waits up to 3 s for the element's accessibility value to be one of these.
     func expectValue(_ element: XCUIElement, _ values: String...) {
-        for _ in 0 ..< 30 {
-            if values.contains(element.value as? String ?? "") {
-                return
-            }
-            Thread.sleep(forTimeInterval: 0.1)
-        }
-        XCTFail("\(element.identifier) has \(element.value ?? "no value"), not \(values)")
+        XCTAssertTrue(until(3) { values.contains(element.stringValue) },
+                      "\(element.identifier) has \(element.value ?? "no value"), not \(values)")
     }
 
     func label(_ pane: String) async throws -> String? {

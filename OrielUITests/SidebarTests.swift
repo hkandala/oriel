@@ -5,7 +5,7 @@ import XCTest
 /// stopped; four is made by a test; five is stopped and started by tests.
 extension OrielUITests {
     func testLaunchOpensOnePageAndNoOtherSession() async throws {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         XCTAssertEqual(header, one)
         XCTAssertFalse(element("sidebar.dot.\(one)").exists)
         // The other sessions cost nothing: no bridge, no stream.
@@ -16,15 +16,15 @@ extension OrielUITests {
         // Esc and Cancel close the sheet.
         let filter = openSessionSheet()
         app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(filter.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(filter.vanishes(within: 2))
         openSessionSheet()
         app.buttons["Cancel"].click()
-        XCTAssertTrue(filter.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(filter.vanishes(within: 2))
     }
 
-    func testOpenSessionListsSessionsAndOpensAPage() throws {
+    func testOpenSessionListsSessionsAndOpensAPage() {
         let two = env("ORIEL_SESSION2"), three = env("ORIEL_SESSION3")
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openSessionSheet()
         expect("open-session.session.\(two)", under: "Running", above: "Stopped")
         expect("open-session.session.\(three)", under: "Stopped", above: "Open in this window")
@@ -34,48 +34,48 @@ extension OrielUITests {
             .firstMatch.isSelected)
         // Only this run's sessions, so all four groups are in view.
         app.typeText(String(one.dropLast()))
-        XCTAssertTrue(element("open-session.new.\(one.dropLast())").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("open-session.new.\(one.dropLast())").exists(within: 2))
         keepScreenshot("open session")
         element("open-session.session.\(two)").click()
 
-        XCTAssertTrue(element("open-session.filter").waitForNonExistence(timeout: 2))
-        try waitUntil { header == two }
+        XCTAssertTrue(element("open-session.filter").vanishes(within: 2))
+        XCTAssertTrue(until(3) { header == two })
         XCTAssertTrue(element("sidebar.dot.\(one)").exists)
         XCTAssertTrue(element("sidebar.dot.\(two)").isSelected)
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier == 'workspace.w1' AND label == 'gamma'"))
-            .firstMatch.waitForExistence(timeout: connect))
+            .firstMatch.exists(within: connect))
         keepScreenshot("two pages")
         element("sidebar.dot.\(one)").click()
-        try waitUntil { header == one }
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: 2))
+        XCTAssertTrue(until(3) { header == one })
+        XCTAssertTrue(element("workspace.w2").exists(within: 2))
 
         // The workspace menu has a group per page; another page's workspace shows that page.
         element("sidebar.dot.\(two)").click()
-        try waitUntil { header == two }
+        XCTAssertTrue(until(3) { header == two })
         app.typeKey("s", modifierFlags: [.command, .control])
         let button = element("titlebar.workspace")
-        XCTAssertTrue(button.waitForExistence(timeout: 2))
+        XCTAssertTrue(button.exists(within: 2))
         button.click()
-        XCTAssertTrue(element("workspaces.\(two).w1").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("workspaces.\(two).w1").exists(within: 2))
         element("workspaces.\(one).w2").click()
-        try waitUntil { button.value as? String == "\(one) | beta" }
+        XCTAssertTrue(until(3) { button.value as? String == "\(one) | beta" })
         app.typeKey("s", modifierFlags: [.command, .control])
-        XCTAssertTrue(element("workspace.w2").wait(for: \.isSelected, toEqual: true, timeout: 2))
-        try waitUntil { header == one }
+        XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
+        XCTAssertTrue(until(3) { header == one })
     }
 
     func testShiftCommandNCreatesASessionAsANewPage() async throws {
         let four = env("ORIEL_SESSION4")
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         app.typeKey("n", modifierFlags: [.command, .shift])
         XCTAssertTrue(hasKeyboard(element("open-session.filter")))
         app.typeText(four)
-        XCTAssertTrue(element("open-session.new.\(four)").wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("open-session.new.\(four)").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
 
         // The app starts the server and makes its first workspace; the new page shows it.
-        try waitUntil(timeout: connect) { header == four }
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
+        XCTAssertTrue(until(connect) { header == four })
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let snapshot = try await Self.call(four, "session.snapshot", [:])["snapshot"] as? [String: Any]
         XCTAssertEqual((snapshot?["workspaces"] as? [Any])?.count, 1)
         XCTAssertTrue(element("sidebar.dot.\(one)").exists)
@@ -83,28 +83,28 @@ extension OrielUITests {
 
     func testOpenSessionStartsAStoppedSession() async throws {
         let five = env("ORIEL_SESSION5")
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let stopped = try await Self.post("\(five)/stop", Data())
         XCTAssertEqual(stopped.status, 200, String(decoding: stopped.data, as: UTF8.self))
         openSessionSheet()
         // Other stopped sessions on this Mac may push its row out of the list's view.
         app.typeText(five)
         let row = element("open-session.session.\(five)")
-        XCTAssertTrue(row.wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(row.has(\.isSelected, true, within: 2))
         expect(row.identifier, under: "Stopped", above: nil)
         app.typeKey(.return, modifierFlags: [])
 
-        try waitUntil(timeout: connect) { header == five }
+        XCTAssertTrue(until(connect) { header == five })
         try await Self.call(five, "session.snapshot", [:])
     }
 
     func testClosePageKeepsTheSessionRunning() async throws {
         let two = env("ORIEL_SESSION2")
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openPage(two)
         element("sidebar.header").rightClick()
         app.menuItems["Close Page"].click()
-        try waitUntil { header == one }
+        XCTAssertTrue(until(3) { header == one })
         XCTAssertFalse(element("sidebar.dot.\(two)").exists)
         XCTAssertFalse(element("sidebar.dot.\(one)").exists)
         // The session still runs (testClosingAPageAndQuittingLeaveNoStreams checks its runs end).
@@ -112,7 +112,7 @@ extension OrielUITests {
 
         // At its center: the page that slid away may leave it unhittable for a moment.
         element("sidebar.header").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        XCTAssertTrue(app.menuItems["Close Page"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.menuItems["Close Page"].exists(within: 2))
         XCTAssertFalse(app.menuItems["Close Page"].isEnabled)
         app.typeKey(.escape, modifierFlags: [])
     }
@@ -131,7 +131,7 @@ extension OrielUITests {
         app.launch()
         // The page and the strip each show only the button.
         let buttons = app.buttons.matching(identifier: "new-workspace")
-        XCTAssertTrue(buttons.element(boundBy: 1).waitForExistence(timeout: connect))
+        XCTAssertTrue(buttons.element(boundBy: 1).exists(within: connect))
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workspace.'")).firstMatch
             .exists)
         keepScreenshot("empty page")
@@ -140,11 +140,11 @@ extension OrielUITests {
             let snapshot = try await Self.call(five, "session.snapshot", [:])["snapshot"] as? [String: Any]
             return (snapshot?["panes"] as? [[String: Any]])?.first?["pane_id"] as? String
         }
-        XCTAssertTrue(element("terminal.\(pane)").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("terminal.\(pane)").exists(within: 5))
     }
 
     func testWorkspaceRowsShowGitAndWorktrees() async throws {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         // The sandboxed runner cannot run git: a pane of w2 (in /tmp) builds a repository one commit ahead of its
         // upstream and one behind it, and a linked worktree.
         let root = "/tmp/oriel-e2e-git-\(Int.random(in: 10000 ... 99999))"
@@ -174,8 +174,8 @@ extension OrielUITests {
         }
 
         let repoRow = element("workspace.\(repo)"), treeRow = element("workspace.\(tree)")
-        try waitUntil(timeout: 5) { repoRow.value as? String == "main ahead 1 behind 1" }
-        try waitUntil(timeout: 5) { treeRow.value as? String == "feature ahead 0 behind 0, worktree of repo" }
+        XCTAssertTrue(until(5) { repoRow.value as? String == "main ahead 1 behind 1" })
+        XCTAssertTrue(until(5) { treeRow.value as? String == "feature ahead 0 behind 0, worktree of repo" })
         XCTAssertEqual(repoRow.frame.height, 44, accuracy: 1)
         XCTAssertEqual(element("workspace.w2").frame.height, 30, accuracy: 1)
         XCTAssertEqual(treeRow.frame.minX - repoRow.frame.minX, 14, accuracy: 1)
@@ -189,19 +189,19 @@ extension OrielUITests {
              "text": "(cd \(root)/repo && \(git) commit -q --allow-empty -m 3) && echo committed-$((6*7))\r"],
         )
         try await waitFor("w2:p1") { $0.contains("\ncommitted-42") }
-        try waitUntil(timeout: 12) { repoRow.value as? String == "main ahead 2 behind 1" }
+        XCTAssertTrue(until(12) { repoRow.value as? String == "main ahead 2 behind 1" })
 
         // The filter matches branches; a matching worktree keeps its repository's row.
         let filter = element("sidebar.filter")
         filter.click()
         filter.typeText("feature")
-        XCTAssertTrue(element("workspace.w2").waitForNonExistence(timeout: 2))
+        XCTAssertTrue(element("workspace.w2").vanishes(within: 2))
         XCTAssertTrue(treeRow.exists)
         XCTAssertTrue(repoRow.exists)
     }
 
     func testHeaderPlusAndRowMenuChangeHerdr() async throws {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let before = try await workspaceIDs()
         element("sidebar.new-workspace").click()
         let made = try await poll("a new workspace") { () async throws -> String? in
@@ -217,7 +217,7 @@ extension OrielUITests {
             }
         }
         let row = element("workspace.\(made)")
-        XCTAssertTrue(row.wait(for: \.isSelected, toEqual: true, timeout: 3))
+        XCTAssertTrue(row.has(\.isSelected, true, within: 3))
 
         // Rename: the inline field, Enter saves.
         row.rightClick()
@@ -238,7 +238,7 @@ extension OrielUITests {
             try await workspaceIDs().suffix(2) == [made, "w2"] ? true : nil
         }
         // The sidebar shows the new order before the next move.
-        try waitUntil { row.frame.maxY <= element("workspace.w2").frame.minY }
+        XCTAssertTrue(until(3) { row.frame.maxY <= element("workspace.w2").frame.minY })
         row.rightClick()
         app.menuItems["Move Down"].click()
         try await poll("herdr's order back") { () async throws -> Bool? in
@@ -249,23 +249,23 @@ extension OrielUITests {
         app.menuItems["Close Workspace"].click()
         // D41: it asks, with the tab and pane count.
         XCTAssertTrue(app.sheets.staticTexts["Its tab, pane and everything running in it will end, here and in every "
-                + "herdr client. This cannot be undone."].waitForExistence(timeout: 2))
+                + "herdr client. This cannot be undone."].exists(within: 2))
         app.sheets.buttons["Close Workspace"].click()
         try await poll("herdr to close it") { () async throws -> Bool? in
             try await workspaceIDs().contains(made) ? nil : true
         }
-        XCTAssertTrue(row.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(row.vanishes(within: 2))
     }
 
     /// A double-click on a row renames too; Esc keeps herdr's label.
     func testDoubleClickRenamesAndEscapeCancels() async throws {
         let row = element("workspace.w2"), field = element("workspace.w2.rename")
-        XCTAssertTrue(row.waitForExistence(timeout: connect))
+        XCTAssertTrue(row.exists(within: connect))
         row.doubleClick()
         XCTAssertTrue(hasKeyboard(field))
         field.typeText("other")
         app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(field.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(field.vanishes(within: 2))
         // For a second: a wrong save would land a moment later.
         for _ in 0 ..< 10 {
             let label = try await workspaceLabel("w2")
@@ -277,7 +277,7 @@ extension OrielUITests {
 
     func testSidebarHandleResizesWithinItsBounds() {
         let sidebar = element("sidebar"), handle = element("sidebar.resize")
-        XCTAssertTrue(element("pane.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("pane.w1:p1").exists(within: connect))
         let start = sidebar.frame.width
         let drag = { (offset: CGFloat) in
             let from = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
@@ -305,7 +305,7 @@ extension OrielUITests {
     func openPage(_ session: String) {
         openSessionSheet()
         element("open-session.session.\(session)").click()
-        XCTAssertTrue(element("sidebar.dot.\(session)").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("sidebar.dot.\(session)").exists(within: connect))
     }
 
     /// The footer's Open Session; the sheet's field has the keyboard.
@@ -313,7 +313,7 @@ extension OrielUITests {
     func openSessionSheet() -> XCUIElement {
         element("sidebar.open-session").click()
         let filter = element("open-session.filter")
-        XCTAssertTrue(filter.waitForExistence(timeout: 2))
+        XCTAssertTrue(filter.exists(within: 2))
         XCTAssertTrue(hasKeyboard(filter))
         return filter
     }
@@ -325,18 +325,6 @@ extension OrielUITests {
 
     private func env(_ name: String) -> String {
         ProcessInfo.processInfo.environment[name] ?? ""
-    }
-
-    /// Polls an accessibility check every 100 ms.
-    private func waitUntil(timeout: TimeInterval = 3, _ check: () -> Bool) throws {
-        let end = Date.now.addingTimeInterval(timeout)
-        while !check() {
-            guard Date.now < end else {
-                XCTFail("timed out")
-                throw CancellationError()
-            }
-            Thread.sleep(forTimeInterval: 0.1)
-        }
     }
 
     func workspaceIDs() async throws -> [String] {

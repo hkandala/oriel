@@ -14,13 +14,13 @@ extension OrielUITests {
         app.launchArguments = ["-session", five, "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
         let terminal = element("terminal.w1:p1")
-        XCTAssertTrue(terminal.waitForExistence(timeout: connect))
+        XCTAssertTrue(terminal.exists(within: connect))
         try await poll("its stream") { () async throws -> Bool? in try await streams(five).count == 1 ? true : nil }
 
         let stopped = try await Self.post("\(five)/stop", Data())
         XCTAssertEqual(stopped.status, 200, String(decoding: stopped.data, as: UTF8.self))
         // The "not running" page: its Start button.
-        XCTAssertTrue(element("detail.start").waitForExistence(timeout: 10))
+        XCTAssertTrue(element("detail.start").exists(within: 10))
         XCTAssertFalse(terminal.exists)
         // Its last rows stay, without writes.
         // The button: its open context menu carries the same identifier.
@@ -28,16 +28,16 @@ extension OrielUITests {
         row.rightClick()
         XCTAssertFalse(app.menuItems["Rename Workspace"].isEnabled)
         app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(app.menuItems["Rename Workspace"].waitForNonExistence(timeout: 2))
+        XCTAssertTrue(app.menuItems["Rename Workspace"].vanishes(within: 2))
         row.doubleClick()
-        XCTAssertFalse(element("workspace.w1.rename").waitForExistence(timeout: 1))
+        XCTAssertFalse(element("workspace.w1.rename").exists(within: 1))
         keepScreenshot("not running")
         try await poll("no stream") { () async throws -> Bool? in try await streams(five).isEmpty ? true : nil }
 
         // Started in a terminal, not by the app: the app finds it again within seconds, with one stream.
         let started = try await Self.post("\(five)/start", Data())
         XCTAssertEqual(started.status, 200)
-        XCTAssertTrue(terminal.waitForExistence(timeout: 10))
+        XCTAssertTrue(terminal.exists(within: 10))
         try await poll("one stream again") { () async throws -> Bool? in
             try await streams(five).count == 1 ? true : nil
         }
@@ -45,11 +45,11 @@ extension OrielUITests {
         let created = try await Self.call(five, "tab.create", ["workspace_id": "w1", "label": "back", "cwd": "/tmp",
                                                                "focus": false])
         let tab = try XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String)
-        XCTAssertTrue(element("tab.\(tab)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
     }
 
     func testPaneClosedInHerdrDropsItsCardAndStream() async throws {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, first) = try await newTab("gone")
         let second = try await split(first)
         element("tab.\(tab)").click()
@@ -59,7 +59,7 @@ extension OrielUITests {
         }
 
         try await Self.call(one, "pane.close", ["pane_id": second])
-        XCTAssertTrue(element("pane.\(second)").waitForNonExistence(timeout: 3))
+        XCTAssertTrue(element("pane.\(second)").vanishes(within: 3))
         try await poll("its stream to end") { () async throws -> Bool? in
             try await streams(one).contains { $0.contains(doomed) } ? nil : true
         }
@@ -68,7 +68,7 @@ extension OrielUITests {
 
     func testClosingAPageAndQuittingLeaveNoStreams() async throws {
         let two = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION2"])
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         XCTAssertTrue(element("tab.w1:t1").isSelected)
         // t1's three cards stream; the other session's one card once its page shows. The first page's stay in the
         // window's cache of recent terminals.
@@ -78,7 +78,7 @@ extension OrielUITests {
             try await expectStreams(3, 1, two)
             element("sidebar.header").rightClick()
             app.menuItems["Close Page"].click()
-            XCTAssertTrue(element("sidebar.dot.\(two)").waitForNonExistence(timeout: 2))
+            XCTAssertTrue(element("sidebar.dot.\(two)").vanishes(within: 2))
             // Its events stream and bridges end too.
             try await poll("no herdr runs on two") { () async throws -> Bool? in
                 try await Self.post("\(two)/children", Data()).data.isEmpty ? true : nil

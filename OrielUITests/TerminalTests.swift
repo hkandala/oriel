@@ -4,7 +4,7 @@ import XCTest
 /// `control` stream from the helper. Session one's t1 is p1 | (p2 / p3), t2 holds p4.
 extension OrielUITests {
     func testCardsAttachAtTheirSize() async throws {
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         for pane in ["w1:p1", "w1:p2", "w1:p3"] {
             try await expectPTYSize(pane)
             // The stream opened at that size: no resize after attach, so an agent draws once.
@@ -18,21 +18,19 @@ extension OrielUITests {
 
     func testResizingACardResizesThePTY() async throws {
         let terminal = element("terminal.w1:p1")
-        XCTAssertTrue(terminal.waitForExistence(timeout: connect))
+        XCTAssertTrue(terminal.exists(within: connect))
         try await expectPTYSize("w1:p1")
         let before = terminal.value as? String
         // Hiding the sidebar widens the cards. Not the window: CI's window already fills the screen
         // (Zoom changes nothing there), and a drag on its corner does not resize it under XCUITest.
         element("titlebar.sidebar").click()
-        let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value != %@", before ?? ""),
-                                                object: terminal)
-        XCTAssertEqual(XCTWaiter().wait(for: [changed], timeout: 3), .completed)
+        XCTAssertTrue(until(3) { terminal.value as? String != before })
         try await expectPTYSize("w1:p1")
     }
 
     func testScrollingMovesTheViewport() async throws {
         let terminal = element("terminal.w1:p1")
-        XCTAssertTrue(terminal.waitForExistence(timeout: connect))
+        XCTAssertTrue(terminal.exists(within: connect))
         try await waitForPrompt("w1:p1")
         try await Self.call(one, "pane.send_text", ["pane_id": "w1:p1", "text": "seq 1 500\r"])
         try await waitFor("w1:p1") { $0.contains("\n500\n") }
@@ -57,7 +55,7 @@ extension OrielUITests {
     /// A sideways scroll over a terminal pages the strip, and the new tab's panes attach.
     func testSwipingOverACardPagesToTheNextTab() async throws {
         let terminal = element("terminal.w1:p1")
-        XCTAssertTrue(terminal.waitForExistence(timeout: connect))
+        XCTAssertTrue(terminal.exists(within: connect))
         try await waitForPrompt("w1:p1")
         keepScreenshot("before the swipe")
         // Which sign goes right follows the natural scrolling setting (see testScrollingMovesTheViewport); toward
@@ -72,33 +70,33 @@ extension OrielUITests {
             return element("tab.w1:t2").isSelected ? true : nil
         }
         keepScreenshot("after the swipe")
-        XCTAssertTrue(app.windows.firstMatch.wait(for: \.title, toEqual: "second - \(one)", timeout: 2))
+        XCTAssertTrue(app.windows.firstMatch.has(\.title, "second - \(one)", within: 2))
         try await expectPTYSize("w1:p4")
     }
 
     func testCommandDigitSelectsATab() {
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         app.typeKey("2", modifierFlags: .command)
-        XCTAssertTrue(element("tab.w1:t2").wait(for: \.isSelected, toEqual: true, timeout: 2))
-        XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
+        XCTAssertTrue(element("pane.w1:p4").has(\.isHittable, true, within: 2))
         keepScreenshot("command 2")
         app.typeKey("[", modifierFlags: [.command, .shift])
-        XCTAssertTrue(element("tab.w1:t1").wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: 2))
         app.typeKey("]", modifierFlags: [.command, .shift])
-        XCTAssertTrue(element("tab.w1:t2").wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
 
         // ⌘1 picks a tab of the workspace shown now, and leaves the other one's selection alone.
         element("workspace.w2").click()
-        XCTAssertTrue(element("pane.w2:p1").wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("pane.w2:p1").has(\.isHittable, true, within: 2))
         app.typeKey("1", modifierFlags: .command)
-        XCTAssertTrue(element("pane.w2:p1").wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("pane.w2:p1").has(\.isHittable, true, within: 2))
         element("workspace.w1").click()
-        XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("pane.w1:p4").has(\.isHittable, true, within: 2))
         XCTAssertTrue(element("tab.w1:t2").isSelected)
     }
 
     func testSwitchingTabsKeepsTheLastTabAttached() async throws {
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         let old = try await terminalID("w1:p1"), new = try await terminalID("w1:p4")
         // The app controls p1 (its PTY has the card's size), so a second controller is refused. A
         // probe before the app attached would win, and the app would only watch.
@@ -107,7 +105,7 @@ extension OrielUITests {
         let rows = try await viewportRows("w1:p1")
 
         element("tab.w1:t2").click()
-        XCTAssertTrue(element("terminal.w1:p4").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("terminal.w1:p4").exists(within: 2))
         try await expectPTYSize("w1:p4")
         try await waitForControl(new) { $0.contains("already has an attached client") }
         // The last tab stays attached at its size, so coming back to it resizes nothing.
@@ -116,7 +114,7 @@ extension OrielUITests {
         XCTAssertEqual(away, rows)
 
         element("tab.w1:t1").click()
-        XCTAssertTrue(element("terminal.w1:p1").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: 2))
         try await waitForControl(old) { $0.contains("already has an attached client") }
         let back = try await viewportRows("w1:p1")
         XCTAssertEqual(back, rows)
@@ -124,7 +122,7 @@ extension OrielUITests {
 
     func testEachTabKeepsItsKeyboardCard() async throws {
         let terminal = element("terminal.w1:p2")
-        XCTAssertTrue(terminal.waitForExistence(timeout: connect))
+        XCTAssertTrue(terminal.exists(within: connect))
         try await waitForPrompt("w1:p2")
         terminal.click()
         XCTAssertTrue(hasKeyboard(terminal))
@@ -146,7 +144,7 @@ extension OrielUITests {
     }
 
     func testTakenOverCardOffersTakeBack() async throws {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("taken")
         element("tab.\(tab)").click()
         // The app controls the pane (its PTY has the card's size) before the probe: a probe that came first would
@@ -158,10 +156,10 @@ extension OrielUITests {
         // Another client takes the pane (and lets go at once): the card watches and offers it back.
         try await Self.post("\(one)/takeover", Data(terminal.utf8))
         let takeBack = element("pane.\(pane).take-back")
-        XCTAssertTrue(takeBack.waitForExistence(timeout: 3))
+        XCTAssertTrue(takeBack.exists(within: 3))
         keepScreenshot("in use elsewhere")
         takeBack.click()
-        XCTAssertTrue(takeBack.waitForNonExistence(timeout: 3))
+        XCTAssertTrue(takeBack.vanishes(within: 3))
         try await waitForControl(terminal) { $0.contains("already has an attached client") }
         element("terminal.\(pane)").click()
         try await typeAndRead(pane)

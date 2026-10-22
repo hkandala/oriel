@@ -3,7 +3,7 @@ import XCTest
 /// Program icons (phase 12): tab capsules list their panes' icons, card headers name the program.
 extension OrielUITests {
     func testTabsShowTheirProgramsIcons() async throws {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         // A workspace of its own: one three-pane tab and three one-pane tabs, each running something else.
         let created = try await Self.call(one, "workspace.create", ["label": "icons", "cwd": "/tmp", "focus": false])
         let workspace = try XCTUnwrap((created["workspace"] as? [String: Any])?["workspace_id"] as? String)
@@ -45,7 +45,7 @@ extension OrielUITests {
             try await expectIcons(tab) { $0 == [icon] }
         }
         element("tab.\(first)").click()
-        XCTAssertTrue(element("pane.\(vim)").wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("pane.\(vim)").has(\.isHittable, true, within: 2))
         keepScreenshot("program icons")
 
         // Quitting vim from its card: Return asks again, and the keyboard card's icon is in front.

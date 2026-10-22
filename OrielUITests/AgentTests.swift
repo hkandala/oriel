@@ -4,28 +4,28 @@ import XCTest
 /// status comes from `pane.report_agent` on a throwaway tab, closed after the test (its agent goes with it).
 extension OrielUITests {
     func testWorkingAgentShowsInItsTabAndWorkspace() async throws {
-        XCTAssertTrue(element("tab.w1:t2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         let (tab, pane) = try await newTab("build", in: "w1")
         try await report(pane, "working")
         let dots = element("tab.\(tab).working")
-        XCTAssertTrue(dots.waitForExistence(timeout: 3))
+        XCTAssertTrue(dots.exists(within: 3))
         try await waitForValue("tab.\(tab)", containing: "codex, working")
         try await waitForValue("workspace.w1", containing: "working")
         keepScreenshot("working dots")
 
         // The selected tab shows no dots.
         element("tab.\(tab)").click()
-        XCTAssertTrue(dots.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(dots.vanishes(within: 2))
     }
 
     func testBlockedAgentNeedsYouAndThePopoverGoesToIt() async throws {
         let button = element("titlebar.agents")
-        XCTAssertTrue(button.waitForExistence(timeout: connect))
+        XCTAssertTrue(button.exists(within: connect))
         button.hover()
-        XCTAssertTrue(element("agents.popover.empty").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("agents.popover.empty").exists(within: 2))
         XCTAssertEqual(element("agents.popover.empty").value as? String, "Nobody needs you")
         element("workspace.w1").hover()
-        XCTAssertTrue(element("agents.popover").waitForNonExistence(timeout: 2))
+        XCTAssertTrue(element("agents.popover").vanishes(within: 2))
 
         let (tab, pane) = try await newTab("deploy")
         try await report(pane, "blocked", agent: "claude")
@@ -36,20 +36,20 @@ extension OrielUITests {
 
         button.hover()
         let row = element("agents.popover").descendants(matching: .any)["agent.\(pane)"]
-        XCTAssertTrue(row.waitForExistence(timeout: 2))
+        XCTAssertTrue(row.exists(within: 2))
         keepScreenshot("needs-you popover")
         row.click()
-        XCTAssertTrue(element("tab.\(tab)").wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
-        XCTAssertTrue(element("agents.popover").waitForNonExistence(timeout: 2))
+        XCTAssertTrue(element("agents.popover").vanishes(within: 2))
         XCTAssertEqual(element("sidebar.header").value as? String, one)
     }
 
     func testAnotherSessionsAgentCountsInTheDockBadgeOnly() async throws {
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
         openPage(two)
         element("sidebar.dot.\(one)").click()
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("workspace.w2").exists(within: 2))
 
         addTeardownBlock { [two] in
             _ = try? await Self.call(two, "pane.release_agent", ["pane_id": "w1:p1", "source": "oriel-e2e",
@@ -68,7 +68,7 @@ extension OrielUITests {
     }
 
     func testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder() async throws {
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let idle = try await newTab("review", in: "w1").pane
         try await report(idle, "idle", agent: "pi")
         let working = try await newTab("api", in: "w1").pane
@@ -80,7 +80,7 @@ extension OrielUITests {
         app.typeKey(".", modifierFlags: .command)
         try await waitForValue("sidebar.header", containing: "\(one) · agents")
         let rows = [blocked, working, done, idle].map { element("agent.\($0)") }
-        XCTAssertTrue(rows[3].waitForExistence(timeout: 2))
+        XCTAssertTrue(rows[3].exists(within: 2))
         XCTAssertEqual(rows.map { $0.value as? String }, ["Needs you", "Working", "Done", "Idle"])
         // Each group's header, with its count, sits above its row and below the row before.
         let groups = ["Needs you", "Working", "Done", "Idle"].map { element("agents.group.\($0)") }
@@ -92,15 +92,15 @@ extension OrielUITests {
         // The footer filter keeps the rows of one workspace.
         element("sidebar.filter").click()
         element("sidebar.filter").typeText("beta")
-        XCTAssertTrue(rows[1].waitForNonExistence(timeout: 2))
+        XCTAssertTrue(rows[1].vanishes(within: 2))
         XCTAssertEqual(rows.map(\.exists), [true, false, true, false])
         app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(rows[3].waitForExistence(timeout: 2))
+        XCTAssertTrue(rows[3].exists(within: 2))
 
         element("agents.sort").click()
         app.menuItems["Workspace order"].click()
         try await waitForValue("agents.sort", containing: "workspace")
-        XCTAssertTrue(element("agents.group.Idle").waitForNonExistence(timeout: 2))
+        XCTAssertTrue(element("agents.group.Idle").vanishes(within: 2))
         try await poll("rows in workspace order") { () -> Bool? in
             let order = [idle, working, blocked, done].map { element("agent.\($0)").frame.minY }
             return order == order.sorted() ? true : nil
@@ -108,12 +108,12 @@ extension OrielUITests {
         keepScreenshot("agents view in workspace order")
 
         app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("workspace.w1").exists(within: 2))
         XCTAssertEqual(element("sidebar.header").value as? String, one)
     }
 
     func testAFinishShowsDoneUntilItsRowIsClicked() async throws {
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let created = try await newTab("docs")
         let pane = try await finish(created)
         try await waitForValue("tab.\(created.tab)", containing: "codex, finished")
@@ -122,7 +122,7 @@ extension OrielUITests {
 
         // From a collapsed sidebar, the button opens it in the Agents view.
         element("titlebar.sidebar").click()
-        XCTAssertTrue(element("sidebar").waitForNonExistence(timeout: 2))
+        XCTAssertTrue(element("sidebar").vanishes(within: 2))
         element("titlebar.agents").click()
         try await waitForValue("sidebar.header", containing: "· agents")
         let row = element("agent.\(pane)")
@@ -133,12 +133,12 @@ extension OrielUITests {
         // View ▸ Show Agents turns it off; the sidebar stays.
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Show Agents"].click()
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("workspace.w2").exists(within: 2))
         XCTAssertTrue(element("sidebar").exists)
     }
 
     func testRelaunchCountsAnOldFinishAsSeen() async throws {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let pane = try await newTab("tests").pane
         try await report(pane, "working")
         try await waitForValue("workspace.w2", containing: "working")

@@ -40,13 +40,13 @@ final class OrielUITests: XCTestCase {
         app.launchArguments = ["-session", one, "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
         // Off the title row: a pointer left on a capsule by the last test would open its hover card.
-        if app.windows.firstMatch.waitForExistence(timeout: 5) {
+        if app.windows.firstMatch.exists(within: 5) {
             app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.9)).hover()
         }
     }
 
     func testShowsWorkspacesTabsAndSplits() {
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
         XCTAssertTrue(element("workspace.w2").exists)
         XCTAssertTrue(element("tab.w1:t1").exists)
         XCTAssertTrue(element("tab.w1:t2").exists)
@@ -64,11 +64,11 @@ final class OrielUITests: XCTestCase {
         keepScreenshot("split")
 
         element("tab.w1:t2").click()
-        XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
-        XCTAssertTrue(app.windows.firstMatch.wait(for: \.title, toEqual: "second - \(one)", timeout: 2))
+        XCTAssertTrue(element("pane.w1:p4").has(\.isHittable, true, within: 2))
+        XCTAssertTrue(app.windows.firstMatch.has(\.title, "second - \(one)", within: 2))
 
         element("workspace.w2").click()
-        XCTAssertTrue(element("page.w2:t1").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("page.w2:t1").exists(within: 2))
         XCTAssertFalse(element("page.w1:t1").exists)
         XCTAssertTrue(element("pane.w2:p1").exists)
         keepScreenshot("second workspace")
@@ -76,45 +76,41 @@ final class OrielUITests: XCTestCase {
 
     /// Each workspace keeps its own selected tab; coming back shows it, with the marker on it.
     func testWorkspaceKeepsItsSelectedTab() {
-        XCTAssertTrue(element("tab.w1:t2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         element("tab.w1:t2").click()
-        XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("pane.w1:p4").has(\.isHittable, true, within: 2))
         element("workspace.w2").click()
-        XCTAssertTrue(element("pane.w2:p1").wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("pane.w2:p1").has(\.isHittable, true, within: 2))
         XCTAssertFalse(element("tab.w1:t2").exists)
         element("workspace.w1").click()
-        XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("pane.w1:p4").has(\.isHittable, true, within: 2))
         XCTAssertTrue(element("tab.w1:t2").isSelected)
-        let marked = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "value BEGINSWITH 'in view'"),
-            object: element("tab.w1:t2"),
-        )
-        XCTAssertEqual(XCTWaiter().wait(for: [marked], timeout: 2), .completed)
+        XCTAssertTrue(until(2) { element("tab.w1:t2").stringValue.hasPrefix("in view") })
     }
 
     func testSidebarFilterNarrowsTheWorkspaces() {
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let filter = element("sidebar.filter")
         filter.click()
         XCTAssertTrue(hasKeyboard(filter))
         filter.typeText("bet")
-        XCTAssertTrue(element("workspace.w1").waitForNonExistence(timeout: 2))
+        XCTAssertTrue(element("workspace.w1").vanishes(within: 2))
         XCTAssertTrue(element("workspace.w2").exists)
         keepScreenshot("sidebar filter")
     }
 
     func testSplitButtonAddsAPane() async throws {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("split")
         element("tab.\(tab)").click()
-        XCTAssertTrue(element("page.\(tab)").wait(for: \.isHittable, toEqual: true, timeout: 3))
+        XCTAssertTrue(element("page.\(tab)").has(\.isHittable, true, within: 3))
         hoverHeader(pane)
         element("pane.\(pane).split-right").click()
 
         // The app draws a second card to the right of the first, and herdr has two panes in the tab.
         let cards = element("page.\(tab)").descendants(matching: .any)
             .matching(NSPredicate(format: "identifier MATCHES %@", #"pane\.[^.]+"#))
-        XCTAssertTrue(cards.element(boundBy: 1).waitForExistence(timeout: 2))
+        XCTAssertTrue(cards.element(boundBy: 1).exists(within: 2))
         XCTAssertLessThan(cards.element(boundBy: 0).frame.maxX, cards.element(boundBy: 1).frame.minX)
         let snapshot = try await snapshot()
         XCTAssertEqual((snapshot?["panes"] as? [[String: Any]])?.count { $0["tab_id"] as? String == tab }, 2)
@@ -122,18 +118,18 @@ final class OrielUITests: XCTestCase {
     }
 
     func testSelectsAnotherTabWhenTheSelectedOneCloses() async throws {
-        XCTAssertTrue(element("tab.w1:t2").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         let (tab, _) = try await newTab("doomed", in: "w1", closeAfter: false)
         let row = element("tab.\(tab)")
         row.click()
-        XCTAssertTrue(row.wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(row.has(\.isSelected, true, within: 2))
 
         try await Self.call(one, "tab.close", ["tab_id": tab])
-        XCTAssertTrue(row.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(row.vanishes(within: 2))
         let selected = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'tab.w1:' AND selected == true"))
-        XCTAssertTrue(selected.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertTrue(selected.firstMatch.exists(within: 2))
         let page = element("page.\(selected.firstMatch.identifier.dropFirst("tab.".count))")
-        XCTAssertTrue(page.wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(page.has(\.isHittable, true, within: 2))
     }
 }
 
@@ -211,7 +207,7 @@ extension OrielUITests {
         if !row.isSelected {
             row.click()
         }
-        XCTAssertTrue(element("tab.\(tab)").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("tab.\(tab)").exists(within: 2))
         return (tab, pane)
     }
 
@@ -268,7 +264,7 @@ extension OrielUITests {
     func openPalette() -> XCUIElement {
         app.typeKey("k", modifierFlags: .command)
         let filter = element("palette.filter")
-        XCTAssertTrue(filter.waitForExistence(timeout: 2))
+        XCTAssertTrue(filter.exists(within: 2))
         XCTAssertTrue(hasKeyboard(filter))
         return filter
     }
@@ -286,11 +282,8 @@ extension OrielUITests {
 
     /// Waits for the element to take the keyboard; focus lands a moment after it appears.
     func hasKeyboard(_ element: XCUIElement) -> Bool {
-        let focus = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "hasKeyboardFocus == true"),
-            object: element,
-        )
-        return XCTWaiter().wait(for: [focus], timeout: 2) == .completed
+        let focus = NSPredicate(format: "hasKeyboardFocus == true")
+        return until(2) { element.exists && focus.evaluate(with: element) }
     }
 
     /// In this window when there are several.
@@ -321,4 +314,37 @@ extension OrielUITests {
         let (data, response) = try await URLSession.shared.data(for: request)
         return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
+}
+
+/// XCTest's own waits (waitForExistence, wait(for:toEqual:), predicate expectations) check about once a second
+/// and take over a second even when the condition already holds; these check every 100 ms (plan/ci.md, Speed).
+extension XCUIElement {
+    func exists(within timeout: TimeInterval) -> Bool {
+        until(timeout) { exists }
+    }
+
+    func vanishes(within timeout: TimeInterval) -> Bool {
+        until(timeout) { !exists }
+    }
+
+    /// Reading a property of a missing element fails the test, so it waits for the element first.
+    func has<Value: Equatable>(_ property: KeyPath<XCUIElement, Value>, _ value: Value,
+                               within timeout: TimeInterval) -> Bool
+    {
+        until(timeout) { exists && self[keyPath: property] == value }
+    }
+
+    var stringValue: String {
+        value as? String ?? ""
+    }
+}
+
+/// Checks every 100 ms until `check` passes; false when `timeout` runs out first.
+func until(_ timeout: TimeInterval, _ check: () -> Bool) -> Bool {
+    let end = Date.now + timeout
+    while !check() {
+        guard Date.now < end else { return false }
+        Thread.sleep(forTimeInterval: 0.1)
+    }
+    return true
 }

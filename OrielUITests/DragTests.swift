@@ -6,7 +6,7 @@ extension OrielUITests {
         let (tab, first) = try await dragWorkspace("swap")
         let second = try await split(first), third = try await split(second)
         restoreHerdrFocusAfter()
-        XCTAssertTrue(element("pane.\(third)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("pane.\(third)").exists(within: 3))
 
         drag(first, to: card(second, 0.5, 0.6))
         try await poll("the two swapped") { () async throws -> Bool? in
@@ -17,7 +17,7 @@ extension OrielUITests {
         // (writes go one at a time).
         let tabs = try await tabIDs()
         drag(third, to: element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
-        XCTAssertFalse(element("detail.notice").waitForExistence(timeout: 1))
+        XCTAssertFalse(element("detail.notice").exists(within: 1))
 
         drag(third, to: card(second, 0.1, 0.6))
         try await poll("the pane left of its neighbor") { () async throws -> Bool? in
@@ -39,8 +39,8 @@ extension OrielUITests {
         let other = try XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String)
         let third = try XCTUnwrap((created["root_pane"] as? [String: Any])?["pane_id"] as? String)
         let capsule = element("tab.\(other)")
-        XCTAssertTrue(capsule.waitForExistence(timeout: 3))
-        XCTAssertTrue(element("pane.\(second)").waitForExistence(timeout: 3))
+        XCTAssertTrue(capsule.exists(within: 3))
+        XCTAssertTrue(element("pane.\(second)").exists(within: 3))
 
         // A herdr TUI zoomed that tab: herdr refuses the move (`zoomed_tab`), so only the spring-load selects it.
         // herdr zooms only a tab with two panes or more, and its zoom moves its focus, as a swap does.
@@ -48,14 +48,14 @@ extension OrielUITests {
         restoreHerdrFocusAfter()
         try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "on"])
         drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), hold: 1.2)
-        XCTAssertTrue(capsule.wait(for: \.isSelected, toEqual: true, timeout: 2))
-        XCTAssertTrue(app.staticTexts["The tab is zoomed in herdr"].waitForExistence(timeout: 3))
+        XCTAssertTrue(capsule.has(\.isSelected, true, within: 2))
+        XCTAssertTrue(app.staticTexts["The tab is zoomed in herdr"].exists(within: 3))
         let still = try await order(tab)
         XCTAssertEqual(still, [first, second])
 
         try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "off"])
         element("tab.\(tab)").click()
-        XCTAssertTrue(element("pane.\(second)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("pane.\(second)").exists(within: 3))
         drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
         try await poll("the pane split right in that tab") { () async throws -> Bool? in
             try await order(other) == [third, fourth, second] ? true : nil
@@ -67,7 +67,7 @@ extension OrielUITests {
         let (tab, first) = try await dragWorkspace("moves")
         let second = try await split(first)
         let terminal = try await terminalID(second)
-        XCTAssertTrue(element("pane.\(second)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("pane.\(second)").exists(within: 3))
 
         // The tab track's empty end: a new tab in this workspace (the pane keeps its id).
         let end = element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
@@ -77,7 +77,7 @@ extension OrielUITests {
             let place = try await place(of: terminal)
             return place.map { $0.tab != tab && workspace(of: $0.tab) == workspace(of: tab) } == true ? place?.tab : nil
         }
-        XCTAssertTrue(element("tab.\(moved)").wait(for: \.isSelected, toEqual: true, timeout: 3))
+        XCTAssertTrue(element("tab.\(moved)").has(\.isSelected, true, within: 3))
 
         // beta's row: a new tab there, with a new pane id.
         let betaTabs = try await tabIDs().filter { $0.hasPrefix("w2:") }
@@ -100,7 +100,7 @@ extension OrielUITests {
                 _ = try? await Self.call(self.one, "workspace.close", ["workspace_id": id, "close_group": false])
             }
         }
-        XCTAssertTrue(element("pane.\(inBeta)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("pane.\(inBeta)").exists(within: 3))
         // 40 pt under the last row.
         let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workspace.w'"))
         let bottom = rows.allElementsBoundByIndex.map(\.frame.maxY).max() ?? 0
@@ -123,7 +123,7 @@ extension OrielUITests {
             try tabs.append(XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String))
         }
         let third = element("tab.\(tabs[2])")
-        XCTAssertTrue(third.waitForExistence(timeout: 3))
+        XCTAssertTrue(third.exists(within: 3))
         let from = third.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         let target = element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
         during(from, to: target)
@@ -141,7 +141,7 @@ extension OrielUITests {
             _ = try? await Self.call(one, "workspace.close", ["workspace_id": second, "close_group": false])
         }
         let firstRow = element("workspace.\(first)"), secondRow = element("workspace.\(second)")
-        XCTAssertTrue(secondRow.waitForExistence(timeout: 3))
+        XCTAssertTrue(secondRow.exists(within: 3))
 
         during(firstRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
                to: secondRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9)))
@@ -169,7 +169,7 @@ extension OrielUITests {
                                                                 "focus": false])
         let tree = try XCTUnwrap((opened["workspace"] as? [String: Any])?["workspace_id"] as? String)
         let repoRow = element("workspace.\(repo)")
-        XCTAssertTrue(element("workspace.\(tree)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("workspace.\(tree)").exists(within: 3))
         during(repoRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
                to: secondRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)))
         try await poll("the repository and its worktree before second") { () async throws -> Bool? in
@@ -181,7 +181,7 @@ extension OrielUITests {
 
     /// A workspace of its own, closed after, selected: its tab's id and its pane's.
     func dragWorkspace(_ label: String) async throws -> (tab: String, pane: String) {
-        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let created = try await Self.call(one, "workspace.create", ["label": label, "cwd": "/tmp", "focus": false])
         let workspace = try XCTUnwrap((created["workspace"] as? [String: Any])?["workspace_id"] as? String)
         addTeardownBlock { [one] in
@@ -190,9 +190,9 @@ extension OrielUITests {
         let tab = try XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String)
         let pane = try XCTUnwrap((created["root_pane"] as? [String: Any])?["pane_id"] as? String)
         let row = element("workspace.\(workspace)")
-        XCTAssertTrue(row.waitForExistence(timeout: 3))
+        XCTAssertTrue(row.exists(within: 3))
         row.click()
-        XCTAssertTrue(element("tab.\(tab)").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
         return (tab, pane)
     }
 

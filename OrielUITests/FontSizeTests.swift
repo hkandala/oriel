@@ -8,7 +8,7 @@ extension OrielUITests {
     /// (1x display), and the step was checked by hand instead.
     func testFontSizeKeys() async throws {
         let terminal = element("terminal.w1:p1")
-        XCTAssertTrue(terminal.waitForExistence(timeout: connect))
+        XCTAssertTrue(terminal.exists(within: connect))
         addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
         app.typeKey("0", modifierFlags: .command)
         try await expectPTYSize("w1:p1")
@@ -32,7 +32,7 @@ extension OrielUITests {
     /// Option types the macOS characters on every keyboard layout (libghostty sent Alt on CI's by default).
     func testOptionTypesCharacters() async throws {
         let terminal = element("terminal.w1:p1")
-        XCTAssertTrue(terminal.waitForExistence(timeout: connect))
+        XCTAssertTrue(terminal.exists(within: connect))
         try await waitForPrompt("w1:p1")
         addTeardownBlock { [one] in
             _ = try? await Self.call(one, "pane.send_keys", ["pane_id": "w1:p1", "keys": ["ctrl+c"]])
