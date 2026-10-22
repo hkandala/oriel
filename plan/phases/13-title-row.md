@@ -168,10 +168,9 @@ expects.
   selected one on the look's pill (`workspace.<id>`, selected trait), so the selection still shows until phase 14
   restyles them. The sidebar filter filters workspaces.
 
-- **The machine menu rows show no icons.** The phase asks for each machine's icon in its row. SwiftUI's `Menu`
-  (a `Toggle` or `Button` with a `Label`, an `Image` + `Text` label, `.labelStyle(.titleAndIcon)`) gave NSMenu items
-  with the title only on macOS 26 here; the button itself shows the icon. Left for the orchestrator: an AppKit
-  `NSMenu` would show images.
+- **The machine menu rows show no icons on this Mac.** The items carry them (`Label` with the machine's symbol,
+  `plus`), but macOS 27.0.1 draws no item images in an app's menus: an AppKit `NSMenu` whose `NSMenuItem.image` is
+  set showed none either (tried, then removed). The button itself shows the icon; the menu has the checkmark.
 - **The tab title's folder is the folder's name** ("zsh tmp", "pi oriel"; `~` for home), as the phase's examples
   show; the card header keeps the full path. A narrow tab shows the program first.
 - **A label made only of digits counts as herdr's default**, so a tab the user renamed to "3" shows its program

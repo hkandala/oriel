@@ -104,17 +104,12 @@
     private struct MachineButton: View {
         var body: some View {
             Menu {
-                // The current machine: picking it does nothing.
-                Toggle(isOn: .constant(true)) {
-                    Image(systemName: thisMacIcon)
-                    Text("This Mac")
-                }
+                // The current machine: picking it does nothing. macOS 27 draws no images in these menus (an AppKit
+                // NSMenuItem.image does not show either); the icons are here for systems that do.
+                Toggle(isOn: .constant(true)) { Label("This Mac", systemImage: thisMacIcon) }
                 Divider()
                 // ponytail: no-op until remote hosts
-                Button {} label: {
-                    Image(systemName: "plus")
-                    Text("Add Remote Host…")
-                }
+                Button("Add Remote Host…", systemImage: "plus") {}
             } label: {
                 // One text, so the menu button is one element.
                 let chevron = Text(Image(systemName: "chevron.down")).font(.system(size: 8, weight: .bold))

@@ -222,8 +222,11 @@ extension OrielUITests {
     func testWindowTitleOfADefaultLabelIsTheProgramAndFolder() async throws {
         let window = app.windows.firstMatch
         XCTAssertTrue(element("tab.w1:t2").waitForExistence(timeout: connect))
-        // t1 keeps herdr's default label: the front card's program and folder name (/private/tmp).
-        try await poll("the window title") { window.title == "zsh tmp - \(one)" ? true : nil }
+        // t1 keeps herdr's default label: the front card's program and folder name (/private/tmp); the shell is zsh
+        // here, bash on CI.
+        try await poll("the window title ‹shell› tmp - ‹session›") {
+            window.title.hasSuffix(" tmp - \(one)") ? true : nil
+        }
     }
 
     /// Opens the workspace menu; its filter has the keyboard.
