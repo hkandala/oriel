@@ -5,7 +5,7 @@
 
 Deferred past v0 (in the design, not built): remote machines over SSH, the iOS app (the target only builds and
 shows an empty state), plugins and plugin cards, the chat view, floating panes, notifications, the Dock badge,
-the status area, pills and agent rows in the sidebar, Start an agent, the "seen" state for finished agents,
+the Agents view, pills and agent rows in the sidebar, Start an agent, the "seen" state for finished agents,
 drag and drop (with swapping and moving panes), divider drag, keyboard resize, equal splits and divider
 double-click, renaming and reordering tabs and workspaces, more machines in the sidebar ("Add Remote Host" is
 a placeholder), a text size setting, IME composition tests, and trackpad gestures in e2e (checked by hand).
@@ -13,7 +13,8 @@ a placeholder), a text size setting, IME composition tests, and trackpad gesture
 **Next: UI polish (phases 10–21)**, see [UI polish](#ui-polish-phases-1021) below.
 
 The working plan for the first app code. The design lives in `docs/content/docs/` and wins
-on any conflict, except where this file narrows the scope for v0.
+on any conflict, except where this file narrows the scope for v0, and except `plan/ui-layout.md`, which
+wins for phases 10–21 until the pages match it.
 
 ## The request (from the user, structured)
 
@@ -73,7 +74,7 @@ Oriel/                     the app target (SwiftUI, macOS + iOS)
   App/                     @main, scenes, launch arguments
   Store/                   HostStore: the live @Observable model of one herdr session
   Terminal/                libghostty glue, TerminalStream wiring, PaneViewRegistry
-  Views/                   Sidebar, TabBar, Strip, SplitLayout, PaneCard
+  Views/                   Palette, SessionPicker, Sidebar, Strip, Style, TitleBar
 OrielUITests/              XCUITest end-to-end suite (macOS)
 Packages/HerdrKit/         Swift package, no UI: Exec, ProcessExec, HerdrClient (call,
                            events, pacing), lenient models, split-tree rebuild,
@@ -104,7 +105,7 @@ Rules for working: [rules.md](rules.md). Coding standards: [standards.md](standa
 The request (from the user, structured): give Oriel every interface feature that Superlogical's Rex
 app has and that works with herdr, built now even where the design put it in a later step, in the
 window layout the user agreed in [ui-layout.md](ui-layout.md) (mock-ups: `resources/mockups/layout.html`,
-scenes A–J). Rex was reverse engineered for this (`resources/research/clients/rex-ui.md`,
+scenes A–K). Rex was reverse engineered for this (`resources/research/clients/rex-ui.md`,
 `rex-server.md`, screenshots in `resources/inspirations/rex-app/`). In short:
 
 1. Rex's look and behavior for the tab bar, pane cards, dividers, palette and states, with Rex's sizes
@@ -150,18 +151,8 @@ The full list of what is built and what is left out, feature by feature, is
 The phases run in this order, one implementer at a time ([rules.md](rules.md)); each builds on the
 tokens and views of the ones before.
 
-Starting an implementer (the orchestrator sends this, with the phase number filled in):
-
-> Implement phase NN of Oriel (`/Users/hkandala/code/oriel`). Pull `origin/main` first. Read
-> `AGENTS.md`, `plan/README.md`, `plan/rules.md`, `plan/standards.md`, `plan/ui-layout.md` (the agreed
-> window layout; it wins over older pages), `plan/ui-polish.md`, `plan/phases/NN-*.md` and every page
-> it lists under "Read first", then the ponytail skill. Build the phase with small commits, e2e tests
-> as the phase lists, `make lint build test e2e` green, the design pages updated to match what you
-> built. Use `DERIVED_DATA=/tmp/oriel-dd-<your-name>`, take the GUI lock for GUI work, and only
-> throwaway `oriel-dev-*` / `oriel-e2e-*` herdr sessions (tests that need several sessions create two
-> or more, and delete them after). Never run the app against an existing session. Put no explanatory
-> text in the UI beyond what `plan/ui-layout.md` lists. Report what you built, how you tested it,
-> screenshot paths, and findings to add to the phase file.
+The orchestrator starts each phase with the brief in
+[execution.md](execution.md#phase-agent-brief-the-orchestrator-sends-this).
 
 ## Known risks (check early)
 

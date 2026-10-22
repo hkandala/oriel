@@ -5,7 +5,8 @@ Oriel: a native SwiftUI client for herdr (macOS now, iOS later).
 ## Read first
 
 - `plan/README.md` (scope, modules, phases), `plan/standards.md`, `plan/rules.md`.
-- The design in `docs/content/docs/` wins on any conflict.
+- The design in `docs/content/docs/` wins on any conflict, except `plan/ui-layout.md`, which wins for
+  phases 10–21 until the pages match it.
 
 ## Rules
 

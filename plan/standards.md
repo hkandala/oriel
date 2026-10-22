@@ -48,7 +48,7 @@ before writing code. In short:
 - Use the system glass APIs (`glassEffect`, `glassEffectID`, `GlassEffectContainer`). No
   other custom blur.
 - Every control and region an e2e test touches has an `accessibilityIdentifier`
-  (`titlebar.machine-button`, `tab.<tab_id>`, `pane.<pane_id>`, ...).
+  (`titlebar.machine`, `tab.<tab_id>`, `pane.<pane_id>`, ...).
 - No hardcoded sizes where layout can decide; the 8 pt gap between cards is the one fixed
   number (design: Layout and sizing).
 

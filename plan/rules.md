@@ -2,6 +2,8 @@
 
 ## Roles
 
+For phases 10–21, `plan/execution.md` replaces Roles and Phase loop below.
+
 - **Orchestrator** (the main agent): writes the plan, starts implementers and reviewers,
   relays review comments, checks the GUI, decides when a phase is done. Does not write app
   code.
@@ -34,8 +36,7 @@
 - Conventional subject line: `feat(herdrkit): …`, `fix(app): …`, `chore(ci): …`,
   `test(e2e): …`, `docs: …`. Imperative, ≤ 72 chars.
 - The pre-commit hook (`.githooks/pre-commit`) must pass. Never `--no-verify`.
-- Never commit build output, DerivedData, `.xcresult`, screenshots outside
-  `plan/screenshots/`, or secrets.
+- Never commit build output, DerivedData, `.xcresult`, screenshots or secrets.
 
 ## Building and running
 

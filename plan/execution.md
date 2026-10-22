@@ -21,14 +21,14 @@ next phase.
 2. Build the phase in small steps. Each step: code + its tests, `make lint build test` green, a commit with a
    conventional subject (≤ 72 characters), and a push when it builds. Several commits per phase, never one
    big commit at the end.
-3. Run the e2e tests the phase adds plus the whole suite (`make e2e`, with the GUI lock), and keep
-   screenshots of the new UI in `/tmp/oriel-shots/<phase>/`.
+3. Run the e2e tests the phase adds (with the GUI lock), and keep screenshots of the new UI in
+   `/tmp/oriel-shots/<phase>/`. The whole suite (`make e2e`) runs once per review round, by the E2E reviewer.
 4. Self-review the diff against the phase file and the ponytail rules; fix what you find.
 5. Start the three reviewers and the verifier in parallel (briefs below). Merge their findings. Fix every
    blocker and should; answer each nit with a fix or a one-line reason.
 6. Repeat step 5 with fresh agents until a round has no blocker and no should, and the verifier passes
    every item. At most 4 rounds; if it does not converge, report to the orchestrator what is stuck.
-7. Update the phase file's "Findings" section (what you learned, numbers you measured, choices you made)
+7. Update the phase file's `## Findings` section (what you learned, numbers you measured, choices you made)
    and the design pages the phase changed, so they match the code. Commit and push.
 8. Confirm CI is green on the last push (`gh run list --limit 3`).
 9. Report to the orchestrator: what was built, the commits, how it was tested, screenshot paths, the review
@@ -61,8 +61,9 @@ accessibility value can say it. Report a numbered list with severity and the fix
 
 **Verifier.** "Verify phase NN is complete. For every numbered Build item and every e2e item in
 `plan/phases/NN-*.md`, say done / partly / missing, with evidence: the file:line that implements it and the
-test (or the manual step plus screenshot) that shows it works. Run `make lint build test` and the phase's e2e
-tests. Pass only when every item is done and every check is green."
+test (or the manual step plus screenshot) that shows it works. Run `make lint build test`, and the phase's e2e
+tests only if the E2E reviewer's `make e2e` run of this round is older than the last commit; otherwise cite
+that run. Pass only when every item is done and every check is green."
 
 ## The orchestrator's sanity check (after each phase)
 
