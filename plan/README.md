@@ -72,9 +72,10 @@ Build the first, very basic version of the Oriel app:
 Oriel.xcodeproj
 Oriel/                     the app target (SwiftUI, macOS + iOS)
   App/                     @main, scenes, launch arguments
-  Store/                   HostStore: the live @Observable model of one herdr session
+  Store/                   HostStore: the live @Observable model of one herdr session; Page and
+                           WindowPages: a window's pages and their selection
   Terminal/                libghostty glue, TerminalStream wiring, PaneViewRegistry
-  Views/                   Palette, SessionPicker, Sidebar, Strip, Style, TitleBar
+  Views/                   FilterList, OpenSession, Palette, Sidebar, Strip, Style, TabBar, TitleBar
 OrielUITests/              XCUITest end-to-end suite (macOS)
 Packages/HerdrKit/         Swift package, no UI: Exec, ProcessExec, HerdrClient (call,
                            events, pacing), lenient models, split-tree rebuild,

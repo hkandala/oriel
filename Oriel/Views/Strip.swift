@@ -126,14 +126,16 @@
 
         /// The innermost scroll view under the pointer that can scroll sideways (its document is wider than its clip
         /// view): over a sidebar page's list, the sidebar's pages; over a card, the strip.
+        /// None can (a one-tab strip, one sidebar page): the innermost still takes it, so a terminal never does.
         private static func scrollView(_ event: NSEvent) -> NSScrollView? {
-            var view = event.window?.contentView?.hitTest(event.locationInWindow)?.enclosingScrollView
+            let innermost = event.window?.contentView?.hitTest(event.locationInWindow)?.enclosingScrollView
+            var view = innermost
             while let scrollView = view,
                   (scrollView.documentView?.frame.width ?? 0) <= scrollView.contentView.bounds.width + 0.5
             {
                 view = scrollView.enclosingScrollView
             }
-            return view
+            return view ?? innermost
         }
     }
 

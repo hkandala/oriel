@@ -101,11 +101,12 @@
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 2) {
-                            let rows = rows
+                            let rows = rows, groups = store.groups
                             ForEach(Array(rows.enumerated()), id: \.element.workspace.id) { index, row in
                                 WorkspaceRow(workspace: row.workspace, parent: row.parent, page: page,
                                              guideBelow: rows.indices.contains(index + 1)
-                                                 && rows[index + 1].parent != nil)
+                                                 && rows[index + 1].parent != nil,
+                                             ends: (groups.first?.first?.id, groups.last?.first?.id))
                             }
                             if rows.isEmpty, !store.workspaces.isEmpty {
                                 Text("No matching workspaces").foregroundStyle(.secondary).padding(8)
@@ -198,6 +199,8 @@
         let page: Page
         /// A worktree row follows: the guide line starts under this row's state slot.
         let guideBelow: Bool
+        /// The first and the last group's workspace: they cannot move up or down.
+        let ends: (first: String?, last: String?)
         @State private var renaming = false
         @State private var draft = ""
         @FocusState private var focused: Bool
@@ -274,8 +277,7 @@
         @ViewBuilder
         private var menu: some View {
             let store = page.store
-            let groups = store.groups
-            let first = groups.first?.first === workspace, last = groups.last?.first === workspace
+            let first = ends.first == workspace.id, last = ends.last == workspace.id
             Button("New Tab") { Task { await page.newTab(in: workspace) } }
             Button("Rename Workspace") { startRenaming() }
             // A worktree moves with its repository's row.

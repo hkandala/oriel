@@ -28,6 +28,8 @@
                 HStack {
                     Spacer()
                     Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                        // A start goes on and opens its page.
+                        .disabled(starting != nil)
                     Button("Open") { lit.map(act) }
                         .keyboardShortcut(.defaultAction)
                         .disabled(lit == nil || starting != nil)

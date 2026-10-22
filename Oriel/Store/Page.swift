@@ -181,6 +181,7 @@
             let tab = selectedTabIDs[workspace.id]
             let pane = workspace.id == selectedWorkspaceID ? keyboardPane
                 : store.panes.first { $0.tabID == tab && $0.terminalID == tab.flatMap { keyboardTerminals[$0] } }
+                ?? store.panes.first { $0.tabID == tab && $0.focused }
             arriving = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id) ?? arriving
         }
 
@@ -192,6 +193,8 @@
 
     /// The pages of one window, in order, and the one in view (design D43). Each page's store is the app's one
     /// store of that session; one `PaneViewRegistry` holds every page's terminals.
+    /// ponytail: nothing disconnects the stores when the window closes: the app's one `Window` scene quits with it.
+    /// Phase 16's windows disconnect their pages on close.
     @MainActor @Observable
     final class WindowPages {
         private(set) var list: [Page] = []

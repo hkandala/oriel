@@ -90,6 +90,10 @@ extension OrielUITests {
         try poll { header == one }
         XCTAssertFalse(element("sidebar.dot.\(two)").exists)
         XCTAssertFalse(element("sidebar.dot.\(one)").exists)
+        // Its store disconnected: no bridge or stream of the app's is left on two, and two still runs.
+        try await poll("no herdr runs on two") { () async throws -> Bool? in
+            try await Self.post("\(two)/children", Data()).data.isEmpty ? true : nil
+        }
         try await Self.call(two, "session.snapshot", [:])
 
         // At its center: the page that slid away may leave it unhittable for a moment.

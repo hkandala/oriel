@@ -66,9 +66,12 @@ struct OrielApp: App {
             .onChange(of: pages.current?.id) { savedPage = $1 ?? "" }
             // Git status for the page in view of a visible window: now and every 10 s (D67).
             .task(id: scenePhase == .active ? pages.current?.id : nil) {
-                guard scenePhase == .active, let store = pages.current?.store else { return }
-                store.showsGit = true
-                defer { store.showsGit = false }
+                // At once for every page, not in a cancelled task's late cleanup.
+                let active = scenePhase == .active
+                for page in pages.list {
+                    page.store.showsGit = active && page === pages.current
+                }
+                guard active, let store = pages.current?.store else { return }
                 repeat {
                     await store.updateGit(all: true)
                 } while await (try? Task.sleep(for: .seconds(10))) != nil
@@ -361,6 +364,10 @@ struct OrielApp: App {
                 Label(title, systemImage: "terminal")
             } description: {
                 Text(text)
+                // Why a start failed.
+                if let notice = page.store.notice {
+                    Text(notice).accessibilityIdentifier("detail.notice")
+                }
                 if let command {
                     Text(command).monospaced().textSelection(.enabled)
                 }

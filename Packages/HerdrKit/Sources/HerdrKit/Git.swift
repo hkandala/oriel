@@ -32,10 +32,18 @@ public extension GitStatus {
 
     /// The checkout's status, or nil when the folder is not in a repository (git exits nonzero) or git takes
     /// more than 5 s. `git` is found in the login shell's PATH, like herdr. No untracked scan: the rows show no
-    /// file counts.
+    /// file counts. No optional locks: a run every 10 s must not leave `index.lock` in the user's way.
     static func of(_ root: String, exec: any Exec) async -> GitStatus? {
-        guard let channel = try? await exec.run(["git", "-C", root, "status", "--porcelain=v2", "--branch",
-                                                 "--untracked-files=no"]) else { return nil }
+        guard let channel = try? await exec.run([
+            "git",
+            "--no-optional-locks",
+            "-C",
+            root,
+            "status",
+            "--porcelain=v2",
+            "--branch",
+            "--untracked-files=no",
+        ]) else { return nil }
         channel.closeInput()
         let text = try? await withTimeout(.seconds(5), onTimeout: channel.terminate) {
             await channel.lines.reduce("") { $0 + $1 + "\n" }

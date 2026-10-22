@@ -80,36 +80,37 @@ final class HostStore {
             }
         }
 
-        /// Follows the session until the task is cancelled.
+        /// Follows the session until the task is cancelled. A failed start says why, then connects anyway: the page
+        /// shows "not running" with Start.
         private func run(start: Bool) async {
-            var loadedSessions = false
-            do {
-                if start {
+            if start {
+                do {
                     try await Self.start(session)
+                } catch {
+                    Task { await show(error.localizedDescription) }
                 }
-                let client: any Multiplexer = await HerdrClient(session: session, exec: exec.value)
-                self.client = client
-                defer { self.client = nil }
-                for await update in await client.updates() {
-                    switch update {
-                    case let .snapshot(snapshot):
-                        apply(snapshot)
-                        state = .live
-                        onSnapshot?()
-                        // After the first snapshot, so the session list never delays the layout.
-                        if !loadedSessions {
-                            loadedSessions = true
-                            await loadSessions()
-                        }
-                    case let .error(error):
-                        // First, to tell "not running" from other failures without a flash of the other text.
+            }
+            let client: any Multiplexer = await HerdrClient(session: session, exec: exec.value)
+            self.client = client
+            defer { self.client = nil }
+            var loadedSessions = false
+            for await update in await client.updates() {
+                switch update {
+                case let .snapshot(snapshot):
+                    apply(snapshot)
+                    state = .live
+                    onSnapshot?()
+                    // After the first snapshot, so the session list never delays the layout.
+                    if !loadedSessions {
+                        loadedSessions = true
                         await loadSessions()
-                        state = .failed(error)
-                        onSnapshot?()
                     }
+                case let .error(error):
+                    // First, to tell "not running" from other failures without a flash of the other text.
+                    await loadSessions()
+                    state = .failed(error)
+                    onSnapshot?()
                 }
-            } catch {
-                state = .failed(error as? HerdrError ?? .failed("\(error)"))
             }
         }
     #endif
@@ -204,14 +205,13 @@ final class HostStore {
             for workspace in workspaces {
                 let root = workspace.worktree?.checkoutPath
                     ?? workspace.tabs.first.flatMap { tab in panes.first { $0.tabID == tab.id }?.cwd }
+                // A root that changes during a run waits for the next tick.
                 guard let root, all || root != workspace.gitRoot, !gitRuns.contains(workspace.id) else { continue }
                 workspace.gitRoot = root
                 gitRuns.insert(workspace.id)
-                Task {
-                    let git = await GitStatus.of(root, exec: exec.value)
-                    gitRuns.remove(workspace.id)
-                    workspace.git = git
-                }
+                // One after another: 30 workspaces are not 30 git processes at once.
+                workspace.git = await GitStatus.of(root, exec: exec.value)
+                gitRuns.remove(workspace.id)
             }
         #endif
     }
