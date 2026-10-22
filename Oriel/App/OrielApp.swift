@@ -30,6 +30,8 @@ struct OrielApp: App {
             SwipeRouter.install()
             // One window; no tab bar or tab menu items of AppKit's own.
             NSWindow.allowsAutomaticWindowTabbing = false
+            // Before any surface exists, so none starts at libghostty's default font.
+            PaneTerminal.controller.setTerminalConfiguration(terminal)
         }
     #endif
 
@@ -46,7 +48,7 @@ struct OrielApp: App {
                 TabCommands()
                 ActionCommands()
             }
-            .onChange(of: terminal, initial: true) { PaneTerminal.controller.setTerminalConfiguration(terminal) }
+            .onChange(of: terminal) { PaneTerminal.controller.setTerminalConfiguration(terminal) }
 
             Settings {
                 SettingsView()
