@@ -56,7 +56,11 @@ struct Strip: View {
         .onChange(of: [workspace.id, workspace.selectedTabID], initial: true) { old, new in
             guard let target = workspace.selectedTabID, position.viewID(type: String.self) != target else { return }
             let animate = old != new && old.first == new.first && !reduceMotion
-            withAnimation(animate ? .smooth : nil) { position.scrollTo(id: target, anchor: .leading) }
+            // Rex's tab spring (stiffness 520, damping 46); the tab marker follows the scroll.
+            withAnimation(animate ? .spring(response: 0.28, dampingFraction: 1) : nil) { position.scrollTo(
+                id: target,
+                anchor: .leading,
+            ) }
             if old.first != new.first {
                 // Another workspace's pages lay out in this same update, and a scroll to one of them can miss (a
                 // new workspace came up blank): scroll again once they have.
@@ -297,13 +301,9 @@ private struct PaneCard: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        // The first time the card shows: what runs in it, for its icon. Not the view's task: a lazy page that
-        // leaves at once would cancel it.
-        .onAppear {
-            if pane?.asked == false {
-                Task { await store.askProgram(id) }
-            }
-        }
+        // As the card shows: what runs in it now, for its icon (the snapshot's ask was when the pane was new). Not
+        // the view's task: a lazy page that leaves at once would cancel it.
+        .onAppear { Task { await store.askProgram(id) } }
         .clipShape(CardSurface.shape)
         // The card's element is its background: a container would merge into a one-pane page's.
         .background {

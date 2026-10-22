@@ -6,107 +6,37 @@ import SwiftUI
 struct Palette: View {
     @Binding var store: HostStore
     @Binding var open: Bool
-    @State private var filter = ""
-    @State private var index = 0
-    /// The rows' own height: the list is as tall as its rows, up to 360 pt, then scrolls.
-    @State private var rowsHeight: CGFloat = 0
-
-    private struct Item: Identifiable {
-        let id: String
-        /// A tab row shows its front pane's program tile instead, when it has one.
-        var symbol = "apple.terminal"
-        /// A tab's front pane, for its program tile.
-        var pane: HostStore.Pane?
-        let title: String
-        let detail: String
-        let jump: () -> Void
-    }
 
     var body: some View {
-        let items = filtered
-        let index = min(index, items.count - 1)
-        VStack(alignment: .leading, spacing: 2) {
-            FilterField(prompt: "Jump to a session, workspace or tab", text: $filter, identifier: "palette.filter",
-                        autofocus: true)
-                // Here, not onSubmit: a field's submit action is not refreshed when only the index changes, so ↓
-                // Enter took the first row. Each handler reads the list and the index as they are now.
-                .onKeyPress(.return) {
-                    let items = filtered
-                    if !items.isEmpty {
-                        jump(items[min(self.index, items.count - 1)])
-                    }
-                    return .handled
-                }
-                .onKeyPress(.downArrow) { move(1) }
-                .onKeyPress(.upArrow) { move(-1) }
-                .padding(.bottom, 4)
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 2) {
-                        ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
-                            Button { jump(item) } label: {
-                                MenuRow(symbol: item.symbol, pane: item.pane, title: item.title, detail: item.detail,
-                                        selected: offset == index)
-                            }
-                            .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
-                            .accessibilityIdentifier("palette.\(item.id)")
-                            .accessibilityAddTraits(offset == index ? .isSelected : [])
-                        }
-                        if items.isEmpty {
-                            Text("No matches").foregroundStyle(.secondary).padding(8)
-                        }
-                    }
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
-                }
-                .scrollIndicators(.never)
-                .frame(height: min(rowsHeight, 360))
-                .onChange(of: index) {
-                    if items.indices.contains(index) {
-                        proxy.scrollTo(items[index].id)
-                    }
-                }
-            }
+        FilterList(prompt: "Jump to a session, workspace or tab", name: "palette", items: items, maxHeight: 360) {
+            open = false
         }
         .padding(8)
         .frame(width: 480)
         .glassEffect(.regular, in: .rect(cornerRadius: 14))
-        .onChange(of: filter) { self.index = 0 }
         .task { await store.loadSessions() }
     }
 
-    private var filtered: [Item] {
-        items.filter { "\($0.title) \($0.detail)".matches(filter) }
-    }
-
     /// Tabs first (the usual jump), then workspaces, then the other running sessions.
-    private var items: [Item] {
+    private func items(_ filter: String) -> [FilterList.Item] {
         let tabs = store.workspaces.flatMap { workspace in
             workspace.tabs.map { tab in
-                Item(id: "tab.\(tab.id)", pane: store.stack(tab).first, title: tab.label, detail: workspace.label) {
-                    store.selectedWorkspaceID = workspace.id
-                    workspace.selectedTabID = tab.id
-                }
+                FilterList.Item(id: "tab.\(tab.id)", symbol: "apple.terminal", pane: store.stack(tab).first,
+                                title: store.titleText(tab), detail: workspace.label, act: {
+                                    store.selectedWorkspaceID = workspace.id
+                                    workspace.selectedTabID = tab.id
+                                })
             }
         }
         let workspaces = store.workspaces.map { workspace in
-            Item(id: "workspace.\(workspace.id)", symbol: "square.stack", title: workspace.label,
-                 detail: "Workspace") { store.selectedWorkspaceID = workspace.id }
+            FilterList.Item(id: "workspace.\(workspace.id)", symbol: "square.stack", title: workspace.label,
+                            detail: "Workspace") { store.selectedWorkspaceID = workspace.id }
         }
         let sessions = store.sessions.filter { $0.running && $0.name != store.session }.map { session in
-            Item(id: "session.\(session.name)", symbol: "macbook", title: session.name, detail: "Session") {
+            FilterList.Item(id: "session.\(session.name)", symbol: "macbook", title: session.name, detail: "Session") {
                 store = HostStore(session: session.name)
             }
         }
-        return tabs + workspaces + sessions
-    }
-
-    private func move(_ step: Int) -> KeyPress.Result {
-        index = max(0, min(index + step, filtered.count - 1))
-        return .handled
-    }
-
-    private func jump(_ item: Item) {
-        item.jump()
-        open = false
+        return (tabs + workspaces + sessions).filter { "\($0.title) \($0.detail)".matches(filter) }
     }
 }

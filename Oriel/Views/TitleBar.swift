@@ -1,117 +1,182 @@
-import SwiftUI
+#if os(macOS)
+    import IOKit.ps
+    import SwiftUI
 
-/// The row in the title bar line: sidebar toggle, session picker, the tabs while the sidebar is hidden, ⌘ and +.
-struct TitleBar: View {
-    /// The compact toolbar's height, so the row centers on the traffic lights.
-    static let height: CGFloat = 40
-    /// The session picker button starts this far into the row: the 28 pt sidebar toggle and the row's 4 pt spacing.
-    static let picker: CGFloat = 32
+    /// The title row (D45): sidebar toggle, session picker (until phase 14), machine button, workspace button while
+    /// the sidebar is collapsed, the tab bar, then ⌘ and +.
+    struct TitleBar: View {
+        /// The compact toolbar's height, so the row centers on the traffic lights.
+        static let height: CGFloat = 40
+        /// The session picker button starts this far into the row: the 28 pt sidebar toggle and the row's 8 pt spacing.
+        static let picker: CGFloat = 36
 
-    /// Where the row starts: after the traffic lights, which AppKit owns; full screen has none.
-    static func inset(fullScreen: Bool) -> CGFloat {
-        fullScreen ? gap : 78
-    }
-
-    let store: HostStore
-    let fullScreen: Bool
-    @Binding var sidebar: Bool
-    @Binding var picking: Bool
-    @Binding var palette: Bool
-
-    var body: some View {
-        HStack(spacing: 4) {
-            IconButton(symbol: "sidebar.left", help: "Toggle Sidebar") {
-                withAnimation(.snappy) { sidebar.toggle() }
-            }
-            .keyboardShortcut("s", modifiers: [.command, .control])
-            .accessibilityIdentifier("titlebar.sidebar")
-            SessionPicker(store: store, open: $picking)
-            if !sidebar, store.state == .live, let workspace = store.selectedWorkspace {
-                TabBar(workspace: workspace, page: store.page, store: store)
-            }
-            Spacer(minLength: 0)
-            // ⌘K is the menu's.
-            IconButton(symbol: "command", help: "Commands") { palette.toggle() }
-                .accessibilityIdentifier("titlebar.palette")
-            // ⌘T is the menu's.
-            IconButton(symbol: "plus", help: "New Tab") { Task { await store.newTab() } }
-                .disabled(store.selectedWorkspace == nil || store.writing)
-                .accessibilityIdentifier("titlebar.new-tab")
+        /// Where the row starts: after the traffic lights, which AppKit owns; full screen has none.
+        static func inset(fullScreen: Bool) -> CGFloat {
+            fullScreen ? gap : 78
         }
-        .padding(.leading, Self.inset(fullScreen: fullScreen))
-        .padding(.trailing, gap)
-        .frame(height: Self.height)
-        .contentShape(.rect)
-        #if os(macOS)
-            // The title bar is hidden, so the row's empty space moves the window.
-            .gesture(WindowDragGesture())
-        #endif
-    }
-}
 
-/// The workspace's tabs as capsules on one marker, the look's pill, that follows the strip's scroll offset: between
-/// two capsules while the strip is between their pages. The tabs whose pages are in view are lit.
-private struct TabBar: View {
-    let workspace: HostStore.Workspace
-    let page: Double
-    let store: HostStore
-    @State private var hovered: String?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// Each capsule's frame in the bar, for the marker.
-    @State private var frames: [String: CGRect] = [:]
+        let store: HostStore
+        let fullScreen: Bool
+        @Binding var sidebar: Bool
+        @Binding var picking: Bool
+        @Binding var palette: Bool
+        @Binding var workspaceMenu: Bool
+        /// Where the workspace button starts in the window, for its menu.
+        @Binding var workspaceButtonX: CGFloat
 
-    var body: some View {
-        let tabs = workspace.tabs
-        // Pages floor(x/w) through ceil((x+w)/w) − 1, that is floor(page)...ceil(page).
-        let lit = Int(page.rounded(.down)) ... Int(page.rounded(.up))
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal) {
-                HStack(spacing: 2) {
-                    ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
-                        if index > 0 {
-                            // Only between two flat capsules.
-                            let quiet = lit.contains(index) || lit.contains(index - 1)
-                                || [tab.id, tabs[index - 1].id].contains(hovered)
-                            Divider().frame(height: 16).opacity(quiet ? 0 : 1)
-                        }
-                        TabButton(tab: tab, workspace: workspace, store: store, lit: lit.contains(index))
-                            .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
-                            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("tabs")) } action: {
-                                frames[tab.id] = $0
-                            }
+        var body: some View {
+            HStack(spacing: 8) {
+                // ⌃⌘S is the menu's. No highlight: the icon says open or closed.
+                IconButton(symbol: sidebar ? "rectangle.leftthird.inset.filled" : "sidebar.left",
+                           help: "Toggle Sidebar") { sidebar.toggle() }
+                    .accessibilityIdentifier("titlebar.sidebar")
+                    .accessibilityValue(sidebar ? "open" : "closed")
+                SessionPicker(store: store, open: $picking)
+                MachineButton()
+                if !sidebar, let workspace = store.selectedWorkspace {
+                    Capped(width: 260) {
+                        WorkspaceButton(session: store.session, workspace: workspace.label, open: $workspaceMenu)
+                    }
+                    .layoutPriority(1)
+                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: {
+                        workspaceButtonX = $0
                     }
                 }
-                .background(alignment: .topLeading) { marker(tabs) }
-                .coordinateSpace(.named("tabs"))
-                // Room for the Classic pill's shadow (radius 3.5, y 1.5): the scroll view clips.
-                .padding(.vertical, 5)
-            }
-            .scrollIndicators(.never)
-            // Capsules fade out at the edges instead of being cut.
-            .mask {
-                HStack(spacing: 0) {
-                    LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing).frame(width: 8)
-                    Rectangle()
-                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 16)
+                if store.state == .live, let workspace = store.selectedWorkspace {
+                    TabBar(workspace: workspace, store: store)
+                } else {
+                    Spacer(minLength: 0)
                 }
+                // ⌘K is the menu's.
+                IconButton(symbol: "command", help: "Commands") { palette.toggle() }
+                    .accessibilityIdentifier("titlebar.palette")
+                // ⌘T is the menu's.
+                IconButton(symbol: "plus", help: "New Tab") { Task { await store.newTab() } }
+                    .disabled(store.selectedWorkspace == nil || store.writing)
+                    .accessibilityIdentifier("titlebar.new-tab")
             }
-            .onChange(of: workspace.selectedTabID, initial: true) { old, new in
-                if let new {
-                    withAnimation(old != new && !reduceMotion ? .default : nil) { proxy.scrollTo(new) }
-                }
-            }
+            .padding(.leading, Self.inset(fullScreen: fullScreen))
+            .padding(.trailing, gap)
+            .frame(height: Self.height)
+            .contentShape(.rect)
+            // The title bar is hidden, so the row's empty space moves the window.
+            .gesture(WindowDragGesture())
         }
     }
 
-    /// The marker: the capsule frame of the page in view, blended toward the next one by the scroll's fraction.
-    private func marker(_ tabs: [HostStore.Tab]) -> some View {
-        let page = min(max(page, 0), Double(max(tabs.count - 1, 0)))
-        let index = Int(page), fraction = page - Double(index)
-        let frame = { tabs.indices.contains($0) ? frames[tabs[$0].id] : nil }
-        let from = frame(index) ?? .zero, next = frame(index + 1) ?? from
-        return Pill(shape: .capsule)
-            .frame(width: from.width + (next.width - from.width) * fraction, height: from.height)
-            .offset(x: from.minX + (next.minX - from.minX) * fraction, y: from.minY)
-            .allowsHitTesting(false)
+    /// This Mac's icon: a laptop when it has an internal battery (`hw.model` no longer says MacBook on M2 and later
+    /// laptops).
+    let thisMacIcon: String = {
+        let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
+        let battery = sources.contains { source in
+            let description = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any]
+            return description?[kIOPSTypeKey] as? String == kIOPSInternalBatteryType
+        }
+        return battery ? "laptopcomputer" : "desktopcomputer"
+    }()
+
+    /// The machine's icon and a chevron; its menu lists the machines (This Mac only for now) and Add Remote Host.
+    private struct MachineButton: View {
+        var body: some View {
+            Menu {
+                // The current machine: picking it does nothing.
+                Toggle(isOn: .constant(true)) { Label("This Mac", systemImage: thisMacIcon) }
+                Divider()
+                // ponytail: no-op until remote hosts
+                Button("Add Remote Host…", systemImage: "plus") {}
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: thisMacIcon).fontWeight(.medium)
+                    Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .frame(height: 28)
+            }
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .buttonStyle(ChromeStyle(radius: 7))
+            .fixedSize()
+            .help("Machine")
+            .accessibilityLabel("Machine: This Mac")
+            .accessibilityIdentifier("titlebar.machine")
+        }
     }
-}
+
+    /// While the sidebar is collapsed: "‹session› | ‹workspace›"; a click opens the workspace menu.
+    private struct WorkspaceButton: View {
+        let session: String
+        let workspace: String
+        @Binding var open: Bool
+
+        var body: some View {
+            Button { open.toggle() } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "folder").fontWeight(.medium).foregroundStyle(.secondary)
+                    Text(session).foregroundStyle(.secondary).lineLimit(1).fixedSize()
+                    Rectangle().fill(.separator).frame(width: 1, height: 12)
+                    FadeText(text: Text(workspace))
+                    Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
+                }
+                .fontWeight(.medium)
+                .padding(.horizontal, 8)
+                .frame(height: 28)
+            }
+            .buttonStyle(ChromeStyle(selected: open, radius: 7))
+            .accessibilityIdentifier("titlebar.workspace")
+            .accessibilityLabel("Workspace")
+            .accessibilityValue("\(session) | \(workspace)")
+        }
+    }
+
+    /// Offers its view at most `width` and takes the view's own size, so short content hugs (a `frame(maxWidth:)` takes
+    /// the whole offer).
+    private struct Capped: Layout {
+        let width: CGFloat
+
+        func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
+            let offer = ProposedViewSize(width: min(proposal.width ?? width, width), height: proposal.height)
+            return subviews.first?.sizeThatFits(offer) ?? .zero
+        }
+
+        func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
+            subviews.first?.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size))
+        }
+    }
+
+    /// The workspace button's menu: every workspace of the window's session under its header, a typed name that
+    /// matches none to make, and New Workspace.
+    struct WorkspaceMenu: View {
+        let store: HostStore
+        @Binding var open: Bool
+
+        var body: some View {
+            FilterList(prompt: "Filter or create…", name: "workspaces", items: items,
+                       start: store.workspaces.firstIndex { $0.id == store.selectedWorkspaceID } ?? 0,
+                       maxHeight: 340) { open = false }
+                .padding(8)
+                .frame(width: 300)
+                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        }
+
+        private func items(_ filter: String) -> [FilterList.Item] {
+            let workspaces = store.workspaces.filter { $0.label.matches(filter) }.map { workspace in
+                // The state icon (phase 15) and the branch (phase 14) come later.
+                FilterList.Item(id: workspace.id, title: workspace.label, section: store.session) {
+                    store.selectedWorkspaceID = workspace.id
+                }
+            }
+            let typed = filter.trimmingCharacters(in: .whitespaces)
+            let create = typed.isEmpty || !workspaces.isEmpty ? [] : [
+                FilterList.Item(id: "create", symbol: "plus", title: "New Workspace “\(typed)”") {
+                    Task { await store.newWorkspace(label: typed) }
+                },
+            ]
+            let new = FilterList.Item(id: "new", symbol: "plus", title: "New Workspace", section: "") {
+                Task { await store.newWorkspace() }
+            }
+            return create + workspaces + [new]
+        }
+    }
+#endif

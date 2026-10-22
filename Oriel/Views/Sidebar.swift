@@ -1,21 +1,18 @@
 import SwiftUI
 
-/// herdr's workspaces as sections with their tabs as rows, and a filter at the bottom.
+/// herdr's workspaces as rows (the tabs are in the title row, D45), and a filter at the bottom.
 struct Sidebar: View {
     let store: HostStore
     @State private var filter = ""
 
     var body: some View {
-        let sections = store.workspaces.map { ($0, shown($0)) }.filter { !$0.1.isEmpty }
+        let workspaces = store.workspaces.filter { $0.label.matches(filter) }
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
-                    ForEach(sections, id: \.0.id) { workspace, tabs in
-                        WorkspaceHeader(workspace: workspace, store: store)
-                        ForEach(tabs) { TabButton(tab: $0, workspace: workspace, store: store) }
-                    }
-                    if sections.isEmpty, !store.workspaces.isEmpty {
-                        Text("No matching tabs").foregroundStyle(.secondary).padding(8)
+                    ForEach(workspaces) { WorkspaceRow(workspace: $0, store: store) }
+                    if workspaces.isEmpty, !store.workspaces.isEmpty {
+                        Text("No matching workspaces").foregroundStyle(.secondary).padding(8)
                     }
                 }
                 .padding([.horizontal, .bottom], 8)
@@ -40,110 +37,26 @@ struct Sidebar: View {
         // On the window background, as in the reference: only the pane cards are lighter.
         .frame(width: 240)
     }
-
-    /// The tabs whose label matches the filter; all of them when the workspace's label matches.
-    private func shown(_ workspace: HostStore.Workspace) -> [HostStore.Tab] {
-        workspace.label.matches(filter) ? workspace.tabs : workspace.tabs
-            .filter { $0.label.matches(filter) }
-    }
 }
 
-/// A section header; clicking it selects the workspace at its own selected tab.
-private struct WorkspaceHeader: View {
+/// A workspace row (phase 14 restyles it); clicking it selects the workspace at its own selected tab.
+private struct WorkspaceRow: View {
     let workspace: HostStore.Workspace
     let store: HostStore
 
     var body: some View {
+        let selected = workspace.id == store.selectedWorkspaceID
         Button { store.selectedWorkspaceID = workspace.id } label: {
             HStack {
-                Text(workspace.label)
+                Text(workspace.label).lineLimit(1)
                 Spacer()
                 StatusGlyph(status: workspace.status)
             }
-            .font(.callout.weight(.semibold))
-            .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
-            .padding(.top, 10)
-            .padding(.bottom, 4)
-            .contentShape(.rect)
+            .frame(height: 30)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ChromeStyle(selected: selected, radius: 10))
         .accessibilityIdentifier("workspace.\(workspace.id)")
-    }
-}
-
-/// One tab: a sidebar row, or a title-bar capsule when `lit` is set. Its own view, so a status change redraws this
-/// tab only (design D6).
-struct TabButton: View {
-    let tab: HostStore.Tab
-    let workspace: HostStore.Workspace
-    let store: HostStore
-    /// A capsule, lit while its page is in view.
-    var lit: Bool?
-    @State private var hovering = false
-
-    var body: some View {
-        let selected = workspace.id == store.selectedWorkspaceID && tab.id == workspace.selectedTabID
-        let row = lit == nil
-        let stack = row ? [] : store.stack(tab)
-        Button {
-            store.selectedWorkspaceID = workspace.id
-            // A capsule: the strip scrolls to the new selection and the marker follows, as during a swipe.
-            workspace.selectedTabID = tab.id
-        } label: {
-            HStack(spacing: 8) {
-                // Rows keep the plain terminal tile until phase 14 replaces them.
-                if row {
-                    ProgramTile(icon: "terminal")
-                } else {
-                    IconStack(panes: stack)
-                }
-                Text(tab.label).lineLimit(1).foregroundStyle(lit == false ? .secondary : .primary)
-                if row {
-                    Spacer(minLength: 0)
-                }
-                // The one status slot: × while hovered (design D42).
-                if hovering {
-                    Color.clear.frame(width: 16, height: 1)
-                } else {
-                    StatusGlyph(status: tab.status)
-                }
-            }
-            // A capsule's tile sits in from its round end, more than above and below it (as in the reference).
-            .padding(.leading, row ? 7 : 8)
-            .padding(.trailing, row ? 7 : 12)
-            .padding(.vertical, 7)
-            .frame(maxWidth: row ? .infinity : 220, alignment: .leading)
-        }
-        // A capsule's selection is the tab bar's glass marker.
-        .buttonStyle(ChromeStyle(selected: row && selected, radius: row ? 10 : 16))
-        .accessibilityIdentifier("tab.\(tab.id)")
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityValue(row ? "" : ((lit == true ? "in view; " : "") + "icons: "
-                + stack.map(\.iconID).joined(separator: ", ")))
-        .accessibilityAction(named: "Close Tab") { store.closing = .tab(tab.id) }
-        .overlay(alignment: .trailing) {
-            if hovering {
-                CloseTabButton(tab: tab, store: store).padding(.trailing, row ? 4 : 6)
-            }
-        }
-        .onHover { hovering = $0 }
-    }
-}
-
-/// The × of a tab row or capsule: asks first, with the pane count (design D41).
-struct CloseTabButton: View {
-    let tab: HostStore.Tab
-    let store: HostStore
-
-    var body: some View {
-        Button { store.closing = .tab(tab.id) } label: {
-            Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(.secondary)
-                .frame(width: 18, height: 18)
-        }
-        .buttonStyle(ChromeStyle(radius: 5))
-        .help("Close Tab")
-        .accessibilityLabel("Close Tab")
-        .accessibilityIdentifier("tab.\(tab.id).close")
     }
 }

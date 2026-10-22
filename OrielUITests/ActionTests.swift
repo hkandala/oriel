@@ -264,6 +264,8 @@ extension OrielUITests {
     func testPaletteJumpsToAnotherWorkspacesSecondTab() async throws {
         XCTAssertTrue(element("tab.w1:t2").waitForExistence(timeout: connect))
         let (tab, _) = try await newTab("faraway")
+        element("workspace.w1").click()
+        XCTAssertTrue(element("tab.\(tab)").waitForNonExistence(timeout: 2))
         openPalette()
         app.typeText("faraway")
         XCTAssertTrue(element("palette.tab.\(tab)").waitForExistence(timeout: 2))

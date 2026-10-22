@@ -267,6 +267,7 @@ struct ChromeStyle: ButtonStyle {
                     }
                 }
                 .opacity(enabled ? 1 : 0.4)
+                .animation(.easeOut(duration: 0.14), value: hovering)
                 .onHover { hovering = $0 }
         }
     }
@@ -298,7 +299,27 @@ struct MenuRow: View {
             Text(detail).foregroundStyle(selected ? Color.white.opacity(0.75) : .secondary).lineLimit(1).fixedSize()
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .frame(height: 26)
+    }
+}
+
+/// One line that fades out over its last 16 pt when it does not fit, instead of an ellipsis.
+struct FadeText: View {
+    let text: Text
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            text.fixedSize()
+            text.fixedSize().frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                .mask {
+                    HStack(spacing: 0) {
+                        Rectangle()
+                        LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                            .frame(width: 16)
+                    }
+                }
+        }
+        .lineLimit(1)
     }
 }
 
@@ -318,54 +339,6 @@ struct IconButton: View {
         .buttonStyle(ChromeStyle(radius: 7))
         .help(help)
         .accessibilityLabel(help)
-    }
-}
-
-/// The filter field of the sidebar and the session list. Until clicked (or with `autofocus`) it is plain text,
-/// so the window has no text field to hand the keyboard to at launch; keys belong to the panes.
-struct FilterField: View {
-    let prompt: String
-    @Binding var text: String
-    let identifier: String
-    var autofocus = false
-    @State private var editing = false
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-            if editing || autofocus || !text.isEmpty {
-                TextField(prompt, text: $text)
-                    .textFieldStyle(.plain)
-                    .focused($focused)
-                    .task {
-                        // ponytail: focus asked for as the field appears is dropped (AppKit has not made it a
-                        // key view yet), and a single later ask was sometimes dropped too (⌘K, then typing went
-                        // nowhere); ask every 50 ms until it holds, for up to 1 s. Upgrade: an AppKit field that
-                        // takes first responder in viewDidMoveToWindow.
-                        for _ in 0 ..< 20 where !focused {
-                            try? await Task.sleep(for: .milliseconds(50))
-                            focused = true
-                        }
-                    }
-                    .onChange(of: focused) { editing = focused }
-                    .accessibilityIdentifier(identifier)
-            } else {
-                // A button, not a field: it can't take the keyboard at launch, and VoiceOver can press it.
-                Button { editing = true } label: {
-                    Text(prompt).foregroundStyle(.tertiary).frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier(identifier)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(.primary.opacity(0.07), in: .capsule)
-        .contentShape(.capsule)
-        .onTapGesture { editing = true }
     }
 }
 

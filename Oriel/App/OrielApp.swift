@@ -34,10 +34,7 @@ struct OrielApp: App {
             .defaultSize(width: 1200, height: 760)
             // Content never grows the window (the title-bar tabs would, when the sidebar hides).
             .windowResizability(.contentMinSize)
-            .commands {
-                TabCommands()
-                ActionCommands()
-            }
+            .commands { AppCommands() }
             .onChange(of: fontSize) { PaneTerminal.setFontSize(fontSize) }
         #else
             WindowGroup {
@@ -54,18 +51,23 @@ struct OrielApp: App {
     struct ContentView: View {
         /// `-session <name>` on the command line lands in UserDefaults.
         @State private var store = HostStore(session: UserDefaults.standard.string(forKey: "session") ?? "default")
-        @State private var sidebar = true
+        /// Per window (phase 16 opens more).
+        @SceneStorage("sidebar") private var sidebar = true
         @State private var picking = false
+        @State private var workspaceMenu = false
+        @State private var workspaceButtonX: CGFloat = 0
         @State private var fullScreen = false
         @State private var palette = false
         @AppStorage("appearance") private var appearance = Appearance.dark
         @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
         @Environment(\.colorScheme) private var colorScheme
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
             let look = Look(style: style, dark: colorScheme == .dark)
             VStack(spacing: 0) {
-                TitleBar(store: store, fullScreen: fullScreen, sidebar: $sidebar, picking: $picking, palette: $palette)
+                TitleBar(store: store, fullScreen: fullScreen, sidebar: $sidebar, picking: $picking,
+                         palette: $palette, workspaceMenu: $workspaceMenu, workspaceButtonX: $workspaceButtonX)
                 HStack(spacing: 0) {
                     if sidebar {
                         Sidebar(store: store)
@@ -76,6 +78,8 @@ struct OrielApp: App {
                     Detail(store: $store)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                // Rex's collapse time; the toggle and ⌃⌘S only flip the value.
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: sidebar)
             }
             .overlay {
                 if picking {
@@ -83,6 +87,12 @@ struct OrielApp: App {
                         .padding(.leading, TitleBar.inset(fullScreen: fullScreen) + TitleBar.picker)
                         .padding(.top, TitleBar.height + 4)
                         .floatingPanel(open: $picking, alignment: .topLeading)
+                }
+                if workspaceMenu, !sidebar {
+                    WorkspaceMenu(store: store, open: $workspaceMenu)
+                        .padding(.leading, workspaceButtonX)
+                        .padding(.top, TitleBar.height)
+                        .floatingPanel(open: $workspaceMenu, alignment: .topLeading)
                 }
                 if palette {
                     Palette(store: $store, open: $palette).padding(.top, 96).floatingPanel(
@@ -96,7 +106,7 @@ struct OrielApp: App {
                     store.closing = nil
                 }
             }, titleVisibility: .visible, presenting: store.closing) { close in
-                Button(close.isTab ? "Close Tab" : "Close Pane", role: .destructive) {
+                Button(close.button, role: .destructive) {
                     Task { await store.close(close) }
                 }
             } message: { _ in
@@ -121,7 +131,8 @@ struct OrielApp: App {
             // In full screen the empty toolbar would cover the title row; it shows on hover only.
             .windowToolbarFullScreenVisibility(.onHover)
             .background(FullScreenReader(fullScreen: $fullScreen))
-            .navigationTitle(store.selectedTab?.label ?? HostStore.name(store.session))
+            .navigationTitle(store.selectedTab.map { "\(store.titleText($0)) - \(store.session)" }
+                ?? HostStore.name(store.session))
             // Every window, sheet and menu, and the terminals' palettes, follow the app's appearance.
             .onChange(of: appearance, initial: true) {
                 NSApp.appearance = switch appearance {
@@ -134,10 +145,20 @@ struct OrielApp: App {
             // The menu's ⌘1…⌘9 tabs step aside while the session list has its own ⌘1…⌘9.
             .focusedSceneValue(\.tabs, picking ? nil : store)
             .focusedSceneValue(\.palette, $palette)
-            // The palette and the session list never show together; a closed palette gives the keys back.
+            .focusedSceneValue(\.sidebar, $sidebar)
+            // One panel at a time; a closed one gives the keys back.
             .onChange(of: palette) {
                 if palette {
                     picking = false
+                    workspaceMenu = false
+                } else {
+                    store.focusKeyboardCard()
+                }
+            }
+            .onChange(of: workspaceMenu) {
+                if workspaceMenu {
+                    picking = false
+                    palette = false
                 } else {
                     store.focusKeyboardCard()
                 }
@@ -150,20 +171,35 @@ struct OrielApp: App {
 
         /// The close dialog's text (design D41): a close ends processes on every device and cannot be undone.
         private var dialog: (title: String, message: String)? {
+            let end = " will end, here and in every herdr client. This cannot be undone."
             switch store.closing {
             case let .tab(id):
                 let tab = store.workspaces.flatMap(\.tabs).first { $0.id == id }
                 let count = store.panes.count { $0.tabID == id }
-                return ("Close the tab “\(tab?.label ?? id)”?",
+                return ("Close the tab “\(tab.map(store.titleText) ?? id)”?",
                         "Its \(count == 1 ? "pane" : "\(count) panes") and everything running in "
-                            + "\(count == 1 ? "it" : "them") will end, here and in every herdr client. "
-                            + "This cannot be undone.")
+                            + "\(count == 1 ? "it" : "them")" + end)
+            case let .otherTabs(id):
+                let others = store.workspaces.first { $0.tabs.contains { $0.id == id } }?.tabs.map(\.id)
+                    .filter { $0 != id } ?? []
+                let count = store.panes.count { others.contains($0.tabID) }
+                return ("Close \(others.count == 1 ? "the other tab" : "the \(others.count) other tabs")?",
+                        "Their \(count == 1 ? "pane" : "\(count) panes") and everything running in "
+                            + "\(count == 1 ? "it" : "them")" + end)
             case let .pane(id, program):
-                return ("Close “\(store.pane(id)?.title ?? id)”?",
-                        "\(program) is running in it and will end, here and in every herdr client. "
-                            + "This cannot be undone.")
+                return ("Close “\(store.pane(id)?.title ?? id)”?", "\(program) is running in it" + end)
             case nil:
                 return nil
+            }
+        }
+    }
+
+    private extension HostStore.Close {
+        var button: String {
+            switch self {
+            case .pane: "Close Pane"
+            case .tab: "Close Tab"
+            case .otherTabs: "Close Tabs"
             }
         }
     }

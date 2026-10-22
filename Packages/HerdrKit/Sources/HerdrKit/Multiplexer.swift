@@ -27,10 +27,13 @@ public protocol Multiplexer: Sendable {
     func split(_ paneID: String, _ direction: SplitNode.Direction) async throws
     /// Returns the new tab's id.
     func newTab(workspace workspaceID: String, cwd: String) async throws -> String?
-    /// Returns the new workspace's first tab id.
-    func newWorkspace(cwd: String) async throws -> String?
+    /// Returns the new workspace's first tab id. Without a label the multiplexer names it.
+    func newWorkspace(label: String?, cwd: String) async throws -> String?
     func close(pane paneID: String) async throws
     func close(tab tabID: String) async throws
+    func rename(tab tabID: String, label: String) async throws
+    /// Moves the tab before the tab now at `index` in its workspace (the count puts it last).
+    func move(tab tabID: String, to index: Int) async throws
     /// Logical keys (`ctrl+c`), encoded by the multiplexer for the program's input modes.
     func sendKeys(_ keys: [String], pane paneID: String) async throws
 }
@@ -45,8 +48,10 @@ extension HerdrClient: Multiplexer {
         try await (call("tab.create", ["workspace_id": workspaceID, "cwd": cwd, "focus": false]) as Created).tab?.id
     }
 
-    public nonisolated func newWorkspace(cwd: String) async throws -> String? {
-        try await (call("workspace.create", ["cwd": cwd, "focus": false]) as Created).tab?.id
+    public nonisolated func newWorkspace(label: String?, cwd: String) async throws -> String? {
+        var params: [String: any Sendable] = ["cwd": cwd, "focus": false]
+        params["label"] = label
+        return try await (call("workspace.create", params) as Created).tab?.id
     }
 
     public nonisolated func close(pane paneID: String) async throws {
@@ -55,6 +60,14 @@ extension HerdrClient: Multiplexer {
 
     public nonisolated func close(tab tabID: String) async throws {
         let _: Created = try await call("tab.close", ["tab_id": tabID])
+    }
+
+    public nonisolated func rename(tab tabID: String, label: String) async throws {
+        let _: Created = try await call("tab.rename", ["tab_id": tabID, "label": label])
+    }
+
+    public nonisolated func move(tab tabID: String, to index: Int) async throws {
+        let _: Created = try await call("tab.move", ["tab_id": tabID, "insert_index": index])
     }
 
     public nonisolated func sendKeys(_ keys: [String], pane paneID: String) async throws {

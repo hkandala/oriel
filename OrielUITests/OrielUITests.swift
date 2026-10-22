@@ -61,7 +61,7 @@ final class OrielUITests: XCTestCase {
 
         element("tab.w1:t2").click()
         XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
-        XCTAssertEqual(app.windows.firstMatch.title, "second")
+        XCTAssertTrue(app.windows.firstMatch.wait(for: \.title, toEqual: "second - \(one)", timeout: 2))
 
         element("workspace.w2").click()
         XCTAssertTrue(element("page.w2:t1").waitForExistence(timeout: 2))
@@ -70,37 +70,20 @@ final class OrielUITests: XCTestCase {
         keepScreenshot("second workspace")
     }
 
-    /// A row of another workspace shows its own tab, not the workspace's first one.
-    func testTabRowOfAnotherWorkspaceShowsThatTab() {
-        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
-        element("workspace.w2").click()
-        XCTAssertTrue(element("page.w2:t1").waitForExistence(timeout: 2))
+    /// Each workspace keeps its own selected tab; coming back shows it, with the marker on it.
+    func testWorkspaceKeepsItsSelectedTab() {
+        XCTAssertTrue(element("tab.w1:t2").waitForExistence(timeout: connect))
         element("tab.w1:t2").click()
         XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
-        XCTAssertTrue(element("tab.w1:t2").isSelected)
-        XCTAssertFalse(element("pane.w1:p1").isHittable)
-
-        // Back to the first tab through another workspace: the title-bar marker is on it, and the second tab's
-        // capsule scrolls there.
         element("workspace.w2").click()
         XCTAssertTrue(element("pane.w2:p1").wait(for: \.isHittable, toEqual: true, timeout: 2))
-        element("tab.w1:t1").click()
-        XCTAssertTrue(element("pane.w1:p1").wait(for: \.isHittable, toEqual: true, timeout: 2))
-        element("titlebar.sidebar").click()
-        let first = element("tab.w1:t1"), second = element("tab.w1:t2")
-        XCTAssertTrue(first.wait(for: \.isSelected, toEqual: true, timeout: 2))
-        // Once the strip's scroll to t1 has settled (on CI it was still between the pages).
-        let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            (first.value as? String)?.hasPrefix("in view") == true
-                && (second.value as? String)?.hasPrefix("in view") == false
-        }, object: nil)
-        XCTAssertEqual(XCTWaiter().wait(for: [settled], timeout: 2), .completed,
-                       "t1 \(first.value ?? "nil"), t2 \(second.value ?? "nil")")
-        second.click()
+        XCTAssertFalse(element("tab.w1:t2").exists)
+        element("workspace.w1").click()
         XCTAssertTrue(element("pane.w1:p4").wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssertTrue(element("tab.w1:t2").isSelected)
         let marked = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "value BEGINSWITH 'in view'"),
-            object: second,
+            object: element("tab.w1:t2"),
         )
         XCTAssertEqual(XCTWaiter().wait(for: [marked], timeout: 2), .completed)
     }
@@ -128,31 +111,15 @@ final class OrielUITests: XCTestCase {
         keepScreenshot("session filter")
     }
 
-    func testSidebarFilterNarrowsTheTabs() {
-        XCTAssertTrue(element("tab.w1:t1").waitForExistence(timeout: connect))
+    func testSidebarFilterNarrowsTheWorkspaces() {
+        XCTAssertTrue(element("workspace.w1").waitForExistence(timeout: connect))
         let filter = element("sidebar.filter")
         filter.click()
         XCTAssertTrue(hasKeyboard(filter))
-        filter.typeText("seco")
-        XCTAssertTrue(element("tab.w1:t1").waitForNonExistence(timeout: 2))
-        XCTAssertTrue(element("tab.w1:t2").exists)
-        XCTAssertFalse(element("workspace.w2").exists)
+        filter.typeText("bet")
+        XCTAssertTrue(element("workspace.w1").waitForNonExistence(timeout: 2))
+        XCTAssertTrue(element("workspace.w2").exists)
         keepScreenshot("sidebar filter")
-    }
-
-    func testHidingTheSidebarShowsTitleBarTabs() {
-        let window = app.windows.firstMatch
-        let tab = element("tab.w1:t2")
-        XCTAssertTrue(tab.waitForExistence(timeout: connect))
-        XCTAssertGreaterThan(tab.frame.minY, window.frame.minY + 40)
-
-        element("titlebar.sidebar").click()
-        XCTAssertTrue(element("sidebar.filter").waitForNonExistence(timeout: 2))
-        XCTAssertTrue(tab.waitForExistence(timeout: 2))
-        XCTAssertLessThan(tab.frame.maxY, window.frame.minY + 40)
-        tab.click()
-        XCTAssertTrue(window.wait(for: \.title, toEqual: "second", timeout: 2))
-        keepScreenshot("title-bar tabs")
     }
 
     func testSplitButtonAddsAPane() async throws {
@@ -257,8 +224,8 @@ extension OrielUITests {
         element("pane.\(pane)").coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 40, dy: 17)).hover()
     }
 
-    /// A new tab (closed after the test unless told not to), shown in the sidebar: its id and its pane's. By
-    /// default in w2, another workspace than the selected one, so a click on it also crosses workspaces.
+    /// A new tab (closed after the test unless told not to), its workspace selected so its capsule shows: its id and
+    /// its pane's. By default in w2, another workspace than the one selected at launch.
     func newTab(_ label: String, in workspace: String = "w2",
                 closeAfter: Bool = true) async throws -> (tab: String, pane: String)
     {
@@ -268,6 +235,10 @@ extension OrielUITests {
         let pane = try XCTUnwrap((created["root_pane"] as? [String: Any])?["pane_id"] as? String)
         if closeAfter {
             addTeardownBlock { [one] in _ = try? await Self.call(one, "tab.close", ["tab_id": tab]) }
+        }
+        let row = element("workspace.\(workspace)")
+        if !row.isSelected {
+            row.click()
         }
         XCTAssertTrue(element("tab.\(tab)").waitForExistence(timeout: 2))
         return (tab, pane)

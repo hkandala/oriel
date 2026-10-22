@@ -80,3 +80,53 @@ extension HostStore {
         }
     }
 }
+
+extension HostStore {
+    /// "This Mac" for the default session, "This Mac · ‹session›" for the others.
+    static func name(_ session: String) -> String {
+        session == "default" ? "This Mac" : "This Mac · \(session)"
+    }
+
+    /// Selects the tab before or after the selected one, round the ends.
+    func step(_ offset: Int) {
+        guard let workspace = selectedWorkspace, !workspace.tabs.isEmpty else { return }
+        let tabs = workspace.tabs
+        let index = tabs.firstIndex { $0.id == workspace.selectedTabID } ?? 0
+        workspace.selectedTabID = tabs[(index + offset + tabs.count) % tabs.count].id
+    }
+
+    /// The tab's title, from herdr's label; herdr's default label (a bare number) gives the front card's program
+    /// and folder instead (D65).
+    func title(_ tab: Tab) -> (name: String, folder: String?) {
+        guard !tab.label.isEmpty, tab.label.allSatisfy(\.isNumber), let pane = stack(tab).first,
+              pane.programName != nil || pane.folder != nil else { return (tab.label, nil) }
+        return (pane.programName ?? "", pane.folder)
+    }
+
+    /// The title in one string, for the window title and menus.
+    func titleText(_ tab: Tab) -> String {
+        let title = title(tab)
+        return [title.name, title.folder ?? ""].filter { !$0.isEmpty }.joined(separator: " ")
+    }
+}
+
+/// Keeps the object of each id that stays, makes the new ones, and replaces the list only when its
+/// ids changed, so views of the list redraw only then.
+@MainActor
+func reuse<Owner: AnyObject, Object: Identifiable<String>, Item: Identifiable<String>>(
+    _ owner: Owner,
+    _ list: ReferenceWritableKeyPath<Owner, [Object]>,
+    _ items: [Item],
+    _ make: (String) -> Object,
+    _ update: (Object, Item) -> Void,
+) {
+    let old = Dictionary(owner[keyPath: list].map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+    let new = items.map { item in
+        let object = old[item.id] ?? make(item.id)
+        update(object, item)
+        return object
+    }
+    if new.map(\.id) != owner[keyPath: list].map(\.id) {
+        owner[keyPath: list] = new
+    }
+}

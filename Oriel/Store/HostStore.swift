@@ -16,14 +16,8 @@ final class HostStore {
         /// The pane and the program running in it.
         case pane(String, program: String)
         case tab(String)
-
-        var isTab: Bool {
-            if case .tab = self {
-                true
-            } else {
-                false
-            }
-        }
+        /// Every tab of its workspace but this one.
+        case otherTabs(String)
     }
 
     let session: String
@@ -76,11 +70,6 @@ final class HostStore {
         #endif
     }
 
-    /// "This Mac" for the default session, "This Mac · ‹session›" for the others.
-    static func name(_ session: String) -> String {
-        session == "default" ? "This Mac" : "This Mac · \(session)"
-    }
-
     func pane(_ id: String) -> Pane? {
         panes.first { $0.id == id }
     }
@@ -91,14 +80,6 @@ final class HostStore {
 
     var selectedTab: Tab? {
         selectedWorkspace.flatMap { workspace in workspace.tabs.first { $0.id == workspace.selectedTabID } }
-    }
-
-    /// Selects the tab before or after the selected one, round the ends.
-    func step(_ offset: Int) {
-        guard let workspace = selectedWorkspace, !workspace.tabs.isEmpty else { return }
-        let tabs = workspace.tabs
-        let index = tabs.firstIndex { $0.id == workspace.selectedTabID } ?? 0
-        workspace.selectedTabID = tabs[(index + offset + tabs.count) % tabs.count].id
     }
 
     /// The tab's panes for its icon stack, at most 5: the keyboard card's first (herdr's focused pane until one
@@ -182,7 +163,7 @@ final class HostStore {
                     try await client.startServer()
                     // A new server has no workspace yet.
                     if try await client.snapshot().workspaces.isEmpty {
-                        _ = try await client.newWorkspace(cwd: NSHomeDirectory())
+                        _ = try await client.newWorkspace(label: nil, cwd: NSHomeDirectory())
                     }
                 }
                 terminals.client = client
@@ -254,16 +235,7 @@ final class HostStore {
         }
         let focused = snapshot.focusedPaneIDs
         reuse(self, \.panes, snapshot.panes, Pane.init(id:)) { pane, new in
-            // Another terminal (herdr reused the id), agent or title word: the program may have changed. A progress
-            // title ("build 51%") changes on and on; its first word does not.
-            let reused = new.terminalID != pane.terminalID
-            if reused {
-                pane.program = nil
-            }
-            let word = { (title: String?) in title?.split(separator: " ").first }
-            if pane.asked, reused || new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
-                Task { await askProgram(pane.id) }
-            }
+            watchProgram(pane, new)
             pane.agent = new.agent
             pane.terminalTitle = new.title
             pane.label = new.label
@@ -283,6 +255,28 @@ final class HostStore {
         if selectedWorkspace == nil {
             selectedWorkspaceID = workspaces.contains { $0.id == snapshot.focusedWorkspaceID }
                 ? snapshot.focusedWorkspaceID : workspaces.first?.id
+        }
+    }
+
+    /// Asks what the pane runs: once when it is new, and again when another terminal (herdr reused the id), agent or
+    /// title word may mean another program. A progress title ("build 51%") changes on and on; its first word does not.
+    private func watchProgram(_ pane: Pane, _ new: HerdrKit.Pane) {
+        let reused = new.terminalID != pane.terminalID
+        if reused {
+            pane.program = nil
+        }
+        let word = { (title: String?) in title?.split(separator: " ").first }
+        if pane.asked, reused || new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
+            Task { await askProgram(pane.id) }
+        }
+        // Every pane once, for its tab's icons, also in tabs never shown; a failed ask is made again. A second later,
+        // as after Return: a new shell's startup runs short-lived programs (`sort`).
+        if !pane.asked {
+            pane.asked = true
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                await askProgram(pane.id)
+            }
         }
     }
 }
@@ -308,9 +302,24 @@ extension HostStore {
         }
     }
 
-    /// The snapshot after it selects the new workspace (`arriving`).
-    func newWorkspace() async {
-        await write { arriving = try await $0.newWorkspace(cwd: NSHomeDirectory()) ?? arriving }
+    /// The snapshot after it selects the new workspace (`arriving`). In home: a server launchd started has
+    /// another cwd.
+    func newWorkspace(label: String? = nil) async {
+        await write { arriving = try await $0.newWorkspace(label: label, cwd: NSHomeDirectory()) ?? arriving }
+    }
+
+    func rename(tab tabID: String, label: String) async {
+        await write { try await $0.rename(tab: tabID, label: label) }
+    }
+
+    /// One place left (-1) or right (1) in its workspace.
+    func move(tab tabID: String, by offset: Int) async {
+        guard let tabs = workspaces.first(where: { $0.tabs.contains { $0.id == tabID } })?.tabs,
+              let index = tabs.firstIndex(where: { $0.id == tabID }) else { return }
+        // herdr inserts before the tab now at the index, so one place right is two on.
+        let target = offset > 0 ? index + 1 + offset : index + offset
+        guard tabs.indices.contains(index + offset) else { return }
+        await write { try await $0.move(tab: tabID, to: target) }
     }
 
     /// Closes a pane that runs only its shell; asks first when anything else runs (design D41).
@@ -335,6 +344,13 @@ extension HostStore {
         switch close {
         case let .pane(id, _): await write { try await $0.close(pane: id) }
         case let .tab(id): await write { try await $0.close(tab: id) }
+        case let .otherTabs(id):
+            let others = workspaces.first { $0.tabs.contains { $0.id == id } }?.tabs.map(\.id).filter { $0 != id } ?? []
+            await write { client in
+                for other in others {
+                    try await client.close(tab: other)
+                }
+            }
         }
     }
 
@@ -375,26 +391,5 @@ extension HostStore {
         if notice == text {
             notice = nil
         }
-    }
-}
-
-/// Keeps the object of each id that stays, makes the new ones, and replaces the list only when its
-/// ids changed, so views of the list redraw only then.
-@MainActor
-private func reuse<Owner: AnyObject, Object: Identifiable<String>, Item: Identifiable<String>>(
-    _ owner: Owner,
-    _ list: ReferenceWritableKeyPath<Owner, [Object]>,
-    _ items: [Item],
-    _ make: (String) -> Object,
-    _ update: (Object, Item) -> Void,
-) {
-    let old = Dictionary(owner[keyPath: list].map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-    let new = items.map { item in
-        let object = old[item.id] ?? make(item.id)
-        update(object, item)
-        return object
-    }
-    if new.map(\.id) != owner[keyPath: list].map(\.id) {
-        owner[keyPath: list] = new
     }
 }
