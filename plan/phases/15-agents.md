@@ -150,3 +150,74 @@ needs another name adds it to e2e.sh and the helper.
   Dock badge.
 
 ## Findings
+
+### Deviations
+
+- **The hover panel is an in-window overlay, not `.popover`.** A native popover is its own window, which takes the
+  keyboard when shown: resting the pointer on the button would have taken keys away from the terminal. The
+  `hoverPanel` modifier hangs the panel from the trigger's bottom (`overlay` + `frame(height: 0, alignment: .top)`),
+  tracks the pointer over both with `onHover`, and closes on a click outside it or Esc through a local event monitor
+  that does not swallow the click. The title row has `zIndex(1)` so the panel draws over the sidebar and the cards,
+  and its window-drag area moved behind the row (`background`): a `contentShape(.rect)` on the row cut off hits and
+  hovers on the hanging panel (its row click did nothing in the first run).
+- **The "on" icon is two SF Symbols, not a custom symbol file.** `bubble.left.and.bubble.right.fill` in palette mode
+  with the back layer clear, over the outline symbol, bottom-aligned (both measured equal there): only the front
+  bubble fills. The symbols render as bitmaps into a PDF, so there was no vector to build a symbol template from.
+- **The whole icon stack bounces**, not only its front tile: the stack is one composited view (its ring cuts).
+- **Dots and badges read the panes, not the rollup alone.** A tab's badge is its strongest pane's state (needs you
+  or finished); its dots show while any of its panes works, so a tab with one agent waiting and one working shows
+  both.
+- **No notification banner on this Mac.** The dev build is ad-hoc signed (`CODE_SIGN_IDENTITY = "-"`);
+  `requestAuthorization` returns an error and Notification Center stores the requests with no visibility (seen in
+  `log show`). The code path posts (logged "Added notification request"); a banner screenshot needs a signed build.
+- **No Dock badge on this Mac either.** `dockTile.badgeLabel` is set (`app.badge` says so, and e2e reads it), but the
+  Dock shows a badge only for an app allowed `.badge` notifications; the E2E reviewer saw the Dock item's
+  `AXStatusLabel` empty. The app asks for `.alert` and `.badge` at launch. Both shots need a signed build: for the
+  user to check at the end.
+- **The hover panel does not open after a click on the button** until the pointer leaves it (E2E review: it opened
+  over the cards 0.25 s after each click).
+
+### Decisions
+
+- **`Seen` (HerdrKit, value type).** `update(agents, looking:)` per snapshot, `look(_:)` when the looked-at tab
+  changes; `states`, `since` (for the ages) and the changes since the last call. Keyed by terminal id (else pane id,
+  spec review): a pane moved to another workspace keeps its terminal and its unseen finish, and a pane id herdr
+  gives to a new terminal is a first sighting. An agent that goes away starts over. `AgentState` is ordered idle < working < finished < needs you, so
+  a rollup is `max`.
+- **The store owns it** (`HostStore.seen`, shared by the windows on a session) and copies the result onto each
+  `Pane` (`state`, `since`, `agentName`), so Observation redraws only the panes that changed. Rollups are
+  `HostStore.strongest(tabIDs)`.
+- **Looking** = `HostStore.lookingTabID`, set by `WindowPages.look(key:)` from the window's `appearsActive`, the page
+  in view and its selected tab. Setting it records the tab's finishes as seen and removes their notifications.
+- **Ids:** `titlebar.agents` (value "N need you"), `agents.popover`, `agents.popover.empty`, `agent.<pane id>` (value
+  the capsule word), `agents.group.<capsule word>`, `agents.sort` (value `priority` / `workspace`), `tab.<id>.working`,
+  `app.badge`. A tab's value adds "codex, needs you" between "in view" and "icons:".
+- **Scene storage:** `agents` (the Agents view is on) and `agentSort`.
+- **View ▸ Show Agents (⌘.)** is a checkmark item; `toggleAgents` is the one rule for the button and the menu.
+- **One window for now:** `WindowPages.main` (weak) is the window the Dock menu and notification clicks act on
+  (`ponytail:` note; phase 16 picks the window). It is set after the window restored its pages, not in `init`: a
+  `@State` initial value is built again with every `ContentView` (spec review), and each throwaway copy would
+  have taken it.
+- **A click that comes early waits** (`WindowPages.pending`): a notification that starts the app, or names a page
+  closed since, opens the page and selects the pane once a snapshot shows its terminal.
+- **Notifications go when they no longer hold:** a pane that turns working or idle loses its old one, and a closed
+  page's are removed.
+- **Notification ids** use the terminal id, and a click finds the pane by terminal id (a pane moved to another
+  workspace keeps it).
+
+### Assumptions
+
+- **macOS pauses a `TimelineView(.animation)` that is not on screen**, so the dots cost nothing in hidden tabs or
+  windows; Reduce Motion pauses it outright.
+- **The Agents button gives the keyboard back to the card** after a click (a SwiftUI button click took it).
+
+### Learned
+
+- **Spike (herdr 0.9.5):** `pane.report_agent {pane_id, source, agent, state, seq}` takes idle, working, blocked,
+  unknown; a report with a `seq` not above the last one is dropped. `state_change_seq` is one counter per server;
+  `completion_seq` is set on working → idle and on blocked → idle, and null again at the next change; an idle → idle
+  report changes nothing. herdr reports `done` instead of `idle` for a pane no herdr client looks at.
+  `pane.release_agent {pane_id, source, agent}` drops only that source's report. `pane.report_metadata` needs a
+  `source` too. A restarted server keeps pane ids and gives new terminal ids, so a restart is a first sighting
+  (no flood); "different, not greater" still covers a pane without a terminal id.
+- **A static text's text is its value in XCUITest** (phase 14 again): "Nobody needs you" is read as `value`.

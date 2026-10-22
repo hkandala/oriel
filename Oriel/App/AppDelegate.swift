@@ -8,8 +8,8 @@
         func applicationWillFinishLaunching(_: Notification) {
             let center = UNUserNotificationCenter.current()
             center.delegate = self
-            // macOS asks the user once; later calls answer at once.
-            center.requestAuthorization(options: [.alert]) { _, _ in }
+            // macOS asks the user once; later calls answer at once. The Dock badge shows only with `.badge` allowed.
+            center.requestAuthorization(options: [.alert, .badge]) { _, _ in }
         }
 
         /// A row per pane that needs you or finished, then New Tab.

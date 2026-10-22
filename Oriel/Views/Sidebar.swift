@@ -99,6 +99,8 @@
                         }
                     }
                     .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    // Before the sort menu's label, which gives way first.
+                    .layoutPriority(1)
                     .accessibilityElement(children: .ignore).accessibilityAddTraits(.isStaticText)
                     .accessibilityValue(agents == nil ? page.id : "\(page.id) · agents")
                     .accessibilityIdentifier("sidebar.header")
@@ -182,11 +184,11 @@
                 Text(
                     "\(Image(systemName: "arrow.up.arrow.down")) \(sort == .priority ? "Priority" : "Workspace order")",
                 )
-                .font(.system(size: 11)).foregroundStyle(.secondary).padding(.horizontal, 6).frame(height: 22)
+                .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).padding(.horizontal, 6)
+                .frame(height: 22)
             }
             .menuStyle(.button)
             .buttonStyle(ChromeStyle(radius: 6))
-            .fixedSize()
             .accessibilityIdentifier("agents.sort")
             .accessibilityValue(sort.rawValue)
         }

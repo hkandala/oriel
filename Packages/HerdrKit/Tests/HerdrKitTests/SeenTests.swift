@@ -52,19 +52,29 @@ private func agent(_ status: AgentStatus, _ completion: Int? = nil, pane: String
     #expect(seen.update([agent(.done, 7)], looking: []).isEmpty)
 }
 
-@Test func `a restart of herdr counts its new finishes`() {
+@Test func `a smaller completion number is still a new finish`() {
     var seen = Seen()
     _ = seen.update([agent(.idle, 8)], looking: [])
     #expect(seen.states["w1:p1"] == .idle)
-    // The counter starts at 0 again: a smaller number is still a new finish.
+    // Different, not greater: herdr's counter starts at 0 again when it restarts.
     _ = seen.update([agent(.working)], looking: [])
     #expect(seen.update([agent(.idle, 2)], looking: []).map(\.state) == [.finishedUnseen])
 }
 
-@Test func `a reconnect reports changes against the last known state`() {
+@Test func `a restart of herdr is a first sighting`() {
+    var seen = Seen()
+    _ = seen.update([agent(.working, terminal: "t1")], looking: [])
+    _ = seen.update([agent(.idle, 8, terminal: "t1")], looking: [])
+    #expect(seen.states["t1"] == .finishedUnseen)
+    // A restarted server keeps the pane id, gives a new terminal id and counts from 0 (spike, herdr 0.9.5).
+    _ = seen.update([agent(.idle, 1, terminal: "t9")], looking: [])
+    #expect(seen.states == ["t9": .idle])
+}
+
+@Test func `the snapshot after a reconnect reports changes against the last known state`() {
     var seen = Seen()
     _ = seen.update([agent(.working), agent(.idle, 1, pane: "w1:p2")], looking: [])
-    // The stream dropped; meanwhile p1 finished, p2 went away and came back blocked.
+    // The stream dropped (the store keeps its ledger); meanwhile p1 finished and p2 got blocked.
     let changes = seen.update([agent(.idle, 6), agent(.blocked, pane: "w1:p2")], looking: [])
     #expect(changes.map(\.paneID) == ["w1:p1", "w1:p2"])
     #expect(changes.map(\.state) == [.finishedUnseen, .needsYou])

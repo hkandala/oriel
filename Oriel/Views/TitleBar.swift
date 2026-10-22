@@ -46,7 +46,11 @@
                     Spacer(minLength: 0)
                 }
                 // ⌘. is the menu's.
-                AgentsButton(page: page, showing: sidebar && agents) { toggleAgents($agents, $sidebar) }
+                AgentsButton(page: page, showing: sidebar && agents) {
+                    toggleAgents($agents, $sidebar)
+                    // A click takes the keyboard from the card.
+                    page.focusKeyboardCard()
+                }
                 // ⌘K is the menu's.
                 IconButton(symbol: "command", help: "Commands") { palette.toggle() }
                     .accessibilityIdentifier("titlebar.palette")

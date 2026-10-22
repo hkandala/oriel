@@ -286,12 +286,21 @@ struct StatusBadge: View {
         @State private var overPanel = false
         @State private var pending: Task<Void, Never>?
         @State private var monitor: Any?
+        /// The trigger was clicked: no panel until the pointer leaves it.
+        @State private var clicked = false
 
         func body(content: Content) -> some View {
             content
                 .onHover { overTrigger = $0
+                    if !overTrigger {
+                        clicked = false
+                    }
                     hovered()
                 }
+                .simultaneousGesture(TapGesture().onEnded {
+                    clicked = true
+                    hovered()
+                })
                 .overlay(alignment: .bottomTrailing) {
                     if open {
                         panel { show(false) }
@@ -309,7 +318,7 @@ struct StatusBadge: View {
 
         private func hovered() {
             pending?.cancel()
-            let over = overTrigger || overPanel
+            let over = overTrigger && !clicked || overPanel
             guard over != open, !over || NSEvent.pressedMouseButtons == 0 else { return }
             pending = Task {
                 try? await Task.sleep(for: .milliseconds(over ? 250 : 150))

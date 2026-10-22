@@ -11,7 +11,6 @@ extension OrielUITests {
         XCTAssertTrue(dots.waitForExistence(timeout: 3))
         try await waitForValue("tab.\(tab)", containing: "codex, working")
         try await waitForValue("workspace.w1", containing: "working")
-        XCTAssertFalse((element("tab.w1:t1").value as? String ?? "").contains("working"))
         keepScreenshot("working dots")
 
         // The selected tab shows no dots.
@@ -58,16 +57,14 @@ extension OrielUITests {
             _ = try? await Self.call(two, "pane.release_agent", ["pane_id": "w1:p1", "source": "oriel-e2e",
                                                                  "agent": "codex"])
         }
-        try await waitForValue("app.badge", containing: "1")
-        // For the result bundle: the Dock tile with its badge.
-        let tile = XCUIApplication(bundleIdentifier: "com.apple.dock").icons
-            .matching(NSPredicate(format: "label BEGINSWITH 'Oriel'")).firstMatch
-        if tile.waitForExistence(timeout: 1) {
-            keep(tile.screenshot(), "dock badge")
+        try await poll("the badge to count the other page") { element("app.badge").value as? String == "1" ? true : nil
         }
         XCTAssertEqual(element("titlebar.agents").value as? String, "0 need you")
         element("sidebar.dot.\(two)").click()
         try await waitForValue("titlebar.agents", containing: "1 need you")
+        // Its Agents view lists it.
+        app.typeKey(".", modifierFlags: .command)
+        try await waitForValue("agent.w1:p1", containing: "Needs you")
     }
 
     func testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder() async throws {
@@ -85,10 +82,20 @@ extension OrielUITests {
         let rows = [blocked, working, done, idle].map { element("agent.\($0)") }
         XCTAssertTrue(rows[3].waitForExistence(timeout: 2))
         XCTAssertEqual(rows.map { $0.value as? String }, ["Needs you", "Working", "Done", "Idle"])
-        XCTAssertEqual(rows.map(\.frame.minY), rows.map(\.frame.minY).sorted())
-        let groups = ["Needs you", "Working", "Done", "Idle"].map { element("agents.group.\($0)").frame.minY }
-        XCTAssertEqual(zip(groups, rows).filter { $0 < $1.frame.minY }.count, 4)
+        // Each group's header, with its count, sits above its row and below the row before.
+        let groups = ["Needs you", "Working", "Done", "Idle"].map { element("agents.group.\($0)") }
+        XCTAssertEqual(groups.map { $0.value as? String }, ["Needs you 1", "Working 1", "Done 1", "Idle 1"])
+        let tops = zip(groups, rows).flatMap { [$0.frame.minY, $1.frame.minY] }
+        XCTAssertEqual(tops, tops.sorted())
         keepScreenshot("agents view by priority")
+
+        // The footer filter keeps the rows of one workspace.
+        element("sidebar.filter").click()
+        element("sidebar.filter").typeText("beta")
+        XCTAssertTrue(rows[1].waitForNonExistence(timeout: 2))
+        XCTAssertTrue(rows[0].exists && rows[2].exists && !rows[3].exists)
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(rows[3].waitForExistence(timeout: 2))
 
         element("agents.sort").click()
         app.menuItems["Workspace order"].click()
@@ -112,12 +119,21 @@ extension OrielUITests {
         try await waitForValue("workspace.w2", containing: "finished")
         keepScreenshot("finished badge")
 
+        // From a collapsed sidebar, the button opens it in the Agents view.
+        element("titlebar.sidebar").click()
+        XCTAssertTrue(element("sidebar").waitForNonExistence(timeout: 2))
         element("titlebar.agents").click()
+        try await waitForValue("sidebar.header", containing: "· agents")
         let row = element("agent.\(pane)")
         try await waitForValue("agent.\(pane)", containing: "Done")
         row.click()
         try await waitForValue("agent.\(pane)", containing: "Idle")
         XCTAssertTrue(element("tab.\(created.tab)").isSelected)
+        // View ▸ Show Agents turns it off; the sidebar stays.
+        app.menuBars.menuBarItems["View"].click()
+        app.menuItems["Show Agents"].click()
+        XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: 2))
+        XCTAssertTrue(element("sidebar").exists)
     }
 
     func testRelaunchCountsAnOldFinishAsSeen() async throws {
@@ -131,13 +147,6 @@ extension OrielUITests {
         try await waitForValue("workspace.w2", containing: "idle")
         XCTAssertFalse((element("workspace.w2").value as? String ?? "").contains("finished"))
         keepScreenshot("idle ring")
-    }
-
-    private func keep(_ screenshot: XCUIScreenshot, _ name: String) {
-        let attachment = XCTAttachment(screenshot: screenshot)
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
     }
 
     /// Reports the agent's state with an increasing `seq` (herdr drops an older one).
