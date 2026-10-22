@@ -152,7 +152,7 @@ Drag a card by its header (4 pt to start). Every target Oriel offers:
 | an edge of a card in another tab (after spring-loading) | split beside that card | `pane.move {type:"tab", tab_id, split, target_pane_id}`, then `pane.swap` for left or top |
 | the empty end of the tab track, or the `+` | a new tab in the selected workspace | `pane.move {type:"new_tab", workspace_id}` |
 | a workspace row in the sidebar | a new tab in that workspace; holding 0.65 s selects the workspace instead, so its tabs show and the drop can go on a capsule or card | `pane.move {type:"new_tab", workspace_id}` |
-| empty space at the bottom of the sidebar page | a new workspace | `pane.move {type:"new_workspace"}` |
+| empty space at the bottom of the sidebar page, or the page header's `+` | a new workspace | `pane.move {type:"new_workspace"}` |
 | another session's page dots, the Agents view | not a target (the pointer shows it) | — |
 
 Tabs and workspaces:

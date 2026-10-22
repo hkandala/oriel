@@ -46,7 +46,7 @@ swap and move), `docs/content/docs/platform.mdx`, D13, D35, D69.
    | the center of a card in another tab | none: not a target (herdr cannot swap across tabs, `reason:"cross_tab"`) | — |
    | the empty end of the tab track, or the `+` | a ghost capsule at the end | `pane.move {pane_id, destination: {type:"new_tab", workspace_id}}` (the selected workspace) |
    | a workspace row in the sidebar | the row highlighted; after 0.65 s it spring-loads (step 6) | `pane.move {pane_id, destination: {type:"new_tab", workspace_id}}` |
-   | empty space at the bottom of the sidebar page | a ghost row "New Workspace" | `pane.move {pane_id, destination: {type:"new_workspace"}}` |
+   | empty space at the bottom of the sidebar page, or the page header's `+` (follow-up) | a ghost row "New Workspace", or the `+` highlighted | `pane.move {pane_id, destination: {type:"new_workspace"}}` |
    | page dots, the Agents view, another window | not a target | — |
 
    Nothing moves between sessions or machines (separate herdr servers), so a pane never leaves its
@@ -261,3 +261,19 @@ at the end of a drag. All in `ORIEL_SESSION`, in a new workspace that the test c
   (move, then swap) leave it on the card that had it (`01g` vs `01m`). The phase asks for it only after a same-tab
   re-place.
 - **A drag to the top screen edge opens Mission Control** (macOS); not a bug, but avoid it in hand runs.
+
+### Follow-up (after the hand checks)
+
+- **Drop highlights end with the drag.** Each target clears its drop state when `page.dragging` goes nil
+  (`clearsDrop`: card zones, capsule and track-end state, the `+`s, the rows' state) and draws its overlay only
+  while a drag runs. The hand check's guess held: a `dropUpdated` can come after `performDrop`, with no
+  `dropExited` after it. `DropIndicator` is an accessibility element (`drop.indicator`), so e2e checks that none is
+  left after a drop.
+- **The keyboard after a move waits for the snapshot.** A write reads the snapshot without waiting for it, so when
+  the drop ended the store still had the pane in its old tab, and `focusKeyboardCard` gave the keyboard to the
+  destination tab's old card (a left or top drop in a spring-loaded tab; right and bottom won the race). `follow`
+  now leaves it to the next snapshot (`keyboardTabID = nil`, then `shown`) until the store has the pane there.
+  XCUITest cannot drag to a spring-loaded tab's card (a drag ends where it holds), so this is a hand check.
+- **The page header's `+` takes a pane** for a new workspace, highlighted while a pane is over it: a full page has
+  no empty space under its rows, and the list does not scroll during a drag.
+- **No forbidden case for a tab over the rows**: macOS shows the plain arrow for `.forbidden` (hand check 4).
