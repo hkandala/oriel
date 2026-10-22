@@ -56,7 +56,7 @@
         /// Counts streams, so a stream that is ending cannot change the state of the next one.
         @ObservationIgnored private var generation = 0
 
-        /// The text size setting (design: theme and accessibility): 13 pt, 8 to 32.
+        /// The text size setting (design: theme and accessibility).
         static let fontSize = 13
         static let fontSizes = 8 ... 32
 
@@ -86,6 +86,7 @@
         /// Every surface takes a new text size at once, and its stream stays open; its grid changes, so the
         /// card resizes its PTY.
         static func setFontSize(_ size: Int) {
+            // A hand-edited default (`defaults write`) can be out of range.
             let size = min(max(size, fontSizes.lowerBound), fontSizes.upperBound)
             controller.setTerminalConfiguration(TerminalConfiguration { $0.withFontSize(Float(size)) })
         }

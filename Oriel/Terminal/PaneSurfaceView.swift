@@ -230,8 +230,7 @@
         /// Enter, Tab and Backspace, which are the same bytes in every mode and stay off the slower
         /// bridge path. Home, End, Page Up/Down and Delete have no herdr names; libghostty sends
         /// them as xterm does.
-        /// ponytail: Option types characters (`macos-option-as-alt = false`); add an option-as-alt setting when
-        /// asked (herdr takes `alt+<any ASCII character>`).
+        /// ponytail: Option types characters (`macos-option-as-alt = false`); add an option-as-alt setting when asked.
         static func herdrKey(_ event: NSEvent) -> String? {
             let flags = event.modifierFlags
             let control = flags.contains(.control), option = flags.contains(.option), shift = flags.contains(.shift)
