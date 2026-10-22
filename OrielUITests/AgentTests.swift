@@ -34,12 +34,6 @@ extension OrielUITests {
         try await waitForValue("workspace.w2", containing: "needs you")
         try await waitForValue("titlebar.agents", containing: "1 need you")
         keepScreenshot("needs you badge")
-        // The banner, when this Mac lets Oriel notify (no assertion: the permission is the user's).
-        let banner = XCUIApplication(bundleIdentifier: "com.apple.notificationcenterui").descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS 'claude needs you'")).firstMatch
-        if banner.waitForExistence(timeout: 3) {
-            keep(banner.screenshot(), "notification banner")
-        }
 
         button.hover()
         let row = element("agents.popover").descendants(matching: .any)["agent.\(pane)"]
@@ -65,8 +59,10 @@ extension OrielUITests {
                                                                  "agent": "codex"])
         }
         try await waitForValue("app.badge", containing: "1")
-        let tile = XCUIApplication(bundleIdentifier: "com.apple.dock").icons["Oriel"]
-        if tile.exists {
+        // For the result bundle: the Dock tile with its badge.
+        let tile = XCUIApplication(bundleIdentifier: "com.apple.dock").icons
+            .matching(NSPredicate(format: "label BEGINSWITH 'Oriel'")).firstMatch
+        if tile.waitForExistence(timeout: 1) {
             keep(tile.screenshot(), "dock badge")
         }
         XCTAssertEqual(element("titlebar.agents").value as? String, "0 need you")
@@ -134,6 +130,7 @@ extension OrielUITests {
         app.launch()
         try await waitForValue("workspace.w2", containing: "idle")
         XCTAssertFalse((element("workspace.w2").value as? String ?? "").contains("finished"))
+        keepScreenshot("idle ring")
     }
 
     private func keep(_ screenshot: XCUIScreenshot, _ name: String) {

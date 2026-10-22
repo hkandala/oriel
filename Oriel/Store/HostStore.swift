@@ -32,7 +32,7 @@ final class HostStore {
     @ObservationIgnored var lookingTabID: String? {
         didSet {
             if lookingTabID != oldValue {
-                _ = seen.look(looking)
+                seen.look(looking)
                 showStates()
             }
         }

@@ -39,6 +39,7 @@ public struct Seen: Sendable {
     }
 
     /// The user looks at other panes (the same snapshot).
+    @discardableResult
     public mutating func look(_ looking: Set<String>, now: Date = .now) -> [Change] {
         var states: [String: AgentState] = [:]
         var changes: [Change] = []
