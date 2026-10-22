@@ -56,12 +56,15 @@
         /// Counts streams, so a stream that is ending cannot change the state of the next one.
         @ObservationIgnored private var generation = 0
 
+        /// The text size setting (design: theme and accessibility): 13 pt, 8 to 32.
+        static let fontSize = 13
+        static let fontSizes = 8 ... 32
+
         /// `keybind = clear`: app shortcuts reach the menu. Transparent, so the card shows through.
-        /// No padding, so cells map from the view's origin; no scrollback, herdr keeps it.
-        private static let controller = TerminalController {
+        /// No padding, so cells map from the view's origin; no scrollback, herdr keeps it. Settings ▸ Terminal
+        /// lays its `TerminalConfiguration` on top (`OrielApp`).
+        static let controller = TerminalController {
             $0.withCustom("keybind", "clear")
-            // ponytail: a fixed 13 pt until the app has a text size setting.
-            $0.withFontSize(13)
             $0.withBackgroundOpacity(0)
             $0.withWindowPaddingX(0)
             $0.withWindowPaddingY(0)

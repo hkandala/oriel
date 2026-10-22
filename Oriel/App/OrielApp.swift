@@ -1,9 +1,31 @@
+#if os(macOS)
+    import GhosttyTerminal
+#endif
 import HerdrKit
 import SwiftUI
 
 @main
 struct OrielApp: App {
     #if os(macOS)
+        @AppStorage("fontFamily") private var fontFamily = ""
+        @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
+        @AppStorage("cursorStyle") private var cursorStyle = TerminalCursorStyle.block
+        @AppStorage("cursorBlink") private var cursorBlink = true
+        @AppStorage("copyOnSelect") private var copyOnSelect = false
+
+        /// Settings ▸ Terminal for libghostty. Every surface takes a change at once, and its stream stays open.
+        private var terminal: TerminalConfiguration {
+            TerminalConfiguration {
+                $0.withFontFamily(fontFamily.isEmpty ? NSFont.monospacedSystemFont(ofSize: 0, weight: .regular)
+                    .familyName ?? "Menlo" : fontFamily)
+                $0.withFontSize(Float(fontSize))
+                $0.withCursorStyle(cursorStyle)
+                $0.withCursorStyleBlink(cursorBlink)
+                // libghostty-spm drops writes to the selection clipboard; `clipboard` also writes the pasteboard.
+                $0.withCustom("copy-on-select", copyOnSelect ? "clipboard" : "false")
+            }
+        }
+
         init() {
             SwipeRouter.install()
             // One window; no tab bar or tab menu items of AppKit's own.
@@ -23,6 +45,11 @@ struct OrielApp: App {
             .commands {
                 TabCommands()
                 ActionCommands()
+            }
+            .onChange(of: terminal, initial: true) { PaneTerminal.controller.setTerminalConfiguration(terminal) }
+
+            Settings {
+                SettingsView()
             }
         #else
             WindowGroup {
