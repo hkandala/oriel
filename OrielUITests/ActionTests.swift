@@ -197,6 +197,8 @@ extension OrielUITests {
         openSessions()
         XCTAssertTrue(element("session.\(one)").exists)
         XCTAssertFalse(element("session.\(stopped)").exists)
+        // Other stopped sessions on this Mac may push its row out of the list's scroll view.
+        app.typeText(stopped)
         element("sessions.show-stopped").click()
         XCTAssertTrue(element("session.\(stopped)").waitForExistence(timeout: 2))
         keepScreenshot("show stopped")
