@@ -21,7 +21,6 @@ extension HostStore {
     /// Every run of the tab evened out (Balance Splits).
     func balance(_ tab: Tab) async {
         let changes = tab.tree?.evened() ?? []
-        guard !changes.isEmpty else { return }
         await write { client in
             for change in changes {
                 try await client.setRatio(tab: tab.id, path: change.path, ratio: change.ratio)
@@ -43,7 +42,7 @@ extension HostStore {
         await write { try await $0.swap(paneID, heading) }
     }
 
-    /// The pane where it went.
+    /// The pane where it went: a move to another workspace gives it a new id.
     func move(_ paneID: String, to destination: Destination) async -> HerdrKit.Pane? {
         var moved: HerdrKit.Pane?
         await write { moved = try await $0.move(pane: paneID, to: destination) }

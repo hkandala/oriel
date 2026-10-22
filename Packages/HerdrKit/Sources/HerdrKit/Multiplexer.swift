@@ -30,7 +30,6 @@ public protocol Multiplexer: Sendable {
     func neighbor(of paneID: String, _ heading: Heading) async throws -> String?
 
     /// Actions. None moves the multiplexer's focus.
-    /// Returns the new pane.
     func split(_ paneID: String, _ direction: SplitNode.Direction) async throws -> Pane?
     /// Swaps the pane with its nearest neighbor that way, in the same tab.
     func swap(_ paneID: String, _ heading: Heading) async throws
@@ -38,7 +37,7 @@ public protocol Multiplexer: Sendable {
     func resize(_ paneID: String, _ heading: Heading, amount: Double) async throws
     /// One split's ratio; `path` from the root, `false` = first child.
     func setRatio(tab tabID: String, path: [Bool], ratio: Double) async throws
-    /// Returns the pane where it went.
+    /// A move to another workspace gives the pane a new id.
     func move(pane paneID: String, to destination: Destination) async throws -> Pane?
     /// A nil label clears it.
     func rename(pane paneID: String, label: String?) async throws

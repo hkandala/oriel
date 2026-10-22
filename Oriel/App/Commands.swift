@@ -54,13 +54,7 @@
             CommandGroup(replacing: .saveItem) { items(list, .close) }
             CommandGroup(after: .sidebar) {
                 items(list, .view)
-                Menu("Pane") {
-                    items(list, .pane)
-                    Divider()
-                    items(list, .paneMove)
-                    Divider()
-                    items(list, .paneKeys)
-                }
+                Menu("Pane") { CommandItems(commands: list, sections: [.pane, .paneMove, .paneKeys]) }
                 Divider()
                 Menu("Appearance") { items(list, .appearance) }
                 Menu("Interface Style") { items(list, .interfaceStyle) }
@@ -152,48 +146,37 @@
         /// Pane is in the File menu. Actions ask `target` for the pane when they run: the menu bar may be older than
         /// the last keyboard move.
         static func pane(_ page: Page?, _ target: @escaping @MainActor () -> HostStore.Pane?) -> [Command] {
-            guard let page, let pane = target() else {
-                return ["Split Right", "Split Down", "Split Left", "Split Up", "Zoom Pane"]
-                    .map { Command(section: .pane, title: $0, enabled: false) }
-                    + ["Move to New Tab", "Move to Tab", "Move to New Workspace", "Rename Pane…"]
-                    .map { Command(section: .paneMove, title: $0, enabled: false) }
-                    + [Command(section: .close, title: "Close Pane", key: .init("w"), enabled: false)]
-            }
-            let store = page.store, workspace = store.workspace(of: pane.tabID), zoomed = page.zoomedPaneID == pane.id
+            let pane = target(), workspace = pane.flatMap { page?.store.workspace(of: $0.tabID) }
+            let zoomed = pane.map { page?.zoomedPaneID == $0.id } ?? false
             func act(_ title: String, _ key: KeyboardShortcut? = nil, _ section: Command.Section = .pane,
-                     _ run: @escaping (HostStore.Pane) async -> Void) -> Command
+                     enabled: Bool = true, _ run: @escaping (Page, HostStore.Pane) async -> Void) -> Command
             {
-                Command(section: section, title: title, key: key) {
-                    if let pane = target() {
-                        Task { await run(pane) }
+                Command(section: section, title: title, key: key, enabled: pane != nil && enabled) {
+                    if let page, let pane = target() {
+                        Task { await run(page, pane) }
                     }
                 }
             }
             return [
-                act("Split Right", .init("d")) { await page.split($0.id, .right) },
-                act("Split Down", .init("d", modifiers: [.command, .shift])) { await page.split($0.id, .down) },
-                act("Split Left") { await page.split($0.id, .right, before: true) },
-                act("Split Up") { await page.split($0.id, .down, before: true) },
-                Command(section: .pane, title: zoomed ? "Restore Pane" : "Zoom Pane",
-                        key: .init(.return, modifiers: [.command, .shift]),
-                        enabled: zoomed || store.panes.count { $0.tabID == pane.tabID } > 1, action: {
-                            if let pane = target() {
-                                page.zoom(pane.id)
-                            }
-                        }),
-                act("Move to New Tab", nil, .paneMove) { pane in
-                    if let workspace = store.workspace(of: pane.tabID) {
+                act("Split Right", .init("d")) { await $0.split($1.id, .right) },
+                act("Split Down", .init("d", modifiers: [.command, .shift])) { await $0.split($1.id, .down) },
+                act("Split Left") { await $0.split($1.id, .right, before: true) },
+                act("Split Up") { await $0.split($1.id, .down, before: true) },
+                act(zoomed ? "Restore Pane" : "Zoom Pane", .init(.return, modifiers: [.command, .shift]),
+                    enabled: pane.map { page?.canZoom($0.id) == true } ?? false) { $0.zoom($1.id) },
+                act("Move to New Tab", nil, .paneMove) { page, pane in
+                    if let workspace = page.store.workspace(of: pane.tabID) {
                         await page.move(pane, to: .newTab(workspaceID: workspace.id))
                     }
                 },
                 // herdr refuses a move into the pane's own tab.
                 Command(section: .paneMove, title: "Move to Tab", enabled: (workspace?.tabs.count ?? 0) > 1,
-                        menu: (workspace?.tabs ?? []).filter { $0.id != pane.tabID }.map { other in
-                            act(page.titleText(other)) { await page.move($0, to: .tab(other.id)) }
+                        menu: (workspace?.tabs ?? []).filter { $0.id != pane?.tabID }.map { other in
+                            act(page?.titleText(other) ?? other.label) { await $0.move($1, to: .tab(other.id)) }
                         }),
-                act("Move to New Workspace", nil, .paneMove) { await page.move($0, to: .newWorkspace) },
-                act("Rename Pane…", nil, .paneMove) { page.renamingPaneID = $0.id },
-                act("Close Pane", .init("w"), .close) { await store.close(pane: $0.id) },
+                act("Move to New Workspace", nil, .paneMove) { await $0.move($1, to: .newWorkspace) },
+                act("Rename Pane…", nil, .paneMove) { $0.renamingPaneID = $1.id },
+                act("Close Pane", .init("w"), .close) { await $0.store.close(pane: $1.id) },
             ]
         }
 
@@ -240,16 +223,24 @@
         }
 
         private func items(_ list: [Command], _ section: Command.Section) -> some View {
-            CommandItems(commands: list.filter { $0.section == section })
+            CommandItems(commands: list, sections: [section])
         }
     }
 
-    /// Menu items for commands: a toggle for a choice, a submenu, else a button.
+    /// Menu items for commands: a toggle for a choice, a submenu, else a button. With sections, those sections'
+    /// commands in that order, divided.
     struct CommandItems: View {
         let commands: [Command]
+        var sections: [Command.Section]?
 
         var body: some View {
-            ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
+            let shown = sections.map { sections in
+                sections.flatMap { section in commands.filter { $0.section == section } }
+            } ?? commands
+            ForEach(Array(shown.enumerated()), id: \.offset) { index, command in
+                if index > 0, let sections, shown[index - 1].section != command.section, sections.count > 1 {
+                    Divider()
+                }
                 Group {
                     if let checked = command.checked {
                         Toggle(command.title, isOn: Binding { checked } set: { _ in command.action() })

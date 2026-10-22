@@ -193,13 +193,16 @@
 
         /// Zooms the card, or restores the layout when it is the zoomed one. The zoomed card gets the keyboard.
         func zoom(_ paneID: String) {
-            // Not a tab's only card.
-            guard zoomedPaneID == paneID || store.panes.count(where: { $0.tabID == store.pane(paneID)?.tabID }) > 1
-            else { return }
+            guard canZoom(paneID) else { return }
             zoomedPaneID = zoomedPaneID == paneID ? nil : paneID
             if zoomedPaneID != nil, let terminalID = store.pane(paneID)?.terminalID {
                 terminals.focus(terminalID)
             }
+        }
+
+        /// Zoomed, or one of several cards in its tab.
+        func canZoom(_ paneID: String) -> Bool {
+            zoomedPaneID == paneID || store.panes.count { $0.tabID == store.pane(paneID)?.tabID } > 1
         }
 
         /// A split restores a zoomed layout first, as tmux does: the new pane shows.

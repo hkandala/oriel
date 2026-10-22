@@ -66,11 +66,8 @@
 
         /// 36 pt: the glyph and title (or the rename field), then the buttons; the context menu has the pane's actions.
         private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool) -> some View {
-            let store = page.store
             // The label wins; else the program in primary text and the folder in secondary, as in Rex ("zsh ~").
-            let name = pane?.label == nil ? pane?.programName : nil
-            let folder = pane?.label ?? pane?.folder ?? (name == nil ? "terminal" : "")
-            let alone = store.panes.count { $0.tabID == pane?.tabID } < 2
+            let (name, folder) = pane?.header ?? (nil, "terminal")
             return HStack(spacing: 8) {
                 // Clicks pass through to the header's double-click.
                 ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
@@ -97,7 +94,7 @@
                 Spacer(minLength: 0)
                 // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.
                 if showsButtons {
-                    buttons(zoomed: zoomed, alone: alone)
+                    buttons(zoomed: zoomed)
                 }
             }
             .fontWeight(.medium)
@@ -108,17 +105,12 @@
             // Behind the header, so its buttons still take their own clicks.
             .background { Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) } }
             .contextMenu {
-                let commands = AppCommands.pane(page) { pane }
-                CommandItems(commands: commands.filter { $0.section == .pane })
-                Divider()
-                CommandItems(commands: commands.filter { $0.section == .paneMove })
-                Divider()
-                CommandItems(commands: commands.filter { $0.section == .close })
+                CommandItems(commands: AppCommands.pane(page) { pane }, sections: [.pane, .paneMove, .close])
             }
         }
 
         /// Split Right, Split Down, Zoom and Close, 22 pt and 2 pt apart; only Restore and Close on a zoomed card.
-        private func buttons(zoomed: Bool, alone: Bool) -> some View {
+        private func buttons(zoomed: Bool) -> some View {
             let store = page.store
             return HStack(spacing: 2) {
                 if !zoomed {
@@ -135,7 +127,7 @@
                     : "arrow.up.left.and.arrow.down.right", help: zoomed ? "Restore" : "Zoom", size: 22,
                     accent: zoomed) { page.zoom(id) }
                     .accessibilityIdentifier("pane.\(id).zoom")
-                    .disabled(alone && !zoomed)
+                    .disabled(!page.canZoom(id))
                 IconButton(symbol: "xmark", help: "Close", size: 22) { Task { await store.close(pane: id) } }
                     .accessibilityIdentifier("pane.\(id).close")
             }

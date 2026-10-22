@@ -296,8 +296,7 @@
                         .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global).onChanged { drag in
                             let from = start ?? ratio
                             start = from
-                            let moved = right ? drag.translation.width : drag.translation.height
-                            held = min(max(from + moved / max(total, 1), 0.1), 0.9)
+                            hold(from + (right ? drag.translation.width : drag.translation.height) / max(total, 1))
                         }.onEnded { _ in
                             start = nil
                             if let held {
@@ -312,7 +311,7 @@
                         .accessibilityValue("\(Int((ratio * 100).rounded()))%")
                         .accessibilityIdentifier(id)
                         .accessibilityAdjustableAction { direction in
-                            set(min(max(ratio + (direction == .increment ? 0.05 : -0.05), 0.1), 0.9))
+                            set(ratio + (direction == .increment ? 0.05 : -0.05))
                         }
                 }
                 // Over both sides' edges: its hit area reaches 4 pt into each card.
@@ -320,8 +319,13 @@
         }
 
         private func set(_ value: Double) {
-            held = value
-            send(value)
+            hold(value)
+            send(held ?? value)
+        }
+
+        /// In herdr's 0.1–0.9, so the view shows what herdr keeps.
+        private func hold(_ value: Double) {
+            held = min(max(value, 0.1), 0.9)
         }
     }
 

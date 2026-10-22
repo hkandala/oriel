@@ -84,10 +84,14 @@ extension HostStore {
             label ?? folder ?? "terminal"
         }
 
-        /// The card header's text: the label, else the program and the folder, as in Rex ("zsh ~").
+        /// The card header's parts: the label alone, else the program and the folder, as in Rex ("zsh", "~").
+        var header: (name: String?, folder: String) {
+            let name = label == nil ? programName : nil
+            return (name, label ?? folder ?? (name == nil ? "terminal" : ""))
+        }
+
         var cardTitle: String {
-            let text = [programName, folder].compactMap(\.self).joined(separator: " ")
-            return label ?? (text.isEmpty ? "terminal" : text)
+            [header.name, header.folder].compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " ")
         }
 
         /// The program's name for the card header: herdr's agent, else the foreground process ("zsh" for the shell).
