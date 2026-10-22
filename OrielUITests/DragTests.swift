@@ -43,7 +43,8 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(second)").waitForExistence(timeout: 3))
 
         // A herdr TUI zoomed that tab: herdr refuses the move (`zoomed_tab`), so only the spring-load selects it.
-        // herdr's zoom moves its focus, as a swap does.
+        // herdr zooms only a tab with two panes or more, and its zoom moves its focus, as a swap does.
+        let fourth = try await split(third)
         restoreHerdrFocusAfter()
         try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "on"])
         drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), hold: 1.2)
@@ -57,7 +58,7 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(second)").waitForExistence(timeout: 3))
         drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
         try await poll("the pane split right in that tab") { () async throws -> Bool? in
-            try await order(other) == [third, second] ? true : nil
+            try await order(other) == [third, fourth, second] ? true : nil
         }
         XCTAssertTrue(capsule.isSelected)
     }
