@@ -4,6 +4,12 @@ The source of truth for the window's layout in phases 10–21. The mock-ups are
 `resources/mockups/layout.html` (scenes A–K; `resources/mockups/build.py` rebuilds them). Where this file and an
 older design page disagree, this file wins until the page is updated.
 
+## Never send the user to herdr
+
+Everything a user does with sessions, workspaces, tabs, panes and (later) remote machines is done in the
+app. No text in the UI tells the user to run a herdr command; where there is nothing yet (no workspace, no
+tab), the app shows the button that makes it.
+
 ## Words
 
 | Word | Meaning now |

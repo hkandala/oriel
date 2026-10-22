@@ -5,7 +5,7 @@ button, workspace button (only while the sidebar is collapsed), the tab bar (alw
 with Rex's geometry), a spacer, then ⌘ and +. Phase 15 adds the Agents button before ⌘. The session
 picker stays where it is until phase 14 removes it.
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row; windows and machines),
+Read first: `resources/research/clients/rex-internals.md` (§3.1, §3.2, §3.4, §5.1: tab bar view, traffic lights, timings; facts only, write your own code), `plan/ui-polish.md`, `plan/ui-layout.md` (title row; windows and machines),
 `resources/mockups/layout.html` (scenes A, C, D, E), `resources/research/clients/rex-ui.md` (tab bar, tab
 item, animation table), `resources/inspirations/rex-app/` (tabs-with-status, three-splits),
 `docs/content/docs/ui/window.mdx`, decisions D42, D45, D65, `Oriel/Views/TitleBar.swift`,
@@ -90,8 +90,9 @@ The row stays 40 pt (no private API for a taller one). Its items are 8 pt apart.
     (`.spring(response: 0.28, dampingFraction: 1)`, the SwiftUI form of stiffness 520 / damping 46);
     Reduce Motion jumps. Classic draws the phase 10 Classic pill instead of glass.
 16. **Hover.** The hover fill (phase 10), 0.14 s ease-out.
-17. **Close button.** × (22 pt hit area, glyph 10 pt bold) on the selected tab and on the hovered one,
-    at the trailing end. Hidden when the tab is narrower than 52 pt. After a close, tab widths stay as
+17. **Close button.** × (22 pt hit area, glyph 10 pt bold) at the trailing end, shown only on the
+    hovered tab (the selected tab too has none until hovered; user, like Rex). It sits over the title's
+    fade, so showing it never changes a tab's width. Hidden when the tab is narrower than 52 pt. After a close, tab widths stay as
     they were while the pointer stays in the bar, so the next × is under the pointer (Safari); they
     settle when the pointer leaves.
 18. **Content.** The tab's overlapping program icons (phase 12, up to 5), then the title. One line.

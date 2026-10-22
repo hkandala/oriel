@@ -112,6 +112,12 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (sidebar, Open Session shee
 17. **Remove** the workspace sections and their collapse state (phase 13 removed the tab rows), and
     `SessionPicker` with its title-row button.
 
+18. **Empty page.** A session with no workspace shows only a New Workspace button in the strip and on the
+    page (today `OrielApp.swift` says "No workspaces. Create one in herdr:"). The user never needs herdr
+    (`plan/ui-layout.md`, "Never send the user to herdr"). Add a SwiftLint custom rule that fails on a
+    user-visible string literal telling the user to run herdr (for example `"herdr ` or `in herdr` inside
+    `Text(`, `Label(`, `message(`, `Button(`), so it cannot come back.
+
 ### Open Session sheet
 
 18. A sheet on the window titled "Open Session", 420 pt wide. The footer button, the workspace menu's
@@ -155,6 +161,8 @@ through the sheet; e2e.sh removes it) and `ORIEL_SESSION5` (stopped and started 
 that need one session use only `ORIEL_SESSION`. A test that needs another name adds it to e2e.sh and
 the helper. Launch with `-ApplePersistenceIgnoreState YES`.
 
+- Close every workspace of a test session: the page and the strip show only a New Workspace button; a
+  click on it makes a workspace (snapshot) and its terminal draws.
 - At launch the sidebar has one page (`ORIEL_SESSION`), no page dots, and the app runs no bridge for
   `ORIEL_SESSION2` (the helper's `/children`).
 - Open Session (footer button): the sheet lists `ORIEL_SESSION2` under "Running", `ORIEL_SESSION3`

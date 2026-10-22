@@ -63,9 +63,14 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
   herdr's 0.1–0.9. Terminals keep their 100 ms resize settle, so a drag does
   not flood herdr with PTY resizes.
 - **Double-click** a divider: ratio 0.5.
-- **Balance** (⌃⌘=, View ▸ Pane ▸ Balance Splits): each split gets the ratio
-  "leaves on its first side ÷ all leaves under it", so every pane gets the
-  same share. One `layout.set_split_ratio` per split.
+- **Equal splits.** herdr halves the pane it splits (50 / 25 / 25). After a
+  split made in Oriel, the app evens out the run of same-direction splits
+  that holds the new pane, so three panes in a row get a third each, as in
+  Rex. A child split in the other direction counts as one unit; each split
+  gets "units on its first side ÷ units under it", one
+  `layout.set_split_ratio` per split.
+- **Balance** (⌃⌘=, View ▸ Pane ▸ Balance Splits) applies the same rule to
+  every run in the tab.
 - **Keys.** ⌃⌘ and an arrow resizes the keyboard card by 5 % that way
   (`pane.resize {pane_id, direction, amount: 0.05}`).
 - **Accessibility.** Each divider is an adjustable element, "Divider between
