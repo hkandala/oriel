@@ -25,6 +25,8 @@ for a small phase. The budget per phase:
 | E2E reviewer | round 1 only, at most 15 min of lock: drive the new UI through XCUITest (or by hand with screenshots) and read the tests; no full `make e2e` | later rounds, unless its own blocker was fixed (then single tests only) |
 | Spec and ponytail reviewers, verifier | none: read the code, the tests, the phase agent's final run and CI | any GUI run |
 
+- When the user pauses GUI work, the orchestrator holds `/tmp/oriel-gui.lock` with owner "user". Nobody
+  removes or works around it; agents keep building, testing without GUI and pushing (CI runs e2e).
 - Never send keys with `osascript` / System Events or similar: when Oriel loses focus, the keys land in the
   user's apps (phase 11 typed into the user's browser). Keys go through XCUITest only.
 - A small phase (a few files, no new view) gets one review round unless a blocker comes up.
