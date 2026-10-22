@@ -79,16 +79,19 @@
         /// action, whose `@AppStorage` copy then lags (⌘= added to the size it last set itself).
         static func stepFontSize(_ step: Int) {
             let defaults = UserDefaults.standard
-            let size = (defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step
-            defaults.set(min(max(size, fontSizes.lowerBound), fontSizes.upperBound), forKey: "fontSize")
+            let size = clamped(defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step
+            defaults.set(clamped(size), forKey: "fontSize")
         }
 
         /// Every surface takes a new text size at once, and its stream stays open; its grid changes, so the
         /// card resizes its PTY.
         static func setFontSize(_ size: Int) {
-            // A hand-edited default (`defaults write`) can be out of range.
-            let size = min(max(size, fontSizes.lowerBound), fontSizes.upperBound)
-            controller.setTerminalConfiguration(TerminalConfiguration { $0.withFontSize(Float(size)) })
+            controller.setTerminalConfiguration(TerminalConfiguration { $0.withFontSize(Float(clamped(size))) })
+        }
+
+        /// In 8–32: a hand-edited default (`defaults write`) can be out of range.
+        private static func clamped(_ size: Int) -> Int {
+            min(max(size, fontSizes.lowerBound), fontSizes.upperBound)
         }
 
         init(terminalID: String, paneID: String, client: any Multiplexer) {
