@@ -22,8 +22,8 @@ public struct ProgramIcon: Decodable, Sendable {
 
 public extension [ProgramIcon] {
     /// The id of a pane's icon. The first hit wins: herdr's agent, the foreground process (name, argv0; a Node
-    /// CLI's script first), the title; then `terminal` when only the shell runs, `placeholder` for a program the
-    /// catalog does not know.
+    /// CLI's script first), the title; then `terminal` when only the shell runs, `placeholder` for a program or agent
+    /// the catalog does not know.
     func iconID(agent: String?, program: Program?, title: String?) -> String {
         func find(_ hit: (ProgramIcon.Match) -> Bool) -> String? {
             first { hit($0.match) }?.id
@@ -31,7 +31,7 @@ public extension [ProgramIcon] {
         if let agent, let id = find({ $0.agent?.contains(agent) == true }) {
             return id
         }
-        if let program {
+        if let program, !program.isShell {
             // A path's folder; a login shell's leading `-`.
             let base = { (path: String) in String(URL(filePath: path).lastPathComponent.trimmingPrefix("-")) }
             var names = [program.name, program.argv0].compactMap(\.self).map(base)
@@ -52,6 +52,6 @@ public extension [ProgramIcon] {
         if let title, let id = find({ $0.titlePrefix?.contains { title == $0 || title.hasPrefix($0 + " ") } == true }) {
             return id
         }
-        return program == nil ? "terminal" : "placeholder"
+        return agent == nil && program?.isShell != false ? "terminal" : "placeholder"
     }
 }

@@ -44,8 +44,11 @@ private func icon(agent: String? = nil, _ program: Program? = nil, title: String
     #expect(icon(title: "πr squared") == "terminal")
 }
 
-@Test func `a shell is the terminal, an unknown program the placeholder`() {
+@Test func `a shell is the terminal, an unknown program or agent the placeholder`() {
     #expect(icon() == "terminal")
+    #expect(icon(Program(name: "zsh", isShell: true), title: "π - x") == "pi")
+    #expect(icon(Program(name: "fish", isShell: true)) == "terminal")
+    #expect(icon(agent: "someday") == "placeholder")
     #expect(icon(title: "~/code") == "terminal")
     #expect(icon(Program(name: "frobnicate")) == "placeholder")
 }

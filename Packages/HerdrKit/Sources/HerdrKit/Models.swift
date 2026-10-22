@@ -1,3 +1,5 @@
+import Foundation
+
 // Lenient models of herdr's JSON: only the fields the app uses. Unknown fields are ignored and
 // unknown enum values fall back, so a newer herdr does not break decoding.
 
@@ -91,17 +93,28 @@ struct ProcessInfoResult: Decodable {
     enum CodingKeys: String, CodingKey { case processInfo = "process_info" }
 }
 
-/// The program a pane runs besides its shell, as the icon matcher needs it.
+/// What runs in a pane's foreground, as the icon matcher and the card header need it.
 public struct Program: Equatable, Sendable {
     public let name: String
     public let argv0: String?
     /// The first argument that is not an option: the script a `node` or `bun` runs (`pi`'s cli.js).
+    /// ponytail: `node --require x.js cli.js` or `bun run dev` pick the wrong one; only the base-name fallback
+    /// reads it.
     public let script: String?
+    /// Only the pane's shell runs.
+    public let isShell: Bool
 
-    public init(name: String, argv0: String? = nil, script: String? = nil) {
+    public init(name: String, argv0: String? = nil, script: String? = nil, isShell: Bool = false) {
         self.name = name
         self.argv0 = argv0
         self.script = script
+        self.isShell = isShell
+    }
+
+    /// The name people know it by: a Node CLI's script name (`gemini`), else the process name.
+    public var title: String {
+        guard let script, ["node", "bun"].contains(name) else { return name }
+        return URL(filePath: script).lastPathComponent
     }
 }
 
@@ -122,12 +135,14 @@ struct PaneProcesses: Decodable {
     let shellPID: Int
     let foregroundProcesses: [Process]
 
-    /// What runs in the foreground besides the shell; nil when nothing does (design D41). A program the shell
-    /// `exec`ed has the shell's pid, so the shell's pid counts only while it is still a shell.
+    /// What runs in the foreground besides the shell, else the shell itself (`isShell`, design D41); nil when
+    /// herdr lists nothing. A program the shell `exec`ed has the shell's pid, so the shell's pid counts only while
+    /// it is still a shell.
     var program: Program? {
-        foregroundProcesses.first { $0.pid != shellPID || !$0.isShell }.map { process in
+        let program = foregroundProcesses.first { $0.pid != shellPID || !$0.isShell }
+        return (program ?? foregroundProcesses.first { $0.pid == shellPID }).map { process in
             Program(name: process.name, argv0: process.argv0,
-                    script: process.argv?.dropFirst().first { !$0.hasPrefix("-") })
+                    script: process.argv?.dropFirst().first { !$0.hasPrefix("-") }, isShell: program == nil)
         }
     }
 

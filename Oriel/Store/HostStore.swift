@@ -213,15 +213,22 @@ final class HostStore {
         }
     }
 
-    /// Asks herdr what runs in the pane (one `pane.process_info`); its icon follows. A failed ask keeps the last
-    /// answer, and the card asks again the next time it shows.
+    /// Asks herdr what runs in the pane (one `pane.process_info`); its icon follows. Only the latest of asks that
+    /// finish out of order lands. A failed first ask is made again the next time the card shows.
     func askProgram(_ paneID: String) async {
         guard let client, let pane = pane(paneID) else { return }
         pane.asked = true
+        pane.asks += 1
+        let ask = pane.asks
         do {
-            pane.program = try await client.program(paneID)
+            let program = try await client.program(paneID)
+            if ask == pane.asks {
+                pane.program = program
+            }
         } catch {
-            pane.asked = false
+            if pane.program == nil {
+                pane.asked = false
+            }
         }
     }
 
@@ -248,8 +255,13 @@ final class HostStore {
         }
         let focused = snapshot.focusedPaneIDs
         reuse(self, \.panes, snapshot.panes, Pane.init(id:)) { pane, new in
-            // A new agent or title: the program may have changed. Spinners do not change the stripped title.
-            if pane.asked, new.agent != pane.agent || new.title != pane.terminalTitle {
+            if new.terminalID != pane.terminalID { // herdr reused the id for another pane
+                (pane.program, pane.asked) = (nil, false)
+            }
+            // A new agent or title word: the program may have changed. A progress title ("build 51%") changes on
+            // and on; its first word does not.
+            let word = { (title: String?) in title?.split(separator: " ").first }
+            if pane.asked, new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
                 Task { await askProgram(pane.id) }
             }
             pane.agent = new.agent
@@ -306,7 +318,7 @@ extension HostStore {
         guard let client else { return }
         let program: String?
         do {
-            program = try await client.program(paneID)?.name
+            program = try await client.program(paneID).flatMap { $0.isShell ? nil : $0.name }
         } catch {
             // Unknown: ask.
             program = "A program"

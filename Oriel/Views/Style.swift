@@ -150,8 +150,17 @@ struct StatusGlyph: View {
 }
 
 /// The program icon catalog (`resources/icons/catalog.json`, bundled).
-let programIcons: [ProgramIcon] = Bundle.main.url(forResource: "catalog", withExtension: "json")
-    .flatMap { try? JSONDecoder().decode([ProgramIcon].self, from: Data(contentsOf: $0)) } ?? []
+let programIcons: [ProgramIcon] = {
+    do {
+        let url = try Bundle.main
+            .url(forResource: "catalog", withExtension: "json") ?? { throw CocoaError(.fileNoSuchFile) }()
+        return try JSONDecoder().decode([ProgramIcon].self, from: Data(contentsOf: url))
+    } catch {
+        // Every pane would draw the neutral tile: loud in a debug build.
+        assertionFailure("program icon catalog: \(error)")
+        return []
+    }
+}()
 
 /// A program's colored tile, as in Rex: the catalog's tile and glyph colors, a dark outline and a faint highlight
 /// at the top.
@@ -276,7 +285,8 @@ struct MenuRow: View {
             if let pane {
                 ProgramTile(icon: pane.iconID, letter: pane.letter)
             } else {
-                Image(systemName: symbol ?? "circle").opacity(symbol == nil ? 0 : 1).frame(width: 18)
+                // As wide as a program tile, so the titles line up.
+                Image(systemName: symbol ?? "circle").opacity(symbol == nil ? 0 : 1).frame(width: 22)
                     .accessibilityHidden(true)
             }
             // A long typed name keeps both ends, and takes the free space before the detail does.

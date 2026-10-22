@@ -20,7 +20,7 @@
         var wantsKeyboard = false
         /// Took the keyboard.
         var onKeyboard: (() -> Void)?
-        /// Return, with or without modifiers.
+        /// Return, with or without modifiers, not repeated.
         var onReturn: (() -> Void)?
 
         override init(frame: NSRect) {
@@ -99,8 +99,8 @@
         }
 
         override func keyDown(with event: NSEvent) {
-            // Return and the keypad's Enter.
-            if [36, 76].contains(event.keyCode), !hasMarkedText() {
+            // Return and the keypad's Enter; a held key asks once.
+            if [36, 76].contains(event.keyCode), !event.isARepeat, !hasMarkedText() {
                 onReturn?()
             }
             if !hasMarkedText(), let key = Self.herdrKey(event) {

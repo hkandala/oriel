@@ -105,13 +105,16 @@ tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, 
   needs one.
 - **Sidebar tab rows show the plain `terminal` tile** (no stack, no value), as the phase asks: phase 14 replaces
   them.
-- **With only the shell running, the card header shows the folder alone**, not "zsh ~": `program(_:)` stays nil
-  for the shell (the close check needs that), so the app does not know the shell's name.
 
 ### Decisions
 
-- **`Program { name, argv0, script }` in HerdrKit**; `script` is the first argv element after argv0 that is not
-  an option. `program(_:)` returns it (nil while only the shell runs); the close dialog uses its `name`.
+- **`Program { name, argv0, script, isShell }` in HerdrKit**; `script` is the first argv element after argv0 that
+  is not an option. `program(_:)` returns the first foreground process besides the shell, else the shell itself
+  with `isShell` (so the header says "zsh ~", as in Rex); the close check asks unless `isShell`. `title` is the
+  header's name: a Node CLI's script name, else the process name.
+- **Unknown agent → `placeholder`** with the agent's first letter, like an unknown program.
+- **Asks land in order:** a per-pane counter drops an answer older than the latest ask (each ask is its own
+  herdr run). A held Return asks once (`isARepeat`). A pane id herdr reuses with another terminal starts over.
 - **Matcher:** `[ProgramIcon].iconID(agent:program:title:) -> String` in `HerdrKit/ProgramIcon.swift`, tested
   against the real `resources/icons/catalog.json` (read by path), so the catalog's values are tested too.
   `ProgramIcon` decodes only `id`, `tile` and `match`.
@@ -125,27 +128,28 @@ tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, 
   tiles behind, instead of a ring in a background color: Glass has no solid background color.
 - **Front tile:** the keyboard card (the store's per-tab keyboard terminal, now observed), else herdr's focused
   pane. Others in herdr's order, up to 5.
-- **Header name:** herdr's agent, else the foreground process's name ("vim /private/tmp"); the label still wins.
+- **Header name:** herdr's agent, else the program's `title` ("vim /private/tmp", "zsh ~"); the label still wins.
 - **`HostModels.swift`.** The store's nested `Workspace`, `Tab` and `Pane` moved to an extension in their own file:
   `HostStore.swift` passed SwiftLint's 400-line and 250-line body limits.
 - **Weak 1x icons**, fixed in `tools/build.mjs`: fish → Phosphor fish-simple, podman → Phosphor package (Podman
   purple), java → Phosphor coffee (Java orange), jupyter → Phosphor planet (Jupyter orange); postgres and aws keep
   their marks, thickened by a new `bold` option (the union of copies shifted around a small circle: 0.3 and 0.35
   units at 24).
+- **Placeholder letter, tile widths.** The palette's SF Symbol slot is 22 pt, a tile's width, so tab and
+  workspace titles line up. A catalog that fails to load trips an `assertionFailure` in debug builds.
 - **Catalog fixes from npm's `bin` fields:** claude's native binary is `claude.exe`; gemini's script is
   `@google/gemini-cli/bundle/gemini.js`; qwen's is `@qwen-code/qwen-code/cli-entry.js`. The old paths stay for
   older installs.
 
 ### Assumptions
 
-- **A spinner title floods `pane.updated`** (one event per frame, measured: 30 title changes, 30 events). The
-  snapshot pacing (one read in flight plus one again) absorbs it; the program is asked again only when the
-  stripped title changes, which spinners do not touch. Not measured with a real working agent.
 
 ### Learned
 
-- **herdr sends `pane.updated` on a title change** (not on `cd`); it is now in the subscription. The 30 s beat
-  is no longer the only way a title reaches the app.
+- **herdr sends `pane.updated` when the stripped title changes** (not on `cd`); it is now in the subscription.
+  Spinner frames send none (the spec reviewer: 80 frames, one event); a progress title sends one per change (100
+  changes in 2 s, 85 events), absorbed by the snapshot pacing. The program is asked again only when the title's
+  first word changes.
 - **herdr reports no foreground process for a setuid program** (`top`): `process_info` has no
   `foreground_processes`. Decoding then fails, the icon stays `terminal`, and the close check asks ("A
   program"), which is the safe side. The e2e test uses nano instead (macOS's `nano` is `pico`).

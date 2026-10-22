@@ -43,10 +43,12 @@ extension HostStore {
         var agent: String?
         /// The terminal title without herdr's status glyphs.
         var terminalTitle: String?
-        /// What runs besides the shell, from the last `pane.process_info`; nil while only the shell runs.
+        /// What runs in the foreground (the shell when nothing else does), from the last `pane.process_info`.
         var program: Program?
         /// herdr was asked for the program at least once.
         @ObservationIgnored var asked = false
+        /// Asks made, so only the latest answer lands.
+        @ObservationIgnored var asks = 0
 
         init(id: String) {
             self.id = id
@@ -62,9 +64,9 @@ extension HostStore {
             label ?? folder ?? "terminal"
         }
 
-        /// The program's name for the card header: herdr's agent, else the foreground process.
+        /// The program's name for the card header: herdr's agent, else the foreground process ("zsh" for the shell).
         var programName: String? {
-            agent ?? program?.name
+            agent ?? program?.title
         }
 
         /// The placeholder icon's letter.

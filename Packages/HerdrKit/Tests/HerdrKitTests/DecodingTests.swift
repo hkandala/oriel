@@ -87,13 +87,14 @@ private func leaf(_ id: String) -> SplitNode {
     #expect(SplitNode(layouts[1]) == nil) // too many panes
 }
 
-@Test func `a pane's program is what runs in the foreground besides its shell`() throws {
+@Test func `a pane's program is what runs in the foreground besides its shell, else the shell`() throws {
     func info(_ processes: String) throws -> PaneProcesses {
         let json = #"{"process_info":{"pane_id":"w1:p1","shell_pid":7,"foreground_processes":[\#(processes)]}}"#
         return try JSONDecoder().decode(ProcessInfoResult.self, from: Data(json.utf8)).processInfo
     }
-    #expect(try info(#"{"pid":7,"name":"zsh","argv0":"-zsh"}"#).program == nil)
-    #expect(try info(#"{"pid":7,"name":"fish"}"#).program == nil)
+    #expect(try info(#"{"pid":7,"name":"zsh","argv0":"-zsh"}"#).program == Program(name: "zsh", argv0: "-zsh",
+                                                                                   isShell: true))
+    #expect(try info(#"{"pid":7,"name":"fish"}"#).program?.isShell == true)
     // `exec vim` keeps the shell's pid.
     #expect(try info(#"{"pid":7,"name":"vim","argv0":"vim"}"#).program == Program(name: "vim", argv0: "vim"))
     #expect(try info(#"{"pid":9,"name":"sleep"}"#).program == Program(name: "sleep"))
@@ -102,6 +103,7 @@ private func leaf(_ id: String) -> SplitNode {
     // A Node CLI: the script is the first argument that is not an option.
     let node = #"{"pid":9,"name":"node","argv0":"node","argv":["node","--no-warnings","/usr/lib/pi/dist/cli.js","-c"]}"#
     #expect(try info(node).program?.script == "/usr/lib/pi/dist/cli.js")
+    #expect(try info(node).program?.title == "cli.js")
     // An exited shell.
     #expect(try info("").program == nil)
 }

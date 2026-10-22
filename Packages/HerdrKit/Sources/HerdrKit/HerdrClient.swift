@@ -96,8 +96,7 @@ public actor HerdrClient {
         try await (call("pane.get", ["pane_id": paneID]) as PaneResult).pane
     }
 
-    /// The program the pane runs besides its shell; nil when only the shell runs, so a close loses nothing
-    /// (design D41).
+    /// What the pane runs besides its shell, else the shell (`isShell`: a close loses nothing, design D41).
     public nonisolated func program(_ paneID: String) async throws -> Program? {
         try await (call("pane.process_info", ["pane_id": paneID]) as ProcessInfoResult).processInfo.program
     }
