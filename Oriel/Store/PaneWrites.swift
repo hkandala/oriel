@@ -1,3 +1,4 @@
+import Foundation
 import HerdrKit
 
 /// Layout writes: panes and splits (phase 17), tab and workspace order (phases 13, 14, 18); each is one `write`,
@@ -94,8 +95,10 @@ extension HostStore {
         return moved
     }
 
-    /// An empty label clears it.
+    /// Trimmed; an empty label clears it; nothing when the same.
     func rename(pane paneID: String, label: String) async {
+        let label = label.trimmingCharacters(in: .whitespaces)
+        guard label != pane(paneID)?.label ?? "" else { return }
         await write { try await $0.rename(pane: paneID, label: label.isEmpty ? nil : label) }
     }
 

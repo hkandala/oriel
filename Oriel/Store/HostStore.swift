@@ -290,11 +290,18 @@ extension HostStore {
         return created
     }
 
+    /// Trimmed; nothing when empty or the same.
     func rename(tab tabID: String, label: String) async {
+        let label = label.trimmingCharacters(in: .whitespaces)
+        guard !label.isEmpty,
+              label != workspaces.flatMap(\.tabs).first(where: { $0.id == tabID })?.label else { return }
         await write { try await $0.rename(tab: tabID, label: label) }
     }
 
+    /// Trimmed; nothing when empty or the same.
     func rename(workspace workspaceID: String, label: String) async {
+        let label = label.trimmingCharacters(in: .whitespaces)
+        guard !label.isEmpty, label != workspaces.first(where: { $0.id == workspaceID })?.label else { return }
         await write { try await $0.rename(workspace: workspaceID, label: label) }
     }
 
@@ -366,7 +373,7 @@ extension HostStore {
     }
 
     /// A notice for a few seconds, unless a newer one replaced it.
-    private func show(_ text: String) async {
+    func show(_ text: String) async {
         notice = text
         try? await Task.sleep(for: .seconds(4))
         if notice == text {

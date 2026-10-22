@@ -373,12 +373,9 @@
             renaming = true
         }
 
-        /// Enter: herdr's label, unless empty or the same; the snapshot after it shows it.
+        /// Enter: herdr's label; the snapshot after it shows it.
         private func rename() {
-            let label = draft.trimmingCharacters(in: .whitespaces)
-            if !label.isEmpty, label != tab.label {
-                Task { await page.store.rename(tab: tab.id, label: label) }
-            }
+            Task { [draft] in await page.store.rename(tab: tab.id, label: draft) }
             stopRenaming()
         }
 
