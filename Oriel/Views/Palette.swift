@@ -82,12 +82,10 @@ struct Palette: View {
     private var items: [Item] {
         let tabs = store.workspaces.flatMap { workspace in
             workspace.tabs.map { tab in
-                var row = Item(id: "tab.\(tab.id)", title: tab.label, detail: workspace.label) {
+                Item(id: "tab.\(tab.id)", pane: store.stack(tab).first, title: tab.label, detail: workspace.label) {
                     store.selectedWorkspaceID = workspace.id
                     workspace.selectedTabID = tab.id
                 }
-                row.pane = store.stack(tab).first
-                return row
             }
         }
         let workspaces = store.workspaces.map { workspace in

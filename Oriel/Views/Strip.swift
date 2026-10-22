@@ -253,17 +253,12 @@ private struct PaneCard: View {
             HStack(spacing: 8) {
                 // Clicks pass through to the header's double-click.
                 ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
-                Group {
-                    if let name {
-                        Text("\(name) \(Text(folder).foregroundStyle(.secondary))")
-                    } else {
-                        Text(folder)
-                    }
-                }
-                .lineLimit(1)
-                // A path keeps its end, a label its start.
-                .truncationMode(pane?.label != nil ? .tail : name == nil ? .head : .middle)
-                .allowsHitTesting(false)
+                let lead = name.map { "\($0) " } ?? ""
+                Text("\(lead)\(Text(folder).foregroundStyle(name == nil ? .primary : .secondary))")
+                    .lineLimit(1)
+                    // A path keeps its end, a label its start.
+                    .truncationMode(pane?.label != nil ? .tail : name == nil ? .head : .middle)
+                    .allowsHitTesting(false)
                 Spacer(minLength: 0)
                 // Only on hover (and while zoomed, so Restore stays in sight); hidden, they take no width from a
                 // narrow card.

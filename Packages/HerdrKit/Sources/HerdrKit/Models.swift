@@ -52,15 +52,14 @@ public struct Pane: Decodable, Sendable, Identifiable {
     public let tabID: String
     public let label: String?
     public let cwd: String?
-    /// herdr's agent kind (`claude`), detected or reported; `display_agent` when herdr sends one.
+    /// herdr's agent kind (`claude`), detected or reported.
     public let agent: String?
-    public let displayAgent: String?
     /// The terminal title without the status glyphs herdr strips (`✳`, spinners).
     public let title: String?
 
     enum CodingKeys: String, CodingKey {
         case id = "pane_id", terminalID = "terminal_id", tabID = "tab_id", label, cwd, agent
-        case displayAgent = "display_agent", title = "terminal_title_stripped"
+        case title = "terminal_title_stripped"
     }
 }
 

@@ -112,7 +112,7 @@ final class HostStore {
         #else
             let front = tabPanes.first(where: \.focused)
         #endif
-        return Array(((front.map { [$0] } ?? []) + tabPanes.filter { $0 !== front }).prefix(5))
+        return Array(([front].compactMap(\.self) + tabPanes.filter { $0 !== front }).prefix(5))
     }
 
     /// The card keys go to: the terminal with the keyboard, else herdr's focused pane of the selected tab.
@@ -248,12 +248,11 @@ final class HostStore {
         }
         let focused = snapshot.focusedPaneIDs
         reuse(self, \.panes, snapshot.panes, Pane.init(id:)) { pane, new in
-            let agent = new.agent ?? new.displayAgent
             // A new agent or title: the program may have changed. Spinners do not change the stripped title.
-            if pane.asked, agent != pane.agent || new.title != pane.terminalTitle {
+            if pane.asked, new.agent != pane.agent || new.title != pane.terminalTitle {
                 Task { await askProgram(pane.id) }
             }
-            pane.agent = agent
+            pane.agent = new.agent
             pane.terminalTitle = new.title
             pane.label = new.label
             pane.cwd = new.cwd

@@ -38,7 +38,7 @@ Every pane, tab and agent row shows the icon of the program that runs in it
 ## How a pane gets its icon
 
 The first match wins:
-1. herdr's agent kind for the pane (`agent`, or `display_agent`).
+1. herdr's agent kind for the pane (`agent`).
 2. The foreground process from `pane.process_info`: its name, then the base
    name of `argv0`. A `node` or `bun` process is matched by its script
    first: the end of the script's path (`pi-coding-agent/dist/cli.js`), then
