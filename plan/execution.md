@@ -73,8 +73,13 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    raise windows by identifier (`firstMatch`, ⌘`), never by click position. Log the timing of a macOS
    lifecycle question (restore, full screen) before designing around it. Never `git checkout <file>` to
    drop debug lines in a dirty tree (it reverts the phase's work in that file); remove them with an edit.
-14. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
-15. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
+14. **Spike side effects too** (phase 17): check what each herdr write does to herdr's focus, not only its
+   result (`pane.swap` moves focus even with `focus:false`). When a key does nothing, log it in the menu
+   action and in `keyDown` in the first run; test chords through their menu item (global hotkeys of
+   other apps take some chords on this Mac). Check a ponytail change that moves *when* code runs against
+   the tests it can break before taking it.
+15. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
+16. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
 
 ## The phase loop (inside each phase agent)
@@ -230,6 +235,9 @@ here what the user should check at the end.
   your Ghostty window (no keys sent).
 - Phase 16: the app stays open with no window, as WindowGroup apps do. Window restore after quit is
   made independent of the macOS "close windows when quitting" setting in phase 21.
+- Phase 17: herdr 0.9.5's `pane.swap` moves herdr's focus even with `focus:false`, so Split Left / Up
+  and swaps change the focused pane a herdr TUI on the same session sees. ⌃⌘= (Balance Splits) is taken
+  by a global hotkey on your Mac (BetterTouchTool or Raycast); the menu item works.
 - The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
   at Glass Dark.
 
@@ -244,7 +252,7 @@ here what the user should check at the end.
 | 14 | phase14-sidebar | done | 13 commits, 3 rounds, 1h28m, ~40 min GUI lock |
 | 15 | phase15-agents | done | 13 commits, 4 rounds, 1h11m, ~30 min GUI lock |
 | 16 | phase16-windows | done | 12 commits, 3 rounds, 1h47m, ~50 min GUI lock |
-| 17 | | not started | |
+| 17 | phase17-panes | done | 18 commits, 4 rounds, 1h56m, ~55 min GUI lock |
 | 18 | | not started | |
 | 19 | | not started | |
 | 20 | | not started | |
