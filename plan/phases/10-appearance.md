@@ -39,7 +39,7 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
 
    Hover fill, pressed fill and the tab track (phase 13) are the same in both styles: use
    `Color.primary.opacity(0.05)`, `0.08` and `0.05`, which follow the appearance by themselves. They are
-   not tokens. The status colors may be asset-catalog color sets (Any / Dark) that `Look` names.
+   not tokens. The status colors can be asset-catalog color sets (Any / Dark) that `Look` names.
 
    Floating panels (palette, title-row menus and popovers, sheets, hover card, notices) keep
    system glass in both styles; Classic drops only the window blur and the glass selection pill. The

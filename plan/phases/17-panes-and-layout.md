@@ -62,7 +62,7 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 
 11. ⌥⌘← → ↑ ↓: give the keyboard to the nearest card in that direction (card frames from the layout,
     nearest by the center's distance along the axis, overlap first). herdr's read-only
-    `pane.neighbor {pane_id, direction}` could answer this instead. Use one of the two, not both, and
+    `pane.neighbor {pane_id, direction}` can answer this instead. Use one of the two, not both, and
     record which.
 12. ⌘[ and ⌘]: previous and next card in the tree's order, round the ends.
 13. ⌥⇧⌘← → ↑ ↓: move the keyboard card: `pane.swap {pane_id, direction}`. The keyboard follows the
