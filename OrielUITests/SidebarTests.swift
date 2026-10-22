@@ -32,6 +32,9 @@ extension OrielUITests {
         // Empty field: a new name is offered first.
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'open-session.new.'"))
             .firstMatch.isSelected)
+        // Only this run's sessions, so all four groups are in view.
+        app.typeText(String(one.dropLast()))
+        XCTAssertTrue(element("open-session.new.\(one.dropLast())").waitForExistence(timeout: 2))
         keepScreenshot("open session")
         element("open-session.session.\(two)").click()
 
@@ -142,15 +145,18 @@ extension OrielUITests {
 
     func testWorkspaceRowsShowGitAndWorktrees() async throws {
         XCTAssertTrue(element("workspace.w2").waitForExistence(timeout: connect))
-        // The sandboxed runner cannot run git: a pane of w2 (in /tmp) builds a repository with an upstream, one
-        // commit ahead of it, and a linked worktree.
+        // The sandboxed runner cannot run git: a pane of w2 (in /tmp) builds a repository one commit ahead of its
+        // upstream and one behind it, and a linked worktree.
         let root = "/tmp/oriel-e2e-git-\(Int.random(in: 10000 ... 99999))"
         let git = "git -c user.name=e2e -c user.email=e2e@oriel"
         // In a subshell: w2 stays in /tmp, a folder outside any repository.
         let script = "(mkdir -p \(root) && cd \(root) && git init -q -b main repo && cd repo && "
             + "\(git) commit -q --allow-empty -m one && git clone -q --bare . ../up.git && "
             + "git remote add origin ../up.git && git fetch -q origin && git branch -q -u origin/main && "
-            + "\(git) commit -q --allow-empty -m two && git worktree add -q ../tree -b feature) && echo built-$((6*7))"
+            // Pushed, then replaced: one commit behind the upstream and one ahead of it.
+            + "\(git) commit -q --allow-empty -m two && git push -q origin main && git reset -q --hard HEAD~1 && "
+            + "\(git) commit -q --allow-empty -m three && git worktree add -q ../tree -b feature) && "
+            + "echo built-$((6*7))"
         try await Self.call(one, "pane.send_text", ["pane_id": "w2:p1", "text": "\(script)\r"])
         addTeardownBlock { [one] in
             _ = try? await Self.call(one, "pane.send_text", ["pane_id": "w2:p1", "text": "rm -rf \(root)\r"])
@@ -168,7 +174,7 @@ extension OrielUITests {
         }
 
         let repoRow = element("workspace.\(repo)"), treeRow = element("workspace.\(tree)")
-        try waitUntil(timeout: 5) { repoRow.value as? String == "main ahead 1 behind 0" }
+        try waitUntil(timeout: 5) { repoRow.value as? String == "main ahead 1 behind 1" }
         try waitUntil(timeout: 5) { treeRow.value as? String == "feature ahead 0 behind 0, worktree of repo" }
         XCTAssertEqual(repoRow.frame.height, 44, accuracy: 1)
         XCTAssertEqual(element("workspace.w2").frame.height, 30, accuracy: 1)
@@ -183,7 +189,7 @@ extension OrielUITests {
              "text": "(cd \(root)/repo && \(git) commit -q --allow-empty -m 3) && echo committed-$((6*7))\r"],
         )
         try await waitFor("w2:p1") { $0.contains("\ncommitted-42") }
-        try waitUntil(timeout: 12) { repoRow.value as? String == "main ahead 2 behind 0" }
+        try waitUntil(timeout: 12) { repoRow.value as? String == "main ahead 2 behind 1" }
 
         // The filter matches branches; a matching worktree keeps its repository's row.
         let filter = element("sidebar.filter")
