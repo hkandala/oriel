@@ -60,6 +60,11 @@ struct Look {
                    (.black.opacity(0.12), 0.7))
     }
 
+    /// A divider's grip: gorex's muted icon color at 0.6.
+    var grip: Color {
+        Color.secondary.opacity(0.6)
+    }
+
     var cardShadow: ShadowStyle {
         let none = ShadowStyle.drop(color: .clear, radius: 0)
         return pick(none, .drop(color: .black.opacity(0.1), radius: 5, y: 2), none,

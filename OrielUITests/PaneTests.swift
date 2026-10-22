@@ -141,7 +141,14 @@ extension OrielUITests {
         XCTAssertTrue(hasValue(other, "content 70%", timeout: 2))
         keepScreenshot("faded cards, key window")
 
-        // The setting turns the fade off.
+        // The setting turns the fade off; back on after a failure too (the app's defaults are the user's).
+        addTeardownBlock { @MainActor in
+            // Both cards unfaded: the setting is off.
+            if [keyboard, other].allSatisfy({ $0.value as? String == "content 100%" }) {
+                self.app.menuBars.menuBarItems["View"].click()
+                self.app.menuBars.menuItems["Fade Inactive Panes"].click()
+            }
+        }
         app.menuBars.menuBarItems["View"].click()
         app.menuBars.menuItems["Fade Inactive Panes"].click()
         XCTAssertTrue(hasValue(other, "content 100%", timeout: 2))

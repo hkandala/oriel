@@ -331,7 +331,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | New workspace (page header `+`, workspace menu, an empty session's New Workspace) | `workspace.create {cwd: $HOME, label, focus: false}` in that page's session (a launchd-started server's cwd is not `$HOME`); the label only when the user typed one; then the snapshot selects it |
 | Folder dropped on the Dock icon | `workspace.create {cwd}`, one per folder |
 | New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a workspace row's New Tab, that workspace's keyboard card, or `$HOME` |
-| Split right or down | `pane.split {target_pane_id, direction: right or down, ratio, cwd}`, then [equal splits](/docs/layout#dividers): a fresh snapshot, and one `layout.set_split_ratio` per split of the new pane's run whose ratio changes |
+| Split right or down | `pane.split {target_pane_id, direction: right or down, focus:false}`, then [equal splits](/docs/layout#dividers): a fresh snapshot, and one `layout.set_split_ratio` per split of the new pane's run whose ratio changes |
 | Split left or up | `pane.split` right or down (`focus:false`), then `pane.swap {pane_id: old, direction: right or down}`: the old pane swaps with the new one beside it (herdr splits only right and down); then equal splits |
 | Drag a divider | `layout.set_split_ratio {tab_id, path, ratio}` on release; ratio kept in 0.1–0.9 |
 | Double-click a divider | `layout.set_split_ratio` with ratio 0.5 |

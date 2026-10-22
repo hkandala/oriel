@@ -21,7 +21,7 @@
         /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
         var stripPage = 0.0
         /// The terminal that last had the keyboard in each tab. Observed: the tab's icon stack puts it in front.
-        private var keyboardTerminals: [String: String] = [:]
+        private(set) var keyboardTerminals: [String: String] = [:]
         /// The tab whose terminal last got the keyboard from the app.
         @ObservationIgnored private var keyboardTabID: String?
         /// A tab this page just made, selected once a snapshot shows it.
@@ -66,7 +66,8 @@
                 selectedTabIDs[workspace.id] = workspace.tabs.contains { $0.id == workspace.activeTabID }
                     ? workspace.activeTabID : workspace.tabs.first?.id
             }
-            if let id = zoomedPaneID, store.pane(id) == nil {
+            // Gone, or alone in its tab (moved, or its neighbor closed).
+            if let id = zoomedPaneID, !canZoom(id) || store.pane(id) == nil {
                 zoomedPaneID = nil
             }
             if let id = arriving, let workspace = store.workspace(of: id) {
@@ -97,7 +98,11 @@
             if let id = terminals.keyboardTerminalID, let pane = store.panes.first(where: { $0.terminalID == id }) {
                 return pane
             }
-            return store.panes.first { $0.tabID == selectedTab?.id && $0.focused }
+            // A text field has the keyboard: the card that had it last.
+            let tab = selectedTab?.id
+            return store.panes.first { $0.tabID == tab && $0.terminalID != nil && $0.terminalID == tab.flatMap {
+                keyboardTerminals[$0]
+            } } ?? store.panes.first { $0.tabID == tab && $0.focused }
         }
 
         /// The selected tab's terminals (terminal id → pane id): the ones that stream.
@@ -232,6 +237,8 @@
             guard let moved = await store.move(pane.id, to: destination) else { return }
             keyboardTerminals[moved.tabID] = terminalID
             arriving = moved.tabID
+            // In case the snapshot after the move came in already.
+            settle()
         }
 
         /// A new tab in the workspace (the selected one by default), in its keyboard card's directory, else home;

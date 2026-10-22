@@ -219,7 +219,9 @@
                     stack {
                         side(first, sizes.0, step: false, zoomed: zoomed, area: geometry.size)
                         if !zoomed.0, !zoomed.1 {
-                            let names = [first, second].map { page.store.pane($0.paneIDs[0])?.cardTitle ?? "terminal" }
+                            // The panes beside the divider.
+                            let names = [first.paneIDs.last, second.paneIDs.first]
+                                .map { page.store.pane($0 ?? "")?.cardTitle ?? "terminal" }
                             let key = path.isEmpty ? "root" : path.map { $0 ? "1" : "0" }.joined()
                             SplitDivider(right: right, total: total, ratio: shown, held: $held,
                                          label: "Divider between \(names[0]) and \(names[1])",
@@ -244,6 +246,7 @@
                 // Under the zoomed side (zIndex), which covers it, so its terminal views get no clicks.
                 .opacity(away ? 0 : 1)
                 .zIndex(away ? 0 : 1)
+                .allowsHitTesting(!away)
                 .transformEnvironment(\.zoomedAway) { $0 = $0 || away }
         }
 
@@ -255,6 +258,10 @@
                 return
             }
             Task {
+                // After a write in flight (a quick second change), not refused as busy.
+                while page.store.writing {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
                 if await !page.store.setRatio(tab: tabID, path: path, ratio: value) {
                     held = nil
                 }
@@ -275,6 +282,7 @@
         let id: String
         let send: (Double) -> Void
         @State private var hovering = false
+        @Environment(\.look) private var look
         /// The ratio when the drag began.
         @State private var start: Double?
 
@@ -282,7 +290,7 @@
             Color.clear
                 .frame(width: right ? gap : nil, height: right ? nil : gap)
                 .overlay {
-                    Capsule().fill(.secondary.opacity(0.6))
+                    Capsule().fill(look.grip)
                         .frame(width: right ? 3 : 36, height: right ? 36 : 3)
                         .opacity(hovering || start != nil ? 1 : 0)
                         .animation(.easeOut(duration: 0.2), value: hovering || start != nil)

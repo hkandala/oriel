@@ -21,8 +21,9 @@
             let pane = store.pane(id)
             let zoomed = page.zoomedPaneID == id
             let terminal = pane.flatMap(page.terminal)
-            // The card that has the keyboard is lit; herdr's focus until a terminal exists.
-            let lit = terminal?.hasKeyboard ?? pane?.focused ?? true
+            // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
+            let keyboard = pane.flatMap { page.keyboardTerminals[$0.tabID] }
+            let lit = keyboard.map { $0 == pane?.terminalID } ?? pane?.focused ?? true
             // Rex's content opacities; the watching window's dim (D66) multiplies.
             let content = (fade ? lit ? active ? 1 : scheme == .dark ? 0.8 : 0.85 : active ? 0.7 : 0.5 : 1)
                 * (page.watched ? 0.85 : 1)
@@ -47,16 +48,19 @@
                     .accessibilityAddTraits(.isStaticText)
                     .accessibilityValue("content \(Int((content * 100).rounded()))%")
                     .accessibilityIdentifier("pane.\(id)")
-                    // The buttons show on hover only; VoiceOver splits from the card.
-                    .accessibilityAction(named: "Split Right") { Task { await page.split(id, .right) } }
-                    .accessibilityAction(named: "Split Down") { Task { await page.split(id, .down) } }
-                    .accessibilityAction(named: zoomed ? "Restore" : "Zoom") { page.zoom(id) }
-                    .accessibilityAction(named: "Close") { Task { await store.close(pane: id) } }
+                    // The buttons show on hover only and the context menu is on the header: VoiceOver acts on the card.
+                    .accessibilityActions {
+                        let commands = AppCommands.pane(page) { pane }.filter { $0.enabled && $0.menu.isEmpty }
+                        ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
+                            Button(command.title, action: command.action)
+                        }
+                    }
             }
             .onHover { hovering = $0 }
-            .task(id: hovering && followMouse && !lit) {
-                // Focus follows mouse: a pointer resting 0.15 s, no button down, no text field typing, a key window.
-                guard hovering, followMouse, !lit, active, let pane,
+            .task(id: hovering && followMouse && !lit && !zoomedAway) {
+                // Focus follows mouse: a pointer resting 0.15 s, no button down, no text field typing, a key window,
+                // not under a zoomed card.
+                guard hovering, followMouse, !lit, !zoomedAway, active, let pane,
                       await (try? Task.sleep(for: .milliseconds(150))) != nil, NSEvent.pressedMouseButtons == 0,
                       !(NSApp.keyWindow?.firstResponder is NSText) else { return }
                 page.go(to: pane)
@@ -75,9 +79,10 @@
                     TextField("Pane Name", text: $draft).textFieldStyle(.plain).focused($renaming)
                         .onSubmit { rename(pane) }
                         .onExitCommand { stopRenaming(pane) }
+                        // A click elsewhere keeps the keyboard and the selection where it went.
                         .onChange(of: renaming) { _, now in
                             if !now {
-                                stopRenaming(pane)
+                                page.renamingPaneID = nil
                             }
                         }
                         .onAppear { draft = pane?.label ?? "" }
