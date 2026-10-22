@@ -20,14 +20,9 @@ struct Look {
     let style: InterfaceStyle
     let dark: Bool
 
-    /// The window's accessibility value, for e2e tests: "glass dark".
-    var name: String {
-        "\(style.rawValue) \(dark ? "dark" : "light")"
-    }
-
     /// Glass: over the behind-window blur, blended `overlay` under `window`; it darkens the blur in dark.
     var backdrop: Color {
-        pick(.black.opacity(0.6), .clear, .clear, .clear)
+        dark ? .black.opacity(0.6) : .clear
     }
 
     /// Glass: the tint over the behind-window blur. Classic: the whole window.
@@ -46,8 +41,8 @@ struct Look {
     }
 
     /// A 0.7 pt rim inside the card's edge, drawn `plusLighter`; Glass only.
-    var rim: Color? {
-        pick(.white.opacity(0.1), .white.opacity(0.04), nil, nil)
+    var rim: Color {
+        pick(.white.opacity(0.1), .white.opacity(0.04), .clear, .clear)
     }
 
     /// The stroke just outside the card's edge.
@@ -106,11 +101,7 @@ struct CardSurface: View {
         let shape = Self.shape, edge = look.edge(keyboard: keyboard)
         shape.fill(look.cardFill.shadow(look.cardShadow))
             .overlay { shape.fill(keyboard ? look.keyboardFill : .clear) }
-            .overlay {
-                if let rim = look.rim {
-                    shape.strokeBorder(rim, lineWidth: 0.7).blendMode(.plusLighter)
-                }
-            }
+            .overlay(shape.strokeBorder(look.rim, lineWidth: 0.7).blendMode(.plusLighter))
             .overlay(shape.inset(by: -edge.width / 2).stroke(edge.color, lineWidth: edge.width))
     }
 }
@@ -305,19 +296,6 @@ extension View {
                     .onExitCommand { open.wrappedValue = false }
                 #endif
             }
-    }
-
-    /// Fades the content out over its last points at each end instead of cutting it.
-    func fadedEdges(leading: CGFloat, trailing: CGFloat) -> some View {
-        mask {
-            HStack(spacing: 0) {
-                LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
-                    .frame(width: leading)
-                Color.black
-                LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
-                    .frame(width: trailing)
-            }
-        }
     }
 }
 

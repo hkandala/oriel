@@ -86,7 +86,13 @@ private struct TabBar: View {
             }
             .scrollIndicators(.never)
             // Capsules fade out at the edges instead of being cut.
-            .fadedEdges(leading: 8, trailing: 16)
+            .mask {
+                HStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing).frame(width: 8)
+                    Rectangle()
+                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 16)
+                }
+            }
             .onChange(of: workspace.selectedTabID, initial: true) { old, new in
                 if let new {
                     withAnimation(old != new && !reduceMotion ? .default : nil) { proxy.scrollTo(new) }
