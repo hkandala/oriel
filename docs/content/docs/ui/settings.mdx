@@ -1,71 +1,52 @@
 ---
 title: "Settings"
-description: "The Settings window: every setting, its default and its tab"
+description: "Every setting, where it is, and the fixed defaults until the Settings window"
 ---
 
-Settings is the native macOS Settings window, opened with Oriel ▸ Settings…
-or ⌘, (D62). It has four tabs, each a grouped form, about 560 pt wide. Each
-setting is one key in app storage, per device
-([Data](/docs/data#every-piece-of-data)). Settings that are not on this page
-do not exist.
+Oriel has no Settings window yet (D62). It comes later, designed with
+mock-ups first ([Future work](/docs/future-work#settings-window)). Until then
+the few settings live in the menu bar, each one key in app storage, per device
+([Data](/docs/data#every-piece-of-data)), and everything else uses the defaults
+below. Settings that are not on this page do not exist.
 
-Each on/off setting is also a command in the palette, with a title that says
-what it does now, for example "Turn On Focus Follows Mouse" (D48).
+Each on/off setting in the menu bar is also a command in the palette, with a
+title that says what it does now, for example "Turn On Focus Follows Mouse"
+(D48).
 
-## General
+## In the menu bar
 
-| Setting | Choices | Default |
-|---|---|---|
-| Appearance | Auto, Light, Dark (segmented) | Dark |
-| Interface Style | Glass, Classic (segmented) | Glass |
+| Setting | Where | Choices | Default |
+|---|---|---|---|
+| Appearance | View ▸ Appearance | Auto, Light, Dark | Dark |
+| Interface Style | View ▸ Interface Style | Glass, Classic | Glass |
+| Text size | View ▸ Bigger (⌘+ or ⌘=), Smaller (⌘-), Actual Size (⌘0) | 8 to 32 pt | 13 |
+| Fade inactive panes | View ▸ Fade Inactive Panes | on, off | on |
+| Focus follows mouse | View ▸ Pane ▸ Focus Follows Mouse | on, off | off |
 
-Appearance and Interface Style are also in View ▸ Appearance and View ▸
-Interface Style
-([Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style)).
+- Appearance and interface style: [Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style).
+- The text size is the terminal font size. A change applies to every terminal
+  at once, without opening its stream again; each card's grid changes, so the
+  PTYs resize.
+- Fade and focus follows mouse: [Fade](/docs/layout#fade),
+  [Moving the keyboard](/docs/layout#moving-the-keyboard).
 
-## Panes
+## Fixed defaults
 
-| Setting | Choices | Default |
-|---|---|---|
-| Fade inactive panes | on, off | on |
-| Focus follows mouse | on, off | off |
+| What | Value |
+|---|---|
+| Terminal font | the system monospaced font (SF Mono) |
+| Cursor | a blinking block. A program that asks for its own shape (vim's bar in insert mode) gets it: herdr's frames carry the request |
+| Option key | types the macOS characters (⌥B is ∫). ⌥← and ⌥→ move by word |
+| Copy on select | off |
+| Notifications | on for needs you and for finished |
+| Dock badge | counts the agents that need you |
+| Sounds | none |
 
-What they do: [Fade](/docs/layout#fade),
-[Moving the keyboard](/docs/layout#moving-the-keyboard).
-
-## Terminal
-
-| Setting | Choices | Default |
-|---|---|---|
-| Font | the installed monospaced fonts | the system monospaced font (SF Mono) |
-| Font size | 8 to 32 pt (also View ▸ Bigger ⌘+ or ⌘=, Smaller ⌘-, Actual Size ⌘0) | 13 |
-| Cursor style | Block, Bar, Underline | Block |
-| Blinking cursor | on, off | on |
-| Option key acts as Alt | on, off | off |
-| Copy on select | on, off | off |
-
-- A change applies to every terminal at once, without opening its stream
-  again. A new font or size changes each card's grid, so the PTYs resize.
-- The cursor style is the default shape. A program that asks for its own
-  shape (vim's bar in insert mode) gets it: herdr's frames carry the request.
-- With Option as Alt on, an Option chord on a letter, digit or symbol key
-  goes to the program as Alt and that key, Shift included (⌥⇧B is Alt+B), for
-  either Option key. ⌥← and ⌥→ always move by word. Off, Option types the
-  macOS characters (⌥B is ∫).
-- Copy on select puts the selected text on the pasteboard.
-
-## Notifications
-
-| Setting | Needs you | Finished |
-|---|---|---|
-| Notify | on | on |
-| Badge the Dock icon | on | off |
-| Play a sound | off | off |
-
-What they do: [Agents and notifications](/docs/status#agents-and-notifications).
+What the notifications do: [Agents and notifications](/docs/status#agents-and-notifications).
 
 ## Later
 
-The pills, the web safe list and plugin preferences add their settings when
-they are built ([Floating pills](/docs/ui/pills),
-[Web page](/docs/plugins/web-page), [Plugins](/docs/plugins)).
+The Settings window, the pills, the web safe list and plugin preferences add
+their settings when they are built ([Future work](/docs/future-work#settings-window),
+[Floating pills](/docs/ui/pills), [Web page](/docs/plugins/web-page),
+[Plugins](/docs/plugins)).
