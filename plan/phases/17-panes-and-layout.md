@@ -123,10 +123,16 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 - **The page follows a moved pane.** The phase does not say; Move to New Tab, Move to Tab and Move to New Workspace
   select the destination tab and the pane keeps the keyboard there, as the keyboard follows a swapped pane.
   Without it the keyboard stayed on a terminal no longer in the selected tab.
-- **No "old size during motion" fallback.** Item 16 asks for it only if terminals flicker while cards animate;
-  frames animate 0.2 s ease-out and the terminals' 100 ms resize settle sends one resize at the end.
-- **The grip's color** is gorex's muted icon color at 0.6 (`.secondary.opacity(0.6)`): the hover fill
-  (`.primary` at 0.05) is invisible on a 3 pt capsule.
+- **Terminals hold their size during layout motion** (item 16's fallback, E2E review): resized at every animation
+  frame, a neighbor's terminal went blank (cursor only) from about +95 to +280 ms after a split. `Motion` (in
+  `Strip.swift`) sets `layoutMoving` for 0.2 s after each tree change; `TerminalHost.Host` then keeps the terminal
+  view's frame, clipped, and fits it once when the motion ends (a terminal that never had a size fits at once).
+- **The grip's color** is gorex's muted icon color at 0.6 (`Look.grip`): the hover fill (`.primary` at 0.05) is
+  invisible on a 3 pt capsule.
+- **The keyboard card while a text field types** (spec review): the lit card and the menu bar's pane items follow the
+  tab's last keyboard card (`Page.keyboardTerminals`), not herdr's focused pane, while the rename field, a filter or
+  the palette has the keyboard. Before, ⌘W there could close herdr's focused pane without a prompt, and every card
+  faded.
 
 ### Decisions
 
@@ -153,8 +159,14 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 - **Fade** is `alphaValue` on the terminal's host view (phase 16 learned SwiftUI's `opacity` moves the terminal's
   accessibility frame), computed in `PaneCard` from `@AppStorage("fadeInactivePanes")`, `appearsActive` and the
   color scheme.
-- **Focus follows mouse** is a `.task(id:)` on the card's hover: 0.15 s, no mouse button down, no `NSText` first
-  responder (palette, rename, filters), key window only.
+- **Focus follows mouse** is a `.task(id:)` on the card's hover in a key window: every 0.15 s while the pointer
+  rests on a card that is not the keyboard card, it moves the keyboard once no mouse button is down and no `NSText`
+  is first responder (palette, rename, filters). Checking only once missed a rename or a drag that ended under the
+  pointer (E2E review). Never for a card under a zoom (hidden sides also take no hits now).
+- **A zoom ends when its card is alone** in its tab (moved, or its neighbor closed), in `settle`.
+- **A divider change waits for a write in flight** instead of being refused as busy (a double-click soon after a
+  drag, quick VoiceOver steps).
+- **Rename** ends on Enter or Esc with the keyboard back on the card; a click elsewhere only closes the field.
 - **Files:** `PaneCard` moved to `Oriel/Views/PaneCard.swift` and the pane writes to `Oriel/Store/PaneWrites.swift`
   (SwiftLint's file length).
 
