@@ -203,12 +203,12 @@ expects.
   while the dialog is up is not closed); one dialog with their total pane count, then one `tab.close` per tab, all
   at once in one write (one by one, 21 tabs took over 2 s and the bar showed each step). A failed write reads the
   snapshot too, as part of it may have happened.
-- **Keycap hints** show only if ⌘ is still the only modifier and the app is active after 0.7 s; they hide when the
-  window stops being active (`appearsActive`), as ⌘-Tab sends the ⌘ release to the other app.
+- **Keycap hints** show after ⌘ alone is held 0.7 s; the wait is cancelled and they hide when the window stops
+  being active (`appearsActive`), as ⌘-Tab sends the ⌘ release to the other app.
 - **Kept widths** settle when the pointer leaves the bar, but not while the close dialog is up; when the dialog
   ends with the pointer outside the bar, they settle then.
-- **One open panel:** `ContentView.panel` (`sessions`, `workspaces`, `palette`) replaces three Bools; collapsing
-  the sidebar's opposite (opening it) closes the workspace menu.
+- **One open panel:** `ContentView.panel` (`sessions`, `workspaces`, `palette`) replaces three Bools; opening the
+  sidebar closes the workspace menu.
 - **Tab title:** `HostStore.title(_:)`; a label made only of digits is herdr's default (herdr renumbers it as tabs
   move: a moved tab "1" became "2"). The window title and the ⌘1…⌘9 menu items use it too.
 - **Machine icon:** `IOPSCopyPowerSourcesList` once into a global `thisMacIcon`.

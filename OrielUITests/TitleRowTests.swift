@@ -84,7 +84,7 @@ extension OrielUITests {
         openWorkspaceMenu()
         element("workspaces.w2").click()
         XCTAssertTrue(element("tab.w2:t1").waitForExistence(timeout: 2))
-        XCTAssertFalse(element("tab.w1:t1").exists)
+        XCTAssertTrue(element("tab.\(made):t1").waitForNonExistence(timeout: 2))
         XCTAssertEqual(button.value as? String, "\(one) | beta")
         keepScreenshot("one tab")
     }
@@ -93,12 +93,15 @@ extension OrielUITests {
         let (workspace, tabs) = try await newWorkspace(tabs: 3)
         let close = element("tab.\(tabs[1]).close")
         XCTAssertFalse(close.exists)
+        // The selected tab too has none until hovered.
+        XCTAssertFalse(element("tab.\(tabs[0]).close").exists)
         element("tab.\(tabs[1])").hover()
         XCTAssertTrue(close.waitForExistence(timeout: 2))
         keepScreenshot("hover and close")
         element("tab.\(tabs[2])").hover()
         XCTAssertTrue(close.waitForNonExistence(timeout: 2))
         element("tab.\(tabs[1])").hover()
+        XCTAssertTrue(close.waitForExistence(timeout: 2))
         close.click()
         let confirm = app.sheets.buttons["Close Tab"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 2))
@@ -113,11 +116,17 @@ extension OrielUITests {
         let (workspace, tabs) = try await newWorkspace(tabs: 3)
         keepScreenshot("three tabs")
         let field = element("tab.\(tabs[0]).rename")
-        // A double-click on the title starts it too; Esc cancels.
+        // A double-click on the title starts it too; Esc cancels an edit.
+        let before = try await tabsOf(workspace).first?.label
         element("tab.\(tabs[0])").doubleClick()
         XCTAssertTrue(field.waitForExistence(timeout: 2))
+        app.typeKey("a", modifierFlags: .command)
+        app.typeText("nope")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(field.waitForNonExistence(timeout: 2))
+        XCTAssertFalse(element("tab.\(tabs[0])").label.contains("nope"))
+        let after = try await tabsOf(workspace).first?.label
+        XCTAssertEqual(after, before)
 
         element("tab.\(tabs[0])").rightClick()
         app.menuItems["Rename Tab"].click()
@@ -195,6 +204,7 @@ extension OrielUITests {
         XCTAssertTrue(tab.waitForExistence(timeout: connect))
         XCTAssertFalse(tab.label.contains("⌘2"))
         XCUIElement.perform(withKeyModifiers: .command) {
+            // The suite's 100 ms poll, in this closure's sync form (a predicate expectation checks once a second).
             for _ in 0 ..< 30 where !tab.label.contains("⌘2") {
                 Thread.sleep(forTimeInterval: 0.1)
             }

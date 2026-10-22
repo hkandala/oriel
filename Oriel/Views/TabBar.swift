@@ -141,7 +141,7 @@
                 if event.type == .flagsChanged, command, event.window?.isKeyWindow == true {
                     pendingHints = Task {
                         try? await Task.sleep(for: .milliseconds(700))
-                        if !Task.isCancelled, NSApp.isActive {
+                        if !Task.isCancelled {
                             hints = true
                         }
                     }

@@ -312,8 +312,7 @@ extension HostStore {
         await write { try await $0.rename(tab: tabID, label: label) }
     }
 
-    /// One place left (-1) or right (1) in its workspace; none past the ends (a snapshot may land after the menu
-    /// opened).
+    /// One place left (-1) or right (1); none past the ends (a snapshot may land after the menu opened).
     func move(tab tabID: String, by offset: Int) async {
         guard let tabs = workspace(of: tabID)?.tabs, let index = tabs.firstIndex(where: { $0.id == tabID }),
               tabs.indices.contains(index + offset) else { return }
@@ -376,15 +375,17 @@ extension HostStore {
         }
         writing = true
         notice = nil
+        var failure: Error?
         do {
             try await action(client)
-            writing = false
-            await client.refresh()
         } catch {
-            writing = false
-            // Part of it may have happened (Close Other Tabs).
-            await client.refresh()
-            await show(error.localizedDescription)
+            failure = error
+        }
+        writing = false
+        // After a failure too: part of it may have happened (Close Other Tabs).
+        await client.refresh()
+        if let failure {
+            await show(failure.localizedDescription)
         }
     }
 
