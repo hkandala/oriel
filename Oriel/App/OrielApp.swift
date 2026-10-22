@@ -88,9 +88,10 @@ struct OrielApp: App {
                 Text(dialog?.message ?? "")
             }
             .environment(\.look, look)
-            // A text leaf: SwiftUI exposes no value on a container or a plain element.
-            .background {
-                Color.clear.accessibilityElement().accessibilityAddTraits(.isStaticText)
+            // A text leaf: SwiftUI exposes no value on a container or a plain element. One point, so accessibility
+            // hit tests still find the cards and buttons.
+            .background(alignment: .topLeading) {
+                Color.clear.frame(width: 1, height: 1).accessibilityElement().accessibilityAddTraits(.isStaticText)
                     .accessibilityLabel("Appearance").accessibilityIdentifier("window.look")
                     .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
             }
