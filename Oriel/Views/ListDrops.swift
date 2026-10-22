@@ -77,7 +77,7 @@
     /// A drag over a page's workspace rows. A pane over a row highlights it and spring-loads it after 0.65 s; a drop
     /// moves it to a new tab there, and a drop under the last row to a new workspace. A dragged workspace goes to the
     /// place under the pointer, its worktrees with it; a worktree moves only among its repository's worktrees. A tab
-    /// is not a target (the forbidden pointer): herdr moves a tab only inside its workspace.
+    /// is not taken: herdr moves a tab only inside its workspace.
     struct RowsDrop: DropDelegate {
         struct State {
             /// The row a pane is over.
@@ -97,7 +97,7 @@
 
         func validateDrop(info _: DropInfo) -> Bool {
             switch page.dragging {
-            case .pane, .tab: true
+            case .pane: true
             case .workspace: reorders
             default: false
             }
@@ -105,9 +105,6 @@
 
         func dropUpdated(info: DropInfo) -> DropProposal? {
             let pointY = info.location.y
-            if case .tab = page.dragging {
-                return DropProposal(operation: .forbidden)
-            }
             if case let .workspace(id) = page.dragging {
                 let index = blocks(id).count { block in middle(block) < pointY }
                 if state.slot != index {
