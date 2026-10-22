@@ -8,7 +8,7 @@
     @MainActor @Observable
     final class WindowPages {
         private(set) var list: [Page] = []
-        /// The page in view; nil only until the first page opens.
+        /// The page in view; nil until the first page opens, and after the window closed.
         private(set) var current: Page?
         let terminals = PaneViewRegistry()
         /// The window is key (D14).
@@ -111,6 +111,8 @@
             terminals.show([:], alive: [], client: nil)
             list.forEach { leave($0.store) }
             list = []
+            // Its content goes too: nothing of the window may stream again.
+            current = nil
         }
 
         /// This window no longer shows the store: the next window controls it, or, the last one gone, it disconnects.

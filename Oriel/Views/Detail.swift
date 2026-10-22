@@ -45,8 +45,8 @@
                                     .accessibilityIdentifier("notice.controlled")
                                 }
                             }
-                            .padding([.horizontal, .bottom], gap * 2)
-                            .padding(.bottom, 30 - gap * 2)
+                            .padding(.horizontal, gap * 2)
+                            .padding(.bottom, 30)
                         }
                 } else {
                     NewWorkspaceButton(page: page)

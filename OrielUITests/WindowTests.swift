@@ -8,6 +8,8 @@ extension OrielUITests {
         // Window 1 opened the session first: it controls, window 2 watches.
         XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
         XCTAssertFalse(element("notice.controlled", in: first).exists)
+        // Watched because of another Oriel window: the capsule, not the per-card button.
+        XCTAssertFalse(element("pane.w1:p1.take-back", in: second).exists)
         let terminal = try await terminalID("w1:p1")
         try await expectStreams(terminal, control: 1, observe: 1)
         // A wider card than window 1's, so the PTY size tells the windows apart.
@@ -18,12 +20,12 @@ extension OrielUITests {
         // Typing in window 2 makes it the controller, and the key is sent.
         element("terminal.w1:p1", in: second).click()
         XCTAssertTrue(element("notice.controlled", in: first).waitForExistence(timeout: 3))
-        XCTAssertFalse(element("notice.controlled", in: second).exists)
+        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
         app.typeText("echo one-$((40+2))")
         app.typeKey(.return, modifierFlags: [])
         try await waitFor("w1:p1") { $0.contains("\none-42") }
+        // Raising window 1 is not input: window 2 keeps control (the PTY size below).
         keepScreenshot("window 1 observes the echo", of: first)
-        raise(second)
         // Window 1 still streams the pane, now watching it.
         try await expectStreams(terminal, control: 1, observe: 1)
         try await expectPTYSize("w1:p1", in: second)
@@ -32,7 +34,7 @@ extension OrielUITests {
         raise(first)
         element("notice.controlled.take-back", in: first).click()
         XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: 3))
-        XCTAssertFalse(element("notice.controlled", in: first).exists)
+        XCTAssertTrue(element("notice.controlled", in: first).waitForNonExistence(timeout: 3))
         try await expectPTYSize("w1:p1", in: first)
 
         // Each window keeps its own selection.
@@ -47,7 +49,7 @@ extension OrielUITests {
         app.typeKey(.return, modifierFlags: [])
         try await waitFor("w1:p4") { $0.contains("\ntwo-43") }
         XCTAssertTrue(element("notice.controlled", in: first).waitForExistence(timeout: 3))
-        XCTAssertFalse(element("notice.controlled", in: second).exists)
+        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
         try await expectStreams(terminalID("w1:p4"), control: 1, observe: 0)
     }
 
@@ -75,13 +77,11 @@ extension OrielUITests {
 
         // Window 1 controls, opens session two and closes its page of session one: window 2 takes over.
         raise(first)
-        element("sidebar.open-session", in: first).click()
-        element("open-session.session.\(two)", in: first).click()
-        XCTAssertTrue(element("sidebar.dot.\(two)", in: first).waitForExistence(timeout: connect))
-        element("sidebar.dot.\(one)", in: first).click()
-        element("sidebar.header", in: first).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        app.menuItems["Close Page"].click()
-        XCTAssertTrue(element("sidebar.dot.\(one)", in: first).waitForNonExistence(timeout: 3))
+        openSessionTwo(in: first)
+        // Still window 1's until its page closes.
+        XCTAssertTrue(element("notice.controlled", in: second).exists)
+        try await expectStreams(terminalID("w1:p1"), control: 1, observe: 1)
+        closePageOne(in: first)
         XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
         try await expectStreams(terminalID("w1:p1"), control: 1, observe: 0)
         try await expectPTYSize("w1:p1", in: second)
@@ -101,15 +101,12 @@ extension OrielUITests {
         XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: connect))
 
         // Window 2 opens session two and closes its page of session one.
-        element("sidebar.open-session", in: second).click()
-        element("open-session.session.\(two)", in: second).click()
-        XCTAssertTrue(element("sidebar.dot.\(two)", in: second).waitForExistence(timeout: connect))
+        openSessionTwo(in: second)
+        // The capsule shows only while the page in view is watched.
+        XCTAssertTrue(element("notice.controlled", in: second).waitForNonExistence(timeout: 3))
         element("sidebar.dot.\(one)", in: second).click()
         XCTAssertTrue(element("notice.controlled", in: second).waitForExistence(timeout: 3))
-        // At its center: the page that slid away may leave it unhittable for a moment.
-        element("sidebar.header", in: second).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        app.menuItems["Close Page"].click()
-        XCTAssertTrue(element("sidebar.dot.\(one)", in: second).waitForNonExistence(timeout: 3))
+        closePageOne(in: second)
 
         XCTAssertTrue(element("terminal.w1:p1", in: second).waitForExistence(timeout: connect))
         XCTAssertFalse(element("notice.controlled", in: second).exists)
@@ -122,6 +119,22 @@ extension OrielUITests {
     }
 
     // MARK: Helpers
+
+    /// Opens session two's page in the window through the Open Session sheet.
+    private func openSessionTwo(in window: XCUIElement) {
+        element("sidebar.open-session", in: window).click()
+        element("open-session.session.\(two)", in: window).click()
+        XCTAssertTrue(element("sidebar.dot.\(two)", in: window).waitForExistence(timeout: connect))
+    }
+
+    /// Closes the window's page of session one from its header's context menu.
+    private func closePageOne(in window: XCUIElement) {
+        element("sidebar.dot.\(one)", in: window).click()
+        // At its center: the page that slid away may leave it unhittable for a moment.
+        element("sidebar.header", in: window).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
+        app.menuItems["Close Page"].click()
+        XCTAssertTrue(element("sidebar.dot.\(one)", in: window).waitForNonExistence(timeout: 3))
+    }
 
     /// ⌘N once the first window shows session one: the first window and the new one.
     private func newWindow() throws -> (XCUIElement, XCUIElement) {

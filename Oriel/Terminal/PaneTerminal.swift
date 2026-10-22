@@ -118,6 +118,11 @@
         /// Control of the session moved between windows (D66): this window's streams take over, or watch.
         func control(_ controls: Bool) {
             if shown, observing == controls {
+                // Keys the old controller had not sent yet do not go out at a later takeover.
+                if !controls {
+                    pending = []
+                    paste = nil
+                }
                 open(observe: !controls, takeover: controls)
             }
         }
@@ -227,12 +232,11 @@
                     }
                 }
             case .liveUpdate:
-                // Opens the stream again after 1 s (talking-to-herdr#how-a-stream-ends), in the mode the windows
-                // decide now.
-                Task { [generation] in
+                // Opens the stream again after 1 s (talking-to-herdr#how-a-stream-ends): a watcher stays one (D8).
+                Task { [generation, observing] in
                     try? await Task.sleep(for: .seconds(1))
                     if generation == self.generation {
-                        open()
+                        open(observe: observing)
                     }
                 }
             case .ended:

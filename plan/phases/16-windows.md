@@ -151,8 +151,9 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
 - **Input hook:** `PaneTerminal.onInput` (key, paste, mouse down) → the registry's `onInput(terminalID)` → the window
   of that terminal's page takes control when it watches. A new stream asks `watches()` (the registry → the window's
   page) and opens `observe` while another window controls; takeovers never watch. A reopen after `.held` or a live
-  update checks the stream generation first, so a reopen that control overtook does nothing, and a live-update reopen
-  asks the windows again instead of keeping its old mode.
+  update checks the stream generation first, so a reopen that control overtook does nothing; a live-update reopen keeps
+  its mode, so a card another device holds stays a watcher (D8). A window that loses control drops keys it had not
+  sent yet. A window closed while it restores opens nothing, and a closed window drops its page in view.
 - **D46 shared:** one static `recent: [PaneTerminal]` over every registry; a terminal its window shows (`inView`) is
   never evicted, so a tab with more panes than 24 keeps them all, as before. A pane in two windows counts twice.
 - **Per-window statics:** the keyboard claim counter became a per-view `claimed` flag the registry drops on its own
