@@ -4,7 +4,7 @@ Goal: pane cards look and act like Rex's (header, buttons, fade, context menu), 
 can be changed by hand: drag, double-click and keys on dividers, balance, focus and move panes with
 keys.
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (drag and drop table: what herdr allows),
+Read first: `resources/research/clients/rex-internals.md` (§3.6, §5.3, §5.4: SuperSplit, fade values, divider debounce; facts only, write your own code), `plan/ui-polish.md`, `plan/ui-layout.md` (drag and drop table: what herdr allows),
 `resources/research/clients/rex-ui.md` (panes, dividers, zoom, fade, pane actions),
 `resources/inspirations/rex-app/three-splits.jpg`, `zoomed-pane.jpg`, `docs/content/docs/layout.mdx`,
 `docs/content/docs/ui/window.mdx` (pane card, zoom), `docs/content/docs/talking-to-herdr.mdx` (writes
@@ -52,8 +52,14 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
    to 0.1–0.9. The path comes from the split's place in the tree (`false` = first child). Terminals
    keep the existing 100 ms resize settle, so a drag does not flood herdr with PTY resizes.
 7. **Double-click** a divider: ratio 0.5.
-8. **Balance** (⌃⌘=, View ▸ Pane ▸ Balance Splits): each split gets "leaves on its first side ÷ all
-   leaves under it"; one `set_split_ratio` per split.
+8. **Equal splits (user, like Rex).** herdr halves the pane it splits (50 / 25 / 25). After every split
+   the app makes (Split Right / Down / Left / Up, ⌘D, ⇧⌘D, a drop on an edge in phase 18), it evens out the
+   run of same-direction splits that holds the new pane: n panes side by side get 1/n each (33 / 33 / 33).
+   A run is the chain of splits in that direction; a child split in the other direction counts as one
+   unit. Each split in the run gets "units on its first side ÷ units under it", one
+   `layout.set_split_ratio` per split, sent after the split's snapshot arrives; then read the snapshot.
+   Closing a pane does not re-balance (herdr gives its space to the neighbor; Balance fixes it).
+   **Balance** (⌃⌘=, View ▸ Pane ▸ Balance Splits) applies the same rule to every run in the tab.
 9. **Keys.** ⌃⌘← → ↑ ↓: `pane.resize {pane_id, direction, amount: 0.05}` on the keyboard card.
 10. **Accessibility.** Each divider is an adjustable element ("Divider between ‹a› and ‹b›", value =
     ratio as a percent; increment and decrement move it 5 % and send the ratio).
@@ -86,6 +92,7 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 
 - Drag a divider: herdr's split ratio changes (snapshot) to the dropped value ± 0.02.
 - Double-click a divider: ratio 0.5. ⌃⌘=: three panes in a row get 1/3 each.
+- Split Right twice from one pane: herdr's snapshot shows three panes at 1/3 each (± 0.02), not 50 / 25 / 25.
 - ⌥⌘→ moves the keyboard to the right card (`hasKeyboard`); ⌥⇧⌘→ swaps the panes in herdr.
 - Context menu: Move to New Tab makes a tab with that pane; Rename Pane sets herdr's label; Split Left
   puts the new pane on the left.

@@ -3,7 +3,7 @@
 Goal: Rex's tab "peek": hover a tab to see what runs in it, and click a pane there to go to it. Plus
 native tooltips with the shortcut on the chrome buttons.
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row),
+Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, §5.4: hover card, tooltips; facts only, write your own code), `plan/ui-polish.md`, `plan/ui-layout.md` (title row),
 `resources/research/clients/rex-ui.md` (hover card, pane minimap, tooltips),
 `docs/content/docs/ui/window.mdx`, `docs/content/docs/talking-to-herdr.mdx` (`pane.read`),
 `docs/content/docs/future-work.mdx` (thumbnails stay future work), decision D63.

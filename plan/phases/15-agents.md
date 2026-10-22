@@ -6,7 +6,7 @@ the Agents button with its needs-you popover, the session-scoped Agents view, no
 badge (no sounds) and a Dock menu. This replaces the design's status area and the Activity view of the
 earlier plan.
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row item 7, Agents view),
+Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.5, §5.1: status dots animation, activity; facts only, write your own code), `plan/ui-polish.md`, `plan/ui-layout.md` (title row item 7, Agents view),
 `resources/mockups/layout.html` (scenes A, G, H), `resources/research/clients/rex-ui.md` (status indicator,
 badges, Activity, notification settings), `resources/inspirations/rex-app/` (tabs-with-status,
 sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx` (selection and

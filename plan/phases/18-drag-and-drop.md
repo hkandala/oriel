@@ -5,7 +5,7 @@ tab or workspace; drag tab capsules and workspace rows to reorder them. Every ta
 in the tables of `plan/ui-layout.md` ("Moving panes, tabs and workspaces by drag and drop"); this
 phase builds exactly those, with Rex's look and timings.
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (drag and drop: what herdr 0.9.5 allows, every
+Read first: `resources/research/clients/rex-internals.md` (§3.6, §5.4: AppKit pane drag and drop indicator view, spring-load delay; read before the step 0 spike; facts only, write your own code), `plan/ui-polish.md`, `plan/ui-layout.md` (drag and drop: what herdr 0.9.5 allows, every
 target, tabs and workspaces), `resources/mockups/layout.html` (scene K), `resources/research/clients/rex-ui.md` (pane drag, drop indicator,
 spring-loading, tab reorder), `resources/research/herdr/herdr-core.md` (move calls),
 `docs/content/docs/ui/drag-and-drop.mdx`, `docs/content/docs/talking-to-herdr.mdx` (writes table:
