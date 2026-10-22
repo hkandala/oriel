@@ -114,8 +114,8 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
   neither ran. The menu item (View ▸ Pane ▸ Balance Splits) works; the key binding is the same `Command`. ⌥⇧ chords
   are avoided for the same reason (speed rule 7).
 - **Menu actions find their pane when they run.** SwiftUI rebuilds the menu bar's commands only now and then, and
-  the keyboard card is the window's first responder, which it does not observe: a captured pane or tab was the one
-  from the last rebuild (Balance first evened session one's launch tab in a test). `AppCommands.pane(page, target)`
+  the keyboard card is the window's first responder, which it does not observe: a captured pane or tab would be the
+  one from the last rebuild (phase 13's ⌘1…⌘9 items read the workspace when pressed for the same reason). `AppCommands.pane(page, target)`
   takes a closure that the actions call; Balance reads the selected tab when it runs and is enabled whenever a tab
   is selected (an even tab sends nothing). Titles and enabled states may still lag a little.
 - **The zoom rule is in `Page.zoom`**: a tab's only card does not zoom from any path (button, double-click,
