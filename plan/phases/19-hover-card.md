@@ -18,7 +18,7 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
 2. **Where.** Under a capsule (centered, 6 pt below the bar), to the right of an Agents row (6 pt
    from the sidebar edge). Kept inside the window. For an Agents row the card shows that
    row's tab.
-3. **Look.** A glass panel (system `glassEffect`, radius 12), at most 280 pt wide, fade and scale in
+3. **Look.** A glass panel (system `glassEffect`, radius 12), at most 280 pt wide (built 280 pt: see Findings), fade and scale in
    from 0.97 over 0.13 s.
 4. **Content**, top to bottom:
    - The tab title, the folder part dimmed, and the tab's rolled-up status capsule (phase 15) if any.
@@ -65,8 +65,18 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
   `overlayPreferenceValue`, placed by a small `Layout` that keeps it 8 pt inside the window. The Agents button's
   panel uses the same path (`PanelPlace.underTrailing`), so the title row's `zIndex(1)` is gone. One preference
   slot means one panel at a time.
-- **Every hover panel fades and scales in** (0.97, 0.13 s): the transition sits on the host, so the Agents
-  button's panel gets it too (Rex fades its popups in about as fast).
+- **Every hover panel fades and scales in** (0.97, 0.13 s, about its own top edge): the transition sits on the
+  host, so the Agents button's panel gets it too (Rex fades its popups in about as fast). It goes at once: on
+  the way out the host no longer knows its place.
+- **The card is always 280 pt wide**, not "at most" (E2E review): narrower cards widened when the screen lines
+  came in after the card showed, so the card jumped sideways; a narrow card's minimap was tiny too.
+- **"6 pt below the bar"** is 6 pt below the 40 pt title row, so 9 pt below the 34 pt capsule.
+- **Esc goes to a text field that edits** (a rename, the sidebar filter) while a panel is open; the panel closes
+  either way. Over a terminal Esc only closes the panel, as phase 15's did.
+- **The tooltip test reads the button's label, not the help tag** (20-minute rule): macOS shows the tip as an
+  `AXHelpTag` whose label, title and value are all empty in XCUITest, and on CI the tag showed in one run of two.
+  `IconButton` builds `.help` and the label from one string. The tooltip screenshot is a frame of CI's recording.
+- **The title's capsule skips Idle**, like the capsule's own accessibility value: an all-idle tab has no status.
 - **A scroll closes a hover panel only outside it**, like a click: the needs-you list scrolls inside its panel.
 - **"Zoom" and "Restore" are now "Zoom Pane" and "Restore Pane"** on the card header, the menu items' names, so
   the tooltip reads as the command list does ("Zoom Pane ⇧⌘↩"); "Close" is "Close Pane ⌘W". The ⌘ button says
@@ -90,3 +100,25 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
 - **Row name:** the agent's name, else the program's (`programName`), else "terminal". A pane's label is not used:
   the phase asks for the program or agent name.
 - **`gap` is `nonisolated`**: the panel `Layout`'s methods are not main-actor isolated.
+- **Row VoiceOver label** is "name, folder"; the value carries the capsule word and the screen lines.
+
+### Assumptions
+
+- **Two panels open at once can only happen through VoiceOver** ("Show Panes" while another card is open): the
+  preference keeps the last one, both monitors stay until Esc or a click. Not worth shared state.
+- **A pane of a tab that never showed reads "terminal"**: the app asks herdr for its program only when its card
+  shows (phase 12), so the card has no program name for it yet.
+
+### Learned
+
+- **A view removed under the pointer sends no `onHover(false)`** (spec review): after a row click the panel's
+  `overPanel` stayed true, so the next card never closed when the pointer left, and clicks outside did nothing.
+  `show(false)` now clears it; the row test hovers the capsule again and leaves.
+- **XCUITest relaunches leave the pointer where the last test left it**, which opened a card under it at launch
+  (E2E review, seen in a recording). `setUp` now moves the pointer over the strip.
+- **Scroll views clip overlays**: the tab track (a `ScrollView` with a mask) and the sidebar's pages would cut off
+  any card hung from a capsule or a row; `anchorPreference` + `overlayPreferenceValue` is SwiftUI's portal.
+- **Spike (herdr 0.9.5):** `pane.read {source: "visible", format: "text"}` answers
+  `{"read": {"text": "…\n", "truncated": false, …}}`; an unknown pane is the `pane_not_found` error.
+- **Screenshots:** `/tmp/oriel-shots/19/rough-hover-card.png` (three-pane tab, blocked claude, CI attachment),
+  `/tmp/oriel-shots/19/tooltip.png` ("New Tab ⌘T", CI recording frame), `/tmp/oriel-shots/19/agents-row-8.png`.
