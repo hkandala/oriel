@@ -144,7 +144,7 @@ struct Change: Decodable {
 
     func check() throws {
         if changed == false {
-            throw HerdrError.refused(reason ?? "")
+            throw HerdrError.refused(reason ?? "unknown")
         }
     }
 }

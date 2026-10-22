@@ -25,8 +25,6 @@ extension HerdrError: LocalizedError {
         case let .unsupported(message), let .failed(message): message
         case .timeout: "herdr did not answer"
         case let .herdr(code, message): "\(message) (\(code))"
-        case .refused("same_tab"): "The pane is already in that tab"
-        case .refused("cross_tab"): "Panes of two tabs cannot swap"
         case .refused("zoomed_tab"): "The tab is zoomed in herdr"
         case let .refused(reason): "herdr changed nothing (\(reason))"
         }

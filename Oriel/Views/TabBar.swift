@@ -12,8 +12,10 @@
 
         let workspace: HostStore.Workspace
         let page: Page
-        /// A pane dragged over the track's end or the `+`: a ghost capsule at the end.
-        @Binding var ghost: Bool
+        /// A pane dragged over the track's end or the `+`: a ghost capsule at the end, when it fits.
+        let ghost: Bool
+        /// A pane dragged over the track's end.
+        @Binding var end: Bool
         /// A drag over the track: the capsule a pane is over, or the place a dragged tab goes.
         @State private var over: Int?
         @State private var spring: Task<Void, Never>?
@@ -58,7 +60,7 @@
                                           keycap: hints && index < 9 ? index + 1 : nil) { kept = width }
                                     .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
                                     .overlay {
-                                        if case .pane = page.dragging, over == index {
+                                        if page.dragging?.paneID != nil, over == index {
                                             DropIndicator(radius: Self.radius)
                                         }
                                     }
@@ -118,8 +120,8 @@
                             }
                         }
                         .onDrop(of: [.orielDrag], delegate: PaneDrop(page: page,
-                                                                     target: .newTab(workspaceID: workspace.id),
-                                                                     over: $ghost))
+                                                                     target: .move(.newTab(workspaceID: workspace.id)),
+                                                                     over: $end))
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { space = $0 }
                 .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { old, new in
@@ -135,6 +137,7 @@
                 }
             }
             .onDisappear {
+                spring?.cancel()
                 pendingHints?.cancel()
                 monitor.map(NSEvent.removeMonitor)
                 monitor = nil

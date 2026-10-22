@@ -24,7 +24,8 @@
         /// Where the workspace button starts in the window, for its menu.
         @Binding var workspaceButtonX: CGFloat
         /// A pane dragged over the tab track's end or the `+`.
-        @State private var ghost = false
+        @State private var end = false
+        @State private var plus = false
 
         var body: some View {
             HStack(spacing: 8) {
@@ -43,7 +44,7 @@
                     }
                 }
                 if page.store.state == .live, let workspace = page.selectedWorkspace {
-                    TabBar(workspace: workspace, page: page, ghost: $ghost)
+                    TabBar(workspace: workspace, page: page, ghost: end || plus, end: $end)
                 } else {
                     Spacer(minLength: 0)
                 }
@@ -60,8 +61,14 @@
                 IconButton(symbol: "plus", help: "New Tab") { Task { await page.newTab() } }
                     .disabled(page.selectedWorkspace == nil || page.store.writing)
                     .accessibilityIdentifier("titlebar.new-tab")
-                    .onDrop(of: [.orielDrag], delegate: PaneDrop(
-                        page: page, target: .newTab(workspaceID: page.selectedWorkspaceID ?? ""), over: $ghost,
+                    // Highlighted too: a full track has no room for the ghost capsule.
+                    .overlay {
+                        if plus {
+                            DropIndicator(radius: 7)
+                        }
+                    }
+                    .onDrop(of: page.selectedWorkspaceID == nil ? [] : [.orielDrag], delegate: PaneDrop(
+                        page: page, target: .move(.newTab(workspaceID: page.selectedWorkspaceID ?? "")), over: $plus,
                     ))
             }
             .padding(.leading, Self.inset(fullScreen: fullScreen))

@@ -61,13 +61,13 @@ extension HostStore {
             do {
                 if pane(paneID)?.tabID == tabID, let workspaceID = workspace(of: tabID)?.id {
                     guard let away = try await client.move(pane: id, to: .newTab(workspaceID: workspaceID))
-                    else { return }
+                    else { throw HerdrError.failed("herdr named no pane") }
                     id = away.id
                     done = "Moved the pane to a new tab"
                 }
                 let split: SplitNode.Direction = edge == .left || edge == .right ? .right : .down
                 guard let moved = try await client.move(pane: id, to: .tab(tabID, beside: targetID, split: split))
-                else { return }
+                else { throw HerdrError.failed("herdr named no pane") }
                 placed = moved
                 if let targetID, edge == .left || edge == .up {
                     done = "Moved the pane beside the card"

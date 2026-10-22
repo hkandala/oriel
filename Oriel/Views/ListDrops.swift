@@ -1,4 +1,5 @@
 #if os(macOS)
+    import HerdrKit
     import SwiftUI
 
     /// A drag over the tab track. A pane over another tab's capsule highlights it and spring-loads it after 0.65 s; a
@@ -23,14 +24,14 @@
 
         func dropUpdated(info: DropInfo) -> DropProposal? {
             let place = info.location.x / max(slot, 1)
-            if case let .pane(id) = page.dragging {
+            if let id = page.dragging?.paneID {
                 let index = min(max(Int(place), 0), tabs.count - 1)
                 guard tabs.indices.contains(index), page.store.pane(id)?.tabID != tabs[index].id else {
                     dropExited(info: info)
                     return DropProposal(operation: .forbidden)
                 }
                 if over != index {
-                    over = index
+                    withAnimation(.easeOut(duration: 0.12)) { over = index }
                     spring?.cancel()
                     let tabID = tabs[index].id
                     spring = Task {
@@ -74,8 +75,8 @@
 
     /// A drag over a page's workspace rows. A pane over a row highlights it and spring-loads it after 0.65 s; a drop
     /// moves it to a new tab there, and a drop under the last row to a new workspace. A dragged workspace goes to the
-    /// place under the pointer, its worktrees with it; a worktree moves only among its repository's worktrees. Tabs
-    /// are not taken: herdr moves a tab only inside its workspace.
+    /// place under the pointer, its worktrees with it; a worktree moves only among its repository's worktrees. A tab
+    /// is not a target (the forbidden pointer): herdr moves a tab only inside its workspace.
     struct RowsDrop: DropDelegate {
         struct State {
             /// The row a pane is over.
@@ -90,11 +91,12 @@
         let page: Page
         let frames: [String: CGRect]
         @Binding var state: State
-        var reorders = true
+        /// Not while the filter hides rows: a reorder needs them all.
+        let reorders: Bool
 
         func validateDrop(info _: DropInfo) -> Bool {
             switch page.dragging {
-            case .pane: true
+            case .pane, .tab: true
             case .workspace: reorders
             default: false
             }
@@ -102,6 +104,9 @@
 
         func dropUpdated(info: DropInfo) -> DropProposal? {
             let pointY = info.location.y
+            if case .tab = page.dragging {
+                return DropProposal(operation: .forbidden)
+            }
             if case let .workspace(id) = page.dragging {
                 let index = blocks(id).count { block in middle(block) < pointY }
                 if state.slot != index {
@@ -115,7 +120,7 @@
                 frames[workspace.id].map { pointY >= $0.minY && pointY < $0.maxY + 2 } ?? false
             }
             if row?.id != state.over {
-                state.over = row?.id
+                withAnimation(.easeOut(duration: 0.12)) { state.over = row?.id }
                 state.spring?.cancel()
                 if let row {
                     state.spring = Task {
@@ -139,8 +144,8 @@
             state = State()
             switch page.dragging {
             case let .pane(id):
-                guard let target: DropTarget = dropped.ghost ? .newWorkspace
-                    : dropped.over.map({ .newTab(workspaceID: $0) }) else { return false }
+                guard let target: DropTarget = dropped.ghost ? .move(.newWorkspace)
+                    : dropped.over.map({ .move(.newTab(workspaceID: $0)) }) else { return false }
                 Task { await page.drop(id, on: target) }
             case let .workspace(id):
                 let blocks = blocks(id)

@@ -61,9 +61,8 @@ Drag a card by its header (the title area, not its buttons) by 4 pt or more.
   the next step").
 - Every `pane.move` passes `focus:false`. Each step uses the pane id from
   herdr's reply to the step before; the app reads the snapshot after the
-  drop. If herdr refuses or changes nothing, the notice says why ("The pane
-  is already in that tab", "Panes of two tabs cannot swap", "The tab is
-  zoomed in herdr").
+  drop. If herdr refuses or changes nothing, the notice says why ("The tab
+  is zoomed in herdr" when a herdr TUI zoomed the tab, else herdr's reason).
 - After the drop, the page shows the pane's tab and the pane has the
   keyboard.
 - Esc cancels a drag. A failed write leaves the layout as herdr has it.

@@ -266,10 +266,8 @@
                 await follow(store.place(paneID, in: tabID, beside: targetID, edge), terminalID)
             case let .tab(tabID):
                 await follow(store.place(paneID, in: tabID), terminalID)
-            case let .newTab(workspaceID):
-                await follow(store.move(paneID, to: .newTab(workspaceID: workspaceID)), terminalID)
-            case .newWorkspace:
-                await follow(store.move(paneID, to: .newWorkspace), terminalID)
+            case let .move(destination):
+                await move(pane, to: destination)
             }
         }
 

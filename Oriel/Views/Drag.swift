@@ -10,6 +10,14 @@
         case pane(String)
         case tab(String)
         case workspace(String)
+
+        var paneID: String? {
+            if case let .pane(id) = self {
+                id
+            } else {
+                nil
+            }
+        }
     }
 
     extension UTType {
@@ -27,16 +35,11 @@
         /// From a `DragGesture`'s change: starts the drag once (the session takes the mouse from there). `frame`: the
         /// dragged view in the window (SwiftUI's global space), snapshotted as the preview.
         static func begin(_ item: Dragged, page: Page, frame: CGRect) {
-            guard page.dragging == nil, let window = NSApp.currentEvent?.window ?? NSApp.keyWindow,
-                  let view = window.contentView else { return }
-            // The gesture's own event, else one made at the pointer (a gesture may run after its event).
-            let current = NSApp.currentEvent
-                .flatMap { [.leftMouseDown, .leftMouseDragged].contains($0.type) ? $0 : nil }
-            guard let event = current ?? NSEvent.mouseEvent(
-                with: .leftMouseDragged, location: window.mouseLocationOutsideOfEventStream, modifierFlags: [],
-                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil,
-                eventNumber: 0, clickCount: 1, pressure: 1,
-            ) else { return }
+            // The gesture runs while SwiftUI handles the drag event.
+            // Not on a stopped session's last rows and cards: a drop could not write.
+            guard page.dragging == nil, page.store.state == .live, let event = NSApp.currentEvent,
+                  event.type == .leftMouseDragged,
+                  let view = event.window?.contentView else { return }
             let pasteboard = NSPasteboardItem()
             pasteboard.setString("", forType: NSPasteboard.PasteboardType(UTType.orielDrag.identifier))
             let dragging = NSDraggingItem(pasteboardWriter: pasteboard)
@@ -78,8 +81,8 @@
         /// A card: its center (nil) or an edge.
         case card(String, edge: Heading?)
         case tab(String)
-        case newTab(workspaceID: String)
-        case newWorkspace
+        /// A new tab or a new workspace.
+        case move(Destination)
     }
 
     /// The drop indicator: a rounded rect in the accent at 0.2 with a 2 pt accent stroke.
@@ -111,16 +114,14 @@
         @Binding var zone: Heading??
 
         func validateDrop(info _: DropInfo) -> Bool {
-            if case .pane = page.dragging {
-                true
-            } else {
-                false
-            }
+            page.dragging?.paneID != nil
         }
 
         func dropUpdated(info: DropInfo) -> DropProposal? {
             let target = target(info.location)
-            withAnimation(.easeOut(duration: 0.12)) { zone = target.map(\.self) }
+            if zone != target {
+                withAnimation(.easeOut(duration: 0.12)) { zone = target }
+            }
             return DropProposal(operation: target == nil ? .forbidden : .move)
         }
 
@@ -130,14 +131,14 @@
 
         func performDrop(info: DropInfo) -> Bool {
             zone = nil
-            guard case let .pane(dragged) = page.dragging, let edge = target(info.location) else { return false }
+            guard let dragged = page.dragging?.paneID, let edge = target(info.location) else { return false }
             Task { await page.drop(dragged, on: .card(paneID, edge: edge)) }
             return true
         }
 
         /// The edge or the center (`.some(nil)`), nil when not a target.
         private func target(_ point: CGPoint) -> Heading?? {
-            guard case let .pane(dragged) = page.dragging, dragged != paneID,
+            guard let dragged = page.dragging?.paneID, dragged != paneID,
                   let source = page.store.pane(dragged), let pane = page.store.pane(paneID) else { return nil }
             let edge = dropEdge(point, in: size)
             return edge == nil && source.tabID != pane.tabID ? nil : .some(edge)
@@ -151,11 +152,7 @@
         @Binding var over: Bool
 
         func validateDrop(info _: DropInfo) -> Bool {
-            if case .pane = page.dragging {
-                true
-            } else {
-                false
-            }
+            page.dragging?.paneID != nil
         }
 
         func dropEntered(info _: DropInfo) {
@@ -172,7 +169,7 @@
 
         func performDrop(info _: DropInfo) -> Bool {
             over = false
-            guard case let .pane(id) = page.dragging else { return false }
+            guard let id = page.dragging?.paneID else { return false }
             Task { await page.drop(id, on: target) }
             return true
         }

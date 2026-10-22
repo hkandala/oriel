@@ -92,6 +92,7 @@
 
         var body: some View {
             let store = page.store
+            let rowsDrop = RowsDrop(page: page, frames: frames, state: $drop, reorders: filter.isEmpty)
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     // A long session name gives way in its middle; " · agents" stays.
@@ -139,13 +140,15 @@
                                             frames[id] = $0
                                         }
                                     }
+                                    // Hidden by the filter or closed: no stale target.
+                                    .onDisappear { frames[id] = nil }
                                     .overlay {
                                         if drop.over == id {
                                             DropIndicator()
                                         }
                                     }
                                     .opacity(page.dragging == .workspace(id) ? 0.4 : 1)
-                                    .offset(y: RowsDrop(page: page, frames: frames, state: $drop).shift(id))
+                                    .offset(y: rowsDrop.shift(id))
                             }
                             if drop.ghost {
                                 Text("New Workspace").foregroundStyle(.secondary).padding(.horizontal, 8)
@@ -160,9 +163,7 @@
                     }
                     .scrollIndicators(.never)
                     .coordinateSpace(.named("rows"))
-                    // Not while the filter hides rows: a reorder needs them all.
-                    .onDrop(of: [.orielDrag], delegate: RowsDrop(page: page, frames: frames, state: $drop,
-                                                                 reorders: filter.isEmpty))
+                    .onDrop(of: [.orielDrag], delegate: rowsDrop)
                     .onScrollGeometryChange(for: [Bool].self) { geometry in
                         [geometry.contentOffset.y > 0.5,
                          geometry.contentOffset.y + geometry.containerSize.height < geometry.contentSize.height - 0.5]
