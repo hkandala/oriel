@@ -57,10 +57,12 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
   (`.AppleSystemUIFontMonospaced`), which CoreText (and so libghostty) resolves to SF Mono. Every grid got
   a little narrower than before phase 11.
 - **⌘= is an `NSEvent` local key monitor, not the phase's invisible button.** The zero-size, zero-opacity
-  `Button` with `.keyboardShortcut("=")` worked on this Mac in every run but never got ⌘= on CI (three CI
-  runs, also after the fixes under Learned): the grid stayed at the ⌘+ size. The monitor (in `OrielApp.init`,
-  ⌘ alone plus "=") calls `stepFontSize(1)` before any view or menu sees the key. Phase 20's second
-  shortcuts should use the same monitor.
+  `Button` with `.keyboardShortcut("=")` worked on this Mac in every run but never got ⌘= on CI: the grid
+  stayed at the ⌘+ size. A first monitor that wanted exactly ⌘ failed on CI too. The cause is the keyboard
+  layout: where = is a shifted key (German: ⇧0), XCUITest's (and a person's) ⌘= arrives as ⇧⌘0 with the
+  character "=", and a SwiftUI shortcut wants its modifiers exactly. The monitor (in `OrielApp.init`) takes
+  ⌘ with or without Shift plus "=" and calls `stepFontSize(1)` before any view or menu sees the key. On a
+  US layout ⇧⌘= is "+", the menu's Bigger. Phase 20's second shortcuts should use the same monitor.
 
 ### Decisions
 
@@ -92,6 +94,14 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 
 ### Learned
 
+- **A ⌘ key no menu item takes typed its character.** `keyDown` passed unclaimed keys to libghostty, which
+  (with `keybind = clear`) types digits and symbols even with ⌘ down: ⌘0 at the default size (Actual Size
+  disabled), ⌘- at 8, ⌘+ at 32 and ⌘9 without a ninth tab put "0", "-", "+", "9" in the shell. Found by
+  the round 2 E2E reviewer with System Events; `keyDown` now drops ⌘ keys. XCUITest's synthesized ⌘0 with
+  a disabled item never reached `keyDown` (a test of it passed before the fix), so it has no e2e test;
+  checked by hand with System Events (⌘0 and ⌘9 type nothing, ⌘= still steps).
+- **An async teardown that waits hung the runner.** A teardown block with `await expectPTYSize` after a
+  failed step exceeded the 2-minute allowance on CI and here; the teardown only presses ⌘0.
 - **The terminal follows without a new stream.** A size step changes `w1:p1`'s grid and its PTY
   (`stty size`), and the pid of its `terminal session` run stays the same (`testFontSizeKeys`). One step is
   one resize per surface through the existing 100 ms settle; no flood, so no extra debounce.
