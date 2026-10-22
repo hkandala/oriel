@@ -116,7 +116,10 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
   `overPanel` stayed true, so the next card never closed when the pointer left, and clicks outside did nothing.
   `show(false)` now clears it; the row test hovers the capsule again and leaves.
 - **XCUITest relaunches leave the pointer where the last test left it**, which opened a card under it at launch
-  (E2E review, seen in a recording). `setUp` now moves the pointer over the strip.
+  (E2E review, seen in a recording). `tearDown` now moves the pointer to the lower part of the window, off the
+  title row.
+- **A drop on a capsule leaves the pointer resting there**, so its card opens 0.25 s after the drop (seen in the
+  drag test's recording). That is the rule ("the pointer rests"); kept.
 - **Scroll views clip overlays**: the tab track (a `ScrollView` with a mask) and the sidebar's pages would cut off
   any card hung from a capsule or a row; `anchorPreference` + `overlayPreferenceValue` is SwiftUI's portal.
 - **Spike (herdr 0.9.5):** `pane.read {source: "visible", format: "text"}` answers
