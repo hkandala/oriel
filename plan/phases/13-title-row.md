@@ -168,6 +168,17 @@ expects.
   selected one on the look's pill (`workspace.<id>`, selected trait), so the selection still shows until phase 14
   restyles them. The sidebar filter filters workspaces.
 
+- **The machine menu rows show no icons.** The phase asks for each machine's icon in its row. SwiftUI's `Menu`
+  (a `Toggle` or `Button` with a `Label`, an `Image` + `Text` label, `.labelStyle(.titleAndIcon)`) gave NSMenu items
+  with the title only on macOS 26 here; the button itself shows the icon. Left for the orchestrator: an AppKit
+  `NSMenu` would show images.
+- **The tab title's folder is the folder's name** ("zsh tmp", "pi oriel"; `~` for home), as the phase's examples
+  show; the card header keeps the full path. A narrow tab shows the program first.
+- **A label made only of digits counts as herdr's default**, so a tab the user renamed to "3" shows its program
+  and folder too. herdr's own default labels are renumbered on a move, so there is no better test.
+- **Double-click anywhere on a capsule renames** (a simultaneous gesture on the button), not only on the title
+  text: a tap gesture on a short title missed most double-clicks.
+
 ### Decisions
 
 - **One command list:** `Command {section, title, key, enabled, checked, action}` in `Commands.swift`;
@@ -188,8 +199,16 @@ expects.
 - **Workspace button cap:** a 12-line `Capped` layout offers at most 260 pt and takes the button's own size;
   `frame(maxWidth:)` would take the whole offer. `FadeText` is a `ViewThatFits`: the plain text when it fits, else
   the masked copy.
-- **Close Other Tabs:** `Close.otherTabs(tab)`, one dialog with the other tabs' total pane count, then one
-  `tab.close` per tab in one write.
+- **Close Other Tabs:** `Close.otherTabs(ids)` holds the other tabs as they were when the user asked (a tab made
+  while the dialog is up is not closed); one dialog with their total pane count, then one `tab.close` per tab, all
+  at once in one write (one by one, 21 tabs took over 2 s and the bar showed each step). A failed write reads the
+  snapshot too, as part of it may have happened.
+- **Keycap hints** show only if ⌘ is still the only modifier and the app is active after 0.7 s; they hide when the
+  window stops being active (`appearsActive`), as ⌘-Tab sends the ⌘ release to the other app.
+- **Kept widths** settle when the pointer leaves the bar, but not while the close dialog is up; when the dialog
+  ends with the pointer outside the bar, they settle then.
+- **One open panel:** `ContentView.panel` (`sessions`, `workspaces`, `palette`) replaces three Bools; collapsing
+  the sidebar's opposite (opening it) closes the workspace menu.
 - **Tab title:** `HostStore.title(_:)`; a label made only of digits is herdr's default (herdr renumbers it as tabs
   move: a moved tab "1" became "2"). The window title and the ⌘1…⌘9 menu items use it too.
 - **Machine icon:** `IOPSCopyPowerSourcesList` once into a global `thisMacIcon`.
