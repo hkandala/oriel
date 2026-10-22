@@ -40,6 +40,12 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.\(tab)").wait(for: \.isSelected, toEqual: true, timeout: 2))
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
         XCTAssertTrue(card.waitForNonExistence(timeout: 2))
+
+        // Shown again, it still goes when the pointer leaves (it closed under the pointer).
+        element("tab.\(tab)").hover()
+        XCTAssertTrue(card.waitForExistence(timeout: 2))
+        element("workspace.w1").hover()
+        XCTAssertTrue(card.waitForNonExistence(timeout: 2))
     }
 
     func testAgentsRowShowsItsTabsCard() async throws {

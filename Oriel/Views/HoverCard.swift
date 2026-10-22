@@ -13,8 +13,8 @@
                                               offset: CGSize(width: 0, height: 4))
         /// Centered 6 pt under a tab capsule.
         static let under = PanelPlace(trigger: .bottom, panel: .top, offset: CGSize(width: 0, height: 6))
-        /// Right of an Agents view row, 6 pt from the sidebar's edge: the list's 8 pt padding and the 6 pt width
-        /// handle lie between the row and the edge.
+        /// Right of an Agents view row, 6 pt from the sidebar's edge. ponytail: mirrors the Agents list's 8 pt padding
+        /// and the sidebar's 6 pt width handle between the row and the edge; anchor on the sidebar if either changes.
         static let beside = PanelPlace(trigger: .topTrailing, panel: .topLeading,
                                        offset: CGSize(width: 8 + 6 + 6, height: 0))
     }
@@ -35,12 +35,17 @@
         /// trigger clips it, and there is one at a time.
         func hoverPanelHost() -> some View {
             overlayPreferenceValue(OpenPanelKey.self) { open in
-                if let open {
-                    GeometryReader { proxy in
-                        PanelLayout(trigger: proxy[open.trigger], place: open.place) { open.content }
+                GeometryReader { proxy in
+                    PanelLayout(trigger: open.map { proxy[$0.trigger] } ?? .zero, place: open?.place ?? .under) {
+                        // In only: the panel would lose its place on the way out.
+                        if let open {
+                            open.content.transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.97, anchor: open.place.panel))
+                                    .animation(.easeOut(duration: 0.13)),
+                                removal: .identity,
+                            ))
+                        }
                     }
-                    .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: open.place.panel))
-                        .animation(.easeOut(duration: 0.13)))
                 }
             }
         }
@@ -138,16 +143,22 @@
                 monitor = NSEvent.addLocalMonitorForEvents(matching: events) { event in
                     guard event.type != .keyDown || event.keyCode == 53 else { return event }
                     let escape = event.type == .keyDown
-                    MainActor.assumeIsolated {
+                    let swallow = MainActor.assumeIsolated {
                         if escape || !overPanel {
                             show(false)
                         }
+                        // A text field that edits (a rename, a filter) still gets its Esc.
+                        return escape && !(NSApp.keyWindow?.firstResponder is NSText)
                     }
-                    return escape ? nil : event
+                    return swallow ? nil : event
                 }
-            } else if !value, let monitor {
-                NSEvent.removeMonitor(monitor)
-                self.monitor = nil
+            } else if !value {
+                // A panel that goes from under the pointer sends no hover exit.
+                overPanel = false
+                if let monitor {
+                    NSEvent.removeMonitor(monitor)
+                    self.monitor = nil
+                }
             }
         }
     }
@@ -174,7 +185,7 @@
                         HStack(spacing: 8) {
                             FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
                             Spacer(minLength: 0)
-                            if let state = store.strongest([tabID])?.state {
+                            if let state = store.strongest([tabID])?.state, state != .idle {
                                 StateCapsule(state: state)
                             }
                         }
@@ -205,7 +216,7 @@
                     for pane in panes.prefix(6) where pane.state == .needsYou {
                         if let text = try? await client.screen(pane.id) {
                             lines[pane.id] = text.split(whereSeparator: \.isNewline)
-                                .filter { !$0.allSatisfy(\.isWhitespace) }.suffix(3).map(String.init)
+                                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.suffix(3)
                         }
                     }
                 }
@@ -213,7 +224,7 @@
         }
 
         private func row(_ pane: HostStore.Pane) -> some View {
-            let shown = lines[pane.id] ?? []
+            let shown = lines[pane.id] ?? [], name = pane.agentName ?? pane.programName ?? "terminal"
             return Button {
                 page.go(to: pane)
                 close()
@@ -221,7 +232,7 @@
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         ProgramGlyph(icon: pane.iconID, letter: pane.letter)
-                        Text(pane.agentName ?? pane.programName ?? "terminal").lineLimit(1).layoutPriority(1)
+                        Text(name).lineLimit(1).layoutPriority(1)
                         Text(pane.folder ?? "").foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                         Spacer(minLength: 0)
                         if pane.state == .working {
@@ -241,6 +252,7 @@
             }
             .buttonStyle(ChromeStyle(radius: 6))
             .accessibilityIdentifier("hovercard.\(pane.id)")
+            .accessibilityLabel([name, pane.folder].compactMap(\.self).joined(separator: ", "))
             .accessibilityValue(([pane.state?.capsule].compactMap(\.self) + shown).joined(separator: "\n"))
         }
     }
