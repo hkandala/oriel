@@ -13,6 +13,14 @@ next phase.
 | Reviewers | 3 per round, started by the phase agent, read only | spec review, ponytail review, e2e and GUI review (see below) | edit files or commit |
 | Verifier | 1 per round, started by the phase agent, read only | checks every Build item and every e2e item of the phase file is done and works, item by item, with evidence | edit files or commit |
 
+## GUI runs while the user works
+
+The user is working on this Mac and declined local `make e2e` runs (phase 11). Until the user says
+otherwise: no local XCUITest runs or app launches. e2e runs on GitHub CI on every push (the
+`e2e-xcresult` artifact). Screenshots come from `XCTAttachment`s (keepAlways) in the tests:
+`gh run download <id> -n e2e-xcresult` and `xcrun xcresulttool export attachments`. Local
+`make lint build test` is fine. This applies to phase agents, reviewers and the verifier.
+
 ## The phase loop (inside each phase agent)
 
 1. Pull `origin/main`. Read `AGENTS.md`, `plan/README.md`, `plan/rules.md`, `plan/standards.md`,
