@@ -49,7 +49,8 @@ For phases 10–21, `plan/execution.md` replaces Roles and Phase loop below.
   clicking, screenshots that need the app frontmost, `make e2e`), and release it right
   after: `until mkdir /tmp/oriel-gui.lock 2>/dev/null; do sleep 20; done; echo "$NAME" >
   /tmp/oriel-gui.lock/owner` … `rm -rf /tmp/oriel-gui.lock`. Hold it for minutes, not hours.
-  If a lock is older than 30 minutes, ask the orchestrator before removing it.
+  If a lock is older than 30 minutes, ask the orchestrator before removing it. For phases 10–21 the GUI
+  budget in `plan/execution.md` says who may run what, and how often. Never send keys with `osascript`.
 - Screenshots: `screencapture -x -l <windowid> <file>` for the app window, or the
   attachments in the `.xcresult`. Put the ones you report in `/tmp/oriel-shots/`.
 

@@ -10,8 +10,8 @@ next phase.
 |---|---|---|---|
 | Orchestrator | the main agent | starts each phase agent with the brief below, answers its questions from the design, runs the sanity check, starts the next phase, keeps the progress log at the end of this file | writes app code; skips the sanity check |
 | Phase agent | one per phase | reads the plan, builds the phase with small commits, self-reviews, starts the reviewers and the verifier, fixes every finding, pushes, reports | starts the next phase; pushes red builds; writes slop tests |
-| Reviewers | 3 per round, started by the phase agent, read only | spec review, ponytail review, e2e and GUI review (see below) | edit files or commit |
-| Verifier | 1 per round, started by the phase agent, read only | checks every Build item and every e2e item of the phase file is done and works, item by item, with evidence | edit files or commit |
+| Reviewers | 3 in round 1, started by the phase agent, read only; later rounds only the ones still needed | spec review, ponytail review, e2e and GUI review (see below) | edit files or commit |
+| Verifier | once, after a clean round, started by the phase agent, read only | checks every Build item and every e2e item of the phase file is done and works, item by item, with evidence | edit files or commit |
 
 ## GUI budget (the user works on this Mac)
 
@@ -30,6 +30,9 @@ for a small phase. The budget per phase:
 - A small phase (a few files, no new view) gets one review round unless a blocker comes up.
 - CI runs the full suite on every push; a failure only on CI is investigated from CI logs, not with more
   local runs. The user may step in for a moment; then wait and go on.
+- The screenshots a phase file lists are `XCTAttachment`s (keepAlways) in the phase's e2e tests, taken in
+  the final full run: no separate screenshot sessions. Items "checked by hand" fit in the E2E reviewer's
+  15 minutes.
 
 ## Speed rules (lessons from phases 10 and 11)
 
@@ -50,7 +53,12 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    Rule: a phase that adds a new window, panel or screen shows the orchestrator one screenshot of its
    first rough version before it polishes or tests it. Phases 13, 14, 15 and 19 do this.
 6. **Time box.** A phase reports to the orchestrator when it passes 2 hours, with what is left.
-7. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
+7. **Read the CI result first.** Before guessing at a CI-only failure, open the failing step and its values
+   in the CI result bundle (`gh run download <id> -n e2e-xcresult`). CI's display is 1x: tests on grid
+   sizes allow rounding. Avoid ⌥⇧ chords in tests (global hotkeys of other apps take them).
+8. **Build the parts that cannot change first.** Menus, keys, defaults and herdr calls before the look of a
+   new view; the look is the part most likely to change after the screenshot.
+9. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
 
 ## The phase loop (inside each phase agent)
@@ -64,7 +72,7 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
 3. Run only the e2e tests the phase adds or changes (single tests, GUI lock). The one full `make e2e`
    comes at the end, by the phase agent (see "GUI budget"). Keep screenshots in `/tmp/oriel-shots/<phase>/`.
 4. Self-review the diff against the phase file and the ponytail rules; fix what you find.
-5. Start the three reviewers and the verifier in parallel (briefs below). Merge their findings. Fix every
+5. Start the three reviewers in parallel (briefs below). Merge their findings. Fix every
    blocker and should; answer each nit with a fix or a one-line reason.
 6. Later rounds (fresh agents) re-run only the reviewers whose last round had a blocker or a should, plus
    the E2E reviewer when code changed. The verifier runs once, after a round with no blocker and no should
@@ -168,15 +176,19 @@ test`. Pass only when every item is done and every check is green."
 
 ## Phase agent brief (the orchestrator sends this)
 
-> You are the phase agent for phase NN of Oriel (`/Users/hkandala/code/oriel`). Follow
-> `plan/execution.md` ("The phase loop" and "Briefs the phase agent sends") exactly. Build everything in
-> `plan/phases/NN-*.md`; `plan/ui-layout.md` is the layout source of truth and `resources/mockups/layout.html`
-> shows it. Small commits, pushed as you go. Use `DERIVED_DATA=/tmp/oriel-dd-phaseNN`, the GUI lock for any
-> GUI work, and only throwaway `oriel-dev-*` / `oriel-e2e-*` herdr sessions (delete them after). Never touch
-> existing herdr sessions or the user's Rex app. The user works on this Mac: take the GUI lock only for the
-> minutes you need it, use `screencapture -x`. Start the reviewers and the verifier yourself as separate
-> agents and loop until a clean pass. When done, reply with the report described in step 9. Ask the
-> orchestrator only when the design does not answer a question.
+> You are the phase agent for phase NN (‹name›) of Oriel (`/Users/hkandala/code/oriel`). `git pull --rebase`
+> first. Follow `plan/execution.md` exactly: "GUI budget", "Speed rules", "The phase loop", "Briefs the
+> phase agent sends" and "Metrics". Build everything in `plan/phases/NN-*.md`; `plan/ui-layout.md` is the
+> layout source of truth and `resources/mockups/layout.html` shows it. Read the Findings of the phases
+> before yours. Small commits, pushed straight to `main` as you go (no branches or PRs). Use
+> `DERIVED_DATA=/tmp/oriel-dd-phaseNN`, the GUI lock for any GUI run, and only throwaway `oriel-dev-*` /
+> `oriel-e2e-*` herdr sessions (delete them after). Never touch existing herdr sessions or the user's Rex
+> app. Start the reviewers (phaseNN-spec-review, phaseNN-ponytail-review, phaseNN-e2e-review; -2, -3 for
+> later rounds) and the verifier (phaseNN-verifier) yourself and stop them when done. No slop: no tests that
+> assert nothing real, no code for later phases, no settings or abstractions the phase does not ask for.
+> Do not ask the user anything; ask the orchestrator only when the design does not answer a question, and
+> report to it at 2 hours. When done, reply with the step 9 report, including which reviewers were a must
+> and which added little, and your top 3 lessons for speed.
 
 ## Decisions without the user
 
@@ -189,6 +201,8 @@ here what the user should check at the end.
 - Phase 10: the four looks next to Rex (`/tmp/oriel-shots/10/final-*.png`). Known gaps kept on purpose:
   the Classic dark pill is a little brighter than Rex (`#303030` vs `#292929`); Glass dark cards are
   lighter than the window until phase 17's fade.
+- Phase 11: the Settings window is dropped for now (comes back after its mock-ups). ⌘= (second Bigger key)
+  has no CI test; try it by hand. Phase 11's osascript keys may have landed in your browser or Raycast.
 - The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
   at Glass Dark.
 
@@ -197,7 +211,7 @@ here what the user should check at the end.
 | Phase | Agent | Status | Notes |
 |---|---|---|---|
 | 10 | phase10-appearance | done | 25 commits, 4 rounds, 2h12m; verifier never found anything |
-| 11 | | not started | |
+| 11 | phase11-settings | done | 44 commits, 4 rounds, ~3h40m; Settings window dropped by the user; ~85 min GUI lock |
 | 12 | | not started | |
 | 13 | | not started | |
 | 14 | | not started | |
