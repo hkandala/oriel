@@ -19,15 +19,15 @@ extension OrielUITests {
                              XCTUnwrap((tab["root_pane"] as? [String: Any])?["pane_id"] as? String)))
         }
         // Not top: it is setuid root, and herdr then sees no foreground process. macOS's nano is pico.
-        let commands = [(vim, "vim", "vim"), (sleep, "sleep 600", "sleep"), (nano, "nano", "pico"),
-                        (tabs[0].pane, "less /etc/hosts", "less"), (tabs[1].pane, "tail -f /dev/null", "tail"),
-                        (tabs[2].pane, "sleep 601", "sleep")]
+        let commands = [(vim, "vim", ["vim"]), (sleep, "sleep 600", ["sleep"]), (nano, "nano", ["nano", "pico"]),
+                        (tabs[0].pane, "less /etc/hosts", ["less"]), (tabs[1].pane, "tail -f /dev/null", ["tail"]),
+                        (tabs[2].pane, "sleep 601", ["sleep"])]
         for (pane, command, _) in commands {
             try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "\(command)\r"])
         }
-        for (pane, _, name) in commands {
-            try await poll("\(name) to run") { () async throws -> Bool? in
-                try await foreground(pane).contains(name) ? true : nil
+        for (pane, _, names) in commands {
+            try await poll("\(names) to run") { () async throws -> Bool? in
+                try await foreground(pane).contains(where: names.contains) ? true : nil
             }
         }
         try await Self.call(one, "pane.report_agent", ["pane_id": tabs[2].pane, "source": "oriel-e2e",
@@ -39,9 +39,8 @@ extension OrielUITests {
         try await expectIcons(first) { Set($0) == ["vim", "sleep", "nano"] }
         XCTAssertTrue(element("pane.\(vim)").label.hasPrefix("vim "))
         XCTAssertTrue(element("pane.\(sleep)").label.hasPrefix("sleep "))
-        // herdr's agent wins over the process (sleep) running in its pane.
-        try await expectIcons(tabs[2].tab) { $0 == ["claude"] }
-        for (tab, icon) in zip(tabs.map(\.tab), ["pager", "logs"]) {
+        // Each card asks as it shows; in the agent's tab herdr's agent wins over the process (sleep).
+        for (tab, icon) in zip(tabs.map(\.tab), ["pager", "logs", "claude"]) {
             element("tab.\(tab)").click()
             try await expectIcons(tab) { $0 == [icon] }
         }

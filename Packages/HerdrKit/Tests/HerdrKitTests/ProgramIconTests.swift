@@ -22,7 +22,10 @@ private func icon(agent: String? = nil, _ program: Program? = nil, title: String
     for icon in catalog {
         let set = root.appending(path: "Oriel/Assets.xcassets/program.\(icon.id).imageset/\(icon.id).svg")
         #expect(FileManager.default.fileExists(atPath: set.path), "\(icon.id)")
-        #expect(try hex.wholeMatch(in: icon.tile.background) != nil && hex.wholeMatch(in: icon.tile.glyph) != nil)
+        #expect(
+            try hex.wholeMatch(in: icon.tile.background) != nil && hex.wholeMatch(in: icon.tile.glyph) != nil,
+            "\(icon.id)",
+        )
     }
 }
 
