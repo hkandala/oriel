@@ -458,7 +458,10 @@ A window that watches a session another window controls (D66).
 - **Rows.** 28 pt: a symbol, the title, and on the right the shortcut in
   secondary glyphs, or › for a row that opens a sub-page. The selected row is
   an accent pill, radius 8.
-- **Sections.** With an empty field: the page's items first. Then Commands, Tabs, Workspaces and Sessions.
+- **Sections.** On the first page with an empty field: Commands, Tabs (of
+  the selected workspace), Workspaces (of every page in the window, with the
+  session's name) and Sessions, each under a header. A typed filter gives one
+  list, best match first. A sub-page shows only its own rows, under its title.
   Sessions lists the pages open in this window; Open Session… opens the
   [Open Session](#open-session) sheet.
 - **Matching.** Fuzzy, in the order of the typed letters, over titles and
@@ -469,10 +472,10 @@ A window that watches a session another window controls (D66).
   - Rename Tab ›, Rename Workspace ›, Rename Pane ›: the field holds the
     current name; Enter saves.
   - Move Pane to Tab ›: the workspace's other tabs, New Tab and New
-    Workspace.
+    Workspace. A move into a tab lands right of its last card.
   - Appearance › and Interface Style ›: a row highlighted for 0.75 s previews
     on the window. Enter keeps it; Esc restores the old one.
-  - Font Size ›.
+  - Font Size ›: 8 to 32 pt.
 - **Go to Directory** (⇧⌘G) opens the system folder panel at the keyboard
   card's folder. Choosing a folder types `cd -- '‹path›'` and Return into the
   card. Enabled only when the card runs only its shell.

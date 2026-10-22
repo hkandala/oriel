@@ -17,10 +17,11 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
    the palette both come from it, so a title or shortcut is written once.
 2. **Palette layout.** Width 480 (as now). Search field "Search". Rows 28 pt: symbol, title, and on the
    right the shortcut in secondary glyphs and a › for a row that opens a sub-page. The selected row is
-   an accent pill, radius 8. Sections, in order: the current page's items when the filter is empty,
-   then Commands,
-   Tabs (of the selected workspace), Workspaces (of every page open in the window, with the session
-   name in secondary text), Sessions (the open pages; Enter shows that page). Sessions that are not
+   an accent pill, radius 8. On the root page with an empty field, four sections under headers, in
+   order: Commands, Tabs (of the selected workspace), Workspaces (of every page open in the window,
+   with the session name in secondary text), Sessions (the open pages; Enter shows that page). A typed
+   filter gives one ranked list without headers (item 3). A sub-page shows only its own rows, filtered,
+   under its title as a small header above the field. Sessions that are not
    open are not listed: the "Open Session…" command (⇧⌘N) opens the Open Session sheet for them. No
    footer with key hints (no hint text in the UI).
 3. **Matching.** Fuzzy and in order of the typed letters, over title and keywords (for example
@@ -90,3 +91,65 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
 - Every menu item has its shortcut from the one list; no shortcut is defined twice.
 
 ## Findings
+
+### Deviations
+
+- **Move to New Tab and Move to New Workspace live inside Move Pane to Tab ▸.** The palette's Move Pane to Tab ›
+  lists New Tab and New Workspace; the palette and the menu bar draw the same command, so the card's context menu
+  and View ▸ Pane now show Move Pane to Tab ▸ {other tabs, New Tab, New Workspace} instead of three items. Its title
+  is "Move Pane to Tab" everywhere, so the palette row says what moves. It is enabled with one tab too.
+- **Enter Full Screen stays AppKit's item.** AppKit adds Enter Full Screen (⌃⌘F) to the View menu itself. The palette
+  has a palette-only command, Enter or Exit Full Screen, that shows ⌃⌘F and calls `toggleFullScreen`; only AppKit's
+  item binds the key, so it is still defined once.
+- **Rename Tab and Rename Workspace are palette-only.** The phase's menu tree has neither; the capsule's and the row's
+  context menus keep their own items, which act on the clicked capsule or row, not on the selection.
+- **⌘= needs exactly ⌘ now.** Phase 11's monitor took ⌘= with Shift allowed (layouts where = needs Shift). The one
+  second-shortcut table compares modifiers exactly, because ⌃⇥ and ⌃⇧⇥ differ only by Shift.
+- **Show Agents keeps its title in the palette.** Only settings (`Command.setting`: Fade Inactive Panes, Focus
+  Follows Mouse) say "Turn On …" / "Turn Off …"; Show Agents is a view, with a checkmark in the menu as before.
+- **Workspace rows of the palette are `palette.workspace.<session>.<id>`**: every page's workspaces are listed, and
+  two sessions both have a `w1`.
+- **The palette lists only the selected workspace's tabs**, as the phase asks, so the old test of jumping to another
+  workspace's tab is gone; a workspace row jumps to its selected tab.
+
+### Decisions
+
+- **One list:** `CommandList` (`Oriel/App/CommandList.swift`) builds every command from the window's pages, its
+  panel bindings, `openWindow` and `Settings` (a `DynamicProperty` of the five `@AppStorage` settings). The window
+  publishes it as one focused value (`\.commands`, replacing five); `AppCommands` draws the menu bar from it, or from a
+  list with no window (New Window and the settings still work). The palette gets the same value from the window.
+- **`Command` grew** `symbol`, `keywords`, `setting`, `previews` and `name` (current name, async save). A command
+  with a `menu` is a submenu in the menu bar and a sub-page in the palette; a command with a `name` is a name page in
+  the palette (its menu action, for Rename Pane…, still opens the header's field). Section `.palette` is palette-only.
+- **Second shortcuts** (`KeyboardShortcut.seconds`: ⇧⌘P → ⌘K, ⌃⇧⇥ → ⇧⌘[, ⌃⇥ → ⇧⌘], ⌘= → ⌘+): the local key
+  monitor in `OrielApp.init` finds the main menu's item with the first shortcut and runs it when enabled, so the
+  second always does what the menu item does, with its current state. A disabled item lets the key go on.
+- **Matching:** `String.fuzzyScore` in HerdrKit (unit tests): the typed letters in order, spaces ignored, case and
+  accent blind; a match not starting a word costs 1, each break 1, a break not on a word start 2; the best start
+  wins. A keyword match costs 3 more than a title match. Ties: section order, then shorter title.
+- **Sub-pages are one level** (`Palette.sub`, the command's title); no sub-page opens another, so a stack would be
+  an array of one. ⌫ on an empty field and Esc go back; Esc on the root closes.
+- **Preview:** a `.task(id: lit)` waits 0.75 s and runs the lit choice's action; entering the page keeps the old
+  choice's action, which Esc, ⌫ or closing the palette (`onDisappear`) runs; Enter clears it.
+- **List height:** Rex's clamp, min(460, max(84, window height − 154)).
+- **Rename rules moved into the store:** `rename(tab:)`, `rename(workspace:)` trim and skip empty or unchanged
+  labels, `rename(pane:)` trims and skips unchanged; the capsule, the row, the card header and the palette share them.
+- **Go to Directory / Insert Path:** `Page.choosePath(directory:)`: `NSOpenPanel` as a sheet on the key window, at
+  `pane.get`'s cwd; the path single-quoted (`'` → `'\''`); Go to Directory asks `program(_:)` again and shows "A
+  program is running in the pane" when it is not the shell. `Multiplexer.sendInput` is `pane.send_input {pane_id,
+  text, keys}` (spike: `cd -- '/private/var'` + `["enter"]` ran; text alone stays on the line).
+- **Move into a tab** (menu and palette) goes through `Page.drop(_, on: .tab)`, the capsule drop's path: right of the
+  tab's last card, equal splits, the page follows.
+
+### Assumptions
+
+- **SwiftUI's menu items carry the shortcut's key and modifiers as AppKit key equivalents** (`keyEquivalent` "]" with
+  ⇧⌘ for ⇧⌘]); the second-shortcut lookup compares those. `testSecondShortcuts` shows ⇧⌘P, ⌃⇥ and ⌃⇧⇥ work.
+
+### Learned
+
+- **⌫ is DEL (U+7F) in `onKeyPress`**, which `KeyEquivalent.delete` (U+8) does not match; the field takes both.
+- **Menu bar items collide with context-menu items in XCUITest.** `app.menuItems["Close Page"]` matched File ▸ Close
+  Page too once it existed; tests take context-menu items from `app.windows.firstMatch.menuItems`.
+- **The open panel's Go to Folder looks up every typed letter**: a 30-letter path took about 10 s in XCUITest, so the
+  panel test waits up to 10 s.
