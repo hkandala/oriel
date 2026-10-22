@@ -1,8 +1,8 @@
 {
   "phase": 14, "agent": "phase14-sidebar",
   "started": "2026-10-22T03:40:00-07:00", "finished": "2026-10-22T05:08:00-07:00",
-  "base": "b345b6b", "head": "see git log: the commit that adds this file",
-  "commits": 13, "files_changed": 47, "insertions": 2180, "deletions": 1000,
+  "base": "b345b6b", "head": "28f3498",
+  "commits": 13, "files_changed": 47, "insertions": 2185, "deletions": 996,
   "review_rounds": 3,
   "reviews": [
     {"name": "phase14-spec-review", "role": "spec", "round": 1,
