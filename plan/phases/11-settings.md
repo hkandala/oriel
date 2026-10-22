@@ -56,3 +56,68 @@ window, terminal settings), `docs/content/docs/data.mdx` (per-device settings li
 - The terminal follows font, size and cursor changes without reopening streams.
 
 ## Findings
+
+### Deviations
+
+- **Two tabs, not four.** General and Terminal exist. Panes and Notifications come with their settings in
+  phases 17 and 15 (their phase files add the tabs); empty tabs would be settings that do not exist.
+- **Option as Alt covers every character key, not only letters and digits.** herdr accepts `alt+<any ASCII
+  character>` (tested: `alt+!`, `alt+.`, `alt+[` reach `cat -v` as `^[!`, `^[.`, `^[[`), and ⌥. (Alt+. is
+  readline's last argument) is a common chord. The key is the layout's character with Shift applied
+  (`charactersIgnoringModifiers`), so ⌥⇧B is `alt+B` (`^[B`); a non-ASCII character falls back to the key's
+  US character, as Ctrl chords already did.
+- **The default font is the system monospaced font by name.** libghostty's own default is its embedded
+  JetBrains Mono. "System Monospaced" (stored as an empty string) is rendered as
+  `NSFont.monospacedSystemFont(…).familyName`, `.AppleSystemUIFontMonospaced`, which CoreText (and so
+  libghostty) resolves to SF Mono. Every grid got a little narrower than before phase 11.
+- **The Font Size row is a `LabeledContent` with a stepper labeled "13 pt".** SwiftUI's stepper with a
+  value field (`Stepper(value:in:step:format:)`) needs a floating point value; the setting is an `Int`.
+
+### Decisions
+
+- **Keys:** `fontFamily` (`""` = system), `fontSize` (`Int`, 13), `cursorStyle` (libghostty's
+  `TerminalCursorStyle` raw value, `block`), `cursorBlink` (`true`), `optionAsAlt` (`false`),
+  `copyOnSelect` (`false`), next to phase 10's `appearance` and `interfaceStyle`.
+- **One place applies the terminal settings: the `App`.** `OrielApp` reads the five libghostty settings,
+  builds a `TerminalConfiguration` (it is `Hashable`) and applies it with a scene-level
+  `onChange(of:initial:)` to the one static `PaneTerminal.controller`. The controller's base keeps the fixed
+  options (`keybind = clear`, transparent, no padding, no scrollback); `setTerminalConfiguration` lays the
+  settings on top. Several windows (phase 16) share it as they are.
+- **Option as Alt is read per key press** (`UserDefaults.standard.bool(forKey: "optionAsAlt")` in
+  `PaneSurfaceView.herdrKey`): no state to keep in sync, and it is cheap.
+- **`copy-on-select = clipboard`.** libghostty-spm advertises a selection clipboard and drops writes to it,
+  so Ghostty's `true` would copy nowhere; `clipboard` writes both, so the pasteboard gets the text.
+- **Menu: View ▸ Bigger (⌘+), Smaller (⌘-), Actual Size (⌘0)**, after the appearance pickers, each disabled
+  at its end of 8–32 (Actual Size at 13). ⌘= is a zero-size, zero-opacity, accessibility-hidden button in
+  `ContentView`'s background.
+- **The font picker lists `NSFontManager.availableFontFamilies` whose regular face is fixed pitch** (on this
+  Mac: Andale Mono, Anonymous Pro, Courier New, Fira Code, JetBrains Mono, Menlo, Monaco, PT Mono).
+- **`Commands.swift`.** `OrielApp.swift` passed SwiftLint's 400-line limit, so the menu commands and their
+  focused values moved to their own file (a pure move, its own commit).
+
+### Assumptions
+
+- **A config reload resizes surfaces that never changed their own size.** Ours never do (`keybind = clear`
+  removed Ghostty's own ⌘+/⌘-), so the config's font size always wins. The e2e tests show it.
+- **Settings stay per device.** `@AppStorage` writes the app's defaults (design: data).
+- **The menu's "+" matches ⌘⇧= on a US layout.** It does here (`typeKey("+", .command)` and a real key
+  press); other layouts were not tried.
+
+### Learned
+
+- **The terminal follows without a new stream.** A font size step changed `w1:p1`'s grid and its PTY
+  (`stty size`), and the pid of its `terminal session` run stayed the same (`testSettingsFontSizeResizesTheGrid`).
+  One step is one resize per surface through the existing 100 ms settle; no flood, so no extra debounce.
+- **Cursor shape.** The setting's shape shows (bar and underline seen in screenshots). herdr's frames carry a
+  program's DECSCUSR: `printf '\e[4 q'` turned the block cursor into an underline, and `\e[0 q` brought back
+  the setting's block. So vim's insert-mode bar wins over the setting.
+- **Copy on select works through the pasteboard.** A drag over `copyme-oriel` put it on the pasteboard with
+  the setting on, and left the pasteboard alone with it off (checked by hand with `pbpaste`).
+- **Global hotkeys eat test keys.** On this Mac Raycast takes ⌥⇧B and a scratchpad takes ⌥.; synthesized
+  keys then land in another app and the test fails far from the cause. `testOptionKeyActsAsAlt` uses ⌥B
+  and ⌥1 only. Before any synthesized key in a manual check, make Oriel frontmost first.
+- **The Settings scene remembers its tab** (`com_apple_SwiftUI_Settings_selectedTabIndex`) and its frame, so
+  a test clicks the tab it needs rather than assuming General.
+- **Launch arguments pin a setting without persisting it.** `testOptionKeyActsAsAlt` relaunches with
+  `-optionAsAlt YES` / `NO`; the font size tests change the persistent value and put it back with ⌘0 in a
+  teardown block.
