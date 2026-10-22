@@ -30,8 +30,11 @@ private func leaf(_ id: String) -> SplitNode {
     #expect(snapshot.panes[0].cwd == "/private/tmp")
     #expect(snapshot.panes.compactMap(\.agent).first == "pi")
     #expect(snapshot.focusedPaneIDs == ["w1:p1", "w1:p5", "w2:p1", "w2:p4", "w2:p5"])
-    #expect(snapshot.workspaces[1].agentStatus == .working)
     #expect(snapshot.agents.map(\.paneID) == ["w1:p1", "w2:p2"])
+    #expect(snapshot.agents[0].terminalID?.hasPrefix("term_") == true)
+    #expect(snapshot.agents.map(\.agent) == ["pi", "pi"])
+    #expect(snapshot.agents.map(\.status) == [.idle, .working])
+    #expect(snapshot.agents.map(\.completionSeq) == [2, nil])
 }
 
 @Test func `unknown fields and values do not fail decoding`() throws {
@@ -40,12 +43,15 @@ private func leaf(_ id: String) -> SplitNode {
       "agent_status":"sleeping","new_field":{"a":[1]}},
       {"workspace_id":"w2","label":"y","active_tab_id":"w2:t1","agent_status":"idle",
        "worktree":{"repo_key":"/r/.git","repo_name":"r","checkout_path":"/wt","is_linked_worktree":true}}],
-     "tabs":[],"panes":[{"pane_id":"w1:p1","tab_id":"w1:t1"}],"agents":[],"something_new":true,
+     "tabs":[],"panes":[{"pane_id":"w1:p1","tab_id":"w1:t1"}],"something_new":true,
+     "agents":[{"pane_id":"w1:p1","agent_status":"sleeping","completion_seq":"x","display_agent":"Bob"}],
      "layouts":[{"tab_id":"w1:t1","panes":[{"pane_id":"w1:p1"},{"pane_id":"w1:p2"}],
        "splits":[{"id":"split_0_root","direction":"diagonal","ratio":0.5}]}]}
     """#
     let snapshot = try JSONDecoder().decode(Snapshot.self, from: Data(json.utf8))
-    #expect(snapshot.workspaces[0].agentStatus == .unknown)
+    #expect(snapshot.agents[0].status == .unknown)
+    #expect(snapshot.agents[0].completionSeq == nil)
+    #expect(snapshot.agents[0].displayAgent == "Bob")
     #expect(snapshot.workspaces[0].worktree == nil)
     #expect(snapshot.workspaces[1].worktree == Worktree(
         repoKey: "/r/.git",

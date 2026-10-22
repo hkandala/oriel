@@ -29,12 +29,11 @@ public struct Workspace: Decodable, Sendable, Identifiable {
     public let id: String
     public let label: String
     public let activeTabID: String
-    public let agentStatus: AgentStatus
     /// Only once a `worktree.*` call has looked at the workspace; a plain `workspace.create` leaves it out.
     public let worktree: Worktree?
 
     enum CodingKeys: String, CodingKey {
-        case id = "workspace_id", label, activeTabID = "active_tab_id", agentStatus = "agent_status", worktree
+        case id = "workspace_id", label, activeTabID = "active_tab_id", worktree
     }
 }
 
@@ -54,10 +53,9 @@ public struct Tab: Decodable, Sendable, Identifiable {
     public let id: String
     public let workspaceID: String
     public let label: String
-    public let agentStatus: AgentStatus
 
     enum CodingKeys: String, CodingKey {
-        case id = "tab_id", workspaceID = "workspace_id", label, agentStatus = "agent_status"
+        case id = "tab_id", workspaceID = "workspace_id", label
     }
 }
 
@@ -79,11 +77,35 @@ public struct Pane: Decodable, Sendable, Identifiable {
     }
 }
 
-/// Only the pane: the events stream asks for status changes of agent panes.
+/// An agent pane. Only the pane id is required, so one odd entry cannot fail the snapshot.
 public struct Agent: Decodable, Sendable {
     public let paneID: String
+    public let terminalID: String?
+    /// herdr's agent kind (`codex`).
+    public let agent: String?
+    /// A label set through `pane.report_metadata`; wins over `agent` as the name.
+    public let displayAgent: String?
+    public let status: AgentStatus
+    /// The number of the agent's last finish (working or blocked to idle); null again at its next status change.
+    public let completionSeq: Int?
 
-    enum CodingKeys: String, CodingKey { case paneID = "pane_id" }
+    enum CodingKeys: String, CodingKey {
+        case paneID = "pane_id", terminalID = "terminal_id", agent, displayAgent = "display_agent"
+        case status = "agent_status", completionSeq = "completion_seq"
+    }
+}
+
+/// In an extension, so tests keep the memberwise init.
+public extension Agent {
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        paneID = try container.decode(String.self, forKey: .paneID)
+        terminalID = try? container.decode(String.self, forKey: .terminalID)
+        agent = try? container.decode(String.self, forKey: .agent)
+        displayAgent = try? container.decode(String.self, forKey: .displayAgent)
+        status = (try? container.decode(AgentStatus.self, forKey: .status)) ?? .unknown
+        completionSeq = try? container.decode(Int.self, forKey: .completionSeq)
+    }
 }
 
 public enum AgentStatus: String, Decodable, Sendable {
