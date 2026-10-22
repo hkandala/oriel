@@ -96,7 +96,8 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 - **A ⌘ key no menu item takes typed its character.** `keyDown` passed unclaimed keys to libghostty, which
   (with `keybind = clear`) types digits and symbols even with ⌘ down: ⌘0 at the default size (Actual Size
   disabled), ⌘- at 8, ⌘+ at 32 and ⌘9 without a ninth tab put "0", "-", "+", "9" in the shell. Found by
-  the round 2 E2E reviewer with System Events; `keyDown` now drops ⌘ keys. XCUITest's synthesized ⌘0 with
+  the round 2 E2E reviewer with System Events; `keyDown` now drops every ⌘ key `herdrKey` does not map
+  (⌘↑, ⌘↓ and fn-⌘⌫ too) with AppKit's beep, except while the IME composes. XCUITest's synthesized ⌘0 with
   a disabled item never reached `keyDown` (a test of it passed before the fix), so it has no e2e test;
   checked by hand with System Events (⌘0 and ⌘9 type nothing, ⌘= still steps).
 - **An async teardown that waits hung the runner.** A teardown block with `await expectPTYSize` after a
