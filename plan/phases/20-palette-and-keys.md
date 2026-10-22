@@ -56,9 +56,9 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, 
      ⌃⇧PgUp, Move Tab Right ⌃⇧PgDn, Previous Page, Next Page (the sidebar's session pages), the tabs on
      ⌘1…⌘9, then the open windows.
    A command with two shortcuts (⌘K and ⇧⌘P; ⇧⌘[ and ⌃⇧⇥; ⇧⌘] and ⌃⇥): the menu shows the first; the
-   second goes through phase 11's `NSEvent` key monitor in `OrielApp.init` (an invisible SwiftUI button
-   with the shortcut never got its key on CI, phase 11 findings). Its action reads current state (the
-   store, `UserDefaults`), not a value a view captured.
+   second goes through phase 11's `NSEvent` key monitor in `OrielApp.init` (proven on CI; an invisible
+   SwiftUI button with the shortcut also works if its action reads current state, phase 11 findings).
+   Check on CI how XCUITest sends the key: its ⌘+ arrives as ⇧⌘= with `characters` "=".
 7. **Rex shortcuts not taken, and why** (record in the keyboard table): ⌘K stays the palette (D48), so
    switching sessions has no shortcut of its own (Rex's Change Session is ⌘K; Oriel uses Open
    Session… ⇧⌘N and the sidebar's pages); ⇧⌘P also opens it (Rex's key); ⌘N is New Window
