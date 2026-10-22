@@ -58,9 +58,9 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
   a little narrower than before phase 11.
 - **⌘= is an `NSEvent` local key monitor, not the phase's invisible button.** The zero-size, zero-opacity
   `Button` with `.keyboardShortcut("=")` worked on this Mac in every run but never got ⌘= on CI: the grid
-  stayed at the ⌘+ size. A first monitor that wanted exactly ⌘ failed on CI too. The cause is the keyboard
-  layout: where = is a shifted key (German: ⇧0), XCUITest's (and a person's) ⌘= arrives as ⇧⌘0 with the
-  character "=", and a SwiftUI shortcut wants its modifiers exactly. The monitor (in `OrielApp.init`) takes
+  stayed at the ⌘+ size. A first monitor that wanted exactly ⌘ failed on CI too. The likely cause is CI's
+  keyboard layout: where = is a shifted key (German: ⇧0), XCUITest's (and a person's) ⌘= arrives as ⇧⌘0
+  with the character "=", and a SwiftUI shortcut wants its modifiers exactly (not logged on CI). The monitor (in `OrielApp.init`) takes
   ⌘ with or without Shift plus "=" and calls `stepFontSize(1)` before any view or menu sees the key. On a
   US layout ⇧⌘= is "+", the menu's Bigger. Phase 20's second shortcuts should use the same monitor.
 
@@ -78,7 +78,6 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 - **Menu: View ▸ Bigger (⌘+), Smaller (⌘-), Actual Size (⌘0)** after the appearance pickers, each disabled
   at its end of 8–32 (Actual Size at 13). Bigger and Smaller go through `PaneTerminal.stepFontSize`, which
   reads the stored value and clamps (see Learned).
-
 - **`Commands.swift`.** `OrielApp.swift` passed SwiftLint's 400-line limit during the phase, so the menu
   commands and their focused values moved to their own file (a pure move, its own commit).
 - **The test writes the user's defaults and puts them back.** The UI tests share the app's defaults (same
@@ -89,8 +88,8 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 
 - **A config reload resizes surfaces that never changed their own size.** Ours never do (`keybind = clear`
   removed Ghostty's own ⌘+/⌘-), so the config's size always wins. The e2e test shows it.
-- **The menu's "+" matches ⌘⇧= on a US or ABC layout.** It does here and on CI; other layouts were not
-  tried.
+- **The menu's "+" matches ⌘⇧= on a US or ABC layout** (here). On CI's layout ⌘+ worked too, likely
+  from a "+" key of its own; other layouts were not tried.
 
 ### Learned
 
