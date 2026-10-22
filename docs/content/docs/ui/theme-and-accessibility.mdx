@@ -49,26 +49,27 @@ the Agents view and popover, the hover card, pills, notifications):
 | Shown as | Word | Dark | Light | herdr status |
 |---|---|---|---|---|
 | three working dots | working | `#58a6ff` | `#0667d8` | `working` |
-| an amber badge on the program icon | needs you | `#d29922` | `#9d5c00` | `blocked` |
-| a green badge on the program icon | finished | `#3fb950` | `#116329` | finished and not yet seen by this device |
+| an amber badge on the program icon, an amber dot on a workspace row | needs you | `#d29922` | `#9d5c00` | `blocked` |
+| a green badge on the program icon, a green dot on a workspace row | finished | `#3fb950` | `#116329` | finished and not yet seen by this device |
 | ↓behind on a workspace row, the error tone of a notice | error | `#f85149` | `#cf222e` | — |
 
-- **Working dots.** Three dots, 3.5 pt, in a 14 pt box. Each dot's opacity
-  goes 0.3 → 0.85 → 0.3 over 1.2 s, each dot 0.2 s after the one before. The
-  clock drives them, so every tab is in step, and they draw at 15 frames a
-  second or less, only while visible.
-- **Badges.** A 7 pt dot on the top right of the front program icon, with a
-  1.5 pt ring in the background color.
+- **Working dots.** Three dots, 3.5 pt, 5.5 pt apart, in a 14 pt box. Each
+  dot's opacity goes 0.3 → 0.85 → 0.3 over 1.2 s, each dot 0.2 s after the
+  one before. The wall clock drives them, so every tab is in step, and they
+  draw at 15 frames a second or less, only while visible.
+- **Badges.** A 7 pt dot on the top right of a tab's front program icon and
+  of an Agents row's tile, cut out of the tile by a 1.5 pt ring.
 - In the Agents view and popover and the hover card, status is a capsule:
   the word in the color, on a 0.15 fill of it. The Agents view also shows
   "Idle" in gray.
-- A workspace row shows an idle agent as a gray ring. Tabs show nothing for
-  idle agents.
+- A workspace row shows an idle agent as a 7 pt gray ring. Tabs show nothing
+  for idle agents.
 
 ## Accessibility
 
 - Status is never color alone. Every dot and badge carries its word, and
-  VoiceOver reads, for example, "codex, needs you, infra".
+  VoiceOver reads, for example, "codex, needs you" on a tab. A workspace
+  row adds the word to its value.
 - A terminal card gives VoiceOver its screen text. The app reads it with
   `pane.read {source:"visible", format:"text"}` when VoiceOver asks for it.
   New output is announced politely (it does not interrupt speech).
@@ -108,7 +109,7 @@ invisible button in the window holds the second.
 | ⌘F | find in the keyboard card | Edit |
 | ⌘G, or Enter in the find bar | next match (⇧Enter: previous match) | Edit |
 | ⌘K | the command palette; ⇧⌘P also opens it (Rex's key) | View |
-| ⌘. | show or hide the Agents view | View |
+| ⌘. | Show Agents: the Agents view on or off | View |
 | ⌃⌘S | show or hide the sidebar | View |
 | ⌘D, ⇧⌘D | split right, split down | View ▸ Pane |
 | ⇧⌘↩ | zoom or restore the card | View ▸ Pane |

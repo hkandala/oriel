@@ -184,8 +184,12 @@ herdr's focus methods (D13):
   - The first time the app sees an agent, it records the agent's current
     `completion_seq` as seen, so old finishes do not flood the Agents
     view or the notifications.
-  - Viewing the agent's pane records the current value.
-  - Each device keeps its own seen values, shared by its windows. Seeing an
+  - Looking at the agent's pane records the current value: its tab is
+    selected on the page in view and the window is key.
+  - The first snapshot after launch, or after a page opens, reports no
+    changes. After a reconnect, changes count.
+  - Each device keeps its own seen values, in memory in the session's
+    store, shared by its windows. Seeing an
     agent on one device does not clear it on another.
   - Simpler choice: finishes that happen while the app is closed are not
     shown. Revisit when users ask for a list of finishes they missed.

@@ -126,8 +126,9 @@ One capsule per herdr tab of the selected workspace (D42).
   working agent except the selected one. Needs you
   and finished are badges on the front icon
   ([Theme and accessibility](/docs/ui/theme-and-accessibility#status)).
+  VoiceOver reads the state in the tab's value: "codex, needs you".
 - **Announcement.** When a tab that is not selected turns to needs you or
-  finished, its front icon bounces once and its title shows "‹agent› needs
+  finished, its icons bounce once (1 → 1.15 → 1, a spring) and its title shows "‹agent› needs
   you" or "‹agent› finished" for 3 s. A long text fades at its end like any
   title. Reduce Motion turns the bounce off.
 - **Context menu** on a capsule: Rename Tab, Move Tab Left, Move Tab Right,
@@ -144,17 +145,27 @@ One capsule per herdr tab of the selected workspace (D42).
 
 ![Hover on the Agents button: who needs you](/mockups/G.jpg)
 
-- Outline chat bubbles. The first bubble fills while the
-  [Agents view](#agents-view) is on; the button has no highlight.
-- An amber dot shows when an agent of the current session needs you.
-- A click or ⌘. turns the Agents view on and off (D61). With the sidebar
-  collapsed, a click opens the sidebar in the Agents view.
-- **Hover.** When the pointer rests on the button for 0.25 s, a glass popover
-  under it lists the agents of the current session that need you, under the
-  header "Needs you · ‹session›". The rows are the same as in the Agents view.
-  A click on a row goes to that workspace, tab and pane; the sidebar does not
-  change. With nobody waiting it says "Nobody needs you". The popover has no
-  footer.
+- Outline chat bubbles (`bubble.left.and.bubble.right`), after the tab bar.
+  While the [Agents view](#agents-view) is on, the front bubble is filled
+  (the front layer of the `.fill` symbol over the outline); the button has
+  no highlight and no tooltip.
+- A 7 pt amber dot shows when an agent of the page in view needs you.
+- A click, ⌘. or View ▸ Show Agents (checked while on) turns the Agents view
+  on and off (D61). Turning it on with the sidebar collapsed opens the
+  sidebar in the Agents view. Turning it off shows the workspaces; the
+  sidebar stays open.
+- **Hover.** When the pointer rests on the button for 0.25 s, a glass panel
+  hangs under it: 320 pt wide, at most about 480 pt tall. It lists the agents
+  of the page in view that need you, under the header "Needs you ·
+  ‹session›" (11 pt, secondary). The rows are the same as in the Agents view.
+  A click on a row selects that workspace and tab and gives the pane the
+  keyboard; the sidebar does not change. With nobody waiting it says "Nobody
+  needs you". There is no footer.
+- The panel stays while the pointer moves into it (0.15 s grace). It closes
+  when the pointer leaves both, on any click outside it, or with Esc. It does
+  not open while a mouse button is down.
+- The panel is drawn inside the window, not as a popover window, so the
+  terminal keeps the keyboard. The hover card uses the same panel.
 
 ## Sidebar
 
@@ -203,9 +214,11 @@ The sidebar never shows tabs, and its bottom never shows agent activity.
 One row per herdr workspace of the session, in herdr's order, like herdr's
 Spaces panel.
 - **Line 1.** A 14 pt state slot and the name (13 pt). The state icon is the
-  strongest state of the workspace's panes: an amber dot (needs you), the
-  three working dots (working), a green dot (finished, not seen), a gray ring
-  (an idle agent), or nothing (no agent).
+  strongest state of the workspace's panes: a 7 pt amber dot (needs you), the
+  three working dots (working), a 7 pt green dot (finished, not seen), a 7 pt
+  gray ring with a 1.5 pt stroke (an idle agent), or nothing (no agent). The
+  workspace menu rows show the same icons. VoiceOver adds the state word to
+  the row's value.
 - **Line 2**, only for a git repository: a branch glyph, the branch, then
   ↑ahead in the finished color and ↓behind in the error color when they are
   not zero. All 11 pt, secondary. There is no changed-file count. A workspace
@@ -242,17 +255,24 @@ Spaces panel.
 ![The Agents view of one session](/mockups/H.jpg)
 
 The Agents button turns the sidebar page into a list of the agents of that
-session only (D61). A sideways swipe shows the next open session's agents.
-- **Header.** "‹session› · agents" and a sort menu: **Priority** (the groups
-  Needs you, Working, Done and Idle, each with a count) or **Workspace order**
-  (herdr's order of workspaces and tabs).
+session only (D61). A sideways swipe or a page dot shows the next open
+session's agents. The page dots and the footer stay.
+- **Header.** "‹session› · agents" (a long name shortens in its middle) and
+  a sort menu: **Priority** (the groups Needs you, Working, Done and Idle,
+  each with a count, herdr's order inside a group) or **Workspace order**
+  (herdr's order of workspaces, tabs and panes). Priority is the default.
+  Each window keeps its choice.
 - **Rows.** One row per agent pane, even when several share a tab. 44 pt, two
-  lines. Line 1: the program tile with its badge, the agent's name, and the
+  lines. Line 1: the program tile with its badge, the agent's name
+  (herdr's `display_agent`, else `agent`), and the
   status capsule on the right: "Needs you" (amber), "Working" (blue), "Done"
   (green) or "Idle" (gray), the text in the color on a 0.15 fill of it. Line
-  2: "‹workspace› · ‹tab›" in secondary text, and the age on the right ("now",
-  "3m", "2h"), counted from the time the app saw the change.
-- Idle agents show.
+  2: "‹workspace› · ‹tab title›" in secondary text (the tab bar's title,
+  D65), and the age on the right ("now", "3m", "2h", "4d"), counted from the
+  time the app saw the change.
+- Idle agents show. With no agents the list is empty, with no text.
+- The footer filter keeps the rows whose agent, workspace or tab name
+  matches.
 - A click goes to that workspace, tab and pane and gives the pane the
   keyboard, which records a finish as seen.
 - Rest the pointer on a row to see the [hover card](#hover-card) of its tab.
@@ -316,7 +336,8 @@ A peek at what runs in a tab (D63).
     card opens, one call per such pane, and shows nothing if the read fails.
 - A click on a pane row selects the workspace and tab and gives that pane the
   keyboard. A click on the title selects the tab.
-- VoiceOver: the card is a popover with the rows as buttons. A tab's action
+- VoiceOver: the card is a panel in the window (the Agents button's hover
+  panel) with the rows as buttons. A tab's action
   "Show Panes" opens it.
 
 ## Strip

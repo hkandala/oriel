@@ -25,13 +25,15 @@ description: "The words these docs use"
 | Glass / Classic | the two interface styles: a window with a behind-window blur / an opaque window |
 | Appearance | Auto, Light or Dark |
 | pill / pill card / peek | the floating status capsule on the Mac screen edge / the small window for one agent next to it / a pill card that slides out by itself without taking the keyboard |
-| Agents button / Agents view | the title-row button with chat bubbles; resting on it lists the agents of the current session that need you / the sidebar page's list of every agent of its session, turned on with the button or ⌘. |
+| Agents button | the title-row button with chat bubbles; resting on it lists the agents of the page in view that need you |
+| Agents view | the sidebar page's list of every agent pane of its session, turned on with the Agents button, ⌘. or View ▸ Show Agents |
 | Take Back | the button that moves control of a session to this window, or of a pane to this device |
 | OSC 7501 | the Program Status Protocol: an escape sequence a program writes to its terminal to report idle, working, blocked, done or error. herdr does not read it yet; the app reads status only from herdr |
 | working dots | three dots that pulse in step on every tab while an agent works (blue) |
-| badge | a small dot on a program icon or button: amber when an agent needs you, green when a finish is not seen |
-| status word | working (blue), needs you (amber), finished (green); always next to a dot or badge for VoiceOver |
-| seen | this device has shown the agent's last finish to the user |
+| badge | a 7 pt dot on a program icon or the Agents button: amber when an agent needs you, green when a finish is not seen |
+| state icon | a workspace row's sign of its strongest agent state: an amber dot, the working dots, a green dot or a gray ring |
+| status word | working (blue), needs you (amber), finished (green), idle (gray); always next to a dot or badge for VoiceOver |
+| seen | this device has shown the agent's last finish to the user: its tab was selected on the page in view of the key window |
 | git state | a workspace row's branch and its ahead and behind counts, from `git status` on the machine |
 | PTY | the pseudo-terminal a shell runs in; it has one size |
 | frame | one message of ANSI bytes from `terminal session` |

@@ -13,22 +13,24 @@ description: "The Agents button and view, notifications, the Dock and how the fl
 - **"Finished, not seen"** = `completion_seq` in `snapshot.agents[]` is not
   null and differs from the value this device recorded as seen. How "seen"
   works: [Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own).
-- Each agent pane is working, needs you, finished (not seen) or idle. A tab
-  and a workspace show the strongest state of their panes: needs you, then
-  finished, then working.
+- Each agent pane is needs you (herdr's `blocked`), working, finished (not
+  seen) or idle. herdr's `done` is not used. A tab and a workspace show the
+  strongest state of their panes: needs you, then finished, then working,
+  then idle.
+- Looking at a pane means its tab is selected on the page in view and the
+  window is key. Looking records its finish as seen.
 - Each change carries the time the app saw it. The Agents view shows its age
   from that time.
 
 ### Agents
 
-The Agents button replaces Activity (D61). It covers the session of the
-window's current page.
+The Agents button (D61) covers the session of the page in view.
 - **The dot.** The button shows an amber dot while an agent of that session
   needs you.
 - **Hover.** Resting the pointer on the button for 0.25 s lists the agents of
   that session that need you. A click on one selects its workspace, tab and
   pane; the sidebar does not change.
-- **Agents view.** A click or ⌘. turns the sidebar page into the list of every
+- **Agents view.** A click, ⌘. or View ▸ Show Agents turns the sidebar page into the list of every
   agent pane of that session, idle ones too, sorted by priority (needs you,
   working, done, idle) or by workspace order. A click on a row selects that
   workspace, tab and pane and gives the pane the keyboard, so its finish is
@@ -39,28 +41,33 @@ and [Agents view](/docs/ui/window#agents-view).
 
 ### Notifications
 
-The app makes notifications itself, from snapshot changes:
+The app makes notifications itself, from snapshot changes, for every open
+page of the window:
 - A pane's status becomes `blocked`: "codex needs you", with "‹session› ·
   ‹workspace› · ‹tab›" as the body.
 - `completion_seq` changes to a new non-null value: "pi finished", with the
-  same body, unless the user is looking at that pane.
-- The app posts them only while it is not active or the pane is not shown.
-- The first snapshot after app launch never notifies. After a reconnect,
-  changes against the last known state do notify.
-- The id is `"<machine>|<session>|<terminal_id>"`, so a newer notification
-  replaces the older one. It is removed when the pane is seen.
-- A click opens the app at that pane.
+  same body.
+- None for the pane the user is looking at. While the app is active, the
+  others still show as banners.
+- The first snapshot after app launch, or after a page opens, never
+  notifies. After a reconnect, changes against the last known state do
+  notify.
+- The id is `"<machine>|<session>|<terminal_id>"` (`local` for This Mac), so
+  a newer notification replaces the older one. It is removed when the user
+  looks at the pane.
+- A click activates the app, shows that page and selects the pane.
+- The app asks for permission when it posts its first notification.
 - Notifications are on for needs you and for finished; the Dock badge counts
   needs you only; no sounds. These are fixed until the Settings window
   ([Settings](/docs/ui/settings)).
 
 ### macOS
 
-- `UNUserNotificationCenter`. Its delegate is set at launch, so a click that
-  starts the app is not lost.
-- **Dock badge:** the number of panes that need you.
-- **Sounds:** none until the Settings window (then one system sound per
-  status, off by default).
+- `UNUserNotificationCenter`. Its delegate is set at launch, in the app
+  delegate (`NSApplicationDelegateAdaptor`), so a click that starts the app
+  is not lost.
+- **Dock badge:** the number of panes that need you, over every open page.
+- **Sounds:** none until the Settings window.
 - **Dock menu:** a row per pane that needs you or finished ("codex needs you ·
   default · infra"; a click selects it), a separator, then New Tab.
 - While the pill is on screen, notifications are posted as `.passive`
