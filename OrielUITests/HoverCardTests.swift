@@ -67,9 +67,9 @@ extension OrielUITests {
         // A click on the title selects the tab and its workspace.
         element("hovercard.title").click()
         XCTAssertTrue(element("tab.\(tab)").wait(for: \.isSelected, toEqual: true, timeout: 2))
+        XCTAssertTrue(card.waitForNonExistence(timeout: 2))
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(element("workspace.w2").wait(for: \.isSelected, toEqual: true, timeout: 2))
-        XCTAssertTrue(card.waitForNonExistence(timeout: 2))
     }
 
     /// The tooltip and the VoiceOver label are one string (`IconButton`). macOS gives the help tag's text to no
