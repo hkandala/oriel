@@ -32,7 +32,8 @@ struct Look {
     }
 
     var cardFill: Color {
-        pick(.white.opacity(0.04), .white.opacity(0.1), .white.opacity(0.035), .white.opacity(0.6))
+        // Classic dark: #222 on #1e1e1e, as in Rex.
+        pick(.white.opacity(0.04), .white.opacity(0.1), .white.opacity(0.018), .white.opacity(0.6))
     }
 
     /// Over `cardFill` on the card that has the keyboard: light cards end at white 0.7 (Glass) and 0.8 (Classic).
