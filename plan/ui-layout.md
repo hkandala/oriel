@@ -10,7 +10,7 @@ older design page disagree, this file wins until the page is updated.
 |---|---|
 | machine | a host: This Mac now, SSH hosts later. Each has its own icon |
 | session | one herdr server on a machine (`default`, `pi-herd`, …) |
-| page | one session's page in the sidebar |
+| page | one session's page in the sidebar; a window shows only the sessions the user opened in it |
 | window | an Oriel window; it shows one machine |
 
 ## Windows and machines
@@ -40,7 +40,7 @@ Left to right:
 3. **Machine button** (above).
 4. **Workspace button**, only while the sidebar is collapsed: an outline folder icon, then
    "‹session› | ‹workspace›" (session dimmed, a thin vertical line, workspace in primary text), a chevron.
-   Its menu: a filter field ("Filter or create…"), every workspace of every running session on the machine,
+   Its menu: a filter field ("Filter or create…"), every workspace of every session open in this window,
    **grouped under a session header** (rows show only the workspace's state icon, its name and its branch on
    the right), then New Workspace and "Open Session…" (⇧⌘N).
 5. **Tab bar**: the selected workspace's tabs, always in the title row, whether the sidebar is open or
@@ -58,11 +58,20 @@ Left to right:
 The strip under the title row still pages sideways between the selected workspace's tabs (swipe, ⇧⌘[ ⇧⌘],
 ⌃⇥).
 
-## Sidebar (Arc-style pages, one per running session)
+## Sidebar (Arc-style pages, one per session open in the window)
 
-- One page per **running** herdr session on the window's machine. A sideways swipe on the sidebar moves to
-  the next or previous session; page dots at the bottom of the page show where you are, and a click on a dot
-  switches. Swiping the sidebar never pages the strip, and the reverse.
+- **Open sessions, not all sessions.** A window starts with one page: the machine's `default` session
+  (started if it is stopped). It never loads the other sessions by itself, so a machine with many sessions
+  costs nothing until the user asks. The user adds more pages with **Open Session** (the sheet below); each
+  opened session gets a page, as many as the user likes. Only open pages have a store, a snapshot read and
+  an event stream.
+- **Closing a page**: the context menu of the page header and of its page dot has "Close Page". It only
+  removes the page from this window (its store disconnects); the herdr session keeps running and stays in
+  the sheet's list. The last page cannot be closed.
+- **Restore**: a window that macOS restores reopens the pages it had (their names in `@SceneStorage`); a
+  name that no longer runs is skipped. A new window (⌘N) opens with `default` only.
+- A sideways swipe on the sidebar moves to the next or previous open page; page dots at the bottom show
+  where you are, and a click on a dot switches. Swiping the sidebar never pages the strip, and the reverse.
 - **Page header**: the session's name (small, secondary) and a `+` that makes a new workspace in that session.
 - **Workspaces view** (default): one row per herdr workspace of the session, in herdr's order, like herdr's
   Spaces panel.
@@ -99,10 +108,11 @@ The one place to create or open a session. The footer's Open Session button, the
 - The list, filtered by the field:
   - **New**: "Create session “‹typed name›”" when the text is a valid new herdr name; with an empty field,
     "Create session “‹two-word name›”" with a suggested name.
-  - **Stopped** sessions ("starts it") and **Running** sessions.
+  - **Running** sessions not open in this window ("opens it") and **Stopped** sessions ("starts it").
+    Sessions already open in this window show last as "open" (Enter switches to their page).
 - Arrows move, Enter or **Open** acts on the highlighted row: create and start a new session and open its
-  page; start a stopped session (launchd job, D47) and open its page; open a running session's page. Cancel
-  or Esc closes.
+  page; open a running session as a new page (its store connects then); start a stopped session
+  (launchd job, D47) and open it as a new page; switch to a page that is already open. Cancel or Esc closes.
 
 ## Moving panes, tabs and workspaces by drag and drop
 

@@ -113,6 +113,7 @@ def state_icon(status):
 # ---------------------------------------------------------------- sample data
 MACHINES = [("This Mac", "laptop", True), ("devbox", "server", False), ("gpu-box", "cpu", False)]
 STOPPED = ["orcr-spike-pi", "pi-bench", "swebench-autopilot"]
+RUNNING_NOT_OPEN = ["pi-scratch", "orcr-pi"]
 
 # session -> workspaces: (name, status, branch, ahead, behind, changed, worktree_child)
 SESSIONS = {
@@ -321,17 +322,18 @@ def needs_popover():
 
 
 def session_sheet():
-    stopped = "".join(f'<div class="prow"><span class="mi">{ui("plusstack")}</span>{name}'
-                      f'<span class="kb">stopped · starts it</span></div>' for name in STOPPED if "pi" in name)
-    running = "".join(f'<div class="prow"><span class="mi">{ui("check", "ic xs")}</span>{name}'
-                      f'<span class="kb">running</span></div>' for name in SESSIONS if "pi" in name)
+    def rows(names, icon, note):
+        return "".join(f'<div class="prow"><span class="mi">{ui(icon)}</span>{n}<span class="kb">{note}</span></div>'
+                       for n in names if "pi" in n)
     return ('<div class="sheet wide"><div class="stitle">Open Session</div>'
             '<div class="field big">pi<span class="caretbar"></span><span class="hint">Name a new session, or find one</span></div>'
             f'<div class="slist"><div class="pg">New</div><div class="prow cur"><span class="mi">{ui("plus")}</span>'
             'Create session \u201cpi\u201d<span class="kb">\u21a9</span></div>'
-            f'<div class="pg">Stopped</div>{stopped}<div class="pg">Running</div>{running}</div>'
-            '<div class="sbtns"><span class="note">A new name creates and starts a session. A stopped one starts; '
-            'a running one opens its page.</span><span class="bt">Cancel</span><span class="bt primary">Open</span>'
+            f'<div class="pg">Running</div>{rows(RUNNING_NOT_OPEN, "plusstack", "opens it")}'
+            f'<div class="pg">Stopped</div>{rows(STOPPED, "plusstack", "starts it")}'
+            f'<div class="pg">Open in this window</div>{rows(list(SESSIONS), "check", "open")}</div>'
+            '<div class="sbtns"><span class="note">The window opens only <b>default</b>. Each session you open here '
+            'adds a sidebar page.</span><span class="bt">Cancel</span><span class="bt primary">Open</span>'
             '</div></div>')
 
 
@@ -357,18 +359,19 @@ SCENES = [
      "Title row: sidebar toggle (its icon shows the panel filled while the sidebar is open), the machine "
      "(icon only), the selected workspace's tabs (always in the title row), and on the right the Agents button "
      "(outline chat bubbles, amber dot when an agent needs you), \u2318 and +. The sidebar lists the workspaces "
-     "of one herdr session, like herdr: state icon and name, then the git branch with ahead and behind counts. "
+     "of one open herdr session, like herdr: state icon and name, then the git branch with ahead and behind counts. "
      "A workspace that is not a git repository shows one line. oriel-rex-ui is a git worktree of oriel, so it "
      "sits under oriel. The footer has the filter and Open Session. A sideways swipe on the strip pages "
      "through the tabs; a sideways swipe on the sidebar changes the session.", window("ws")),
     ("B", "After a sideways swipe on the sidebar: the next session on this machine",
-     "One sidebar page per running herdr session on the machine (here default and pi-herd), Arc style, with "
-     "page dots; a click on a dot also switches.", window("ws", session="pi-herd")),
+     "One sidebar page per session the user opened in this window (here default and pi-herd), Arc style, "
+     "with page dots; a click on a dot also switches. A window starts with default only; other sessions load "
+     "only after Open Session.", window("ws", session="pi-herd")),
     ("C", "Sidebar collapsed: only the tabs",
      "A workspace button appears next to the machine: folder icon, then \u201csession | workspace\u201d. The strip "
      "still pages sideways between the tabs.", window(None)),
     ("D", "Workspace menu open",
-     "Every workspace of every running session on this machine, grouped under its session, with the branch on "
+     "Every workspace of every session open in this window, grouped under its session, with the branch on "
      "the right. Open Session opens the session sheet.", window(None, workspace_menu())),
     ("E", "Machine menu open",
      "Closed, the button shows only the machine's icon; open, the menu shows names. Picking a machine replaces "
@@ -376,9 +379,9 @@ SCENES = [
      "the menu). Add Remote Host stays a placeholder until remote machines are built.",
      window("ws", machine_menu())),
     ("F", "Open Session sheet",
-     "The sidebar's Open Session button and the workspace menu's Open Session\u2026 both open this sheet. It does "
-     "both jobs: type a name to create a new session (the first row), or pick an existing one: a stopped session "
-     "starts, a running one opens its page. The list filters as you type.",
+     "The sidebar's Open Session button and the workspace menu's Open Session\u2026 both open this sheet. Type a "
+     "name to create a new session (the first row), or pick an existing one: a running session opens as a new "
+     "page, a stopped one starts and opens. The list filters as you type.",
      window("ws", session_sheet())),
     ("G", "Hover the Agents button: who needs you",
      "Resting the pointer on the chat bubbles shows the agents of this session that need you. A click on one "
