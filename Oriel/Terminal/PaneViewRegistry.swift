@@ -19,8 +19,8 @@
         var onKeyboard: ((String) -> Void)?
         /// The user pressed Return in a terminal (its terminal id).
         var onReturn: ((String) -> Void)?
-        /// A key press, paste or click in a terminal.
-        var onInput: (() -> Void)?
+        /// A key press, paste or click in a terminal (its terminal id).
+        var onInput: ((String) -> Void)?
         /// Whether another window controls the terminal's session (its terminal id).
         var watches: ((String) -> Bool)?
         private var terminals: [String: PaneTerminal] = [:]
@@ -35,7 +35,7 @@
             let terminal = PaneTerminal(terminalID: terminalID, paneID: paneID, client: client)
             terminal.view.onKeyboard = { [weak self] in self?.onKeyboard?(terminalID) }
             terminal.view.onReturn = { [weak self] in self?.onReturn?(terminalID) }
-            terminal.onInput = { [weak self] in self?.onInput?() }
+            terminal.onInput = { [weak self] in self?.onInput?(terminalID) }
             terminal.watches = { [weak self] in self?.watches?(terminalID) ?? false }
             terminals[terminalID] = terminal
             return terminal

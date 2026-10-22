@@ -38,6 +38,8 @@ extension OrielUITests {
         element("tab.w1:t2", in: second).click()
         XCTAssertTrue(element("tab.w1:t2", in: second).wait(for: \.isSelected, toEqual: true, timeout: 2))
         XCTAssertTrue(element("tab.w1:t1", in: first).isSelected)
+        // Window 1 never showed t2, so nobody holds p4: watching, window 2 still opens it as observe.
+        try await expectStreams(terminalID("w1:p4"), control: 0, observe: 1)
     }
 
     func testClosingTheControllingWindowHandsControlOver() async throws {

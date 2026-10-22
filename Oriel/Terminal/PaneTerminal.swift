@@ -220,12 +220,20 @@
                 if !takeover {
                     pending = []
                 }
-                Task { open(observe: !takeover, takeover: takeover) }
+                // Not when control moved between windows meanwhile (`control`).
+                Task { [generation] in
+                    if generation == self.generation {
+                        open(observe: !takeover, takeover: takeover)
+                    }
+                }
             case .liveUpdate:
-                // Opens the stream again after 1 s (talking-to-herdr#how-a-stream-ends).
-                Task { [observing] in
+                // Opens the stream again after 1 s (talking-to-herdr#how-a-stream-ends), in the mode the windows
+                // decide now.
+                Task { [generation] in
                     try? await Task.sleep(for: .seconds(1))
-                    open(observe: observing)
+                    if generation == self.generation {
+                        open()
+                    }
                 }
             case .ended:
                 // Gone: the next snapshot drops the card.

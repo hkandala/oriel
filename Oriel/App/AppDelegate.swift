@@ -8,6 +8,8 @@
         /// macOS restores windows: from its decode of the app's state until launch ends. Their scene storage comes back
         /// a moment after they first show, and their full screen meanwhile.
         static var restoring = false
+        /// The windows macOS restored in full screen (it does so before launch ends); each leaves it once it shows.
+        static var restoredFullScreen: Set<ObjectIdentifier> = []
 
         func application(_: NSApplication, didDecodeRestorableState _: NSCoder) {
             Self.restoring = true
@@ -15,6 +17,8 @@
 
         func applicationDidFinishLaunching(_: Notification) {
             Self.restoring = false
+            Self.restoredFullScreen = Set(NSApp.windows.filter { $0.styleMask.contains(.fullScreen) }
+                .map(ObjectIdentifier.init))
         }
 
         func applicationWillFinishLaunching(_: Notification) {

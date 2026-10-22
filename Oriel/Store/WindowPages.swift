@@ -36,14 +36,12 @@
                 }
             }
             // Input in a card of a watched session makes this window its controller (D66).
-            terminals.onInput = { [weak self] in
-                if let self, let store = current?.store, store.windows.first !== self {
+            terminals.onInput = { [weak self] terminalID in
+                if let self, let store = page(of: terminalID)?.store, store.windows.first !== self {
                     control(store)
                 }
             }
-            terminals.watches = { [weak self] terminalID in
-                self?.list.first { $0.store.panes.contains { $0.terminalID == terminalID } }?.watched ?? false
-            }
+            terminals.watches = { [weak self] terminalID in self?.page(of: terminalID)?.watched ?? false }
         }
 
         /// The window restored its pages: it joins the open windows, and takes a click that came before it.
@@ -85,6 +83,10 @@
             list.first { $0.store === store }
         }
 
+        private func page(of terminalID: String) -> Page? {
+            list.first { $0.store.panes.contains { $0.terminalID == terminalID } }
+        }
+
         /// After each snapshot of a store this window shows.
         func snapshotted(_ store: HostStore) {
             page(store)?.settle()
@@ -115,6 +117,10 @@
         private func leave(_ store: HostStore) {
             let controlled = store.windows.first === self
             store.windows.removeAll { $0 === self }
+            // A key window that goes no longer looks at its tabs (D14).
+            if key {
+                store.lookingTabID = nil
+            }
             if store.windows.isEmpty {
                 Notifications.remove(store.panes, session: store.session)
                 store.disconnect()
