@@ -87,7 +87,8 @@ final class HostStore {
                 do {
                     try await Self.start(session)
                 } catch {
-                    Task { await show(error.localizedDescription) }
+                    // Kept until the session answers.
+                    notice = error.localizedDescription
                 }
             }
             let client: any Multiplexer = await HerdrClient(session: session, exec: exec.value)
@@ -103,6 +104,7 @@ final class HostStore {
                     // After the first snapshot, so the session list never delays the layout.
                     if !loadedSessions {
                         loadedSessions = true
+                        notice = nil
                         await loadSessions()
                     }
                 case let .error(error):
@@ -203,6 +205,8 @@ final class HostStore {
         #if os(macOS)
             guard showsGit, await gitUsable.value else { return }
             for workspace in workspaces {
+                // The page left view (or closed) during the runs before.
+                guard showsGit, !Task.isCancelled else { return }
                 let root = workspace.worktree?.checkoutPath
                     ?? workspace.tabs.first.flatMap { tab in panes.first { $0.tabID == tab.id }?.cwd }
                 // A root that changes during a run waits for the next tick.

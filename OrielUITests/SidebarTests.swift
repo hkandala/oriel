@@ -231,6 +231,8 @@ extension OrielUITests {
         try await poll("herdr's order") { () async throws -> Bool? in
             try await workspaceIDs().suffix(2) == [made, "w2"] ? true : nil
         }
+        // The sidebar shows the new order before the next move.
+        try waitUntil { row.frame.maxY <= element("workspace.w2").frame.minY }
         row.rightClick()
         app.menuItems["Move Down"].click()
         try await poll("herdr's order back") { () async throws -> Bool? in
@@ -258,9 +260,13 @@ extension OrielUITests {
         field.typeText("other")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(field.waitForNonExistence(timeout: 2))
+        // For a second: a wrong save would land a moment later.
+        for _ in 0 ..< 10 {
+            let label = try await workspaceLabel("w2")
+            XCTAssertEqual(label, "beta")
+            try await Task.sleep(for: .milliseconds(100))
+        }
         XCTAssertEqual(row.label, "beta")
-        let label = try await workspaceLabel("w2")
-        XCTAssertEqual(label, "beta")
     }
 
     func testSidebarHandleResizesWithinItsBounds() {

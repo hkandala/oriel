@@ -290,7 +290,9 @@
             Button("Close Workspace") { store.closing = .workspace(workspace.id) }
         }
 
+        /// Not while the session is stopped (a double-click too): the rename would fail.
         private func startRenaming() {
+            guard page.store.state == .live else { return }
             draft = workspace.label
             renaming = true
         }

@@ -78,12 +78,13 @@ struct OrielApp: App {
             }
         }
 
-        /// The pages a restored window had that still run; else the first page: `-session` (in UserDefaults from
-        /// the command line), else `default`, started when it is stopped. Never another session by itself.
+        /// `-session` on the command line if given, else the restored window's pages that still run, else
+        /// `default`; the first page is started when it is stopped. Never another session by itself.
         private func restore() async {
             guard pages.list.isEmpty else { return }
-            // `-session` wins over a restored window: a run against a throwaway session opens only it.
+            // A run against a throwaway session must open only it.
             let argument = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)["session"]
+                as? String
             let saved = argument == nil ? savedPages.split(separator: " ").map(String.init) : []
             if !saved.isEmpty {
                 let client: any Multiplexer = await HerdrClient(session: saved[0], exec: exec.value)
@@ -96,7 +97,7 @@ struct OrielApp: App {
                 }
             }
             if pages.list.isEmpty {
-                pages.open(UserDefaults.standard.string(forKey: "session") ?? "default", start: true)
+                pages.open(argument ?? "default", start: true)
             }
         }
     }

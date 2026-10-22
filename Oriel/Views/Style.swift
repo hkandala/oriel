@@ -310,8 +310,7 @@ struct MenuRow: View {
             // A long typed name keeps both ends, and takes the free space before the detail does.
             Text(title).lineLimit(1).truncationMode(.middle).layoutPriority(1)
             Spacer(minLength: 4)
-            // Readable on the accent pill too.
-            // A long branch gives way to the title.
+            // Readable on the accent pill; a long branch gives way to the title.
             Text(detail).foregroundStyle(selected ? Color.white.opacity(0.75) : .secondary).lineLimit(1)
                 .truncationMode(.middle)
         }

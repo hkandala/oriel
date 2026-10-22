@@ -22,6 +22,13 @@ extension OrielUITests {
         // The "not running" page: its Start button.
         XCTAssertTrue(element("detail.start").waitForExistence(timeout: 10))
         XCTAssertFalse(terminal.exists)
+        // Its last rows stay, without writes.
+        let row = element("workspace.w1")
+        row.rightClick()
+        XCTAssertFalse(app.menuItems["Rename Workspace"].isEnabled)
+        app.typeKey(.escape, modifierFlags: [])
+        row.doubleClick()
+        XCTAssertFalse(element("workspace.w1.rename").exists)
         keepScreenshot("not running")
         try await poll("no stream") { () async throws -> Bool? in try await streams(five).isEmpty ? true : nil }
 
