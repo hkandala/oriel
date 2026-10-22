@@ -14,6 +14,6 @@ custom_rules:
   look_colors: # D44: views draw with the Look tokens; color literals live in Style.swift only
     included: '/Oriel/'
     excluded: 'Oriel/Views/Style\.swift$'
-    regex: 'Color\((red|white|hex|hue):|Color\.(white|black|gray|red|green|blue|orange|yellow|pink|purple|mint|teal|cyan|indigo|brown)\b|[(\[ ]\.(white|black|gray|red|green|blue|orange|yellow|pink|purple|mint|teal|cyan|indigo|brown)(\.opacity|\))'
+    regex: 'Color\((red|white|hue):|Color\((\.sRGB|\.displayP3|nsColor|uiColor|cgColor)|Color\.(white|black|gray|red|green|blue|orange|yellow|pink|purple|mint|teal|cyan|indigo|brown)\b|[(\[ ]\.(white|black|gray|red|green|blue|orange|yellow|pink|purple|mint|teal|cyan|indigo|brown)(\.opacity|\))'
     message: 'Draw with the Look tokens in Style.swift (D44)'
     severity: error
