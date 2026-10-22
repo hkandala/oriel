@@ -12,6 +12,8 @@ extension OrielUITests {
         try await poll("the two swapped") { () async throws -> Bool? in
             try await order(tab) == [second, first, third] ? true : nil
         }
+        // No highlight stays on the card now under the pointer (a hand check saw one).
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
 
         // Its own tab's capsule is not a target: no write, so no refusal shows; the drop below checks nothing moved
         // (writes go one at a time).
@@ -29,6 +31,7 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.\(tab)").isSelected)
         XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
         try await expectWidths(tab, [third: 1 / 3, second: 1 / 3, first: 1 / 3])
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
     }
 
     func testHoldingOverACapsuleSpringLoadsItsTabAndADropSplitsRight() async throws {
@@ -61,9 +64,10 @@ extension OrielUITests {
             try await order(other) == [third, fourth, second] ? true : nil
         }
         XCTAssertTrue(capsule.has(\.isSelected, true, within: 2))
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
     }
 
-    func testDropsOnTheTrackEndAWorkspaceRowAndEmptySidebarMoveThePane() async throws {
+    func testDropsOnTheTrackEndARowTheSidebarAndItsPlusMoveThePane() async throws {
         let (tab, first) = try await dragWorkspace("moves")
         let second = try await split(first)
         let terminal = try await terminalID(second)
@@ -92,6 +96,8 @@ extension OrielUITests {
             let place = try await place(of: terminal)
             return place.map { $0.tab.hasPrefix("w2:") && !betaTabs.contains($0.tab) } == true ? place?.pane : nil
         }
+        // The row's highlight goes with the drag.
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
 
         // The sidebar's empty space: a new workspace.
         let workspaces = try await workspaceIDs()
@@ -107,9 +113,18 @@ extension OrielUITests {
         let sidebar = element("sidebar")
         drag(inBeta, to: sidebar.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: sidebar.frame.width / 2, dy: bottom + 40 - sidebar.frame.minY)))
-        try await poll("the pane in a new workspace") { () async throws -> Bool? in
+        let away = try await poll("the pane in a new workspace") { () async throws -> String? in
             let place = try await place(of: terminal)
-            return place.map { !workspaces.contains(workspace(of: $0.tab)) } == true ? true : nil
+            return place.map { !workspaces.contains(workspace(of: $0.tab)) } == true ? place?.pane : nil
+        }
+
+        // The page header's `+`: a new workspace too (a full page has no empty space under its rows).
+        let before = try await workspaceIDs()
+        XCTAssertTrue(element("pane.\(away)").exists(within: 3))
+        drag(away, to: element("sidebar.new-workspace").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        try await poll("the pane in another new workspace") { () async throws -> Bool? in
+            let place = try await place(of: terminal)
+            return place.map { !before.contains(workspace(of: $0.tab)) } == true ? true : nil
         }
     }
 
