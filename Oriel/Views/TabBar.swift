@@ -37,7 +37,7 @@
                             // One view per tab, so a scroll to its id shows the tab, not the divider before it.
                             HStack(spacing: 0) {
                                 if index > 0 {
-                                    // Hidden next to the marker and the pointer.
+                                    // Hidden next to the marker, the selected tab and the pointer.
                                     let quiet = lit.contains(index) || lit.contains(index - 1)
                                         || [tab.id, tabs[index - 1].id]
                                         .contains { $0 == hovered || $0 == workspace.selectedTabID }

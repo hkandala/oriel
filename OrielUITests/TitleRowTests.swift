@@ -94,6 +94,7 @@ extension OrielUITests {
         let close = element("tab.\(tabs[1]).close")
         XCTAssertFalse(close.exists)
         // The selected tab too has none until hovered.
+        XCTAssertTrue(element("tab.\(tabs[0])").isSelected)
         XCTAssertFalse(element("tab.\(tabs[0]).close").exists)
         element("tab.\(tabs[1])").hover()
         XCTAssertTrue(close.waitForExistence(timeout: 2))
@@ -125,12 +126,13 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(field.waitForNonExistence(timeout: 2))
         XCTAssertFalse(element("tab.\(tabs[0])").label.contains("nope"))
-        let after = try await tabsOf(workspace).first?.label
-        XCTAssertEqual(after, before)
 
         element("tab.\(tabs[0])").rightClick()
         app.menuItems["Rename Tab"].click()
         XCTAssertTrue(field.waitForExistence(timeout: 2))
+        // Read now, a round trip after Esc: a write Esc made by mistake has landed.
+        let after = try await tabsOf(workspace).first?.label
+        XCTAssertEqual(after, before)
         XCTAssertTrue(hasKeyboard(field))
         app.typeKey("a", modifierFlags: .command)
         app.typeText("renamed\r")

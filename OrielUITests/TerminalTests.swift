@@ -72,7 +72,7 @@ extension OrielUITests {
             return element("tab.w1:t2").isSelected ? true : nil
         }
         keepScreenshot("after the swipe")
-        XCTAssertTrue(app.windows.firstMatch.wait(for: \.title, toEqual: "second", timeout: 2))
+        XCTAssertTrue(app.windows.firstMatch.wait(for: \.title, toEqual: "second - \(one)", timeout: 2))
         try await expectPTYSize("w1:p4")
     }
 
