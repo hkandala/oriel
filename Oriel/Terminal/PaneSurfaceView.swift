@@ -226,11 +226,10 @@
         /// herdr's name (`pane.send_keys`) for a key whose bytes depend on the app's input modes:
         /// arrows, Esc, F-keys, any of them with modifiers, Ctrl chords; plus macOS line editing
         /// (Cmd+←/→/⌫, Option+←/→), which `keybind = clear` took from libghostty. nil leaves the
-        /// key to libghostty: text, IME, dead keys, Option characters, other Cmd keys, and plain
-        /// Enter, Tab and Backspace, which are the same bytes in every mode and stay off the slower
-        /// bridge path. Home, End, Page Up/Down and Delete have no herdr names; libghostty sends
-        /// them as xterm does.
-        /// ponytail: Option types characters (Ghostty's default); add an option-as-alt setting when asked.
+        /// key to libghostty: text, IME, dead keys, Option characters (unless Option acts as Alt), other
+        /// Cmd keys, and plain Enter, Tab and Backspace, which are the same bytes in every mode and stay
+        /// off the slower bridge path. Home, End, Page Up/Down and Delete have no herdr names; libghostty
+        /// sends them as xterm does.
         static func herdrKey(_ event: NSEvent) -> String? {
             let flags = event.modifierFlags
             let control = flags.contains(.control), option = flags.contains(.option), shift = flags.contains(.shift)
@@ -251,6 +250,13 @@
             }
             // The layout's letter (Dvorak, AZERTY), else the key's US character (Ctrl+С on a Russian
             // layout is Ctrl+C). Shift is dropped, as xterm does: Ctrl+Shift+C is Ctrl+C.
+            if option, !control, UserDefaults.standard.bool(forKey: "optionAsAlt") {
+                // Settings ▸ Terminal: the layout's character with Shift (⌥⇧B is Alt+B, ⌥. Alt+.), else the
+                // key's US one.
+                let typed = event.charactersIgnoringModifiers ?? ""
+                let key = typed.count == 1 && typed.first?.isASCII == true && typed != " " ? typed : ansi[event.keyCode]
+                return key.map { "alt+" + $0 }
+            }
             guard control else { return nil }
             if let letter = event.charactersIgnoringModifiers?.lowercased(), letter.count == 1,
                letter.first?.isASCII == true, letter.first?.isLetter == true
