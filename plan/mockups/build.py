@@ -332,9 +332,7 @@ def session_sheet():
             f'<div class="pg">Running</div>{rows(RUNNING_NOT_OPEN, "plusstack", "opens it")}'
             f'<div class="pg">Stopped</div>{rows(STOPPED, "plusstack", "starts it")}'
             f'<div class="pg">Open in this window</div>{rows(list(SESSIONS), "check", "open")}</div>'
-            '<div class="sbtns"><span class="note">The window opens only <b>default</b>. Each session you open here '
-            'adds a sidebar page.</span><span class="bt">Cancel</span><span class="bt primary">Open</span>'
-            '</div></div>')
+            '<div class="sbtns"><span class="bt">Cancel</span><span class="bt primary">Open</span></div></div>')
 
 
 # ---------------------------------------------------------------- windows
