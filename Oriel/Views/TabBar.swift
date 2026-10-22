@@ -73,6 +73,7 @@
                     .onDrop(of: [.orielDrag], delegate: TrackDrop(tabs: tabs, page: page, slot: width + 1,
                                                                   over: $over, spring: $spring, springLoad: springLoad))
                     .clearsDrop(page) {
+                        spring?.cancel() // a late update after the drop may have started one
                         over = nil
                         end = false
                     }
