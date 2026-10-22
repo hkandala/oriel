@@ -38,6 +38,20 @@ UI = {
 }
 
 
+# Candidate glyphs for the Agents toggle (the user picks one).
+UI.update({
+    "people": '<path d="M9 4a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zm7.5 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM2 19c0-3.3 3.1-6 7-6s7 2.7 7 6v1H2zm15.5-6c2.7.2 4.5 2.4 4.5 5v2h-4.5v-1c0-2.4-1-4.5-2.6-5.8.8-.2 1.7-.2 2.6-.2z"/>',
+    "robot": '<path d="M11 2h2v2.1A7 7 0 0 1 19 11v6a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-6a7 7 0 0 1 6-6.9zM9 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM8.5 16v1.5h7V16zM2 11h2v5H2zm18 0h2v5h-2z"/>',
+    "bubbles": '<path d="M3 4h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8l-4 3v-3H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm15 4h3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-1v3l-4-3h-5a1 1 0 0 1-1-1v-1h6a2 2 0 0 0 2-2z"/>',
+    "statuslist": '<path d="M5 4.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM9 5.5h12v2H9zM5 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm4 1h12v2H9zM5 15.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm4 1h12v2H9z"/>',
+    "pulse": '<path d="M2 11h4.4l2.1-5.6 4.1 12 2.5-6.4H22v2h-5.5l-3.9 10L8.5 11.5 7.8 13H2z"/>',
+    "wand": '<path d="M14.6 6.6l2.8 2.8L6.8 20 4 17.2zM17 2l.8 2.2L20 5l-2.2.8L17 8l-.8-2.2L14 5l2.2-.8zM20.5 9l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6zM10 2.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4L8 4.5l1.4-.6z"/>',
+    "stackperson": '<path d="M6 2h12v2H6zM4 5h16v2H4zm-1 3h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zm9 2.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM7.5 19h9c0-2.2-2-3.5-4.5-3.5S7.5 16.8 7.5 19z"/>',
+})
+AGENT_ICON = "sparkles"
+UI["sparkles"] = UI["agents"]
+
+
 def ui(name, cls="ic"):
     return f'<svg class="{cls}" viewBox="0 0 24 24" fill="currentColor">{UI[name]}</svg>'
 
@@ -80,19 +94,20 @@ def state_icon(status):
 
 # ---------------------------------------------------------------- sample data
 MACHINES = [("This Mac", "laptop", True), ("devbox", "server", False), ("gpu-box", "cpu", False)]
+STOPPED = ["orcr-spike-pi", "pi-bench", "swebench-autopilot"]
 
-# session -> workspaces: (name, status, branch, ahead, behind, worktree_child)
+# session -> workspaces: (name, status, branch, ahead, behind, changed, worktree_child)
 SESSIONS = {
     "default": [
-        ("oriel", "working", "main", 2, 0, False),
-        ("oriel-rex-ui", "", "feat/rex-ui", 5, 1, True),
-        ("mira", "done", "main", 0, 0, False),
-        ("dotfiles", "idle", "master", 0, 3, False),
-        ("infra", "needs", None, 0, 0, False),
+        ("oriel", "working", "main", 2, 0, 3, False),
+        ("oriel-rex-ui", "", "feat/rex-ui", 5, 1, 12, True),
+        ("mira", "done", "main", 0, 0, 0, False),
+        ("dotfiles", "idle", "master", 0, 3, 1, False),
+        ("infra", "needs", None, 0, 0, 0, False),
     ],
     "pi-herd": [
-        ("agents", "working", "main", 0, 0, False),
-        ("scratch", "", None, 0, 0, False),
+        ("agents", "working", "main", 0, 0, 0, False),
+        ("scratch", "", None, 0, 0, 0, False),
     ],
 }
 SELECTED_WS = "oriel"
@@ -107,16 +122,21 @@ TABS = [
 ]
 SELECTED_TAB = 0
 
-# agents on the machine: (agent icon, name, status, session, workspace, tab, age)
-AGENTS = [
-    ("claude", "claude", "needs", "default", "oriel", "docs", "3m"),
-    ("claude", "claude", "needs", "default", "infra", "deploy", "8m"),
-    ("pi", "pi", "working", "default", "oriel", "pi", "12m"),
-    ("pi", "pi", "working", "pi-herd", "agents", "main", "1m"),
-    ("codex", "codex", "done", "default", "mira", "codex", "now"),
-    ("opencode", "opencode", "idle", "default", "dotfiles", "1", "2h"),
-    ("codex", "codex", "idle", "pi-herd", "agents", "review", "5h"),
-]
+# agents by session: (agent icon, name, status, workspace, tab, age)
+AGENTS = {
+    "default": [
+        ("claude", "claude", "needs", "oriel", "docs", "3m"),
+        ("claude", "claude", "needs", "infra", "deploy", "8m"),
+        ("pi", "pi", "working", "oriel", "pi", "12m"),
+        ("codex", "codex", "done", "mira", "codex", "now"),
+        ("opencode", "opencode", "idle", "dotfiles", "1", "2h"),
+        ("pi", "pi", "idle", "oriel-rex-ui", "review", "4h"),
+    ],
+    "pi-herd": [
+        ("pi", "pi", "working", "agents", "main", "1m"),
+        ("codex", "codex", "idle", "agents", "review", "5h"),
+    ],
+}
 
 
 # ---------------------------------------------------------------- title row
@@ -137,48 +157,57 @@ def tabbar():
     return f'<span class="track">{"".join(caps)}</span>'
 
 
-def title_row(sidebar_open, agents_view):
-    machine = (f'<span class="pick icononly" title="Machine: This Mac">{ui("laptop")}'
+def agents_button(on, icon=None):
+    return (f'<span class="btn{" on" if on else ""}" title="Agents ⌘.">{ui(icon or AGENT_ICON)}'
+            f'<span class="ebadge amber"></span></span>')
+
+
+def title_row(sidebar_open, agents_view, machine_icon="laptop", session="default"):
+    machine = (f'<span class="pick icononly" title="Machine (⌥-click: open in a new window)">{ui(machine_icon)}'
                f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
     workspace = ("" if sidebar_open else
-                 f'<span class="pick" title="Workspace">{ui("folder", "ic sm")}<span class="pname">oriel</span>'
+                 f'<span class="pick two" title="Workspace">{ui("folder", "ic sm")}'
+                 f'<span class="pcol"><span class="pname">oriel</span><span class="psub">{session}</span></span>'
                  f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
     return (f'<div class="titlerow">{traffic()}'
             f'<span class="btn{" on" if sidebar_open else ""}" title="Toggle Sidebar ⌃⌘S">{ui("sidebar")}</span>'
-            f'<span class="btn{" on" if agents_view else ""}" title="Agents ⌘.">{ui("agents")}'
-            f'<span class="ebadge amber"></span></span>'
-            f'{machine}{workspace}{tabbar()}<span class="spacer"></span>'
+            f'{machine}{workspace}{tabbar()}<span class="spacer"></span>{agents_button(agents_view)}'
             f'<span class="btn" title="Command Palette ⌘K">{ui("cmd")}</span>'
             f'<span class="btn" title="New Tab ⌘T">{ui("plus")}</span></div>')
 
 
 # ---------------------------------------------------------------- sidebar
-def git_line(branch, ahead, behind):
-    if not branch:
-        return '<span class="l2 dim">not a git repo</span>'
-    counts = ""
-    if ahead:
-        counts += f' · <span class="ahead">↑{ahead}</span>'
-    if behind:
-        counts += f' <span class="behind">↓{behind}</span>' if ahead else f' · <span class="behind">↓{behind}</span>'
-    return f'<span class="l2"><span class="br">{ui("branch", "ic xs")}</span>{branch}{counts}</span>'
+def git_line(branch, ahead, behind, changed):
+    parts = [f'<span class="br">{ui("branch", "ic xs")}</span>{branch}']
+    counts = " ".join(x for x in [f'<span class="ahead">↑{ahead}</span>' if ahead else "",
+                                  f'<span class="behind">↓{behind}</span>' if behind else ""] if x)
+    if counts:
+        parts.append(counts)
+    if changed:
+        parts.append(f'<span class="changed">{changed} changed</span>')
+    return f'<span class="l2">{" · ".join(parts)}</span>'
 
 
 def workspace_rows(session):
     out = []
-    for name, status, branch, ahead, behind, child in SESSIONS[session]:
+    for name, status, branch, ahead, behind, changed, child in SESSIONS[session]:
         sel = session == "default" and name == SELECTED_WS
-        out.append(f'<div class="ws{" sel" if sel else ""}{" child" if child else ""}">'
+        second = git_line(branch, ahead, behind, changed) if branch else ""
+        out.append(f'<div class="ws{" sel" if sel else ""}{" child" if child else ""}{"" if branch else " one"}">'
                    f'<span class="sicon">{state_icon(status)}</span>'
-                   f'<span class="col"><span class="l1">{name}</span>{git_line(branch, ahead, behind)}</span></div>')
+                   f'<span class="col"><span class="l1">{name}</span>{second}</span></div>')
     return "".join(out)
 
 
-def page(session, dots_index):
-    dots = "".join(f'<i class="{"on" if i == dots_index else ""}"></i>' for i in range(len(SESSIONS)))
+def dots(index):
+    return "".join(f'<i class="{"on" if i == index else ""}"></i>' for i in range(len(SESSIONS)))
+
+
+def page(session):
+    index = list(SESSIONS).index(session)
     return (f'<div class="spage"><div class="shead"><span class="sname">{session}</span>'
             f'<span class="splus" title="New Workspace">{ui("plus", "ic xs")}</span></div>'
-            f'<div class="list">{workspace_rows(session)}</div><div class="pagedots">{dots}</div></div>')
+            f'<div class="list">{workspace_rows(session)}</div><div class="pagedots">{dots(index)}</div></div>')
 
 
 def footer():
@@ -186,13 +215,8 @@ def footer():
             f'<span class="sbtn" title="New Session ⇧⌘N">{ui("plusstack", "ic sm")}</span></div>')
 
 
-def sidebar_workspaces(swipe=False):
-    sessions = list(SESSIONS)
-    if swipe:
-        pages = f'<div class="pages">{page(sessions[1], 1)}</div>'
-    else:
-        pages = f'<div class="pages">{page(sessions[0], 0)}</div>'
-    return f'<div class="sidebar">{pages}{footer()}</div>'
+def sidebar_workspaces(session="default"):
+    return f'<div class="sidebar"><div class="pages">{page(session)}</div>{footer()}</div>'
 
 
 AGENT_CAP = {"needs": ("Needs you", "amber"), "working": ("Working", "blue"), "done": ("Done", "green"),
@@ -200,27 +224,27 @@ AGENT_CAP = {"needs": ("Needs you", "amber"), "working": ("Working", "blue"), "d
 
 
 def agent_row(a, sel=False):
-    icon, name, status, session, ws, tab, age = a
-    where = f'{session + " · " if session != "default" else ""}{ws} · {tab}'
+    icon, name, status, ws, tab, age = a
     label, color = AGENT_CAP[status]
     return (f'<div class="agent{" sel" if sel else ""}">{tile(icon, BADGE.get(status, ""))}'
             f'<span class="col"><span class="l1"><span class="aname">{name}</span>'
             f'<span class="cap {color}">{label}</span></span>'
-            f'<span class="l2"><span>{where}</span><span>{age}</span></span></span></div>')
+            f'<span class="l2"><span>{ws} · {tab}</span><span>{age}</span></span></span></div>')
 
 
-def sidebar_agents():
-    order = ["needs", "working", "done", "idle"]
+def sidebar_agents(session="default"):
     names = {"needs": "Needs you", "working": "Working", "done": "Done", "idle": "Idle"}
     rows = []
-    for st in order:
-        group = [a for a in AGENTS if a[2] == st]
+    for st in ["needs", "working", "done", "idle"]:
+        group = [a for a in AGENTS[session] if a[2] == st]
         if group:
             rows.append(f'<div class="agroup">{names[st]} <span class="dim">{len(group)}</span></div>')
-            rows += [agent_row(a, sel=(a[4], a[5]) == ("oriel", "pi")) for a in group]
-    head = (f'<div class="shead"><span class="sname">Agents <span class="dim">· This Mac</span></span>'
+            rows += [agent_row(a, sel=(a[3], a[4]) == ("oriel", "pi")) for a in group]
+    index = list(SESSIONS).index(session)
+    head = (f'<div class="shead"><span class="sname">{session} <span class="dim">· agents</span></span>'
             f'<span class="sortpill">{ui("sort", "ic xs")} Priority {ui("chev", "ic xs")}</span></div>')
-    return f'<div class="sidebar">{head}<div class="list">{"".join(rows)}</div>{footer()}</div>'
+    return (f'<div class="sidebar"><div class="spage">{head}<div class="list">{"".join(rows)}</div>'
+            f'<div class="pagedots">{dots(index)}</div></div>{footer()}</div>')
 
 
 # ---------------------------------------------------------------- strip
@@ -236,10 +260,12 @@ PI_TEXT = ("π oriel\n\n› Implement phase 10: appearance and interface style\n
 ZSH_TEXT = "hkandala@mbp oriel % git status\nOn branch main\nnothing to commit, working tree clean\nhkandala@mbp oriel % ▌"
 
 
-def strip(peek=True):
-    nxt = '<div class="nextpage"></div>' if peek else ""
-    return ('<div class="strip"><div class="page">' + card("pi", "pi", "~/code/oriel", True, PI_TEXT, 1.2)
-            + card("zsh", "zsh", "~/code/oriel", False, ZSH_TEXT, 1) + f"</div>{nxt}</div>")
+def strip(watching=False):
+    banner = ('<div class="watchbar">Controlled in another window <span class="bt primary">Take Back</span></div>'
+              if watching else "")
+    return (f'<div class="strip{" watching" if watching else ""}"><div class="page">'
+            + card("pi", "pi", "~/code/oriel", not watching, PI_TEXT, 1.2)
+            + card("zsh", "zsh", "~/code/oriel", False, ZSH_TEXT, 1) + f"</div>{banner}</div>")
 
 
 # ---------------------------------------------------------------- popups
@@ -247,81 +273,96 @@ def machine_menu():
     rows = [f'<div class="prow{" cur" if cur else ""}"><span class="mi">{ui(icon)}</span>{name}'
             f'{"<span class=kb>" + ui("check", "ic xs") + "</span>" if cur else ""}</div>'
             for name, icon, cur in MACHINES]
+    sub = "".join(f'<div class="prow">{s}</div>' for s in STOPPED)
     return (f'<div class="popup mach">{"".join(rows)}<div class="psep"></div>'
-            f'<div class="prow"><span class="mi">{ui("window")}</span>Open in New Window<span class="kb">⌥ click</span></div>'
-            f'<div class="prow"><span class="mi">{ui("plus")}</span>Add Remote Host…</div></div>')
+            f'<div class="prow hov"><span class="mi">{ui("plusstack")}</span>Open Stopped Session'
+            f'<span class="kb">▸</span></div>'
+            f'<div class="prow"><span class="mi">{ui("plus")}</span>Add Remote Host…</div></div>'
+            f'<div class="popup submenu">{sub}</div>')
 
 
 def workspace_menu():
     rows = ['<div class="pfilter">Filter or create…</div>']
     for session, wss in SESSIONS.items():
-        rows.append(f'<div class="pg">{session}</div>')
         for name, status, branch, *_rest in wss:
             cur = session == "default" and name == SELECTED_WS
-            git = f'<span class="kb">{branch}</span>' if branch else ""
-            rows.append(f'<div class="prow{" cur" if cur else ""}"><span class="sicon">{state_icon(status)}</span>'
-                        f'{name}{git}</div>')
+            sub = f'{session}{" · " + branch if branch else ""}'
+            rows.append(f'<div class="prow two{" cur" if cur else ""}"><span class="sicon">{state_icon(status)}</span>'
+                        f'<span class="pcol"><span>{name}</span><span class="psub">{sub}</span></span></div>')
     rows.append(f'<div class="psep"></div><div class="prow"><span class="mi">{ui("plus")}</span>New Workspace</div>'
                 f'<div class="prow"><span class="mi">{ui("plusstack")}</span>New Session<span class="kb">⇧⌘N</span></div>')
     return f'<div class="popup wsm">{"".join(rows)}</div>'
 
 
-def add_host_sheet():
-    icons = ["laptop", "desktop", "server", "cloud", "cpu", "house", "flask", "game"]
-    grid = "".join(f'<span class="icell{" on" if i == 2 else ""}">{ui(n)}</span>' for i, n in enumerate(icons))
-    return ('<div class="sheet"><div class="stitle">Add Remote Host</div>'
-            '<label>Name</label><div class="field">devbox</div>'
-            '<label>SSH target</label><div class="field mono">hk@devbox.local</div>'
-            f'<label>Icon <span class="dim">· shown in the title row</span></label><div class="igrid">{grid}</div>'
-            '<div class="sbtns"><span class="bt">Cancel</span><span class="bt primary">Add</span></div></div>')
-
-
 # ---------------------------------------------------------------- windows
-def window(sidebar=None, popup=None, extra_cls=""):
-    side = {"ws": sidebar_workspaces(), "swipe": sidebar_workspaces(True), "agents": sidebar_agents()}.get(sidebar, "")
-    return (f'<div class="win {extra_cls}">{title_row(sidebar is not None, sidebar == "agents")}'
-            f'<div class="content">{side}{strip()}</div>{popup or ""}</div>')
+def window(sidebar=None, popup=None, session="default", machine_icon="laptop", watching=False, agents=False):
+    side = ""
+    if sidebar == "ws":
+        side = sidebar_workspaces(session)
+    elif sidebar == "agents":
+        side = sidebar_agents(session)
+    return (f'<div class="win">{title_row(sidebar is not None, agents or sidebar == "agents", machine_icon, session)}'
+            f'<div class="content">{side}{strip(watching)}</div>{popup or ""}</div>')
 
 
-def two_windows():
-    return ('<div class="pair"><div class="mini">' + window("ws") + '<div class="mlabel">Window 1 · This Mac</div></div>'
-            '<div class="mini">' + window(None).replace(ui("laptop"), ui("server")) +
-            '<div class="mlabel">Window 2 · devbox</div></div></div>')
+def pair(left, right, l1, l2):
+    return (f'<div class="pair"><div class="mini">{left}<div class="mlabel">{l1}</div></div>'
+            f'<div class="mini">{right}<div class="mlabel">{l2}</div></div></div>')
+
+
+def icon_options():
+    names = [("sparkles", "Sparkles"), ("robot", "Robot"), ("people", "People"), ("statuslist", "Status list"),
+             ("bubbles", "Chat bubbles"), ("pulse", "Pulse"), ("wand", "Wand"), ("stackperson", "Stack with person")]
+    cells = "".join(f'<div class="opt"><div class="optbar"><span class="btn on">{ui(n)}<span class="ebadge amber">'
+                    f'</span></span><span class="btn">{ui(n)}</span><span class="btn">{ui("cmd")}</span>'
+                    f'<span class="btn">{ui("plus")}</span></div><div class="optname">{i + 1}. {label}</div></div>'
+                    for i, (n, label) in enumerate(names))
+    return f'<div class="opts">{cells}</div>'
 
 
 SCENES = [
     ("A", "Sidebar open: workspaces of one session",
-     "Title row, left to right: sidebar toggle, Agents toggle (badge when an agent needs you), the machine "
-     "(icon only), then the selected workspace's tabs, always in the title row. The sidebar lists the "
-     "workspaces of one herdr session, like herdr: state icon and name, then the git branch with ahead and "
-     "behind counts. A worktree workspace sits under its repository. The footer has only the filter and New "
-     "Session. Swipe the strip sideways to page through the tabs; swipe the sidebar to change the session.",
-     window("ws")),
+     "Title row: sidebar toggle, the machine (icon only), the selected workspace's tabs (always in the title "
+     "row), and on the right the Agents toggle, ⌘ and +. The sidebar lists the workspaces of one herdr session, "
+     "like herdr: state icon and name, then the git branch, ahead and behind counts and the number of changed "
+     "files. A workspace that is not a git repository shows one line. oriel-rex-ui is a git worktree of the "
+     "oriel repository: herdr groups a linked worktree's workspace under the workspace it came from, so it is "
+     "indented under oriel. The footer has only the filter and New Session. A sideways swipe on the strip "
+     "pages through the tabs; a sideways swipe on the sidebar changes the session.", window("ws")),
     ("B", "After a sideways swipe on the sidebar: the next session on this machine",
-     "One sidebar page per herdr session that runs on the machine (here default and pi-herd), Arc style, "
-     "with page dots; a click on a dot also switches. The page follows the finger during the swipe. The "
-     "title row's tabs belong to the selected workspace, so they change when you pick a workspace on this "
-     "page.", window("swipe")),
+     "One sidebar page per running herdr session on the machine (here default and pi-herd), Arc style, with "
+     "page dots; a click on a dot also switches. The tabs in the title row belong to the selected workspace.",
+     window("ws", session="pi-herd")),
     ("C", "Sidebar collapsed: only the tabs",
-     "The same toggle collapses the sidebar. A workspace menu appears next to the machine; the tabs stay in "
-     "the title row, and the strip still pages sideways between them.", window(None)),
+     "A workspace button appears next to the machine, with the session name in small text under the workspace "
+     "name. The strip still pages sideways between the tabs.", window(None)),
     ("D", "Sidebar collapsed, workspace menu open",
-     "Every workspace of every session on this machine, grouped by session, with its branch. New Workspace "
-     "and New Session at the bottom.", window(None, workspace_menu())),
+     "Every workspace of every running session on this machine. Each row has the session (and branch) in small "
+     "text under the workspace name.", window(None, workspace_menu())),
     ("E", "Machine menu open",
-     "The machine button shows only the machine's icon. Its menu shows the names. Picking a machine replaces "
-     "the window's sessions with that machine's. Add Remote Host lives only here.", window("ws", machine_menu())),
-    ("F", "Add Remote Host: the user picks an icon",
-     "The icon is how the machine shows in the title row, so the sheet asks for one.",
-     window("ws", add_host_sheet())),
-    ("G", "Agents view",
-     "The Agents toggle turns the sidebar into a list of agents: one row per agent pane, even when a tab "
-     "holds several. Sorted by priority (needs you, working, done, idle) or by workspace order. Idle agents "
-     "show by default. Each row says where the agent is; a click opens that workspace, tab and pane.",
-     window("agents")),
-    ("H", "Several windows",
-     "Each window shows one machine. Two windows can show different machines, or the same machine (then "
-     "they show the same sessions, each with its own selection).", two_windows()),
+     "Closed, the button shows only the machine's icon; open, the menu shows names. Picking a machine replaces "
+     "the window's sessions with that machine's; ⌥-click opens it in a new window instead (not shown in the "
+     "menu). Pages show only running sessions; Open Stopped Session lists the stopped ones and starts the one "
+     "you pick. Add Remote Host stays a placeholder until remote machines are built.",
+     window("ws", machine_menu())),
+    ("F", "Agents view: the agents of this session",
+     "The Agents toggle (right side) turns the sidebar into a list of the agents of the session on this page: "
+     "one row per agent pane, even when a tab holds several. Sorted by priority (needs you, working, done, "
+     "idle) or by workspace order. Idle agents show by default. A sideways swipe shows the next session's "
+     "agents. A click opens that workspace, tab and pane.", window("agents")),
+    ("G", "Agents toggle: icon options",
+     "Pick one. Each option is shown on (left, with the needs-you badge) and off, next to ⌘ and +.",
+     icon_options()),
+    ("H", "Two windows, same machine, different sessions",
+     "Each window shows one machine and controls the session on its page. Two windows on different sessions "
+     "both control their own session.",
+     pair(window("ws"), window("ws", session="pi-herd"), "Window 1 · This Mac · default (controls)",
+          "Window 2 · This Mac · pi-herd (controls)")),
+    ("I", "Two windows, same session",
+     "When two windows show the same session, the window where you typed last controls it; the other watches "
+     "and offers Take Back. Control is per session, not per pane.",
+     pair(window("ws"), window("ws", watching=True), "Window 1 · default (controls)",
+          "Window 2 · default (watching)")),
 ]
 
 CSS = (pathlib.Path(__file__).with_name("layout.css")).read_text()

@@ -122,3 +122,17 @@ code { font: 12px ui-monospace, Menlo, monospace; }
 .pair { display: flex; gap: 24px; } .mini { width: 590px; height: 300px; position: relative; }
 .mini .win { transform: scale(.5); transform-origin: top left; }
 .mlabel { position: absolute; top: 280px; left: 0; color: #b9bcc4; font-size: 12px; }
+.ws.one { height: 30px; align-items: center; padding-top: 0; }
+.changed { color: var(--amber); }
+.pick.two { height: 32px; } .pcol { display: flex; flex-direction: column; line-height: 1.1; }
+.pcol .psub, .psub { font-size: 10.5px; color: var(--dim); font-weight: 400; }
+.prow.two { padding: 4px 8px; } .prow.cur .psub { color: rgba(255,255,255,.75); }
+.prow.hov { background: rgba(255,255,255,.08); }
+.popup.submenu { left: 384px; top: 168px; width: 200px; }
+.strip.watching { position: relative; } .strip.watching .term { opacity: .5; }
+.watchbar { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px 6px 14px; border-radius: 18px; background: rgba(48,48,52,.94); box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 0 0 .7px rgba(255,255,255,.14); }
+.opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; max-width: 1180px; }
+.opt { background: rgba(30,30,34,.9); border-radius: 12px; padding: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+.optbar { display: flex; gap: 6px; } .optname { margin-top: 8px; color: #b9bcc4; font-size: 12px; }
+.opt .btn .ic { width: 17px; height: 17px; }
