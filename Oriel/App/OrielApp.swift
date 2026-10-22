@@ -88,9 +88,11 @@ struct OrielApp: App {
                 Text(dialog?.message ?? "")
             }
             .environment(\.look, look)
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("window.look")
-            .accessibilityValue(look.name)
+            // A text leaf: SwiftUI exposes no value on a container or a plain element.
+            .background {
+                Color.clear.accessibilityElement().accessibilityAddTraits(.isStaticText)
+                    .accessibilityIdentifier("window.look").accessibilityValue(look.name)
+            }
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)
             .containerBackground(for: .window) { WindowBackground(look: look) }
