@@ -28,7 +28,9 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
    titles first.
 4. **Sub-pages** (a stack; ⌫ on an empty field or ⎋ goes back one page, ⎋ on the root closes):
    - Rename Tab ›, Rename Workspace ›, Rename Pane ›: the field holds the current name; Enter saves.
-   - Move Pane to Tab ›: the workspace's other tabs, plus "New Tab" and "New Workspace".
+   - Move Pane to Tab ›: the workspace's other tabs, plus "New Tab" and "New Workspace". A move into a
+     tab names that tab's last card as `target_pane_id` (phase 18 Findings: without it herdr splits the
+     tab's focused pane). Fix phase 17's Move to Tab ▸ menu item the same way.
    - Appearance › (Auto, Light, Dark) and Interface Style › (Glass, Classic): highlighting a row for
      0.75 s previews it on the window; Enter keeps it, ⎋ restores the old one.
    - Font Size › (no Cursor Style: that setting waits for the Settings window, D62).

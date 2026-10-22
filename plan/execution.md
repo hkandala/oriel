@@ -80,8 +80,12 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    action and in `keyDown` in the first run; test chords through their menu item (global hotkeys of
    other apps take some chords on this Mac). Check a ponytail change that moves *when* code runs against
    the tests it can break before taking it.
-15. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
-16. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
+15. **CI recordings stand in for the GUI** (phase 18): green runs keep their screen recordings; frames
+   from them are screenshots. XCUITest runs nothing during a drag: let the outcome after the drop prove
+   the mid-drag behavior. Spike each herdr call in the exact shape the code and tests send (defaults
+   such as a missing `target_pane_id` differ).
+16. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
+17. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
 
 ## The phase loop (inside each phase agent)
@@ -219,6 +223,12 @@ The user is not asked during phases 10–21. The orchestrator decides open quest
 ponytail rules, records each choice in the design pages, keeps going until phase 21 is done, and lists
 here what the user should check at the end.
 
+### Hand checks waiting for the GUI
+
+- Phase 18: the 9 checks in `plan/phases/18-drag-and-drop.md` Findings, "To check by hand when the GUI is
+  free" (Esc, forbidden pointer, window not moving, spring-load to an edge in another tab, full track or
+  sidebar). The orchestrator runs them (or a short agent) when the user frees the GUI.
+
 ### For the user to check at the end
 
 - Phase 10: the four looks next to Rex (`/tmp/oriel-shots/10/final-*.png`). Known gaps kept on purpose:
@@ -255,7 +265,7 @@ here what the user should check at the end.
 | 15 | phase15-agents | done | 13 commits, 4 rounds, 1h11m, ~30 min GUI lock |
 | 16 | phase16-windows | done | 12 commits, 3 rounds, 1h47m, ~50 min GUI lock |
 | 17 | phase17-panes | done | 18 commits, 4 rounds, 1h56m, ~55 min GUI lock |
-| 18 | | not started | |
+| 18 | phase18-drag-drop | done | 14 commits, 2 rounds, 2h56m, CI only (GUI paused) |
 | 19 | | not started | |
 | 20 | | not started | |
 | 21 | | not started | |
