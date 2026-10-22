@@ -36,7 +36,7 @@ Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (sidebar, Open Session shee
    window reopens them; a name that no longer runs is skipped
    (`herdr --session <S> session list --json`, the existing `sessions()`). If none is left, the first
    page rule applies. macOS restores no window until phase 16 removes `window.isRestorable = false`;
-   phase 16 tests restore.
+   phase 16 checks restore.
 5. **Close Page.** The context menu of the page header and of its page dot has "Close Page". It
    removes the page from the window and its store disconnects (events stream and terminal streams
    end). The herdr session keeps running. Disabled on the last page.
