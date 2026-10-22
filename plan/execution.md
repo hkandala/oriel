@@ -15,11 +15,8 @@ next phase.
 
 ## GUI runs while the user works
 
-The user is working on this Mac and declined local `make e2e` runs (phase 11). Until the user says
-otherwise: no local XCUITest runs or app launches. e2e runs on GitHub CI on every push (the
-`e2e-xcresult` artifact). Screenshots come from `XCTAttachment`s (keepAlways) in the tests:
-`gh run download <id> -n e2e-xcresult` and `xcrun xcresulttool export attachments`. Local
-`make lint build test` is fine. This applies to phase agents, reviewers and the verifier.
+Local GUI runs (XCUITest, app launches, screenshots) are allowed under the GUI lock. The user may step in
+for a moment; then wait and go on. CI stays the final check.
 
 ## The phase loop (inside each phase agent)
 
