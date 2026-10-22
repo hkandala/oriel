@@ -16,10 +16,12 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
 ## Build
 
 1. **HerdrKit.** Decode from `snapshot.agents[]`: `pane_id`, `terminal_id`, `agent`, `display_agent`,
-   `agent_status`, `completion_seq`, `state_change_seq` (lenient, all optional except the pane id).
+   `agent_status`, `completion_seq` (lenient, all optional except the pane id).
 2. **Seen (D14).** A small value type in HerdrKit (unit tested: it branches) that takes each snapshot
    and the panes the user is looking at, and returns per agent pane: `needsYou`, `working`,
-   `finishedUnseen` or `idle`, plus the changes since the last snapshot (for notifications).
+   `finishedUnseen` or `idle`, plus the changes since the last snapshot (for notifications). herdr's
+   statuses map as: blocked → `needsYou`, working → `working`, done / idle / unknown → `idle` unless
+   `completion_seq` makes it `finishedUnseen` (herdr's `done` is not used, `layout.mdx`).
    - Finished and not seen = `completion_seq` not null and different from the seen value.
    - The first sighting of an agent records its value as seen (no flood after launch).
    - Looking at a pane records its value: its tab is selected on the page in view and the window is
@@ -46,7 +48,7 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
 6. **Bounce and announcement.** When a tab's state turns to needs you or finished while it is not
    selected: its front icon bounces once (scale 1 → 1.15 → 1, spring, off under Reduce Motion), and
    its title shows "‹agent› needs you" or "‹agent› finished" for 3 s, then the title again. A long text
-   scrolls once (30 pt/s) instead of fading.
+   fades at its end like any title.
 
 ### Agents button
 
@@ -55,7 +57,7 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
    symbol made from it, since `.fill` fills both bubbles), with no highlight. An amber 7 pt dot on its
    top-right when an agent of the current session (the page in view) needs you. Id `titlebar.agents`,
    accessibility value "N need you".
-8. **Click**, ⌘. and View ▸ Show Agents toggle the Agents view. Turning it on while the sidebar is
+8. **Click**, ⌘. and View ▸ Show Agents (an entry in the command list) toggle the Agents view. Turning it on while the sidebar is
    collapsed opens the sidebar in the Agents view. Turning it off shows the Workspaces view; the
    sidebar stays open.
 9. **Hover popover.** The pointer rests 0.25 s on the button: a floating glass panel under it,
@@ -64,7 +66,8 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
    (never herdr focus, D13); the sidebar view does not change. With nobody waiting: "Nobody needs
    you". No footer text. It stays while the pointer moves from the button into the panel (0.15 s
    grace), and closes when the pointer leaves both, on a click elsewhere, or with Esc. Not while
-   dragging.
+   dragging. Build these rules once, as one hover-panel modifier (on native `.popover` if it gives the
+   glass, click-outside and Esc), so phase 19's hover card reuses it.
 
 ### Agents view
 
@@ -76,10 +79,11 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
     - One row per agent pane, even when several share a tab. Row 44 pt: the program tile (phase 12)
       with its badge, the agent's name (`display_agent`, else `agent`), and on the right the status
       capsule ("Needs you" amber, "Working" blue, "Done" green, "Idle" gray: text in the color on a
-      0.15 fill of it). Line 2 in secondary text: "‹workspace› · ‹tab›" and the age on the right
+      0.15 fill of it). Line 2 in secondary text: "‹workspace› · ‹tab›" (the tab named by the
+      phase 13 title rule, since herdr's default label is a bare number) and the age on the right
       ("now", "3m", "2h").
-    - Idle agents show. "Done" is a finish not yet seen; once seen, the agent is Idle.
-    - Rows do not move while the pointer is over the list; the new order applies when it leaves.
+    - Idle agents show. "Done" is a finish not yet seen; once seen, the agent is Idle. Rows reorder on
+      each snapshot.
     - A click selects the workspace and tab and gives the pane the keyboard, which records a finish as
       seen.
     - The footer filter keeps rows whose agent, workspace or tab name matches.
@@ -88,18 +92,21 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
 
 ### Notifications and the Dock
 
-11. **Notifications (D31).** `UNUserNotificationCenter`, delegate set at launch. They cover every
+11. **Notifications (D31).** `UNUserNotificationCenter`, delegate set at launch in an
+    `NSApplicationDelegateAdaptor` (the Dock menu uses the same adaptor; phase 21 adds folder opens to
+    it). They cover every
     open page of the window, not only the one in view.
     - A pane turns to needs you: "‹agent› needs you", body "‹session› · ‹workspace› · ‹tab›".
     - A new finish: "‹agent› finished", same body, unless the user is looking at that pane.
     - Only while the app is not active, or the pane is not shown.
-    - Id `"<session>|<terminal_id>"`, so a newer one replaces the older; removed when the pane is seen.
+    - Id `"<machine>|<session>|<terminal_id>"` (machine is "local" for This Mac), so a newer one replaces the older; removed when the pane is seen.
     - A click activates the app, shows that session's page and selects the pane.
 12. **Dock.** Badge = the number of panes that need you over all open pages, plus unseen finishes
     when that setting is on. Sounds: one system sound per status (`NSSound(named:)`: "Funk" for needs
     you, "Glass" for finished), off by default. Dock menu (`applicationDockMenu`): a row per pane that
     needs you or finished ("codex needs you · default · infra", a click selects it), a separator, New
-    Tab.
+    Tab. Expose the badge as the accessibility value of an element with id `app.badge` on the window
+    root (as `window.look` does), so e2e can read it.
 13. **Settings ▸ Notifications.** For Needs you and Finished each: Notify (on), Badge the Dock icon
     (on for needs you, off for finished), Play a sound (off).
 
@@ -115,8 +122,9 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
 ## e2e
 
 All status changes come from `pane.report_agent` through the e2e helper on a throwaway pane (source
-`oriel-e2e`, increasing `seq`). The tests use two throwaway sessions, `oriel-e2e-<id>-a` (launched)
-and `oriel-e2e-<id>-b` (opened as a second page through the Open Session sheet).
+`oriel-e2e`, increasing `seq`). The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION`
+(launched) and `ORIEL_SESSION2` (opened as a second page through the Open Session sheet). A test that
+needs another name adds it to e2e.sh and the helper.
 
 - Report `working` on a pane of another tab: that tab's status slot shows working (accessibility
   value "working"); the selected tab shows none; the workspace row's value says working.
@@ -124,8 +132,8 @@ and `oriel-e2e-<id>-b` (opened as a second page through the Open Session sheet).
   button's value is "1 need you". Hover the button: the popover (id `agents.popover`) lists that
   agent; a click on it selects the tab, gives its card the keyboard, and the sidebar still shows
   workspaces.
-- Report `blocked` in session `b` while `a` is in view: the Agents button shows no dot, the Dock badge
-  is 1; show `b`'s page: the dot shows.
+- Report `blocked` in `ORIEL_SESSION2` while `ORIEL_SESSION` is in view: the Agents button shows no
+  dot, and `app.badge` is 1; show `ORIEL_SESSION2`'s page: the dot shows.
 - ⌘.: the Agents view lists every agent of the session, idle ones too, grouped Needs you, Working,
   Done, Idle; switch to Workspace order: herdr's order. ⌘. again: the Workspaces view.
 - Report `working` then `idle`: the row shows "Done"; a click on it selects the pane and the row shows
@@ -140,3 +148,5 @@ and `oriel-e2e-<id>-b` (opened as a second page through the Open Session sheet).
 - Screenshots: tabs with working dots, a needs-you badge and a finished badge; workspace rows with
   each state icon; the needs-you popover; the Agents view in both sorts; a notification banner; the
   Dock badge.
+
+## Findings
