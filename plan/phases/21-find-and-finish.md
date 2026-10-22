@@ -48,7 +48,7 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
    - Keep the herdr install, too old and not running states (D38, D47). The not running state is per
      page: a page whose session stops while it is open shows it with **Start**; the page stays open.
    - **Controlled in another window** (phase 16): the watching window's capsule gets the notice look
-     of step 6 (info tone, `macwindow.on.rectangle`, the **Take Back** button, no ✕). It sits under a
+     of step 7 (info tone, `macwindow.on.rectangle`, the **Take Back** button, no ✕). It sits under a
      notice when both show. VoiceOver reads "Controlled in another window" when it appears.
    - A pane another device holds: the card's button reads "In use elsewhere · Take Back", the one form
      the docs use (today the code writes "back" in lowercase).
@@ -91,8 +91,6 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   herdr's scroll offset is not 0 (snapshot `scroll.offset_from_bottom`); ⎋ sets it back to 0.
 - ⌘-click on a printed `https://example.com` URL: the app asks the system to open it (test through a
   launch argument that records opened URLs instead of opening them).
-- Launched on `ORIEL_SESSION5`, stop its server through the helper's `/stop`: the reconnecting state
-  shows; `/start`: the cards come back.
 - A failed write shows the notice capsule with its symbol.
 - With `ORIEL_SESSION5` open as a second page, stop its server through the helper: that page shows
   the not running state with Start; Start brings its workspaces back; the first page is not touched.
@@ -100,6 +98,7 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   needs a sixth session name: add it to `scripts/e2e.sh` and the helper. Make it fail with the
   smallest hook that works (for example a launch argument that sets the start timeout to 0 s); if
   none is small, check it by hand and record it.
+- The reconnecting state (the bridge fails while the server runs) is checked by hand.
 - Two windows on `ORIEL_SESSION`: the watching window's capsule has the notice look and Take
   Back works.
 

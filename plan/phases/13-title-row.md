@@ -62,14 +62,17 @@ The row stays 40 pt (no private API for a taller one). Its items are 8 pt apart.
    - Picking a workspace selects it (the app's own selection, never herdr focus, D13). In phase 14, a
      workspace of another page also switches the sidebar to that page.
 8. Today's session picker (`SessionPicker`) and ⇧⌘N's session list stay until phase 14 removes them.
+
 ### Sidebar and commands
 
 9. **Sidebar tab rows go.** Remove the tab rows (id `tab.<id>`) from the sidebar now, so XCUITest finds
    one `tab.<id>` element (the capsule). The sidebar shows workspace rows only until phase 14 restyles
    them.
 10. **One command list** (D48). Make the one list of commands (title, shortcut, action, enabled) that
-    the menu bar reads, and put this phase's commands in it. Phases 14–19 append to it; phase 20 adds
-    the palette's rendering and sub-pages. No phase writes a menu item that phase 20 must move.
+    the menu bar reads, put this phase's commands in it, and move today's menu items
+    (`ActionCommands`, `TabCommands`) and those of phases 10–11 into it. Phases 14–19 append to it;
+    phase 20 adds the palette's rendering and sub-pages. No later phase writes a menu item that phase
+    20 must move.
 
 ### Tab bar (always in the title row)
 

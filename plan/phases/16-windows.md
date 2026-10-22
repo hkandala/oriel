@@ -23,8 +23,9 @@ Phase 14 already built the store registry (a dictionary by session name), the pe
 
 1. **Scene.** Replace the single `Window("Oriel", id: "main")` with `WindowGroup(id: "main")`, same
    size, toolbar style, resizability and commands. Keep `allowsAutomaticWindowTabbing = false` (no
-   window tabs). File ▸ New Window ⌘N: a `Button` calling `openWindow(id: "main")` in the `.newItem`
-   group (that group is replaced today, so SwiftUI's own item does not exist). The new window has one
+   window tabs). File ▸ New Window ⌘N: an entry in phase 13's command list whose action calls
+   `openWindow(id: "main")`, shown in the `.newItem` group (that group is replaced today, so SwiftUI's
+   own item does not exist). The new window has one
    page by the phase 14 first page rule (`-session` in e2e, else `default`).
 2. **⌥-click.** In the machine menu (phase 13), ⌥-click on This Mac (read `NSEvent.modifierFlags` in the
    item's action) opens a new window, as ⌘N. `ponytail:` no machine id is stored until remote machines
@@ -60,7 +61,8 @@ Phase 14 already built the store registry (a dictionary by session name), the pe
    is watched. Cards watched because another Oriel window controls the session show no per-card
    "In use elsewhere · Take Back"; that stays for other devices.
 9. **Hand-off on close.** When the controlling window closes or closes the page, it leaves `windows`,
-   and the next window in the list becomes the controller.
+   and the next window in the list becomes the controller. The new controller calls `takeBack()` on its
+   shown terminals of S (no one else holds them), so the PTY takes its card size.
 10. **Two surfaces for one pane.** Each window has its own `PaneViewRegistry` (phase 14), so a pane
     shown in two windows has two libghostty surfaces and two streams (one control, one observe). The
     registries share one count of about 24 streams over all windows (D46). Two statics become per
@@ -99,7 +101,8 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
 - Select another tab in window 2: window 1's selected tab stays.
 - In window 2, open `ORIEL_SESSION2` through the Open Session sheet and close page `ORIEL_SESSION`: no
   capsule in either window; both control their own session.
-- Close window 1 while both show `ORIEL_SESSION`: window 2 controls it (no capsule).
+- Close window 1 while both show `ORIEL_SESSION`: window 2 controls it (no capsule), and herdr's PTY
+  size equals window 2's card size (`expectPTYSize`).
 - With two windows open, the helper's `/children` shows the same count of `remote-api-bridge` runs as
   with one window (the events bridge and request bridges look alike).
 
