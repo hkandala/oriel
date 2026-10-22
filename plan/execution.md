@@ -67,8 +67,10 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    whether an event arrives. XCUITest drags on macOS need `click(forDuration:thenDragTo:)`;
    `press(forDuration:thenDragTo:)` sends no mouse down. Dump `debugDescription` before guessing an
    element's label or value.
-12. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
-13. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
+12. **Assert every scripted edit** (phase 15): a replace that matches nothing must fail loudly.
+   **Write the screenshot's e2e test first**, so the rough screenshot (rule 5) is also its first run.
+13. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
+14. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
 
 ## The phase loop (inside each phase agent)
@@ -153,7 +155,7 @@ instead of why. Report a numbered list: file:line, severity, the smaller version
 **E2E and GUI reviewer.** "Round 1 only, at most 15 minutes of GUI lock (`plan/rules.md`; see the GUI
 budget in `plan/execution.md`). Build and run Oriel against a throwaway session
 (`scripts/herdr-session.sh up oriel-dev-<name>`, `make run SESSION=…`), drive the new UI of phase NN through
-XCUITest or by mouse, try to break it, take screenshots (`screencapture -x -l <window id>`), release the
+XCUITest only (a scripted mouse click landed in the user's Ghostty in phase 15), try to break it, take screenshots (`screencapture -x -l <window id>`), release the
 lock, delete the session. Never send keys with osascript / System Events. No full `make e2e` (the phase
 agent runs it once at the end; CI runs it on every push). Then read the phase's tests. Flag slop tests:
 tests that assert nothing real, assert only that an element exists when the phase promises behavior, sleep
@@ -219,6 +221,9 @@ here what the user should check at the end.
 - Phase 14: the Open Session sheet lists every herdr session on the Mac (your `default` and `pi-herd`
   too). Workspaces the app creates in a repo are not indented as worktrees (herdr fills the worktree
   fields only for `worktree.*` calls). The "herdr is too old" page still says to update herdr.
+- Phase 15: notifications and the Dock badge need a signed build: the ad-hoc dev build gets no
+  notification permission, so neither showed on this Mac. One reviewer's scripted mouse click landed in
+  your Ghostty window (no keys sent).
 - The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
   at Glass Dark.
 
@@ -231,7 +236,7 @@ here what the user should check at the end.
 | 12 | phase12-program-icons | done | 16 commits, 3 rounds, 1h07m, ~20 min GUI lock |
 | 13 | phase13-title-row | done | 15 commits, 3 rounds, 1h55m, ~35 min GUI lock |
 | 14 | phase14-sidebar | done | 13 commits, 3 rounds, 1h28m, ~40 min GUI lock |
-| 15 | | not started | |
+| 15 | phase15-agents | done | 13 commits, 4 rounds, 1h11m, ~30 min GUI lock |
 | 16 | | not started | |
 | 17 | | not started | |
 | 18 | | not started | |
