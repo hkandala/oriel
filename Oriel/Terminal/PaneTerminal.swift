@@ -61,18 +61,33 @@
         static let fontSizes = 8 ... 32
 
         /// `keybind = clear`: app shortcuts reach the menu. Transparent, so the card shows through.
-        /// No padding, so cells map from the view's origin; no scrollback, herdr keeps it. Settings ▸ Terminal
-        /// lays its `TerminalConfiguration` on top (`OrielApp`).
-        static let controller = TerminalController {
+        /// No padding, so cells map from the view's origin; no scrollback, herdr keeps it. The system
+        /// monospaced font (SF Mono) rather than libghostty's own JetBrains Mono.
+        private static let controller = TerminalController {
             $0.withCustom("keybind", "clear")
+            $0.withFontFamily(NSFont.monospacedSystemFont(ofSize: 0, weight: .regular).familyName ?? "Menlo")
             $0.withBackgroundOpacity(0)
             $0.withWindowPaddingX(0)
             $0.withWindowPaddingY(0)
             $0.withCustom("window-padding-balance", "false")
             $0.withCustom("scrollback-limit", "0")
-            // Option types characters on every layout (on CI's, libghostty sent Alt by default); Option as Alt
-            // goes through herdr's key names (`PaneSurfaceView.herdrKey`).
+            // Option types characters on every layout (on CI's, libghostty sent Alt by default).
             $0.withCustom("macos-option-as-alt", "false")
+        }
+
+        /// Bigger or Smaller. From the stored value, not a view's copy: SwiftUI keeps a keyboard shortcut's first
+        /// action, whose `@AppStorage` copy then lags (⌘= added to the size it last set itself).
+        static func stepFontSize(_ step: Int) {
+            let defaults = UserDefaults.standard
+            let size = (defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step
+            defaults.set(min(max(size, fontSizes.lowerBound), fontSizes.upperBound), forKey: "fontSize")
+        }
+
+        /// Every surface takes a new text size at once, and its stream stays open; its grid changes, so the
+        /// card resizes its PTY.
+        static func setFontSize(_ size: Int) {
+            let size = min(max(size, fontSizes.lowerBound), fontSizes.upperBound)
+            controller.setTerminalConfiguration(TerminalConfiguration { $0.withFontSize(Float(size)) })
         }
 
         init(terminalID: String, paneID: String, client: any Multiplexer) {

@@ -13,6 +13,8 @@
     struct ActionCommands: Commands {
         @FocusedBinding(\.store) private var store
         @FocusedBinding(\.palette) private var palette
+        @AppStorage("appearance") private var appearance = Appearance.dark
+        @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
         @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
 
         var body: some Commands {
@@ -28,18 +30,15 @@
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(store == nil)
             }
-            // ⌘W closes the keyboard card, ⇧⌘W the window (design: keyboard). In a window without a store
-            // (Settings) ⌘W closes the window.
+            // ⌘W closes the keyboard card, ⇧⌘W the window (design: keyboard).
             CommandGroup(replacing: .saveItem) {
-                Button(store == nil ? "Close" : "Close Pane") {
+                Button("Close Pane") {
                     if let store, let pane = store.keyboardPane {
                         Task { await store.close(pane: pane.id) }
-                    } else if store == nil {
-                        NSApp.keyWindow?.performClose(nil)
                     }
                 }
                 .keyboardShortcut("w")
-                .disabled(store != nil && store?.keyboardPane == nil)
+                .disabled(store?.keyboardPane == nil)
                 Button("Close Window") { NSApp.keyWindow?.performClose(nil) }
                     .keyboardShortcut("w", modifiers: [.command, .shift])
             }
@@ -58,13 +57,21 @@
                 .keyboardShortcut(.return, modifiers: [.command, .shift])
                 .disabled(store?.keyboardPane == nil)
                 Divider()
-                LookPickers()
+                Picker("Appearance", selection: $appearance) {
+                    Text("Auto").tag(Appearance.auto)
+                    Text("Light").tag(Appearance.light)
+                    Text("Dark").tag(Appearance.dark)
+                }
+                Picker("Interface Style", selection: $style) {
+                    Text("Glass").tag(InterfaceStyle.glass)
+                    Text("Classic").tag(InterfaceStyle.classic)
+                }
                 Divider()
                 // The text size (design: theme and accessibility); ContentView holds the second key, ⌘=.
-                Button("Bigger") { fontSize += 1 }
+                Button("Bigger") { PaneTerminal.stepFontSize(1) }
                     .keyboardShortcut("+")
                     .disabled(fontSize >= PaneTerminal.fontSizes.upperBound)
-                Button("Smaller") { fontSize -= 1 }
+                Button("Smaller") { PaneTerminal.stepFontSize(-1) }
                     .keyboardShortcut("-")
                     .disabled(fontSize <= PaneTerminal.fontSizes.lowerBound)
                 Button("Actual Size") { fontSize = PaneTerminal.fontSize }

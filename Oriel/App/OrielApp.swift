@@ -1,38 +1,17 @@
-#if os(macOS)
-    import GhosttyTerminal
-#endif
 import HerdrKit
 import SwiftUI
 
 @main
 struct OrielApp: App {
     #if os(macOS)
-        @AppStorage("fontFamily") private var fontFamily = ""
         @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
-        @AppStorage("cursorStyle") private var cursorStyle = TerminalCursorStyle.block
-        @AppStorage("cursorBlink") private var cursorBlink = true
-        @AppStorage("copyOnSelect") private var copyOnSelect = false
-
-        /// Settings ▸ Terminal for libghostty. Every surface takes a change at once, and its stream stays open.
-        private var terminal: TerminalConfiguration {
-            TerminalConfiguration {
-                $0.withFontFamily(fontFamily.isEmpty ? NSFont.monospacedSystemFont(ofSize: 0, weight: .regular)
-                    .familyName ?? "Menlo" : fontFamily)
-                $0.withFontSize(Float(min(max(fontSize, PaneTerminal.fontSizes.lowerBound),
-                                          PaneTerminal.fontSizes.upperBound)))
-                $0.withCursorStyle(cursorStyle)
-                $0.withCursorStyleBlink(cursorBlink)
-                // libghostty-spm drops writes to the selection clipboard; `clipboard` also writes the pasteboard.
-                $0.withCustom("copy-on-select", copyOnSelect ? "clipboard" : "false")
-            }
-        }
 
         init() {
             SwipeRouter.install()
             // One window; no tab bar or tab menu items of AppKit's own.
             NSWindow.allowsAutomaticWindowTabbing = false
-            // Before any surface exists, so none starts at libghostty's default font.
-            PaneTerminal.controller.setTerminalConfiguration(terminal)
+            // Before any surface exists, so none starts at libghostty's default size.
+            PaneTerminal.setFontSize(fontSize)
         }
     #endif
 
@@ -49,11 +28,7 @@ struct OrielApp: App {
                 TabCommands()
                 ActionCommands()
             }
-            .onChange(of: terminal) { PaneTerminal.controller.setTerminalConfiguration(terminal) }
-
-            Settings {
-                SettingsView()
-            }
+            .onChange(of: fontSize) { PaneTerminal.setFontSize(fontSize) }
         #else
             WindowGroup {
                 ContentUnavailableView("Oriel for iOS is coming", systemImage: "iphone")
@@ -75,7 +50,6 @@ struct OrielApp: App {
         @State private var palette = false
         @AppStorage("appearance") private var appearance = Appearance.dark
         @AppStorage("interfaceStyle") private var style = InterfaceStyle.glass
-        @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
         @Environment(\.colorScheme) private var colorScheme
 
         var body: some View {
@@ -129,14 +103,11 @@ struct OrielApp: App {
                     .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
             }
             // View ▸ Bigger's second key: a menu item shows one. Zero size and opacity, not `hidden()`, whose
-            // shortcuts do not fire. A new button per size: SwiftUI keeps a shortcut's first action, which then
-            // added to the size it last set itself.
+            // shortcuts do not fire.
             .background {
-                Button("Bigger") { fontSize += 1 }
+                Button("Bigger") { PaneTerminal.stepFontSize(1) }
                     .keyboardShortcut("=")
-                    .disabled(fontSize >= PaneTerminal.fontSizes.upperBound)
                     .frame(width: 0, height: 0).opacity(0).accessibilityHidden(true)
-                    .id(fontSize)
             }
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)

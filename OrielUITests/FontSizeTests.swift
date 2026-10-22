@@ -1,0 +1,54 @@
+import XCTest
+
+/// The text size (phase 11): View ▸ Bigger, Smaller and Actual Size. The size persists in the app's own defaults, so
+/// the test puts it back.
+extension OrielUITests {
+    /// ⌘+ and ⌘= make the text bigger, ⌘- smaller, ⌘0 brings back the default size. A shown card's grid follows,
+    /// herdr's PTY follows it, and the stream stays open.
+    func testFontSizeKeys() async throws {
+        let terminal = element("terminal.w1:p1")
+        XCTAssertTrue(terminal.waitForExistence(timeout: connect))
+        addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
+        app.typeKey("0", modifierFlags: .command)
+        try await expectPTYSize("w1:p1")
+        let actual = try XCTUnwrap(terminal.value as? String)
+        let stream = try await pid(of: "w1:p1")
+
+        app.typeKey("+", modifierFlags: .command)
+        let bigger = try await expectGrid(terminal, smallerThan: actual)
+        try await expectPTYSize("w1:p1")
+        app.typeKey("=", modifierFlags: .command)
+        try await expectGrid(terminal, smallerThan: bigger)
+        app.typeKey("0", modifierFlags: .command)
+        try await expectGrid(terminal, actual)
+        // ⌘= again, from the size another key set: one step bigger than actual.
+        app.typeKey("=", modifierFlags: .command)
+        try await expectGrid(terminal, bigger)
+        app.typeKey("-", modifierFlags: .command)
+        try await expectGrid(terminal, actual)
+        try await expectPTYSize("w1:p1")
+        let after = try await pid(of: "w1:p1")
+        XCTAssertEqual(after, stream, "the stream was not opened again")
+    }
+
+    /// The grid shrinks below `grid` (a bigger font); the new grid.
+    @discardableResult
+    private func expectGrid(_ terminal: XCUIElement, smallerThan grid: String) async throws -> String {
+        let size = { (grid: String) in grid.split(separator: " ").compactMap { Int($0) } }
+        return try await poll("the grid to shrink below \(grid)") { () -> String? in
+            guard let now = terminal.value as? String, size(now).count == 2 else { return nil }
+            return size(now)[0] < size(grid)[0] && size(now)[1] < size(grid)[1] ? now : nil
+        }
+    }
+
+    private func expectGrid(_ terminal: XCUIElement, _ grid: String) async throws {
+        try await poll("the grid \(grid)") { terminal.value as? String == grid ? true : nil }
+    }
+
+    /// The pid of the pane's `terminal session` run.
+    private func pid(of pane: String) async throws -> String {
+        let terminal = try await terminalID(pane)
+        let line = try await streams(one).first { $0.contains(terminal) }
+        return try String(XCTUnwrap(line?.split(separator: " ").first))
+    }
+}
