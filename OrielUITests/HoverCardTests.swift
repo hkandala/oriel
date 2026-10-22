@@ -17,9 +17,9 @@ extension OrielUITests {
         XCTAssertEqual(rows(of: card).count, 3)
         try await waitForValue("hovercard.\(pane)", containing: "hover-42")
         XCTAssertTrue((element("hovercard.\(pane)").value as? String)?.hasPrefix("Needs you") == true)
-        // Under its capsule.
+        // Under its capsule, 6 pt below the title row (9 pt below the capsule).
         XCTAssertEqual(card.frame.midX, element("tab.\(tab)").frame.midX, accuracy: 2)
-        XCTAssertGreaterThan(card.frame.minY, element("tab.\(tab)").frame.maxY)
+        XCTAssertEqual(card.frame.minY - element("tab.\(tab)").frame.maxY, 9, accuracy: 1.5)
         keepScreenshot("hover card")
 
         app.typeKey(.escape, modifierFlags: [])
@@ -63,7 +63,9 @@ extension OrielUITests {
         XCTAssertTrue(card.exists(within: 2))
         XCTAssertEqual(rows(of: card).count, 2)
         XCTAssertEqual(card.label, "Panes of build")
-        XCTAssertGreaterThan(card.frame.minX, element("sidebar").frame.maxX)
+        // Beside the row, 6 pt past the sidebar's edge.
+        XCTAssertEqual(card.frame.minY, row.frame.minY, accuracy: 1.5)
+        XCTAssertEqual(card.frame.minX - element("sidebar").frame.maxX, 6, accuracy: 1.5)
         // A click on the title selects the tab and its workspace.
         element("hovercard.title").click()
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))

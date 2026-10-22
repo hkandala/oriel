@@ -39,8 +39,11 @@ final class OrielUITests: XCTestCase {
         // No window state from earlier runs.
         app.launchArguments = ["-session", one, "-ApplePersistenceIgnoreState", "YES"]
         app.launch()
-        // Off the title row: a pointer left on a capsule by the last test would open its hover card.
-        if app.windows.firstMatch.exists(within: 5) {
+    }
+
+    /// The pointer goes off the title row: left on a capsule, it would open a hover card in the next test's launch.
+    override func tearDown() async throws {
+        if app.windows.firstMatch.exists {
             app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.9)).hover()
         }
     }
