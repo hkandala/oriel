@@ -13,9 +13,9 @@ struct OrielApp: App {
             // Before any surface exists, so none starts at libghostty's default size.
             PaneTerminal.setFontSize(fontSize)
             // ⌘= is View ▸ Bigger's second key (a menu item shows one). A monitor, not an invisible button with
-            // the shortcut: on CI that button never got ⌘=.
+            // the shortcut, so Shift may be down: on layouts where = is a shifted key (German: ⇧0), ⌘= is ⇧⌘0.
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+                guard event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.shift) == .command,
                       event.charactersIgnoringModifiers == "=" else { return event }
                 MainActor.assumeIsolated { PaneTerminal.stepFontSize(1) }
                 return nil
