@@ -182,7 +182,7 @@ public actor HerdrClient {
             "workspace.moved", "workspace.reordered", "workspace.closed",
             "tab.created", "tab.closed", "tab.renamed", "tab.moved",
             "pane.created", "pane.closed", "pane.moved", "pane.exited", "pane.agent_detected",
-            // A title change (and the app's icons follow titles).
+            // herdr sends it on a terminal title change; a title can pick a pane's icon.
             "pane.updated", "layout.updated",
         ]
         // No *.focused: the app ignores herdr's focus. Each agent entry makes herdr poll that pane

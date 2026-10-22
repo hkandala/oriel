@@ -13,7 +13,7 @@ struct Palette: View {
 
     private struct Item: Identifiable {
         let id: String
-        /// A tab's when it has no pane.
+        /// A tab row shows its front pane's program tile instead, when it has one.
         var symbol = "apple.terminal"
         /// A tab's front pane, for its program tile.
         var pane: HostStore.Pane?
