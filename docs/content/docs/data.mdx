@@ -28,7 +28,7 @@ One rule decides where each new thing goes (D57):
 | Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults` (on macOS the add sheet offers `herdr machine list`) |
 | iOS SSH key and pinned host keys | app, disk | Secure Enclave, Keychain |
 | Settings: appearance, interface style, text size and pane options ([Settings](/docs/ui/settings)); pill settings | app, disk | app storage (`UserDefaults`) |
-| Per window: the machine (once remote machines exist), the names of its open pages (`pages`), the page in view (`page`), sidebar shown or hidden (`sidebar`), sidebar view (workspaces or agents) and its sort, and sidebar width (`sidebarWidth`) | app, disk | `@SceneStorage`, one set per window |
+| Per window: the machine (once remote machines exist), the names of its open pages (`pages`), the page in view (`page`), each page's selected workspace and tabs (`selection`, one JSON string), sidebar shown or hidden (`sidebar`), sidebar view (workspaces or agents, `agents`) and its sort (`agentSort`), and sidebar width (`sidebarWidth`) | app, disk | `@SceneStorage`, one set per window |
 | Plugin code and source record | app, disk | `Application Support/Oriel/plugins/` |
 | Plugin consent and This Mac answers | app, disk | `UserDefaults` |
 | Plugin preferences | app, disk | `UserDefaults`, passwords in the Keychain |
@@ -52,7 +52,13 @@ herdr's labels and the machines' state files
 ## Which pages a window opens
 
 - A restored window opens the pages in `pages` again, in order, and shows
-  `page`. A name that no longer runs is skipped.
+  `page`, each with its `selection`. A name that no longer runs is skipped.
+  macOS hands a restored window its scene storage a moment after the window
+  first shows, so the window waits for it (at most 1 s) before it opens a
+  page.
+- With `-session` on the command line, every window opens only that session
+  (a run against a throwaway session never reopens another), with its saved
+  selection.
 - With none left, or in a new window, the first page is the session named by
   the `-session` launch argument, else `default`. The app starts it when it
   is stopped (a launchd job, D47). It never opens another session by itself.

@@ -62,8 +62,8 @@ Window menu and Mission Control show it.
   ([Add a machine](/docs/ui/add-a-machine)).
 - Picking a machine replaces the window's pages with that machine's
   `default` session.
-  ⌥-click on a machine opens it in a new window. The menu does not show this
-  as an item.
+  ⌥-click on a machine opens it in a new window, as ⌘N. The menu does not
+  show this as an item.
 - Until remote machines are built, the menu lists This Mac, and Add Remote
   Host is a placeholder.
 - macOS 27 draws no images in these menu rows, so there only the names show.
@@ -181,9 +181,12 @@ session open in this window (D43).
   its event stream and its terminal streams end. The herdr session keeps
   running and stays in the Open Session list. Close Page is disabled on the
   last page.
-- **Restore.** A window that macOS restores opens the pages it had again. A
-  session that no longer runs is skipped. A new window (⌘N) opens with
-  `default` only ([Data](/docs/data#which-pages-a-window-opens)).
+- **Restore.** A window that macOS restores opens the pages it had again,
+  each with its selected workspace and tabs. A session that no longer runs is
+  skipped, and a workspace or tab that is gone falls back to herdr's focus. A
+  window never comes back in full screen: one that macOS restores in full
+  screen leaves it. A new window (⌘N) opens with `default` only
+  ([Data](/docs/data#which-pages-a-window-opens)).
 - **Pages.** A sideways swipe on the sidebar moves to the next or previous
   open page ([Swiping](/docs/ui/swiping)).
 - **Page dots.** At the bottom of the page, above the footer: one 6 pt dot per
@@ -423,8 +426,11 @@ A short message after a failed action or a refused move.
 ## Control capsule
 
 A window that watches a session another window controls (D66).
-- Its cards dim a little, and a capsule at the bottom center of the strip says
-  "Controlled in another window", with **Take Back**.
+- Its cards of that session draw their content at 0.85 of its opacity, and a
+  capsule at the bottom center of the strip, 30 pt above its bottom, says
+  "Controlled in another window", with **Take Back**. It is a
+  [notice](#notice) with an action, and shows only while the page in view is
+  watched.
 - Take Back, or a key press, paste or click in one of its terminal cards,
   moves control of the session to this window. The other window then watches
   and shows the capsule.

@@ -48,7 +48,10 @@
 
         /// The window restored its pages: it joins the open windows, and takes a click that came before it.
         func opened() {
-            Self.windows.append(self)
+            // Already there when it became key first.
+            if !Self.windows.contains(where: { $0 === self }) {
+                Self.windows.append(self)
+            }
             if let id = Self.early {
                 Self.early = nil
                 Self.go(to: id)

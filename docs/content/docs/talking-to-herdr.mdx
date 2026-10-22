@@ -185,8 +185,10 @@ One path is [Future work](/docs/future-work).
 - The panes of the shown tab of the page in view, in each window. Other
   pages stream nothing.
 - On the Mac, the panes of recently shown tabs keep their streams, up to
-  about 24 terminals over all pages of a window (one `PaneViewRegistry` per
-  window), least recently shown first out (D46). Their
+  about 24 terminals over all pages of all windows (each window has its own
+  `PaneViewRegistry`; they share one count), least recently shown first out
+  (D46). A pane shown in two windows has two surfaces and two streams, and
+  counts twice. Their
   surfaces stop drawing but keep reading: a surface draws only while its page
   is in the window (in view, or next to it: the strip keeps neighbor pages laid
   out).
@@ -239,12 +241,17 @@ Two windows on the Mac can show the same session. Control is per session
 3. Take Back, or a key press, paste or click in a terminal card of the
    watching window, moves control: that window opens its streams again as
    `control` with `--takeover`. herdr's takeover ends the other window's
-   streams, and they open again as `observe` (D8). Keys
+   streams, and they open again as `observe` (D8); herdr closes them with
+   the reason "terminal attach taken over". The window's other streams of
+   the session (recent tabs) take over too, and the other windows' watch. Keys
    typed before the first frame are queued, as for a device.
 4. The session's `HostStore` records which window controls it, so its
    windows never take over from each other by themselves.
-5. Windows on different sessions each control their own session.
-6. Another device can still hold a single pane. That card shows "In use
+5. When the controlling window closes, or closes the session's page, the
+   next window that shows the session controls it and takes over its streams,
+   so the PTY takes its card size.
+6. Windows on different sessions each control their own session.
+7. Another device can still hold a single pane. That card shows "In use
    elsewhere · Take Back", as in [One controller per pane](#one-controller-per-pane).
 
 ### Watching on a narrow screen
