@@ -39,8 +39,8 @@ for a small phase. The budget per phase:
 2. Build the phase in small steps. Each step: code + its tests, `make lint build test` green, a commit with a
    conventional subject (≤ 72 characters), and a push when it builds. Several commits per phase, never one
    big commit at the end.
-3. Run the e2e tests the phase adds (with the GUI lock), and keep screenshots of the new UI in
-   `/tmp/oriel-shots/<phase>/`. The whole suite (`make e2e`) runs once per review round, by the E2E reviewer.
+3. Run only the e2e tests the phase adds or changes (single tests, GUI lock). The one full `make e2e`
+   comes at the end, by the phase agent (see "GUI budget"). Keep screenshots in `/tmp/oriel-shots/<phase>/`.
 4. Self-review the diff against the phase file and the ponytail rules; fix what you find.
 5. Start the three reviewers and the verifier in parallel (briefs below). Merge their findings. Fix every
    blocker and should; answer each nit with a fix or a one-line reason.
@@ -110,19 +110,21 @@ simpler: types, files, protocols with one conformer (only `Exec` and `Multiplexe
 options nobody asked for, code for later phases, duplicated logic, needless state, comments that explain what
 instead of why. Report a numbered list: file:line, severity, the smaller version."
 
-**E2E and GUI reviewer.** "Take the GUI lock (`plan/rules.md`), build and run Oriel against a throwaway
-session (`scripts/herdr-session.sh up oriel-dev-<name>`, `make run SESSION=…`), drive the new UI of phase
-NN, try to break it, take screenshots (`screencapture -x -l <window id>`), run `make e2e`, release the lock,
-delete the session. Then read the phase's tests. Flag slop tests: tests that assert nothing real, assert
-only that an element exists when the phase promises behavior, sleep instead of waiting for a condition,
-duplicate another test, mock herdr where the real one is cheap, or check pixels where herdr or an
-accessibility value can say it. Report a numbered list with severity and the fix."
+**E2E and GUI reviewer.** "Round 1 only, at most 15 minutes of GUI lock (`plan/rules.md`; see the GUI
+budget in `plan/execution.md`). Build and run Oriel against a throwaway session
+(`scripts/herdr-session.sh up oriel-dev-<name>`, `make run SESSION=…`), drive the new UI of phase NN through
+XCUITest or by mouse, try to break it, take screenshots (`screencapture -x -l <window id>`), release the
+lock, delete the session. Never send keys with osascript / System Events. No full `make e2e` (the phase
+agent runs it once at the end; CI runs it on every push). Then read the phase's tests. Flag slop tests:
+tests that assert nothing real, assert only that an element exists when the phase promises behavior, sleep
+instead of waiting for a condition, duplicate another test, mock herdr where the real one is cheap, or
+check pixels where herdr or an accessibility value can say it. Report a numbered list with severity and the
+fix."
 
-**Verifier.** "Verify phase NN is complete. For every numbered Build item and every e2e item in
-`plan/phases/NN-*.md`, say done / partly / missing, with evidence: the file:line that implements it and the
-test (or the manual step plus screenshot) that shows it works. Run `make lint build test`, and the phase's e2e
-tests only if the E2E reviewer's `make e2e` run of this round is older than the last commit; otherwise cite
-that run. Pass only when every item is done and every check is green."
+**Verifier.** "Verify phase NN is complete. No GUI runs. For every numbered Build item and every e2e item
+in `plan/phases/NN-*.md`, say done / partly / missing, with evidence: the file:line that implements it and
+the test that shows it works, citing the phase agent's final `make e2e` run and CI. Run `make lint build
+test`. Pass only when every item is done and every check is green."
 
 ## The orchestrator's sanity check (after each phase)
 
@@ -133,7 +135,7 @@ that run. Pass only when every item is done and every check is green."
    need; no dead code; no `// TODO` without a `ponytail:` reason.
 4. Read the new tests: each one checks behavior through herdr or accessibility values, waits on conditions,
    and would fail if the feature broke.
-5. Build and run the app once against a throwaway session (GUI lock), look at the new UI next to
+5. Look at the phase's screenshots (no extra GUI run unless something looks wrong) next to
    `resources/mockups/layout.html` and the Rex references, keep 2–3 screenshots.
 6. Read the phase's Findings (implementation notes). Fold each deviation and decision into the design
    pages, `plan/ui-layout.md` and later phase files where they matter. Send the phase agent a numbered
