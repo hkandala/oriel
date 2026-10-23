@@ -37,10 +37,8 @@ extension OrielUITests {
         addTeardownBlock { [one] in
             _ = try? await Self.call(one, "pane.send_keys", ["pane_id": "w1:p1", "keys": ["ctrl+c"]])
         }
-        try await Self.call(one, "pane.send_text", ["pane_id": "w1:p1", "text": "clear; cat -v\r"])
-        try await poll("cat to run") { () async throws -> Bool? in
-            try await foreground("w1:p1").contains("cat") ? true : nil
-        }
+        try await send("clear; cat -v\r", to: "w1:p1")
+        try await expect("cat to run") { try await foreground("w1:p1").contains("cat") }
         terminal.click()
         XCTAssertTrue(hasKeyboard(terminal))
         // Not ⌥⇧ chords or ⌥.: launchers (Raycast) take some as global keys.
@@ -53,7 +51,6 @@ extension OrielUITests {
 
     /// The grid shrinks below `grid` (a bigger font); the new grid. On a 1x display a 1 pt step can keep the cell
     /// width (CI: 14 and 15 pt both 48 columns), so one side may stay.
-    @discardableResult
     private func expectGrid(_ terminal: XCUIElement, smallerThan grid: String) async throws -> String {
         let size = { (grid: String) in grid.split(separator: " ").compactMap { Int($0) } }
         return try await poll("the grid to shrink below \(grid)") { () -> String? in
@@ -63,7 +60,7 @@ extension OrielUITests {
     }
 
     private func expectGrid(_ terminal: XCUIElement, _ grid: String) async throws {
-        try await poll("the grid \(grid)") { terminal.value as? String == grid ? true : nil }
+        try await expect("the grid \(grid)") { terminal.value as? String == grid }
     }
 
     /// The pid of the pane's `terminal session` run.

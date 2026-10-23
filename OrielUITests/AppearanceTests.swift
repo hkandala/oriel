@@ -32,11 +32,8 @@ extension OrielUITests {
     /// Launch arguments land in UserDefaults' argument domain, which the settings read. They also pin the look: the
     /// menu then writes the persistent domain, which the argument domain hides.
     func testLaunchesInEachLook() async throws {
-        let base = app.launchArguments
         for (appearance, style) in [("light", "glass"), ("dark", "classic"), ("light", "classic"), ("dark", "glass")] {
-            app.terminate()
-            app.launchArguments = base + ["-appearance", appearance, "-interfaceStyle", style]
-            app.launch()
+            relaunch(one, ["-appearance", appearance, "-interfaceStyle", style])
             expectLook("\(style) \(appearance)")
             try await expectPTYSize("w1:p1")
         }

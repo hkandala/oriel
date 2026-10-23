@@ -38,9 +38,7 @@ extension OrielUITests {
         for count in [2, 3] {
             hoverHeader(pane)
             element("pane.\(pane).split-right").click()
-            try await poll("\(count) panes in herdr") { () async throws -> Bool? in
-                try await order(tab).count == count ? true : nil
-            }
+            try await expect("\(count) panes in herdr") { try await order(tab).count == count }
         }
         // Not herdr's 50 / 25 / 25.
         let panes = try await order(tab)
@@ -48,9 +46,8 @@ extension OrielUITests {
         // After the motion each terminal fits its card again, 10 pt in from each side (it holds its size while cards
         // move).
         for pane in panes {
-            try await poll("terminal \(pane) fits its card") { () async throws -> Bool? in
+            try await expect("terminal \(pane) fits its card") {
                 abs(element("terminal.\(pane)").frame.width - (element("pane.\(pane)").frame.width - 2 * 10)) <= 2
-                    ? true : nil
             }
         }
     }
@@ -75,9 +72,7 @@ extension OrielUITests {
 
         // ⌥⇧⌘→ through its menu item: global hotkeys of other apps take ⌥⇧ chords.
         pick("Pane", "Move Pane Right")
-        try await poll("the two swapped") { () async throws -> Bool? in
-            try await order(tab) == [second, first] ? true : nil
-        }
+        try await expect("the two swapped") { try await order(tab) == [second, first] }
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
 
         // Focus follows mouse: a pointer resting on the other card takes the keyboard there, also once a rename
@@ -87,9 +82,9 @@ extension OrielUITests {
         paneMenu(first, "Rename Pane…")
         XCTAssertTrue(hasKeyboard(element("pane.\(first).rename")))
         hoverHeader(second)
-        // Two checks later the rename still has the keyboard: typing holds the move back.
-        try await Task.sleep(for: .milliseconds(300))
-        XCTAssertTrue(hasKeyboard(element("pane.\(first).rename")))
+        // For a second the rename keeps the keyboard: typing holds the move back.
+        let rename = element("pane.\(first).rename")
+        XCTAssertFalse(until(1) { !NSPredicate(format: "hasKeyboardFocus == true").evaluate(with: rename) })
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
     }
@@ -101,38 +96,29 @@ extension OrielUITests {
         XCTAssertTrue(element("terminal.\(pane)").exists(within: 3))
 
         paneMenu(pane, "Split Left", screenshot: "context menu")
-        try await poll("a new pane left of the first") { () async throws -> Bool? in
+        try await expect("a new pane left of the first") {
             let panes = try await order(tab)
-            return panes.count == 2 && panes.last == pane ? true : nil
+            return panes.count == 2 && panes.last == pane
         }
 
         paneMenu(pane, "Rename Pane…")
         let field = element("pane.\(pane).rename")
         XCTAssertTrue(hasKeyboard(field))
         field.typeText("renamed\r")
-        try await poll("herdr's label") { () async throws -> Bool? in try await label(pane) == "renamed" ? true : nil }
+        try await expect("herdr's label") { try await label(pane) == "renamed" }
         // An empty name clears it.
         paneMenu(pane, "Rename Pane…")
         XCTAssertTrue(hasKeyboard(field))
         field.typeKey("a", modifierFlags: .command)
         field.typeText("\u{8}\r")
-        try await poll("no label") { () async throws -> Bool? in try await label(pane) == nil ? true : nil }
+        try await expect("no label") { try await label(pane) == nil }
 
         let before = try await tabIDs()
         paneMenu(pane, "Move Pane to Tab", "New Tab")
         let moved = try await newTabID(after: before)
         // Gone already after the move to a new workspace below, which takes its only pane.
-        addTeardownBlock { [one] in
-            let close = try JSONSerialization.data(withJSONObject: [
-                "id": "1",
-                "method": "tab.close",
-                "params": ["tab_id": moved],
-            ])
-            _ = try? await Self.post(one, close + Data("\n".utf8))
-        }
-        try await poll("the pane in the new tab") { () async throws -> Bool? in
-            try await order(moved) == [pane] ? true : nil
-        }
+        closeAfter("tab", moved)
+        try await expect("the pane in the new tab") { try await order(moved) == [pane] }
         // The page follows the pane.
         XCTAssertTrue(element("tab.\(moved)").has(\.isSelected, true, within: 3))
 
@@ -140,14 +126,10 @@ extension OrielUITests {
         let terminal = try await terminalID(pane)
         let workspaces = try await workspaceIDs()
         XCTAssertFalse(workspaces.isEmpty)
-        addTeardownBlock { [one] in
-            for id in try await Self.ids("workspace", in: one) where !workspaces.contains(id) {
-                try await Self.call(one, "workspace.close", ["workspace_id": id, "close_group": false])
-            }
-        }
+        closeNew("workspace", besides: workspaces)
         paneMenu(pane, "Move Pane to Tab", "New Workspace")
         let away = try await poll("the pane in a new workspace") { () async throws -> String? in
-            let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
+            let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
             return panes.first { $0["terminal_id"] as? String == terminal && $0["pane_id"] as? String != pane }?[
                 "pane_id",
             ] as? String
@@ -255,7 +237,7 @@ extension OrielUITests {
 
     func root(_ tab: String) async throws -> [String: Any] {
         let layout = try await Self.call(one, "layout.export", ["tab_id": tab])["layout"] as? [String: Any]
-        return try XCTUnwrap(layout?["root"] as? [String: Any])
+        return try field(layout?["root"], "\(tab)'s layout")
     }
 
     /// The tab's panes, first to last.
@@ -281,21 +263,20 @@ extension OrielUITests {
                 $1
             }
         }
-        try await poll("widths \(widths)") { () async throws -> Bool? in
+        try await expect("widths \(widths)") {
             let found = try await shares(root(tab), 1)
             return found.count == widths.count && widths.allSatisfy { abs((found[$0.key] ?? -1) - $0.value) <= 0.02 }
-                ? true : nil
         }
     }
 
     /// The ratio of the split at `path` (`false` = first child), within 0.02.
     func expectRatio(_ tab: String, at path: [Bool], _ ratio: Double) async throws {
-        try await poll("ratio \(ratio)") { () async throws -> Bool? in
+        try await expect("ratio \(ratio)") {
             var node = try await root(tab)
             for step in path {
                 node = node[step ? "second" : "first"] as? [String: Any] ?? [:]
             }
-            return abs((node["ratio"] as? Double ?? -1) - ratio) <= 0.02 ? true : nil
+            return abs((node["ratio"] as? Double ?? -1) - ratio) <= 0.02
         }
     }
 
@@ -306,6 +287,6 @@ extension OrielUITests {
     }
 
     func label(_ pane: String) async throws -> String? {
-        try await (Self.call(one, "pane.get", ["pane_id": pane])["pane"] as? [String: Any])?["label"] as? String
+        try await self.pane(pane)["label"] as? String
     }
 }

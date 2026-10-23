@@ -3,30 +3,27 @@ import XCTest
 /// Drag and drop (phase 18). Each test makes its own workspace in session one (closed after) and checks herdr.
 extension OrielUITests {
     func testDropOnACardsCenterSwapsAndOnItsEdgePlacesBeside() async throws {
-        let (tab, first) = try await dragWorkspace("swap")
+        let (tabs, first) = try await newWorkspace("swap")
+        let tab = tabs[0]
         let second = try await split(first), third = try await split(second)
         restoreHerdrFocusAfter()
         XCTAssertTrue(element("pane.\(third)").exists(within: 3))
 
         drag(first, to: card(second, 0.5, 0.6))
-        try await poll("the two swapped") { () async throws -> Bool? in
-            try await order(tab) == [second, first, third] ? true : nil
-        }
+        try await expect("the two swapped") { try await order(tab) == [second, first, third] }
         // No highlight stays on the card now under the pointer (a hand check saw one).
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
 
         // Its own tab's capsule is not a target: no write, so no refusal shows; the drop below checks nothing moved
         // (writes go one at a time).
-        let tabs = try await tabIDs()
+        let before = try await tabIDs()
         drag(third, to: element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
         XCTAssertFalse(element("detail.notice").exists(within: 1))
 
         drag(third, to: card(second, 0.1, 0.6))
-        try await poll("the pane left of its neighbor") { () async throws -> Bool? in
-            try await order(tab) == [third, second, first] ? true : nil
-        }
+        try await expect("the pane left of its neighbor") { try await order(tab) == [third, second, first] }
         let after = try await tabIDs()
-        XCTAssertEqual(after, tabs)
+        XCTAssertEqual(after, before)
         // Its tab stayed selected, its card has the keyboard, and the three share the width, as after a split.
         XCTAssertTrue(element("tab.\(tab)").isSelected)
         XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
@@ -35,12 +32,12 @@ extension OrielUITests {
     }
 
     func testHoldingOverACapsuleSpringLoadsItsTabAndADropSplitsRight() async throws {
-        let (tab, first) = try await dragWorkspace("spring")
+        let (tabs, first) = try await newWorkspace("spring")
+        let tab = tabs[0]
         let second = try await split(first)
         let created = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: tab), "label": "other",
                                                               "cwd": "/tmp", "focus": false])
-        let other = try XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String)
-        let third = try XCTUnwrap((created["root_pane"] as? [String: Any])?["pane_id"] as? String)
+        let other = try id(created, "tab"), third = try id(created, "root_pane")
         let capsule = element("tab.\(other)")
         XCTAssertTrue(capsule.exists(within: 3))
         XCTAssertTrue(element("pane.\(second)").exists(within: 3))
@@ -66,15 +63,14 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         XCTAssertTrue(element("pane.\(second)").exists(within: 3))
         drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
-        try await poll("the pane split right in that tab") { () async throws -> Bool? in
-            try await order(other) == [third, fourth, second] ? true : nil
-        }
+        try await expect("the pane split right in that tab") { try await order(other) == [third, fourth, second] }
         XCTAssertTrue(capsule.has(\.isSelected, true, within: 2))
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
     }
 
     func testDropsOnTheTrackEndARowTheSidebarAndItsPlusMoveThePane() async throws {
-        let (tab, first) = try await dragWorkspace("moves")
+        let (tabs, first) = try await newWorkspace("moves")
+        let tab = tabs[0]
         let second = try await split(first)
         let terminal = try await terminalID(second)
         XCTAssertTrue(element("pane.\(second)").exists(within: 3))
@@ -91,11 +87,7 @@ extension OrielUITests {
 
         // beta's row: a new tab there, with a new pane id.
         let betaTabs = try await tabIDs().filter { $0.hasPrefix("w2:") }
-        addTeardownBlock { [one] in
-            for id in try await Self.ids("tab", in: one) where id.hasPrefix("w2:") && !betaTabs.contains(id) {
-                _ = try? await Self.call(one, "tab.close", ["tab_id": id])
-            }
-        }
+        try await closeNew("tab", besides: tabIDs())
         drag(second, to: element("workspace.w2").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
              hold: 0.3)
         let inBeta = try await poll("the pane in a new tab of beta") { () async throws -> String? in
@@ -107,11 +99,7 @@ extension OrielUITests {
 
         // The sidebar's empty space: a new workspace.
         let workspaces = try await workspaceIDs()
-        addTeardownBlock { [one] in
-            for id in try await Self.ids("workspace", in: one) where !workspaces.contains(id) {
-                _ = try? await Self.call(one, "workspace.close", ["workspace_id": id, "close_group": false])
-            }
-        }
+        closeNew("workspace", besides: workspaces)
         XCTAssertTrue(element("pane.\(inBeta)").exists(within: 3))
         let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workspace.w'"))
         let bottom = rows.allElementsBoundByIndex.map(\.frame.maxY).max() ?? 0
@@ -128,104 +116,62 @@ extension OrielUITests {
         let before = try await workspaceIDs()
         XCTAssertTrue(element("pane.\(away)").exists(within: 3))
         drag(away, to: element("sidebar.new-workspace").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
-        try await poll("the pane in another new workspace") { () async throws -> Bool? in
+        try await expect("the pane in another new workspace") {
             let place = try await place(of: terminal)
-            return place.map { !before.contains(workspace(of: $0.tab)) } == true ? true : nil
+            return place.map { !before.contains(workspace(of: $0.tab)) } == true
         }
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
     }
 
     func testDraggingTheThirdCapsuleFirstReordersHerdrsTabs() async throws {
-        let (tab, _) = try await dragWorkspace("tabs")
-        let workspace = workspace(of: tab)
-        var tabs = [tab]
-        for label in ["two", "three"] {
-            let created = try await Self.call(one, "tab.create", ["workspace_id": workspace, "label": label,
-                                                                  "cwd": "/tmp", "focus": false])
-            try tabs.append(XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String))
-        }
+        let tabs = try await newWorkspace("tabs", tabs: 3).tabs
         let third = element("tab.\(tabs[2])")
-        XCTAssertTrue(third.exists(within: 3))
         let from = third.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        let target = element("tab.\(tab)").coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
+        let target = element("tab.\(tabs[0])").coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
         during(from, to: target)
-        try await poll("herdr's tab order") { () async throws -> Bool? in
-            try await tabIDs().filter { $0.hasPrefix("\(workspace):") } == [tabs[2], tabs[0], tabs[1]] ? true : nil
+        try await expect("herdr's tab order") {
+            try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") } == [tabs[2], tabs[0], tabs[1]]
         }
     }
 
     func testDraggingWorkspaceRowsReordersThemAndAWorktreeMovesWithItsRepository() async throws {
-        let (tab, pane) = try await dragWorkspace("first")
-        let first = workspace(of: tab)
-        let made = try await Self.call(one, "workspace.create", ["label": "second", "cwd": "/tmp", "focus": false])
-        let second = try XCTUnwrap((made["workspace"] as? [String: Any])?["workspace_id"] as? String)
-        addTeardownBlock { [one] in
-            _ = try? await Self.call(one, "workspace.close", ["workspace_id": second, "close_group": false])
-        }
+        let (tabs, pane) = try await newWorkspace("first")
+        let first = workspace(of: tabs[0]), second = try await workspace(of: createWorkspace("second").tab)
         let firstRow = element("workspace.\(first)"), secondRow = element("workspace.\(second)")
         XCTAssertTrue(secondRow.exists(within: 3))
 
         during(firstRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
                to: secondRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9)))
-        try await poll("first below second") { () async throws -> Bool? in
-            try await workspaceIDs().suffix(2) == [second, first] ? true : nil
-        }
+        try await expect("first below second") { try await workspaceIDs().suffix(2) == [second, first] }
 
         // A repository with a linked worktree, last: dragged above second, its worktree comes right after it.
         let root = "/tmp/oriel-e2e-drag-\(Int.random(in: 10000 ... 99999))"
-        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "(mkdir -p \(root) && cd \(root) && "
-                + "git init -q -b main repo && cd repo && git -c user.name=e2e -c user.email=e2e@oriel commit -q "
-                + "--allow-empty -m one && git worktree add -q ../tree -b feature) && echo built-$((6*7))\r"])
+        try await send("(mkdir -p \(root) && cd \(root) && git init -q -b main repo && cd repo && "
+            + "git -c user.name=e2e -c user.email=e2e@oriel commit -q --allow-empty -m one && "
+            + "git worktree add -q ../tree -b feature) && echo built-$((6*7))\r", to: pane)
         addTeardownBlock { [one] in
             // Before the workspace (and its pane) closes: teardowns run last first.
             _ = try? await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "rm -rf \(root)\r"])
         }
         try await waitFor(pane) { $0.contains("\nbuilt-42") }
-        let created = try await Self.call(one, "workspace.create", ["cwd": "\(root)/repo", "label": "repo",
-                                                                    "focus": false])
-        let repo = try XCTUnwrap((created["workspace"] as? [String: Any])?["workspace_id"] as? String)
-        addTeardownBlock { [one] in
-            _ = try? await Self.call(one, "workspace.close", ["workspace_id": repo, "close_group": true])
-        }
-        let opened = try await Self.call(one, "worktree.open", ["workspace_id": repo, "path": "\(root)/tree",
-                                                                "focus": false])
-        let tree = try XCTUnwrap((opened["workspace"] as? [String: Any])?["workspace_id"] as? String)
+        let repo = try await workspace(of: createWorkspace("repo", cwd: "\(root)/repo").tab)
+        let tree = try await id(Self.call(one, "worktree.open", ["workspace_id": repo, "path": "\(root)/tree",
+                                                                 "focus": false]), "workspace")
+        closeAfter("workspace", tree)
         let repoRow = element("workspace.\(repo)")
         XCTAssertTrue(element("workspace.\(tree)").exists(within: 3))
         during(repoRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
                to: secondRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)))
-        try await poll("the repository and its worktree before second") { () async throws -> Bool? in
-            try await workspaceIDs().suffix(4) == [repo, tree, second, first] ? true : nil
+        try await expect("the repository and its worktree before second") {
+            try await workspaceIDs().suffix(4) == [repo, tree, second, first]
         }
     }
 
     // MARK: - Helpers
 
-    /// A workspace of its own, closed after, selected: its tab's id and its pane's.
-    func dragWorkspace(_ label: String) async throws -> (tab: String, pane: String) {
-        XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        let created = try await Self.call(one, "workspace.create", ["label": label, "cwd": "/tmp", "focus": false])
-        let workspace = try XCTUnwrap((created["workspace"] as? [String: Any])?["workspace_id"] as? String)
-        addTeardownBlock { [one] in
-            _ = try? await Self.call(one, "workspace.close", ["workspace_id": workspace, "close_group": false])
-        }
-        let tab = try XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String)
-        let pane = try XCTUnwrap((created["root_pane"] as? [String: Any])?["pane_id"] as? String)
-        let row = element("workspace.\(workspace)")
-        XCTAssertTrue(row.exists(within: 3))
-        row.click()
-        XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
-        return (tab, pane)
-    }
-
-    /// herdr's ids are `w<n>:t<m>`.
-    func workspace(of tab: String) -> String {
-        String(tab.prefix { $0 != ":" })
-    }
-
     /// Where herdr has the terminal now.
     func place(of terminal: String) async throws -> (pane: String, tab: String)? {
-        let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
+        let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
         return panes.first { $0["terminal_id"] as? String == terminal }.flatMap { pane in
             guard let id = pane["pane_id"] as? String, let tab = pane["tab_id"] as? String else { return nil }
             return (id, tab)

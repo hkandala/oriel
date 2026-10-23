@@ -15,30 +15,24 @@ final class OrielUITests: XCTestCase {
     /// Session two: w1 "gamma".
     override func setUp() async throws {
         continueAfterFailure = false
-        let env = ProcessInfo.processInfo.environment
-        one = try XCTUnwrap(env["ORIEL_SESSION"], "run through make e2e")
-        two = try XCTUnwrap(env["ORIEL_SESSION2"], "run through make e2e")
+        one = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION"], "run through make e2e")
+        two = env("ORIEL_SESSION2")
         // Once per session; the runner may restart between tests, so ask herdr, not a static. The check is on
         // the last step, so a setup cut short builds again (and fails loudly) instead of passing half-built.
-        let snapshot = try await Self.call(two, "session.snapshot", [:])["snapshot"] as? [String: Any]
-        let built = (snapshot?["workspaces"] as? [[String: Any]] ?? []).contains { $0["label"] as? String == "gamma" }
+        let built = try await (Self.snapshot(two)["workspaces"] as? [[String: Any]] ?? [])
+            .contains { $0["label"] as? String == "gamma" }
         if !built {
             try await Self.call(one, "workspace.create", ["label": "alpha", "cwd": "/tmp", "focus": false])
             try await Self.call(one, "pane.split", ["target_pane_id": "w1:p1", "direction": "right", "ratio": 0.6,
                                                     "cwd": "/tmp", "focus": false])
             try await Self.call(one, "pane.split", ["target_pane_id": "w1:p2", "direction": "down",
                                                     "cwd": "/tmp", "focus": false])
-            try await Self.call(
-                one,
-                "tab.create",
-                ["workspace_id": "w1", "label": "second", "cwd": "/tmp", "focus": false],
-            )
+            try await Self.call(one, "tab.create", ["workspace_id": "w1", "label": "second", "cwd": "/tmp",
+                                                    "focus": false])
             try await Self.call(one, "workspace.create", ["label": "beta", "cwd": "/tmp", "focus": false])
             try await Self.call(two, "workspace.create", ["label": "gamma", "cwd": "/tmp", "focus": false])
         }
-        // No window state from earlier runs.
-        app.launchArguments = ["-session", one, "-ApplePersistenceIgnoreState", "YES"]
-        app.launch()
+        relaunch()
     }
 
     /// The pointer goes off the title row: left on a capsule, it would open a hover card in the next test's launch.
@@ -117,14 +111,14 @@ final class OrielUITests: XCTestCase {
             .matching(NSPredicate(format: "identifier MATCHES %@", #"pane\.[^.]+"#))
         XCTAssertTrue(cards.element(boundBy: 1).exists(within: 2))
         XCTAssertLessThan(cards.element(boundBy: 0).frame.maxX, cards.element(boundBy: 1).frame.minX)
-        let snapshot = try await snapshot()
-        XCTAssertEqual((snapshot?["panes"] as? [[String: Any]])?.count { $0["tab_id"] as? String == tab }, 2)
+        let panes = try await snapshot()["panes"] as? [[String: Any]]
+        XCTAssertEqual(panes?.count { $0["tab_id"] as? String == tab }, 2)
         keepScreenshot("split")
     }
 
     func testSelectsAnotherTabWhenTheSelectedOneCloses() async throws {
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
-        let (tab, _) = try await newTab("doomed", in: "w1", closeAfter: false)
+        let (tab, _) = try await newTab("doomed", in: "w1")
         let row = element("tab.\(tab)")
         row.click()
         XCTAssertTrue(row.has(\.isSelected, true, within: 2))
@@ -146,7 +140,7 @@ extension OrielUITests {
         try await waitForPrompt(pane)
         try await poll("stty size in \(pane) to match its card", times: 30) { () async throws -> String? in
             guard terminal.exists, let grid = terminal.value as? String, !grid.isEmpty else { return nil }
-            try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "clear; stty size\r"])
+            try await send("clear; stty size\r", to: pane)
             try await Task.sleep(for: .milliseconds(200))
             return try await read(pane).split(separator: "\n").contains { $0 == grid } ? grid : nil
         }
@@ -170,16 +164,6 @@ extension OrielUITests {
         }
     }
 
-    func read(_ pane: String) async throws -> String {
-        let read = try await Self.call(one, "pane.read", ["pane_id": pane, "source": "visible"])["read"]
-        return try XCTUnwrap((read as? [String: Any])?["text"] as? String)
-    }
-
-    func terminalID(_ pane: String) async throws -> String {
-        let pane = try await Self.call(one, "pane.get", ["pane_id": pane])["pane"] as? [String: Any]
-        return try XCTUnwrap(pane?["terminal_id"] as? String)
-    }
-
     /// `probe` every 100 ms until it gives a value (a predicate expectation checks only about once a second); the
     /// test fails after `times` tries.
     @discardableResult
@@ -197,8 +181,24 @@ extension OrielUITests {
         throw Waited(description: "waited for \(what)")
     }
 
+    /// Polls until `check` passes.
+    func expect(_ what: String, times: Int = 50, _ check: () async throws -> Bool) async throws {
+        try await poll(what, times: times) { try await check() ? true : nil }
+    }
+
     struct Waited: Error, CustomStringConvertible {
         let description: String
+    }
+
+    func env(_ name: String) -> String {
+        ProcessInfo.processInfo.environment[name] ?? ""
+    }
+
+    /// Launches the app on the session (one by default) with no window state from earlier runs; `launch` ends a
+    /// running one first.
+    func relaunch(_ session: String? = nil, _ args: [String] = []) {
+        app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + args
+        app.launch()
     }
 
     /// Shows a card's header buttons. Over the header, not the card's center: SwiftUI does not see the
@@ -207,18 +207,13 @@ extension OrielUITests {
         element("pane.\(pane)").coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 40, dy: 17)).hover()
     }
 
-    /// A new tab (closed after the test unless told not to), its workspace selected so its capsule shows: its id and
+    /// A new tab (closed after the test), its workspace selected so its capsule shows: its id and
     /// its pane's. By default in w2, another workspace than the one selected at launch.
-    func newTab(_ label: String, in workspace: String = "w2",
-                closeAfter: Bool = true) async throws -> (tab: String, pane: String)
-    {
+    func newTab(_ label: String, in workspace: String = "w2") async throws -> (tab: String, pane: String) {
         let created = try await Self.call(one, "tab.create", ["workspace_id": workspace, "label": label,
                                                               "cwd": "/tmp", "focus": false])
-        let tab = try XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String)
-        let pane = try XCTUnwrap((created["root_pane"] as? [String: Any])?["pane_id"] as? String)
-        if closeAfter {
-            addTeardownBlock { [one] in _ = try? await Self.call(one, "tab.close", ["tab_id": tab]) }
-        }
+        let tab = try id(created, "tab"), pane = try id(created, "root_pane")
+        closeAfter("tab", tab)
         let row = element("workspace.\(workspace)")
         if !row.isSelected {
             row.click()
@@ -228,42 +223,21 @@ extension OrielUITests {
         return (tab, pane)
     }
 
-    /// Splits the pane to the right in herdr; the new pane's id.
-    @discardableResult
-    func split(_ pane: String) async throws -> String {
-        let split = try await Self.call(one, "pane.split", ["target_pane_id": pane, "direction": "right",
-                                                            "cwd": "/tmp", "focus": false])
-        return try XCTUnwrap((split["pane"] as? [String: Any])?["pane_id"] as? String)
-    }
-
-    /// The names of the pane's foreground processes.
-    func foreground(_ pane: String) async throws -> [String] {
-        let info = try await Self.call(one, "pane.process_info", ["pane_id": pane])["process_info"]
-        let processes = (info as? [String: Any])?["foreground_processes"] as? [[String: Any]] ?? []
-        return processes.compactMap { $0["name"] as? String }
-    }
-
-    /// Session one's `session.snapshot`.
-    func snapshot() async throws -> [String: Any]? {
-        try await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
-    }
-
-    func tabIDs() async throws -> [String] {
-        try await Self.ids("tab", in: one)
-    }
-
-    /// The session's `tab` or `workspace` ids. Off the main actor for async teardown blocks: after a failure, one on
-    /// the main actor waits for it until the 2-minute allowance runs out.
-    nonisolated static func ids(_ kind: String, in session: String) async throws -> [String] {
-        let snapshot = try await call(session, "session.snapshot", [:])["snapshot"] as? [String: Any]
-        return (snapshot?[kind + "s"] as? [[String: Any]] ?? []).compactMap { $0[kind + "_id"] as? String }
-    }
-
-    /// The tab herdr has now and did not have `before`.
-    func newTabID(after before: [String]) async throws -> String {
-        try await poll("a new tab in herdr") { () async throws -> String? in
-            try await tabIDs().first { !before.contains($0) }
+    /// createWorkspace with this many tabs, selected so its capsules show: its tabs' ids and its first pane's.
+    func newWorkspace(_ label: String, tabs count: Int = 1) async throws -> (tabs: [String], pane: String) {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, pane) = try await createWorkspace(label)
+        let workspace = workspace(of: tab)
+        var tabs = [tab]
+        for _ in 1 ..< count {
+            try await tabs.append(id(Self.call(one, "tab.create", ["workspace_id": workspace, "cwd": "/tmp",
+                                                                   "focus": false]), "tab"))
         }
+        let row = element("workspace.\(workspace)")
+        XCTAssertTrue(row.exists(within: 3))
+        row.click()
+        XCTAssertTrue(element("tab.\(tabs[count - 1])").exists(within: 3))
+        return (tabs, pane)
     }
 
     /// Types a command into the pane once its terminal has the keyboard, and waits for the output.
@@ -274,20 +248,11 @@ extension OrielUITests {
         try await waitFor(pane) { $0.contains("\noriel-keys-42") }
     }
 
-    /// The session's `terminal session` runs, any client's, as `pid argv` lines.
-    func streams(_ session: String) async throws -> [String] {
-        let (data, status) = try await Self.post("\(session)/children", Data())
-        XCTAssertEqual(status, 200)
-        return String(decoding: data, as: UTF8.self).split(separator: "\n").map(String.init)
-            .filter { $0.contains("terminal session") }
-    }
-
     /// ⌘K; the palette's filter has the keyboard.
     @discardableResult
     func openPalette() -> XCUIElement {
         app.typeKey("k", modifierFlags: .command)
         let filter = element("palette.filter")
-        XCTAssertTrue(filter.exists(within: 2))
         XCTAssertTrue(hasKeyboard(filter))
         return filter
     }
@@ -312,30 +277,6 @@ extension OrielUITests {
     /// In this window when there are several.
     func element(_ identifier: String, in window: XCUIElement? = nil) -> XCUIElement {
         (window ?? app).descendants(matching: .any)[identifier]
-    }
-
-    /// One herdr API call on a throwaway session, through the helper.
-    @discardableResult
-    nonisolated static func call(_ session: String, _ method: String,
-                                 _ params: [String: Any]) async throws -> [String: Any]
-    {
-        let body = try JSONSerialization.data(withJSONObject: ["id": "1", "method": method, "params": params])
-        let (data, status) = try await post(session, body + Data("\n".utf8))
-        let text = String(decoding: data, as: UTF8.self)
-        XCTAssertEqual(status, 200, text)
-        let reply = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any], text)
-        return try XCTUnwrap(reply["result"] as? [String: Any], "\(method): \(text)")
-    }
-
-    /// One POST to the e2e helper: `<session>` for an API call, `<session>/<action>` for the others (see the helper).
-    @discardableResult
-    nonisolated static func post(_ path: String, _ body: Data) async throws -> (data: Data, status: Int) {
-        let helper = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_HELPER"])
-        var request = try URLRequest(url: XCTUnwrap(URL(string: "\(helper)/\(path)")))
-        request.httpMethod = "POST"
-        request.httpBody = body
-        let (data, response) = try await URLSession.shared.data(for: request)
-        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
 }
 

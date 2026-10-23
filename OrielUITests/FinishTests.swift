@@ -3,38 +3,33 @@ import XCTest
 /// Phase 21: the find bar, links, the not running and failed start states, and programs of panes never shown.
 extension OrielUITests {
     func testSecondPagesServerStopsAndStartsAloneOnItsPage() async throws {
-        let five = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION5"])
+        let five = env("ORIEL_SESSION5")
         try await running(five)
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPage(five)
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
 
-        let stopped = try await Self.post("\(five)/stop", Data())
-        XCTAssertEqual(stopped.status, 200, String(decoding: stopped.data, as: UTF8.self))
+        try await Self.post("\(five)/stop")
         let start = element("detail.start")
         XCTAssertTrue(start.exists(within: 10))
         // The first page is not touched: its cards and streams stay.
         element("sidebar.dot.\(one)").click()
         XCTAssertTrue(element("terminal.w1:p1").exists(within: 3))
         XCTAssertFalse(start.exists)
-        try await poll("one's three streams") { () async throws -> Bool? in
-            try await streams(one).count == 3 ? true : nil
-        }
+        try await expect("one's three streams") { try await streams(one).count == 3 }
 
         element("sidebar.dot.\(five)").click()
         XCTAssertTrue(start.exists(within: 3))
         start.click()
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         XCTAssertFalse(start.exists)
-        try await Self.call(five, "session.snapshot", [:])
+        try await Self.snapshot(five)
     }
 
     func testAFailedStartKeepsTheSheetOpenWithRetry() async throws {
-        let six = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION6"])
+        let six = env("ORIEL_SESSION6")
         // No time to answer: every start the app makes fails, though launchd starts the server.
-        app.terminate()
-        app.launchArguments += ["-startTimeout", "0"]
-        app.launch()
+        relaunch(one, ["-startTimeout", "0"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         app.typeKey("n", modifierFlags: [.command, .shift])
         let filter = element("open-session.filter")
@@ -63,13 +58,7 @@ extension OrielUITests {
     }
 
     func testFindScrollsHerdrsViewportToTheMatch() async throws {
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let (tab, pane) = try await newTab("find")
-        element("tab.\(tab)").click()
-        try await Self.call(one, "pane.send_text", ["pane_id": pane,
-                                                    "text": "for i in $(seq 1 200); do echo line $i; done\r"])
-        try await waitFor(pane) { $0.contains("\nline 200\n") }
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        let pane = try await twoHundredLines("find")
 
         app.typeKey("f", modifierFlags: .command)
         let field = element("find.field"), count = element("find.count")
@@ -95,35 +84,25 @@ extension OrielUITests {
         app.typeText("line 42")
         XCTAssertTrue(count.has(\.stringValue, "1 of 1", within: 2), count.stringValue)
         // line 42 sits 158 lines above the bottom line: herdr's viewport scrolled to it.
-        try await poll("herdr to scroll") { () async throws -> Bool? in
-            try await scrollOffset(pane) > 100 ? true : nil
-        }
+        try await expect("herdr to scroll") { try await scrollOffset(pane) > 100 }
         // Its highlight is on the row herdr shows it on.
         try await expectHighlight("line 42", in: pane)
         keepScreenshot("find bar")
 
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(field.vanishes(within: 2))
-        try await poll("herdr back at the bottom") { () async throws -> Bool? in
-            try await scrollOffset(pane) == 0 ? true : nil
-        }
+        try await expect("herdr back at the bottom") { try await scrollOffset(pane) == 0 }
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
     }
 
     func testFindCountsTheBlankRowsUnderTheText() async throws {
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let (tab, pane) = try await newTab("blank")
-        element("tab.\(tab)").click()
-        try await Self.call(one, "pane.send_text", ["pane_id": pane,
-                                                    "text": "for i in $(seq 1 200); do echo line $i; done\r"])
-        try await waitFor(pane) { $0.contains("\nline 200\n") }
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        let pane = try await twoHundredLines("blank")
         let field = element("find.field"), count = element("find.count")
         // The screen cleared (its text goes to the scrollback) and two more matches under it: the blank rows under the
         // prompt count too, and the selected match is the lower one.
-        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "printf '\\033[2J\\033[H'\r"])
+        try await send("printf '\\033[2J\\033[H'\r", to: pane)
         try await waitFor(pane) { !$0.contains("line 199") }
-        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "for i in 42 42; do echo line $i; done\r"])
+        try await send("for i in 42 42; do echo line $i; done\r", to: pane)
         try await waitFor(pane) { $0.contains("line 42\nline 42\n") }
         app.typeKey("f", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard(field))
@@ -131,10 +110,19 @@ extension OrielUITests {
         XCTAssertTrue(count.has(\.stringValue, "3 of 3", within: 2), count.stringValue)
         try await expectHighlight("line 42", in: pane)
         // Centered, it sits rows above herdr's last row: herdr scrolled up to it.
-        try await poll("herdr to center the match") { () async throws -> Bool? in
-            try await scrollOffset(pane) > 0 ? true : nil
-        }
+        try await expect("herdr to center the match") { try await scrollOffset(pane) > 0 }
         app.typeKey(.escape, modifierFlags: [])
+    }
+
+    /// A new tab in view, its card with the keyboard, after `line 1` to `line 200`: its pane.
+    private func twoHundredLines(_ label: String) async throws -> String {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, pane) = try await newTab(label)
+        element("tab.\(tab)").click()
+        try await send("for i in $(seq 1 200); do echo line $i; done\r", to: pane)
+        try await waitFor(pane) { $0.contains("\nline 200\n") }
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        return pane
     }
 
     /// The rows herdr shows the text on are highlighted, the lowest one as the selected match.
@@ -142,11 +130,11 @@ extension OrielUITests {
         let lit = element("find.highlights")
         var expected = ""
         do {
-            try await poll("the highlights") { () async throws -> Bool? in
+            try await expect("the highlights") {
                 let rows = try await read(pane).split(separator: "\n", omittingEmptySubsequences: false)
                 let last = rows.lastIndex { $0 == text }.map(String.init) ?? "none"
                 expected = "\(rows.count { $0 == text }) shown, current row \(last)"
-                return lit.stringValue == expected ? true : nil
+                return lit.stringValue == expected
             }
         } catch is Waited {
             throw Waited(description: "expected \(expected); the highlights say \(lit.stringValue)")
@@ -154,18 +142,11 @@ extension OrielUITests {
     }
 
     func testCommandClickOnALinkOpensIt() async throws {
-        app.terminate()
-        app.launchArguments += ["-recordLinks", "YES"]
-        app.launch()
+        relaunch(one, ["-recordLinks", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("link")
         element("tab.\(tab)").click()
-        try await Self.call(
-            one,
-            "pane.send_text",
-            ["pane_id": pane,
-             "text": "clear; echo ftp://example.com/x; echo https://example.com/oriel\r"],
-        )
+        try await send("clear; echo ftp://example.com/x; echo https://example.com/oriel\r", to: pane)
         try await waitFor(pane) { $0.hasPrefix("ftp://example.com/x\nhttps://example.com/oriel\n") }
 
         // ⌘-click the sixth cell of each line: only the https link opens.
@@ -189,18 +170,14 @@ extension OrielUITests {
         // An 80 × 24 PTY (another client's attach), and a shell that prints its size when it changes.
         let terminal = try await terminalID(pane)
         try await Self.post("\(one)/control", Data(terminal.utf8))
-        try await Self.call(
-            one,
-            "pane.send_text",
-            ["pane_id": pane, "text": "trap 'echo resized $(stty size)' WINCH\r"],
-        )
+        try await send("trap 'echo resized $(stty size)' WINCH\r", to: pane)
         try await waitFor(pane) { $0.contains("WINCH") }
 
         element("tab.\(tab)").click()
         let card = element("pane.\(pane)")
         XCTAssertTrue(card.exists(within: 3))
-        try await poll("\(pane) ready, it says \(card.stringValue)", times: 100) {
-            card.stringValue.hasPrefix("content") && !card.stringValue.hasSuffix(", loading") ? true : nil
+        try await expect("\(pane) ready, it says \(card.stringValue)", times: 100) {
+            card.stringValue.hasPrefix("content") && !card.stringValue.hasSuffix(", loading")
         }
         // At once: the redraw at the card's grid was in before the card showed.
         let grid = try XCTUnwrap(element("terminal.\(pane)").value as? String)
@@ -244,47 +221,24 @@ extension OrielUITests {
 
     /// The helper opens a new folder with the app, as a drop on the Dock icon does: its path.
     private func dropFolder(_ oriel: String) async throws -> String {
-        let (data, status) = try await Self.post("\(one)/open-folder", Data(oriel.utf8))
-        XCTAssertEqual(status, 200, String(decoding: data, as: UTF8.self))
-        return String(decoding: data, as: UTF8.self)
+        try await String(decoding: Self.post("\(one)/open-folder", Data(oriel.utf8)), as: UTF8.self)
     }
 
     /// The workspace herdr made in the folder (its pane's cwd), closed after the test.
     private func workspace(in folder: String, times: Int = 50) async throws -> String {
         let name = (folder as NSString).lastPathComponent
         let id = try await poll("a workspace in \(name)", times: times) { () async throws -> String? in
-            let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
+            let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
             return panes.first { ($0["cwd"] as? String)?.hasSuffix(name) == true }?["workspace_id"] as? String
         }
-        addTeardownBlock { [one] in _ = try? await Self.call(one, "workspace.close", ["workspace_id": id]) }
+        closeAfter("workspace", id)
         return id
-    }
-
-    /// Waits until the session answers; `start` starts its server first when it does not, and gives it a workspace.
-    private func running(_ session: String, start: Bool = true) async throws {
-        if start, try await snapshot(of: session) == nil {
-            try await Self.post("\(session)/start", Data())
-        }
-        let snapshot = try await poll("\(session) to answer") { try await snapshot(of: session) }
-        if start, (snapshot["workspaces"] as? [Any] ?? []).isEmpty {
-            try await Self.call(session, "workspace.create", ["label": "five", "cwd": "/tmp", "focus": false])
-        }
     }
 
     /// herdr's viewport of the pane, in lines from the bottom.
     private func scrollOffset(_ pane: String) async throws -> Int {
-        let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
+        let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
         let scroll = panes.first { $0["pane_id"] as? String == pane }?["scroll"] as? [String: Any]
-        return try XCTUnwrap(scroll?["offset_from_bottom"] as? Int)
-    }
-
-    /// The session's snapshot, nil while it does not answer (`call` fails the test then).
-    private func snapshot(of session: String) async throws -> [String: Any]? {
-        let body = Data("{\"id\":\"1\",\"method\":\"session.snapshot\",\"params\":{}}\n".utf8)
-        let (data, status) = try await Self.post(session, body)
-        guard status == 200, let reply = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
-        }
-        return (reply["result"] as? [String: Any])?["snapshot"] as? [String: Any]
+        return try field(scroll?["offset_from_bottom"], "\(pane)'s scroll offset")
     }
 }

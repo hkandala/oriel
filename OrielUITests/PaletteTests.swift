@@ -22,7 +22,7 @@ extension OrielUITests {
         keepScreenshot("palette filtered")
         app.typeKey(.return, modifierFlags: [])
         let panes = try await poll("a second pane in the tab") { () async throws -> [[String: Any]]? in
-            let panes = try await (snapshot()?["panes"] as? [[String: Any]] ?? [])
+            let panes = try await (snapshot()["panes"] as? [[String: Any]] ?? [])
                 .filter { $0["tab_id"] as? String == tab }
             return panes.count == 2 ? panes : nil
         }
@@ -46,9 +46,9 @@ extension OrielUITests {
         app.typeText("after")
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(filter.vanishes(within: 2))
-        try await poll("herdr's label") { () async throws -> Bool? in
-            let tabs = try await snapshot()?["tabs"] as? [[String: Any]] ?? []
-            return tabs.contains { $0["tab_id"] as? String == tab && $0["label"] as? String == "after" } ? true : nil
+        try await expect("herdr's label") {
+            let tabs = try await snapshot()["tabs"] as? [[String: Any]] ?? []
+            return tabs.contains { $0["tab_id"] as? String == tab && $0["label"] as? String == "after" }
         }
 
         openPalette()
@@ -196,40 +196,32 @@ extension OrielUITests {
         let (_, pane) = try await newTab("paths")
         let folder = "/private/tmp/oriel-e2e-go-\(Int.random(in: 1000 ... 9999))"
         try await waitForPrompt(pane)
-        try await Self.call(
-            one,
-            "pane.send_text",
-            ["pane_id": pane, "text": "mkdir -p \(folder) && touch '\(folder)/a b'; clear\r"],
-        )
+        try await send("mkdir -p \(folder) && touch '\(folder)/a b'; clear\r", to: pane)
         addTeardownBlock { [one] in
             _ = try? await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "rm -rf \(folder)\r"])
         }
         element("terminal.\(pane)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
         // A program in the card: the pick is refused (D41), nothing is typed.
-        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "cat\r"])
-        try await poll("cat in the pane") { () async throws -> Bool? in
-            try await foreground(pane).contains("cat") ? true : nil
-        }
+        try await send("cat\r", to: pane)
+        try await expect("cat in the pane") { try await foreground(pane).contains("cat") }
         app.typeKey("g", modifierFlags: [.command, .shift])
         choose(folder)
         XCTAssertTrue(app.staticTexts["A program is running in the pane"].exists(within: 3))
         let text = try await read(pane)
         XCTAssertFalse(text.contains("cd --"))
         try await Self.call(one, "pane.send_keys", ["pane_id": pane, "keys": ["ctrl+c"]])
-        try await poll("the shell again") { () async throws -> Bool? in
-            try await foreground(pane).contains("cat") ? nil : true
-        }
+        try await expect("the shell again") { try await !foreground(pane).contains("cat") }
 
         element("terminal.\(pane)").click()
         app.typeKey("g", modifierFlags: [.command, .shift])
         choose(folder)
         // The line may wrap at the card's width.
         try await waitFor(pane, times: 100) { $0.replacing("\n", with: "").contains("cd -- '\(folder)/'") }
-        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "clear; pwd\r"])
+        try await send("clear; pwd\r", to: pane)
         try await waitFor(pane) { $0.split(separator: "\n").contains { $0 == folder } }
 
-        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "clear\r"])
+        try await send("clear\r", to: pane)
         element("terminal.\(pane)").click()
         app.typeKey("i", modifierFlags: [.command, .control])
         choose("\(folder)/a b")
@@ -253,12 +245,7 @@ extension OrielUITests {
     func testMoveToTabLandsBesideTheLastCard() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         // Its tab goes with its only pane.
-        let (mover, pane) = try await newTab("mover", closeAfter: false)
-        addTeardownBlock { [one] in
-            let close = try JSONSerialization.data(withJSONObject: ["id": "1", "method": "tab.close",
-                                                                    "params": ["tab_id": mover]])
-            _ = try? await Self.post(one, close + Data("\n".utf8))
-        }
+        let (mover, pane) = try await newTab("mover")
         let (target, first) = try await newTab("target")
         let last = try await split(first)
         // herdr's focus stays on the first card (focus: false).
@@ -267,9 +254,7 @@ extension OrielUITests {
         element("tab.\(mover)").click()
         XCTAssertTrue(element("pane.\(pane)").has(\.isHittable, true, within: 3))
         paneMenu(pane, "Move Pane to Tab", "target")
-        try await poll("the pane right of the last card") { () async throws -> Bool? in
-            try await order(target) == [first, last, pane] ? true : nil
-        }
+        try await expect("the pane right of the last card") { try await order(target) == [first, last, pane] }
 
         // The palette's Move Pane to Tab › moves the keyboard card to a new tab.
         element("terminal.\(pane)").click()
@@ -282,10 +267,8 @@ extension OrielUITests {
         app.typeText("new tab")
         app.typeKey(.return, modifierFlags: [])
         let moved = try await newTabID(after: before)
-        addTeardownBlock { [one] in _ = try? await Self.call(one, "tab.close", ["tab_id": moved]) }
-        try await poll("the pane alone in the new tab") { () async throws -> Bool? in
-            try await order(moved) == [pane] ? true : nil
-        }
+        closeAfter("tab", moved)
+        try await expect("the pane alone in the new tab") { try await order(moved) == [pane] }
     }
 
     /// View ▸ Actual Size, read with the menu open (SwiftUI updates a closed menu's items late).

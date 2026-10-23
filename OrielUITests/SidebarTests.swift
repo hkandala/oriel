@@ -9,9 +9,8 @@ extension OrielUITests {
         XCTAssertEqual(header, one)
         XCTAssertFalse(element("sidebar.dot.\(one)").exists)
         // The other sessions cost nothing: no bridge, no stream.
-        let (runs, status) = try await Self.post("\(env("ORIEL_SESSION2"))/children", Data())
-        XCTAssertEqual(status, 200)
-        XCTAssertEqual(String(decoding: runs, as: UTF8.self), "")
+        let runs = try await runs(two)
+        XCTAssertEqual(runs, [])
 
         // Esc and a click outside close the panel.
         let filter = openSessionSheet()
@@ -23,7 +22,7 @@ extension OrielUITests {
     }
 
     func testOpenSessionListsSessionsAndOpensAPage() {
-        let two = env("ORIEL_SESSION2"), three = env("ORIEL_SESSION3")
+        let three = env("ORIEL_SESSION3")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openSessionSheet()
         expect("open-session.session.\(two)", under: "Running", above: "Stopped")
@@ -76,16 +75,16 @@ extension OrielUITests {
         // The app starts the server and makes its first workspace; the new page shows it.
         XCTAssertTrue(until(connect) { header == four })
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        let snapshot = try await Self.call(four, "session.snapshot", [:])["snapshot"] as? [String: Any]
-        XCTAssertEqual((snapshot?["workspaces"] as? [Any])?.count, 1)
+        let snapshot = try await Self.snapshot(four)
+        XCTAssertEqual((snapshot["workspaces"] as? [Any])?.count, 1)
         XCTAssertTrue(element("sidebar.dot.\(one)").exists)
     }
 
     func testOpenSessionStartsAStoppedSession() async throws {
         let five = env("ORIEL_SESSION5")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let stopped = try await Self.post("\(five)/stop", Data())
-        XCTAssertEqual(stopped.status, 200, String(decoding: stopped.data, as: UTF8.self))
+        try await running(five)
+        try await Self.post("\(five)/stop")
         openSessionSheet()
         // Other stopped sessions on this Mac may push its row out of the list's view.
         app.typeText(five)
@@ -95,20 +94,20 @@ extension OrielUITests {
         app.typeKey(.return, modifierFlags: [])
 
         XCTAssertTrue(until(connect) { header == five })
-        try await Self.call(five, "session.snapshot", [:])
+        try await Self.snapshot(five)
     }
 
     func testClosePageKeepsTheSessionRunning() async throws {
-        let two = env("ORIEL_SESSION2")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openPage(two)
-        element("sidebar.header").rightClick()
+        // From the dot's menu (closePage uses the header's).
+        element("sidebar.dot.\(two)").rightClick()
         app.windows.firstMatch.menuItems["Close Page"].click()
         XCTAssertTrue(until(3) { header == one })
         XCTAssertFalse(element("sidebar.dot.\(two)").exists)
         XCTAssertFalse(element("sidebar.dot.\(one)").exists)
         // The session still runs (testClosingAPageAndQuittingLeaveNoStreams checks its runs end).
-        try await Self.call(two, "session.snapshot", [:])
+        try await Self.snapshot(two)
 
         // At its center: the page that slid away may leave it unhittable for a moment.
         element("sidebar.header").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
@@ -119,16 +118,10 @@ extension OrielUITests {
 
     func testEmptyPageOffersNewWorkspace() async throws {
         let five = env("ORIEL_SESSION5")
-        try await Self.post("\(five)/start", Data())
-        let snapshot = try await poll("five to answer") { () async throws -> [String: Any]? in
-            try? await Self.call(five, "session.snapshot", [:])["snapshot"] as? [String: Any]
-        }
-        for workspace in snapshot["workspaces"] as? [[String: Any]] ?? [] {
+        for workspace in try await running(five)["workspaces"] as? [[String: Any]] ?? [] {
             try await Self.call(five, "workspace.close", ["workspace_id": workspace["workspace_id"] ?? ""])
         }
-        app.terminate()
-        app.launchArguments = ["-session", five, "-ApplePersistenceIgnoreState", "YES"]
-        app.launch()
+        relaunch(five)
         // The page and the strip each show only the button.
         let buttons = app.buttons.matching(identifier: "new-workspace")
         XCTAssertTrue(buttons.element(boundBy: 1).exists(within: connect))
@@ -137,8 +130,7 @@ extension OrielUITests {
         keepScreenshot("empty page")
         buttons.element(boundBy: 1).click()
         let pane = try await poll("a workspace in herdr") { () async throws -> String? in
-            let snapshot = try await Self.call(five, "session.snapshot", [:])["snapshot"] as? [String: Any]
-            return (snapshot?["panes"] as? [[String: Any]])?.first?["pane_id"] as? String
+            try await (Self.snapshot(five)["panes"] as? [[String: Any]])?.first?["pane_id"] as? String
         }
         XCTAssertTrue(element("terminal.\(pane)").exists(within: 5))
     }
@@ -157,21 +149,16 @@ extension OrielUITests {
             + "\(git) commit -q --allow-empty -m two && git push -q origin main && git reset -q --hard HEAD~1 && "
             + "\(git) commit -q --allow-empty -m three && git worktree add -q ../tree -b feature) && "
             + "echo built-$((6*7))"
-        try await Self.call(one, "pane.send_text", ["pane_id": "w2:p1", "text": "\(script)\r"])
+        try await send("\(script)\r", to: "w2:p1")
         addTeardownBlock { [one] in
             _ = try? await Self.call(one, "pane.send_text", ["pane_id": "w2:p1", "text": "rm -rf \(root)\r"])
         }
         try await waitFor("w2:p1") { $0.contains("\nbuilt-42") }
-        let made = try await Self.call(one, "workspace.create", ["cwd": "\(root)/repo", "label": "repo",
-                                                                 "focus": false])
-        let repo = try XCTUnwrap((made["workspace"] as? [String: Any])?["workspace_id"] as? String)
+        let repo = try await workspace(of: createWorkspace("repo", cwd: "\(root)/repo").tab)
         // herdr fills a workspace's worktree fields only through its worktree calls.
-        let opened = try await Self.call(one, "worktree.open", ["workspace_id": repo, "path": "\(root)/tree",
-                                                                "focus": false])
-        let tree = try XCTUnwrap((opened["workspace"] as? [String: Any])?["workspace_id"] as? String)
-        addTeardownBlock { [one] in
-            _ = try? await Self.call(one, "workspace.close", ["workspace_id": repo, "close_group": true])
-        }
+        let tree = try await id(Self.call(one, "worktree.open", ["workspace_id": repo, "path": "\(root)/tree",
+                                                                 "focus": false]), "workspace")
+        closeAfter("workspace", tree)
 
         let repoRow = element("workspace.\(repo)"), treeRow = element("workspace.\(tree)")
         XCTAssertTrue(until(5) { repoRow.value as? String == "main ahead 1 behind 1" })
@@ -182,12 +169,8 @@ extension OrielUITests {
         keepScreenshot("git rows")
 
         // A new commit shows within the 10 s refresh.
-        try await Self.call(
-            one,
-            "pane.send_text",
-            ["pane_id": "w2:p1",
-             "text": "(cd \(root)/repo && \(git) commit -q --allow-empty -m 3) && echo committed-$((6*7))\r"],
-        )
+        try await send("(cd \(root)/repo && \(git) commit -q --allow-empty -m 3) && echo committed-$((6*7))\r",
+                       to: "w2:p1")
         try await waitFor("w2:p1") { $0.contains("\ncommitted-42") }
         XCTAssertTrue(until(12) { repoRow.value as? String == "main ahead 2 behind 1" })
 
@@ -207,15 +190,7 @@ extension OrielUITests {
         let made = try await poll("a new workspace") { () async throws -> String? in
             try await workspaceIDs().first { !before.contains($0) }
         }
-        addTeardownBlock { [one] in
-            // Unless the test closed it.
-            let snapshot = try? await Self.call(one, "session.snapshot", [:])["snapshot"] as? [String: Any]
-            if (snapshot?["workspaces"] as? [[String: Any]])?.contains(where: { $0["workspace_id"] as? String == made })
-                == true
-            {
-                _ = try? await Self.call(one, "workspace.close", ["workspace_id": made])
-            }
-        }
+        closeAfter("workspace", made)
         let row = element("workspace.\(made)")
         XCTAssertTrue(row.has(\.isSelected, true, within: 3))
 
@@ -226,24 +201,18 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard(field))
         field.typeKey("a", modifierFlags: .command)
         field.typeText("renamed\r")
-        try await poll("herdr's label") { () async throws -> Bool? in
-            try await workspaceLabel(made) == "renamed" ? true : nil
-        }
+        try await expect("herdr's label") { try await workspaceLabel(made) == "renamed" }
 
         // Last; Move Up puts it before beta in herdr's order.
         row.rightClick()
         XCTAssertFalse(app.menuItems["Move Down"].isEnabled)
         app.menuItems["Move Up"].click()
-        try await poll("herdr's order") { () async throws -> Bool? in
-            try await workspaceIDs().suffix(2) == [made, "w2"] ? true : nil
-        }
+        try await expect("herdr's order") { try await workspaceIDs().suffix(2) == [made, "w2"] }
         // The sidebar shows the new order before the next move.
         XCTAssertTrue(until(3) { row.frame.maxY <= element("workspace.w2").frame.minY })
         row.rightClick()
         app.menuItems["Move Down"].click()
-        try await poll("herdr's order back") { () async throws -> Bool? in
-            try await workspaceIDs().last == made ? true : nil
-        }
+        try await expect("herdr's order back") { try await workspaceIDs().last == made }
 
         row.rightClick()
         app.windows.firstMatch.menuItems["Close Workspace"].click()
@@ -251,9 +220,7 @@ extension OrielUITests {
         XCTAssertTrue(app.sheets.staticTexts["Its tab, pane and everything running in it will end, here and in every "
                 + "herdr client. This cannot be undone."].exists(within: 2))
         app.sheets.buttons["Close Workspace"].click()
-        try await poll("herdr to close it") { () async throws -> Bool? in
-            try await workspaceIDs().contains(made) ? nil : true
-        }
+        try await expect("herdr to close it") { try await !workspaceIDs().contains(made) }
         XCTAssertTrue(row.vanishes(within: 2))
     }
 
@@ -301,19 +268,29 @@ extension OrielUITests {
         }
     }
 
-    /// Opens the session's page through the sheet.
-    func openPage(_ session: String) {
-        openSessionSheet()
-        element("open-session.session.\(session)").click()
-        XCTAssertTrue(element("sidebar.dot.\(session)").exists(within: connect))
+    /// Opens the session's page through the sheet, in this window when there are several.
+    func openPage(_ session: String, in window: XCUIElement? = nil) {
+        openSessionSheet(in: window)
+        element("open-session.session.\(session)", in: window).click()
+        XCTAssertTrue(element("sidebar.dot.\(session)", in: window).exists(within: connect))
+    }
+
+    /// Shows the session's page and closes it from its header's context menu (in the window, not the menu bar's File ▸
+    /// Close Page).
+    func closePage(_ session: String, in window: XCUIElement? = nil) {
+        let dot = element("sidebar.dot.\(session)", in: window)
+        dot.click()
+        // At its center: the page that slid away may leave it unhittable for a moment.
+        element("sidebar.header", in: window).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
+        (window ?? app.windows.firstMatch).menuItems["Close Page"].click()
+        XCTAssertTrue(dot.vanishes(within: 3))
     }
 
     /// The footer's Open Session; the sheet's field has the keyboard.
     @discardableResult
-    func openSessionSheet() -> XCUIElement {
-        element("sidebar.open-session").click()
-        let filter = element("open-session.filter")
-        XCTAssertTrue(filter.exists(within: 2))
+    func openSessionSheet(in window: XCUIElement? = nil) -> XCUIElement {
+        element("sidebar.open-session", in: window).click()
+        let filter = element("open-session.filter", in: window)
         XCTAssertTrue(hasKeyboard(filter))
         return filter
     }
@@ -323,17 +300,13 @@ extension OrielUITests {
         element("sidebar.header").value as? String
     }
 
-    private func env(_ name: String) -> String {
-        ProcessInfo.processInfo.environment[name] ?? ""
-    }
-
     func workspaceIDs() async throws -> [String] {
         try await Self.ids("workspace", in: one)
     }
 
     private func workspaceLabel(_ id: String) async throws -> String? {
         let snapshot = try await snapshot()
-        return (snapshot?["workspaces"] as? [[String: Any]])?.first { $0["workspace_id"] as? String == id }?["label"]
+        return (snapshot["workspaces"] as? [[String: Any]])?.first { $0["workspace_id"] as? String == id }?["label"]
             as? String
     }
 }

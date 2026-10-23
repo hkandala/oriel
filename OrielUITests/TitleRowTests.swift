@@ -80,18 +80,17 @@ extension OrielUITests {
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(filter.vanishes(within: 2))
         let made = try await poll("herdr to have \(name)") { () async throws -> String? in
-            let snapshot = try await self.snapshot()
-            let workspaces = snapshot?["workspaces"] as? [[String: Any]] ?? []
+            let workspaces = try await snapshot()["workspaces"] as? [[String: Any]] ?? []
             return workspaces.first { $0["label"] as? String == name }?["workspace_id"] as? String
         }
-        addTeardownBlock { [one] in _ = try? await Self.call(one, "workspace.close", ["workspace_id": made]) }
+        closeAfter("workspace", made)
         // In home, not the server's cwd (the runner's own home is its sandbox container).
-        let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
+        let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
         XCTAssertEqual(
             panes.first { $0["workspace_id"] as? String == made }?["cwd"] as? String,
             "/Users/\(NSUserName())",
         )
-        try await poll("the button to show \(name)") { button.value as? String == "\(one) | \(name)" ? true : nil }
+        try await expect("the button to show \(name)") { button.value as? String == "\(one) | \(name)" }
         XCTAssertTrue(element("tab.\(made):t1").exists(within: 2))
 
         // Picking another workspace shows its tabs.
@@ -104,7 +103,8 @@ extension OrielUITests {
     }
 
     func testCloseButtonShowsOnTheHoveredTabAndCloses() async throws {
-        let (workspace, tabs) = try await newWorkspace(tabs: 3)
+        let tabs = try await newWorkspace("row", tabs: 3).tabs
+        let workspace = workspace(of: tabs[0])
         let close = element("tab.\(tabs[1]).close")
         XCTAssertFalse(close.exists)
         // The selected tab too has none until hovered.
@@ -121,14 +121,13 @@ extension OrielUITests {
         let confirm = app.sheets.buttons["Close Tab"]
         XCTAssertTrue(confirm.exists(within: 2))
         confirm.click()
-        try await poll("herdr to close it") { () async throws -> Bool? in
-            try await tabsOf(workspace).map(\.id) == [tabs[0], tabs[2]] ? true : nil
-        }
+        try await expect("herdr to close it") { try await tabsOf(workspace).map(\.id) == [tabs[0], tabs[2]] }
         XCTAssertTrue(element("tab.\(tabs[1])").vanishes(within: 2))
     }
 
     func testTabContextMenuRenamesAndMoves() async throws {
-        let (workspace, tabs) = try await newWorkspace(tabs: 3)
+        let tabs = try await newWorkspace("row", tabs: 3).tabs
+        let workspace = workspace(of: tabs[0])
         keepScreenshot("three tabs")
         let field = element("tab.\(tabs[0]).rename")
         // A double-click on the title starts it too; Esc cancels an edit.
@@ -150,27 +149,22 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard(field))
         app.typeKey("a", modifierFlags: .command)
         app.typeText("renamed\r")
-        try await poll("herdr's label") { () async throws -> Bool? in
-            try await tabsOf(workspace).first?.label == "renamed" ? true : nil
-        }
+        try await expect("herdr's label") { try await tabsOf(workspace).first?.label == "renamed" }
         XCTAssertTrue(field.vanishes(within: 2))
 
         element("tab.\(tabs[0])").rightClick()
         XCTAssertFalse(app.windows.firstMatch.menuItems["Move Tab Left"].isEnabled)
         app.windows.firstMatch.menuItems["Move Tab Right"].click()
-        try await poll("the new order") { () async throws -> Bool? in
-            try await tabsOf(workspace).map(\.id) == [tabs[1], tabs[0], tabs[2]] ? true : nil
-        }
+        try await expect("the new order") { try await tabsOf(workspace).map(\.id) == [tabs[1], tabs[0], tabs[2]] }
         // The moved tab stays selected, and the marker stays on it.
         let moved = element("tab.\(tabs[0])")
         XCTAssertTrue(moved.isSelected)
-        try await poll("the marker on the moved tab") {
-            (moved.value as? String)?.hasPrefix("in view") == true ? true : nil
-        }
+        try await expect("the marker on the moved tab") { (moved.value as? String)?.hasPrefix("in view") == true }
     }
 
     func testCloseOtherTabsAsksOnceAndLeavesOneTab() async throws {
-        let (workspace, tabs) = try await newWorkspace(tabs: 3)
+        let tabs = try await newWorkspace("row", tabs: 3).tabs
+        let workspace = workspace(of: tabs[0])
         try await split("\(workspace):p1")
         element("tab.\(tabs[1])").rightClick()
         app.menuItems["Close Other Tabs"].click()
@@ -181,15 +175,14 @@ extension OrielUITests {
             .matching(NSPredicate(format: "value CONTAINS '3 panes' OR label CONTAINS '3 panes'")).firstMatch
             .exists(within: 2))
         confirm.click()
-        try await poll("one tab left") { () async throws -> Bool? in
-            try await tabsOf(workspace).map(\.id) == [tabs[1]] ? true : nil
-        }
+        try await expect("one tab left") { try await tabsOf(workspace).map(\.id) == [tabs[1]] }
         XCTAssertTrue(element("tab.\(tabs[0])").vanishes(within: 2))
         XCTAssertFalse(app.sheets.firstMatch.exists)
     }
 
     func testTwelveTabsKeepTheirWidthAndTheSelectedOneInView() async throws {
-        let (workspace, twelve) = try await newWorkspace(tabs: 12)
+        let twelve = try await newWorkspace("row", tabs: 12).tabs
+        let workspace = workspace(of: twelve[0])
         app.typeKey("s", modifierFlags: [.command, .control])
         let button = element("titlebar.workspace"), palette = element("titlebar.palette")
         XCTAssertTrue(button.exists(within: 2))
@@ -211,7 +204,7 @@ extension OrielUITests {
         // ⇧⌘[ from the first goes round to the last: the bar scrolls to it.
         app.typeKey("[", modifierFlags: [.command, .shift])
         XCTAssertTrue(last.has(\.isSelected, true, within: 2))
-        try await poll("the last tab in view") { last.frame.maxX < palette.frame.minX ? true : nil }
+        try await expect("the last tab in view") { last.frame.maxX < palette.frame.minX }
         XCTAssertGreaterThanOrEqual(last.frame.width, 64)
     }
 
@@ -225,7 +218,7 @@ extension OrielUITests {
             XCTAssertFalse(element("workspace.w1").label.contains("⌘"))
             keepScreenshot("keycap hints")
         }
-        try await poll("the keycaps to go") { tab.label.contains("⌘2") ? nil : true }
+        try await expect("the keycaps to go") { !tab.label.contains("⌘2") }
     }
 
     /// A labeled tab's title is its label (testShowsWorkspacesTabsAndSplits: "second - ‹session›").
@@ -234,9 +227,7 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         // t1 keeps herdr's default label: the front card's program and folder name (/private/tmp); the shell is zsh
         // here, bash on CI.
-        try await poll("the window title ‹shell› tmp - ‹session›") {
-            window.title.hasSuffix(" tmp - \(one)") ? true : nil
-        }
+        try await expect("the window title ‹shell› tmp - ‹session›") { window.title.hasSuffix(" tmp - \(one)") }
     }
 
     /// Opens the workspace menu; its filter has the keyboard.
@@ -244,31 +235,14 @@ extension OrielUITests {
     private func openWorkspaceMenu() -> XCUIElement {
         element("titlebar.workspace").click()
         let filter = element("workspaces.filter")
-        XCTAssertTrue(filter.exists(within: 2))
         XCTAssertTrue(hasKeyboard(filter))
         return filter
-    }
-
-    /// A workspace of its own with this many tabs, closed after the test and selected: its id and the tab ids.
-    private func newWorkspace(tabs count: Int) async throws -> (String, [String]) {
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let created = try await Self.call(one, "workspace.create", ["label": "row", "cwd": "/tmp", "focus": false])
-        let workspace = try XCTUnwrap((created["workspace"] as? [String: Any])?["workspace_id"] as? String)
-        addTeardownBlock { [one] in _ = try? await Self.call(one, "workspace.close", ["workspace_id": workspace]) }
-        for _ in 1 ..< count {
-            try await Self.call(one, "tab.create", ["workspace_id": workspace, "cwd": "/tmp", "focus": false])
-        }
-        let tabs = try await tabsOf(workspace).map(\.id)
-        XCTAssertTrue(element("workspace.\(workspace)").exists(within: 2))
-        element("workspace.\(workspace)").click()
-        XCTAssertTrue(element("tab.\(tabs[count - 1])").exists(within: 3))
-        return (workspace, tabs)
     }
 
     /// The workspace's tabs in herdr's order.
     private func tabsOf(_ workspace: String) async throws -> [(id: String, label: String)] {
         let snapshot = try await snapshot()
-        return (snapshot?["tabs"] as? [[String: Any]] ?? []).filter { $0["workspace_id"] as? String == workspace }
+        return (snapshot["tabs"] as? [[String: Any]] ?? []).filter { $0["workspace_id"] as? String == workspace }
             .compactMap { tab in (tab["tab_id"] as? String).map { ($0, tab["label"] as? String ?? "") } }
     }
 }

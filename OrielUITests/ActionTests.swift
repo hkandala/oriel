@@ -11,10 +11,8 @@ extension OrielUITests {
         try await waitForPrompt(second)
 
         // Something besides the shell runs: the app asks, and Cancel keeps the pane.
-        try await Self.call(one, "pane.send_text", ["pane_id": second, "text": "sleep 100\r"])
-        try await poll("sleep to run") { () async throws -> Bool? in
-            try await foreground(second).contains("sleep") ? true : nil
-        }
+        try await send("sleep 100\r", to: second)
+        try await expect("sleep to run") { try await foreground(second).contains("sleep") }
         hoverHeader(second)
         element("pane.\(second).close").click()
         let confirm = app.sheets.buttons["Close Pane"]
@@ -26,9 +24,7 @@ extension OrielUITests {
 
         // Only the shell: the card goes at once.
         try await Self.call(one, "pane.send_keys", ["pane_id": second, "keys": ["ctrl+c"]])
-        try await poll("the shell to be back") { () async throws -> Bool? in
-            try await foreground(second).contains("sleep") ? nil : true
-        }
+        try await expect("the shell to be back") { try await !foreground(second).contains("sleep") }
         hoverHeader(second)
         element("pane.\(second).close").click()
         XCTAssertTrue(element("pane.\(second)").vanishes(within: 3))
@@ -51,7 +47,7 @@ extension OrielUITests {
 
     func testClosingATabAsksFirst() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let (tab, pane) = try await newTab("doomed", closeAfter: false)
+        let (tab, pane) = try await newTab("doomed")
         try await split(pane)
         let row = element("tab.\(tab)")
         row.hover()
@@ -65,8 +61,8 @@ extension OrielUITests {
         keepScreenshot("close tab dialog")
         confirm.click()
         XCTAssertTrue(row.vanishes(within: 3))
-        let snapshot = try await snapshot()
-        XCTAssertFalse((snapshot?["tabs"] as? [[String: Any]] ?? []).contains { $0["tab_id"] as? String == tab })
+        let tabs = try await tabIDs()
+        XCTAssertFalse(tabs.contains(tab))
     }
 
     func testPlusMakesATabAndSelectsIt() async throws {
@@ -74,7 +70,7 @@ extension OrielUITests {
         let before = try await tabIDs()
         element("titlebar.new-tab").click()
         let tab = try await newTabID(after: before)
-        addTeardownBlock { [one] in _ = try? await Self.call(one, "tab.close", ["tab_id": tab]) }
+        closeAfter("tab", tab)
         XCTAssertTrue(tab.hasPrefix("w1:"))
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3))
         XCTAssertTrue(element("page.\(tab)").has(\.isHittable, true, within: 3))
@@ -83,7 +79,7 @@ extension OrielUITests {
     func testCommandTOpensInTheKeyboardCardsDirectoryAndCommandWClosesIt() async throws {
         XCTAssertTrue(element("terminal.w1:p2").exists(within: connect))
         try await waitForPrompt("w1:p2")
-        try await Self.call(one, "pane.send_text", ["pane_id": "w1:p2", "text": "cd /usr\r"])
+        try await send("cd /usr\r", to: "w1:p2")
         element("terminal.w1:p2").click()
 
         // ⌘T: the new tab opens in /usr and has the keyboard; ⌘W there closes it (only its shell runs).
@@ -102,8 +98,7 @@ extension OrielUITests {
         header.doubleClick()
         XCTAssertTrue(element("pane.w1:p1").exists(within: 2))
         pane = try await commandT()
-        let created = try await tabOf(pane)
-        addTeardownBlock { [one] in _ = try? await Self.call(one, "tab.close", ["tab_id": created]) }
+        try await closeAfter("tab", tabOf(pane))
     }
 
     /// ⌘T, then the new tab's pane once herdr has it; its cwd must be /usr.
@@ -112,15 +107,14 @@ extension OrielUITests {
         app.typeKey("t", modifierFlags: .command)
         let tab = try await newTabID(after: before)
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3))
-        let snapshot = try await snapshot()
-        let pane = try XCTUnwrap((snapshot?["panes"] as? [[String: Any]])?.first { $0["tab_id"] as? String == tab })
+        let panes = try await snapshot()["panes"] as? [[String: Any]]
+        let pane = try XCTUnwrap(panes?.first { $0["tab_id"] as? String == tab })
         XCTAssertEqual(pane["cwd"] as? String, "/usr")
         return try XCTUnwrap(pane["pane_id"] as? String)
     }
 
     private func tabOf(_ pane: String) async throws -> String {
-        let info = try await Self.call(one, "pane.get", ["pane_id": pane])["pane"] as? [String: Any]
-        return try XCTUnwrap(info?["tab_id"] as? String)
+        try await field(self.pane(pane)["tab_id"], "\(pane)'s tab")
     }
 
     func testNewWorkspaceAppearsSelected() async throws {
@@ -134,8 +128,8 @@ extension OrielUITests {
         let before = try await tabIDs()
         element("sidebar.new-workspace").click()
         let tab = try await newTabID(after: before)
-        let workspace = String(tab.prefix { $0 != ":" })
-        addTeardownBlock { [one] in _ = try? await Self.call(one, "workspace.close", ["workspace_id": workspace]) }
+        let workspace = workspace(of: tab)
+        closeAfter("workspace", workspace)
         XCTAssertTrue(element("workspace.\(workspace)").exists(within: 3))
         // Only the selected workspace's pages are in the strip.
         XCTAssertTrue(element("page.\(tab)").exists(within: 3))
@@ -166,7 +160,7 @@ extension OrielUITests {
         try await waitFor("w1:p2") { $0.contains("\noriel-zoom-42") }
         // The hidden cards keep their size: the same rows, and the columns within one (CI's 1x display rounds the
         // hidden card's width differently).
-        try await Self.call(one, "pane.send_text", ["pane_id": "w1:p3", "text": "clear; stty size\r"])
+        try await send("clear; stty size\r", to: "w1:p3")
         let grid = neighbor.split(separator: " ").compactMap { Int($0) }
         try await waitFor("w1:p3") { text in
             text.split(separator: "\n").contains { line in
@@ -195,7 +189,6 @@ extension OrielUITests {
 
         // A workspace of the window, from the title-row button.
         element("titlebar.palette").click()
-        XCTAssertTrue(filter.exists(within: 2))
         XCTAssertTrue(hasKeyboard(filter))
         app.typeText("beta")
         XCTAssertTrue(element("palette.workspace.\(one).w2").has(\.isSelected, true, within: 2))

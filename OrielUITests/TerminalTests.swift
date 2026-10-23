@@ -32,7 +32,7 @@ extension OrielUITests {
         let terminal = element("terminal.w1:p1")
         XCTAssertTrue(terminal.exists(within: connect))
         try await waitForPrompt("w1:p1")
-        try await Self.call(one, "pane.send_text", ["pane_id": "w1:p1", "text": "seq 1 500\r"])
+        try await send("seq 1 500\r", to: "w1:p1")
         try await waitFor("w1:p1") { $0.contains("\n500\n") }
         // The wheel goes where the pointer is. Which sign is up depends on the Mac's natural
         // scrolling setting (up for negative here, down on CI), so try both; at the bottom, down
@@ -43,8 +43,7 @@ extension OrielUITests {
             terminal.scroll(byDeltaX: 0, deltaY: delta)
             delta = -delta
             try await Task.sleep(for: .milliseconds(300))
-            let pane = try await Self.call(one, "pane.get", ["pane_id": "w1:p1"])["pane"] as? [String: Any]
-            let offset = (pane?["scroll"] as? [String: Any])?["offset_from_bottom"] as? Int ?? 0
+            let offset = try await (pane("w1:p1")["scroll"] as? [String: Any])?["offset_from_bottom"] as? Int ?? 0
             return offset > 0 ? offset : nil
         }
         // Up and down do not page the strip.
@@ -62,12 +61,12 @@ extension OrielUITests {
         // the first tab nothing moves, so try both.
         let width = Double(terminal.frame.width)
         var delta = -width
-        try await poll("the swipe to select the second tab", times: 6) { () async throws -> Bool? in
+        try await expect("the swipe to select the second tab", times: 6) {
             terminal.hover()
             terminal.scroll(byDeltaX: delta, deltaY: 0)
             delta = -delta
             try await Task.sleep(for: .milliseconds(700))
-            return element("tab.w1:t2").isSelected ? true : nil
+            return element("tab.w1:t2").isSelected
         }
         keepScreenshot("after the swipe")
         XCTAssertTrue(app.windows.firstMatch.has(\.title, "second - \(one)", within: 2))
@@ -101,21 +100,21 @@ extension OrielUITests {
         // The app controls p1 (its PTY has the card's size), so a second controller is refused. A
         // probe before the app attached would win, and the app would only watch.
         try await expectPTYSize("w1:p1")
-        try await waitForControl(old) { $0.contains("already has an attached client") }
+        try await waitForControl(old)
         let rows = try await viewportRows("w1:p1")
 
         element("tab.w1:t2").click()
         XCTAssertTrue(element("terminal.w1:p4").exists(within: 2))
         try await expectPTYSize("w1:p4")
-        try await waitForControl(new) { $0.contains("already has an attached client") }
+        try await waitForControl(new)
         // The last tab stays attached at its size, so coming back to it resizes nothing.
-        try await waitForControl(old) { $0.contains("already has an attached client") }
+        try await waitForControl(old)
         let away = try await viewportRows("w1:p1")
         XCTAssertEqual(away, rows)
 
         element("tab.w1:t1").click()
         XCTAssertTrue(element("terminal.w1:p1").exists(within: 2))
-        try await waitForControl(old) { $0.contains("already has an attached client") }
+        try await waitForControl(old)
         let back = try await viewportRows("w1:p1")
         XCTAssertEqual(back, rows)
     }
@@ -151,7 +150,7 @@ extension OrielUITests {
         // win, and the app would only watch.
         try await expectPTYSize(pane)
         let terminal = try await terminalID(pane)
-        try await waitForControl(terminal) { $0.contains("already has an attached client") }
+        try await waitForControl(terminal)
 
         // Another client takes the pane (and lets go at once): the card watches and offers it back.
         try await Self.post("\(one)/takeover", Data(terminal.utf8))
@@ -161,7 +160,7 @@ extension OrielUITests {
         keepScreenshot("in use elsewhere")
         takeBack.click()
         XCTAssertTrue(takeBack.vanishes(within: 3))
-        try await waitForControl(terminal) { $0.contains("already has an attached client") }
+        try await waitForControl(terminal)
         element("terminal.\(pane)").click()
         try await typeAndRead(pane)
     }
@@ -169,15 +168,15 @@ extension OrielUITests {
     // MARK: Helpers
 
     private func viewportRows(_ pane: String) async throws -> Int {
-        let pane = try await Self.call(one, "pane.get", ["pane_id": pane])["pane"] as? [String: Any]
-        return try XCTUnwrap((pane?["scroll"] as? [String: Any])?["viewport_rows"] as? Int)
+        try await field((self.pane(pane)["scroll"] as? [String: Any])?["viewport_rows"], "\(pane)'s rows")
     }
 
-    /// A `control` stream from the helper, let go at once, until its output passes `done`.
-    private func waitForControl(_ terminal: String, _ done: (String) -> Bool) async throws {
-        try await poll("control of \(terminal)", times: 20) { () async throws -> String? in
-            let text = try await String(decoding: Self.post("\(one)/control", Data(terminal.utf8)).data, as: UTF8.self)
-            return done(text) ? text : nil
+    /// A `control` stream from the helper, let go at once, until herdr refuses it: another client controls the
+    /// terminal.
+    private func waitForControl(_ terminal: String) async throws {
+        try await expect("herdr to refuse a second control of \(terminal)", times: 20) {
+            try await String(decoding: Self.post("\(one)/control", Data(terminal.utf8)), as: UTF8.self)
+                .contains("already has an attached client")
         }
     }
 }

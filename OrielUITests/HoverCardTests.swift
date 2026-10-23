@@ -6,7 +6,7 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("deploy")
         try await split(split(pane))
-        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "echo hover-$((6*7)); echo waiting\r"])
+        try await send("echo hover-$((6*7)); echo waiting\r", to: pane)
         try await waitFor(pane) { $0.contains("\nhover-42") }
         try await report(pane, "blocked", agent: "claude")
         try await waitForValue("tab.\(tab)", containing: "claude, needs you")

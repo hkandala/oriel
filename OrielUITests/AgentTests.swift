@@ -56,8 +56,7 @@ extension OrielUITests {
                                                                  "agent": "codex"])
         }
         try await report("w1:p1", "blocked", session: two)
-        try await poll("the badge to count the other page") { element("app.badge").value as? String == "1" ? true : nil
-        }
+        try await expect("the badge to count the other page") { element("app.badge").value as? String == "1" }
         XCTAssertEqual(element("titlebar.agents").value as? String, "0 need you")
         element("sidebar.dot.\(two)").click()
         try await waitForValue("titlebar.agents", containing: "1 need you")
@@ -100,9 +99,9 @@ extension OrielUITests {
         app.menuItems["Workspace order"].click()
         try await waitForValue("agents.sort", containing: "workspace")
         XCTAssertTrue(element("agents.group.Idle").vanishes(within: 2))
-        try await poll("rows in workspace order") { () -> Bool? in
+        try await expect("rows in workspace order") {
             let order = [idle, working, blocked, done].map { element("agent.\($0)").frame.minY }
-            return order == order.sorted() ? true : nil
+            return order == order.sorted()
         }
         keepScreenshot("agents view in workspace order")
 
@@ -166,8 +165,6 @@ extension OrielUITests {
     }
 
     func waitForValue(_ identifier: String, containing text: String) async throws {
-        try await poll("\(identifier) to say \(text)") { () async throws -> Bool? in
-            (element(identifier).value as? String)?.contains(text) == true ? true : nil
-        }
+        try await expect("\(identifier) to say \(text)") { element(identifier).stringValue.contains(text) }
     }
 }

@@ -5,20 +5,14 @@ import XCTest
 /// Streams are counted through the helper (`pgrep` on the session's `terminal session` runs).
 extension OrielUITests {
     func testStoppedSessionSaysSoAndComesBackWhenStartedAgain() async throws {
-        let five = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION5"])
-        let snapshot = try await Self.call(five, "session.snapshot", [:])["snapshot"] as? [String: Any]
-        if (snapshot?["workspaces"] as? [Any] ?? []).isEmpty {
-            try await Self.call(five, "workspace.create", ["label": "five", "cwd": "/tmp", "focus": false])
-        }
-        app.terminate()
-        app.launchArguments = ["-session", five, "-ApplePersistenceIgnoreState", "YES"]
-        app.launch()
+        let five = env("ORIEL_SESSION5")
+        try await running(five)
+        relaunch(five)
         let terminal = element("terminal.w1:p1")
         XCTAssertTrue(terminal.exists(within: connect))
-        try await poll("its stream") { () async throws -> Bool? in try await streams(five).count == 1 ? true : nil }
+        try await expect("its stream") { try await streams(five).count == 1 }
 
-        let stopped = try await Self.post("\(five)/stop", Data())
-        XCTAssertEqual(stopped.status, 200, String(decoding: stopped.data, as: UTF8.self))
+        try await Self.post("\(five)/stop")
         // The "not running" page: its Start button.
         XCTAssertTrue(element("detail.start").exists(within: 10))
         XCTAssertFalse(terminal.exists)
@@ -32,19 +26,15 @@ extension OrielUITests {
         row.doubleClick()
         XCTAssertFalse(element("workspace.w1.rename").exists(within: 1))
         keepScreenshot("not running")
-        try await poll("no stream") { () async throws -> Bool? in try await streams(five).isEmpty ? true : nil }
+        try await expect("no stream") { try await streams(five).isEmpty }
 
         // Started in a terminal, not by the app: the app finds it again within seconds, with one stream.
-        let started = try await Self.post("\(five)/start", Data())
-        XCTAssertEqual(started.status, 200)
+        try await Self.post("\(five)/start")
         XCTAssertTrue(terminal.exists(within: 10))
-        try await poll("one stream again") { () async throws -> Bool? in
-            try await streams(five).count == 1 ? true : nil
-        }
+        try await expect("one stream again") { try await streams(five).count == 1 }
         // Live updates are back: a tab made in herdr shows up.
-        let created = try await Self.call(five, "tab.create", ["workspace_id": "w1", "label": "back", "cwd": "/tmp",
-                                                               "focus": false])
-        let tab = try XCTUnwrap((created["tab"] as? [String: Any])?["tab_id"] as? String)
+        let tab = try await id(Self.call(five, "tab.create", ["workspace_id": "w1", "label": "back", "cwd": "/tmp",
+                                                              "focus": false]), "tab")
         XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
     }
 
@@ -54,51 +44,42 @@ extension OrielUITests {
         let second = try await split(first)
         element("tab.\(tab)").click()
         let doomed = try await terminalID(second)
-        try await poll("its stream") { () async throws -> Bool? in
-            try await streams(one).contains { $0.contains(doomed) } ? true : nil
-        }
+        try await expect("its stream") { try await streams(one).contains { $0.contains(doomed) } }
 
         try await Self.call(one, "pane.close", ["pane_id": second])
         XCTAssertTrue(element("pane.\(second)").vanishes(within: 3))
-        try await poll("its stream to end") { () async throws -> Bool? in
-            try await streams(one).contains { $0.contains(doomed) } ? nil : true
-        }
+        try await expect("its stream to end") { try await !streams(one).contains { $0.contains(doomed) } }
         XCTAssertTrue(element("pane.\(first)").exists)
     }
 
     func testClosingAPageAndQuittingLeaveNoStreams() async throws {
-        let two = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION2"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         XCTAssertTrue(element("tab.w1:t1").isSelected)
         // t1's three cards stream; the other session's one card once its page shows. The first page's stay in the
         // window's cache of recent terminals.
-        try await expectStreams(3, 0, two)
+        try await expectStreams(3, 0)
         for _ in 0 ..< 2 {
             openPage(two)
-            try await expectStreams(3, 1, two)
-            element("sidebar.header").rightClick()
-            app.windows.firstMatch.menuItems["Close Page"].click()
-            XCTAssertTrue(element("sidebar.dot.\(two)").vanishes(within: 2))
+            try await expectStreams(3, 1)
+            closePage(two)
             // Its events stream and bridges end too.
-            try await poll("no herdr runs on two") { () async throws -> Bool? in
-                try await Self.post("\(two)/children", Data()).data.isEmpty ? true : nil
-            }
-            try await expectStreams(3, 0, two)
+            try await expect("no herdr runs on two") { try await runs(two).isEmpty }
+            try await expectStreams(3, 0)
         }
 
         // No herdr run outlives the app: each ends when its stdin closes.
         app.typeKey("q", modifierFlags: .command)
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
-        try await poll("no herdr runs left") { () async throws -> Bool? in
-            let left = try await (Self.post("\(one)/children", Data()), Self.post("\(two)/children", Data()))
-            return left.0.data.isEmpty && left.1.data.isEmpty ? true : nil
+        try await expect("no herdr runs left") {
+            let left = try await (runs(one), runs(two))
+            return left.0.isEmpty && left.1.isEmpty
         }
     }
 
-    private func expectStreams(_ inOne: Int, _ inTwo: Int, _ two: String) async throws {
-        try await poll("\(inOne) streams on one, \(inTwo) on two") { () async throws -> Bool? in
+    private func expectStreams(_ inOne: Int, _ inTwo: Int) async throws {
+        try await expect("\(inOne) streams on one, \(inTwo) on two") {
             let counts = try await (streams(one).count, streams(two).count)
-            return counts == (inOne, inTwo) ? true : nil
+            return counts == (inOne, inTwo)
         }
     }
 }

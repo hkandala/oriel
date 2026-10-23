@@ -49,11 +49,9 @@ extension OrielUITests {
     /// Three splits, a zoomed card, one tab, and three tabs with a working and a blocked agent; each with the sidebar
     /// open and collapsed where Rex has both.
     private func scenes(_ style: String, _ appearance: String) async throws {
-        app.terminate()
         // Rex's window (1180 × 760 pt) in the argument domain, over any frame an earlier run saved.
-        app.launchArguments += ["-appearance", appearance, "-interfaceStyle", style,
-                                "-NSWindow Frame main-AppWindow-1", "100 100 1180 760 0 0 1728 1084"]
-        app.launch()
+        relaunch(one, ["-appearance", appearance, "-interfaceStyle", style,
+                       "-NSWindow Frame main-AppWindow-1", "100 100 1180 760 0 0 1728 1084"])
         let look = "\(style) \(appearance)"
         XCTAssertTrue(element("window.look").has(\.stringValue, look, within: connect))
         XCTAssertTrue(element("terminal.w1:p3").exists(within: connect))

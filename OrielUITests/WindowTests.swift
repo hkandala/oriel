@@ -59,10 +59,10 @@ extension OrielUITests {
     func testClosingTheControllingWindowHandsControlOver() async throws {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         // One events stream per session, however many windows show it (request bridges come and go).
-        try await poll("one bridge run") { () async throws -> Bool? in try await bridges(one) == 1 ? true : nil }
+        try await expect("one bridge run") { try await bridges(one) == 1 }
         let (first, second) = try newWindow()
         XCTAssertTrue(element("notice.controlled", in: second).exists(within: connect))
-        try await poll("still one bridge run") { () async throws -> Bool? in try await bridges(one) == 1 ? true : nil }
+        try await expect("still one bridge run") { try await bridges(one) == 1 }
         app.typeKey("s", modifierFlags: [.command, .control])
 
         // Window 1 controls and closes: window 2 takes over at its own card size.
@@ -81,11 +81,11 @@ extension OrielUITests {
 
         // Window 1 controls, opens session two and closes its page of session one: window 2 takes over.
         raise(first)
-        openSessionTwo(in: first)
+        openPage(two, in: first)
         // Still window 1's until its page closes.
         XCTAssertTrue(element("notice.controlled", in: second).exists)
         try await expectStreams(terminalID("w1:p1"), control: 1, observe: 1)
-        closePageOne(in: first)
+        closePage(one, in: first)
         XCTAssertTrue(element("notice.controlled", in: second).vanishes(within: 3))
         try await expectStreams(terminalID("w1:p1"), control: 1, observe: 0)
         try await expectPTYSize("w1:p1", in: second)
@@ -106,41 +106,23 @@ extension OrielUITests {
         XCTAssertTrue(element("notice.controlled", in: second).exists(within: connect))
 
         // Window 2 opens session two and closes its page of session one.
-        openSessionTwo(in: second)
+        openPage(two, in: second)
         // The capsule shows only while the page in view is watched.
         XCTAssertTrue(element("notice.controlled", in: second).vanishes(within: 3))
         element("sidebar.dot.\(one)", in: second).click()
         XCTAssertTrue(element("notice.controlled", in: second).exists(within: 3))
-        closePageOne(in: second)
+        closePage(one, in: second)
 
         XCTAssertTrue(element("terminal.w1:p1", in: second).exists(within: connect))
         XCTAssertFalse(element("notice.controlled", in: second).exists)
         XCTAssertFalse(element("notice.controlled", in: first).exists)
-        let gamma = try await Self.call(two, "pane.get", ["pane_id": "w1:p1"])["pane"] as? [String: Any]
-        try await expectStreams(XCTUnwrap(gamma?["terminal_id"] as? String), control: 1, observe: 0, session: two)
+        try await expectStreams(terminalID("w1:p1", in: two), control: 1, observe: 0, session: two)
         try await expectStreams(terminalID("w1:p1"), control: 1, observe: 0)
         keepScreenshot("window 1 on session one", of: first)
         keepScreenshot("window 2 on session two", of: second)
     }
 
     // MARK: Helpers
-
-    /// Opens session two's page in the window through the Open Session sheet.
-    private func openSessionTwo(in window: XCUIElement) {
-        element("sidebar.open-session", in: window).click()
-        element("open-session.session.\(two)", in: window).click()
-        XCTAssertTrue(element("sidebar.dot.\(two)", in: window).exists(within: connect))
-    }
-
-    /// Closes the window's page of session one from its header's context menu.
-    private func closePageOne(in window: XCUIElement) {
-        element("sidebar.dot.\(one)", in: window).click()
-        // At its center: the page that slid away may leave it unhittable for a moment.
-        element("sidebar.header", in: window).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        // In the window, not the menu bar's File ▸ Close Page.
-        window.menuItems["Close Page"].click()
-        XCTAssertTrue(element("sidebar.dot.\(one)", in: window).vanishes(within: 3))
-    }
 
     /// ⌘N once the first window shows session one: the first window and the new one.
     func newWindow() throws -> (XCUIElement, XCUIElement) {
@@ -163,17 +145,16 @@ extension OrielUITests {
 
     /// The terminal's `control` and `observe` runs, any client's, settle at these counts.
     private func expectStreams(_ terminal: String, control: Int, observe: Int, session: String? = nil) async throws {
-        try await poll("\(control) control and \(observe) observe runs of \(terminal)") { () async throws -> Bool? in
+        try await expect("\(control) control and \(observe) observe runs of \(terminal)") {
             let runs = try await streams(session ?? one).filter { $0.contains(terminal) }
             let controls = runs.count { $0.contains("session control") },
                 observes = runs.count { $0.contains("observe") }
-            return controls == control && observes == observe ? true : nil
+            return controls == control && observes == observe
         }
     }
 
     private func bridges(_ session: String) async throws -> Int {
-        let (data, _) = try await Self.post("\(session)/children", Data())
-        return String(decoding: data, as: UTF8.self).split(separator: "\n").count { $0.contains("remote-api-bridge") }
+        try await runs(session).count { $0.contains("remote-api-bridge") }
     }
 
     /// Brings the window to the front with Window ▸ Cycle Through Windows (⌘`), as a click cannot: on CI's 1024×768
