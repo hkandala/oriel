@@ -20,8 +20,8 @@ final class HostStore {
     private(set) var panes: [Pane] = []
     /// herdr's focused workspace: a page's first selection.
     private(set) var focusedWorkspaceID: String?
-    /// The last failed write, shown for a few seconds.
-    private(set) var notice: String?
+    /// The last failed write, shown for a few seconds; ✕ clears it.
+    var notice: Notice?
     /// A write in flight; the buttons wait for it.
     private(set) var writing = false
     var closing: Close?
@@ -86,7 +86,12 @@ final class HostStore {
         static func start(_ session: String) async throws {
             // herdr is the only multiplexer (design D49).
             let client: any Multiplexer = await HerdrClient(session: session, exec: exec.value)
-            if try await client.startServer(), try await client.snapshot().workspaces.isEmpty {
+            // `-startTimeout 0` makes every start fail, for e2e.
+            let defaults = UserDefaults.standard
+            let timeout = defaults.object(forKey: "startTimeout") == nil ? 10 : defaults.double(forKey: "startTimeout")
+            if try await client.startServer(within: .seconds(timeout)),
+               try await client.snapshot().workspaces.isEmpty
+            {
                 _ = try await client.newWorkspace(label: nil, cwd: NSHomeDirectory())
             }
         }
@@ -97,7 +102,7 @@ final class HostStore {
                 try await Self.start(session)
                 await client?.refresh()
             } catch {
-                await show(error.localizedDescription)
+                await show(Notice(text: error.localizedDescription))
             }
         }
 
@@ -109,7 +114,7 @@ final class HostStore {
                     try await Self.start(session)
                 } catch {
                     // Kept until the session answers.
-                    notice = error.localizedDescription
+                    notice = Notice(text: error.localizedDescription)
                 }
             }
             let client: any Multiplexer = await HerdrClient(session: session, exec: exec.value)
@@ -229,12 +234,16 @@ final class HostStore {
         if pane.asked, reused || new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
             Task { await askProgram(pane.id) }
         }
-        // Every pane once, for its tab's icons, also in tabs never shown; a failed ask is made again. A second later,
-        // as after Return: a new shell's startup runs short-lived programs (`sort`).
+        // Every pane once, for its tab's icons and the hover card, also in tabs never shown; a failed ask is made
+        // again. A new pane a second later, as after Return: a new shell's startup runs short-lived programs (`sort`).
+        // The first snapshot's at once: their shells started long ago.
         if !pane.asked {
             pane.asked = true
+            let new = state == .live
             Task {
-                try? await Task.sleep(for: .seconds(1))
+                if new {
+                    try? await Task.sleep(for: .seconds(1))
+                }
                 await askProgram(pane.id)
             }
         }
@@ -348,11 +357,12 @@ extension HostStore {
 
     /// One write. No focus change; the snapshot after it draws the result. Whether it went through.
     @discardableResult
-    func write(_ action: (any Multiplexer) async throws -> Void) async -> Bool {
+    func write(_ action: @escaping (any Multiplexer) async throws -> Void) async -> Bool {
         guard let client else { return false }
         guard !writing else {
-            // A confirmed close must not vanish silently.
-            Task { await show("Busy, try again") }
+            // A confirmed close must not vanish silently. Nothing happened, so a retry is safe; after a timeout it
+            // might not be (a create that went through).
+            Task { await show(Notice(text: "Busy, try again") { Task { await self.write(action) } }) }
             return false
         }
         writing = true
@@ -367,16 +377,16 @@ extension HostStore {
         // After a failure too: part of it may have happened (Close Other Tabs).
         await client.refresh()
         if let failure {
-            Task { await show(failure.localizedDescription) }
+            Task { await show(Notice(text: failure.localizedDescription)) }
         }
         return failure == nil
     }
 
     /// A notice for a few seconds, unless a newer one replaced it.
-    func show(_ text: String) async {
-        notice = text
+    func show(_ new: Notice) async {
+        notice = new
         try? await Task.sleep(for: .seconds(4))
-        if notice == text {
+        if notice?.id == new.id {
             notice = nil
         }
     }

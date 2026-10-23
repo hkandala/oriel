@@ -1,19 +1,58 @@
+import Foundation
+
+/// A short message at the bottom of the strip (design: Notice).
+struct Notice {
+    enum Tone {
+        case error, warning, info
+    }
+
+    let text: String
+    var tone = Tone.error
+    /// Retry, where a retry can help.
+    var retry: (@MainActor () -> Void)?
+    let id = UUID()
+}
+
 #if os(macOS)
     import HerdrKit
     import SwiftUI
 
-    /// A short message in a capsule at the bottom of the strip, with an optional action (design: Notice).
-    struct Notice<Action: View>: View {
+    /// A short message in a glass capsule at the bottom of the strip: a symbol in its tone's color, the text, an
+    /// optional action and a ✕ (design: Notice).
+    struct NoticeCapsule<Action: View>: View {
+        let symbol: String
+        let tone: Notice.Tone
         let text: String
+        var close: (() -> Void)?
         @ViewBuilder var action: Action
+        @Environment(\.look) private var look
 
         var body: some View {
             HStack(spacing: 8) {
-                Text(text)
+                Image(systemName: symbol)
+                    .foregroundStyle(tone == .error ? look.error : tone == .warning ? look.needsYou : look.working)
+                    .accessibilityLabel(tone == .error ? "Error" : tone == .warning ? "Warning" : "Information")
+                    .accessibilityIdentifier("notice.symbol")
+                Text(text).lineLimit(2)
                 action
+                if let close {
+                    Button("Close", systemImage: "xmark", action: close)
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("notice.close")
+                }
             }
-            .padding(8)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 36)
             .glassEffect()
+            .accessibilityElement(children: .contain)
+        }
+    }
+
+    extension NoticeCapsule where Action == EmptyView {
+        init(symbol: String, tone: Notice.Tone, text: String, close: (() -> Void)?) {
+            self.init(symbol: symbol, tone: tone, text: text, close: close) { EmptyView() }
         }
     }
 
@@ -24,33 +63,14 @@
 
         var body: some View {
             let store = page.store
+            let machine = HostStore.name(store.session)
             switch store.state {
             case .connecting:
-                ProgressView("Connecting to \(HostStore.name(store.session))")
+                // After 0.3 s, so a fast connect shows nothing.
+                Waiting(text: "Connecting to \(machine)", delay: .milliseconds(300))
+                    .accessibilityIdentifier("detail.connecting")
             case .live:
-                if let workspace = page.selectedWorkspace {
-                    Strip(workspace: workspace, page: page)
-                        .overlay(alignment: .bottom) {
-                            VStack(spacing: gap) {
-                                if let notice = store.notice {
-                                    Notice(text: notice) {}.accessibilityIdentifier("detail.notice")
-                                }
-                                // Another window controls the session (D66).
-                                if page.watched {
-                                    Notice(text: "Controlled in another window") {
-                                        Button("Take Back") { pages.control(store) }
-                                            .accessibilityIdentifier("notice.controlled.take-back")
-                                    }
-                                    .accessibilityElement(children: .contain)
-                                    .accessibilityIdentifier("notice.controlled")
-                                }
-                            }
-                            .padding(.horizontal, gap * 2)
-                            .padding(.bottom, 30)
-                        }
-                } else {
-                    NewWorkspaceButton(page: page)
-                }
+                tabs(store)
             case .failed(.notFound):
                 message("herdr is not installed", "Install it in a terminal:",
                         "curl -fsSL https://herdr.dev/install.sh | sh")
@@ -58,9 +78,68 @@
                 message("herdr is too old", text + ". Update it in a terminal:", "herdr update")
             case .failed where !store.isRunning:
                 message("\(store.session) is not running", "Start it to see its workspaces.", nil, start: true)
-            case let .failed(error):
-                message("No answer from herdr", error.localizedDescription, nil)
+            case .failed:
+                // The server runs but does not answer (the bridge fails): the client tries again every 2 s.
+                ZStack {
+                    tabs(store).opacity(0.5).allowsHitTesting(false)
+                    Waiting(text: "Reconnecting to \(machine)").accessibilityIdentifier("detail.reconnecting")
+                }
             }
+        }
+
+        /// The selected workspace's strip, with the notices over it; the button that makes what is missing.
+        @ViewBuilder private func tabs(_ store: HostStore) -> some View {
+            if let workspace = page.selectedWorkspace {
+                Group {
+                    if workspace.tabs.isEmpty {
+                        Button { Task { await page.newTab() } } label: {
+                            Label("New Tab", systemImage: "plus")
+                            Text(KeyboardShortcut.newTab.glyphs).foregroundStyle(.secondary)
+                        }
+                        .disabled(store.writing)
+                        .accessibilityIdentifier("new-tab")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        Strip(workspace: workspace, page: page)
+                    }
+                }
+                .overlay(alignment: .bottom) { notices(store) }
+            } else {
+                NewWorkspaceButton(page: page)
+            }
+        }
+
+        private func notices(_ store: HostStore) -> some View {
+            VStack(spacing: gap) {
+                if let notice = store.notice {
+                    NoticeCapsule(
+                        symbol: notice.tone == .error ? "xmark.octagon.fill" : "exclamationmark.triangle.fill",
+                        tone: notice.tone,
+                        text: notice.text,
+                        close: { store.notice = nil },
+                        action: {
+                            if let retry = notice.retry {
+                                Button("Retry", action: retry).accessibilityIdentifier("notice.retry")
+                            }
+                        },
+                    )
+                    .accessibilityIdentifier("detail.notice")
+                }
+                // Another window controls the session (D66). Under a notice; no ✕: only Take Back ends it.
+                if page.watched {
+                    let text = "Controlled in another window"
+                    NoticeCapsule(symbol: "macwindow.on.rectangle", tone: .info, text: text, close: nil) {
+                        Button("Take Back") { pages.control(store) }
+                            .accessibilityIdentifier("notice.controlled.take-back")
+                    }
+                    .accessibilityIdentifier("notice.controlled")
+                    .onAppear {
+                        AccessibilityNotification.Announcement(text).post()
+                    }
+                }
+            }
+            .padding(.horizontal, gap * 2)
+            .padding(.bottom, 30)
         }
 
         /// What is wrong and the command that fixes it; a stopped session gets a Start button instead (design D47).
@@ -71,7 +150,7 @@
                 Text(text)
                 // Why a start failed.
                 if let notice = page.store.notice {
-                    Text(notice).accessibilityIdentifier("detail.notice")
+                    Text(notice.text).accessibilityIdentifier("detail.notice")
                 }
                 if let command {
                     Text(command).monospaced().textSelection(.enabled)
@@ -82,6 +161,21 @@
                         .accessibilityIdentifier("detail.start")
                 }
             }
+        }
+    }
+
+    /// A spinner and one line, after `delay`.
+    private struct Waiting: View {
+        let text: String
+        var delay = Duration.zero
+        @State private var shown = false
+
+        var body: some View {
+            ProgressView(text).opacity(shown ? 1 : 0)
+                .task {
+                    try? await Task.sleep(for: delay)
+                    shown = true
+                }
         }
     }
 #endif

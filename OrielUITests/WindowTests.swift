@@ -8,6 +8,9 @@ extension OrielUITests {
         // Window 1 opened the session first: it controls, window 2 watches.
         XCTAssertTrue(element("notice.controlled", in: second).exists(within: connect))
         XCTAssertFalse(element("notice.controlled", in: first).exists)
+        // The notice look, in the info tone, with no ✕.
+        XCTAssertEqual(element("notice.controlled", in: second).images["notice.symbol"].label, "Information")
+        XCTAssertFalse(element("notice.controlled", in: second).buttons["notice.close"].exists)
         let terminal = try await terminalID("w1:p1")
         try await expectStreams(terminal, control: 1, observe: 1)
         // Watched because of another Oriel window: the capsule, not the per-card button.

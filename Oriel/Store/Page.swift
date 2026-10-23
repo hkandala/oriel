@@ -325,11 +325,11 @@
             if directory {
                 do {
                     guard try await client.program(pane.id)?.isShell == true else {
-                        await store.show("A program is running in the pane")
+                        await store.show(Notice(text: "A program is running in the pane", tone: .warning))
                         return
                     }
                 } catch {
-                    await store.show(error.localizedDescription)
+                    await store.show(Notice(text: error.localizedDescription))
                     return
                 }
             }

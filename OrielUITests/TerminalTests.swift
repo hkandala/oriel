@@ -157,6 +157,7 @@ extension OrielUITests {
         try await Self.post("\(one)/takeover", Data(terminal.utf8))
         let takeBack = element("pane.\(pane).take-back")
         XCTAssertTrue(takeBack.exists(within: 3))
+        XCTAssertEqual(takeBack.label, "In use elsewhere · Take Back")
         keepScreenshot("in use elsewhere")
         takeBack.click()
         XCTAssertTrue(takeBack.vanishes(within: 3))

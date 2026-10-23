@@ -369,7 +369,7 @@
                 .overlay(alignment: .bottom) {
                     switch terminal.state {
                     case .watching where !watched:
-                        Button("In use elsewhere · Take back", action: terminal.takeBack)
+                        Button("In use elsewhere · Take Back", action: terminal.takeBack)
                             .buttonStyle(.glass)
                             .accessibilityIdentifier("pane.\(terminal.paneID).take-back")
                             .padding(gap)

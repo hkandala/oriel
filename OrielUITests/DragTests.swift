@@ -52,7 +52,13 @@ extension OrielUITests {
         try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "on"])
         drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), hold: 1.2)
         XCTAssertTrue(capsule.has(\.isSelected, true, within: 2))
-        XCTAssertTrue(app.staticTexts["The tab is zoomed in herdr"].exists(within: 3))
+        // The failed write's notice: a red symbol and a ✕ that closes it.
+        let notice = element("detail.notice")
+        XCTAssertTrue(notice.staticTexts["The tab is zoomed in herdr"].exists(within: 3))
+        XCTAssertEqual(notice.images["notice.symbol"].label, "Error")
+        keepScreenshot("notice")
+        notice.buttons["notice.close"].click()
+        XCTAssertTrue(notice.vanishes(within: 2))
         let still = try await order(tab)
         XCTAssertEqual(still, [first, second])
 
