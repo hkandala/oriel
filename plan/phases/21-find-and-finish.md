@@ -117,3 +117,105 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   references, is in the phase report.
 
 ## Findings
+
+### Spike (herdr 0.9.5)
+
+- **`pane.copy_search` is not usable from the API.** It needs `{pane_id, query, direction, content_revision, cursor}`;
+  the content revision is the one in herdr's TUI client protocol (`ClientShell…` surface data), not the pane's
+  `revision` (0), so any call answers `stale_content`. The fallback is built: `pane.read recent` + `pane.scroll`.
+- **`pane.read {source: "recent", lines, format: "text"}`** gives the scrollback and the screen without the screen's
+  blank rows at the end, ending with a newline. `pane.scroll {pane_id, offset_from_bottom}` answers `pane_info` with
+  the new `scroll` (herdr clamps the offset to `max_offset_from_bottom`); `pane.read visible` then shows the
+  scrolled screen. zsh's `clear` also clears the scrollback.
+- **libghostty-spm's link delegates** (`TerminalSurfaceOpenURLDelegate`, `TerminalSurfaceHoverLinkDelegate`) are
+  called on the main thread; a host with the open-URL delegate is reported as handling the URL, so libghostty
+  spawns no `/usr/bin/open` of its own. Its `mouseDown` sends the pointer's position with the modifiers first, so a
+  ⌘-click needs no hover first.
+
+### Deviations
+
+- **Final pass and docs mock-ups (Build 10, 11) go to phase 22 and after it.** Phase 22 runs in parallel and owns the
+  visual match with Rex (tokens, title row, tab bar, cards, sidebar); this phase compared only its own views (find
+  bar, notices, states). The docs site's mock-ups (`docs/components/design/`, `docs/public/overview/index.html`) are
+  the next task once phase 22's look settles. The light/dark × Glass/Classic shots next to Rex are phase 22's
+  `VisualTests` attachments in the full run.
+- **Find highlights are built** (user, mid-phase), not left out as the phase file had it: one overlay view per card
+  draws rectangles from herdr's visible text after each scroll (`pane.read visible` plus `pane.get`'s
+  `scroll.offset_from_bottom` to pick the selected match's row), and again 100 ms after frames come
+  (`PaneTerminal.onFrame`). libghostty's own search (`search:` binding action) was not used: our surface has no
+  scrollback and its selected match would not be ours. `ponytail:` columns count characters, so wide characters
+  before a match put its highlight off.
+- **The find bar is 320 pt wide, fixed** (user): the count sits in a 72 pt slot with monospaced digits. It sits 8 pt
+  under the header, not over it, so it never covers the header's buttons. One bar per window page.
+- **A new query selects the last match** (nearest the bottom, as a terminal user looks for recent output); Next goes
+  down, Previous up, round the ends. AppKit's text field selects its text after Return, so typing after Enter
+  replaces the query (the test types the whole query again).
+- **"No answer from herdr" is gone**: any failure while the session's server runs is the reconnecting state (the
+  client retries every 2 s), also a page's first connect. herdr too old and not installed keep their pages.
+- **The content fade is the terminal's, not the card's**: the card's frame and header show at once and the terminal
+  view fades from alpha 0 over 0.2 s on its first frame (`PaneTerminal.drawn`), through `NSAnimationContext` on the
+  host view (SwiftUI's `opacity` moves the terminal's accessibility frame, phase 16). A card whose stream fails still
+  shows its failure text.
+- **Retry only in the Open Session sheet.** A write's notice has no Retry: after a timeout a retry is not safe (a
+  create may have gone through), and "Busy, try again" with Retry was cut in the ponytail review.
+- **The Open Session failure is a notice capsule inside the sheet** (the window's capsule lies under the sheet):
+  "Could not start ‹session›. ‹herdr's reason›" with Retry and no ✕.
+- **Programs of panes never shown were already asked** (phase 13's `watchProgram` asks every new pane, also in
+  tabs never shown) but a second late; the first snapshot's panes are now asked at once (their shells started long
+  ago), new panes still after 1 s.
+
+### Decisions
+
+- **Ids:** `find`, `find.field`, `find.count` (value "3 of 12"), `find.previous`, `find.next`, `find.close`,
+  `find.highlights` (value "N shown, current row R"); `notice.symbol` (label Error, Warning or Information),
+  `notice.close`, `notice.retry`, `open-session.notice`; `detail.connecting`, `detail.reconnecting`, `new-tab` (the
+  empty workspace's button); `app.links` (the links recorded with `-recordLinks YES`).
+- **Menu:** Edit ▸ Find… (⌘F), Find Next (⌘G), Find Previous (no key), so the palette lists them too.
+- **Hooks for e2e:** `-startTimeout 0` (seconds; the server start waits 10 s by default, `startServer(within:)`):
+  with no time the start throws right after `launchctl bootstrap`, but launchd still starts the server, so Retry
+  finds it running. `-recordLinks YES` keeps ⌘-clicked links in `Links.recorded` instead of opening them.
+- **`Multiplexer` grew** `recent(_:lines:)` and `scroll(_:offsetFromBottom:)`; HerdrKit's `Pane` decodes
+  `scroll.offset_from_bottom` (`PaneScroll`); `startServer(within:)` takes the timeout.
+- **Tones:** error `look.error` with `xmark.octagon.fill`, warning `look.needsYou` with
+  `exclamationmark.triangle.fill`, info `look.working` with `info.circle.fill`; no new tokens.
+- **A sixth e2e session** (`ORIEL_SESSION6`), made by the app in the failed-start test and cleaned up like four.
+- **Dock drop:** `application(_:open:)` queues the folders (`WindowPages.folders`); the last key window's page in view
+  makes a workspace per folder once it is live, and the last one is selected when it appears
+  (`Page.newWorkspace(cwd:)` sets `arriving`). A drop that starts the app opens no window by itself
+  (`handlesExternalEvents(matching: [])`), so the delegate opens one with SwiftUI's `openWindow`, kept from the menu
+  bar's commands (they exist with no window). e2e: the helper's `open-folder` makes a folder and runs `open -a` on
+  the built app (with `-session` for a launch), warm and cold.
+- **Restore:** `UserDefaults.register(["NSQuitAlwaysKeepsWindows": true])` in `applicationWillFinishLaunching`; a
+  user's own `defaults write` still wins.
+
+- **Find closes when its card leaves view** (another tab, workspace or page) and when its page or window closes:
+  herdr's viewport is shared, so it must not stay scrolled while the user is elsewhere (`dropFind`).
+- **Kept, not dead code:** the empty workspace's New Tab button (the phase asks for it; herdr 0.9.5 closes a
+  workspace whose last tab closes, so it shows only in a race). The sheet's "Could not start" notice has no ✕: it
+  stays until the next try, and Cancel closes the sheet. No test shows the control capsule under a notice.
+- **Not changed:** a page that connects again after a start that timed out does not get its first workspace in home
+  (Retry finds the server running, so `startServer` returns false); the page offers New Workspace. `pane.scroll`'s
+  reply decodes as `Created`, as the other writes with an ignored reply do.
+
+### Assumptions
+
+- **herdr keeps a scrolled viewport anchored while output comes**, so the highlights stay right between frames; at
+  the bottom (offset 0) they are placed again after each burst of frames.
+- **A screen with scrollback is full**, so the visible text's last row matches the recent text's last line when the
+  viewport is scrolled; at the bottom the last row with text does.
+
+### Learned
+
+- **A hung server shows Reconnecting only 30–40 s later** (E2E review, `kill -STOP`): the heartbeat reads 30 s after
+  the last read, then the 10 s timeout runs. A write that timed out still ran once the server went on (its workspace
+  appeared, not selected, after "herdr did not answer"). Left as is.
+- **The e2e reviewer found the cold Dock drop broken** (no window, no workspace) by running `open -n -a` by hand: the
+  test for it came only after.
+
+- **Never build into the DerivedData a running suite uses** (speed rule 17 again): one `make build` during a test run
+  replaced the app under it.
+- **A `await` between reading an index and using it crashes when the array changed meanwhile**: `Find.locate` read
+  `matches[current]` after two herdr calls while the query had changed (an `Array` subscript trap in the first run).
+  It takes what it needs before the calls now.
+- **The test recording shows the whole screen**, so a failed run's frames are the quickest look at an Oriel window's
+  state (`xcresulttool export attachments`, ffmpeg `-sseof`).
