@@ -79,9 +79,9 @@ extension OrielUITests {
         // The current choice is lit first; ↑ lights Light, which shows after the delay.
         XCTAssertTrue(element("palette.choice.Dark").has(\.isSelected, true, within: 2))
         app.typeKey(.upArrow, modifierFlags: [])
+        XCTAssertTrue(element("palette.choice.Light").has(\.isSelected, true, within: 2))
         // Not at once: after 0.75 s.
         XCTAssertEqual(look.stringValue, dark)
-        XCTAssertTrue(element("palette.choice.Light").has(\.isSelected, true, within: 2))
         XCTAssertTrue(look.has(\.stringValue, light, within: 2))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(look.has(\.stringValue, dark, within: 2))
@@ -129,7 +129,8 @@ extension OrielUITests {
         addTeardownBlock { @MainActor [self] in
             openPalette()
             app.typeText("focus follows")
-            app.typeKey(row.label.hasPrefix("Turn Off") ? .return : .escape, modifierFlags: [])
+            app.typeKey(row.has(\.label, "Turn Off Focus Follows Mouse", within: 2) ? .return : .escape,
+                        modifierFlags: [])
         }
         openPalette()
         app.typeText("focus follows")
@@ -196,7 +197,7 @@ extension OrielUITests {
         }
         app.typeKey("g", modifierFlags: [.command, .shift])
         choose(folder)
-        XCTAssertTrue(element("detail.notice").exists(within: 3))
+        XCTAssertTrue(app.staticTexts["A program is running in the pane"].exists(within: 3))
         let text = try await read(pane)
         XCTAssertFalse(text.contains("cd --"))
         try await Self.call(one, "pane.send_keys", ["pane_id": pane, "keys": ["ctrl+c"]])
