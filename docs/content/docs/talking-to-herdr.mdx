@@ -290,10 +290,14 @@ handshake fails, it exits 1 with the reason on stderr.
   `pane.read {source:"recent", lines: 5000, format:"text"}` when the bar
   opens (again at the next step after Return in the pane), and searches it on
   the device on each edit. Each match scrolls herdr's shared viewport with
-  `pane.scroll {pane_id, offset_from_bottom}` (the match line's distance from
-  the end, less half the screen), so a herdr TUI on the same pane scrolls too.
-  After each scroll, `pane.read visible` and `pane.get` (its
-  `scroll.offset_from_bottom`) place the highlights. herdr's own
+  `pane.scroll {pane_id, offset_from_bottom}`: the match line's distance from
+  herdr's last row, less half of `viewport_rows`. herdr's text leaves out the
+  screen's blank rows under its last text, but the offset counts them, so the
+  bar adds them: from `pane.read visible` at the bottom, else from
+  `pane.get`'s `max_offset_from_bottom + viewport_rows` less the text. A herdr
+  TUI on the same pane scrolls too. After each scroll, and 0.3 s after a burst
+  of frames, `pane.read visible` and `pane.get` (`scroll`) place the
+  highlights. herdr's own
   `pane.copy_search` is not used: it needs a `content_revision` and a cursor
   from herdr's TUI client protocol and otherwise answers `stale_content`.
 - **Links** in terminal output open on this device with ⌘-click, and only
@@ -334,7 +338,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | User action | herdr call |
 |---|---|
 | New workspace (page header `+`, workspace menu, an empty session's New Workspace) | `workspace.create {cwd: $HOME, label, focus: false}` in that page's session (a launchd-started server's cwd is not `$HOME`); the label only when the user typed one; then the snapshot selects it |
-| Folder dropped on the Dock icon | `workspace.create {cwd}`, one per folder |
+| Folder dropped on the Dock icon | `workspace.create {cwd, focus: false}`, one per folder, in the session of the last key window's page in view, once that page is live; the last one is selected when it appears. With no window (a drop that starts the app), a window opens first |
 | New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a workspace row's New Tab, that workspace's keyboard card, or `$HOME` |
 | Split right or down | `pane.split {target_pane_id, direction: right or down, focus:false}`, then [equal splits](/docs/layout#dividers): a fresh snapshot, and one `layout.set_split_ratio` per split of the new pane's run whose ratio changes |
 | Split left or up | `pane.split` right or down (`focus:false`), then `pane.swap {pane_id: old, direction: right or down}`: the old pane swaps with the new one beside it (herdr splits only right and down); then equal splits |

@@ -195,7 +195,17 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   stays until the next try, and Cancel closes the sheet. No test shows the control capsule under a notice.
 - **Not changed:** a page that connects again after a start that timed out does not get its first workspace in home
   (Retry finds the server running, so `startServer` returns false); the page offers New Workspace. `pane.scroll`'s
-  reply decodes as `Created`, as the other writes with an ignored reply do.
+  reply decodes as `Created`, as the other writes with an ignored reply do. Known, left: a find pane moved to another
+  workspace (a new pane id) drops the bar without scrolling that terminal back; a bar dropped while reconnecting, or
+  open at quit, leaves herdr's viewport scrolled (no client, no terminate hook). Kept against the ponytail review: the
+  `keep(_:)` helper (SwiftFormat turns `let _ = (a = b)` into `_ = …`, which a commands builder rejects), and the
+  AppKit window check for a Dock drop (`WindowPages.windows` fills only once restored windows restored their pages, so
+  a drop that starts the app with saved windows would open one more). Known, left: a find pane moved to another
+  workspace (a new pane id) drops the bar without scrolling that terminal back; a bar dropped while reconnecting, or
+  open at quit, leaves herdr's viewport scrolled (no client, no terminate hook). Kept against the ponytail review: the
+  `keep(_:)` helper (SwiftFormat turns `let _ = (a = b)` into `_ = …`, which a commands builder rejects), and the
+  AppKit window check for a Dock drop (`WindowPages.windows` fills only once restored windows restored their pages, so
+  a drop that starts the app with saved windows would open one more).
 
 ### Assumptions
 
@@ -205,6 +215,11 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   viewport is scrolled; at the bottom the last row with text does.
 
 ### Learned
+
+- **herdr's visible text leaves out the screen's blank rows too** (spec review 2, by hand): `recent` and `visible` both
+  end at the last row with text, and `recent --lines N` drops the blank rows before it counts. The selected match's
+  row is counted from `viewport_rows`, and the blank rows come from `visible` at the bottom. Round 1's test had one
+  match on screen, so the wrong row could not show; the test now has two on a screen that is not full.
 
 - **A hung server shows Reconnecting only 30–40 s later** (E2E review, `kill -STOP`): the heartbeat reads 30 s after
   the last read, then the 10 s timeout runs. A write that timed out still ran once the server went on (its workspace

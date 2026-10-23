@@ -226,6 +226,9 @@
         func zoom(_ paneID: String) {
             guard canZoom(paneID) else { return }
             zoomedPaneID = zoomedPaneID == paneID ? nil : paneID
+            if findHidden {
+                dropFind()
+            }
             if zoomedPaneID != nil, let terminalID = store.pane(paneID)?.terminalID {
                 terminals.focus(terminalID)
             }

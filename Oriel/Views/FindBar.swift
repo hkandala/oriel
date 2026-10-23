@@ -59,9 +59,14 @@
                 let scroll = try await client.pane(paneID).scroll
                 lines = Self.lines(text)
                 rows = scroll?.viewportRows ?? 0
-                // Cut at 5000 lines, the screen is full in practice.
-                let total = (scroll?.maxOffsetFromBottom ?? 0) + rows
-                blank = lines.count < 5000 ? max(total - lines.count, 0) : 0
+                if scroll?.offsetFromBottom == 0 {
+                    // herdr's visible text also leaves the blank rows out: the screen's rows less its text.
+                    blank = try await max(rows - Self.lines(client.screen(paneID)).count, 0)
+                } else {
+                    // The buffer less the text; a text cut at 5000 lines cannot tell (taken as a full screen).
+                    let total = (scroll?.maxOffsetFromBottom ?? 0) + rows
+                    blank = lines.count < 5000 ? max(total - lines.count, 0) : 0
+                }
                 stale = false
                 search(last: false)
             } catch {
@@ -106,15 +111,16 @@
             }
         }
 
-        /// The matches on the screen herdr shows now, from its visible text. The selected one is the match nearest the
-        /// row its line is on: its distance from the end, less herdr's offset, up from the screen's last row.
+        /// The matches on the screen herdr shows now, from its visible text (which leaves out the blank rows at its
+        /// end). The selected one is the match nearest the row its line is on: its distance from the end, less herdr's
+        /// offset, up from the screen's last row.
         /// ponytail: columns count characters, so a line with wide characters (CJK, emoji) before a match puts its
         /// highlight off; measure cell widths if that matters.
         private func locate(_ client: any Multiplexer) async {
             // Taken before the reads; a query changed meanwhile drops the result (its own scroll locates again).
             let query = query.lowercased(), distance = distance
             guard let distance, !query.isEmpty, let screen = try? await client.screen(paneID),
-                  let offset = try? await client.pane(paneID).scroll?.offsetFromBottom
+                  let scroll = try? await client.pane(paneID).scroll, let offset = scroll.offsetFromBottom
             else {
                 shown = []
                 shownCurrent = nil
@@ -129,7 +135,7 @@
                         length: query.count)
                 }
             }
-            let expected = screenRows.count - 1 - (distance - offset)
+            let expected = (scroll.viewportRows ?? rows) - 1 - (distance - offset)
             shownCurrent = shown.indices.min { abs(shown[$0].row - expected) < abs(shown[$1].row - expected) }
         }
 
@@ -153,7 +159,7 @@
         }
 
         /// A frame came: the highlights are placed again 0.3 s after the last frame of a burst (agent TUIs redraw
-        /// all the time).
+        /// all the time), at most 1 s after it began. Our own scroll's frames place them a second time; harmless.
         func screenChanged() {
             lastFrame = .now
             work()
@@ -174,8 +180,15 @@
                             Task { await store.show(Notice(text: error.localizedDescription)) }
                         }
                     } else {
-                        while let last = lastFrame, .now - last < .milliseconds(300) {
+                        // A scroll asked for meanwhile goes at once.
+                        let began = ContinuousClock.now
+                        while target == nil, let last = lastFrame, .now - last < .milliseconds(300),
+                              .now - began < .seconds(1)
+                        {
                             try? await Task.sleep(for: .milliseconds(100))
+                        }
+                        if target != nil {
+                            continue
                         }
                     }
                     lastFrame = nil
@@ -290,6 +303,14 @@
             if let pane = store.pane(paneID), pane.tabID == selectedTab?.id {
                 go(to: pane)
             }
+        }
+
+        /// The bar's card is out of view: another tab, or another card of its tab zoomed.
+        var findHidden: Bool {
+            guard let find else { return false }
+            let tabID = store.pane(find.paneID)?.tabID
+            return tabID != selectedTab?.id || zoomedPaneID.map { $0 != find.paneID && store.pane($0)?.tabID == tabID }
+                == true
         }
 
         /// The bar goes and herdr's shared viewport goes back to the bottom; also when its page or window closes.

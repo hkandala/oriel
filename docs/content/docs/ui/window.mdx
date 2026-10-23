@@ -432,7 +432,11 @@ its field.
   Closing the bar scrolls back to the bottom. herdr's viewport is shared, so a
   herdr TUI on the same pane scrolls too.
 - The matches on the screen are highlighted: the selected one in the accent at
-  0.45, the others at 0.2, placed from herdr's visible text after each scroll.
+  0.45, the others at 0.2, placed from herdr's visible text after each scroll
+  and again 0.3 s after the pane's frames stop (at most 1 s into a burst).
+- The bar closes, and herdr scrolls back to the bottom, when its card leaves
+  view (another tab, workspace or page, or another card zoomed) and when its
+  page or window closes. A failed scroll shows a [notice](#notice).
 
 How it works: [Scrolling, queries and links](/docs/talking-to-herdr#scrolling-queries-and-links).
 

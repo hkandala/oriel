@@ -60,7 +60,10 @@
         func application(_: NSApplication, open urls: [URL]) {
             WindowPages.open(folders: urls.filter(\.hasDirectoryPath))
             // AppKit's windows, not `WindowPages.windows`: a restored window joins those only once its pages restored.
-            if !NSApp.windows.contains(where: { ($0.isVisible || $0.isMiniaturized) && $0.canBecomeMain }) {
+            // Hidden (⌘H), no window is visible.
+            if !NSApp.windows.contains(where: {
+                $0.canBecomeMain && ($0.isVisible || $0.isMiniaturized || NSApp.isHidden)
+            }) {
                 WindowPages.openWindow?(id: "main")
             }
         }

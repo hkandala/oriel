@@ -109,24 +109,33 @@ extension OrielUITests {
         }
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
 
-        // The screen cleared (its text goes to the scrollback): the blank rows under the prompt count too.
+        // The screen cleared (its text goes to the scrollback) and two more matches under it: the blank rows under the
+        // prompt count too, and the selected match is the lower one.
         try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "printf '\\033[2J\\033[H'\r"])
         try await waitFor(pane) { !$0.contains("line 199") }
+        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "for i in 42 42; do echo line $i; done\r"])
+        try await waitFor(pane) { $0.contains("line 42\nline 42\n") }
         app.typeKey("f", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard(field))
         app.typeText("line 42")
-        XCTAssertTrue(count.has(\.stringValue, "1 of 1", within: 2), count.stringValue)
+        XCTAssertTrue(count.has(\.stringValue, "3 of 3", within: 2), count.stringValue)
         try await expectHighlight("line 42", in: pane)
         app.typeKey(.escape, modifierFlags: [])
     }
 
-    /// herdr shows the text on a row of its screen, and the find bar's highlight is on that row.
+    /// The rows herdr shows the text on are highlighted, the lowest one as the selected match.
     private func expectHighlight(_ text: String, in pane: String) async throws {
         let lit = element("find.highlights")
-        try await poll("the highlight on \(text)'s row, it says \(lit.stringValue)") { () async throws -> Bool? in
-            let rows = try await read(pane).split(separator: "\n", omittingEmptySubsequences: false)
-            let row = rows.firstIndex { $0 == text }.map(String.init) ?? "none"
-            return lit.stringValue == "1 shown, current row \(row)" ? true : nil
+        var expected = ""
+        do {
+            try await poll("the highlights") { () async throws -> Bool? in
+                let rows = try await read(pane).split(separator: "\n", omittingEmptySubsequences: false)
+                let last = rows.lastIndex { $0 == text }.map(String.init) ?? "none"
+                expected = "\(rows.count { $0 == text }) shown, current row \(last)"
+                return lit.stringValue == expected ? true : nil
+            }
+        } catch is Waited {
+            throw Waited(description: "expected \(expected); the highlights say \(lit.stringValue)")
         }
     }
 
