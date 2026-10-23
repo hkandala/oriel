@@ -35,6 +35,9 @@ struct ProgramTile: View {
             .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.12), .clear], startPoint: .top,
                                                        endPoint: .center), lineWidth: 1))
             .overlay(shape.inset(by: -0.5 / scale).stroke(.black.opacity(0.45), lineWidth: 1 / scale))
+            // Rex's tiles are quieter than the catalog's colors.
+            .saturation(0.82)
+            .brightness(-0.04)
             .accessibilityHidden(true)
     }
 }
