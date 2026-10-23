@@ -15,7 +15,8 @@
         @State private var lit: String?
         /// The session whose server is starting.
         @State private var starting: String?
-        @State private var failure: String?
+        /// The last start that failed: its row's id and the notice.
+        @State private var failure: (id: String, text: String)?
 
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
@@ -23,7 +24,11 @@
                 FilterList(prompt: "Name a new session, or find one", name: "open-session", items: items,
                            maxHeight: 320, lit: $lit) {}
                 if let failure {
-                    Text(failure).foregroundStyle(.secondary).accessibilityIdentifier("open-session.notice")
+                    NoticeCapsule(symbol: "xmark.octagon.fill", tone: .error, text: failure.text, close: nil) {
+                        Button("Retry") { act(failure.id) }.accessibilityIdentifier("notice.retry")
+                    }
+                    .accessibilityIdentifier("open-session.notice")
+                    .frame(maxWidth: .infinity)
                 }
                 HStack {
                     Spacer()
@@ -94,7 +99,8 @@
                     pages.open(session)
                     dismiss()
                 } catch {
-                    failure = error.localizedDescription
+                    // The sheet stays open, with herdr's reason.
+                    failure = (id, "Could not start \(session). \(error.localizedDescription)")
                 }
                 starting = nil
             }
