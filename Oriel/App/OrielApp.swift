@@ -308,7 +308,8 @@ struct OrielApp: App {
                 return ("Close \(others.count == 1 ? "the other tab" : "the \(others.count) other tabs")?",
                         "Their " + them(panes(others)) + end)
             case let .pane(id, program):
-                return ("Close “\(store.pane(id)?.title ?? id)”?", "\(program) is running in it and" + end)
+                let name = store.pane(id).map { $0.label ?? $0.folder ?? "terminal" } ?? id
+                return ("Close “\(name)”?", "\(program) is running in it and" + end)
             case let .workspace(id):
                 let workspace = store.workspaces.first { $0.id == id }
                 let worktrees = store.worktrees(of: id)

@@ -78,11 +78,6 @@ extension HostStore {
             cwd.map { ($0 as NSString).abbreviatingWithTildeInPath }
         }
 
-        /// The close dialog's name for it: the label, else the directory.
-        var title: String {
-            label ?? folder ?? "terminal"
-        }
-
         /// The card header's parts: the label alone, else the program and the folder, as in Rex ("zsh", "~").
         var header: (name: String?, folder: String) {
             let name = label == nil ? programName : nil
