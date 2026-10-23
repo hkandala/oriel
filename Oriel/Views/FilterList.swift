@@ -40,7 +40,7 @@ struct FilterList: View {
     /// ⌫ on an empty field, or Esc: back a page. Without it Esc goes on to close the panel.
     var back: (() -> Void)?
     var rowHeight: CGFloat = 26
-    /// After a row acted.
+    /// After a row acted or the field's text was submitted.
     let done: () -> Void
     @State private var filter = ""
     @State private var index: Int?
@@ -159,7 +159,7 @@ struct FilterList: View {
     }
 }
 
-/// The filter field of the sidebar and the session list. Until clicked (or with `autofocus`) it is plain text,
+/// The filter field of the sidebar and `FilterList`. Until clicked (or with `autofocus`) it is plain text,
 /// so the window has no text field to hand the keyboard to at launch; keys belong to the panes.
 struct FilterField: View {
     let prompt: String

@@ -143,7 +143,6 @@ extension Color {
     }
 }
 
-/// A pane card's surface: its fill, a rim in Glass, the stroke outside its edge and, in light, a shadow.
 struct CardSurface: View {
     static let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
     let keyboard: Bool
@@ -230,8 +229,7 @@ struct ChromeStyle: ButtonStyle {
     }
 }
 
-/// A row of the session list and the palette: a symbol (or a pane's program tile), a title, and a shortcut or
-/// hint on the right.
+/// A `FilterList` row: a symbol, a program tile or a state icon, a title, and a shortcut or hint on the right.
 struct MenuRow: View {
     var symbol: String?
     var pane: HostStore.Pane?
@@ -286,8 +284,7 @@ struct FadeText: View {
     }
 }
 
-/// An SF Symbol button for the title bar, the sidebar and card headers. Its tooltip and VoiceOver label say the action
-/// and its shortcut ("New Tab ⌘T").
+/// An SF Symbol button. Its tooltip and VoiceOver label say the action and its shortcut ("New Tab ⌘T").
 struct IconButton: View {
     let symbol: String
     let help: String
@@ -319,7 +316,7 @@ struct IconButton: View {
 }
 
 extension View {
-    /// A panel over the window (the session list, the palette): a click outside it or Esc closes it.
+    /// A panel over the window (the workspace menu, Open Session, the palette): a click outside it or Esc closes it.
     func floatingPanel(open: Binding<Bool>, alignment: Alignment) -> some View {
         Color.clear.contentShape(.rect).onTapGesture { open.wrappedValue = false }
             .overlay(alignment: alignment) {

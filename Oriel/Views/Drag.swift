@@ -74,7 +74,7 @@
         {
             let size = NSSize(width: 240, height: 150), margin: CGFloat = 20
             let scale = max(size.width / rect.width, size.height / rect.height)
-            // The grab point from the card's top left, in the view's coordinates.
+            // The grab point from the lifted card's top left, in its scaled points.
             let grab = NSPoint(x: min((point.x - rect.minX) * scale, size.width - 8),
                                y: min((flipped ? point.y - rect.minY : rect.maxY - point.y) * scale, size.height - 8))
             let frame = NSRect(x: point.x - grab.x - margin,
@@ -113,7 +113,6 @@
     /// Holding a dragged pane over a tab's capsule or a workspace's row this long selects it (Rex's spring-loading).
     let springDelay = Duration.milliseconds(650)
 
-    /// Where a drop lands, as the targets see it.
     enum DropTarget {
         /// A card: its center (nil) or an edge.
         case card(String, edge: Heading?)
@@ -122,7 +121,6 @@
         case move(Destination)
     }
 
-    /// The drop indicator: a rounded rect in the accent at 0.2 with a 2 pt accent stroke.
     struct DropIndicator: View {
         var radius: CGFloat = 10
 

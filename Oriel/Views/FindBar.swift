@@ -201,7 +201,7 @@
         }
     }
 
-    /// The find bar at a card's top right: the field, "3 of 12", previous and next, close.
+    /// The find bar at a card's top right.
     struct FindBar: View {
         let find: Find
         let page: Page

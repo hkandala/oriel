@@ -15,8 +15,7 @@ struct Notice {
     import HerdrKit
     import SwiftUI
 
-    /// A short message in a glass capsule at the bottom of the strip: a symbol in its tone's color, the text, an
-    /// optional action and a ✕ (design: Notice).
+    /// A notice's glass capsule (design: Notice).
     struct NoticeCapsule<Action: View>: View {
         let tone: Notice.Tone
         let text: String

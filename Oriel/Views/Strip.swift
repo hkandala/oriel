@@ -282,7 +282,7 @@
                 .transformEnvironment(\.zoomedAway) { $0 = $0 || away }
         }
 
-        /// The divider's ratio to herdr (D42). Held until the snapshot shows it; dropped when herdr refused it, or
+        /// The divider's ratio to herdr (D10). Held until the snapshot shows it; dropped when herdr refused it, or
         /// when herdr already has it (no snapshot change would drop it then).
         private func send(_ value: Double, herdr ratio: Double) {
             // herdr has it already, and no other change is on its way.

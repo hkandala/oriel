@@ -115,7 +115,6 @@
             .accessibilityHidden(zoomedAway)
         }
 
-        /// 36 pt: the glyph and title (or the rename field), then the buttons; the context menu has the pane's actions.
         private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool) -> some View {
             // The label wins; else the program in primary text and the folder in secondary, as in Rex ("zsh ~").
             let (name, folder) = pane?.header ?? (nil, "terminal")
@@ -166,7 +165,6 @@
             }
         }
 
-        /// Split Right, Split Down, Zoom and Close, 22 pt and 2 pt apart; only Restore and Close on a zoomed card.
         private func buttons(zoomed: Bool) -> some View {
             let store = page.store
             return HStack(spacing: 2) {

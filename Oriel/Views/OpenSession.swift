@@ -14,7 +14,6 @@
         /// A name no session has, picked once.
         @State private var suggested = ""
         @State private var lit: String?
-        /// The session whose server is starting.
         @State private var starting: String?
         /// The last start that failed: its row's id and the notice.
         @State private var failure: (id: String, text: String)?

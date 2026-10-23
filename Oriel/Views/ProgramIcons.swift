@@ -42,7 +42,7 @@ struct ProgramTile: View {
     }
 }
 
-/// The program's glyph alone, for card headers.
+/// The program's glyph alone, for card headers and hover card rows.
 struct ProgramGlyph: View {
     let icon: String
     var letter: String?
@@ -76,7 +76,6 @@ struct IconStack: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            // Back to front.
             ForEach(Array(panes.enumerated()).reversed(), id: \.element.id) { index, pane in
                 ZStack {
                     RoundedRectangle(cornerRadius: 6, style: .continuous).frame(width: 24, height: 20)

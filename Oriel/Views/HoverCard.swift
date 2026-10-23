@@ -165,9 +165,9 @@
         }
     }
 
-    /// Rex's "peek": a tab's title and rolled-up status and one row per pane. A click on a
-    /// row goes to that pane; on the title, to the tab. A blocked agent's row shows its last screen lines (herdr
-    /// 0.9.5 sends no blocked message), read once when the card opens.
+    /// Rex's "peek": a tab's title and rolled-up status and a row for each of its first six panes. A click on a row
+    /// goes to that pane; on the title, to the tab. A blocked agent's row shows its last screen lines (herdr 0.9.5
+    /// sends no blocked message), read once when the card opens.
     struct HoverCard: View {
         let tabID: String
         let page: Page

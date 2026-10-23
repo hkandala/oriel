@@ -202,7 +202,8 @@
             MainActor.assumeIsolated {
                 pendingHints?.cancel()
                 let command = event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command
-                // ponytail: any key window of the app; phase 16's windows need this bar's own window here.
+                // ponytail: any key window of the app, so every window's bar shows keycaps; check this bar's own
+                // window if that matters.
                 if event.type == .flagsChanged, command, event.window?.isKeyWindow == true {
                     pendingHints = Task {
                         try? await Task.sleep(for: .milliseconds(700))

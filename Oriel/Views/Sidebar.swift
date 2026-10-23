@@ -85,7 +85,7 @@
         }
     }
 
-    /// One session's page: its name and `+`, then its workspace rows.
+    /// One session's page: its name and `+`, then its workspace rows; or its Agents view and sort menu.
     private struct SidebarPage: View {
         let page: Page
         let pages: WindowPages
@@ -221,7 +221,6 @@
         }
     }
 
-    /// The Agents view's order: Priority or Workspace order.
     private struct SortMenu: View {
         @Binding var sort: AgentSort
 
@@ -268,7 +267,6 @@
         }
     }
 
-    /// One 6 pt dot per page, 6 pt apart; a click shows that page.
     private struct PageDots: View {
         let pages: WindowPages
 

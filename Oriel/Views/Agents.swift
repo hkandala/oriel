@@ -32,7 +32,6 @@ extension AgentState {
     }
 }
 
-/// The Agents view's order.
 enum AgentSort: String {
     case priority, workspace
 }
@@ -75,7 +74,7 @@ extension EnvironmentValues {
     @Entry var offscreen = false
 }
 
-/// A workspace's state: an amber dot, the working dots, a green dot or a gray ring; nothing without an agent.
+/// A workspace's state: an amber dot, the working dots, a green dot or a gray ring; a faint dot without an agent.
 struct StateIcon: View {
     let state: AgentState?
     @Environment(\.look) private var look
@@ -94,7 +93,6 @@ struct StateIcon: View {
     }
 }
 
-/// "Needs you", "Working", "Done" or "Idle" in the state's color.
 struct StateCapsule: View {
     let state: AgentState
     @Environment(\.look) private var look
@@ -125,9 +123,8 @@ struct StatusBadge: View {
 }
 
 #if os(macOS)
-    /// An agent pane in the Agents view and the needs-you popover: its tile and badge, name and capsule; its
-    /// workspace and tab, and how long ago its state changed. A click selects its workspace and tab and gives it the
-    /// keyboard.
+    /// An agent pane in the Agents view and the needs-you popover. A click selects its workspace and tab and gives it
+    /// the keyboard.
     struct AgentButton: View {
         let pane: HostStore.Pane
         let page: Page
@@ -172,7 +169,6 @@ struct StatusBadge: View {
             .frame(height: 44)
         }
 
-        /// "now", "3m", "2h", "4d".
         private func age(_ since: Date, _ now: Date) -> String {
             let minutes = Int(now.timeIntervalSince(since) / 60)
             return switch minutes {
@@ -222,7 +218,6 @@ struct StatusBadge: View {
             .scrollIndicators(.never)
         }
 
-        /// Its hover shows the pane's tab.
         private func row(_ pane: HostStore.Pane) -> some View {
             AgentButton(pane: pane, page: page)
                 .hoverPanel(place: .beside) { close in HoverCard(tabID: pane.tabID, page: page, close: close) }
