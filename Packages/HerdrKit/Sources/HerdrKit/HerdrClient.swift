@@ -8,7 +8,7 @@ public enum HerdrError: Error, Equatable, Sendable {
     case notFound
     /// herdr is too old.
     case unsupported(String)
-    /// herdr did not answer within 10 s.
+    /// herdr did not answer within the request's timeout.
     case timeout
     /// herdr answered with an error.
     case herdr(code: String, message: String)
@@ -45,7 +45,7 @@ public actor HerdrClient {
     nonisolated let timeout: Duration
 
     private var out: AsyncStream<Update>.Continuation?
-    /// The last good snapshot; nil since the start or the last failure.
+    /// When the last good snapshot was read; nil since the start or the last failure.
     private var lastRead: ContinuousClock.Instant?
     private var reading = false
     private var readAgain = false
@@ -229,7 +229,6 @@ public actor HerdrClient {
         } while await (try? Task.sleep(for: .seconds(2))) != nil
     }
 
-    /// herdr's absolute path on the machine.
     nonisolated func herdr() async throws -> String {
         guard let path = await exec.herdr() else { throw HerdrError.notFound }
         return path

@@ -9,13 +9,12 @@ public enum AgentState: Comparable, Sendable {
 /// has not looked at yet, from `completion_seq`. herdr's `done` is not used. Keyed by terminal (else pane id): a moved
 /// pane gets a new pane id and keeps its terminal, and herdr reuses pane ids for new terminals.
 public struct Seen: Sendable {
-    /// A pane's state changed.
     public struct Change: Equatable, Sendable {
         public let paneID: String
         public let state: AgentState
     }
 
-    /// Each agent's state by key (`key(_:)`).
+    /// Each agent's state by key (`key(terminalID:paneID:)`).
     public private(set) var states: [String: AgentState] = [:]
     /// When each agent's state last changed, for the ages.
     public private(set) var since: [String: Date] = [:]
@@ -27,7 +26,6 @@ public struct Seen: Sendable {
 
     public init() {}
 
-    /// An agent's key: its terminal, else its pane.
     public static func key(terminalID: String?, paneID: String) -> String {
         terminalID ?? paneID
     }

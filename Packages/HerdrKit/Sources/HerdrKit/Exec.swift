@@ -10,7 +10,6 @@ public protocol Exec: Sendable {
     func herdr() async -> String?
 }
 
-/// A running command: stdout lines, a stdin writer, and its end.
 public struct Channel: Sendable {
     /// Stdout, one element per line. Ends when the command closes stdout.
     public let lines: AsyncStream<String>
@@ -20,7 +19,7 @@ public struct Channel: Sendable {
     public let closeInput: @Sendable () -> Void
     /// Stops reading now and kills the command if it still runs.
     public let terminate: @Sendable () -> Void
-    /// Waits for the command to end and gives back its exit status and stderr.
+    /// Waits for the command to end and gives back its exit status and the last 8 KB of stderr.
     public let exit: @Sendable () async -> (status: Int32, stderr: String)
 }
 
@@ -30,7 +29,6 @@ public struct Channel: Sendable {
     public final class ProcessExec: Exec {
         let environment: [String: String]
         private let lookup: Mutex<Lookup>
-        /// herdr's path and when the login shell was last asked for it.
         private struct Lookup {
             var path: String?
             var asked: ContinuousClock.Instant

@@ -2,10 +2,9 @@ import Foundation
 import HerdrKit
 import Testing
 
-/// The repository's root.
+/// The repository's root, five levels up from this file.
 private let root = URL(filePath: #filePath).appending(path: "../../../../..").standardized
 
-/// The app's catalog, read from the repository.
 private let catalog: [ProgramIcon] = {
     let url = root.appending(path: "resources/icons/catalog.json")
     return (try? JSONDecoder().decode([ProgramIcon].self, from: Data(contentsOf: url))) ?? []

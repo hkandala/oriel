@@ -79,13 +79,11 @@ public struct Pane: Decodable, Sendable, Identifiable {
     }
 }
 
-/// A pane's viewport.
 public struct PaneScroll: Decodable, Sendable {
     /// Lines from the bottom; 0 is the bottom.
     public let offsetFromBottom: Int?
     /// The scrollback above the screen.
     public let maxOffsetFromBottom: Int?
-    /// The screen's height.
     public let viewportRows: Int?
 
     enum CodingKeys: String, CodingKey {
