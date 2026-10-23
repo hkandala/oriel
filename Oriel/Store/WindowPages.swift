@@ -107,7 +107,7 @@
         /// After each snapshot of a store this window shows.
         func snapshotted(_ store: HostStore) {
             page(store)?.settle()
-            showTerminals()
+            showTerminals(snapshot: true)
             showPending()
             if Self.windows.first === self {
                 openFolders()
@@ -236,8 +236,9 @@
         }
 
         /// Streams the shown tab of the page in view (see the registry), drops the terminals of closed panes and
-        /// pages.
-        func showTerminals() {
+        /// pages. A snapshot hands the keyboard to a card only while no text field has it: typing in the palette or a
+        /// rename field must not go on in a shell because a pane closed elsewhere.
+        func showTerminals(snapshot: Bool = false) {
             guard let current else { return }
             // A find bar whose card is out of view closes: herdr's viewport is shared, it must not stay scrolled.
             for page in list where page !== current || page.findHidden {
@@ -245,7 +246,9 @@
             }
             let alive = Set(list.flatMap { $0.store.panes.compactMap(\.terminalID) })
             terminals.show(current.shownTerminals, alive: alive, client: current.store.client)
-            current.shown(alive: alive)
+            if !snapshot || !(window?.firstResponder is NSText) {
+                current.shown(alive: alive)
+            }
         }
     }
 
