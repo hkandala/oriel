@@ -210,8 +210,10 @@
                             keywords: "pane",
                             enabled: enabled, action: {
                                 // A held key's repeat while a write runs is dropped, not a "Busy" notice each time.
+                                // `isARepeat` raises on a click (the palette, the menu bar).
+                                let event = NSApp.currentEvent
                                 if let page = pages?.current, let pane = page.keyboardPane,
-                                   !page.store.writing || NSApp.currentEvent?.isARepeat != true
+                                   !page.store.writing || event?.type != .keyDown || event?.isARepeat != true
                                 {
                                     Task { await act(page, pane, heading) }
                                 }
