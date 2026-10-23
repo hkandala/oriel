@@ -109,7 +109,7 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
 18. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
 19. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
    first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
-19. **Fast tests** (e2e-speed): wait with `exists(within:)`, `vanishes(within:)`, `has(_:_:within:)`, `until`
+20. **Fast tests** (e2e-speed): wait with `exists(within:)`, `vanishes(within:)`, `has(_:_:within:)`, `until`
    or `poll`; XCTest's own waits take over a second even when the condition holds (lint rejects them). Fail
    async helpers with a throw, not XCTFail, and keep tearDown sync (else a failure hangs for 2 minutes). Relaunch the app only when the
    launch is under test (~2.5 s each). Keep a test under ~30 s; CI splits the suite by name into 4 jobs.
