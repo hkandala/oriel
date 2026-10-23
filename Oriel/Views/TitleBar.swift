@@ -207,14 +207,15 @@
         var body: some View {
             Button { open.toggle() } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "folder").fontWeight(.semibold)
+                    Image(systemName: "folder").fontWeight(.medium)
                     // A long session name stops at 110 pt, so a long workspace name fades instead of hiding it.
                     Capped(width: 110) { Text(session).lineLimit(1) }.layoutPriority(1)
                     Rectangle().fill(look.divider).frame(width: 1, height: 12)
                     FadeText(text: Text(workspace)).foregroundStyle(look.selected)
                     Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
                 }
-                .fontWeight(.medium)
+                // Rex's session picker label.
+                .fontWeight(.semibold)
                 .padding(.horizontal, 8)
                 .frame(height: 28)
             }

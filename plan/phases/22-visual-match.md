@@ -194,6 +194,8 @@ picture of Classic light: it is compared with Rex's System light material file a
 - **A `destinationOut` overlay did not cut the shadow's copy** (visual review): `fill.overlay(shape.blendMode(.destinationOut)).compositingGroup()`
   darkened the whole Glass light card by about black 0.1; a `ZStack` of the two inside the group cuts (checked with
   `ImageRenderer` in a script: 194 vs 218 at the card's center).
+- **A CI run between two commits failed `testSplitRightTwiceGivesThirds`** ("terminal fits its card"): its
+  expectation still had the old 8 pt terminal inset while the code had 11; fixed with the 10 pt inset (7f5c334).
 - **The closing-a-pane test failed once on CI** (`pane.w2:p3.close` not found after the hover) and passed locally
   with this phase's code; taken as a hover flake.
 - **A button moved inside its own frame notification snaps back**: AppKit finishes its own `setFrame` after the
