@@ -15,8 +15,8 @@
         @State private var suggested = ""
         @State private var lit: String?
         @State private var starting: String?
-        /// The last start that failed: its row's id and the notice.
-        @State private var failure: (id: String, text: String)?
+        /// The last start that failed: its session and the notice.
+        @State private var failure: (session: String, text: String)?
 
         var body: some View {
             VStack(alignment: .leading, spacing: 8) {
@@ -24,7 +24,7 @@
                            maxHeight: 320, lit: $lit) {}
                 if let failure {
                     NoticeCapsule(tone: .error, text: failure.text) {
-                        Button("Retry") { act(failure.id) }.accessibilityIdentifier("notice.retry")
+                        Button("Retry") { start(failure.session) }.accessibilityIdentifier("notice.retry")
                     }
                     .accessibilityIdentifier("open-session.notice")
                     .frame(maxWidth: .infinity)
@@ -45,44 +45,46 @@
 
         /// New, then Running and Stopped sessions not open in this window, then the ones open in it.
         private func items(_ filter: String) -> [FilterList.Item] {
-            let open = pages.list.map(\.id)
+            let shown = pages.list.map(\.id)
             let typed = filter.trimmingCharacters(in: .whitespaces)
             let new = typed.isEmpty ? suggested : typed
-            let create = Session.isValidName(new) && !sessions.contains { $0.name == new } && !open.contains(new)
-                ? [item("new.\(new)", "plus", "Create session “\(new)”", "New", new)] : []
-            let others = sessions.filter { !open.contains($0.name) && $0.name.matches(filter) }
-            return create
-                + others.filter(\.running).map { item(
-                    "session.\($0.name)",
-                    "rectangle.stack",
-                    $0.name,
-                    "Running",
-                    $0.name,
-                ) }
-                + others.filter { !$0.running }
-                .map { item("session.\($0.name)", "rectangle.stack", $0.name, "Stopped", $0.name) }
-                + open.filter { $0.matches(filter) }
-                .map { item("open.\($0)", "checkmark", $0, "Open in this window", $0) }
+            let create = Session.isValidName(new) && !sessions.contains { $0.name == new } && !shown.contains(new)
+                ? [item("new", "Create session “\(new)”", "New", new) { start(new) }] : []
+            let others = sessions.filter { !shown.contains($0.name) && $0.name.matches(filter) }
+            let session = { (one: Session) in
+                item("session", one.name, one.running ? "Running" : "Stopped", one.name) { start(one.name) }
+            }
+            return create + others.filter(\.running).map(session) + others.filter { !$0.running }.map(session)
+                + shown.filter { $0.matches(filter) }.map { name in
+                    item("open", name, "Open in this window", name) {
+                        if let page = pages.list.first(where: { $0.id == name }) {
+                            pages.show(page)
+                        }
+                        open = false
+                    }
+                }
         }
 
-        /// The group headers say what a row does; no hint text on the rows.
-        private func item(_ id: String, _ symbol: String, _ title: String, _ section: String,
-                          _ session: String) -> FilterList.Item
+        /// A row of a kind (`new`, `session` or `open`: its id's prefix and its symbol). The group headers say what a
+        /// row does; no hint text on the rows.
+        private func item(_ kind: String, _ title: String, _ section: String, _ session: String,
+                          act: @escaping () -> Void) -> FilterList.Item
         {
-            FilterList.Item(id: id, symbol: symbol, title: title, section: section, busy: starting == session) {
-                act(id)
+            FilterList.Item(
+                id: "\(kind).\(session)",
+                symbol: ["new": "plus", "open": "checkmark"][kind] ?? "rectangle.stack",
+                title: title,
+                section: section,
+                busy: starting == session,
+            ) {
+                if starting == nil {
+                    act()
+                }
             }
         }
 
-        /// A row's action by its id (`new.`, `session.` or `open.` and the session's name), for Enter and a click.
-        private func act(_ id: String) {
-            guard starting == nil, let dot = id.firstIndex(of: ".") else { return }
-            let session = String(id[id.index(after: dot)...])
-            if id.hasPrefix("open."), let page = pages.list.first(where: { $0.id == session }) {
-                pages.show(page)
-                open = false
-                return
-            }
+        /// Starts the session when it is not running, then opens its page.
+        private func start(_ session: String) {
             starting = session
             failure = nil
             Task {
@@ -92,7 +94,7 @@
                     open = false
                 } catch {
                     // The panel stays open, with herdr's reason.
-                    failure = (id, "Could not start \(session). \(error.localizedDescription)")
+                    failure = (session, "Could not start \(session). \(error.localizedDescription)")
                 }
                 starting = nil
             }
