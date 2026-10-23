@@ -160,9 +160,8 @@ struct OrielApp: App {
         @Binding var sidebar: Bool
         @Binding var agents: Bool
         @Binding var sidebarWidth: Double
-        /// The one floating panel open: the workspace menu or the palette.
+        /// The one floating panel open: the workspace menu, the palette or Open Session.
         @State private var panel: Panel?
-        @State private var openingSession = false
         @State private var workspaceButtonX: CGFloat = 0
         @State private var fullScreen = false
         /// The window's content height, for the palette's list.
@@ -176,7 +175,7 @@ struct OrielApp: App {
             let style = settings.style, appearance = settings.appearance
             let look = Look(style: style, dark: colorScheme == .dark)
             let commands = CommandList(pages: pages, palette: open(.palette), sidebar: $sidebar, agents: $agents,
-                                       openSession: $openingSession, openWindow: openWindow, settings: settings)
+                                       openSession: open(.openSession), openWindow: openWindow, settings: settings)
             let store = page.store
             // The strip's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
             // cards start at its bottom edge, as in Rex; the row stays on top for its clicks and window drags.
@@ -188,7 +187,7 @@ struct OrielApp: App {
                 HStack(spacing: 0) {
                     if sidebar {
                         // As in Rex, the cards start at the sidebar's width: its handle lies over the strip's 8 pt gap.
-                        Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { openingSession = true }
+                        Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { panel = .openSession }
                             .padding(.bottom, gap)
                             // Rex's page header and first row sit 3 pt lower than the strip's 4 pt room.
                             .padding(.top, 7)
@@ -206,21 +205,18 @@ struct OrielApp: App {
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
             .overlay {
                 if panel == .workspaces {
-                    WorkspaceMenu(pages: pages, page: page, open: open(.workspaces)) { openingSession = true }
+                    WorkspaceMenu(pages: pages, page: page, open: open(.workspaces)) { panel = .openSession }
                         .padding(.leading, workspaceButtonX)
                         .padding(.top, TitleBar.height)
                         .floatingPanel(open: open(.workspaces), alignment: .topLeading)
                 }
-                if openingSession {
-                    OpenSession(pages: pages, open: $openingSession)
-                        .padding(.top, 96).floatingPanel(open: $openingSession, alignment: .top)
+                if panel == .openSession {
+                    OpenSession(pages: pages, open: open(.openSession))
+                        .padding(.top, 96).floatingPanel(open: open(.openSession), alignment: .top)
                 }
                 if panel == .palette {
                     Palette(pages: pages, page: page, commands: commands, open: open(.palette), height: height)
-                        .padding(.top, 96).floatingPanel(
-                            open: open(.palette),
-                            alignment: .top,
-                        )
+                        .padding(.top, 96).floatingPanel(open: open(.palette), alignment: .top)
                 }
             }
             .confirmationDialog(dialog?.title ?? "", isPresented: Binding { page.closing != nil } set: {
@@ -278,8 +274,8 @@ struct OrielApp: App {
                     panel = nil
                 }
             }
-            // A closed panel or sheet gives the keys back.
-            .onChange(of: panel == nil && !openingSession) { _, closed in
+            // A closed panel gives the keys back.
+            .onChange(of: panel == nil) { _, closed in
                 if closed {
                     page.focusKeyboardCard()
                 }
@@ -288,7 +284,7 @@ struct OrielApp: App {
         }
 
         enum Panel {
-            case workspaces, palette
+            case workspaces, palette, openSession
         }
 
         /// Whether this panel is the open one; opening it closes the other.

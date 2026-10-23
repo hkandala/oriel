@@ -60,7 +60,7 @@ extension KeyboardShortcut {
                 let item = NSApp.mainMenu?.item(first), item.isEnabled, let menu = item.menu,
                 // ⌃⇥ in a text field (the palette, a rename) stays the field's: the tabs behind it must not move.
                 key != KeyEquivalent.tab.character || !(NSApp.keyWindow?.firstResponder is NSText),
-                // Not behind a sheet (the open panel, Open Session).
+                // Not behind a sheet (Go to Directory's open panel).
                 NSApp.keyWindow?.sheetParent == nil else { return false }
             // Not `performKeyEquivalent` with a made-up event: AppKit did not match "]" with ⇧⌘ to ⇧⌘].
             menu.performActionForItem(at: menu.index(of: item))
