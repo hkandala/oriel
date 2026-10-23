@@ -1,5 +1,5 @@
 SHELL := /bin/bash -eo pipefail
-.PHONY: setup format lint build test e2e run
+.PHONY: setup format lint build test e2e run app dmg
 
 DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
@@ -44,3 +44,13 @@ e2e:
 run:
 	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)
 	open $(DERIVED_DATA)/Build/Products/Debug/Oriel.app $(if $(SESSION),--args -session $(SESSION))
+
+# A Release Oriel.app to copy into /Applications, and a disk image of it. Ad-hoc signed: fine on this Mac;
+# another Mac needs right-click > Open once, and notifications need a real signing identity.
+app:
+	$(XCODEBUILD) $(MAC) -configuration Release build $(BEAUTIFY)
+	@echo "$(DERIVED_DATA)/Build/Products/Release/Oriel.app"
+
+dmg: app
+	rm -f .build/Oriel.dmg
+	hdiutil create -volname Oriel -srcfolder $(DERIVED_DATA)/Build/Products/Release/Oriel.app -ov -format UDZO .build/Oriel.dmg
