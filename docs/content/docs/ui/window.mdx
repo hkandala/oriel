@@ -193,7 +193,11 @@ session open in this window (D43).
   its event stream and its terminal streams end. The herdr session keeps
   running and stays in the Open Session list. Close Page is disabled on the
   last page.
-- **Restore.** A window that macOS restores opens the pages it had again,
+- **Restore.** Windows come back after a normal quit too: Oriel registers
+  `NSQuitAlwaysKeepsWindows` in its own defaults, so the system's "Close
+  windows when quitting an application" setting does not apply to it (a
+  user's own `defaults write` still wins). A window that macOS restores opens
+  the pages it had again,
   each with its selected workspace and tabs. A session that no longer runs is
   skipped, and a workspace or tab that is gone falls back to herdr's focus. A
   window never comes back in full screen: one that macOS restores in full
@@ -406,16 +410,24 @@ How it works: [Layout and sizing](/docs/layout).
 
 ## Find bar
 
-⌘F opens the find bar on the keyboard card.
-- A small glass bar at the card's top right, 8 pt in: the field, the match
-  count ("3 of 12"), ↑ and ↓ buttons, and ×. One bar per card.
-- ⌘G or Enter goes to the next match, ⇧Enter to the previous one. Esc closes
-  the bar.
-- The text comes from herdr, read once when the bar opens, and the search is
-  case blind. Next or previous scrolls herdr's viewport to the match, with the
-  match line centered. Closing the bar scrolls back
-  to the bottom. herdr's viewport is shared, so a herdr TUI on the same pane
-  scrolls too.
+⌘F (Edit ▸ Find…) opens the find bar on the keyboard card; ⌘F again focuses
+its field.
+- A glass capsule 320 pt wide and 32 pt tall at the card's top right, 8 pt in
+  from its edge and 8 pt under the header: the field ("Find"), the match count
+  ("3 of 12", in a fixed slot so the bar never changes width), ↑ (Find
+  Previous), ↓ (Find Next) and ×. One bar per window page, on the card it
+  opened on.
+- A new query selects the last match, nearest the bottom. ⌘G or Enter goes to
+  the next match down, ⇧Enter or ↑ to the previous one up, round the ends. Esc
+  or × closes the bar and gives the keyboard back to the card. As in Rex, Find
+  Previous has no shortcut: ⇧⌘G is Go to Directory.
+- The text comes from herdr, read when the bar opens and again at the next
+  step after Return was pressed in the pane, and the search is case blind.
+  Each match scrolls herdr's viewport to it, with the match line centered.
+  Closing the bar scrolls back to the bottom. herdr's viewport is shared, so a
+  herdr TUI on the same pane scrolls too.
+- The matches on the screen are highlighted: the selected one in the accent at
+  0.45, the others at 0.2, placed from herdr's visible text after each scroll.
 
 How it works: [Scrolling, queries and links](/docs/talking-to-herdr#scrolling-queries-and-links).
 
@@ -441,11 +453,13 @@ How the messages, the reply box and the key buttons work:
 ## Notice
 
 A short message after a failed action or a refused move.
-- A capsule at the bottom center of the strip, 30 pt above its bottom: glass,
-  a leading symbol in a tone color (red for an error, amber for a warning,
-  blue for information), the text, an optional action button (for example
-  "Retry") and ×.
-- It goes after 4 s.
+- A capsule at the bottom center of the strip, 30 pt above its bottom, 36 pt
+  tall: glass, a leading symbol in a tone color (red `xmark.octagon.fill` for
+  an error, amber `exclamationmark.triangle.fill` for a warning, blue for
+  information), the text (two lines at most), an optional action button and ×.
+- **Retry** shows only where a retry is safe: "Busy, try again" (nothing was
+  sent). A write that timed out may have happened, so it gets no Retry.
+- It goes after 4 s, or at ×. A newer notice replaces it.
 
 ## Control capsule
 
@@ -453,8 +467,9 @@ A window that watches a session another window controls (D66).
 - Its cards of that session draw their content at 0.85 of its opacity, and a
   capsule at the bottom center of the strip, 30 pt above its bottom, says
   "Controlled in another window", with **Take Back**. It is a
-  [notice](#notice) with an action, and shows only while the page in view is
-  watched.
+  [notice](#notice) in the information tone with `macwindow.on.rectangle` and
+  no ×, sits under a notice when both show, and shows only while the page in
+  view is watched. VoiceOver reads its text when it appears.
 - Take Back, or a key press, paste or click in one of its terminal cards,
   moves control of the session to this window. The other window then watches
   and shows the capsule.

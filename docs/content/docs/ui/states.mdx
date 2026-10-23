@@ -13,11 +13,11 @@ button. Empty states (no workspaces, no tabs) show only the button.
 | herdr missing on a remote machine | the install command |
 | herdr older than 0.9.3 | "herdr 0.9.3 or newer is needed"; before 0.9.1 (no `remote-api-bridge`) "No answer from herdr" |
 | herdr updated but not restarted | "Restart herdr on ‹machine›" (terminal streams fail; the API works) |
-| herdr server not running on This Mac | "‹session› is not running", a **Start** button (a launchd job, D47); a new window starts `default` by itself |
+| herdr server not running on This Mac | "‹session› is not running", a **Start** button (a launchd job, D47), per page: the page stays open and its other pages are not touched; a new window starts `default` by itself |
 | herdr server not running on a remote machine | a **Start herdr** button |
 | SSH auth failed | ssh's message in plain words |
 | Host key changed | the connection is blocked; the new fingerprint is shown |
-| Connection lost (Reconnecting) | "Reconnecting to ‹machine›" with a spinner; cards dim to 0.5; the app retries every 2 s without prompts, then reads a fresh snapshot ([Health check](/docs/machines#health-check)) |
+| Connection lost (Reconnecting) | "Reconnecting to ‹machine›" with a spinner over the cards, dimmed to 0.5; the app retries every 2 s without prompts, then reads a fresh snapshot ([Health check](/docs/machines#health-check)). Also when a page's first connect fails while its server runs |
 | Reconnecting needs a password or code | **Reconnect**; only this button may prompt |
 | Request timed out (10 s) | "‹machine› did not answer · Retry" in the card or sheet |
 | No SSH session left on the connection | the card shows its last image and **Retry** |
@@ -33,12 +33,13 @@ button. Empty states (no workspaces, no tabs) show only the button.
 | Move refused by herdr | herdr's reason in words, in the notice |
 | A drop step failed | the pane stays where it got to; the notice says so |
 | Open Session: the name is not a valid herdr name | no Create row |
-| Open Session: the session did not start | the row's spinner stops, the sheet stays open, the notice: "Could not start ‹session›", herdr's reason and **Retry** |
+| Open Session: the session did not start, or its server did not answer within 10 s | the row's spinner stops, the sheet stays open, and a notice capsule in the sheet says "Could not start ‹session›." with herdr's reason and **Retry** |
+| Open Session: the page does not connect (the bridge fails) | the page shows the reconnecting state |
 | Open Session: a running session stopped before it opened | Open starts it, as for a stopped session |
 | A restored page's session no longer runs | the page is skipped |
 | Close Page on the last page | Close Page is disabled |
-| A write failed | the notice: a capsule with a red symbol, the error and **Retry** when a retry can help |
-| A card's first frame has not arrived | the card fades in over 0.2 s when it arrives |
+| A write failed | the notice: a capsule with a red symbol, the error and **Retry** when a retry is safe |
+| A card's first frame has not arrived | the card's terminal fades in over 0.2 s when it arrives (at once with Reduce Motion) |
 | Nobody needs you (Agents button hover) | "Nobody needs you" |
 | A session with no agents (Agents view) | an empty list, no text |
 | Web page failed | WebKit's error in the card |

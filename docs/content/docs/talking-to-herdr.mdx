@@ -287,10 +287,15 @@ handshake fails, it exits 1 with the reason on stderr.
   patch (`suppressesTerminalResponses`). [Spike S1](/docs/build-order#s1-strip)
   checks it.
 - **Find** (⌘F) reads the pane's recent text with
-  `pane.read {source:"recent", lines: 5000, format:"text"}` once when the bar
-  opens, and searches it on the device on each edit. Next and previous
-  scroll herdr's shared viewport with `pane.scroll`, so a herdr TUI on the
-  same pane scrolls too.
+  `pane.read {source:"recent", lines: 5000, format:"text"}` when the bar
+  opens (again at the next step after Return in the pane), and searches it on
+  the device on each edit. Each match scrolls herdr's shared viewport with
+  `pane.scroll {pane_id, offset_from_bottom}` (the match line's distance from
+  the end, less half the screen), so a herdr TUI on the same pane scrolls too.
+  After each scroll, `pane.read visible` and `pane.get` (its
+  `scroll.offset_from_bottom`) place the highlights. herdr's own
+  `pane.copy_search` is not used: it needs a `content_revision` and a cursor
+  from herdr's TUI client protocol and otherwise answers `stale_content`.
 - **Links** in terminal output open on this device with ⌘-click, and only
   `http` or `https`.
 

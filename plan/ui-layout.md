@@ -79,7 +79,7 @@ The strip under the title row still pages sideways between the selected workspac
 - **Closing a page**: the context menu of the page header and of its page dot has "Close Page". It only
   removes the page from this window (its store disconnects); the herdr session keeps running and stays in
   the sheet's list. The last page cannot be closed.
-- **Restore**: a window that macOS restores reopens the pages it had (their names in `@SceneStorage`); a
+- **Restore**: after any quit (the app registers `NSQuitAlwaysKeepsWindows`), a window that macOS restores reopens the pages it had (their names in `@SceneStorage`); a
   name that no longer runs is skipped. A new window (⌘N) opens with `default` only.
 - A sideways swipe on the sidebar moves to the next or previous open page; page dots at the bottom show
   where you are, and a click on a dot switches. Swiping the sidebar never pages the strip, and the reverse.
