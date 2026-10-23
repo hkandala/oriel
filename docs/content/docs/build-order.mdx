@@ -21,9 +21,10 @@ surfaces and 2 web views (a web page and a plugin card). Pass:
 
 ### S2 tab bar
 
-12 capsules in a `ToolbarItem`: no overflow, no double glass, the marker
-follows the scroll. gorex does not answer this, because it uses no Apple glass
-API.
+Moot: the tab bar is a row in the app's own title row, not a `ToolbarItem`
+([Platform](/docs/platform#tab-bar-and-liquid-glass)). The question was: 12
+capsules in a `ToolbarItem`, no overflow, no double glass, the marker follows
+the scroll.
 
 ### S3 ssh
 
@@ -73,11 +74,11 @@ Citadel exec channels, before any iOS work. Pass:
 
 ## Build order
 
-**v0 is built** (the repository's `plan/`): This Mac only, with the session
-picker, the sidebar of workspaces and tabs, the strip with swipes between
-tabs, herdr's splits, live terminals, close, split and zoom, new tabs,
-workspaces and sessions, and the ⌘K palette. The steps below follow from
-there.
+**v0 and step 1 are built** (the repository's `plan/`, phases 1–23): This
+Mac only. v0 had the strip with swipes between tabs, herdr's splits, live
+terminals, close, split and zoom, new tabs, workspaces and sessions, and the
+⌘K palette. Step 1 replaced v0's session picker and tab rows with the agreed
+window layout. The steps after it follow from there.
 
 | Step | What |
 |---|---|

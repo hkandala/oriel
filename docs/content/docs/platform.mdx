@@ -61,18 +61,15 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
 
 ## Tab bar and Liquid Glass
 
-- The tab bar is one `ToolbarItem` with `.sharedBackgroundVisibility(.hidden)`
-  (no double glass), holding a horizontal `ScrollView`. v0 has no toolbar
-  item: the tab bar is a row in the hidden title bar (phase 3b).
+- The tab bar is part of the app's own 46 pt title row, a horizontal
+  `ScrollView` in the hidden title bar. It is not a `ToolbarItem`: the
+  toolbar holds only a `ToolbarSpacer`.
 - One glass marker follows the strip's scroll offset
   (`onScrollGeometryChange`). The lit tabs come from the same number: every
   tab from `floor(x/w)` to `ceil((x+w)/w) − 1`. When the scroll stops, the
   selection changes to the page in view. A click on a tab scrolls the strip
   there, so the marker slides as during a swipe; nothing morphs.
-- If the toolbar squeezes the item ([spike S2](/docs/build-order#s2-tab-bar)),
-  the window hides its title bar and the tab bar sits at the top of the
-  detail column with `WindowDragGesture`.
-- Each capsule has one status slot: × on the selected or hovered tab, else
+- Each capsule has one status slot: × on the hovered tab, else
   the working dots. The dots are one `TimelineView` at 15 frames a second or
   less, driven by the clock and drawn only while visible; needs you and
   finished are badges on the icon (D42).
@@ -80,7 +77,7 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
 - Reference for this Rex-like behavior: the Rex study
   ([`rex-ui.md`](https://github.com/hkandala/oriel/blob/main/resources/research/clients/rex-ui.md)),
   then [gorex](https://github.com/hkandala/oriel/blob/main/resources/research/clients/gorex.md).
-  Neither is a reference for the glass API, so spike S2 stays open.
+  Neither is a reference for the glass API.
 - One `Look` token value per style and appearance draws every surface (D44).
   Glass is only on the Glass style's tab marker and sidebar pill, popovers,
   the palette and floating panels; the sidebar sits flat on the window, pane
@@ -88,8 +85,10 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
 
 ## Other details
 
-- Drag and drop: a `Transferable` pane reference (machine id, session and pane id),
-  declared in the Info.plist. Tab capsules spring-load. During a drag, drop
+- Drag and drop: the page holds the dragged item (`Dragged`: a pane, tab or
+  workspace id). The pasteboard carries only the type
+  `dev.hkandala.oriel.drag`, declared in the Info.plist, to route the drag to
+  the app's drop targets. Tab capsules spring-load. During a drag, drop
   zones sit above each card's surface. Drops on another session or machine
   are refused.
 - iOS key bar: libghostty-spm's `inputAccessoryItems`.

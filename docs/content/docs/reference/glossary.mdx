@@ -14,14 +14,14 @@ description: "The words these docs use"
 | window | an Oriel window. It shows one machine and keeps its own selection; the user can open several |
 | `HostStore` | the app's live model of one open session, shared by every window that has its page |
 | machine button / workspace button | the title-row button with the machine's icon / the title-row button "‹session› \| ‹workspace›", shown while the sidebar is collapsed |
-| Open Session | the sheet that adds a session to the window as a page: it creates a session, starts a stopped one or opens a running one (⇧⌘N) |
+| Open Session | the panel that adds a session to the window as a page: it creates a session, starts a stopped one or opens a running one (⇧⌘N) |
 | strip / tab page | the main area that pages sideways / one tab's page in it |
 | tab capsule | one tab in the tab bar |
 | lit tab | a tab whose page is visible in the strip |
 | pane card | how the app draws one herdr pane: a header plus content |
 | keyboard card | the card that gets typed keys, one per tab; the app's own choice, never herdr's focus |
 | program icon | the icon of the program that runs in a pane, from Oriel's own catalog; a tab shows a stack of them |
-| hover card | the panel that shows a tab's splits and panes when the pointer rests on a title-bar tab or an Agents row |
+| hover card | the panel that shows a tab's panes when the pointer rests on a title-bar tab or an Agents row |
 | Glass / Classic | the two interface styles: a window with a behind-window blur / an opaque window |
 | Appearance | Auto, Light or Dark |
 | pill / pill card / peek | the floating status capsule on the Mac screen edge / the small window for one agent next to it / a pill card that slides out by itself without taking the keyboard |
@@ -56,7 +56,7 @@ description: "The words these docs use"
 | iid | the instance id of a web or plugin pane, kept in its label; it names the pane's state file |
 | approval / safe list | a web origin this device opened once on a machine, so it loads without asking there / origins that load without asking: the machine's own `localhost` and `127.0.0.1`, and a built-in list; both are editable in Settings |
 | Refresh | the card header button that reads the snapshot and builds the card again from its label and state file |
-| health check | the per-machine loop that reads `session.snapshot` every 30 s, every 2 s while it fails |
+| health check | the loop, one per open session, that reads `session.snapshot` every 30 s, every 2 s while it fails |
 | askpass | a small program `ssh` runs to ask for a password |
 | `MaxSessions` | OpenSSH's limit of sessions on one connection (10 by default) |
 | spike | a small test build that answers one risky question first |

@@ -7,10 +7,10 @@ description: "Known risks, their effect and the plan for each"
 |---|---|---|
 | A SwiftUI strip with many Metal surfaces | jank, lost gestures | [spike S1](/docs/build-order#s1-strip); fallback is a paging container |
 | libghostty answers terminal queries that herdr already answered | stray bytes such as `^[[?1;2c` typed into shells | a pinned libghostty-spm build with uHerdr's response-suppression patch; checked in spike S1 |
-| The toolbar squeezes the tab bar | tabs overflow | [spike S2](/docs/build-order#s2-tab-bar); fallback is a hidden title bar. gorex shows the Rex behavior but not the glass API, so S2 stays open |
+| The toolbar squeezes the tab bar | tabs overflow | built as the fallback: a hidden title bar with the app's own title row, so [spike S2](/docs/build-order#s2-tab-bar) is moot |
 | Citadel exec channels on iOS (stdin, long-lived channels, close) | the iOS app cannot talk to herdr | [spike S7](/docs/build-order#s7-ios-transport); a thin iOS slice early in the build order |
 | A dead SSH link after a network change | requests hang | 10 s timeout on every `call()`; the [health check](/docs/machines#health-check) every 30 s |
-| herdr updated but not restarted | terminal streams fail; the API works | "Restart herdr on ‹machine›" message |
+| herdr updated but not restarted | terminal streams fail; the API works | the card shows herdr's error text and **Retry** |
 | Pane order in `layouts[]` is not a documented contract | wrong tree | leaf-count check, then `layout.export` |
 | Bridge cost per call | 18–130 ms plus network | hidden by the snapshot pacing; direct socket if a profile says so |
 | herdr does not report PTY columns | a phone watcher uses a fixed size | ask herdr for the field if needed |

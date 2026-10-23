@@ -41,8 +41,9 @@ and [Agents view](/docs/ui/window#agents-view).
 
 ### Notifications
 
-The app makes notifications itself, from snapshot changes, for every open
-page of the window:
+The app makes notifications itself, from snapshot changes, for every session
+open in any window. Each change posts once, also when several windows show
+the session:
 - A pane's status becomes `blocked`: "codex needs you", with "‹session› ·
   ‹workspace› · ‹tab›" as the body.
 - `completion_seq` changes to a new non-null value: "pi finished", with the
@@ -54,7 +55,8 @@ page of the window:
   notify.
 - The id is `"<machine>|<session>|<terminal_id>"` (`local` for This Mac), so
   a newer notification replaces the older one. It is removed when the user
-  looks at the pane.
+  looks at the pane, and when its state no longer holds (the pane works,
+  idles, closes or loses its agent).
 - A click activates the app, shows that page and selects the pane.
 - The app asks for permission (alerts and the badge) at launch; macOS asks the
   user only once.
