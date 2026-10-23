@@ -10,19 +10,24 @@ POST /<session>/children lists the session's `terminal session` and `remote-api-
 command line each.
 POST /<session>/stop stops the session; /<session>/start starts its server again, as a user would in a
 terminal.
+POST /<session>/open-folder with the built app's path as the body makes a folder in /tmp and opens it with the
+app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>`. The folder's path comes back.
 Any session not named on the command line is refused.
 """
 
 import http.server
 import os
 import re
+import shutil
 import socketserver
 import subprocess
 import sys
+import tempfile
 import threading
 
 split = sys.argv.index("--")
 sessions, command = sys.argv[1:split], sys.argv[split + 1:]
+folders = []
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -31,10 +36,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
-        elif action not in ("", "control", "takeover", "children", "stop", "start"):
+        elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
+        elif action == "open-folder" and not body.endswith(b".app"):
+            status, reply = 400, b"the body must be an app's path"
+        elif action == "open-folder":
+            folder = tempfile.mkdtemp(prefix="oriel-e2e-drop-", dir="/tmp")
+            folders.append(folder)
+            run = subprocess.run(["open", "-a", body.decode(), folder, "--args", "-session", session,
+                                  "-ApplePersistenceIgnoreState", "YES"], capture_output=True, timeout=10)
+            status, reply = (200, folder.encode()) if run.returncode == 0 else (500, run.stderr)
         elif action == "start":
             env = {k: v for k, v in os.environ.items() if not k.startswith("HERDR_")}
             subprocess.Popen(["herdr", "--session", session, "server"], env=env, stdin=subprocess.DEVNULL,
@@ -76,4 +89,7 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 # xcodebuild passes TEST_RUNNER_* to the tests without the prefix.
 env = {**os.environ, "TEST_RUNNER_ORIEL_HELPER": f"http://127.0.0.1:{server.server_address[1]}",
        **{f"TEST_RUNNER_ORIEL_SESSION{n if n > 1 else ''}": name for n, name in enumerate(sessions, 1)}}
-sys.exit(subprocess.run(command, env=env).returncode)
+status = subprocess.run(command, env=env).returncode
+for folder in folders:
+    shutil.rmtree(folder, ignore_errors=True)
+sys.exit(status)

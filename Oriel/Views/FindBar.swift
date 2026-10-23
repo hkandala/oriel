@@ -10,7 +10,12 @@
     final class Find {
         let paneID: String
         var query = "" {
-            didSet { search(last: true) }
+            // The field writes the same text back when it takes the keyboard again (a second ⌘F).
+            didSet {
+                if query != oldValue {
+                    search(last: true)
+                }
+            }
         }
 
         /// The lines of each match, top to bottom, a line once per match in it.

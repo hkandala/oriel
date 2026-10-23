@@ -1,6 +1,7 @@
 #if os(macOS)
     import AppKit
     import HerdrKit
+    import SwiftUI
 
     /// The pages of one window, in order, and the one in view (design D43). Each page's store is the app's one
     /// store of that session, shared with the other windows that show it; one `PaneViewRegistry` holds every page's
@@ -25,6 +26,8 @@
         private static var early: String?
         /// Folders dropped on the Dock icon, waiting for a live page (a drop can start the app).
         private static var folders: [URL] = []
+        /// SwiftUI's window opener, from the menu bar's commands, for the app delegate.
+        static var openWindow: OpenWindowAction?
 
         init() {
             terminals.onKeyboard = { [weak self] terminalID in self?.current?.tookKeyboard(terminalID) }
@@ -236,6 +239,12 @@
         /// pages.
         func showTerminals() {
             guard let current else { return }
+            // A find bar whose card is out of view closes: herdr's viewport is shared, it must not stay scrolled.
+            for page in list where page.find.map({ page !== current || page.store.pane($0.paneID)?.tabID
+                    != page.selectedTab?.id }) == true
+            {
+                page.dropFind()
+            }
             let alive = Set(list.flatMap { $0.store.panes.compactMap(\.terminalID) })
             terminals.show(current.shownTerminals, alive: alive, client: current.store.client)
             current.shown(alive: alive)

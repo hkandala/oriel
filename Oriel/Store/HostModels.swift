@@ -118,6 +118,15 @@ extension HostStore {
         session == "default" ? "This Mac" : "This Mac · \(session)"
     }
 
+    /// Failed while its server runs, not for a missing or old herdr: the client tries again every 2 s.
+    var reconnecting: Bool {
+        guard case let .failed(error) = state else { return false }
+        switch error {
+        case .notFound, .unsupported: return false
+        default: return isRunning
+        }
+    }
+
     /// The pane of these tabs with the strongest state (needs you > finished > working > idle); nil without agents.
     func strongest(_ tabIDs: [String]) -> Pane? {
         panes.filter { $0.state != nil && tabIDs.contains($0.tabID) }.max { $0.state ?? .idle < $1.state ?? .idle }

@@ -1,6 +1,7 @@
 #if os(macOS)
     import AppKit
     import HerdrKit
+    import SwiftUI
     import UserNotifications
 
     /// The notification delegate (set at launch, so a click that starts the app is not lost) and the Dock menu.
@@ -54,9 +55,13 @@
             return menu
         }
 
-        /// Folders dropped on the Dock icon (WindowPages).
+        /// Folders dropped on the Dock icon (WindowPages). With no window (a drop that starts the app opens none:
+        /// `handlesExternalEvents(matching: [])`), a new one takes them once its page is live.
         func application(_: NSApplication, open urls: [URL]) {
             WindowPages.open(folders: urls.filter(\.hasDirectoryPath))
+            if !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) {
+                WindowPages.openWindow?(id: "main")
+            }
         }
 
         @objc private func pick(_ item: NSMenuItem) {

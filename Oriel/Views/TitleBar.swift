@@ -50,7 +50,7 @@
                         workspaceButtonX = $0
                     }
                 }
-                if page.store.state == .live, let workspace = page.selectedWorkspace {
+                if page.store.state == .live || page.store.reconnecting, let workspace = page.selectedWorkspace {
                     TabBar(workspace: workspace, page: page, plus: plus)
                 } else {
                     Spacer(minLength: 0)

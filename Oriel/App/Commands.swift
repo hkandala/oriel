@@ -147,7 +147,8 @@ extension KeyboardShortcut {
 
         var body: some Commands {
             // With no window: New Window and the settings.
-            let list = (commands ?? CommandList(openWindow: openWindow, settings: settings)).all
+            let opener = Self.keep(openWindow)
+            let list = (commands ?? CommandList(openWindow: opener, settings: settings)).all
             CommandGroup(replacing: .newItem) { items(list, .file) }
             // ⌘W closes the keyboard card, ⇧⌘W the window (design: keyboard).
             CommandGroup(replacing: .saveItem) { items(list, .close) }
@@ -162,6 +163,12 @@ extension KeyboardShortcut {
                 Divider()
                 CommandItems(commands: list, sections: [.tabSteps, .pages, .tabs])
             }
+        }
+
+        /// The menu bar's commands exist with no window: the app delegate opens one through this for a Dock drop.
+        private static func keep(_ openWindow: OpenWindowAction) -> OpenWindowAction {
+            WindowPages.openWindow = openWindow
+            return openWindow
         }
 
         private func items(_ list: [Command], _ section: Command.Section) -> some View {

@@ -83,8 +83,15 @@ extension OrielUITests {
         XCTAssertTrue(count.has(\.stringValue, "11 of 11", within: 2), count.stringValue)
         app.typeKey("g", modifierFlags: .command)
         XCTAssertTrue(count.has(\.stringValue, "1 of 11", within: 2), count.stringValue)
+        element("find.previous").click()
+        XCTAssertTrue(count.has(\.stringValue, "11 of 11", within: 2), count.stringValue)
+        element("find.next").click()
+        XCTAssertTrue(count.has(\.stringValue, "1 of 11", within: 2), count.stringValue)
+        // A fixed width (the Window menu has an item named "find" too: the bar is the group).
+        XCTAssertEqual(app.groups.matching(identifier: "find").firstMatch.frame.width, 320, accuracy: 1)
+        field.click()
+        app.typeKey("a", modifierFlags: .command)
 
-        // Return left the field's text selected (AppKit's way): typing replaces it.
         app.typeText("line 42")
         XCTAssertTrue(count.has(\.stringValue, "1 of 1", within: 2), count.stringValue)
         // line 42 sits 158 lines above the bottom line: herdr's viewport scrolled to it.
@@ -130,29 +137,75 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("link")
         element("tab.\(tab)").click()
-        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "clear; echo https://example.com/oriel\r"])
-        try await waitFor(pane) { $0.hasPrefix("https://example.com/oriel\n") }
+        try await Self.call(
+            one,
+            "pane.send_text",
+            ["pane_id": pane,
+             "text": "clear; echo ftp://example.com/x; echo https://example.com/oriel\r"],
+        )
+        try await waitFor(pane) { $0.hasPrefix("ftp://example.com/x\nhttps://example.com/oriel\n") }
 
-        // The link is the first line: ⌘-click its sixth cell.
+        // ⌘-click the sixth cell of each line: only the https link opens.
         let terminal = element("terminal.\(pane)")
         let grid = try XCTUnwrap(terminal.value as? String).split(separator: " ").compactMap { Double($0) }
         let cell = CGSize(width: terminal.frame.width / grid[1], height: terminal.frame.height / grid[0])
-        let link = terminal.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: cell.width * 5.5, dy: cell.height / 2))
-        link.hover()
-        XCUIElement.perform(withKeyModifiers: .command) { link.click() }
+        for row in [0.5, 1.5] {
+            let link = terminal.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: cell.width * 5.5, dy: cell.height * row))
+            link.hover()
+            XCUIElement.perform(withKeyModifiers: .command) { link.click() }
+        }
         XCTAssertTrue(element("app.links").has(\.stringValue, "https://example.com/oriel", within: 2))
     }
 
     /// herdr is asked what every pane runs on the first snapshot, also in tabs never shown.
-    func testNeverShownTabsCardNamesItsProgram() {
+    func testNeverShownTabsCardNamesItsProgram() async throws {
         let capsule = element("tab.w1:t2")
         XCTAssertTrue(capsule.exists(within: connect))
         XCTAssertFalse(capsule.isSelected)
+        let names = try await foreground("w1:p4")
+        let program = try XCTUnwrap(names.first)
         capsule.hover()
         let row = element("hovercard.w1:p4")
         XCTAssertTrue(row.exists(within: 2))
-        XCTAssertTrue(until(3) { !row.label.hasPrefix("terminal") }, row.label)
+        XCTAssertTrue(until(3) { row.label.hasPrefix("\(program), ") }, "\(row.label), not \(program)")
+    }
+
+    func testFoldersDroppedOnTheDockOpenWorkspaces() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        // The app beside the test runner, as the Dock opens it.
+        let oriel = Bundle.main.bundleURL.deletingLastPathComponent().appending(path: "Oriel.app").path
+        let warm = try await dropFolder(oriel)
+        let opened = try await workspace(in: warm)
+        XCTAssertTrue(element("workspace.\(opened)").has(\.isSelected, true, within: 3))
+        XCTAssertEqual(app.windows.count, 1)
+
+        // A drop that starts the app opens one window and the workspace in it.
+        app.terminate()
+        let cold = try await dropFolder(oriel)
+        let started = try await workspace(in: cold)
+        let relaunched = XCUIApplication(bundleIdentifier: "dev.hkandala.oriel")
+        XCTAssertTrue(relaunched.descendants(matching: .any)["workspace.\(started)"].has(\.isSelected, true,
+                                                                                         within: connect))
+        XCTAssertEqual(relaunched.windows.count, 1)
+    }
+
+    /// The helper opens a new folder with the app, as a drop on the Dock icon does: its path.
+    private func dropFolder(_ oriel: String) async throws -> String {
+        let (data, status) = try await Self.post("\(one)/open-folder", Data(oriel.utf8))
+        XCTAssertEqual(status, 200, String(decoding: data, as: UTF8.self))
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    /// The workspace herdr made in the folder (its pane's cwd), closed after the test.
+    private func workspace(in folder: String) async throws -> String {
+        let name = (folder as NSString).lastPathComponent
+        let id = try await poll("a workspace in \(name)") { () async throws -> String? in
+            let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
+            return panes.first { ($0["cwd"] as? String)?.hasSuffix(name) == true }?["workspace_id"] as? String
+        }
+        addTeardownBlock { [one] in _ = try? await Self.call(one, "workspace.close", ["workspace_id": id]) }
+        return id
     }
 
     /// Waits until the session answers; `start` starts its server first when it does not, and gives it a workspace.
