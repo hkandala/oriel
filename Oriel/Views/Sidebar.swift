@@ -143,7 +143,8 @@
                 // Rex's first row sits 31.5 pt below the header's baseline.
                 .padding(.bottom, 3)
                 .contentShape(.rect)
-                .contextMenu { ClosePage(page: page, pages: pages) }
+                // The herdr session keeps running.
+                .contextMenu { Button("Close Page") { pages.close(page) }.disabled(pages.list.count < 2) }
                 if let agents {
                     AgentsList(page: page, filter: filter, sort: agents.wrappedValue)
                 } else if store.state == .live, store.workspaces.isEmpty {
@@ -238,16 +239,6 @@
         }
     }
 
-    /// The page's Close Page item (header and dot): the herdr session keeps running.
-    private struct ClosePage: View {
-        let page: Page
-        let pages: WindowPages
-
-        var body: some View {
-            Button("Close Page") { pages.close(page) }.disabled(pages.list.count < 2)
-        }
-    }
-
     /// A session with no workspace, in the page and in the strip: the button that makes one.
     struct NewWorkspaceButton: View {
         let page: Page
@@ -273,7 +264,7 @@
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .contextMenu { ClosePage(page: page, pages: pages) }
+                    .contextMenu { Button("Close Page") { pages.close(page) }.disabled(pages.list.count < 2) }
                     .accessibilityLabel(page.id)
                     .accessibilityIdentifier("sidebar.dot.\(page.id)")
                     .accessibilityAddTraits(page === pages.current ? .isSelected : [])
