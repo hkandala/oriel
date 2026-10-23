@@ -172,7 +172,8 @@ extension OrielUITests {
         openPalette()
         app.typeText("new window")
         app.typeKey(.return, modifierFlags: [])
-        _ = try otherWindow(than: identifier)
+        let window = try otherWindow(than: identifier)
+        XCTAssertTrue(element("sidebar.header", in: window).has(\.stringValue, one, within: 3))
     }
 
     /// The Sessions section lists the window's pages; Enter shows that page.
