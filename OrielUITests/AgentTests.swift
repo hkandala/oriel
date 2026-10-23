@@ -114,10 +114,10 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let created = try await newTab("docs")
         let pane = try await finish(created)
-        try await waitForValue("tab.\(created.tab)", containing: "codex, finished")
         // The title says so for 3 s.
         let capsule = element("tab.\(created.tab)")
-        XCTAssertTrue(until(2) { capsule.label.contains("codex finished") }, capsule.label)
+        XCTAssertTrue(until(3) { capsule.label.contains("codex finished") }, capsule.label)
+        try await waitForValue("tab.\(created.tab)", containing: "codex, finished")
         try await waitForValue("workspace.w2", containing: "finished")
         keepScreenshot("finished badge")
         XCTAssertTrue(until(5) { !capsule.label.contains("codex finished") }, capsule.label)

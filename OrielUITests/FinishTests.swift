@@ -3,7 +3,7 @@ import XCTest
 /// Phase 21: the find bar, links, the not running and failed start states, and programs of panes never shown.
 extension OrielUITests {
     func testSecondPagesServerStopsAndStartsAloneOnItsPage() async throws {
-        let five = env("ORIEL_SESSION5")
+        let five = try env("ORIEL_SESSION5")
         let (workspace, pane) = try await shown(running(five))
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPage(five)
@@ -27,7 +27,7 @@ extension OrielUITests {
     }
 
     func testAFailedStartKeepsTheSheetOpenWithRetry() async throws {
-        let six = env("ORIEL_SESSION6")
+        let six = try env("ORIEL_SESSION6")
         // No time to answer: every start the app makes fails, though launchd starts the server.
         relaunch(one, ["-startTimeout", "0"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -93,6 +93,11 @@ extension OrielUITests {
         XCTAssertTrue(field.vanishes(within: 2))
         try await expect("herdr back at the bottom") { try await scrollOffset(pane) == 0 }
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        // Its ✕ closes it too.
+        app.typeKey("f", modifierFlags: .command)
+        XCTAssertTrue(hasKeyboard(field))
+        element("find.close").click()
+        XCTAssertTrue(field.vanishes(within: 2))
     }
 
     func testFindCountsTheBlankRowsUnderTheText() async throws {

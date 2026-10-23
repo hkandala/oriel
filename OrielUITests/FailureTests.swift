@@ -5,7 +5,7 @@ import XCTest
 /// Streams are counted through the helper (`pgrep` on the session's `terminal session` runs).
 extension OrielUITests {
     func testStoppedSessionSaysSoAndComesBackWhenStartedAgain() async throws {
-        let five = env("ORIEL_SESSION5")
+        let five = try env("ORIEL_SESSION5")
         let (workspace, pane) = try await shown(running(five))
         relaunch(five)
         let terminal = element("terminal.\(pane)")
@@ -40,7 +40,7 @@ extension OrielUITests {
 
     /// A launch on a stopped session starts it: the window's first page always runs.
     func testLaunchOnAStoppedSessionStartsIt() async throws {
-        let five = env("ORIEL_SESSION5")
+        let five = try env("ORIEL_SESSION5")
         let workspace = try await shown(running(five)).workspace
         try await Self.post("\(five)/stop")
         try await expect("five to stop") { await (try? Self.snapshot(five)) == nil }

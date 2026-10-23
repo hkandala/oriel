@@ -21,13 +21,13 @@ extension OrielUITests {
         XCTAssertTrue(filter.vanishes(within: 2))
     }
 
-    func testOpenSessionListsSessionsAndOpensAPage() {
-        let three = env("ORIEL_SESSION3")
+    func testOpenSessionListsSessionsAndOpensAPage() throws {
+        let three = try env("ORIEL_SESSION3")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openSessionSheet()
-        expect("open-session.session.\(two)", under: "Running", above: "Stopped")
-        expect("open-session.session.\(three)", under: "Stopped", above: "Open in this window")
-        expect("open-session.open.\(one)", under: "Open in this window", above: nil)
+        expectRow("open-session.session.\(two)", under: "Running", above: "Stopped")
+        expectRow("open-session.session.\(three)", under: "Stopped", above: "Open in this window")
+        expectRow("open-session.open.\(one)", under: "Open in this window", above: nil)
         // Empty field: a new name is offered first.
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'open-session.new.'"))
             .firstMatch.isSelected)
@@ -95,11 +95,10 @@ extension OrielUITests {
 
     /// ⌘Q and a relaunch bring back the window's pages that still run, the page in view and each page's workspace.
     func testRelaunchRestoresThePagesThatStillRun() async throws {
-        let five = env("ORIEL_SESSION5")
+        let five = try env("ORIEL_SESSION5")
         try await running(five)
-        // State is saved (no -ApplePersistenceIgnoreState); -session keeps any saved pages of the user's out.
-        app.launchArguments = ["-session", one]
-        app.launch()
+        // No earlier windows; ⌘Q saves this one whatever the Mac's "close windows when quitting" setting says.
+        relaunch(one, ["-NSQuitAlwaysKeepsWindows", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         element("workspace.w2").click()
         XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
@@ -121,7 +120,7 @@ extension OrielUITests {
     }
 
     func testShiftCommandNCreatesASessionAsANewPage() async throws {
-        let four = env("ORIEL_SESSION4")
+        let four = try env("ORIEL_SESSION4")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         app.typeKey("n", modifierFlags: [.command, .shift])
         XCTAssertTrue(hasKeyboard(element("open-session.filter")))
@@ -138,7 +137,7 @@ extension OrielUITests {
     }
 
     func testOpenSessionStartsAStoppedSession() async throws {
-        let five = env("ORIEL_SESSION5")
+        let five = try env("ORIEL_SESSION5")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         try await running(five)
         try await Self.post("\(five)/stop")
@@ -147,7 +146,7 @@ extension OrielUITests {
         app.typeText(five)
         let row = element("open-session.session.\(five)")
         XCTAssertTrue(row.has(\.isSelected, true, within: 2))
-        expect(row.identifier, under: "Stopped", above: nil)
+        expectRow(row.identifier, under: "Stopped", above: nil)
         app.typeKey(.return, modifierFlags: [])
 
         XCTAssertTrue(until(connect) { header == five })
@@ -174,7 +173,7 @@ extension OrielUITests {
     }
 
     func testEmptyPageOffersNewWorkspace() async throws {
-        let five = env("ORIEL_SESSION5")
+        let five = try env("ORIEL_SESSION5")
         for workspace in try await running(five)["workspaces"] as? [[String: Any]] ?? [] {
             try await Self.call(five, "workspace.close", ["workspace_id": workspace["workspace_id"] ?? ""])
         }
@@ -326,7 +325,7 @@ extension OrielUITests {
     }
 
     /// The sheet's row sits in this group: below its header, above the next one.
-    private func expect(_ row: String, under section: String, above next: String?) {
+    private func expectRow(_ row: String, under section: String, above next: String?) {
         let frame = element(row).frame
         XCTAssertGreaterThan(frame.minY, element("open-session.section.\(section)").frame.maxY, row)
         if let next {

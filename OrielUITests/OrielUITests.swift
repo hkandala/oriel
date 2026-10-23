@@ -15,8 +15,8 @@ final class OrielUITests: XCTestCase {
     /// Session two: w1 "gamma".
     override func setUp() async throws {
         continueAfterFailure = false
-        one = try XCTUnwrap(ProcessInfo.processInfo.environment["ORIEL_SESSION"], "run through make e2e")
-        two = env("ORIEL_SESSION2")
+        one = try env("ORIEL_SESSION")
+        two = try env("ORIEL_SESSION2")
         // Once per session; the runner may restart between tests, so ask herdr, not a static. The check is on
         // the last step, so a setup cut short builds again (and fails loudly) instead of passing half-built.
         let built = try await (Self.snapshot(two)["workspaces"] as? [[String: Any]] ?? [])
@@ -190,8 +190,8 @@ extension OrielUITests {
         let description: String
     }
 
-    func env(_ name: String) -> String {
-        ProcessInfo.processInfo.environment[name] ?? ""
+    func env(_ name: String) throws -> String {
+        try XCTUnwrap(ProcessInfo.processInfo.environment[name], "run through make e2e")
     }
 
     /// Launches the app on the session (one by default) with no window state from earlier runs; `launch` ends a
@@ -212,8 +212,7 @@ extension OrielUITests {
             element.hover()
             element.scroll(byDeltaX: delta, deltaY: 0)
             delta = -delta
-            try await Task.sleep(for: .milliseconds(700))
-            if target.has(property, value, within: 0) {
+            if target.has(property, value, within: 0.7) {
                 return
             }
         }
