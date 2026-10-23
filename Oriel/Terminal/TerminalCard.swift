@@ -79,9 +79,11 @@
                             .accessibilityIdentifier("pane.\(terminal.paneID).take-back")
                             .padding(gap)
                     case let .failed(text):
+                        // herdr's reason; Retry opens the stream again.
                         VStack {
-                            Text("Restart herdr on This Mac")
                             Text(text).font(.caption).foregroundStyle(.secondary)
+                            Button("Retry", action: terminal.show).buttonStyle(.glass)
+                                .accessibilityIdentifier("pane.\(terminal.paneID).retry")
                         }
                         .padding(gap)
                     case .idle, .live, .watching:
