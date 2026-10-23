@@ -11,7 +11,8 @@ command line each.
 POST /<session>/stop stops the session; /<session>/start starts its server again, as a user would in a
 terminal.
 POST /<session>/open-folder with the built app's path as the body makes a folder in /tmp and opens it with the
-app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>`. The folder's path comes back.
+app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>` (a running app ignores
+`--args`). The folder's path comes back.
 Any session not named on the command line is refused.
 """
 

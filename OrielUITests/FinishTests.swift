@@ -183,8 +183,10 @@ extension OrielUITests {
         // A drop that starts the app opens one window and the workspace in it.
         app.terminate()
         let cold = try await dropFolder(oriel)
-        let started = try await workspace(in: cold)
         let relaunched = XCUIApplication(bundleIdentifier: "dev.hkandala.oriel")
+        addTeardownBlock { relaunched.terminate() }
+        // The launch connects first (login shell, herdr checks): slow on CI.
+        let started = try await workspace(in: cold, times: Int(connect * 10))
         XCTAssertTrue(relaunched.descendants(matching: .any)["workspace.\(started)"].has(\.isSelected, true,
                                                                                          within: connect))
         XCTAssertEqual(relaunched.windows.count, 1)
@@ -198,9 +200,9 @@ extension OrielUITests {
     }
 
     /// The workspace herdr made in the folder (its pane's cwd), closed after the test.
-    private func workspace(in folder: String) async throws -> String {
+    private func workspace(in folder: String, times: Int = 50) async throws -> String {
         let name = (folder as NSString).lastPathComponent
-        let id = try await poll("a workspace in \(name)") { () async throws -> String? in
+        let id = try await poll("a workspace in \(name)", times: times) { () async throws -> String? in
             let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
             return panes.first { ($0["cwd"] as? String)?.hasSuffix(name) == true }?["workspace_id"] as? String
         }
