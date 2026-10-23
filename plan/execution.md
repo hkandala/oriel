@@ -303,6 +303,9 @@ here what the user should check at the end.
 - Phase 17: herdr 0.9.5's `pane.swap` moves herdr's focus even with `focus:false`, so Split Left / Up
   and swaps change the focused pane a herdr TUI on the same session sees. ⌃⌘= (Balance Splits) is taken
   by a global hotkey on your Mac (BetterTouchTool or Raycast); the menu item works.
+- Phase 21: find highlights shift on wide characters; a find bar dropped while reconnecting or at quit
+  leaves herdr scrolled; a new session that timed out and was retried gets no first workspace; a hung
+  server shows Reconnecting only after 30–40 s.
 - The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
   at Glass Dark.
 
@@ -321,7 +324,7 @@ here what the user should check at the end.
 | 18 | phase18-drag-drop | done | 14 commits, 2 rounds, 2h56m, CI only (GUI paused) |
 | 19 | phase19-hover-card | done | 18 commits, 2 rounds, 2h08m, mostly CI |
 | 20 | phase20-palette | done | 15 commits, 3 rounds, 2h08m |
-| 21 | | not started | |
+| 21 | phase21-find-finish | done | 17 commits, 4 rounds, 2h22m, ~25 min GUI lock + 1 full run |
 | 22 | phase22-visual-match | running | |
 | 23 | | not started | |
 | Final review | | not started | |
