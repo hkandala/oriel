@@ -75,9 +75,10 @@ the Agents view and popover, the hover card, pills, notifications):
 - Status is never color alone. Every dot and badge carries its word, and
   VoiceOver reads, for example, "codex, needs you" on a tab. A workspace
   row adds the word to its value.
-- A terminal card gives VoiceOver its screen text. The app reads it with
-  `pane.read {source:"visible", format:"text"}` when VoiceOver asks for it.
-  New output is announced politely (it does not interrupt speech).
+- Not built yet: a terminal card gives VoiceOver its screen text, read with
+  `pane.read {source:"visible", format:"text"}` when VoiceOver asks for it,
+  and announces new output politely (it does not interrupt speech). Today the
+  terminal gives VoiceOver only its grid size.
 - ⌥⌘ and an arrow moves the keyboard between cards. Keyboard focus in the
   chrome follows Full Keyboard Access. A terminal keeps Tab for itself.
 - Every card action can be reached from the keyboard, through the menu bar and
@@ -105,7 +106,7 @@ monitor runs the first's menu item for the second (⇧⌘P, ⌃⇥, ⌃⇧⇥, �
 |---|---|---|
 | ⌘N | New Window, on the same machine | File |
 | ⌘T | new tab, in the keyboard card's folder | File |
-| ⇧⌘N | Open Session (the sheet) | File |
+| ⇧⌘N | Open Session (the panel) | File |
 | ⇧⌘G | Go to Directory (in a card that runs only its shell) | File |
 | ⌘W | close the pane (asks first unless the pane runs only its shell) | File |
 | ⌥⌘W | close the tab (asks) | File |

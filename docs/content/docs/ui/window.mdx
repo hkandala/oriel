@@ -90,8 +90,8 @@ Shown only while the sidebar is collapsed, after the machine button.
   per page open in this window, in page order, under the session's name. A
   row shows the workspace's state icon, its name and its branch on the right.
   At the end: New Workspace, then "Open Session…" (⇧⌘N).
-- The menu is a glass panel under the button, 300 pt wide and at most 420 pt
-  tall, built from the palette's filter list. Rows are 26 pt. Arrows move,
+- The menu is a glass panel under the button, 300 pt wide, its list at most
+  340 pt tall, built from the palette's filter list. Rows are 26 pt. Arrows move,
   Enter acts, Esc closes. A typed name that matches no workspace shows
   "New Workspace “‹name›”" first; Enter makes it in the session of the page
   in view and selects it.
@@ -164,14 +164,15 @@ One capsule per herdr tab of the selected workspace (D42).
 - A click, ⌘. or View ▸ Show Agents (checked while on) turns the Agents view
   on and off (D61). Turning it on with the sidebar collapsed opens the
   sidebar in the Agents view. Turning it off shows the workspaces; the
-  sidebar stays open.
+  sidebar stays open. A click gives the keyboard back to the keyboard card.
 - **Hover.** When the pointer rests on the button for 0.25 s, a glass panel
   hangs under it: 320 pt wide, at most about 480 pt tall. It lists the agents
   of the page in view that need you, under the header "Needs you ·
   ‹session›" (11 pt, secondary). The rows are the same as in the Agents view.
   A click on a row selects that workspace and tab and gives the pane the
   keyboard; the sidebar does not change. With nobody waiting it says "Nobody
-  needs you". There is no footer.
+  needs you". There is no footer. A click on the button is not a rest: the
+  panel opens only after the pointer leaves the button and comes back.
 - The panel stays while the pointer moves into it (0.15 s grace). It closes
   when the pointer leaves both, on a click or a scroll outside it, or with
   Esc. It does not open while a mouse button is down. It fades and grows in
@@ -312,7 +313,8 @@ It replaces the old session picker. The footer's Open Session button, the
 workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open it.
 - A glass panel like the command palette, 420 pt wide, near the top of the
   window, with no title and no buttons: Enter acts, Esc or a click outside
-  closes it.
+  closes it. One panel shows at a time: opening it closes the command palette
+  or the workspace menu, and opening one of those closes it.
 - A text field, "Name a new session, or find one", empty and with the
   keyboard at first.
 - The list, filtered by the field. The app reads the sessions once, when the
@@ -379,8 +381,9 @@ How it works: [Layout and sizing](/docs/layout).
 
 ## Pane card
 
-- **Card.** Radius 10. It fades in over 0.2 s when its terminal's first frame
-  arrives.
+- **Card.** Radius 10. Its terminal fades in over 0.12 s once herdr's frames
+  stop for 0.1 s, or 1 s after the first frame (at once with Reduce Motion)
+  ([States](/docs/ui/states)).
 - **Header.** 36 pt tall. 11 pt in from the leading edge: the program glyph
   (16 pt, secondary), 3 pt before herdr's pane label if set, else the
   program's name and the folder in secondary text, for example "vim ~/code" or
@@ -401,8 +404,8 @@ How it works: [Layout and sizing](/docs/layout).
   own right-click):
   - Split Right (⌘D), Split Down (⇧⌘D), Split Left, Split Up, Zoom Pane or
     Restore Pane (⇧⌘↩).
-  - Move to New Tab, Move to Tab ▸ (the workspace's other tabs; disabled when
-    the workspace has one tab), Move to New Workspace, Rename Pane….
+  - Move Pane to Tab ▸ (the workspace's other tabs, then New Tab and New
+    Workspace), Rename Pane….
   - Close Pane (⌘W).
 - The same items are in View ▸ Pane in the menu bar, for the keyboard card
   (the zoomed card of the selected tab, when there is one). Close Pane stays
