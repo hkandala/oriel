@@ -42,7 +42,9 @@
                         // In only: the panel would lose its place on the way out.
                         if let open {
                             open.content.transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.97, anchor: open.place.panel))
+                                insertion: .opacity.combined(with: NSWorkspace.shared
+                                    .accessibilityDisplayShouldReduceMotion ? .identity
+                                    : .scale(scale: 0.97, anchor: open.place.panel))
                                     .animation(.easeOut(duration: 0.13)),
                                 removal: .identity,
                             ))

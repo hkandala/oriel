@@ -172,6 +172,7 @@
         /// Holding a pane over a capsule selects its tab, which pulses once.
         private func springLoad(_ tabID: String) {
             page.select(workspace, tab: tabID)
+            guard !reduceMotion else { return }
             withAnimation(.easeOut(duration: 0.1)) { pulsing = tabID }
             Task {
                 try? await Task.sleep(for: .milliseconds(100))
