@@ -181,7 +181,6 @@ final class HostStore {
         Set(panes.filter { $0.tabID == lookingTabID }.map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) })
     }
 
-    /// Each pane's agent state from the ledger.
     private func showStates() {
         for pane in panes {
             let key = Seen.key(terminalID: pane.terminalID, paneID: pane.id)

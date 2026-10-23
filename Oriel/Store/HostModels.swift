@@ -113,7 +113,6 @@ extension HostStore {
 }
 
 extension HostStore {
-    /// "This Mac" for the default session, "This Mac · ‹session›" for the others.
     static func name(_ session: String) -> String {
         session == "default" ? "This Mac" : "This Mac · \(session)"
     }

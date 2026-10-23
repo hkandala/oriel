@@ -138,7 +138,6 @@
             return terminals.terminal(terminalID, pane: pane.id, client: client)
         }
 
-        /// A terminal of this page took the keyboard.
         func tookKeyboard(_ terminalID: String) {
             if let tabID = store.panes.first(where: { $0.terminalID == terminalID })?.tabID {
                 keyboardTerminals[tabID] = terminalID
@@ -234,7 +233,6 @@
             }
         }
 
-        /// Zoomed, or one of several cards in its tab.
         func canZoom(_ paneID: String) -> Bool {
             zoomedPaneID == paneID || !alone(paneID)
         }
