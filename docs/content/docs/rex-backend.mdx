@@ -299,8 +299,8 @@ Today a second backend cannot build the app's model types from outside
 3. A byte `Channel`. Today `Channel` gives stdout as UTF-8 lines. The
    WebSocket frames need raw bytes in and out.
 4. A neutral error. `HerdrError` is the error type of `Update.error` and
-   `HostStore.State` today. Its messages name herdr, such as "herdr is too
-   old". It becomes an error with a fix string that the backend gives.
+   `HostStore.State` today. Its messages name herdr, such as "herdr did not
+   answer". It becomes an error with a fix string that the backend gives.
 5. `HostStore` picks the backend per machine. It names `HerdrClient` in one
    place today.
 6. A lookup for `rex` like the one for herdr. `Exec.herdr()` asks the login

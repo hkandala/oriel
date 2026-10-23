@@ -45,7 +45,7 @@ herdr --session S server        # remote: nohup, on request; This Mac: a launchd
 Not herdr:
 
 ```sh
-$SHELL -lic '…; /usr/bin/env; …; command -v herdr'  # This Mac, at launch: the login shell's environment and herdr's path
+$SHELL -lic '…; /usr/bin/env; …; command -v herdr'  # This Mac, at launch and at most every 30 s while herdr is not found: the login shell's environment and herdr's path
 env -0                                              # This Mac: the user's keys for the server's launchd job
 launchctl bootout gui/<uid>/<label>                 # This Mac: start a server (D47)
 launchctl bootstrap gui/<uid> <plist>

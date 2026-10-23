@@ -66,7 +66,7 @@ the snapshot.
 | Floating notices (toast) | Today's notice restyled: a bottom capsule, a tone color, an optional action | 21 | — |
 | Cards fade in when their first frame arrives (launch cover) | The terminal fades in once herdr's frames settle (states.mdx) | 21 | — |
 | Folders dropped on the Dock icon open a new workspace there | Same | 21 | `workspace.create {cwd}` |
-| Dock menu with agents that need you | Same, and finished agents too, plus New Tab | 15 | — |
+| Dock menu with agents that need you | Same, and finished ones not yet seen, plus New Tab | 15 | — |
 
 ### Title row and tab bar
 

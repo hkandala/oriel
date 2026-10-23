@@ -43,8 +43,9 @@ Agent status comes only from the interface, never from escape sequences in
 the app's terminal surfaces (D55, [Status](/docs/status#agents-and-notifications)).
 
 In code, `Multiplexer` lives in `HerdrKit` (`Multiplexer.swift`) next to its
-only conformer, `HerdrClient`. It has only what the app uses today; see
-`Multiplexer.swift` for the list. Agent status comes in the snapshot. The machine connection is not a method:
+only conformer, `HerdrClient`. It has only what the app uses today.
+`Multiplexer.swift` lists it. Agent status comes in the snapshot. The machine
+connection is not a method:
 `HostStore` makes the `HerdrClient`, the one place that names herdr; it runs
 the path that the machine's `Exec.herdr()` gives
 ([herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine)). The model types (`Snapshot`, `Session`, `HerdrError`, ...) stay shared

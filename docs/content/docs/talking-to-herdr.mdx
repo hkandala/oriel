@@ -320,8 +320,8 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 (D67). herdr's snapshot has no branch, so the app asks git on the machine:
 - **Command.** `git --no-optional-locks -C <root> status --porcelain=v2
   --branch --untracked-files=no` (`--no-optional-locks`, so a run every 10 s
-  never leaves `index.lock` behind), through `Exec.run`, so it works the same on This Mac
-  and over SSH. `git` comes from the login shell's `PATH`, like herdr. The
+  never leaves `index.lock` behind), through `Exec.run`, so it works the same
+  on This Mac and over SSH. `git` comes from the login shell's `PATH`, like herdr. The
   root is the workspace's `worktree.checkout_path`, else the cwd of its first
   pane. A run that takes over 5 s is ended.
 - **Parse.** The `# branch.head` line gives the branch; when it is
