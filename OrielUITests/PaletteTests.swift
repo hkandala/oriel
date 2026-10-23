@@ -2,14 +2,18 @@ import XCTest
 
 /// The command palette and the key map (phase 20).
 extension OrielUITests {
-    /// ⌘K lists the commands under headers; "split r" ranks Split Right first, and Enter splits the keyboard card.
+    /// ⌘K lists the places, then the commands, under headers; "split r" ranks Split Right first, and Enter splits
+    /// the keyboard card.
     func testPaletteSplitsTheKeyboardCardRight() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("palette")
         element("terminal.\(pane)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
         openPalette()
-        XCTAssertTrue(element("palette.section.Commands").exists)
+        let headers = ["Tabs", "Workspaces", "Sessions", "Commands"].map { element("palette.section.\($0)").frame.minY }
+        XCTAssertEqual(headers, headers.sorted())
+        XCTAssertEqual(Set(headers).count, 4)
+        XCTAssertTrue(element("palette.workspace.\(one).w1").exists)
         XCTAssertTrue(element("palette.command.Split Right").exists)
         keepScreenshot("palette root")
         app.typeText("split r")
@@ -75,6 +79,8 @@ extension OrielUITests {
         // The current choice is lit first; ↑ lights Light, which shows after the delay.
         XCTAssertTrue(element("palette.choice.Dark").has(\.isSelected, true, within: 2))
         app.typeKey(.upArrow, modifierFlags: [])
+        // Not at once: after 0.75 s.
+        XCTAssertEqual(look.stringValue, dark)
         XCTAssertTrue(element("palette.choice.Light").has(\.isSelected, true, within: 2))
         XCTAssertTrue(look.has(\.stringValue, light, within: 2))
         app.typeKey(.escape, modifierFlags: [])
@@ -85,7 +91,8 @@ extension OrielUITests {
         XCTAssertTrue(filter.vanishes(within: 2))
     }
 
-    /// ⇧⌘P, Rex's key, also opens the palette; ⌃⇥ and ⌃⇧⇥ step the tabs (second shortcuts).
+    /// ⇧⌘P, Rex's key, also opens the palette; ⌃⇥ and ⌃⇧⇥ step the tabs (second shortcuts). A setting's row says
+    /// what it does now.
     func testSecondShortcuts() {
         XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: connect))
         element("terminal.w1:p1").click()
@@ -98,6 +105,22 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
         app.typeKey(.tab, modifierFlags: [.control, .shift])
         XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: 2))
+
+        // Settings persist: Focus Follows Mouse ends off even when a step fails.
+        let row = element("palette.command.Focus Follows Mouse")
+        addTeardownBlock { @MainActor [self] in
+            openPalette()
+            app.typeText("focus follows")
+            app.typeKey(row.label.hasPrefix("Turn Off") ? .return : .escape, modifierFlags: [])
+        }
+        openPalette()
+        app.typeText("focus follows")
+        XCTAssertTrue(row.has(\.label, "Turn On Focus Follows Mouse", within: 2))
+        app.typeKey(.return, modifierFlags: [])
+        openPalette()
+        app.typeText("focus follows")
+        XCTAssertTrue(row.has(\.label, "Turn Off Focus Follows Mouse", within: 2))
+        app.typeKey(.return, modifierFlags: [])
     }
 
     /// "open session" opens the Open Session sheet; "new window" opens a second window on the same session.
@@ -148,10 +171,26 @@ extension OrielUITests {
         }
         element("terminal.\(pane)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        // A program in the card: the pick is refused (D41), nothing is typed.
+        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "cat\r"])
+        try await poll("cat in the pane") { () async throws -> Bool? in
+            try await foreground(pane).contains("cat") ? true : nil
+        }
+        app.typeKey("g", modifierFlags: [.command, .shift])
+        choose(folder)
+        XCTAssertTrue(element("detail.notice").exists(within: 3))
+        let text = try await read(pane)
+        XCTAssertFalse(text.contains("cd --"))
+        try await Self.call(one, "pane.send_keys", ["pane_id": pane, "keys": ["ctrl+c"]])
+        try await poll("the shell again") { () async throws -> Bool? in
+            try await foreground(pane).contains("cat") ? nil : true
+        }
+
+        element("terminal.\(pane)").click()
         app.typeKey("g", modifierFlags: [.command, .shift])
         choose(folder)
         // The line may wrap at the card's width.
-        try await waitFor(pane, times: 100) { $0.replacing("\n", with: "").contains("cd -- '\(folder)'") }
+        try await waitFor(pane, times: 100) { $0.replacing("\n", with: "").contains("cd -- '\(folder)/'") }
         try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "clear; pwd\r"])
         try await waitFor(pane) { $0.split(separator: "\n").contains { $0 == folder } }
 
@@ -195,6 +234,22 @@ extension OrielUITests {
         paneMenu(pane, "Move Pane to Tab", "target")
         try await poll("the pane right of the last card") { () async throws -> Bool? in
             try await order(target) == [first, last, pane] ? true : nil
+        }
+
+        // The palette's Move Pane to Tab › moves the keyboard card to a new tab.
+        element("terminal.\(pane)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        let before = try await tabIDs()
+        openPalette()
+        app.typeText("move pane to")
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(element("palette.title").has(\.stringValue, "Move Pane to Tab", within: 2))
+        app.typeText("new tab")
+        app.typeKey(.return, modifierFlags: [])
+        let moved = try await newTabID(after: before)
+        addTeardownBlock { [one] in _ = try? await Self.call(one, "tab.close", ["tab_id": moved]) }
+        try await poll("the pane alone in the new tab") { () async throws -> Bool? in
+            try await order(moved) == [pane] ? true : nil
         }
     }
 }

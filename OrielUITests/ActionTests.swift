@@ -213,11 +213,11 @@ extension OrielUITests {
     func testPaletteEnterTakesTheMovedRowAndKeysFollow() async throws {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPalette()
-        // "show": Show Agents, then Show Next Tab (shorter titles first); ↓ moves to it.
+        // "show": Show Agents, then Show Previous Tab (the menu's order); ↓ moves to it, and t1 steps round to t2.
         app.typeText("show")
         XCTAssertTrue(element("palette.command.Show Agents").has(\.isSelected, true, within: 2))
         app.typeKey(.downArrow, modifierFlags: [])
-        XCTAssertTrue(element("palette.command.Show Next Tab").has(\.isSelected, true, within: 2))
+        XCTAssertTrue(element("palette.command.Show Previous Tab").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
         try await waitForPrompt("w1:p4")
