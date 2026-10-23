@@ -6,6 +6,8 @@
     /// Session at the bottom. Each page lists its session's workspaces like herdr's Spaces panel.
     struct Sidebar: View {
         static let widths: ClosedRange<Double> = 227 ... 480
+        /// Rex's rows: 10 pt in from the window's edge.
+        static let rowInsets = EdgeInsets(top: 0, leading: 10, bottom: 8, trailing: 3)
 
         let pages: WindowPages
         /// The Agents view instead of the workspaces.
@@ -77,9 +79,8 @@
                     )
                     .accessibilityIdentifier("sidebar.open-session")
                 }
-                .padding(.leading, 10)
-                .padding(.trailing, 3)
-                .padding(.vertical, 8)
+                .padding(Sidebar.rowInsets)
+                .padding(.top, 8)
             }
         }
     }
@@ -179,10 +180,7 @@
                                 Text("No matching workspaces").foregroundStyle(.secondary).padding(8)
                             }
                         }
-                        // Rex's rows: 10 pt in from the window's edge.
-                        .padding(.leading, 10)
-                        .padding(.trailing, 3)
-                        .padding(.bottom, 8)
+                        .padding(Sidebar.rowInsets)
                     }
                     .scrollIndicators(.never)
                     .coordinateSpace(.named("rows"))

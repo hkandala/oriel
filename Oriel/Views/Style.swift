@@ -82,9 +82,9 @@ struct Look {
         dark ? .white.opacity(0.75) : .black.opacity(0.65)
     }
 
-    /// A divider between tabs: white 0.17 on dark, black 0.14 on light, as in Rex.
+    /// A divider between tabs, as in Rex.
     var divider: Color {
-        chrome.opacity(0.22)
+        dark ? .white.opacity(0.17) : .black.opacity(0.14)
     }
 
     /// The selected tab's and workspace row's title.

@@ -45,7 +45,6 @@
                 }
                 // AppKit lays the buttons out again on resizes, key changes and full screen: put them back each time.
                 for button in buttons(of: window) {
-                    button.postsFrameChangedNotifications = true
                     let moved = NSView.frameDidChangeNotification
                     observers.append(center.addObserver(forName: moved, object: button, queue: .main) { [weak self] _ in
                         // A button moved in its own frame notification goes back: once more after AppKit's layout.

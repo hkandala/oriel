@@ -30,15 +30,15 @@
         @Environment(\.look) private var look
 
         var body: some View {
-            HStack(spacing: 8) {
-                HStack(spacing: 8) {
+            HStack(spacing: gap) {
+                HStack(spacing: gap) {
                     // ⌃⌘S is the menu's.
                     SidebarToggle(open: $sidebar)
                         .accessibilityIdentifier("titlebar.sidebar")
                         .accessibilityValue(sidebar ? "open" : "closed")
                     MachineButton()
                 }
-                .frame(width: sidebar ? sidebarWidth - Self.inset(fullScreen: fullScreen) - 8 : nil,
+                .frame(width: sidebar ? sidebarWidth - Self.inset(fullScreen: fullScreen) - gap : nil,
                        alignment: .leading)
                 if !sidebar, let workspace = page.selectedWorkspace {
                     Capped(width: 260) {

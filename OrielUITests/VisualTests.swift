@@ -37,7 +37,7 @@ extension OrielUITests {
         // ⌥-click zooms (a click goes full screen), and again back.
         for _ in 0 ..< 2 {
             XCUIElement.perform(withKeyModifiers: .option) { lights[2].click() }
-            XCTAssertTrue(until(2, placed), "\(lights.map(\.frame)) in \(window.frame)")
+            XCTAssertTrue(until(2, placed))
         }
         keepScreenshot("traffic lights")
         // Leaving full screen is not checked: a second ⌃⌘F during the animation is lost on CI.
@@ -98,7 +98,7 @@ extension OrielUITests {
     private func shoot(_ name: String) {
         app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 1.1)).hover()
         // Hover fills fade out in 0.14 s.
-        _ = until(0.3) { false }
+        Thread.sleep(forTimeInterval: 0.3)
         keepScreenshot(name)
     }
 }
