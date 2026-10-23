@@ -34,7 +34,15 @@
             HStack(spacing: gap) {
                 HStack(spacing: gap) {
                     // ⌃⌘S is the menu's.
-                    SidebarToggle(open: $sidebar)
+                    // Its sidebar part filled while open; no highlight: the icon says open or closed.
+                    // `rectangle.leftthird.inset.filled` alone drew too thin a bar at 13 pt to tell the two apart.
+                    IconButton(symbol: "sidebar.left", help: "Toggle Sidebar", key: .toggleSidebar) { sidebar.toggle() }
+                        .overlay {
+                            if sidebar {
+                                Image(systemName: "rectangle.leftthird.inset.filled").font(.body.weight(.medium))
+                                    .allowsHitTesting(false)
+                            }
+                        }
                         .accessibilityIdentifier("titlebar.sidebar")
                         .accessibilityValue(sidebar ? "open" : "closed")
                     MachineButton()
@@ -124,30 +132,6 @@
             .accessibilityIdentifier("titlebar.agents")
             .accessibilityValue("\(waiting) need you")
             .hoverPanel(place: .underTrailing) { close in NeedsYouPanel(page: page, close: close) }
-        }
-    }
-
-    /// `sidebar.left`, with its sidebar part filled while open. No highlight: the icon says open or closed.
-    /// `rectangle.leftthird.inset.filled` alone drew too thin a bar at 13 pt to tell the two apart.
-    private struct SidebarToggle: View {
-        static let help = "Toggle Sidebar \(KeyboardShortcut.toggleSidebar.glyphs)"
-        @Binding var open: Bool
-
-        var body: some View {
-            Button { open.toggle() } label: {
-                Image(systemName: "sidebar.left")
-                    // Its bar sits on sidebar.left's sidebar part: both are the same window outline.
-                    .overlay {
-                        if open {
-                            Image(systemName: "rectangle.leftthird.inset.filled")
-                        }
-                    }
-                    .fontWeight(.medium)
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(ChromeStyle(radius: 7))
-            .help(Self.help)
-            .accessibilityLabel(Self.help)
         }
     }
 
