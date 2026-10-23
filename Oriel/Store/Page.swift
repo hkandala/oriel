@@ -31,6 +31,9 @@
         private var keyboardTerminals: [String: String] = [:]
         /// The tab whose terminal last got the keyboard from the app.
         @ObservationIgnored private var keyboardTabID: String?
+        /// A moved pane's terminal, which takes the keyboard once a snapshot shows it in its tab: a write does not wait
+        /// for its snapshot.
+        @ObservationIgnored private var movedTerminal: String?
         /// A tab this page just made, selected once a snapshot shows it.
         @ObservationIgnored private var arriving: String?
 
@@ -150,14 +153,16 @@
         func focusKeyboardCard() {
             guard let tab = selectedTab else { return }
             let tabPanes = store.panes.filter { $0.tabID == tab.id && $0.terminalID != nil }
+            // A moved pane not in the tab yet: wait for the snapshot (`shown` asks again). Giving the keyboard to
+            // another card meanwhile would record that card as the tab's keyboard card (`tookKeyboard`) for good.
+            if let moved = movedTerminal, keyboardTerminals[tab.id] == moved {
+                guard tabPanes.contains(where: { $0.terminalID == moved }) else { return }
+                movedTerminal = nil
+            }
             let pane = tabPanes.first { $0.terminalID == keyboardTerminals[tab.id] }
                 ?? tabPanes.first(where: \.focused) ?? tabPanes.first
             if let pane, let terminalID = pane.terminalID {
-                // Not while the card it should go to is not in the tab yet (a move whose snapshot has not come): the
-                // next snapshot tries again (`shown`).
-                if keyboardTerminals[tab.id] == nil || pane.terminalID == keyboardTerminals[tab.id] {
-                    keyboardTabID = tab.id
-                }
+                keyboardTabID = tab.id
                 // Made now if its card has not drawn yet (a tab just jumped to); it takes the keyboard once it is in
                 // the window.
                 _ = terminal(pane)
@@ -279,13 +284,12 @@
         private func follow(_ moved: HerdrKit.Pane?, _ terminalID: String?) {
             guard let moved else { return }
             keyboardTerminals[moved.tabID] = terminalID
+            movedTerminal = terminalID
             arriving = moved.tabID
             // In case the snapshot after the move came in already.
             settle()
-            // The write reads the snapshot without waiting for it, so the store may not show the pane in its tab yet:
-            // then `focusKeyboardCard` leaves `keyboardTabID` unset and the next snapshot gives it the keyboard
-            // (`shown`), also when the tab stays selected (a spring-loaded tab, a re-place). Before, a left or top drop
-            // in another tab left the keyboard on the tab's old card.
+            // The next snapshot gives it the keyboard if the store does not show it in its tab yet (`shown`), also when
+            // the tab stays selected (a spring-loaded tab, a re-place).
             keyboardTabID = nil
             if moved.tabID == selectedTab?.id {
                 focusKeyboardCard()
