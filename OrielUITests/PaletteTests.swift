@@ -62,6 +62,33 @@ extension OrielUITests {
         XCTAssertTrue(element("palette.section.Commands").exists(within: 2))
     }
 
+    /// Rename Workspace › and Rename Pane… › hold the current name; Enter saves it to herdr.
+    func testPaletteRenamesTheWorkspaceAndThePane() async throws {
+        let (tabs, pane) = try await newWorkspace("before")
+        element("terminal.\(pane)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        let filter = openPalette()
+        app.typeText("rename workspace")
+        XCTAssertTrue(element("palette.command.Rename Workspace").has(\.isSelected, true, within: 2))
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(filter.has(\.stringValue, "before", within: 2))
+        app.typeKey("a", modifierFlags: .command)
+        app.typeText("after")
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(filter.vanishes(within: 2))
+        try await expect("herdr's workspace label") { try await workspaceLabel(workspace(of: tabs[0])) == "after" }
+
+        openPalette()
+        app.typeText("rename pane")
+        XCTAssertTrue(element("palette.command.Rename Pane…").has(\.isSelected, true, within: 2))
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(filter.has(\.stringValue, "", within: 2))
+        app.typeText("named")
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(filter.vanishes(within: 2))
+        try await expect("herdr's pane label") { try await label(pane) == "named" }
+    }
+
     /// Appearance › previews a highlighted row on the window after 0.75 s; Esc puts the old one back.
     func testPaletteAppearancePreviewsAndEscRestores() {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
@@ -157,7 +184,8 @@ extension OrielUITests {
         app.typeKey(.return, modifierFlags: [])
     }
 
-    /// "open session" opens the Open Session sheet; "new window" opens a second window on the same session.
+    /// "open session" opens the Open Session panel; "new window" opens a second window on the window's first session
+    /// only.
     func testPaletteOpensTheSheetAndANewWindow() throws {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPalette()
@@ -165,8 +193,8 @@ extension OrielUITests {
         app.typeKey(.return, modifierFlags: [])
         let sheet = element("open-session.filter")
         XCTAssertTrue(sheet.exists(within: 2))
-        app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(sheet.vanishes(within: 2))
+        element("open-session.session.\(two)").click()
+        XCTAssertTrue(element("sidebar.dot.\(two)").exists(within: connect))
 
         let identifier = app.windows.firstMatch.identifier
         openPalette()
@@ -174,6 +202,7 @@ extension OrielUITests {
         app.typeKey(.return, modifierFlags: [])
         let window = try otherWindow(than: identifier)
         XCTAssertTrue(element("sidebar.header", in: window).has(\.stringValue, one, within: 3))
+        XCTAssertFalse(element("sidebar.dot.\(two)", in: window).exists)
     }
 
     /// The Sessions section lists the window's pages; Enter shows that page.

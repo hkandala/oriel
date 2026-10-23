@@ -102,6 +102,31 @@ extension OrielUITests {
         keepScreenshot("one tab")
     }
 
+    /// The filter narrows the rows; New Workspace makes one in herdr, Open Session… opens that panel in the menu's
+    /// place.
+    func testWorkspaceMenuFiltersAndItsItemsAct() async throws {
+        XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
+        app.typeKey("s", modifierFlags: [.command, .control])
+        XCTAssertTrue(element("titlebar.workspace").exists(within: 2))
+        let filter = openWorkspaceMenu()
+        app.typeText("bet")
+        XCTAssertTrue(element("workspaces.\(one).w1").vanishes(within: 2))
+        XCTAssertTrue(element("workspaces.\(one).w2").exists)
+
+        let before = try await workspaceIDs()
+        closeNew("workspace", besides: before)
+        element("workspaces.new").click()
+        let made = try await poll("a new workspace") { () async throws -> String? in
+            try await workspaceIDs().first { !before.contains($0) }
+        }
+        XCTAssertTrue(element("tab.\(made):t1").has(\.isSelected, true, within: 3))
+
+        openWorkspaceMenu()
+        element("workspaces.open-session").click()
+        XCTAssertTrue(hasKeyboard(element("open-session.filter")))
+        XCTAssertFalse(filter.exists)
+    }
+
     func testCloseButtonShowsOnTheHoveredTabAndCloses() async throws {
         let tabs = try await newWorkspace("row", tabs: 3).tabs
         let workspace = workspace(of: tabs[0])
