@@ -22,6 +22,8 @@
         }
 
         func applicationWillFinishLaunching(_: Notification) {
+            // Windows and their pages come back after a normal quit too, whatever the system setting says.
+            UserDefaults.standard.register(defaults: ["NSQuitAlwaysKeepsWindows": true])
             let center = UNUserNotificationCenter.current()
             center.delegate = self
             // macOS asks the user once; later calls answer at once. The Dock badge shows only with `.badge` allowed.
@@ -50,6 +52,17 @@
             }
             menu.addItem(withTitle: "New Tab", action: #selector(newTab), keyEquivalent: "").target = self
             return menu
+        }
+
+        /// Folders dropped on the Dock icon: a workspace in each, in the session of the last key window's page in view;
+        /// the last one is selected when it appears.
+        func application(_: NSApplication, open urls: [URL]) {
+            guard let page = WindowPages.windows.first?.current else { return }
+            Task {
+                for url in urls where url.hasDirectoryPath {
+                    await page.newWorkspace(cwd: url.path(percentEncoded: false))
+                }
+            }
         }
 
         @objc private func pick(_ item: NSMenuItem) {

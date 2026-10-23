@@ -31,6 +31,8 @@ struct OrielApp: App {
             // Content never grows the window (the title-bar tabs would, when the sidebar hides).
             .windowResizability(.contentMinSize)
             .commands { AppCommands() }
+            // A folder dropped on the Dock icon opens a workspace (AppDelegate), not a window.
+            .handlesExternalEvents(matching: [])
             .onChange(of: fontSize) { PaneTerminal.setFontSize(fontSize) }
         #else
             WindowGroup {
