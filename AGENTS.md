@@ -8,6 +8,11 @@ Oriel: a native SwiftUI client for herdr (macOS now, iOS later).
 - The design in `docs/content/docs/` wins on any conflict, except `plan/ui-layout.md`, which wins for
   phases 10–21 until the pages match it.
 
+## Large changes
+
+- For work in several phases, follow `plan/workflow.md` (plan, plan review, phases with reviewers,
+  comment pass, final review, fixers, metrics).
+
 ## Rules
 
 - Ponytail: the simplest code that works; no speculative abstractions or "for later" code.
