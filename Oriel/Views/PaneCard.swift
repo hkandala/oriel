@@ -36,8 +36,9 @@
                 header(pane, zoomed: zoomed, showsButtons: lit || hovering || zoomed).opacity(content)
                 Group {
                     if let terminal {
+                        // Rex's text starts 11.5 pt in from the card's edge.
                         TerminalCard(terminal: terminal, watched: page.watched, alpha: content)
-                            .padding([.horizontal, .bottom], gap)
+                            .padding(.horizontal, 11).padding(.bottom, gap)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

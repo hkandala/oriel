@@ -190,7 +190,8 @@ struct OrielApp: App {
                         // As in Rex, the cards start at the sidebar's width: its handle lies over the strip's 8 pt gap.
                         Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { openingSession = true }
                             .padding(.bottom, gap)
-                            .padding(.top, 4)
+                            // Rex's page header and first row sit 3 pt lower than the strip's 4 pt room.
+                            .padding(.top, 7)
                             .padding(.trailing, -gap)
                             .zIndex(1)
                             .transition(.move(edge: .leading).combined(with: .opacity))

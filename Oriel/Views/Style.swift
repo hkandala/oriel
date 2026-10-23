@@ -58,7 +58,7 @@ struct Look {
         keyboard
             ? pick((.black.opacity(0.5), 1), (.black.opacity(0.1), 1), (.white.opacity(0.1), 0.8),
                    (.black.opacity(0.18), 0.8))
-            : pick((.black.opacity(0.5), 1), (.black.opacity(0.05), 1), (.white.opacity(0.07), 0.7),
+            : pick((.black.opacity(0.5), 1), (.black.opacity(0.05), 1), (.clear, 0),
                    (.black.opacity(0.12), 0.7))
     }
 
@@ -94,7 +94,7 @@ struct Look {
 
     /// A card header's buttons, dimmer than the title row's.
     var paneButton: Color {
-        dark ? .white.opacity(0.4) : .black.opacity(0.33)
+        dark ? .white.opacity(0.33) : .black.opacity(0.33)
     }
 
     var working: Color {
@@ -155,7 +155,9 @@ struct CardSurface: View {
             // On an opaque copy cut out under the card: on the translucent fill it would be as faint as the fill.
             .background {
                 if let shadow = look.cardShadow {
-                    shape.fill(Color.black.shadow(shadow)).overlay(shape.blendMode(.destinationOut)).compositingGroup()
+                    // An overlay did not cut (it darkened the card by about black 0.1); a ZStack does.
+                    ZStack { shape.fill(Color.black.shadow(shadow)); shape.fill(.black).blendMode(.destinationOut) }
+                        .compositingGroup()
                 }
             }
             .overlay(shape.fill(keyboard ? look.keyboardFill : .clear))

@@ -9,9 +9,10 @@
         /// Rex's bar; `WindowReader` centers the traffic lights on it.
         static let height: CGFloat = 46
 
-        /// Where the row starts: after the traffic lights (Rex keeps 84 pt for them); full screen has none.
+        /// Where the row starts: after the traffic lights (Rex's sidebar toggle is centered 82 pt right of the red
+        /// light's center); full screen has none.
         static func inset(fullScreen: Bool) -> CGFloat {
-            fullScreen ? gap : 84
+            fullScreen ? gap : 91
         }
 
         let page: Page
@@ -211,15 +212,16 @@
         let session: String
         let workspace: String
         @Binding var open: Bool
+        @Environment(\.look) private var look
 
         var body: some View {
             Button { open.toggle() } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "folder").fontWeight(.medium)
                     // A long session name stops at 110 pt, so a long workspace name fades instead of hiding it.
-                    Capped(width: 110) { Text(session).foregroundStyle(.secondary).lineLimit(1) }.layoutPriority(1)
-                    Rectangle().fill(.separator).frame(width: 1, height: 12)
-                    FadeText(text: Text(workspace))
+                    Capped(width: 110) { Text(session).lineLimit(1) }.layoutPriority(1)
+                    Rectangle().fill(look.divider).frame(width: 1, height: 12)
+                    FadeText(text: Text(workspace)).foregroundStyle(look.selected)
                     Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
                 }
                 .fontWeight(.medium)
