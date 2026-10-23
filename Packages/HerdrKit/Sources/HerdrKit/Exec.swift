@@ -38,6 +38,12 @@ public struct Channel: Sendable {
         public convenience init() async {
             // A write to a child that already exited must fail, not kill the app.
             signal(SIGPIPE, SIG_IGN)
+            // A GUI app's soft limit is 256 fds; the first snapshot asks every pane at once, three pipes per run.
+            var files = rlimit()
+            if getrlimit(RLIMIT_NOFILE, &files) == 0, files.rlim_cur < rlim_t(OPEN_MAX) {
+                files.rlim_cur = min(files.rlim_max, rlim_t(OPEN_MAX))
+                setrlimit(RLIMIT_NOFILE, &files)
+            }
             var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("HERDR_") }
             let (found, herdr) = await Self.loginShell(env)
             env.merge(found.filter { Self.isUserKey($0.key) }) { $1 }
