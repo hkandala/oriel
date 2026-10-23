@@ -50,9 +50,9 @@ extension OrielUITests {
                                                            text)).firstMatch
         XCTAssertTrue(said.exists, notice.debugDescription)
         XCTAssertEqual(notice.images["notice.symbol"].label, "Error")
-        // The sheet stays open and its row's start is over.
+        // The panel stays open and its row's start is over (its spinner gone).
         XCTAssertTrue(filter.exists)
-        XCTAssertTrue(element("open-session.open").isEnabled)
+        XCTAssertTrue(element("open-session.new.\(six)").exists)
         keepScreenshot("could not start")
 
         // The server came up after all: Retry finds it running and opens its page.

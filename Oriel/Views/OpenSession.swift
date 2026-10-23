@@ -4,10 +4,11 @@
 
     /// The one place to create or open a session (D68): a new name, the running and stopped sessions, and the ones
     /// already open in this window. Create, open and start take one path: start the server when it is not running,
-    /// then open its page after the page in view.
+    /// then open its page after the page in view. A glass panel like the palette: Enter acts, Esc or a click outside
+    /// closes it.
     struct OpenSession: View {
         let pages: WindowPages
-        @Environment(\.dismiss) private var dismiss
+        @Binding var open: Bool
         /// herdr's session list, read once as the sheet opens.
         @State private var sessions: [Session] = []
         /// A name no session has, picked once.
@@ -19,8 +20,7 @@
         @State private var failure: (id: String, text: String)?
 
         var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Open Session").font(.headline)
+            VStack(alignment: .leading, spacing: 8) {
                 FilterList(prompt: "Name a new session, or find one", name: "open-session", items: items,
                            maxHeight: 320, lit: $lit) {}
                 if let failure {
@@ -30,19 +30,12 @@
                     .accessibilityIdentifier("open-session.notice")
                     .frame(maxWidth: .infinity)
                 }
-                HStack {
-                    Spacer()
-                    Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                        // A start goes on and opens its page.
-                        .disabled(starting != nil)
-                    Button("Open") { lit.map(act) }
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(lit == nil || starting != nil)
-                        .accessibilityIdentifier("open-session.open")
-                }
             }
-            .padding(16)
+            .padding(8)
             .frame(width: 420)
+            .glassEffect(.regular, in: .rect(cornerRadius: 14))
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Open Session")
             .task {
                 let client: any Multiplexer = await HerdrClient(session: pages.current?.id ?? "default",
                                                                 exec: exec.value)
@@ -62,13 +55,13 @@
             return create
                 + others.filter(\.running).map { item(
                     "session.\($0.name)",
-                    "plus.square.on.square",
+                    "rectangle.stack",
                     $0.name,
                     "Running",
                     $0.name,
                 ) }
                 + others.filter { !$0.running }
-                .map { item("session.\($0.name)", "plus.square.on.square", $0.name, "Stopped", $0.name) }
+                .map { item("session.\($0.name)", "rectangle.stack", $0.name, "Stopped", $0.name) }
                 + open.filter { $0.matches(filter) }
                 .map { item("open.\($0)", "checkmark", $0, "Open in this window", $0) }
         }
@@ -82,13 +75,13 @@
             }
         }
 
-        /// A row's action by its id (`new.`, `session.` or `open.` and the session's name), for Enter and Open.
+        /// A row's action by its id (`new.`, `session.` or `open.` and the session's name), for Enter and a click.
         private func act(_ id: String) {
             guard starting == nil, let dot = id.firstIndex(of: ".") else { return }
             let session = String(id[id.index(after: dot)...])
             if id.hasPrefix("open."), let page = pages.list.first(where: { $0.id == session }) {
                 pages.show(page)
-                dismiss()
+                open = false
                 return
             }
             starting = session
@@ -97,9 +90,9 @@
                 do {
                     try await HostStore.start(session)
                     pages.open(session)
-                    dismiss()
+                    open = false
                 } catch {
-                    // The sheet stays open, with herdr's reason.
+                    // The panel stays open, with herdr's reason.
                     failure = (id, "Could not start \(session). \(error.localizedDescription)")
                 }
                 starting = nil

@@ -213,6 +213,10 @@ struct OrielApp: App {
                         .padding(.top, TitleBar.height)
                         .floatingPanel(open: open(.workspaces), alignment: .topLeading)
                 }
+                if openingSession {
+                    OpenSession(pages: pages, open: $openingSession)
+                        .padding(.top, 96).floatingPanel(open: $openingSession, alignment: .top)
+                }
                 if panel == .palette {
                     Palette(pages: pages, page: page, commands: commands, open: open(.palette), height: height)
                         .padding(.top, 96).floatingPanel(
@@ -221,7 +225,6 @@ struct OrielApp: App {
                         )
                 }
             }
-            .sheet(isPresented: $openingSession) { OpenSession(pages: pages) }
             .confirmationDialog(dialog?.title ?? "", isPresented: Binding { store.closing != nil } set: {
                 if !$0 {
                     store.closing = nil

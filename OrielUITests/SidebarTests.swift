@@ -13,12 +13,12 @@ extension OrielUITests {
         XCTAssertEqual(status, 200)
         XCTAssertEqual(String(decoding: runs, as: UTF8.self), "")
 
-        // Esc and Cancel close the sheet.
+        // Esc and a click outside close the panel.
         let filter = openSessionSheet()
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(filter.vanishes(within: 2))
         openSessionSheet()
-        app.buttons["Cancel"].click()
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)).click()
         XCTAssertTrue(filter.vanishes(within: 2))
     }
 
