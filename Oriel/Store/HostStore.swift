@@ -357,12 +357,11 @@ extension HostStore {
 
     /// One write. No focus change; the snapshot after it draws the result. Whether it went through.
     @discardableResult
-    func write(_ action: @escaping (any Multiplexer) async throws -> Void) async -> Bool {
+    func write(_ action: (any Multiplexer) async throws -> Void) async -> Bool {
         guard let client else { return false }
         guard !writing else {
-            // A confirmed close must not vanish silently. Nothing happened, so a retry is safe; after a timeout it
-            // might not be (a create that went through).
-            Task { await show(Notice(text: "Busy, try again") { Task { await self.write(action) } }) }
+            // A confirmed close must not vanish silently.
+            Task { await show(Notice(text: "Busy, try again")) }
             return false
         }
         writing = true

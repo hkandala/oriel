@@ -21,12 +21,13 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
    once when the find bar opens. Search it locally on each edit (case blind) and count matches. Read
    again only on Next or Previous after Return was pressed in the pane. Next and previous scroll
    herdr's viewport to the match with `pane.scroll {pane_id, offset_from_bottom}` (the match line's
-   distance from the end, minus half the screen, so the match line is centered). `ponytail:` no
-   highlight over the match cells (mapping herdr's scrolled viewport to libghostty cells is fragile);
-   add it if users ask. Closing the bar scrolls back to the bottom (offset 0). herdr's viewport is
+   distance from the end, minus half the screen, so the match line is centered). **Highlights** (user,
+   mid-phase): after each scroll the matches on the screen are placed from `pane.read visible` and
+   `pane.get`'s offset, the selected one in the accent at 0.45, the others at 0.2, in one overlay view;
+   placed again when frames come. Closing the bar scrolls back to the bottom (offset 0). herdr's viewport is
    shared; scrolling it shows in a herdr TUI attached to the same pane too.
-3. **Find bar.** A small glass bar at the card's top right, 8 pt in: field, "3 of 12", ↑ ↓ buttons,
-   ×. ⌘G next (as in Rex, Find Previous has no shortcut: ⇧⌘G is Go to Directory), Enter next, ⇧Enter
+3. **Find bar.** A glass bar 320 pt wide (fixed, user: it must not jump while typing) at the card's
+   top right, 8 pt in: field, "3 of 12" in a fixed slot, ↑ ↓ buttons, ×. ⌘G next (as in Rex, Find Previous has no shortcut: ⇧⌘G is Go to Directory), Enter next, ⇧Enter
    previous, ⎋ closes. One bar per card.
 
 ### Links

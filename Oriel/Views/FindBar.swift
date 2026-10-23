@@ -29,7 +29,9 @@
         @ObservationIgnored private let rows: () -> Int
         /// The offset to scroll to next; one `pane.scroll` at a time, the latest wins.
         @ObservationIgnored private var target: Int?
-        @ObservationIgnored private var scrolling = false
+        /// The screen changed since the highlights were placed.
+        @ObservationIgnored private var moved = false
+        @ObservationIgnored private var working = false
 
         init(paneID: String, store: HostStore, rows: @escaping () -> Int) {
             self.paneID = paneID
@@ -65,11 +67,6 @@
             guard !matches.isEmpty else { return }
             current = ((current ?? 0) + offset + matches.count) % matches.count
             show()
-        }
-
-        /// Scrolls back to the bottom.
-        func close() {
-            scroll(0)
         }
 
         /// Counts the matches, case blind. A new query selects the last match, nearest the bottom; a read again keeps
@@ -117,24 +114,40 @@
             shownCurrent = shown.indices.min { abs(shown[$0].row - expected) < abs(shown[$1].row - expected) }
         }
 
-        struct Hit: Equatable {
+        struct Hit {
             let row, column, length: Int
         }
 
-        private func scroll(_ offset: Int) {
+        /// 0 scrolls back to the bottom.
+        func scroll(_ offset: Int) {
             target = offset
-            guard !scrolling, let client = store.client else { return }
-            scrolling = true
+            work()
+        }
+
+        /// A frame came: the highlights are placed again, once the frames of a burst have come.
+        func screenChanged() {
+            moved = true
+            work()
+        }
+
+        /// Scrolls, then places the highlights, one step at a time; what was asked for meanwhile goes after.
+        private func work() {
+            guard !working, let client = store.client else { return }
+            working = true
             Task {
-                // A scroll asked for while the last one located goes too.
-                while let offset = target {
-                    target = nil
-                    try? await client.scroll(paneID, offsetFromBottom: offset)
+                while target != nil || moved {
+                    if let offset = target {
+                        target = nil
+                        try? await client.scroll(paneID, offsetFromBottom: offset)
+                    } else {
+                        try? await Task.sleep(for: .milliseconds(100))
+                    }
+                    moved = false
                     if target == nil {
                         await locate(client)
                     }
                 }
-                scrolling = false
+                working = false
             }
         }
     }
@@ -225,6 +238,7 @@
                 closeFind()
                 let terminal = terminal(pane)
                 let find = Find(paneID: pane.id, store: store) { Int(terminal?.view.metrics?.rows ?? 0) }
+                terminal?.onFrame = { [weak find] in find?.screenChanged() }
                 self.find = find
                 Task { await find.read() }
             }
@@ -234,9 +248,11 @@
         /// The bar closes, herdr's viewport goes back to the bottom, and the keyboard goes back to the card.
         func closeFind() {
             guard let find else { return }
-            find.close()
+            find.scroll(0)
             self.find = nil
-            if let pane = store.pane(find.paneID), pane.tabID == selectedTab?.id {
+            guard let pane = store.pane(find.paneID) else { return }
+            terminal(pane)?.onFrame = nil
+            if pane.tabID == selectedTab?.id {
                 go(to: pane)
             }
         }

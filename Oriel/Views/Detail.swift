@@ -8,8 +8,6 @@ struct Notice {
 
     let text: String
     var tone = Tone.error
-    /// Retry, where a retry can help.
-    var retry: (@MainActor () -> Void)?
     let id = UUID()
 }
 
@@ -20,18 +18,24 @@ struct Notice {
     /// A short message in a glass capsule at the bottom of the strip: a symbol in its tone's color, the text, an
     /// optional action and a ✕ (design: Notice).
     struct NoticeCapsule<Action: View>: View {
-        let symbol: String
         let tone: Notice.Tone
         let text: String
+        /// Instead of the tone's symbol.
+        var symbol: String?
         var close: (() -> Void)?
         @ViewBuilder var action: Action
         @Environment(\.look) private var look
 
         var body: some View {
+            let (toneSymbol, label, color) = switch tone {
+            case .error: ("xmark.octagon.fill", "Error", look.error)
+            case .warning: ("exclamationmark.triangle.fill", "Warning", look.needsYou)
+            case .info: ("info.circle.fill", "Information", look.working)
+            }
             HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .foregroundStyle(tone == .error ? look.error : tone == .warning ? look.needsYou : look.working)
-                    .accessibilityLabel(tone == .error ? "Error" : tone == .warning ? "Warning" : "Information")
+                Image(systemName: symbol ?? toneSymbol)
+                    .foregroundStyle(color)
+                    .accessibilityLabel(label)
                     .accessibilityIdentifier("notice.symbol")
                 Text(text).lineLimit(2)
                 action
@@ -51,8 +55,8 @@ struct Notice {
     }
 
     extension NoticeCapsule where Action == EmptyView {
-        init(symbol: String, tone: Notice.Tone, text: String, close: (() -> Void)?) {
-            self.init(symbol: symbol, tone: tone, text: text, close: close) { EmptyView() }
+        init(tone: Notice.Tone, text: String, close: @escaping () -> Void) {
+            self.init(tone: tone, text: text, close: close) { EmptyView() }
         }
     }
 
@@ -112,23 +116,13 @@ struct Notice {
         private func notices(_ store: HostStore) -> some View {
             VStack(spacing: gap) {
                 if let notice = store.notice {
-                    NoticeCapsule(
-                        symbol: notice.tone == .error ? "xmark.octagon.fill" : "exclamationmark.triangle.fill",
-                        tone: notice.tone,
-                        text: notice.text,
-                        close: { store.notice = nil },
-                        action: {
-                            if let retry = notice.retry {
-                                Button("Retry", action: retry).accessibilityIdentifier("notice.retry")
-                            }
-                        },
-                    )
-                    .accessibilityIdentifier("detail.notice")
+                    NoticeCapsule(tone: notice.tone, text: notice.text, close: { store.notice = nil })
+                        .accessibilityIdentifier("detail.notice")
                 }
                 // Another window controls the session (D66). Under a notice; no ✕: only Take Back ends it.
                 if page.watched {
                     let text = "Controlled in another window"
-                    NoticeCapsule(symbol: "macwindow.on.rectangle", tone: .info, text: text, close: nil) {
+                    NoticeCapsule(tone: .info, text: text, symbol: "macwindow.on.rectangle") {
                         Button("Take Back") { pages.control(store) }
                             .accessibilityIdentifier("notice.controlled.take-back")
                     }

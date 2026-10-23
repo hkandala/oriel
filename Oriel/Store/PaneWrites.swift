@@ -62,7 +62,7 @@ extension HostStore {
         await write { client in
             var id = paneID, done: String?
             do {
-                if self.pane(paneID)?.tabID == tabID, let workspaceID = self.workspace(of: tabID)?.id {
+                if pane(paneID)?.tabID == tabID, let workspaceID = workspace(of: tabID)?.id {
                     guard let away = try await client.move(pane: id, to: .newTab(workspaceID: workspaceID))
                     else { throw HerdrError.failed("herdr named no pane") }
                     id = away.id

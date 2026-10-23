@@ -24,7 +24,7 @@
                 FilterList(prompt: "Name a new session, or find one", name: "open-session", items: items,
                            maxHeight: 320, lit: $lit) {}
                 if let failure {
-                    NoticeCapsule(symbol: "xmark.octagon.fill", tone: .error, text: failure.text, close: nil) {
+                    NoticeCapsule(tone: .error, text: failure.text) {
                         Button("Retry") { act(failure.id) }.accessibilityIdentifier("notice.retry")
                     }
                     .accessibilityIdentifier("open-session.notice")

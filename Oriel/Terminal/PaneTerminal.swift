@@ -17,11 +17,8 @@
             case failed(String)
 
             var isFailed: Bool {
-                if case .failed = self {
-                    true
-                } else {
-                    false
-                }
+                guard case .failed = self else { return false }
+                return true
             }
         }
 
@@ -61,6 +58,8 @@
         @ObservationIgnored var watches: () -> Bool = { false }
         /// A key press, paste or click in the card (D8's triggers), before it is handled.
         @ObservationIgnored var onInput: () -> Void = {}
+        /// A frame came (the find bar places its highlights again).
+        @ObservationIgnored var onFrame: (() -> Void)?
         /// Shown lately, by its window (the registry): not evicted while it is.
         @ObservationIgnored var inView = false
 
@@ -184,6 +183,7 @@
                     switch event {
                     case let .frame(frame):
                         session.receive(frame.bytes)
+                        onFrame?()
                         if state == .idle {
                             started(frame)
                         }
