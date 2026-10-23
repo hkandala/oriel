@@ -5,14 +5,14 @@ import SwiftUI
 struct OrielApp: App {
     #if os(macOS)
         @NSApplicationDelegateAdaptor private var delegate: AppDelegate
-        @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
+        private var settings = AppSettings()
 
         init() {
             SwipeRouter.install()
             // Windows, not window tabs: no tab bar or tab menu items of AppKit's own.
             NSWindow.allowsAutomaticWindowTabbing = false
             // Before any surface exists, so none starts at libghostty's default size.
-            PaneTerminal.setFontSize(fontSize)
+            PaneTerminal.setFontSize(settings.fontSize)
             // Second shortcuts (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=) run their first's menu item. A monitor sees them before any view:
             // an invisible button's shortcut kept its first action (phase 11). A disabled item lets the key go on.
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -33,7 +33,7 @@ struct OrielApp: App {
             .commands { AppCommands() }
             // A folder dropped on the Dock icon opens a workspace (AppDelegate), not a window.
             .handlesExternalEvents(matching: [])
-            .onChange(of: fontSize) { PaneTerminal.setFontSize(fontSize) }
+            .onChange(of: settings.fontSize) { PaneTerminal.setFontSize(settings.fontSize) }
         #else
             WindowGroup {
                 ContentUnavailableView("Oriel for iOS is coming", systemImage: "iphone")

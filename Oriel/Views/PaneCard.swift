@@ -17,8 +17,7 @@
         @Environment(\.appearsActive) private var active
         @Environment(\.colorScheme) private var scheme
         @Environment(\.look) private var look
-        @AppStorage("fadeInactivePanes") private var fade = true
-        @AppStorage("focusFollowsMouse") private var followMouse = false
+        private var settings = AppSettings()
 
         var body: some View {
             let store = page.store
@@ -27,9 +26,9 @@
             let terminal = pane.flatMap(page.terminal)
             // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
             let lit = pane.map { page.keyboardCard($0.tabID) === $0 } ?? false
-            let follow = hovering && followMouse && !zoomedAway && active
+            let follow = hovering && settings.followMouse && !zoomedAway && active
             // Rex's content opacities; the watching window's dim (D66) multiplies.
-            let content = (fade ? lit ? active ? 1 : scheme == .dark ? 0.8 : 0.85 : active ? 0.7 : 0.5 : 1)
+            let content = (settings.fade ? lit ? active ? 1 : scheme == .dark ? 0.8 : 0.85 : active ? 0.7 : 0.5 : 1)
                 * (page.watched ? 0.85 : 1)
             VStack(spacing: 0) {
                 // Faded with the terminal, as in Rex.
