@@ -36,9 +36,8 @@
         @ObservationIgnored private let store: HostStore
         /// The offset to scroll to next; one `pane.scroll` at a time, the latest wins.
         @ObservationIgnored private var target: Int?
-        /// A frame came since the highlights were placed, and when the last one came.
-        @ObservationIgnored private var moved = false
-        @ObservationIgnored private var lastFrame = ContinuousClock.now
+        /// The last frame since the highlights were placed.
+        @ObservationIgnored private var lastFrame: ContinuousClock.Instant?
         @ObservationIgnored private var working = false
 
         init(paneID: String, store: HostStore) {
@@ -122,7 +121,7 @@
                 return
             }
             guard self.query.lowercased() == query else { return }
-            let screenRows = Self.lines(screen.lowercased())
+            let screenRows = Self.lines(screen)
             shown = screenRows.indices.flatMap { row in
                 screenRows[row].ranges(of: query).map { range in
                     Hit(row: row, column: screenRows[row].distance(from: screenRows[row].startIndex,
@@ -156,7 +155,6 @@
         /// A frame came: the highlights are placed again 0.3 s after the last frame of a burst (agent TUIs redraw
         /// all the time).
         func screenChanged() {
-            moved = true
             lastFrame = .now
             work()
         }
@@ -167,7 +165,7 @@
             guard !working, let client = store.client else { return }
             working = true
             Task {
-                while target != nil || moved {
+                while target != nil || lastFrame != nil {
                     if let offset = target {
                         target = nil
                         do {
@@ -176,11 +174,11 @@
                             Task { await store.show(Notice(text: error.localizedDescription)) }
                         }
                     } else {
-                        while ContinuousClock.now - lastFrame < .milliseconds(300) {
+                        while let last = lastFrame, .now - last < .milliseconds(300) {
                             try? await Task.sleep(for: .milliseconds(100))
                         }
                     }
-                    moved = false
+                    lastFrame = nil
                     if target == nil {
                         await locate(client)
                     }

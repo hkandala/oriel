@@ -240,8 +240,9 @@
         func showTerminals() {
             guard let current else { return }
             // A find bar whose card is out of view closes: herdr's viewport is shared, it must not stay scrolled.
-            for page in list where page.find.map({ page !== current || page.store.pane($0.paneID)?.tabID
-                    != page.selectedTab?.id }) == true
+            for page in list
+                where page !== current || page.find.flatMap({ page.store.pane($0.paneID) })?.tabID != page.selectedTab?
+                .id
             {
                 page.dropFind()
             }

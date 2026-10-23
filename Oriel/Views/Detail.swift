@@ -81,8 +81,8 @@ struct Notice {
             case .failed where !store.isRunning:
                 message("\(store.session) is not running", "Start it to see its workspaces.", nil, start: true)
             case .live, .failed:
-                // Failed while the server runs (the bridge fails): reconnecting, the client tries again every 2 s.
-                // One branch, so the strip keeps its state through it; the notices stay clickable.
+                // Reconnecting (the server runs, the bridge fails) in one branch, so the strip keeps its state through
+                // it; the notices stay clickable.
                 let reconnecting = store.reconnecting
                 tabs(store)
                     .opacity(reconnecting ? 0.5 : 1)
