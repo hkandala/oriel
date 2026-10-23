@@ -17,12 +17,10 @@
         /// Before a close from its ×.
         let closing: () -> Void
         @State private var renaming = false
-        @State private var draft = ""
         /// "codex needs you" for 3 s in place of the title.
         @State private var announcement: String?
         @State private var announcing: Task<Void, Never>?
         @State private var bounces = 0
-        @FocusState private var focused: Bool
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.look) private var look
 
@@ -66,7 +64,7 @@
             .dragSource(.tab(tab.id), page: page)
             // Anywhere on the capsule, beside the click that selects (a tap gesture in the label missed clicks past a
             // short title).
-            .simultaneousGesture(TapGesture(count: 2).onEnded { startRenaming() })
+            .simultaneousGesture(TapGesture(count: 2).onEnded { renaming = true })
             // On the capsule alone: the rename field and the × over it have their own.
             .accessibilityIdentifier("tab.\(tab.id)")
             .accessibilityAddTraits(selected ? .isSelected : [])
@@ -80,15 +78,10 @@
             // Over the button, after the icons: in the button's label it could not take the keyboard.
             .overlay(alignment: .leading) {
                 if renaming {
-                    TextField("Tab Name", text: $draft).textFieldStyle(.plain).focused($focused)
-                        .onSubmit { rename() }
-                        .onExitCommand { stopRenaming() }
-                        .onChange(of: focused) { _, now in
-                            if !now {
-                                stopRenaming()
-                            }
-                        }
-                        .focusSoon($focused)
+                    // Enter: herdr's label; the snapshot after it shows it.
+                    RenameField(prompt: "Tab Name", initial: tab.label, commit: { label in
+                        Task { await page.store.rename(tab: tab.id, label: label) }
+                    }, end: stopRenaming)
                         .padding(.leading, 11 + 22 + CGFloat(max(stack.count - 1, 0)) * 4 + 10)
                         .padding(.trailing, 8)
                         .accessibilityIdentifier("tab.\(tab.id).rename")
@@ -143,7 +136,7 @@
         @ViewBuilder
         private var menu: some View {
             let tabs = workspace.tabs, store = page.store
-            Button("Rename Tab") { startRenaming() }
+            Button("Rename Tab") { renaming = true }
             Button("Move Tab Left") { Task { await store.move(tab: tab.id, by: -1) } }
                 .disabled(tabs.first?.id == tab.id)
             Button("Move Tab Right") { Task { await store.move(tab: tab.id, by: 1) } }
@@ -152,17 +145,6 @@
             Button("Close Tab") { page.closing = .tab(tab.id) }
             Button("Close Other Tabs") { page.closing = .otherTabs(tabs.map(\.id).filter { $0 != tab.id }) }
                 .disabled(tabs.count < 2)
-        }
-
-        private func startRenaming() {
-            draft = tab.label
-            renaming = true
-        }
-
-        /// Enter: herdr's label; the snapshot after it shows it.
-        private func rename() {
-            Task { [draft] in await page.store.rename(tab: tab.id, label: draft) }
-            stopRenaming()
         }
 
         /// The keyboard goes back to the tab's card.

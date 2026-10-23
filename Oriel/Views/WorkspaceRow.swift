@@ -13,8 +13,6 @@
         /// The first and the last group's workspace: they cannot move up or down.
         let ends: (first: String?, last: String?)
         @State private var renaming = false
-        @State private var draft = ""
-        @FocusState private var focused: Bool
         @Environment(\.look) private var look
 
         var body: some View {
@@ -57,16 +55,11 @@
                                  parent.map { "worktree of \($0.label)" }].compactMap(\.self).joined(separator: ", "))
             .overlay(alignment: .leading) {
                 if renaming {
-                    TextField("Workspace Name", text: $draft).textFieldStyle(.plain).font(.system(size: 13))
-                        .focused($focused)
-                        .onSubmit { rename() }
-                        .onExitCommand { stopRenaming() }
-                        .onChange(of: focused) { _, now in
-                            if !now {
-                                stopRenaming()
-                            }
-                        }
-                        .focusSoon($focused)
+                    // Enter: herdr's label; the snapshot after it shows it.
+                    RenameField(prompt: "Workspace Name", initial: workspace.label, commit: { label in
+                        Task { await page.store.rename(workspace: workspace.id, label: label) }
+                    }, end: stopRenaming)
+                        .font(.system(size: 13))
                         .padding(.leading, 8 + 14 + 6)
                         .padding(.trailing, 8)
                         .frame(height: 30, alignment: .leading)
@@ -106,14 +99,7 @@
         /// Not while the session is stopped (a double-click too): the rename would fail.
         private func startRenaming() {
             guard page.store.state == .live else { return }
-            draft = workspace.label
             renaming = true
-        }
-
-        /// Enter: herdr's label; the snapshot after it shows it.
-        private func rename() {
-            Task { [draft] in await page.store.rename(workspace: workspace.id, label: draft) }
-            stopRenaming()
         }
 
         /// The keyboard goes back to the selected tab's card.

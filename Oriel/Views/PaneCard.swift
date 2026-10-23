@@ -8,11 +8,9 @@
         let id: String
         let page: Page
         @State private var hovering = false
-        @State private var draft = ""
         /// A dragged pane over this card: an edge, or the center (`.some(nil)`).
         @State private var zone: Heading??
         @State private var size = CGSize.zero
-        @FocusState private var renaming: Bool
         @Environment(\.zoomedAway) private var zoomedAway
         @Environment(\.appearsActive) private var active
         @Environment(\.colorScheme) private var scheme
@@ -121,17 +119,11 @@
                 // Clicks pass through to the header's double-click.
                 ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
                 if page.renamingPaneID == id {
-                    TextField("Pane Name", text: $draft).textFieldStyle(.plain).focused($renaming)
-                        .onSubmit { rename(pane) }
-                        .onExitCommand { stopRenaming(pane) }
-                        // A click elsewhere keeps the keyboard and the selection where it went.
-                        .onChange(of: renaming) { _, now in
-                            if !now {
-                                page.renamingPaneID = nil
-                            }
-                        }
-                        .onAppear { draft = pane?.label ?? "" }
-                        .focusSoon($renaming)
+                    // Enter: herdr's label (an empty one clears it); the snapshot after it shows it. A click elsewhere
+                    // keeps the keyboard and the selection where it went.
+                    RenameField(prompt: "Pane Name", initial: pane?.label ?? "", commit: { label in
+                        Task { await page.store.rename(pane: id, label: label) }
+                    }, end: { stopRenaming(pane) }, blur: { page.renamingPaneID = nil })
                         .accessibilityIdentifier("pane.\(id).rename")
                 } else {
                     let lead = name.map { "\($0) " } ?? ""
@@ -190,12 +182,6 @@
             }
             .disabled(store.writing)
             .foregroundStyle(look.paneButton)
-        }
-
-        /// Enter: herdr's label (an empty one clears it); the snapshot after it shows it.
-        private func rename(_ pane: HostStore.Pane?) {
-            Task { [draft] in await page.store.rename(pane: id, label: draft) }
-            stopRenaming(pane)
         }
 
         /// The keyboard goes back to the card.
