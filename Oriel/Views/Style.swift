@@ -229,35 +229,36 @@ struct ChromeStyle: ButtonStyle {
     }
 }
 
-/// A `FilterList` row: a symbol, a program tile or a state icon, a title, and a shortcut or hint on the right.
+/// A `FilterList` row: a symbol, a program tile or a state icon, a title, and a shortcut, a hint or a spinner on the
+/// right.
 struct MenuRow: View {
-    var symbol: String?
-    var pane: HostStore.Pane?
-    /// `.some(nil)`: a workspace with no agent.
-    var state: AgentState??
-    let title: String
-    var detail = ""
+    let item: FilterList.Item
     /// On the accent pill.
-    var selected = false
-    var height: CGFloat = 26
+    let selected: Bool
+    let height: CGFloat
 
     var body: some View {
         HStack(spacing: 8) {
-            if let pane {
+            if let pane = item.pane {
                 ProgramTile(icon: pane.iconID, letter: pane.letter)
-            } else if let state {
+            } else if let state = item.state {
                 StateIcon(state: state).frame(width: 22)
             } else {
                 // As wide as a program tile, so the titles line up.
-                Image(systemName: symbol ?? "circle").opacity(symbol == nil ? 0 : 1).frame(width: 22)
+                Image(systemName: item.symbol ?? "circle").opacity(item.symbol == nil ? 0 : 1).frame(width: 22)
                     .accessibilityHidden(true)
             }
             // A long typed name keeps both ends, and takes the free space before the detail does.
-            Text(title).lineLimit(1).truncationMode(.middle).layoutPriority(1)
+            Text(item.title).lineLimit(1).truncationMode(.middle).layoutPriority(1)
             Spacer(minLength: 4)
-            // Readable on the accent pill; a long branch gives way to the title.
-            Text(detail).foregroundStyle(selected ? Color.white.opacity(0.75) : .secondary).lineLimit(1)
-                .truncationMode(.middle)
+            if item.busy {
+                ProgressView().controlSize(.small)
+            } else {
+                // Readable on the accent pill; a long branch gives way to the title.
+                Text([item.detail, item.opens ? "›" : ""].filter { !$0.isEmpty }.joined(separator: " "))
+                    .foregroundStyle(selected ? Color.white.opacity(0.75) : .secondary).lineLimit(1)
+                    .truncationMode(.middle)
+            }
         }
         .padding(.horizontal, 8)
         .frame(height: height)

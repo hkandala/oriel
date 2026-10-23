@@ -98,15 +98,7 @@ struct FilterList: View {
                                     }
                                 }
                                 Button { act(item) } label: {
-                                    MenuRow(symbol: item.symbol, pane: item.pane, state: item.state, title: item.title,
-                                            detail: item.busy ? "" : [item.detail, item.opens ? "›" : ""]
-                                                .filter { !$0.isEmpty }.joined(separator: " "),
-                                            selected: offset == index, height: rowHeight)
-                                        .overlay(alignment: .trailing) {
-                                            if item.busy {
-                                                ProgressView().controlSize(.small).padding(.trailing, 8)
-                                            }
-                                        }
+                                    MenuRow(item: item, selected: offset == index, height: rowHeight)
                                 }
                                 .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
                                 .accessibilityIdentifier("\(name).\(item.id)")
