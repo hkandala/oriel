@@ -186,13 +186,13 @@ extension OrielUITests {
 
     /// "open session" opens the Open Session panel; "new window" opens a second window on the window's first session
     /// only.
-    func testPaletteOpensTheSheetAndANewWindow() throws {
+    func testPaletteOpensThePanelAndANewWindow() throws {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPalette()
         app.typeText("open session")
         app.typeKey(.return, modifierFlags: [])
-        let sheet = element("open-session.filter")
-        XCTAssertTrue(sheet.exists(within: 2))
+        let panel = element("open-session.filter")
+        XCTAssertTrue(panel.exists(within: 2))
         element("open-session.session.\(two)").click()
         XCTAssertTrue(element("sidebar.dot.\(two)").exists(within: connect))
 

@@ -1,7 +1,7 @@
 import XCTest
 
 /// The sidebar (phase 14): one page per session open in the window, page dots, workspace rows with git data, the
-/// footer and the Open Session sheet. Session one: w1 "alpha", w2 "beta"; session two: w1 "gamma"; three is
+/// footer and the Open Session panel. Session one: w1 "alpha", w2 "beta"; session two: w1 "gamma"; three is
 /// stopped; four is made by a test; five is stopped and started by tests.
 extension OrielUITests {
     func testLaunchOpensOnePageAndNoOtherSession() async throws {
@@ -13,10 +13,10 @@ extension OrielUITests {
         XCTAssertEqual(runs, [])
 
         // Esc and a click outside close the panel.
-        let filter = openSessionSheet()
+        let filter = openSessionPanel()
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(filter.vanishes(within: 2))
-        openSessionSheet()
+        openSessionPanel()
         app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)).click()
         XCTAssertTrue(filter.vanishes(within: 2))
     }
@@ -24,7 +24,7 @@ extension OrielUITests {
     func testOpenSessionListsSessionsAndOpensAPage() throws {
         let three = try env("ORIEL_SESSION3")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        openSessionSheet()
+        openSessionPanel()
         expectRow("open-session.session.\(two)", under: "Running", above: "Stopped")
         expectRow("open-session.session.\(three)", under: "Stopped", above: "Open in this window")
         expectRow("open-session.open.\(one)", under: "Open in this window", above: nil)
@@ -65,7 +65,7 @@ extension OrielUITests {
         // Enter on a page open in this window shows it; no page opens or closes.
         element("sidebar.dot.\(two)").click()
         XCTAssertTrue(until(3) { header == two })
-        openSessionSheet()
+        openSessionPanel()
         app.typeText(one)
         XCTAssertTrue(element("open-session.open.\(one)").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
@@ -97,8 +97,10 @@ extension OrielUITests {
     func testRelaunchRestoresThePagesThatStillRun() async throws {
         let five = try env("ORIEL_SESSION5")
         try await running(five)
-        // No earlier windows; ⌘Q saves this one whatever the Mac's "close windows when quitting" setting says.
-        relaunch(one, ["-NSQuitAlwaysKeepsWindows", "YES"])
+        // Not relaunch: a launch with -ApplePersistenceIgnoreState saves no state at ⌘Q (CI 39902793320). -session
+        // keeps any saved pages out; ⌘Q saves whatever the Mac's "close windows when quitting" setting says.
+        app.launchArguments = ["-session", one, "-NSQuitAlwaysKeepsWindows", "YES"]
+        app.launch()
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         element("workspace.w2").click()
         XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
@@ -141,7 +143,7 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         try await running(five)
         try await Self.post("\(five)/stop")
-        openSessionSheet()
+        openSessionPanel()
         // Other stopped sessions on this Mac may push its row out of the list's view.
         app.typeText(five)
         let row = element("open-session.session.\(five)")
@@ -324,7 +326,7 @@ extension OrielUITests {
         drag(start - 480)
     }
 
-    /// The sheet's row sits in this group: below its header, above the next one.
+    /// The panel's row sits in this group: below its header, above the next one.
     private func expectRow(_ row: String, under section: String, above next: String?) {
         let frame = element(row).frame
         XCTAssertGreaterThan(frame.minY, element("open-session.section.\(section)").frame.maxY, row)
@@ -333,9 +335,9 @@ extension OrielUITests {
         }
     }
 
-    /// Opens the session's page through the sheet, in this window when there are several.
+    /// Opens the session's page through the panel, in this window when there are several.
     func openPage(_ session: String, in window: XCUIElement? = nil) {
-        openSessionSheet(in: window)
+        openSessionPanel(in: window)
         element("open-session.session.\(session)", in: window).click()
         XCTAssertTrue(element("sidebar.dot.\(session)", in: window).exists(within: connect))
     }
@@ -351,9 +353,9 @@ extension OrielUITests {
         XCTAssertTrue(dot.vanishes(within: 3))
     }
 
-    /// The footer's Open Session; the sheet's field has the keyboard.
+    /// The footer's Open Session; the panel's field has the keyboard.
     @discardableResult
-    func openSessionSheet(in window: XCUIElement? = nil) -> XCUIElement {
+    func openSessionPanel(in window: XCUIElement? = nil) -> XCUIElement {
         element("sidebar.open-session", in: window).click()
         let filter = element("open-session.filter", in: window)
         XCTAssertTrue(hasKeyboard(filter))

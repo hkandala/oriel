@@ -26,7 +26,7 @@ extension OrielUITests {
         try await Self.snapshot(five)
     }
 
-    func testAFailedStartKeepsTheSheetOpenWithRetry() async throws {
+    func testAFailedStartKeepsThePanelOpenWithRetry() async throws {
         let six = try env("ORIEL_SESSION6")
         // No time to answer: every start the app makes fails, though launchd starts the server.
         relaunch(one, ["-startTimeout", "0"])
