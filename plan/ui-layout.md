@@ -8,7 +8,8 @@ older design page disagree, this file wins until the page is updated.
 
 Everything a user does with sessions, workspaces, tabs, panes and (later) remote machines is done in the
 app. No text in the UI tells the user to run a herdr command; where there is nothing yet (no workspace, no
-tab), the app shows the button that makes it.
+tab), the app shows the button that makes it. The one exception: when herdr is not installed, the page shows
+the install command (`curl -fsSL https://herdr.dev/install.sh | sh`), because the app cannot install herdr.
 
 ## Words
 
@@ -61,8 +62,8 @@ cards start. With the sidebar collapsed the items follow one another as before.
 7. **Agents button**: a list of statuses (`list.bullet.rectangle`), filled while the Agents view is on (no
    highlight; phase 22, the user: the chat bubbles did not fit). An amber dot when an agent of the current
    session needs you. A click (or ⌘.) toggles the Agents view; with the sidebar collapsed, a click opens the
-   sidebar in the Agents view. No tooltip (the hover popover takes its place).
-   - **Hover** (0.25 s): a popover under the button with a small header "Needs you · ‹session›" lists the
+   sidebar in the Agents view. No tooltip (the hover panel takes its place).
+   - **Hover** (0.25 s): a panel under the button with a small header "Needs you · ‹session›" lists the
      agents of the current session that need you (same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
      does not change. With nobody waiting: "Nobody needs you". No footer text.
 8. **⌘** (command palette, ⌘K; ⇧⌘P also opens it (Rex's key); its field says "Search") and **+** (new tab, ⌘T).
@@ -74,12 +75,12 @@ The strip under the title row still pages sideways between the selected workspac
 
 - **Open sessions, not all sessions.** A window starts with one page: the machine's `default` session
   (started if it is stopped). It never loads the other sessions by itself, so a machine with many sessions
-  costs nothing until the user asks. The user adds more pages with **Open Session** (the sheet below); each
+  costs nothing until the user asks. The user adds more pages with **Open Session** (the panel below); each
   opened session gets a page, as many as the user likes. Only open pages have a store, a snapshot read and
   an event stream.
 - **Closing a page**: the context menu of the page header and of its page dot has "Close Page". It only
   removes the page from this window (its store disconnects); the herdr session keeps running and stays in
-  the sheet's list. The last page cannot be closed.
+  the panel's list. The last page cannot be closed.
 - **Restore**: after any quit (the app registers `NSQuitAlwaysKeepsWindows`), a window that macOS restores reopens the pages it had (their names in `@SceneStorage`); a
   name that no longer runs is skipped. A new window (⌘N) opens with `default` only.
 - A sideways swipe on the sidebar moves to the next or previous open page; page dots at the bottom show
@@ -88,14 +89,14 @@ The strip under the title row still pages sideways between the selected workspac
 - **Workspaces view** (default): one row per herdr workspace of the session, in herdr's order, like herdr's
   Spaces panel.
   - Line 1: the rolled-up state icon (needs you: amber dot; working: the three working dots; finished and not
-    seen: green dot; idle agent: gray ring; no agent: nothing) and the workspace name.
+    seen: green dot; idle agent: gray ring; no agent: a quiet 4 pt dot, phase 22) and the workspace name.
   - Line 2, only for a git repository: a branch glyph, the branch, then ↑ahead (green) and ↓behind (red)
     when nonzero. No changed-file count. A workspace that is not a git repository has one line and no text
     about git.
   - Rows are 44 pt with two lines, 30 pt with one. The selected workspace is the raised pill.
   - A workspace herdr marks as a linked git worktree (`worktree.is_linked_worktree`, same `repo_key`) sits
     indented under the workspace of its repository, with a thin guide line, as in herdr.
-  - Git data: the app runs `git -C <root> status --porcelain=v2 --branch` on the machine through `Exec.run`
+  - Git data: the app runs `git --no-optional-locks -C <root> status --porcelain=v2 --branch` on the machine through `Exec.run`
     (root = `worktree.checkout_path`, else the cwd of the workspace's first pane). It runs when a workspace
     is new or its root changed, and every 10 s for the page in view, one run per workspace, never for hidden pages.
   - Click: select the workspace (app only, never herdr focus). Context menu: New Tab, Rename Workspace,
@@ -109,10 +110,10 @@ The strip under the title row still pages sideways between the selected workspac
     gray); line 2 "‹workspace› · ‹tab›" and the age ("now", "3m", "2h").
   - Idle agents show. A click goes to that workspace, tab and pane, and records a finish as seen.
 - **Footer**: the filter field (filters the rows of the current view) and one button, **Open Session**
-  (⇧⌘N), which opens the sheet below. No New Workspace and no Add Remote Host here.
+  (⇧⌘N), which opens the panel below. No New Workspace and no Add Remote Host here.
 - Width 240 pt, resizable 227–480 pt (kept per window).
 
-## Open Session sheet
+## Open Session panel
 
 The one place to create or open a session. The footer's Open Session button, the workspace menu's
 "Open Session…" and ⇧⌘N open it. A glass panel like the palette (phase 22, the user): no title, no buttons.
@@ -125,6 +126,7 @@ The one place to create or open a session. The footer's Open Session button, the
 - Arrows move, Enter or a click acts on a row: create and start a new session and open its
   page; open a running session as a new page (its store connects then); start a stopped session
   (launchd job, D47) and open it as a new page; switch to a page that is already open. Esc or a click outside closes.
+- One panel at a time: opening it closes the palette or the workspace menu, and the reverse.
 
 ## Moving panes, tabs and workspaces by drag and drop
 
@@ -164,7 +166,8 @@ Tabs and workspaces:
 |---|---|---|
 | a tab capsule along the tab track | reorder the workspace's tabs | `tab.move` |
 | a tab capsule onto a workspace row | not a target: herdr moves tabs only inside a workspace | — |
-| a workspace row up or down its page | reorder the session's workspaces (a worktree child moves with its parent group) | `workspace.move` (`workspace.move_block` for a group) |
+| a workspace row up or down its page | reorder the session's workspaces (a worktree child moves with its parent group) | `workspace.move_block` with the row's group |
+| a worktree row among its repository's worktrees | reorder those worktrees only | `workspace.move_block` |
 
 Every `pane.move` passes `focus:false`. The look and timings (drop indicator, preview, spring-load pulse) are in
 phase 18.
@@ -174,6 +177,6 @@ phase 18.
 - The Settings window, for now: the few settings are menu items (D62); the window comes after its mock-ups.
 - Tabs as sidebar rows, workspace sections with collapse chevrons, keycap hints on sidebar rows.
 - The Activity filter (eye button), "Show idle agents" and any status area at the bottom of the sidebar.
-- The session picker in the title row (sessions are sidebar pages; stopped ones are in the sheet).
+- The session picker in the title row (sessions are sidebar pages; stopped ones are in the Open Session panel).
 - New Workspace and Add Remote Host in the sidebar footer.
 - "One main window" (D34).

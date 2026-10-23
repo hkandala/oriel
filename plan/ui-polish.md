@@ -31,9 +31,9 @@ Rules that hold for every phase:
 | D45 title row | Sidebar toggle, session picker, tab capsules only while the sidebar is hidden, eye, ⌘, + | Sidebar toggle (its icon shows the state), machine button, workspace button (sidebar collapsed only), the tab bar always in the title row, Agents button, ⌘, + |
 | D34 windows | One main window | Several windows (⌘N). Each shows one machine; windows on one session share its data and keep their own selection. Control is per session (D66): the window with the last terminal input controls, the other watches with Take Back |
 | Sidebar | Workspaces as sections with tabs as rows; one session; session picker | One Arc-style page per session open in the window, with page dots and a sideways swipe. Each page lists the session's workspaces like herdr's Spaces panel: state icon, name, git branch with ahead and behind, linked worktrees indented. Footer: filter and Open Session |
-| Sessions | A session picker that switches the window's one session | The Open Session sheet: create a session, start a stopped one, or open a running one as a new page. A window starts with `default` only |
+| Sessions | A session picker that switches the window's one session | The Open Session panel: create a session, start a stopped one, or open a running one as a new page. A window starts with `default` only |
 | D42 status | A static ◔ in one status slot | Rex's three working dots (an animation at 15 fps or less, in sync on every tab, still under Reduce Motion), a status badge on the program icon for needs you and finished, and a state icon on each workspace row |
-| Status area (status.mdx), D61 | A fixed list at the bottom of the sidebar; later the Activity filter (eye) | The Agents button (outline chat bubbles, an amber dot when an agent of the current session needs you). Hover: a popover of the agents that need you. Click (⌘.): the Agents view, the agents of the page's session sorted by priority or workspace order, idle ones too |
+| Status area (status.mdx), D61 | A fixed list at the bottom of the sidebar; later the Activity filter (eye) | The Agents button (`list.bullet.rectangle`, filled while on; an amber dot when an agent of the current session needs you; phase 22 replaced the chat bubbles). Hover: a panel of the agents that need you. Click (⌘.): the Agents view, the agents of the page's session sorted by priority or workspace order, idle ones too |
 | D48 palette | Jump to tab, workspace, session | Also every command, with sub-pages, shortcuts and the menu bar's toggles |
 | Program icons | One `>_` tile | A tile per program (our own SVG set), overlapping per pane in each tab, with badges |
 | Settings | None | A few settings in the menu bar (phase 11); a Settings window later, after its mock-ups (D62) |
@@ -59,21 +59,21 @@ the snapshot.
 | Settings window | Later, after its mock-ups, once phases 10–21 are done (D62, future work). Phase 11 built a stock tabbed form; the user dropped it | — | — |
 | Terminal font size (⌘0, ⌘+, ⌘-) | View ▸ Bigger (⌘+ and ⌘=), Smaller, Actual Size | 11 | — |
 | Terminal font, cursor style and blink, Option as Alt, copy on select | Fixed defaults until the Settings window: SF Mono, a blinking block, Option types characters, no copy on select | 11 | — |
-| Program icons per process | Our own SVG catalog, matched by herdr's `agent`, the terminal title and the foreground process | 12 | `pane.process_info` |
+| Program icons per process | Our own SVG catalog, matched in this order: herdr's `agent`, the foreground process, the terminal title | 12 | `pane.process_info` |
 | Several windows (File ▸ New Window ⌘N) | Same, a machine per window; ⌥-click a machine in the machine menu opens it in a new window | 16 | — |
 | Windows restore their state | `@SceneStorage`: open pages, selection, sidebar view, sort and width | 16 | — |
 | Empty and loading states with clear words and one button | Same words, our layout; no hint text | 21 | — |
 | Floating notices (toast) | Today's notice restyled: a bottom capsule, a tone color, an optional action | 21 | — |
-| Cards fade in when their first frame arrives (launch cover) | Same | 21 | — |
+| Cards fade in when their first frame arrives (launch cover) | The terminal fades in once herdr's frames settle (states.mdx) | 21 | — |
 | Folders dropped on the Dock icon open a new workspace there | Same | 21 | `workspace.create {cwd}` |
-| Dock menu with agents that need you | Same, plus New Tab | 15 | — |
+| Dock menu with agents that need you | Same, and finished agents too, plus New Tab | 15 | — |
 
 ### Title row and tab bar
 
 | Rex feature | Oriel | P | herdr |
 |---|---|---|---|
 | Sidebar toggle in the title row | Always shown; no highlight, its icon shows the sidebar filled while open (⌃⌘S) | 13 | — |
-| Machine (host) button and menu | The machine's icon and a chevron, no name. Menu: This Mac with a checkmark, then "Add Remote Host…" (a placeholder) | 13 | — |
+| Machine (host) button and menu | The machine's icon only: no chevron (phase 22), no name. Menu: This Mac with a checkmark, then "Add Remote Host…" (a placeholder) | 13 | — |
 | Session button shows the name only when more than one session runs | Replaced: a workspace button while the sidebar is collapsed, "‹session› \| ‹workspace›"; its menu lists the workspaces of the open sessions grouped by session, with New Workspace and Open Session… | 13, 14 | `workspace.create {label}` |
 | Tab placement is a setting (Above / Left / Right) | No setting: the tab bar is always in the title row, with the sidebar open or collapsed | 13 | — |
 | A 34 pt capsule track behind the tabs, hidden when there is one tab | Same | 13 | — |
@@ -81,7 +81,7 @@ the snapshot.
 | 1 pt dividers, hidden next to the selected and the hovered tab | Same | 13 | — |
 | One sliding selection capsule, radius min(h/2, 16.5), spring (stiffness 520, damping 46) | Our glass marker keeps following the strip's scroll; clicks and keys move it with Rex's spring | 13 | — |
 | Hover fill, 0.14 s | Same | 13 | — |
-| × on the selected and the hovered tab, hidden below 52 pt | Same | 13 | — |
+| × on the selected and the hovered tab, hidden below 52 pt | × on the hovered tab only (D42), hidden below 52 pt | 13 | — |
 | Tab widths stay put after a close while the pointer is in the bar | Same | 13 | — |
 | Title fades out instead of an ellipsis; the folder part is dimmed | Same | 13 | — |
 | Tab context menu: Rename, Move Left, Move Right, Close | Same, plus Close Other Tabs | 13 | `tab.rename`, `tab.move`, `tab.close` |
@@ -92,7 +92,7 @@ the snapshot.
 | Three working dots, 1.2 s cycle, in sync on every tab | Same | 15 | — |
 | Icon bounce when an agent starts to need you or finishes | Same, off under Reduce Motion | 15 | — |
 | Finish announcement: the title shows "‹agent› finished" for a few seconds | Same | 15 | — |
-| Right-side buttons: Activity (eye with a badge), Command Palette, New Tab | Agents (outline chat bubbles, amber dot), Command Palette, New Tab | 15 (Agents) | — |
+| Right-side buttons: Activity (eye with a badge), Command Palette, New Tab | Agents (`list.bullet.rectangle`, amber dot; phase 22 replaced the chat bubbles), Command Palette, New Tab | 15 (Agents) | — |
 
 ### Sidebar: session pages and workspace rows
 
@@ -106,17 +106,17 @@ the snapshot.
 | Scroll edge fade 18 pt | Same | 14 | — |
 | `+` on a section header | `+` on the page header: a new workspace in that session | 14 | `workspace.create` |
 | Inline rename (double-click) | Same, for workspaces | 14 | `workspace.rename` |
-| Context menu: New Tab, Rename, Move Up, Move Down, Close | Same, on workspace rows | 14 | `tab.create`, `workspace.move`, `workspace.move_block`, `workspace.close` |
-| Drag to reorder workspaces | Same; a worktree group moves together | 18 | `workspace.move`, `workspace.move_block` |
+| Context menu: New Tab, Rename, Move Up, Move Down, Close | Same, on workspace rows | 14 | `tab.create`, `workspace.rename`, `workspace.move_block`, `workspace.close` |
+| Drag to reorder workspaces | Same; a worktree group moves together | 18 | `workspace.move_block` |
 | Footer: filter, new session or workspace, add host | Filter and one Open Session button (⇧⌘N). New Workspace is the page header's `+`; Add Remote Host is in the machine menu | 14 | — |
-| New session sheet | The Open Session sheet: create (a suggested two-word name), start a stopped session, open a running one as a page | 14 | `herdr session list`, server start (D47) |
+| New session sheet | The Open Session panel (no title, no buttons): create (a suggested two-word name), start a stopped session, open a running one as a page | 14 | `herdr session list`, server start (D47) |
 
 ### Agents
 
 | Rex feature | Oriel | P | herdr |
 |---|---|---|---|
 | Activity toggle (eye, ⌘.): a filter on the tab list | The Agents button (⌘.) toggles the Agents view: the sidebar page lists the agents of that session only, one row per agent pane | 15 | — |
-| Popup with the same list while the sidebar is hidden | A hover popover on the Agents button: the agents of the current session that need you; a click goes to the pane. "Nobody needs you" when none | 15 | — |
+| Popup with the same list while the sidebar is hidden | A hover panel on the Agents button: the agents of the current session that need you; a click goes to the pane. "Nobody needs you" when none | 15 | — |
 | Two-line rows: icon, title, status capsule (Needs you, Working, Done), message, relative age ("now", "3m") | Program tile with badge, agent name, capsule (Needs you, Working, Done, Idle); line 2 "‹workspace› · ‹tab›" and the age (herdr sends no message) | 15 | — |
 | "Include idle processes" | Idle agents always show; a sort menu: Priority or Workspace order | 15 | — |
 | Seen ledger: a finish counts until the user views the tab | Oriel's `completion_seq` rule (D14), in memory, shared by the windows on a session | 15, 16 | — |
@@ -140,9 +140,9 @@ the snapshot.
 |---|---|---|---|
 | Hover a tab for 0.25 s: a card with the tab title and one row per pane (icon, name, folder, status), at most 280 pt wide | Same, on title-bar tabs and Agents view rows | 19 | — |
 | Click a row: select the tab and give that pane the keyboard | Same | 19 | — |
-| Pane minimap (tiles of the split layout) | Same, at the top of the card | 19 | — |
+| Pane minimap (tiles of the split layout) | Left out (the user, phase 22) | — | — |
 | Status message of a blocked program | herdr 0.9.5 sends no message. The card shows the last 3 lines of a blocked agent's screen instead | 19 | `pane.read {source:"visible"}` |
-| Tooltips with keycaps on chrome buttons | Native tooltips (`.help`) with the name and the shortcut, except the Agents button (its hover is the popover) | 19 | — |
+| Tooltips with keycaps on chrome buttons | Native tooltips (`.help`) with the name and the shortcut, except the Agents button (its hover is the panel) | 19 | — |
 
 ### Pane cards and layout
 
@@ -151,7 +151,7 @@ the snapshot.
 | Header 36 pt: program glyph, program name, folder in secondary text | Same | 12, 17 | — |
 | Four 22 pt buttons (split right, split down, zoom, close) on the focused card and on hover | Same | 17 | — |
 | Zoom disabled with one pane; a zoomed card shows only Restore (accent circle) and Close | Same | 17 | — |
-| Card context menu: Split Right, Down, Left, Up; Zoom; Move to New Tab; Move to Tab ▸; Move to New Workspace; Rename; Close | Same. Left and Up are a split then a swap | 17 | `pane.split`, `pane.swap`, `pane.move`, `pane.rename` |
+| Card context menu: Split Right, Down, Left, Up; Zoom; Move to New Tab; Move to Tab ▸; Move to New Workspace; Rename; Close | Same, but the moves are one submenu, Move Pane to Tab ▸ (the other tabs, New Tab, New Workspace). Left and Up are a split then a swap | 17 | `pane.split`, `pane.swap`, `pane.move`, `pane.rename` |
 | Dividers: 16 pt hit area over the 8 pt gap, resize cursor, live drag, sent on release | Same (and design: a grip on hover) | 17 | `layout.set_split_ratio` |
 | Double-click a divider: 0.5 | Same | 17 | `layout.set_split_ratio` |
 | Balance splits (⌃⌘=) | Same | 17 | `layout.set_split_ratio` |
@@ -169,9 +169,9 @@ the snapshot.
 
 | Rex feature | Oriel | P | herdr |
 |---|---|---|---|
-| Sections: commands, tabs, workspaces, sessions; fuzzy match with keywords | Same; sessions are the open pages, and Open Session… opens the sheet for the others | 20 | — |
+| Sections: commands, tabs, workspaces, sessions; fuzzy match with keywords | Same; sessions are the open pages, and Open Session… opens the panel for the others | 20 | — |
 | Rows 28 pt, accent selection, shortcut glyphs on the right, › for sub-pages, a footer with key hints | Same, without the footer (no hint text in the UI) | 20 | — |
-| Sub-pages: Change Session, Rename Tab, Rename Workspace, Rename Pane, Move Pane to Tab, Go to Directory, Insert Path, Appearance, Interface Style, Font Size, Cursor Style | Same, except Cursor Style (no such setting until the Settings window), Change Session (the Open Session sheet and the sidebar pages do that job) and Go to Directory and Insert Path (they open the system folder panel) | 20 | the write of each command |
+| Sub-pages: Change Session, Rename Tab, Rename Workspace, Rename Pane, Move Pane to Tab, Go to Directory, Insert Path, Appearance, Interface Style, Font Size, Cursor Style | Same, except Cursor Style (no such setting until the Settings window), Change Session (the Open Session panel and the sidebar pages do that job) and Go to Directory and Insert Path (they open the system folder panel) | 20 | the write of each command |
 | Live preview while a choice is highlighted (0.75 s) | Same, for Appearance and Interface Style | 20 | — |
 | Settings as commands ("Turn On Focus Follows Mouse") | Same, for the menu bar's toggles | 20 | — |
 | Go to Directory (⇧⌘G): browse folders, then `cd` in the pane | Same, with `NSOpenPanel` at the pane's folder, only when the pane runs only its shell | 20 | `pane.send_input` |
