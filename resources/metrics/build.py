@@ -306,6 +306,161 @@ def timeline(items, width=980):
     return "".join(out) + f'<p class="legend">Thin bars under a phase are its review agents: {legend}</p>'
 
 
+# ---------- workflow diagrams (plan/workflow.md, drawn by hand in a 980-wide grid) ----------
+
+def box(x, y, w, h, title, sub="", cls="b"):
+    """A rounded box with a title and muted lines under it (sub lines split on newlines), centered."""
+    lines = [(title, "t")] + [(s, "s") for s in sub.split("\n") if s]
+    y0 = y + h / 2 - (len(lines) - 1) * 7 + 4
+    t = "".join(f'<tspan x="{x + w / 2}" y="{y0 + i * 14}" class="{c}">{esc(s)}</tspan>'
+                for i, (s, c) in enumerate(lines))
+    return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="6" class="{cls}"/><text text-anchor="middle">{t}</text>'
+
+
+def group(x, y, w, h, title, minis):
+    """A dashed frame with a title and small boxes stacked inside: work that runs in parallel."""
+    out = [f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" class="g"/>'
+           f'<text x="{x + 10}" y="{y + 16}" class="t">{esc(title)}</text>']
+    out += [box(x + 10, y + 24 + i * 22, w - 20, 19, m, cls="k") for i, m in enumerate(minis)]
+    return "".join(out)
+
+
+def arrow(*pts, dash=False):
+    p = " ".join(f"{a},{b}" for a, b in pts)
+    return f'<polyline points="{p}" class="a{" d" if dash else ""}" marker-end="url(#wf-ah)"/>'
+
+
+def note(x, y, t, anchor="middle"):
+    return f'<text x="{x}" y="{y}" text-anchor="{anchor}" class="s">{esc(t)}</text>'
+
+
+def wf_svg(h, label, body):
+    return f'<svg viewBox="0 0 980 {h}" class="chart wf" role="img" aria-label="{esc(label)}">{"".join(body)}</svg>'
+
+
+def wf_run():
+    b = [box(20, 34, 140, 56, "1. Plan", "layout, mock-ups,\nphase files"), arrow((160, 62), (196, 62)),
+         group(200, 14, 200, 96, "2. Plan review (in parallel)", ["Consistency", "Ponytail", "Feasibility"]),
+         arrow((400, 62), (436, 62)), box(440, 34, 160, 56, "Fix and verify", "one fixer applies,\none verifier checks"),
+         arrow((520, 90), (520, 136)), note(528, 118, "push, start building", "start"),
+         # phases: two lanes either side of main; every phase pulls, rebases and pushes to main
+         f'<rect x="20" y="140" width="940" height="200" rx="8" class="g"/>',
+         f'<text x="30" y="158" class="t">3. Phases: one agent per phase; lanes run side by side</text>',
+         note(85, 200, "Main checkout"), note(85, 300, "Worktree"), note(85, 314, "../oriel-22"),
+         '<line x1="150" y1="248" x2="950" y2="248" class="m"/>', note(940, 242, "main", "end"),
+         note(940, 264, "git pull --rebase, push", "end"),
+         box(150, 172, 150, 46, "Phase 20", cls="k"), arrow((300, 195), (326, 195)),
+         box(330, 172, 100, 46, "Orchestrator", "check"), arrow((430, 195), (456, 195)),
+         box(460, 172, 150, 46, "Phase 21", cls="k"), arrow((610, 195), (636, 195)),
+         box(640, 172, 100, 46, "Orchestrator", "check"),
+         box(150, 276, 330, 46, "Phase 22", "runs while 20 and 21 run", cls="k"), arrow((480, 299), (506, 299)),
+         box(510, 276, 100, 46, "Orchestrator", "check")]
+    b += [arrow((x, 218), (x, 245), dash=True) for x in (190, 260, 500, 570)]
+    b += [arrow((x, 276), (x, 251), dash=True) for x in (200, 300, 420)]
+    b += [note(780, 200, "pushes go straight to", "start"), note(780, 214, "main as the work goes", "start"),
+          arrow((90, 340), (90, 370)),
+          box(20, 374, 140, 80, "4. Comment pass", "comments say why;\na script proves\nonly comments changed"),
+          arrow((160, 414), (186, 414)),
+          group(190, 364, 220, 96, "5. Final review (in parallel)", ["Ponytail, whole repo", "Bugs and edge cases",
+                                                                     "Spec vs docs"]),
+          arrow((410, 414), (436, 414)),
+          group(440, 364, 260, 96, "6. Fixers (in parallel, disjoint files)", ["App and kit (main checkout)",
+                                                                              "UI tests (worktree)", "Docs (worktree)"]),
+          arrow((700, 414), (726, 414)),
+          box(730, 374, 230, 80, "7. Metrics and report", "build.py rebuilds this page;\nreport to the user")]
+    return wf_svg(470, "The whole run", b)
+
+
+def wf_phase():
+    steps = [("Pull and read", "plan, phase file,\nearlier Findings"), ("Spike herdr", "five minutes: calls,\nfocus, defaults"),
+             ("Build", "small commits,\npush as you go"), ("Rough screenshot", "to the orchestrator\n(new views only)"),
+             ("Single e2e runs", "only the tests the\nphase adds or changes"), ("Self-review", "read the diff")]
+    b = []
+    for i, (t, s) in enumerate(steps):
+        x = 20 + i * 158
+        b.append(box(x, 24, 136, 60, f"{i + 1}. {t}", s))
+        if i:
+            b.append(arrow((x - 22, 54), (x - 4, 54)))
+    b += [arrow((878, 84), (878, 106), (115, 106), (115, 130)),
+          group(20, 134, 190, 92, "Round 1 (in parallel)", ["Spec", "Ponytail", "E2E / visual"]),
+          arrow((210, 180), (241, 180)), box(245, 152, 160, 56, "Fix", "every blocker and should;\nanswer each nit"),
+          arrow((405, 180), (436, 180)),
+          box(440, 152, 180, 56, "Round 2 and later", "spec alone; e2e only if\nits own blocker was fixed"),
+          arrow((530, 152), (530, 132), (325, 132), (325, 148)), note(428, 126, "findings: fix again"),
+          arrow((620, 180), (651, 180)), note(636, 172, "clean"),
+          box(655, 152, 150, 56, "Full make e2e", "once, after the last\nchange; CI green"),
+          arrow((805, 180), (826, 180)), box(830, 152, 130, 56, "Findings, metrics", "plan/metrics/NN.json,\nreport"),
+          note(20, 244, "Small phases: round 1 only.", "start"),
+          arrow((895, 208), (895, 252)),
+          box(810, 256, 150, 56, "Orchestrator check", "diff, CI, tests,\nscreenshots, Findings"),
+          arrow((885, 312), (885, 342)), note(893, 330, "pass", "start"), box(825, 346, 120, 30, "Next phase", cls="k"),
+          arrow((810, 284), (325, 284), (325, 212)), note(568, 278, "fail: a numbered list back to the phase agent")]
+    return wf_svg(390, "Inside one phase", b)
+
+
+WF_MATRIX = [  # (role, [plan review, round 1, later rounds, final review]); 2 = yes, 1 = only if, 0 = no
+    ("Spec", [2, 2, 2, 2], ["as consistency", "", "alone", "with bugs"]),
+    ("E2E / visual", [0, 2, 1, 0], ["", "", "if its blocker was fixed", ""]),
+    ("Ponytail", [2, 2, 0, 2], ["", "", "", "whole repo"]),
+    ("Verifier", [2, 0, 0, 0], ["checks the fixes", "", "", ""]),
+]
+
+
+def wf_reviews(roles):
+    by = {s["role"]: s for s in roles}
+    cols = ["Plan review", "Round 1", "Later rounds", "Final review"]
+    b = [note(110 + 110 * (i + 1), 26, c) for i, c in enumerate(cols)] + [note(620, 26, "Measured (tables below)", "start")]
+    for r, (role, marks, why) in enumerate(WF_MATRIX):
+        y = 56 + r * 48
+        b.append(f'<text x="20" y="{y + 4}" class="t">{esc(role)}</text>')
+        for i, (m, w) in enumerate(zip(marks, why)):
+            cx = 110 + 110 * (i + 1)
+            b.append(f'<circle cx="{cx}" cy="{y}" r="8" class="{"on" if m == 2 else "off"}"/>'
+                     + (f'<path d="M{cx},{y - 8}a8,8 0 0,0 0,16z" class="on"/>' if m == 1 else "")
+                     + (note(cx, y + 22, w) if w else ""))
+        s = by.get(role)
+        if s:
+            b += [note(620, y, f"{s['count']} runs · median {f1(s['median_min'])} min · {s['genuine']} findings stuck",
+                       "start"),
+                  note(620, y + 15, f"value 4–5: {pct(s['r1']['high'])} of round 1, {pct(s['later']['high'])} later",
+                       "start")]
+    y = 56 + len(WF_MATRIX) * 48
+    b += [f'<circle cx="26" cy="{y - 4}" r="6" class="on"/>', note(38, y, "yes", "start"),
+          f'<circle cx="86" cy="{y - 4}" r="6" class="off"/><path d="M86,{y - 10}a6,6 0 0,0 0,12z" class="on"/>',
+          note(98, y, "only if", "start"), f'<circle cx="166" cy="{y - 4}" r="6" class="off"/>',
+          note(178, y, "no. Plan review also runs Feasibility.", "start")]
+    return wf_svg(y + 16, "Reviews: who and when", b)
+
+
+def wf_gui():
+    b = [f'<text x="20" y="46" class="t">Mac: the GUI lock</text>', note(20, 60, "/tmp/oriel-gui.lock", "start"),
+         box(170, 28, 120, 36, "Agent A: 1 run", cls="k"), box(310, 28, 100, 36, "Agent B: 1 run", cls="k"),
+         box(430, 28, 120, 36, "Agent A: 1 run", cls="k"),
+         box(580, 28, 380, 36, "User at the Mac", "the orchestrator holds the lock for the user", cls="u"),
+         note(360, 82, "one run per hold, at most 10 minutes, released in the same command"),
+         arrow((770, 64), (770, 98), dash=True), note(778, 86, "everything runs on CI", "start"),
+         f'<text x="20" y="146" class="t">CI: 5 macOS runners</text>']
+    for i in range(5):
+        y = 104 + i * 20
+        b.append(note(160, y + 12, str(i + 1), "end") + f'<line x1="170" y1="{y + 16}" x2="960" y2="{y + 16}" class="m"/>')
+    b += [box(x, 104 + r * 20, 90, 16, "ad-hoc", cls="b") for x, r in ((190, 0), (330, 1), (450, 0), (860, 4))]
+    b += [box(600, 104 + r * 20, 250, 16, f"full run, shard {r + 1}", cls="k") for r in range(4)]
+    b += [note(370, 224, "ad-hoc run: one test (gh workflow run ci.yml -f only_testing=…)"),
+          note(725, 224, "full run: 4 shards side by side, about 6 minutes")]
+    return wf_svg(236, "GUI and CI", b)
+
+
+def workflow(roles):
+    return ("<h2>How we build: the workflow</h2><p class=mut>The playbook in "
+            "<a href='../../plan/workflow.md'>plan/workflow.md</a>, drawn. Dashed frames run in parallel; "
+            "filled boxes are agents at work.</p>"
+            '<svg width="0" height="0" style="position:absolute"><defs><marker id="wf-ah" viewBox="0 0 10 10" '
+            'refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" '
+            'class="ah"/></marker></defs></svg>'
+            "<h3>The whole run</h3>" + wf_run() + "<h3>Inside one phase</h3>" + wf_phase()
+            + "<h3>Reviews: who and when</h3>" + wf_reviews(roles) + "<h3>GUI and CI</h3>" + wf_gui())
+
+
 CSS = """
 :root{--bg:#fafafa;--fg:#1d1d1f;--mut:#6e6e73;--card:#fff;--line:#e3e3e8;--bar:#4f7cff;--ph:#c9d6ff;--phf:#1d2b5a}
 @media (prefers-color-scheme:dark){:root{--bg:#161618;--fg:#f2f2f4;--mut:#9a9aa2;--card:#1f1f22;--line:#333338;
@@ -330,6 +485,11 @@ border-radius:2px;margin-right:4px}.pill{white-space:nowrap;padding:2px 8px;bord
 .Cheapkeep{background:#e0a02033;color:#b07a00}.Addslittle{background:#e0605033;color:#d04a3a}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin:8px 0}
 summary{cursor:pointer;font-weight:600}li{margin:4px 0}.ok{color:#2fb07a}.bad{color:#e06050}
+a{color:var(--bar)}h3{font-size:15px;margin:20px 0 8px}.wf{margin-bottom:6px}.wf text{font-size:12px;fill:var(--fg)}
+.wf .t{font-weight:600}.wf .s{font-size:11px;fill:var(--mut);font-weight:400}.wf .b{fill:var(--card);stroke:var(--mut)}
+.wf .k{fill:var(--ph);stroke:none}.wf .u{fill:var(--line);stroke:none}.wf .g{fill:none;stroke:var(--mut);stroke-dasharray:5 4}
+.wf .a{fill:none;stroke:var(--mut);stroke-width:1.4}.wf .d{stroke-dasharray:4 3}.wf .m{stroke:var(--line)}
+.ah{fill:var(--mut)}.wf .on{fill:var(--bar)}.wf .off{fill:none;stroke:var(--mut);stroke-width:1.4}
 """
 
 
@@ -369,10 +529,11 @@ def page(items, total, roles):
     h = [f"<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content='width=device-width'>"
          f"<title>Oriel UI polish: metrics</title><style>{CSS}</style><main>"
          f"<h1>Oriel UI polish: how the phases went</h1><p class=sub>Phases {esc(first)}–{esc(last)}, "
-         f"built from plan/metrics/*.json, git and GitHub Actions. Generated {datetime.now():%Y-%m-%d %H:%M}.</p>"
+         f"built from plan/metrics/*.json, git and GitHub Actions. Generated {datetime.now():%Y-%m-%d %H:%M}. "
+         "How we work: <a href='../../plan/workflow.md'>plan/workflow.md</a>.</p>"
          "<h2>Totals</h2><div class=cards>"]
     h += [f"<div class=card><b>{esc(v)}</b><span>{esc(t)}</span></div>" for v, t in cards]
-    h.append("</div>")
+    h.append("</div>" + workflow(roles))
 
     # per phase table
     h.append("<h2>Each phase</h2><div class=wrap><table><tr><th>Phase</th><th class=l>Agent</th><th>Time</th>"
