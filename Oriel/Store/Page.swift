@@ -8,7 +8,6 @@
     @MainActor @Observable
     final class Page: Identifiable {
         let store: HostStore
-        /// The window's terminals.
         let terminals: PaneViewRegistry
         /// The app's own selection, never herdr's focus (D13).
         var selectedWorkspaceID: String?

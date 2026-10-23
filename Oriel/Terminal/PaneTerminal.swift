@@ -379,6 +379,7 @@
             $0.withCustom("macos-option-as-alt", "false")
         }
 
+        /// Reads the stored size, not a caller's copy: SwiftUI keeps a shortcut's first action (phase 11 Findings).
         static func stepFontSize(_ step: Int) {
             let defaults = UserDefaults.standard
             let size = clamped(defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step

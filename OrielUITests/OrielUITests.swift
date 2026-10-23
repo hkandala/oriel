@@ -180,7 +180,8 @@ extension OrielUITests {
         return try XCTUnwrap(pane?["terminal_id"] as? String)
     }
 
-    /// `probe` every 100 ms until it gives a value; the test fails after `times` tries.
+    /// `probe` every 100 ms until it gives a value (a predicate expectation checks only about once a second); the
+    /// test fails after `times` tries.
     @discardableResult
     func poll<Value>(_ what: String, times: Int = 50,
                      _ probe: () async throws -> Value?) async throws -> Value

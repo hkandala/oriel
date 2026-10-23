@@ -2,7 +2,6 @@ import Foundation
 import HerdrKit
 import Testing
 
-/// The repository's root, five levels up from this file.
 private let root = URL(filePath: #filePath).appending(path: "../../../../..").standardized
 
 private let catalog: [ProgramIcon] = {

@@ -202,8 +202,8 @@
             MainActor.assumeIsolated {
                 pendingHints?.cancel()
                 let command = event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command
-                // ponytail: any key window of the app, so every window's bar shows keycaps; check this bar's own
-                // window if that matters.
+                // ponytail: any key window of the app, so ⌘ held in one window lights every window's keycaps;
+                // compare event.window to this bar's window to stop that.
                 if event.type == .flagsChanged, command, event.window?.isKeyWindow == true {
                     pendingHints = Task {
                         try? await Task.sleep(for: .milliseconds(700))
