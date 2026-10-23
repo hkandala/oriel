@@ -27,8 +27,7 @@
 
             override func viewDidMoveToWindow() {
                 super.viewDidMoveToWindow()
-                observers.forEach(NotificationCenter.default.removeObserver)
-                observers = []
+                stop()
                 guard let window else { return }
                 pages?.window = window
                 let center = NotificationCenter.default
@@ -37,8 +36,7 @@
                     MainActor.assumeIsolated {
                         self?.pages?.closed()
                         // The view may go away without leaving its window first.
-                        self?.observers.forEach(NotificationCenter.default.removeObserver)
-                        self?.observers = []
+                        self?.stop()
                     }
                 })
                 let notifications = [NSWindow.willEnterFullScreenNotification: true,
@@ -71,6 +69,11 @@
                         window.toggleFullScreen(nil)
                     }
                 }
+            }
+
+            private func stop() {
+                observers.forEach(NotificationCenter.default.removeObserver)
+                observers = []
             }
 
             private func buttons(of window: NSWindow) -> [NSButton] {

@@ -11,7 +11,8 @@
         @State private var draft = ""
         /// A dragged pane over this card: an edge, or the center (`.some(nil)`).
         @State private var zone: Heading??
-        @State private var size = CGSize.zero
+        /// In the window, for drop zones and the drag image.
+        @State private var frame = CGRect.zero
         @FocusState private var renaming: Bool
         @Environment(\.zoomedAway) private var zoomedAway
         @Environment(\.appearsActive) private var active
@@ -36,14 +37,14 @@
                 header(pane, zoomed: zoomed, showsButtons: lit || hovering || zoomed).opacity(content)
                 Group {
                     if let terminal {
-                        // Rex's text starts 11.5 pt in from the card's edge.
+                        // Rex's text starts 12 pt in from the card's edge.
                         TerminalCard(terminal: terminal, watched: page.watched, alpha: content)
                             .overlay {
                                 if let find = page.find, find.paneID == id {
                                     FindHighlights(find: find, terminal: terminal)
                                 }
                             }
-                            .padding(.horizontal, 11).padding(.bottom, gap)
+                            .padding(.horizontal, 10).padding(.bottom, gap)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -80,7 +81,7 @@
             .opacity(page.dragging == .pane(id) ? 0.4 : 1)
             .overlay(alignment: .topLeading) {
                 if let zone, page.dragging != nil {
-                    let half = CGSize(width: size.width / 2, height: size.height / 2)
+                    let size = frame.size, half = CGSize(width: size.width / 2, height: size.height / 2)
                     DropIndicator()
                         .frame(width: zone == .left || zone == .right ? half.width : size.width,
                                height: zone == .up || zone == .down ? half.height : size.height)
@@ -88,8 +89,8 @@
                         .transition(.opacity)
                 }
             }
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
-            .onDrop(of: [.orielDrag], delegate: CardDrop(paneID: id, page: page, size: size, zone: $zone))
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+            .onDrop(of: [.orielDrag], delegate: CardDrop(paneID: id, page: page, size: frame.size, zone: $zone))
             .clearsDrop(page) { zone = nil }
             .onHover { hovering = $0 }
             .task(id: follow) {
@@ -117,7 +118,7 @@
         private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool) -> some View {
             // The label wins; else the program in primary text and the folder in secondary, as in Rex ("zsh ~").
             let (name, folder) = pane?.header ?? (nil, "terminal")
-            return HStack(spacing: 4) {
+            return HStack(spacing: 3) {
                 // Clicks pass through to the header's double-click.
                 ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
                 if page.renamingPaneID == id {
@@ -156,7 +157,8 @@
             // Behind the header, so its buttons still take their own clicks.
             .background {
                 Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) }
-                    .dragSource(.pane(id), page: page)
+                    // The drag image is the whole card.
+                    .dragSource(.pane(id), page: page, preview: frame)
             }
             .contextMenu {
                 CommandItems(commands: CommandList.pane(page) { pane }, sections: [.pane, .paneMove, .close])

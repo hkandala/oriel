@@ -79,7 +79,7 @@ struct Look {
 
     /// Text and glyphs of the title row and the sidebar, a step dimmer than primary text as in Rex.
     var chrome: Color {
-        dark ? .white.opacity(0.65) : .black.opacity(0.65)
+        (dark ? Color.white : .black).opacity(0.65)
     }
 
     /// A divider between tabs, as in Rex.
@@ -89,12 +89,12 @@ struct Look {
 
     /// The selected tab's and workspace row's title.
     var selected: Color {
-        dark ? .white.opacity(0.9) : .black.opacity(0.9)
+        (dark ? Color.white : .black).opacity(0.9)
     }
 
     /// A card header's buttons, dimmer than the title row's.
     var paneButton: Color {
-        dark ? .white.opacity(0.33) : .black.opacity(0.33)
+        (dark ? Color.white : .black).opacity(0.33)
     }
 
     var working: Color {
@@ -190,7 +190,7 @@ struct Pill<S: InsettableShape>: View {
 struct ChromeStyle: ButtonStyle {
     var selected = false
     var radius: CGFloat = 8
-    /// How far inside the hit area the fills are drawn (a tab's capsule inside its track).
+    /// How far above and below the hit area's edges the fills are drawn (a tab's capsule inside its track).
     var inset: CGFloat = 0
     /// The selected fill; the look's pill when nil.
     var tint: Color?
@@ -206,19 +206,22 @@ struct ChromeStyle: ButtonStyle {
         @Environment(\.isEnabled) private var enabled
 
         var body: some View {
-            let full = RoundedRectangle(cornerRadius: style.radius, style: .continuous)
-            let shape = full.inset(by: style.inset)
+            let shape = RoundedRectangle(cornerRadius: style.radius - style.inset, style: .continuous)
             configuration.label
-                .contentShape(full)
+                .contentShape(.rect(cornerRadius: style.radius))
                 .background {
-                    if !style.selected {
-                        // The same in both styles, and they follow the appearance by themselves (D44).
-                        shape.fill(.primary.opacity(configuration.isPressed ? 0.08 : hovering && enabled ? 0.05 : 0))
-                    } else if let tint = style.tint {
-                        shape.fill(tint)
-                    } else {
-                        Pill(shape: shape)
+                    Group {
+                        if !style.selected {
+                            // The same in both styles, and they follow the appearance by themselves (D44).
+                            let strength = configuration.isPressed ? 0.08 : hovering && enabled ? 0.05 : 0
+                            shape.fill(.primary.opacity(strength))
+                        } else if let tint = style.tint {
+                            shape.fill(tint)
+                        } else {
+                            Pill(shape: shape)
+                        }
                     }
+                    .padding(.vertical, style.inset)
                 }
                 .opacity(enabled ? 1 : 0.4)
                 .animation(.easeOut(duration: 0.14), value: hovering)
@@ -289,7 +292,7 @@ struct IconButton: View {
     let help: String
     var key: KeyboardShortcut?
     var size: CGFloat = 28
-    /// Accent on a faint accent circle (a zoomed card's Restore), as in Rex.
+    /// A muted accent glyph on a faint accent circle (a zoomed card's Restore), as in Rex.
     var accent = false
     let action: () -> Void
 
@@ -297,13 +300,14 @@ struct IconButton: View {
         let help = key.map { "\(help) \($0.glyphs)" } ?? help
         Button(action: action) {
             Image(systemName: symbol)
-                .fontWeight(.medium)
+                // Card headers' 22 pt buttons: Rex's 11 pt regular glyphs.
+                .font(size < 28 ? .system(size: 11) : .body.weight(.medium))
                 // The surrounding style: the look's chrome, or a card header's buttons.
-                .foregroundStyle(accent ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                .foregroundStyle(accent ? AnyShapeStyle(.tint.opacity(0.6)) : AnyShapeStyle(.primary))
                 .frame(width: size, height: size)
                 .background {
                     if accent {
-                        Circle().fill(.tint.opacity(0.15))
+                        Circle().fill(.tint.opacity(0.07))
                     }
                 }
         }

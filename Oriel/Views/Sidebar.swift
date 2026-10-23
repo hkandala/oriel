@@ -140,6 +140,8 @@
                 }
                 .padding(.leading, 22)
                 .padding(.trailing, 3)
+                // Rex's first row sits 31.5 pt below the header's baseline.
+                .padding(.bottom, 3)
                 .contentShape(.rect)
                 .contextMenu { ClosePage(page: page, pages: pages) }
                 if let agents {

@@ -190,8 +190,8 @@
         /// moves with Rex's spring after a click or a key, so the marker does too.
         private func marker(count: Int, width: CGFloat) -> some View {
             let offset = min(max(page.stripPage, 0), Double(max(count - 1, 0)))
-            return Pill(shape: RoundedRectangle(cornerRadius: Self.radius, style: .continuous).inset(by: Self.inset))
-                .frame(width: width, height: Self.height)
+            return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
+                .frame(width: width, height: Self.height - 2 * Self.inset)
                 .offset(x: offset * (width + 1))
                 .allowsHitTesting(false)
         }

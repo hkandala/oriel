@@ -45,10 +45,11 @@ extension OrielUITests {
         // Not herdr's 50 / 25 / 25.
         let panes = try await order(tab)
         try await expectWidths(tab, Dictionary(uniqueKeysWithValues: panes.map { ($0, 1.0 / 3) }))
-        // After the motion each terminal fits its card again (it holds its size while cards move).
+        // After the motion each terminal fits its card again, 10 pt in from each side (it holds its size while cards
+        // move).
         for pane in panes {
             try await poll("terminal \(pane) fits its card") { () async throws -> Bool? in
-                abs(element("terminal.\(pane)").frame.width - (element("pane.\(pane)").frame.width - 2 * 8)) <= 2
+                abs(element("terminal.\(pane)").frame.width - (element("pane.\(pane)").frame.width - 2 * 10)) <= 2
                     ? true : nil
             }
         }
