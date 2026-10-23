@@ -59,7 +59,18 @@ extension OrielUITests {
         let still = try await order(tab)
         XCTAssertEqual(still, [first, second])
 
+        // The same refused move onto a workspace row: only the row's spring-load selects beta.
+        XCTAssertTrue(element("pane.\(third)").exists(within: 3))
+        drag(third, to: element("workspace.w2").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), hold: 1.2)
+        XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
+        XCTAssertTrue(notice.staticTexts["The tab is zoomed in herdr"].exists(within: 3))
+        notice.buttons["notice.close"].click()
+        XCTAssertTrue(notice.vanishes(within: 2))
+        let unmoved = try await order(other)
+        XCTAssertEqual(unmoved, [third, fourth])
+
         try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "off"])
+        element("workspace.\(workspace(of: tab))").click()
         element("tab.\(tab)").click()
         XCTAssertTrue(element("pane.\(second)").exists(within: 3))
         drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
@@ -123,6 +134,25 @@ extension OrielUITests {
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
     }
 
+    func testDropsOnTopAndBottomEdgesStackThePanesAndOnThePlusMakeATab() async throws {
+        let (tabs, first) = try await newWorkspace("edges")
+        let tab = tabs[0], second = try await split(first)
+        restoreHerdrFocusAfter()
+        XCTAssertTrue(element("pane.\(second)").exists(within: 3))
+        // Bottom: out of the row and back in under its neighbor; top: over it.
+        drag(first, to: card(second, 0.5, 0.9))
+        try await expectStack(tab, [second, first])
+        drag(first, to: card(second, 0.5, 0.15))
+        try await expectStack(tab, [first, second])
+
+        // The `+`, as the track's end: a new tab in this workspace.
+        let terminal = try await terminalID(second)
+        drag(second, to: element("titlebar.new-tab").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        try await expect("the pane in a new tab of its workspace") {
+            try await place(of: terminal).map { $0.tab != tab && workspace(of: $0.tab) == workspace(of: tab) } == true
+        }
+    }
+
     func testDraggingTheThirdCapsuleFirstReordersHerdrsTabs() async throws {
         let tabs = try await newWorkspace("tabs", tabs: 3).tabs
         let third = element("tab.\(tabs[2])")
@@ -175,6 +205,14 @@ extension OrielUITests {
         return panes.first { $0["terminal_id"] as? String == terminal }.flatMap { pane in
             guard let id = pane["pane_id"] as? String, let tab = pane["tab_id"] as? String else { return nil }
             return (id, tab)
+        }
+    }
+
+    /// The tab is one split down, with these panes top to bottom.
+    private func expectStack(_ tab: String, _ panes: [String]) async throws {
+        try await expect("\(panes) stacked") {
+            let root = try await root(tab), order = try await order(tab)
+            return root["direction"] as? String == "down" && order == panes
         }
     }
 
