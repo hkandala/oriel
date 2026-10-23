@@ -249,9 +249,9 @@ Independent work runs in parallel, each agent in its own git worktree (`/Users/h
 pushing straight to `main` after `git pull --rebase`. Phase 22 runs next to phase 20 and then phase 21:
 phase 22 owns the `Look` token values and the sizes of the title row, tab bar, cards and sidebar; phases 20
 and 21 own their own views (palette; find bar, notices, empty states) and use the tokens. The GUI lock and
-the 5 CI macOS runners are shared. The final review starts when 21 and 22 are both done.
+the 5 CI macOS runners are shared. Phase 23 (comment pass) starts when 21 and 22 are both done; the final review after it.
 
-## After phase 22: final review and report (user's request)
+## After phase 23: final review and report (user's request)
 
 1. **Final whole-repo review**, read only, in parallel: a ponytail reviewer (unneeded complexity,
    duplication, dead code, abstractions, over-long files), a bugs and edge cases reviewer (races, leaks,
@@ -317,5 +317,6 @@ here what the user should check at the end.
 | 19 | phase19-hover-card | done | 18 commits, 2 rounds, 2h08m, mostly CI |
 | 20 | phase20-palette | done | 15 commits, 3 rounds, 2h08m |
 | 21 | | not started | |
-| 22 | | not started | |
+| 22 | phase22-visual-match | running | |
+| 23 | | not started | |
 | Final review | | not started | |
