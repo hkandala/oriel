@@ -14,7 +14,8 @@
         /// Centered under a tab capsule, 6 pt below the title row.
         static let under = PanelPlace(trigger: .bottom, panel: .top,
                                       offset: CGSize(width: 0, height: (TitleBar.height - TabBar.height) / 2 + 6))
-        /// Right of an Agents view row, 6 pt past the sidebar's edge: the rows' inset and the 8 pt handle lie between.
+        /// Right of an Agents view row, 6 pt past the sidebar's edge (over the first card): the rows' inset and the
+        /// 8 pt handle lie between.
         static let beside = PanelPlace(trigger: .topTrailing, panel: .topLeading,
                                        offset: CGSize(width: Sidebar.rowInsets.trailing + gap + 6, height: 0))
     }

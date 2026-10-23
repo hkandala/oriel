@@ -34,7 +34,12 @@
                 let center = NotificationCenter.default
                 let close = NSWindow.willCloseNotification
                 observers.append(center.addObserver(forName: close, object: window, queue: .main) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.pages?.closed() }
+                    MainActor.assumeIsolated {
+                        self?.pages?.closed()
+                        // The view may go away without leaving its window first.
+                        self?.observers.forEach(NotificationCenter.default.removeObserver)
+                        self?.observers = []
+                    }
                 })
                 let notifications = [NSWindow.willEnterFullScreenNotification: true,
                                      NSWindow.willExitFullScreenNotification: false]
@@ -43,15 +48,19 @@
                         MainActor.assumeIsolated { self?.changed(value) }
                     })
                 }
-                // AppKit lays the buttons out again on resizes, key changes and full screen: put them back each time.
-                for button in buttons(of: window) {
-                    let moved = NSView.frameDidChangeNotification
-                    observers.append(center.addObserver(forName: moved, object: button, queue: .main) { [weak self] _ in
-                        // A button moved in its own frame notification goes back: once more after AppKit's layout.
-                        MainActor.assumeIsolated { self?.placeButtons() }
-                        DispatchQueue.main.async { self?.placeButtons() }
-                    })
+                // AppKit lays the buttons out again on resizes, key changes and full screen: put them back each time,
+                // and once more after its layout (a button moved in its own frame notification goes back).
+                let place: @Sendable (Notification) -> Void = { [weak self] _ in
+                    MainActor.assumeIsolated { self?.placeButtons() }
+                    DispatchQueue.main.async { self?.placeButtons() }
                 }
+                for button in buttons(of: window) {
+                    observers.append(center.addObserver(forName: NSView.frameDidChangeNotification, object: button,
+                                                        queue: .main, using: place))
+                }
+                // Leaving full screen, the window still says full screen until it is out.
+                observers.append(center.addObserver(forName: NSWindow.didExitFullScreenNotification, object: window,
+                                                    queue: .main, using: place))
                 placeButtons()
                 // After SwiftUI's update, which may not change state.
                 let full = window.styleMask.contains(.fullScreen)
@@ -68,7 +77,7 @@
                 [.closeButton, .miniaturizeButton, .zoomButton].compactMap(window.standardWindowButton)
             }
 
-            /// Rex's traffic lights: centered on the title row at 22.5, 45.5 and 68.5 pt from the left (the compact
+            /// Rex's traffic lights: centered on the title row at 23, 46 and 69 pt from the left (the compact
             /// toolbar centers them at 19, 20). Public AppKit: plain frame changes of the standard buttons.
             private func placeButtons() {
                 guard let window, !window.styleMask.contains(.fullScreen) else { return }

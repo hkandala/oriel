@@ -9,8 +9,10 @@ extension OrielUITests {
         XCTAssertTrue(card.exists(within: connect))
         XCTAssertEqual(tab.frame.minX, card.frame.minX, accuracy: 1)
         for offset: CGFloat in [60, -60] {
+            let before = card.frame.minX
             let from = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             from.click(forDuration: 0.2, thenDragTo: from.withOffset(CGVector(dx: offset, dy: 0)))
+            XCTAssertTrue(until(1) { abs(card.frame.minX - before - offset) <= 2 }, "the drag resized nothing")
             XCTAssertTrue(until(1) { abs(tab.frame.minX - card.frame.minX) <= 1 }, "\(tab.frame) \(card.frame)")
         }
     }

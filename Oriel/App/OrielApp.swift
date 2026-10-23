@@ -198,9 +198,9 @@ struct OrielApp: App {
                     Detail(pages: pages, page: page)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                // Rex's collapse time; the toggle and ⌃⌘S only flip the value.
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: sidebar)
             }
+            // Rex's collapse time, for the title row too (tabs over the cards); the toggle and ⌃⌘S only flip the value.
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: sidebar)
             .hoverPanelHost()
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
             .overlay {
