@@ -70,7 +70,7 @@
         private static func lift(_ card: NSImage, from rect: NSRect,
                                  under point: NSPoint) -> (frame: NSRect, image: NSImage)
         {
-            let scale = min(1, 280 / rect.width), margin: CGFloat = 16
+            let scale = min(1, 280 / rect.width), margin: CGFloat = 20
             let size = NSSize(width: rect.width * scale, height: rect.height * scale)
             let frame = NSRect(x: point.x - (point.x - rect.minX) * scale - margin,
                                y: point.y - (point.y - rect.minY) * scale - margin,
@@ -221,23 +221,24 @@
             onChange(of: page.dragging == nil) { clear() }
         }
 
-        /// Starts a drag of `item` after 4 pt; the view's frame is the preview unless `preview` (in the window) says.
-        func dragSource(_ item: Dragged, page: Page, preview: CGRect? = nil) -> some View {
-            modifier(DragSourceModifier(item: item, page: page, preview: preview))
+        /// Starts a drag of `item` after 4 pt; the view's frame is the preview, or `previewSize` from its top left.
+        func dragSource(_ item: Dragged, page: Page, previewSize: CGSize? = nil) -> some View {
+            modifier(DragSourceModifier(item: item, page: page, previewSize: previewSize))
         }
     }
 
     private struct DragSourceModifier: ViewModifier {
         let item: Dragged
         let page: Page
-        let preview: CGRect?
+        let previewSize: CGSize?
         @State private var frame = CGRect.zero
 
         func body(content: Content) -> some View {
             content
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
                 .simultaneousGesture(DragGesture(minimumDistance: 4).onChanged { _ in
-                    DragSource.begin(item, page: page, frame: preview ?? frame)
+                    let preview = CGRect(origin: frame.origin, size: previewSize ?? frame.size)
+                    DragSource.begin(item, page: page, frame: preview)
                 })
         }
     }

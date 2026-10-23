@@ -11,8 +11,7 @@
         @State private var draft = ""
         /// A dragged pane over this card: an edge, or the center (`.some(nil)`).
         @State private var zone: Heading??
-        /// In the window, for drop zones and the drag image.
-        @State private var frame = CGRect.zero
+        @State private var size = CGSize.zero
         @FocusState private var renaming: Bool
         @Environment(\.zoomedAway) private var zoomedAway
         @Environment(\.appearsActive) private var active
@@ -81,7 +80,7 @@
             .opacity(page.dragging == .pane(id) ? 0.4 : 1)
             .overlay(alignment: .topLeading) {
                 if let zone, page.dragging != nil {
-                    let size = frame.size, half = CGSize(width: size.width / 2, height: size.height / 2)
+                    let half = CGSize(width: size.width / 2, height: size.height / 2)
                     DropIndicator()
                         .frame(width: zone == .left || zone == .right ? half.width : size.width,
                                height: zone == .up || zone == .down ? half.height : size.height)
@@ -89,8 +88,8 @@
                         .transition(.opacity)
                 }
             }
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
-            .onDrop(of: [.orielDrag], delegate: CardDrop(paneID: id, page: page, size: frame.size, zone: $zone))
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+            .onDrop(of: [.orielDrag], delegate: CardDrop(paneID: id, page: page, size: size, zone: $zone))
             .clearsDrop(page) { zone = nil }
             .onHover { hovering = $0 }
             .task(id: follow) {
@@ -157,8 +156,8 @@
             // Behind the header, so its buttons still take their own clicks.
             .background {
                 Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) }
-                    // The drag image is the whole card.
-                    .dragSource(.pane(id), page: page, preview: frame)
+                    // The drag image is the whole card: the header starts at its top left.
+                    .dragSource(.pane(id), page: page, previewSize: size)
             }
             .contextMenu {
                 CommandItems(commands: CommandList.pane(page) { pane }, sections: [.pane, .paneMove, .close])
