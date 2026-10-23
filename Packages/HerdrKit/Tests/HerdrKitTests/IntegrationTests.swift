@@ -29,13 +29,8 @@ private let herdrInstalled: @Sendable () async -> Bool = { await shell("which", 
 private func withSession(_ exec: any Exec, _ body: (HerdrClient) async throws -> Void) async throws {
     let session = "oriel-e2e-\(UUID().uuidString.prefix(6).lowercased())"
     try #require(await shell(script, "up", session) == 0)
-    do {
-        try await body(HerdrClient(session: session, exec: exec))
-    } catch {
-        await shell(script, "down", session)
-        throw error
-    }
-    await shell(script, "down", session)
+    defer { await shell(script, "down", session) }
+    try await body(HerdrClient(session: session, exec: exec))
 }
 
 /// Counts `events.subscribe` requests, so a test can tell a read caused by an event from one after
@@ -170,11 +165,6 @@ private struct NewWorkspace: Decodable {
     let root_pane: Pane // swiftlint:disable:this identifier_name
 }
 
-private struct Read: Decodable {
-    struct Text: Decodable { let text: String }
-    let read: Text
-}
-
 /// How a stream ends, past its frames.
 private func closedReason(_ events: inout AsyncStream<TerminalStream.Event>.Iterator) async -> TerminalStream.Closed? {
     while let event = await events.next() {
@@ -198,14 +188,13 @@ private func control(_ client: HerdrClient) async throws {
         let control = try await client.terminal(terminal, cols: 60, rows: 12)
         var events = control.events.makeAsyncIterator()
         guard case let .frame(first)? = await events.next() else { throw HerdrError.failed("no first frame") }
-        #expect(first.full && first.width == 60 && first.height == 12)
+        #expect(first.width == 60 && first.height == 12)
 
         control.input("echo oriel-$((6*7)); stty size\r")
         var text = ""
         for _ in 0 ..< 50 where !text.contains("12 60") {
             try await Task.sleep(for: .milliseconds(100))
-            text = try await (client.call("pane.read", ["pane_id": pane.pane_id, "source": "visible"]) as Read)
-                .read.text
+            text = try await client.screen(pane.pane_id)
         }
         #expect(text.contains("oriel-42"))
         #expect(text.contains("12 60"))
@@ -213,7 +202,7 @@ private func control(_ client: HerdrClient) async throws {
         control.resize(cols: 70, rows: 15, cellWidth: 8, cellHeight: 17)
         var resized: TerminalStream.Frame?
         while resized == nil, case let .frame(frame)? = await events.next() {
-            resized = frame.full ? frame : nil
+            resized = frame.width == 70 ? frame : nil
         }
         #expect(resized?.width == 70 && resized?.height == 15)
 
@@ -224,7 +213,7 @@ private func control(_ client: HerdrClient) async throws {
         guard case let .frame(watched)? = await watcher.events.first(where: { _ in true }) else {
             throw HerdrError.failed("no observe frame")
         }
-        #expect(watched.full && watched.width == 60)
+        #expect(watched.width == 60)
         // observe ignores stdin's end; its wrapper ends it, though the pane prints nothing.
         let observer = try await "^\(client.herdr()) --session \(client.session) terminal session observe"
         #expect(await shell("pgrep", "-f", observer) == 0)

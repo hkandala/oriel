@@ -13,8 +13,6 @@ public struct TerminalStream: Sendable {
         /// The real PTY size on a `control` stream.
         public let width: Int
         public let height: Int
-        /// A full repaint: the first frame and the first after each resize.
-        public let full: Bool
         /// ANSI bytes, herdr's own rendering of the visible screen (no input modes).
         public let bytes: Data
     }
@@ -83,7 +81,7 @@ public struct TerminalStream: Sendable {
     static func event(_ line: String) -> Event? {
         struct Line: Decodable {
             let type: String
-            let width: Int?, height: Int?, full: Bool?
+            let width: Int?, height: Int?
             let bytes: String?, reason: String?
         }
         guard let line = try? JSONDecoder().decode(Line.self, from: Data(line.utf8)) else { return nil }
@@ -92,7 +90,7 @@ public struct TerminalStream: Sendable {
             guard let width = line.width, let height = line.height,
                   let bytes = line.bytes.flatMap({ Data(base64Encoded: $0) })
             else { return nil }
-            return .frame(Frame(width: width, height: height, full: line.full ?? false, bytes: bytes))
+            return .frame(Frame(width: width, height: height, bytes: bytes))
         case "terminal.closed":
             return .closed(Closed(reason: line.reason ?? ""))
         default:

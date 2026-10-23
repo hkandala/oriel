@@ -6,7 +6,7 @@ import Testing
 @Test func `reads frames and skips other lines`() {
     let line = #"{"type":"terminal.frame","seq":3,"encoding":"ansi","width":80,"height":24,"full":true,"#
         + #""bytes":"G1sySmhp"}"#
-    #expect(TerminalStream.event(line) == .frame(.init(width: 80, height: 24, full: true,
+    #expect(TerminalStream.event(line) == .frame(.init(width: 80, height: 24,
                                                        bytes: Data("\u{1B}[2Jhi".utf8))))
     #expect(TerminalStream.event(#"{"type":"terminal.frame","width":80,"height":24,"bytes":"%%"}"#) == nil)
     #expect(TerminalStream.event(#"{"type":"terminal.graphics"}"#) == nil)
