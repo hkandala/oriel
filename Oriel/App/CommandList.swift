@@ -39,13 +39,13 @@
                 Command(section: .close, title: "Close Tab", key: .init("w", modifiers: [.command, .option]),
                         symbol: "xmark.rectangle", enabled: tab != nil, action: {
                             if let page, let tab = page.selectedTab {
-                                page.store.closing = .tab(tab.id)
+                                page.closing = .tab(tab.id)
                             }
                         }),
                 Command(section: .close, title: "Close Workspace", symbol: "folder.badge.minus",
                         enabled: workspace != nil, action: {
                             if let page, let workspace = page.selectedWorkspace {
-                                page.store.closing = .workspace(workspace.id)
+                                page.closing = .workspace(workspace.id)
                             }
                         }),
                 Command(section: .close, title: "Close Page", symbol: "rectangle.stack.badge.minus",
@@ -298,7 +298,7 @@
                         page.renamingPaneID = pane.id
                     }
                 },
-                act("Close Pane", .closePane, .close, symbol: "xmark.square") { await $0.store.close(pane: $1.id) },
+                act("Close Pane", .closePane, .close, symbol: "xmark.square") { await $0.close(pane: $1.id) },
             ]
         }
     }

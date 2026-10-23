@@ -185,7 +185,7 @@
                     .accessibilityIdentifier("pane.\(id).zoom")
                     .disabled(!page.canZoom(id))
                 IconButton(symbol: "xmark", help: "Close Pane", key: .closePane, size: 22) {
-                    Task { await store.close(pane: id) }
+                    Task { await page.close(pane: id) }
                 }
                 .accessibilityIdentifier("pane.\(id).close")
             }

@@ -104,11 +104,11 @@
                 .onHover { inside in
                     insideBar = inside
                     // Not while the close dialog is up: a Return there keeps the pointer over the next ×.
-                    if !inside, page.store.closing == nil {
+                    if !inside, page.closing == nil {
                         settle()
                     }
                 }
-                .onChange(of: page.store.closing == nil) { _, closed in
+                .onChange(of: page.closing == nil) { _, closed in
                     if closed, !insideBar {
                         settle()
                     }
@@ -290,7 +290,7 @@
             .accessibilityValue([lit ? "in view" : nil, agent.flatMap { agent in
                 agent.state == .idle ? nil : "\(agent.agentName ?? "agent"), \(agent.state?.word ?? "")"
             }, "icons: " + stack.map(\.iconID).joined(separator: ", ")].compactMap(\.self).joined(separator: "; "))
-            .accessibilityAction(named: "Close Tab") { store.closing = .tab(tab.id) }
+            .accessibilityAction(named: "Close Tab") { page.closing = .tab(tab.id) }
             .hoverPanel(place: .under, action: "Show Panes") { close in
                 HoverCard(tabID: tab.id, page: page, close: close)
             }
@@ -324,7 +324,7 @@
                 if hovering, !renaming, width >= 52 {
                     Button {
                         closing()
-                        store.closing = .tab(tab.id)
+                        page.closing = .tab(tab.id)
                     } label: {
                         Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
                             .frame(width: 22, height: 22)
@@ -366,8 +366,8 @@
             Button("Move Tab Right") { Task { await store.move(tab: tab.id, by: 1) } }
                 .disabled(tabs.last?.id == tab.id)
             Divider()
-            Button("Close Tab") { store.closing = .tab(tab.id) }
-            Button("Close Other Tabs") { store.closing = .otherTabs(tabs.map(\.id).filter { $0 != tab.id }) }
+            Button("Close Tab") { page.closing = .tab(tab.id) }
+            Button("Close Other Tabs") { page.closing = .otherTabs(tabs.map(\.id).filter { $0 != tab.id }) }
                 .disabled(tabs.count < 2)
         }
 

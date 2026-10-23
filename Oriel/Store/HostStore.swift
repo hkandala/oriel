@@ -24,7 +24,6 @@ final class HostStore {
     var notice: Notice?
     /// A write in flight; the buttons wait for it.
     private(set) var writing = false
-    var closing: Close?
     /// Set while the session's page is in view in a visible window: git status runs only then (D67).
     var showsGit = false
 
@@ -313,9 +312,9 @@ extension HostStore {
         await write { try await $0.rename(workspace: workspaceID, label: label) }
     }
 
-    /// Closes a pane that runs only its shell; asks first when anything else runs (design D41).
-    func close(pane paneID: String) async {
-        guard let client else { return }
+    /// Closes a pane that runs only its shell; else the close to ask about (design D41), for the asking window.
+    func close(pane paneID: String) async -> Close? {
+        guard let client else { return nil }
         let program: String?
         do {
             program = try await client.program(paneID).flatMap { $0.isShell ? nil : $0.title }
@@ -324,10 +323,10 @@ extension HostStore {
             program = "A program"
         }
         if let program {
-            closing = .pane(paneID, program: program)
-        } else {
-            await write { try await $0.close(pane: paneID) }
+            return .pane(paneID, program: program)
         }
+        await write { try await $0.close(pane: paneID) }
+        return nil
     }
 
     /// The user said yes.

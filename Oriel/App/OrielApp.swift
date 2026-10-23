@@ -227,11 +227,11 @@ struct OrielApp: App {
                         )
                 }
             }
-            .confirmationDialog(dialog?.title ?? "", isPresented: Binding { store.closing != nil } set: {
+            .confirmationDialog(dialog?.title ?? "", isPresented: Binding { page.closing != nil } set: {
                 if !$0 {
-                    store.closing = nil
+                    page.closing = nil
                 }
-            }, titleVisibility: .visible, presenting: store.closing) { close in
+            }, titleVisibility: .visible, presenting: page.closing) { close in
                 Button(close.button, role: .destructive) {
                     Task { await store.close(close) }
                 }
@@ -308,7 +308,7 @@ struct OrielApp: App {
             let them = { (count: Int) in
                 "\(count == 1 ? "pane" : "\(count) panes") and everything running in \(count == 1 ? "it" : "them")"
             }
-            switch store.closing {
+            switch page.closing {
             case let .tab(id):
                 let tab = store.workspaces.flatMap(\.tabs).first { $0.id == id }
                 return ("Close the tab “\(tab.map(page.titleText) ?? id)”?", "Its " + them(panes([id])) + end)
@@ -316,7 +316,7 @@ struct OrielApp: App {
                 return ("Close \(others.count == 1 ? "the other tab" : "the \(others.count) other tabs")?",
                         "Their " + them(panes(others)) + end)
             case let .pane(id, program):
-                return ("Close “\(store.pane(id)?.title ?? id)”?", "\(program) is running in it" + end)
+                return ("Close “\(store.pane(id)?.title ?? id)”?", "\(program) is running in it and" + end)
             case let .workspace(id):
                 let workspace = store.workspaces.first { $0.id == id }
                 let worktrees = store.worktrees(of: id)

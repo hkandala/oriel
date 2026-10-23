@@ -100,7 +100,7 @@
             Button("Move Down") { Task { await store.move(workspace: workspace.id, by: 1) } }
                 .disabled(parent != nil || last)
             Divider()
-            Button("Close Workspace") { store.closing = .workspace(workspace.id) }
+            Button("Close Workspace") { page.closing = .workspace(workspace.id) }
         }
 
         /// Not while the session is stopped (a double-click too): the rename would fail.
