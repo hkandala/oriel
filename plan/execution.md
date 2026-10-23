@@ -306,6 +306,10 @@ here what the user should check at the end.
 - Phase 21: find highlights shift on wide characters; a find bar dropped while reconnecting or at quit
   leaves herdr scrolled; a new session that timed out and was retried gets no first workspace; a hung
   server shows Reconnecting only after 30–40 s.
+- Phase 22: composites of every element against Rex in `/tmp/oriel-shots/22/compare/`. Kept gaps: Rex's
+  tab track runs 1.5 pt past the first and last tab (ours lines up with the cards); Rex's Glass window
+  inner edge glow has no public API. Traffic lights are moved with public frame changes (re-applied after
+  layout and full screen).
 - The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
   at Glass Dark.
 
@@ -325,6 +329,6 @@ here what the user should check at the end.
 | 19 | phase19-hover-card | done | 18 commits, 2 rounds, 2h08m, mostly CI |
 | 20 | phase20-palette | done | 15 commits, 3 rounds, 2h08m |
 | 21 | phase21-find-finish | done | 17 commits, 4 rounds, 2h22m, ~25 min GUI lock + 1 full run |
-| 22 | phase22-visual-match | running | |
+| 22 | phase22-visual-match | done | 34 commits, 4 rounds, ~4h (incl. user additions); parallel worktree |
 | 23 | | not started | |
 | Final review | | not started | |
