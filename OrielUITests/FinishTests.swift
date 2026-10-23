@@ -4,10 +4,10 @@ import XCTest
 extension OrielUITests {
     func testSecondPagesServerStopsAndStartsAloneOnItsPage() async throws {
         let five = env("ORIEL_SESSION5")
-        try await running(five)
+        let (workspace, pane) = try await shown(running(five))
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPage(five)
-        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        XCTAssertTrue(element("workspace.\(workspace)").exists(within: connect))
 
         try await Self.post("\(five)/stop")
         let start = element("detail.start")
@@ -21,7 +21,7 @@ extension OrielUITests {
         element("sidebar.dot.\(five)").click()
         XCTAssertTrue(start.exists(within: 3))
         start.click()
-        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        XCTAssertTrue(element("terminal.\(pane)").exists(within: connect))
         XCTAssertFalse(start.exists)
         try await Self.snapshot(five)
     }
@@ -111,7 +111,10 @@ extension OrielUITests {
         try await expectHighlight("line 42", in: pane)
         // Centered, it sits rows above herdr's last row: herdr scrolled up to it.
         try await expect("herdr to center the match") { try await scrollOffset(pane) > 0 }
-        app.typeKey(.escape, modifierFlags: [])
+        // Its card leaving view closes it, and herdr's shared viewport goes back to the bottom.
+        element("tab.w2:t1").click()
+        XCTAssertTrue(field.vanishes(within: 2))
+        try await expect("herdr back at the bottom") { try await scrollOffset(pane) == 0 }
     }
 
     /// A new tab in view, its card with the keyboard, after `line 1` to `line 200`: its pane.

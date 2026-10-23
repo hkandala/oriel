@@ -6,9 +6,9 @@ import XCTest
 extension OrielUITests {
     func testStoppedSessionSaysSoAndComesBackWhenStartedAgain() async throws {
         let five = env("ORIEL_SESSION5")
-        try await running(five)
+        let (workspace, pane) = try await shown(running(five))
         relaunch(five)
-        let terminal = element("terminal.w1:p1")
+        let terminal = element("terminal.\(pane)")
         XCTAssertTrue(terminal.exists(within: connect))
         try await expect("its stream") { try await streams(five).count == 1 }
 
@@ -18,13 +18,13 @@ extension OrielUITests {
         XCTAssertFalse(terminal.exists)
         // Its last rows stay, without writes.
         // The button: its open context menu carries the same identifier.
-        let row = app.buttons["workspace.w1"]
+        let row = app.buttons["workspace.\(workspace)"]
         row.rightClick()
         XCTAssertFalse(app.menuItems["Rename Workspace"].isEnabled)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(app.menuItems["Rename Workspace"].vanishes(within: 2))
         row.doubleClick()
-        XCTAssertFalse(element("workspace.w1.rename").exists(within: 1))
+        XCTAssertFalse(element("workspace.\(workspace).rename").exists(within: 1))
         keepScreenshot("not running")
         try await expect("no stream") { try await streams(five).isEmpty }
 
@@ -33,9 +33,20 @@ extension OrielUITests {
         XCTAssertTrue(terminal.exists(within: 10))
         try await expect("one stream again") { try await streams(five).count == 1 }
         // Live updates are back: a tab made in herdr shows up.
-        let tab = try await id(Self.call(five, "tab.create", ["workspace_id": "w1", "label": "back", "cwd": "/tmp",
-                                                              "focus": false]), "tab")
+        let tab = try await id(Self.call(five, "tab.create", ["workspace_id": workspace, "label": "back",
+                                                              "cwd": "/tmp", "focus": false]), "tab")
         XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
+    }
+
+    /// A launch on a stopped session starts it: the window's first page always runs.
+    func testLaunchOnAStoppedSessionStartsIt() async throws {
+        let five = env("ORIEL_SESSION5")
+        let workspace = try await shown(running(five)).workspace
+        try await Self.post("\(five)/stop")
+        try await expect("five to stop") { await (try? Self.snapshot(five)) == nil }
+        relaunch(five)
+        XCTAssertTrue(element("workspace.\(workspace)").exists(within: connect))
+        try await Self.snapshot(five)
     }
 
     func testPaneClosedInHerdrDropsItsCardAndStream() async throws {

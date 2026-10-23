@@ -102,6 +102,16 @@ extension OrielUITests {
         return try await Self.snapshot(session)
     }
 
+    /// The session's first workspace and the pane of its active tab, which its page shows first. Tests close and make
+    /// five's workspaces, so its ids change from run to run.
+    func shown(_ snapshot: [String: Any]) throws -> (workspace: String, pane: String) {
+        let workspace: [String: Any] = try field((snapshot["workspaces"] as? [[String: Any]])?.first, "workspace")
+        let tab: String = try field(workspace["active_tab_id"], "active tab")
+        let panes = snapshot["panes"] as? [[String: Any]] ?? []
+        return try (field(workspace["workspace_id"], "workspace id"),
+                    field(panes.first { $0["tab_id"] as? String == tab }?["pane_id"], "pane of \(tab)"))
+    }
+
     func tabIDs() async throws -> [String] {
         try await Self.ids("tab", in: one)
     }
