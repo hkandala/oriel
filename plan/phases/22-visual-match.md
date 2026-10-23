@@ -110,7 +110,7 @@ picture of Classic light: it is compared with Rex's System light material file a
 | Agents button | all | (Rex: an eye) | chat bubbles | `list.bullet.rectangle`, filled while the Agents view is on (user) |
 | Machine button | all | (Rex's picker: icon and label) | icon and a chevron | icon only (user); the workspace button keeps its chevron: it is a text menu and looks balanced with it |
 | Pane drag image shape | all | (user) | the card's aspect, ≤ 280 pt | one 240 × 150 pt card, the card's top scaled to cover it |
-| Terminal palette | all | (user: macOS Terminal) | libghostty's Alabaster / Afterglow | Terminal.app's 16 ANSI colors, text `#1f1f1f` / `#e6e6e6`; white (light) and black (dark) entries are readable grays |
+| Terminal palette | all | (user) | libghostty's Alabaster / Afterglow | — : a Terminal.app palette was built and then reverted by the user; libghostty's defaults stay |
 | Program tiles | all | quieter (user's picture: Claude `#e4683f`) | the catalog's full colors | saturation 0.82, brightness −0.04 in `ProgramTile`, all 106 |
 | Open Session | all | (user: like the palette) | a sheet with a title, Cancel and Open | a glass panel at the top like the palette; Enter acts, Esc or a click outside closes; leading symbols plus / stack / checkmark |
 | Workspace row with no agent | all | (Rex shows a tile there) | an empty 14 pt slot | a 4 pt tertiary dot, in the sidebar and the workspace menu |
