@@ -90,16 +90,7 @@
                 }
                 .scrollIndicators(.never)
                 // Tabs that do not fit fade out at the edges instead of being cut.
-                .mask {
-                    HStack(spacing: 0) {
-                        LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
-                            .frame(width: 8)
-                        Rectangle()
-                        LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
-                            .frame(width: 16)
-                    }
-                    .padding(content > space ? 0 : -16)
-                }
+                .fadeEdges(.horizontal, start: content > space ? 8 : 0, end: content > space ? 16 : 0)
                 .frame(width: max(min(content, space), 0))
                 .onHover { inside in
                     insideBar = inside

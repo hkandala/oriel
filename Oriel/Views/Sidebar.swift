@@ -197,15 +197,7 @@
                     } action: {
                         under = ($1[0], $1[1])
                     }
-                    .mask {
-                        VStack(spacing: 0) {
-                            LinearGradient(colors: [under.top ? .clear : .black, .black], startPoint: .top,
-                                           endPoint: .bottom).frame(height: 18)
-                            Rectangle()
-                            LinearGradient(colors: [.black, under.bottom ? .clear : .black], startPoint: .top,
-                                           endPoint: .bottom).frame(height: 18)
-                        }
-                    }
+                    .fadeEdges(.vertical, start: under.top ? 18 : 0, end: under.bottom ? 18 : 0)
                 }
             }
         }

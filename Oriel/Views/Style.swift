@@ -273,13 +273,7 @@ struct FadeText: View {
         ViewThatFits(in: .horizontal) {
             text.fixedSize()
             text.fixedSize().frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                .mask {
-                    HStack(spacing: 0) {
-                        Rectangle()
-                        LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
-                            .frame(width: 16)
-                    }
-                }
+                .fadeEdges(.horizontal, start: 0, end: 16)
         }
         .lineLimit(1)
     }
@@ -326,6 +320,22 @@ extension View {
                     .onExitCommand { open.wrappedValue = false }
                 #endif
             }
+    }
+
+    /// Fades out over `start` pt at the leading or top edge and `end` pt at the other; 0 is no fade.
+    func fadeEdges(_ axis: Axis, start: CGFloat, end: CGFloat) -> some View {
+        let horizontal = axis == .horizontal
+        let (from, until): (UnitPoint, UnitPoint) = horizontal ? (.leading, .trailing) : (.top, .bottom)
+        let stack = horizontal ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
+        return mask {
+            stack {
+                LinearGradient(colors: [.clear, .black], startPoint: from, endPoint: until)
+                    .frame(width: horizontal ? start : nil, height: horizontal ? nil : start)
+                Rectangle()
+                LinearGradient(colors: [.black, .clear], startPoint: from, endPoint: until)
+                    .frame(width: horizontal ? end : nil, height: horizontal ? nil : end)
+            }
+        }
     }
 
     /// A value for tests, on a one-point text leaf: SwiftUI exposes no value on a container or a plain element. One
