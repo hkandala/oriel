@@ -30,9 +30,10 @@ tab), the app shows the button that makes it.
   (`observe`), dims its cards a little, and shows a bottom capsule "Controlled in another window" with
   **Take Back**. Two windows on different sessions each control their own session.
 - **Machine button** (title row, after the sidebar toggle): the machine's icon only: no chevron (phase 22, the
-  user), no name. Its menu lists the machines with icon and name, a checkmark on the current one, then "Add Remote Host…"
-  (a placeholder until remote machines are built). Picking a machine replaces the window's sessions with
-  that machine's. ⌥-click on a machine opens it in a new window; the menu does not show this as an item.
+  user), no name. Its menu lists the machines with icon and name, a checkmark on the current one, then "Add
+  Remote Host…" (a placeholder until remote machines are built). Picking a machine replaces the window's
+  sessions with that machine's. ⌥-click on a machine opens it in a new window; the menu does not show this as
+  an item.
 - Adding a remote host (later) asks for a name, the SSH target and an icon (laptop, desktop, server, cloud,
   chip, house, flask, game controller), because the button shows only the icon.
 
@@ -59,8 +60,8 @@ cards start. With the sidebar collapsed the items follow one another as before.
 6. Spacer.
 7. **Agents button**: a list of statuses (`list.bullet.rectangle`), filled while the Agents view is on (no
    highlight; phase 22, the user: the chat bubbles did not fit). An amber dot when an agent of the current
-   session needs you. A click (or ⌘.) toggles the Agents view; with the sidebar collapsed, a click opens the sidebar in the Agents view. No tooltip
-   (the hover popover takes its place).
+   session needs you. A click (or ⌘.) toggles the Agents view; with the sidebar collapsed, a click opens the
+   sidebar in the Agents view. No tooltip (the hover popover takes its place).
    - **Hover** (0.25 s): a popover under the button with a small header "Needs you · ‹session›" lists the
      agents of the current session that need you (same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
      does not change. With nobody waiting: "Nobody needs you". No footer text.
