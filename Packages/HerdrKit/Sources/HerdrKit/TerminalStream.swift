@@ -157,9 +157,9 @@ public extension HerdrClient {
         if observe {
             // observe ignores stdin's end, so a wrapper ends it then (design T6). The watcher lets go of stdout and
             // stderr, so a run that exits by itself (a failed handshake) ends the stream with its status and reason;
-            // fd 3 because a background job's stdin is /dev/null.
-            let wrapper = #"exec 3<&0; "$@" & c=$!; { cat <&3 >/dev/null; kill $c; } >/dev/null 2>&1 & "#
-                + "wait $c 2>/dev/null"
+            // fd 3 because a background job's stdin is /dev/null. The watcher goes too, so it never kills a reused pid.
+            let wrapper = #"exec 3<&0; "$@" & c=$!; { cat <&3 >/dev/null; kill $c; } >/dev/null 2>&1 & w=$!; "#
+                + "wait $c 2>/dev/null; s=$?; kill $w 2>/dev/null; exit $s"
             argv = ["sh", "-c", wrapper, "sh"] + argv
         } else if takeover {
             argv.append("--takeover")
