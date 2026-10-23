@@ -113,13 +113,9 @@ struct FilterList: View {
                     }
                     .scrollIndicators(.never)
                     .frame(height: min(rowsHeight, maxHeight))
-                    .onChange(of: index) {
-                        if items.indices.contains(index) {
-                            proxy.scrollTo(items[index].id)
-                        }
-                    }
-                    // Once the list has its height: a sub-page's lit choice may sit below the fold (Font Size).
-                    .onChange(of: rowsHeight > 0) {
+                    // A new lit row, and the lit row once the list has its height: a sub-page's may sit below the fold
+                    // (Font Size).
+                    .onChange(of: rowsHeight > 0 ? index : nil) {
                         if items.indices.contains(index) {
                             proxy.scrollTo(items[index].id)
                         }
