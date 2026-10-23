@@ -64,5 +64,6 @@ For phases 10–21, `plan/execution.md` replaces Roles and Phase loop below.
 - When running the app by hand against a real session, launch it with the throwaway session
   selected (`-session oriel-dev-<agent>` launch argument), never `default`.
 - Vercel: the docs deploy only through `.github/workflows/docs-deploy.yml` and the `oriel`
-  project. Run the `vercel` CLI only from the repo root (linked to `oriel`): in another folder,
+  project. Vercel's own git deploys are off (`docs/vercel.json`): with them on, every
+  push to main deployed (81 a day) and hit the free plan's 100 deploys a day. Run the `vercel` CLI only from the repo root (linked to `oriel`): in another folder,
   `vercel pull --yes` silently creates and links a new project.
