@@ -20,7 +20,6 @@
 
         /// Asked for the keyboard before it was in a window.
         var wantsKeyboard = false
-        /// Took the keyboard.
         var onKeyboard: (() -> Void)?
         /// Return, with or without modifiers, not repeated.
         var onReturn: (() -> Void)?

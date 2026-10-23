@@ -86,7 +86,7 @@
             end()
         }
 
-        /// The session is going away.
+        /// Its pane closed, or its page or window did: it is not used again.
         func close() {
             hide()
             tasks.forEach { $0.cancel() }
@@ -322,7 +322,7 @@
 
     extension PaneTerminal {
         enum State: Equatable {
-            /// No stream: not shown lately (D46), closed, or the pane is gone.
+            /// No stream, or one still opening (no frame yet): not shown lately (D46), closed, or the pane is gone.
             case idle
             case live
             /// Another client controls the pane: watch until the user acts (design D8).
@@ -360,7 +360,7 @@
 
     /// The text size and the one configuration every surface shares.
     extension PaneTerminal {
-        /// The text size setting (design: theme and accessibility).
+        /// The default text size (design: theme and accessibility).
         static let fontSize = 13
         static let fontSizes = 8 ... 32
 
@@ -379,7 +379,6 @@
             $0.withCustom("macos-option-as-alt", "false")
         }
 
-        /// Bigger or Smaller, from the stored value: the key monitor in `OrielApp.init` has no `@AppStorage`.
         static func stepFontSize(_ step: Int) {
             let defaults = UserDefaults.standard
             let size = clamped(defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step
