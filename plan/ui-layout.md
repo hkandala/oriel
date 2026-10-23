@@ -115,16 +115,16 @@ The strip under the title row still pages sideways between the selected workspac
 ## Open Session sheet
 
 The one place to create or open a session. The footer's Open Session button, the workspace menu's
-"Open Session…" and ⇧⌘N open it. The sheet is titled "Open Session".
+"Open Session…" and ⇧⌘N open it. A glass panel like the palette (phase 22, the user): no title, no buttons.
 - A text field ("Name a new session, or find one"), empty at first.
 - The list, filtered by the field, in groups with the headers "New", "Running", "Stopped" and "Open in this window":
   - **New**: "Create session “‹typed name›”" when the text is a valid new herdr name; with an empty field,
     "Create session “‹two-word name›”" with a suggested name.
   - **Running** sessions not open in this window and **Stopped** sessions; the sessions already open in this
     window last (Enter switches to their page). The rows carry no hint text: the group headers say it.
-- Arrows move, Enter or **Open** acts on the highlighted row: create and start a new session and open its
+- Arrows move, Enter or a click acts on a row: create and start a new session and open its
   page; open a running session as a new page (its store connects then); start a stopped session
-  (launchd job, D47) and open it as a new page; switch to a page that is already open. Cancel or Esc closes.
+  (launchd job, D47) and open it as a new page; switch to a page that is already open. Esc or a click outside closes.
 
 ## Moving panes, tabs and workspaces by drag and drop
 

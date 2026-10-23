@@ -41,7 +41,17 @@ they are not tokens. A card without the keyboard fades its header with its
 terminal.
 
 Terminals keep a transparent background, so the card shows through. Their
-text uses one light and one dark palette (libghostty-spm's defaults), which
+text uses macOS Terminal's look (user, phase 22), one palette per appearance:
+
+| | Light | Dark |
+|---|---|---|
+| Text, cursor | `#1f1f1f` | `#e6e6e6` |
+| Selection | `#b4d5fe` | `#3f638b` |
+| ANSI 0–7 | `#000000` `#c23621` `#25bc24` `#adad27` `#492ee1` `#d338d3` `#33bbc8` `#8c8c8c` | `#6e6e6e` `#c23621` `#25bc24` `#adad27` `#492ee1` `#d338d3` `#33bbc8` `#cbcccd` |
+| ANSI 8–15 | `#818383` `#fc391f` `#31e722` `#eaec23` `#5833ff` `#f935f8` `#14f0f0` `#6b6b6b` | `#818383` `#fc391f` `#31e722` `#eaec23` `#5833ff` `#f935f8` `#14f0f0` `#e9ebeb` |
+
+The colors are Terminal.app's 16; ANSI white (7, 15) on light cards and black
+(0) on dark ones are grays, so they stay readable on the card. Both palettes
 follow the appearance. A change updates every terminal without opening its
 stream again. Web pages are told the current `prefers-color-scheme`. There are
 no other themes.

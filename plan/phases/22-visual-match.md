@@ -106,9 +106,14 @@ picture of Classic light: it is compared with Rex's System light material file a
 | Keyboard card | Classic dark | no visible difference (both `#222`) | `#1f`, 0.8 pt white 0.1 stroke | kept (orchestrator): the fade marks it, phase 10's choice |
 | Header title, card without the keyboard | all | faded with the content (173 vs 229) | not faded | header fades with the terminal |
 | Selected vs other tabs | Glass dark | capsule +27 over the track, rim `#7d`/`#75`; titles 235 vs 177 (user's picture) | +27, rim `#77`/`#7b`; 236 vs 178 | — (system Liquid Glass capsule; already equal) |
-| Pane drag image | all | (Rex: the card lifts, rex-ui §8.9) | the header's snapshot | the whole card, ≤ 280 pt wide, rounded, 0.85, soft shadow (user) |
+| Pane drag image | all | (Rex: the card lifts, rex-ui §8.9) | the header's snapshot | a lifted card, rounded, 0.85, soft shadow (user; shape below) |
 | Agents button | all | (Rex: an eye) | chat bubbles | `list.bullet.rectangle`, filled while the Agents view is on (user) |
 | Machine button | all | (Rex's picker: icon and label) | icon and a chevron | icon only (user); the workspace button keeps its chevron: it is a text menu and looks balanced with it |
+| Pane drag image shape | all | (user) | the card's aspect, ≤ 280 pt | one 240 × 150 pt card, the card's top scaled to cover it |
+| Terminal palette | all | (user: macOS Terminal) | libghostty's Alabaster / Afterglow | Terminal.app's 16 ANSI colors, text `#1f1f1f` / `#e6e6e6`; white (light) and black (dark) entries are readable grays |
+| Program tiles | all | quieter (user's picture: Claude `#e4683f`) | the catalog's full colors | saturation 0.82, brightness −0.04 in `ProgramTile`, all 106 |
+| Open Session | all | (user: like the palette) | a sheet with a title, Cancel and Open | a glass panel at the top like the palette; Enter acts, Esc or a click outside closes; leading symbols plus / stack / checkmark |
+| Workspace row with no agent | all | (Rex shows a tile there) | an empty 14 pt slot | a 4 pt tertiary dot, in the sidebar and the workspace menu |
 | Window edge glow | Glass dark | a soft inner light ≈6 pt deep (Rex's window inner shadow) | none | — : no public API for an inner window glow; left |
 | Header buttons | dark / light | ≈ white 0.33 / black 0.33; glyphs ≈ 11 pt regular (split 12.5 pt wide), 22 pt boxes, pitch 24 | secondary; 13 pt medium glyphs (split 15 pt wide) | `Look.paneButton` 0.33; 11 pt regular glyphs in 22 pt buttons |
 | Header glyph and title | all | glyph 21.5 pt, title 38.5 pt from the window edge | 16.5, 38.5 | leading 11, spacing 3 |

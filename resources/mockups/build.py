@@ -294,14 +294,13 @@ def session_sheet():
     # No hint text on the rows: the group headers say what a pick does.
     def rows(names, icon):
         return "".join(f'<div class="prow"><span class="mi">{ui(icon)}</span>{n}</div>' for n in names if "pi" in n)
-    return ('<div class="sheet wide"><div class="stitle">Open Session</div>'
+    return ('<div class="sheet wide">'
             '<div class="field big">pi<span class="caretbar"></span><span class="hint">Name a new session, or find one</span></div>'
             f'<div class="slist"><div class="pg">New</div><div class="prow cur"><span class="mi">{ui("plus")}</span>'
             'Create session \u201cpi\u201d<span class="kb">\u21a9</span></div>'
             f'<div class="pg">Running</div>{rows(RUNNING_NOT_OPEN, "plusstack")}'
             f'<div class="pg">Stopped</div>{rows(STOPPED, "plusstack")}'
-            f'<div class="pg">Open in this window</div>{rows(list(SESSIONS), "check")}</div>'
-            '<div class="sbtns"><span class="bt">Cancel</span><span class="bt primary">Open</span></div></div>')
+            f'<div class="pg">Open in this window</div>{rows(list(SESSIONS), "check")}</div></div>')
 
 
 # ---------------------------------------------------------------- windows
@@ -349,8 +348,9 @@ SCENES = [
      "the window's sessions with that machine's; \u2325-click opens it in a new window instead (not shown in "
      "the menu). Add Remote Host stays a placeholder until remote machines are built.",
      window("ws", machine_menu())),
-    ("F", "Open Session sheet",
-     "The sidebar's Open Session button and the workspace menu's Open Session\u2026 both open this sheet. Type a "
+    ("F", "Open Session panel",
+     "The sidebar's Open Session button and the workspace menu's Open Session\u2026 both open this glass panel, "
+     "like the palette: Enter acts, Esc or a click outside closes it. Type a "
      "name to create a new session (the first row), or pick an existing one: a running session opens as a new "
      "page, a stopped one starts and opens. The list filters as you type.",
      window("ws", session_sheet())),

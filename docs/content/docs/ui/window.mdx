@@ -220,7 +220,7 @@ session open in this window (D43).
 - **Empty session.** A session with no workspace shows only a New Workspace
   button, on the page and in the strip.
 - **Footer.** The filter field and one button, **Open Session** (⇧⌘N), which
-  opens the [Open Session](#open-session) sheet. The filter keeps the rows
+  opens the [Open Session](#open-session) panel. The filter keeps the rows
   whose name or branch matches. A matching worktree also keeps its
   repository's row. The footer has no New Workspace and no Add Remote Host:
   the page header has `+`, and the machine menu has Add Remote Host.
@@ -239,7 +239,8 @@ Spaces panel.
 - **Line 1.** A 14 pt state slot and the name (13 pt). The state icon is the
   strongest state of the workspace's panes: a 7 pt amber dot (needs you), the
   three working dots (working), a 7 pt green dot (finished, not seen), a 7 pt
-  gray ring with a 1.5 pt stroke (an idle agent), or nothing (no agent). The
+  gray ring with a 1.5 pt stroke (an idle agent), or a quiet 4 pt dot in the
+  tertiary color (no agent), so the slot never looks empty. The
   workspace menu rows show the same icons. VoiceOver adds the state word to
   the row's value.
 - **Line 2**, only for a git repository: a branch glyph, the branch, then
@@ -304,16 +305,18 @@ How it works: [Agents and notifications](/docs/status#agents-and-notifications).
 
 ## Open Session
 
-![The Open Session sheet](/mockups/F.jpg)
+![The Open Session panel](/mockups/F.jpg)
 
 The one place to create or open a session, as a page of this window (D68).
 It replaces the old session picker. The footer's Open Session button, the
 workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open it.
-- A sheet, 420 pt wide, titled "Open Session".
+- A glass panel like the command palette, 420 pt wide, near the top of the
+  window, with no title and no buttons: Enter acts, Esc or a click outside
+  closes it.
 - A text field, "Name a new session, or find one", empty and with the
   keyboard at first.
 - The list, filtered by the field. The app reads the sessions once, when the
-  sheet opens. Groups with the headers "New", "Running", "Stopped" and "Open
+  panel opens. Groups with the headers "New", "Running", "Stopped" and "Open
   in this window":
   - **New:** "Create session “‹typed name›”" when the text is a valid herdr
     session name that no session has. With an empty field: "Create session
@@ -321,8 +324,10 @@ workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open i
   - **Running** sessions that are not open in this window, then **Stopped**
     sessions.
   - Last, the sessions already open in this window.
-  - The rows carry no hint text: the group headers say what a pick does.
-- The arrows move the highlight. Enter or **Open** acts on the highlighted row.
+  - The rows carry no hint text: the group headers say what a pick does. A
+    small symbol leads each row: a plus to create, a stack for a running or
+    stopped session, a checkmark for an open one.
+- The arrows move the highlight. Enter or a click acts on a row.
   - A new name, a running session and a stopped session take one path. The
     app starts the server if it is not running (a launchd job on This Mac,
     D47); a server the app started gets its first workspace in `$HOME`. Then
@@ -330,8 +335,7 @@ workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open i
     connects.
   - An open session: its page shows.
 - While a server starts, its row shows a spinner. A failure shows its text in
-  the sheet, and the sheet stays open.
-- **Cancel** or Esc closes the sheet.
+  the panel, with Retry, and the panel stays open.
 
 How it works: [Checks on connect](/docs/machines#checks-on-connect).
 
@@ -467,7 +471,7 @@ A short message after a failed action or a refused move.
   an error, amber `exclamationmark.triangle.fill` for a warning, blue for
   information), the text (two lines at most), an optional action button and ×.
 - A failed write's notice has no action: after a timeout the write may have
-  happened, so a retry is not safe. The Open Session sheet's "Could not
+  happened, so a retry is not safe. The Open Session panel's "Could not
   start" notice has **Retry**.
 - It goes after 4 s, or at ×. A newer notice replaces it.
 
@@ -499,7 +503,7 @@ A window that watches a session another window controls (D66).
   name), Sessions, then Commands, each under a header. A typed filter gives one
   list, best match first. A sub-page shows only its own rows, under its title.
   Sessions lists the pages open in this window; Open Session… opens the
-  [Open Session](#open-session) sheet.
+  [Open Session](#open-session) panel.
 - **Matching.** Fuzzy, in the order of the typed letters, over titles and
   keywords: "split" finds Split Right, "dark" finds Appearance ▸ Dark. On a
   tie, commands come before places, then the menu's and the sidebar's order.
