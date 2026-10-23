@@ -53,3 +53,15 @@ func `sorts closed reasons`(reason: String, closed: TerminalStream.Closed) {
     end.finish()
     #expect(await stream.events.first { _ in true } == .closed(.failed("herdr: failed to connect")))
 }
+
+@Test func `an observe that fails by itself ends with its reason`() async throws {
+    let herdr = FileManager.default.temporaryDirectory.appending(path: "herdr-\(UUID().uuidString)").path
+    try "#!/bin/sh\necho 'handshake failed' >&2; exit 1\n".write(toFile: herdr, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: herdr)
+    defer { try? FileManager.default.removeItem(atPath: herdr) }
+    let client = HerdrClient(session: "oriel-e2e-none", exec: ProcessExec([:], herdr: herdr, asked: .now))
+    let stream = try await client.terminal("term_1", cols: 10, rows: 5, observe: true)
+    // Stdin stays open: the stream must end without it.
+    let closed = try await withTimeout(.seconds(5), onTimeout: {}, { await stream.events.first { _ in true } })
+    #expect(closed == .closed(.failed("handshake failed")))
+}

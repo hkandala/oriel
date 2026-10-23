@@ -157,8 +157,12 @@ public extension HerdrClient {
         var argv = try await [herdr(), "--session", session, "terminal", "session", observe ? "observe" : "control",
                               terminalID, "--cols", "\(cols)", "--rows", "\(rows)"]
         if observe {
-            // observe ignores stdin's end, so a wrapper ends it then (design T6).
-            argv = ["sh", "-c", #""$@" & c=$!; cat >/dev/null; kill $c"#, "sh"] + argv
+            // observe ignores stdin's end, so a wrapper ends it then (design T6). The watcher lets go of stdout and
+            // stderr, so a run that exits by itself (a failed handshake) ends the stream with its status and reason;
+            // fd 3 because a background job's stdin is /dev/null.
+            let wrapper = #"exec 3<&0; "$@" & c=$!; { cat <&3 >/dev/null; kill $c; } >/dev/null 2>&1 & "#
+                + "wait $c 2>/dev/null"
+            argv = ["sh", "-c", wrapper, "sh"] + argv
         } else if takeover {
             argv.append("--takeover")
         }
