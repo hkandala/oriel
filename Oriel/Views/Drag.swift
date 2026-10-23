@@ -46,7 +46,8 @@
             let rect = view.isFlipped ? frame : NSRect(x: frame.minX, y: view.bounds.height - frame.maxY,
                                                        width: frame.width, height: frame.height)
             if case .pane = item, let card = snapshot(view, rect) {
-                let lifted = lift(card, from: rect, under: view.convert(event.locationInWindow, from: nil))
+                let lifted = lift(card, from: rect, under: view.convert(event.locationInWindow, from: nil),
+                                  flipped: view.isFlipped)
                 dragging.setDraggingFrame(lifted.frame, contents: lifted.image)
             } else {
                 dragging.setDraggingFrame(rect, contents: snapshot(view, rect))
@@ -64,16 +65,20 @@
             return image
         }
 
-        /// A dragged card as a lifted card: at most 280 pt wide, its corners rounded, at 0.85 with a soft shadow, the
-        /// pointer at the same place on it. The terminal's Metal layer may not draw into the snapshot: the card's fill
-        /// shows there then.
-        private static func lift(_ card: NSImage, from rect: NSRect,
-                                 under point: NSPoint) -> (frame: NSRect, image: NSImage)
+        /// A dragged card as a lifted card (user): one small card shape, 240 × 150 pt, filled with the card's top
+        /// (header and terminal) scaled to cover it, its corners rounded, at 0.85 with a soft shadow; the pointer sits
+        /// over the header where it grabbed it. The terminal's Metal layer may not draw into the snapshot: the card's
+        /// fill shows there then.
+        private static func lift(_ card: NSImage, from rect: NSRect, under point: NSPoint,
+                                 flipped: Bool) -> (frame: NSRect, image: NSImage)
         {
-            let scale = min(1, 280 / rect.width), margin: CGFloat = 20
-            let size = NSSize(width: rect.width * scale, height: rect.height * scale)
-            let frame = NSRect(x: point.x - (point.x - rect.minX) * scale - margin,
-                               y: point.y - (point.y - rect.minY) * scale - margin,
+            let size = NSSize(width: 240, height: 150), margin: CGFloat = 20
+            let scale = max(size.width / rect.width, size.height / rect.height)
+            // The grab point from the card's top left, in the view's coordinates.
+            let grab = NSPoint(x: min((point.x - rect.minX) * scale, size.width - 8),
+                               y: min((flipped ? point.y - rect.minY : rect.maxY - point.y) * scale, size.height - 8))
+            let frame = NSRect(x: point.x - grab.x - margin,
+                               y: (flipped ? point.y - grab.y : point.y - (size.height - grab.y)) - margin,
                                width: size.width + 2 * margin, height: size.height + 2 * margin)
             let image = NSImage(size: frame.size, flipped: false) { _ in
                 guard let context = NSGraphicsContext.current?.cgContext else { return false }
@@ -81,8 +86,10 @@
                 context.setShadow(offset: CGSize(width: 0, height: -4), blur: 12, color: CGColor(gray: 0, alpha: 0.35))
                 context.setAlpha(0.85)
                 context.beginTransparencyLayer(auxiliaryInfo: nil)
-                NSBezierPath(roundedRect: inside, xRadius: 10 * scale, yRadius: 10 * scale).addClip()
-                card.draw(in: inside)
+                NSBezierPath(roundedRect: inside, xRadius: 10, yRadius: 10).addClip()
+                // Top aligned: the header always shows.
+                card.draw(in: NSRect(x: margin, y: margin + size.height - rect.height * scale,
+                                     width: rect.width * scale, height: rect.height * scale))
                 context.endTransparencyLayer()
                 return true
             }
