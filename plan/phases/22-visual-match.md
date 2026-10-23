@@ -153,6 +153,10 @@ picture of Classic light: it is compared with Rex's System light material file a
   zsh a filled terminal window. Same 11.5 pt box; left as the catalog's.
 - **The tab slot lines up with the cards, the capsule sits 2 pt inside it**, as Rex's capsule sits in its track;
   with one tab or in Classic dark (no track) the visible pill starts 2 pt right of the cards.
+- **The find bar's buttons got the header's 11 pt regular glyphs too**: both are 22 pt `IconButton`s, and the find
+  bar is a pane control like the header's.
+- **The lifted card snapshots what shows**: a card partly scrolled out of the strip or under the sidebar lifts with
+  that part blank or with the sidebar's pixels (the header snapshot had the same limit).
 - **Agents button icon** (user, during the phase): `list.bullet.rectangle`, filled while the Agents view is on.
 - **Tabs start over the cards while the sidebar is open** (user, during the phase): the toggle and the machine
   button sit in a leading area `sidebarWidth − 91 − 8` wide. Collapsed, the row is unchanged.
