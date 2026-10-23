@@ -130,8 +130,9 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
   monitor in `OrielApp.init` finds the main menu's item with the first shortcut and runs it when enabled, so the
   second always does what the menu item does, with its current state. A disabled item lets the key go on.
   `performKeyEquivalent` with a made-up event was tried (ponytail review): ⇧⌘P worked, but AppKit did not match
-  "]" with ⇧⌘ to Show Next Tab, so the walk stays. ⌘= still has no e2e test (phase 11: CI's 1x display hides a
-  one-step change).
+  "]" with ⇧⌘ to Show Next Tab, so the walk stays. ⌘= is tested through View ▸ Actual Size turning on (read with
+  the menu open: SwiftUI updates a closed menu's items late), not the grid, which a 1x display may round.
+  Second keys do nothing behind a sheet (the open panel, Open Session).
 - **Matching:** `String.fuzzyScore` in HerdrKit (unit tests): the typed letters in order, spaces ignored, case and
   accent blind; a match not starting a word costs 1, each break 1, a break not on a word start 2; the best start
   wins. A keyword match costs 3 more than a title match. Ties: commands before places, then the list's order.
@@ -139,6 +140,9 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
   an array of one. ⌫ on an empty field (not its key repeats: holding ⌫ to clear the field stays on the page) and
   Esc go back; Esc on the root closes. Sub-page rows filter with the same fuzzy match, in their own order. The
   Command Palette command is not a palette row (it is open).
+- **The palette's commands follow the menu bar** (File, Edit, View with its Pane menu, Window, then the palette's
+  own), for the empty root and for ties. The root lights the selected tab, so ↩ on a fresh palette stays put; a
+  sub-page lights and scrolls to its current choice (Font Size's 25 rows).
 - **View ▸ Pane starts with Focus Follows Mouse** (its own `paneSetting` section), as the phase lists it.
 - **Preview:** a `.task(id: lit)` waits 0.75 s and runs the lit choice's action, unless the page was left or a row
   chosen meanwhile. The page keeps the choice it opened on (`Palette.kept`): it keeps the checkmark while another
