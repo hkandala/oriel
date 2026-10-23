@@ -236,7 +236,7 @@
                             send(hold(dragged(drag)))
                             start = nil
                         })
-                        .onTapGesture(count: 2) { set(0.5) }
+                        .onTapGesture(count: 2) { send(hold(0.5)) }
                         .accessibilityElement()
                         .accessibilityLabel(label)
                         // As the cards: a plain element shows XCUITest no value.
@@ -244,7 +244,7 @@
                         .accessibilityValue("\(Int((ratio * 100).rounded()))%")
                         .accessibilityIdentifier(id)
                         .accessibilityAdjustableAction { direction in
-                            set(ratio + (direction == .increment ? 0.05 : -0.05))
+                            send(hold(ratio + (direction == .increment ? 0.05 : -0.05)))
                         }
                 }
                 // Over both sides' edges: its hit area reaches 4 pt into each card.
@@ -256,10 +256,6 @@
             let from = start ?? ratio
             start = from
             return from + (right ? drag.translation.width : drag.translation.height) / max(total, 1)
-        }
-
-        private func set(_ value: Double) {
-            send(hold(value))
         }
 
         /// In herdr's 0.1–0.9, so the view shows what herdr keeps.
