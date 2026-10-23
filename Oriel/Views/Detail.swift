@@ -21,7 +21,7 @@ struct Notice {
         let text: String
         /// Instead of the tone's symbol.
         var symbol: String?
-        var close: (() -> Void)?
+        /// A button, or the ✕.
         @ViewBuilder var action: Action
         @Environment(\.look) private var look
 
@@ -38,24 +38,11 @@ struct Notice {
                     .accessibilityIdentifier("notice.symbol")
                 Text(text).lineLimit(2)
                 action
-                if let close {
-                    Button("Close", systemImage: "xmark", action: close)
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
-                        .accessibilityIdentifier("notice.close")
-                }
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 36)
             .glassEffect()
             .accessibilityElement(children: .contain)
-        }
-    }
-
-    extension NoticeCapsule where Action == EmptyView {
-        init(tone: Notice.Tone, text: String, close: @escaping () -> Void) {
-            self.init(tone: tone, text: text, close: close) { EmptyView() }
         }
     }
 
@@ -118,8 +105,12 @@ struct Notice {
         private func notices(_ store: HostStore) -> some View {
             VStack(spacing: gap) {
                 if let notice = store.notice {
-                    NoticeCapsule(tone: notice.tone, text: notice.text, close: { store.notice = nil })
-                        .accessibilityIdentifier("detail.notice")
+                    NoticeCapsule(tone: notice.tone, text: notice.text) {
+                        Button("Close", systemImage: "xmark") { store.notice = nil }
+                            .labelStyle(.iconOnly).buttonStyle(.plain).foregroundStyle(.secondary)
+                            .accessibilityIdentifier("notice.close")
+                    }
+                    .accessibilityIdentifier("detail.notice")
                 }
                 // Another window controls the session (D66). Under a notice; no ✕: only Take Back ends it.
                 if page.watched {
