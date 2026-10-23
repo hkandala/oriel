@@ -108,7 +108,17 @@ extension OrielUITests {
             try await scrollOffset(pane) == 0 ? true : nil
         }
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+    }
 
+    func testFindCountsTheBlankRowsUnderTheText() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, pane) = try await newTab("blank")
+        element("tab.\(tab)").click()
+        try await Self.call(one, "pane.send_text", ["pane_id": pane,
+                                                    "text": "for i in $(seq 1 200); do echo line $i; done\r"])
+        try await waitFor(pane) { $0.contains("\nline 200\n") }
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        let field = element("find.field"), count = element("find.count")
         // The screen cleared (its text goes to the scrollback) and two more matches under it: the blank rows under the
         // prompt count too, and the selected match is the lower one.
         try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "printf '\\033[2J\\033[H'\r"])
@@ -120,6 +130,10 @@ extension OrielUITests {
         app.typeText("line 42")
         XCTAssertTrue(count.has(\.stringValue, "3 of 3", within: 2), count.stringValue)
         try await expectHighlight("line 42", in: pane)
+        // Centered, it sits rows above herdr's last row: herdr scrolled up to it.
+        try await poll("herdr to center the match") { () async throws -> Bool? in
+            try await scrollOffset(pane) > 0 ? true : nil
+        }
         app.typeKey(.escape, modifierFlags: [])
     }
 
@@ -165,6 +179,27 @@ extension OrielUITests {
             XCUIElement.perform(withKeyModifiers: .command) { link.click() }
         }
         XCTAssertTrue(element("app.links").has(\.stringValue, "https://example.com/oriel", within: 2))
+    }
+
+    /// A card opened for the first time shows its terminal only once herdr drew it at the card's size (no flicker of
+    /// herdr's resize).
+    func testCardShowsItsTerminalOnceHerdrDrewItAtItsSize() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, first) = try await newTab("ready")
+        let second = try await split(first)
+        element("tab.\(tab)").click()
+        for pane in [first, second] {
+            let card = element("pane.\(pane)")
+            XCTAssertTrue(card.exists(within: 3))
+            try await poll("\(pane) ready, it says \(card.stringValue)", times: 100) {
+                card.stringValue.hasPrefix("content") && !card.stringValue.hasSuffix(", loading") ? true : nil
+            }
+            // Ready means herdr's PTY already has the card's grid.
+            let grid = try XCTUnwrap(element("terminal.\(pane)").value as? String).split(separator: " ")
+            let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
+            let scroll = panes.first { $0["pane_id"] as? String == pane }?["scroll"] as? [String: Any]
+            XCTAssertEqual(scroll?["viewport_rows"] as? Int, Int(grid[0]))
+        }
     }
 
     /// herdr is asked what every pane runs on the first snapshot, also in tabs never shown.

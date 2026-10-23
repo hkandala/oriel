@@ -205,6 +205,11 @@ One path is [Future work](/docs/future-work).
 - The card keeps the old frame until herdr's full frame at the new size
   arrives.
 - A `control` frame's `width` and `height` are the real PTY size.
+- herdr has no way to size a PTY without attaching (the attach's `--cols` /
+  `--rows` resizes it), so a pane opened for the first time redraws once at
+  the card's size. The card hides its terminal until a frame of that size
+  arrives, then fades it in (0.12 s). Background tabs are not attached ahead
+  of time (D46's stream cap).
 
 ### One controller per pane
 
@@ -294,9 +299,10 @@ handshake fails, it exits 1 with the reason on stderr.
   herdr's last row, less half of `viewport_rows`. herdr's text leaves out the
   screen's blank rows under its last text, but the offset counts them, so the
   bar adds them: from `pane.read visible` at the bottom, else from
-  `pane.get`'s `max_offset_from_bottom + viewport_rows` less the text. A herdr
-  TUI on the same pane scrolls too. After each scroll, and 0.3 s after a burst
-  of frames, `pane.read visible` and `pane.get` (`scroll`) place the
+  `pane.get`'s `max_offset_from_bottom + viewport_rows` less the text (a text
+  cut at 5000 lines counts none). A herdr TUI on the same pane scrolls too.
+  After each scroll, and 0.3 s after a burst of frames (at most 1 s of
+  waiting), `pane.read visible` and `pane.get` (`scroll`) place the
   highlights. herdr's own
   `pane.copy_search` is not used: it needs a `content_revision` and a cursor
   from herdr's TUI client protocol and otherwise answers `stale_content`.

@@ -159,7 +159,7 @@
         }
 
         /// A frame came: the highlights are placed again 0.3 s after the last frame of a burst (agent TUIs redraw
-        /// all the time), at most 1 s after it began. Our own scroll's frames place them a second time; harmless.
+        /// all the time), after at most 1 s of waiting. Our own scroll's frames place them a second time; harmless.
         func screenChanged() {
             lastFrame = .now
             work()

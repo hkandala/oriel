@@ -153,9 +153,12 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
 - **"No answer from herdr" is gone**: any failure while the session's server runs is the reconnecting state (the
   client retries every 2 s), also a page's first connect. herdr too old and not installed keep their pages.
 - **The content fade is the terminal's, not the card's**: the card's frame and header show at once and the terminal
-  view fades from alpha 0 over 0.2 s on its first frame (`PaneTerminal.drawn`), through `NSAnimationContext` on the
-  host view (SwiftUI's `opacity` moves the terminal's accessibility frame, phase 16). A card whose stream fails still
-  shows its failure text.
+  view fades from alpha 0 over 0.12 s through `NSAnimationContext` on the host view (SwiftUI's `opacity` moves the
+  terminal's accessibility frame, phase 16). A card whose stream fails still shows its failure text.
+- **No flicker of herdr's first resize** (user, late): a pane opened for the first time redraws once while herdr
+  resizes its PTY to the card (herdr can size a PTY only by attaching). `PaneTerminal.ready` turns on at the first
+  frame whose size is the card's grid (a watcher's first frame, as it cannot resize); until then the card shows its
+  fill, a small spinner after 0.5 s, and its value ends in ", loading". Background tabs are not attached ahead (D46).
 - **Retry only in the Open Session sheet.** A write's notice has no Retry: after a timeout a retry is not safe (a
   create may have gone through), and "Busy, try again" with Retry was cut in the ponytail review.
 - **The Open Session failure is a notice capsule inside the sheet** (the window's capsule lies under the sheet):
@@ -200,19 +203,14 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   open at quit, leaves herdr's viewport scrolled (no client, no terminate hook). Kept against the ponytail review: the
   `keep(_:)` helper (SwiftFormat turns `let _ = (a = b)` into `_ = …`, which a commands builder rejects), and the
   AppKit window check for a Dock drop (`WindowPages.windows` fills only once restored windows restored their pages, so
-  a drop that starts the app with saved windows would open one more). Known, left: a find pane moved to another
-  workspace (a new pane id) drops the bar without scrolling that terminal back; a bar dropped while reconnecting, or
-  open at quit, leaves herdr's viewport scrolled (no client, no terminate hook). Kept against the ponytail review: the
-  `keep(_:)` helper (SwiftFormat turns `let _ = (a = b)` into `_ = …`, which a commands builder rejects), and the
-  AppKit window check for a Dock drop (`WindowPages.windows` fills only once restored windows restored their pages, so
   a drop that starts the app with saved windows would open one more).
 
 ### Assumptions
 
-- **herdr keeps a scrolled viewport anchored while output comes**, so the highlights stay right between frames; at
-  the bottom (offset 0) they are placed again after each burst of frames.
-- **A screen with scrollback is full**, so the visible text's last row matches the recent text's last line when the
-  viewport is scrolled; at the bottom the last row with text does.
+- **herdr keeps a scrolled viewport anchored while output comes**; the highlights are placed again after each burst of
+  frames anyway.
+- **A text cut at 5000 lines, read while scrolled, is taken as a full screen** (no blank rows): herdr's input resets
+  the scroll, so only a bar opened while another client scrolled can hit it.
 
 ### Learned
 

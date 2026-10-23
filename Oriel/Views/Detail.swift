@@ -161,13 +161,13 @@ struct Notice {
     }
 
     /// A spinner and one line, after `delay`.
-    private struct Waiting: View {
-        let text: String
+    struct Waiting: View {
+        var text = ""
         var delay = Duration.zero
         @State private var shown = false
 
         var body: some View {
-            ProgressView(text).opacity(shown ? 1 : 0)
+            ProgressView(text).controlSize(text.isEmpty ? .small : .regular).opacity(shown ? 1 : 0)
                 .task {
                     try? await Task.sleep(for: delay)
                     shown = true

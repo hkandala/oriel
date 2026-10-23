@@ -63,7 +63,9 @@
                 CardSurface(keyboard: lit).accessibilityElement().accessibilityLabel(pane?.cardTitle ?? "terminal")
                     // A plain element has no value in XCUITest (phase 10); the static text trait gives it one.
                     .accessibilityAddTraits(.isStaticText)
-                    .accessibilityValue("content \(Int((content * 100).rounded()))%")
+                    // ", loading" until herdr drew its terminal at the card's size.
+                    .accessibilityValue("content \(Int((content * 100).rounded()))%"
+                        + (terminal?.ready == false ? ", loading" : ""))
                     .accessibilityIdentifier("pane.\(id)")
                     // The buttons show on hover only and the context menu is on the header: VoiceOver acts on the card.
                     .accessibilityActions {

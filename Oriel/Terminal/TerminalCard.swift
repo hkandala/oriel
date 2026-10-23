@@ -21,10 +21,10 @@
         }
 
         func updateNSView(_ host: Host, context _: Context) {
-            // The first frame fades in over 0.2 s instead of popping in (alpha 0 until then).
+            // Fades in over 0.12 s once herdr drew it at the card's size (alpha 0 until then), instead of popping in.
             if host.alphaValue == 0, alpha > 0, !reduceMotion {
                 NSAnimationContext.runAnimationGroup { context in
-                    context.duration = 0.2
+                    context.duration = 0.12
                     host.animator().alphaValue = alpha
                 }
             } else {
@@ -68,7 +68,7 @@
         let alpha: CGFloat
 
         var body: some View {
-            TerminalHost(terminal: terminal, alpha: terminal.drawn ? alpha : 0)
+            TerminalHost(terminal: terminal, alpha: terminal.ready ? alpha : 0)
                 // A new terminal in the same spot (panes swapped) needs a new host to adopt it.
                 .id(ObjectIdentifier(terminal))
                 .overlay(alignment: .bottom) {
@@ -86,6 +86,12 @@
                         .padding(gap)
                     case .idle, .live, .watching:
                         EmptyView()
+                    }
+                }
+                // The card's fill until herdr drew it at its size; a spinner only when that takes over 0.5 s.
+                .overlay {
+                    if !terminal.ready, !terminal.state.isFailed {
+                        Waiting(delay: .milliseconds(500))
                     }
                 }
         }

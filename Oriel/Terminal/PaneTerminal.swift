@@ -32,8 +32,9 @@
         private(set) var state = State.idle
         /// The terminal view is the first responder: keys go here.
         var hasKeyboard = false
-        /// A frame has arrived once: the card's content fades in then.
-        private(set) var drawn = false
+        /// herdr drew it at the card's size once (its PTY resized), or, watching, drew it at all: the card's content
+        /// fades in then. Before, herdr's resize of a pane opened for the first time would flicker in view.
+        private(set) var ready = false
         /// The surface's last grid.
         @ObservationIgnored private var grid: InMemoryTerminalViewport?
         @ObservationIgnored let view = PaneSurfaceView(frame: .zero)
@@ -187,6 +188,9 @@
                         if state == .idle {
                             started(frame)
                         }
+                        // At the card's size; a watcher cannot resize: its first frame.
+                        let sized = self.grid.map { frame.width == $0.columns && frame.height == $0.rows } == true
+                        ready = ready || observing || sized
                     case let .closed(reason):
                         self.stream = nil
                         closed(reason)
@@ -198,7 +202,6 @@
         /// The first frame of a stream.
         private func started(_ frame: TerminalStream.Frame) {
             state = observing ? .watching : .live
-            drawn = true
             // The card may have changed size while the stream opened.
             if let grid, frame.width != grid.columns || frame.height != grid.rows {
                 resized(grid)

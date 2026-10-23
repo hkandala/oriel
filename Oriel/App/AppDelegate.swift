@@ -59,6 +59,8 @@
         /// `handlesExternalEvents(matching: [])`), a new one takes them once its page is live.
         func application(_: NSApplication, open urls: [URL]) {
             WindowPages.open(folders: urls.filter(\.hasDirectoryPath))
+            // Out of the Dock if minimized, so the new workspace shows.
+            WindowPages.windows.first?.window?.makeKeyAndOrderFront(nil)
             // AppKit's windows, not `WindowPages.windows`: a restored window joins those only once its pages restored.
             // Hidden (⌘H), no window is visible.
             if !NSApp.windows.contains(where: {
