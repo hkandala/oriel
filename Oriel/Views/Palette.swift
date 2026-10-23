@@ -26,6 +26,7 @@
                     Text(Self.pageTitle(command)).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
                         .padding(.horizontal, 8).padding(.bottom, 2)
                         .accessibilityIdentifier("palette.title")
+                        .accessibilityAddTraits(.isHeader)
                 }
                 palette(command, list)
             }
@@ -49,7 +50,9 @@
                 fieldSymbol: command?.name == nil ? "magnifyingglass" : "pencil",
                 name: "palette",
                 items: command.map(subItems) ?? { rootItems($0, list) },
-                start: command.map(start) ?? 0,
+                // The root lights the selected tab: ↩ on a fresh palette stays put.
+                start: command.map(start) ?? page.selectedWorkspace?.tabs.firstIndex { $0.id == page.selectedTab?.id }
+                    ?? 0,
                 maxHeight: min(460, max(84, height - 154)),
                 lit: $lit,
                 text: command?.name?.current ?? "",
@@ -90,25 +93,29 @@
 
         /// The enabled commands; a setting says what it does now ("Turn On Focus Follows Mouse").
         private func commandRows(_ list: [Command]) -> [(item: FilterList.Item, keywords: String)] {
-            // Not Command Palette: it is open.
-            list.filter { $0.section != .tabs && $0.enabled && $0.key != .palette }.map { command in
-                let opens = !command.menu.isEmpty || command.name != nil
-                let title = command.checked
-                    .flatMap { command.setting ? "Turn \($0 ? "Off" : "On") \(command.title)" : nil }
-                    ?? (opens ? Self.pageTitle(command) : command.title)
-                let item = FilterList.Item(id: "command.\(command.title)", symbol: command.symbol, title: title,
-                                           detail: command.key?.glyphs ?? "", section: "Commands", opens: opens,
-                                           act: {
-                                               if opens {
-                                                   sub = command.title
-                                                   kept = command.previews
-                                                       ? command.menu.first { $0.checked == true }?.title : nil
-                                               } else {
-                                                   command.action()
-                                               }
-                                           })
-                return (item, command.keywords)
-            }
+            // The menu bar's order (File, Edit, View with its Pane menu, Window), then the palette's own. Not Command
+            // Palette: it is open.
+            let order: [Command.Section] = [.file, .close, .edit, .view, .paneSetting, .pane, .paneMove, .paneKeys,
+                                            .size, .tabSteps, .pages, .palette]
+            return order.flatMap { section in list.filter { $0.section == section } }
+                .filter { $0.enabled && $0.key != .palette }.map { command in
+                    let opens = !command.menu.isEmpty || command.name != nil
+                    let title = command.checked
+                        .flatMap { command.setting ? "Turn \($0 ? "Off" : "On") \(command.title)" : nil }
+                        ?? (opens ? Self.pageTitle(command) : command.title)
+                    let item = FilterList.Item(id: "command.\(command.title)", symbol: command.symbol, title: title,
+                                               detail: command.key?.glyphs ?? "", section: "Commands", opens: opens,
+                                               act: {
+                                                   if opens {
+                                                       sub = command.title
+                                                       kept = command.previews
+                                                           ? command.menu.first { $0.checked == true }?.title : nil
+                                                   } else {
+                                                       command.action()
+                                                   }
+                                               })
+                    return (item, command.keywords)
+                }
         }
 
         /// The selected workspace's tabs, the window's workspaces (with their session) and its pages.

@@ -68,8 +68,7 @@ struct FilterList: View {
                 .onKeyPress(.downArrow) { move(1) }
                 .onKeyPress(.upArrow) { move(-1) }
                 // ⌫ arrives as DEL (U+7F), which `.delete` (U+8) does not match. Not its repeats: holding ⌫ to clear
-                // the field
-                // must not leave the page.
+                // the field must not leave the page.
                 .onKeyPress(keys: [.delete, KeyEquivalent("\u{7F}")], phases: .down) { _ in
                     guard filter.isEmpty, let back else { return .ignored }
                     back()
@@ -93,6 +92,7 @@ struct FilterList: View {
                                             .foregroundStyle(.secondary)
                                             .padding(.horizontal, 8).padding(.top, offset > 0 ? 6 : 0)
                                             .accessibilityIdentifier("\(name).section.\(section)")
+                                            .accessibilityAddTraits(.isHeader)
                                     } else {
                                         Divider().padding(4)
                                     }
@@ -121,7 +121,8 @@ struct FilterList: View {
                     }
                     .scrollIndicators(.never)
                     .frame(height: min(rowsHeight, maxHeight))
-                    .onChange(of: index) {
+                    // Initially too: a sub-page's lit choice may sit below the fold (Font Size).
+                    .onChange(of: index, initial: true) {
                         if items.indices.contains(index) {
                             proxy.scrollTo(items[index].id)
                         }
