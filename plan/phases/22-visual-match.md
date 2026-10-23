@@ -201,6 +201,9 @@ picture of Classic light: it is compared with Rex's System light material file a
   `ImageRenderer` in a script: 194 vs 218 at the card's center).
 - **A CI run between two commits failed `testSplitRightTwiceGivesThirds`** ("terminal fits its card"): its
   expectation still had the old 8 pt terminal inset while the code had 11; fixed with the 10 pt inset (7f5c334).
+- **`testZoomFillsThePageAndRestores` failed on CI only** (three runs): the hidden neighbor's `stty size` came back one
+  column narrower than its grid before the zoom (17 36), at CI's 1x scale, since the terminal's inset went from 8
+  to 10 pt. Locally (2x) it always matched. The test now allows one column (speed rule 7: 1x rounds grid sizes).
 - **The closing-a-pane test failed once on CI** (`pane.w2:p3.close` not found after the hover) and passed locally
   with this phase's code; taken as a hover flake.
 - **A button moved inside its own frame notification snaps back**: AppKit finishes its own `setFrame` after the

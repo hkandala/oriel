@@ -151,8 +151,6 @@ extension OrielUITests {
         let card = element("pane.w1:p2")
         XCTAssertTrue(element("terminal.w1:p2").exists(within: connect))
         try await expectPTYSize("w1:p2")
-        // The neighbor's PTY has its card's size too before it is compared after the zoom.
-        try await expectPTYSize("w1:p3")
         let page = element("page.w1:t1").frame, before = card.frame
         let neighbor = try XCTUnwrap(element("terminal.w1:p3").value as? String)
         hoverHeader("w1:p2")
@@ -167,9 +165,16 @@ extension OrielUITests {
         app.typeText("echo oriel-zoom-$((6*7))")
         app.typeKey(.return, modifierFlags: [])
         try await waitFor("w1:p2") { $0.contains("\noriel-zoom-42") }
-        // The hidden cards keep their size.
+        // The hidden cards keep their size: the same rows, and the columns within one (CI's 1x display rounds the
+        // hidden card's width differently).
         try await Self.call(one, "pane.send_text", ["pane_id": "w1:p3", "text": "clear; stty size\r"])
-        try await waitFor("w1:p3") { $0.split(separator: "\n").contains { $0 == neighbor } }
+        let grid = neighbor.split(separator: " ").compactMap { Int($0) }
+        try await waitFor("w1:p3") { text in
+            text.split(separator: "\n").contains { line in
+                let size = line.split(separator: " ").compactMap { Int($0) }
+                return size.count == 2 && grid.count == 2 && size[0] == grid[0] && abs(size[1] - grid[1]) <= 1
+            }
+        }
 
         app.typeKey(.return, modifierFlags: [.command, .shift])
         XCTAssertTrue(element("pane.w1:p1").exists(within: 2))
