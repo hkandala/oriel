@@ -167,8 +167,7 @@
                 guard tabPanes.contains(where: { $0.terminalID == moved }) else { return }
                 movedTerminal = nil
             }
-            let pane = tabPanes.first { $0.terminalID == keyboardTerminals[tab.id] }
-                ?? tabPanes.first(where: \.focused) ?? tabPanes.first
+            let pane = keyboardCard(tab.id) ?? tabPanes.first
             if let pane, let terminalID = pane.terminalID {
                 keyboardTabID = tab.id
                 // Made now if its card has not drawn yet (a tab just jumped to); it takes the keyboard once it is in
