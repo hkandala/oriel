@@ -265,8 +265,7 @@ struct StatusBadge: View {
             // Each session once over every window. This window's list is read too, so a page it opens or closes counts.
             // ponytail: `HostStore.all` is not observed, so this window's `app.badge` may lag a store only another
             // window shows until one of this window's own changes; the Dock tile is right (the last writer counts all).
-            let needsYou = pages.list.isEmpty ? 0 : HostStore.all
-                .reduce(0) { count, store in count + store.panes.count { $0.state == .needsYou } }
+            let needsYou = pages.list.isEmpty ? 0 : HostStore.needsYou
             content
                 // A text leaf, as `window.look`.
                 .background(alignment: .topLeading) {
@@ -275,8 +274,7 @@ struct StatusBadge: View {
                         .accessibilitySortPriority(-1)
                         .accessibilityValue("\(needsYou)")
                 }
-                .onChange(of: needsYou, initial: true) { NSApp.dockTile.badgeLabel = needsYou > 0 ? "\(needsYou)" : nil
-                }
+                .onChange(of: needsYou, initial: true) { HostStore.showBadge() }
                 .onChange(of: [page.id, page.selectedTab?.id ?? "", appearsActive ? "key" : ""], initial: true) {
                     pages.look(key: appearsActive)
                 }

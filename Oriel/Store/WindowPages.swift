@@ -173,6 +173,7 @@
             if store.windows.isEmpty {
                 Notifications.remove(store.panes, session: store.session)
                 store.disconnect()
+                HostStore.showBadge()
             } else if controlled {
                 store.windows[0].control(store)
             }
@@ -260,6 +261,15 @@
     }
 
     extension HostStore {
+        /// Agents that need you over every open session, each once.
+        static var needsYou: Int {
+            all.reduce(0) { count, store in count + store.panes.count { $0.state == .needsYou } }
+        }
+
+        static func showBadge() {
+            NSApp.dockTile.badgeLabel = needsYou > 0 ? "\(needsYou)" : nil
+        }
+
         /// Each window settles its page's selection on the snapshot; its notifications go once per session.
         func snapshotted(_ changes: [Seen.Change]) {
             for window in windows {
