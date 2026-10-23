@@ -292,10 +292,10 @@ extension HostStore {
         return created
     }
 
-    /// In home: a server launchd started has another cwd. Its first tab.
-    func newWorkspace(label: String? = nil) async -> HerdrKit.Tab? {
+    /// In home by default: a server launchd started has another cwd. Its first tab.
+    func newWorkspace(label: String? = nil, cwd: String = NSHomeDirectory()) async -> HerdrKit.Tab? {
         var created: HerdrKit.Tab?
-        await write { created = try await $0.newWorkspace(label: label, cwd: NSHomeDirectory()) }
+        await write { created = try await $0.newWorkspace(label: label, cwd: cwd) }
         return created
     }
 

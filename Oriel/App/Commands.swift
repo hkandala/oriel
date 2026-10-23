@@ -13,6 +13,7 @@ extension KeyboardShortcut {
     static let previousTab = KeyboardShortcut("[", modifiers: [.command, .shift])
     static let nextTab = KeyboardShortcut("]", modifiers: [.command, .shift])
     static let bigger = KeyboardShortcut("+")
+    static let findNext = KeyboardShortcut("g")
 
     /// A command's second shortcut runs the menu item of its first (OrielApp's key monitor); the menu shows the first.
     static let seconds: [(second: KeyboardShortcut, first: KeyboardShortcut)] = [

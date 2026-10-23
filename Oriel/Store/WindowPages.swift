@@ -28,8 +28,14 @@
             terminals.onKeyboard = { [weak self] terminalID in self?.current?.tookKeyboard(terminalID) }
             // Return may have started or ended a program.
             terminals.onReturn = { [weak self] terminalID in
-                guard let store = self?.current?.store,
-                      let pane = store.panes.first(where: { $0.terminalID == terminalID }) else { return }
+                guard let page = self?.current,
+                      let pane = page.store.panes.first(where: { $0.terminalID == terminalID })
+                else { return }
+                let store = page.store
+                // The find bar reads the pane again at its next step.
+                if page.find?.paneID == pane.id {
+                    page.find?.stale = true
+                }
                 Task {
                     try? await Task.sleep(for: .seconds(1))
                     await store.askProgram(pane.id)

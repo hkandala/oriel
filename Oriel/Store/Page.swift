@@ -25,6 +25,10 @@
         var dragging: Dragged?
         /// The card whose header shows the rename field.
         var renamingPaneID: String?
+        /// The open find bar (⌘F), on one card.
+        var find: Find?
+        /// Counts ⌘F presses: each one focuses the open bar's field.
+        var findFocus = 0
         /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
         var stripPage = 0.0
         /// The terminal that last had the keyboard in each tab. Observed: the tab's icon stack puts it in front.
@@ -306,8 +310,8 @@
         }
 
         /// The snapshot after it selects the new workspace.
-        func newWorkspace(label: String? = nil) async {
-            arriving = await store.newWorkspace(label: label)?.id ?? arriving
+        func newWorkspace(label: String? = nil, cwd: String = NSHomeDirectory()) async {
+            arriving = await store.newWorkspace(label: label, cwd: cwd)?.id ?? arriving
         }
 
         /// Go to Directory (`directory`, a `cd`) or Insert Path: the system panel at the keyboard card's folder, fresh

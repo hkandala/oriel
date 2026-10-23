@@ -57,10 +57,21 @@
                 Command(section: .close, title: "Close Window", key: .init("w", modifiers: [.command, .shift]),
                         symbol: "xmark") { NSApp.keyWindow?.performClose(nil) },
             ]
-            let edit = Command(section: .edit, title: "Insert Path…", key: .init("i", modifiers: [.command, .control]),
-                               symbol: "text.insert", keywords: "file folder path",
-                               enabled: page?.keyboardPane != nil) { Task { await page?.choosePath(directory: false) } }
-            return file + Self.pane(page) { [page] in page?.keyboardPane } + close + [edit] + view + paneKeys
+            let find = page?.find
+            let edit = [
+                Command(section: .edit, title: "Insert Path…", key: .init("i", modifiers: [.command, .control]),
+                        symbol: "text.insert", keywords: "file folder path",
+                        enabled: page?.keyboardPane != nil) { Task { await page?.choosePath(directory: false) } },
+                // As in Rex, Find Previous has no key: ⇧⌘G is Go to Directory.
+                Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
+                        keywords: "search scrollback", enabled: live && page?.keyboardPane != nil) { page?.openFind() },
+                Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
+                        enabled: find != nil) { Task { await page?.find?.step(1) } },
+                Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: find != nil) {
+                    Task { await page?.find?.step(-1) }
+                },
+            ]
+            return file + Self.pane(page) { [page] in page?.keyboardPane } + close + edit + view + paneKeys
                 + palette(page) + window(page, pages)
         }
 

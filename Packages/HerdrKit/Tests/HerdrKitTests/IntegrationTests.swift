@@ -298,6 +298,7 @@ func `changes a layout in a throwaway herdr session`() async throws {
         _ = try await client.screen("w1:p1")
         _ = try await client.recent("w1:p1", lines: 100)
         try await client.scroll("w1:p1", offsetFromBottom: 0)
+        #expect(try await client.pane("w1:p1").scroll?.offsetFromBottom == 0)
         try await client.swap("w1:p1", .right)
         #expect(try await client.snapshot().trees["w1:t1"]?.paneIDs == [second.id, "w1:p1", third.id])
         try await client.rename(pane: "w1:p1", label: "named")

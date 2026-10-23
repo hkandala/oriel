@@ -70,10 +70,22 @@ public struct Pane: Decodable, Sendable, Identifiable {
     public let agent: String?
     /// The terminal title without the status glyphs herdr strips (`✳`, spinners).
     public let title: String?
+    /// herdr's viewport, which every client of the pane shares.
+    public let scroll: PaneScroll?
 
     enum CodingKeys: String, CodingKey {
         case id = "pane_id", terminalID = "terminal_id", tabID = "tab_id", label, cwd, agent
-        case title = "terminal_title_stripped"
+        case title = "terminal_title_stripped", scroll
+    }
+}
+
+/// A pane's viewport.
+public struct PaneScroll: Decodable, Sendable {
+    /// Lines from the bottom; 0 is the bottom.
+    public let offsetFromBottom: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case offsetFromBottom = "offset_from_bottom"
     }
 }
 

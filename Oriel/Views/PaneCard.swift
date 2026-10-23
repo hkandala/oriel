@@ -38,10 +38,21 @@
                     if let terminal {
                         // Rex's text starts 11.5 pt in from the card's edge.
                         TerminalCard(terminal: terminal, watched: page.watched, alpha: content)
+                            .overlay {
+                                if let find = page.find, find.paneID == id {
+                                    FindHighlights(find: find, terminal: terminal)
+                                }
+                            }
                             .padding(.horizontal, 11).padding(.bottom, gap)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // Under the header, 8 pt in from the card's edge.
+                .overlay(alignment: .topTrailing) {
+                    if let find = page.find, find.paneID == id {
+                        FindBar(find: find, page: page).padding(gap)
+                    }
+                }
             }
             // As the card shows: what runs in it now, for its icon (the snapshot's ask was when the pane was new). Not
             // the view's task: a lazy page that leaves at once would cancel it.
