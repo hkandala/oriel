@@ -29,7 +29,7 @@ tab), the app shows the button that makes it.
   or clicked in a terminal controls that session's panes (herdr `control` streams). The other window watches
   (`observe`), dims its cards a little, and shows a bottom capsule "Controlled in another window" with
   **Take Back**. Two windows on different sessions each control their own session.
-- **Machine button** (title row, after the sidebar toggle): the machine's icon and a small chevron, no name.
+- **Machine button** (title row, after the sidebar toggle): the machine's icon only: no chevron (phase 22, the user), no name.
   Its menu lists the machines with icon and name, a checkmark on the current one, then "Add Remote Host…"
   (a placeholder until remote machines are built). Picking a machine replaces the window's sessions with
   that machine's. ⌥-click on a machine opens it in a new window; the menu does not show this as an item.
@@ -47,7 +47,7 @@ cards start. With the sidebar collapsed the items follow one another as before.
    window with a sidebar line when closed; the sidebar part filled when open). Always shown.
 3. **Machine button** (above).
 4. **Workspace button**, only while the sidebar is collapsed: an outline folder icon, then
-   "‹session› | ‹workspace›" (session dimmed, a thin vertical line, workspace in primary text), a chevron.
+   "‹session› | ‹workspace›" (session in the row's chrome color, a thin vertical line, workspace a step brighter), a chevron.
    Its menu: a filter field ("Filter or create…"; a typed name that matches nothing offers
    "New Workspace “‹text›”"), every workspace of every session open in this window,
    **grouped under a session header** (rows show only the workspace's state icon, its name and its branch on
@@ -57,8 +57,8 @@ cards start. With the sidebar collapsed the items follow one another as before.
    icons **overlapping** (up to 5, 4 pt apart, the keyboard card's icon in front); a one-pane tab shows one
    icon.
 6. Spacer.
-7. **Agents button**: outline chat bubbles. The first bubble fills while the Agents view is on (no
-   highlight). An amber dot when an agent of the current session needs you. A click (or ⌘.) toggles the
+7. **Agents button**: a list of statuses (`list.bullet.rectangle`), filled while the Agents view is on (no
+   highlight; phase 22, the user: the chat bubbles did not fit). An amber dot when an agent of the current session needs you. A click (or ⌘.) toggles the
    Agents view; with the sidebar collapsed, a click opens the sidebar in the Agents view. No tooltip
    (the hover popover takes its place).
    - **Hover** (0.25 s): a popover under the button with a small header "Needs you · ‹session›" lists the

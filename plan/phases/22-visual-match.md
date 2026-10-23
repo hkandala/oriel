@@ -105,9 +105,14 @@ picture of Classic light: it is compared with Rex's System light material file a
 | Card shadow | Classic light | none (System JSON) | black 0.06 (≈0.036 seen) | none |
 | Keyboard card | Classic dark | no visible difference (both `#222`) | `#1f`, 0.8 pt white 0.1 stroke | kept (orchestrator): the fade marks it, phase 10's choice |
 | Header title, card without the keyboard | all | faded with the content (173 vs 229) | not faded | header fades with the terminal |
-| Header buttons | dark / light | ≈ white 0.33 / black 0.33 | secondary | `Look.paneButton` |
-| Header glyph and title | all | glyph 21.5 pt, title 38.5 pt from the window edge | 16.5, 38.5 | leading 11, spacing 4 |
-| Restore (zoomed) | all | accent glyph on a faint accent circle | white on a solid accent circle | `.tint` on `.tint` 0.15 |
+| Selected vs other tabs | Glass dark | capsule +27 over the track, rim `#7d`/`#75`; titles 235 vs 177 (user's picture) | +27, rim `#77`/`#7b`; 236 vs 178 | — (system Liquid Glass capsule; already equal) |
+| Pane drag image | all | (Rex: the card lifts, rex-ui §8.9) | the header's snapshot | the whole card, ≤ 280 pt wide, rounded, 0.85, soft shadow (user) |
+| Agents button | all | (Rex: an eye) | chat bubbles | `list.bullet.rectangle`, filled while the Agents view is on (user) |
+| Machine button | all | (Rex's picker: icon and label) | icon and a chevron | icon only (user); the workspace button keeps its chevron: it is a text menu and looks balanced with it |
+| Window edge glow | Glass dark | a soft inner light ≈6 pt deep (Rex's window inner shadow) | none | — : no public API for an inner window glow; left |
+| Header buttons | dark / light | ≈ white 0.33 / black 0.33; glyphs ≈ 11 pt regular (split 12.5 pt wide), 22 pt boxes, pitch 24 | secondary; 13 pt medium glyphs (split 15 pt wide) | `Look.paneButton` 0.33; 11 pt regular glyphs in 22 pt buttons |
+| Header glyph and title | all | glyph 21.5 pt, title 38.5 pt from the window edge | 16.5, 38.5 | leading 11, spacing 3 |
+| Restore (zoomed) | all | muted blue glyph (`#3966ab`) on a faint accent circle (≈ accent 0.06) | white on a solid accent circle | accent 0.6 glyph on an accent 0.07 circle (user: no saturated blue) |
 | Window tint | Glass light | Modern light: canvas at 0.7 | white 0.5 | white 0.7 |
 | Window | Classic | `#1e1e1e` / (JSON) `#f6f6f6` + white 0.5 | `#1e1e1e` / `#f6f6f6` | — (phase 10's light reason) |
 | Sidebar to cards | all | cards at x = 240 (sidebar width) | x = 256 (8 + 240 + 8) | cards at the width; the handle lies over the gap |
@@ -116,7 +121,7 @@ picture of Classic light: it is compared with Rex's System light material file a
 | Sidebar row title | all | ascender 20 px | 19 px | — |
 | Sidebar footer | all | filter icon + buttons | filter field + Open Session (design) | — (layout's choice) |
 | Tabs over the cards | sidebar open | (user's request) | tabs after the machine button | leading area as wide as the sidebar |
-| Tab bar, user's picture (`rex-tabs-dark-2026-10-22.png`) | Glass dark | track 34 pt (y 6–40), capsule 30 pt 2 pt inside it, radius 15; tabs 220 pt; tile 11 pt in from the track, title 11 pt after the tile; divider 18 pt | capsule 34 pt filling the track; tile 8.5 pt in, title 9 pt after; divider 16 pt | capsule and hover 2 pt inside the track (`ChromeStyle.inset`), tile 11 pt in, 10 pt spacing, divider 18 pt |
+| Tab bar, user's picture (`rex-tabs-dark-2026-10-22.png`) | Glass dark | track 34 pt (y 6–40), capsule 30 pt 2 pt inside it top and bottom, full slot width, radius 15; tabs 220 pt; tile 11 pt in from the track, title 11 pt after the tile; divider 18 pt | capsule 34 pt filling the track; tile 8.5 pt in, title 9 pt after; divider 16 pt | capsule and hover 2 pt inside the track top and bottom (`ChromeStyle.inset`), tile 11 pt in, 10 pt spacing, divider 18 pt |
 | Tab title font | all | 13 pt regular (ascender 20 px) | 13 pt regular | — |
 | Row items gap, glyph weight | all | ≈ 8 pt; medium | 8 pt; medium | — |
 | Card radius, gap | all | 10 pt, 8 pt | 10 pt, 8 pt | — |
@@ -131,11 +136,10 @@ picture of Classic light: it is compared with Rex's System light material file a
 | Worktree indent and guide | all | (Rex has none) | 14 pt, 1 pt separator line | — (design) |
 | Track ends | all | 1.5 pt past the first and last tab | at the tabs | — : the first capsule's slot lines up with the cards (5b) |
 | Card stroke, others | Classic dark | none (`#1e` to `#22` at the edge) | white 0.07, 0.7 pt | none |
-| Terminal text inset | all | 11.5 pt from the card's edge | 9 pt | 11 pt padding (12 with Ghostty's own) |
-| Sidebar page header and first row | sidebar open | 3 pt lower (from the red light) | — | sidebar top room 7 pt |
+| Terminal text inset | all | 12 pt from the card's edge (round 2) | 9 pt | 10 pt padding (12 with Ghostty's own) |
+| Sidebar page header and first row | sidebar open | header 3 pt lower; first row 31.5 pt below the header's baseline (from the window edge) | 4 pt room; 29 pt | sidebar top room 7 pt; 3 pt under the header |
 | Sidebar toggle | all | centered 82 pt right of the red light | 75 pt | row starts 91 pt in |
-| Workspace button text | collapsed | (Rex's picker label: chrome, semibold) | session secondary on chrome (≈0.45) | session chrome, workspace `Look.selected`, divider rule |
-| Header buttons | Glass dark | ≈ white 0.33 | 0.4 | 0.33 |
+| Workspace button text | collapsed | (Rex's picker label: chrome, semibold) | session secondary on chrome (≈0.45), medium | session chrome, workspace `Look.selected`, divider rule, semibold |
 
 ### Deviations
 
@@ -147,6 +151,9 @@ picture of Classic light: it is compared with Rex's System light material file a
   constants (rex-internals §5.1) instead.
 - **The header glyph differs in art, not size**: Rex draws `>_` for shells; the icon catalog (phase 12) gives
   zsh a filled terminal window. Same 11.5 pt box; left as the catalog's.
+- **The tab slot lines up with the cards, the capsule sits 2 pt inside it**, as Rex's capsule sits in its track;
+  with one tab or in Classic dark (no track) the visible pill starts 2 pt right of the cards.
+- **Agents button icon** (user, during the phase): `list.bullet.rectangle`, filled while the Agents view is on.
 - **Tabs start over the cards while the sidebar is open** (user, during the phase): the toggle and the machine
   button sit in a leading area `sidebarWidth − 91 − 8` wide. Collapsed, the row is unchanged.
 - **The hover card's split minimap is gone** (user, during the phase).
@@ -164,7 +171,7 @@ picture of Classic light: it is compared with Rex's System light material file a
   the strip's gap (the sidebar sits in front, `zIndex`), so the cards start at x = width (240).
 - **Text tokens:** `Look.chrome` (white / black 0.65; the user's picture, newer than `glass-untinted.jpg`, wins) is the title row's and sidebar's foreground; icons and
   titles inherit it (`IconButton` draws `.primary`, the inherited style). `Look.selected` for the selected tab and
-  row, `Look.divider` = chrome at 0.22, `Look.paneButton` for card header buttons, `Look.track`.
+  row, `Look.divider` white 0.17 / black 0.14 (Rex), `Look.paneButton` for card header buttons, `Look.track`.
 - **The light card shadow is drawn on an opaque copy cut out under the card** (`destinationOut`): on the
   translucent fill it was as faint as the fill (phase 10's note).
 - **Program icons moved to `ProgramIcons.swift`**: Style.swift passed SwiftLint's 400 lines; the tiles draw the
@@ -173,7 +180,8 @@ picture of Classic light: it is compared with Rex's System light material file a
 ### Assumptions
 
 - **AppKit keeps the standard buttons' frames as set until its next layout**, and every layout posts a frame change.
-  Seen on resize, ⌥-zoom and full screen in the e2e test; a macOS update could lay them out without one.
+  The e2e test sees it on launch and after ⌥-zoom; resizes and leaving full screen were not checked by a test (the
+  probe window showed a resize); a macOS update could lay them out without one.
 - **Glass light at white 0.7** reads like Rex's on a light desktop; on the dark terminal behind the local runs it
   measured `#dadada` (Rex `#f5f5f5` on its desktop).
 

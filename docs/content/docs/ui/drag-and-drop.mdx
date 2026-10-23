@@ -31,8 +31,11 @@ Drag a card by its header (the title area, not its buttons) by 4 pt or more.
 
 ![Dragging a pane onto the right edge of another card](/mockups/K.jpg)
 
-- **Preview.** The drag image, a snapshot of the card's header, follows the
-  pointer. The card in place dims to 0.4.
+- **Preview.** The drag image is the whole card as a lifted card: a snapshot
+  scaled to at most 280 pt wide (its aspect kept), its 10 pt corners rounded,
+  at 0.85 with a soft shadow, the pointer at the same place on it. Where the
+  terminal's Metal layer does not draw into the snapshot, the card's fill
+  shows. The card in place dims to 0.4.
 - **Indicator.** A rounded rect (radius 10) filled with the accent color at
   0.2, with a 2 pt accent stroke. It moves between targets over 0.12 s.
 
