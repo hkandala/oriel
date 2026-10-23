@@ -55,9 +55,11 @@ extension KeyboardShortcut {
                 .lowercased()
                 .first
             guard let first = seconds
-                .first(where: { $0.second.modifierFlags == flags && $0.second.key.character == key })?
-                .first, let item = NSApp.mainMenu?.item(first), item.isEnabled,
-                let menu = item.menu else { return false }
+                .first(where: { $0.second.modifierFlags == flags && $0.second.key.character == key })?.first,
+                let item = NSApp.mainMenu?.item(first), item.isEnabled, let menu = item.menu,
+                // ⌃⇥ in a text field (the palette, a rename) stays the field's: the tabs behind it must not move.
+                key != KeyEquivalent.tab.character || !(NSApp.keyWindow?.firstResponder is NSText) else { return false }
+            // Not `performKeyEquivalent` with a made-up event: AppKit did not match "]" with ⇧⌘ to ⇧⌘].
             menu.performActionForItem(at: menu.index(of: item))
             return true
         }
@@ -86,7 +88,7 @@ extension KeyboardShortcut {
     }
 
     /// The menu bar's settings (D62), for the command list.
-    struct Settings: DynamicProperty {
+    struct AppSettings: DynamicProperty {
         @AppStorage("appearance") var appearance = Appearance.dark
         @AppStorage("interfaceStyle") var style = InterfaceStyle.glass
         @AppStorage("fontSize") var fontSize = PaneTerminal.fontSize
@@ -103,12 +105,16 @@ extension KeyboardShortcut {
             case pane, paneMove
             /// View ▸ Pane, keys only.
             case paneKeys
+            /// View ▸ Pane's setting, first.
+            case paneSetting
             /// The palette only.
             case palette
         }
 
         let section: Section
         let title: String
+        /// The palette row's id when the title may repeat (a move's target tabs); else the title.
+        var id: String?
         var key: KeyboardShortcut?
         /// The palette row's SF Symbol.
         var symbol: String?
@@ -132,7 +138,7 @@ extension KeyboardShortcut {
     struct AppCommands: Commands {
         @FocusedValue(\.commands) private var commands
         @Environment(\.openWindow) private var openWindow
-        private var settings = Settings()
+        private var settings = AppSettings()
 
         var body: some Commands {
             // With no window: New Window and the settings.
@@ -143,7 +149,7 @@ extension KeyboardShortcut {
             CommandGroup(after: .pasteboard) { items(list, .edit) }
             CommandGroup(after: .sidebar) {
                 items(list, .view)
-                Menu("Pane") { CommandItems(commands: list, sections: [.pane, .paneMove, .paneKeys]) }
+                Menu("Pane") { CommandItems(commands: list, sections: [.paneSetting, .pane, .paneMove, .paneKeys]) }
                 Divider()
                 items(list, .size)
             }

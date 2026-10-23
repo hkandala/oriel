@@ -11,7 +11,7 @@
         var agents: Binding<Bool>?
         var openSession: Binding<Bool>?
         let openWindow: OpenWindowAction
-        let settings: Settings
+        let settings: AppSettings
 
         var all: [Command] {
             let page = pages?.current, pages = pages, workspace = page?.selectedWorkspace, tab = page?.selectedTab
@@ -65,7 +65,6 @@
         }
 
         private var view: [Command] {
-            let sidebar = sidebar, agents = agents, palette = palette, settings = settings
             let size = settings.fontSize, sizes = PaneTerminal.fontSizes
             return [
                 Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",
@@ -110,7 +109,7 @@
 
         /// Sub-pages and commands the menu bar has elsewhere (the capsule and row context menus, AppKit's View menu).
         private func palette(_ page: Page?) -> [Command] {
-            let settings = settings, tab = page?.selectedTab, workspace = page?.selectedWorkspace
+            let tab = page?.selectedTab, workspace = page?.selectedWorkspace
             let fullScreen = NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
             return [
                 Command(section: .palette, title: "Rename Tab", symbol: "pencil", enabled: tab != nil,
@@ -187,7 +186,6 @@
 
         /// Keys that move the keyboard, the pane or a divider; and Focus Follows Mouse.
         private var paneKeys: [Command] {
-            let pages = pages, settings = settings
             let enabled = pages?.current?.keyboardPane != nil, tab = pages?.current?.selectedTab
             let arrows: [(Heading, KeyEquivalent)] = [
                 (.left, .leftArrow), (.right, .rightArrow), (.up, .upArrow), (.down, .downArrow),
@@ -230,7 +228,7 @@
                 + each("Resize Pane", [.command, .control], symbol: ".to.line") {
                     await $0.store.resize($1.id, $2)
                 }
-                + [Command(section: .paneKeys, title: "Focus Follows Mouse", symbol: "cursorarrow.motionlines",
+                + [Command(section: .paneSetting, title: "Focus Follows Mouse", symbol: "cursorarrow.motionlines",
                            keywords: "hover pane", checked: settings.followMouse, setting: true,
                            action: { settings.followMouse.toggle() })]
         }
@@ -256,7 +254,9 @@
             // herdr refuses a move into the pane's own tab. A move into a tab lands right of its last card, as a drop
             // on its capsule does: without a target herdr splits the tab's focused pane.
             let others = (workspace?.tabs ?? []).filter { $0.id != pane?.tabID }.map { other in
-                act(page?.titleText(other) ?? other.label) { await $0.drop($1.id, on: .tab(other.id)) }
+                var command = act(page?.titleText(other) ?? other.label) { await $0.drop($1.id, on: .tab(other.id)) }
+                command.id = other.id
+                return command
             }
             return [
                 act("Split Right", .splitRight, symbol: "rectangle.split.2x1") { await $0.split($1.id, .right) },

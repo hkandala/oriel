@@ -23,9 +23,7 @@ struct FilterList: View {
     }
 
     let prompt: String
-    /// A header above the field (a palette sub-page says where you are): `<name>.title`.
-    var title: String?
-    var fieldSymbol = "line.3.horizontal.decrease.circle"
+    var fieldSymbol: String?
     /// The field is `<name>.filter`, a row `<name>.<item id>`.
     let name: String
     /// The rows for a filter. A function, so each key reads the rows as they are now.
@@ -39,8 +37,8 @@ struct FilterList: View {
     var text = ""
     /// Enter acts on the field's text instead of a row (a name page).
     var submit: ((String) -> Void)?
-    /// ⌫ on an empty field, or Esc: back a page. Whether it went back (Esc goes on to close the panel otherwise).
-    var back: (() -> Bool)?
+    /// ⌫ on an empty field, or Esc: back a page. Without it Esc goes on to close the panel.
+    var back: (() -> Void)?
     var rowHeight: CGFloat = 26
     /// After a row acted.
     let done: () -> Void
@@ -53,11 +51,6 @@ struct FilterList: View {
         let items = items(filter)
         let index = current(items)
         VStack(alignment: .leading, spacing: 2) {
-            if let title {
-                Text(title).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
-                    .padding(.horizontal, 8).padding(.bottom, 2)
-                    .accessibilityIdentifier("\(name).title")
-            }
             FilterField(prompt: prompt, text: $filter, identifier: "\(name).filter", symbol: fieldSymbol,
                         autofocus: true)
                 // Here, not onSubmit: a field's submit action is not refreshed when only the index changes, so ↓
@@ -74,58 +67,70 @@ struct FilterList: View {
                 }
                 .onKeyPress(.downArrow) { move(1) }
                 .onKeyPress(.upArrow) { move(-1) }
-                // ⌫ arrives as DEL (U+7F), which `.delete` (U+8) does not match.
-                .onKeyPress(keys: [.delete, KeyEquivalent("\u{7F}")]) { _ in
-                    filter.isEmpty && back?() == true ? .handled : .ignored
+                // ⌫ arrives as DEL (U+7F), which `.delete` (U+8) does not match. Not its repeats: holding ⌫ to clear
+                // the field
+                // must not leave the page.
+                .onKeyPress(keys: [.delete, KeyEquivalent("\u{7F}")], phases: .down) { _ in
+                    guard filter.isEmpty, let back else { return .ignored }
+                    back()
+                    return .handled
                 }
-                .onKeyPress(.escape) { back?() == true ? .handled : .ignored }
+                .onKeyPress(.escape) {
+                    guard let back else { return .ignored }
+                    back()
+                    return .handled
+                }
                 .padding(.bottom, 4)
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
-                            if item.section != (offset > 0 ? items[offset - 1].section : nil) {
-                                if let section = item.section, !section.isEmpty {
-                                    Text(section).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
-                                        .padding(.horizontal, 8).padding(.top, offset > 0 ? 6 : 0)
-                                        .accessibilityIdentifier("\(name).section.\(section)")
-                                } else {
-                                    Divider().padding(4)
-                                }
-                            }
-                            Button { act(item) } label: {
-                                MenuRow(symbol: item.symbol, pane: item.pane, state: item.state, title: item.title,
-                                        detail: item.busy ? "" : [item.detail, item.opens ? "›" : ""]
-                                            .filter { !$0.isEmpty }.joined(separator: " "),
-                                        selected: offset == index, height: rowHeight)
-                                    .overlay(alignment: .trailing) {
-                                        if item.busy {
-                                            ProgressView().controlSize(.small).padding(.trailing, 8)
-                                        }
+            // A name page has no rows.
+            if submit == nil {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
+                                if item.section != (offset > 0 ? items[offset - 1].section : nil) {
+                                    if let section = item.section, !section.isEmpty {
+                                        Text(section).font(.system(size: 11, weight: .medium))
+                                            .foregroundStyle(.secondary)
+                                            .padding(.horizontal, 8).padding(.top, offset > 0 ? 6 : 0)
+                                            .accessibilityIdentifier("\(name).section.\(section)")
+                                    } else {
+                                        Divider().padding(4)
                                     }
+                                }
+                                Button { act(item) } label: {
+                                    MenuRow(symbol: item.symbol, pane: item.pane, state: item.state, title: item.title,
+                                            detail: item.busy ? "" : [item.detail, item.opens ? "›" : ""]
+                                                .filter { !$0.isEmpty }.joined(separator: " "),
+                                            selected: offset == index, height: rowHeight)
+                                        .overlay(alignment: .trailing) {
+                                            if item.busy {
+                                                ProgressView().controlSize(.small).padding(.trailing, 8)
+                                            }
+                                        }
+                                }
+                                .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
+                                .accessibilityIdentifier("\(name).\(item.id)")
+                                .accessibilityValue(item.state?.word ?? "")
+                                .accessibilityAddTraits(offset == index ? .isSelected : [])
                             }
-                            .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
-                            .accessibilityIdentifier("\(name).\(item.id)")
-                            .accessibilityValue(item.state?.word ?? "")
-                            .accessibilityAddTraits(offset == index ? .isSelected : [])
+                            if items.isEmpty, submit == nil {
+                                Text("No matches").foregroundStyle(.secondary).padding(8)
+                            }
                         }
-                        if items.isEmpty, submit == nil {
-                            Text("No matches").foregroundStyle(.secondary).padding(8)
-                        }
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                     }
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
-                }
-                .scrollIndicators(.never)
-                .frame(height: min(rowsHeight, maxHeight))
-                .onChange(of: index) {
-                    if items.indices.contains(index) {
-                        proxy.scrollTo(items[index].id)
+                    .scrollIndicators(.never)
+                    .frame(height: min(rowsHeight, maxHeight))
+                    .onChange(of: index) {
+                        if items.indices.contains(index) {
+                            proxy.scrollTo(items[index].id)
+                        }
                     }
                 }
             }
         }
         .onAppear { filter = text }
-        // A cleared filter lights the start row again (the selected workspace).
+        // A cleared filter lights the start row again.
         .onChange(of: filter) { self.index = filter.isEmpty ? nil : 0 }
         .onChange(of: items.isEmpty ? nil : items[index].id, initial: true) { lit?.wrappedValue = $1 }
     }
@@ -154,14 +159,14 @@ struct FilterField: View {
     let prompt: String
     @Binding var text: String
     let identifier: String
-    var symbol = "line.3.horizontal.decrease.circle"
+    var symbol: String?
     var autofocus = false
     @State private var editing = false
     @FocusState private var focused: Bool
 
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: symbol)
+            Image(systemName: symbol ?? "line.3.horizontal.decrease.circle")
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             if editing || autofocus || !text.isEmpty {

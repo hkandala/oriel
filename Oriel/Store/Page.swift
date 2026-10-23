@@ -307,34 +307,31 @@
         }
 
         /// Go to Directory (`directory`, a `cd`) or Insert Path: the system panel at the keyboard card's folder, fresh
-        /// from herdr,
-        /// then the chosen path typed into the card, quoted. Go to Directory asks again that the card runs only its
-        /// shell (D41). ponytail: This Mac only; remote machines need another picker.
+        /// from herdr, then the chosen path typed into the card, quoted. Go to Directory asks again that the card runs
+        /// only its shell (D41). ponytail: This Mac only; remote machines need another picker.
         func choosePath(directory: Bool) async {
-            guard let pane = keyboardPane, let client = store.client else { return }
+            guard let pane = keyboardPane, let client = store.client, let window = NSApp.keyWindow else { return }
             let panel = NSOpenPanel()
             panel.canChooseDirectories = true
             panel.canChooseFiles = !directory
             panel.directoryURL = await (try? client.pane(pane.id).cwd).map { URL(filePath: $0) }
-            let chosen = if let window = NSApp.keyWindow {
-                await panel.beginSheetModal(for: window)
-            } else {
-                await panel.begin()
-            }
-            guard chosen == .OK, var path = panel.url?.path(percentEncoded: false) else { return }
-            // A folder URL ends in a slash.
-            if path.count > 1, path.hasSuffix("/") {
-                path.removeLast()
-            }
+            guard await panel.beginSheetModal(for: window) == .OK, let path = panel.url?.path(percentEncoded: false)
+            else { return }
             let quoted = "'" + path.replacing("'", with: #"'\''"#) + "'"
             if directory {
-                guard await (try? client.program(pane.id))??.isShell == true else {
-                    await store.show("A program is running in the pane")
+                do {
+                    guard try await client.program(pane.id)?.isShell == true else {
+                        await store.show("A program is running in the pane")
+                        return
+                    }
+                } catch {
+                    await store.show(error.localizedDescription)
                     return
                 }
-                await store.write { try await $0.sendInput("cd -- \(quoted)", keys: ["enter"], pane: pane.id) }
-            } else {
-                await store.write { try await $0.sendInput(quoted, keys: [], pane: pane.id) }
+            }
+            await store.write { client in
+                try await client.sendInput(directory ? "cd -- \(quoted)" : quoted, keys: directory ? ["enter"] : [],
+                                           pane: pane.id)
             }
         }
     }

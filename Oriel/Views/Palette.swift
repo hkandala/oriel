@@ -14,16 +14,38 @@
         /// The command whose sub-page shows; nil on the root. Sub-pages hold no sub-pages, so one level is the stack.
         @State private var sub: String?
         @State private var lit: String?
-        /// A preview page left without Enter puts the old choice back.
-        @State private var restore: (() -> Void)?
+        /// The choice a preview page opened on: it keeps the checkmark, and leaving without Enter picks it again.
+        @State private var kept: String?
 
         var body: some View {
             let list = commands.all
             let command = sub.flatMap { title in list.first { $0.title == title } }
+            VStack(alignment: .leading, spacing: 2) {
+                // A sub-page says where you are.
+                if let command {
+                    Text(Self.pageTitle(command)).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+                        .padding(.horizontal, 8).padding(.bottom, 2)
+                        .accessibilityIdentifier("palette.title")
+                }
+                palette(command, list)
+            }
+            .padding(8)
+            .frame(width: 480)
+            .glassEffect(.regular, in: .rect(cornerRadius: 14))
+            // Rex's preview delay.
+            .task(id: lit) {
+                guard command?.previews == true, let lit,
+                      await (try? Task.sleep(for: .seconds(0.75))) != nil,
+                      // Not after the page was left or a row chosen meanwhile.
+                      kept != nil else { return }
+                command?.menu.first { lit == Self.choiceID($0) }?.action()
+            }
+            .onDisappear { putBack() }
+        }
+
+        private func palette(_ command: Command?, _ list: [Command]) -> some View {
             FilterList(
                 prompt: command?.name == nil ? "Search" : "Name",
-                // A sub-page says where you are.
-                title: command?.title.replacing("…", with: ""),
                 fieldSymbol: command?.name == nil ? "magnifyingglass" : "pencil",
                 name: "palette",
                 items: command.map(subItems) ?? { rootItems($0, list) },
@@ -32,38 +54,33 @@
                 lit: $lit,
                 text: command?.name?.current ?? "",
                 submit: command?.name.map { name in { text in Task { await name.save(text) } } },
-                back: back,
+                back: sub == nil ? nil : { back() },
                 rowHeight: 28,
             ) { open = false }
                 // A new page starts with a new field and list.
                 .id(sub)
-                .padding(8)
-                .frame(width: 480)
-                .glassEffect(.regular, in: .rect(cornerRadius: 14))
-                // Rex's preview delay.
-                .task(id: lit) {
-                    guard command?.previews == true, let lit,
-                          await (try? Task.sleep(for: .seconds(0.75))) != nil else { return }
-                    command?.menu.first { lit == "choice.\($0.title)" }?.action()
-                }
-                .onDisappear { restore?() }
         }
 
-        /// Empty field: Commands, Tabs, Workspaces, Sessions under headers. Typed: one list, best match first; ties go
-        /// in that order, then shorter titles first. A keyword match ranks under a title match.
+        static func choiceID(_ choice: Command) -> String {
+            "choice.\(choice.id ?? choice.title)"
+        }
+
+        /// A page's title and its row's: no "…" (Rename Pane… in the menu bar).
+        static func pageTitle(_ command: Command) -> String {
+            command.title.replacing("…", with: "")
+        }
+
+        /// Empty field: Tabs, Workspaces, Sessions, then Commands, under headers. Typed: one list, best match first; a
+        /// tie goes to commands before places, then to the earlier row (the menu's and the sidebar's order). A keyword
+        /// match ranks under a title match.
         private func rootItems(_ filter: String, _ list: [Command]) -> [FilterList.Item] {
-            let rows = commandRows(list) + placeRows()
-            guard !filter.trimmingCharacters(in: .whitespaces).isEmpty else { return rows.map(\.item) }
-            let sections = ["Commands", "Tabs", "Workspaces", "Sessions"]
-            return rows.compactMap { row in
+            let commands = commandRows(list), places = placeRows()
+            guard !filter.trimmingCharacters(in: .whitespaces).isEmpty else { return (places + commands).map(\.item) }
+            return (commands + places).enumerated().compactMap { index, row in
                 [row.item.title.fuzzyScore(filter), row.keywords.fuzzyScore(filter).map { $0 + 3 }].compactMap(\.self)
-                    .min().map { (score: $0, item: row.item) }
+                    .min().map { (score: $0, index: index, item: row.item) }
             }
-            .sorted { first, second in
-                let rank = { (item: FilterList.Item) in sections.firstIndex(of: item.section ?? "") ?? 0 }
-                return (first.score, rank(first.item), first.item.title.count)
-                    < (second.score, rank(second.item), second.item.title.count)
-            }
+            .sorted { ($0.score, $0.index) < ($1.score, $1.index) }
             .map { row in
                 var item = row.item
                 item.section = nil
@@ -73,18 +90,19 @@
 
         /// The enabled commands; a setting says what it does now ("Turn On Focus Follows Mouse").
         private func commandRows(_ list: [Command]) -> [(item: FilterList.Item, keywords: String)] {
-            list.filter { $0.section != .tabs && $0.enabled }.map { command in
+            // Not Command Palette: it is open.
+            list.filter { $0.section != .tabs && $0.enabled && $0.key != .palette }.map { command in
                 let opens = !command.menu.isEmpty || command.name != nil
                 let title = command.checked
                     .flatMap { command.setting ? "Turn \($0 ? "Off" : "On") \(command.title)" : nil }
-                    ?? (opens ? command.title.replacing("…", with: "") : command.title)
+                    ?? (opens ? Self.pageTitle(command) : command.title)
                 let item = FilterList.Item(id: "command.\(command.title)", symbol: command.symbol, title: title,
                                            detail: command.key?.glyphs ?? "", section: "Commands", opens: opens,
                                            act: {
                                                if opens {
                                                    sub = command.title
-                                                   restore = command.previews
-                                                       ? command.menu.first { $0.checked == true }?.action : nil
+                                                   kept = command.previews
+                                                       ? command.menu.first { $0.checked == true }?.title : nil
                                                } else {
                                                    command.action()
                                                }
@@ -123,10 +141,11 @@
         /// A sub-page: its choices, filtered; the current one has a checkmark. A name page has none.
         private func subItems(_ command: Command) -> (String) -> [FilterList.Item] {
             { filter in
-                command.menu.filter { $0.enabled && $0.title.matches(filter) }.map { choice in
-                    let symbol = choice.checked == true ? "checkmark" : choice.symbol
-                    return FilterList.Item(id: "choice.\(choice.title)", symbol: symbol, title: choice.title) {
-                        restore = nil
+                command.menu.filter { $0.enabled && $0.title.fuzzyScore(filter) != nil }.map { choice in
+                    let current = command.previews ? choice.title == kept : choice.checked == true
+                    let symbol = current ? "checkmark" : choice.symbol
+                    return FilterList.Item(id: Self.choiceID(choice), symbol: symbol, title: choice.title) {
+                        kept = nil
                         choice.action()
                     }
                 }
@@ -135,16 +154,20 @@
 
         /// The current choice is lit first.
         private func start(_ command: Command) -> Int {
-            command.menu.filter(\.enabled).firstIndex { $0.checked == true } ?? 0
+            command.menu.filter(\.enabled).firstIndex { command.previews ? $0.title == kept : $0.checked == true } ?? 0
         }
 
-        /// Back to the root, putting back a choice being previewed. Not from the root.
-        private func back() -> Bool {
-            guard sub != nil else { return false }
-            restore?()
-            restore = nil
+        /// Back to the root, putting back a choice being previewed.
+        private func back() {
+            putBack()
             sub = nil
-            return true
+        }
+
+        private func putBack() {
+            if let kept, let command = commands.all.first(where: { $0.title == sub }) {
+                command.menu.first { $0.title == kept }?.action()
+            }
+            kept = nil
         }
     }
 #endif

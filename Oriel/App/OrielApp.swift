@@ -167,7 +167,7 @@ struct OrielApp: App {
         @State private var fullScreen = false
         /// The window's content height, for the palette's list.
         @State private var height: CGFloat = 0
-        private var settings = Settings()
+        private var settings = AppSettings()
         @Environment(\.openWindow) private var openWindow
         @Environment(\.colorScheme) private var colorScheme
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
