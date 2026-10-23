@@ -28,3 +28,6 @@ xcuserdata/
 
 # editor swap files
 *.swp
+
+# python
+__pycache__/
