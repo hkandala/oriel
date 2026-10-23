@@ -151,6 +151,8 @@ extension OrielUITests {
         let card = element("pane.w1:p2")
         XCTAssertTrue(element("terminal.w1:p2").exists(within: connect))
         try await expectPTYSize("w1:p2")
+        // The neighbor's PTY has its card's size too before it is compared after the zoom.
+        try await expectPTYSize("w1:p3")
         let page = element("page.w1:t1").frame, before = card.frame
         let neighbor = try XCTUnwrap(element("terminal.w1:p3").value as? String)
         hoverHeader("w1:p2")
