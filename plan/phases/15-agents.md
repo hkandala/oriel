@@ -233,3 +233,8 @@ needs another name adds it to e2e.sh and the helper.
   finished badge, idle ring, the popover, the Agents view in both sorts). With a narrow sidebar the sort menu's
   label gives way first ("W…"), so the session name stays readable.
 - **A static text's text is its value in XCUITest** (phase 14 again): "Nobody needs you" is read as `value`.
+
+### Later
+
+- **The icon changed in phase 22** (user): the chat bubbles did not fit; the button is `list.bullet.rectangle`, filled
+  (`list.bullet.rectangle.fill`) while the Agents view is on. The two-symbol "front bubble filled" trick is gone.

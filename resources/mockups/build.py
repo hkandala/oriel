@@ -30,13 +30,13 @@ UI = {
 
 # Outline (stroked) glyphs.
 UIO = {
-    "bubbles": '<path d="M4 4.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8.5L5 16v-2.5H4A1.5 1.5 0 0 1 2.5 12V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M15.5 8.5H20A1.5 1.5 0 0 1 21.5 10v6a1.5 1.5 0 0 1-1.5 1.5h-1V20l-3.5-2.5H11a1.5 1.5 0 0 1-1.5-1.5v-2.5"/>',
+    "statuslist": '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M10 9.5h7M10 14.5h7"/><circle cx="7" cy="9.5" r=".6" fill="currentColor"/><circle cx="7" cy="14.5" r=".6" fill="currentColor"/>',
     "folder": '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2h8.8A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>',
     "sidebarclosed": '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M9 4.5v15"/>',
     "sidebaropen": '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M9 4.5v15"/><path d="M5.6 4.5H9v15H5.6A2.6 2.6 0 0 1 3 16.9V7.1a2.6 2.6 0 0 1 2.6-2.6z" fill="currentColor"/>',
-    "bubblesfill": '<path fill="currentColor" d="M4 4.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8.5L5 16v-2.5H4A1.5 1.5 0 0 1 2.5 12V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M15.5 8.5H20A1.5 1.5 0 0 1 21.5 10v6a1.5 1.5 0 0 1-1.5 1.5h-1V20l-3.5-2.5H11a1.5 1.5 0 0 1-1.5-1.5v-2.5"/>',
+    "statuslistfill": '<rect x="3" y="4.5" width="18" height="15" rx="2.5" fill="currentColor"/><path d="M10 9.5h7M10 14.5h7" stroke="#1e1e1e"/><circle cx="7" cy="9.5" r=".9" fill="#1e1e1e" stroke="none"/><circle cx="7" cy="14.5" r=".9" fill="#1e1e1e" stroke="none"/>',
 }
-AGENT_ICON = "o:bubbles"
+AGENT_ICON = "o:statuslist"
 
 
 def ui(name, cls="ic"):
@@ -149,7 +149,7 @@ def tabbar():
 
 
 def agents_button(on):
-    return (f'<span class="btn">{ui("o:bubblesfill" if on else AGENT_ICON)}'
+    return (f'<span class="btn">{ui("o:statuslistfill" if on else AGENT_ICON)}'
             f'<span class="ebadge amber"></span></span>')
 
 
@@ -158,8 +158,7 @@ def ws_label(session, name):
 
 
 def title_row(sidebar_open, agents_view, machine_icon="laptop", session="default"):
-    machine = (f'<span class="pick icononly" title="Machine">{ui(machine_icon)}'
-               f'<span class="caret">{ui("chev", "ic xs")}</span></span>')
+    machine = f'<span class="pick icononly" title="Machine">{ui(machine_icon)}</span>'
     workspace = ("" if sidebar_open else
                  f'<span class="pick" title="Workspace">{ui("o:folder")}'
                  f'<span class="pname">{ws_label(session, "oriel")}</span>'
@@ -330,7 +329,7 @@ SCENES = [
     ("A", "Sidebar open: workspaces of one session",
      "Title row: sidebar toggle (its icon shows the panel filled while the sidebar is open), the machine "
      "(icon only), the selected workspace's tabs (always in the title row), and on the right the Agents button "
-     "(outline chat bubbles, amber dot when an agent needs you), \u2318 and +. The sidebar lists the workspaces "
+     "(a list of statuses, amber dot when an agent needs you), \u2318 and +. The sidebar lists the workspaces "
      "of one open herdr session, like herdr: state icon and name, then the git branch with ahead and behind counts. "
      "A workspace that is not a git repository shows one line. oriel-rex-ui is a git worktree of oriel, so it "
      "sits under oriel. The footer has the filter and Open Session. A sideways swipe on the strip pages "
@@ -356,12 +355,12 @@ SCENES = [
      "page, a stopped one starts and opens. The list filters as you type.",
      window("ws", session_sheet())),
     ("G", "Hover the Agents button: who needs you",
-     "Resting the pointer on the chat bubbles shows the agents of this session that need you. A click on one "
+     "Resting the pointer on the Agents button shows the agents of this session that need you. A click on one "
      "goes straight to its pane; the sidebar stays as it is. A click on the button itself opens the Agents view.",
      window("ws", needs_popover())),
     ("H", "Agents view: the agents of this session",
      "A click on the Agents button turns the sidebar into a list of the agents of the session on this page "
-     "(the first bubble fills while it is on): one row per agent pane, even when a tab holds several. Sorted by "
+     "(the icon fills while it is on): one row per agent pane, even when a tab holds several. Sorted by "
      "priority (needs you, working, done, idle) or by workspace order. Idle agents show. A sideways "
      "swipe shows the next session's agents. A click opens that workspace, tab and pane.", window("agents")),
     ("K", "Dragging a pane by its header",

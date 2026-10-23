@@ -98,8 +98,8 @@
         }
     }
 
-    /// Outline chat bubbles, the front one filled while the Agents view is on; an amber dot while an agent of the
-    /// page in view needs you. Its hover lists them (no tooltip).
+    /// A list of statuses, filled while the Agents view is on; an amber dot while an agent of the page in view needs
+    /// you. Its hover lists them (no tooltip).
     private struct AgentsButton: View {
         let page: Page
         /// The Agents view is on.
@@ -110,22 +110,14 @@
         var body: some View {
             let waiting = page.store.panes.count { $0.state == .needsYou }
             Button(action: toggle) {
-                // Only the front bubble filled: `.fill` fills both, so its front layer alone (palette, back layer
-                // clear) goes over the outline; the two symbols line up at their bottoms, not their centers.
-                ZStack(alignment: .bottom) {
-                    Image(systemName: "bubble.left.and.bubble.right")
-                    if showing {
-                        Image(systemName: "bubble.left.and.bubble.right.fill").symbolRenderingMode(.palette)
-                            .foregroundStyle(HierarchicalShapeStyle.primary, Color.clear)
+                Image(systemName: showing ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
+                    .fontWeight(.medium)
+                    .overlay(alignment: .topTrailing) {
+                        if waiting > 0 {
+                            Circle().fill(look.needsYou).frame(width: 7, height: 7).offset(x: 3, y: -2)
+                        }
                     }
-                }
-                .fontWeight(.medium)
-                .overlay(alignment: .topTrailing) {
-                    if waiting > 0 {
-                        Circle().fill(look.needsYou).frame(width: 7, height: 7).offset(x: 3, y: -2)
-                    }
-                }
-                .frame(width: 28, height: 28)
+                    .frame(width: 28, height: 28)
             }
             .buttonStyle(ChromeStyle(radius: 7))
             .accessibilityLabel("Agents")
@@ -172,7 +164,7 @@
         return battery ? "laptopcomputer" : "desktopcomputer"
     }()
 
-    /// The machine's icon and a chevron; its menu lists the machines (This Mac only for now) and Add Remote Host.
+    /// The machine's icon; its menu lists the machines (This Mac only for now) and Add Remote Host.
     private struct MachineButton: View {
         @Environment(\.openWindow) private var openWindow
 
@@ -191,11 +183,9 @@
                 // ponytail: no-op until remote hosts
                 Button("Add Remote Host…", systemImage: "plus") {}
             } label: {
-                // One text, so the menu button is one element.
-                let chevron = Text(Image(systemName: "chevron.down")).font(.system(size: 8, weight: .bold))
-                Text("\(Image(systemName: thisMacIcon)) \(chevron)").fontWeight(.medium)
-                    .padding(.horizontal, 6)
-                    .frame(height: 28)
+                // The icon alone (user, phase 22): no chevron.
+                Image(systemName: thisMacIcon).fontWeight(.medium)
+                    .frame(width: 28, height: 28)
             }
             .menuStyle(.button)
             .menuIndicator(.hidden)
@@ -217,7 +207,7 @@
         var body: some View {
             Button { open.toggle() } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "folder").fontWeight(.medium)
+                    Image(systemName: "folder").fontWeight(.semibold)
                     // A long session name stops at 110 pt, so a long workspace name fades instead of hiding it.
                     Capped(width: 110) { Text(session).lineLimit(1) }.layoutPriority(1)
                     Rectangle().fill(look.divider).frame(width: 1, height: 12)

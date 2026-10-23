@@ -80,7 +80,7 @@
             return [
                 Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",
                         enabled: palette != nil) { palette?.wrappedValue.toggle() },
-                Command(section: .view, title: "Show Agents", key: .init("."), symbol: "bubble.left.and.bubble.right",
+                Command(section: .view, title: "Show Agents", key: .init("."), symbol: "list.bullet.rectangle",
                         keywords: "needs you", enabled: agents != nil && sidebar != nil,
                         checked: agents?.wrappedValue == true && sidebar?.wrappedValue == true, action: {
                             if let agents, let sidebar {
