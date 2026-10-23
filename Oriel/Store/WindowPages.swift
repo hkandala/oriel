@@ -23,6 +23,8 @@
         static var windows: [WindowPages] = []
         /// A click that came before any window (one that started the app).
         private static var early: String?
+        /// Folders dropped on the Dock icon, waiting for a live page (a drop can start the app).
+        private static var folders: [URL] = []
 
         init() {
             terminals.onKeyboard = { [weak self] terminalID in self?.current?.tookKeyboard(terminalID) }
@@ -104,11 +106,33 @@
             page(store)?.settle()
             showTerminals()
             showPending()
+            if Self.windows.first === self {
+                openFolders()
+            }
+        }
+
+        /// A workspace in each folder, in the session of the last key window's page in view; the last one is selected
+        /// when it appears.
+        static func open(folders urls: [URL]) {
+            folders += urls
+            windows.first?.openFolders()
+        }
+
+        private func openFolders() {
+            guard let page = current, page.store.state == .live, !Self.folders.isEmpty else { return }
+            let urls = Self.folders
+            Self.folders = []
+            Task {
+                for url in urls {
+                    await page.newWorkspace(cwd: url.path(percentEncoded: false))
+                }
+            }
         }
 
         /// Removes the page from the window; its terminals close. Never the last page.
         func close(_ page: Page) {
             guard list.count > 1, let index = list.firstIndex(where: { $0 === page }) else { return }
+            page.dropFind()
             list.remove(at: index)
             if current === page {
                 show(list[max(index - 1, 0)])
@@ -120,6 +144,7 @@
         /// The window closed: every page leaves and every terminal closes.
         func closed() {
             Self.windows.removeAll { $0 === self }
+            list.forEach { $0.dropFind() }
             terminals.show([:], alive: [], client: nil)
             list.forEach { leave($0.store) }
             list = []

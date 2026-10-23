@@ -80,6 +80,10 @@
                 selectedTabIDs[workspace.id] = workspace.tabs.contains { $0.id == workspace.activeTabID }
                     ? workspace.activeTabID : workspace.tabs.first?.id
             }
+            // The find bar's pane closed, or moved to another workspace (a new id).
+            if let find, store.pane(find.paneID) == nil {
+                self.find = nil
+            }
             // Gone, or alone in its tab (moved, or its neighbor closed).
             if let id = zoomedPaneID, alone(id) || store.pane(id)?.tabID != zoomedTabID {
                 zoomedPaneID = nil

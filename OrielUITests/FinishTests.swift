@@ -92,11 +92,7 @@ extension OrielUITests {
             try await scrollOffset(pane) > 100 ? true : nil
         }
         // Its highlight is on the row herdr shows it on.
-        let screen = try await read(pane)
-        let row = try XCTUnwrap(screen.split(separator: "\n", omittingEmptySubsequences: false)
-            .firstIndex(of: "line 42"))
-        let lit = element("find.highlights")
-        XCTAssertTrue(lit.has(\.stringValue, "1 shown, current row \(row)", within: 2), lit.stringValue)
+        try await expectHighlight("line 42", in: pane)
         keepScreenshot("find bar")
 
         app.typeKey(.escape, modifierFlags: [])
@@ -105,6 +101,26 @@ extension OrielUITests {
             try await scrollOffset(pane) == 0 ? true : nil
         }
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+
+        // The screen cleared (its text goes to the scrollback): the blank rows under the prompt count too.
+        try await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "printf '\\033[2J\\033[H'\r"])
+        try await waitFor(pane) { !$0.contains("line 199") }
+        app.typeKey("f", modifierFlags: .command)
+        XCTAssertTrue(hasKeyboard(field))
+        app.typeText("line 42")
+        XCTAssertTrue(count.has(\.stringValue, "1 of 1", within: 2), count.stringValue)
+        try await expectHighlight("line 42", in: pane)
+        app.typeKey(.escape, modifierFlags: [])
+    }
+
+    /// herdr shows the text on a row of its screen, and the find bar's highlight is on that row.
+    private func expectHighlight(_ text: String, in pane: String) async throws {
+        let lit = element("find.highlights")
+        try await poll("the highlight on \(text)'s row, it says \(lit.stringValue)") { () async throws -> Bool? in
+            let rows = try await read(pane).split(separator: "\n", omittingEmptySubsequences: false)
+            let row = rows.firstIndex { $0 == text }.map(String.init) ?? "none"
+            return lit.stringValue == "1 shown, current row \(row)" ? true : nil
+        }
     }
 
     func testCommandClickOnALinkOpensIt() async throws {

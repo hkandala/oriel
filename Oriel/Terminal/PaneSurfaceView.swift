@@ -14,6 +14,8 @@
         /// sizes carry no cell size.
         private(set) var metrics: TerminalGridMetrics?
         private var dragged: (column: Int, row: Int)?
+        /// The button went down with ⌘ (a link click): its drag and release stay local too.
+        private var commandClick = false
         private var scrolled: CGFloat = 0
 
         /// Asked for the keyboard before it was in a window.
@@ -189,9 +191,13 @@
         private func mouse(_ action: TerminalStream.MouseAction, _ button: TerminalStream.MouseButton,
                            _ event: NSEvent)
         {
-            // Back and forward buttons are other buttons too, not middle clicks. A ⌘-click opens a link (libghostty).
-            guard button != .middle || event.buttonNumber == 2, !event.modifierFlags.contains(.command),
-                  let cell = cell(event) else { return }
+            // Back and forward buttons are other buttons too, not middle clicks.
+            guard button != .middle || event.buttonNumber == 2, let cell = cell(event) else { return }
+            // A ⌘-click opens a link (libghostty); none of it goes to herdr.
+            if action == .down {
+                commandClick = event.modifierFlags.contains(.command)
+            }
+            guard !commandClick else { return }
             if action == .drag, let dragged, dragged == cell {
                 return
             }

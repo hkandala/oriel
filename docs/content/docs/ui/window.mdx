@@ -462,8 +462,9 @@ A short message after a failed action or a refused move.
   tall: glass, a leading symbol in a tone color (red `xmark.octagon.fill` for
   an error, amber `exclamationmark.triangle.fill` for a warning, blue for
   information), the text (two lines at most), an optional action button and ×.
-- **Retry** shows only where a retry is safe: "Busy, try again" (nothing was
-  sent). A write that timed out may have happened, so it gets no Retry.
+- A failed write's notice has no action: after a timeout the write may have
+  happened, so a retry is not safe. The Open Session sheet's "Could not
+  start" notice has **Retry**.
 - It goes after 4 s, or at ×. A newer notice replaces it.
 
 ## Control capsule

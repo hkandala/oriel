@@ -73,8 +73,6 @@ struct Notice {
                 // After 0.3 s, so a fast connect shows nothing.
                 Waiting(text: "Connecting to \(machine)", delay: .milliseconds(300))
                     .accessibilityIdentifier("detail.connecting")
-            case .live:
-                tabs(store)
             case .failed(.notFound):
                 message("herdr is not installed", "Install it in a terminal:",
                         "curl -fsSL https://herdr.dev/install.sh | sh")
@@ -82,34 +80,38 @@ struct Notice {
                 message("herdr is too old", text + ". Update it in a terminal:", "herdr update")
             case .failed where !store.isRunning:
                 message("\(store.session) is not running", "Start it to see its workspaces.", nil, start: true)
-            case .failed:
-                // The server runs but does not answer (the bridge fails): the client tries again every 2 s.
-                ZStack {
-                    tabs(store).opacity(0.5).allowsHitTesting(false)
-                    Waiting(text: "Reconnecting to \(machine)").accessibilityIdentifier("detail.reconnecting")
-                }
+            case .live, .failed:
+                // Failed while the server runs (the bridge fails): reconnecting, the client tries again every 2 s.
+                // One branch, so the strip keeps its state through it; the notices stay clickable.
+                let reconnecting = store.state != .live
+                tabs(store)
+                    .opacity(reconnecting ? 0.5 : 1)
+                    .allowsHitTesting(!reconnecting)
+                    .overlay {
+                        if reconnecting {
+                            Waiting(text: "Reconnecting to \(machine)").accessibilityIdentifier("detail.reconnecting")
+                        }
+                    }
+                    .overlay(alignment: .bottom) { notices(store) }
             }
         }
 
-        /// The selected workspace's strip, with the notices over it; the button that makes what is missing.
+        /// The selected workspace's strip, or the button that makes what is missing.
         @ViewBuilder private func tabs(_ store: HostStore) -> some View {
             if let workspace = page.selectedWorkspace {
-                Group {
-                    if workspace.tabs.isEmpty {
-                        Button { Task { await page.newTab() } } label: {
-                            Label("New Tab", systemImage: "plus")
-                            Text(KeyboardShortcut.newTab.glyphs).foregroundStyle(.secondary)
-                        }
-                        .disabled(store.writing)
-                        .accessibilityIdentifier("new-tab")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        Strip(workspace: workspace, page: page)
+                if workspace.tabs.isEmpty {
+                    Button { Task { await page.newTab() } } label: {
+                        Label("New Tab", systemImage: "plus")
+                        Text(KeyboardShortcut.newTab.glyphs).foregroundStyle(.secondary)
                     }
+                    .disabled(store.writing)
+                    .accessibilityIdentifier("new-tab")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    Strip(workspace: workspace, page: page)
                 }
-                .overlay(alignment: .bottom) { notices(store) }
             } else {
-                NewWorkspaceButton(page: page)
+                NewWorkspaceButton(page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
 

@@ -59,7 +59,7 @@ import Foundation
                 }
                 try await Task.sleep(for: .milliseconds(100))
             }
-            throw HerdrError.failed("The server did not answer within \(timeout.components.seconds) s; see \(log)")
+            throw HerdrError.failed("The server did not answer within \(timeout); see \(log)")
         }
     }
 #endif

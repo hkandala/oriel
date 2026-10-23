@@ -245,9 +245,11 @@ struct OrielApp: App {
             }
             // The links a test ⌘-clicked (`-recordLinks YES`).
             .background(alignment: .topLeading) {
-                Color.clear.frame(width: 1, height: 1).accessibilityElement().accessibilityAddTraits(.isStaticText)
-                    .accessibilityLabel("Links").accessibilityIdentifier("app.links").accessibilitySortPriority(-1)
-                    .accessibilityValue(Links.shared.recorded.joined(separator: " "))
+                if UserDefaults.standard.bool(forKey: "recordLinks") {
+                    Color.clear.frame(width: 1, height: 1).accessibilityElement().accessibilityAddTraits(.isStaticText)
+                        .accessibilityLabel("Links").accessibilityIdentifier("app.links").accessibilitySortPriority(-1)
+                        .accessibilityValue(Links.shared.recorded.joined(separator: " "))
+                }
             }
             .modifier(AgentsWatch(pages: pages, page: page))
             // The title bar row takes the hidden title bar's line.

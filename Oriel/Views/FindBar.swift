@@ -24,19 +24,21 @@
         @ObservationIgnored var stale = false
         /// Lowercased: the search is case blind.
         @ObservationIgnored private var lines: [String] = []
+        /// The screen's blank rows under its last text, which herdr's recent text leaves out but its offset counts.
+        @ObservationIgnored private var blank = 0
+        /// herdr's screen height.
+        @ObservationIgnored private var rows = 0
         @ObservationIgnored private let store: HostStore
-        /// The card's rows, to center a match.
-        @ObservationIgnored private let rows: () -> Int
         /// The offset to scroll to next; one `pane.scroll` at a time, the latest wins.
         @ObservationIgnored private var target: Int?
-        /// The screen changed since the highlights were placed.
+        /// A frame came since the highlights were placed, and when the last one came.
         @ObservationIgnored private var moved = false
+        @ObservationIgnored private var lastFrame = ContinuousClock.now
         @ObservationIgnored private var working = false
 
-        init(paneID: String, store: HostStore, rows: @escaping () -> Int) {
+        init(paneID: String, store: HostStore) {
             self.paneID = paneID
             self.store = store
-            self.rows = rows
         }
 
         /// "3 of 12"; nothing before a query.
@@ -44,14 +46,18 @@
             query.isEmpty ? "" : "\(current.map { $0 + 1 } ?? 0) of \(matches.count)"
         }
 
-        /// The pane's last 5000 lines, read once as the bar opens and again after Return in the pane.
+        /// The pane's last 5000 lines, read once as the bar opens and again after Return in the pane; herdr's buffer
+        /// size, for the blank rows under the text.
         func read() async {
             guard let client = store.client else { return }
             do {
                 let text = try await client.recent(paneID, lines: 5000)
-                // The text ends with a newline.
-                lines = text.lowercased().split(separator: "\n", omittingEmptySubsequences: false).dropLast()
-                    .map(String.init)
+                let scroll = try await client.pane(paneID).scroll
+                lines = Self.lines(text)
+                rows = scroll?.viewportRows ?? 0
+                // Cut at 5000 lines, the screen is full in practice.
+                let total = (scroll?.maxOffsetFromBottom ?? 0) + rows
+                blank = lines.count < 5000 ? max(total - lines.count, 0) : 0
                 stale = false
                 search(last: false)
             } catch {
@@ -77,24 +83,32 @@
                 Array(repeating: index, count: lines[index].ranges(of: query).count)
             }
             current = matches.isEmpty ? nil : last ? matches.count - 1 : min(current ?? .max, matches.count - 1)
+            if current == nil {
+                shown = []
+                shownCurrent = nil
+            }
             show()
+        }
+
+        /// The selected match's distance from herdr's last row.
+        private var distance: Int? {
+            current.map { lines.count - 1 - matches[$0] + blank }
         }
 
         /// The match's line centered: its distance from the end, less half the screen.
         private func show() {
-            if let current {
-                scroll(max(lines.count - 1 - matches[current] - rows() / 2, 0))
+            if let distance {
+                scroll(max(distance - rows / 2, 0))
             }
         }
 
         /// The matches on the screen herdr shows now, from its visible text. The selected one is the match nearest the
-        /// row its line should be on: its distance from the end, less herdr's offset, up from the screen's last line
-        /// (at the bottom, the last line with text: herdr's recent text leaves out the blank rows under it).
+        /// row its line is on: its distance from the end, less herdr's offset, up from the screen's last row.
         /// ponytail: columns count characters, so a line with wide characters (CJK, emoji) before a match puts its
         /// highlight off; measure cell widths if that matters.
         private func locate(_ client: any Multiplexer) async {
-            // Taken before the reads: the query may change meanwhile (the next scroll locates again).
-            let query = query.lowercased(), distance = current.map { lines.count - 1 - matches[$0] }
+            // Taken before the reads; a query changed meanwhile drops the result (its own scroll locates again).
+            let query = query.lowercased(), distance = distance
             guard let distance, !query.isEmpty, let screen = try? await client.screen(paneID),
                   let offset = try? await client.pane(paneID).scroll?.offsetFromBottom
             else {
@@ -102,16 +116,26 @@
                 shownCurrent = nil
                 return
             }
-            let rows = screen.lowercased().split(separator: "\n", omittingEmptySubsequences: false).dropLast()
-            shown = rows.indices.flatMap { row in
-                rows[row].ranges(of: query).map { range in
-                    Hit(row: row, column: rows[row].distance(from: rows[row].startIndex, to: range.lowerBound),
+            guard self.query.lowercased() == query else { return }
+            let screenRows = Self.lines(screen.lowercased())
+            shown = screenRows.indices.flatMap { row in
+                screenRows[row].ranges(of: query).map { range in
+                    Hit(row: row, column: screenRows[row].distance(from: screenRows[row].startIndex,
+                                                                   to: range.lowerBound),
                         length: query.count)
                 }
             }
-            let bottom = offset > 0 ? rows.count - 1 : rows.lastIndex { !$0.allSatisfy(\.isWhitespace) } ?? 0
-            let expected = bottom - (distance - offset)
+            let expected = screenRows.count - 1 - (distance - offset)
             shownCurrent = shown.indices.min { abs(shown[$0].row - expected) < abs(shown[$1].row - expected) }
+        }
+
+        /// herdr's text ends with a newline; the empty piece after it is not a line.
+        private static func lines(_ text: String) -> [String] {
+            var lines = text.lowercased().split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+            if lines.last?.isEmpty == true {
+                lines.removeLast()
+            }
+            return lines
         }
 
         struct Hit {
@@ -124,13 +148,16 @@
             work()
         }
 
-        /// A frame came: the highlights are placed again, once the frames of a burst have come.
+        /// A frame came: the highlights are placed again 0.3 s after the last frame of a burst (agent TUIs redraw
+        /// all the time).
         func screenChanged() {
             moved = true
+            lastFrame = .now
             work()
         }
 
-        /// Scrolls, then places the highlights, one step at a time; what was asked for meanwhile goes after.
+        /// Scrolls, then places the highlights, one step at a time; what was asked for meanwhile goes after. Not a
+        /// `store.write`: no Busy gate between keystrokes, and `locate`'s `pane.get` is the read after it.
         private func work() {
             guard !working, let client = store.client else { return }
             working = true
@@ -138,9 +165,15 @@
                 while target != nil || moved {
                     if let offset = target {
                         target = nil
-                        try? await client.scroll(paneID, offsetFromBottom: offset)
+                        do {
+                            try await client.scroll(paneID, offsetFromBottom: offset)
+                        } catch {
+                            Task { await store.show(Notice(text: error.localizedDescription)) }
+                        }
                     } else {
-                        try? await Task.sleep(for: .milliseconds(100))
+                        while ContinuousClock.now - lastFrame < .milliseconds(300) {
+                            try? await Task.sleep(for: .milliseconds(100))
+                        }
                     }
                     moved = false
                     if target == nil {
@@ -227,6 +260,9 @@
                 "\(find.shown.count) shown, current row \(find.shownCurrent.map { "\(find.shown[$0].row)" } ?? "none")",
             )
             .accessibilityIdentifier("find.highlights")
+            // Only while the card shows (a hidden tab's frames place nothing), and a terminal made again gets it too.
+            .onAppear { [weak find] in terminal.onFrame = { find?.screenChanged() } }
+            .onDisappear { terminal.onFrame = nil }
         }
     }
 
@@ -235,26 +271,28 @@
         func openFind() {
             guard let pane = keyboardPane else { return }
             if find?.paneID != pane.id {
-                closeFind()
-                let terminal = terminal(pane)
-                let find = Find(paneID: pane.id, store: store) { Int(terminal?.view.metrics?.rows ?? 0) }
-                terminal?.onFrame = { [weak find] in find?.screenChanged() }
+                // The keyboard stays where it is: not `closeFind`.
+                dropFind()
+                let find = Find(paneID: pane.id, store: store)
                 self.find = find
                 Task { await find.read() }
             }
             findFocus += 1
         }
 
-        /// The bar closes, herdr's viewport goes back to the bottom, and the keyboard goes back to the card.
+        /// Esc or ×: the bar closes and the keyboard goes back to the card.
         func closeFind() {
-            guard let find else { return }
-            find.scroll(0)
-            self.find = nil
-            guard let pane = store.pane(find.paneID) else { return }
-            terminal(pane)?.onFrame = nil
-            if pane.tabID == selectedTab?.id {
+            guard let paneID = find?.paneID else { return }
+            dropFind()
+            if let pane = store.pane(paneID), pane.tabID == selectedTab?.id {
                 go(to: pane)
             }
+        }
+
+        /// The bar goes and herdr's shared viewport goes back to the bottom; also when its page or window closes.
+        func dropFind() {
+            find?.scroll(0)
+            find = nil
         }
     }
 #endif

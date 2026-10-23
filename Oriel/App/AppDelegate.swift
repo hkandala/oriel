@@ -54,15 +54,9 @@
             return menu
         }
 
-        /// Folders dropped on the Dock icon: a workspace in each, in the session of the last key window's page in view;
-        /// the last one is selected when it appears.
+        /// Folders dropped on the Dock icon (WindowPages).
         func application(_: NSApplication, open urls: [URL]) {
-            guard let page = WindowPages.windows.first?.current else { return }
-            Task {
-                for url in urls where url.hasDirectoryPath {
-                    await page.newWorkspace(cwd: url.path(percentEncoded: false))
-                }
-            }
+            WindowPages.open(folders: urls.filter(\.hasDirectoryPath))
         }
 
         @objc private func pick(_ item: NSMenuItem) {
