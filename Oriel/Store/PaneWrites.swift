@@ -13,10 +13,14 @@ extension HostStore {
             if before {
                 try await client.swap(paneID, direction == .right ? .right : .down)
             }
-            let tree = try await client.snapshot().trees[new.tabID]
-            for change in tree?.evened(around: new.id) ?? [] {
-                try await client.setRatio(tab: new.tabID, path: change.path, ratio: change.ratio)
-            }
+            try await even(client, tab: new.tabID, around: new.id)
+        }
+    }
+
+    /// The run of splits holding the pane evened out, from herdr's tree now.
+    private func even(_ client: any Multiplexer, tab tabID: String, around paneID: String) async throws {
+        for change in try await client.snapshot().trees[tabID]?.evened(around: paneID) ?? [] {
+            try await client.setRatio(tab: tabID, path: change.path, ratio: change.ratio)
         }
     }
 
@@ -77,10 +81,7 @@ extension HostStore {
                     try await client.swap(moved.id, with: targetID)
                 }
                 done = nil
-                let tree = try await client.snapshot().trees[tabID]
-                for change in tree?.evened(around: moved.id) ?? [] {
-                    try await client.setRatio(tab: tabID, path: change.path, ratio: change.ratio)
-                }
+                try await even(client, tab: tabID, around: moved.id)
             } catch {
                 throw done.map { HerdrError.failed("\($0): herdr refused the next step") } ?? error
             }
