@@ -8,7 +8,7 @@ import Foundation
         /// already ran.
         /// ponytail: This Mac only; remote machines start herdr over SSH.
         @discardableResult
-        nonisolated func startServer() async throws -> Bool {
+        nonisolated func startServer(within timeout: Duration) async throws -> Bool {
             // The name goes into a launchd label and file paths.
             guard Session.isValidName(session) else { throw HerdrError.failed("“\(session)” is not a session name") }
             // Already up (started elsewhere since): booting out its job would stop it. No or old herdr: say so.
@@ -51,13 +51,15 @@ import Foundation
             guard status == 0 else {
                 throw HerdrError.failed("launchctl bootstrap exited \(status): \(stderr)")
             }
-            for _ in 0 ..< 50 {
+            // No check at all with no time (e2e's start failure): the job still starts, so Retry finds it running.
+            let deadline = ContinuousClock.now + timeout
+            while ContinuousClock.now < deadline {
                 if await (try? snapshot()) != nil {
                     return true
                 }
                 try await Task.sleep(for: .milliseconds(100))
             }
-            throw HerdrError.failed("herdr --session \(session) server did not start; see \(log)")
+            throw HerdrError.failed("The server did not answer within \(timeout.components.seconds) s; see \(log)")
         }
     }
 #endif

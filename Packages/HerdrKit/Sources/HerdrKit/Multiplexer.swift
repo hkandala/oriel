@@ -13,9 +13,9 @@ public protocol Multiplexer: Sendable {
     /// Reads a snapshot now, or once more after the read in flight (after the app's own write).
     func refresh() async
     #if os(macOS)
-        /// Starts this session's server and waits until it answers; false when it already ran.
+        /// Starts this session's server and waits until it answers, at most `timeout`; false when it already ran.
         @discardableResult
-        func startServer() async throws -> Bool
+        func startServer(within timeout: Duration) async throws -> Bool
     #endif
 
     /// One pane now: its cwd follows a `cd` that no event reports.
@@ -28,6 +28,10 @@ public protocol Multiplexer: Sendable {
 
     /// The text on the pane's screen now.
     func screen(_ paneID: String) async throws -> String
+    /// The pane's last `lines` lines, scrollback and screen, without the screen's blank rows at the end.
+    func recent(_ paneID: String, lines: Int) async throws -> String
+    /// Scrolls the pane's viewport, which every client of the pane shares; 0 is the bottom. The multiplexer clamps it.
+    func scroll(_ paneID: String, offsetFromBottom offset: Int) async throws
 
     /// The nearest pane that way, if any. Read only.
     func neighbor(of paneID: String, _ heading: Heading) async throws -> String?
@@ -86,6 +90,15 @@ public enum Destination: Sendable {
 extension HerdrClient: Multiplexer {
     public nonisolated func screen(_ paneID: String) async throws -> String {
         try await (call("pane.read", ["pane_id": paneID, "source": "visible", "format": "text"]) as Read).read.text
+    }
+
+    public nonisolated func recent(_ paneID: String, lines: Int) async throws -> String {
+        try await (call("pane.read", ["pane_id": paneID, "source": "recent", "lines": lines,
+                                      "format": "text"]) as Read).read.text
+    }
+
+    public nonisolated func scroll(_ paneID: String, offsetFromBottom offset: Int) async throws {
+        let _: Created = try await call("pane.scroll", ["pane_id": paneID, "offset_from_bottom": offset])
     }
 
     public nonisolated func neighbor(of paneID: String, _ heading: Heading) async throws -> String? {
