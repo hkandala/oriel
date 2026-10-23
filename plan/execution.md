@@ -280,7 +280,8 @@ here what the user should check at the end.
 ### Open tasks
 
 - Phase 21 Build 11: update the docs site's mock-ups to the new look (`docs/components/design/` split demo and chat
-  card, `docs/public/overview/index.html`) once phase 22's look settles.
+  card, `docs/public/overview/index.html`) once phase 22's look settles. Then bring back the "Interactive
+  overview" nav link in `docs/lib/layout.shared.tsx` (dropped in the final review: it showed the old sidebar).
 
 ### For the user to check at the end
 
