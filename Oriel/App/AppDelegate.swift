@@ -6,8 +6,8 @@
 
     /// The notification delegate (set at launch, so a click that starts the app is not lost) and the Dock menu.
     final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
-        /// macOS restores windows: from its decode of the app's state until launch ends. Their scene storage comes back
-        /// a moment after they first show, and their full screen meanwhile.
+        /// Set from macOS's decode of the restorable state until launch ends: a restored window's scene storage comes
+        /// back a moment after it first shows.
         static var restoring = false
         /// The windows macOS restored in full screen (it does so before launch ends); each leaves it once it shows.
         static var restoredFullScreen: Set<ObjectIdentifier> = []
@@ -88,7 +88,6 @@
             [.banner, .list]
         }
 
-        /// A click shows the pane.
         nonisolated func userNotificationCenter(
             _: UNUserNotificationCenter,
             didReceive response: UNNotificationResponse,

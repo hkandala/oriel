@@ -69,7 +69,6 @@ extension KeyboardShortcut {
     }
 
     private extension NSMenu {
-        /// The item with this shortcut, in this menu or a submenu.
         func item(_ shortcut: KeyboardShortcut) -> NSMenuItem? {
             for item in items {
                 if item.keyEquivalent == String(shortcut.key.character),
@@ -101,8 +100,7 @@ extension KeyboardShortcut {
 
     /// One command (D48). The menu bar and the palette read the one list of them (`CommandList`).
     struct Command {
-        /// Its group in the menu bar; groups are divided from each other.
-        /// In the menu bar's order, which the palette follows too.
+        /// Its group in the menu bar, divided from the others; in the menu bar's order, which the palette follows too.
         enum Section: CaseIterable {
             case file, close, edit, view
             /// View ▸ Pane's setting, first.
