@@ -113,7 +113,6 @@ extension OrielUITests {
             }
         }
         XCTAssertTrue(element("pane.\(inBeta)").exists(within: 3))
-        // 40 pt under the last row.
         let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workspace.w'"))
         let bottom = rows.allElementsBoundByIndex.map(\.frame.maxY).max() ?? 0
         let sidebar = element("sidebar")

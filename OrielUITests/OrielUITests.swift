@@ -138,7 +138,6 @@ final class OrielUITests: XCTestCase {
     }
 }
 
-/// Helpers shared by the test files.
 extension OrielUITests {
     /// `stty size` in the pane prints the grid its card shows (the terminal's accessibility value), in this window
     /// when there are several.

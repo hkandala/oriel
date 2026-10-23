@@ -56,8 +56,7 @@ extension OrielUITests {
         try await expectIcons(first, within: 2) { $0 == ["terminal", "sleep", "nano"] }
     }
 
-    /// Waits for the capsule's icon ids (front first) to pass `check`; polls every 100 ms (a predicate
-    /// expectation checks only about once a second).
+    /// Waits for the capsule's icon ids (front first) to pass `check`.
     private func expectIcons(_ tab: String, within seconds: Int = 3, _ check: ([String]) -> Bool) async throws {
         let capsule = element("tab.\(tab)")
         try await poll("\(tab)'s icons", times: seconds * 10) { () -> Bool? in

@@ -61,7 +61,6 @@ extension OrielUITests {
         XCTAssertEqual(element("titlebar.agents").value as? String, "0 need you")
         element("sidebar.dot.\(two)").click()
         try await waitForValue("titlebar.agents", containing: "1 need you")
-        // Its Agents view lists it.
         app.typeKey(".", modifierFlags: .command)
         try await waitForValue("sidebar.header", containing: "\(two) · agents")
         try await waitForValue("agent.w1:p1", containing: "Needs you")
@@ -158,7 +157,7 @@ extension OrielUITests {
         ])
     }
 
-    /// The tab's agent works, the app sees it, then it finishes: a finish not seen. The pane.
+    /// The agent works, the app sees it, then it finishes: an unseen finish. Gives back the pane.
     private func finish(_ created: (tab: String, pane: String)) async throws -> String {
         try await report(created.pane, "working")
         try await waitForValue("tab.\(created.tab)", containing: "working")

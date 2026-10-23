@@ -223,7 +223,6 @@ extension OrielUITests {
     }
 }
 
-/// Helpers for the pane tests: herdr's tree of a tab, from `layout.export`.
 extension OrielUITests {
     /// Right-clicks the card's header and picks the item of its context menu.
     func paneMenu(_ pane: String, _ item: String, _ subitem: String? = nil, screenshot: String? = nil) {
