@@ -97,7 +97,8 @@ final class HostStore {
                 }
             }
             starting[session] = start
-            defer { starting[session] = nil }
+            // Not a newer start that began as this one ended.
+            defer { starting[session] = starting[session] == start ? nil : starting[session] }
             try await start.value
         }
 
