@@ -1,0 +1,42 @@
+{
+  "phase": 23,
+  "agent": "phase23 (card-tiglon's phase agent)",
+  "started": "2026-10-22T20:22:00-07:00",
+  "finished": "2026-10-22T20:40:00-07:00",
+  "base": "4cb16f3",
+  "head": "98afc2c",
+  "commits": 7,
+  "files_changed": 33,
+  "insertions": 39,
+  "deletions": 80,
+  "helpers": [
+    {"name": "p23-comments-app-store", "files": "Oriel/App, Oriel/Store, Oriel/Terminal", "minutes": 5},
+    {"name": "p23-comments-views", "files": "Oriel/Views", "minutes": 6},
+    {"name": "p23-comments-herdrkit-uitests", "files": "Packages/HerdrKit, OrielUITests", "minutes": 6}
+  ],
+  "comments": {
+    "deleted": 39,
+    "fixed": 29,
+    "kept_lines": 1660,
+    "by_area": {
+      "app": {"deleted": 2, "fixed": 2},
+      "store": {"deleted": 6, "fixed": 1},
+      "terminal": {"deleted": 1, "fixed": 5},
+      "views": {"deleted": 15, "fixed": 13},
+      "herdrkit": {"deleted": 10, "fixed": 4},
+      "ui_tests": {"deleted": 5, "fixed": 4},
+      "scripts_ci": {"deleted": 0, "fixed": 0}
+    }
+  },
+  "review_rounds": 1,
+  "reviews": [
+    {"name": "phase23-review", "role": "comments", "round": 1,
+     "started": "2026-10-22T20:29:00-07:00", "finished": "2026-10-22T20:31:00-07:00", "minutes": 2,
+     "findings": {"blocker": 0, "should": 1, "nit": 4}, "genuine": 5, "rejected": 0, "value": 3,
+     "note": "Caught a deleted doc that carried the only why (stepFontSize reads UserDefaults because SwiftUI keeps a shortcut's first action) and gave the right reason from phase 11's Findings."}
+  ],
+  "self_review_findings": 2,
+  "e2e_runs": 0,
+  "ci_green": true,
+  "notes": "Comments-only proven with a stripping diff (78 files, 0 non-comment changes) plus make lint build test. Self-review: deleted a what-doc on stepFontSize the helper had written (the reviewer then got the real why back) and restored the repository-root doc (the reviewer then had it deleted). The restored doc first broke SwiftLint's 400-line file_length."
+}
