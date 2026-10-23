@@ -43,6 +43,17 @@
                         MainActor.assumeIsolated { self?.changed(value) }
                     })
                 }
+                // AppKit lays the buttons out again on resizes, key changes and full screen: put them back each time.
+                for button in buttons(of: window) {
+                    button.postsFrameChangedNotifications = true
+                    let moved = NSView.frameDidChangeNotification
+                    observers.append(center.addObserver(forName: moved, object: button, queue: .main) { [weak self] _ in
+                        // A button moved in its own frame notification goes back: once more after AppKit's layout.
+                        MainActor.assumeIsolated { self?.placeButtons() }
+                        DispatchQueue.main.async { self?.placeButtons() }
+                    })
+                }
+                placeButtons()
                 // After SwiftUI's update, which may not change state.
                 let full = window.styleMask.contains(.fullScreen)
                 let restored = AppDelegate.restoredFullScreen.remove(ObjectIdentifier(window)) != nil
@@ -50,6 +61,28 @@
                     self?.changed(full)
                     if restored {
                         window.toggleFullScreen(nil)
+                    }
+                }
+            }
+
+            private func buttons(of window: NSWindow) -> [NSButton] {
+                [.closeButton, .miniaturizeButton, .zoomButton].compactMap(window.standardWindowButton)
+            }
+
+            /// Rex's traffic lights: centered on the title row at 22.5, 45.5 and 68.5 pt from the left (the compact
+            /// toolbar centers them at 19, 20). Public AppKit: plain frame changes of the standard buttons.
+            private func placeButtons() {
+                guard let window, !window.styleMask.contains(.fullScreen) else { return }
+                for (index, button) in buttons(of: window).enumerated() {
+                    guard let superview = button.superview else { continue }
+                    let size = button.frame.size, center = TitleBar.height / 2
+                    let frame = NSRect(x: center + CGFloat(index) * 23 - size.width / 2,
+                                       y: window.frame.height - center - size.height / 2, width: size.width,
+                                       height: size.height)
+                    let origin = superview.convert(frame, from: nil).origin
+                    // Only a real move: setting the frame posts the notification that calls this.
+                    if abs(button.frame.minX - origin.x) > 0.1 || abs(button.frame.minY - origin.y) > 0.1 {
+                        button.setFrameOrigin(origin)
                     }
                 }
             }

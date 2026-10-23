@@ -6,12 +6,12 @@
     /// The title row (D45): sidebar toggle, machine button, workspace button while the sidebar is collapsed, the tab
     /// bar, then Agents, ⌘ and +.
     struct TitleBar: View {
-        /// The compact toolbar's height, so the row centers on the traffic lights.
-        static let height: CGFloat = 40
+        /// Rex's bar; `WindowReader` centers the traffic lights on it.
+        static let height: CGFloat = 46
 
-        /// Where the row starts: after the traffic lights, which AppKit owns; full screen has none.
+        /// Where the row starts: after the traffic lights (Rex keeps 84 pt for them); full screen has none.
         static func inset(fullScreen: Bool) -> CGFloat {
-            fullScreen ? gap : 78
+            fullScreen ? gap : 84
         }
 
         let page: Page

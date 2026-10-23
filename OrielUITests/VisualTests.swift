@@ -19,6 +19,33 @@ extension OrielUITests {
         try await scenes("classic", "light")
     }
 
+    /// The traffic lights sit where Rex's do, centered on the 46 pt title row, also after a zoom and full screen
+    /// (AppKit lays them out again then).
+    func testTrafficLightsSitInTheTitleRow() {
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        let window = app.windows.firstMatch
+        let lights = [XCUIIdentifierCloseWindow, XCUIIdentifierMinimizeWindow, XCUIIdentifierFullScreenWindow]
+            .map { window.buttons[$0] }
+        func placed() -> Bool {
+            lights.enumerated().allSatisfy { index, light in
+                // Rex's accessibility frames: 16 pt at x 15, 38, 61 and y 15.
+                abs(light.frame.minX - window.frame.minX - (15 + CGFloat(index) * 23)) < 1
+                    && abs(light.frame.minY - window.frame.minY - 15) < 1
+            }
+        }
+        XCTAssertTrue(until(2, placed), "\(lights.map(\.frame)) in \(window.frame)")
+        // ⌥-click zooms (a click goes full screen), and again back.
+        for _ in 0 ..< 2 {
+            XCUIElement.perform(withKeyModifiers: .option) { lights[2].click() }
+            XCTAssertTrue(until(2, placed))
+        }
+        app.typeKey("f", modifierFlags: [.control, .command])
+        XCTAssertTrue(until(5) { !lights[0].isHittable })
+        app.typeKey("f", modifierFlags: [.control, .command])
+        XCTAssertTrue(until(5, placed))
+        keepScreenshot("traffic lights")
+    }
+
     /// Three splits, a zoomed card, one tab, and three tabs with a working and a blocked agent; each with the sidebar
     /// open and collapsed where Rex has both.
     private func scenes(_ style: String, _ appearance: String) async throws {

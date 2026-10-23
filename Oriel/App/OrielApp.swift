@@ -178,9 +178,12 @@ struct OrielApp: App {
             let commands = CommandList(pages: pages, palette: open(.palette), sidebar: $sidebar, agents: $agents,
                                        openSession: $openingSession, openWindow: openWindow, settings: settings)
             let store = page.store
-            VStack(spacing: 0) {
+            // The strip's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
+            // cards start at its bottom edge, as in Rex; the row stays on top for its clicks and window drags.
+            VStack(spacing: -4) {
                 TitleBar(page: page, fullScreen: fullScreen, sidebar: $sidebar, agents: $agents,
                          palette: open(.palette), workspaceMenu: open(.workspaces), workspaceButtonX: $workspaceButtonX)
+                    .zIndex(1)
                 HStack(spacing: 0) {
                     if sidebar {
                         Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { openingSession = true }
