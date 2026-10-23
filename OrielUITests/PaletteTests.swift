@@ -75,7 +75,7 @@ extension OrielUITests {
         app.typeText("dark")
         XCTAssertTrue(element("palette.command.Appearance").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(element("palette.title").has(\.stringValue, "Appearance", within: 2))
+        XCTAssertTrue(pageTitle(is: "Appearance"))
         // The current choice is lit first; ↑ lights Light, which shows after the delay.
         XCTAssertTrue(element("palette.choice.Dark").has(\.isSelected, true, within: 2))
         app.typeKey(.upArrow, modifierFlags: [])
@@ -89,10 +89,20 @@ extension OrielUITests {
         XCTAssertTrue(element("palette.command.Appearance").exists(within: 2))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(filter.vanishes(within: 2))
+
+        // Enter keeps the previewed choice when the palette closes.
+        openPalette()
+        app.typeText("dark")
+        app.typeKey(.return, modifierFlags: [])
+        app.typeKey(.upArrow, modifierFlags: [])
+        XCTAssertTrue(look.has(\.stringValue, light, within: 2))
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(filter.vanishes(within: 2))
+        XCTAssertFalse(until(1) { look.stringValue != light })
     }
 
-    /// ⇧⌘P, Rex's key, also opens the palette; ⌃⇥ and ⌃⇧⇥ step the tabs (second shortcuts). A setting's row says
-    /// what it does now.
+    /// ⇧⌘P, Rex's key, also opens the palette; ⌃⇥ and ⌃⇧⇥ step the tabs; ⌘= is Bigger (second shortcuts). A
+    /// setting's row says what it does now.
     func testSecondShortcuts() {
         XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: connect))
         element("terminal.w1:p1").click()
@@ -105,6 +115,14 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
         app.typeKey(.tab, modifierFlags: [.control, .shift])
         XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: 2))
+
+        // ⌘=: Actual Size turns on (the menu's state, not the grid: a 1x display may round one step away).
+        addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
+        app.typeKey("0", modifierFlags: .command)
+        XCTAssertFalse(actualSizeEnabled())
+        app.typeKey("=", modifierFlags: .command)
+        XCTAssertTrue(actualSizeEnabled())
+        app.typeKey("0", modifierFlags: .command)
 
         // Settings persist: Focus Follows Mouse ends off even when a step fails.
         let row = element("palette.command.Focus Follows Mouse")
@@ -243,7 +261,7 @@ extension OrielUITests {
         openPalette()
         app.typeText("move pane to")
         app.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(element("palette.title").has(\.stringValue, "Move Pane to Tab", within: 2))
+        XCTAssertTrue(pageTitle(is: "Move Pane to Tab"))
         app.typeText("new tab")
         app.typeKey(.return, modifierFlags: [])
         let moved = try await newTabID(after: before)
@@ -251,5 +269,19 @@ extension OrielUITests {
         try await poll("the pane alone in the new tab") { () async throws -> Bool? in
             try await order(moved) == [pane] ? true : nil
         }
+    }
+
+    /// View ▸ Actual Size, read with the menu open (SwiftUI updates a closed menu's items late).
+    private func actualSizeEnabled() -> Bool {
+        app.menuBars.menuBarItems["View"].click()
+        let enabled = app.menuBars.menuItems["Actual Size"].isEnabled
+        app.typeKey(.escape, modifierFlags: [])
+        return enabled
+    }
+
+    /// The sub-page's header (a heading: XCUITest may give its text as the label or the value).
+    private func pageTitle(is title: String) -> Bool {
+        let header = element("palette.title")
+        return until(2) { header.exists && [header.label, header.stringValue].contains(title) }
     }
 }
