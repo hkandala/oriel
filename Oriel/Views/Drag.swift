@@ -45,7 +45,12 @@
             let dragging = NSDraggingItem(pasteboardWriter: pasteboard)
             let rect = view.isFlipped ? frame : NSRect(x: frame.minX, y: view.bounds.height - frame.maxY,
                                                        width: frame.width, height: frame.height)
-            dragging.setDraggingFrame(rect, contents: snapshot(view, rect))
+            if case .pane = item, let card = snapshot(view, rect) {
+                let lifted = lift(card, from: rect, under: view.convert(event.locationInWindow, from: nil))
+                dragging.setDraggingFrame(lifted.frame, contents: lifted.image)
+            } else {
+                dragging.setDraggingFrame(rect, contents: snapshot(view, rect))
+            }
             shared.page = page
             page.dragging = item
             view.beginDraggingSession(with: [dragging], event: event, source: shared)
@@ -57,6 +62,31 @@
             let image = NSImage(size: rect.size)
             image.addRepresentation(bitmap)
             return image
+        }
+
+        /// A dragged card as a lifted card: at most 280 pt wide, its corners rounded, at 0.85 with a soft shadow, the
+        /// pointer at the same place on it. The terminal's Metal layer may not draw into the snapshot: the card's fill
+        /// shows there then.
+        private static func lift(_ card: NSImage, from rect: NSRect,
+                                 under point: NSPoint) -> (frame: NSRect, image: NSImage)
+        {
+            let scale = min(1, 280 / rect.width), margin: CGFloat = 16
+            let size = NSSize(width: rect.width * scale, height: rect.height * scale)
+            let frame = NSRect(x: point.x - (point.x - rect.minX) * scale - margin,
+                               y: point.y - (point.y - rect.minY) * scale - margin,
+                               width: size.width + 2 * margin, height: size.height + 2 * margin)
+            let image = NSImage(size: frame.size, flipped: false) { _ in
+                guard let context = NSGraphicsContext.current?.cgContext else { return false }
+                let inside = NSRect(origin: NSPoint(x: margin, y: margin), size: size)
+                context.setShadow(offset: CGSize(width: 0, height: -4), blur: 12, color: CGColor(gray: 0, alpha: 0.35))
+                context.setAlpha(0.85)
+                context.beginTransparencyLayer(auxiliaryInfo: nil)
+                NSBezierPath(roundedRect: inside, xRadius: 10 * scale, yRadius: 10 * scale).addClip()
+                card.draw(in: inside)
+                context.endTransparencyLayer()
+                return true
+            }
+            return (frame, image)
         }
 
         nonisolated func draggingSession(_: NSDraggingSession,
@@ -191,22 +221,23 @@
             onChange(of: page.dragging == nil) { clear() }
         }
 
-        /// Starts a drag of `item` after 4 pt; the view's frame is the preview.
-        func dragSource(_ item: Dragged, page: Page) -> some View {
-            modifier(DragSourceModifier(item: item, page: page))
+        /// Starts a drag of `item` after 4 pt; the view's frame is the preview unless `preview` (in the window) says.
+        func dragSource(_ item: Dragged, page: Page, preview: CGRect? = nil) -> some View {
+            modifier(DragSourceModifier(item: item, page: page, preview: preview))
         }
     }
 
     private struct DragSourceModifier: ViewModifier {
         let item: Dragged
         let page: Page
+        let preview: CGRect?
         @State private var frame = CGRect.zero
 
         func body(content: Content) -> some View {
             content
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
                 .simultaneousGesture(DragGesture(minimumDistance: 4).onChanged { _ in
-                    DragSource.begin(item, page: page, frame: frame)
+                    DragSource.begin(item, page: page, frame: preview ?? frame)
                 })
         }
     }
