@@ -76,7 +76,7 @@ extension OrielUITests {
 
     /// The tooltip and the VoiceOver label are one string (`IconButton`). macOS gives the help tag's text to no
     /// accessibility attribute, and on CI the tag showed in one run of two, so the label stands in for it.
-    func testNewTabButtonsTooltipSaysItsShortcut() {
+    func testChromeButtonsNameTheirShortcuts() {
         let button = element("titlebar.new-tab")
         XCTAssertTrue(button.exists(within: connect))
         XCTAssertEqual(button.label, "New Tab ⌘T")

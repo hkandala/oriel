@@ -16,7 +16,7 @@ extension OrielUITests {
         let stream = try await pid(of: "w1:p1")
 
         app.typeKey("+", modifierFlags: .command)
-        let bigger = try await expectGrid(terminal, smallerThan: actual)
+        let bigger = try await expectGrid(terminal, <=, actual)
         try await expectPTYSize("w1:p1")
         app.typeKey("0", modifierFlags: .command)
         try await expectGrid(terminal, actual)
@@ -25,6 +25,9 @@ extension OrielUITests {
         app.typeKey("-", modifierFlags: .command)
         try await expectGrid(terminal, actual)
         try await expectPTYSize("w1:p1")
+        // Below the default size too.
+        app.typeKey("-", modifierFlags: .command)
+        try await expectGrid(terminal, >=, actual)
         let after = try await pid(of: "w1:p1")
         XCTAssertEqual(after, stream, "the stream was not opened again")
     }
@@ -49,13 +52,16 @@ extension OrielUITests {
         try await waitFor("w1:p1") { $0.split(separator: "\n").contains("∫¡") }
     }
 
-    /// The grid shrinks below `grid` (a bigger font); the new grid. On a 1x display a 1 pt step can keep the cell
-    /// width (CI: 14 and 15 pt both 48 columns), so one side may stay.
-    private func expectGrid(_ terminal: XCUIElement, smallerThan grid: String) async throws -> String {
+    /// The grid leaves `grid` the way `order` says: `<=` shrinks it (a bigger font), `>=` grows it; the new grid. On a
+    /// 1x display a 1 pt step can keep the cell width (CI: 14 and 15 pt both 48 columns), so one side may stay.
+    @discardableResult
+    private func expectGrid(_ terminal: XCUIElement, _ order: (Int, Int) -> Bool,
+                            _ grid: String) async throws -> String
+    {
         let size = { (grid: String) in grid.split(separator: " ").compactMap { Int($0) } }
-        return try await poll("the grid to shrink below \(grid)") { () -> String? in
+        return try await poll("the grid to change from \(grid)") { () -> String? in
             guard let now = terminal.value as? String, size(now).count == 2, now != grid else { return nil }
-            return size(now)[0] <= size(grid)[0] && size(now)[1] <= size(grid)[1] ? now : nil
+            return order(size(now)[0], size(grid)[0]) && order(size(now)[1], size(grid)[1]) ? now : nil
         }
     }
 
