@@ -367,7 +367,7 @@
         /// `keybind = clear`: app shortcuts reach the menu. Transparent, so the card shows through.
         /// No padding, so cells map from the view's origin; no scrollback, herdr keeps it. The system
         /// monospaced font (SF Mono) rather than libghostty's own JetBrains Mono.
-        private static let controller = TerminalController(theme: theme) {
+        private static let controller = TerminalController {
             $0.withCustom("keybind", "clear")
             $0.withFontFamily(NSFont.monospacedSystemFont(ofSize: 0, weight: .regular).familyName ?? "Menlo")
             $0.withBackgroundOpacity(0)
@@ -377,26 +377,6 @@
             $0.withCustom("scrollback-limit", "0")
             // Option types characters on every layout (on CI's, libghostty sent Alt by default).
             $0.withCustom("macos-option-as-alt", "false")
-        }
-
-        private static let theme = TerminalTheme(light: terminalApp(dark: false), dark: terminalApp(dark: true))
-
-        /// macOS Terminal's look: text near-black on light cards and near-white on dark ones, and Terminal.app's
-        /// 16 ANSI colors. ANSI white (7, 15) on light and black (0) on dark are grays that stay readable on the
-        /// card, where Terminal.app's own would vanish.
-        private static func terminalApp(dark: Bool) -> TerminalConfiguration {
-            let palette = ["000000", "C23621", "25BC24", "ADAD27", "492EE1", "D338D3", "33BBC8", "CBCCCD",
-                           "818383", "FC391F", "31E722", "EAEC23", "5833FF", "F935F8", "14F0F0", "E9EBEB"]
-            let readable = dark ? [0: "6E6E6E"] : [7: "8C8C8C", 15: "6B6B6B"]
-            return TerminalConfiguration { builder in
-                builder.withForeground(dark ? "E6E6E6" : "1F1F1F")
-                builder.withBackground(dark ? "1E1E1E" : "F6F6F6")
-                builder.withCursorColor(dark ? "E6E6E6" : "1F1F1F")
-                builder.withSelectionBackground(dark ? "3F638B" : "B4D5FE")
-                for (index, color) in palette.enumerated() {
-                    builder.withPalette(index, color: "#" + (readable[index] ?? color))
-                }
-            }
         }
 
         /// Bigger or Smaller, from the stored value: the key monitor in `OrielApp.init` has no `@AppStorage`.
