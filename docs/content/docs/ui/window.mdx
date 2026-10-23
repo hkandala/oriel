@@ -30,11 +30,11 @@ One row, 46 pt tall as in Rex, always the same (D45). While the sidebar is
 open, the traffic lights, the sidebar toggle and the machine button sit in a
 leading area as wide as the sidebar, so the first tab starts where the cards
 start, also during a resize. From left to right:
-1. The traffic lights, centered on the row at 22.5, 45.5 and 68.5 pt from the
+1. The traffic lights, centered on the row at 23, 46 and 69 pt from the
    left, where Rex has them. The window keeps AppKit's compact toolbar (whose
    own row is 40 pt) and moves the three standard buttons with plain frame
    changes, again after every AppKit layout; full screen has none. The row's
-   items start 84 pt in.
+   items start 91 pt in, so the sidebar toggle sits where Rex has it.
 2. The sidebar toggle, always shown (⌃⌘S). It has no highlight when the
    sidebar is open. The icon changes instead: an outline window with a sidebar
    line while the sidebar is closed (`sidebar.left`), and the sidebar part
@@ -80,9 +80,9 @@ Window menu and Mission Control show it.
 ![Sidebar collapsed, workspace menu open](/mockups/D.jpg)
 
 Shown only while the sidebar is collapsed, after the machine button.
-- An outline folder icon, then "‹session› | ‹workspace›": the session in
-  secondary text, a thin vertical line, the workspace in primary text. Then a
-  chevron. At most 260 pt wide: the session name stops at 110 pt (with an
+- An outline folder icon, then "‹session› | ‹workspace›": the session in the
+  title row's chrome color, a thin vertical line in the divider color, the
+  workspace in the selected title color, a step brighter. Then a chevron. At most 260 pt wide: the session name stops at 110 pt (with an
   ellipsis), and a workspace name that does not fit fades out at its end over
   16 pt.
 - The menu starts with a filter field ("Filter or create…"). Then one group
@@ -109,16 +109,19 @@ One capsule per herdr tab of the selected workspace (D42).
 - **After a close**, the widths stay as they were while the pointer stays in
   the bar, so the next × is under the pointer. They settle when the pointer
   leaves.
-- **Dividers.** 1 pt wide, the tab height less 18 pt tall, centered between
+- **Dividers.** 1 pt wide, 18 pt tall, centered between
   tabs. A divider next to the selected, a lit or the hovered tab is hidden. They
   fade over 0.2 s.
 - **Selection.** One marker follows the strip as it scrolls, so it sits
-  between two capsules while the strip is between their pages. Its radius is
-  half its height, at most 16.5 pt. A click, ⌘1…⌘9 or a key step moves it with
+  between two capsules while the strip is between their pages. It is 30 pt
+  tall and fully round, 2 pt inside the track, as in Rex. A click, ⌘1…⌘9 or a key step moves it with
   Rex's spring (stiffness 520, damping 46). Reduce Motion makes it jump. Glass
   draws it as a Liquid Glass capsule, Classic as a plain raised pill.
-- **Hover.** The hovered tab gets the hover fill over 0.14 s.
-- **Content.** The program icons, the title, and one status slot. A tab with
+- **Hover.** The hovered tab gets the hover fill over 0.14 s, the same shape
+  as the selection; the whole 34 pt slot takes the clicks.
+- **Content.** The program icons (11 pt in from the track's edge), the title
+  (10 pt after them; the selected tab's in white 0.9 or black 0.9, the others
+  in the title row's chrome color), and one status slot. A tab with
   several panes shows its panes' icons overlapping: up to 5, 4 pt apart, the
   keyboard card's icon in front. A tab with one pane shows one icon
   ([Program icons](/docs/ui/program-icons)).
@@ -373,7 +376,7 @@ How it works: [Layout and sizing](/docs/layout).
   and the folder in secondary text, for example "vim ~/code" or "zsh ~"
   ([Program icons](/docs/ui/program-icons)). 8 pt in from the trailing
   edge, four 22 × 22 pt buttons, 2 pt apart: Split Right, Split Down, Zoom and
-  Close, dimmer than the title row's buttons (white 0.4, black 0.33). Zoom is
+  Close, dimmer than the title row's buttons (white or black 0.33). Zoom is
   disabled when the tab has one pane. A card without the keyboard fades its
   header with its terminal.
 - On macOS the buttons show on the keyboard card and on a hovered card. On iOS
