@@ -43,7 +43,8 @@ private func leaf(_ id: String) -> SplitNode {
       "agent_status":"sleeping","new_field":{"a":[1]}},
       {"workspace_id":"w2","label":"y","active_tab_id":"w2:t1","agent_status":"idle",
        "worktree":{"repo_key":"/r/.git","repo_name":"r","checkout_path":"/wt","is_linked_worktree":true}}],
-     "tabs":[],"panes":[{"pane_id":"w1:p1","tab_id":"w1:t1"}],"something_new":true,
+     "tabs":[],"panes":[{"pane_id":"w1:p1","tab_id":"w1:t1","agent":"claude","terminal_title":"✳ Claude Code",
+       "terminal_title_stripped":"Claude Code"}],"something_new":true,
      "agents":[{"pane_id":"w1:p1","agent_status":"sleeping","completion_seq":"x","display_agent":"Bob"}],
      "layouts":[{"tab_id":"w1:t1","panes":[{"pane_id":"w1:p1"},{"pane_id":"w1:p2"}],
        "splits":[{"id":"split_0_root","direction":"diagonal","ratio":0.5}]}]}
@@ -60,6 +61,8 @@ private func leaf(_ id: String) -> SplitNode {
     ))
     #expect(snapshot.focusedWorkspaceID == nil)
     #expect(snapshot.panes[0].terminalID == nil)
+    // As herdr 0.9.5 sent it after `printf '\e]0;✳ Claude Code\a'` and `pane.report_agent`.
+    #expect(snapshot.panes[0].agent == "claude" && snapshot.panes[0].title == "Claude Code")
     #expect(SplitNode(snapshot.layouts[0]) == .split(.right, ratio: 0.5, first: leaf("w1:p1"), second: leaf("w1:p2")))
 }
 
@@ -99,15 +102,6 @@ private func leaf(_ id: String) -> SplitNode {
     let layouts = try JSONDecoder().decode([Layout].self, from: Data(json.utf8))
     #expect(SplitNode(layouts[0]) == nil) // too few panes
     #expect(SplitNode(layouts[1]) == nil) // too many panes
-}
-
-@Test func `a pane decodes its agent and stripped title`() throws {
-    // As herdr 0.9.5 sent it after `printf '\e]0;✳ Claude Code\a'` and `pane.report_agent`.
-    let json = #"{"pane_id":"w1:p1","tab_id":"w1:t1","agent":"claude","terminal_title":"✳ Claude Code","#
-        + #""terminal_title_stripped":"Claude Code"}"#
-    let pane = try JSONDecoder().decode(Pane.self, from: Data(json.utf8))
-    #expect(pane.agent == "claude")
-    #expect(pane.title == "Claude Code")
 }
 
 @Test func `a pane's program is what runs in the foreground besides its shell, else the shell`() throws {

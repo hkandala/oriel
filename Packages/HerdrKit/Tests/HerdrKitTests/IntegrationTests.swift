@@ -3,10 +3,9 @@ import Foundation
 import Synchronization
 import Testing
 
-private let script = URL(filePath: #filePath)
-    .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-    .deletingLastPathComponent().deletingLastPathComponent()
-    .appending(path: "scripts/herdr-session.sh").path
+/// The repository's root, for its scripts and resources.
+let repoRoot = URL(filePath: #filePath).appending(path: "../../../../..").standardized
+private let script = repoRoot.appending(path: "scripts/herdr-session.sh").path
 
 /// Awaits the command's exit instead of blocking a thread: tests run in parallel on Swift's cooperative pool, which
 /// has one thread per core, and a session start in `waitUntilExit` (up to seconds) held them; the timing test of

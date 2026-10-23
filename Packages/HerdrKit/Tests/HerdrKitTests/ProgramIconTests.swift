@@ -2,10 +2,8 @@ import Foundation
 import HerdrKit
 import Testing
 
-private let root = URL(filePath: #filePath).appending(path: "../../../../..").standardized
-
 private let catalog: [ProgramIcon] = {
-    let url = root.appending(path: "resources/icons/catalog.json")
+    let url = repoRoot.appending(path: "resources/icons/catalog.json")
     return (try? JSONDecoder().decode([ProgramIcon].self, from: Data(contentsOf: url))) ?? []
 }()
 
@@ -18,7 +16,7 @@ private func icon(agent: String? = nil, _ program: Program? = nil, title: String
     #expect(catalog.count > 100)
     let hex = /#[0-9a-f]{6}/
     for icon in catalog {
-        let set = root.appending(path: "Oriel/Assets.xcassets/program.\(icon.id).imageset/\(icon.id).svg")
+        let set = repoRoot.appending(path: "Oriel/Assets.xcassets/program.\(icon.id).imageset/\(icon.id).svg")
         #expect(FileManager.default.fileExists(atPath: set.path), "\(icon.id)")
         #expect(
             try hex.wholeMatch(in: icon.tile.background) != nil && hex.wholeMatch(in: icon.tile.glyph) != nil,

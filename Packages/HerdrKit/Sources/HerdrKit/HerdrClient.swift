@@ -1,7 +1,7 @@
 import Foundation
 
 /// The oldest herdr release this kit works with.
-public let herdrVersion = "0.9.3"
+let herdrVersion = "0.9.3"
 
 public enum HerdrError: Error, Equatable, Sendable {
     /// No herdr binary on the machine.
@@ -89,23 +89,20 @@ public actor HerdrClient {
         return result
     }
 
-    /// Every session herdr knows on this machine, running or not.
     public nonisolated func sessions() async throws -> [Session] {
         let list = try await exec.output([herdr(), "--session", session, "session", "list", "--json"])
         return try decode(SessionList.self, list).sessions
     }
 
-    /// One pane now (`pane.get`): its cwd follows a `cd` that no event reports.
     public nonisolated func pane(_ paneID: String) async throws -> Pane {
         try await (call("pane.get", ["pane_id": paneID]) as PaneResult).pane
     }
 
-    /// What the pane runs besides its shell, else the shell (`isShell`: a close loses nothing, design D41).
     public nonisolated func program(_ paneID: String) async throws -> Program? {
         try await (call("pane.process_info", ["pane_id": paneID]) as ProcessInfoResult).processInfo.program
     }
 
-    /// One `session.snapshot`, with every tab's split tree. Throws `.unsupported` when herdr is too old.
+    /// Throws `.unsupported` when herdr is too old.
     public nonisolated func snapshot() async throws -> Snapshot {
         var snapshot = try await (call("session.snapshot") as SnapshotResult).snapshot
         // Leading digits per part, so 0.9.4-rc1 counts as 0.9.4.
@@ -128,7 +125,7 @@ public actor HerdrClient {
 
     // MARK: Updates
 
-    /// Snapshots as herdr changes, paced, until the stream is dropped. Call once per client.
+    /// Paced as design T4 says; a precondition holds it to one call.
     public func updates() -> AsyncStream<Update> {
         precondition(out == nil, "updates() is called once per client")
         let (stream, out) = AsyncStream<Update>.makeStream()
@@ -138,7 +135,7 @@ public actor HerdrClient {
         return stream
     }
 
-    /// Reads a snapshot now, or once more after the read in flight (design T4).
+    /// Design T4.
     public func refresh() {
         guard out != nil else { return }
         if reading {
