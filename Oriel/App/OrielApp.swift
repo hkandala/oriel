@@ -120,7 +120,8 @@ struct OrielApp: App {
         }
 
         /// `-session` on the command line if given, else the restored window's pages that still run, else
-        /// `default`; the first page is started when it is stopped. Never another session by itself.
+        /// `default` (`-defaultSession` names another, for tests); the first page is started when it is stopped.
+        /// Never another session by itself.
         private func restore() async {
             guard pages.list.isEmpty else { return }
             // A window macOS restores gets its scene storage a moment after it first shows; a restored window always
@@ -148,7 +149,8 @@ struct OrielApp: App {
                 }
             }
             if pages.list.isEmpty {
-                pages.open(argument ?? "default", start: true)
+                pages.open(argument ?? UserDefaults.standard.string(forKey: "defaultSession") ?? "default",
+                           start: true)
             }
             restoreSelection()
             pages.showTerminals() // The restored tab streams now, not at the next snapshot.
