@@ -57,17 +57,7 @@ extension OrielUITests {
         XCTAssertTrue(terminal.exists(within: connect))
         try await waitForPrompt("w1:p1")
         keepScreenshot("before the swipe")
-        // Which sign goes right follows the natural scrolling setting (see testScrollingMovesTheViewport); toward
-        // the first tab nothing moves, so try both.
-        let width = Double(terminal.frame.width)
-        var delta = -width
-        try await expect("the swipe to select the second tab", times: 6) {
-            terminal.hover()
-            terminal.scroll(byDeltaX: delta, deltaY: 0)
-            delta = -delta
-            try await Task.sleep(for: .milliseconds(700))
-            return element("tab.w1:t2").isSelected
-        }
+        try await swipe(terminal, until: element("tab.w1:t2"), \.isSelected, true)
         keepScreenshot("after the swipe")
         XCTAssertTrue(app.windows.firstMatch.has(\.title, "second - \(one)", within: 2))
         try await expectPTYSize("w1:p4")

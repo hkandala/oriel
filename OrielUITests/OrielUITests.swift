@@ -201,6 +201,25 @@ extension OrielUITests {
         app.launch()
     }
 
+    /// Swipes sideways over the element until the target has the value, one way and then the other: which sign goes
+    /// forward follows the natural scrolling setting (one way here, the other on CI), and past the last page nothing
+    /// moves.
+    func swipe<Value: Equatable>(_ element: XCUIElement, until target: XCUIElement,
+                                 _ property: KeyPath<XCUIElement, Value>, _ value: Value) async throws
+    {
+        var delta = -Double(element.frame.width)
+        for _ in 0 ..< 6 {
+            element.hover()
+            element.scroll(byDeltaX: delta, deltaY: 0)
+            delta = -delta
+            try await Task.sleep(for: .milliseconds(700))
+            if target.has(property, value, within: 0) {
+                return
+            }
+        }
+        throw Waited(description: "waited for the swipe over \(element.identifier)")
+    }
+
     /// Shows a card's header buttons. Over the header, not the card's center: SwiftUI does not see the
     /// pointer jump straight into a terminal view, which takes the mouse moves.
     func hoverHeader(_ pane: String) {

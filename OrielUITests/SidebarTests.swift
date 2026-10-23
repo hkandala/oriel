@@ -61,6 +61,63 @@ extension OrielUITests {
         app.typeKey("s", modifierFlags: [.command, .control])
         XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
         XCTAssertTrue(until(3) { header == one })
+
+        // Enter on a page open in this window shows it; no page opens or closes.
+        element("sidebar.dot.\(two)").click()
+        XCTAssertTrue(until(3) { header == two })
+        openSessionSheet()
+        app.typeText(one)
+        XCTAssertTrue(element("open-session.open.\(one)").has(\.isSelected, true, within: 2))
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(until(3) { header == one })
+        XCTAssertTrue(element("sidebar.dot.\(two)").exists)
+    }
+
+    /// A sideways swipe over the sidebar pages it and never the strip; over a card it pages the strip and never the
+    /// sidebar. In the Agents view it shows the other page's agents.
+    func testSwipesPageTheSidebarAndTheStripApart() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        openPage(two)
+        element("sidebar.dot.\(one)").click()
+        let sidebar = element("sidebar"), header = element("sidebar.header")
+        XCTAssertTrue(header.has(\.stringValue, one, within: 3))
+        try await swipe(sidebar, until: header, \.stringValue, two)
+        try await swipe(sidebar, until: header, \.stringValue, one)
+        // Page one's strip has two tabs: a swipe that reached it would have left t2 selected.
+        XCTAssertTrue(element("tab.w1:t1").isSelected)
+        try await swipe(element("terminal.w1:p1"), until: element("tab.w1:t2"), \.isSelected, true)
+        XCTAssertEqual(header.stringValue, one)
+
+        app.typeKey(".", modifierFlags: .command)
+        XCTAssertTrue(header.has(\.stringValue, "\(one) · agents", within: 2))
+        try await swipe(sidebar, until: header, \.stringValue, "\(two) · agents")
+    }
+
+    /// ⌘Q and a relaunch bring back the window's pages that still run, the page in view and each page's workspace.
+    func testRelaunchRestoresThePagesThatStillRun() async throws {
+        let five = env("ORIEL_SESSION5")
+        try await running(five)
+        // State is saved (no -ApplePersistenceIgnoreState); -session keeps any saved pages of the user's out.
+        app.launchArguments = ["-session", one]
+        app.launch()
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        element("workspace.w2").click()
+        XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
+        openPage(five)
+        openPage(two)
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
+        try await Self.post("\(five)/stop")
+
+        // No -session, which wins over the saved pages; if they did not come back, the window opens one, never the
+        // user's default.
+        app.launchArguments = ["-defaultSession", one]
+        app.launch()
+        XCTAssertTrue(until(connect) { header == two })
+        XCTAssertTrue(element("sidebar.dot.\(one)").exists)
+        XCTAssertFalse(element("sidebar.dot.\(five)").exists)
+        element("sidebar.dot.\(one)").click()
+        XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: connect))
     }
 
     func testShiftCommandNCreatesASessionAsANewPage() async throws {
@@ -203,6 +260,15 @@ extension OrielUITests {
         field.typeText("renamed\r")
         try await expect("herdr's label") { try await workspaceLabel(made) == "renamed" }
 
+        // New Tab: a tab of it in herdr, selected.
+        let tabs = try await tabIDs()
+        row.rightClick()
+        // In the window, not the menu bar's File ▸ New Tab.
+        app.windows.firstMatch.menuItems["New Tab"].click()
+        let tab = try await newTabID(after: tabs)
+        XCTAssertEqual(workspace(of: tab), made)
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3))
+
         // Last; Move Up puts it before beta in herdr's order.
         row.rightClick()
         XCTAssertFalse(app.menuItems["Move Down"].isEnabled)
@@ -217,8 +283,8 @@ extension OrielUITests {
         row.rightClick()
         app.windows.firstMatch.menuItems["Close Workspace"].click()
         // D41: it asks, with the tab and pane count.
-        XCTAssertTrue(app.sheets.staticTexts["Its tab, pane and everything running in it will end, here and in every "
-                + "herdr client. This cannot be undone."].exists(within: 2))
+        XCTAssertTrue(app.sheets.staticTexts["Its 2 tabs, 2 panes and everything running in them will end, here and in "
+                + "every herdr client. This cannot be undone."].exists(within: 2))
         app.sheets.buttons["Close Workspace"].click()
         try await expect("herdr to close it") { try await !workspaceIDs().contains(made) }
         XCTAssertTrue(row.vanishes(within: 2))
@@ -304,7 +370,7 @@ extension OrielUITests {
         try await Self.ids("workspace", in: one)
     }
 
-    private func workspaceLabel(_ id: String) async throws -> String? {
+    func workspaceLabel(_ id: String) async throws -> String? {
         let snapshot = try await snapshot()
         return (snapshot["workspaces"] as? [[String: Any]])?.first { $0["workspace_id"] as? String == id }?["label"]
             as? String
