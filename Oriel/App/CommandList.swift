@@ -209,7 +209,10 @@
                             key: .init(key, modifiers: modifiers), symbol: "arrow.\(heading.rawValue)\(suffix)",
                             keywords: "pane",
                             enabled: enabled, action: {
-                                if let page = pages?.current, let pane = page.keyboardPane {
+                                // A held key's repeat while a write runs is dropped, not a "Busy" notice each time.
+                                if let page = pages?.current, let pane = page.keyboardPane,
+                                   !page.store.writing || NSApp.currentEvent?.isARepeat != true
+                                {
                                     Task { await act(page, pane, heading) }
                                 }
                             })
