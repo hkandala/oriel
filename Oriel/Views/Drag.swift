@@ -110,8 +110,15 @@
         }
     }
 
-    /// Holding a dragged pane over a tab's capsule or a workspace's row this long selects it (Rex's spring-loading).
-    let springDelay = Duration.milliseconds(650)
+    /// Holding a dragged pane over a tab's capsule or a workspace's row 0.65 s selects it (Rex's spring-loading); not
+    /// after the drag ended (a late update).
+    func springTask(_ page: Page, _ select: @escaping () -> Void) -> Task<Void, Never> {
+        Task {
+            if await (try? Task.sleep(for: .milliseconds(650))) != nil, page.dragging?.paneID != nil {
+                select()
+            }
+        }
+    }
 
     enum DropTarget {
         /// A card: its center (nil) or an edge.
@@ -156,13 +163,13 @@
         func dropUpdated(info: DropInfo) -> DropProposal? {
             let target = target(info.location)
             if zone != target {
-                withAnimation(.easeOut(duration: 0.12)) { zone = target }
+                withAnimation(.highlight) { zone = target }
             }
             return DropProposal(operation: target == nil ? .forbidden : .move)
         }
 
         func dropExited(info _: DropInfo) {
-            withAnimation(.easeOut(duration: 0.12)) { zone = nil }
+            withAnimation(.highlight) { zone = nil }
         }
 
         func performDrop(info: DropInfo) -> Bool {
@@ -193,7 +200,7 @@
 
         func dropEntered(info _: DropInfo) {
             if page.dragging?.paneID != nil {
-                withAnimation(.easeOut(duration: 0.12)) { over = true }
+                withAnimation(.highlight) { over = true }
             }
         }
 
@@ -202,7 +209,7 @@
         }
 
         func dropExited(info _: DropInfo) {
-            withAnimation(.easeOut(duration: 0.12)) { over = false }
+            withAnimation(.highlight) { over = false }
         }
 
         func performDrop(info _: DropInfo) -> Bool {
@@ -214,6 +221,9 @@
     }
 
     extension Animation {
+        /// A drop target's highlight.
+        static let highlight = Animation.easeOut(duration: 0.12)
+
         /// Rex's insertion timing: 0.22 s on its "production" curve. Tabs and rows slide apart with it; none with
         /// Reduce Motion (from AppKit: a drop delegate has no environment).
         static var slide: Animation? {

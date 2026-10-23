@@ -33,15 +33,10 @@
                     return DropProposal(operation: .forbidden)
                 }
                 if over != index {
-                    withAnimation(.easeOut(duration: 0.12)) { over = index }
+                    withAnimation(.highlight) { over = index }
                     spring?.cancel()
                     let tabID = tabs[index].id
-                    spring = Task {
-                        // Not after the drag ended (a late update).
-                        if await (try? Task.sleep(for: springDelay)) != nil, page.dragging?.paneID != nil {
-                            springLoad(tabID)
-                        }
-                    }
+                    spring = springTask(page) { springLoad(tabID) }
                 }
             } else {
                 let index = min(max(Int(place.rounded()), 0), tabs.count)
@@ -55,7 +50,7 @@
         func dropExited(info _: DropInfo) {
             spring?.cancel()
             // A tab slides back; a capsule's highlight fades.
-            withAnimation(page.dragging?.paneID == nil ? .slide : .easeOut(duration: 0.12)) { over = nil }
+            withAnimation(page.dragging?.paneID == nil ? .slide : .highlight) { over = nil }
         }
 
         func performDrop(info _: DropInfo) -> Bool {
@@ -121,22 +116,17 @@
             }
             let ghost = pointY > frames.values.map(\.maxY).max() ?? 0
             if ghost != state.ghost {
-                withAnimation(.easeOut(duration: 0.12)) { state.ghost = ghost }
+                withAnimation(.highlight) { state.ghost = ghost }
             }
             // The 2 pt gaps count as the row above.
             let row = state.ghost ? nil : page.store.workspaces.first { workspace in
                 frames[workspace.id].map { pointY >= $0.minY && pointY < $0.maxY + 2 } ?? false
             }
             if row?.id != state.over {
-                withAnimation(.easeOut(duration: 0.12)) { state.over = row?.id }
+                withAnimation(.highlight) { state.over = row?.id }
                 state.spring?.cancel()
                 if let row {
-                    state.spring = Task {
-                        // Not after the drag ended (a late update).
-                        if await (try? Task.sleep(for: springDelay)) != nil, page.dragging?.paneID != nil {
-                            page.select(row)
-                        }
-                    }
+                    state.spring = springTask(page) { page.select(row) }
                 }
             }
             return DropProposal(operation: row == nil && !state.ghost ? .forbidden : .move)
@@ -144,7 +134,7 @@
 
         func dropExited(info _: DropInfo) {
             state.spring?.cancel()
-            withAnimation(page.dragging?.paneID == nil ? .slide : .easeOut(duration: 0.12)) { state = State() }
+            withAnimation(page.dragging?.paneID == nil ? .slide : .highlight) { state = State() }
         }
 
         func performDrop(info _: DropInfo) -> Bool {
