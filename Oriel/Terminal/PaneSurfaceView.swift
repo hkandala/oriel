@@ -65,11 +65,12 @@
         }
 
         /// SwiftUI moves the view to a new host when the layout changes (a split); leaving the
-        /// window drops the first responder, so it takes the keyboard back once it is in again.
+        /// window drops the first responder, so it takes the keyboard back once it is in again. Not when another
+        /// terminal asked for it since (a drop gives the moved card the keyboard while the layout moves): that claim
+        /// dropped this one.
         override func viewWillMove(toWindow newWindow: NSWindow?) {
-            if newWindow == nil, window?.firstResponder === self {
+            if newWindow == nil, claimed, window?.firstResponder === self {
                 wantsKeyboard = true
-                claimed = true
             }
             super.viewWillMove(toWindow: newWindow)
         }
@@ -88,6 +89,8 @@
             let became = super.becomeFirstResponder()
             terminal?.hasKeyboard = became
             if became {
+                // However it came (a click, the app), it holds the window's latest claim.
+                claimed = true
                 onKeyboard?()
             }
             return became

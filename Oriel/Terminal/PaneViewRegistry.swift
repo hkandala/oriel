@@ -33,7 +33,16 @@
                 return terminal
             }
             let terminal = PaneTerminal(terminalID: terminalID, paneID: paneID, client: client)
-            terminal.view.onKeyboard = { [weak self] in self?.onKeyboard?(terminalID) }
+            terminal.view.onKeyboard = { [weak self] in
+                // The newest holder: a view that had the keyboard before must not take it back when SwiftUI moves it
+                // to a new host (`viewWillMove`).
+                self?.terminals.forEach {
+                    if $0.key != terminalID {
+                        $0.value.view.dropClaim()
+                    }
+                }
+                self?.onKeyboard?(terminalID)
+            }
             terminal.view.onReturn = { [weak self] in self?.onReturn?(terminalID) }
             terminal.onInput = { [weak self] in self?.onInput?(terminalID) }
             terminal.watches = { [weak self] in self?.watches?(terminalID) ?? false }
