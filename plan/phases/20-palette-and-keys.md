@@ -18,15 +18,15 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
 2. **Palette layout.** Width 480 (as now). Search field "Search". Rows 28 pt: symbol, title, and on the
    right the shortcut in secondary glyphs and a › for a row that opens a sub-page. The selected row is
    an accent pill, radius 8. On the root page with an empty field, four sections under headers, in
-   order: Commands, Tabs (of the selected workspace), Workspaces (of every page open in the window,
-   with the session name in secondary text), Sessions (the open pages; Enter shows that page). A typed
+   order: Tabs (of the selected workspace), Workspaces (of every page open in the window, with the
+   session name in secondary text), Sessions (the open pages; Enter shows that page), Commands. A typed
    filter gives one ranked list without headers (item 3). A sub-page shows only its own rows, filtered,
    under its title as a small header above the field. Sessions that are not
    open are not listed: the "Open Session…" command (⇧⌘N) opens the Open Session sheet for them. No
    footer with key hints (no hint text in the UI).
 3. **Matching.** Fuzzy and in order of the typed letters, over title and keywords (for example
-   "split" finds Split Right; "dark" finds Appearance ▸ Dark). Ties: commands before tabs, shorter
-   titles first.
+   "split" finds Split Right; "dark" finds Appearance ▸ Dark). Ties: commands before places, then the
+   list's order (the menu's for commands, the tab bar's and the sidebar's for places).
 4. **Sub-pages** (a stack; ⌫ on an empty field or ⎋ goes back one page, ⎋ on the root closes):
    - Rename Tab ›, Rename Workspace ›, Rename Pane ›: the field holds the current name; Enter saves.
    - Move Pane to Tab ›: the workspace's other tabs, plus "New Tab" and "New Workspace". A move into a
@@ -107,6 +107,9 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
   second-shortcut table compares modifiers exactly, because ⌃⇥ and ⌃⇧⇥ differ only by Shift.
 - **Show Agents keeps its title in the palette.** Only settings (`Command.setting`: Fade Inactive Panes, Focus
   Follows Mouse) say "Turn On …" / "Turn Off …"; Show Agents is a view, with a checkmark in the menu as before.
+- **Orchestrator decisions after the e2e review:** ties break by the list's order, not by shorter titles ("split"
+  lit Split Up and "move pane" lit Move Pane Up, a silent swap, before Move Pane to Tab ›); the empty root shows
+  Tabs, Workspaces and Sessions before Commands (they sat under about 60 commands).
 - **Workspace rows of the palette are `palette.workspace.<session>.<id>`**: every page's workspaces are listed, and
   two sessions both have a `w1`.
 - **The palette lists only the selected workspace's tabs**, as the phase asks, so the old test of jumping to another
@@ -115,28 +118,39 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
 ### Decisions
 
 - **One list:** `CommandList` (`Oriel/App/CommandList.swift`) builds every command from the window's pages, its
-  panel bindings, `openWindow` and `Settings` (a `DynamicProperty` of the five `@AppStorage` settings). The window
+  panel bindings, `openWindow` and `AppSettings` (a `DynamicProperty` of the five `@AppStorage` settings; not
+  `Settings`, SwiftUI's scene). The window
   publishes it as one focused value (`\.commands`, replacing five); `AppCommands` draws the menu bar from it, or from a
   list with no window (New Window and the settings still work). The palette gets the same value from the window.
-- **`Command` grew** `symbol`, `keywords`, `setting`, `previews` and `name` (current name, async save). A command
+- **`Command` grew** `symbol`, `keywords`, `setting`, `previews`, `name` (current name, async save) and `id` (a
+  move's target tab: two tabs can share a title such as "zsh ~", so sub-page rows are `choice.<id or title>`). A command
   with a `menu` is a submenu in the menu bar and a sub-page in the palette; a command with a `name` is a name page in
   the palette (its menu action, for Rename Pane…, still opens the header's field). Section `.palette` is palette-only.
 - **Second shortcuts** (`KeyboardShortcut.seconds`: ⇧⌘P → ⌘K, ⌃⇧⇥ → ⇧⌘[, ⌃⇥ → ⇧⌘], ⌘= → ⌘+): the local key
   monitor in `OrielApp.init` finds the main menu's item with the first shortcut and runs it when enabled, so the
   second always does what the menu item does, with its current state. A disabled item lets the key go on.
+  `performKeyEquivalent` with a made-up event was tried (ponytail review): ⇧⌘P worked, but AppKit did not match
+  "]" with ⇧⌘ to Show Next Tab, so the walk stays. ⌘= still has no e2e test (phase 11: CI's 1x display hides a
+  one-step change).
 - **Matching:** `String.fuzzyScore` in HerdrKit (unit tests): the typed letters in order, spaces ignored, case and
   accent blind; a match not starting a word costs 1, each break 1, a break not on a word start 2; the best start
-  wins. A keyword match costs 3 more than a title match. Ties: section order, then shorter title.
+  wins. A keyword match costs 3 more than a title match. Ties: commands before places, then the list's order.
 - **Sub-pages are one level** (`Palette.sub`, the command's title); no sub-page opens another, so a stack would be
-  an array of one. ⌫ on an empty field and Esc go back; Esc on the root closes.
-- **Preview:** a `.task(id: lit)` waits 0.75 s and runs the lit choice's action; entering the page keeps the old
-  choice's action, which Esc, ⌫ or closing the palette (`onDisappear`) runs; Enter clears it.
+  an array of one. ⌫ on an empty field (not its key repeats: holding ⌫ to clear the field stays on the page) and
+  Esc go back; Esc on the root closes. Sub-page rows filter with the same fuzzy match, in their own order. The
+  Command Palette command is not a palette row (it is open).
+- **View ▸ Pane starts with Focus Follows Mouse** (its own `paneSetting` section), as the phase lists it.
+- **Preview:** a `.task(id: lit)` waits 0.75 s and runs the lit choice's action, unless the page was left or a row
+  chosen meanwhile. The page keeps the choice it opened on (`Palette.kept`): it keeps the checkmark while another
+  previews, and Esc, ⌫ or closing the palette (`onDisappear`) picks it again; Enter clears it.
+- **⌃⇥ and ⌃⇧⇥ stay a text field's keys** (the palette, a rename): the tabs behind the palette do not move.
 - **List height:** Rex's clamp, min(460, max(84, window height − 154)).
 - **Rename rules moved into the store:** `rename(tab:)`, `rename(workspace:)` trim and skip empty or unchanged
   labels, `rename(pane:)` trims and skips unchanged; the capsule, the row, the card header and the palette share them.
 - **Go to Directory / Insert Path:** `Page.choosePath(directory:)`: `NSOpenPanel` as a sheet on the key window, at
-  `pane.get`'s cwd; the path single-quoted (`'` → `'\''`); Go to Directory asks `program(_:)` again and shows "A
-  program is running in the pane" when it is not the shell. `Multiplexer.sendInput` is `pane.send_input {pane_id,
+  `pane.get`'s cwd; the path single-quoted (`'` → `'\''`), a folder's trailing slash kept (`cd -- '/x/'` works, and
+  an inserted folder path ends in a slash as shell completion's does); Go to Directory asks `program(_:)` again and
+  shows "A program is running in the pane" when it is not the shell, or the error when herdr does not answer. `Multiplexer.sendInput` is `pane.send_input {pane_id,
   text, keys}` (spike: `cd -- '/private/var'` + `["enter"]` ran; text alone stays on the line).
 - **Move into a tab** (menu and palette) goes through `Page.drop(_, on: .tab)`, the capsule drop's path: right of the
   tab's last card, equal splits, the page follows.
