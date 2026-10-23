@@ -64,6 +64,8 @@
             guard let over else { return false }
             switch page.dragging {
             case let .pane(id):
+                // A snapshot during the drag may have closed tabs.
+                guard tabs.indices.contains(over) else { return false }
                 Task { await page.drop(id, on: .tab(tabs[over].id)) }
             case let .tab(id):
                 // herdr inserts before the tab now at the index; its own place or the next is no move.
@@ -171,7 +173,8 @@
             let blocks = blocks(dragged)
             guard let from = blocks.firstIndex(where: { $0.contains { $0.id == dragged } }),
                   let index = blocks.firstIndex(where: { $0.contains { $0.id == id } }) else { return 0 }
-            let place = slot > from ? slot - 1 : slot
+            // A snapshot during the drag may have closed workspaces.
+            let place = min(slot > from ? slot - 1 : slot, blocks.count - 1)
             if index == from {
                 return place > from ? blocks[from + 1 ... place].map(height).reduce(0, +)
                     : -blocks[place ..< from].map(height).reduce(0, +)
