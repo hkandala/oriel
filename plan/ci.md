@@ -97,10 +97,7 @@ Other green runs after the change: 39863083184 (7 min 42 s), 39866497406 (8 min 
 5 runners with a second run), 39868394263 (5 min 2 s). The same tests vary by ±15 % between runs on CI's VMs,
 and the 4 jobs end up to a minute apart (split by name, not by time).
 
-Flakes seen in these runs, left to their owners: `testHoldingOverACapsuleSpringLoadsItsTabAndADropSplitsRight`
-(the drop after the unzoom split nothing; also before the change, 39836126263), `testDropOnACardsCenter…`
-(no keyboard on the card dropped on a left edge, once, 39868989432; phase 18's hand checks saw the same), and
-HerdrKit's `reads at once, one at a time…` (first read over its 100 ms bound, once, 39866693109).
+Flakes seen in these runs: see [Flakes](#flakes).
 
 ### Writing fast tests
 
@@ -111,3 +108,37 @@ HerdrKit's `reads at once, one at a time…` (first read over its 100 ms bound, 
 - Each element query takes 0.1–0.2 s and each click about 1 s: check the outcome through one herdr call or one
   accessibility value, not a walk over many elements.
 - Keep a test under ~30 s: one long test sets its shard's time. New tests join a shard by name on their own.
+
+## Flakes
+
+Three flakes seen around the speed work (2026-10-22), each traced to a cause in the app or the tests. The two
+UI tests' recordings were lost (their failures hung in teardown before 6c76c1a), so the causes come from the
+activity logs, the code and hand runs.
+
+- **`testHoldingOverACapsuleSpringLoadsItsTabAndADropSplitsRight`: a late drop update re-ran the spring-load**
+  (39863167622 on 3b57779; 39836126263 was the capsule-drop bug fixed in 0513a67, 39859559120 the selection wait
+  fixed in da845aa). After the first drop (refused, `zoomed_tab`), SwiftUI can send a `dropUpdated` after
+  `performDrop` with no `dropExited` after it. That set the capsule's `over` again and started a new 0.65 s
+  spring-load, which selected the zoomed tab again just after the test clicked back to the first tab. The next
+  drag then started on a card of the wrong tab, and its drop on its own tab's capsule moved nothing. Fixed in
+  phase 18's follow-up (47017c9, aab15c8): targets clear their state when a drag starts or ends, ignore updates
+  with no drag, and a spring-load fires only while a pane is dragged. Hand checks saw the same stale state.
+- **`testDropOnACardsCenter…`: two ways the old card kept the keyboard after a re-place** (39868989432 on
+  16081ad, after the first keyboard fix). (1) A write reads the snapshot without waiting for it; when the drop
+  ended before the store showed the moved pane in its tab, `focusKeyboardCard` gave the keyboard to the tab's
+  old card, and that card's `becomeFirstResponder` recorded it as the tab's keyboard card (`tookKeyboard`), so
+  the snapshot that came next kept it. Now `Page` holds the moved terminal and gives the keyboard to nobody until
+  a snapshot shows it in its tab (13bf138). (2) A terminal view that SwiftUI moves to a new host while it is the
+  first responder claims the keyboard back when it is in the window again; that claim was made even after the
+  app had asked for another card, so the two raced. Now a view re-claims only if it still holds the window's
+  latest claim; any terminal that becomes first responder drops the others' claims (21b8ed2).
+- **HerdrKit `reads at once, one at a time…`: blocked cooperative threads** (39866693109). The integration
+  tests ran `herdr-session.sh up` and `down` in `Process.waitUntilExit`, which blocks a thread of Swift's
+  cooperative pool (one thread per core) for up to seconds; with the tests in parallel on CI's small VM the
+  pacing test's read waited for a free thread. Locally the read starts 0.1–0.2 ms after the event. The shell
+  helper now awaits the exit (`terminationHandler`), so no test blocks a pool thread (81a4273); the 100 ms bound
+  stays.
+- **Proof:** the full run on 21b8ed2 (39876558654) and five ad-hoc runs of the two UI tests (39876582219,
+  39876589569, 39876596834, 39876603997, 39876610911) all green; HerdrKit's suite 20 times in a row locally, green;
+  the drag and keyboard tests (8) green in one local run.
+
