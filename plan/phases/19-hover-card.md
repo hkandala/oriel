@@ -126,3 +126,8 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
   `{"read": {"text": "…\n", "truncated": false, …}}`; an unknown pane is the `pane_not_found` error.
 - **Screenshots:** `/tmp/oriel-shots/19/rough-hover-card.png` (three-pane tab, blocked claude, CI attachment),
   `/tmp/oriel-shots/19/tooltip.png` ("New Tab ⌘T", CI recording frame), `/tmp/oriel-shots/19/agents-row-8.png`.
+
+### Later
+
+- **The split minimap is gone** (user, phase 22): the card shows the title, the capsule, the pane rows and the
+  screen lines; the `Minimap` view and its code were deleted.

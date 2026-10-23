@@ -166,7 +166,7 @@
         }
     }
 
-    /// Rex's "peek": a tab's title and rolled-up status, a minimap of its cards and one row per pane. A click on a
+    /// Rex's "peek": a tab's title and rolled-up status and one row per pane. A click on a
     /// row goes to that pane; on the title, to the tab. A blocked agent's row shows its last screen lines (herdr
     /// 0.9.5 sends no blocked message), read once when the card opens.
     struct HoverCard: View {
@@ -197,11 +197,6 @@
                     }
                     .buttonStyle(ChromeStyle(radius: 6))
                     .accessibilityIdentifier("hovercard.title")
-                    if panes.count > 1, let tree = tab.tree {
-                        Minimap(node: tree, keyboard: page.keyboardCard(tabID)?.id).frame(height: 56)
-                            .padding(.horizontal, 6)
-                            .accessibilityHidden(true)
-                    }
                     ForEach(panes.prefix(6)) { pane in row(pane) }
                     if panes.count > 6 {
                         Text("+\(panes.count - 6) more").font(.system(size: 11)).foregroundStyle(.secondary)
@@ -258,31 +253,6 @@
             .accessibilityIdentifier("hovercard.\(pane.id)")
             .accessibilityLabel([name, pane.folder].compactMap(\.self).joined(separator: ", "))
             .accessibilityValue(([pane.state?.capsule].compactMap(\.self) + shown).joined(separator: "\n"))
-        }
-    }
-
-    /// A tab's split tree as small tiles, the keyboard card in the accent color.
-    private struct Minimap: View {
-        let node: SplitNode
-        let keyboard: String?
-
-        var body: some View {
-            switch node {
-            case let .leaf(id):
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(id == keyboard ? Color.accentColor.opacity(0.5) : Color.primary.opacity(0.05))
-            case let .split(direction, ratio, first, second):
-                GeometryReader { proxy in
-                    let across = direction == .right
-                    let length = (across ? proxy.size.width : proxy.size.height) - 2
-                    let stack = across ? AnyLayout(HStackLayout(spacing: 2)) : AnyLayout(VStackLayout(spacing: 2))
-                    stack {
-                        Minimap(node: first, keyboard: keyboard)
-                            .frame(width: across ? length * ratio : nil, height: across ? nil : length * ratio)
-                        Minimap(node: second, keyboard: keyboard)
-                    }
-                }
-            }
         }
     }
 #endif
