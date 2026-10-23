@@ -284,7 +284,7 @@
                     Task { await page.newWorkspace() }
                 },
                 FilterList.Item(id: "open-session", symbol: "plus.square.on.square", title: "Open Session…",
-                                detail: "⇧⌘N", section: "", act: openSession),
+                                detail: KeyboardShortcut.openSession.glyphs, section: "", act: openSession),
             ]
         }
     }
