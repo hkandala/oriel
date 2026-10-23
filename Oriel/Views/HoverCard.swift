@@ -14,10 +14,11 @@
         /// Centered under a tab capsule, 6 pt below the title row.
         static let under = PanelPlace(trigger: .bottom, panel: .top,
                                       offset: CGSize(width: 0, height: (TitleBar.height - TabBar.height) / 2 + 6))
-        /// Right of an Agents view row, 6 pt from the sidebar's edge. ponytail: mirrors the Agents list's 8 pt padding
-        /// and the sidebar's 6 pt width handle between the row and the edge; anchor on the sidebar if either changes.
+        /// Right of an Agents view row, 6 pt from the sidebar's edge. ponytail: mirrors the Agents list's 3 pt trailing
+        /// padding and the sidebar's 6 pt width handle between the row and the edge; anchor on the sidebar if either
+        /// changes.
         static let beside = PanelPlace(trigger: .topTrailing, panel: .topLeading,
-                                       offset: CGSize(width: 8 + 6 + 6, height: 0))
+                                       offset: CGSize(width: 3 + 6 + 6, height: 0))
     }
 
     extension View {

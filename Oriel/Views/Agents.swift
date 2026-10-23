@@ -216,7 +216,10 @@ struct StatusBadge: View {
                         ForEach(rows, content: row)
                     }
                 }
-                .padding([.horizontal, .bottom], 8)
+                // As the workspace rows.
+                .padding(.leading, 10)
+                .padding(.trailing, 3)
+                .padding(.bottom, 8)
             }
             .scrollIndicators(.never)
         }

@@ -22,7 +22,7 @@
             HStack(spacing: 0) {
                 pagesAndFooter
                     // On the window background, as in the reference: only the pane cards are lighter.
-                    .frame(width: width - 6)
+                    .frame(width: width - gap)
                 ResizeHandle(width: $width)
             }
             .accessibilityElement(children: .contain)
@@ -75,7 +75,9 @@
                     )
                     .accessibilityIdentifier("sidebar.open-session")
                 }
-                .padding(8)
+                .padding(.leading, 10)
+                .padding(.trailing, 3)
+                .padding(.vertical, 8)
             }
         }
     }
@@ -109,7 +111,7 @@
                             Text(" · agents").fixedSize()
                         }
                     }
-                    .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary).lineLimit(1)
                     // Before the sort menu's label, which gives way first.
                     .layoutPriority(1)
                     .accessibilityElement(children: .ignore).accessibilityAddTraits(.isStaticText)
@@ -133,8 +135,8 @@
                             .clearsDrop(page) { plus = false }
                     }
                 }
-                .padding(.leading, 16)
-                .padding(.trailing, 8)
+                .padding(.leading, 22)
+                .padding(.trailing, 3)
                 .contentShape(.rect)
                 .contextMenu { ClosePage(page: page, pages: pages) }
                 if let agents {
@@ -175,7 +177,10 @@
                                 Text("No matching workspaces").foregroundStyle(.secondary).padding(8)
                             }
                         }
-                        .padding([.horizontal, .bottom], 8)
+                        // Rex's rows: 10 pt in from the window's edge.
+                        .padding(.leading, 10)
+                        .padding(.trailing, 3)
+                        .padding(.bottom, 8)
                     }
                     .scrollIndicators(.never)
                     .coordinateSpace(.named("rows"))
