@@ -86,7 +86,8 @@ struct StateIcon: View {
             case .working: WorkingDots()
             case .idle: Circle().strokeBorder(.secondary, lineWidth: 1.5).frame(width: 7, height: 7)
             case let .some(state): Circle().fill(state.color(look)).frame(width: 7, height: 7)
-            case nil: Color.clear
+            // A workspace with no agent: a quiet dot, so the slot does not look missing.
+            case nil: Circle().fill(.tertiary).frame(width: 4, height: 4)
             }
         }
         .frame(width: 14, height: 14)

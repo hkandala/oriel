@@ -9,8 +9,8 @@ struct FilterList: View {
         var symbol: String?
         /// A pane's program tile instead of the symbol.
         var pane: HostStore.Pane?
-        /// A workspace's state icon instead of the symbol.
-        var state: AgentState?
+        /// A workspace's state icon instead of the symbol; `.some(nil)` for a workspace with no agent.
+        var state: AgentState??
         let title: String
         var detail = ""
         /// Where it changes from the row before: a header above the row, or a divider when empty.
@@ -110,7 +110,7 @@ struct FilterList: View {
                                 }
                                 .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
                                 .accessibilityIdentifier("\(name).\(item.id)")
-                                .accessibilityValue(item.state?.word ?? "")
+                                .accessibilityValue(item.state??.word ?? "")
                                 .accessibilityAddTraits(offset == index ? .isSelected : [])
                             }
                             if items.isEmpty, submit == nil {

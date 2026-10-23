@@ -235,7 +235,8 @@ struct ChromeStyle: ButtonStyle {
 struct MenuRow: View {
     var symbol: String?
     var pane: HostStore.Pane?
-    var state: AgentState?
+    /// `.some(nil)`: a workspace with no agent.
+    var state: AgentState??
     let title: String
     var detail = ""
     /// On the accent pill.
