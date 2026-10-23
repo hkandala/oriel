@@ -10,6 +10,17 @@ public protocol Exec: Sendable {
     func herdr() async -> String?
 }
 
+extension Exec {
+    /// A command's whole stdout, trimmed; past `timeout` the command is killed and this throws.
+    func output(_ argv: [String], timeout: Duration = .seconds(10)) async throws -> String {
+        let channel = try await run(argv)
+        channel.closeInput()
+        return try await withTimeout(timeout, onTimeout: channel.terminate) {
+            await channel.lines.reduce("") { $0 + $1 + "\n" }
+        }.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
 public struct Channel: Sendable {
     /// Stdout, one element per line. Ends when the command closes stdout.
     public let lines: AsyncStream<String>

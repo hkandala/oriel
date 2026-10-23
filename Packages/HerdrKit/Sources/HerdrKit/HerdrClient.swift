@@ -91,7 +91,7 @@ public actor HerdrClient {
 
     /// Every session herdr knows on this machine, running or not.
     public nonisolated func sessions() async throws -> [Session] {
-        let list = try await Self.output(exec, [herdr(), "--session", session, "session", "list", "--json"])
+        let list = try await exec.output([herdr(), "--session", session, "session", "list", "--json"])
         return try decode(SessionList.self, list).sessions
     }
 
@@ -230,15 +230,6 @@ public actor HerdrClient {
     nonisolated func herdr() async throws -> String {
         guard let path = await exec.herdr() else { throw HerdrError.notFound }
         return path
-    }
-
-    /// A command's whole stdout, trimmed.
-    static func output(_ exec: any Exec, _ argv: [String]) async throws -> String {
-        let channel = try await exec.run(argv)
-        channel.closeInput()
-        return try await withTimeout(.seconds(10), onTimeout: channel.terminate) {
-            await channel.lines.reduce("") { $0 + $1 + "\n" }
-        }.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

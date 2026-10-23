@@ -24,7 +24,7 @@ import Foundation
             // The CLI's user keys, so the server and the CLI agree on paths (XDG_CONFIG_HOME moves herdr's
             // sessions).
             var environment: [String: String] = [:]
-            for entry in try await Self.output(exec, ["env", "-0"]).split(separator: "\0") {
+            for entry in try await exec.output(["env", "-0"]).split(separator: "\0") {
                 let pair = entry.split(separator: "=", maxSplits: 1).map(String.init)
                 if pair.count == 2, ProcessExec.isUserKey(pair[0]) {
                     environment[pair[0]] = pair[1]
@@ -44,7 +44,7 @@ import Foundation
             try PropertyListSerialization.data(fromPropertyList: job, format: .xml, options: 0).write(to: plist)
             defer { try? FileManager.default.removeItem(at: plist) }
             // The job of a server that stopped since is still loaded, and a label loads only once.
-            _ = try? await Self.output(exec, ["launchctl", "bootout", "\(domain)/\(label)"])
+            _ = try? await exec.output(["launchctl", "bootout", "\(domain)/\(label)"])
             let channel = try await exec.run(["launchctl", "bootstrap", domain, plist.path])
             channel.closeInput()
             let (status, stderr) = await channel.exit()

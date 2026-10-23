@@ -1,3 +1,4 @@
+import Foundation
 @testable import HerdrKit
 import Testing
 
@@ -20,4 +21,10 @@ import Testing
 @Test func `output without a head line is no status`() {
     #expect(GitStatus(porcelain: "") == nil)
     #expect(GitStatus(porcelain: "fatal: not a git repository") == nil)
+}
+
+@Test func `reads a checkout's status and nothing outside one`() async {
+    let exec = ProcessExec(ProcessInfo.processInfo.environment, herdr: nil, asked: .now)
+    #expect(await GitStatus.of(URL(filePath: #filePath).deletingLastPathComponent().path, exec: exec) != nil)
+    #expect(await GitStatus.of("/", exec: exec) == nil)
 }

@@ -267,10 +267,7 @@ func `a started server shares the CLI's paths`() async throws {
     let client = HerdrClient(session: session, exec: Moved(base: base, config: config))
     try await client.startServer(within: .seconds(10))
     #expect(FileManager.default.fileExists(atPath: "\(config)/herdr/sessions/\(session)"))
-    let job = try await HerdrClient.output(
-        base,
-        ["launchctl", "print", "gui/\(getuid())/dev.hkandala.oriel.herdr.\(session)"],
-    )
+    let job = try await base.output(["launchctl", "print", "gui/\(getuid())/dev.hkandala.oriel.herdr.\(session)"])
     // The login shell's herdr and its PATH as it is.
     let herdr = try #require(await base.herdr())
     #expect(job.contains("program = \(herdr)\n") && job.contains("PATH => \(base.environment["PATH"] ?? "")\n"))
