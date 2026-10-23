@@ -277,6 +277,11 @@ here what the user should check at the end.
   free" (Esc, forbidden pointer, window not moving, spring-load to an edge in another tab, full track or
   sidebar). The orchestrator runs them (or a short agent) when the user frees the GUI.
 
+### Open tasks
+
+- Phase 21 Build 11: update the docs site's mock-ups to the new look (`docs/components/design/` split demo and chat
+  card, `docs/public/overview/index.html`) once phase 22's look settles.
+
 ### For the user to check at the end
 
 - Phase 10: the four looks next to Rex (`/tmp/oriel-shots/10/final-*.png`). Known gaps kept on purpose:

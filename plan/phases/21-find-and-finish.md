@@ -138,7 +138,8 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   visual match with Rex (tokens, title row, tab bar, cards, sidebar); this phase compared only its own views (find
   bar, notices, states). The docs site's mock-ups (`docs/components/design/`, `docs/public/overview/index.html`) are
   the next task once phase 22's look settles. The light/dark × Glass/Classic shots next to Rex are phase 22's
-  `VisualTests` attachments in the full run.
+  `VisualTests` (`testScenesGlassDark` and the others) attachments in the full run, kept in
+  `/tmp/oriel-shots/21/final/`. The mock-ups task is listed under "Open tasks" in `plan/execution.md`.
 - **Find highlights are built** (user, mid-phase), not left out as the phase file had it: one overlay view per card
   draws rectangles from herdr's visible text after each scroll (`pane.read visible` plus `pane.get`'s
   `scroll.offset_from_bottom` to pick the selected match's row), and again 100 ms after frames come
@@ -153,7 +154,7 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
 - **"No answer from herdr" is gone**: any failure while the session's server runs is the reconnecting state (the
   client retries every 2 s), also a page's first connect. herdr too old and not installed keep their pages.
 - **The content fade is the terminal's, not the card's**: the card's frame and header show at once and the terminal
-  view fades from alpha 0 over 0.12 s through `NSAnimationContext` on the host view (SwiftUI's `opacity` moves the
+  view fades from alpha 0 over 0.12 s (the user's late request for the first-resize fix; the phase file had 0.2 s) through `NSAnimationContext` on the host view (SwiftUI's `opacity` moves the
   terminal's accessibility frame, phase 16). A card whose stream fails still shows its failure text.
 - **No flicker of herdr's first resize** (user, late): a pane opened for the first time redraws once while herdr
   resizes its PTY to the card (herdr can size a PTY only by attaching). herdr's first `control` frame already has the
