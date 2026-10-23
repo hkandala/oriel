@@ -78,9 +78,11 @@ the work. A later server helper would sit behind the same two calls
   missing and one run at a time, so a herdr installed since is found. A path
   that is gone since (herdr moved or reinstalled elsewhere) is asked for again
   the same way. herdr older than 0.9.1 has no
-  `remote-api-bridge`, so the first call fails, shown as "No answer from
-  herdr". A snapshot that reports a version below 0.9.3 shows "herdr 0.9.3 or
-  newer is needed".
+  `remote-api-bridge`, so the first call fails. The page then shows
+  "‹session› is not running" with **Start**, or Reconnecting. A snapshot that
+  reports a version below 0.9.3 shows "herdr is too old" over "herdr ‹version›
+  is too old; 0.9.3 or newer needed." The app asks again every 2 s, so the
+  page clears by itself after an update.
 - The version comes from `session.snapshot`. Decoding is lenient, so a newer
   protocol needs nothing.
 - Commands start in the machine's home folder (sshd starts them there; on
@@ -95,8 +97,9 @@ the work. A later server helper would sit behind the same two calls
   one line `{"id":"1","method":"…","params":{…}}`, read one reply line, then
   close stdin. herdr answers one request per connection.
 - **Timeout:** every `call()` times out after 10 s. On a timeout the app kills
-  the bridge process (macOS) or closes the channel (iOS) and shows "‹machine›
-  did not answer · Retry".
+  the bridge process (macOS) or closes the channel (iOS). A write that times
+  out shows the notice "herdr did not answer", with no Retry. A read that
+  times out shows Reconnecting.
 - Long-lived streams (events, terminals, chat tails) have no timeout. The
   health check covers them.
 - Cost: 18 ms median and 130 ms at p95 per call (measured locally), plus the
@@ -192,9 +195,9 @@ One path is [Future work](/docs/future-work).
   surfaces stop drawing but keep reading: a surface draws only while its page
   is in the window (in view, or next to it: the strip keeps neighbor pages laid
   out).
-- During a swipe the neighbor tab shows each card's last image (or one
-  `pane.read visible` for a card never shown). Its streams start when the
-  swipe stops.
+- During a swipe the neighbor tab shows each card's last image, or its fill
+  for a card never shown (a `pane.read visible` preview is not built yet).
+  Its streams start when the swipe stops.
 - Streams are opened by `terminal_id`, so they survive the pane moving, even
   to another workspace.
 
@@ -281,7 +284,7 @@ handshake fails, it exits 1 with the reason on stderr.
 | `not found` or `exited` | drops the card; waits for the snapshot |
 | `detached` | does nothing (this device closed the stream) |
 | `live update` | opens the stream again after 1 s |
-| handshake error (exit 1) | "Restart herdr on ‹machine›" |
+| any other failure (exit 1, for example a handshake error after herdr updated but did not restart) | shows herdr's reason and **Retry** in the card |
 
 ### Scrolling, queries and links
 
@@ -315,8 +318,9 @@ handshake fails, it exits 1 with the reason on stderr.
 
 The sidebar's workspace rows show the branch and the ahead and behind counts
 (D67). herdr's snapshot has no branch, so the app asks git on the machine:
-- **Command.** `git -C <root> status --porcelain=v2 --branch
-  --untracked-files=no`, through `Exec.run`, so it works the same on This Mac
+- **Command.** `git --no-optional-locks -C <root> status --porcelain=v2
+  --branch --untracked-files=no` (`--no-optional-locks`, so a run every 10 s
+  never leaves `index.lock` behind), through `Exec.run`, so it works the same on This Mac
   and over SSH. `git` comes from the login shell's `PATH`, like herdr. The
   root is the workspace's `worktree.checkout_path`, else the cwd of its first
   pane. A run that takes over 5 s is ended.
@@ -355,9 +359,9 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Balance splits (⌃⌘=) | one `layout.set_split_ratio` per split of the selected tab whose ratio changes; ratio = units on the first side ÷ units under the split, where a child split the other way is one unit |
 | Swap two panes (same tab) | `pane.swap {source_pane_id, target_pane_id}` |
 | Move the keyboard card (⌥⇧⌘ + arrow) | `pane.swap {pane_id, direction, focus:false}` (herdr 0.9.5 focuses that tab anyway); the keyboard stays with the pane |
-| Move to New Tab (card menu) | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}`; the window then selects the new tab |
-| Move to Tab ▸ (card menu) | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right"}}` (herdr splits that tab's focused pane); the window then selects that tab |
-| Move to New Workspace (card menu) | `pane.move {pane_id, destination:{type:"new_workspace"}}`; the window then selects the new tab. The pane gets a new pane id; its terminal and card stay |
+| Move Pane to Tab ▸ ‹tab› (card menu) | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right", target_pane_id}}` beside the tab's last card, then equal splits (as a drop on its capsule); the window then selects that tab |
+| Move Pane to Tab ▸ New Tab (card menu) | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}`; the window then selects the new tab |
+| Move Pane to Tab ▸ New Workspace (card menu) | `pane.move {pane_id, destination:{type:"new_workspace"}}`; the window then selects the new tab. The pane gets a new pane id; its terminal and card stay |
 | Drop on an edge of a pane in the same tab | `pane.move {pane_id, destination:{type:"new_tab", workspace_id}}`, then `pane.move {pane_id, destination:{type:"tab", tab_id, split, target_pane_id}}` back beside the target (right or down), then `pane.swap {source_pane_id, target_pane_id}` for left or top, then equal splits; each step uses the pane id herdr's reply names, and the snapshot is read after (herdr refuses a move into the pane's own tab with `same_tab`) |
 | Drop on an edge of a pane in another tab | `pane.move {pane_id, destination:{type:"tab", tab_id, split, target_pane_id}}`; for left or top, then `pane.swap`; then equal splits |
 | Drop on another tab's capsule | `pane.move {pane_id, destination:{type:"tab", tab_id, split:"right", target_pane_id}}` beside the tab's last card, then equal splits |
@@ -384,9 +388,8 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 
 - No close can be undone.
 - Every create and move passes `focus:false`, so herdr's focus never moves.
-- `workspace.move {workspace_id, insert_index}` inserts before the workspace
-  now at `insert_index`, like `tab.move`. The app uses `workspace.move_block`,
-  which names the workspace to go before.
+- Every workspace reorder is `workspace.move_block`, which names the
+  workspace to go before. The app never calls `workspace.move`.
 - `pane.move` and `pane.swap` can succeed with `changed:false` and a `reason`
   (`same_tab`, `zoomed_tab`, `cross_tab`, `no_neighbor`). The app shows the
   reason. Its drag targets avoid `same_tab` and `cross_tab` by design
