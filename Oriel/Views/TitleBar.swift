@@ -40,7 +40,7 @@
                         .overlay {
                             if sidebar {
                                 Image(systemName: "rectangle.leftthird.inset.filled").font(.body.weight(.medium))
-                                    .allowsHitTesting(false)
+                                    .allowsHitTesting(false).accessibilityHidden(true)
                             }
                         }
                         .accessibilityIdentifier("titlebar.sidebar")

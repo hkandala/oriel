@@ -105,7 +105,7 @@ struct FilterList: View {
                                 .accessibilityValue(item.state??.word ?? "")
                                 .accessibilityAddTraits(offset == index ? .isSelected : [])
                             }
-                            if items.isEmpty, submit == nil {
+                            if items.isEmpty {
                                 Text("No matches").foregroundStyle(.secondary).padding(8)
                             }
                         }
