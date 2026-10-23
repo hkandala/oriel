@@ -34,29 +34,29 @@
         static var openWindow: OpenWindowAction?
 
         init() {
-            terminals.onKeyboard = { [weak self] terminalID in self?.current?.tookKeyboard(terminalID) }
-            // Return may have started or ended a program.
-            terminals.onReturn = { [weak self] terminalID in
-                guard let page = self?.current,
-                      let pane = page.store.panes.first(where: { $0.terminalID == terminalID })
-                else { return }
-                let store = page.store
-                // The find bar reads the pane again at its next step.
-                if page.find?.paneID == pane.id {
-                    page.find?.stale = true
-                }
-                Task {
-                    try? await Task.sleep(for: .seconds(1))
-                    await store.askProgram(pane.id)
-                }
+            terminals.pages = self
+        }
+
+        /// Return in a terminal may have started or ended a program.
+        func returned(_ terminalID: String) {
+            guard let page = current, let pane = page.store.panes.first(where: { $0.terminalID == terminalID })
+            else { return }
+            let store = page.store
+            // The find bar reads the pane again at its next step.
+            if page.find?.paneID == pane.id {
+                page.find?.stale = true
             }
-            // Input in a card of a watched session makes this window its controller (D66).
-            terminals.onInput = { [weak self] terminalID in
-                if let self, let store = page(of: terminalID)?.store, store.windows.first !== self {
-                    control(store)
-                }
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                await store.askProgram(pane.id)
             }
-            terminals.watches = { [weak self] terminalID in self?.page(of: terminalID)?.watched ?? false }
+        }
+
+        /// Input in a card of a watched session makes this window its controller (D66).
+        func input(_ terminalID: String) {
+            if let store = page(of: terminalID)?.store, store.windows.first !== self {
+                control(store)
+            }
         }
 
         /// The window restored its pages: it joins the open windows, and takes a click that came before it.
@@ -106,7 +106,7 @@
             list.first { $0.store === store }
         }
 
-        private func page(of terminalID: String) -> Page? {
+        func page(of terminalID: String) -> Page? {
             list.first { $0.store.panes.contains { $0.terminalID == terminalID } }
         }
 

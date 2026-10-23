@@ -15,14 +15,8 @@
         static let live = 24
         /// Streaming terminals of every window, the most recently shown last.
         private static var recent: [PaneTerminal] = []
-        /// A terminal took the keyboard (its terminal id).
-        var onKeyboard: ((String) -> Void)?
-        /// The user pressed Return in a terminal (its terminal id).
-        var onReturn: ((String) -> Void)?
-        /// A key press, paste or click in a terminal (its terminal id).
-        var onInput: ((String) -> Void)?
-        /// Whether another window controls the terminal's session (its terminal id).
-        var watches: ((String) -> Bool)?
+        /// Its window's pages: they hear of the keyboard, Return and input in its terminals.
+        weak var pages: WindowPages?
         private var terminals: [String: PaneTerminal] = [:]
 
         /// The pane's terminal, made on first use.
@@ -41,11 +35,11 @@
                         $0.value.view.dropClaim()
                     }
                 }
-                self?.onKeyboard?(terminalID)
+                self?.pages?.current?.tookKeyboard(terminalID)
             }
-            terminal.view.onReturn = { [weak self] in self?.onReturn?(terminalID) }
-            terminal.onInput = { [weak self] in self?.onInput?(terminalID) }
-            terminal.watches = { [weak self] in self?.watches?(terminalID) ?? false }
+            terminal.view.onReturn = { [weak self] in self?.pages?.returned(terminalID) }
+            terminal.onInput = { [weak self] in self?.pages?.input(terminalID) }
+            terminal.watches = { [weak self] in self?.pages?.page(of: terminalID)?.watched ?? false }
             terminals[terminalID] = terminal
             return terminal
         }
