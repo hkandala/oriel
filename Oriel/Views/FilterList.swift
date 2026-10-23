@@ -187,34 +187,36 @@ struct FilterField: View {
     }
 }
 
-/// A rename field, focused as it appears with the old name: Enter commits, Esc ends, a click elsewhere blurs it.
-struct RenameField: View {
-    let prompt: String
-    let initial: String
-    let commit: (String) -> Void
-    /// After a commit and on Esc.
-    let end: () -> Void
-    /// The field lost the keyboard: `end` unless given.
-    var blur: (() -> Void)?
-    @State private var draft = ""
-    @FocusState private var focused: Bool
+#if os(macOS)
+    /// A rename field, focused as it appears with the old name: Enter commits, Esc ends, a click elsewhere blurs it.
+    struct RenameField: View {
+        let prompt: String
+        let initial: String
+        let commit: (String) -> Void
+        /// After a commit and on Esc.
+        let end: () -> Void
+        /// The field lost the keyboard: `end` unless given.
+        var blur: (() -> Void)?
+        @State private var draft = ""
+        @FocusState private var focused: Bool
 
-    var body: some View {
-        TextField(prompt, text: $draft).textFieldStyle(.plain).focused($focused)
-            .onSubmit {
-                commit(draft)
-                end()
-            }
-            .onExitCommand(perform: end)
-            .onChange(of: focused) { _, now in
-                if !now {
-                    (blur ?? end)()
+        var body: some View {
+            TextField(prompt, text: $draft).textFieldStyle(.plain).focused($focused)
+                .onSubmit {
+                    commit(draft)
+                    end()
                 }
-            }
-            .onAppear { draft = initial }
-            .focusSoon($focused)
+                .onExitCommand(perform: end)
+                .onChange(of: focused) { _, now in
+                    if !now {
+                        (blur ?? end)()
+                    }
+                }
+                .onAppear { draft = initial }
+                .focusSoon($focused)
+        }
     }
-}
+#endif
 
 extension View {
     /// Focuses the field as it appears.
