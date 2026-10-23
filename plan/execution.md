@@ -332,4 +332,4 @@ here what the user should check at the end.
 | 21 | phase21-find-finish | done | 17 commits, 4 rounds, 2h22m, ~25 min GUI lock + 1 full run |
 | 22 | phase22-visual-match | done | 34 commits, 4 rounds, ~4h (incl. user additions); parallel worktree |
 | 23 | phase23-comments | done | 7 commits, comments only (checked), 39 deleted, 29 fixed |
-| Final review | final-*-review | running | |
+| Final review | 3 reviewers + 3 fixers | done | 61 commits, 1h27m, CI green on a707a44 |
