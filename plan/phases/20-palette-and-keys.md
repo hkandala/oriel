@@ -141,7 +141,8 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
   Esc go back; Esc on the root closes. Sub-page rows filter with the same fuzzy match, in their own order. The
   Command Palette command is not a palette row (it is open).
 - **The palette's commands follow the menu bar** (File, Edit, View with its Pane menu, Window, then the palette's
-  own), for the empty root and for ties. The root lights the selected tab, so ↩ on a fresh palette stays put; a
+  own), for the empty root and for ties: `Command.Section` is `CaseIterable` in the menu's order, so the order is
+  written once. The root lights the selected tab, so ↩ on a fresh palette stays put; a
   sub-page lights and scrolls to its current choice (Font Size's 25 rows).
 - **View ▸ Pane starts with Focus Follows Mouse** (its own `paneSetting` section), as the phase lists it.
 - **Preview:** a `.task(id: lit)` waits 0.75 s and runs the lit choice's action, unless the page was left or a row
@@ -169,5 +170,11 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
 - **⌫ is DEL (U+7F) in `onKeyPress`**, which `KeyEquivalent.delete` (U+8) does not match; the field takes both.
 - **Menu bar items collide with context-menu items in XCUITest.** `app.menuItems["Close Page"]` matched File ▸ Close
   Page too once it existed; tests take context-menu items from `app.windows.firstMatch.menuItems`.
+- **A `ScrollViewReader.scrollTo` before the list has its height does nothing**: a sub-page scrolls to its lit
+  choice once the measured height turns non-zero (`testSecondShortcuts` opens Font Size › at 30 pt).
+- **The full `make e2e` took 18.5 min here** (83 tests, all green); `testGoToDirectoryAndInsertPath` alone is about
+  a minute locally (three Go to Folder entries) and 24 s on CI.
+- **A heading trait changes what XCUITest reads**: with `.isHeader` the palette's title was no longer the static
+  text's value; the test accepts the label or the value.
 - **The open panel's Go to Folder looks up every typed letter**: a 30-letter path took about 10 s in XCUITest, so the
   panel test waits up to 10 s.

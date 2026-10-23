@@ -94,6 +94,7 @@ extension OrielUITests {
         openPalette()
         app.typeText("dark")
         app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(element("palette.choice.Dark").has(\.isSelected, true, within: 2))
         app.typeKey(.upArrow, modifierFlags: [])
         XCTAssertTrue(look.has(\.stringValue, light, within: 2))
         app.typeKey(.return, modifierFlags: [])
@@ -119,17 +120,31 @@ extension OrielUITests {
         // ⌘=: Actual Size turns on (the menu's state, not the grid: a 1x display may round one step away).
         addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
         app.typeKey("0", modifierFlags: .command)
-        XCTAssertFalse(actualSizeEnabled())
+        XCTAssertTrue(actualSize(enabled: false))
         app.typeKey("=", modifierFlags: .command)
-        XCTAssertTrue(actualSizeEnabled())
-        app.typeKey("0", modifierFlags: .command)
+        XCTAssertTrue(actualSize(enabled: true))
+
+        // Font Size › lights the current size, scrolled into view below the fold.
+        openPalette()
+        app.typeText("font size")
+        app.typeKey(.return, modifierFlags: [])
+        app.typeText("30")
+        app.typeKey(.return, modifierFlags: [])
+        openPalette()
+        app.typeText("font size")
+        app.typeKey(.return, modifierFlags: [])
+        let size = element("palette.choice.30 pt")
+        XCTAssertTrue(size.has(\.isSelected, true, within: 2))
+        XCTAssertTrue(size.isHittable)
+        app.typeKey(.escape, modifierFlags: [])
+        app.typeKey(.escape, modifierFlags: [])
 
         // Settings persist: Focus Follows Mouse ends off even when a step fails.
         let row = element("palette.command.Focus Follows Mouse")
         addTeardownBlock { @MainActor [self] in
             openPalette()
             app.typeText("focus follows")
-            app.typeKey(row.has(\.label, "Turn Off Focus Follows Mouse", within: 2) ? .return : .escape,
+            app.typeKey(row.exists(within: 2) && row.label == "Turn Off Focus Follows Mouse" ? .return : .escape,
                         modifierFlags: [])
         }
         openPalette()
@@ -273,11 +288,11 @@ extension OrielUITests {
     }
 
     /// View ▸ Actual Size, read with the menu open (SwiftUI updates a closed menu's items late).
-    private func actualSizeEnabled() -> Bool {
+    private func actualSize(enabled: Bool) -> Bool {
         app.menuBars.menuBarItems["View"].click()
-        let enabled = app.menuBars.menuItems["Actual Size"].isEnabled
+        let found = app.menuBars.menuItems["Actual Size"].has(\.isEnabled, enabled, within: 2)
         app.typeKey(.escape, modifierFlags: [])
-        return enabled
+        return found
     }
 
     /// The sub-page's header (a heading: XCUITest may give its text as the label or the value).

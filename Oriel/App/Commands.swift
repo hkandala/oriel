@@ -101,14 +101,16 @@ extension KeyboardShortcut {
     /// One command (D48). The menu bar and the palette read the one list of them (`CommandList`).
     struct Command {
         /// Its group in the menu bar; groups are divided from each other.
-        enum Section {
-            case file, close, edit, view, size, tabSteps, pages, tabs
+        /// In the menu bar's order, which the palette follows too.
+        enum Section: CaseIterable {
+            case file, close, edit, view
+            /// View ▸ Pane's setting, first.
+            case paneSetting
             /// View ▸ Pane, and the card header's context menu.
             case pane, paneMove
             /// View ▸ Pane, keys only.
             case paneKeys
-            /// View ▸ Pane's setting, first.
-            case paneSetting
+            case size, tabSteps, pages, tabs
             /// The palette only.
             case palette
         }
