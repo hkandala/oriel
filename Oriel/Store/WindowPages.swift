@@ -24,6 +24,8 @@
         /// The open windows, the one that was key last first; added once a window restored its pages (a `@State`
         /// initial value is made again with each view, so not in `init`).
         static var windows: [WindowPages] = []
+        /// The window closed.
+        @ObservationIgnored private var gone = false
         /// A click that came before any window (one that started the app).
         private static var early: String?
         /// Folders dropped on the Dock icon, waiting for a live page (a drop can start the app).
@@ -72,6 +74,8 @@
         /// Shows the session's page; one not open yet opens after the page in view, its store connecting (`start`:
         /// its server is started first). A session another window shows is watched until this window takes it.
         func open(_ session: String, start: Bool = false) {
+            // A late open (a start that finished, a restore) after the window closed.
+            guard !gone else { return }
             if let page = list.first(where: { $0.id == session }) {
                 show(page)
                 return
@@ -148,6 +152,7 @@
 
         /// The window closed: every page leaves and every terminal closes.
         func closed() {
+            gone = true
             Self.windows.removeAll { $0 === self }
             list.forEach { $0.dropFind() }
             terminals.show([:], alive: [], client: nil)
