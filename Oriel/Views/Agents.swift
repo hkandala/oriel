@@ -267,13 +267,7 @@ struct StatusBadge: View {
             // window shows until one of this window's own changes; the Dock tile is right (the last writer counts all).
             let needsYou = pages.list.isEmpty ? 0 : HostStore.needsYou
             content
-                // A text leaf, as `window.look`.
-                .background(alignment: .topLeading) {
-                    Color.clear.frame(width: 1, height: 1).accessibilityElement().accessibilityAddTraits(.isStaticText)
-                        .accessibilityLabel("Dock Badge").accessibilityIdentifier("app.badge")
-                        .accessibilitySortPriority(-1)
-                        .accessibilityValue("\(needsYou)")
-                }
+                .testValue("app.badge", "Dock Badge", "\(needsYou)")
                 .onChange(of: needsYou, initial: true) { HostStore.showBadge() }
                 .onChange(of: [page.id, page.selectedTab?.id ?? "", appearsActive ? "key" : ""], initial: true) {
                     pages.look(key: appearsActive)

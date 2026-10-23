@@ -231,23 +231,10 @@ struct OrielApp: App {
                 Text(dialog?.message ?? "")
             }
             .environment(\.look, look)
-            // A text leaf: SwiftUI exposes no value on a container or a plain element. One point, so accessibility
-            // hit tests still find the cards and buttons.
-            .background(alignment: .topLeading) {
-                Color.clear.frame(width: 1, height: 1).accessibilityElement().accessibilityAddTraits(.isStaticText)
-                    .accessibilityLabel("Appearance").accessibilityIdentifier("window.look")
-                    // Last for VoiceOver: it is for tests more than for people.
-                    .accessibilitySortPriority(-1)
-                    .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
-            }
+            .testValue("window.look", "Appearance", "\(style.rawValue) \(look.dark ? "dark" : "light")")
             // The links a test ⌘-clicked (`-recordLinks YES`).
-            .background(alignment: .topLeading) {
-                if UserDefaults.standard.bool(forKey: "recordLinks") {
-                    Color.clear.frame(width: 1, height: 1).accessibilityElement().accessibilityAddTraits(.isStaticText)
-                        .accessibilityLabel("Links").accessibilityIdentifier("app.links").accessibilitySortPriority(-1)
-                        .accessibilityValue(Links.shared.recorded.joined(separator: " "))
-                }
-            }
+            .testValue("app.links", "Links", Links.shared.recorded.joined(separator: " "),
+                       shown: UserDefaults.standard.bool(forKey: "recordLinks"))
             .modifier(AgentsWatch(pages: pages, page: page))
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)
