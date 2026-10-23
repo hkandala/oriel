@@ -36,9 +36,11 @@ tab), the app shows the button that makes it.
 - Adding a remote host (later) asks for a name, the SSH target and an icon (laptop, desktop, server, cloud,
   chip, house, flask, game controller), because the button shows only the icon.
 
-## Title row (always the same row; 40 pt)
+## Title row (always the same row; 46 pt, as in Rex)
 
-Left to right:
+Left to right. While the sidebar is open, the traffic lights, the sidebar toggle and the machine button sit in a
+leading area as wide as the sidebar (it follows the resize handle live), so the first tab capsule starts where the
+cards start. With the sidebar collapsed the items follow one another as before.
 
 1. Traffic lights.
 2. **Sidebar toggle** (⌃⌘S). No highlight when the sidebar is open: the icon changes instead (an outline

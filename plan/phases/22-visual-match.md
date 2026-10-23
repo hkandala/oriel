@@ -41,6 +41,10 @@ the Findings of phases 10, 13, 14 and 17 (measured colors and the reasons for ea
 5. **Fix.** Change the `Look` tokens and the view sizes so each delta is within 1 pt in size and within a
    few sRGB steps in color, or record why not (for example a Glass color that depends on the wallpaper).
    Keep one source per value (`Style.swift`); no per-view color literals (the `look_colors` lint rule).
+5b. **Tabs over the cards** (user, during the phase). With the sidebar open, the title row's leading part
+   (traffic lights, sidebar toggle, machine button) is exactly as wide as the sidebar and follows its resize
+   handle live, so the first tab capsule starts where the strip's cards start. With the sidebar collapsed the
+   row stays as it is. e2e: the first capsule's minX equals the first card's minX (± 1 pt), also after a resize.
 6. **Re-take and compare again** until the table has no open row. Put the final side-by-side composites
    in `/tmp/oriel-shots/22/compare/` and list them in the report.
 7. **Docs.** Update `docs/content/docs/ui/theme-and-accessibility.mdx` (token table),

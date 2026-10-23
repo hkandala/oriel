@@ -26,8 +26,15 @@ All scenes: the [main window mock-ups](/mockups/layout.html).
 
 ## Title row
 
-One row, 40 pt tall, always the same (D45). From left to right:
-1. The traffic lights.
+One row, 46 pt tall as in Rex, always the same (D45). While the sidebar is
+open, the traffic lights, the sidebar toggle and the machine button sit in a
+leading area as wide as the sidebar, so the first tab starts where the cards
+start, also during a resize. From left to right:
+1. The traffic lights, centered on the row at 22.5, 45.5 and 68.5 pt from the
+   left, where Rex has them. The window keeps AppKit's compact toolbar (whose
+   own row is 40 pt) and moves the three standard buttons with plain frame
+   changes, again after every AppKit layout; full screen has none. The row's
+   items start 84 pt in.
 2. The sidebar toggle, always shown (⌃⌘S). It has no highlight when the
    sidebar is open. The icon changes instead: an outline window with a sidebar
    line while the sidebar is closed (`sidebar.left`), and the sidebar part
@@ -195,7 +202,7 @@ session open in this window (D43).
   open page, 6 pt apart. The current page's dot is in primary text color, the
   others tertiary. A click on a dot shows its page. Hidden while one page is
   open. VoiceOver reads each dot as its session's name.
-- **Page header.** The session's name (11 pt, secondary) and, at the trailing
+- **Page header.** The session's name (12 pt semibold, secondary), 22 pt in from the window's edge, and, at the trailing
   end, a `+` that makes a new workspace in that session, in `$HOME`. The
   snapshot after it selects the new workspace.
 - **Middle.** The [workspace rows](#workspace-rows), or the
@@ -208,8 +215,10 @@ session open in this window (D43).
   whose name or branch matches. A matching worktree also keeps its
   repository's row. The footer has no New Workspace and no Add Remote Host:
   the page header has `+`, and the machine menu has Add Remote Host.
-- **Width.** 240 pt by default. Drag the 6 pt handle at the trailing edge to
-  resize it between 227 and 480 pt. Each window keeps its own width. During
+- **Width.** 240 pt by default, from the window's edge to the cards, as in
+  Rex: the rows sit 10 pt in from the window's edge, and the 8 pt handle lies
+  over the gap before the cards. Drag the handle to resize it between 227
+  and 480 pt. Each window keeps its own width. During
   the drag the strip keeps its pages whole.
 
 The sidebar never shows tabs, and its bottom never shows agent activity.
@@ -362,12 +371,14 @@ How it works: [Layout and sizing](/docs/layout).
 
 - **Card.** Radius 10. It fades in over 0.2 s when its terminal's first frame
   arrives.
-- **Header.** 36 pt tall. 6 pt in from the leading edge: the program glyph
-  (16 pt, secondary), then herdr's pane label if set, else the program's name
+- **Header.** 36 pt tall. 11 pt in from the leading edge: the program glyph
+  (16 pt, secondary), 4 pt before herdr's pane label if set, else the program's name
   and the folder in secondary text, for example "vim ~/code" or "zsh ~"
   ([Program icons](/docs/ui/program-icons)). 8 pt in from the trailing
   edge, four 22 × 22 pt buttons, 2 pt apart: Split Right, Split Down, Zoom and
-  Close. Zoom is disabled when the tab has one pane.
+  Close, dimmer than the title row's buttons (white 0.4, black 0.33). Zoom is
+  disabled when the tab has one pane. A card without the keyboard fades its
+  header with its terminal.
 - On macOS the buttons show on the keyboard card and on a hovered card. On iOS
   they always show.
 - Agent and terminal cards also have a chat|term view switch, plugin panes a
@@ -420,7 +431,7 @@ How the messages, the reply box and the key buttons work:
 - The zoom button, a double-click on the header, or ⇧⌘↩ zooms a card. It
   fills its tab's page in the strip, as if it were the only pane. Only the
   zoomed card resizes; the others stay, hidden, at their size.
-- A zoomed card shows only two buttons: Restore (white on an accent circle)
+- A zoomed card shows only two buttons: Restore (the accent color on a faint accent circle, as in Rex)
   and Close.
 - A split from the zoomed card restores the layout first, so the new pane
   shows. Moving the keyboard to a hidden card restores it too.
