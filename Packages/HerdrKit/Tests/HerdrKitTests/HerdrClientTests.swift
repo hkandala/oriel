@@ -211,13 +211,18 @@ private func snapshot(version: String) -> String {
     }
 }
 
-@Test func `a herdr that is too old gets one error and no snapshot`() async {
-    var updates: [Update] = []
-    for await update in await client(FakeExec { _ in snapshot(version: "0.9.2") }).updates() {
-        updates.append(update)
+@Test func `a herdr that is too old errors until it is updated`() async {
+    let version = Mutex("0.9.2")
+    let client = client(FakeExec { _ in snapshot(version: version.withLock { $0 }) })
+    var updates = await client.updates().makeAsyncIterator()
+    guard case .error(.unsupported)? = await updates.next() else {
+        Issue.record("expected .unsupported first")
+        return
     }
-    guard updates.count == 1, case .error(.unsupported) = updates[0] else {
-        Issue.record("expected only .unsupported, got \(updates)")
+    version.withLock { $0 = "0.9.3" }
+    await client.refresh()
+    guard case .snapshot? = await updates.next() else {
+        Issue.record("expected a snapshot once herdr is new enough")
         return
     }
 }

@@ -155,10 +155,8 @@ public actor HerdrClient {
                 if out != nil, agentPanes != subscribed {
                     subscribe(agentPanes)
                 }
-            } catch let HerdrError.unsupported(message) {
-                out?.yield(.error(.unsupported(message)))
-                out?.finish()
             } catch {
+                // Too old too: the heartbeat finds herdr again once it is updated.
                 lastRead = nil
                 out?.yield(.error(error as? HerdrError ?? .failed("\(error)")))
             }
