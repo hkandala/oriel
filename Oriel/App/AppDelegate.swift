@@ -23,8 +23,9 @@
         }
 
         func applicationWillFinishLaunching(_: Notification) {
-            // Windows and their pages come back after a normal quit too, whatever the system setting says.
-            UserDefaults.standard.register(defaults: ["NSQuitAlwaysKeepsWindows": true])
+            // Windows and their pages come back after a normal quit too, whatever the system setting says. A session
+            // start waits 10 s for its server (`-startTimeout`).
+            UserDefaults.standard.register(defaults: ["NSQuitAlwaysKeepsWindows": true, "startTimeout": 10])
             let center = UNUserNotificationCenter.current()
             center.delegate = self
             // macOS asks the user once; later calls answer at once. The Dock badge shows only with `.badge` allowed.

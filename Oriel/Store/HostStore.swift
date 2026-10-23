@@ -82,18 +82,26 @@ final class HostStore {
 
         /// Starts the session's server when it is not running (a launchd job, D47); a server started here gets
         /// its first workspace in home, as a new one has none.
+        /// A second start of a session (a double click on Start, Open Session) joins the one in flight: on its own it
+        /// would find the booting server silent and boot it out.
         static func start(_ session: String) async throws {
-            // herdr is the only multiplexer (design D49).
-            let client: any Multiplexer = await HerdrClient(session: session, exec: exec.value)
-            // `-startTimeout 0` makes every start fail, for e2e.
-            let defaults = UserDefaults.standard
-            let timeout = defaults.object(forKey: "startTimeout") == nil ? 10 : defaults.double(forKey: "startTimeout")
-            if try await client.startServer(within: .seconds(timeout)),
-               try await client.snapshot().workspaces.isEmpty
-            {
-                _ = try await client.newWorkspace(label: nil, cwd: NSHomeDirectory())
+            let start = starting[session] ?? Task {
+                // herdr is the only multiplexer (design D49).
+                let client: any Multiplexer = await HerdrClient(session: session, exec: exec.value)
+                // `-startTimeout 0` makes every start fail, for e2e.
+                let timeout = UserDefaults.standard.double(forKey: "startTimeout")
+                if try await client.startServer(within: .seconds(timeout)),
+                   try await client.snapshot().workspaces.isEmpty
+                {
+                    _ = try await client.newWorkspace(label: nil, cwd: NSHomeDirectory())
+                }
             }
+            starting[session] = start
+            defer { starting[session] = nil }
+            try await start.value
         }
+
+        private static var starting: [String: Task<Void, Error>] = [:]
 
         /// The Start button of a session that stopped: the running store finds it again.
         func start() async {
