@@ -181,25 +181,31 @@ extension OrielUITests {
         XCTAssertTrue(element("app.links").has(\.stringValue, "https://example.com/oriel", within: 2))
     }
 
-    /// A card opened for the first time shows its terminal only once herdr drew it at the card's size (no flicker of
-    /// herdr's resize).
+    /// A card opened for the first time shows its terminal only once herdr's frames settled at the card's size: the
+    /// program's redraw for the resize is in by then (no flicker of herdr's resize).
     func testCardShowsItsTerminalOnceHerdrDrewItAtItsSize() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let (tab, first) = try await newTab("ready")
-        let second = try await split(first)
+        let (tab, pane) = try await newTab("ready")
+        // An 80 × 24 PTY (another client's attach), and a shell that prints its size when it changes.
+        let terminal = try await terminalID(pane)
+        try await Self.post("\(one)/control", Data(terminal.utf8))
+        try await Self.call(
+            one,
+            "pane.send_text",
+            ["pane_id": pane, "text": "trap 'echo resized $(stty size)' WINCH\r"],
+        )
+        try await waitFor(pane) { $0.contains("WINCH") }
+
         element("tab.\(tab)").click()
-        for pane in [first, second] {
-            let card = element("pane.\(pane)")
-            XCTAssertTrue(card.exists(within: 3))
-            try await poll("\(pane) ready, it says \(card.stringValue)", times: 100) {
-                card.stringValue.hasPrefix("content") && !card.stringValue.hasSuffix(", loading") ? true : nil
-            }
-            // Ready means herdr's PTY already has the card's grid.
-            let grid = try XCTUnwrap(element("terminal.\(pane)").value as? String).split(separator: " ")
-            let panes = try await snapshot()?["panes"] as? [[String: Any]] ?? []
-            let scroll = panes.first { $0["pane_id"] as? String == pane }?["scroll"] as? [String: Any]
-            XCTAssertEqual(scroll?["viewport_rows"] as? Int, Int(grid[0]))
+        let card = element("pane.\(pane)")
+        XCTAssertTrue(card.exists(within: 3))
+        try await poll("\(pane) ready, it says \(card.stringValue)", times: 100) {
+            card.stringValue.hasPrefix("content") && !card.stringValue.hasSuffix(", loading") ? true : nil
         }
+        // At once: the redraw at the card's grid was in before the card showed.
+        let grid = try XCTUnwrap(element("terminal.\(pane)").value as? String)
+        let screen = try await read(pane)
+        XCTAssertTrue(screen.contains("resized \(grid)"), "card \(grid), screen:\n\(screen)")
     }
 
     /// herdr is asked what every pane runs on the first snapshot, also in tabs never shown.

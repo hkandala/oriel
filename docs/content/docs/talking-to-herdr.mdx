@@ -207,9 +207,11 @@ One path is [Future work](/docs/future-work).
 - A `control` frame's `width` and `height` are the real PTY size.
 - herdr has no way to size a PTY without attaching (the attach's `--cols` /
   `--rows` resizes it), so a pane opened for the first time redraws once at
-  the card's size. The card hides its terminal until a frame of that size
-  arrives, then fades it in (0.12 s). Background tabs are not attached ahead
-  of time (D46's stream cap).
+  the card's size: herdr's first frame is the old screen reflowed at the new
+  size, and the program's redraw for `SIGWINCH` follows. The card hides its
+  terminal until herdr's frames stop for 0.1 s (at most 1 s after the first),
+  then fades it in (0.12 s). Background tabs are not attached ahead of time
+  (D46's stream cap).
 
 ### One controller per pane
 

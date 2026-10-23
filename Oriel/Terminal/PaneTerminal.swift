@@ -8,33 +8,13 @@
     /// backend), with keys, clicks and the wheel going back to herdr.
     @MainActor @Observable
     final class PaneTerminal {
-        enum State: Equatable {
-            /// No stream: not shown lately (D46), closed, or the pane is gone.
-            case idle
-            case live
-            /// Another client controls the pane: watch until the user acts (design D8).
-            case watching
-            case failed(String)
-
-            var isFailed: Bool {
-                guard case .failed = self else { return false }
-                return true
-            }
-        }
-
-        enum Input {
-            /// Bytes from libghostty: typed text, IME, pastes.
-            case text(String)
-            /// herdr logical keys, encoded by herdr for the app's input modes.
-            case keys([String])
-        }
-
         private(set) var state = State.idle
         /// The terminal view is the first responder: keys go here.
         var hasKeyboard = false
-        /// herdr drew it at the card's size once (its PTY resized), or, watching, drew it at all: the card's content
-        /// fades in then. Before, herdr's resize of a pane opened for the first time would flicker in view.
+        /// herdr's frames settled once (PTY resized, program redrawn), or a watcher drew: the content fades in then,
+        /// not at herdr's first frame (the old screen reflowed at the new size).
         private(set) var ready = false
+        @ObservationIgnored private var settling: Task<Void, Never>?
         /// The surface's last grid.
         @ObservationIgnored private var grid: InMemoryTerminalViewport?
         @ObservationIgnored let view = PaneSurfaceView(frame: .zero)
@@ -188,9 +168,9 @@
                         if state == .idle {
                             started(frame)
                         }
-                        // At the card's size; a watcher cannot resize: its first frame.
-                        let sized = self.grid.map { frame.width == $0.columns && frame.height == $0.rows } == true
-                        ready = ready || observing || sized
+                        if !ready {
+                            settle()
+                        }
                     case let .closed(reason):
                         self.stream = nil
                         closed(reason)
@@ -202,6 +182,11 @@
         /// The first frame of a stream.
         private func started(_ frame: TerminalStream.Frame) {
             state = observing ? .watching : .live
+            // A program that redraws all the time never settles: shown a second later anyway.
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                ready = true
+            }
             // The card may have changed size while the stream opened.
             if let grid, frame.width != grid.columns || frame.height != grid.rows {
                 resized(grid)
@@ -331,6 +316,44 @@
                     }
                 }
                 draining = nil
+            }
+        }
+    }
+
+    extension PaneTerminal {
+        enum State: Equatable {
+            /// No stream: not shown lately (D46), closed, or the pane is gone.
+            case idle
+            case live
+            /// Another client controls the pane: watch until the user acts (design D8).
+            case watching
+            case failed(String)
+
+            var isFailed: Bool {
+                guard case .failed = self else { return false }
+                return true
+            }
+        }
+
+        enum Input {
+            /// Bytes from libghostty: typed text, IME, pastes.
+            case text(String)
+            /// herdr logical keys, encoded by herdr for the app's input modes.
+            case keys([String])
+        }
+
+        /// Ready once frames stop for 100 ms (a watcher cannot resize: at once).
+        private func settle() {
+            settling?.cancel()
+            guard !observing else {
+                ready = true
+                return
+            }
+            settling = Task {
+                try? await Task.sleep(for: .milliseconds(100))
+                if !Task.isCancelled {
+                    ready = true
+                }
             }
         }
     }

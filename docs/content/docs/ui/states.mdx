@@ -39,7 +39,7 @@ button. Empty states (no workspaces, no tabs) show only the button.
 | A restored page's session no longer runs | the page is skipped |
 | Close Page on the last page | Close Page is disabled |
 | A write failed | the notice: a capsule with a red symbol and the error, no Retry (a write that timed out may have happened) |
-| A card's terminal is not drawn at the card's size yet (a pane opened for the first time, while herdr resizes its PTY) | the card shows only its fill (a small spinner after 0.5 s); the terminal fades in over 0.12 s once a frame at the card's size arrives (at once with Reduce Motion). A watching card shows its first frame |
+| A card's terminal is not settled at the card's size yet (a pane opened for the first time, while herdr resizes its PTY and the program redraws) | the card shows only its fill (a small spinner after 0.5 s); the terminal fades in over 0.12 s once herdr's frames stop for 0.1 s, or 1 s after the first frame (at once with Reduce Motion). A watching card shows its first frame |
 | Find with no match | "0 of 0", nothing highlighted, no scroll |
 | A folder dropped on the Dock icon with no window | a window opens, and the workspace opens in it once its page is live |
 | A folder dropped on the Dock icon while the page in view is not live | the folders wait for a live page in view |

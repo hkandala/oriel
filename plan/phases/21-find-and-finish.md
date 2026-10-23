@@ -156,9 +156,11 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   view fades from alpha 0 over 0.12 s through `NSAnimationContext` on the host view (SwiftUI's `opacity` moves the
   terminal's accessibility frame, phase 16). A card whose stream fails still shows its failure text.
 - **No flicker of herdr's first resize** (user, late): a pane opened for the first time redraws once while herdr
-  resizes its PTY to the card (herdr can size a PTY only by attaching). `PaneTerminal.ready` turns on at the first
-  frame whose size is the card's grid (a watcher's first frame, as it cannot resize); until then the card shows its
-  fill, a small spinner after 0.5 s, and its value ends in ", loading". Background tabs are not attached ahead (D46).
+  resizes its PTY to the card (herdr can size a PTY only by attaching). herdr's first `control` frame already has the
+  asked size (spec review 4, by hand: vim gave a reflowed old screen, then its SIGWINCH redraw in the same
+  millisecond), so a size check does nothing: `PaneTerminal.ready` turns on once frames stop for 100 ms, at most 1 s
+  after the first frame (a watcher at once, as it cannot resize). Until then the card shows its fill, a small spinner
+  after 0.5 s, and its value ends in ", loading". Background tabs are not attached ahead (D46).
 - **Retry only in the Open Session sheet.** A write's notice has no Retry: after a timeout a retry is not safe (a
   create may have gone through), and "Busy, try again" with Retry was cut in the ponytail review.
 - **The Open Session failure is a notice capsule inside the sheet** (the window's capsule lies under the sheet):
