@@ -76,9 +76,10 @@ struct Notice {
                 message("herdr is not installed", "Install it in a terminal:",
                         "curl -fsSL https://herdr.dev/install.sh | sh")
             case let .failed(.unsupported(text)):
-                message("herdr is too old", text + ". Update it in a terminal:", "herdr update")
+                // The client asks again every 2 s, so an updated herdr clears it.
+                message("herdr is too old", text + ".")
             case .failed where !store.isRunning:
-                message("\(store.session) is not running", "Start it to see its workspaces.", nil, start: true)
+                message("\(store.session) is not running", start: true)
             case .live, .failed:
                 // Reconnecting (the server runs, the bridge fails) in one branch, so the strip keeps its state through
                 // it; the notices stay clickable.
@@ -138,11 +139,15 @@ struct Notice {
         }
 
         /// What is wrong and the command that fixes it; a stopped session gets a Start button instead (design D47).
-        private func message(_ title: String, _ text: String, _ command: String?, start: Bool = false) -> some View {
+        private func message(_ title: String, _ text: String? = nil, _ command: String? = nil,
+                             start: Bool = false) -> some View
+        {
             ContentUnavailableView {
                 Label(title, systemImage: "terminal")
             } description: {
-                Text(text)
+                if let text {
+                    Text(text)
+                }
                 // Why a start failed.
                 if let notice = page.store.notice {
                     Text(notice.text).accessibilityIdentifier("detail.notice")
