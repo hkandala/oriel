@@ -79,7 +79,7 @@ struct Look {
 
     /// Text and glyphs of the title row and the sidebar, a step dimmer than primary text as in Rex.
     var chrome: Color {
-        dark ? .white.opacity(0.75) : .black.opacity(0.65)
+        dark ? .white.opacity(0.65) : .black.opacity(0.65)
     }
 
     /// A divider between tabs, as in Rex.
@@ -89,7 +89,7 @@ struct Look {
 
     /// The selected tab's and workspace row's title.
     var selected: Color {
-        dark ? .white : .black.opacity(0.9)
+        dark ? .white.opacity(0.9) : .black.opacity(0.9)
     }
 
     /// A card header's buttons, dimmer than the title row's.
@@ -188,6 +188,8 @@ struct Pill<S: InsettableShape>: View {
 struct ChromeStyle: ButtonStyle {
     var selected = false
     var radius: CGFloat = 8
+    /// How far inside the hit area the fills are drawn (a tab's capsule inside its track).
+    var inset: CGFloat = 0
     /// The selected fill; the look's pill when nil.
     var tint: Color?
 
@@ -202,9 +204,10 @@ struct ChromeStyle: ButtonStyle {
         @Environment(\.isEnabled) private var enabled
 
         var body: some View {
-            let shape = RoundedRectangle(cornerRadius: style.radius, style: .continuous)
+            let full = RoundedRectangle(cornerRadius: style.radius, style: .continuous)
+            let shape = full.inset(by: style.inset)
             configuration.label
-                .contentShape(shape)
+                .contentShape(full)
                 .background {
                     if !style.selected {
                         // The same in both styles, and they follow the appearance by themselves (D44).

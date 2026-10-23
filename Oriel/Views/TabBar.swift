@@ -6,9 +6,10 @@
     /// strip's scroll, dividers, hover and close. It takes the row's free space and scrolls when tabs would be narrower
     /// than 64 pt.
     struct TabBar: View {
+        /// The track's height; Rex's capsules sit 2 pt inside it, 30 pt tall and fully round.
         static let height: CGFloat = 34
-        /// min(height / 2, 16.5), as in Rex.
-        static let radius: CGFloat = 16.5
+        static let inset: CGFloat = 2
+        static let radius: CGFloat = 17
 
         let workspace: HostStore.Workspace
         let page: Page
@@ -51,7 +52,7 @@
                                     let quiet = lit.contains(index) || lit.contains(index - 1)
                                         || [tab.id, tabs[index - 1].id]
                                         .contains { $0 == hovered || $0 == page.selectedTabIDs[workspace.id] }
-                                    Rectangle().fill(look.divider).frame(width: 1, height: Self.height - 18)
+                                    Rectangle().fill(look.divider).frame(width: 1, height: Self.height - 16)
                                         .opacity(quiet ? 0 : 1)
                                         .animation(.easeInOut(duration: 0.2), value: quiet)
                                 }
@@ -189,7 +190,7 @@
         /// moves with Rex's spring after a click or a key, so the marker does too.
         private func marker(count: Int, width: CGFloat) -> some View {
             let offset = min(max(page.stripPage, 0), Double(max(count - 1, 0)))
-            return Pill(shape: RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
+            return Pill(shape: RoundedRectangle(cornerRadius: Self.radius, style: .continuous).inset(by: Self.inset))
                 .frame(width: width, height: Self.height)
                 .offset(x: offset * (width + 1))
                 .allowsHitTesting(false)
@@ -249,7 +250,7 @@
             let working = !selected && store.panes.contains { $0.tabID == tab.id && $0.state == .working }
             // The strip scrolls to the new selection and the marker follows, as during a swipe.
             Button { page.select(workspace, tab: tab.id) } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     IconStack(panes: stack, badge: agent?.state)
                         .keyframeAnimator(initialValue: 1.0, trigger: bounces) { content, scale in
                             content.scaleEffect(scale)
@@ -259,13 +260,11 @@
                         }
                         .overlay(alignment: .leading) {
                             if let keycap {
-                                Text("⌘\(keycap)").font(.system(size: 10, weight: .semibold)).fixedSize().padding(
-                                    .horizontal,
-                                    4,
-                                )
-                                .padding(.vertical, 1).glassEffect(.regular, in: .rect(cornerRadius: 4))
-                                .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.13)),
-                                                        removal: .opacity.animation(.easeOut(duration: 0.1))))
+                                Text("⌘\(keycap)").font(.system(size: 10, weight: .semibold)).fixedSize()
+                                    .padding(.horizontal, 4).padding(.vertical, 1)
+                                    .glassEffect(.regular, in: .rect(cornerRadius: 4))
+                                    .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.13)),
+                                                            removal: .opacity.animation(.easeOut(duration: 0.1))))
                             }
                         }
                     // Not once the user selected the tab.
@@ -273,13 +272,13 @@
                         .opacity(renaming ? 0 : 1)
                         .foregroundStyle(selected ? look.selected : look.chrome)
                 }
-                .padding(.leading, 8)
+                .padding(.leading, 11)
                 // The title's fade ends under the ×'s 28 pt.
                 .padding(.trailing, 12)
                 .frame(width: width, height: TabBar.height, alignment: .leading)
             }
             // The selection is the tab bar's marker.
-            .buttonStyle(ChromeStyle(radius: TabBar.radius))
+            .buttonStyle(ChromeStyle(radius: TabBar.radius, inset: TabBar.inset))
             .dragSource(.tab(tab.id), page: page)
             // Anywhere on the capsule, beside the click that selects (a tap gesture in the label missed clicks past a
             // short title).
@@ -306,7 +305,7 @@
                             }
                         }
                         .focusSoon($focused)
-                        .padding(.leading, 8 + 22 + CGFloat(max(stack.count - 1, 0)) * 4 + 8)
+                        .padding(.leading, 11 + 22 + CGFloat(max(stack.count - 1, 0)) * 4 + 10)
                         .padding(.trailing, 8)
                         .accessibilityIdentifier("tab.\(tab.id).rename")
                 }
