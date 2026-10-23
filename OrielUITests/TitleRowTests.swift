@@ -3,12 +3,24 @@ import XCTest
 /// The title row (phase 13): sidebar toggle, machine and workspace buttons, the tab bar and its menus. Session
 /// one's w1 "alpha" has t1 (three panes) and t2 "second"; w2 "beta" has one tab.
 extension OrielUITests {
+    /// With the sidebar open, the first capsule starts where the cards do, also while the sidebar is resized.
+    func testTabsLineUpWithTheCards() {
+        let tab = element("tab.w1:t1"), card = element("pane.w1:p1"), handle = element("sidebar.resize")
+        XCTAssertTrue(card.exists(within: connect))
+        XCTAssertEqual(tab.frame.minX, card.frame.minX, accuracy: 1)
+        for offset: CGFloat in [60, -60] {
+            let from = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            from.click(forDuration: 0.2, thenDragTo: from.withOffset(CGVector(dx: offset, dy: 0)))
+            XCTAssertTrue(until(1) { abs(tab.frame.minX - card.frame.minX) <= 1 }, "\(tab.frame) \(card.frame)")
+        }
+    }
+
     func testTabsStayInTheTitleRowWithTheSidebarOpenOrCollapsed() {
         let window = app.windows.firstMatch, toggle = element("titlebar.sidebar")
         let tab = element("tab.w1:t2"), workspace = element("titlebar.workspace")
         XCTAssertTrue(tab.exists(within: connect))
         XCTAssertEqual(toggle.value as? String, "open")
-        XCTAssertLessThan(tab.frame.maxY, window.frame.minY + 40)
+        XCTAssertLessThan(tab.frame.maxY, window.frame.minY + 46)
         XCTAssertFalse(workspace.exists)
         // The capsule alone: the sidebar lists no tabs.
         XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "tab.w1:t2").count, 1)
@@ -19,7 +31,7 @@ extension OrielUITests {
         XCTAssertEqual(toggle.value as? String, "closed")
         XCTAssertTrue(workspace.exists(within: 2))
         XCTAssertEqual(workspace.value as? String, "\(one) | alpha")
-        XCTAssertLessThan(tab.frame.maxY, window.frame.minY + 40)
+        XCTAssertLessThan(tab.frame.maxY, window.frame.minY + 46)
         XCTAssertGreaterThan(tab.frame.minX, workspace.frame.maxX)
         keepScreenshot("sidebar collapsed")
 

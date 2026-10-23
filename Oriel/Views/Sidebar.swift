@@ -293,13 +293,14 @@
         }
     }
 
-    /// The 6 pt handle at the sidebar's trailing edge, beside the pages: a drag resizes it within `Sidebar.widths`.
+    /// The handle at the sidebar's trailing edge, beside the pages and over the strip's 8 pt gap: a drag resizes it
+    /// within `Sidebar.widths`.
     private struct ResizeHandle: View {
         @Binding var width: Double
         @State private var start: Double?
 
         var body: some View {
-            Color.clear.frame(width: 6).contentShape(.rect)
+            Color.clear.frame(width: gap).contentShape(.rect)
                 .pointerStyle(.columnResize)
                 .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global).onChanged { drag in
                     let start = start ?? width

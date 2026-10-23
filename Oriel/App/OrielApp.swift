@@ -181,8 +181,9 @@ struct OrielApp: App {
             // The strip's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
             // cards start at its bottom edge, as in Rex; the row stays on top for its clicks and window drags.
             VStack(spacing: -4) {
-                TitleBar(page: page, fullScreen: fullScreen, sidebar: $sidebar, agents: $agents,
-                         palette: open(.palette), workspaceMenu: open(.workspaces), workspaceButtonX: $workspaceButtonX)
+                TitleBar(page: page, fullScreen: fullScreen, sidebar: $sidebar, sidebarWidth: sidebarWidth,
+                         agents: $agents, palette: open(.palette), workspaceMenu: open(.workspaces),
+                         workspaceButtonX: $workspaceButtonX)
                     .zIndex(1)
                 HStack(spacing: 0) {
                     if sidebar {
@@ -190,7 +191,7 @@ struct OrielApp: App {
                         Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { openingSession = true }
                             .padding(.bottom, gap)
                             .padding(.top, 4)
-                            .padding(.trailing, -6)
+                            .padding(.trailing, -gap)
                             .zIndex(1)
                             .transition(.move(edge: .leading).combined(with: .opacity))
                     }

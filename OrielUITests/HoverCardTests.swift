@@ -17,9 +17,9 @@ extension OrielUITests {
         XCTAssertEqual(rows(of: card).count, 3)
         try await waitForValue("hovercard.\(pane)", containing: "hover-42")
         XCTAssertTrue((element("hovercard.\(pane)").value as? String)?.hasPrefix("Needs you") == true)
-        // Under its capsule, 6 pt below the title row (9 pt below the capsule).
+        // Under its capsule, 6 pt below the 46 pt title row (12 pt below the 34 pt capsule).
         XCTAssertEqual(card.frame.midX, element("tab.\(tab)").frame.midX, accuracy: 2)
-        XCTAssertEqual(card.frame.minY - element("tab.\(tab)").frame.maxY, 9, accuracy: 1.5)
+        XCTAssertEqual(card.frame.minY - element("tab.\(tab)").frame.maxY, 12, accuracy: 1.5)
         keepScreenshot("hover card")
 
         app.typeKey(.escape, modifierFlags: [])

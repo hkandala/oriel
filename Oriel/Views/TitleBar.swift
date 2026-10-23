@@ -17,6 +17,8 @@
         let page: Page
         let fullScreen: Bool
         @Binding var sidebar: Bool
+        /// While the sidebar is open, the tabs start where the cards do, at its width.
+        let sidebarWidth: CGFloat
         /// The sidebar shows the Agents view.
         @Binding var agents: Bool
         @Binding var palette: Bool
@@ -29,11 +31,15 @@
 
         var body: some View {
             HStack(spacing: 8) {
-                // ⌃⌘S is the menu's.
-                SidebarToggle(open: $sidebar)
-                    .accessibilityIdentifier("titlebar.sidebar")
-                    .accessibilityValue(sidebar ? "open" : "closed")
-                MachineButton()
+                HStack(spacing: 8) {
+                    // ⌃⌘S is the menu's.
+                    SidebarToggle(open: $sidebar)
+                        .accessibilityIdentifier("titlebar.sidebar")
+                        .accessibilityValue(sidebar ? "open" : "closed")
+                    MachineButton()
+                }
+                .frame(width: sidebar ? sidebarWidth - Self.inset(fullScreen: fullScreen) - 8 : nil,
+                       alignment: .leading)
                 if !sidebar, let workspace = page.selectedWorkspace {
                     Capped(width: 260) {
                         WorkspaceButton(session: page.id, workspace: workspace.label, open: $workspaceMenu)
