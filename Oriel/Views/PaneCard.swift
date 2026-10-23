@@ -16,6 +16,7 @@
         @Environment(\.zoomedAway) private var zoomedAway
         @Environment(\.appearsActive) private var active
         @Environment(\.colorScheme) private var scheme
+        @Environment(\.look) private var look
         @AppStorage("fadeInactivePanes") private var fade = true
         @AppStorage("focusFollowsMouse") private var followMouse = false
 
@@ -31,7 +32,8 @@
             let content = (fade ? lit ? active ? 1 : scheme == .dark ? 0.8 : 0.85 : active ? 0.7 : 0.5 : 1)
                 * (page.watched ? 0.85 : 1)
             VStack(spacing: 0) {
-                header(pane, zoomed: zoomed, showsButtons: lit || hovering || zoomed)
+                // Faded with the terminal, as in Rex.
+                header(pane, zoomed: zoomed, showsButtons: lit || hovering || zoomed).opacity(content)
                 Group {
                     if let terminal {
                         TerminalCard(terminal: terminal, watched: page.watched, alpha: content)
@@ -103,7 +105,7 @@
         private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool) -> some View {
             // The label wins; else the program in primary text and the folder in secondary, as in Rex ("zsh ~").
             let (name, folder) = pane?.header ?? (nil, "terminal")
-            return HStack(spacing: 8) {
+            return HStack(spacing: 4) {
                 // Clicks pass through to the header's double-click.
                 ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
                 if page.renamingPaneID == id {
@@ -134,7 +136,8 @@
                 }
             }
             .fontWeight(.medium)
-            .padding(.leading, 6)
+            // Rex's glyph sits 13.5 pt in and its title 30.5 pt.
+            .padding(.leading, 11)
             .padding(.trailing, 8)
             // A card narrower than its header cuts the header (the card clips) instead of growing.
             .frame(minWidth: 0, maxWidth: .infinity, minHeight: 36, maxHeight: 36, alignment: .leading)
@@ -174,6 +177,7 @@
                 .accessibilityIdentifier("pane.\(id).close")
             }
             .disabled(store.writing)
+            .foregroundStyle(look.paneButton)
         }
 
         /// Enter: herdr's label (an empty one clears it); the snapshot after it shows it.

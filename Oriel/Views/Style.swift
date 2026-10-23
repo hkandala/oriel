@@ -30,15 +30,17 @@ struct Look {
         dark ? .black.opacity(0.6) : .clear
     }
 
-    /// Glass: the tint over the behind-window blur. Classic: the whole window.
+    /// Glass: the tint over the behind-window blur (light: Rex's Modern 0.7, so it depends less on the desktop).
+    /// Classic: the whole window.
     var window: Color {
-        pick(Color(white: 0x1E / 255).opacity(0.5), .white.opacity(0.5),
+        pick(Color(white: 0x1E / 255).opacity(0.5), .white.opacity(0.7),
              Color(white: 0x1E / 255), Color(white: 0xF6 / 255))
     }
 
     var cardFill: Color {
-        // Classic dark: #222 on #1e1e1e, as in Rex.
-        pick(.white.opacity(0.04), .white.opacity(0.1), .white.opacity(0.018), .white.opacity(0.6))
+        // Glass dark: Rex's pane backdrop darkens the window under cards (6 steps on a #2c window). Classic dark: #222
+        // on #1e1e1e, as in Rex.
+        pick(.black.opacity(0.14), .white.opacity(0.1), .white.opacity(0.018), .white.opacity(0.6))
     }
 
     /// Over `cardFill` on the card that has the keyboard: light cards end at white 0.7 (Glass) and 0.8 (Classic).
@@ -54,7 +56,7 @@ struct Look {
     /// The stroke just outside the card's edge.
     func edge(keyboard: Bool) -> (color: Color, width: CGFloat) {
         keyboard
-            ? pick((.white.opacity(0.1), 1), (.black.opacity(0.07), 1), (.white.opacity(0.1), 0.8),
+            ? pick((.black.opacity(0.5), 1), (.black.opacity(0.1), 1), (.white.opacity(0.1), 0.8),
                    (.black.opacity(0.18), 0.8))
             : pick((.black.opacity(0.5), 1), (.black.opacity(0.05), 1), (.white.opacity(0.07), 0.7),
                    (.black.opacity(0.12), 0.7))
@@ -65,10 +67,34 @@ struct Look {
         Color.secondary.opacity(0.6)
     }
 
-    var cardShadow: ShadowStyle {
-        let none = ShadowStyle.drop(color: .clear, radius: 0)
-        return pick(none, .drop(color: .black.opacity(0.1), radius: 5, y: 2), none,
-                    .drop(color: .black.opacity(0.06), radius: 4, y: 1))
+    /// Glass light only, as in Rex (Classic light has none).
+    var cardShadow: ShadowStyle? {
+        style == .glass && !dark ? .drop(color: .black.opacity(0.1), radius: 5, y: 2) : nil
+    }
+
+    /// The tab bar's track; none in Classic dark, as in Rex.
+    var track: Color {
+        style == .classic && dark ? .clear : .primary.opacity(0.05)
+    }
+
+    /// Text and glyphs of the title row and the sidebar, a step dimmer than primary text as in Rex.
+    var chrome: Color {
+        dark ? .white.opacity(0.75) : .black.opacity(0.65)
+    }
+
+    /// A divider between tabs: white 0.17 on dark, black 0.14 on light, as in Rex.
+    var divider: Color {
+        chrome.opacity(0.22)
+    }
+
+    /// The selected tab's and workspace row's title.
+    var selected: Color {
+        dark ? .white : .black.opacity(0.9)
+    }
+
+    /// A card header's buttons, dimmer than the title row's.
+    var paneButton: Color {
+        dark ? .white.opacity(0.4) : .black.opacity(0.33)
     }
 
     var working: Color {
@@ -125,7 +151,13 @@ struct CardSurface: View {
 
     var body: some View {
         let shape = Self.shape, edge = look.edge(keyboard: keyboard)
-        shape.fill(look.cardFill.shadow(look.cardShadow))
+        shape.fill(look.cardFill)
+            // On an opaque copy cut out under the card: on the translucent fill it would be as faint as the fill.
+            .background {
+                if let shadow = look.cardShadow {
+                    shape.fill(Color.black.shadow(shadow)).overlay(shape.blendMode(.destinationOut)).compositingGroup()
+                }
+            }
             .overlay(shape.fill(keyboard ? look.keyboardFill : .clear))
             .overlay(shape.strokeBorder(look.rim, lineWidth: 0.7).blendMode(.plusLighter))
             .overlay(shape.inset(by: -edge.width / 2).stroke(edge.color, lineWidth: edge.width))
@@ -142,8 +174,8 @@ struct Pill<S: InsettableShape>: View {
         case (.glass, _):
             Color.clear.glassEffect(.regular, in: shape)
         case (.classic, true):
-            shape.fill(.white.opacity(0.08))
-                .overlay(shape.strokeBorder(.white.opacity(0.1), lineWidth: 0.8).blendMode(.plusLighter))
+            // Rex's flat #292929 on #1e1e1e.
+            shape.fill(.white.opacity(0.045))
         case (.classic, false):
             shape.fill(.white)
                 .overlay(shape.strokeBorder(.black.opacity(0.1)))
@@ -252,7 +284,7 @@ struct IconButton: View {
     let help: String
     var key: KeyboardShortcut?
     var size: CGFloat = 28
-    /// White on an accent circle (a zoomed card's Restore).
+    /// Accent on a faint accent circle (a zoomed card's Restore), as in Rex.
     var accent = false
     let action: () -> Void
 
@@ -261,11 +293,12 @@ struct IconButton: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .fontWeight(.medium)
-                .foregroundStyle(accent ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                // The surrounding style: the look's chrome, or a card header's buttons.
+                .foregroundStyle(accent ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
                 .frame(width: size, height: size)
                 .background {
                     if accent {
-                        Circle().fill(.tint)
+                        Circle().fill(.tint.opacity(0.15))
                     }
                 }
         }

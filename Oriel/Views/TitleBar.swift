@@ -25,6 +25,7 @@
         @Binding var workspaceButtonX: CGFloat
         /// A pane dragged over the `+`.
         @State private var plus = false
+        @Environment(\.look) private var look
 
         var body: some View {
             HStack(spacing: 8) {
@@ -74,6 +75,7 @@
             .padding(.leading, Self.inset(fullScreen: fullScreen))
             .padding(.trailing, gap)
             .frame(height: Self.height)
+            .foregroundStyle(look.chrome)
             // The title bar is hidden, so the row's empty space moves the window.
             .background { Color.clear.contentShape(.rect).gesture(WindowDragGesture()) }
         }
@@ -107,11 +109,10 @@
                     Image(systemName: "bubble.left.and.bubble.right")
                     if showing {
                         Image(systemName: "bubble.left.and.bubble.right.fill").symbolRenderingMode(.palette)
-                            .foregroundStyle(HierarchicalShapeStyle.secondary, Color.clear)
+                            .foregroundStyle(HierarchicalShapeStyle.primary, Color.clear)
                     }
                 }
                 .fontWeight(.medium)
-                .foregroundStyle(.secondary)
                 .overlay(alignment: .topTrailing) {
                     if waiting > 0 {
                         Circle().fill(look.needsYou).frame(width: 7, height: 7).offset(x: 3, y: -2)
@@ -143,7 +144,6 @@
                         }
                     }
                     .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(ChromeStyle(radius: 7))
@@ -187,7 +187,6 @@
                 // One text, so the menu button is one element.
                 let chevron = Text(Image(systemName: "chevron.down")).font(.system(size: 8, weight: .bold))
                 Text("\(Image(systemName: thisMacIcon)) \(chevron)").fontWeight(.medium)
-                    .foregroundStyle(.secondary)
                     .padding(.horizontal, 6)
                     .frame(height: 28)
             }
@@ -210,12 +209,12 @@
         var body: some View {
             Button { open.toggle() } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "folder").fontWeight(.medium).foregroundStyle(.secondary)
+                    Image(systemName: "folder").fontWeight(.medium)
                     // A long session name stops at 110 pt, so a long workspace name fades instead of hiding it.
                     Capped(width: 110) { Text(session).foregroundStyle(.secondary).lineLimit(1) }.layoutPriority(1)
                     Rectangle().fill(.separator).frame(width: 1, height: 12)
                     FadeText(text: Text(workspace))
-                    Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
+                    Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
                 }
                 .fontWeight(.medium)
                 .padding(.horizontal, 8)

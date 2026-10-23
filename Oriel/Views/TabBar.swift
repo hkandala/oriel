@@ -32,6 +32,7 @@
         @State private var insideBar = false
         @Environment(\.appearsActive) private var appearsActive
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @Environment(\.look) private var look
 
         var body: some View {
             let tabs = workspace.tabs, count = CGFloat(tabs.count)
@@ -50,7 +51,7 @@
                                     let quiet = lit.contains(index) || lit.contains(index - 1)
                                         || [tab.id, tabs[index - 1].id]
                                         .contains { $0 == hovered || $0 == page.selectedTabIDs[workspace.id] }
-                                    Rectangle().fill(.separator).frame(width: 1, height: Self.height - 18)
+                                    Rectangle().fill(look.divider).frame(width: 1, height: Self.height - 18)
                                         .opacity(quiet ? 0 : 1)
                                         .animation(.easeInOut(duration: 0.2), value: quiet)
                                 }
@@ -79,7 +80,7 @@
                     }
                     .background {
                         ZStack(alignment: .leading) {
-                            Capsule().fill(.primary.opacity(0.05)).opacity(tabs.count > 1 ? 1 : 0)
+                            Capsule().fill(look.track).opacity(tabs.count > 1 ? 1 : 0)
                             marker(count: tabs.count, width: width)
                         }
                     }
@@ -238,6 +239,7 @@
         @State private var bounces = 0
         @FocusState private var focused: Bool
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @Environment(\.look) private var look
 
         var body: some View {
             let store = page.store
@@ -269,6 +271,7 @@
                     // Not once the user selected the tab.
                     FadeText(text: announcement.flatMap { selected ? nil : Text($0) } ?? page.titleLabel(tab))
                         .opacity(renaming ? 0 : 1)
+                        .foregroundStyle(selected ? look.selected : look.chrome)
                 }
                 .padding(.leading, 8)
                 // The title's fade ends under the ×'s 28 pt.

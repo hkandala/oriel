@@ -17,6 +17,7 @@
         /// The page in view, as the scroll view has it.
         @State private var position = ScrollPosition(idType: String.self)
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @Environment(\.look) private var look
 
         var body: some View {
             HStack(spacing: 0) {
@@ -25,6 +26,7 @@
                     .frame(width: width - gap)
                 ResizeHandle(width: $width)
             }
+            .foregroundStyle(look.chrome)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("sidebar")
         }

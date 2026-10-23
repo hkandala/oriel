@@ -27,6 +27,7 @@
                     HStack(spacing: 6) {
                         StateIcon(state: state)
                         Text(workspace.label).font(.system(size: 13)).lineLimit(1).opacity(renaming ? 0 : 1)
+                            .foregroundStyle(selected ? look.selected : look.chrome)
                     }
                     if let git {
                         HStack(spacing: 4) {
