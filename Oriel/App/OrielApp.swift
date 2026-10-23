@@ -132,7 +132,10 @@ struct OrielApp: App {
             // A run against a throwaway session must open only it.
             let argument = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)["session"]
                 as? String
-            let saved = argument == nil ? savedPages.split(separator: " ").map(String.init) : []
+            // A test run (`-defaultSession`) shares the developer's saved windows: it restores only throwaway sessions.
+            let test = UserDefaults.standard.string(forKey: "defaultSession")
+            let saved = argument == nil ? savedPages.split(separator: " ").map(String.init)
+                .filter { test == nil || $0.hasPrefix("oriel-e2e-") } : []
             if !saved.isEmpty {
                 let client: any Multiplexer = await HerdrClient(session: saved[0], exec: exec.value)
                 let running = await Set((try? client.sessions())?.filter(\.running).map(\.name) ?? [])
@@ -145,8 +148,7 @@ struct OrielApp: App {
                 }
             }
             if pages.list.isEmpty {
-                pages.open(argument ?? UserDefaults.standard.string(forKey: "defaultSession") ?? "default",
-                           start: true)
+                pages.open(argument ?? test ?? "default", start: true)
             }
             restoreSelection()
             pages.showTerminals() // The restored tab streams now, not at the next snapshot.
