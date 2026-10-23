@@ -24,8 +24,6 @@ final class HostStore {
     var notice: Notice?
     /// A write in flight; the buttons wait for it.
     private(set) var writing = false
-    /// Set while the session's page is in view in a visible window: git status runs only then (D67).
-    var showsGit = false
 
     /// The tab the user looks at (D14): selected on the page in view of the key window. Its finishes are seen.
     @ObservationIgnored var lookingTabID: String? {
@@ -41,6 +39,10 @@ final class HostStore {
         /// The windows that have its page open, the controller first (D66): the window where the user last typed or
         /// clicked in a card of the session. The others watch.
         var windows: [WindowPages] = []
+        /// The session's page is in view in a visible window: git status runs only then (D67).
+        var showsGit: Bool {
+            windows.contains { $0.visible && $0.current?.store === self }
+        }
     #endif
     @ObservationIgnored private(set) var client: (any Multiplexer)?
     @ObservationIgnored private var task: Task<Void, Never>?
@@ -75,8 +77,6 @@ final class HostStore {
         /// Its page closed: the events stream and every herdr run of it end; the session keeps running.
         func disconnect() {
             task?.cancel()
-            // Also ends a git loop already running for it.
-            showsGit = false
             Self.open[session] = nil
         }
 

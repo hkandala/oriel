@@ -12,6 +12,8 @@
         /// The page in view; nil until the first page opens, and after the window closed.
         private(set) var current: Page?
         let terminals = PaneViewRegistry()
+        /// The window is visible (its scene is active): its page in view shows git status.
+        var visible = false
         /// The window is key (D14).
         @ObservationIgnored private var key = false
         /// A notification or Dock row clicked before its page or pane was there.

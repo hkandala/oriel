@@ -77,12 +77,8 @@ struct OrielApp: App {
             .onChange(of: selection) { savedSelection = $1 }
             // Git status for the page in view of a visible window: now and every 10 s (D67).
             .task(id: scenePhase == .active ? pages.current?.id : nil) {
-                // At once for every page, not in a cancelled task's late cleanup.
-                let active = scenePhase == .active
-                for page in pages.list {
-                    page.store.showsGit = active && page === pages.current
-                }
-                guard active, let store = pages.current?.store else { return }
+                pages.visible = scenePhase == .active
+                guard pages.visible, let store = pages.current?.store else { return }
                 repeat {
                     await store.updateGit(all: true)
                 } while await (try? Task.sleep(for: .seconds(10))) != nil
