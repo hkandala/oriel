@@ -241,6 +241,12 @@ struct OrielApp: App {
                     .accessibilitySortPriority(-1)
                     .accessibilityValue("\(style.rawValue) \(look.dark ? "dark" : "light")")
             }
+            // The links a test ⌘-clicked (`-recordLinks YES`).
+            .background(alignment: .topLeading) {
+                Color.clear.frame(width: 1, height: 1).accessibilityElement().accessibilityAddTraits(.isStaticText)
+                    .accessibilityLabel("Links").accessibilityIdentifier("app.links").accessibilitySortPriority(-1)
+                    .accessibilityValue(Links.shared.recorded.joined(separator: " "))
+            }
             .modifier(AgentsWatch(pages: pages, page: page))
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)

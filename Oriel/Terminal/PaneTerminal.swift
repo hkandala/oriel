@@ -35,6 +35,8 @@
         private(set) var state = State.idle
         /// The terminal view is the first responder: keys go here.
         var hasKeyboard = false
+        /// A frame has arrived once: the card's content fades in then.
+        private(set) var drawn = false
         /// The surface's last grid.
         @ObservationIgnored private var grid: InMemoryTerminalViewport?
         @ObservationIgnored let view = PaneSurfaceView(frame: .zero)
@@ -196,6 +198,7 @@
         /// The first frame of a stream.
         private func started(_ frame: TerminalStream.Frame) {
             state = observing ? .watching : .live
+            drawn = true
             // The card may have changed size while the stream opened.
             if let grid, frame.width != grid.columns || frame.height != grid.rows {
                 resized(grid)
