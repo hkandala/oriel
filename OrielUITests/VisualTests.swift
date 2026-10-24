@@ -37,14 +37,17 @@ extension OrielUITests {
         // ⌥-click zooms (a click goes full screen), and again back.
         // Each zoom settles before the next click: one during the animation zoomed to a frame wider than the screen.
         // CI's window nearly fills the screen, so a zoom may change little or nothing.
+        var frames = [window.frame]
         for _ in 0 ..< 2 {
             var frame = window.frame
+            XCTAssertTrue(lights[2].isHittable, "window frames \(frames), screen \(app.windows.firstMatch.frame)")
             XCUIElement.perform(withKeyModifiers: .option) { lights[2].click() }
             _ = until(1) { window.frame != frame }
             XCTAssertTrue(until(3) {
                 defer { frame = window.frame }
                 return window.frame == frame
             })
+            frames.append(window.frame)
             XCTAssertTrue(placed(), "\(lights.map(\.frame)) in \(window.frame)")
         }
         keepScreenshot("traffic lights")
