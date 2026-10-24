@@ -98,11 +98,7 @@
             private func trace(_ note: Notification) {
                 guard events != nil, let window, let button = note.object as? NSButton else { return }
                 let index = buttons(of: window).firstIndex(of: button) ?? -1
-                let stack = Thread.callStackSymbols.dropFirst(2).prefix(24).map { line in
-                    line.split(separator: " ", omittingEmptySubsequences: true).dropFirst(3).prefix(2)
-                        .joined(separator: " ")
-                }.filter { !$0.contains("Notification") && !$0.contains("CFNotif") && !$0.contains("_CF") }
-                event("b\(index) \(button.frame.origin) | " + stack.joined(separator: " < "))
+                event("b\(index) \(button.frame.origin)")
             }
 
             /// e2e (`-recordLights YES`): counts the run loop turns that drew a traffic light off its place.
@@ -110,7 +106,8 @@
                 events = []
                 var count = 0
                 // After Core Animation's commit (order 2000000): what this turn drew.
-                let turn = CFRunLoopActivity.beforeWaiting.rawValue
+                // Core Animation also commits on a run loop's exit (nested loops).
+                let turn = CFRunLoopActivity.beforeWaiting.rawValue | CFRunLoopActivity.exit.rawValue
                 let observer = CFRunLoopObserverCreateWithHandler(nil, turn, true, Int.max) { [weak self] _, _ in
                     MainActor.assumeIsolated {
                         guard let self, let window = self.window,
