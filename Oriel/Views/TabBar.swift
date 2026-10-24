@@ -27,8 +27,9 @@
         @State private var hovered: String?
         /// The tab a click or a spring-load selects: it is under the pointer, so the row does not scroll to it.
         @State private var clicked: String?
-        /// The row's visible part, in the tabs' space: its edges fade where tabs are out of view.
-        @State private var visible: ClosedRange<CGFloat> = 0 ... 0
+        /// The row's visible part, in the tabs' space: its edges fade where tabs are out of view. No fade until the
+        /// row has laid out.
+        @State private var visible: ClosedRange<CGFloat> = 0 ... .infinity
         /// The last step of a drag held at an end of the row.
         @State private var scrolled = Date.distantPast
         /// ⌘ held for 0.7 s: keycaps on the first nine tabs.
@@ -78,7 +79,7 @@
                     // In the content's space: the capsule under the pointer, wherever the track scrolled.
                     .onDrop(of: [.orielDrag], delegate: TrackDrop(tabs: tabs, page: page, slot: width + 1,
                                                                   over: $over, spring: $spring, springLoad: springLoad,
-                                                                  held: { scroll(at: $0, proxy) }))
+                                                                  held: { scroll(at: $0, hidden, proxy) }))
                     .clearsDrop(page) {
                         spring?.cancel() // a late update after the drop may have started one
                         over = nil
@@ -171,20 +172,22 @@
         /// A drag held within 40 pt of an end of the row, while tabs are out of view past it, brings one more tab
         /// into view every 0.3 s (phase 24): the tab that ends past that end. A view holds a tab and the divider
         /// before it.
-        private func scroll(at place: CGFloat, _ proxy: ScrollViewProxy) {
-            let tabs = workspace.tabs, slot = Self.width + 1, content = CGFloat(tabs.count) * slot - 1
+        private func scroll(at place: CGFloat, _ hidden: (leading: Bool, trailing: Bool), _ proxy: ScrollViewProxy) {
+            let tabs = workspace.tabs, slot = Self.width + 1
             guard Date.now.timeIntervalSince(scrolled) > 0.3 else { return }
             let next: (index: Int, anchor: UnitPoint)
-            if place > visible.upperBound - 40, visible.upperBound < content - 0.5 {
+            if place > visible.upperBound - 40, hidden.trailing {
                 next = (Int((visible.upperBound + 1.5) / slot), .trailing)
-            } else if place < visible.lowerBound + 40, visible.lowerBound > 0.5 {
+            } else if place < visible.lowerBound + 40, hidden.leading {
                 next = (Int(((visible.lowerBound + 0.5) / slot).rounded(.up)) - 1, .leading)
             } else {
                 return
             }
+            // A snapshot may have closed tabs since the row laid out.
             guard tabs.indices.contains(next.index) else { return }
             scrolled = .now
-            withAnimation(reduceMotion ? nil : .tab) { proxy.scrollTo(tabs[next.index].id, anchor: next.anchor) }
+            // Without motion: an animated scroll during the drag crawled a few points and jumped back (CI's recording).
+            withTransaction(\.animation, nil) { proxy.scrollTo(tabs[next.index].id, anchor: next.anchor) }
         }
 
         /// Holding a pane over a capsule selects its tab, which pulses once.
@@ -199,8 +202,8 @@
             }
         }
 
-        /// The look's pill on the page in view, between two tabs while the strip is between their pages. The strip
-        /// moves with Rex's spring after a click or a key, so the marker does too.
+        /// The look's pill on the page in view, between two tabs while the strip is between their pages: it slides
+        /// with a swipe or a wheel turn and jumps on any other switch, as the strip does.
         private func marker(count: Int) -> some View {
             let offset = min(max(page.stripPage, 0), Double(max(count - 1, 0)))
             return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
