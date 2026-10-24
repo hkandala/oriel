@@ -399,8 +399,11 @@ How it works: [Layout and sizing](/docs/layout).
   ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
 - **Context menu** on the header, and on the terminal, where it starts with
   Copy, Paste and Select All. As in herdr, a right click in the terminal opens
-  the menu even when the program reads the mouse; ⌥ with it sends the right
-  click to the program (herdr's `right_click_passthrough_modifier = "alt"`):
+  the menu even when the program reads the mouse. ⌥-right click sends the
+  click, without the ⌥, to a program that reads the mouse, and does nothing
+  in one that does not (herdr's `right_click_passthrough_modifier = "alt"`).
+  herdr's per-pane setting that gives a pane's right clicks to its program is
+  not in its API, so the app does not follow it:
   - Split Right (⌘D), Split Down (⇧⌘D), Split Left, Split Up, Zoom Pane or
     Restore Pane (⇧⌘↩).
   - Move Pane to Tab ▸ (the workspace's other tabs, then New Tab and New

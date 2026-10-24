@@ -44,19 +44,9 @@
                             // The terminal sends a right click here (without ⌥, see `PaneSurfaceView`), as herdr opens
                             // its pane menu. Copy and the rest act on this terminal, not on the keyboard card.
                             .contextMenu {
-                                Button("Copy") { NSApp.sendAction(
-                                    #selector(NSText.copy(_:)),
-                                    to: terminal.view,
-                                    from: nil,
-                                ) }
-                                Button("Paste") { NSApp.sendAction(
-                                    #selector(NSText.paste(_:)),
-                                    to: terminal.view,
-                                    from: nil,
-                                ) }
-                                Button("Select All") {
-                                    NSApp.sendAction(#selector(NSText.selectAll(_:)), to: terminal.view, from: nil)
-                                }
+                                edit("Copy", #selector(NSText.copy(_:)), terminal)
+                                edit("Paste", #selector(NSText.paste(_:)), terminal)
+                                edit("Select All", #selector(NSText.selectAll(_:)), terminal)
                                 Divider()
                                 paneItems(pane)
                             }
@@ -171,6 +161,10 @@
                     .dragSource(.pane(id), page: page, previewSize: size)
             }
             .contextMenu { paneItems(pane) }
+        }
+
+        private func edit(_ title: String, _ action: Selector, _ terminal: PaneTerminal) -> some View {
+            Button(title) { NSApp.sendAction(action, to: terminal.view, from: nil) }
         }
 
         private func paneItems(_ pane: HostStore.Pane?) -> some View {
