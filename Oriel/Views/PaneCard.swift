@@ -41,6 +41,15 @@
                                 }
                             }
                             .padding(.horizontal, 10).padding(.bottom, gap)
+                            // The terminal sends a right click here (without ⌥, see `PaneSurfaceView`), as herdr opens
+                            // its pane menu. Copy and the rest act on this terminal, not on the keyboard card.
+                            .contextMenu {
+                                ForEach(Self.edits, id: \.0) { title, action in
+                                    Button(title) { NSApp.sendAction(action, to: terminal.view, from: nil) }
+                                }
+                                Divider()
+                                paneItems(pane)
+                            }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -151,9 +160,14 @@
                     // The drag image is the whole card: the header starts at its top left.
                     .dragSource(.pane(id), page: page, previewSize: size)
             }
-            .contextMenu {
-                CommandItems(commands: CommandList.pane(page) { pane }, sections: [.pane, .paneMove, .close])
-            }
+            .contextMenu { paneItems(pane) }
+        }
+
+        private static let edits = [("Copy", #selector(NSText.copy(_:))), ("Paste", #selector(NSText.paste(_:))),
+                                    ("Select All", #selector(NSText.selectAll(_:)))]
+
+        private func paneItems(_ pane: HostStore.Pane?) -> some View {
+            CommandItems(commands: CommandList.pane(page) { pane }, sections: [.pane, .paneMove, .close])
         }
 
         private func buttons(zoomed: Bool) -> some View {

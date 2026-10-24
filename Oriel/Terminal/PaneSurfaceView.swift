@@ -144,19 +144,31 @@
             mouse(.up, .left, event)
         }
 
+        /// herdr's rule: a right click opens the pane's menu (the card's context menu, up the responder chain), also in
+        /// a mouse app. With ⌥ it goes to the program, without the ⌥, as with herdr's
+        /// `right_click_passthrough_modifier = "alt"`. libghostty gets none: its Copy menu is in the card's menu.
+        private var rightToProgram = false
+
         override func rightMouseDown(with event: NSEvent) {
-            super.rightMouseDown(with: event)
+            rightToProgram = event.modifierFlags.contains(.option)
+            guard rightToProgram else {
+                nextResponder?.rightMouseDown(with: event)
+                return
+            }
+            window?.makeFirstResponder(self)
             mouse(.down, .right, event)
         }
 
         override func rightMouseDragged(with event: NSEvent) {
-            super.rightMouseDragged(with: event)
-            mouse(.drag, .right, event)
+            if rightToProgram {
+                mouse(.drag, .right, event)
+            }
         }
 
         override func rightMouseUp(with event: NSEvent) {
-            super.rightMouseUp(with: event)
-            mouse(.up, .right, event)
+            if rightToProgram {
+                mouse(.up, .right, event)
+            }
         }
 
         /// Middle clicks skip libghostty, which could paste its selection as typed input.
@@ -201,7 +213,9 @@
                 return
             }
             dragged = action == .up ? nil : cell
-            terminal?.mouse(action, button, column: cell.column, row: cell.row, modifiers: modifiers(event))
+            // A right click comes here only with ⌥, which herdr's pass-through strips.
+            terminal?.mouse(action, button, column: cell.column, row: cell.row,
+                            modifiers: modifiers(event) & (button == .right ? ~4 : ~0))
         }
 
         private var scale: CGFloat {
