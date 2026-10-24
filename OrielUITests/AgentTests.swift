@@ -69,7 +69,8 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let idle = try await newTab("review", in: "w1").pane
         try await report(idle, "idle", agent: "pi")
-        let working = try await newTab("api", in: "w1").pane
+        // A split, not a fourth tab in w1: 220 pt tabs, and only 3 fit on CI's window.
+        let working = try await split(idle)
         try await report(working, "working")
         let blocked = try await newTab("deploy").pane
         try await report(blocked, "blocked", agent: "claude")

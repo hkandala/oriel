@@ -25,6 +25,8 @@
         /// The row's free space.
         @State private var space: CGFloat = 0
         @State private var hovered: String?
+        /// The tab a click or a spring-load selects: it is under the pointer, so the row does not scroll to it.
+        @State private var clicked: String?
         /// Tabs out of view before and after the row's visible part: its edges fade there.
         @State private var hidden = (leading: false, trailing: false)
         /// ⌘ held for 0.7 s: keycaps on the first nine tabs.
@@ -56,7 +58,8 @@
                                         .animation(.easeInOut(duration: 0.2), value: quiet)
                                 }
                                 TabButton(tab: tab, workspace: workspace, page: page, lit: lit.contains(index),
-                                          hovering: hovered == tab.id, keycap: hints && index < 9 ? index + 1 : nil)
+                                          hovering: hovered == tab.id, keycap: hints && index < 9 ? index + 1 : nil,
+                                          clicked: { clicked = tab.id })
                                     .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
                                     .overlay {
                                         if page.dragging?.paneID != nil, over == index {
@@ -98,8 +101,8 @@
                 // Tabs cut off at an edge fade out there instead of ending sharp.
                 .fadeEdges(.horizontal, start: hidden.leading ? 24 : 0, end: hidden.trailing ? 24 : 0)
                 .frame(width: max(min(content, space), 0))
-                // minWidth 0: the row's free space, not the tabs' width, which follows it; else the bar never
-                // shrinks (a workspace button that appears pushed ⌘ and + out of the window).
+                // minWidth 0: the row's free space, not the tabs' width; else the bar never shrinks (a workspace
+                // button that appears pushed ⌘ and + out of the window).
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                 // The track's empty end, after the tabs (not behind them: a `.forbidden` over the pane's own capsule
                 // would fall through to it): a new tab in the workspace, shown as a ghost capsule.
@@ -118,12 +121,16 @@
                         .padding(.leading, min(content, space))
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { space = $0 }
-                // Into view, without motion, when keys, the palette or a new tab select it; not after a click, which
-                // hits the tab under the pointer: a scroll then moved the tab away from the click.
+                // Into view, without motion, when keys, the palette or a new tab select it; not after a click: a scroll
+                // then moved the tab away from the pointer.
                 .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { _, new in
-                    if let new, new != hovered {
+                    if let new, new != clicked {
                         withTransaction(\.animation, nil) { proxy.scrollTo(new) }
+                        // A new tab's capsule lays out in this same update, and a scroll to it can miss (Strip): again
+                        // once it has.
+                        Task { proxy.scrollTo(new) }
                     }
+                    clicked = nil
                 }
             }
             .frame(height: Self.height + 10)
@@ -160,6 +167,7 @@
 
         /// Holding a pane over a capsule selects its tab, which pulses once.
         private func springLoad(_ tabID: String) {
+            clicked = tabID
             page.select(workspace, tab: tabID)
             guard !reduceMotion else { return }
             withAnimation(.easeOut(duration: 0.1)) { pulsing = tabID }

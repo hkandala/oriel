@@ -207,35 +207,44 @@ extension OrielUITests {
 
     func testTabsKeepTheirWidthAndTheRowScrolls() async throws {
         let tabs = try await newWorkspace("row", tabs: 8).tabs
-        let first = element("tab.\(tabs[0])"), last = element("tab.\(tabs[7])"), fades = element("tabs.fades")
-        let end = element("titlebar.agents").frame.minX
+        let capsules = tabs.map { element("tab.\($0)") }, first = capsules[0], last = capsules[7]
+        let fades = element("tabs.fades"), rowEnd = element("titlebar.agents").frame.minX - 8
         XCTAssertTrue(last.exists(within: 3))
         for tab in [first, last] {
             XCTAssertEqual(tab.frame.width, 220, accuracy: 1)
         }
         // ⌘ and + keep their place in the window; the tabs past the row's end are out of view, and faded at that end.
         XCTAssertLessThan(element("titlebar.new-tab").frame.maxX, app.windows.firstMatch.frame.maxX)
-        XCTAssertGreaterThan(last.frame.minX, end)
+        XCTAssertGreaterThan(last.frame.minX, rowEnd)
         XCTAssertTrue(fades.has(\.stringValue, "trailing", within: 2))
         keepScreenshot("eight tabs")
 
-        // A click on the tab cut off at the end selects it where it is: no scroll.
-        let cut = try XCTUnwrap(tabs.map { element("tab.\($0)") }.first { $0.frame.maxX > end })
+        // ⇧⌘[ from the first goes round to the last: the row shows it at once, faded at the start only.
+        app.typeKey("[", modifierFlags: [.command, .shift])
+        XCTAssertTrue(last.has(\.isSelected, true, within: 2))
+        XCTAssertLessThanOrEqual(last.frame.maxX, rowEnd + 1)
+        XCTAssertTrue(fades.has(\.stringValue, "leading", within: 2))
+        keepScreenshot("scrolled to the last tab")
+
+        // Half a tab back with a sideways scroll: tabs are cut off at both ends.
+        try await swipe(last, by: 110, until: fades, \.stringValue, "leading, trailing")
+        // A click on the one cut off at the end selects it where it is: no scroll.
+        let cut = try XCTUnwrap(capsules.first { $0.frame.minX < rowEnd - 20 && $0.frame.maxX > rowEnd },
+                                "\(capsules.map(\.frame.minX)) to \(rowEnd)")
         let start = cut.frame.minX
-        cut.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5)).withOffset(CGVector(dx: 30, dy: 0)).click()
+        cut.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5)).withOffset(CGVector(dx: 10, dy: 0)).click()
         XCTAssertTrue(cut.has(\.isSelected, true, within: 2))
         XCTAssertFalse(until(0.6) { abs(cut.frame.minX - start) > 0.5 }, "scrolled from \(start) to \(cut.frame.minX)")
 
-        // ⌘1, then ⇧⌘[ from the first goes round to the last: the row shows it, faded at the start only.
+        // A new tab from ⌘T comes into view.
         app.typeKey("1", modifierFlags: .command)
         XCTAssertTrue(first.has(\.isSelected, true, within: 2))
-        app.typeKey("[", modifierFlags: [.command, .shift])
-        XCTAssertTrue(last.has(\.isSelected, true, within: 2))
-        XCTAssertTrue(until(1) { last.frame.maxX <= end }, "\(last.frame) past \(end)")
-        XCTAssertTrue(fades.has(\.stringValue, "leading", within: 2))
-        keepScreenshot("scrolled to the last tab")
-        // A sideways scroll over the row moves it.
-        try await swipe(last, until: fades, \.stringValue, "leading, trailing")
+        app.typeKey("t", modifierFlags: .command)
+        let made = try await poll("the new tab") {
+            try await tabsOf(workspace(of: tabs[0])).map(\.id).first { !tabs.contains($0) }
+        }
+        XCTAssertTrue(element("tab.\(made)").has(\.isSelected, true, within: 3))
+        XCTAssertLessThanOrEqual(element("tab.\(made)").frame.maxX, rowEnd + 1)
     }
 
     func testHoldingCommandShowsKeycaps() async throws {

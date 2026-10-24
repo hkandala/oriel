@@ -204,10 +204,10 @@ extension OrielUITests {
     /// Swipes sideways over the element until the target has the value, one way and then the other: which sign goes
     /// forward follows the natural scrolling setting (one way here, the other on CI), and past the last page nothing
     /// moves.
-    func swipe<Value: Equatable>(_ element: XCUIElement, until target: XCUIElement,
+    func swipe<Value: Equatable>(_ element: XCUIElement, by distance: Double? = nil, until target: XCUIElement,
                                  _ property: KeyPath<XCUIElement, Value>, _ value: Value) async throws
     {
-        var delta = -Double(element.frame.width)
+        var delta = -(distance ?? Double(element.frame.width))
         for _ in 0 ..< 6 {
             element.hover()
             element.scroll(byDeltaX: delta, deltaY: 0)

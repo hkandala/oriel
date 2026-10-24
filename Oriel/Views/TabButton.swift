@@ -13,6 +13,8 @@
         let hovering: Bool
         /// ⌘1…⌘9 while ⌘ is held.
         let keycap: Int?
+        /// Before a click selects it.
+        let clicked: () -> Void
         @State private var renaming = false
         /// "codex needs you" for 3 s in place of the title.
         @State private var announcement: String?
@@ -28,7 +30,10 @@
             let agent = store.strongest([tab.id])
             let working = !selected && store.panes.contains { $0.tabID == tab.id && $0.state == .working }
             // The strip scrolls to the new selection and the marker follows, as during a swipe.
-            Button { page.select(workspace, tab: tab.id) } label: {
+            Button {
+                clicked()
+                page.select(workspace, tab: tab.id)
+            } label: {
                 HStack(spacing: 10) {
                     IconStack(panes: stack, badge: agent?.state)
                         .keyframeAnimator(initialValue: 1.0, trigger: bounces) { content, scale in
