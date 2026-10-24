@@ -31,8 +31,9 @@
         }
 
         /// Every surface takes a new text size at once, and its stream stays open; its grid changes, so the
-        /// card resizes its PTY.
+        /// card resizes its PTY. Streaming cards hold their picture first (`hold`).
         static func setFontSize(_ size: Int) {
+            PaneViewRegistry.recent.forEach { $0.hold() }
             controller.setTerminalConfiguration(TerminalConfiguration { $0.withFontSize(Float(clamped(size))) })
         }
 

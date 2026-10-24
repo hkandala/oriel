@@ -14,7 +14,7 @@
         /// The design's bound on streaming terminals over all windows (D46).
         static let live = 24
         /// Streaming terminals of every window, the most recently shown last.
-        private static var recent: [PaneTerminal] = []
+        private(set) static var recent: [PaneTerminal] = []
         /// Its window's pages: they hear of the keyboard, Return and input in its terminals.
         weak var pages: WindowPages?
         private var terminals: [String: PaneTerminal] = [:]

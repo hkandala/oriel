@@ -314,7 +314,7 @@
     extension PaneSurfaceView: TerminalSurfaceGridResizeDelegate, TerminalSurfaceLifecycleDelegate {
         func terminalDidResize(_ size: TerminalGridMetrics) {
             if let metrics, metrics.columns != size.columns || metrics.rows != size.rows {
-                terminal?.gridChanged()
+                terminal?.hold()
             }
             metrics = size
         }

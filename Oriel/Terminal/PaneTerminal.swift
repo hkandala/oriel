@@ -18,7 +18,7 @@
         /// Shown once: later reveals switch from the kept picture at once, the first fades in from the empty card.
         @ObservationIgnored private var revealed = false
         @ObservationIgnored private var settling: Task<Void, Never>?
-        /// Shows the content at the latest 0.4 s after it hid or its first frame came, whatever the frames do.
+        /// Shows the content at the latest 0.4 s after drawing paused, whatever the frames do.
         @ObservationIgnored private var deadline: Task<Void, Never>?
         /// The surface's last grid; nil until the first stream opens. Read by the host, which fits the view at once
         /// until then.
@@ -173,7 +173,7 @@
                         if state == .idle {
                             started(frame)
                         }
-                        // Before libghostty has the frame: it hides the content.
+                        // Before libghostty has the frame: drawing pauses.
                         if !ready {
                             settle()
                         }
@@ -348,10 +348,11 @@
             case keys([String])
         }
 
-        /// libghostty changed the grid (the card settled at a new size, a new text size), on the main thread before it
-        /// draws the old screen reflowed: the old picture stays until herdr's frames at the new grid settle. Also with
-        /// no stream (an evicted card that comes back at a new size); a watcher shows the reflow, as it cannot resize.
-        func gridChanged() {
+        /// The grid may change (a new card size or text size): the old picture stays until herdr's frames at the new
+        /// grid settle (100 ms if it stayed). Before libghostty hears of it, whose renderer thread may draw at once
+        /// (CI: garbled glyphs for 3 frames after a ⌘- paused late), and on libghostty's grid change for other paths.
+        /// Also with no stream (an evicted card back at a new size); a watcher shows the reflow: it cannot resize.
+        func hold() {
             guard ready, !observing else { return }
             ready = false
             settle()

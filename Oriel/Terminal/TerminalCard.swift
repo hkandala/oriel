@@ -61,9 +61,10 @@
             }
 
             private func fit() {
-                if !bounds.isEmpty {
-                    view?.frame = bounds
-                }
+                guard let view, !bounds.isEmpty, view.frame.size != bounds.size else { return }
+                // Before libghostty hears of the size.
+                view.terminal?.hold()
+                view.frame = bounds
             }
         }
     }
@@ -99,7 +100,8 @@
                         EmptyView()
                     }
                 }
-                // The card's fill until herdr drew it at its size; a spinner only when that takes over 0.5 s.
+                // The card's fill (after a grid change, its old picture) until herdr drew it at its size; a spinner
+                // only when that takes over 0.5 s.
                 .overlay {
                     if !terminal.ready, !terminal.state.isFailed {
                         Waiting(delay: .milliseconds(500))
