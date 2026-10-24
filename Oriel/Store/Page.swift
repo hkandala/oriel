@@ -22,7 +22,7 @@
         }
 
         /// Each workspace's tabs selected before, the latest last: a closed selected tab gives way to the latest that
-        /// is still there. ponytail: closed tabs stay listed (a few ids each); prune them if that ever matters.
+        /// is still there.
         @ObservationIgnored private var usedTabIDs: [String: [String]] = [:]
         /// Each workspace's tab order at the last snapshot, for the tab left of a closed one.
         @ObservationIgnored private var tabOrder: [String: [String]] = [:]
@@ -86,22 +86,25 @@
         }
 
         /// After each snapshot: a closed selected tab gives way to the tab used before it, else the one to its left,
-        /// else the new first (phase 24); a workspace's first selection is herdr's active tab. A gone workspace falls
-        /// back to herdr's focused one, and a tab this page made is selected once it shows.
+        /// else the new first (phase 24); a workspace's first selection, or a saved one that is gone, is herdr's
+        /// active tab. A gone workspace falls back to herdr's focused one, and a tab this page made is selected once
+        /// it shows.
         func settle() {
             for workspace in store.workspaces {
                 let ids = workspace.tabs.map(\.id)
                 switch selectedTabIDs[workspace.id] {
                 case let selected? where ids.contains(selected):
-                    continue
-                case let gone?:
+                    break
+                // Known order: a close since the last snapshot. Else a saved selection gone at relaunch.
+                case let gone? where tabOrder[workspace.id] != nil:
                     let left = tabOrder[workspace.id]?.prefix { $0 != gone }.last(where: ids.contains)
                     selectedTabIDs[workspace.id] = usedTabIDs[workspace.id]?.last(where: ids.contains) ?? left
                         ?? ids.first
-                case nil:
+                default:
                     selectedTabIDs[workspace.id] = ids.contains(workspace.activeTabID) ? workspace.activeTabID
                         : ids.first
                 }
+                usedTabIDs[workspace.id]?.removeAll { !ids.contains($0) }
             }
             tabOrder = Dictionary(store.workspaces.map { ($0.id, $0.tabs.map(\.id)) }, uniquingKeysWith: { $1 })
             // The find bar's pane closed, or moved to another workspace (a new id).
