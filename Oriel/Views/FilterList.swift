@@ -46,6 +46,11 @@ struct FilterList: View {
     @State private var index: Int?
     /// The rows' own height: the list is as tall as its rows, up to `maxHeight`, then scrolls.
     @State private var rowsHeight: CGFloat = 0
+    #if os(macOS)
+        /// The pointer's last place on screen: only a move lights a row, not a row that scrolls under a pointer at
+        /// rest or the row under it as the panel opens.
+        @State private var pointer = NSEvent.mouseLocation
+    #endif
 
     var body: some View {
         let items = items(filter)
@@ -104,6 +109,14 @@ struct FilterList: View {
                                 .accessibilityIdentifier("\(name).\(item.id)")
                                 .accessibilityValue(item.state??.word ?? "")
                                 .accessibilityAddTraits(offset == index ? .isSelected : [])
+                                #if os(macOS)
+                                    // The light follows the pointer, as in a menu (user, phase 24).
+                                    .onContinuousHover { phase in
+                                        guard case .active = phase, NSEvent.mouseLocation != pointer else { return }
+                                        pointer = NSEvent.mouseLocation
+                                        self.index = offset
+                                    }
+                                #endif
                             }
                             if items.isEmpty {
                                 Text("No matches").foregroundStyle(.secondary).padding(8)

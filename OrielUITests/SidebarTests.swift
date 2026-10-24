@@ -21,6 +21,27 @@ extension OrielUITests {
         XCTAssertTrue(filter.vanishes(within: 2))
     }
 
+    /// With the sidebar collapsed, the light of the workspace menu and of Open Session follows the pointer (user,
+    /// phase 24).
+    func testMenuLightFollowsThePointer() {
+        XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
+        app.typeKey("s", modifierFlags: [.command, .control])
+        XCTAssertTrue(element("titlebar.workspace").exists(within: 2))
+        element("titlebar.workspace").click()
+        let alpha = element("workspaces.\(one).w1"), beta = element("workspaces.\(one).w2")
+        XCTAssertTrue(alpha.has(\.isSelected, true, within: 2))
+        beta.hover()
+        XCTAssertTrue(beta.has(\.isSelected, true, within: 2))
+        XCTAssertFalse(alpha.isSelected)
+        element("workspaces.open-session").click()
+        let open = element("open-session.open.\(one)")
+        XCTAssertTrue(open.exists(within: 2))
+        XCTAssertFalse(open.isSelected)
+        open.hover()
+        XCTAssertTrue(open.has(\.isSelected, true, within: 2))
+        keepScreenshot("open session lit by the pointer")
+    }
+
     func testOpenSessionListsSessionsAndOpensAPage() throws {
         let three = try env("ORIEL_SESSION3")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
