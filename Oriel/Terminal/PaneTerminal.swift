@@ -13,8 +13,10 @@
         var hasKeyboard = false
         /// The content shows: herdr's frames at the card's grid settled (PTY resized, program redrawn), or a watcher
         /// drew. Off from a new surface's start and from each grid change until then, so herdr's first frame (the old
-        /// screen reflowed at the new size) never shows.
+        /// screen reflowed at the new size) never shows: the card keeps its last picture meanwhile.
         private(set) var ready = false
+        /// Shown once: later reveals switch from the kept picture at once, the first fades in from the empty card.
+        @ObservationIgnored private var revealed = false
         @ObservationIgnored private var settling: Task<Void, Never>?
         /// Shows the content at the latest 0.4 s after it hid or its first frame came, whatever the frames do.
         @ObservationIgnored private var deadline: Task<Void, Never>?
@@ -347,20 +349,20 @@
         }
 
         /// libghostty changed the grid (the card settled at a new size, a new text size), on the main thread before it
-        /// draws the old screen reflowed: hidden until herdr's frames at the new grid settle. Also with no stream (an
-        /// evicted card that comes back at a new size); a watcher shows the reflow, as it cannot resize.
+        /// draws the old screen reflowed: the old picture stays until herdr's frames at the new grid settle. Also with
+        /// no stream (an evicted card that comes back at a new size); a watcher shows the reflow, as it cannot resize.
         func gridChanged() {
             guard ready, !observing else { return }
             ready = false
             settle()
         }
 
-        /// Hidden until frames stop for 100 ms (a watcher cannot resize: shown at once). On the terminal view, never
-        /// SwiftUI's (the card's dim is on the host view), and not before the first frame: libghostty swaps the view's
-        /// layer when it makes the surface, and the new layer does not take an alpha set earlier.
+        /// libghostty draws nothing until frames stop for 100 ms (a watcher cannot resize: shown at once), so the
+        /// view's layer keeps its last picture: the old text, at the top left (libghostty's layer gravity), or nothing
+        /// on a new surface (its background is clear). Not an alpha hide: the text went blank between two pictures.
         private func settle() {
             guard !observing else { return reveal() }
-            view.alphaValue = 0
+            view.setSurfaceVisible(false)
             // A program that redraws all the time never settles. Under the waiting spinner's 0.5 s.
             deadline = deadline ?? Task {
                 try? await Task.sleep(for: .milliseconds(400))
@@ -377,15 +379,16 @@
             }
         }
 
-        /// Fades the content in over 0.12 s. The view's alpha is 1 from here on, and the fade only animates from 0:
-        /// a fade that never ran leaves it shown, not hidden.
+        /// libghostty draws again, the new picture at once in place of the old one. The first fades in over 0.12 s; the
+        /// fade only animates from 0, so one that never ran leaves the content shown, not hidden.
         private func reveal() {
             settling?.cancel()
             deadline?.cancel()
             deadline = nil
             ready = true
-            view.alphaValue = 1
-            if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            view.setSurfaceVisible(true)
+            defer { revealed = true }
+            if !revealed, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
                 let fade = CABasicAnimation(keyPath: "opacity")
                 fade.fromValue = 0
                 fade.duration = 0.12
