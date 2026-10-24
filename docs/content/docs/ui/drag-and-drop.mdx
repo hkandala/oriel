@@ -73,6 +73,15 @@ Drag a card by its header (the title area, not its buttons) by 4 pt or more.
 - The card's context menu has the same moves: Move Pane to Tab ▸ (the other
   tabs, New Tab, New Workspace). That is the only path on iPhone.
 
+## Files and images
+
+Drop files from Finder on a terminal: their paths are pasted into that pane,
+each with a backslash before every space and shell character, joined by
+spaces, in one bracketed paste. That is what Ghostty, herdr's usual terminal,
+sends herdr for a drop. An image with no file (from a browser or a screenshot
+thumbnail) is saved as a PNG in a new temporary folder first, and that path is
+pasted. A pane drag over a terminal still shows its drop zones.
+
 ## Tabs and workspaces
 
 | Drag | Result | herdr call |

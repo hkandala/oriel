@@ -397,8 +397,10 @@ How it works: [Layout and sizing](/docs/layout).
   plugin|term switch. Plugin and web cards also have **Refresh**, which loads
   the card again from the machine
   ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
-- **Context menu** on the header (inside the terminal, the program keeps its
-  own right-click):
+- **Context menu** on the header, and on the terminal, where it starts with
+  Copy, Paste and Select All. As in herdr, a right click in the terminal opens
+  the menu even when the program reads the mouse; ⌥ with it sends the right
+  click to the program (herdr's `right_click_passthrough_modifier = "alt"`):
   - Split Right (⌘D), Split Down (⇧⌘D), Split Left, Split Up, Zoom Pane or
     Restore Pane (⇧⌘↩).
   - Move Pane to Tab ▸ (the workspace's other tabs, then New Tab and New
