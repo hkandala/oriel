@@ -186,8 +186,9 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   `testBlockedAgentNeedsYouAndThePopoverGoesToIt`; the agent rows are checked by the agents tests' screenshots.
 - **Learned.** A one-frame glitch shows in the xcresult's 60 fps screen recording: crop the region with ffmpeg
   and diff frames. Only the exit-of-loop observer caught the commit that drew it; `beforeWaiting` alone saw 0.
-- **Zoom test.** `testTrafficLightsSitInTheTitleRow` failed when it ran alone or early in a shard: a window
-  zoom took SwiftUI's default ideal size, the 1200 pt `defaultSize`, which on CI's 1024 pt screen put the window at
-  x = −88 and the zoom button off screen (frames read in run 40081403841). Later in a shard an earlier test's saved
-  frame hid it, so lane A was not the cause. Fix: `.windowIdealSize(.maximum)`, a zoom fills the screen; the test
-  checks the window stays on screen and lets each zoom settle.
+- **Zoom test.** `testTrafficLightsSitInTheTitleRow` failed when it ran alone or early in a shard: the window
+  asked for its 1200 × 760 default on CI's 1024 pt screen; AppKit shrank it to fit, and a ⌥-click zoom gave the
+  1200 pt frame back, at x = −88 with the zoom button off screen (frames read in run 40081403841). Later in a shard
+  an earlier test's saved frame hid it; lane A was not the cause. Fix: the default size is at most the screen
+  (`defaultWindowPlacement`) and a zoom fills the screen (`windowIdealSize(.maximum)`; alone it did not help).
+  The test checks the window stays on screen and lets each zoom settle.

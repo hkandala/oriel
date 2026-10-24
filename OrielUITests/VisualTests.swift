@@ -44,7 +44,7 @@ extension OrielUITests {
                 defer { frame = window.frame }
                 return window.frame == frame
             })
-            // On screen: a zoom fills the screen, it does not take the 1200 pt default width past its edges.
+            // On screen: the window opened at the screen's size, not at the 1200 pt default a zoom would give back.
             XCTAssertGreaterThanOrEqual(window.frame.minX, 0, "\(window.frame)")
             XCTAssertTrue(placed(), "\(lights.map(\.frame)) in \(window.frame)")
         }

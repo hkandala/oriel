@@ -27,12 +27,15 @@ struct OrielApp: App {
                 ContentView()
             }
             .windowToolbarStyle(.unifiedCompact)
-            .defaultSize(width: 1200, height: 760)
+            // 1200 × 760, at most the screen, and a zoom fills the screen. A larger window AppKit shrank to fit came
+            // back at its full size on a zoom, past the screen's edges (CI's 1024 pt screen).
+            .defaultWindowPlacement { _, context in
+                let screen = context.defaultDisplay.visibleRect.size
+                return WindowPlacement(size: CGSize(width: min(1200, screen.width), height: min(760, screen.height)))
+            }
+            .windowIdealSize(.maximum)
             // Content never grows the window (the title-bar tabs would, when the sidebar hides).
             .windowResizability(.contentMinSize)
-            // Zoom (⌥-click on the green button) fills the screen. By default it took the 1200 pt default width,
-            // past the edges of a smaller screen (CI's 1024 pt).
-            .windowIdealSize(.maximum)
             .commands { AppCommands() }
             // A folder dropped on the Dock icon opens a workspace (AppDelegate), not a window.
             .handlesExternalEvents(matching: [])
