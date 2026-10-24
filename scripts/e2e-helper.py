@@ -13,6 +13,8 @@ terminal.
 POST /<session>/open-folder with the built app's path as the body makes a folder in /tmp and opens it with the
 app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>` (a running app ignores
 `--args`). The folder's path comes back.
+POST /<session>/reveal-file makes a file whose name needs shell escaping in a new folder in /tmp and shows it in a Finder
+window (`open -R`), for a drag from Finder. The file's path comes back.
 Any session not named on the command line is refused.
 """
 
@@ -37,7 +39,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
-        elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder"):
+        elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder",
+                            "reveal-file"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
@@ -49,6 +52,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             run = subprocess.run(["open", "-a", body.decode(), folder, "--args", "-session", session,
                                   "-ApplePersistenceIgnoreState", "YES"], capture_output=True, timeout=10)
             status, reply = (200, folder.encode()) if run.returncode == 0 else (500, run.stderr)
+        elif action == "reveal-file":
+            folder = tempfile.mkdtemp(prefix="oriel-e2e-file-", dir="/tmp")
+            folders.append(folder)
+            path = os.path.join(folder, "drop me's (1).txt")
+            open(path, "w").close()
+            run = subprocess.run(["open", "-R", path], capture_output=True, timeout=10)
+            status, reply = (200, path.encode()) if run.returncode == 0 else (500, run.stderr)
         elif action == "start":
             env = {k: v for k, v in os.environ.items() if not k.startswith("HERDR_")}
             subprocess.Popen(["herdr", "--session", session, "server"], env=env, stdin=subprocess.DEVNULL,

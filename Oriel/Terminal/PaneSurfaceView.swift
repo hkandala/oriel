@@ -30,6 +30,7 @@
             setAccessibilityElement(true)
             setAccessibilityRole(.group)
             setAccessibilityLabel("Terminal")
+            registerForDraggedTypes([.fileURL, .tiff, .png])
         }
 
         /// Gives this terminal the keyboard, now or once it is in a window.
