@@ -192,7 +192,7 @@ extension OrielUITests {
         let workspace = workspace(of: tabs[0])
         try await split("\(workspace):p1")
         element("tab.\(tabs[1])").rightClick()
-        app.menuItems["Close Other Tabs"].click()
+        app.windows.firstMatch.menuItems["Close Other Tabs"].click()
         let confirm = app.sheets.buttons["Close Tabs"]
         XCTAssertTrue(confirm.exists(within: 2))
         // t1's two panes and t3's one.

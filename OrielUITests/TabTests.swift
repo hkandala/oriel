@@ -73,7 +73,8 @@ extension OrielUITests {
         let order: () async throws -> [String] = { try await self.tabIDs().filter { $0.hasPrefix("\(workspace):") } }
         let confirm = app.sheets.buttons["Close Tabs"]
         element("tab.\(tabs[1])").rightClick()
-        app.menuItems["Close Tabs to the Right"].click()
+        // The capsule's menu, not the File menu's item.
+        app.windows.firstMatch.menuItems["Close Tabs to the Right"].click()
         XCTAssertTrue(sheetText("Close the 2 tabs to the right?").exists(within: 2))
         confirm.click()
         try await expect("the two tabs on the left") { try await order() == [tabs[0], tabs[1]] }
