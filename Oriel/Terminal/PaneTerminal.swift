@@ -15,7 +15,7 @@
         /// drew. Off from a new surface's start and from each grid change until then, so herdr's first frame (the old
         /// screen reflowed at the new size) never shows: the card keeps its last picture meanwhile.
         private(set) var ready = false
-        /// Shown once: later reveals switch from the kept picture at once, the first fades in from the empty card.
+        /// Shown once (only the first reveal fades in).
         @ObservationIgnored private var revealed = false
         @ObservationIgnored private var settling: Task<Void, Never>?
         /// Shows the content at the latest 0.4 s after drawing paused, whatever the frames do.
@@ -380,16 +380,16 @@
             }
         }
 
-        /// libghostty draws again, the new picture at once in place of the old one. The first fades in over 0.12 s; the
-        /// fade only animates from 0, so one that never ran leaves the content shown, not hidden.
+        /// Drawing resumes: the new picture at once. The first fades in from 0: a fade that never ran leaves it shown.
         private func reveal() {
             settling?.cancel()
             deadline?.cancel()
             deadline = nil
             ready = true
             view.setSurfaceVisible(true)
-            defer { revealed = true }
-            if !revealed, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            let first = !revealed
+            revealed = true
+            if first, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
                 let fade = CABasicAnimation(keyPath: "opacity")
                 fade.fromValue = 0
                 fade.duration = 0.12

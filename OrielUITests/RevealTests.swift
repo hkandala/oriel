@@ -1,6 +1,7 @@
 import XCTest
 
-/// A card's terminal hides while herdr redraws it at a new grid and always shows again (phase 24, items 1 and 2).
+/// A card's terminal keeps its old picture while herdr redraws it at a new grid, a new card fades in once, and both
+/// always show herdr's text in the end (phase 24, items 1, 2 and 19).
 /// The pixels of a terminal are the only place an empty card shows, so these tests read its screenshot.
 extension OrielUITests {
     /// Every way a card comes into view shows its text: launch, another tab and back, another workspace and back, a
@@ -90,6 +91,8 @@ extension OrielUITests {
             let inks = shots.map(Self.ink)
             XCTAssertGreaterThan(inks.min() ?? 0, 0.01, "\(step): ink of \(inks.count) screenshots: \(inks)")
             XCTAssertNotEqual(terminal.stringValue, grid, "\(step): the grid changed")
+            // Drawing is back on: not stuck on the old picture.
+            try await expectText(["w1:p1"], step)
         }
     }
 
