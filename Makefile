@@ -1,5 +1,5 @@
 SHELL := /bin/bash -eo pipefail
-.PHONY: setup format lint build test e2e run app dmg
+.PHONY: setup format lint build test e2e run app dmg install
 
 DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
@@ -50,6 +50,10 @@ run:
 app:
 	$(XCODEBUILD) $(MAC) -configuration Release build $(BEAUTIFY)
 	@echo "$(DERIVED_DATA)/Build/Products/Release/Oriel.app"
+
+install: app
+	rm -rf ~/Applications/Oriel.app
+	cp -R $(DERIVED_DATA)/Build/Products/Release/Oriel.app ~/Applications/
 
 dmg: app
 	rm -f .build/Oriel.dmg
