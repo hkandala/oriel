@@ -109,16 +109,22 @@ One capsule per herdr tab of the selected workspace (D42).
   fit, the bar scrolls sideways (a scroll gesture over it), and a 24 pt fade
   shows on each end that has tabs out of view. A click selects a tab where it
   is, with no scroll; a tab selected another way (keys, the palette, a new tab)
-  comes into view at once, without motion.
+  comes into view at once, without motion. A tab dragged and held within 40 pt
+  of either end of the bar scrolls it one tab every 0.3 s.
 - **Dividers.** 1 pt wide, 18 pt tall, centered between
   tabs. A divider next to the selected, a lit or the hovered tab is hidden. They
   fade over 0.2 s.
 - **Selection.** One marker follows the strip as it scrolls, so it sits
   between two capsules while the strip is between their pages. It is 30 pt
-  tall and fully round, 2 pt inside the track, as in Rex. A click, ⌘1…⌘9 or a
-  key step moves it with Rex's spring (stiffness 520, damping 46). Reduce
-  Motion makes it jump. Glass draws it as a Liquid Glass capsule, Classic as a
-  plain raised pill.
+  tall and fully round, 2 pt inside the track, as in Rex. Only a scroll gesture
+  or a mouse's sideways wheel slides the strip, and the marker with it (Rex's
+  spring, stiffness 520, damping 46; Reduce Motion makes it jump). Any other
+  switch (a click, +, ⌘T, ⌘1…⌘9, ⇧⌘[ and ⇧⌘], the palette, a close) shows the
+  tab's page at once. Glass draws the marker as a Liquid Glass capsule, Classic
+  as a plain raised pill.
+- **Close.** When the selected tab closes, the window selects the tab used
+  before it (the latest one still open), else the tab on its left, else the
+  new first tab.
 - **Hover.** The hovered tab gets the hover fill over 0.14 s, the same shape
   as the selection; the whole 34 pt slot takes the clicks.
 - **Content.** The program icons (11 pt in from the track's edge), the title
@@ -143,8 +149,9 @@ One capsule per herdr tab of the selected workspace (D42).
   "‹agent› needs you" or "‹agent› finished" for 3 s. A long text fades at its
   end like any title. Reduce Motion turns the bounce off.
 - **Context menu** on a capsule: Rename Tab, Move Tab Left, Move Tab Right,
-  Close Tab, Close Other Tabs. Close Other Tabs asks once, with the total pane
-  count. Rename (or a double-click anywhere on the capsule) puts a text field
+  Close Tab, Close Other Tabs, Close Tabs to the Right. The last two (also in
+  the File menu and the palette, for the selected tab) ask once, with the
+  total pane count. Rename (or a double-click anywhere on the capsule) puts a text field
   in place of the title: Enter saves, Esc cancels.
 - **Keycap hints.** If the user holds ⌘ for 0.7 s while the window is key,
   each of the first nine capsules shows a keycap "⌘1"… over its icon. They
