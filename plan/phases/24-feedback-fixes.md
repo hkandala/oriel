@@ -195,3 +195,34 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
 - **Menu test.** In a full shard other tests' sessions push Open Session's last rows below its 320 pt fold, where a
   hover lands outside the list: the test hovers a Running row near the top. Full suite green on 2f55b6b (run
   40083116381).
+
+## Round 2 (user, 2026-10-24 10:25, after trying the build)
+
+Screenshots in the main checkout: `.build/fb/agents.png` (item 13), `.build/fb/needs.png` (item 15).
+
+### Lane E: tabs (items 14, 16, 17, 18)
+
+14. **No slide on click.** The user still sees a horizontal scroll animation when a tab is clicked, when
+    the + button is clicked and on ⌘T. Rule: switching tabs any way other than a horizontal scroll gesture
+    (click, +, ⌘T, ⌘1–9, ⇧⌘[ ], palette, closing a tab) changes the shown tab at once, with no animation,
+    in both the tab row and the strip of cards. Only a trackpad or mouse horizontal scroll animates and
+    snaps. Lane B fixed only the tab row; the strip's paging spring on a click is likely what the user sees.
+16. **Closing a tab** selects the tab used before it (most recent first) if it still exists, else the tab
+    to its left (the right one when it was first). Now it goes to the first tab.
+17. **Drag auto-scroll.** While a tab is dragged in an overflowing tab row, holding it near either end
+    scrolls the row further (lane B's known limit 1).
+18. **Close Tabs to the Right** next to Close Other Tabs (tab context menu and the command list).
+
+### Lane F: resize without a blank (item 19)
+
+19. After a resize settles, the text fades out and back in, which reads as a flicker. Keep showing the old
+    content until the reflowed frame is drawn, then switch to it (at once or with a short crossfade from
+    the old picture). The text must never go blank on a resize. Check the same holds for ⌘+ and ⌘−.
+
+### Lane G: agents list (items 13, 15)
+
+13. **Agents view alignment** (`.build/fb/agents.png`): the header text (`default · agents`) starts further
+    right than the section label (`Idle 10`) and the row icons. One leading edge for the header, the section
+    labels and the rows; the sort control's right edge lines up with the rows' right edge (the times).
+15. **Needs-you panel when empty** (`.build/fb/needs.png`): show only "All caught up", without the
+    "Needs you · default" header.
