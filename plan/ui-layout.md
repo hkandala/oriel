@@ -105,9 +105,10 @@ The strip under the title row still pages sideways between the selected workspac
   swipe shows the next session's agents.
   - Header: "‹session› · agents" and a sort menu: **Priority** (groups Needs you, Working, Done, Idle, each
     with a count) or **Workspace order** (herdr's order).
-  - One row per agent pane, even when several share a tab. Row 44 pt: the program tile with its badge, the
-    agent's name, the status capsule on the right ("Needs you" amber, "Working" blue, "Done" green, "Idle"
-    gray); line 2 "‹workspace› · ‹tab›" and the age ("now", "3m", "2h").
+  - One row per agent pane, even when several share a tab. Row 48 pt, 4 pt apart, the program tile with its
+    badge centered on both lines. Line 1: the agent's name, then on the right the status capsule ("Needs you"
+    amber, "Working" blue, "Done" green, "Idle" gray) and the age ("now", "3m", "2h"), on one centered line;
+    line 2 "‹workspace› · ‹tab›". The header and the sort menu share a baseline (phase 24).
   - Idle agents show. A click goes to that workspace, tab and pane, and records a finish as seen.
 - **Footer**: the filter field (filters the rows of the current view) and one button, **Open Session**
   (⇧⌘N), which opens the panel below. No New Workspace and no Add Remote Host here.
@@ -123,7 +124,7 @@ The one place to create or open a session. The footer's Open Session button, the
     "Create session “‹two-word name›”" with a suggested name.
   - **Running** sessions not open in this window and **Stopped** sessions; the sessions already open in this
     window last (Enter switches to their page). The rows carry no hint text: the group headers say it.
-- Arrows move, Enter or a click acts on a row: create and start a new session and open its
+- The arrows or the pointer move the highlight, Enter or a click acts on a row: create and start a new session and open its
   page; open a running session as a new page (its store connects then); start a stopped session
   (launchd job, D47) and open it as a new page; switch to a page that is already open. Esc or a click outside closes.
 - One panel at a time: opening it closes the palette or the workspace menu, and the reverse.

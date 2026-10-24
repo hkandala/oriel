@@ -91,8 +91,8 @@ Shown only while the sidebar is collapsed, after the machine button.
   row shows the workspace's state icon, its name and its branch on the right.
   At the end: New Workspace, then "Open Session…" (⇧⌘N).
 - The menu is a glass panel under the button, 300 pt wide, its list at most
-  340 pt tall, built from the palette's filter list. Rows are 26 pt. Arrows move,
-  Enter acts, Esc closes. A typed name that matches no workspace shows
+  340 pt tall, built from the palette's filter list. Rows are 26 pt. The arrows
+  or the pointer move the highlight, Enter acts, Esc closes. A typed name that matches no workspace shows
   "New Workspace “‹name›”" first; Enter makes it in the session of the page
   in view and selects it.
 - Picking a workspace of another page also shows that page.
@@ -279,19 +279,19 @@ Spaces panel.
 The Agents button turns the sidebar page into a list of the agents of that
 session only (D61). A sideways swipe or a page dot shows the next open
 session's agents. The page dots and the footer stay.
-- **Header.** "‹session› · agents" (a long name shortens in its middle) and
-  a sort menu: **Priority** (the groups Needs you, Working, Done and Idle,
+- **Header.** "‹session› · agents" (a long name shortens in its middle) and,
+  on the same baseline, a sort menu: **Priority** (the groups Needs you, Working, Done and Idle,
   each with a count, herdr's order inside a group) or **Workspace order**
   (herdr's order of workspaces, tabs and panes). Priority is the default.
   Each window keeps its choice.
-- **Rows.** One row per agent pane, even when several share a tab. 44 pt, two
-  lines. Line 1: the program tile with its badge, the agent's name
-  (herdr's `display_agent`, else `agent`), and the
-  status capsule on the right: "Needs you" (amber), "Working" (blue), "Done"
-  (green) or "Idle" (gray), the text in the color on a 0.15 fill of it. Line
-  2: "‹workspace› · ‹tab title›" in secondary text (the tab bar's title,
-  D65), and the age on the right ("now", "3m", "2h", "4d"), counted from the
-  time the app saw the change.
+- **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
+  lines, 4 pt apart; the program tile with its badge centers on both. Line 1,
+  on one centered line: the agent's name (herdr's `display_agent`, else
+  `agent`), then on the right the status capsule, "Needs you" (amber),
+  "Working" (blue), "Done" (green) or "Idle" (gray), the text in the color on
+  a 0.15 fill of it, and the age ("now", "3m", "2h", "4d"), counted from the
+  time the app saw the change. Line 2: "‹workspace› · ‹tab title›" in
+  secondary text (the tab bar's title, D65).
 - Idle agents show. With no agents the list is empty, with no text.
 - The footer filter keeps the rows whose agent, workspace or tab name
   matches.
@@ -326,7 +326,8 @@ workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open i
   - The rows carry no hint text: the group headers say what a pick does. A
     small symbol leads each row: a plus to create, a stack for a running or
     stopped session, a checkmark for an open one.
-- The arrows move the highlight. Enter or a click acts on a row.
+- The arrows or the pointer move the highlight (a row scrolled under a still
+  pointer does not take it). Enter or a click acts on a row.
   - A new name, a running session and a stopped session take one path. The
     app starts the server if it is not running (a launchd job on This Mac,
     D47); a server the app started gets its first workspace in `$HOME`. Then
@@ -502,7 +503,7 @@ A window that watches a session another window controls (D66).
 - 480 pt wide. The search field says "Search".
 - **Rows.** 28 pt: a symbol, the title, and on the right the shortcut in
   secondary glyphs, or › for a row that opens a sub-page. The selected row is
-  an accent pill, radius 8.
+  an accent pill, radius 8; the arrows or the pointer move it.
 - **Sections.** On the first page with an empty field: Tabs (of the selected
   workspace), Workspaces (of every page in the window, with the session's
   name), Sessions, then Commands, each under a header. A typed filter gives one
