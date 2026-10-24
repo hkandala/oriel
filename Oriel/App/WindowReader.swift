@@ -60,6 +60,9 @@
                 observers.append(center.addObserver(forName: NSWindow.didExitFullScreenNotification, object: window,
                                                     queue: .main, using: place))
                 placeButtons()
+                if UserDefaults.standard.bool(forKey: "recordLights") {
+                    recordLights()
+                }
                 // After SwiftUI's update, which may not change state.
                 let full = window.styleMask.contains(.fullScreen)
                 let restored = AppDelegate.restoredFullScreen.remove(ObjectIdentifier(window)) != nil
@@ -69,6 +72,36 @@
                         window.toggleFullScreen(nil)
                     }
                 }
+            }
+
+            /// e2e (`-recordLights YES`): counts the run loop turns that drew a traffic light off its place, in this
+            /// view's accessibility value (`window.lights`).
+            private func recordLights() {
+                setAccessibilityElement(true)
+                setAccessibilityRole(.staticText)
+                setAccessibilityIdentifier("window.lights")
+                var count = 0
+                setAccessibilityValue("0")
+                // After Core Animation's commit (order 2000000): what this turn drew.
+                let turn = CFRunLoopActivity.beforeWaiting.rawValue
+                let observer = CFRunLoopObserverCreateWithHandler(nil, turn, true, Int.max) { [weak self] _, _ in
+                    MainActor.assumeIsolated {
+                        guard let self, let window = self.window,
+                              !window.styleMask.contains(.fullScreen) else { return }
+                        let off = self.buttons(of: window).enumerated().filter { index, button in
+                            guard let superview = button.superview else { return false }
+                            let center = superview.convert(button.frame, to: nil)
+                            return abs(center.midX - TitleBar.height / 2 - CGFloat(index) * 23) > 0.5
+                                || abs(window.frame.height - center.midY - TitleBar.height / 2) > 0.5
+                        }
+                        if !off.isEmpty {
+                            count += 1
+                            self.setAccessibilityValue("\(count)")
+                            NSLog("oriel lights off: \(off.map(\.element.frame))")
+                        }
+                    }
+                }
+                CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
             }
 
             private func stop() {
