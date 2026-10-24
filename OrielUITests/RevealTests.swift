@@ -39,7 +39,7 @@ extension OrielUITests {
         let terminal = element("terminal.w1:p1")
         XCTAssertTrue(terminal.exists(within: connect))
         try await expectPTYSize("w1:p1")
-        try await send("clear; trap 'echo winch' WINCH\r", to: "w1:p1")
+        try await send("trap 'echo winch' WINCH\r", to: "w1:p1")
         try await waitFor("w1:p1") { $0.contains("WINCH") }
         let before = terminal.stringValue
         element("titlebar.sidebar").click()
