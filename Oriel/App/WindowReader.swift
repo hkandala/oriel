@@ -9,6 +9,8 @@
     struct WindowReader: NSViewRepresentable {
         let pages: WindowPages
         @Binding var fullScreen: Bool
+        /// e2e: the run loop turns that drew a traffic light off its place.
+        @Binding var lightsOff: Int
 
         func makeNSView(context _: Context) -> Reader {
             let reader = Reader()
@@ -18,10 +20,12 @@
 
         func updateNSView(_ reader: Reader, context _: Context) {
             reader.changed = { fullScreen = $0 }
+            reader.lightsOff = { lightsOff = $0 }
         }
 
         final class Reader: NSView {
             var changed: (Bool) -> Void = { _ in }
+            var lightsOff: (Int) -> Void = { _ in }
             weak var pages: WindowPages?
             private var observers: [NSObjectProtocol] = []
 
@@ -74,14 +78,9 @@
                 }
             }
 
-            /// e2e (`-recordLights YES`): counts the run loop turns that drew a traffic light off its place, in this
-            /// view's accessibility value (`window.lights`).
+            /// e2e (`-recordLights YES`): counts the run loop turns that drew a traffic light off its place.
             private func recordLights() {
-                setAccessibilityElement(true)
-                setAccessibilityRole(.staticText)
-                setAccessibilityIdentifier("window.lights")
                 var count = 0
-                setAccessibilityValue("0")
                 // After Core Animation's commit (order 2000000): what this turn drew.
                 let turn = CFRunLoopActivity.beforeWaiting.rawValue
                 let observer = CFRunLoopObserverCreateWithHandler(nil, turn, true, Int.max) { [weak self] _, _ in
@@ -96,7 +95,7 @@
                         }
                         if !off.isEmpty {
                             count += 1
-                            self.setAccessibilityValue("\(count)")
+                            self.lightsOff(count)
                             NSLog("oriel lights off: \(off.map(\.element.frame))")
                         }
                     }
