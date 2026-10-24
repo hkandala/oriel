@@ -64,6 +64,35 @@ extension OrielUITests {
         try await expectText(["w1:p1"], "after the resize")
     }
 
+    /// A resize never blanks the text (item 19): the old picture stays until herdr's frames at the new grid replace it.
+    /// The sidebar resizes the card, ⌘+ and ⌘- its grid.
+    func testResizeNeverBlanksTheText() async throws {
+        let terminal = element("terminal.w1:p1")
+        XCTAssertTrue(terminal.exists(within: connect))
+        addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
+        try await fill("w1:p1")
+        try await expectText(["w1:p1"], "filled")
+        let steps: [(String, () -> Void)] = [
+            ("sidebar hidden", { self.element("titlebar.sidebar").click() }),
+            ("sidebar shown", { self.element("titlebar.sidebar").click() }),
+            ("bigger text", { self.app.typeKey("+", modifierFlags: .command) }),
+            ("smaller text", { self.app.typeKey("-", modifierFlags: .command) }),
+        ]
+        for (step, act) in steps {
+            let grid = terminal.stringValue
+            act()
+            // Screenshots as fast as they come through the resize and herdr's redraw; read after, not in between.
+            var shots: [NSImage] = []
+            let end = Date.now + 1.5
+            while Date.now < end {
+                shots.append(terminal.screenshot().image)
+            }
+            let inks = shots.map(Self.ink)
+            XCTAssertGreaterThan(inks.min() ?? 0, 0.01, "\(step): ink of \(inks.count) screenshots: \(inks)")
+            XCTAssertNotEqual(terminal.stringValue, grid, "\(step): the grid changed")
+        }
+    }
+
     /// Lines of text in the pane, so an empty card is plain to see.
     private func fill(_ pane: String) async throws {
         try await waitForPrompt(pane)
