@@ -7,7 +7,14 @@ extension OrielUITests {
         relaunch(one, ["-recordStrip", "YES"])
         let first = element("tab.w1:t1"), second = element("tab.w1:t2"), between = element("strip.between")
         XCTAssertTrue(element("pane.w1:p1").exists(within: connect))
-        let launched = between.stringValue, before = try await tabIDs()
+        // Once the launch's layout has settled.
+        var launched = ""
+        XCTAssertTrue(until(5) {
+            launched = between.stringValue
+            Thread.sleep(forTimeInterval: 1)
+            return between.stringValue == launched
+        })
+        let before = try await tabIDs()
         closeNew("tab", besides: before)
 
         second.click()
@@ -97,8 +104,8 @@ extension OrielUITests {
         XCTAssertTrue(last.exists(within: 3))
         XCTAssertGreaterThan(last.frame.minX, rowEnd)
         let from = first.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        // 15 pt inside the row's end; 3 s is time for the five steps the row needs.
-        during(from, to: from.withOffset(CGVector(dx: rowEnd - 15 - first.frame.midX, dy: 0)), hold: 3)
+        // 15 pt inside the row's end; 4 s is time for the five steps the row needs.
+        during(from, to: from.withOffset(CGVector(dx: rowEnd - 15 - first.frame.midX, dy: 0)), hold: 4)
         try await expect("the first tab last") {
             try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") }.last == tabs[0]
         }
