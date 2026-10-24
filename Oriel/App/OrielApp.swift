@@ -30,6 +30,9 @@ struct OrielApp: App {
             .defaultSize(width: 1200, height: 760)
             // Content never grows the window (the title-bar tabs would, when the sidebar hides).
             .windowResizability(.contentMinSize)
+            // Zoom (⌥-click on the green button) fills the screen. By default it took the 1200 pt default width,
+            // past the edges of a smaller screen (CI's 1024 pt).
+            .windowIdealSize(.maximum)
             .commands { AppCommands() }
             // A folder dropped on the Dock icon opens a workspace (AppDelegate), not a window.
             .handlesExternalEvents(matching: [])
