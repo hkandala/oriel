@@ -235,7 +235,7 @@ struct StatusBadge: View {
                 Text("Needs you · \(page.id)").font(.system(size: 11)).foregroundStyle(.secondary)
                     .padding(.horizontal, 8).padding(.bottom, 2)
                 if waiting.isEmpty {
-                    Text("Nobody needs you").padding(8).accessibilityIdentifier("agents.popover.empty")
+                    Text("All caught up").padding(8).accessibilityIdentifier("agents.popover.empty")
                 } else {
                     ScrollView {
                         VStack(spacing: 2) {

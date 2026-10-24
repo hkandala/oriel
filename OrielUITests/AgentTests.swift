@@ -23,7 +23,7 @@ extension OrielUITests {
         XCTAssertTrue(button.exists(within: connect))
         button.hover()
         XCTAssertTrue(element("agents.popover.empty").exists(within: 2))
-        XCTAssertEqual(element("agents.popover.empty").value as? String, "Nobody needs you")
+        XCTAssertEqual(element("agents.popover.empty").value as? String, "All caught up")
         element("workspace.w1").hover()
         XCTAssertTrue(element("agents.popover").vanishes(within: 2))
 

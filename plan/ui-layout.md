@@ -65,7 +65,7 @@ cards start. With the sidebar collapsed the items follow one another as before.
    sidebar in the Agents view. No tooltip (the hover panel takes its place).
    - **Hover** (0.25 s): a panel under the button with a small header "Needs you · ‹session›" lists the
      agents of the current session that need you (same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
-     does not change. With nobody waiting: "Nobody needs you". No footer text.
+     does not change. With nobody waiting: "All caught up". No footer text.
 8. **⌘** (command palette, ⌘K; ⇧⌘P also opens it (Rex's key); its field says "Search") and **+** (new tab, ⌘T).
 
 The strip under the title row still pages sideways between the selected workspace's tabs (swipe, ⇧⌘[ ⇧⌘],
