@@ -35,9 +35,16 @@ extension OrielUITests {
         }
         XCTAssertTrue(until(2, placed), "\(lights.map(\.frame)) in \(window.frame)")
         // ⌥-click zooms (a click goes full screen), and again back.
+        // Each zoom settles before the next click: one during the animation zoomed to a frame wider than the screen.
         for _ in 0 ..< 2 {
+            var frame = window.frame
             XCUIElement.perform(withKeyModifiers: .option) { lights[2].click() }
-            XCTAssertTrue(until(2, placed))
+            XCTAssertTrue(until(3) { window.frame != frame }, "the zoom changed nothing")
+            XCTAssertTrue(until(3) {
+                defer { frame = window.frame }
+                return window.frame == frame
+            })
+            XCTAssertTrue(placed(), "\(lights.map(\.frame)) in \(window.frame)")
         }
         keepScreenshot("traffic lights")
         // Leaving full screen is not checked: a second ⌃⌘F during the animation is lost on CI.
@@ -62,11 +69,6 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.w1:p4").has(\.isHittable, true, within: 2))
         element("tab.w1:t1").click()
         XCTAssertTrue(element("pane.w1:p1").has(\.isHittable, true, within: 2))
-        let log = XCTAttachment(string: element("window.lights-log").stringValue)
-        log.name = "lights log"
-        log.lifetime = .keepAlways
-        add(log)
-        XCTExpectFailure("probe", options: .nonStrict())
         XCTAssertEqual("\(launched) \(lights.stringValue)", "0 0", "turns drawn with a light off its place")
     }
 
