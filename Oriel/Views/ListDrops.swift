@@ -13,8 +13,6 @@
         @Binding var over: Int?
         @Binding var spring: Task<Void, Never>?
         let springLoad: (String) -> Void
-        /// Every update, with the pointer's place along the track: the bar scrolls when it is held at an end.
-        let held: (CGFloat) -> Void
 
         func validateDrop(info _: DropInfo) -> Bool {
             switch page.dragging {
@@ -27,7 +25,6 @@
         func dropUpdated(info: DropInfo) -> DropProposal? {
             // A late update after the drag ended.
             guard page.dragging != nil else { return nil }
-            held(info.location.x)
             let place = info.location.x / max(slot, 1)
             if let id = page.dragging?.paneID {
                 let index = min(max(Int(place), 0), tabs.count - 1)

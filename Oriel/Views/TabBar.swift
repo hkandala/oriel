@@ -30,8 +30,6 @@
         /// The row's visible part, in the tabs' space: its edges fade where tabs are out of view. No fade until the
         /// row has laid out.
         @State private var visible: ClosedRange<CGFloat> = 0 ... .infinity
-        /// The last step of a drag held at an end of the row.
-        @State private var scrolled = Date.distantPast
         /// ⌘ held for 0.7 s: keycaps on the first nine tabs.
         @State private var hints = false
         @State private var pendingHints: Task<Void, Never>?
@@ -78,8 +76,7 @@
                     }
                     // In the content's space: the capsule under the pointer, wherever the track scrolled.
                     .onDrop(of: [.orielDrag], delegate: TrackDrop(tabs: tabs, page: page, slot: width + 1,
-                                                                  over: $over, spring: $spring, springLoad: springLoad,
-                                                                  held: { scroll(at: $0, hidden, proxy) }))
+                                                                  over: $over, spring: $spring, springLoad: springLoad))
                     .clearsDrop(page) {
                         spring?.cancel() // a late update after the drop may have started one
                         over = nil
@@ -167,27 +164,6 @@
             let place = slot > from ? slot - 1 : slot
             return (Self.width + 1) * CGFloat(index == from ? place - from
                 : from < index && index <= place ? -1 : place <= index && index < from ? 1 : 0)
-        }
-
-        /// A drag held within 40 pt of an end of the row, while tabs are out of view past it, brings one more tab
-        /// into view every 0.3 s (phase 24): the tab that ends past that end. A view holds a tab and the divider
-        /// before it.
-        private func scroll(at place: CGFloat, _ hidden: (leading: Bool, trailing: Bool), _ proxy: ScrollViewProxy) {
-            let tabs = workspace.tabs, slot = Self.width + 1
-            guard Date.now.timeIntervalSince(scrolled) > 0.3 else { return }
-            let next: (index: Int, anchor: UnitPoint)
-            if place > visible.upperBound - 40, hidden.trailing {
-                next = (Int((visible.upperBound + 1.5) / slot), .trailing)
-            } else if place < visible.lowerBound + 40, hidden.leading {
-                next = (Int(((visible.lowerBound + 0.5) / slot).rounded(.up)) - 1, .leading)
-            } else {
-                return
-            }
-            // A snapshot may have closed tabs since the row laid out.
-            guard tabs.indices.contains(next.index) else { return }
-            scrolled = .now
-            // Without motion: an animated scroll during the drag crawled a few points and jumped back (CI's recording).
-            withTransaction(\.animation, nil) { proxy.scrollTo(tabs[next.index].id, anchor: next.anchor) }
         }
 
         /// Holding a pane over a capsule selects its tab, which pulses once.
