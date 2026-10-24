@@ -148,25 +148,22 @@ struct StatusBadge: View {
                 ProgramTile(icon: pane.iconID, letter: pane.letter)
                     .overlay(alignment: .topTrailing) { StatusBadge(state: state) }
                     .compositingGroup()
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack {
+                // Line 1 the name, the capsule and the age on one centered line; line 2 the place (user, phase 24).
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
                         Text(pane.agentName ?? "agent").font(.system(size: 13)).lineLimit(1)
-                        Spacer(minLength: 4)
+                        Spacer(minLength: 0)
                         StateCapsule(state: state)
-                    }
-                    HStack {
-                        Text(page.place(pane)).lineLimit(1)
-                        Spacer(minLength: 4)
                         if let since = pane.since {
                             TimelineView(.everyMinute) { context in Text(age(since, context.date)) }
+                                .font(.system(size: 11)).foregroundStyle(.secondary)
                         }
                     }
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    Text(page.place(pane)).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
             .padding(.horizontal, 8)
-            .frame(height: 44)
+            .frame(height: 48)
         }
 
         private func age(_ since: Date, _ now: Date) -> String {
@@ -198,7 +195,7 @@ struct StatusBadge: View {
                 [pane.agentName ?? "", page.place(pane)].contains { $0.matches(filter) }
             }
             ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     if sort == .priority {
                         ForEach([AgentState.needsYou, .working, .finishedUnseen, .idle], id: \.self) { state in
                             let group = rows.filter { $0.state == state }
@@ -238,7 +235,7 @@ struct StatusBadge: View {
                     Text("All caught up").padding(8).accessibilityIdentifier("agents.popover.empty")
                 } else {
                     ScrollView {
-                        VStack(spacing: 2) {
+                        VStack(spacing: 4) {
                             ForEach(waiting) { AgentButton(pane: $0, page: page, picked: close) }
                         }
                     }

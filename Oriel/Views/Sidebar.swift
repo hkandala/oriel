@@ -106,7 +106,8 @@
             let store = page.store
             let rowsDrop = RowsDrop(page: page, frames: frames, state: $drop, reorders: filter.isEmpty)
             VStack(alignment: .leading, spacing: 0) {
-                HStack {
+                // The name and the sort menu's label on one baseline; the `+` has no text to align.
+                HStack(alignment: agents == nil ? .center : .firstTextBaseline) {
                     // A long session name gives way in its middle; " · agents" stays.
                     HStack(spacing: 0) {
                         Text(page.id).truncationMode(.middle)
