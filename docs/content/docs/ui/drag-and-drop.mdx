@@ -89,7 +89,7 @@ still shows its drop zones.
 
 | Drag | Result | herdr call |
 |---|---|---|
-| a tab capsule along the tab track | reorder the workspace's tabs; the others slide apart over 0.22 s; held at either end of a bar that scrolls, the bar scrolls one tab every 0.3 s | `tab.move` |
+| a tab capsule along the tab track | reorder the workspace's tabs; the others slide apart over 0.22 s; held at either end of a bar that scrolls, the bar scrolls one tab every 0.3 s (a dragged pane too) | `tab.move` |
 | a tab capsule onto a workspace row | not a target: herdr moves tabs only inside a workspace | — |
 | a workspace row up or down its page | reorder the session's workspaces; the rows slide apart over 0.22 s; a repository's linked worktrees move with it; a worktree moves only among its repository's worktrees | `workspace.move_block {workspace_ids, before_workspace_id}`, as Move Up and Move Down |
 
