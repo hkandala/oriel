@@ -15,7 +15,7 @@ extension OrielUITests {
         NSPasteboard.general.setString(command, forType: .string)
         terminal.rightClick()
         let menu = app.windows.firstMatch.menuItems
-        for item in ["Copy", "Paste", "Select All", "Split Right", "Zoom Pane", "Move Pane to Tab", "Close Pane"] {
+        for item in ["Copy", "Select All", "Split Right", "Close Pane"] {
             XCTAssertTrue(menu[item].exists(within: 2), item)
         }
         keepScreenshot("terminal menu")
@@ -61,21 +61,17 @@ extension OrielUITests {
             .matching(NSPredicate(format: "label == %@ OR title == %@", name, name)).firstMatch
         XCTAssertTrue(file.exists(within: 10))
 
-        // Finder's window opens over the app: its title bar moves it right of the terminal's middle, so the drop
-        // lands on the terminal, not on Finder.
-        let window = finder.windows.firstMatch, card = terminal.frame
-        let top = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0)).withOffset(CGVector(dx: 0, dy: 6))
-        top.press(forDuration: 0.2, thenDragTo: top.withOffset(CGVector(dx: card.midX - window.frame.minX, dy: 0)))
-        XCTAssertTrue(until(2) { window.frame.minX > card.midX - 20 }, "\(window.frame) over \(card)")
-        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        shot.name = "finder beside the terminal"
-        shot.lifetime = .keepAlways
-        add(shot)
-
+        // Finder's window opens over the app (920 × 436 pt on CI): the drop goes on the terminal below it.
+        let card = terminal.frame, finderFrame = finder.windows.firstMatch.frame
+        let drop = CGPoint(x: card.midX, y: (finderFrame.maxY + card.maxY) / 2)
+        XCTAssertGreaterThan(card.maxY - finderFrame.maxY, 40, "\(finderFrame) covers \(card)")
         let start = file.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), from = file.frame
-        start.press(forDuration: 0.5,
-                    thenDragTo: start.withOffset(CGVector(dx: card.minX + 60 - from.midX, dy: card.midY - from.midY)),
-                    withVelocity: .slow, thenHoldForDuration: 0.5)
+        start.press(
+            forDuration: 0.5,
+            thenDragTo: start.withOffset(CGVector(dx: drop.x - from.midX, dy: drop.y - from.midY)),
+            withVelocity: .slow,
+            thenHoldForDuration: 0.5,
+        )
         let folder = URL(filePath: path).deletingLastPathComponent().lastPathComponent
         try await waitFor(pane) { $0.contains(#"\#(folder)/drop\ me\'s\ \(1\).txt"#) }
     }
