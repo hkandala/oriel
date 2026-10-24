@@ -7,53 +7,60 @@
     /// work).
     struct TerminalHost: NSViewRepresentable {
         let terminal: PaneTerminal
-        /// The content's opacity. On the host view: SwiftUI's `opacity` moved the terminal's accessibility frame half a
-        /// card down, so clicks at its center missed it.
+        /// The card's dim. On the host view: SwiftUI's `opacity` moved the terminal's accessibility frame half a card
+        /// down, so clicks at its center missed it.
         let alpha: CGFloat
-        @Environment(\.layoutMoving) private var moving
-        @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         func makeNSView(context _: Context) -> Host {
             let host = Host()
+            host.terminal = terminal
             host.clipsToBounds = true
             host.addSubview(terminal.view)
             return host
         }
 
         func updateNSView(_ host: Host, context _: Context) {
-            // Fades in over 0.12 s once herdr drew it at the card's size (alpha 0 until then), instead of popping in.
-            if host.alphaValue == 0, alpha > 0, !reduceMotion {
-                NSAnimationContext.runAnimationGroup { context in
-                    context.duration = 0.12
-                    host.animator().alphaValue = alpha
-                }
-            } else {
-                host.alphaValue = alpha
-            }
-            host.holding = moving
+            host.alphaValue = alpha
         }
 
-        /// Fits the terminal to itself, except while cards move (layout motion): then the terminal keeps its size,
-        /// clipped, and fits once when they stop.
+        /// Fits the terminal to itself once its size stops changing (a window drag, a divider drag, the sidebar or
+        /// layout motion): meanwhile the terminal keeps its grid, clipped, so neither libghostty nor the program
+        /// reflows at every step.
         final class Host: NSView {
+            weak var terminal: PaneTerminal?
+            private var fitting: Task<Void, Never>?
+
             /// A held terminal stays at the top, as the card's content does.
             override var isFlipped: Bool {
                 true
             }
 
-            var holding = false {
-                didSet {
-                    // Not before its first layout (a re-hosted terminal would go 0 × 0 for a moment).
-                    if !holding, !bounds.isEmpty {
-                        subviews.first?.frame = bounds
+            override func resizeSubviews(withOldSize _: NSSize) {
+                fitting?.cancel()
+                // At once until its first stream opened (it opens at the card's size; the terminal waits for that to
+                // settle), and for a view that never had a frame.
+                guard let terminal, terminal.grid != nil, !terminal.view.frame.isEmpty else {
+                    fit()
+                    return
+                }
+                fitting = Task {
+                    try? await Task.sleep(for: .milliseconds(150))
+                    if !Task.isCancelled {
+                        fit()
                     }
                 }
             }
 
-            override func resizeSubviews(withOldSize _: NSSize) {
-                // A terminal that never had a size takes one at once.
-                if !holding || subviews.first?.frame.isEmpty == true {
-                    subviews.first?.frame = bounds
+            override func viewDidEndLiveResize() {
+                super.viewDidEndLiveResize()
+                fitting?.cancel()
+                fit()
+            }
+
+            /// Not when a newer host adopted the terminal meanwhile.
+            private func fit() {
+                if !bounds.isEmpty, let view = terminal?.view, view.superview === self {
+                    view.frame = bounds
                 }
             }
         }
@@ -68,7 +75,7 @@
         let alpha: CGFloat
 
         var body: some View {
-            TerminalHost(terminal: terminal, alpha: terminal.ready ? alpha : 0)
+            TerminalHost(terminal: terminal, alpha: alpha)
                 // A new terminal in the same spot (panes swapped) needs a new host to adopt it.
                 .id(ObjectIdentifier(terminal))
                 .overlay(alignment: .bottom) {

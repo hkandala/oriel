@@ -18,7 +18,9 @@
                         Group {
                             if let tree = tab.tree {
                                 // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
-                                Motion(tree: tree) { SplitLayout(node: tree, page: page, tabID: tab.id) }
+                                // Layout motion (0.2 s); the terminals keep their size until it ends (`TerminalHost`).
+                                SplitLayout(node: tree, page: page, tabID: tab.id)
+                                    .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: tree)
                                     .padding([.horizontal, .bottom], gap)
                                     .padding(.top, 4)
                             } else {
@@ -65,33 +67,6 @@
                     Task { position.scrollTo(id: target, anchor: .leading) }
                 }
             }
-        }
-    }
-
-    /// Layout motion: when the tree changes, cards animate 0.2 s ease-out and terminals keep their size, clipped, until
-    /// it ends (resized at every frame, a terminal went blank). A drag follows the pointer. Reduce Motion: none.
-    private struct Motion<Content: View>: View {
-        let tree: SplitNode
-        @ViewBuilder let content: Content
-        @State private var moving = false
-        /// Not as the page appears: a terminal held then attached at a passing size and resized after.
-        @State private var appeared = false
-        @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-        var body: some View {
-            content
-                .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: tree)
-                .environment(\.layoutMoving, moving)
-                .task(id: tree) {
-                    guard appeared, !reduceMotion else {
-                        appeared = true
-                        return
-                    }
-                    moving = true
-                    if await (try? Task.sleep(for: .milliseconds(200))) != nil {
-                        moving = false
-                    }
-                }
         }
     }
 
@@ -270,7 +245,5 @@
     extension EnvironmentValues {
         /// The card is under a zoomed card: hidden, but there, so its terminal keeps its size.
         @Entry var zoomedAway = false
-        /// Cards are moving: terminals keep their size until they stop.
-        @Entry var layoutMoving = false
     }
 #endif

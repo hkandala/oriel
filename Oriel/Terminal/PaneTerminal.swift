@@ -11,12 +11,15 @@
         private(set) var state = State.idle
         /// The terminal view is the first responder: keys go here.
         var hasKeyboard = false
-        /// herdr's frames settled once (PTY resized, program redrawn), or a watcher drew: the content fades in then,
-        /// not at herdr's first frame (the old screen reflowed at the new size).
+        /// The content shows: herdr's frames at the card's grid settled (PTY resized, program redrawn), or a watcher
+        /// drew. Off from a new surface's start and from each grid change until then, so herdr's first frame (the old
+        /// screen reflowed at the new size) never shows.
         private(set) var ready = false
         @ObservationIgnored private var settling: Task<Void, Never>?
-        /// The surface's last grid.
-        @ObservationIgnored private var grid: InMemoryTerminalViewport?
+        /// Shows the content at the latest 0.4 s after it hid or its first frame came, whatever the frames do.
+        @ObservationIgnored private var deadline: Task<Void, Never>?
+        /// The surface's last grid; nil until the first stream opens (the host fits the view at once until then).
+        @ObservationIgnored private(set) var grid: InMemoryTerminalViewport?
         @ObservationIgnored let view = PaneSurfaceView(frame: .zero)
         @ObservationIgnored var paneID: String
         @ObservationIgnored private let terminalID: String
@@ -56,8 +59,9 @@
                 resize: { size.yield($0) },
                 suppressesPixelOnlyResizes: true,
             )
-            // Pastes leave libghostty framed, and herdr frames them again for the app's own mode.
-            session.receive("\u{1B}[?2004h")
+            // Pastes leave libghostty framed, and herdr frames them again for the app's own mode. No cursor on the
+            // empty surface before herdr's first frame, which says whether it shows.
+            session.receive("\u{1B}[?2004h\u{1B}[?25l")
             view.terminal = self
             view.controller = Self.controller
             view.configuration = TerminalSurfaceOptions(backend: .inMemory(session))
@@ -163,14 +167,15 @@
                 for await event in stream.events where generation == self.generation {
                     switch event {
                     case let .frame(frame):
-                        session.receive(frame.bytes)
-                        onFrame?()
                         if state == .idle {
                             started(frame)
                         }
+                        // Before libghostty has the frame: it hides the content.
                         if !ready {
                             settle()
                         }
+                        session.receive(frame.bytes)
+                        onFrame?()
                     case let .closed(reason):
                         self.stream = nil
                         closed(reason)
@@ -182,11 +187,6 @@
         /// The first frame of a stream.
         private func started(_ frame: TerminalStream.Frame) {
             state = observing ? .watching : .live
-            // A program that redraws all the time never settles: shown a second later anyway.
-            Task {
-                try? await Task.sleep(for: .seconds(1))
-                ready = true
-            }
             // The card may have changed size while the stream opened.
             if let grid, frame.width != grid.columns || frame.height != grid.rows {
                 resized(grid)
@@ -241,13 +241,16 @@
 
         // MARK: Size and input
 
-        /// libghostty's grid for the card's size, taken once the layout settles (100 ms after the last change):
-        /// a window drag does not make the app repaint at every step, and the first stream opens at the card's
-        /// real size, not at the surface's first guess before layout (50×17), which made an agent redraw twice.
+        /// libghostty's grid for the card's size. The first one is taken once the layout settles (100 ms after the
+        /// last change), so the first stream opens at the card's real size, not at the surface's first guess before
+        /// layout (50×17), which made an agent redraw twice. Later ones go at once: the host already waited for the
+        /// card's size to settle.
         private func resized(_ size: InMemoryTerminalViewport) {
             resizing?.cancel()
             resizing = Task {
-                try? await Task.sleep(for: .milliseconds(100))
+                if grid == nil {
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
                 guard !Task.isCancelled else { return }
                 let first = grid == nil
                 grid = size
@@ -342,18 +345,50 @@
             case keys([String])
         }
 
-        /// Ready once frames stop for 100 ms (a watcher cannot resize: at once).
+        /// libghostty changed the grid (the card settled at a new size, a new text size), on the main thread before it
+        /// draws the old screen reflowed: hidden until herdr's frames at the new grid settle.
+        func gridChanged() {
+            guard ready, state == .live else { return }
+            ready = false
+            settle()
+        }
+
+        /// Hidden until frames stop for 100 ms (a watcher cannot resize: shown at once). On the terminal view, never
+        /// SwiftUI's (the card's dim is on the host view), and not before the first frame: libghostty swaps the view's
+        /// layer when it makes the surface, and the new layer does not take an alpha set earlier.
         private func settle() {
-            settling?.cancel()
-            guard !observing else {
-                ready = true
-                return
-            }
-            settling = Task {
-                try? await Task.sleep(for: .milliseconds(100))
+            view.alphaValue = 0
+            // A program that redraws all the time never settles. Under the waiting spinner's 0.5 s.
+            deadline = deadline ?? Task {
+                try? await Task.sleep(for: .milliseconds(400))
                 if !Task.isCancelled {
-                    ready = true
+                    reveal()
                 }
+            }
+            settling?.cancel()
+            settling = Task {
+                if !observing {
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
+                if !Task.isCancelled {
+                    reveal()
+                }
+            }
+        }
+
+        /// Fades the content in over 0.12 s. The view's alpha is 1 from here on, and the fade only animates from 0:
+        /// a fade that never ran leaves it shown, not hidden.
+        private func reveal() {
+            settling?.cancel()
+            deadline?.cancel()
+            deadline = nil
+            ready = true
+            view.alphaValue = 1
+            if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                let fade = CABasicAnimation(keyPath: "opacity")
+                fade.fromValue = 0
+                fade.duration = 0.12
+                view.layer?.add(fade, forKey: "reveal")
             }
         }
     }

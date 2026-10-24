@@ -43,7 +43,8 @@ button. Empty states (no workspaces, no tabs) show only the button.
 | Go to Directory on a pane that runs a program | the warning notice "A program is running in the pane"; nothing is sent |
 | A filter hides every row | "No matching workspaces" (sidebar), "No matches" (the palette and the other filter lists) |
 | A tab whose split tree the app cannot build | "No layout for this tab" |
-| A card's terminal is not settled at the card's size yet (a pane opened for the first time, while herdr resizes its PTY and the program redraws) | the card shows only its fill (a small spinner after 0.5 s); the terminal fades in over 0.12 s once herdr's frames stop for 0.1 s, or 1 s after the first frame (at once with Reduce Motion). A watching card shows its first frame |
+| A card's terminal is not settled at the card's size yet (a pane opened for the first time, while herdr resizes its PTY and the program redraws) | the card shows only its fill (a small spinner after 0.5 s); the terminal fades in over 0.12 s once herdr's frames stop for 0.1 s, or 0.4 s after the first frame (at once with Reduce Motion). A watching card shows its first frame |
+| A card's size keeps changing (a window drag, a divider drag, the sidebar, layout motion) | its terminal keeps its grid, clipped at the top left; 150 ms after the last change (or when a window drag ends) it takes the new size, hides, and fades in once herdr redrew it, as above |
 | Find with no match | "0 of 0", nothing highlighted, no scroll |
 | A folder dropped on the Dock icon with no window | a window opens, and the workspace opens in it once its page is live |
 | A folder dropped on the Dock icon while the page in view is not live | the folders wait for a live page in view |
