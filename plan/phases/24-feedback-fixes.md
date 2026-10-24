@@ -99,3 +99,29 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   so the view's alpha is only set from the first frame on. ⌘+ steps now resize once per step, each with its
   fade. `RevealTests` read terminal pixels (the share far from the median brightness): the one place an empty
   card shows, a deliberate exception to "not through pixels".
+
+### Lane B (items 4, 5, 6, 7)
+
+- **Root cause of the wrong icon (item 4), found in a spike.** Polling `pane.process_info` on a new tab every
+  30 ms showed the user's shell startup run `path_helper`, `brew shellenv`, `gh auth token` (+ `security`),
+  `nvm`'s `ls` and `sort` in the first 0.3 s. The store already waited 1 s before its first ask for a new pane,
+  but the card asks again as it shows (`PaneCard.onAppear`), and a new tab's card shows at once: that answer was
+  `gh`, so the GitHub icon showed until the 1 s ask said zsh. Fix: `Pane.starting` blocks every ask (card,
+  Return, title word, agent) in a new pane's first second, then waits while a program other than the shell runs
+  (every 0.5 s, 3 s at most, for a slow nvm). A new terminal under a reused pane id counts as new.
+- **Decisions.** Tabs are a fixed 220 pt (D42's old maximum, the width with room to spare); the kept width
+  after a close and the 52 pt rules went with the shrinking. Fades are 24 pt, only on a side with tabs out of
+  view (`onScrollGeometryChange`); no rubber band while all tabs fit (`scrollBounceBehavior(.basedOnSize)`):
+  the user's sharp cut was the rubber band pulling the end tab past the edge. Item 7 is about the tab row's
+  own scroll: a click or a spring-load selects without scrolling (an explicit `clicked` flag; `hovered` went
+  stale under a still pointer); keys, palette and a new tab scroll it into view without animation, and once
+  more a moment later, as the Strip does, for a capsule that lays out in the same update. The strip's paging
+  spring on a click is unchanged.
+- **Deviations.** A program typed in a new tab within its first seconds gets its icon up to ~4 s after the tab
+  opened (the terminal icon until then). A pane id reused inside that window can end the wait early (rare).
+- **Known limit.** Dragging a tab along an overflowing row does not auto-scroll, so it cannot reach a slot out
+  of view; drag it in steps, or add an edge auto-scroll if it matters.
+- **Learned.** Only 3 tabs fit on CI's 1024 pt window now: tests select tabs past the row's end with ⌘n, not
+  clicks (`ProgramIconTests`), and one test uses a split instead of a fourth tab (`AgentTests`). CI's shell is
+  bash; the startup test writes `.zshrc`, `.bashrc` and `.bash_profile` into a throwaway `HOME` passed through
+  `tab.create`'s `env`. CI: 40077507385 and 40077694680 green (the lane's tests and the tab tests).
