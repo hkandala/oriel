@@ -4,42 +4,49 @@ import XCTest
 extension OrielUITests {
     /// A right click opens the card's menu, also in a mouse app, as herdr opens its pane menu; ⌥ sends it to the app.
     func testRightClickInATerminalOpensThePaneMenu() async throws {
-        let (tab, pane) = try await newTab("menu")
+        let (tab, first) = try await newTab("menu")
         element("tab.\(tab)").click()
-        let terminal = element("terminal.\(pane)")
-        XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
-        try await waitForPrompt(pane)
+        XCTAssertTrue(element("terminal.\(first)").has(\.isHittable, true, within: 3))
+        try await waitForPrompt(first)
 
-        let command = "echo oriel-$((6*4))"
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(command, forType: .string)
-        terminal.rightClick()
+        element("terminal.\(first)").rightClick()
         let menu = app.windows.firstMatch.menuItems
         for item in ["Copy", "Select All", "Split Right", "Close Pane"] {
             XCTAssertTrue(menu[item].exists(within: 2), item)
         }
         keepScreenshot("terminal menu")
-        // Paste goes into the clicked terminal.
+        menu["Split Right"].click()
+        let second = try await poll("a second pane in \(tab)") { () async throws -> String? in
+            let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
+            return panes.first { $0["tab_id"] as? String == tab && $0["pane_id"] as? String != first }?["pane_id"]
+                as? String
+        }
+        try await waitForPrompt(second)
+
+        // Paste goes into the clicked terminal, not the one with the keyboard.
+        let focused = NSPredicate(format: "hasKeyboardFocus == true")
+        let (pane, other) = focused.evaluate(with: element("terminal.\(first)")) ? (second, first) : (first, second)
+        let terminal = element("terminal.\(pane)")
+        let command = "echo oriel-$((6*4))"
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(command, forType: .string)
+        terminal.rightClick()
+        XCTAssertTrue(menu["Paste"].exists(within: 2))
         menu["Paste"].click()
         try await waitFor(pane) { $0.contains(command) }
-        try await send("\r", to: pane)
-        try await waitFor(pane) { $0.contains("\noriel-24") }
+        let elsewhere = try await read(other)
+        XCTAssertFalse(elsewhere.contains(command))
 
         // A program that reads clicks (SGR mouse mode) sees the ⌥-right click as a plain right press: button 2, not
-        // 10 (Alt adds 8).
-        try await send("clear; printf '\\033[?1000h\\033[?1006h'; cat -v\r", to: pane)
+        // 10 (Alt adds 8). Without ⌥ the menu opens over it.
+        try await send("\u{15}clear; printf '\\033[?1000h\\033[?1006h'; cat -v\r", to: pane)
         try await expect("cat to run") { try await foreground(pane).contains("cat") }
         XCUIElement.perform(withKeyModifiers: .option) { terminal.rightClick() }
         try await waitFor(pane) { $0.contains("[<2;") }
         XCTAssertFalse(menu["Copy"].exists)
-
-        // Without ⌥ the menu opens over the mouse app too, and its pane commands act on the pane.
         terminal.rightClick()
-        XCTAssertTrue(menu["Split Right"].exists(within: 2))
-        menu["Split Right"].click()
-        try await expect("a second pane in \(tab)") {
-            try await (snapshot()["panes"] as? [[String: Any]])?.count { $0["tab_id"] as? String == tab } == 2
-        }
+        XCTAssertTrue(menu["Copy"].exists(within: 2))
+        app.typeKey(.escape, modifierFlags: [])
     }
 
     /// A file dragged from Finder pastes its shell-escaped path, as a drop on Ghostty (herdr's usual terminal) does.
@@ -53,7 +60,9 @@ extension OrielUITests {
         let path = try await String(decoding: Self.post("\(one)/reveal-file"), as: UTF8.self)
         // Its windows close, or they would cover the app in the next tests.
         addTeardownBlock { @MainActor in
-            XCUIApplication(bundleIdentifier: "com.apple.finder").typeKey("w", modifierFlags: [.command, .option])
+            let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
+            finder.activate()
+            finder.typeKey("w", modifierFlags: [.command, .option])
         }
         let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
         let name = URL(filePath: path).lastPathComponent
