@@ -46,13 +46,14 @@ extension OrielUITests {
         XCTAssertTrue(until(5) { abs(toggle.frame.minX - window.frame.minX - 8) < 1 })
     }
 
-    /// Switching workspaces and tabs draws no frame with a traffic light off its place (the user saw them flicker).
+    /// From launch on, through workspace and tab switches, no frame is drawn with a traffic light off its place (the
+    /// user saw them flicker on workspace switches; CI's recording showed the zoom button off for 4 frames at the
+    /// first snapshot).
     func testTrafficLightsStayStillWhenWorkspacesSwitch() {
         relaunch(one, ["-recordLights", "YES"])
         let lights = element("window.lights")
         XCTAssertTrue(element("pane.w1:p1").exists(within: connect))
-        XCTAssertTrue(lights.exists)
-        let before = lights.stringValue
+        let launched = lights.stringValue
         for (row, pane) in [("w2", "w2:p1"), ("w1", "w1:p1"), ("w2", "w2:p1"), ("w1", "w1:p1")] {
             element("workspace.\(row)").click()
             XCTAssertTrue(element("pane.\(pane)").has(\.isHittable, true, within: 2))
@@ -62,7 +63,7 @@ extension OrielUITests {
         element("tab.w1:t1").click()
         XCTAssertTrue(element("pane.w1:p1").has(\.isHittable, true, within: 2))
         XCTExpectFailure("probe", options: .nonStrict())
-        XCTAssertEqual(lights.stringValue, before, "turns drawn with a light off its place")
+        XCTAssertEqual("\(launched) \(lights.stringValue)", "0 0", "turns drawn with a light off its place")
     }
 
     /// Three splits, a zoomed card, one tab, and three tabs with a working and a blocked agent; each with the sidebar
