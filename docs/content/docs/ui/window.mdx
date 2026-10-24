@@ -103,13 +103,11 @@ The tab bar is always in the title row. The sidebar never lists tabs (D45).
 One capsule per herdr tab of the selected workspace (D42).
 - **Track.** A capsule 34 pt tall sits behind the tabs. It is hidden when the
   workspace has one tab; Classic dark has none, as in Rex.
-- **Width.** All tabs share one width: the space less the 1 pt gaps, divided
-  by the count, at most 220 pt and at least 64 pt. Below 64 pt the bar scrolls
-  sideways, with edge fades (8 pt leading, 16 pt trailing), and keeps the
-  selected tab in view.
-- **After a close**, the widths stay as they were while the pointer stays in
-  the bar, so the next × is under the pointer. They settle when the pointer
-  leaves.
+- **Width.** Every tab is 220 pt wide and never shrinks. When the tabs do not
+  fit, the bar scrolls sideways (a scroll gesture over it), and a 24 pt fade
+  shows on each end that has tabs out of view. A click selects a tab where it
+  is, with no scroll; a tab selected another way (keys, the palette, a new tab)
+  comes into view at once, without motion.
 - **Dividers.** 1 pt wide, 18 pt tall, centered between
   tabs. A divider next to the selected, a lit or the hovered tab is hidden. They
   fade over 0.2 s.
@@ -133,8 +131,7 @@ One capsule per herdr tab of the selected workspace (D42).
   title is the keyboard card's program and its folder's name, for example
   "zsh ~" or "pi oriel" (D65).
 - **Status slot.** × only on the hovered tab (a 22 pt hit area over the
-  title's fade, so the tab's width never changes; hidden when the tab is
-  narrower than 52 pt). Otherwise three working dots, on every tab with a
+  title's fade, so the tab's width never changes). Otherwise three working dots, on every tab with a
   working agent except the selected one. Needs you
   and finished are badges on the front icon
   ([Theme and accessibility](/docs/ui/theme-and-accessibility#status)).

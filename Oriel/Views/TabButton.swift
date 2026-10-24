@@ -11,11 +11,8 @@
         /// Its page is in view.
         let lit: Bool
         let hovering: Bool
-        let width: CGFloat
         /// ⌘1…⌘9 while ⌘ is held.
         let keycap: Int?
-        /// Before a close from its ×.
-        let closing: () -> Void
         @State private var renaming = false
         /// "codex needs you" for 3 s in place of the title.
         @State private var announcement: String?
@@ -57,7 +54,7 @@
                 .padding(.leading, 11)
                 // The title's fade ends under the ×'s 28 pt.
                 .padding(.trailing, 12)
-                .frame(width: width, height: TabBar.height, alignment: .leading)
+                .frame(width: TabBar.width, height: TabBar.height, alignment: .leading)
             }
             // The selection is the tab bar's marker.
             .buttonStyle(ChromeStyle(radius: TabBar.radius, inset: TabBar.inset))
@@ -89,7 +86,7 @@
             }
             // The status slot: × while hovered, else the working dots (not on the selected tab).
             .overlay(alignment: .trailing) {
-                if working, !hovering || renaming || width < 52 {
+                if working, !hovering || renaming {
                     WorkingDots().padding(.trailing, 10)
                         .accessibilityElement().accessibilityLabel("working")
                         .accessibilityIdentifier("tab.\(tab.id).working")
@@ -97,11 +94,8 @@
             }
             .overlay(alignment: .trailing) {
                 // Over the title's fade, so it never changes the tab's width.
-                if hovering, !renaming, width >= 52 {
-                    Button {
-                        closing()
-                        page.closing = .tab(tab.id)
-                    } label: {
+                if hovering, !renaming {
+                    Button { page.closing = .tab(tab.id) } label: {
                         Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
                             .frame(width: 22, height: 22)
                     }

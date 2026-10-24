@@ -205,32 +205,37 @@ extension OrielUITests {
         XCTAssertFalse(app.sheets.firstMatch.exists)
     }
 
-    func testTwelveTabsKeepTheirWidthAndTheSelectedOneInView() async throws {
-        let twelve = try await newWorkspace("row", tabs: 12).tabs
-        let workspace = workspace(of: twelve[0])
-        app.typeKey("s", modifierFlags: [.command, .control])
-        let button = element("titlebar.workspace"), palette = element("titlebar.palette")
-        XCTAssertTrue(button.exists(within: 2))
-        // Enough tabs to pass 64 pt each on this display's window (12 on a 1200 pt one).
-        let more = Int((palette.frame.minX - button.frame.maxX) / 65) + 2 - twelve.count
-        for _ in 0 ..< max(more, 0) {
-            try await Self.call(one, "tab.create", ["workspace_id": workspace, "cwd": "/tmp", "focus": false])
-        }
-        let tabs = try await tabsOf(workspace).map(\.id)
-        let first = element("tab.\(tabs[0])"), last = element("tab.\(tabs[tabs.count - 1])")
+    func testTabsKeepTheirWidthAndTheRowScrolls() async throws {
+        let tabs = try await newWorkspace("row", tabs: 8).tabs
+        let first = element("tab.\(tabs[0])"), last = element("tab.\(tabs[7])"), fades = element("tabs.fades")
+        let end = element("titlebar.agents").frame.minX
         XCTAssertTrue(last.exists(within: 3))
-        XCTAssertGreaterThanOrEqual(first.frame.width, 64)
-        // ⌘ and + keep their place in the window.
+        for tab in [first, last] {
+            XCTAssertEqual(tab.frame.width, 220, accuracy: 1)
+        }
+        // ⌘ and + keep their place in the window; the tabs past the row's end are out of view, and faded at that end.
         XCTAssertLessThan(element("titlebar.new-tab").frame.maxX, app.windows.firstMatch.frame.maxX)
-        // Past the bar's end: the bar scrolls.
-        XCTAssertGreaterThan(last.frame.maxX, palette.frame.minX)
-        keepScreenshot("twelve tabs")
+        XCTAssertGreaterThan(last.frame.minX, end)
+        XCTAssertTrue(fades.has(\.stringValue, "trailing", within: 2))
+        keepScreenshot("eight tabs")
 
-        // ⇧⌘[ from the first goes round to the last: the bar scrolls to it.
+        // A click on the tab cut off at the end selects it where it is: no scroll.
+        let cut = try XCTUnwrap(tabs.map { element("tab.\($0)") }.first { $0.frame.maxX > end })
+        let start = cut.frame.minX
+        cut.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5)).withOffset(CGVector(dx: 30, dy: 0)).click()
+        XCTAssertTrue(cut.has(\.isSelected, true, within: 2))
+        XCTAssertFalse(until(0.6) { abs(cut.frame.minX - start) > 0.5 }, "scrolled from \(start) to \(cut.frame.minX)")
+
+        // ⌘1, then ⇧⌘[ from the first goes round to the last: the row shows it, faded at the start only.
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(first.has(\.isSelected, true, within: 2))
         app.typeKey("[", modifierFlags: [.command, .shift])
         XCTAssertTrue(last.has(\.isSelected, true, within: 2))
-        try await expect("the last tab in view") { last.frame.maxX < palette.frame.minX }
-        XCTAssertGreaterThanOrEqual(last.frame.width, 64)
+        XCTAssertTrue(until(1) { last.frame.maxX <= end }, "\(last.frame) past \(end)")
+        XCTAssertTrue(fades.has(\.stringValue, "leading", within: 2))
+        keepScreenshot("scrolled to the last tab")
+        // A sideways scroll over the row moves it.
+        try await swipe(last, until: fades, \.stringValue, "leading, trailing")
     }
 
     func testHoldingCommandShowsKeycaps() async throws {

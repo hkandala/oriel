@@ -2,10 +2,11 @@
     import HerdrKit
     import SwiftUI
 
-    /// The selected workspace's tabs in the title row (D42): equal widths on a track, one marker that follows the
-    /// strip's scroll, dividers, hover and close. It takes the row's free space and scrolls when tabs would be narrower
-    /// than 64 pt.
+    /// The selected workspace's tabs in the title row (D42): one width on a track, one marker that follows the
+    /// strip's scroll, dividers, hover and close. Tabs never shrink: the row scrolls sideways when they do not fit.
     struct TabBar: View {
+        /// Every tab's: the user wants tabs that keep their width and a row that scrolls (phase 24).
+        static let width: CGFloat = 220
         /// The track's height; Rex's capsules sit 2 pt inside it, 30 pt tall and fully round.
         static let height: CGFloat = 34
         static let inset: CGFloat = 2
@@ -24,20 +25,18 @@
         /// The row's free space.
         @State private var space: CGFloat = 0
         @State private var hovered: String?
-        /// The width before a close, kept while the pointer stays in the bar, so the next × is under it (Safari).
-        @State private var kept: CGFloat?
+        /// Tabs out of view before and after the row's visible part: its edges fade there.
+        @State private var hidden = (leading: false, trailing: false)
         /// ⌘ held for 0.7 s: keycaps on the first nine tabs.
         @State private var hints = false
         @State private var pendingHints: Task<Void, Never>?
         @State private var monitor: Any?
-        @State private var insideBar = false
         @Environment(\.appearsActive) private var appearsActive
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.look) private var look
 
         var body: some View {
-            let tabs = workspace.tabs, count = CGFloat(tabs.count)
-            let width = kept ?? min(max((space - (count - 1)) / count, 64), 220)
+            let tabs = workspace.tabs, count = CGFloat(tabs.count), width = Self.width
             let content = count * width + count - 1
             // Pages floor(x/w) through ceil((x+w)/w) − 1, that is floor(page)...ceil(page).
             let lit = Int(page.stripPage.rounded(.down)) ... Int(page.stripPage.rounded(.up))
@@ -57,8 +56,7 @@
                                         .animation(.easeInOut(duration: 0.2), value: quiet)
                                 }
                                 TabButton(tab: tab, workspace: workspace, page: page, lit: lit.contains(index),
-                                          hovering: hovered == tab.id, width: width,
-                                          keycap: hints && index < 9 ? index + 1 : nil) { kept = width }
+                                          hovering: hovered == tab.id, keycap: hints && index < 9 ? index + 1 : nil)
                                     .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
                                     .overlay {
                                         if page.dragging?.paneID != nil, over == index {
@@ -67,7 +65,7 @@
                                     }
                                     .scaleEffect(pulsing == tab.id ? 1.04 : 1)
                                     .opacity(page.dragging == .tab(tab.id) ? 0.4 : 1)
-                                    .offset(x: shift(index, width: width))
+                                    .offset(x: shift(index))
                             }
                         }
                     }
@@ -82,28 +80,24 @@
                     .background {
                         ZStack(alignment: .leading) {
                             Capsule().fill(look.track).opacity(tabs.count > 1 ? 1 : 0)
-                            marker(count: tabs.count, width: width)
+                            marker(count: tabs.count)
                         }
                     }
                     // Room for the Classic pill's shadow (radius 3.5, y 1.5): the scroll view clips.
                     .padding(.vertical, 5)
                 }
                 .scrollIndicators(.never)
-                // Tabs that do not fit fade out at the edges instead of being cut.
-                .fadeEdges(.horizontal, start: content > space ? 8 : 0, end: content > space ? 16 : 0)
+                // No rubber band while every tab fits: it cut the end tab off at the edge.
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                .onScrollGeometryChange(for: [Bool].self) { geometry in
+                    [geometry.contentOffset.x > 0.5,
+                     geometry.contentOffset.x + geometry.containerSize.width < geometry.contentSize.width - 0.5]
+                } action: {
+                    hidden = ($1[0], $1[1])
+                }
+                // Tabs cut off at an edge fade out there instead of ending sharp.
+                .fadeEdges(.horizontal, start: hidden.leading ? 24 : 0, end: hidden.trailing ? 24 : 0)
                 .frame(width: max(min(content, space), 0))
-                .onHover { inside in
-                    insideBar = inside
-                    // Not while the close dialog is up: a Return there keeps the pointer over the next ×.
-                    if !inside, page.closing == nil {
-                        settle()
-                    }
-                }
-                .onChange(of: page.closing == nil) { _, closed in
-                    if closed, !insideBar {
-                        settle()
-                    }
-                }
                 // minWidth 0: the row's free space, not the tabs' width, which follows it; else the bar never
                 // shrinks (a workspace button that appears pushed ⌘ and + out of the window).
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
@@ -124,13 +118,17 @@
                         .padding(.leading, min(content, space))
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { space = $0 }
-                .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { old, new in
-                    if let new {
-                        withAnimation(old != new && !reduceMotion ? .tab : nil) { proxy.scrollTo(new) }
+                // Into view, without motion, when keys, the palette or a new tab select it; not after a click, which
+                // hits the tab under the pointer: a scroll then moved the tab away from the click.
+                .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { _, new in
+                    if let new, new != hovered {
+                        withTransaction(\.animation, nil) { proxy.scrollTo(new) }
                     }
                 }
             }
             .frame(height: Self.height + 10)
+            .testValue("tabs.fades", "Tab Fades", [hidden.leading ? "leading" : nil, hidden.trailing ? "trailing" : nil]
+                .compactMap(\.self).joined(separator: ", "))
             .onAppear {
                 if monitor == nil {
                     monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown], handler: watch)
@@ -152,11 +150,11 @@
         }
 
         /// A tab dragged along the track: it and the tabs it passes trade places as it goes (the others slide apart).
-        private func shift(_ index: Int, width: CGFloat) -> CGFloat {
+        private func shift(_ index: Int) -> CGFloat {
             guard case let .tab(id) = page.dragging, let slot = over,
                   let from = workspace.tabs.firstIndex(where: { $0.id == id }) else { return 0 }
             let place = slot > from ? slot - 1 : slot
-            return (width + 1) * CGFloat(index == from ? place - from
+            return (Self.width + 1) * CGFloat(index == from ? place - from
                 : from < index && index <= place ? -1 : place <= index && index < from ? 1 : 0)
         }
 
@@ -171,20 +169,13 @@
             }
         }
 
-        /// Back to widths for the space, once the pointer left after a close.
-        private func settle() {
-            if kept != nil {
-                withAnimation(reduceMotion ? nil : .tab) { kept = nil }
-            }
-        }
-
         /// The look's pill on the page in view, between two tabs while the strip is between their pages. The strip
         /// moves with Rex's spring after a click or a key, so the marker does too.
-        private func marker(count: Int, width: CGFloat) -> some View {
+        private func marker(count: Int) -> some View {
             let offset = min(max(page.stripPage, 0), Double(max(count - 1, 0)))
             return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
-                .frame(width: width, height: Self.height - 2 * Self.inset)
-                .offset(x: offset * (width + 1))
+                .frame(width: Self.width, height: Self.height - 2 * Self.inset)
+                .offset(x: offset * (Self.width + 1))
                 .allowsHitTesting(false)
         }
 
