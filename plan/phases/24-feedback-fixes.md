@@ -226,3 +226,20 @@ Screenshots in the main checkout: `.build/fb/agents.png` (item 13), `.build/fb/n
     labels and the rows; the sort control's right edge lines up with the rows' right edge (the times).
 15. **Needs-you panel when empty** (`.build/fb/needs.png`): show only "All caught up", without the
     "Needs you · default" header.
+
+## Findings, round 2
+
+### Lane G (items 13, 15)
+
+- **Root cause, item 13.** The header had its own insets (leading 22, trailing 3) from the workspaces view, while
+  the Agents view's group labels and row icons sit at `Sidebar.rowInsets.leading` (10) + 8 = 18 and the rows'
+  times end 3 + 8 = 11 pt from the edge; the sort label's text, inside its 6 pt button padding, ended at 9. So the
+  name started 4 pt right of the labels and the sort text 2 pt past the times (the user's screenshot, at 2x: 8 px
+  and 4 px). In the Agents view the header now pads 18 leading and 5 trailing; the workspaces view keeps 22 / 3.
+- **Root cause, item 15.** `NeedsYouPanel` drew its "Needs you · ‹session›" header above both branches; it is
+  now only in the branch with rows (`agents.popover.header`).
+- **Tests.** `testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder` checks the header's text, a group label
+  and a row icon share minX, and the sort text's end meets the times' end (a padded `Text`'s accessibility frame
+  hugs the text, CI showed). `testBlockedAgentNeedsYouAndThePopoverGoesToIt` checks the header is gone when
+  empty and shown with a row. CI 40116374403 green; the screenshot shows one edge.
+- **Docs.** `window.mdx` and `ui-layout.md` say the empty panel has no header and the header's edges.
