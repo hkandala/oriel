@@ -13,7 +13,6 @@
 
         func makeNSView(context _: Context) -> Host {
             let host = Host()
-            host.terminal = terminal
             host.clipsToBounds = true
             host.addSubview(terminal.view)
             return host
@@ -27,7 +26,6 @@
         /// layout motion): meanwhile the terminal keeps its grid, clipped, so neither libghostty nor the program
         /// reflows at every step.
         final class Host: NSView {
-            weak var terminal: PaneTerminal?
             private var fitting: Task<Void, Never>?
 
             /// A held terminal stays at the top, as the card's content does.
@@ -39,7 +37,7 @@
                 fitting?.cancel()
                 // At once until its first stream opened (it opens at the card's size; the terminal waits for that to
                 // settle), and for a view that never had a frame.
-                guard let terminal, terminal.grid != nil, !terminal.view.frame.isEmpty else {
+                guard let view, view.terminal?.grid != nil, !view.frame.isEmpty else {
                     fit()
                     return
                 }
@@ -57,10 +55,14 @@
                 fit()
             }
 
-            /// Not when a newer host adopted the terminal meanwhile.
+            /// Gone from here once a newer host adopted it.
+            private var view: PaneSurfaceView? {
+                subviews.first as? PaneSurfaceView
+            }
+
             private func fit() {
-                if !bounds.isEmpty, let view = terminal?.view, view.superview === self {
-                    view.frame = bounds
+                if !bounds.isEmpty {
+                    view?.frame = bounds
                 }
             }
         }

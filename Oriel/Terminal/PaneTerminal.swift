@@ -18,7 +18,8 @@
         @ObservationIgnored private var settling: Task<Void, Never>?
         /// Shows the content at the latest 0.4 s after it hid or its first frame came, whatever the frames do.
         @ObservationIgnored private var deadline: Task<Void, Never>?
-        /// The surface's last grid; nil until the first stream opens (the host fits the view at once until then).
+        /// The surface's last grid; nil until the first stream opens. Read by the host, which fits the view at once
+        /// until then.
         @ObservationIgnored private(set) var grid: InMemoryTerminalViewport?
         @ObservationIgnored let view = PaneSurfaceView(frame: .zero)
         @ObservationIgnored var paneID: String
@@ -248,11 +249,11 @@
         private func resized(_ size: InMemoryTerminalViewport) {
             resizing?.cancel()
             resizing = Task {
-                if grid == nil {
+                let first = grid == nil
+                if first {
                     try? await Task.sleep(for: .milliseconds(100))
                 }
                 guard !Task.isCancelled else { return }
-                let first = grid == nil
                 grid = size
                 if first {
                     open()
@@ -346,9 +347,10 @@
         }
 
         /// libghostty changed the grid (the card settled at a new size, a new text size), on the main thread before it
-        /// draws the old screen reflowed: hidden until herdr's frames at the new grid settle.
+        /// draws the old screen reflowed: hidden until herdr's frames at the new grid settle. Also with no stream (an
+        /// evicted card that comes back at a new size); a watcher shows the reflow, as it cannot resize.
         func gridChanged() {
-            guard ready, state == .live else { return }
+            guard ready, !observing else { return }
             ready = false
             settle()
         }
@@ -357,6 +359,7 @@
         /// SwiftUI's (the card's dim is on the host view), and not before the first frame: libghostty swaps the view's
         /// layer when it makes the surface, and the new layer does not take an alpha set earlier.
         private func settle() {
+            guard !observing else { return reveal() }
             view.alphaValue = 0
             // A program that redraws all the time never settles. Under the waiting spinner's 0.5 s.
             deadline = deadline ?? Task {
@@ -367,9 +370,7 @@
             }
             settling?.cancel()
             settling = Task {
-                if !observing {
-                    try? await Task.sleep(for: .milliseconds(100))
-                }
+                try? await Task.sleep(for: .milliseconds(100))
                 if !Task.isCancelled {
                     reveal()
                 }

@@ -210,18 +210,17 @@ One path is [Future work](/docs/future-work).
   and the new grid goes to herdr at once. Pixel-only changes send nothing.
 - herdr answers every resize, even to the same size, with a full frame
   (`"full":true`); its other frames only carry what changed.
-- At a new grid the card hides its terminal, so neither libghostty's reflow of
-  the old screen nor herdr's first frame shows, and fades it in once herdr's
-  frames settle (below).
+- At a new grid a card that is not watching hides its terminal, so neither
+  libghostty's reflow of the old screen nor herdr's first frame shows, and
+  fades it in once herdr's frames settle (below).
 - A `control` frame's `width` and `height` are the real PTY size.
 - herdr has no way to size a PTY without attaching (the attach's `--cols` /
   `--rows` resizes it), so a pane opened for the first time redraws once at
   the card's size: herdr's first frame is the old screen reflowed at the new
   size, and the program's redraw for `SIGWINCH` follows. The card hides its
   terminal until herdr's frames stop for 0.1 s (at most 0.4 s after the first
-  frame or the resize), then fades it in (0.12 s). The hiding is the terminal
-  view's own alpha, set only by its terminal; the fade only animates up from
-  0, so a fade that does not run leaves the terminal shown. Background tabs are not attached ahead of time
+  frame or the resize), then fades it in (0.12 s). A fade that does not run
+  leaves the terminal shown, never hidden. Background tabs are not attached ahead of time
   (D46's stream cap).
 
 ### One controller per pane

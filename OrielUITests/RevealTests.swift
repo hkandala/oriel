@@ -50,12 +50,15 @@ extension OrielUITests {
                 grids.append(terminal.stringValue)
             }
         }
+        // The check that tells this from a resize at every frame: herdr's one resize (the winch count) came with the
+        // old 100 ms settle too. A stall over 150 ms inside the slide would give a real third grid.
         XCTAssertEqual(grids.count, 2, "grids while the sidebar slid: \(grids)")
         try await waitFor("w1:p1") { $0.contains("\nwinch") }
         try await Task.sleep(for: .milliseconds(500))
         let screen = try await read("w1:p1")
         XCTAssertEqual(screen.components(separatedBy: "\nwinch").count - 1, 1, screen)
         try await expectPTYSize("w1:p1")
+        try await fill("w1:p1")
         try await expectText(["w1:p1"], "after the resize")
     }
 
