@@ -53,15 +53,16 @@
                         MainActor.assumeIsolated { self?.changed(value) }
                     })
                 }
-                // AppKit lays the buttons out again on resizes, key changes and full screen: put them back each time,
-                // and once more after its layout (a button moved in its own frame notification goes back).
+                // AppKit lays the buttons out again on title changes (each tab or workspace switch), resizes, key
+                // changes and full screen. They go back in this view's layout, which runs after AppKit's in the same
+                // layout pass, before the frame is drawn. A move inside the frame notification snaps back, and one on
+                // the next main-queue turn came after a drawn frame: the lights flickered (phase 24).
                 let place: @Sendable (Notification) -> Void = { [weak self] note in
                     nonisolated(unsafe) let note = note // probe
                     MainActor.assumeIsolated {
                         self?.trace(note)
-                        self?.placeButtons()
+                        self?.needsLayout = true
                     }
-                    DispatchQueue.main.async { self?.placeButtons() }
                 }
                 for button in buttons(of: window) {
                     observers.append(center.addObserver(forName: NSView.frameDidChangeNotification, object: button,
@@ -126,6 +127,11 @@
                     }
                 }
                 CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
+            }
+
+            override func layout() {
+                super.layout()
+                placeButtons()
             }
 
             private func stop() {
