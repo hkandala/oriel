@@ -69,3 +69,33 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
 - One CI run green on each lane's last push. One review round: spec and ponytail, read only.
 
 ## Findings
+
+### Lane A (items 1, 2)
+
+- **Root cause of empty panes (item 1), by reading and spikes, not reproduced** (no local GUI runs). The hide
+  went through SwiftUI: `ready` → `TerminalCard` passed alpha 0 → `updateNSView` animated the host only when that
+  host's own alpha read 0. So the content showed only when SwiftUI updated the very host that held the terminal
+  after `ready` flipped, and the 1 s fallback was armed only at a stream's first frame. A host made or moved
+  mid-way (SwiftUI's newest host adopts the view) could keep alpha 0; a spike showed an NSView fade that is not
+  layer-backed yet stalls at 0 while the run loop tracks events. A tab switch made a new host, which set alpha
+  at once: the user's fix.
+- **Item 1 fix.** The terminal hides and shows its own view; SwiftUI only sets the card's dim on the host. A
+  frame while not ready sets the view's alpha to 0 before libghostty gets it; `reveal` sets alpha 1 and adds a
+  fade that only animates up from 0 (0.12 s), so a fade that does not run leaves the content shown. Shown once
+  frames stop for 100 ms, at the latest 0.4 s after the first hiding frame or grid change (under the spinner's
+  0.5 s). Watchers show at once. The empty surface gets `ESC[?25l`, so no cursor shows before herdr's first
+  frame.
+- **Item 2, what was picked.** `TerminalHost.Host` keeps the terminal view's frame (clipped, top left) while the
+  card's size changes, and fits it 150 ms after the last change or at `viewDidEndLiveResize`; at once while the
+  terminal has no grid yet, so the first stream still opens at the card's size. A grid change (libghostty calls
+  `terminalDidResize` synchronously inside the frame set) hides the content in the same transaction, the new
+  grid goes to herdr at once (the 100 ms settle stays only for the first grid), and the content fades in as in
+  item 1. One mechanism for the first attach and every resize. Strip's `Motion` / `layoutMoving` went: the
+  Host's wait covers layout motion.
+- **Deviation.** The cap is 0.4 s, not 1 s: an agent that redraws all the time stayed blank for a second.
+- **Learned.** herdr 0.9.5 answers every `terminal.resize`, even to the same size, with a full frame
+  (`"full":true`); all other frames are diffs on herdr's last screen, wrapped in `?2026h…?2026l`.
+  libghostty swaps the view's layer when it makes the surface, and the new layer ignores an alpha set earlier,
+  so the view's alpha is only set from the first frame on. ⌘+ steps now resize once per step, each with its
+  fade. `RevealTests` read terminal pixels (the share far from the median brightness): the one place an empty
+  card shows, a deliberate exception to "not through pixels".
