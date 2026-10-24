@@ -24,6 +24,7 @@ extension OrielUITests {
         button.hover()
         XCTAssertTrue(element("agents.popover.empty").exists(within: 2))
         XCTAssertEqual(element("agents.popover.empty").value as? String, "All caught up")
+        XCTAssertFalse(element("agents.popover.header").exists)
         element("workspace.w1").hover()
         XCTAssertTrue(element("agents.popover").vanishes(within: 2))
 
@@ -37,6 +38,7 @@ extension OrielUITests {
         button.hover()
         let row = element("agents.popover").descendants(matching: .any)["agent.\(pane)"]
         XCTAssertTrue(row.exists(within: 2))
+        XCTAssertTrue(element("agents.popover.header").exists)
         keepScreenshot("needs-you popover")
         row.click()
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
@@ -86,6 +88,13 @@ extension OrielUITests {
         XCTAssertEqual(groups.map { $0.value as? String }, ["Needs you 1", "Working 1", "Done 1", "Idle 1"])
         let tops = zip(groups, rows).flatMap { [$0.frame.minY, $1.frame.minY] }
         XCTAssertEqual(tops, tops.sorted())
+        // One leading edge: the header's text, the group labels and the row icons (8 pt into each row); the sort
+        // label's text (6 pt into its button) ends where the rows' times do (8 pt before each row's end).
+        let header = element("sidebar.header").frame, sort = element("agents.sort").frame
+        let frames = "header \(header), sort \(sort), group \(groups[0].frame), row \(rows[0].frame)"
+        XCTAssertEqual(header.minX, rows[0].frame.minX + 8, accuracy: 0.5, frames)
+        XCTAssertEqual(groups[0].frame.minX, header.minX, accuracy: 0.5, frames)
+        XCTAssertEqual(sort.maxX - 6, rows[0].frame.maxX - 8, accuracy: 0.5, frames)
         keepScreenshot("agents view by priority")
 
         // The footer filter keeps the rows of one workspace.

@@ -139,8 +139,10 @@
                             .clearsDrop(page) { plus = false }
                     }
                 }
-                .padding(.leading, 22)
-                .padding(.trailing, 3)
+                // Agents view: the name starts where the group labels and row icons do (the rows' insets and their
+                // 8 pt padding), and the sort label's text ends where the times end (less its own 6 pt padding).
+                .padding(.leading, agents == nil ? 22 : Sidebar.rowInsets.leading + 8)
+                .padding(.trailing, agents == nil ? 3 : Sidebar.rowInsets.trailing + 8 - 6)
                 // Rex's first row sits 31.5 pt below the header's baseline.
                 .padding(.bottom, 3)
                 .contentShape(.rect)
