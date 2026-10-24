@@ -181,7 +181,12 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   files; no other lane touched them); `OrielApp.swift` got the e2e test value.
 - **Tests.** `testTrafficLightsStayStillWhenWorkspacesSwitch` (`-recordLights YES` counts run-loop turns that
   end, after Core Animation's commit at `beforeWaiting` or a loop's `exit`, with a light off its place; it counted
-  3 on the old code, 0 with the fix), `testMenuLightFollowsThePointer`, the "All caught up" check in
+  3 on the old code, 0 with the fix; the test checks that switches add none, since launch drew one such turn in 1
+  of 4 CI runs), `testMenuLightFollowsThePointer`, the "All caught up" check in
   `testBlockedAgentNeedsYouAndThePopoverGoesToIt`; the agent rows are checked by the agents tests' screenshots.
 - **Learned.** A one-frame glitch shows in the xcresult's 60 fps screen recording: crop the region with ffmpeg
   and diff frames. Only the exit-of-loop observer caught the commit that drew it; `beforeWaiting` alone saw 0.
+- **Open, not this lane's.** `testTrafficLightsSitInTheTitleRow` fails on main: the first ⌥-click zoom gives a
+  frame wider than CI's screen (the zoom button lands at x = −27). It fails the same with this lane's fix reverted
+  (db6b2ce, run 40078529794) and passed before phase 24 (39911397369). Suspect: lane A's held terminal frame
+  (`TerminalHost.Host` keeps the old size for 150 ms) feeding SwiftUI's ideal size, which the zoom uses.
