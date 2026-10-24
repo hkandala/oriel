@@ -79,8 +79,11 @@ Drop files from Finder on a terminal: their paths are pasted into that pane,
 each with a backslash before every space and shell character, joined by
 spaces, in one bracketed paste. That is what Ghostty, herdr's usual terminal,
 sends herdr for a drop. An image with no file (from a browser or a screenshot
-thumbnail) is saved as a PNG in the user's temporary folder first, and that path is
-pasted. A pane drag over a terminal still shows its drop zones.
+thumbnail) is saved as a PNG in a new folder in the user's temporary folder
+first, or, when the source only promises a file (as browsers may), received
+there; then that path is pasted. The paths are This Mac's: a pane that runs
+`ssh` gets them as they are, as in any terminal. A pane drag over a terminal
+still shows its drop zones.
 
 ## Tabs and workspaces
 

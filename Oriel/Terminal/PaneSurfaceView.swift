@@ -30,7 +30,7 @@
             setAccessibilityElement(true)
             setAccessibilityRole(.group)
             setAccessibilityLabel("Terminal")
-            registerForDraggedTypes([.fileURL, .tiff, .png])
+            registerForDraggedTypes(Self.dropTypes)
         }
 
         /// Gives this terminal the keyboard, now or once it is in a window.
@@ -151,7 +151,8 @@
         private var rightToProgram = false
 
         override func rightMouseDown(with event: NSEvent) {
-            rightToProgram = event.modifierFlags.contains(.option)
+            // Only ⌥, as herdr matches the modifiers exactly: ⌥⇧ opens the menu.
+            rightToProgram = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .option
             guard rightToProgram else {
                 nextResponder?.rightMouseDown(with: event)
                 return

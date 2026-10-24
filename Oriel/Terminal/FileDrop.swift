@@ -3,9 +3,13 @@
     import GhosttyTerminal
 
     /// Drops paste their paths shell-escaped, as Ghostty (herdr's usual terminal) does; an image with no file is saved
-    /// as a PNG first. A pane drag carries neither type, so it goes on to the card's drop zones.
+    /// as a PNG first, or received from its source (a browser's image may be only a file promise). A pane drag carries
+    /// none of these types, so it goes on to the card's drop zones.
     /// ponytail: paths on This Mac; a remote machine needs the files copied there first (as image paste plans).
     extension PaneSurfaceView {
+        static let dropTypes: [NSPasteboard.PasteboardType] = [.fileURL, .tiff, .png]
+            + NSFilePromiseReceiver.readableDraggedTypes.map { .init($0) }
+
         override func draggingEntered(_: any NSDraggingInfo) -> NSDragOperation {
             .copy
         }
@@ -17,8 +21,23 @@
             if urls.isEmpty, let image = Self.savedImage(board) {
                 urls = [image]
             }
-            guard !urls.isEmpty else { return false }
-            return paste(text: urls.map { Self.escaped($0.path(percentEncoded: false)) }.joined(separator: " "))
+            if !urls.isEmpty {
+                return paste(text: urls.map { Self.escaped($0.path(percentEncoded: false)) }.joined(separator: " "))
+            }
+            // ponytail: each promised file pastes on its own; join them when a source promises several.
+            let promises = board.readObjects(forClasses: [NSFilePromiseReceiver.self]) as? [NSFilePromiseReceiver]
+            guard let promise = promises?.first, let folder = Self.newFolder() else { return false }
+            promise.receivePromisedFiles(
+                atDestination: folder,
+                options: [:],
+                operationQueue: .main,
+                reader: { [weak self] url, error in
+                    guard error == nil else { return }
+                    let path = Self.escaped(url.path(percentEncoded: false))
+                    MainActor.assumeIsolated { _ = self?.paste(text: path) }
+                },
+            )
+            return true
         }
 
         /// Ghostty's `Shell.escape` (libghostty-spm's copy is internal).
@@ -31,14 +50,22 @@
             }
         }
 
-        /// The dragged image as a PNG in the user's temporary folder (`$TMPDIR`, only the user reads it); the system's
-        /// cleanup of temporary files removes it.
+        /// The dragged image as a PNG.
         private static func savedImage(_ board: NSPasteboard) -> URL? {
             guard let tiff = NSImage(pasteboard: board)?.tiffRepresentation,
-                  let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])
+                  let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]),
+                  let file = newFolder()?.appending(path: "image.png")
             else { return nil }
-            let file = URL.temporaryDirectory.appending(path: "oriel-\(UUID().uuidString).png")
             return (try? png.write(to: file)).map { file }
+        }
+
+        /// A new folder in the user's temporary folder (`$TMPDIR`, only the user reads it), so a promised file keeps
+        /// its
+        /// name; the system's cleanup of temporary files removes it.
+        private static func newFolder() -> URL? {
+            let folder = URL.temporaryDirectory.appending(path: "oriel-\(UUID().uuidString)")
+            return (try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true))
+                .map { folder }
         }
     }
 #endif
