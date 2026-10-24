@@ -229,11 +229,13 @@ struct StatusBadge: View {
         var body: some View {
             let waiting = page.store.agentPanes.filter { $0.state == .needsYou }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Needs you · \(page.id)").font(.system(size: 11)).foregroundStyle(.secondary)
-                    .padding(.horizontal, 8).padding(.bottom, 2)
+                // Empty: the words alone, no header (user, phase 24).
                 if waiting.isEmpty {
                     Text("All caught up").padding(8).accessibilityIdentifier("agents.popover.empty")
                 } else {
+                    Text("Needs you · \(page.id)").font(.system(size: 11)).foregroundStyle(.secondary)
+                        .padding(.horizontal, 8).padding(.bottom, 2)
+                        .accessibilityIdentifier("agents.popover.header")
                     ScrollView {
                         VStack(spacing: 4) {
                             ForEach(waiting) { AgentButton(pane: $0, page: page, picked: close) }
