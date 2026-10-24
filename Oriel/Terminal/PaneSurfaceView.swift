@@ -146,7 +146,7 @@
         }
 
         /// herdr's rule: a right click opens the pane's menu (the card's context menu, up the responder chain), also in
-        /// a mouse app. With ⌥ it goes to the program, without the ⌥, as with herdr's
+        /// a mouse app. A ⌥-right click goes to the program with ⌥ stripped, as with herdr's
         /// `right_click_passthrough_modifier = "alt"`. libghostty gets none: its Copy menu is in the card's menu.
         private var rightToProgram = false
 
@@ -216,7 +216,7 @@
             dragged = action == .up ? nil : cell
             // A right click comes here only with ⌥, which herdr's pass-through strips.
             terminal?.mouse(action, button, column: cell.column, row: cell.row,
-                            modifiers: modifiers(event) & (button == .right ? ~4 : ~0))
+                            modifiers: modifiers(event) & ~(button == .right ? 4 : 0))
         }
 
         private var scale: CGFloat {
