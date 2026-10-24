@@ -51,6 +51,8 @@ struct FilterList: View {
         /// rest or the row under it as the panel opens.
         @State private var pointer = NSEvent.mouseLocation
     #endif
+    /// The pointer lit the row: no scroll to it, as in a menu.
+    @State private var pointed = false
 
     var body: some View {
         let items = items(filter)
@@ -114,6 +116,7 @@ struct FilterList: View {
                                     .onContinuousHover { phase in
                                         guard case .active = phase, NSEvent.mouseLocation != pointer else { return }
                                         pointer = NSEvent.mouseLocation
+                                        pointed = true
                                         self.index = offset
                                     }
                                 #endif
@@ -129,7 +132,7 @@ struct FilterList: View {
                     // A new lit row, and the lit row once the list has its height: a sub-page's may sit below the fold
                     // (Font Size).
                     .onChange(of: rowsHeight > 0 ? index : nil) {
-                        if items.indices.contains(index) {
+                        if !pointed, items.indices.contains(index) {
                             proxy.scrollTo(items[index].id)
                         }
                     }
@@ -138,7 +141,10 @@ struct FilterList: View {
         }
         .onAppear { filter = text }
         // A cleared filter lights the start row again.
-        .onChange(of: filter) { self.index = filter.isEmpty ? nil : 0 }
+        .onChange(of: filter) {
+            pointed = false
+            self.index = filter.isEmpty ? nil : 0
+        }
         .onChange(of: items.isEmpty ? nil : items[index].id, initial: true) { lit?.wrappedValue = $1 }
     }
 
@@ -148,6 +154,7 @@ struct FilterList: View {
 
     private func move(_ step: Int) -> KeyPress.Result {
         let items = items(filter)
+        pointed = false
         index = max(0, min(current(items) + step, items.count - 1))
         return .handled
     }
