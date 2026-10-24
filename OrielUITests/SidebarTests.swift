@@ -34,7 +34,7 @@ extension OrielUITests {
         XCTAssertTrue(beta.has(\.isSelected, true, within: 2))
         XCTAssertFalse(alpha.isSelected)
         element("workspaces.open-session").click()
-        let open = element("open-session.open.\(one)")
+        let open = element("open-session.session.\(two)") // above the fold: other tests' sessions push rows down
         XCTAssertTrue(open.exists(within: 2))
         XCTAssertFalse(open.isSelected)
         open.hover()
