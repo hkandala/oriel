@@ -33,9 +33,10 @@ extension OrielUITests {
         terminal.rightClick()
         XCTAssertTrue(menu["Paste"].exists(within: 2))
         menu["Paste"].click()
-        try await waitFor(pane) { $0.contains(command) }
+        // pane.read wraps lines at the pane's width.
+        try await waitFor(pane) { $0.replacing("\n", with: "").contains(command) }
         let elsewhere = try await read(other)
-        XCTAssertFalse(elsewhere.contains(command))
+        XCTAssertFalse(elsewhere.replacing("\n", with: "").contains(command))
 
         // A program that reads clicks (SGR mouse mode) sees the ⌥-right click as a plain right press: button 2, not
         // 10 (Alt adds 8). Without ⌥ the menu opens over it.
@@ -82,6 +83,6 @@ extension OrielUITests {
             thenHoldForDuration: 0.5,
         )
         let folder = URL(filePath: path).deletingLastPathComponent().lastPathComponent
-        try await waitFor(pane) { $0.contains(#"\#(folder)/drop\ me\'s\ \(1\).txt"#) }
+        try await waitFor(pane) { $0.replacing("\n", with: "").contains(#"\#(folder)/drop\ me\'s\ \(1\).txt"#) }
     }
 }
