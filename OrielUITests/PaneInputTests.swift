@@ -65,13 +65,20 @@ extension OrielUITests {
         let card = terminal.frame, finderFrame = finder.windows.firstMatch.frame
         let drop = CGPoint(x: card.midX, y: (finderFrame.maxY + card.maxY) / 2)
         XCTAssertGreaterThan(card.maxY - finderFrame.maxY, 40, "\(finderFrame) covers \(card)")
-        let start = file.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), from = file.frame
+        // From the app's window, not Finder's element: a gesture on Finder's element moved nothing on CI.
+        let origin = app.windows.firstMatch.frame.origin, from = file.frame
+        let start = app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: from.midX - origin.x, dy: from.midY - origin.y))
         start.press(
             forDuration: 0.5,
             thenDragTo: start.withOffset(CGVector(dx: drop.x - from.midX, dy: drop.y - from.midY)),
             withVelocity: .slow,
-            thenHoldForDuration: 0.5,
+            thenHoldForDuration: 1,
         )
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "after the drop"
+        shot.lifetime = .keepAlways
+        add(shot)
         let folder = URL(filePath: path).deletingLastPathComponent().lastPathComponent
         try await waitFor(pane) { $0.contains(#"\#(folder)/drop\ me\'s\ \(1\).txt"#) }
     }
