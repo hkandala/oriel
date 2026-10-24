@@ -243,3 +243,29 @@ Screenshots in the main checkout: `.build/fb/agents.png` (item 13), `.build/fb/n
   hugs the text, CI showed). `testBlockedAgentNeedsYouAndThePopoverGoesToIt` checks the header is gone when
   empty and shown with a row. CI 40116374403 green; the screenshot shows one edge.
 - **Docs.** `window.mdx` and `ui-layout.md` say the empty panel has no header and the header's edges.
+
+### Lane F (item 19)
+
+- **Root cause.** Lane A hid each grid change by setting the terminal view's alpha to 0 until herdr's frames
+  settled, then faded it in: the text went blank for about 0.25 s and came back (CI 40116832208 on the new test
+  over the old code: 2 of 10 screenshots with no ink after the sidebar hid).
+- **Fix.** No alpha hide: `PaneTerminal` pauses libghostty's drawing (`setSurfaceVisible(false)`: ghostty's
+  occlusion plus libghostty-spm's display link) while it settles, so the view's IOSurface layer keeps its last
+  picture, anchored top left (`kCAGravityTopLeft` in libghostty), and `reveal` switches to the new picture at once.
+  The same 100 ms settle and 0.4 s cap as lane A, so every path still reveals; only a new card's first reveal still
+  fades in (0.12 s) from its clear, empty surface. Picked over a crossfade: a copy of the old picture would be
+  needed, as ghostty reuses its swap chain's surfaces.
+- **Pause before libghostty hears of a change.** With the pause in `terminalDidResize` alone, CI's recording
+  showed 3 frames of garbled glyphs after a ⌘- (ghostty's renderer thread drew the old cells with the new font
+  before the occlusion reached it). `hold()` now runs first: the Host before it sets the new frame, `setFontSize`
+  for every streaming terminal before the config; both go through ghostty's one renderer mailbox in order.
+  libghostty's grid change still calls it for other paths (a scale change). A pixel-only size change holds 100 ms
+  and shows the same picture.
+- **Test.** `testResizeNeverBlanksTheText`: screenshots as fast as they come (about 10 in 1.5 s on CI) through a
+  sidebar hide and show, ⌘+ and ⌘-; each must have ink, and each step ends with herdr's text drawn (not stuck).
+  Red on the old code (40116832208), green on the fix with the reveal and font tests (40116872510, 40117447765).
+  The recordings, frame by frame (crops of every frame around each step): old text at the top left, then the new
+  grid, no blank and no garbled frame after 7b85ce7.
+- **Known limit.** A watcher does not hold (it cannot resize, so it shows the reflow, as before); on ⌘± it can
+  still show the garbled frames. bash's own redraw of a wrapped prompt after `SIGWINCH` leaves a stray piece of
+  the prompt on its line (CI's right-hand cards); that is herdr's screen, not the card.
