@@ -154,3 +154,34 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   terminal below it.
 - **For the user to check by hand:** dragging an image from Safari, from Chrome and from a screenshot
   thumbnail (no CI test drives those); a ⌥-right click in a mouse app (lazygit, vim with `mouse=a`).
+
+### Lane D: window chrome and lists (items 3, 10, 11, 12)
+
+- **Root cause, traffic lights.** Every window title change (each tab or workspace switch: `navigationTitle` is
+  "‹tab› - ‹session›") makes AppKit re-tile the title bar (`NSThemeFrame _titleDidChange` →
+  `_tileTitlebarAndRedisplay:` → `_updateButtonPositions`), which moves the three buttons back to the compact
+  toolbar's place, twice per change. `WindowReader` put each back from its frame notification, but AppKit's
+  `_NSThemeWidget setFrameOrigin:ignoreRentry:` drops a move of the button it is moving, so the last one, the zoom
+  button, waited for the next main-queue turn; a frame drawn before that showed it 4 pt up and left (CI's
+  recording: 1 to 4 frames at launch and on switches). Fixed where the layout happens: a frame notification only
+  marks `WindowReader`'s view for layout, and its `layout()` places the buttons, after AppKit's tiling and before
+  the frame is drawn.
+- **Root cause, agent rows and header.** The status capsule sat on line 1 and the age on line 2, so neither line
+  lined up; the header centered a 12 pt name against an 11 pt menu label. Line 1 is now name, capsule and age;
+  line 2 the place; rows 48 pt with 4 pt gaps (Agents view and the needs-you panel, the two row styles that show
+  an agent; the hover card's rows are one line already). The header uses `firstTextBaseline` in the Agents view
+  (the workspaces header's `+` has no text and stays centered).
+- **Root cause, menu highlight.** `FilterList` lit only `index` (keys, start row); the pointer gave just the
+  hover tint. A real pointer move over a row now lights it (`onContinuousHover`, compared with
+  `NSEvent.mouseLocation`, so a row scrolled under a still pointer or the row under the pointer as the panel opens
+  does not take the light). The palette shares `FilterList`, so it follows the pointer too.
+- **Decision, palette.** The pointer lights palette rows too, so resting 0.75 s on an Appearance or Interface
+  Style row previews it, as the arrows do; passing over does not. A row lit by the pointer is not scrolled to.
+- **Deviations.** Item 3's fix is in `WindowReader.swift` and item 12's in `FilterList.swift` (not the lane's
+  files; no other lane touched them); `OrielApp.swift` got the e2e test value.
+- **Tests.** `testTrafficLightsStayStillWhenWorkspacesSwitch` (`-recordLights YES` counts run-loop turns that
+  end, after Core Animation's commit at `beforeWaiting` or a loop's `exit`, with a light off its place; it counted
+  3 on the old code, 0 with the fix), `testMenuLightFollowsThePointer`, the "All caught up" check in
+  `testBlockedAgentNeedsYouAndThePopoverGoesToIt`; the agent rows are checked by the agents tests' screenshots.
+- **Learned.** A one-frame glitch shows in the xcresult's 60 fps screen recording: crop the region with ffmpeg
+  and diff frames. Only the exit-of-loop observer caught the commit that drew it; `beforeWaiting` alone saw 0.
