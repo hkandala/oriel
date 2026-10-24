@@ -11,6 +11,7 @@
         @Binding var fullScreen: Bool
         /// e2e: the run loop turns that drew a traffic light off its place.
         @Binding var lightsOff: Int
+        @Binding var lightsLog: String
 
         func makeNSView(context _: Context) -> Reader {
             let reader = Reader()
@@ -21,11 +22,13 @@
         func updateNSView(_ reader: Reader, context _: Context) {
             reader.changed = { fullScreen = $0 }
             reader.lightsOff = { lightsOff = $0 }
+            reader.lightsLog = { lightsLog = $0 }
         }
 
         final class Reader: NSView {
             var changed: (Bool) -> Void = { _ in }
             var lightsOff: (Int) -> Void = { _ in }
+            var lightsLog: (String) -> Void = { _ in }
             weak var pages: WindowPages?
             private var observers: [NSObjectProtocol] = []
 
@@ -52,8 +55,12 @@
                 }
                 // AppKit lays the buttons out again on resizes, key changes and full screen: put them back each time,
                 // and once more after its layout (a button moved in its own frame notification goes back).
-                let place: @Sendable (Notification) -> Void = { [weak self] _ in
-                    MainActor.assumeIsolated { self?.placeButtons() }
+                let place: @Sendable (Notification) -> Void = { [weak self] note in
+                    nonisolated(unsafe) let note = note // probe
+                    MainActor.assumeIsolated {
+                        self?.trace(note)
+                        self?.placeButtons()
+                    }
                     DispatchQueue.main.async { self?.placeButtons() }
                 }
                 for button in buttons(of: window) {
@@ -78,8 +85,29 @@
                 }
             }
 
+            private var events: [String]?
+            private let start = Date.now
+
+            private func event(_ text: String) {
+                guard events != nil else { return }
+                events!.append(String(format: "%.3f ", Date.now.timeIntervalSince(start)) + text)
+                events = events!.suffix(40)
+                lightsLog(events!.joined(separator: "\n"))
+            }
+
+            private func trace(_ note: Notification) {
+                guard events != nil, let window, let button = note.object as? NSButton else { return }
+                let index = buttons(of: window).firstIndex(of: button) ?? -1
+                let stack = Thread.callStackSymbols.dropFirst(2).prefix(24).map { line in
+                    line.split(separator: " ", omittingEmptySubsequences: true).dropFirst(3).prefix(2)
+                        .joined(separator: " ")
+                }.filter { !$0.contains("Notification") && !$0.contains("CFNotif") && !$0.contains("_CF") }
+                event("b\(index) \(button.frame.origin) | " + stack.joined(separator: " < "))
+            }
+
             /// e2e (`-recordLights YES`): counts the run loop turns that drew a traffic light off its place.
             private func recordLights() {
+                events = []
                 var count = 0
                 // After Core Animation's commit (order 2000000): what this turn drew.
                 let turn = CFRunLoopActivity.beforeWaiting.rawValue
@@ -96,7 +124,7 @@
                         if !off.isEmpty {
                             count += 1
                             self.lightsOff(count)
-                            NSLog("oriel lights off: \(off.map(\.element.frame))")
+                            self.event("OFF \(off.map(\.offset)) \(off.map(\.element.frame.origin))")
                         }
                     }
                 }

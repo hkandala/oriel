@@ -167,6 +167,7 @@ struct OrielApp: App {
         @State private var workspaceButtonX: CGFloat = 0
         @State private var fullScreen = false
         @State private var lightsOff = 0
+        @State private var lightsLog = ""
         /// The window's content height, for the palette's list.
         @State private var height: CGFloat = 0
         private var settings = AppSettings()
@@ -247,7 +248,18 @@ struct OrielApp: App {
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
             // In full screen the empty toolbar would cover the title row; it shows on hover only.
             .windowToolbarFullScreenVisibility(.onHover)
-            .background(WindowReader(pages: pages, fullScreen: $fullScreen, lightsOff: $lightsOff))
+            .background(WindowReader(
+                pages: pages,
+                fullScreen: $fullScreen,
+                lightsOff: $lightsOff,
+                lightsLog: $lightsLog,
+            ))
+            .testValue(
+                "window.lights-log",
+                "Lights Log",
+                lightsLog,
+                shown: UserDefaults.standard.bool(forKey: "recordLights"),
+            )
             .testValue("window.lights", "Traffic Lights Off", "\(lightsOff)",
                        shown: UserDefaults.standard.bool(forKey: "recordLights"))
             .navigationTitle(page.selectedTab.map { "\(page.titleText($0)) - \(page.id)" } ?? HostStore.name(page.id))

@@ -62,6 +62,10 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.w1:p4").has(\.isHittable, true, within: 2))
         element("tab.w1:t1").click()
         XCTAssertTrue(element("pane.w1:p1").has(\.isHittable, true, within: 2))
+        let log = XCTAttachment(string: element("window.lights-log").stringValue)
+        log.name = "lights log"
+        log.lifetime = .keepAlways
+        add(log)
         XCTExpectFailure("probe", options: .nonStrict())
         XCTAssertEqual("\(launched) \(lights.stringValue)", "0 0", "turns drawn with a light off its place")
     }
