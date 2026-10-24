@@ -286,10 +286,10 @@ Screenshots in the main checkout: `.build/fb/agents.png` (item 13), `.build/fb/n
   left, else the new first. A saved selection gone at relaunch (no known order yet) still goes to herdr's active
   tab (spec review).
 - **Item 17, found on CI: the row's `ScrollView` already scrolls on its own while a drop is held near an end**
-  (AppKit's drop autoscroll; lane B's "known limit" was not measured). A step-a-tab-every-0.3-s scroll on top of
-  it fought it: animated, the row crawled and jumped back; without animation, the steps never showed (CI
+  (its drop autoscroll; lane B's "known limit" was not measured). A step-a-tab-every-0.3-s scroll on top of it
+  fought it: animated, the row crawled and jumped back; without animation, the steps never showed (CI
   recordings of 40116980056 and 40117528541, about 60 pt/s at 15 pt from the end). The steps went; the native
-  scroll stays. ponytail: its speed is AppKit's; a faster one needs our own scroll that pauses the native one.
+  scroll stays. ponytail: its speed is the system's; a faster one needs our own scroll that pauses the native one.
 - **Item 18.** Close Tabs to the Right in the capsule's menu, after Close Other Tabs, and Close Other Tabs and
   Close Tabs to the Right in the command list (File menu and palette), for the selected tab. They share
   `Page.closeTabs(besides:right:)` and `.otherTabs(_, right:)`, whose dialog says "Close the 2 tabs to the right?".
