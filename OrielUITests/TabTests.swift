@@ -88,6 +88,21 @@ extension OrielUITests {
         try await expect("the first tab alone") { try await order() == [tabs[0]] }
     }
 
+    /// A tab dragged to the end of an overflowing row and held there scrolls the row, so it can go last.
+    func testHoldingADraggedTabAtTheRowsEndScrollsTheRow() async throws {
+        let tabs = try await newWorkspace("far", tabs: 8).tabs
+        let first = element("tab.\(tabs[0])"), last = element("tab.\(tabs[7])")
+        let rowEnd = element("titlebar.agents").frame.minX - 8
+        XCTAssertTrue(last.exists(within: 3))
+        XCTAssertGreaterThan(last.frame.minX, rowEnd)
+        let from = first.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        // 15 pt inside the row's end; 3 s is time for the five steps the row needs.
+        during(from, to: from.withOffset(CGVector(dx: rowEnd - 15 - first.frame.midX, dy: 0)), hold: 3)
+        try await expect("the first tab last") {
+            try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") }.last == tabs[0]
+        }
+    }
+
     /// The dialog's text, in its label or its value.
     private func sheetText(_ text: String) -> XCUIElement {
         app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text)).firstMatch

@@ -27,8 +27,10 @@
         @State private var hovered: String?
         /// The tab a click or a spring-load selects: it is under the pointer, so the row does not scroll to it.
         @State private var clicked: String?
-        /// Tabs out of view before and after the row's visible part: its edges fade there.
-        @State private var hidden = (leading: false, trailing: false)
+        /// The row's visible part, in the tabs' space: its edges fade where tabs are out of view.
+        @State private var visible: ClosedRange<CGFloat> = 0 ... 0
+        /// The last step of a drag held at an end of the row.
+        @State private var scrolled = Date.distantPast
         /// ⌘ held for 0.7 s: keycaps on the first nine tabs.
         @State private var hints = false
         @State private var pendingHints: Task<Void, Never>?
@@ -40,6 +42,7 @@
         var body: some View {
             let tabs = workspace.tabs, count = CGFloat(tabs.count), width = Self.width
             let content = count * width + count - 1
+            let hidden = (leading: visible.lowerBound > 0.5, trailing: visible.upperBound < content - 0.5)
             // Pages floor(x/w) through ceil((x+w)/w) − 1, that is floor(page)...ceil(page).
             let lit = Int(page.stripPage.rounded(.down)) ... Int(page.stripPage.rounded(.up))
             ScrollViewReader { proxy in
@@ -74,7 +77,8 @@
                     }
                     // In the content's space: the capsule under the pointer, wherever the track scrolled.
                     .onDrop(of: [.orielDrag], delegate: TrackDrop(tabs: tabs, page: page, slot: width + 1,
-                                                                  over: $over, spring: $spring, springLoad: springLoad))
+                                                                  over: $over, spring: $spring, springLoad: springLoad,
+                                                                  held: { scroll(at: $0, proxy) }))
                     .clearsDrop(page) {
                         spring?.cancel() // a late update after the drop may have started one
                         over = nil
@@ -92,11 +96,10 @@
                 .scrollIndicators(.never)
                 // No rubber band while every tab fits: it cut the end tab off at the edge.
                 .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-                .onScrollGeometryChange(for: [Bool].self) { geometry in
-                    [geometry.contentOffset.x > 0.5,
-                     geometry.contentOffset.x + geometry.containerSize.width < geometry.contentSize.width - 0.5]
+                .onScrollGeometryChange(for: ClosedRange<CGFloat>.self) { geometry in
+                    geometry.contentOffset.x ... geometry.contentOffset.x + geometry.containerSize.width
                 } action: {
-                    hidden = ($1[0], $1[1])
+                    visible = $1
                 }
                 // Tabs cut off at an edge fade out there instead of ending sharp.
                 .fadeEdges(.horizontal, start: hidden.leading ? 24 : 0, end: hidden.trailing ? 24 : 0)
@@ -163,6 +166,25 @@
             let place = slot > from ? slot - 1 : slot
             return (Self.width + 1) * CGFloat(index == from ? place - from
                 : from < index && index <= place ? -1 : place <= index && index < from ? 1 : 0)
+        }
+
+        /// A drag held within 40 pt of an end of the row, while tabs are out of view past it, brings one more tab
+        /// into view every 0.3 s (phase 24): the tab that ends past that end. A view holds a tab and the divider
+        /// before it.
+        private func scroll(at place: CGFloat, _ proxy: ScrollViewProxy) {
+            let tabs = workspace.tabs, slot = Self.width + 1, content = CGFloat(tabs.count) * slot - 1
+            guard Date.now.timeIntervalSince(scrolled) > 0.3 else { return }
+            let next: (index: Int, anchor: UnitPoint)
+            if place > visible.upperBound - 40, visible.upperBound < content - 0.5 {
+                next = (Int((visible.upperBound + 1.5) / slot), .trailing)
+            } else if place < visible.lowerBound + 40, visible.lowerBound > 0.5 {
+                next = (Int(((visible.lowerBound + 0.5) / slot).rounded(.up)) - 1, .leading)
+            } else {
+                return
+            }
+            guard tabs.indices.contains(next.index) else { return }
+            scrolled = .now
+            withAnimation(reduceMotion ? nil : .tab) { proxy.scrollTo(tabs[next.index].id, anchor: next.anchor) }
         }
 
         /// Holding a pane over a capsule selects its tab, which pulses once.
