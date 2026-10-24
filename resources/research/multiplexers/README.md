@@ -183,6 +183,30 @@ recommended.
 | Rex | Already designed in `rex-backend.mdx`. The closest model shape. Owner per block. | Panes cannot move to another workspace. One server per user. A closed, commercial product. Status only from OSC 7501 programs. |
 | tuios | The lowest cost: it speaks herdr's API, and its bridge sends trees and raw bytes. | Young and fast-changing. The bridge is hidden with no stability promise. 9 tabs by default. |
 
+## Decision: stay herdr only, and bundle herdr
+
+The user chose to stay herdr only (2026-10-23). The open worry was the extra install, so these facts
+matter:
+
+- **Agent status is part of Oriel's model.** Each pane in the snapshot carries an agent with a status and a
+  finish counter (`completion_seq`). The agents list, dots, notifications and the Dock badge come from it.
+  herdr finds agents itself.
+- **tmux has no agent model.** A tmux backend must make the status itself: agent hooks that set a pane
+  option (`tmux set -p -t "$TMUX_PANE" @oriel_status working`, read with `refresh-client -B`, up to 1 s
+  late), or detection by polling the pane's program, title and screen text, as herdr does. See
+  [tmux.md](tmux.md) section 3.9. Rex gets status only from programs that send OSC 7501. tuios finds agents
+  itself.
+- **No backend removes the install.** macOS does not ship tmux (Homebrew puts it in `/opt/homebrew/bin`).
+  Rex is a separate app, and tuios a separate binary.
+- **Bundling herdr removes it.** herdr is Apache-2.0 (ship its license and NOTICE) and is one 22 MB arm64
+  binary with no other dependencies (0.9.5). The plan, not yet built:
+  - Oriel uses a herdr found on the PATH, else the copy inside `Oriel.app`. The setup screen with the
+    install command goes away for this Mac.
+  - On first connect to an SSH machine without herdr, Oriel copies a herdr build to `~/.local/bin` there,
+    as VS Code Remote installs its server. Linux machines need herdr's Linux build.
+  - Costs: about 22 MB more app, and a new herdr needs a new Oriel release, unless Oriel prefers a newer
+    herdr already on the PATH.
+
 ## Assumptions
 
 - "Fits" means that Oriel's current UI (`plan/ui-layout.md`) works with the tool, with any missing
