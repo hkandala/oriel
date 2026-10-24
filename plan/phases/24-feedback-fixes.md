@@ -192,3 +192,6 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   an earlier test's saved frame hid it; lane A was not the cause. Fix: the default size is at most the screen
   (`defaultWindowPlacement`) and a zoom fills the screen (`windowIdealSize(.maximum)`; alone it did not help).
   The test checks the window stays on screen and lets each zoom settle.
+- **Menu test.** In a full shard other tests' sessions push Open Session's last rows below its 320 pt fold, where a
+  hover lands outside the list: the test hovers a Running row near the top. Full suite green on 2f55b6b (run
+  40083116381).
