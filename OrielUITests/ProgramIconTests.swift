@@ -32,12 +32,13 @@ extension OrielUITests {
         try await expectIcons(first) { Set($0) == ["vim", "sleep", "nano"] }
         XCTAssertTrue(element("pane.\(vim)").label.hasPrefix("vim "))
         XCTAssertTrue(element("pane.\(sleep)").label.hasPrefix("sleep "))
-        // Each card asks as it shows; in the agent's tab herdr's agent wins over the process (sleep).
-        for (tab, icon) in zip(tabs.map(\.tab), ["pager", "logs", "claude"]) {
-            element("tab.\(tab)").click()
+        // Each card asks as it shows; in the agent's tab herdr's agent wins over the process (sleep). Keys, not clicks:
+        // the fourth tab is past the row's end on CI's window.
+        for (index, (tab, icon)) in zip(tabs.map(\.tab), ["pager", "logs", "claude"]).enumerated() {
+            app.typeKey("\(index + 2)", modifierFlags: .command)
             try await expectIcons(tab) { $0 == [icon] }
         }
-        element("tab.\(first)").click()
+        app.typeKey("1", modifierFlags: .command)
         XCTAssertTrue(element("pane.\(vim)").has(\.isHittable, true, within: 2))
         keepScreenshot("program icons")
 
@@ -53,9 +54,9 @@ extension OrielUITests {
     /// from the start, not theirs for a moment (phase 24).
     func testANewTabShowsNoIconOfItsShellsStartup() async throws {
         let (tabs, pane) = try await newWorkspace("startup")
-        // A home whose rc files sleep 0.7 s, for zsh and bash, written by a shell.
+        // A home whose rc files sleep 2 s, past the first second, for zsh and bash, written by a shell.
         let home = "/tmp/\(one)-startup"
-        try await send("mkdir -p \(home) && echo 'sleep 0.7' | tee \(home)/.zshrc > \(home)/.bash_profile"
+        try await send("mkdir -p \(home) && echo 'sleep 2' | tee \(home)/.zshrc \(home)/.bashrc > \(home)/.bash_profile"
             + " && echo rc-$((6*7))\r", to: pane)
         try await waitFor(pane) { $0.contains("\nrc-42") }
         let created = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: tabs[0]), "cwd": "/tmp",
@@ -64,12 +65,10 @@ extension OrielUITests {
         XCTAssertTrue(capsule.exists(within: 2))
         // Shown at once: its card asks as it shows.
         app.typeKey("2", modifierFlags: .command)
+        XCTAssertTrue(capsule.has(\.isSelected, true, within: 1))
         let running = try await foreground(id(created, "root_pane"))
         XCTAssertTrue(running.contains("sleep"), "the startup ended before the card showed: \(running)")
-        for _ in 0 ..< 15 {
-            XCTAssertFalse((capsule.value as? String)?.contains("sleep") == true, "the startup's icon")
-            try await Task.sleep(for: .milliseconds(100))
-        }
+        XCTAssertFalse(until(2) { (capsule.value as? String)?.contains("sleep") == true }, "the startup's icon")
         try await expectIcons(tab) { $0 == ["terminal"] }
     }
 

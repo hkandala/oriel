@@ -149,6 +149,62 @@ extension HostStore {
     }
 }
 
+extension HostStore {
+    /// One `pane.process_info`; the icon follows. Only the latest ask lands; a failed first one is made again.
+    func askProgram(_ paneID: String) async {
+        guard let client, let pane = pane(paneID), !pane.starting else { return }
+        pane.asked = true
+        pane.asks += 1
+        let ask = pane.asks
+        do {
+            let program = try await client.program(paneID)
+            if ask == pane.asks {
+                pane.program = program
+            }
+        } catch {
+            if ask == pane.asks, pane.program == nil {
+                pane.asked = false
+            }
+        }
+    }
+
+    /// Asks what the pane runs: when it is new (or a new terminal under a reused id), and when its agent or title word
+    /// changes. A progress title ("build 51%") changes on and on; its first word does not.
+    func watchProgram(_ pane: Pane, _ new: HerdrKit.Pane) {
+        if new.terminalID != pane.terminalID {
+            pane.program = nil
+            pane.asked = false
+            pane.asks += 1 // the old terminal's answer in flight
+        }
+        let word = { (title: String?) in title?.split(separator: " ").first }
+        if pane.asked, new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
+            Task { await askProgram(pane.id) }
+        }
+        // Every pane once, for its tab's icons and the hover card, also in tabs never shown; a failed ask is made
+        // again. A new pane a second later, as after Return, and no other ask before (its card's as it shows): a new
+        // shell's startup runs short-lived programs. The first snapshot's at once: their shells started long ago.
+        if !pane.asked {
+            pane.asked = true
+            pane.starting = state == .live
+            Task {
+                if pane.starting {
+                    try? await Task.sleep(for: .seconds(1))
+                    // A slow startup (a cold nvm) runs on: then until only the shell runs, 3 s more at most.
+                    // ponytail: one sample of the shell alone can fall between two startup programs; require two in
+                    // a row if a guess still shows.
+                    var tries = 0
+                    while tries < 6, await (try? client?.program(pane.id))?.isShell == false {
+                        tries += 1
+                        try? await Task.sleep(for: .milliseconds(500))
+                    }
+                    pane.starting = false
+                }
+                await askProgram(pane.id)
+            }
+        }
+    }
+}
+
 /// Keeps the object of each id that stays, makes the new ones, and replaces the list only when its
 /// ids changed, so views of the list redraw only then.
 @MainActor

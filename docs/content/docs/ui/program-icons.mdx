@@ -66,7 +66,9 @@ only at these times:
   pane or a new terminal under a reused pane id, and again at the next
   snapshot if it failed. A new shell's startup runs short-lived programs (a
   `.zshrc` that runs `gh auth token`), so no other ask is made in that first
-  second, and the new tab shows the `terminal` icon until then;
+  second, nor after it while a program other than the shell still runs (every
+  0.5 s, 3 s at most: a slow startup). The new tab shows the `terminal` icon
+  until then;
 - each time the pane shows in a card;
 - 1 s after the user presses Return in that card;
 - when a snapshot shows that the pane's agent or the first word of its
