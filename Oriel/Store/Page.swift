@@ -12,7 +12,20 @@
         /// The app's own selection, never herdr's focus (D13).
         var selectedWorkspaceID: String?
         /// Each workspace's selected tab. Starts at herdr's active tab.
-        var selectedTabIDs: [String: String] = [:]
+        var selectedTabIDs: [String: String] = [:] {
+            didSet {
+                for (workspace, tab) in oldValue where selectedTabIDs[workspace] != tab {
+                    usedTabIDs[workspace, default: []].removeAll { $0 == tab }
+                    usedTabIDs[workspace, default: []].append(tab)
+                }
+            }
+        }
+
+        /// Each workspace's tabs selected before, the latest last: a closed selected tab gives way to the latest that
+        /// is still there. ponytail: closed tabs stay listed (a few ids each); prune them if that ever matters.
+        @ObservationIgnored private var usedTabIDs: [String: [String]] = [:]
+        /// Each workspace's tab order at the last snapshot, for the tab left of a closed one.
+        @ObservationIgnored private var tabOrder: [String: [String]] = [:]
         /// The app's own zoom (design D11): this card fills its tab's page.
         var zoomedPaneID: String? {
             didSet { zoomedTabID = zoomedPaneID.flatMap(store.pane)?.tabID }
@@ -72,15 +85,25 @@
             }
         }
 
-        /// After each snapshot: a selection that is gone falls back to herdr's active tab or focused workspace, and
-        /// a tab this page made is selected once it shows.
+        /// After each snapshot: a closed selected tab gives way to the tab used before it, else the one to its left,
+        /// else the new first (phase 24); a workspace's first selection is herdr's active tab. A gone workspace falls
+        /// back to herdr's focused one, and a tab this page made is selected once it shows.
         func settle() {
-            for workspace in store.workspaces where !workspace.tabs.contains(where: {
-                $0.id == selectedTabIDs[workspace.id]
-            }) {
-                selectedTabIDs[workspace.id] = workspace.tabs.contains { $0.id == workspace.activeTabID }
-                    ? workspace.activeTabID : workspace.tabs.first?.id
+            for workspace in store.workspaces {
+                let ids = workspace.tabs.map(\.id)
+                switch selectedTabIDs[workspace.id] {
+                case let selected? where ids.contains(selected):
+                    continue
+                case let gone?:
+                    let left = tabOrder[workspace.id]?.prefix { $0 != gone }.last(where: ids.contains)
+                    selectedTabIDs[workspace.id] = usedTabIDs[workspace.id]?.last(where: ids.contains) ?? left
+                        ?? ids.first
+                case nil:
+                    selectedTabIDs[workspace.id] = ids.contains(workspace.activeTabID) ? workspace.activeTabID
+                        : ids.first
+                }
             }
+            tabOrder = Dictionary(store.workspaces.map { ($0.id, $0.tabs.map(\.id)) }, uniquingKeysWith: { $1 })
             // The find bar's pane closed, or moved to another workspace (a new id).
             if let find, store.pane(find.paneID) == nil {
                 self.find = nil
@@ -323,7 +346,9 @@
         func newWorkspace(label: String? = nil, cwd: String = NSHomeDirectory()) async {
             arriving = await store.newWorkspace(label: label, cwd: cwd)?.id ?? arriving
         }
+    }
 
+    extension Page {
         /// Go to Directory (`directory`, a `cd`) or Insert Path: the system panel at the keyboard card's folder, fresh
         /// from herdr, then the chosen path typed into the card, quoted. Go to Directory asks again that the card runs
         /// only its shell (D41). ponytail: This Mac only; remote machines need another picker.
