@@ -226,12 +226,13 @@ extension OrielUITests {
         XCTAssertTrue(fades.has(\.stringValue, "leading", within: 2))
         keepScreenshot("scrolled to the last tab")
 
-        // Half a tab back with a sideways scroll: tabs are cut off at both ends.
-        try await swipe(last, by: 110, until: fades, \.stringValue, "leading, trailing")
+        // A tab and a half back with a sideways scroll: tabs are cut off at both ends.
+        try await swipe(last, by: 330, until: fades, \.stringValue, "leading, trailing")
         // A click on the one cut off at the end selects it where it is: no scroll.
         let cut = try XCTUnwrap(capsules.first { $0.frame.minX < rowEnd - 20 && $0.frame.maxX > rowEnd },
                                 "\(capsules.map(\.frame.minX)) to \(rowEnd)")
         let start = cut.frame.minX
+        XCTAssertFalse(cut.isSelected)
         cut.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5)).withOffset(CGVector(dx: 10, dy: 0)).click()
         XCTAssertTrue(cut.has(\.isSelected, true, within: 2))
         XCTAssertFalse(until(0.6) { abs(cut.frame.minX - start) > 0.5 }, "scrolled from \(start) to \(cut.frame.minX)")
@@ -240,11 +241,12 @@ extension OrielUITests {
         app.typeKey("1", modifierFlags: .command)
         XCTAssertTrue(first.has(\.isSelected, true, within: 2))
         app.typeKey("t", modifierFlags: .command)
+        // herdr puts it last.
         let made = try await poll("the new tab") {
-            try await tabsOf(workspace(of: tabs[0])).map(\.id).first { !tabs.contains($0) }
+            try await tabsOf(workspace(of: tabs[0])).last.flatMap { tabs.contains($0.id) ? nil : $0.id }
         }
         XCTAssertTrue(element("tab.\(made)").has(\.isSelected, true, within: 3))
-        XCTAssertLessThanOrEqual(element("tab.\(made)").frame.maxX, rowEnd + 1)
+        XCTAssertTrue(until(1) { element("tab.\(made)").frame.maxX <= rowEnd + 1 })
     }
 
     func testHoldingCommandShowsKeycaps() async throws {

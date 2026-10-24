@@ -29,7 +29,8 @@ extension OrielUITests {
         // Shown for the first time: the app asks herdr what runs.
         element("workspace.\(workspace)").click()
         element("titlebar.sidebar").click()
-        try await expectIcons(first) { Set($0) == ["vim", "sleep", "nano"] }
+        // New panes: up to 4 s until only a program, not the shell's startup, runs.
+        try await expectIcons(first, within: 6) { Set($0) == ["vim", "sleep", "nano"] }
         XCTAssertTrue(element("pane.\(vim)").label.hasPrefix("vim "))
         XCTAssertTrue(element("pane.\(sleep)").label.hasPrefix("sleep "))
         // Each card asks as it shows; in the agent's tab herdr's agent wins over the process (sleep). Keys, not clicks:
