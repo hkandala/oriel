@@ -49,6 +49,30 @@ extension OrielUITests {
         try await expectIcons(first, within: 2) { $0 == ["terminal", "sleep", "nano"] }
     }
 
+    /// A shell's startup runs short-lived programs (a .zshrc's `gh auth token`): the new tab's icon is the shell's
+    /// from the start, not theirs for a moment (phase 24).
+    func testANewTabShowsNoIconOfItsShellsStartup() async throws {
+        let (tabs, pane) = try await newWorkspace("startup")
+        // A home whose rc files sleep 0.7 s, for zsh and bash, written by a shell.
+        let home = "/tmp/\(one)-startup"
+        try await send("mkdir -p \(home) && echo 'sleep 0.7' | tee \(home)/.zshrc > \(home)/.bash_profile"
+            + " && echo rc-$((6*7))\r", to: pane)
+        try await waitFor(pane) { $0.contains("\nrc-42") }
+        let created = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: tabs[0]), "cwd": "/tmp",
+                                                              "env": ["HOME": home, "ZDOTDIR": home], "focus": false])
+        let tab = try id(created, "tab"), capsule = element("tab.\(tab)")
+        XCTAssertTrue(capsule.exists(within: 2))
+        // Shown at once: its card asks as it shows.
+        app.typeKey("2", modifierFlags: .command)
+        let running = try await foreground(id(created, "root_pane"))
+        XCTAssertTrue(running.contains("sleep"), "the startup ended before the card showed: \(running)")
+        for _ in 0 ..< 15 {
+            XCTAssertFalse((capsule.value as? String)?.contains("sleep") == true, "the startup's icon")
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        try await expectIcons(tab) { $0 == ["terminal"] }
+    }
+
     /// Waits for the capsule's icon ids (front first) to pass `check`.
     private func expectIcons(_ tab: String, within seconds: Int = 3, _ check: ([String]) -> Bool) async throws {
         let capsule = element("tab.\(tab)")

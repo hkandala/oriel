@@ -63,8 +63,10 @@ The app asks for the foreground process with one `pane.process_info` call,
 only at these times:
 - once for every pane when it first appears in a snapshot, also in tabs never
   shown: at once for the panes of the first snapshot, 1 s later for a new
-  pane (a new shell's startup runs short-lived programs), and again at the
-  next snapshot if it failed;
+  pane or a new terminal under a reused pane id, and again at the next
+  snapshot if it failed. A new shell's startup runs short-lived programs (a
+  `.zshrc` that runs `gh auth token`), so no other ask is made in that first
+  second, and the new tab shows the `terminal` icon until then;
 - each time the pane shows in a card;
 - 1 s after the user presses Return in that card;
 - when a snapshot shows that the pane's agent or the first word of its

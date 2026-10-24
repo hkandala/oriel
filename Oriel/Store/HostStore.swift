@@ -162,7 +162,7 @@ final class HostStore {
 
     /// One `pane.process_info`; the icon follows. Only the latest ask lands; a failed first one is made again.
     func askProgram(_ paneID: String) async {
-        guard let client, let pane = pane(paneID) else { return }
+        guard let client, let pane = pane(paneID), !pane.starting else { return }
         pane.asked = true
         pane.asks += 1
         let ask = pane.asks
@@ -230,26 +230,27 @@ final class HostStore {
         return changes
     }
 
-    /// Asks what the pane runs: once when it is new, and again when another terminal (herdr reused the id), agent or
-    /// title word may mean another program. A progress title ("build 51%") changes on and on; its first word does not.
+    /// Asks what the pane runs: when it is new (or a new terminal under a reused id), and when its agent or title word
+    /// changes. A progress title ("build 51%") changes on and on; its first word does not.
     private func watchProgram(_ pane: Pane, _ new: HerdrKit.Pane) {
-        let reused = new.terminalID != pane.terminalID
-        if reused {
+        if new.terminalID != pane.terminalID {
             pane.program = nil
+            pane.asked = false
         }
         let word = { (title: String?) in title?.split(separator: " ").first }
-        if pane.asked, reused || new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
+        if pane.asked, new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
             Task { await askProgram(pane.id) }
         }
         // Every pane once, for its tab's icons and the hover card, also in tabs never shown; a failed ask is made
-        // again. A new pane a second later, as after Return: a new shell's startup runs short-lived programs (`sort`).
-        // The first snapshot's at once: their shells started long ago.
+        // again. A new pane a second later, as after Return, and no other ask before (its card's as it shows): a new
+        // shell's startup runs short-lived programs. The first snapshot's at once: their shells started long ago.
         if !pane.asked {
             pane.asked = true
-            let new = state == .live
+            pane.starting = state == .live
             Task {
-                if new {
+                if pane.starting {
                     try? await Task.sleep(for: .seconds(1))
+                    pane.starting = false
                 }
                 await askProgram(pane.id)
             }

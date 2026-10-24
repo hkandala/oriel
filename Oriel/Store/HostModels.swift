@@ -68,6 +68,9 @@ extension HostStore {
         @ObservationIgnored var asked = false
         /// Asks made, so only the latest answer lands.
         @ObservationIgnored var asks = 0
+        /// A new pane's first second, when no ask is made: its shell's startup runs short-lived programs (`gh auth
+        /// token`, `brew shellenv` in a .zshrc), and an answer then showed their icons before the shell's.
+        @ObservationIgnored var starting = false
 
         init(id: String) {
             self.id = id
