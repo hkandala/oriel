@@ -8,8 +8,9 @@ extension HostStore {
     enum Close {
         case pane(String, program: String)
         case tab(String)
-        /// The other tabs of a workspace, as they were when the user asked: a tab made since is not closed.
-        case otherTabs([String])
+        /// The other tabs of a workspace, or the ones to the right of a tab, as they were when the user asked: a tab
+        /// made since is not closed.
+        case otherTabs([String], right: Bool = false)
         /// A workspace, with its linked worktrees' workspaces when it has any.
         case workspace(String)
     }

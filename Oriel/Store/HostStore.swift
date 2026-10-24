@@ -299,7 +299,7 @@ extension HostStore {
         switch close {
         case let .pane(id, _): await write { try await $0.close(pane: id) }
         case let .tab(id): await write { try await $0.close(tab: id) }
-        case let .otherTabs(asked):
+        case let .otherTabs(asked, _):
             // Not ones closed meanwhile (their close would fail the rest), and all at once: one by one, 20 tabs took
             // seconds and the bar showed each step.
             let others = asked.filter { workspace(of: $0) != nil }

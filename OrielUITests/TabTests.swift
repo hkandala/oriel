@@ -65,4 +65,31 @@ extension OrielUITests {
         try await Self.call(one, "tab.close", ["tab_id": tabs[4]])
         XCTAssertTrue(capsules[3].has(\.isSelected, true, within: 3))
     }
+
+    /// Close Tabs to the Right, from a capsule's menu and from the palette, asks once and keeps the tabs on the left.
+    func testCloseTabsToTheRightKeepsTheTabsOnTheLeft() async throws {
+        let tabs = try await newWorkspace("right", tabs: 4).tabs
+        let workspace = workspace(of: tabs[0])
+        let order: () async throws -> [String] = { try await self.tabIDs().filter { $0.hasPrefix("\(workspace):") } }
+        let confirm = app.sheets.buttons["Close Tabs"]
+        element("tab.\(tabs[1])").rightClick()
+        app.menuItems["Close Tabs to the Right"].click()
+        XCTAssertTrue(sheetText("Close the 2 tabs to the right?").exists(within: 2))
+        confirm.click()
+        try await expect("the two tabs on the left") { try await order() == [tabs[0], tabs[1]] }
+        XCTAssertTrue(element("tab.\(tabs[2])").vanishes(within: 2))
+
+        // The selected tab's (the first).
+        openPalette()
+        app.typeText("close tabs to the right")
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(sheetText("Close the tab to the right?").exists(within: 2))
+        confirm.click()
+        try await expect("the first tab alone") { try await order() == [tabs[0]] }
+    }
+
+    /// The dialog's text, in its label or its value.
+    private func sheetText(_ text: String) -> XCUIElement {
+        app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text)).firstMatch
+    }
 }

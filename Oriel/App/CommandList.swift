@@ -42,6 +42,18 @@
                                 page.closing = .tab(tab.id)
                             }
                         }),
+                Command(section: .close, title: "Close Other Tabs", symbol: "xmark.rectangle.fill",
+                        enabled: (workspace?.tabs.count ?? 0) > 1, action: {
+                            if let page, let tab = page.selectedTab {
+                                page.closeTabs(besides: tab.id, right: false)
+                            }
+                        }),
+                Command(section: .close, title: "Close Tabs to the Right", symbol: "arrow.right.to.line.compact",
+                        enabled: tab != nil && workspace?.tabs.last?.id != tab?.id, action: {
+                            if let page, let tab = page.selectedTab {
+                                page.closeTabs(besides: tab.id, right: true)
+                            }
+                        }),
                 Command(section: .close, title: "Close Workspace", symbol: "folder.badge.minus",
                         enabled: workspace != nil, action: {
                             if let page, let workspace = page.selectedWorkspace {

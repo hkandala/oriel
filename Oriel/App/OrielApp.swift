@@ -302,9 +302,10 @@ struct OrielApp: App {
             case let .tab(id):
                 let tab = store.workspaces.flatMap(\.tabs).first { $0.id == id }
                 return ("Close the tab “\(tab.map(page.titleText) ?? id)”?", "Its " + them(panes([id])) + end)
-            case let .otherTabs(others):
-                return ("Close \(others.count == 1 ? "the other tab" : "the \(others.count) other tabs")?",
-                        "Their " + them(panes(others)) + end)
+            case let .otherTabs(others, right):
+                let which = others.count == 1 ? right ? "the tab to the right" : "the other tab"
+                    : right ? "the \(others.count) tabs to the right" : "the \(others.count) other tabs"
+                return ("Close \(which)?", "Their " + them(panes(others)) + end)
             case let .pane(id, program):
                 let name = store.pane(id).map { $0.label ?? $0.folder ?? "terminal" } ?? id
                 return ("Close “\(name)”?", "\(program) is running in it and" + end)

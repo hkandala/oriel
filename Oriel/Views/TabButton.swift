@@ -142,8 +142,10 @@
                 .disabled(tabs.last?.id == tab.id)
             Divider()
             Button("Close Tab") { page.closing = .tab(tab.id) }
-            Button("Close Other Tabs") { page.closing = .otherTabs(tabs.map(\.id).filter { $0 != tab.id }) }
+            Button("Close Other Tabs") { page.closeTabs(besides: tab.id, right: false) }
                 .disabled(tabs.count < 2)
+            Button("Close Tabs to the Right") { page.closeTabs(besides: tab.id, right: true) }
+                .disabled(tabs.last?.id == tab.id)
         }
 
         /// The keyboard goes back to the tab's card.
@@ -155,6 +157,16 @@
     }
 
     extension Page {
+        /// Close Other Tabs, or Close Tabs to the Right (`right`), of the tab: asks first.
+        func closeTabs(besides tabID: String, right: Bool) {
+            guard let tabs = store.workspace(of: tabID)?.tabs.map(\.id), let index = tabs.firstIndex(of: tabID)
+            else { return }
+            let others = right ? Array(tabs[(index + 1)...]) : tabs.filter { $0 != tabID }
+            if !others.isEmpty {
+                closing = .otherTabs(others, right: right)
+            }
+        }
+
         /// The title with its folder dimmed, for the capsule and the hover card.
         func titleLabel(_ tab: HostStore.Tab) -> Text {
             let title = title(tab)
