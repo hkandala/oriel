@@ -78,14 +78,14 @@
 
     /// Marks the strip's scroll view for the router, with the page turn for wheels.
     struct StripAnchor: NSViewRepresentable {
-        let page: Page
+        let step: (Int) -> Void
 
         func makeNSView(context _: Context) -> Anchor {
-            Anchor(step: page.step)
+            Anchor(step: step)
         }
 
         func updateNSView(_ view: Anchor, context _: Context) {
-            view.step = page.step
+            view.step = step
         }
 
         final class Anchor: NSView {

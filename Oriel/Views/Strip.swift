@@ -3,12 +3,16 @@
     import SwiftUI
 
     /// One full-size page per tab of the workspace, paged sideways. The selection follows the page in view when the
-    /// scroll stops; a new selection (a click, a key) scrolls there, so the tab marker moves the same way either time.
+    /// scroll stops. A new selection (a click, a key, a new or closed tab) shows its page at once: only a scroll
+    /// gesture or a mouse's wheel slides (phase 24).
     struct Strip: View {
         let workspace: HostStore.Workspace
         let page: Page
         /// The page in view, as the scroll view has it.
         @State private var position = ScrollPosition(idType: String.self)
+        /// e2e (`-recordStrip YES`): the scroll updates that left the strip between two pages, that is, a slide.
+        @State private var between = 0
+        private static let record = UserDefaults.standard.bool(forKey: "recordStrip")
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
@@ -33,7 +37,7 @@
                     }
                 }
                 .scrollTargetLayout()
-                .background(StripAnchor(page: page))
+                .background(StripAnchor(step: turn))
             }
             .scrollTargetBehavior(.paging)
             .scrollPosition($position, anchor: .leading)
@@ -45,7 +49,11 @@
                 return abs(page - page.rounded()) * width < 1 ? page.rounded() : (page * 1000).rounded() / 1000
             } action: {
                 page.stripPage = $1
+                if Self.record, $1 != $1.rounded() {
+                    between += 1
+                }
             }
+            .testValue("strip.between", "Strip Between Pages", "\(between)", shown: Self.record)
             .onScrollPhaseChange { _, phase in
                 // Not a page of the workspace that was shown before a switch.
                 if phase == .idle, let shown = position.viewID(type: String.self),
@@ -54,18 +62,23 @@
                     page.selectedTabIDs[workspace.id] = shown
                 }
             }
-            // One strip for every workspace: a new one jumps to its selected tab, a new tab in the same one scrolls.
-            .onChange(of: [workspace.id, page.selectedTabIDs[workspace.id]], initial: true) { old, new in
+            // One strip for every workspace. The tab marker follows the scroll.
+            .onChange(of: [workspace.id, page.selectedTabIDs[workspace.id]], initial: true) {
                 guard let target = page.selectedTabIDs[workspace.id],
                       position.viewID(type: String.self) != target else { return }
-                let animate = old != new && old.first == new.first && !reduceMotion
-                // The tab marker follows the scroll.
-                withAnimation(animate ? .tab : nil) { position.scrollTo(id: target, anchor: .leading) }
-                if old.first != new.first {
-                    // Another workspace's pages lay out in this same update, and a scroll to one of them can miss (a
-                    // new workspace came up blank): scroll again once they have.
-                    Task { position.scrollTo(id: target, anchor: .leading) }
-                }
+                withTransaction(\.animation, nil) { position.scrollTo(id: target, anchor: .leading) }
+                // A page that lays out in this same update (another workspace's, a new tab's) can miss the scroll (a
+                // new workspace came up blank): again once it has.
+                Task { position.scrollTo(id: target, anchor: .leading) }
+            }
+        }
+
+        /// A mouse's sideways wheel turns a page with Rex's spring, as a swipe would. The scroll is there before the
+        /// selection's change runs, so that change does not scroll again.
+        private func turn(_ offset: Int) {
+            page.step(offset)
+            if let target = page.selectedTabIDs[workspace.id] {
+                withAnimation(reduceMotion ? nil : .tab) { position.scrollTo(id: target, anchor: .leading) }
             }
         }
     }
