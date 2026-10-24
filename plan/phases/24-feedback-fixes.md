@@ -125,3 +125,32 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   clicks (`ProgramIconTests`), and one test uses a split instead of a fourth tab (`AgentTests`). CI's shell is
   bash; the startup test writes `.zshrc`, `.bashrc` and `.bash_profile` into a throwaway `HOME` passed through
   `tab.create`'s `env`. CI: 40077507385 and 40077694680 green (the lane's tests and the tab tests).
+
+### Lane C: right click and drops (items 8, 9)
+
+- **Root cause, right click.** `PaneSurfaceView` sent every right click to herdr as a mouse event and to
+  libghostty. herdr hands a click to the program only when it reads the mouse, and libghostty only showed its
+  own Copy menu over a selection; so in a shell nothing happened. herdr 0.9.5's TUI (`client/shell/mouse.rs`)
+  opens its pane menu on a right click unless the program reads the mouse and either the pane's
+  `right_click = pane` flag (`pane input-set`, `pane split`) is set or the click's modifiers equal
+  `right_click_passthrough_modifier` exactly (default off).
+- **Decision, right click.** A right click goes up the responder chain to a SwiftUI `.contextMenu` on the
+  terminal: Copy, Paste, Select All (sent to that terminal's view, not the keyboard card), then the header's
+  pane commands. ⌥ alone sends the click to the program with ⌥ stripped, as herdr with the modifier set to
+  `alt`. herdr's per-pane flag is not in the socket API's `PaneInfo`, so Oriel ignores it. ⌃-click stays a
+  ⌃-left click for the program (not in the item).
+- **Root cause, drops.** The terminal view registered for no drag types. herdr itself does nothing with
+  drops: its host terminal pastes. Ghostty (macOS) pastes file URLs as `Shell.escape` paths (a backslash
+  before space and `\()[]{}<>"'`!#$&;|*?` and tab), joined by spaces, through `pasteText`: a bracketed
+  paste. Oriel does the same with libghostty's `paste(text:)`, which herdr frames again for the program.
+- **Decision, drops.** Order: file URLs, then image data (saved as `image.png` in a new `$TMPDIR/oriel-*`
+  folder), then a file promise (browsers may give only that), received into such a folder. Web URLs and text
+  are not taken. Only `.fileURL`, `.tiff`, `.png` and the promise types are registered, so a pane drag
+  (`orielDrag`) goes on to the card's drop zones. ponytail: only the first promise is received, each of its
+  files pasted on its own; paths are This Mac's (no remote machines yet).
+- **Learned.** On macOS, `XCUICoordinate.press(forDuration:thenDragTo:)` moves nothing (it is the touch API);
+  `click(forDuration:thenDragTo:)` drags. A drag from Finder works in a UI test: the e2e helper makes the
+  file and `open -R`s it; Finder's window opens at 920 × 436 pt at the top on CI, so the drop goes on the
+  terminal below it.
+- **For the user to check by hand:** dragging an image from Safari, from Chrome and from a screenshot
+  thumbnail (no CI test drives those); a ⌥-right click in a mouse app (lazygit, vim with `mouse=a`).
