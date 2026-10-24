@@ -10,7 +10,7 @@ extension HostStore {
         case tab(String)
         /// The other tabs of a workspace, or the ones to the right of a tab, as they were when the user asked: a tab
         /// made since is not closed.
-        case otherTabs([String], right: Bool = false)
+        case otherTabs([String], right: Bool)
         /// A workspace, with its linked worktrees' workspaces when it has any.
         case workspace(String)
     }
