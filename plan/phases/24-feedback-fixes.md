@@ -269,3 +269,39 @@ Screenshots in the main checkout: `.build/fb/agents.png` (item 13), `.build/fb/n
 - **Known limit.** A watcher does not hold (it cannot resize, so it shows the reflow, as before); on ⌘± it can
   still show the garbled frames. bash's own redraw of a wrapped prompt after `SIGWINCH` leaves a stray piece of
   the prompt on its line (CI's right-hand cards); that is herdr's screen, not the card.
+
+### Lane E (items 14, 16, 17, 18)
+
+- **Root cause, item 14.** `Strip`'s selection change scrolled with `withAnimation(.tab)` whenever the workspace
+  stayed the same, so every click, +, ⌘T, ⌘1–9, ⇧⌘[ ], palette pick and close slid the strip, and the tab marker
+  (it reads the strip's offset) slid with it. Lane B had made only the tab row's own scroll instant. Now every
+  selection change scrolls the strip without animation, and once more a turn later for a page that lays out in
+  the same update (a new tab, another workspace). The mouse wheel's page turn (`SwipeRouter` → `Strip.turn`)
+  keeps the spring: it scrolls before the selection's change runs, so that change has nothing to do. Trackpad
+  swipes are unchanged.
+- **Root cause, item 16.** `Page.settle` fell back to herdr's active tab, else the first tab, for any gone
+  selection; herdr's active tab is the first in most workspaces made with `focus:false`. `Page` now keeps each
+  workspace's used tabs (a `didSet` on `selectedTabIDs`, pruned to live tabs each snapshot) and the last
+  snapshot's tab order: a closed selected tab gives way to the latest used tab still open, else the one on its
+  left, else the new first. A saved selection gone at relaunch (no known order yet) still goes to herdr's active
+  tab (spec review).
+- **Item 17, found on CI: the row's `ScrollView` already scrolls on its own while a drop is held near an end**
+  (AppKit's drop autoscroll; lane B's "known limit" was not measured). A step-a-tab-every-0.3-s scroll on top of
+  it fought it: animated, the row crawled and jumped back; without animation, the steps never showed (CI
+  recordings of 40116980056 and 40117528541, about 60 pt/s at 15 pt from the end). The steps went; the native
+  scroll stays. ponytail: its speed is AppKit's; a faster one needs our own scroll that pauses the native one.
+- **Item 18.** Close Tabs to the Right in the capsule's menu, after Close Other Tabs, and Close Other Tabs and
+  Close Tabs to the Right in the command list (File menu and palette), for the selected tab. They share
+  `Page.closeTabs(besides:right:)` and `.otherTabs(_, right:)`, whose dialog says "Close the 2 tabs to the right?".
+  The new File menu items made `app.menuItems["Close Other Tabs"]` ambiguous in a test; tests pick the capsule's
+  menu through the window.
+- **Tests** (`TabTests.swift`). `testSwitchingTabsShowsTheirPageAtOnce`: `-recordStrip YES` counts strip scroll
+  updates between two pages; a click, ⌘2, ⇧⌘], the palette, + then ⌥⌘W, and ⌘T then a herdr close add none, and
+  a swipe at the end does (the counter sees slides). The recording, frame-diffed over the strip: each of those
+  switches is a one-frame change; the swipe spans many. `testClosingTheSelectedTabGoesToTheOneUsedBefore`,
+  `testCloseTabsToTheRightKeepsTheTabsOnTheLeft` (menu and palette), `testHoldingADraggedTabAtTheRowsEndScrollsTheRow`
+  (held 6 s 5 pt inside the end, the tab lands past the fourth; without a scroll it lands third).
+- **CI.** 40116980056 (first run: the two menu tests and the step scroll failed), 40117528541 (step scroll still
+  red), 40118101919 (the lane's tests green with the native scroll; the artifact upload failed, an infra error).
+- **For the user to check by hand:** the drag scroll's speed near each end of a long tab row (it is AppKit's
+  pace, slow at the edge zone's inner side); a mouse wheel's sideways page turn still slides.
