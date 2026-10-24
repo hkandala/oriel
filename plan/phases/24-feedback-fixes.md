@@ -303,5 +303,6 @@ Screenshots in the main checkout: `.build/fb/agents.png` (item 13), `.build/fb/n
   (held 6 s 5 pt inside the end, the tab lands past the fourth; without a scroll it lands third).
 - **CI.** 40116980056 (first run: the two menu tests and the step scroll failed), 40117528541 (step scroll still
   red), 40118101919 (the lane's tests green with the native scroll; the artifact upload failed, an infra error).
-- **For the user to check by hand:** the drag scroll's speed near each end of a long tab row (it is AppKit's
+  Full suite green on a3cc82c, the lane's last code commit (40118101618).
+- **For the user to check by hand:** the drag scroll's speed near each end of a long tab row (the system's
   pace, slow at the edge zone's inner side); a mouse wheel's sideways page turn still slides.
