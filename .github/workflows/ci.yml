@@ -68,7 +68,7 @@ jobs:
           ONLY: ${{ inputs.only_testing }}
       - if: ${{ !inputs.only_testing }}
         run: make e2e SHARD=${{ matrix.shard }}/4
-      - if: ${{ matrix.shard == 0 }}
+      - if: ${{ !cancelled() && matrix.shard == 0 }}
         run: make strip-check
       # Green runs too: their screen recordings are the phases' screenshots.
       - if: always()

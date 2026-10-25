@@ -1,6 +1,7 @@
 // Run by scripts/strip-check.sh: launches Oriel on the session, then three times shows the 4th tab of w1 (⌃⌘1, ⌘4)
 // and switches to w2 (⌃⌘2), and checks w2's card is drawn. The second ⌘4 selects the tab in view again, which
-// draws the strip again; on the old code the switch after it showed an empty strip.
+// draws the strip again; on the old code the switch after it showed an empty strip. Last, the tabs around w1's 4th
+// close under it (Close Other Tabs, or another client), and its card must still show.
 // Usage: swift scripts/strip-check.swift <Oriel binary> <session> <folder for the captures>
 import AppKit
 
@@ -8,13 +9,15 @@ let arguments = CommandLine.arguments
 let (binary, session, out) = (arguments[1], arguments[2], arguments[3])
 let app = Process()
 app.executableURL = URL(fileURLWithPath: binary)
-app.arguments = ["-session", session, "-ApplePersistenceIgnoreState", "YES"]
+// Classic: an opaque window, so the desktop does not show in the captures.
+app.arguments = ["-session", session, "-ApplePersistenceIgnoreState", "YES", "-interfaceStyle", "classic"]
 try app.run()
 let pid = app.processIdentifier
 
 func fail(_ text: String) -> Never {
     print("strip-check: \(text)")
     app.terminate()
+    app.waitUntilExit()
     exit(1)
 }
 
@@ -39,13 +42,10 @@ func window() -> Window? {
 
 /// Waits up to `seconds` for the window's title to contain `text`.
 func waitForTitle(_ text: String, _ seconds: Double) -> Bool {
-    for _ in 0 ..< Int(seconds * 10) {
-        if window()?.title.contains(text) == true {
-            return true
-        }
+    for _ in 0 ..< Int(seconds * 10) where window()?.title.contains(text) != true {
         usleep(100_000)
     }
-    return false
+    return window()?.title.contains(text) == true
 }
 
 func key(_ code: CGKeyCode, _ flags: CGEventFlags) {
@@ -76,22 +76,39 @@ func spread(_ path: String, frame: CGRect) -> Double {
     return (values.map { ($0 - mean) * ($0 - mean) }.reduce(0, +) / Double(max(values.count, 1))).squareRoot()
 }
 
-// US layout key codes.
-let one: CGKeyCode = 18, two: CGKeyCode = 19, four: CGKeyCode = 21
-var shown: Window?
-for _ in 0 ..< 300 where shown == nil {
-    usleep(100_000)
-    shown = window()
+//// Captures the window into `name`.png and fails when the strip there is empty.
+func expectCard(_ name: String) {
+    guard let window = window() else { fail("the window went") }
+    let path = "\(out)/\(name).png"
+    let capture = Process()
+    capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+    capture.arguments = ["-x", "-o", "-l", "\(window.id)", path]
+    do { try capture.run() } catch { fail("no screencapture: \(error)") }
+    capture.waitUntilExit()
+    let value = spread(path, frame: window.frame)
+    print(String(format: "strip-check: %@, spread %.3f", name, value))
+    if value < 0.01 {
+        fail("the strip was empty: \(path)")
+    }
 }
 
-guard shown != nil else { fail("no window") }
-NSRunningApplication(processIdentifier: pid)?.activate()
-// The first snapshot.
+func herdr(_ arguments: String...) throws {
+    let run = Process()
+    run.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    run.arguments = ["herdr", "--session", session] + arguments
+    run.standardOutput = FileHandle.nullDevice
+    try run.run()
+    run.waitUntilExit()
+}
+
+/// US layout key codes.
+let one: CGKeyCode = 18, two: CGKeyCode = 19, four: CGKeyCode = 21
+// The window, then the first snapshot (the title names the session).
 guard waitForTitle(session, 30)
-else { fail("no title with the session (\(window()?.title ?? "")): no screen recording?") }
+else { fail("no title with the session (\(window()?.title ?? "no window")): no screen recording?") }
+NSRunningApplication(processIdentifier: pid)?.activate()
 // The app takes keys a moment after its window shows.
 sleep(2)
-var empty: [String] = []
 for round in 1 ... 3 {
     key(one, [.maskCommand, .maskControl])
     usleep(300_000)
@@ -102,23 +119,19 @@ for round in 1 ... 3 {
     key(two, [.maskCommand, .maskControl])
     guard waitForTitle("strip-w2", 5) else { fail("⌃⌘2 did not show strip-w2") }
     usleep(1_000_000)
-    guard let window = window() else { fail("the window went") }
-    let path = "\(out)/round-\(round).png"
-    let capture = Process()
-    capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-    capture.arguments = ["-x", "-o", "-l", "\(window.id)", path]
-    try capture.run()
-    capture.waitUntilExit()
-    let value = spread(path, frame: window.frame)
-    print(String(format: "strip-check: round %d, spread %.3f", round, value))
-    if value < 0.01 {
-        empty.append(path)
-    }
+    expectCard("round-\(round)")
 }
 
+key(one, [.maskCommand, .maskControl])
+guard waitForTitle("strip-w1", 5) else { fail("⌃⌘1 did not show strip-w1") }
+key(four, .maskCommand)
+usleep(600_000)
+for tab in ["w1:t1", "w1:t2", "w1:t3", "w1:t5"] {
+    try herdr("tab", "close", tab)
+}
+
+usleep(1_500_000)
+expectCard("closed")
 app.terminate()
-if !empty.isEmpty {
-    fail("the strip was empty: \(empty.joined(separator: " "))")
-}
-
+app.waitUntilExit()
 print("strip-check: every switch showed the card")

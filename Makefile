@@ -41,7 +41,7 @@ e2e:
 		-resultBundlePath $(DERIVED_DATA)/e2e.xcresult $(addprefix -only-testing:,$(subst $(comma), ,$(ONLY))) \
 		test $(BEAUTIFY)
 
-# After e2e (it builds the app): the empty strip check, which no UI test can see (scripts/strip-check.sh).
+# After e2e, which builds the app. It drives the app: the GUI lock (plan/rules.md).
 strip-check:
 	scripts/strip-check.sh $(DERIVED_DATA)/Build/Products/Debug/Oriel.app
 
