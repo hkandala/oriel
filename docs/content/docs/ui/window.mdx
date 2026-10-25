@@ -355,8 +355,13 @@ workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open i
     the session's page opens last in the window's pages and shows, and its
     store connects.
   - An open session: its page shows.
-- While a server starts, its row shows a spinner. A failure shows its text in
-  the panel, with Retry, and the panel stays open.
+- **Stop and Delete.** The highlighted row of a running session (not open in
+  this window) has a Stop button at its right end: the server stops, and every
+  program in it ends. The highlighted row of a stopped session has Delete,
+  which asks first ("Delete the session “‹name›”?"; its workspaces, tabs and
+  panes go for good). The list is read again after each.
+- While a server starts, stops or is deleted, its row shows a spinner. A
+  failure shows its text in the panel, with Retry, and the panel stays open.
 
 How it works: [Checks on connect](/docs/machines#checks-on-connect).
 

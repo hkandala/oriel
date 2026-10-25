@@ -94,6 +94,18 @@ public actor HerdrClient {
         return try decode(SessionList.self, list).sessions
     }
 
+    /// `herdr session stop` or `delete` of this session; herdr's reason when it refuses.
+    nonisolated func session(_ command: String) async throws {
+        let channel = try await exec.run([herdr(), "--session", session, "session", command, session, "--json"])
+        channel.closeInput()
+        for await _ in channel.lines {}
+        let (status, stderr) = await channel.exit()
+        guard status != 0 else { return }
+        let error = try? JSONDecoder().decode(Reply<String>.self, from: Data(stderr.utf8)).error
+        throw error.map { HerdrError.herdr(code: $0.code, message: $0.message) }
+            ?? HerdrError.failed("herdr session \(command) exited \(status)")
+    }
+
     public nonisolated func pane(_ paneID: String) async throws -> Pane {
         try await (call("pane.get", ["pane_id": paneID]) as PaneResult).pane
     }

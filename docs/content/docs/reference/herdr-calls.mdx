@@ -38,6 +38,7 @@ herdr --session S remote-api-bridge
 herdr --session S terminal session control|observe <terminal_id> \
     --cols C --rows R [--takeover]
 herdr --session S session list --json               # each machine: the Open Session panel, restore, "not running"
+herdr --session S session stop|delete S --json      # Open Session's Stop and Delete; errors as JSON on stderr
 herdr machine list --json                           # macOS, the Add Remote Host sheet
 herdr --session S server        # remote: nohup, on request; This Mac: a launchd job (D47)
 ```

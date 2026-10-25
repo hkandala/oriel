@@ -6,6 +6,10 @@ import Foundation
 public protocol Multiplexer: Sendable {
     /// Every session on this machine, running or not.
     func sessions() async throws -> [Session]
+    /// Stops this session's server: every program in it ends.
+    func stopSession() async throws
+    /// Deletes this session, which must be stopped.
+    func deleteSession() async throws
     /// The whole layout now, with every tab's split tree.
     func snapshot() async throws -> Snapshot
     /// Snapshots as the session changes, paced, until the stream is dropped. Called once.
@@ -88,6 +92,14 @@ public enum Destination: Sendable {
 }
 
 extension HerdrClient: Multiplexer {
+    public nonisolated func stopSession() async throws {
+        try await session("stop")
+    }
+
+    public nonisolated func deleteSession() async throws {
+        try await session("delete")
+    }
+
     public nonisolated func screen(_ paneID: String) async throws -> String {
         try await (call("pane.read", ["pane_id": paneID, "source": "visible", "format": "text"]) as Read).read.text
     }

@@ -64,6 +64,19 @@ private final class SubscribeCounter: Exec {
 }
 
 @Test(.enabled("herdr is not on PATH", herdrInstalled))
+func `stops and deletes a throwaway session`() async throws {
+    try await withSession(ProcessExec()) { client in
+        // herdr refuses to delete a running session, and says why.
+        let refused = await #expect(throws: HerdrError.self) { try await client.deleteSession() }
+        #expect(refused?.localizedDescription.contains("stop it before deleting") == true)
+        try await client.stopSession()
+        #expect(try await client.sessions().contains { $0.name == client.session && !$0.running })
+        try await client.deleteSession()
+        #expect(try await !client.sessions().contains { $0.name == client.session })
+    }
+}
+
+@Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `talks to a throwaway herdr session`() async throws {
     let exec = await SubscribeCounter(ProcessExec())
     try await withSession(exec) { client in try await talk(client, exec) }

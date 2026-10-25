@@ -2,7 +2,7 @@ import XCTest
 
 /// The sidebar (phase 14): one page per session open in the window, page dots, workspace rows with git data, the
 /// footer and the Open Session panel. Session one: w1 "alpha", w2 "beta"; session two: w1 "gamma"; three is
-/// stopped; four is made by a test; five is stopped and started by tests.
+/// stopped; four is made by a test; five is stopped and started by tests; seven is stopped and deleted by a test.
 extension OrielUITests {
     func testLaunchOpensOnePageAndNoOtherSession() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))

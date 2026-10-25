@@ -4,8 +4,8 @@
 
     /// The one place to create or open a session (D68): a new name, the running and stopped sessions, and the ones
     /// already open in this window. Create, open and start take one path: start the server when it is not running,
-    /// then open its page last. A glass panel like the palette: Enter acts, Esc or a click outside
-    /// closes it.
+    /// then open its page last. The lit running session has Stop, the lit stopped one Delete (asks first). A glass
+    /// panel like the palette: Enter acts, Esc or a click outside closes it.
     struct OpenSession: View {
         let pages: WindowPages
         @Binding var open: Bool
@@ -14,9 +14,12 @@
         /// A name no session has, picked once.
         @State private var suggested = ""
         @State private var lit: String?
-        @State private var starting: String?
-        /// The last start that failed: its session and the notice.
-        @State private var failure: (session: String, text: String)?
+        /// The session a start, stop or delete runs on.
+        @State private var busy: String?
+        /// The last start, stop or delete that failed: the notice, and the same again.
+        @State private var failure: (text: String, retry: () -> Void)?
+        /// The stopped session Delete asks about.
+        @State private var deleting: String?
 
         var body: some View {
             VStack(alignment: .leading, spacing: 8) {
@@ -24,7 +27,7 @@
                            maxHeight: 320, lit: $lit) {}
                 if let failure {
                     NoticeCapsule(tone: .error, text: failure.text) {
-                        Button("Retry") { start(failure.session) }.accessibilityIdentifier("notice.retry")
+                        Button("Retry", action: failure.retry).accessibilityIdentifier("notice.retry")
                     }
                     .accessibilityIdentifier("open-session.notice")
                     .frame(maxWidth: .infinity)
@@ -36,11 +39,27 @@
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Open Session")
             .task {
-                let client: any Multiplexer = await HerdrClient(session: pages.current?.id ?? "default",
-                                                                exec: exec.value)
-                sessions = await (try? client.sessions()) ?? []
+                await list()
                 suggested = sessions.newName
             }
+            .confirmationDialog(
+                "Delete the session “\(deleting ?? "")”?",
+                isPresented: Binding { deleting != nil } set: {
+                    if !$0 {
+                        deleting = nil
+                    }
+                },
+                presenting: deleting,
+            ) { session in
+                Button("Delete Session", role: .destructive) { run(session, "delete") { try await $0.deleteSession() } }
+            } message: { _ in
+                Text("Its workspaces, tabs and panes go for good. This cannot be undone.")
+            }
+        }
+
+        private func list() async {
+            let client: any Multiplexer = await HerdrClient(session: pages.current?.id ?? "default", exec: exec.value)
+            sessions = await (try? client.sessions()) ?? sessions
         }
 
         /// New, then Running and Stopped sessions not open in this window, then the ones open in it.
@@ -52,7 +71,10 @@
                 ? [item("new", "Create session “\(new)”", "New", new) { start(new) }] : []
             let others = sessions.filter { !shown.contains($0.name) && $0.name.matches(filter) }
             let session = { (one: Session) in
-                item("session", one.name, one.running ? "Running" : "Stopped", one.name) { start(one.name) }
+                var row = item("session", one.name, one.running ? "Running" : "Stopped", one.name) { start(one.name) }
+                row.button = one.running ? ("Stop", { run(one.name, "stop") { try await $0.stopSession() } })
+                    : ("Delete", { deleting = one.name })
+                return row
             }
             return create + others.filter(\.running).map(session) + others.filter { !$0.running }.map(session)
                 + shown.filter { $0.matches(filter) }.map { name in
@@ -75,9 +97,9 @@
                 symbol: ["new": "plus", "open": "checkmark"][kind] ?? "rectangle.stack",
                 title: title,
                 section: section,
-                busy: starting == session,
+                busy: busy == session,
             ) {
-                if starting == nil {
+                if busy == nil {
                     act()
                 }
             }
@@ -85,7 +107,7 @@
 
         /// Starts the session when it is not running, then opens its page.
         private func start(_ session: String) {
-            starting = session
+            busy = session
             failure = nil
             Task {
                 do {
@@ -94,9 +116,29 @@
                     open = false
                 } catch {
                     // The panel stays open, with herdr's reason.
-                    failure = (session, "Could not start \(session). \(error.localizedDescription)")
+                    failure = ("Could not start \(session). \(error.localizedDescription)", { start(session) })
                 }
-                starting = nil
+                busy = nil
+            }
+        }
+
+        /// Stops or deletes the session (`verb` for the notice), then reads the list again.
+        private func run(_ session: String, _ verb: String,
+                         _ action: @escaping (any Multiplexer) async throws -> Void)
+        {
+            guard busy == nil else { return }
+            busy = session
+            failure = nil
+            Task {
+                do {
+                    try await action(HerdrClient(session: session, exec: exec.value))
+                } catch {
+                    failure = ("Could not \(verb) \(session). \(error.localizedDescription)", {
+                        run(session, verb, action)
+                    })
+                }
+                await list()
+                busy = nil
             }
         }
     }

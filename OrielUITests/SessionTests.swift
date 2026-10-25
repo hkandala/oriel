@@ -1,7 +1,7 @@
 import XCTest
 
-/// The window's sessions (phases 14, 25): Open Session lists, opens and starts sessions; a session opened goes last;
-/// Detach Session leaves one running. Sessions as in SidebarTests.
+/// The window's sessions (phases 14, 25): Open Session lists, opens, starts, stops and deletes sessions; a session
+/// opened goes last; Detach Session leaves one running. Sessions as in SidebarTests.
 extension OrielUITests {
     func testOpenSessionListsSessionsAndOpensAPage() throws {
         let three = try env("ORIEL_SESSION3")
@@ -87,6 +87,33 @@ extension OrielUITests {
 
         XCTAssertTrue(until(connect) { header == five })
         try await Self.snapshot(five)
+    }
+
+    /// Open Session's lit running row has Stop; once stopped, Delete, which asks first.
+    func testOpenSessionStopsAndDeletesASession() async throws {
+        let seven = try env("ORIEL_SESSION7")
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        openSessionPanel()
+        app.typeText(seven)
+        let row = element("open-session.session.\(seven)")
+        XCTAssertTrue(row.has(\.isSelected, true, within: 2))
+        expectRow(row.identifier, under: "Running", above: nil)
+        XCTAssertFalse(element("\(row.identifier).delete").exists)
+        keepScreenshot("stop on the lit row")
+        element("\(row.identifier).stop").click()
+        XCTAssertTrue(element("\(row.identifier).delete").exists(within: 10))
+        expectRow(row.identifier, under: "Stopped", above: nil)
+        let stopped = try? await Self.snapshot(seven)
+        XCTAssertNil(stopped)
+
+        element("\(row.identifier).delete").click()
+        let confirm = app.sheets.buttons["Delete Session"]
+        XCTAssertTrue(confirm.exists(within: 2))
+        keepScreenshot("delete asks")
+        confirm.click()
+        XCTAssertTrue(row.vanishes(within: 10))
+        // Deleted: the name is free again.
+        XCTAssertTrue(element("open-session.new.\(seven)").exists(within: 2))
     }
 
     /// A session opened goes last in the window's sessions, not beside the one in view.

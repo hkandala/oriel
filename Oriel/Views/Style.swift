@@ -266,6 +266,15 @@ struct MenuRow: View {
     }
 }
 
+/// A lit row's own button (`FilterList.Item.button`), readable on the accent pill.
+struct RowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.system(size: 11, weight: .medium)).foregroundStyle(.white)
+            .padding(.horizontal, 8).padding(.vertical, 2)
+            .background(.white.opacity(configuration.isPressed ? 0.35 : 0.2), in: .capsule)
+    }
+}
+
 /// One line that fades out over its last 16 pt when it does not fit, instead of an ellipsis.
 struct FadeText: View {
     let text: Text

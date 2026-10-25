@@ -19,6 +19,8 @@ struct FilterList: View {
         var busy = false
         /// Opens a sub-page: a › on the right, and the list stays open.
         var opens = false
+        /// A second action, a button on the lit row's right end (Open Session's Stop and Delete). The list stays open.
+        var button: (title: String, act: () -> Void)?
         let act: () -> Void
     }
 
@@ -108,6 +110,13 @@ struct FilterList: View {
                                     MenuRow(item: item, selected: offset == index, height: rowHeight)
                                 }
                                 .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
+                                .overlay(alignment: .trailing) {
+                                    if let button = item.button, offset == index {
+                                        Button(button.title, action: button.act).buttonStyle(RowButtonStyle())
+                                            .padding(.trailing, 4)
+                                            .accessibilityIdentifier("\(name).\(item.id).\(button.title.lowercased())")
+                                    }
+                                }
                                 .accessibilityIdentifier("\(name).\(item.id)")
                                 .accessibilityValue(item.state??.word ?? "")
                                 .accessibilityAddTraits(offset == index ? .isSelected : [])
