@@ -151,24 +151,60 @@ extension OrielUITests {
         }
     }
 
-    /// A card out of the recently shown set lets go of its stream and its surface (phase 25, lane O), and comes back
-    /// under its last picture: never empty, then herdr's text.
+    /// A visited card keeps its stream and its surface out of view (phase 27, item 1): back after more tabs than
+    /// phase 25 kept, it shows at once, never loading, with what its program printed meanwhile.
+    func testAVisitedCardComesBackAtOnce() async throws {
+        let terminal = element("terminal.w1:p1")
+        XCTAssertTrue(terminal.exists(within: connect))
+        try await fill("w1:p1")
+        try await expectText(["w1:p1"], "filled")
+        let filled = Self.ink(terminal.screenshot().image), id = try await terminalID("w1:p1")
+        try await showNewTabs(6)
+        let streams = try await streams(one)
+        XCTAssertTrue(streams.contains { $0.contains(id) }, "w1:p1 kept its stream: \(streams)")
+        // A third of the screen's lines, printed while out of view.
+        let lines = max((Int(terminal.stringValue.split(separator: " ").first ?? "") ?? 0) / 3, 3)
+        try await send("clear; for i in $(seq 1 \(lines)); do echo oriel-away-$i-oriel-away; done\r", to: "w1:p1")
+        try await waitFor("w1:p1") { $0.contains("oriel-away-\(lines)-oriel-away") }
+        app.typeKey("1", modifierFlags: .command)
+        let card = element("pane.w1:p1")
+        XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
+        var inks: [Double] = [], loading = false
+        let end = Date.now + 1
+        while Date.now < end {
+            loading = loading || card.stringValue.contains("loading")
+            inks.append(Self.ink(terminal.screenshot().image))
+        }
+        XCTAssertFalse(loading, "loading after the key")
+        // Never empty, and the new screen from the first screenshot on, not the old picture.
+        XCTAssertGreaterThan(inks.min() ?? 0, filled * 0.15, "\(filled) before, then \(inks)")
+        XCTAssertLessThan(inks.max() ?? 1, filled * 0.6, "\(filled) before, then \(inks)")
+    }
+
+    /// Creates `count` tabs in w1 and shows each, so the cards shown before are out of view.
+    private func showNewTabs(_ count: Int) async throws {
+        for index in 0 ..< count {
+            let created = try await Self.call(one, "tab.create", ["workspace_id": "w1", "cwd": "/tmp", "focus": false])
+            let tab = try id(created, "tab"), pane = try id(created, "root_pane")
+            closeAfter("tab", tab)
+            XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
+            app.typeKey("\(index + 3)", modifierFlags: .command)
+            XCTAssertTrue(element("pane.\(pane)").exists(within: 3))
+        }
+    }
+
+    /// A card past the kept set lets go of its stream and its surface (phase 25, lane O; 4 kept here, 16 by default),
+    /// and comes back under its last picture: never empty, then herdr's text.
     func testAnEvictedCardComesBackWithItsPicture() async throws {
+        relaunch(one, ["-spareTerminals", "4"])
         let terminal = element("terminal.w1:p1")
         XCTAssertTrue(terminal.exists(within: connect))
         try await fill("w1:p1")
         try await expectText(["w1:p1"], "filled")
         let id = try await terminalID("w1:p1")
         // Five more tabs, each shown: t1's three cards (in any order) and the next four's are out of view, so all of
-        // t1's go past the registry's 4 spare.
-        for index in 0 ..< 5 {
-            let created = try await Self.call(one, "tab.create", ["workspace_id": "w1", "cwd": "/tmp", "focus": false])
-            let tab = try self.id(created, "tab"), pane = try self.id(created, "root_pane")
-            closeAfter("tab", tab)
-            XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
-            app.typeKey("\(index + 3)", modifierFlags: .command)
-            XCTAssertTrue(element("pane.\(pane)").exists(within: 3))
-        }
+        // t1's go past the 4 kept.
+        try await showNewTabs(5)
         try await expect("w1:p1's stream to end") { try await !streams(one).contains { $0.contains(id) } }
         let streams = try await streams(one)
         XCTAssertLessThanOrEqual(streams.count, 5, "\(streams)")

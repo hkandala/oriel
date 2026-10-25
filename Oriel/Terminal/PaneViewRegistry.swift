@@ -5,16 +5,17 @@
 
     /// Owns every pane's terminal of one window's pages, keyed by `terminal_id`, so SwiftUI never destroys
     /// one while the strip scrolls. The shown tab's terminals stream and draw; the `spare` most recently shown others,
-    /// over all windows, keep streaming and their surface without drawing, so coming back to them is at once; the rest
-    /// keep only their last picture (design: what streams).
+    /// over all windows, keep streaming and their surface without drawing (as Ghostty's hidden tabs), so coming back to
+    /// them is at once; the rest keep only their last picture (design: what streams).
     /// ponytail: keyed by terminal id alone; herdr's ids (`term_` and 14 hex digits, from the clock) did not
     /// repeat across sessions. Key by session too if they ever do.
     @MainActor
     final class PaneViewRegistry {
-        /// The design's bound on terminals streaming out of view, over all windows (D46). Each keeps a herdr run and
-        /// libghostty's three IOSurfaces (52 MB for a full-window card on a Retina screen); one evicted comes back
-        /// under its last picture, redrawn within a few hundred ms (phase 25, lane O).
-        static let spare = 4
+        /// The design's bound on terminals kept out of view, over all windows (D46). Each keeps a herdr run (7 MB) and
+        /// its surface; libghostty frees the surface's swap chain while it does not draw and makes it again in under a
+        /// millisecond when shown, and its last picture is purgeable out of a window. One evicted comes back under its
+        /// last picture, redrawn within a few hundred ms (phase 25, lane O). `-spareTerminals N` for tests.
+        static let spare = UserDefaults.standard.string(forKey: "spareTerminals").flatMap { Int($0) } ?? 16
         /// Streaming terminals of every window, the most recently shown last.
         private(set) static var recent: [PaneTerminal] = []
         /// Its window's pages: they hear of the keyboard, Return and input in its terminals.
@@ -48,31 +49,37 @@
         }
 
         /// Streams and draws these terminals (terminal id → pane id); past the `spare` most recently shown others,
-        /// the rest let go. Drops the terminals not in `alive` (their panes closed). The others keep their last
-        /// picture (a swipe shows the neighbor's).
-        func show(_ shown: [String: String], alive: Set<String>, client: (any Multiplexer)?) {
+        /// the rest let go. `unvisited` stream and draw too but are no visit (the overview): they keep their place in
+        /// `recent`, and one not in it lets go once no longer shown. Drops the terminals not in `alive` (their panes
+        /// closed). The others keep their last picture (a swipe shows the neighbor's).
+        func show(_ shown: [String: String], unvisited: [String: String] = [:], alive: Set<String>,
+                  client: (any Multiplexer)?)
+        {
             for (terminalID, terminal) in terminals where !alive.contains(terminalID) {
                 terminal.close()
                 terminals[terminalID] = nil
                 Self.recent.removeAll { $0 === terminal }
             }
             // Without a client (the page in view connecting), the terminals there go on: another page's floated ones.
-            let streaming = shown.compactMap { id, pane in client.map { terminal(id, pane: pane, client: $0) } ??
-                terminals[id]
+            let make = { (shown: [String: String]) in
+                shown.compactMap { id, pane in client.map { self.terminal(id, pane: pane, client: $0) } ??
+                    self.terminals[id]
+                }
             }
+            let visited = make(shown), streaming = visited + make(unvisited)
             for terminal in terminals.values {
+                let was = terminal.inView
                 terminal.inView = streaming.contains { $0 === terminal }
-            }
-            Self.recent = Self.recent.filter { terminal in !streaming.contains { $0 === terminal } } + streaming
-            // A remote machine's connection holds about 10 SSH sessions (machines#ssh-sessions): only what is in view
-            // streams there.
-            if pages?.machine.isRemote == true {
-                for terminal in terminals.values
-                    where !terminal.inView && Self.recent.contains(where: { $0 === terminal })
-                {
-                    Self.recent.removeAll { $0 === terminal }
+                // Shown by the overview alone: back to how it was.
+                if was, !terminal.inView, !Self.recent.contains(where: { $0 === terminal }) {
                     terminal.hide()
                 }
+            }
+            Self.recent = Self.recent.filter { terminal in !visited.contains { $0 === terminal } } + visited
+            // A remote machine's connection holds about 10 SSH sessions (machines#ssh-sessions): only what is in view
+            // streams there; the others keep their surface and picture, so they show at once and herdr redraws them.
+            if pages?.machine.isRemote == true {
+                terminals.values.filter { !$0.inView }.forEach { $0.pause() }
             }
             while Self.recent.count(where: { !$0.inView }) > Self.spare,
                   let index = Self.recent.firstIndex(where: { !$0.inView })

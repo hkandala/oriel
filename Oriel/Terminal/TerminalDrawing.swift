@@ -139,12 +139,18 @@
         }
 
         /// Volatile while the view is in no window; back in one, a picture the system took is gone, and the next
-        /// reveal fades in as a first one.
+        /// reveal fades in as a first one. A kept surface's picture too while it does not draw: libghostty let go of
+        /// its swap chain then (occlusion, as Ghostty's hidden tabs), so the layer alone holds that IOSurface; taken
+        /// back, it shows the card's fill until the surface draws.
         func purgeable(_ volatile: Bool) {
-            guard controller == nil, let surface = still?.contents as? IOSurface else { return }
+            let live = controller != nil
+            guard !(live && volatile && terminal?.inView == true),
+                  let picture = live ? layer : still, let surface = picture.contents as? IOSurface else { return }
             var old: UInt32 = 0
             IOSurfaceSetPurgeable(surface, volatile ? 1 : 0, &old)
-            if !volatile, old == 2 {
+            if live, !volatile, old == 2 {
+                picture.contents = nil
+            } else if !volatile, old == 2 {
                 still?.contents = nil
                 still = nil
                 // The next reveal fades in, as a first one.

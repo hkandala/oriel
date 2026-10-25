@@ -93,12 +93,19 @@
             open()
         }
 
-        /// The card left the recently shown set: let go of its stream and its surface (D46). It keeps its last image.
-        func hide() {
+        /// Out of view on a remote machine, whose SSH sessions are few: its stream ends, its surface and picture stay.
+        /// Shown again, herdr's first frame redraws it at the same grid.
+        func pause() {
+            guard shown else { return }
             shown = false
             pending = []
             paste = nil
             end()
+        }
+
+        /// The card left the recently shown set: let go of its stream and its surface (D46). It keeps its last image.
+        func hide() {
+            pause()
             view.free()
             // For the next surface: libghostty keeps what it receives meanwhile.
             session.receive(Self.modes)
