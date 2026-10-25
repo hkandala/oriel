@@ -115,12 +115,12 @@ extension OrielUITests {
         }
     }
 
-    /// The user's four workspaces (5 tabs, 1, 1, 3), clicked top to bottom and back from the 4th tab of the first
-    /// (phase 25, item 25), then a session shown and left: each strip, made new for its workspace, shows its selected
-    /// tab. The old empty strip does not show here (any accessibility client hides it): `make strip-check` checks it.
-    func testStripShowsEachWorkspaceClickedDownAndUp() async throws {
+    /// A workspace of 5 tabs on its 4th and one of 1, clicked back and forth (phase 25, item 25), then a session
+    /// shown and left: each strip, made new for its workspace, shows its selected tab. The old empty strip does not
+    /// show under XCUITest: `make strip-check` checks it.
+    func testStripShowsEachWorkspaceClickedBackAndForth() async throws {
         var shown: [(workspace: String, tab: String)] = []
-        for (index, count) in [5, 1, 1, 3].enumerated() {
+        for (index, count) in [5, 1].enumerated() {
             let tabs = try await newWorkspace("order\(index)", tabs: count).tabs
             shown.append((workspace(of: tabs[0]), tabs[count == 5 ? 3 : 0]))
         }

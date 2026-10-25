@@ -100,9 +100,8 @@ struct Notice {
                     .accessibilityIdentifier("new-tab")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // A strip of its own per workspace: one strip for all of them, once it drew again on a middle tab
-                    // (the tab selected again, say), laid out no page after a switch to a workspace with fewer tabs,
-                    // and stayed empty (phase 25). Any accessibility client hides it: `make strip-check`.
+                    // A strip of its own per workspace: a shared one could lay out no page after a switch and stay
+                    // empty (phase 25, `make strip-check`).
                     Strip(workspace: workspace, page: page).id("\(page.id) \(workspace.id)")
                 }
             } else {
