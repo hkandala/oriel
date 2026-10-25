@@ -39,7 +39,7 @@ button. Empty states (no workspaces, no tabs) show only the button.
 | Open Session: Delete of a stopped session another window shows | that page stays "not running"; its Start makes a new, empty session of that name |
 | Open Session: Stop or Delete failed | the notice capsule in the panel says "Could not stop ‹session›." or "Could not delete ‹session›." with herdr's reason and **Retry** |
 | A restored page's session no longer runs | the page is skipped |
-| Detach Session on the last page | Detach Session is disabled |
+| Detach Session on the last page | Detach Session is disabled; Open Session shows no Detach on its row |
 | A write failed | the notice: a capsule with a red symbol and the error, no Retry (a write that timed out may have happened) |
 | A write while another write of the session runs | it waits for that one, then runs |
 | Go to Directory on a pane that runs a program | the warning notice "A program is running in the pane"; nothing is sent |
@@ -50,7 +50,7 @@ button. Empty states (no workspaces, no tabs) show only the button.
 | Find with no match | "0 of 0", nothing highlighted, no scroll |
 | A folder dropped on the Dock icon with no window | a window opens, and the workspace opens in it once its page is live |
 | A folder dropped on the Dock icon while the page in view is not live | the folders wait for a live page in view |
-| All caught up (Agents button hover) | "All caught up" |
+| Nobody needs you (Agents button hover) | no panel |
 | A session with no agents (Agents view) | an empty list, no text |
 | Web page failed | WebKit's error in the card |
 | Server refuses port forwarding | "‹machine› does not allow port forwarding" in the web card; Tailscale or LAN addresses still load |

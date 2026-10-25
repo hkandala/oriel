@@ -65,7 +65,7 @@ cards start. With the sidebar collapsed the items follow one another as before.
    sidebar in the Agents view. No tooltip (the hover panel takes its place).
    - **Hover** (0.25 s): a panel under the button with a small header "Needs you · ‹session›" lists the
      agents of the current session that need you (same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
-     does not change. With nobody waiting: only "All caught up", no header. No footer text.
+     does not change. With nobody waiting: no panel (phase 25). No footer text.
 8. **⌘** (command palette, ⌘K; ⇧⌘P also opens it (Rex's key); its field says "Search") and **+** (new tab, ⌘T).
 
 The strip under the title row still pages sideways between the selected workspace's tabs (swipe, ⇧⌘[ ⇧⌘],
@@ -104,8 +104,9 @@ The strip under the title row still pages sideways between the selected workspac
 - **Agents view** (the Agents button): the same page, listing the agents of **that session only**; a sideways
   swipe shows the next session's agents.
   - Header: the session's name and a sort menu: **Priority** (groups Needs you, Working, Done, Idle, each
-    with a count) or **Workspace order** (a group per workspace under its name, herdr's order); a thin line
-    across the sidebar under it (phase 25).
+    with a count) or **Workspace order** (a group per workspace under its name, herdr's order). The name is the title (13 pt
+    semibold, primary, also in the workspaces view); the group labels are 10 pt semibold section labels with
+    room above; no line under the header (phase 25).
   - One row per agent pane, even when several share a tab. Row 48 pt, 4 pt apart, the program tile with its
     badge centered on both lines. Line 1: the pane's name, else the agent's name, then on the right the status capsule ("Needs you"
     amber, "Working" blue, "Done" green, "Idle" gray) and the age ("now", "3m", "2h"), on one centered line;
@@ -126,6 +127,8 @@ The one place to create or open a session. The footer's Open Session button, the
     "Create session “‹two-word name›”" with a suggested name.
   - **Running** sessions not open in this window and **Stopped** sessions; the sessions already open in this
     window last (Enter switches to their page). The rows carry no hint text: the group headers say it.
+  - The lit row's button: Stop (running) and Delete (stopped), red, both ask first; Detach (open in this
+    window, not its last page), plain (phase 25).
 - The arrows or the pointer move the highlight, Enter or a click acts on a row: create and start a new session and open its
   page; open a running session as a new page (its store connects then); start a stopped session
   (launchd job, D47) and open it as a new page; switch to a page that is already open. Esc or a click outside closes.

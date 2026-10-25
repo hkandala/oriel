@@ -180,8 +180,8 @@ One capsule per herdr tab of the selected workspace (D42).
   of the page in view that need you, under the header "Needs you ·
   ‹session›" (11 pt, secondary). The rows are the same as in the Agents view.
   A click on a row selects that workspace and tab and gives the pane the
-  keyboard; the sidebar does not change. With nobody waiting it shows only "All
-  caught up", with no header. There is no footer. A click on the button is not a rest: the
+  keyboard; the sidebar does not change. With nobody waiting it does not
+  show at all. There is no footer. A click on the button is not a rest: the
   panel opens only after the pointer leaves the button and comes back.
 - The panel stays while the pointer moves into it (0.15 s grace). It closes
   when the pointer leaves both, on a click or a scroll outside it, or with
@@ -223,7 +223,8 @@ session open in this window (D43).
   open page, 6 pt apart. The current page's dot is in primary text color, the
   others tertiary. A click on a dot shows its page. Hidden while one page is
   open. VoiceOver reads each dot as its session's name.
-- **Page header.** The session's name (12 pt semibold, secondary), 22 pt in
+- **Page header.** The session's name, the page's title (13 pt semibold,
+  primary, as in the Agents view), 22 pt in
   from the window's edge and 3 pt above the first row, and, at the trailing
   end, a `+` that makes a new workspace in that session, in `$HOME`. The
   snapshot after it selects the new workspace.
@@ -306,7 +307,10 @@ session's agents. The page dots and the footer stay.
   workspaces, tabs and panes). Priority is the default.
   Each window keeps its choice. The name starts on the edge of the group
   labels and the row icons; the sort label's text ends where the times end.
-  A thin line across the sidebar sets the header apart from the list.
+  The name is the title (13 pt semibold, primary); the sort menu is quiet
+  (11 pt, secondary). The group labels ("Working 1", a workspace's name) are
+  section labels, as in a macOS sidebar: 10 pt semibold, secondary, with
+  12 pt of room above each group. No line under the header.
 - **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
   lines, 4 pt apart; the program tile with its badge centers on both. Line 1,
   on one centered line: the pane's name when it has one, else the agent's
@@ -366,7 +370,11 @@ workspace menu's "Open Session…" and File ▸ Open Session… (⌥⌘T) open i
   highlighted row of a stopped session has Delete: its workspaces, tabs and
   panes go for good. Both ask first ("Stop the session “‹name›”?", "Delete the
   session “‹name›”?"), as a close does (D41). The list is read again after
-  each, and the light stays on the same session.
+  each, and the light stays on the same session. Both buttons are red.
+- **Detach.** The highlighted row of a session open in this window has a
+  plain Detach button, as File ▸ Detach Session: its page leaves this window
+  and the session keeps running, listed again under Running, and the light
+  goes to the list's first row. Not on the window's last page.
 - While a server starts, stops or is deleted, its row shows a spinner. A
   failure shows its text in the panel, with Retry, and the panel stays open.
 
@@ -381,7 +389,8 @@ A peek at what runs in a tab (D63).
   and with Esc. One card at a time, and none during a drag.
 - **Where.** Centered under a capsule, 6 pt below the title row, or 6 pt right
   of the sidebar edge for an Agents row. It stays inside the window.
-- **Look.** A glass panel, radius 12, 280 pt wide. It fades and grows
+- **Look.** A glass panel (floating glass, see
+  [Theme](/docs/ui/theme-and-accessibility)), radius 12, 280 pt wide. It fades and grows
   in from 0.97 over 0.13 s.
 - **Content**, top to bottom:
   - The tab title (folder part dimmed) and the tab's status capsule, if any.
