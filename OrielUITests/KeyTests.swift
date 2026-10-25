@@ -52,6 +52,25 @@ extension OrielUITests {
         XCTAssertTrue(element("sidebar.dot.\(two)").vanishes(within: 2))
     }
 
+    /// The menu bar acts on the key window: two floating windows of one session each detach their own pane with ⇧⌘W
+    /// (spec review: a command list that read the same kept the first window's actions).
+    func testEachFloatingWindowsKeysActOnItsOwnPane() async throws {
+        let (tab, first) = try await newTab("float-keys")
+        let second = try await split(first)
+        element("tab.\(tab)").click()
+        let firstWindow = try float(first)
+        let secondWindow = try float(second)
+        element("pane.\(second).show").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: secondWindow)))
+        app.typeKey("w", modifierFlags: [.command, .shift])
+        XCTAssertTrue(secondWindow.vanishes(within: 3))
+        XCTAssertTrue(firstWindow.exists)
+        element("pane.\(first).show").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(first)", in: firstWindow)))
+        app.typeKey("w", modifierFlags: [.command, .shift])
+        XCTAssertTrue(firstWindow.vanishes(within: 3))
+    }
+
     /// Holding ⌃⌘ shows the workspaces' jump keys at the end of their rows, as ⌘ does on the tabs.
     func testHoldingControlCommandShowsWorkspaceKeycaps() {
         let row = element("workspace.w2"), keycap = element("workspace.w2.keycap")

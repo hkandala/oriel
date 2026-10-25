@@ -15,7 +15,7 @@ extension OrielUITests {
         key(escape, []) { !palette.exists }
         key("k", .command) { palette.exists }
         key(escape, []) { !palette.exists }
-        key("n", [.command, .shift]) { openSession.exists }
+        key("t", [.command, .option]) { openSession.exists }
         key(escape, []) { !openSession.exists }
         key("2", .command) { self.element("tab.w1:t2").isSelected }
         key("1", .command) { self.element("tab.w1:t1").isSelected }
@@ -31,7 +31,7 @@ extension OrielUITests {
         try await Task.sleep(for: .seconds(1))
         // Each drawn in the key's own turn.
         let keys = recorded().filter { ["⌘", "⌃", "⇧", "⌥"].contains($0.name.first.map(String.init)) }
-        XCTAssertEqual(keys.map(\.name), ["⌘K", "⌘K", "⇧⌘N", "⌘2", "⌘1", "⌃⌘]", "⌃⌘[", "⌥⌘]", "⌥⌘["])
+        XCTAssertEqual(keys.map(\.name), ["⌘K", "⌘K", "⌥⌘T", "⌘2", "⌘1", "⌃⌘]", "⌃⌘[", "⌥⌘]", "⌥⌘["])
         for entry in keys {
             XCTAssertEqual(entry.turns, 0, entry.name)
         }
