@@ -96,13 +96,15 @@ extension OrielUITests {
             try await Self.call(five, "workspace.close", ["workspace_id": workspace["workspace_id"] ?? ""])
         }
         relaunch(five)
-        // The page and the strip each show only the button.
-        let buttons = app.buttons.matching(identifier: "new-workspace")
-        XCTAssertTrue(buttons.element(boundBy: 1).exists(within: connect))
+        // The page shows the button; the strip, no button, only that the session is empty (user, phase 28).
+        let button = element("new-workspace")
+        XCTAssertTrue(element("detail.empty").exists(within: connect))
+        XCTAssertTrue(element("detail.empty").label.contains("This session is empty"))
+        XCTAssertEqual(app.buttons.matching(identifier: "new-workspace").count, 1)
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workspace.'")).firstMatch
             .exists)
         keepScreenshot("empty page")
-        buttons.element(boundBy: 1).click()
+        button.click()
         let pane = try await poll("a workspace in herdr") { () async throws -> String? in
             try await (Self.snapshot(five)["panes"] as? [[String: Any]])?.first?["pane_id"] as? String
         }

@@ -235,8 +235,8 @@
         }
     }
 
-    /// A session with no workspace, in the page and in the strip: the button that makes one.
-    struct NewWorkspaceButton: View {
+    /// A session with no workspace, in its page: the button that makes one.
+    private struct NewWorkspaceButton: View {
         let page: Page
 
         var body: some View {

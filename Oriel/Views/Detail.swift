@@ -89,7 +89,8 @@ struct Notice {
             }
         }
 
-        /// The selected workspace's strip, or the button that makes what is missing.
+        /// The selected workspace's strip, the button that makes a missing tab, or that the session is empty: its page
+        /// header's `+` makes a workspace (user, phase 28).
         @ViewBuilder private func tabs() -> some View {
             if let workspace = page.selectedWorkspace {
                 if workspace.tabs.isEmpty {
@@ -105,7 +106,9 @@ struct Notice {
                     Strip(workspace: workspace, page: page).id("\(page.id) \(workspace.id)")
                 }
             } else {
-                NewWorkspaceButton(page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
+                ContentUnavailableView("This session is empty", systemImage: "square.dashed")
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("detail.empty")
             }
         }
 
