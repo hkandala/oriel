@@ -113,7 +113,7 @@
                         .padding(.top, 40).floatingPanel(open: $palette, alignment: .top)
                 }
             }
-            .focusedSceneValue(\.commands, commands)
+            .menuBar(commands)
             .modifier(CloseDialog(page: page, floated: pane?.id))
         }
 

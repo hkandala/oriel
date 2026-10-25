@@ -283,7 +283,7 @@ struct OrielApp: App {
                 case .dark: NSAppearance(named: .darkAqua)
                 }
             }
-            .focusedSceneValue(\.commands, commands)
+            .menuBar(commands)
             // The workspace menu belongs to the collapsed sidebar's button.
             .onChange(of: sidebar) {
                 if sidebar, panel == .workspaces {

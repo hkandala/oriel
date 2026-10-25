@@ -91,6 +91,31 @@ extension KeyboardShortcut {
         @Entry var commands: CommandList?
     }
 
+    extension CommandList: Equatable {
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.shown == rhs.shown
+        }
+    }
+
+    extension View {
+        /// The window's commands for the menu bar, again whenever what it shows of them changes. SwiftUI rebuilds the
+        /// menu bar only when this value changes: `Commands` do not observe. Zoom Pane, disabled while the tab had one
+        /// card, stayed so after a split, and ⇧⌘↩ did nothing (phase 25).
+        func menuBar(_ commands: CommandList) -> some View {
+            modifier(MenuBar(commands: commands))
+        }
+    }
+
+    private struct MenuBar: ViewModifier {
+        let commands: CommandList
+
+        func body(content: Content) -> some View {
+            var commands = commands
+            commands.shown = commands.all.map(\.shown)
+            return content.focusedSceneValue(\.commands, commands)
+        }
+    }
+
     /// The menu bar's settings (D62), for the command list.
     struct AppSettings: DynamicProperty {
         @AppStorage("appearance") var appearance = Appearance.dark
@@ -160,6 +185,11 @@ extension KeyboardShortcut {
         /// The palette's name page: the current name, and what Enter does with the field.
         var name: (current: String, save: (String) async -> Void)?
         var action: () -> Void = {}
+
+        /// What the menu bar shows of it.
+        var shown: String {
+            "\(title) \(enabled) \(String(describing: checked)) \(key?.glyphs ?? "") \(menu.map(\.shown))"
+        }
     }
 
     /// The menu bar, drawn from the key window's command list; the shortcuts work wherever the keyboard is.

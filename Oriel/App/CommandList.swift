@@ -15,6 +15,8 @@
         let settings: AppSettings
         /// A floating window's list (D50): only what applies to it.
         var floating: Floating?
+        /// What the menu bar shows of `all`, when it was made (`menuBar`).
+        var shown: [String] = []
 
         var all: [Command] {
             if let floating {
