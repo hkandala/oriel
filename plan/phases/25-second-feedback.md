@@ -329,3 +329,7 @@ Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/f
     an instant `scrollTo` plus retry that targets a page not laid out yet, a stale tree, a strip page width
     of 0). Find a way to reproduce it on CI, find the root cause and fix it, with a test that fails on the
     old code.
+26. (Lane P) **Tab hover card is hard to read** (`.build/fb/hovercard.png`): in Glass, the terminal text
+    behind shows through it. Make it as readable as the palette: a thicker material or a tint under it, so
+    text behind is only a soft blur; check over a busy terminal in all four looks. Apply the same to any
+    other floating glass (agents popover, menus) that has the same problem.
