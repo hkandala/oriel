@@ -300,14 +300,14 @@
         func closeFind() {
             guard let paneID = find?.paneID else { return }
             dropFind()
-            if let pane = store.pane(paneID), pane.tabID == selectedTab?.id {
+            if let pane = store.pane(paneID), pane.tabID == selectedTab?.id || floats(pane) {
                 go(to: pane)
             }
         }
 
-        /// The bar's card is out of view: another tab, or another card of its tab zoomed.
+        /// The bar's card is out of view: another tab, or another card of its tab zoomed; never a floated pane's.
         var findHidden: Bool {
-            guard let find else { return false }
+            guard let find, store.pane(find.paneID).map(floats) != true else { return false }
             let tabID = store.pane(find.paneID)?.tabID
             return tabID != selectedTab?.id || zoomedPaneID.map { $0 != find.paneID && store.pane($0)?.tabID == tabID }
                 == true

@@ -26,6 +26,7 @@
                 focusKeyboardCard()
             }
             WindowPages.openWindow?(id: "float", value: Floating(session: id, terminalID: terminalID))
+            terminal(pane)?.view.takeKeyboard()
         }
     }
 
@@ -57,9 +58,9 @@
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
             .environment(\.look, look)
             .navigationTitle(pane?.cardTitle ?? "terminal")
-            .background(FloatReader(window: $window, pinned: page?.floating[floating.terminalID] == true) {
-                page?.floating[floating.terminalID] = nil
-            })
+            .background(FloatReader(window: $window, terminalID: floating.terminalID,
+                                    pinned: page?.floating[floating.terminalID] == true,
+                                    closed: { page?.floating[floating.terminalID] = nil }))
             .onChange(of: page == nil) { _, gone in
                 if gone {
                     window?.close()
@@ -76,13 +77,29 @@
                 Group {
                     if let terminal {
                         TerminalCard(terminal: terminal, watched: page.watched, alpha: page.watched ? 0.85 : 1)
+                            .overlay {
+                                if let find = page.find, find.paneID == pane?.id {
+                                    FindHighlights(find: find, terminal: terminal)
+                                }
+                            }
                             .padding(.horizontal, 10).padding(.vertical, gap)
-                            .onAppear { terminal.view.takeKeyboard() }
+                            .contextMenu {
+                                ForEach(["Copy", "Paste"], id: \.self) { title in
+                                    Button(title) { commands.all.first { $0.title == title }?.action() }
+                                }
+                                Divider()
+                                CommandItems(commands: commands.all, sections: [.close])
+                            }
                     } else {
                         Color.clear
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .topTrailing) {
+                    if let find = page.find, find.paneID == pane?.id {
+                        FindBar(find: find, page: page).padding(gap)
+                    }
+                }
                 .background(CardSurface(keyboard: terminal?.hasKeyboard == true))
                 .clipShape(CardSurface.shape)
                 .accessibilityElement(children: .contain)
@@ -96,6 +113,7 @@
                 }
             }
             .focusedSceneValue(\.commands, commands)
+            .modifier(CloseDialog(page: page, floated: pane?.id))
         }
 
         private func header(_ page: Page, _ pane: HostStore.Pane?) -> some View {
@@ -111,6 +129,7 @@
                 IconButton(symbol: pinned ? "pin.fill" : "pin", help: "Stay on Top", size: 22, accent: pinned) {
                     page.floating[floating.terminalID]?.toggle()
                 }
+                .accessibilityValue(pinned ? "on" : "off")
                 .accessibilityIdentifier("\(id).pin")
                 IconButton(symbol: "xmark", help: "Close Pane", key: .closePane, size: 22) {
                     if let pane {
@@ -137,11 +156,14 @@
     /// The floating window's AppKit side: Stay on Top, and its close, which detaches the pane.
     private struct FloatReader: NSViewRepresentable {
         @Binding var window: NSWindow?
+        let terminalID: String
         let pinned: Bool
         let closed: () -> Void
 
         func makeNSView(context _: Context) -> Reader {
-            Reader()
+            let reader = Reader()
+            reader.terminalID = terminalID
+            return reader
         }
 
         func updateNSView(_ reader: Reader, context _: Context) {
@@ -155,12 +177,16 @@
         final class Reader: NSView {
             var closed: () -> Void = {}
             var moved: (NSWindow?) -> Void = { _ in }
+            var terminalID = ""
             private var observer: NSObjectProtocol?
 
             override func viewDidMoveToWindow() {
                 super.viewDidMoveToWindow()
                 guard let window, observer == nil else { return }
                 moved(window)
+                // AppKit keeps the frame for the next time the pane floats. ponytail: one defaults key per terminal
+                // ever floated; prune them if that ever matters.
+                window.setFrameAutosaveName("float \(terminalID)")
                 let close = NSWindow.willCloseNotification, center = NotificationCenter.default
                 observer = center.addObserver(forName: close, object: window, queue: .main) { [weak self] _ in
                     MainActor.assumeIsolated { self?.closed() }
