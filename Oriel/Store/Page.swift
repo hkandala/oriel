@@ -38,7 +38,14 @@
         /// A close waiting for the user's yes, in this window only.
         var closing: HostStore.Closing?
         /// The floated panes (D50) by terminal id, which a move keeps, each with its Stay on Top.
-        var floating: [String: Bool] = [:]
+        var floating: [String: Bool] = [:] {
+            didSet {
+                if floating.isEmpty, !oldValue.isEmpty {
+                    terminals.pages?.dropFloatOnly(self)
+                }
+            }
+        }
+
         /// The card whose header shows the rename field.
         var renamingPaneID: String?
         /// The open find bar (⌘F), on one card.

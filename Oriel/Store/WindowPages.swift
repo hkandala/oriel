@@ -11,6 +11,11 @@
         /// The machine whose sessions the pages are (D43): one per window.
         var machine = Machine.thisMac
         private(set) var list: [Page] = []
+        /// Sessions with no page here, for panes `oriel://float` floated: no row, no strip page, no selection (so a
+        /// float never gives their cards the keyboard). Each goes with its last float. ponytail: not saved.
+        var floatOnly: [Page] = []
+        /// An `oriel://float` URL's session and pane, until its store answers.
+        @ObservationIgnored var floatPending: (session: String, pane: String)?
         /// What ssh asks while this window connects a remote machine; the sheet answers it.
         var question: Question?
         /// The Add Remote Host sheet is open.
@@ -40,8 +45,8 @@
         static var windows: [WindowPages] = []
         /// The window closed.
         @ObservationIgnored private var gone = false
-        /// A click that came before any window (one that started the app).
-        private static var early: String?
+        /// A click or URL that came before any window (one that started the app).
+        static var early: (() -> Void)?
         /// Folders dropped on the Dock icon, waiting for a live page (a drop can start the app).
         private static var folders: [URL] = []
         /// SwiftUI's window opener, from the menu bar's commands, for the app delegate.
@@ -79,9 +84,9 @@
             if !Self.windows.contains(where: { $0 === self }) {
                 Self.windows.append(self)
             }
-            if let id = Self.early {
+            if let early = Self.early {
                 Self.early = nil
-                Self.go(to: id)
+                early()
             }
         }
 
@@ -91,6 +96,11 @@
             // A late open (a start that finished, a restore) after the window closed.
             guard !gone else { return }
             if let page = list.first(where: { $0.id == session }) {
+                show(page)
+                return
+            }
+            if let page = takeFloatOnly(session) {
+                list.append(page)
                 show(page)
                 return
             }
@@ -118,19 +128,19 @@
         }
 
         func page(of terminalID: String) -> Page? {
-            list.first { $0.store.panes.contains { $0.terminalID == terminalID } }
+            withFloats.first { $0.store.panes.contains { $0.terminalID == terminalID } }
         }
 
         /// The terminal shows in a floating window (D50).
         func floats(_ terminalID: String) -> Bool {
-            list.contains { $0.floating[terminalID] != nil }
+            withFloats.contains { $0.floating[terminalID] != nil }
         }
 
         /// After each snapshot of a store this window shows.
         func snapshotted(_ store: HostStore) {
             page(store)?.settle()
             // A floated pane herdr closed: its window closes.
-            if let page = page(store), store.state == .live {
+            if let page = withFloats.first(where: { $0.store === store }), store.state == .live {
                 // herdr's panes, not the shown ones: a close shown at once may still come back (`Ahead`).
                 let alive = page.floating.filter { id, _ in store.last?.panes.contains { $0.terminalID == id } ?? true }
                 if alive.count < page.floating.count {
@@ -139,6 +149,7 @@
             }
             showTerminals(snapshot: true)
             showPending()
+            showFloatPending()
             if Self.windows.first === self {
                 openFolders()
             }
@@ -197,12 +208,14 @@
 
         /// Every page leaves and every terminal closes.
         private func leaveAll() {
-            for item in list {
+            let pages = withFloats
+            floatOnly = []
+            for item in pages {
                 item.dropFind()
                 item.floating = [:]
             }
             terminals.show([:], alive: [], client: nil)
-            list.forEach { leave($0.store) }
+            pages.forEach { leave($0.store) }
             list = []
             // Its content goes too: nothing of the window may stream again.
             current = nil
@@ -231,7 +244,7 @@
         }
 
         /// This window no longer shows the store: the next window controls it, or, the last one gone, it disconnects.
-        private func leave(_ store: HostStore) {
+        func leave(_ store: HostStore) {
             let controlled = store.windows.first === self
             store.windows.removeAll { $0 === self }
             // A key window that goes no longer looks at its tabs (D14).
@@ -287,7 +300,7 @@
                 ?? machines.first
             else {
                 if windows.isEmpty {
-                    early = id
+                    early = { go(to: id) }
                 }
                 return
             }
@@ -303,19 +316,21 @@
             guard let current else { return }
             // A find bar whose card is out of view closes: herdr's viewport is shared, it must not stay scrolled. A
             // floated pane's stays in view.
-            for page in list where page.findHidden || page !== current
+            for page in withFloats where page.findHidden || page !== current
                 && page.store.pane(page.find?.paneID ?? "").map(page.floats) != true
             {
                 page.dropFind()
             }
-            let alive = Set(list.flatMap { $0.store.panes.compactMap(\.terminalID) })
+            let alive = Set(withFloats.flatMap { $0.store.panes.compactMap(\.terminalID) })
             // The other pages' floated panes stream too (D50), and while the overview is open every card of every
             // page, no visits (D70); each made with its own page's client.
             var shown = current.shownTerminals, unvisited: [String: String] = [:]
-            for page in list {
+            for page in withFloats {
+                // A float-only page's other cards are in no overview tile.
+                let tiles = overview && list.contains { $0 === page }
                 for pane in page.store.panes {
                     let floats = page.floats(pane)
-                    guard floats ? page !== current : overview, let id = pane.terminalID, page.terminal(pane) != nil
+                    guard floats ? page !== current : tiles, let id = pane.terminalID, page.terminal(pane) != nil
                     else { continue }
                     if floats {
                         shown[id] = pane.id
@@ -325,7 +340,7 @@
                 }
             }
             // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
-            let kept = alive.union(list.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
+            let kept = alive.union(withFloats.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
             terminals.show(shown, unvisited: unvisited, alive: kept, client: current.store.client)
             // Not while the overview has the keyboard.
             if !overview, !snapshot || !(window?.firstResponder is NSText) {

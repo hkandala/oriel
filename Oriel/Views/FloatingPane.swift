@@ -33,6 +33,82 @@
         }
     }
 
+    extension WindowPages {
+        /// `oriel://float?session=‹herdr session›&pane=‹pane id›`, optionally `&machine=‹machine id›` (This Mac's
+        /// otherwise), from pi-herd or any tool: floats the pane over the machine's front main window, also when the
+        /// session is not open there; again for the same pane brings its window forward.
+        static func float(_ url: URL) {
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            func value(_ name: String) -> String? {
+                items.first { $0.name == name }?.value
+            }
+            guard url.host() == "float", let session = value("session"), let pane = value("pane") else { return }
+            let machine = value("machine") ?? Machine.thisMac.id
+            guard let window = windows.first(where: { $0.machine.id == machine }) else {
+                if windows.isEmpty {
+                    early = { float(url) }
+                }
+                return
+            }
+            window.floatPending = (session, pane)
+            window.loadForFloat(session)
+            window.showFloatPending()
+        }
+
+        /// The pages and the float-only ones.
+        var withFloats: [Page] {
+            list + floatOnly
+        }
+
+        /// A float-only page for a session the window has no page of, its store connecting.
+        private func loadForFloat(_ session: String) {
+            guard !withFloats.contains(where: { $0.id == session }) else { return }
+            let store = HostStore.named(session, on: machine)
+            store.windows.append(self)
+            floatOnly.append(Page(store: store, terminals: terminals))
+        }
+
+        /// The session's float-only page, out of `floatOnly` and settled, to become a page with its floats.
+        func takeFloatOnly(_ session: String) -> Page? {
+            guard let index = floatOnly.firstIndex(where: { $0.id == session }) else { return nil }
+            let page = floatOnly.remove(at: index)
+            page.settle()
+            return page
+        }
+
+        /// A float-only page with no float left leaves.
+        func dropFloatOnly(_ page: Page) {
+            guard let index = floatOnly.firstIndex(where: { $0 === page }) else { return }
+            floatOnly.remove(at: index)
+            leave(page.store)
+            showTerminals()
+        }
+
+        /// The URL's pane floats once its session answered; a session or pane that is not there says so.
+        func showFloatPending() {
+            guard let (session, paneID) = floatPending, let page = withFloats.first(where: { $0.id == session }),
+                  page.store.state != .connecting else { return }
+            floatPending = nil
+            if let pane = page.store.panes.first(where: { $0.id == paneID && $0.terminalID != nil }) {
+                page.float(pane)
+                // It streams now, not at the next snapshot: its page may not be in view.
+                showTerminals()
+            } else {
+                let why = if case let .failed(error) = page.store.state {
+                    error.localizedDescription
+                } else {
+                    "no such pane."
+                }
+                let notice = Notice(text: "Can't float pane \(paneID) of \(session): \(why)", tone: .warning)
+                Task { await current?.store.show(notice) }
+            }
+            // Nothing floats in it (or another window floats the pane).
+            if page.floating.isEmpty {
+                dropFloatOnly(page)
+            }
+        }
+    }
+
     /// The floating window: traffic lights, "session › workspace › tab", Stay on Top, Close and Detach, then the
     /// pane's terminal in a card. It closes when its page lets the pane go (Detach, herdr closed the pane, the main
     /// window closed).
@@ -48,8 +124,8 @@
         }
 
         var body: some View {
-            let pages = WindowPages.windows.first { $0.list.contains { $0.floating[floating.terminalID] != nil } }
-            let page = pages?.list.first { $0.id == floating.session && $0.floating[floating.terminalID] != nil }
+            let pages = WindowPages.windows.first { $0.floats(floating.terminalID) }
+            let page = pages?.withFloats.first { $0.id == floating.session && $0.floating[floating.terminalID] != nil }
             let pane = page?.store.panes.first { $0.terminalID == floating.terminalID }
             Group {
                 if let pages, let page {
@@ -280,7 +356,7 @@
         /// The floating window's commands (D50): only what applies to it.
         func floatingCommands(_ floating: Floating) -> [Command] {
             let terminalID = floating.terminalID
-            guard let page = pages?.list.first(where: { $0.id == floating.session }) else { return [] }
+            guard let page = pages?.withFloats.first(where: { $0.id == floating.session }) else { return [] }
             let pane = page.store.panes.first { $0.terminalID == terminalID }
             let terminal = pane.flatMap(page.terminal)
             var main = self

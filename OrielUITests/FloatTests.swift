@@ -197,6 +197,62 @@ extension OrielUITests {
         XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
     }
 
+    /// `oriel://float` (phase 28, pi-herd's agents): a pane of a session with no page here floats, and no page comes;
+    /// again brings the same window forward; a pane or session that is not there says so; Detach lets the session go.
+    /// A page's pane in a tab not in view floats too.
+    func testOrielURLFloatsAPaneOfASessionWithNoPage() async throws {
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        // Two's gamma; one has a w1:p1 too, so always within the floating window.
+        let pane = "w1:p1"
+        func url(_ query: String) -> URL {
+            URL(string: "oriel://float?\(query)")!
+        }
+
+        app.open(url("session=\(two)&pane=\(pane)"))
+        let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
+        XCTAssertTrue(window.exists(within: connect))
+        XCTAssertTrue(until(3) { element("float.\(pane).place", in: window).stringValue.hasPrefix("\(two) › gamma › ")
+        })
+        XCTAssertFalse(element("sidebar.dot.\(two)").exists)
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
+        app.typeText("echo url-$((6*7))")
+        app.typeKey(.return, modifierFlags: [])
+        try await expect("the keys in two's pane") {
+            let read = try await Self.call(two, "pane.read", ["pane_id": pane, "source": "visible"])["read"]
+            return ((read as? [String: Any])?["text"] as? String)?.contains("\nurl-42") == true
+        }
+
+        // Again, with the main window in front: the same window comes forward.
+        element("workspace.w1").click()
+        app.open(url("session=\(two)&pane=\(pane)"))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
+        XCTAssertEqual(app.windows.containing(.any, identifier: "float.\(pane)").count, 1)
+
+        // Not there: a notice in the main window, no window.
+        element("workspace.w1").click()
+        app.open(url("session=\(two)&pane=w9:p9"))
+        let notice = element("detail.notice")
+        XCTAssertTrue(notice.staticTexts["Can't float pane w9:p9 of \(two): no such pane."].exists(within: 5))
+        XCTAssertFalse(element("float.w9:p9").exists)
+        app.open(url("session=oriel-e2e-none&pane=\(pane)"))
+        let none = NSPredicate(format: "value BEGINSWITH %@", "Can't float pane \(pane) of oriel-e2e-none: ")
+        XCTAssertTrue(notice.staticTexts.matching(none).firstMatch.exists(within: connect))
+        XCTAssertFalse(element("sidebar.dot.oriel-e2e-none").exists)
+
+        // Detach: the window goes, and so does two's connection.
+        element("float.\(pane).detach", in: window).click()
+        XCTAssertTrue(window.vanishes(within: 3))
+        try await expect("two's herdr runs end") { try await runs(two).isEmpty }
+
+        // A page's pane, in a workspace not in view.
+        let (tab, other) = try await newTab("float-url")
+        element("workspace.w1").click()
+        XCTAssertTrue(element("tab.\(tab)").vanishes(within: 3))
+        app.open(url("session=\(one)&pane=\(other)"))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(other)", in: app.windows.containing(.any, identifier:
+            "float.\(other)").firstMatch)))
+    }
+
     /// The card's Float button; its window, once it shows.
     func float(_ pane: String) throws -> XCUIElement {
         hoverHeader(pane)

@@ -61,10 +61,14 @@
             return menu
         }
 
-        /// Folders dropped on the Dock icon (WindowPages). With no window (a drop that starts the app opens none:
+        /// `oriel://` URLs, and folders dropped on the Dock icon (WindowPages). With no window (a drop that starts the
+        /// app opens none:
         /// `handlesExternalEvents(matching: [])`), a new one takes them once its page is live.
         func application(_: NSApplication, open urls: [URL]) {
-            WindowPages.open(folders: urls.filter(\.hasDirectoryPath))
+            urls.filter { $0.scheme == "oriel" }.forEach(WindowPages.float)
+            let folders = urls.filter(\.hasDirectoryPath)
+            guard !folders.isEmpty else { return }
+            WindowPages.open(folders: folders)
             // Out of the Dock if minimized, so the new workspace shows.
             WindowPages.windows.first?.window?.makeKeyAndOrderFront(nil)
             // AppKit's windows, not `WindowPages.windows`: a restored window joins those only once its pages restored.
