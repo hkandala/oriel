@@ -188,3 +188,36 @@ found none). If herdr has none, floating is Oriel's own.
   the new: 40172905682). `testSecondShortcuts` reads the three palette rows and opens Font Size › with Return.
 - **For the user to check by hand:** Glass dark and light over your own wallpaper, and over a bright one; the
   keyboard card should read only a little brighter.
+
+  Agents view is on from `agents.sort`, not the header. CI: 40171834621, 40172583567 (lane's tests green).
+
+### Lane I (items 2, 7)
+
+- **Root cause, item 2.** The keycap was an `.overlay(alignment: .leading)` on the `IconStack`, so it was drawn
+  over the front icon. It now sits at the capsule's end: in the status slot (where the working dots sit, which
+  hide while it shows), or left of the × while hovered. A hidden copy in the label's `HStack` keeps its room, so
+  the title fades out before it; the visible copy is an overlay on the button, so a test can read its frame
+  (`tab.<id>.keycap`). It hides while the tab is renamed.
+- **Root cause, item 7.** The new keys did not exist: workspaces had no steps or jumps, the session steps had no
+  key, and New Workspace had none. Added to the one command list (menu bar, palette): ⌃⌘T, ⌃⌘[ ⌃⌘] (round the
+  ends, as tabs), ⌃⌘1–9, ⌥⌘[ ⌥⌘] (stop at the ends, as the swipe), ⌥⌘1–9. Workspace order is the sidebar's
+  (`Page.sidebarWorkspaces`: each workspace, its worktrees after it). Keyboard Shortcuts (⌘/, Help menu and
+  palette) is a floating panel like the palette (`Shortcuts.swift`), built from `CommandList.all` on every draw.
+- **Decisions.** A command's panel group comes from its menu section (`Section.group`); the mixed File-menu ones
+  name theirs (`Command.group`). Go to Directory is under Edit, next to Insert Path. A set of commands that differ
+  only by the key (the arrows, the 1–9 jumps) carries a `family` (title, keys) and shows as one row; a second key
+  (⇧⌘P, ⌃⇥, ⌘=) shows on its first's row. Fixed split: Panes, Tabs, Workspaces | Sessions, View, Edit (about 22
+  and 18 rows); a window too short for it scrolls the panel (`ViewThatFits`). The panel takes the keyboard
+  (`focusable`), so Esc reaches it; closing gives the keyboard back to the card. Help's "Oriel Help" item went
+  (`CommandGroup(replacing: .help)`). Copy, Paste and Select All are AppKit's, not in the list, so not shown.
+- **Learned.** A `Text` with an identifier exposes its string as the value, not the label (the keycap); a row
+  made with `.accessibilityElement(children: .ignore)` needs `.isStaticText` for its `accessibilityValue` to
+  reach XCUITest (CI 40172090772).
+- **Tests.** `testHoldingCommandShowsKeycaps` (keycap right beside the ×; it was over the icon),
+  `testWorkspaceAndSessionKeysStepAndJump`, `testKeyboardShortcutsPanelListsTheCommandsKeys` (groups, two
+  columns, family and second-key rows, Esc, ⌘/, Help menu, palette, click outside, a light classic screenshot).
+  CI 40172090772 and 40172488406 (test fixes), 40172892960 green. Full suite on 9a2654d (40173113791): lane I's
+  tests green; 4 reds in lanes K and C's areas (Open Session's Stop button shares the row's identifier, the long
+  dialog text as a query, the Finder drag), fixed by them in 7c74def, ee3114e, 1567204.
+- **For the user to check by hand:** ⌥⌘1–9 and ⌃⌘1–9 on a non-US keyboard layout; the panel's look over a light
+  wallpaper in glass.
