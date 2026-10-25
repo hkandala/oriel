@@ -189,8 +189,6 @@ found none). If herdr has none, floating is Oriel's own.
 - **For the user to check by hand:** Glass dark and light over your own wallpaper, and over a bright one; the
   keyboard card should read only a little brighter.
 
-  Agents view is on from `agents.sort`, not the header. CI: 40171834621, 40172583567 (lane's tests green).
-
 ### Lane I (items 2, 7)
 
 - **Root cause, item 2.** The keycap was an `.overlay(alignment: .leading)` on the `IconStack`, so it was drawn
