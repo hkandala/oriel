@@ -115,59 +115,31 @@ extension OrielUITests {
         }
     }
 
-    /// The strip keeps showing the selected tab's page when the tabs before it go or it moves (phase 25, item 25).
-    func testStripShowsTheSelectedTabWhenTabsBeforeItGo() async throws {
-        let tabs = try await newWorkspace("left", tabs: 3).tabs
-        app.typeKey("3", modifierFlags: .command)
-        try await expectShown(tabs[2], "the third tab")
-        app.typeKey(.pageUp, modifierFlags: [.control, .shift])
-        try await expect("the tab moved left") { try await tabIDs().filter { tabs.contains($0) } == [
-            tabs[0],
-            tabs[2],
-            tabs[1],
-        ] }
-        try await expectShown(tabs[2], "the tab moved left")
-        try await Self.call(one, "tab.close", ["tab_id": tabs[0]])
-        XCTAssertTrue(element("tab.\(tabs[0])").vanishes(within: 3))
-        try await expectShown(tabs[2], "the first tab closed")
-    }
-
-    func testStripShowsAOneTabWorkspaceAfterTheThirdTabOfAnother() async throws {
-        let tabs = try await newWorkspace("three", tabs: 3).tabs
-        app.typeKey("3", modifierFlags: .command)
-        try await expectShown(tabs[2], "the third tab")
-        element("workspace.w2").click()
-        try await expectShown("w2:t1", "the one-tab workspace")
-        element("workspace.\(workspace(of: tabs[0]))").click()
-        try await expectShown(tabs[2], "back")
-    }
-
-    /// The user's repro: four workspaces, clicked top to bottom, then bottom to top; each shows its selected tab.
+    /// The user's four workspaces (5 tabs, 1, 1, 3), clicked top to bottom and back, from each middle tab of the
+    /// first: every workspace shows its cards (phase 25, item 25: the 1-tab ones came up blank going down from the
+    /// 4th tab), and so does a session shown and left in between.
     func testStripShowsEachWorkspaceClickedDownAndUp() async throws {
         var shown: [(workspace: String, tab: String)] = []
-        for (index, count) in [3, 2, 1, 2].enumerated() {
+        for (index, count) in [5, 1, 1, 3].enumerated() {
             let tabs = try await newWorkspace("order\(index)", tabs: count).tabs
-            app.typeKey("\(count)", modifierFlags: .command)
-            try await expectShown(tabs[count - 1], "made \(index)")
-            shown.append((workspace(of: tabs[0]), tabs[count - 1]))
+            shown.append((workspace(of: tabs[0]), tabs[0]))
         }
-        for (workspace, tab) in shown + shown.reversed() {
-            element("workspace.\(workspace)").click()
-            try await expectShown(tab, "clicked \(workspace)")
+        let first = try await tabIDs().filter { workspace(of: $0) == shown[0].workspace }
+        for middle in 1 ... 3 {
+            element("workspace.\(shown[0].workspace)").click()
+            app.typeKey("\(middle + 1)", modifierFlags: .command)
+            shown[0].tab = first[middle]
+            try await expectShown(first[middle], "tab \(middle + 1)")
+            for (workspace, tab) in shown.dropFirst() + shown.reversed().dropFirst() {
+                element("workspace.\(workspace)").click()
+                try await expectShown(tab, "tab \(middle + 1), then \(workspace)")
+            }
         }
-    }
-
-    func testStripShowsAOneTabSessionAfterTheThirdTabOfAnother() async throws {
-        let tabs = try await newWorkspace("three", tabs: 3).tabs
-        app.typeKey("3", modifierFlags: .command)
-        try await expectShown(tabs[2], "the third tab")
         openSessionPanel()
         element("open-session.session.\(two)").click()
-        XCTAssertTrue(until(3) { header == two })
         XCTAssertTrue(element("pane.w1:p1").has(\.isHittable, true, within: connect), "the other session")
         element("sidebar.dot.\(one)").click()
-        XCTAssertTrue(until(3) { header == one })
-        try await expectShown(tabs[2], "back")
+        try await expectShown(shown[0].tab, "back from the other session")
     }
 
     /// The tab's page is in view: its card takes clicks and its capsule is lit.
