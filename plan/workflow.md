@@ -100,6 +100,9 @@ Measured over 132 review agents in the UI polish (dashboard, "Which reviews are 
 
 The last spec round also checks every Build and e2e item of the phase file is done.
 
+- Worktrees share one `git stash` list: a pop in one worktree can take another's stash. Never `git stash`;
+  commit first, or use `git pull --rebase --autostash`.
+
 ## GUI and CI
 
 - XCUITest drives the real mouse and keyboard. One GUI lock (`/tmp/oriel-gui.lock`): take it for one run,
