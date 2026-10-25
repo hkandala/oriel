@@ -24,7 +24,10 @@ UsePAM yes
 StrictModes no
 MaxSessions 2
 LogLevel VERBOSE
+Banner $d/banner
 CONFIG
+# A login banner, as many servers have: the app never shows it.
+echo "Authorized users only. Usage is subject to monitoring." >"$d/banner"
 # The helper counts connections in the log: this user owns it, root's sshd appends.
 touch "$d/sshd.log"
 sudo /usr/sbin/sshd -f "$d/sshd_config" -E "$d/sshd.log"

@@ -146,7 +146,7 @@ struct Notice {
                 Label(title, systemImage: "terminal")
             } description: {
                 if let text {
-                    Text(text)
+                    Text(text).accessibilityIdentifier("detail.text")
                 }
                 // Why a start failed.
                 if let notice = page.store.notice {

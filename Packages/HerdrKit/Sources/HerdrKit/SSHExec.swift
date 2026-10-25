@@ -153,11 +153,12 @@
             // 10 min after its last one.
             unlink(socket)
             // Forwarding off: a machine cannot reach the Mac's agent or ports through the long-lived connection.
-            // ssh's keepalive ends a dead link's master within 15 s; the next run starts a new one.
+            // ssh's keepalive ends a dead link's master within 15 s; the next run starts a new one. LogLevel=ERROR:
+            // a failure shows ssh's own error, not the server's login banner or ssh's notices (both INFO).
             var argv = ["sh", "-c", #"exec "$@" 2>&1"#, "sh", "/usr/bin/ssh", "-M", "-N", "-f",
                         "-o", "ControlPersist=10m", "-o", "ServerAliveInterval=5", "-o", "ServerAliveCountMax=3",
                         "-o", "ConnectTimeout=10", "-o", "ForwardAgent=no", "-o", "ForwardX11=no",
-                        "-o", "ClearAllForwardings=yes"]
+                        "-o", "ClearAllForwardings=yes", "-o", "LogLevel=ERROR"]
             var environment = environment
             if ask == nil {
                 argv += ["-o", "BatchMode=yes"]

@@ -50,6 +50,10 @@ extension OrielUITests {
         XCTAssertFalse(dropped.isEmpty)
         XCTAssertTrue(element("detail.connect").exists(within: connect))
         XCTAssertFalse(element("ask.text").exists)
+        // ssh's own error, without the server's login banner (CI's sshd has one).
+        let failure = element("detail.text").value as? String ?? ""
+        XCTAssertTrue(failure.contains("Permission denied"), failure)
+        XCTAssertFalse(failure.contains("Authorized users only"), failure)
         let after = try await connections()
         XCTAssertLessThanOrEqual(after, before + 1)
         for _ in 0 ..< 30 {
