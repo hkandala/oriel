@@ -21,10 +21,16 @@ extension OrielUITests {
         XCTAssertTrue(element("sidebar").vanishes(within: 2))
         XCTAssertFalse(element("tab.w1:t1").exists)
         XCTAssertEqual(element("titlebar.overview").stringValue, "on")
+        // × on hover closes the tab, as on the tab bar (an idle shell: no question). First: its row pushed w2 below
+        // CI's window, where the lazy grid lays out nothing.
+        element("overview.tab.\(closing)").hover()
+        element("overview.tab.\(closing).close").click()
+        XCTAssertTrue(element("overview.tab.\(closing)").vanishes(within: 3))
+        try await expect("herdr closed \(closing)") { try await !Self.ids("tab", in: one).contains(closing) }
         for id in ["overview.workspace.w1", "overview.workspace.w2", "overview.tab.w1:t1", "overview.tab.w1:t2",
                    "overview.tab.w2:t1"]
         {
-            XCTAssertTrue(element(id).exists, id)
+            XCTAssertTrue(element(id).exists(within: 2), id)
         }
         // The session's title, then each workspace's name over its tiles, two a row.
         XCTAssertEqual(element("overview.title").stringValue, one)
@@ -34,11 +40,6 @@ extension OrielUITests {
         XCTAssertEqual(second.minX - first.maxX, 16, accuracy: 1)
         XCTAssertEqual(element("overview.tab.w1:t1").stringValue, "selected")
         keepScreenshot("overview")
-        // × on hover closes the tab, as on the tab bar (an idle shell: no question).
-        element("overview.tab.\(closing)").hover()
-        element("overview.tab.\(closing).close").click()
-        XCTAssertTrue(element("overview.tab.\(closing)").vanishes(within: 3))
-        try await expect("herdr closed \(closing)") { try await !Self.ids("tab", in: one).contains(closing) }
         let tile = element("overview.tab.w2:t1"), dark = element("overview.tab.w1:t2")
         XCTAssertTrue(until(3) { mean(tile) > mean(dark) + 30 }, "\(mean(tile)) \(mean(dark))")
 
