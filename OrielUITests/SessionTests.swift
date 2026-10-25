@@ -1,7 +1,7 @@
 import XCTest
 
-/// The window's sessions (phase 14): Open Session lists, opens and starts sessions; Close Page leaves one running.
-/// Sessions as in SidebarTests.
+/// The window's sessions (phases 14, 25): Open Session lists, opens and starts sessions; a session opened goes last;
+/// Detach Session leaves one running. Sessions as in SidebarTests.
 extension OrielUITests {
     func testOpenSessionListsSessionsAndOpensAPage() throws {
         let three = try env("ORIEL_SESSION3")
@@ -89,12 +89,25 @@ extension OrielUITests {
         try await Self.snapshot(five)
     }
 
-    func testClosePageKeepsTheSessionRunning() async throws {
+    /// A session opened goes last in the window's sessions, not beside the one in view.
+    func testOpenedSessionsGoLast() async throws {
+        let five = try env("ORIEL_SESSION5")
+        try await running(five)
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        openPage(two)
+        element("sidebar.dot.\(one)").click()
+        XCTAssertTrue(until(3) { header == one })
+        openPage(five)
+        let dots = [one, two, five].map { element("sidebar.dot.\($0)").frame.midX }
+        XCTAssertEqual(dots, dots.sorted())
+    }
+
+    func testDetachSessionKeepsTheSessionRunning() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openPage(two)
         // From the dot's menu (closePage uses the header's).
         element("sidebar.dot.\(two)").rightClick()
-        app.windows.firstMatch.menuItems["Close Page"].click()
+        app.windows.firstMatch.menuItems["Detach Session"].click()
         XCTAssertTrue(until(3) { header == one })
         XCTAssertFalse(element("sidebar.dot.\(two)").exists)
         XCTAssertFalse(element("sidebar.dot.\(one)").exists)
@@ -103,8 +116,8 @@ extension OrielUITests {
 
         // At its center: the page that slid away may leave it unhittable for a moment.
         element("sidebar.header").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        XCTAssertTrue(app.windows.firstMatch.menuItems["Close Page"].exists(within: 2))
-        XCTAssertFalse(app.windows.firstMatch.menuItems["Close Page"].isEnabled)
+        XCTAssertTrue(app.windows.firstMatch.menuItems["Detach Session"].exists(within: 2))
+        XCTAssertFalse(app.windows.firstMatch.menuItems["Detach Session"].isEnabled)
         app.typeKey(.escape, modifierFlags: [])
     }
 
@@ -125,13 +138,13 @@ extension OrielUITests {
     }
 
     /// Shows the session's page and closes it from its header's context menu (in the window, not the menu bar's File ▸
-    /// Close Page).
+    /// Detach Session).
     func closePage(_ session: String, in window: XCUIElement? = nil) {
         let dot = element("sidebar.dot.\(session)", in: window)
         dot.click()
         // At its center: the page that slid away may leave it unhittable for a moment.
         element("sidebar.header", in: window).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        (window ?? app.windows.firstMatch).menuItems["Close Page"].click()
+        (window ?? app.windows.firstMatch).menuItems["Detach Session"].click()
         XCTAssertTrue(dot.vanishes(within: 3))
     }
 

@@ -199,11 +199,13 @@ session open in this window (D43).
   other sessions by itself. The user adds pages with
   [Open Session](#open-session), as many as they like. Only open pages have a
   `HostStore`, snapshot reads and an event stream.
-- **Close Page.** The context menu of the page header and of its page dot has
-  Close Page. It removes the page from this window. Its store disconnects, so
-  its event stream and its terminal streams end. The herdr session keeps
-  running and stays in the Open Session list. Close Page is disabled on the
-  last page.
+- **Detach Session.** The context menu of the page header and of its page dot
+  has Detach Session (also in the File menu). It removes the page from this
+  window. Its store disconnects, so its event stream and its terminal streams
+  end. The herdr session keeps running and stays in the Open Session list.
+  Detach Session is disabled on the last page. The UI says "session", never
+  "page": Window ▸ Previous Session and Next Session show the page before or
+  after.
 - **Restore.** Windows come back after a normal quit too: Oriel registers
   `NSQuitAlwaysKeepsWindows` in its own defaults, so the system's "Close
   windows when quitting an application" setting does not apply to it (a
@@ -350,8 +352,8 @@ workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open i
   - A new name, a running session and a stopped session take one path. The
     app starts the server if it is not running (a launchd job on This Mac,
     D47); a server the app started gets its first workspace in `$HOME`. Then
-    the session's page opens after the page in view and shows, and its store
-    connects.
+    the session's page opens last in the window's pages and shows, and its
+    store connects.
   - An open session: its page shows.
 - While a server starts, its row shows a spinner. A failure shows its text in
   the panel, with Retry, and the panel stays open.

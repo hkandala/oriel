@@ -100,7 +100,7 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   session has one `HostStore`, shared by every window that shows it
   ([Architecture](/docs/architecture#pieces)). The app keeps one registry of
   them, by session name; a page takes its session's store from it, made on
-  first use. Close Page disconnects the store.
+  first use. Detach Session disconnects the store.
 - An open session keeps its control plane open (one event stream plus short
   calls), so notifications, the Dock and pills cover every open session in
   every window. The Agents button covers the page in view.

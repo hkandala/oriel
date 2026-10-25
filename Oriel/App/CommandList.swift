@@ -62,7 +62,7 @@
                                 page.close(.workspace(workspace.id))
                             }
                         }),
-                Command(section: .close, title: "Close Page", symbol: "rectangle.stack.badge.minus",
+                Command(section: .close, title: "Detach Session", symbol: "rectangle.stack.badge.minus",
                         enabled: (pages?.list.count ?? 0) > 1, action: {
                             if let pages, let page = pages.current {
                                 pages.close(page)
@@ -183,7 +183,6 @@
                     title: title,
                     key: .init(offset < 0 ? "[" : "]", modifiers: [.command, .option]),
                     symbol: symbol,
-                    keywords: "session",
                     enabled: pages?.neighbor(offset) != nil,
                     action: {
                         if let pages, let page = pages.neighbor(offset) {
@@ -208,8 +207,8 @@
                         enabled: tab != nil && tabs.last?.id != tab?.id),
                 stepWorkspace("Show Previous Workspace", "chevron.up", -1),
                 stepWorkspace("Show Next Workspace", "chevron.down", 1),
-                step("Previous Page", "chevron.left.2", -1),
-                step("Next Page", "chevron.right.2", 1),
+                step("Previous Session", "chevron.left.2", -1),
+                step("Next Session", "chevron.right.2", 1),
             ] + Self.jumps(page, pages)
         }
 

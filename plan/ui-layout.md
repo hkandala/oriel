@@ -78,7 +78,7 @@ The strip under the title row still pages sideways between the selected workspac
   costs nothing until the user asks. The user adds more pages with **Open Session** (the panel below); each
   opened session gets a page, as many as the user likes. Only open pages have a store, a snapshot read and
   an event stream.
-- **Closing a page**: the context menu of the page header and of its page dot has "Close Page". It only
+- **Closing a page**: the context menu of the page header and of its page dot has "Detach Session". It only
   removes the page from this window (its store disconnects); the herdr session keeps running and stays in
   the panel's list. The last page cannot be closed.
 - **Restore**: after any quit (the app registers `NSQuitAlwaysKeepsWindows`), a window that macOS restores reopens the pages it had (their names in `@SceneStorage`); a

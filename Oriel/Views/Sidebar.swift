@@ -140,7 +140,7 @@
                 .padding(.bottom, 3)
                 .contentShape(.rect)
                 // The herdr session keeps running.
-                .contextMenu { Button("Close Page") { pages.close(page) }.disabled(pages.list.count < 2) }
+                .contextMenu { Button("Detach Session") { pages.close(page) }.disabled(pages.list.count < 2) }
                 if let agents {
                     // The header reads apart from the list (user, phase 25).
                     Divider()
@@ -262,7 +262,7 @@
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .contextMenu { Button("Close Page") { pages.close(page) }.disabled(pages.list.count < 2) }
+                    .contextMenu { Button("Detach Session") { pages.close(page) }.disabled(pages.list.count < 2) }
                     .accessibilityLabel(page.id)
                     .accessibilityIdentifier("sidebar.dot.\(page.id)")
                     .accessibilityAddTraits(page === pages.current ? .isSelected : [])

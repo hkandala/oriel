@@ -71,7 +71,7 @@
             }
         }
 
-        /// Shows the session's page; one not open yet opens after the page in view, its store connecting (`start`:
+        /// Shows the session's page; one not open yet opens last, its store connecting (`start`:
         /// its server is started first). A session another window shows is watched until this window takes it.
         func open(_ session: String, start: Bool = false) {
             // A late open (a start that finished, a restore) after the window closed.
@@ -84,10 +84,7 @@
             store.windows.append(self)
             let page = Page(store: store, terminals: terminals)
             page.settle()
-            list.insert(
-                page,
-                at: current.flatMap { current in list.firstIndex { $0 === current } }.map { $0 + 1 } ?? list.endIndex,
-            )
+            list.append(page)
             show(page)
         }
 

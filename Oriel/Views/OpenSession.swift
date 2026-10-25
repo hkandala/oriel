@@ -4,7 +4,7 @@
 
     /// The one place to create or open a session (D68): a new name, the running and stopped sessions, and the ones
     /// already open in this window. Create, open and start take one path: start the server when it is not running,
-    /// then open its page after the page in view. A glass panel like the palette: Enter acts, Esc or a click outside
+    /// then open its page last. A glass panel like the palette: Enter acts, Esc or a click outside
     /// closes it.
     struct OpenSession: View {
         let pages: WindowPages
