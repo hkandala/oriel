@@ -31,8 +31,8 @@ the orchestrator says otherwise.
    (phase 27 lanes A3 and V).
 4. **Overview chrome** (#5 2:08): remove every title-row item in the overview (machine button, Agents,
    the overview button, ⌘ palette); keep only the traffic lights and one × button that leaves the
-   overview. More room on the left and right, like the user's reference (`overview.png`, phase 27): the
-   grid sits centered with wide side margins.
+   overview. More room on all four sides (the user asked again: top, bottom, left and right), like the
+   user's reference (`overview.png`, phase 27): the grid sits centered with wide margins.
 
 ## Lane F: floating window and placeholder (items 5, 6)
 
@@ -57,10 +57,25 @@ the orchestrator says otherwise.
     "password", "passphrase" and "PIN" prompts got a hidden field. Every answer is hidden except the yes/no
     host-key question.
 
-## Waiting on the user
+## Lane F, also: herdr popups through Oriel (item 7, #9 3:46)
 
-7. **herdr's own popups** (#9 3:46): the user wants them to open Oriel's floating window. Phase 27 lane F3
-   found herdr 0.9.5 gives no popup terminal id, no event and no close by id. Options were put to the user.
+7. herdr 0.9.5 tells API clients nothing about plugin popups (phase 27 lane F3), so the user chose
+   option 1: an `oriel://` URL that any tool can open to float a pane, and pi-herd uses it when the click
+   came through Oriel.
+   - **Oriel:** register the `oriel` URL scheme; `oriel://float?session=<herdr session>&pane=<pane id>`
+     (optional `machine=`) opens that pane in Oriel's floating window over the frontmost main window, even
+     when that session is not open as a page in any window (load it for the float without adding a page).
+     Opening it again for the same pane brings the window forward. Unknown session or pane: a notice, no
+     window.
+   - **How pi-herd knows:** the click reached pi through Oriel exactly when Oriel is the frontmost app
+     (another client would be frontmost otherwise). pi-herd checks the frontmost app on macOS only
+     (`lsappinfo front` then its bundle id, a few ms, at click time only); when it is Oriel
+     (`dev.hkandala.oriel`) it runs `open -g "oriel://float?…"` for the agent's pane in the pi-herd
+     session, else it opens herdr's popup as today. On Linux or over SSH it always uses herdr's popup.
+   - **pi-herd** is in the user's repo `/Users/hkandala/code/pi-hkandala/extensions/pi-herd` (the popup
+     code is in `herdr.ts` `popupCommand` and `index.ts` around "Views an agent"). The user allowed this
+     change. Follow that repo's own AGENTS.md and commit rules; keep the change small.
+   - An issue or PR to herdr upstream is not part of this.
 
 ## Checks
 
