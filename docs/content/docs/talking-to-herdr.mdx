@@ -384,9 +384,9 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Open Session: a new name, a running or a stopped session | starts `herdr --session S server` when it is not running (a launchd job on This Mac, D47; `nohup` on a remote machine) and waits for `session.snapshot`; a server the app started with no workspace gets `workspace.create {cwd: $HOME}`; then the page opens and its `HostStore` connects ([Checks on connect](/docs/machines#checks-on-connect)) |
 | Close Page | no herdr call; the page's store disconnects when no window shows it, and the session keeps running |
 | Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`); web and plugin panes close at once (known by their label), and the app removes their [state file](/docs/plugins/state#the-instance-state-file) |
-| Close a tab | `tab.close`; always asks, with the pane count |
-| Close a workspace | `workspace.close {workspace_id, close_group}`; always asks, with the tab and pane count. `close_group: true` for a repository's workspace with linked worktree workspaces: herdr refuses the close without it (`workspace_group_close_required`), and with it closes all of them, also ones not next to it. The git worktrees stay on disk. A worktree's own workspace closes alone |
-| Close Other Tabs, Close Tabs to the Right | one `tab.close` per tab, all at once; asks once, with the total pane count |
+| Close a tab | `tab.close`; asks first only when a pane of it runs more than its shell (`pane.process_info` of each pane, at once), naming what runs, with the pane count |
+| Close a workspace | `workspace.close {workspace_id, close_group}`; asks as for a tab, with the tab and pane count. `close_group: true` for a repository's workspace with linked worktree workspaces: herdr refuses the close without it (`workspace_group_close_required`), and with it closes all of them, also ones not next to it. The git worktrees stay on disk. A worktree's own workspace closes alone |
+| Close Other Tabs, Close Tabs to the Right | one `tab.close` per tab, all at once; asks once as for a tab, with the total pane count |
 | Rename a tab or workspace | `tab.rename {tab_id, label}` / `workspace.rename {workspace_id, label}`; an empty or unchanged name sends nothing |
 | Rename a pane | `pane.rename {pane_id, label}`; an empty name sends `label: null`, which clears the label |
 | Go to Directory (⇧⌘G) | `pane.send_input` of `cd -- '‹path›'` and Return, only when the pane runs only its shell |

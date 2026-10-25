@@ -70,6 +70,19 @@ extension OrielUITests {
         return try (id(created, "tab"), id(created, "root_pane"))
     }
 
+    /// A pane of the tab, from herdr's snapshot.
+    func pane(of tab: String) async throws -> String {
+        try await field((snapshot()["panes"] as? [[String: Any]])?.first { $0["tab_id"] as? String == tab }?["pane_id"],
+                        "a pane of \(tab)")
+    }
+
+    /// `sleep 100` in the pane: a program besides its shell, so a close asks (D41).
+    func runSleep(_ pane: String) async throws {
+        try await waitFor(pane) { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        try await send("sleep 100\r", to: pane)
+        try await expect("sleep in \(pane)") { try await foreground(pane).contains("sleep") }
+    }
+
     /// The names of the pane's foreground processes.
     func foreground(_ pane: String) async throws -> [String] {
         let info = try await Self.call(one, "pane.process_info", ["pane_id": pane])["process_info"]

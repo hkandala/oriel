@@ -149,9 +149,10 @@ One capsule per herdr tab of the selected workspace (D42).
   "‹agent› needs you" or "‹agent› finished" for 3 s. A long text fades at its
   end like any title. Reduce Motion turns the bounce off.
 - **Context menu** on a capsule: Rename Tab, Move Tab Left, Move Tab Right,
-  Close Tab, Close Other Tabs, Close Tabs to the Right. The last two (also in
-  the File menu and the palette, for the selected tab) ask once, with the
-  total pane count. Rename (or a double-click anywhere on the capsule) puts a
+  Close Tab, Close Other Tabs, Close Tabs to the Right. The last two are also in
+  the File menu and the palette, for the selected tab. Each asks once, with
+  what runs and the total pane count, only when a program besides the shell
+  runs in one of the panes. Rename (or a double-click anywhere on the capsule) puts a
   text field in place of the title: Enter saves, Esc cancels.
 - **Keycap hints.** If the user holds ⌘ for 0.7 s while the window is key,
   each of the first nine capsules shows a keycap "⌘1"… at its end, where the
@@ -272,7 +273,8 @@ Spaces panel.
   - Move Up and Move Down move a group past the next group. A group is a
     workspace and its worktrees. Both are disabled on a worktree row (it
     moves with its repository) and at the ends.
-  - Close Workspace always asks, with the tab and pane count. On a repository
+  - Close Workspace asks only when a program besides the shell runs in one of
+    its panes, with what runs and the tab and pane count. On a repository
     with worktrees it also closes their workspaces, and the dialog says so.
     The worktrees stay on disk.
 - **Rename.** Rename Workspace, or a double-click on the name, puts a text

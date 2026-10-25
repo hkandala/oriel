@@ -142,10 +142,8 @@ extension OrielUITests {
         XCTAssertTrue(close.vanishes(within: 2))
         element("tab.\(tabs[1])").hover()
         XCTAssertTrue(close.exists(within: 2))
+        // Only its shell runs: no dialog (D41).
         close.click()
-        let confirm = app.sheets.buttons["Close Tab"]
-        XCTAssertTrue(confirm.exists(within: 2))
-        confirm.click()
         try await expect("herdr to close it") { try await tabsOf(workspace).map(\.id) == [tabs[0], tabs[2]] }
         XCTAssertTrue(element("tab.\(tabs[1])").vanishes(within: 2))
     }
@@ -190,14 +188,15 @@ extension OrielUITests {
     func testCloseOtherTabsAsksOnceAndLeavesOneTab() async throws {
         let tabs = try await newWorkspace("row", tabs: 3).tabs
         let workspace = workspace(of: tabs[0])
-        try await split("\(workspace):p1")
+        try await runSleep(split("\(workspace):p1"))
         element("tab.\(tabs[1])").rightClick()
         app.windows.firstMatch.menuItems["Close Other Tabs"].click()
         let confirm = app.sheets.buttons["Close Tabs"]
         XCTAssertTrue(confirm.exists(within: 2))
-        // t1's two panes and t3's one.
+        // t1's two panes and t3's one; what runs in them.
         XCTAssertTrue(app.sheets.staticTexts
-            .matching(NSPredicate(format: "value CONTAINS '3 panes' OR label CONTAINS '3 panes'")).firstMatch
+            .matching(NSPredicate(format: "value BEGINSWITH 'sleep is running in them. Their 3 panes' "
+                    + "OR label BEGINSWITH 'sleep is running in them. Their 3 panes'")).firstMatch
             .exists(within: 2))
         confirm.click()
         try await expect("one tab left") { try await tabsOf(workspace).map(\.id) == [tabs[1]] }

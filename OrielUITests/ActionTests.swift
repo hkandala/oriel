@@ -47,22 +47,33 @@ extension OrielUITests {
         try await typeAndRead(right)
     }
 
-    func testClosingATabAsksFirst() async throws {
+    /// A tab asks only while a pane of it runs a program, and names it (D41).
+    func testClosingATabAsksOnlyWhileAProgramRuns() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("doomed")
-        try await split(pane)
+        let second = try await split(pane)
+        try await waitForPrompt(pane)
+        try await runSleep(second)
         let row = element("tab.\(tab)")
         row.hover()
         element("tab.\(tab).close").click()
         let confirm = app.sheets.buttons["Close Tab"]
         XCTAssertTrue(confirm.exists(within: 2))
-        // The count follows the snapshot, which may not have the split yet.
-        XCTAssertTrue(app.sheets.staticTexts
-            .matching(NSPredicate(format: "value CONTAINS '2 panes' OR label CONTAINS '2 panes'")).firstMatch
-            .exists(within: 2))
+        let text = "sleep is running in it. Its 2 panes and everything running in them will end, here and in every "
+            + "herdr client. This cannot be undone."
+        XCTAssertTrue(app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text))
+            .firstMatch.exists(within: 2))
         keepScreenshot("close tab dialog")
-        confirm.click()
+        app.sheets.buttons["Cancel"].click()
+        XCTAssertTrue(confirm.vanishes(within: 2))
+
+        // Only the shells: it closes at once.
+        try await Self.call(one, "pane.send_keys", ["pane_id": second, "keys": ["ctrl+c"]])
+        try await expect("the shell to be back") { try await !foreground(second).contains("sleep") }
+        row.hover()
+        element("tab.\(tab).close").click()
         XCTAssertTrue(row.vanishes(within: 3))
+        XCTAssertFalse(confirm.exists)
         let tabs = try await tabIDs()
         XCTAssertFalse(tabs.contains(tab))
     }

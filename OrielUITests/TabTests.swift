@@ -33,10 +33,8 @@ extension OrielUITests {
         element("titlebar.new-tab").click()
         let plus = try await newTabID(after: before)
         XCTAssertTrue(element("tab.\(plus)").has(\.isSelected, true, within: 3))
+        // Only its shell runs: no dialog.
         app.typeKey("w", modifierFlags: [.command, .option])
-        let confirm = app.sheets.buttons["Close Tab"]
-        XCTAssertTrue(confirm.exists(within: 2))
-        confirm.click()
         XCTAssertTrue(element("tab.\(plus)").vanishes(within: 3))
         XCTAssertTrue(second.has(\.isSelected, true, within: 2))
         // One from ⌘T, closed by herdr.
@@ -73,27 +71,30 @@ extension OrielUITests {
         XCTAssertTrue(capsules[3].has(\.isSelected, true, within: 3))
     }
 
-    /// Close Tabs to the Right, from a capsule's menu and from the palette, asks once and keeps the tabs on the left.
+    /// Close Tabs to the Right, from a capsule's menu and from the palette, keeps the tabs on the left; it asks once
+    /// while a program runs in them, else not at all.
     func testCloseTabsToTheRightKeepsTheTabsOnTheLeft() async throws {
         let tabs = try await newWorkspace("right", tabs: 4).tabs
         let workspace = workspace(of: tabs[0])
         let order: () async throws -> [String] = { try await self.tabIDs().filter { $0.hasPrefix("\(workspace):") } }
+        try await runSleep(pane(of: tabs[3]))
         let confirm = app.sheets.buttons["Close Tabs"]
         element("tab.\(tabs[1])").rightClick()
         // The capsule's menu, not the File menu's item.
         app.windows.firstMatch.menuItems["Close Tabs to the Right"].click()
         XCTAssertTrue(sheetText("Close the 2 tabs to the right?").exists(within: 2))
+        XCTAssertTrue(sheetText("sleep is running in them. Their 2 panes and everything running in them will end, "
+                + "here and in every herdr client. This cannot be undone.").exists)
         confirm.click()
         try await expect("the two tabs on the left") { try await order() == [tabs[0], tabs[1]] }
         XCTAssertTrue(element("tab.\(tabs[2])").vanishes(within: 2))
 
-        // The selected tab's (the first).
+        // The selected tab's (the first); only a shell runs to its right.
         openPalette()
         app.typeText("close tabs to the right")
         app.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(sheetText("Close the tab to the right?").exists(within: 2))
-        confirm.click()
         try await expect("the first tab alone") { try await order() == [tabs[0]] }
+        XCTAssertFalse(confirm.exists)
     }
 
     /// A tab dragged to the end of an overflowing row and held there scrolls the row (the scroll view's own drop

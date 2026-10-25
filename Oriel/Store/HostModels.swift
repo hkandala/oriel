@@ -4,15 +4,21 @@ import Observation
 
 /// The stable objects snapshots land on (see `HostStore`).
 extension HostStore {
-    /// A close waiting for the user's yes (design D41).
+    /// A close (design D41).
     enum Close {
-        case pane(String, program: String)
+        case pane(String)
         case tab(String)
         /// The other tabs of a workspace, or the ones to the right of a tab, as they were when the user asked: a tab
         /// made since is not closed.
         case otherTabs([String], right: Bool)
         /// A workspace, with its linked worktrees' workspaces when it has any.
         case workspace(String)
+    }
+
+    /// A close waiting for the user's yes, and the programs besides the shells that run in its panes.
+    struct Closing {
+        let close: Close
+        let running: [String]
     }
 
     @MainActor @Observable

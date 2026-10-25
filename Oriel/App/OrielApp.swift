@@ -236,9 +236,9 @@ struct OrielApp: App {
                 if !$0 {
                     page.closing = nil
                 }
-            }, titleVisibility: .visible, presenting: page.closing) { close in
-                Button(close.button, role: .destructive) {
-                    Task { await store.close(close) }
+            }, titleVisibility: .visible, presenting: page.closing) { closing in
+                Button(closing.close.button, role: .destructive) {
+                    Task { await store.close(closing.close) }
                 }
             } message: { _ in
                 Text(dialog?.message ?? "")
@@ -294,35 +294,35 @@ struct OrielApp: App {
             Binding { panel == which } set: { panel = $0 ? which : panel == which ? nil : panel }
         }
 
-        /// The close dialog's text (design D41): a close ends processes on every device and cannot be undone.
+        /// The close dialog's text (design D41): what runs, and that a close ends it on every device for good.
         private var dialog: (title: String, message: String)? {
+            guard let closing = page.closing else { return nil }
             let store = page.store
+            let tabs = store.tabIDs(closing.close)
+            let running = closing.running.formatted(.list(type: .and))
+                + (closing.running.count == 1 ? " is" : " are") + " running in "
             let end = " will end, here and in every herdr client. This cannot be undone."
-            let panes = { (tabs: [String]) in store.panes.count { tabs.contains($0.tabID) } }
-            let them = { (count: Int) in
-                "\(count == 1 ? "pane" : "\(count) panes") and everything running in \(count == 1 ? "it" : "them")"
-            }
-            switch page.closing {
+            let count = store.panes.count { tabs.contains($0.tabID) }
+            let them = count == 1 ? "pane and everything running in it"
+                : "\(count) panes and everything running in them"
+            switch closing.close {
             case let .tab(id):
                 let tab = store.workspaces.flatMap(\.tabs).first { $0.id == id }
-                return ("Close the tab “\(tab.map(page.titleText) ?? id)”?", "Its " + them(panes([id])) + end)
+                return ("Close the tab “\(tab.map(page.titleText) ?? id)”?", running + "it. Its " + them + end)
             case let .otherTabs(others, right):
                 let which = others.count == 1 ? right ? "the tab to the right" : "the other tab"
                     : right ? "the \(others.count) tabs to the right" : "the \(others.count) other tabs"
-                return ("Close \(which)?", "Their " + them(panes(others)) + end)
-            case let .pane(id, program):
+                return ("Close \(which)?", running + "them. Their " + them + end)
+            case let .pane(id):
                 let name = store.pane(id).map { $0.label ?? $0.folder ?? "terminal" } ?? id
-                return ("Close “\(name)”?", "\(program) is running in it and" + end)
+                return ("Close “\(name)”?", running + "it and" + end)
             case let .workspace(id):
-                let workspace = store.workspaces.first { $0.id == id }
                 let worktrees = store.worktrees(of: id)
-                let tabs = ([workspace].compactMap(\.self) + worktrees).flatMap(\.tabs).map(\.id)
                 let also = worktrees.isEmpty ? "" : worktrees.count == 1 ? " and its worktree’s workspace"
                     : " and its \(worktrees.count) worktrees’ workspaces"
-                return ("Close the workspace “\(workspace?.label ?? id)”\(also)?",
-                        "\(tabs.count == 1 ? "Its tab" : "Its \(tabs.count) tabs"), " + them(panes(tabs)) + end)
-            case nil:
-                return nil
+                let label = store.workspaces.first { $0.id == id }?.label ?? id
+                return ("Close the workspace “\(label)”\(also)?",
+                        running + "it. \(tabs.count == 1 ? "Its tab" : "Its \(tabs.count) tabs"), " + them + end)
             }
         }
     }

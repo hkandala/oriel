@@ -36,7 +36,7 @@
         /// What this window drags now; the drag source clears it when the drag ends.
         var dragging: Dragged?
         /// A close waiting for the user's yes, in this window only.
-        var closing: HostStore.Close?
+        var closing: HostStore.Closing?
         /// The card whose header shows the rename field.
         var renamingPaneID: String?
         /// The open find bar (⌘F), on one card.
@@ -281,9 +281,9 @@
             return store.panes.count { $0.tabID == tab } < 2
         }
 
-        /// Closes the pane, or asks first in this window (D41).
-        func close(pane paneID: String) async {
-            closing = await store.close(pane: paneID)
+        /// Closes it, or asks first in this window (D41).
+        func close(_ close: HostStore.Close) {
+            Task { closing = await store.ask(close) }
         }
 
         /// A split restores a zoomed layout first, as tmux does: the new pane shows.

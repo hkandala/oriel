@@ -277,27 +277,53 @@ extension HostStore {
         await write { try await $0.rename(workspace: workspaceID, label: label) }
     }
 
-    /// Closes a pane that runs only its shell; else the close to ask about (design D41), for the asking window.
-    func close(pane paneID: String) async -> Close? {
+    /// Closes at once when every pane of it runs only its shell; else the close to ask about, with what runs (design
+    /// D41), for the asking window. Asked now, not the panes' last answers: a program may have started since.
+    func ask(_ close: Close) async -> Closing? {
         guard let client else { return nil }
-        let program: String?
-        do {
-            program = try await client.program(paneID).flatMap { $0.isShell ? nil : $0.title }
-        } catch {
-            // Unknown: ask.
-            program = "A program"
+        let paneIDs = if case let .pane(id) = close {
+            [id]
+        } else {
+            panes.filter { tabIDs(close).contains($0.tabID) }.map(\.id)
         }
-        if let program {
-            return .pane(paneID, program: program)
+        let running = await withTaskGroup { group in
+            for id in paneIDs {
+                group.addTask { () -> String? in
+                    do {
+                        return try await client.program(id).flatMap { $0.isShell ? nil : $0.title }
+                    } catch {
+                        // Unknown: ask.
+                        return "A program"
+                    }
+                }
+            }
+            var names = Set<String>()
+            for await case let name? in group {
+                names.insert(name)
+            }
+            return names
         }
-        await write { try await $0.close(pane: paneID) }
+        // Sorted: "A program" leads the list.
+        guard running.isEmpty else { return Closing(close: close, running: running.sorted()) }
+        await self.close(close)
         return nil
+    }
+
+    /// The tabs a close of tabs or a workspace takes, as the user sees them now; none for a pane.
+    func tabIDs(_ close: Close) -> [String] {
+        switch close {
+        case .pane: []
+        case let .tab(id): [id]
+        case let .otherTabs(ids, _): ids
+        case let .workspace(id):
+            (workspaces.filter { $0.id == id } + worktrees(of: id)).flatMap(\.tabs).map(\.id)
+        }
     }
 
     /// The user said yes.
     func close(_ close: Close) async {
         switch close {
-        case let .pane(id, _): await write { try await $0.close(pane: id) }
+        case let .pane(id): await write { try await $0.close(pane: id) }
         case let .tab(id): await write { try await $0.close(tab: id) }
         case let .otherTabs(asked, _):
             // Not ones closed meanwhile (their close would fail the rest), and all at once: one by one, 20 tabs took

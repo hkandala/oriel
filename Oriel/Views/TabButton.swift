@@ -69,7 +69,7 @@
             .accessibilityValue([lit ? "in view" : nil, agent.flatMap { agent in
                 agent.state == .idle ? nil : "\(agent.agentName ?? "agent"), \(agent.state?.word ?? "")"
             }, "icons: " + stack.map(\.iconID).joined(separator: ", ")].compactMap(\.self).joined(separator: "; "))
-            .accessibilityAction(named: "Close Tab") { page.closing = .tab(tab.id) }
+            .accessibilityAction(named: "Close Tab") { page.close(.tab(tab.id)) }
             .hoverPanel(place: .under, action: "Show Panes") { close in
                 HoverCard(tabID: tab.id, page: page, close: close)
             }
@@ -107,7 +107,7 @@
             .overlay(alignment: .trailing) {
                 // Over the title's fade, so it never changes the tab's width.
                 if hovering, !renaming {
-                    Button { page.closing = .tab(tab.id) } label: {
+                    Button { page.close(.tab(tab.id)) } label: {
                         Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
                             .frame(width: 22, height: 22)
                     }
@@ -159,7 +159,7 @@
             Button("Move Tab Right") { Task { await store.move(tab: tab.id, by: 1) } }
                 .disabled(tabs.last?.id == tab.id)
             Divider()
-            Button("Close Tab") { page.closing = .tab(tab.id) }
+            Button("Close Tab") { page.close(.tab(tab.id)) }
             Button("Close Other Tabs") { page.closeTabs(besides: tab.id, right: false) }
                 .disabled(tabs.count < 2)
             Button("Close Tabs to the Right") { page.closeTabs(besides: tab.id, right: true) }
@@ -175,13 +175,13 @@
     }
 
     extension Page {
-        /// Close Other Tabs, or Close Tabs to the Right (`right`), of the tab: asks first.
+        /// Close Other Tabs, or Close Tabs to the Right (`right`), of the tab: asks first when a program runs in them.
         func closeTabs(besides tabID: String, right: Bool) {
             guard let tabs = store.workspace(of: tabID)?.tabs.map(\.id), let index = tabs.firstIndex(of: tabID)
             else { return }
             let others = right ? Array(tabs[(index + 1)...]) : tabs.filter { $0 != tabID }
             if !others.isEmpty {
-                closing = .otherTabs(others, right: right)
+                close(.otherTabs(others, right: right))
             }
         }
 

@@ -197,11 +197,12 @@ extension OrielUITests {
         app.menuItems["Move Down"].click()
         try await expect("herdr's order back") { try await workspaceIDs().last == made }
 
+        try await runSleep(pane(of: tab))
         row.rightClick()
         app.windows.firstMatch.menuItems["Close Workspace"].click()
-        // D41: it asks, with the tab and pane count.
-        XCTAssertTrue(app.sheets.staticTexts["Its 2 tabs, 2 panes and everything running in them will end, here and in "
-                + "every herdr client. This cannot be undone."].exists(within: 2))
+        // D41: a program runs, so it asks, with what runs and the tab and pane count.
+        XCTAssertTrue(app.sheets.staticTexts["sleep is running in it. Its 2 tabs, 2 panes and everything running in "
+                + "them will end, here and in every herdr client. This cannot be undone."].exists(within: 2))
         app.sheets.buttons["Close Workspace"].click()
         try await expect("herdr to close it") { try await !workspaceIDs().contains(made) }
         XCTAssertTrue(row.vanishes(within: 2))
