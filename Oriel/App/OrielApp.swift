@@ -232,7 +232,7 @@ struct OrielApp: App {
                 }
             }
             // Rex's collapse time, for the title row too (tabs over the cards); the toggle and ⌃⌘S only flip the value.
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: sidebar)
+            .animation(reduceMotion && !Animation.forceMotion ? nil : .easeInOut(duration: 0.3), value: sidebar)
             .hoverPanelHost()
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
             .overlay {

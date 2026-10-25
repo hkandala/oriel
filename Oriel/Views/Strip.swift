@@ -14,8 +14,6 @@
         @State private var between = 0
         private static let record = UserDefaults.standard.bool(forKey: "recordStrip")
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
-        /// e2e (`-forceMotion YES`): layout motion even with Reduce Motion, which CI's Mac has on.
-        private static let forceMotion = UserDefaults.standard.bool(forKey: "forceMotion")
 
         var body: some View {
             ScrollView(.horizontal) {
@@ -27,7 +25,8 @@
                                 // Layout motion (0.2 s): a split, a close, a swap, a zoom. The terminals keep their
                                 // size until it ends (`TerminalHost`).
                                 let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
-                                let motion = reduceMotion && !Self.forceMotion ? nil : Animation.easeOut(duration: 0.2)
+                                let motion = reduceMotion && !Animation.forceMotion ? nil : Animation
+                                    .easeOut(duration: 0.2)
                                 SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
                                     .animation(motion, value: tree)
                                     .animation(motion, value: zoomed)
@@ -119,10 +118,11 @@
                             .opacity(away ? 0 : 1)
                             .zIndex(away ? 0 : 1)
                             .allowsHitTesting(!away)
-                            // A new card slides in from its side as the others make room; a closed one shrinks away
-                            // as they grow.
-                            .transition(.asymmetric(insertion: .move(edge: card.edge).combined(with: .opacity),
-                                                    removal: .scale(scale: 0.6).combined(with: .opacity)))
+                            // A new card slides in from its side as the others make room, its edge on theirs; a
+                            // closed one fades as they grow. Not `.move` (it slid nothing here) nor `.scale` (the
+                            // terminal view does not scale).
+                            .transition(.asymmetric(insertion: .offset(card.from).combined(with: .opacity),
+                                                    removal: .opacity))
                     }
                     ForEach(parts.dividers, id: \.id) { divider in
                         // The panes beside the divider.
@@ -150,6 +150,16 @@
             let rect: CGRect
             /// Its side of its split, where it slides in from.
             let edge: Edge
+
+            /// Where it slides in from: beside its place, on its side.
+            var from: CGSize {
+                switch edge {
+                case .leading: CGSize(width: -rect.width - gap, height: 0)
+                case .trailing: CGSize(width: rect.width + gap, height: 0)
+                case .top: CGSize(width: 0, height: -rect.height - gap)
+                case .bottom: CGSize(width: 0, height: rect.height + gap)
+                }
+            }
         }
 
         struct Divider {

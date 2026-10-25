@@ -7,6 +7,8 @@ nonisolated let gap: CGFloat = 8
 extension Animation {
     /// Rex's tab spring (stiffness 520, damping 46, critically damped).
     static let tab = Animation.spring(response: 0.28, dampingFraction: 1)
+    /// e2e (`-forceMotion YES`): layout motion and the sidebar's slide even with Reduce Motion, which CI's Mac has on.
+    static let forceMotion = UserDefaults.standard.bool(forKey: "forceMotion")
 }
 
 /// The appearance setting (D44): Auto follows macOS.
