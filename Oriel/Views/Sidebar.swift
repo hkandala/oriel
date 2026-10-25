@@ -125,9 +125,9 @@
                 // The name and the sort menu's label on one baseline; the `+` has no text to align.
                 HStack(alignment: agents == nil ? .center : .firstTextBaseline) {
                     // A long session name gives way in its middle.
-                    // The page's title, a step above the rows (user, phase 25).
-                    Text(page.id).truncationMode(.middle)
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(.primary).lineLimit(1)
+                    // The page's title: the rows' size, bold (user, phase 27).
+                    Text(store.title).truncationMode(.middle)
+                        .font(.system(size: 13, weight: .bold)).foregroundStyle(.primary).lineLimit(1)
                         // Before the sort menu's label, which gives way first.
                         .layoutPriority(1)
                         .accessibilityIdentifier("sidebar.header")
@@ -150,9 +150,9 @@
                     }
                 }
                 // Agents view: the name starts where the group labels and row icons do (the rows' insets and their
-                // 8 pt padding), and the sort label's text ends where the times end (less its own 6 pt padding).
+                // 8 pt padding), and the sort label's text ends where the times end (its capsule where the rows end).
                 .padding(.leading, agents == nil ? 22 : Sidebar.rowInsets.leading + 8)
-                .padding(.trailing, agents == nil ? 3 : Sidebar.rowInsets.trailing + 8 - 6)
+                .padding(.trailing, Sidebar.rowInsets.trailing)
                 // Rex's first row sits 31.5 pt below the header's baseline.
                 .padding(.bottom, 3)
                 .contentShape(.rect)
@@ -237,19 +237,18 @@
             Menu {
                 Picker("Sort", selection: $sort) {
                     Text("Priority").tag(AgentSort.priority)
-                    Text("Workspace order").tag(AgentSort.workspace)
+                    Text("Workspace").tag(AgentSort.workspace)
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
             } label: {
-                Text(
-                    "\(Image(systemName: "arrow.up.arrow.down")) \(sort == .priority ? "Priority" : "Workspace order")",
-                )
-                .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).padding(.horizontal, 6)
-                .frame(height: 22)
+                Text("\(Image(systemName: "arrow.up.arrow.down")) \(sort == .priority ? "Priority" : "Workspace")")
+                    .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).padding(.horizontal, 8)
+                    .frame(height: 22)
             }
             .menuStyle(.button)
-            .buttonStyle(ChromeStyle(radius: 6))
+            // A small button, as the header buttons: a capsule filled on hover (user, phase 27).
+            .buttonStyle(ChromeStyle(radius: 11))
             .accessibilityIdentifier("agents.sort")
             .accessibilityValue(sort.rawValue)
         }

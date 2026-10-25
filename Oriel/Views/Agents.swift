@@ -299,7 +299,7 @@ struct StatusBadge: View {
         var body: some View {
             let waiting = page.store.agentPanes.filter { $0.state == .needsYou }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Needs you · \(page.id)").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("Needs you · \(page.store.title)").font(.system(size: 11)).foregroundStyle(.secondary)
                     .padding(.horizontal, 8).padding(.bottom, 2)
                     .accessibilityIdentifier("agents.popover.header")
                 ScrollView {

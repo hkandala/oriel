@@ -130,6 +130,15 @@ extension HostStore {
         session == "default" ? machine.name : "\(machine.name) · \(session)"
     }
 
+    #if os(macOS)
+        /// The sidebar's title: the machine's name for its `default` session, This Mac's own name for This Mac's;
+        /// else the session's (user, phase 27).
+        var title: String {
+            guard session == "default" else { return session }
+            return machine.isRemote ? machine.name : Machine.computerName
+        }
+    #endif
+
     /// The session in a notification or a Dock row: a remote one with its machine.
     var label: String {
         machine.isRemote ? name : session

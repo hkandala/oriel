@@ -1,6 +1,9 @@
 import Foundation
 import HerdrKit
 import Observation
+#if os(macOS)
+    import SystemConfiguration
+#endif
 
 /// A computer that runs herdr (D43): This Mac, or a remote machine of the app's own list (D54).
 struct Machine: Codable, Hashable, Identifiable {
@@ -18,6 +21,8 @@ struct Machine: Codable, Hashable, Identifiable {
 #if os(macOS)
     extension Machine {
         static let thisMac = Machine(id: "local", name: "This Mac", target: "", icon: thisMacIcon)
+        /// This Mac's own name, as set in System Settings ("Hari's MacBook Pro").
+        static let computerName = SCDynamicStoreCopyComputerName(nil, nil) as String? ?? thisMac.name
 
         /// Its one Exec for the app's life; the sessions of a remote machine share its ControlMaster.
         @MainActor func exec() async -> any Exec {
