@@ -56,7 +56,8 @@ before writing code. In short:
 
 - Every herdr argv carries `--session <name>`.
 - Never call herdr focus methods (`*.focus`). Creates pass `focus:false`.
-- Never patch local state after a write; read the snapshot again.
+- Never patch local state after a write; read the snapshot again. The one exception is `Ahead` (phase 25): a
+  new tab, a split and a close show before herdr answers, and the snapshots confirm or take them back.
 - Every long-running child ends when its stdin closes (wrap a command that ignores it, like `observe`);
   the one fallback kill signals by pid, never by process group.
 

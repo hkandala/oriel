@@ -408,8 +408,20 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
   ([Drag and drop](/docs/ui/drag-and-drop#what-herdr-allows)).
 - A drop that takes several steps stops at the first step that fails. The
   pane stays where it got to, and the notice says so.
-- After its own write, the app reads the snapshot at once. It never patches
-  its own state by hand.
+- After its own write, the app reads the snapshot at once. A new tab, a split
+  and a close show before herdr answers: the new tab or pane as an empty card
+  under a stand-in id, a closing pane, tab or workspace left out. The
+  snapshots after the write confirm it (herdr's tab or pane takes the
+  stand-in's place; the closed one is gone) or take it back (a failed write).
+  Otherwise the app never changes its own state by hand (phase 25).
+- Writes of a session run one at a time, in order: a write asked while
+  another runs waits for it.
+- A close reads `pane.process_info` of its panes, at most 8 at a time. When
+  the last answers say only shells run, the close shows at once while herdr
+  is asked; a program found brings it back with the question. A pane whose
+  new shell is still starting (its first seconds, [Program
+  icons](/docs/ui/program-icons)) is not asked: its startup runs `ls` and the
+  like, nothing of the user's.
 - `pane.swap` makes herdr focus that tab and its pane and mark it seen, even
   with `focus:false` (herdr 0.9.5). The herdr TUI does not jump. Accepted,
   because a swap only follows a drag, a split left or up, or a key the user
