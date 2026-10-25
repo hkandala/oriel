@@ -567,6 +567,53 @@ found none). If herdr has none, floating is Oriel's own.
 - **For the user to check by hand:** the four workspaces clicked top to bottom and back, after reselecting a middle
   tab or swiping to it; a workspace switch with VoiceOver off.
 
+### Lane T (items 27, 28)
+
+- **Approach, item 27.** The preview reuses what already exists, so it opens no stream, makes no surface or terminal,
+  and moves no terminal view. `TabPreview` (new file) draws the tab's split tree with Strip's `Parts` (made internal)
+  at a quarter of a 1056 × 660 pt page (264 × 165 pt) between the title and the rows. A card that draws (lane O: the
+  shown tab's, a floated one) shows its libghostty layer's IOSurface, set as another layer's contents: no copy, refreshed
+  5 times a second by an AppKit timer that lives in that view, so only while a card is open. Any other card shows its
+  screen's text (`pane.read` on open and each second while open; a failed read keeps the last one). Both draw at the
+  page's quarter: cells a quarter of their size, top left, cut at the edge, on the card fill over Classic's opaque window
+  color (the orchestrator's note: text and picture cards must look alike). Design: window.mdx "The preview's pictures",
+  D63.
+- **Options weighed.** A view snapshot (`cacheDisplay` misses the Metal layer); a second observe-only surface per pane
+  (a renderer, a font atlas and a herdr stream per pane on every hover, and observe cannot resize); `pane.read` for
+  every pane (no colors where a picture is free); a hidden tab's last picture (stale, and lane O frees hidden surfaces);
+  F2's way (it moves the terminal view, the card shows a placeholder). libghostty's renderer is an `IOSurfaceLayer`
+  (strings in libghostty.a), so the layer's `contents` is the frame it shows.
+- **Approach, item 28.** Measured from `rex-border.png` (Retina): the card's top line 46 and 28 steps over the fill, a
+  glow of about 9 fading over 6 pt, the sides 15 and 7. `CardSurface` now draws the 0.7 pt rim at white 0.06 (was 0.1,
+  sides were twice Rex's) and over it a 1 pt top line (white 0.09) masked to fade round the corners in 14 pt, plus an
+  8 pt glow at half; `plusLighter`, the same on every card (item 1 holds: testCardsLookAlike green). Light: white 0.04 /
+  0.3. Classic: none, as Rex's System and UseTheme cards (a flat stroke, no highlight).
+- **Root causes on the way.** (1) The first CI run's mini cards were 60 pt apart: herdr's text, wider than its card
+  (bash's long prompt), widened the card's accessibility frame though clipped; the text now keeps the cells that fit.
+  (2) A SwiftUI `TimelineView` (5 Hz) cost about 20 % CPU in a debug build: each tick laid out the whole window
+  (`sample`: `NSHostingView.layout` under `CA::Transaction::commit`); the AppKit timer costs about 1 point.
+- **Numbers.** Local, debug, M-series, two printing panes: no card 4.7 %, a hidden tab's card 5.9 %, the shown tab's
+  card 5.4 % (the herdr runs of the text reads are not counted). Rim on Retina over the user's wallpaper, Glass dark:
+  top 42 → 45 after the bump, sides 15; light 10–15 / 9–10. CI (1x): top 38, sides 11.
+- **Tests.** `testHoverCardPreviewsTheTabsCardsLive` (text with the pane's echo for a tab not shown, cards side by side
+  2 pt apart, then pictures that follow a white block and a clear while the card stays open),
+  `testHoverCardPreviewCostsLittle`, `testGlassCardsHaveABrighterTopRim` (top − side ≥ 12, every card alike; the old
+  uniform rim fails). `testHoverCardBlursTheTextBehindIt` measures the pane row now (the preview took its old rect).
+- **Learned.** `.offset` and an overflowing child both move a SwiftUI accessibility frame away from what is drawn;
+  place by padding and keep children inside. `Color.clear.shadow(.inner(...))` draws nothing; a black fill under
+  `plusLighter` turns the card's alpha opaque. `ImageRenderer` in a `swiftc` script measures a view's pixels without
+  running the app.
+- **CI.** 40182229269 (red: the 60 pt frame), 40184185155 (green: preview, Agents row, row, blocked card). Full
+  dispatch run 40186828504 on 6a590b4 (after the last code commit 5257ee2): every lane T and hover card test green; 2
+  reds outside lane T (`testARemotePageComesBackAfterItsConnectionDies`, `testGoToDirectoryAndInsertPath`). Rough
+  screenshots to the orchestrator: `/tmp/oriel-shots/25t-*.png`.
+- **Review.** Spec: the read loop now re-reads the tab's panes (a split or a blocked agent while open) and keeps a
+  failed read; docs fixed. Ponytail: `picture` returns the terminal, `scale` not threaded, the rim's dead
+  `allowsHitTesting`, `cpu` reuses lane O's `measure`.
+- **For the user to check by hand:** hover a tab with a working agent, the shown tab and another one, in Glass dark and
+  light over your wallpaper: picture and text cards should look alike and follow the agent. The card rim in Glass dark
+  next to Rex; in light it is faint (as Rex's).
+
 ## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
 
 Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/fb/agents-header.png` (item 18).
