@@ -10,6 +10,7 @@
         var sidebar: Binding<Bool>?
         var agents: Binding<Bool>?
         var openSession: Binding<Bool>?
+        var shortcuts: Binding<Bool>?
         let openWindow: OpenWindowAction
         let settings: AppSettings
 
@@ -20,24 +21,25 @@
                 Command(section: .file, title: "New Window", key: .init("n"), symbol: "macwindow.badge.plus") {
                     openWindow(id: "main")
                 },
-                Command(section: .file, title: "New Tab", key: .newTab, symbol: "plus.square",
+                Command(section: .file, title: "New Tab", key: .newTab, group: .tabs, symbol: "plus.square",
                         enabled: workspace != nil) { Task { await page?.newTab() } },
-                Command(section: .file, title: "New Workspace", symbol: "folder.badge.plus", enabled: live) {
-                    Task { await page?.newWorkspace() }
-                },
-                Command(section: .file, title: "Open Session…", key: .openSession, symbol: "rectangle.stack.badge.plus",
+                Command(section: .file, title: "New Workspace", key: .init("t", modifiers: [.command, .control]),
+                        group: .workspaces, symbol: "folder.badge.plus",
+                        enabled: live) { Task { await page?.newWorkspace() } },
+                Command(section: .file, title: "Open Session…", key: .openSession, group: .sessions,
+                        symbol: "rectangle.stack.badge.plus",
                         keywords: "create start switch", enabled: openSession != nil, action: {
                             openSession?.wrappedValue = true
                         }),
                 Command(section: .file, title: "Go to Directory…", key: .init("g", modifiers: [.command, .shift]),
-                        symbol: "folder", keywords: "cd folder path navigate",
+                        group: .edit, symbol: "folder", keywords: "cd folder path navigate",
                         enabled: page?.keyboardPane?.program?.isShell == true, action: {
                             Task { await page?.choosePath(directory: true) }
                         }),
             ]
             let close = [
                 Command(section: .close, title: "Close Tab", key: .init("w", modifiers: [.command, .option]),
-                        symbol: "xmark.rectangle", enabled: tab != nil, action: {
+                        group: .tabs, symbol: "xmark.rectangle", enabled: tab != nil, action: {
                             if let page, let tab = page.selectedTab {
                                 page.closing = .tab(tab.id)
                             }
@@ -92,6 +94,8 @@
             return [
                 Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",
                         enabled: palette != nil) { palette?.wrappedValue.toggle() },
+                Command(section: .help, title: "Keyboard Shortcuts", key: .init("/"), symbol: "keyboard",
+                        keywords: "keys help", enabled: shortcuts != nil) { shortcuts?.wrappedValue.toggle() },
                 Command(section: .view, title: "Show Agents", key: .init("."), symbol: "list.bullet.rectangle",
                         keywords: "needs you", enabled: agents != nil && sidebar != nil,
                         checked: agents?.wrappedValue == true && sidebar?.wrappedValue == true, action: {
@@ -159,7 +163,7 @@
             ]
         }
 
-        /// The Window menu's tab and page steps, and the tabs on ⌘1…⌘9.
+        /// The Window menu's tab, workspace and page steps, and the places on ⌘1…⌘9.
         private func window(_ page: Page?, _ pages: WindowPages?) -> [Command] {
             let tabs = page?.selectedWorkspace?.tabs ?? []
             let tab = page?.selectedTab
@@ -174,12 +178,24 @@
                         })
             }
             func step(_ title: String, _ symbol: String, _ offset: Int) -> Command {
-                Command(section: .pages, title: title, symbol: symbol, keywords: "session",
-                        enabled: pages?.neighbor(offset) != nil, action: {
-                            if let pages, let page = pages.neighbor(offset) {
-                                pages.show(page)
-                            }
-                        })
+                Command(
+                    section: .pages,
+                    title: title,
+                    key: .init(offset < 0 ? "[" : "]", modifiers: [.command, .option]),
+                    symbol: symbol,
+                    keywords: "session",
+                    enabled: pages?.neighbor(offset) != nil,
+                    action: {
+                        if let pages, let page = pages.neighbor(offset) {
+                            pages.show(page)
+                        }
+                    },
+                )
+            }
+            func stepWorkspace(_ title: String, _ symbol: String, _ offset: Int) -> Command {
+                Command(section: .workspaceSteps, title: title,
+                        key: .init(offset < 0 ? "[" : "]", modifiers: [.command, .control]), symbol: symbol,
+                        enabled: (page?.store.workspaces.count ?? 0) > 1) { page?.stepWorkspace(offset) }
             }
             return [
                 Command(section: .tabSteps, title: "Show Previous Tab", key: .previousTab, symbol: "chevron.backward",
@@ -190,19 +206,11 @@
                         enabled: tab != nil && tabs.first?.id != tab?.id),
                 moveTab("Move Tab Right", .pageDown, "arrow.right.to.line", 1,
                         enabled: tab != nil && tabs.last?.id != tab?.id),
+                stepWorkspace("Show Previous Workspace", "chevron.up", -1),
+                stepWorkspace("Show Next Workspace", "chevron.down", 1),
                 step("Previous Page", "chevron.left.2", -1),
                 step("Next Page", "chevron.right.2", 1),
-            ] + tabs.prefix(9).enumerated().map { index, tab in
-                Command(section: .tabs, title: page?.titleText(tab) ?? tab.label,
-                        key: KeyboardShortcut(KeyEquivalent(Character("\(index + 1)"))), action: {
-                            // The workspace when the key is pressed: the menu may be older than a workspace switch.
-                            if let page, let workspace = page.selectedWorkspace,
-                               workspace.tabs.indices.contains(index)
-                            {
-                                page.select(workspace, tab: workspace.tabs[index].id)
-                            }
-                        })
-            }
+            ] + Self.jumps(page, pages)
         }
 
         /// Keys that move the keyboard, the pane or a divider; and Focus Follows Mouse.
@@ -216,7 +224,8 @@
             {
                 arrows.map { heading, key in
                     Command(section: .paneKeys, title: "\(title) \(heading.rawValue.capitalized)",
-                            key: .init(key, modifiers: modifiers), symbol: "arrow.\(heading.rawValue)\(suffix)",
+                            key: .init(key, modifiers: modifiers), family: title,
+                            symbol: "arrow.\(heading.rawValue)\(suffix)",
                             keywords: "pane",
                             enabled: enabled, action: {
                                 // A held key's repeat while a write runs is dropped, not a "Busy" notice each time.
@@ -261,6 +270,42 @@
     }
 
     extension CommandList {
+        /// The places on 1…9, one modifier per level (user, phase 25): ⌘ the workspace's tabs, ⌃⌘ the sidebar's
+        /// workspaces, ⌥⌘ the window's sessions. Each finds its place when the key is pressed: the menu may be older
+        /// than a switch.
+        static func jumps(_ page: Page?, _ pages: WindowPages?) -> [Command] {
+            func number(_ index: Int, _ modifiers: EventModifiers) -> KeyboardShortcut {
+                KeyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: modifiers)
+            }
+            let tabs = (page?.selectedWorkspace?.tabs ?? []).prefix(9).enumerated().map { index, tab in
+                Command(section: .tabs, title: page?.titleText(tab) ?? tab.label, key: number(index, .command),
+                        family: "Show Tab 1–9", action: {
+                            if let page, let workspace = page.selectedWorkspace,
+                               workspace.tabs.indices.contains(index)
+                            {
+                                page.select(workspace, tab: workspace.tabs[index].id)
+                            }
+                        })
+            }
+            let workspaces = (page?.sidebarWorkspaces ?? []).prefix(9).enumerated().map { index, workspace in
+                Command(section: .workspaces, title: workspace.label, key: number(index, [.command, .control]),
+                        family: "Show Workspace 1–9", action: {
+                            if let page, page.sidebarWorkspaces.indices.contains(index) {
+                                page.select(page.sidebarWorkspaces[index])
+                            }
+                        })
+            }
+            let sessions = (pages?.list ?? []).prefix(9).enumerated().map { index, other in
+                Command(section: .sessions, title: other.id, key: number(index, [.command, .option]),
+                        family: "Show Session 1–9", action: {
+                            if let pages, pages.list.indices.contains(index) {
+                                pages.show(pages.list[index])
+                            }
+                        })
+            }
+            return tabs + workspaces + sessions
+        }
+
         /// The pane's actions (D48), for View ▸ Pane on the keyboard card and the card header's context menu. Actions
         /// ask `target` for the pane when they run: the menu bar may be older than the last keyboard move.
         static func pane(_ page: Page?, _ target: @escaping @MainActor () -> HostStore.Pane?) -> [Command] {
@@ -270,7 +315,7 @@
                      symbol: String? = nil, enabled: Bool = true,
                      _ run: @escaping (Page, HostStore.Pane) async -> Void) -> Command
             {
-                Command(section: section, title: title, key: key, symbol: symbol, keywords: "pane",
+                Command(section: section, title: title, key: key, group: .panes, symbol: symbol, keywords: "pane",
                         enabled: pane != nil && enabled, action: {
                             if let page, let pane = target() {
                                 Task { await run(page, pane) }

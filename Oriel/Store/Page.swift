@@ -225,6 +225,18 @@
             selectedTabIDs[workspace.id] = tabs[(index + offset + tabs.count) % tabs.count].id
         }
 
+        /// The sidebar's order: each workspace, its worktrees right after it.
+        var sidebarWorkspaces: [HostStore.Workspace] {
+            store.groups.flatMap(\.self)
+        }
+
+        /// The workspace before or after the selected one in the sidebar, round the ends (⌃⌘[ ⌃⌘]).
+        func stepWorkspace(_ offset: Int) {
+            let workspaces = sidebarWorkspaces
+            guard let index = workspaces.firstIndex(where: { $0.id == selectedWorkspaceID }) else { return }
+            select(workspaces[(index + offset + workspaces.count) % workspaces.count])
+        }
+
         /// The tab's title, from herdr's label; herdr's default label (a bare number) gives the front card's program
         /// and folder instead (D65).
         func title(_ tab: HostStore.Tab) -> (name: String, folder: String?) {

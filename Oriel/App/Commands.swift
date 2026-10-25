@@ -108,9 +108,28 @@ extension KeyboardShortcut {
             case pane, paneMove
             /// View ▸ Pane, keys only.
             case paneKeys
-            case size, tabSteps, pages, tabs
+            case size, tabSteps, workspaceSteps, pages, tabs, workspaces, sessions
             /// The palette only.
             case palette
+            case help
+
+            /// Its group on the Keyboard Shortcuts panel, unless the command names its own.
+            var group: Group {
+                switch self {
+                case .edit: .edit
+                case .paneSetting, .pane, .paneMove, .paneKeys: .panes
+                case .tabSteps, .tabs: .tabs
+                case .workspaceSteps, .workspaces: .workspaces
+                case .pages, .sessions: .sessions
+                case .file, .close, .view, .size, .palette, .help: .view
+                }
+            }
+        }
+
+        /// The Keyboard Shortcuts panel's groups, in its order.
+        enum Group: String {
+            case panes = "Panes", tabs = "Tabs", workspaces = "Workspaces", sessions = "Sessions", view = "View"
+            case edit = "Edit"
         }
 
         let section: Section
@@ -118,6 +137,10 @@ extension KeyboardShortcut {
         /// The palette row's id when the title may repeat (a move's target tabs); else the title.
         var id: String?
         var key: KeyboardShortcut?
+        /// The Keyboard Shortcuts panel's group, when not its section's.
+        var group: Group?
+        /// The Keyboard Shortcuts panel's one row for a set of keys ("Select Pane" for ⌥⌘ and each arrow).
+        var family: String?
         /// The palette row's SF Symbol.
         var symbol: String?
         /// More words the palette's filter matches.
@@ -158,8 +181,10 @@ extension KeyboardShortcut {
             }
             CommandGroup(after: .windowArrangement) {
                 Divider()
-                CommandItems(commands: list, sections: [.tabSteps, .pages, .tabs])
+                CommandItems(commands: list, sections: [.tabSteps, .workspaceSteps, .pages, .tabs, .workspaces,
+                                                        .sessions])
             }
+            CommandGroup(replacing: .help) { items(list, .help) }
         }
 
         /// The menu bar's commands exist with no window: the app delegate opens one through this for a Dock drop.

@@ -168,7 +168,7 @@ struct OrielApp: App {
         @Binding var sidebar: Bool
         @Binding var agents: Bool
         @Binding var sidebarWidth: Double
-        /// The one floating panel open: the workspace menu, the palette or Open Session.
+        /// The one floating panel open: the workspace menu, the palette, Open Session or Keyboard Shortcuts.
         @State private var panel: Panel?
         @State private var workspaceButtonX: CGFloat = 0
         @State private var fullScreen = false
@@ -184,7 +184,8 @@ struct OrielApp: App {
             let style = settings.style, appearance = settings.appearance
             let look = Look(style: style, dark: colorScheme == .dark)
             let commands = CommandList(pages: pages, palette: open(.palette), sidebar: $sidebar, agents: $agents,
-                                       openSession: open(.openSession), openWindow: openWindow, settings: settings)
+                                       openSession: open(.openSession), shortcuts: open(.shortcuts),
+                                       openWindow: openWindow, settings: settings)
             let store = page.store
             // The strip's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
             // cards start at its bottom edge, as in Rex; the row stays on top for its clicks and window drags.
@@ -226,6 +227,9 @@ struct OrielApp: App {
                 if panel == .palette {
                     Palette(pages: pages, page: page, commands: commands, open: open(.palette), height: height)
                         .padding(.top, 96).floatingPanel(open: open(.palette), alignment: .top)
+                }
+                if panel == .shortcuts {
+                    Shortcuts(commands: commands.all).floatingPanel(open: open(.shortcuts), alignment: .center)
                 }
             }
             .confirmationDialog(dialog?.title ?? "", isPresented: Binding { page.closing != nil } set: {
@@ -282,7 +286,7 @@ struct OrielApp: App {
         }
 
         enum Panel {
-            case workspaces, palette, openSession
+            case workspaces, palette, openSession, shortcuts
         }
 
         /// Whether this panel is the open one; opening it closes the other.

@@ -93,8 +93,10 @@
 
         /// The enabled commands; a setting says what it does now ("Turn On Focus Follows Mouse").
         private func commandRows(_ list: [Command]) -> [(item: FilterList.Item, keywords: String)] {
-            // The menu bar's order, then the palette's own; not the tabs on ⌘1…⌘9. Not Command Palette: it is open.
-            Command.Section.allCases.filter { $0 != .tabs }.flatMap { section in list.filter { $0.section == section } }
+            // The menu bar's order, then the palette's own; not the places on ⌘1…⌘9 (the place rows list them). Not
+            // Command Palette: it is open.
+            Command.Section.allCases.filter { ![.tabs, .workspaces, .sessions].contains($0) }
+                .flatMap { section in list.filter { $0.section == section } }
                 .filter { $0.enabled && $0.key != .palette }.map { command in
                     let opens = !command.menu.isEmpty || command.name != nil
                     let title = command.checked
