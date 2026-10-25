@@ -15,7 +15,7 @@ final class HostStore {
     let session: String
     let machine: Machine
     private(set) var state = State.connecting
-    /// Every session herdr knows on this Mac.
+    /// Every session herdr knows on the machine.
     private(set) var sessions: [Session] = []
     private(set) var workspaces: [Workspace] = []
     private(set) var panes: [Pane] = []

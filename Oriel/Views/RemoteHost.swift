@@ -70,12 +70,13 @@
                 if !hostKey {
                     Group {
                         if secret {
-                            SecureField("Answer", text: $answer)
+                            SecureField("", text: $answer)
                         } else {
-                            TextField("Answer", text: $answer)
+                            TextField("", text: $answer)
                         }
                     }
                     .labelsHidden()
+                    .accessibilityLabel("Answer")
                     .focused($focused)
                     .accessibilityIdentifier("ask.answer")
                 }

@@ -67,7 +67,7 @@ extension OrielUITests {
         relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
         let terminal = element("terminal.w1:p2")
         XCTAssertTrue(terminal.exists(within: connect))
-        XCTAssertEqual(element("titlebar.machine").label, "Machine: Key Host")
+        XCTAssertTrue(element("titlebar.machine").has(\.label, "Machine: Key Host", within: 3))
         try await waitForPrompt("w1:p2")
         terminal.click()
         XCTAssertTrue(hasKeyboard(terminal))

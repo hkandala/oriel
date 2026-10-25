@@ -28,6 +28,8 @@ touch "$d/sshd.log"
 sudo /usr/sbin/sshd -f "$d/sshd_config" -E "$d/sshd.log"
 sudo sysadminctl -addUser oriel-pw -password oriel-e2e-pw -home /Users/oriel-pw 2>&1
 sudo createhomedir -c -u oriel-pw >/dev/null 2>&1 || true
+# Remote Login may admit only this group's members.
+sudo dseditgroup -o edit -a oriel-pw -t user com.apple.access_ssh 2>/dev/null || true
 cat >>~/.ssh/config <<CONFIG
 Host oriel-key
   HostName 127.0.0.1
@@ -51,3 +53,8 @@ ssh -o BatchMode=yes oriel-key true
 if ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null oriel-pw true 2>/dev/null; then
     echo "oriel-pw got in without a password" >&2 && exit 1
 fi
+printf '#!/bin/sh\necho oriel-e2e-pw\n' >"$d/password"
+chmod +x "$d/password"
+SSH_ASKPASS="$d/password" SSH_ASKPASS_REQUIRE=force \
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null oriel-pw true </dev/null ||
+    { echo "oriel-pw's password does not get in:" >&2 && sudo tail -30 "$d/sshd.log" >&2 && exit 1; }
