@@ -123,8 +123,8 @@ extension OrielUITests {
         app.typeKey("/", modifierFlags: .command)
         XCTAssertTrue(panel.exists(within: 2))
         keepScreenshot("keyboard shortcuts, light classic")
-        // A click outside closes it.
-        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.97)).click()
+        // A click outside closes it (beside it: in CI's short window it reaches the bottom).
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.03, dy: 0.6)).click()
         XCTAssertTrue(panel.vanishes(within: 2))
     }
 }
