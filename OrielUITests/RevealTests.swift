@@ -132,7 +132,9 @@ extension OrielUITests {
             let sizes = Int(host.label) ?? 0
             // The screen, not the element, which moves: a band across the window through the middle of the terminal.
             // Its text stays in the band while the card moves (no other card has text that low).
-            let frame = terminal.frame, window = app.windows.firstMatch.frame
+            // The largest window: a tooltip or a hover card is a window too.
+            let frame = terminal.frame, window = app.windows.allElementsBoundByIndex.map(\.frame)
+                .max { $0.width * $0.height < $1.width * $1.height } ?? .zero
             let band = CGRect(x: window.minX, y: frame.minY + frame.height * 0.45, width: window.width,
                               height: frame.height * 0.2)
             let before = Self.ink(Self.crop(XCUIScreen.main.screenshot().image, band))
