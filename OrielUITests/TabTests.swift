@@ -115,9 +115,10 @@ extension OrielUITests {
         }
     }
 
-    /// The user's four workspaces (5 tabs, 1, 1, 3), clicked top to bottom and back, from each middle tab of the
-    /// first: every workspace shows its cards (phase 25, item 25: the 1-tab ones came up blank going down from the
-    /// 4th tab), and so does a session shown and left in between.
+    /// The user's four workspaces (5 tabs, 1, 1, 3), clicked top to bottom and back from a middle tab of the first,
+    /// while herdr's snapshots keep coming (the user's agents worked; here a tab is renamed again and again): every
+    /// workspace shows its cards (phase 25, item 25: a one-tab one came up empty going down from the 4th tab), and so
+    /// does a session shown and left in between.
     func testStripShowsEachWorkspaceClickedDownAndUp() async throws {
         var shown: [(workspace: String, tab: String)] = []
         for (index, count) in [5, 1, 1, 3].enumerated() {
@@ -125,7 +126,15 @@ extension OrielUITests {
             shown.append((workspace(of: tabs[0]), tabs[0]))
         }
         let first = try await tabIDs().filter { workspace(of: $0) == shown[0].workspace }
-        for middle in 1 ... 3 {
+        // Off the main actor, which the waits below block.
+        let busy = Task.detached { [one, renamed = first[0]] in
+            for count in 0... where !Task.isCancelled {
+                _ = try? await Self.call(one, "tab.rename", ["tab_id": renamed, "label": "busy \(count)"])
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+        }
+        defer { busy.cancel() }
+        for middle in [1, 2, 3, 3, 3] {
             element("workspace.\(shown[0].workspace)").click()
             app.typeKey("\(middle + 1)", modifierFlags: .command)
             shown[0].tab = first[middle]
