@@ -342,7 +342,7 @@
         }
     }
 
-    private extension Animation {
+    extension Animation {
         /// The sidebar's session pages: between the tab spring and phase 25's 0.14 s, which the user found too quick
         /// and odd (phase 27), with no bounce. A swipe's slide starts at the fingers' `speed` toward the page
         /// `distance`

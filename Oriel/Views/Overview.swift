@@ -68,7 +68,7 @@
                 }
                 .onChange(of: pages.current?.id, initial: true) { old, new in
                     guard let new, position.viewID(type: String.self) != new else { return }
-                    withAnimation(old == nil || reduceMotion && !Animation.forceMotion ? nil : .session) {
+                    withAnimation(old == nil || reduceMotion && !Animation.forceMotion ? nil : .session()) {
                         position.scrollTo(id: new)
                     }
                     // The first layout of the lazy stack can miss it.
