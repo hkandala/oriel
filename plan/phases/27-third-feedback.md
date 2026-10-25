@@ -132,3 +132,57 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
 - **For the user to check by hand:** the header on This Mac's `default` (your Mac's name, bold, the rows' size) and
   on a remote machine's `default`; the sort capsule under the pointer in all four looks; folding a group, then
   relaunching.
+
+### Lane V (items 15, 16)
+
+- **Root cause, item 15.** Phase 25 lane T added `TabPreview` to the hover card (a picture timer, a text read
+  each second). Removed: the card is again its pre-lane-T self (title, rows, the needs-you lines read once on
+  open), `TabPreview.swift` and its two tests are gone; lane T's rim (`CardSurface`, item 28) and
+  `testGlassCardsHaveABrighterTopRim` stay (426b9a6).
+- **Item 16, how the miniatures draw** (D70, window.mdx "Overview"). Each tile hosts the card's own libghostty view
+  in `MiniTerminal.Mini`, whose bounds are the card's terminal size and frame the tile's: AppKit scales the layer
+  (a probe: a bounds-scaled layer-backed view gets a 0.3 layer transform and renders scaled), libghostty sizes from
+  the view's own bounds × the window's scale, so grid, pixels and herdr's PTY keep the card's size. No surface,
+  stream or copy of its own; the strip is not shown meanwhile, so a view lives in one place, and the strip's hosts
+  adopt the views back. Streams: lane A3's `PaneViewRegistry.show(_:unvisited:...)` (agreed with A3): the cards
+  of the tiles the lazy grid lays out stream and draw, are no visits, and those shown only by the overview let go
+  when it closes. Weighed: a small observe-only surface per pane (a herdr run each, its grid cannot fit), the
+  live surfaces' pictures on a timer, `pane.read` text, SwiftUI `scaleEffect` (does not scale an AppKit view).
+- **Numbers** (lane O's scenario: 17 cards, 8 printing; `testOverviewCostsAndLetsGoAfter`). This Mac, debug,
+  Retina: strip 166 MB / 1.4 % CPU / 4 herdr runs; overview, 12 cards in view, about 700 MB / 9–10 %; all 17 laid
+  out 902 MB (586 MB IOSurface) / 16.7 %; closed again 224 MB / 1.7 % / 4 runs. CI (1x): 84 → 134 MB with 8 runs.
+  The content-scale cut the orchestrator offered is not possible without changing libghostty-spm (its scale comes
+  only from `window.backingScaleFactor`, `core` is private; A3 also noted the grid would move); the lazy grid
+  bounds it instead (6f33fad): a tile scrolled away lets its cards go.
+- **Decisions.** ⌃⌘O (lane I2's ⌃⌘ is the workspace level; the overview shows the session's workspaces), View ▸
+  Show Overview with a check, the palette, the title-row button between Agents and ⌘, Esc. Tiles: one card per
+  tab (orchestrator, from the reference): a 36 pt title row (icon stack, title, status; × on hover, the tab bar's
+  close) over the miniature; the selected tab has the keyboard card's look; 2–4 a row, 16 pt gaps, 24 pt margins;
+  the session's sidebar title (`store.title`) heads each page. A click selects the tab and grows its miniature to
+  the strip's page in 0.25 s (none under Reduce Motion), then the strip shows. Sideways the overview pages through
+  the window's sessions. The Agents button and ⌘. leave it first and act after the zoom; a notification or Dock
+  click leaves it at once; other keys and the palette work under it (⌘T adds a tile).
+- **Root causes on the way.** (1) Esc never reached a SwiftUI `focusable`: the terminal moving into a miniature
+  kept the first responder. Now `PaneSurfaceView` refuses the keyboard inside a miniature, the overview clears the
+  first responder, and a key monitor takes Esc unless a panel or text field has it; a claim made while in a
+  miniature lands when the view is back in its card (`viewDidMoveToSuperview`). (2) The zoom jumped: an animated
+  frame reached the miniature's terminal views only at its end (their sizes come from a `GeometryReader`), and the
+  overlay was inserted in the same update as the change. Now an `Animatable` modifier sets the frame each step,
+  one turn after the insert; `-recordMotion` counts the miniature's sizes (≥ 4). (3) Spec and ponytail review:
+  tab ids repeat across sessions, so the laid-out tiles, the tile frames and the zoom were keyed by page; a window
+  drag refit each tile's terminal every frame (now 150 ms after, as the card's host); 2–4 columns explicitly.
+- **Deviations.** `Miniature.swift` holds the miniature and `MiniTerminal` (PaneSurfaceView reads `Mini`);
+  `showPending` moved to an extension (WindowPages' body length). Remote machines: only the shown tab's cards
+  are live in the overview (the SSH session cap; the remote lane reworks it), the others keep their last picture.
+- **Tests** (`OverviewTests.swift`): `testOverviewShowsEveryTabLiveAndOpensOne` (sidebar and tab bar hidden,
+  title and workspaces, two a row 16 pt apart, × closes a tab in herdr, a never-shown tab's white block in its
+  tile, the zoom's sizes, the tab shown with its PTY at the card's size, keyboard back, Esc),
+  `testOverviewSwipesBetweenSessions` (a swipe lands on session two and makes it the window's page, a same-id
+  never-shown tab of session two draws live, Esc without motion gives the keyboard back),
+  `testOverviewCostsAndLetsGoAfter` (streams up while open, back to the strip's count after).
+- **CI.** 40192962147 (rough: Esc red), 40193514086, 40194287889 (green), 40196409137 (a layout check below CI's
+  fold; fixed in 1b881f4); full suite 40197782383 on 1b881f4.
+- **For the user to check by hand:** ⌃⌘O in a busy session: tiles live and readable at Retina, the selected tab's
+  card in Glass and Classic, × on hover; a click's zoom with Reduce Motion off (smooth, ends where the strip's
+  page is, with the sidebar open and closed); a two-finger swipe between sessions inside the overview; memory
+  after scrolling through many tabs (`footprint`), and back after Esc.
