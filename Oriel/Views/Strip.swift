@@ -95,9 +95,10 @@
         let zoomed: String?
         let page: Page
         let tabID: String
-        /// The cards in their place: one new since the page first drew starts beside its place and slides in. Not a
-        /// transition: `.move` and `.offset` transitions moved nothing here (CI recordings), only their fade ran.
-        @State private var placed: Set<String>?
+        /// The cards in their place, by pane id, with the id their view goes by: one new since the page first drew
+        /// starts beside its place and slides in. Not a transition: `.move` and `.offset` transitions moved nothing
+        /// here (CI recordings), only their fade ran.
+        @State private var placed: [String: String]?
         /// The app's ratio of a split (by path) while its divider is dragged or sent, until herdr's snapshot shows its
         /// own.
         @State private var held: [[Bool]: Double] = [:]
@@ -111,11 +112,12 @@
             GeometryReader { geometry in
                 let area = CGRect(origin: .zero, size: geometry.size)
                 let parts = Parts(tree, in: area, held: held)
+                let views = views(parts.cards.map(\.id))
                 ZStack(alignment: .topLeading) {
-                    ForEach(parts.cards, id: \.id) { card in
+                    ForEach(parts.cards.map { (view: views[$0.id] ?? $0.id, card: $0) }, id: \.view) { _, card in
                         let away = zoomed != nil && zoomed != card.id
                         // A new card slides in from its side as the others make room, its edge on theirs.
-                        let entering = placed.map { !$0.contains(card.id) } ?? false
+                        let entering = placed != nil && views[card.id] == nil
                         let rect = zoomed == card.id ? area : entering ? card.start : card.rect
                         PaneCard(id: card.id, page: page, away: away)
                             .place(rect)
@@ -142,13 +144,26 @@
             }
             .animation(motion, value: tree)
             .animation(motion, value: zoomed)
-            .onChange(of: tree, initial: true) { old, new in
-                // herdr's pane in a split's stand-in (`Ahead`) takes its place at once, over the stand-in fading out.
-                let standIn = old.paneIDs.contains { Ahead.isStandIn($0) && !new.paneIDs.contains($0) }
-                withAnimation(standIn ? nil : motion) {
-                    placed = Set(new.paneIDs)
+            .onChange(of: tree, initial: true) {
+                let views = views(tree.paneIDs)
+                withAnimation(motion) {
+                    placed = Dictionary(uniqueKeysWithValues: tree.paneIDs.map { ($0, views[$0] ?? $0) })
                 }
             }
+        }
+
+        /// The view id of each of these cards already in place. herdr's pane that took a split's stand-in (`Ahead`)
+        /// keeps the stand-in's view, so its slide goes on: herdr answers within the slide, and a new view popped in
+        /// at its place.
+        private func views(_ ids: [String]) -> [String: String] {
+            guard let placed else { return [:] }
+            var views = placed.filter { ids.contains($0.key) }
+            let gone = placed.keys.filter { Ahead.isStandIn($0) && !ids.contains($0) }
+            let new = ids.filter { placed[$0] == nil }
+            if gone.count == 1, new.count == 1 {
+                views[new[0]] = placed[gone[0]]
+            }
+            return views
         }
     }
 
