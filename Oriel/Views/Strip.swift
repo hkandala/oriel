@@ -144,7 +144,12 @@
                 }
             }
             .onAppear { placed = Set(tree.paneIDs) }
-            .onChange(of: tree) { withAnimation(motion) { placed = Set(tree.paneIDs) } }
+            .onChange(of: tree) { old, new in
+                // herdr's pane in a split's stand-in (`Ahead`) takes its place without a second slide.
+                withAnimation(old.paneIDs.contains(where: Ahead.isStandIn) ? nil : motion) {
+                    placed = Set(new.paneIDs)
+                }
+            }
         }
     }
 
