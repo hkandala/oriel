@@ -55,3 +55,26 @@ extension OrielUITests {
         print("latency: \(recorded)")
     }
 }
+
+extension OrielUITests {
+    func testProfileKeys() async throws {
+        XCTAssertTrue(element("pane.w1:p1").exists(within: connect))
+        try await settle(["w1:t1"])
+        let path = "\(one)/sample"
+        async let sampled = Self.post(path)
+        try await Task.sleep(for: .milliseconds(300))
+        for _ in 0 ..< 4 {
+            app.typeKey("2", modifierFlags: .command)
+            app.typeKey("1", modifierFlags: .command)
+        }
+        app.typeKey("k", modifierFlags: .command)
+        app.typeKey(.escape, modifierFlags: [])
+        app.typeKey("k", modifierFlags: .command)
+        app.typeKey(.escape, modifierFlags: [])
+        let text = try await String(decoding: sampled, as: UTF8.self)
+        let attachment = XCTAttachment(string: text)
+        attachment.name = "sample"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+}

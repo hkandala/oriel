@@ -19,6 +19,8 @@
             let name: String, time: TimeInterval, state: String
             /// When the app got the event.
             let got = ProcessInfo.processInfo.systemUptime
+            /// Before the first turn's observers (SwiftUI's update, Core Animation's commit): the event handled.
+            var handled: TimeInterval?
             var turns = 0
         }
 
@@ -35,6 +37,14 @@
                 MainActor.assumeIsolated { self.turned() }
             }
             CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
+            let early = CFRunLoopObserverCreateWithHandler(nil, turn, true, Int.min) { _, _ in
+                MainActor.assumeIsolated {
+                    if self.pending?.handled == nil {
+                        self.pending?.handled = ProcessInfo.processInfo.systemUptime
+                    }
+                }
+            }
+            CFRunLoopAddObserver(CFRunLoopGetMain(), early, .commonModes)
         }
 
         private func event(_ event: NSEvent) {
@@ -49,7 +59,9 @@
             if state != pending.state {
                 self.pending = nil
                 let got = Int((pending.got - pending.time) * 1000)
-                recorded.append("\(pending.name) \(Int(elapsed * 1000))ms \(pending.turns) got \(got)")
+                let handled = Int(((pending.handled ?? 0) - pending.time) * 1000)
+                recorded
+                    .append("\(pending.name) \(Int(elapsed * 1000))ms \(pending.turns) got \(got) handled \(handled)")
             } else if elapsed > 3 {
                 self.pending = nil
             } else {
