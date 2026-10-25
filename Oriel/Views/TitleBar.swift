@@ -58,7 +58,7 @@
                     Spacer(minLength: 0)
                 } else if !sidebar, let workspace = page.selectedWorkspace {
                     Capped(width: 260) {
-                        WorkspaceButton(session: page.id, workspace: workspace.label, open: $workspaceMenu)
+                        WorkspaceButton(session: page.store.title, workspace: workspace.label, open: $workspaceMenu)
                     }
                     .layoutPriority(1)
                     .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: {

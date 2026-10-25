@@ -150,8 +150,9 @@
                     }
                 }
                 // Agents view: the name starts where the group labels and row icons do (the rows' insets and their
-                // 8 pt padding), and the sort label's text ends where the times end (its capsule where the rows end).
+                // 8 pt padding).
                 .padding(.leading, agents == nil ? 22 : Sidebar.rowInsets.leading + 8)
+                // The `+` and the sort capsule end where the rows do: the sort label's text where the times end.
                 .padding(.trailing, Sidebar.rowInsets.trailing)
                 // Rex's first row sits 31.5 pt below the header's baseline.
                 .padding(.bottom, 3)
@@ -242,7 +243,7 @@
                 .pickerStyle(.inline)
                 .labelsHidden()
             } label: {
-                Text("\(Image(systemName: "arrow.up.arrow.down")) \(sort == .priority ? "Priority" : "Workspace")")
+                Text("\(Image(systemName: "arrow.up.arrow.down")) \(sort.rawValue.capitalized)")
                     .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).padding(.horizontal, 8)
                     .frame(height: 22)
             }
@@ -279,7 +280,7 @@
                     }
                     .buttonStyle(.plain)
                     .contextMenu { Button("Detach Session") { pages.close(page) }.disabled(pages.list.count < 2) }
-                    .accessibilityLabel(page.id)
+                    .accessibilityLabel(page.store.title)
                     .accessibilityIdentifier("sidebar.dot.\(page.id)")
                     .accessibilityAddTraits(page === pages.current ? .isSelected : [])
                 }

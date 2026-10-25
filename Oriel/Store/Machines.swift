@@ -21,7 +21,8 @@ struct Machine: Codable, Hashable, Identifiable {
 #if os(macOS)
     extension Machine {
         static let thisMac = Machine(id: "local", name: "This Mac", target: "", icon: thisMacIcon)
-        /// This Mac's own name, as set in System Settings ("Hari's MacBook Pro").
+        /// This Mac's own name, as set in System Settings ("Hari's MacBook Pro"). Read once: a rename shows after a
+        /// relaunch.
         static let computerName = SCDynamicStoreCopyComputerName(nil, nil) as String? ?? thisMac.name
 
         /// Its one Exec for the app's life; the sessions of a remote machine share its ControlMaster.

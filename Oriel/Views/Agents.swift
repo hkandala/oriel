@@ -245,7 +245,8 @@ struct StatusBadge: View {
         let filter: String
         let sort: AgentSort
         /// The folded groups, a line each, "‹machine› ‹session› ‹sort› ‹group›": per session and order, kept across
-        /// relaunches (user, phase 27). ponytail: a closed workspace's line stays; prune it if the list ever grows.
+        /// relaunches (user, phase 27). ponytail: a closed workspace's line stays (and folds a new workspace that gets
+        /// its id); prune them if that is ever seen.
         @AppStorage("agentsFolded") private var folded = ""
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -258,7 +259,7 @@ struct StatusBadge: View {
                 VStack(alignment: .leading, spacing: 4) {
                     if sort == .priority {
                         ForEach([AgentState.needsYou, .working, .finishedUnseen, .idle], id: \.self) { state in
-                            let group = rows.filter { $0.state == state }, key = key(state.capsule)
+                            let group = rows.filter { $0.state == state }, key = key("\(state)")
                             if !group.isEmpty {
                                 label(state.capsule, group.count, key, open: !folded.contains(key),
                                       id: "agents.group.\(state.capsule)")
@@ -297,14 +298,12 @@ struct StatusBadge: View {
         /// folds or unfolds its rows; a folded group keeps its label and count (user, phase 27).
         private func label(_ text: String, _ count: Int, _ key: String, open: Bool, id: String) -> some View {
             Button {
-                var lines = folded.split(separator: "\n").map(String.init)
-                if open {
-                    lines.append(key)
-                } else {
-                    lines.removeAll { $0 == key }
+                var keys = Set(folded.split(separator: "\n").map(String.init))
+                if keys.remove(key) == nil {
+                    keys.insert(key)
                 }
                 withAnimation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.2)) {
-                    folded = lines.joined(separator: "\n")
+                    folded = keys.joined(separator: "\n")
                 }
             } label: {
                 HStack(spacing: 4) {

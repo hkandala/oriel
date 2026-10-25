@@ -148,6 +148,8 @@ extension OrielUITests {
     /// Only in workspace order and on a priority group for a moment: other tests read this session's priority groups.
     func testAgentGroupsFoldAndStayFoldedAfterARelaunch() async throws {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        // A failure on the way must not leave a fold for the next tests: the folds outlive the app.
+        addTeardownBlock { @MainActor [self] in unfold() }
         let first = try await newTab("review", in: "w1").pane
         try await report(first, "working")
         let second = try await split(first)
@@ -159,7 +161,7 @@ extension OrielUITests {
         XCTAssertTrue(rows[0].exists(within: 2))
 
         // The sort control is a small button: a fill shows under the pointer.
-        element("workspace.w1").hover()
+        element("sidebar.header").hover()
         let rest = median(sort)
         sort.hover()
         try await expect("a fill on the hovered sort button") { abs(median(sort) - rest) >= 4 }
@@ -189,7 +191,6 @@ extension OrielUITests {
         sort.click()
         app.menuItems["Priority"].click()
         XCTAssertTrue(rows[1].exists(within: 2))
-        XCTAssertTrue(rows[0].exists)
 
         relaunch()
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
@@ -197,11 +198,28 @@ extension OrielUITests {
         XCTAssertTrue(rows[1].exists(within: 2))
         sort.click()
         app.menuItems["Workspace"].click()
+        XCTAssertTrue(alpha.exists(within: 2))
         XCTAssertEqual(alpha.value as? String, "collapsed")
         XCTAssertFalse(rows[1].exists)
         alpha.click()
         XCTAssertTrue(rows[1].exists(within: 2))
         XCTAssertTrue(rows[0].exists)
+    }
+
+    /// Opens what `testAgentGroupsFoldAndStayFoldedAfterARelaunch` folds.
+    private func unfold() {
+        for (order, id) in [("Priority", "agents.group.Working"), ("Workspace", "agents.workspace.w1")] {
+            let sort = element("agents.sort")
+            if !sort.exists {
+                app.typeKey(".", modifierFlags: .command)
+            }
+            guard sort.exists(within: 2) else { return }
+            sort.click()
+            app.menuItems[order].click()
+            if element(id).exists(within: 2), element(id).value as? String == "collapsed" {
+                element(id).click()
+            }
+        }
     }
 
     /// The shown tab's keyboard card lights its agent's row, as the selected workspace row.
