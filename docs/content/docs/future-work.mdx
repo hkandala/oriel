@@ -30,6 +30,14 @@ Each item says what it is and when to build it. Smaller deferrals are marked
 
 - **herdr's popup** in a floating window: herdr's API does not show it yet
   ([`floating-panes.md`](https://github.com/hkandala/oriel/blob/main/resources/research/ui/floating-panes.md)).
+  Checked again on 0.9.5 (phase 27): `plugin.pane.open` with `placement:
+  "popup"` answers only `ok`; the popup's terminal runs in the server, but it
+  has no pane or terminal id in the reply, the snapshot or `pane.list`, and
+  opening or closing it (`popup.close`) sends no event. `plugin_pane_opened`
+  comes only for the other placements, which are normal panes. The upstream
+  ask: the popup (its terminal id and size) in `session.snapshot`, and events
+  when it opens and closes. Oriel would then stream it in its floating window
+  by that id, as it does a floated pane.
 - **Placeholders after a cold restart.** herdr brings a pane started with a
   command back as a plain shell, with its label, so the card still works
   ([Labels and instance ids](/docs/plugins/labels)). The upstream ask: restore
