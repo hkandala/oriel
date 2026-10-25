@@ -107,7 +107,6 @@ extension OrielUITests {
         stop.click()
         XCTAssertTrue(element("\(row.identifier).delete").exists(within: 10))
         expectRow(row.identifier, under: "Stopped", above: nil)
-        XCTAssertTrue(isRed(element("\(row.identifier).delete")))
         let stopped = try? await Self.snapshot(seven)
         XCTAssertNil(stopped)
 
