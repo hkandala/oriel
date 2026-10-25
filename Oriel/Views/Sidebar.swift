@@ -108,19 +108,14 @@
             VStack(alignment: .leading, spacing: 0) {
                 // The name and the sort menu's label on one baseline; the `+` has no text to align.
                 HStack(alignment: agents == nil ? .center : .firstTextBaseline) {
-                    // A long session name gives way in its middle; " · agents" stays.
-                    HStack(spacing: 0) {
-                        Text(page.id).truncationMode(.middle)
-                        if agents != nil {
-                            Text(" · agents").fixedSize()
-                        }
-                    }
-                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary).lineLimit(1)
-                    // Before the sort menu's label, which gives way first.
-                    .layoutPriority(1)
-                    .accessibilityElement(children: .ignore).accessibilityAddTraits(.isStaticText)
-                    .accessibilityValue(agents == nil ? page.id : "\(page.id) · agents")
-                    .accessibilityIdentifier("sidebar.header")
+                    // A long session name gives way in its middle; the Agents view's too, with no " · agents" (user,
+                    // phase 25).
+                    Text(page.id).truncationMode(.middle)
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary).lineLimit(1)
+                        // Before the sort menu's label, which gives way first.
+                        .layoutPriority(1)
+                        .accessibilityValue(page.id)
+                        .accessibilityIdentifier("sidebar.header")
                     Spacer()
                     if let agents {
                         SortMenu(sort: agents)
@@ -149,6 +144,8 @@
                 // The herdr session keeps running.
                 .contextMenu { Button("Close Page") { pages.close(page) }.disabled(pages.list.count < 2) }
                 if let agents {
+                    // The header reads apart from the list (user, phase 25).
+                    Divider()
                     AgentsList(page: page, filter: filter, sort: agents.wrappedValue)
                 } else if store.state == .live, store.workspaces.isEmpty {
                     NewWorkspaceButton(page: page).frame(maxWidth: .infinity, maxHeight: .infinity)

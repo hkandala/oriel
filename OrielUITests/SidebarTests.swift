@@ -110,8 +110,8 @@ extension OrielUITests {
         XCTAssertEqual(header.stringValue, one)
 
         app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(header.has(\.stringValue, "\(one) · agents", within: 2))
-        try await swipe(sidebar, until: header, \.stringValue, "\(two) · agents")
+        XCTAssertTrue(element("agents.sort").exists(within: 2))
+        try await swipe(sidebar, until: header, \.stringValue, two)
     }
 
     /// ⌘Q and a relaunch bring back the window's pages that still run, the page in view and each page's workspace.
