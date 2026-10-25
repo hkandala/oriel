@@ -46,6 +46,7 @@
                         .font(.system(size: 12))
                         .frame(height: 20)
                         .accessibilityElement(children: .ignore)
+                        .accessibilityAddTraits(.isStaticText)
                         .accessibilityLabel(row.title)
                         .accessibilityValue(row.keys)
                         .accessibilityIdentifier("shortcuts.\(row.title)")
@@ -67,7 +68,7 @@
             var rows: [Row] = []
             for command in commands {
                 guard let key = command.key else { continue }
-                let digit = key.key.character.isNumber
+                let digit = command.family != nil && key.key.character.isNumber
                 if let family = command.family, let index = rows.firstIndex(where: { $0.title == family }) {
                     if !digit {
                         rows[index].keys += key.glyphs.suffix(1)

@@ -259,11 +259,11 @@ extension OrielUITests {
         XCTAssertTrue(close.exists(within: 2))
         XCUIElement.perform(withKeyModifiers: .command) {
             XCTAssertTrue(keycap.exists(within: 3))
-            XCTAssertEqual(keycap.label, "⌘2")
+            XCTAssertEqual(keycap.stringValue, "⌘2")
             // In the capsule's last quarter, left of the ×.
             XCTAssertGreaterThan(keycap.frame.minX, tab.frame.maxX - tab.frame.width / 4, "\(keycap.frame)")
             XCTAssertLessThanOrEqual(keycap.frame.maxX, close.frame.minX + 1, "\(keycap.frame) \(close.frame)")
-            XCTAssertEqual(element("tab.w1:t1.keycap").label, "⌘1")
+            XCTAssertEqual(element("tab.w1:t1.keycap").stringValue, "⌘1")
             // Only the tabs: the sidebar shows none.
             XCTAssertFalse(element("workspace.w1").label.contains("⌘"))
             keepScreenshot("keycap hints")

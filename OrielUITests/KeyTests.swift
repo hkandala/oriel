@@ -55,7 +55,7 @@ extension OrielUITests {
         let rows = [
             "Split Right": "⌘D", "Select Pane": "⌥⌘←→↑↓", "Show Tab 1–9": "⌘1–9", "New Workspace": "⌃⌘T",
             "Show Workspace 1–9": "⌃⌘1–9", "Show Session 1–9": "⌥⌘1–9", "Show Previous Tab": "⇧⌘[  ⌃⇧⇥",
-            "Command Palette": "⌘K  ⇧⌘P", "Find": "⌘F",
+            "Command Palette": "⌘K  ⇧⌘P", "Find": "⌘F", "Reset Font Size": "⌘0",
         ]
         for (title, keys) in rows {
             XCTAssertEqual(element("shortcuts.\(title)").value as? String, keys, title)
