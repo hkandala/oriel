@@ -139,12 +139,11 @@ extension OrielUITests {
                               height: frame.height * 0.2)
             let before = Self.ink(Self.crop(XCUIScreen.main.screenshot().image, band))
             try await act()
-            var shots: [NSImage] = []
+            var inks: [Double] = []
             let end = Date.now + 1
             while Date.now < end {
-                shots.append(XCUIScreen.main.screenshot().image)
+                inks.append(Self.ink(Self.crop(XCUIScreen.main.screenshot().image, band)))
             }
-            let inks = shots.map { Self.ink(Self.crop($0, band)) }
             XCTAssertGreaterThan(inks.min() ?? 0, before / 3, "\(step): ink \(before) before, then \(inks)")
             XCTAssertGreaterThanOrEqual((Int(host.label) ?? 0) - sizes, 4,
                                         "\(step): sizes from \(sizes) to \(host.label)")
@@ -212,7 +211,8 @@ extension OrielUITests {
     /// The part of a screen shot inside a rectangle in screen points.
     private static func crop(_ image: NSImage, _ rect: CGRect) -> NSImage {
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return image }
-        let scale = CGFloat(cgImage.width) / image.size.width
+        // The screen shot's size is in pixels, not points.
+        let scale = NSScreen.main?.backingScaleFactor ?? 1
         let pixels = CGRect(x: rect.minX * scale, y: rect.minY * scale, width: rect.width * scale,
                             height: rect.height * scale)
         return cgImage.cropping(to: pixels).map { NSImage(cgImage: $0, size: rect.size) } ?? image
