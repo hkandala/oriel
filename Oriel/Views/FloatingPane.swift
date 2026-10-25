@@ -64,6 +64,8 @@
             .toolbar { ToolbarSpacer(.flexible) }
             .toolbar(removing: .title)
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+            // In full screen the empty toolbar would cover the title row; it shows on hover only.
+            .windowToolbarFullScreenVisibility(.onHover)
             .environment(\.look, look)
             .navigationTitle(pane?.cardTitle ?? "terminal")
             .background(FloatReader(terminalID: floating.terminalID, main: pages?.window,
@@ -131,7 +133,7 @@
             let id = "float.\(pane?.id ?? "")"
             return HStack(spacing: gap) {
                 if let pane {
-                    PaneInfo(pane: pane).layoutPriority(1)
+                    PaneInfo(pane: pane).layoutPriority(1).accessibilityIdentifier("\(id).info")
                 }
                 // One line; the session's name gives way first, in its middle.
                 HStack(spacing: 0) {
@@ -221,12 +223,10 @@
                 })
             }
 
-            /// A new floating window: 60 % of its main window, at least 720 × 460 pt and at most its screen, centered
-            /// over it (user, phase 27).
+            /// A new floating window: 60 % of its main window, at least 720 × 460 pt, centered over it (user, phase
+            /// 27). AppKit keeps it on the screen.
             static func frame(over main: NSWindow) -> NSRect {
-                let screen = main.screen?.visibleFrame.size ?? main.frame.size
-                let width = min(max(720, main.frame.width * 0.6), screen.width)
-                let height = min(max(460, main.frame.height * 0.6), screen.height)
+                let width = max(720, main.frame.width * 0.6), height = max(460, main.frame.height * 0.6)
                 let frame = NSRect(x: main.frame.midX - width / 2, y: main.frame.midY - height / 2, width: width,
                                    height: height)
                 return main.constrainFrameRect(frame, to: main.screen)
@@ -245,11 +245,14 @@
                 ProgramTile(icon: pane.iconID, letter: pane.letter)
                 let lead = name.map { "\($0) " } ?? ""
                 Text("\(lead)\(Text(folder).foregroundStyle(name == nil ? .primary : .secondary))")
-                    .fontWeight(.medium).lineLimit(1).truncationMode(.middle)
+                    // A label keeps its start, a path its end, as in the card header.
+                    .fontWeight(.medium).lineLimit(1)
+                    .truncationMode(pane.label != nil ? .tail : name == nil ? .head : .middle)
                 if let state = pane.state {
                     StateCapsule(state: state)
                 }
             }
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -265,8 +268,6 @@
             }
             .buttonStyle(ChromeStyle(radius: 8))
             .padding([.horizontal, .bottom], gap)
-            .accessibilityLabel("Show \(pane.cardTitle)")
-            .accessibilityValue(pane.state?.capsule ?? "")
             .accessibilityIdentifier("pane.\(pane.id).show")
         }
     }

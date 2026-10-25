@@ -48,7 +48,7 @@ struct OrielApp: App {
                 }
             }
             .windowToolbarStyle(.unifiedCompact)
-            // The floor of a new one's frame (FloatReader); AppKit's autosave after.
+            // Until FloatReader sets a new one's frame from its main window.
             .defaultSize(width: 720, height: 460)
             .windowResizability(.contentMinSize)
             .restorationBehavior(.disabled)
