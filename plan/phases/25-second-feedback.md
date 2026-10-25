@@ -161,7 +161,8 @@ found none). If herdr has none, floating is Oriel's own.
 - **Learned.** `.accessibilityAddTraits(.isHeader)` on a SwiftUI `Text` empties its AX value on macOS (CI
   40172219344), so the group labels stay plain. A `Text` exposes its string as the value with no
   `.accessibilityValue`, so the header's hard-coded value went and the tests read the drawn text. Tests know the
-  Agents view is on from `agents.sort`, not the header. CI: 40171834621, 40172583567 (lane's tests green).
+  Agents view is on from `agents.sort`, not the header. CI: 40171834621, 40172583567 (lane's tests green); full suite
+  40173000382 on 1f214bf: every agents and sidebar test green; the 5 failures are lanes K and C's areas.
 
 ### Lane H (items 1, 10, 11)
 
