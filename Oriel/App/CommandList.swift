@@ -353,11 +353,10 @@
                 Command(section: .paneMove, title: "Rename Pane…", symbol: "pencil", keywords: "pane",
                         enabled: pane != nil, name: pane.map { pane in
                             (pane.label ?? "", { await page?.store.rename(pane: pane.id, label: $0) })
-                        }) {
-                    if let page, let pane = target() {
-                        page.renamingPaneID = pane.id
-                    }
-                },
+                        }) { page?.renamingPaneID = target()?.id },
+                // herdr's label goes: the header shows the program again.
+                act("Reset Pane Name", nil, .paneMove, symbol: "arrow.uturn.backward",
+                    enabled: pane?.label != nil) { await $0.store.rename(pane: $1.id, label: "") },
                 act("Close Pane", .closePane, .close, symbol: "xmark.square") { $0.close(.pane($1.id)) },
             ]
         }

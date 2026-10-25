@@ -62,7 +62,8 @@ extension OrielUITests {
         XCTAssertTrue(element("palette.section.Commands").exists(within: 2))
     }
 
-    /// Rename Workspace › and Rename Pane… › hold the current name; Enter saves it to herdr.
+    /// Rename Workspace › and Rename Pane… › hold the current name; Enter saves it to herdr. Reset Pane Name clears
+    /// the pane's.
     func testPaletteRenamesTheWorkspaceAndThePane() async throws {
         let (tabs, pane) = try await newWorkspace("before")
         element("terminal.\(pane)").click()
@@ -87,6 +88,12 @@ extension OrielUITests {
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(filter.vanishes(within: 2))
         try await expect("herdr's pane label") { try await label(pane) == "named" }
+
+        openPalette()
+        app.typeText("reset pane name")
+        XCTAssertTrue(element("palette.command.Reset Pane Name").has(\.isSelected, true, within: 2))
+        app.typeKey(.return, modifierFlags: [])
+        try await expect("no pane label") { try await label(pane) == nil }
     }
 
     /// Appearance › previews a highlighted row on the window after 0.75 s; Esc puts the old one back.

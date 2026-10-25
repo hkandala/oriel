@@ -105,12 +105,11 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard(field))
         field.typeText("renamed\r")
         try await expect("herdr's label") { try await label(pane) == "renamed" }
-        // An empty name clears it.
-        paneMenu(pane, "Rename Pane…")
-        XCTAssertTrue(hasKeyboard(field))
-        field.typeKey("a", modifierFlags: .command)
-        field.typeText("\u{8}\r")
+        XCTAssertTrue(element("pane.\(pane)").has(\.label, "renamed", within: 2))
+        // Reset Pane Name clears it: the header shows the program again.
+        paneMenu(pane, "Reset Pane Name")
         try await expect("no label") { try await label(pane) == nil }
+        XCTAssertTrue(until(2) { element("pane.\(pane)").label != "renamed" })
 
         let before = try await tabIDs()
         paneMenu(pane, "Move Pane to Tab", "New Tab")
