@@ -43,7 +43,8 @@
 
         public func run(_ argv: [String]) async throws -> Channel {
             try await up(nil)
-            return try await currentRelay().run(Self.quoted(argv))
+            // `exec`: the run's pid is the command's own on every `sh`, so a kill reaches it.
+            return try await currentRelay().run("exec " + Self.quoted(argv))
         }
 
         /// The live relay, started on first use. One that does not start (no Perl, a login slower than 10 s) is tried
@@ -52,7 +53,10 @@
             if let relay, relay.alive {
                 return relay
             }
-            if let relayStart, let started = await relayStart.value {
+            // Runs during a start wait for it, and fail with it: a slow or Perl-less host gets one session, not one per
+            // run.
+            if let relayStart {
+                guard let started = await relayStart.value else { throw Self.noRelay(target) }
                 return started
             }
             let task = Task { () -> Relay? in
@@ -61,10 +65,16 @@
             }
             relayStart = task
             let started = await task.value
-            relayStart = nil
+            if relayStart == task {
+                relayStart = nil
+            }
             relay = started
-            guard let started else { throw HerdrError.failed("Oriel needs Perl on \(target): its relay did not start") }
+            guard let started else { throw Self.noRelay(target) }
             return started
+        }
+
+        private static func noRelay(_ target: String) -> HerdrError {
+            .failed("Oriel needs Perl on \(target): its relay did not start")
         }
 
         /// One SSH session on the master that runs the command. Without a master it fails at once instead of opening

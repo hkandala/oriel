@@ -171,3 +171,9 @@ has `herdr --machine <label> <command>` and `herdr machine …`. Do this by defa
 - Remote windows stream the recently shown tabs again (D46): the round-1 "tabs in view only" rule is gone.
 - CI's sshd now allows 2 sessions per connection; every remote test runs under it, and
   `testAHostThatAllowsTwoSessionsStreamsEveryPane` streams six panes and types in one.
+- Reviews (round 2, one round): ponytail 10 items, fixed 1–7 and 9–10 (the no-Perl fallback and its cap gone, a
+  shorter relay, no 2 s grace, `pause()` folded into `hide()`, D2 and principle 2 name the relay); 8 (unhex) kept.
+  Spec 8 items, one blocker: `k` killed only `sh`, so the observe wrapper's herdr kept streaming; `k` now closes
+  stdin first (a unit case covers it). Also fixed: runs wait for a relay start in flight instead of each starting
+  one, per-run write buffers (a run that reads nothing no longer stalls the host), SIGPIPE back to default in runs,
+  `use IO::Handle` for old Perl, `exec` before each command, the stale streaming bullet in talking-to-herdr.mdx.

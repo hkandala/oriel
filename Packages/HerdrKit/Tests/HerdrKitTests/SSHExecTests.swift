@@ -32,4 +32,19 @@ import Testing
     #expect(await failing.exit() == (3, "err\n"))
     sleeping.terminate()
     #expect(await sleeping.exit().status == 9)
+    // A kill closes stdin too: the observe wrapper's background child ends, and so the run (T6).
+    let wrapper = #"exec 3<&0; "$@" & c=$!; { cat <&3 >/dev/null; kill $c; } >/dev/null 2>&1 & w=$!; "#
+        + "wait $c 2>/dev/null; s=$?; kill $w 2>/dev/null; exit $s"
+    let watching = try relay.run(SSHExec.quoted([
+        "sh",
+        "-c",
+        wrapper,
+        "sh",
+        "sh",
+        "-c",
+        "while :; do echo t; sleep 0.1; done",
+    ]))
+    #expect(await watching.lines.first { _ in true } == "t")
+    watching.terminate()
+    #expect(await watching.exit().status == 9)
 }

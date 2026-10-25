@@ -5,7 +5,8 @@
     /// One remote process that carries every run of a host over one SSH session (phase 26, round 2): a server may
     /// allow only a few sessions per connection (`MaxSessions`), and a second connection would ask for a second
     /// passcode. Runs are lines both ways, as herdr's bridge, events and terminal streams are. The app sends
-    /// `o <id> <command hex>` (open), `w <id> <line>`, `c <id>` (close stdin) and `k <id>` (kill by pid); the relay
+    /// `o <id> <command hex>` (open), `w <id> <line>`, `c <id>` (close stdin) and `k <id>` (close stdin and SIGKILL by
+    /// pid); the relay
     /// answers `l <id> <line>` and, once the run's output ended and it was reaped, `x <id> <status> <stderr hex>`.
     /// ponytail: Perl, which nearly every Unix has (Debian's perl-base is essential); a machine without it shows "Oriel
     /// needs Perl". A relay in another language when one is missed.
@@ -120,16 +121,16 @@
         }
 
         /// The relay: `select` over its stdin and every run's stdout and stderr; a run's lines go out whole, so frames
-        /// of two runs never mix. When its stdin ends (the app quit, the connection dropped) it exits, and every run's
-        /// stdin closes with it.
-        /// ponytail: a write to a run's stdin blocks the relay while that run reads nothing (a full pipe); herdr reads
-        /// its stdin at once. Buffer per run if one ever stalls.
+        /// of two runs never mix; writes to a run's stdin wait in its own buffer, so a run that reads nothing never
+        /// holds
+        /// up the others. When its stdin ends (the app quit, the connection dropped) it exits, and every run's stdin
+        /// closes with it.
         static let script = #"""
-        use strict; use warnings; use IO::Select; use POSIX ();
+        use strict; use warnings; use IO::Handle; use IO::Select; use POSIX (); use Fcntl;
         $SIG{PIPE} = 'IGNORE';
         $| = 1;
         my $select = IO::Select->new(\*STDIN);
-        my (%input, %pid, %err, %open, %owner);
+        my (%input, %pending, %closing, %pid, %err, %open, %owner);
         my $commands = '';
         sub put { print @_ or exit 1 }
         # Runs whose output ended: reaped when they exit; how many still run.
@@ -139,12 +140,28 @@
                 if (waitpid($pid{$id}, POSIX::WNOHANG()) > 0) {
                     my $status = $? & 127 ? $? & 127 : $? >> 8;
                     put("x $id $status " . unpack('H*', $err{$id}) . "\n");
-                    delete $_->{$id} for \%pid, \%err, \%open, \%input;
+                    delete $_->{$id} for \%pid, \%err, \%open;
                 } else {
                     $left++;
                 }
             }
             return $left;
+        }
+        sub close_input {
+            my $id = shift;
+            close(delete $input{$id}) if $input{$id};
+            delete $pending{$id}; delete $closing{$id};
+        }
+        # Writes what the run's stdin takes now; a run that reads nothing never holds up the others.
+        sub flush {
+            my $id = shift;
+            while (length $pending{$id}) {
+                my $n = syswrite($input{$id}, $pending{$id});
+                return if !defined $n && $!{EAGAIN};
+                return close_input($id) unless defined $n;
+                substr($pending{$id}, 0, $n) = '';
+            }
+            close_input($id) if $closing{$id};
         }
         sub command {
             my ($op, $id, $arg) = split / /, shift, 3;
@@ -154,24 +171,33 @@
                     or return put("x $id 127 \n");
                 my $p = fork;
                 if (defined $p && !$p) {
+                    $SIG{PIPE} = 'DEFAULT';
                     open(STDIN, '<&', $child_in); open(STDOUT, '>&', $child_out); open(STDERR, '>&', $child_err);
                     exec('/bin/sh', '-c', pack('H*', $arg)) or POSIX::_exit(127);
                 }
                 close $_ for $child_in, $child_out, $child_err;
                 return put("x $id 127 \n") unless defined $p;
-                $in->autoflush(1);
-                ($input{$id}, $pid{$id}, $err{$id}, $open{$id}) = ($in, $p, '', 2);
+                fcntl($in, F_SETFL, fcntl($in, F_GETFL, 0) | O_NONBLOCK);
+                ($input{$id}, $pending{$id}, $pid{$id}, $err{$id}, $open{$id}) = ($in, '', $p, '', 2);
                 $owner{fileno $out} = [$id, ''];
                 $owner{fileno $errors} = [$id];
                 $select->add($out, $errors);
-            } elsif ($op eq 'w') { print { $input{$id} } "$arg\n" if $input{$id} }
-            elsif ($op eq 'c') { close(delete $input{$id}) if $input{$id} }
-            elsif ($op eq 'k') { kill 9, $pid{$id} if $pid{$id} }
+            } elsif ($op eq 'w') { if ($input{$id}) { $pending{$id} .= "$arg\n"; flush($id) } }
+            elsif ($op eq 'c') { if ($input{$id}) { $closing{$id} = 1; flush($id) } }
+            # Its stdin too: a wrapper's background child ends with it (T6), as with a killed ssh before.
+            elsif ($op eq 'k') { close_input($id); kill 9, $pid{$id} if $pid{$id} }
         }
         put("oriel-relay 1\n");
         while (1) {
             my $waiting = reap();
-            for my $fh ($select->can_read($waiting ? 0.1 : undef)) {
+            my $writes = IO::Select->new(map { $input{$_} } grep { length $pending{$_} } keys %input);
+            my ($readable, $writable) = IO::Select->select($select, $writes->count ? $writes : undef, undef,
+                                                           $waiting ? 0.1 : undef);
+            for my $fh (@{ $writable || [] }) {
+                my ($id) = grep { $input{$_} && $input{$_} == $fh } keys %input;
+                flush($id) if defined $id;
+            }
+            for my $fh (@{ $readable || [] }) {
                 my $n = sysread($fh, my $chunk, 65536);
                 # The app or the connection is gone: exiting closes every run's stdin, which ends it (T6).
                 if (fileno $fh == 0) {

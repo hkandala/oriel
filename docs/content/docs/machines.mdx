@@ -92,7 +92,9 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   It spawns each run as `sh -c <command>` and carries every run's stdin,
   stdout, exit status and stderr over its own stdin and stdout, as lines:
   - the app sends `o <id> <command hex>`, `w <id> <line>`, `c <id>` (close
-    stdin) and `k <id>` (SIGKILL by pid);
+    stdin) and `k <id>` (close stdin, then SIGKILL by pid);
+  - each run's writes wait in its own buffer, so a run that reads nothing
+    never holds up the others; its `sh` runs the command with `exec`;
   - the relay sends `l <id> <line>`, and `x <id> <status> <stderr hex>` once a
     run's output ended and it was reaped.
   - herdr's bridge, events and terminal streams are all lines, so this needs
