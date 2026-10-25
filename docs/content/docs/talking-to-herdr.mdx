@@ -189,14 +189,32 @@ One path is [Future work](/docs/future-work).
 
 - The panes of the shown tab of the page in view, in each window. Other
   pages stream nothing.
-- On the Mac, the panes of recently shown tabs keep their streams, up to
-  about 24 terminals over all pages of all windows (each window has its own
-  `PaneViewRegistry`; they share one count), least recently shown first out
-  (D46). A pane shown in two windows has two surfaces and two streams, and
-  counts twice. Their
-  surfaces stop drawing but keep reading: a surface draws only while its page
-  is in the window (in view, or next to it: the strip keeps neighbor pages laid
-  out).
+- On the Mac, the 4 most recently shown other terminals, over all pages of
+  all windows, keep their streams and their libghostty surfaces (each window
+  has its own `PaneViewRegistry`; they share one count), least recently shown
+  first out (D46). So coming back to them is at once and resizes nothing. A
+  pane shown in two windows has two surfaces and two streams, and counts
+  twice.
+- Only the shown tab's terminals (and floating panes) draw. The others keep
+  their last picture and still read their stream. libghostty also stops
+  drawing in a minimized, hidden or covered window.
+- A terminal past those 4 lets go of its stream (its herdr run ends) and of
+  its surface: libghostty's three IOSurfaces at the card's size (about 17 MB
+  each for a full-window card on a Retina screen). Its last picture stays as
+  a still, marked purgeable while no window shows it, so it costs no memory
+  then (the system may take it back under memory pressure). When it is shown
+  again, a new surface is made under the still and the stream opens again;
+  herdr's first frame redraws the screen, and the still goes once the new
+  surface has drawn herdr's settled frames, so the card is never empty. A
+  still the system took back gives the card's fill and the first fade-in.
+- A terminal gets its surface only when it first streams, so a card that a
+  lazy page lays out but never shows costs no GPU memory.
+- One `terminal session` run per streaming terminal, also in one session:
+  herdr 0.9.5 ties each client connection to one terminal
+  (`ControlTerminal {target}` on a connection still in the pending terminal
+  mode), and the CLI takes one target. One run costs about 7 MB and almost
+  no CPU. Many terminals per run would need herdr's private client protocol
+  on its socket.
 - During a swipe the neighbor tab shows each card's last image, or its fill
   for a card never shown (a `pane.read visible` preview is not built yet).
   Its streams start when the swipe stops.

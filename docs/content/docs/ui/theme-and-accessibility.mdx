@@ -61,8 +61,9 @@ the Agents view and popover, the hover card, pills, notifications):
 
 - **Working dots.** Three dots, 3.5 pt, 5.5 pt apart, in a 14 pt box. Each
   dot's opacity goes 0.3 → 0.85 → 0.3 over 1.2 s, each dot 0.2 s after the
-  one before. The wall clock drives them, so every tab is in step, and they
-  draw at 15 frames a second or less, only while visible.
+  one before. The wall clock drives them, so every tab is in step. Core
+  Animation runs them at 15 frames a second or less, so the app does no work
+  per frame (a SwiftUI timeline per dots laid the window out at every tick).
 - **Badges.** A 7 pt dot on the top right of a tab's front program icon and
   of an Agents row's tile, cut out of the tile by a 1.5 pt ring.
 - In the Agents view and popover and the hover card, status is a capsule:

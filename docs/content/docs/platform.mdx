@@ -49,9 +49,9 @@ description: "One codebase, dependencies, the strip, the tab bar and tests"
    view, and a container removes it only if it still owns it. Stream lifetime
    follows the HostStore, never whether a view is in a window. Off-screen
    surfaces stop drawing but keep reading their stream (herdr drops a watcher
-   that reads nothing for 30 s). At most about 24 streaming terminals and 6 live web views
+   that reads nothing for 30 s). At most 4 streaming terminals out of view and 6 live web views
    (web pages and plugin cards together; 2 on iPhone), least recently used
-   first out; an evicted card keeps its last image. Web page message handlers
+   first out; an evicted card frees its surface and keeps its last image. Web page message handlers
    sit behind a weak proxy.
 3. **libghostty's default key bindings eat the app's shortcuts.** Every
    surface gets `keybind = clear`, and keys go to the main menu first.
@@ -71,8 +71,9 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
   or closed tab shows the new page at once, and the marker jumps with it; only
   a swipe or a mouse's sideways wheel slides them. Nothing morphs.
 - Each capsule has one status slot: × on the hovered tab, else
-  the working dots. The dots are one `TimelineView` at 15 frames a second or
-  less, driven by the clock and drawn only while visible; needs you and
+  the working dots. The dots are a Core Animation keyframe animation at 15
+  frames a second or less, phased by the clock, so the app does no work per
+  frame; needs you and
   finished are badges on the icon (D42).
 - The window title (`navigationTitle`) is "‹tab title› - ‹session›".
 - Reference for this Rex-like behavior: the Rex study
