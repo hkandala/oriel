@@ -69,8 +69,7 @@
                 // A dot, a key, a new page, the sheet or a swipe's end: slide there with the session spring.
                 .onChange(of: pages.current?.id, initial: true) { old, new in
                     guard let new, position.viewID(type: String.self) != new else { return }
-                    // e2e: `-forceMotion YES` slides on CI, whose Mac has Reduce Motion on.
-                    let still = reduceMotion && !UserDefaults.standard.bool(forKey: "forceMotion")
+                    let still = reduceMotion && !Animation.forceMotion
                     withAnimation(old == nil || still ? nil : .session) { position.scrollTo(id: new) }
                     // A page that opened lays out in this same update, and a scroll to it can miss.
                     Task { position.scrollTo(id: new) }
