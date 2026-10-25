@@ -103,12 +103,14 @@ The strip under the title row still pages sideways between the selected workspac
     Move Up, Move Down, Close Workspace. Double-click the name to rename. Drag to reorder (phase 18).
 - **Agents view** (the Agents button): the same page, listing the agents of **that session only**; a sideways
   swipe shows the next session's agents.
-  - Header: "‹session› · agents" and a sort menu: **Priority** (groups Needs you, Working, Done, Idle, each
-    with a count) or **Workspace order** (herdr's order).
+  - Header: the session's name and a sort menu: **Priority** (groups Needs you, Working, Done, Idle, each
+    with a count) or **Workspace order** (a group per workspace under its name, herdr's order); a thin line
+    across the sidebar under it (phase 25).
   - One row per agent pane, even when several share a tab. Row 48 pt, 4 pt apart, the program tile with its
-    badge centered on both lines. Line 1: the agent's name, then on the right the status capsule ("Needs you"
+    badge centered on both lines. Line 1: the pane's name, else the agent's name, then on the right the status capsule ("Needs you"
     amber, "Working" blue, "Done" green, "Idle" gray) and the age ("now", "3m", "2h"), on one centered line;
-    line 2 "‹workspace› · ‹tab›". The header and the sort menu share a baseline (phase 24).
+    line 2 "‹workspace› · ‹tab›" (only "‹tab›" in workspace order). The header and the sort menu share a
+    baseline (phase 24). The row of the shown tab's keyboard card is lit like the selected workspace row.
   - Idle agents show. A click goes to that workspace, tab and pane, and records a finish as seen.
 - **Footer**: the filter field (filters the rows of the current view) and one button, **Open Session**
   (⇧⌘N), which opens the panel below. No New Workspace and no Add Remote Host here.

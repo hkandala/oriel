@@ -288,20 +288,25 @@ Spaces panel.
 The Agents button turns the sidebar page into a list of the agents of that
 session only (D61). A sideways swipe or a page dot shows the next open
 session's agents. The page dots and the footer stay.
-- **Header.** "‹session› · agents" (a long name shortens in its middle) and,
+- **Header.** The session's name (a long name shortens in its middle) and,
   on the same baseline, a sort menu: **Priority** (the groups Needs you, Working, Done and Idle,
   each with a count, herdr's order inside a group) or **Workspace order**
-  (herdr's order of workspaces, tabs and panes). Priority is the default.
+  (the groups are the workspaces, under each name, in herdr's order of
+  workspaces, tabs and panes). Priority is the default.
   Each window keeps its choice. The name starts on the edge of the group
   labels and the row icons; the sort label's text ends where the times end.
+  A thin line across the sidebar sets the header apart from the list.
 - **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
   lines, 4 pt apart; the program tile with its badge centers on both. Line 1,
-  on one centered line: the agent's name (herdr's `display_agent`, else
-  `agent`), then on the right the status capsule, "Needs you" (amber),
+  on one centered line: the pane's name when it has one, else the agent's
+  name (herdr's `display_agent`, else `agent`), then on the right the status capsule, "Needs you" (amber),
   "Working" (blue), "Done" (green) or "Idle" (gray), the text in the color on
   a 0.15 fill of it, and the age ("now", "3m", "2h", "4d"), counted from the
   time the app saw the change. Line 2: "‹workspace› · ‹tab title›" in
-  secondary text (the tab bar's title, D65).
+  secondary text (the tab bar's title, D65); only the tab title in workspace
+  order, where the group names the workspace.
+- The row of the shown tab's keyboard card is lit like the selected
+  workspace row.
 - Idle agents show. With no agents the list is empty, with no text.
 - The footer filter keeps the rows whose agent, workspace or tab name
   matches.
