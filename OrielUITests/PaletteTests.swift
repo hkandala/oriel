@@ -129,8 +129,8 @@ extension OrielUITests {
         XCTAssertFalse(until(1) { look.stringValue != light })
     }
 
-    /// ⇧⌘P, Rex's key, also opens the palette; ⌃⇥ and ⌃⇧⇥ step the tabs; ⌘= is Bigger (second shortcuts). A
-    /// setting's row says what it does now.
+    /// ⇧⌘P, Rex's key, also opens the palette; ⌃⇥ and ⌃⇧⇥ step the tabs; ⌘= is Increase Font Size (second shortcuts).
+    /// A setting's row says what it does now.
     func testSecondShortcuts() {
         XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: connect))
         element("terminal.w1:p1").click()
@@ -144,22 +144,26 @@ extension OrielUITests {
         app.typeKey(.tab, modifierFlags: [.control, .shift])
         XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: 2))
 
-        // ⌘=: Actual Size turns on (the menu's state, not the grid: a 1x display may round one step away).
+        // ⌘=: Reset Font Size turns on (the menu's state, not the grid: a 1x display may round one step away).
         addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
         app.typeKey("0", modifierFlags: .command)
         XCTAssertTrue(actualSize(enabled: false))
         app.typeKey("=", modifierFlags: .command)
         XCTAssertTrue(actualSize(enabled: true))
 
-        // Font Size › lights the current size, scrolled into view below the fold.
+        // The palette uses Ghostty's words, as the menu bar does (phase 25). Font Size › lights the current size,
+        // scrolled into view below the fold.
         openPalette()
         app.typeText("font size")
-        app.typeKey(.return, modifierFlags: [])
+        for title in ["Increase Font Size", "Decrease Font Size", "Reset Font Size"] {
+            XCTAssertTrue(element("palette.command.\(title)").exists(within: 2), title)
+        }
+        element("palette.command.Font Size").click()
         app.typeText("30")
         app.typeKey(.return, modifierFlags: [])
         openPalette()
         app.typeText("font size")
-        app.typeKey(.return, modifierFlags: [])
+        element("palette.command.Font Size").click()
         let size = element("palette.choice.30 pt")
         XCTAssertTrue(size.has(\.isSelected, true, within: 2))
         XCTAssertTrue(size.isHittable)
@@ -300,10 +304,10 @@ extension OrielUITests {
         try await expect("the pane alone in the new tab") { try await order(moved) == [pane] }
     }
 
-    /// View ▸ Actual Size, read with the menu open (SwiftUI updates a closed menu's items late).
+    /// View ▸ Reset Font Size, read with the menu open (SwiftUI updates a closed menu's items late).
     private func actualSize(enabled: Bool) -> Bool {
         app.menuBars.menuBarItems["View"].click()
-        let found = app.menuBars.menuItems["Actual Size"].has(\.isEnabled, enabled, within: 2)
+        let found = app.menuBars.menuItems["Reset Font Size"].has(\.isEnabled, enabled, within: 2)
         app.typeKey(.escape, modifierFlags: [])
         return found
     }

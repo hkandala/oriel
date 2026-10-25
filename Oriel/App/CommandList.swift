@@ -117,12 +117,12 @@
                             }
                         }, previews: true),
                 // The text size (design: theme and accessibility); the key monitor takes ⌘=.
-                Command(section: .size, title: "Bigger", key: .bigger, symbol: "textformat.size.larger",
-                        keywords: "font text", enabled: size < sizes.upperBound) { PaneTerminal.stepFontSize(1) },
-                Command(section: .size, title: "Smaller", key: .init("-"), symbol: "textformat.size.smaller",
-                        keywords: "font text", enabled: size > sizes.lowerBound) { PaneTerminal.stepFontSize(-1) },
-                Command(section: .size, title: "Actual Size", key: .init("0"), symbol: "textformat.size",
-                        keywords: "font text", enabled: size != PaneTerminal.fontSize, action: {
+                Command(section: .size, title: "Increase Font Size", key: .bigger, symbol: "textformat.size.larger",
+                        keywords: "bigger text", enabled: size < sizes.upperBound) { PaneTerminal.stepFontSize(1) },
+                Command(section: .size, title: "Decrease Font Size", key: .init("-"), symbol: "textformat.size.smaller",
+                        keywords: "smaller text", enabled: size > sizes.lowerBound) { PaneTerminal.stepFontSize(-1) },
+                Command(section: .size, title: "Reset Font Size", key: .init("0"), symbol: "textformat.size",
+                        keywords: "actual size text", enabled: size != PaneTerminal.fontSize, action: {
                             settings.fontSize = PaneTerminal.fontSize
                         }),
             ]
