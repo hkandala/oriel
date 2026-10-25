@@ -62,8 +62,8 @@
                 Self.recent.removeAll { $0 === terminal }
             }
             // Without a client (the page in view connecting), the terminals there go on: another page's floated ones.
-            let make = { (shown: [String: String]) in
-                shown.compactMap { id, pane in client.map { self.terminal(id, pane: pane, client: $0) } ??
+            let make = { (ids: [String: String]) in
+                ids.compactMap { id, pane in client.map { self.terminal(id, pane: pane, client: $0) } ??
                     self.terminals[id]
                 }
             }

@@ -159,11 +159,11 @@ extension OrielUITests {
         try await fill("w1:p1")
         try await expectText(["w1:p1"], "filled")
         let filled = Self.ink(terminal.screenshot().image), id = try await terminalID("w1:p1")
+        // A third of the screen's lines, printed while out of view.
+        let lines = max((Int(terminal.stringValue.split(separator: " ").first ?? "") ?? 0) / 3, 3)
         try await showNewTabs(6)
         let streams = try await streams(one)
         XCTAssertTrue(streams.contains { $0.contains(id) }, "w1:p1 kept its stream: \(streams)")
-        // A third of the screen's lines, printed while out of view.
-        let lines = max((Int(terminal.stringValue.split(separator: " ").first ?? "") ?? 0) / 3, 3)
         try await send("clear; for i in $(seq 1 \(lines)); do echo oriel-away-$i-oriel-away; done\r", to: "w1:p1")
         try await waitFor("w1:p1") { $0.contains("oriel-away-\(lines)-oriel-away") }
         app.typeKey("1", modifierFlags: .command)

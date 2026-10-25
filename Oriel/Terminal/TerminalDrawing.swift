@@ -148,13 +148,13 @@
                   let picture = live ? layer : still, let surface = picture.contents as? IOSurface else { return }
             var old: UInt32 = 0
             IOSurfaceSetPurgeable(surface, volatile ? 1 : 0, &old)
-            if live, !volatile, old == 2 {
+            if !volatile, old == 2 {
                 picture.contents = nil
-            } else if !volatile, old == 2 {
-                still?.contents = nil
-                still = nil
-                // The next reveal fades in, as a first one.
-                terminal?.revealed = false
+                if !live {
+                    still = nil
+                    // The next reveal fades in, as a first one.
+                    terminal?.revealed = false
+                }
             }
         }
     }
