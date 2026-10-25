@@ -272,3 +272,47 @@ found none). If herdr has none, floating is Oriel's own.
   lane's 15 tests).
 - **For the user to check by hand:** ⌘W and ⌥⌘W on a tab where pi runs, and on one with only a shell. Stop on a
   session open in another Oriel window (that page turns "not running", and Start brings it back).
+
+## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
+
+Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/fb/agents-header.png` (item 18).
+
+### Lane I2: keys (items 17, 21, 22, 23)
+
+17. **Shortcuts panel:** more spacious (row height and column gaps about 1.5×, more padding), and each key
+    as its own keycap (a small rounded box per modifier and per key: `⌥` `⌘` `←→↑↓`), so long shortcuts read
+    clearly. A family keeps one keycap for its keys (`←→↑↓`, `1–9`); a second key follows after "or".
+21. **Split:** the new pane gets the keyboard, from the header buttons, menus, palette and ⌘D / ⇧⌘D.
+    **⌘[ ⌘]** step panes in the split tree's order (left before right, top before bottom), as Ghostty does,
+    going round at the ends.
+22. **⇧⌘↩ does not zoom.** Find why (libghostty or the key monitor may take it) and fix it.
+23. **One key pattern** (replaces lane I's table). The key says the action, the modifier says the level:
+    `T` new, `W` close, `[` `]` previous / next, `1`–`9` jump. ⌘ is the pane or tab, ⇧⌘ the tab, ⌃⌘ the
+    workspace, ⌥⌘ the session. Arrows always mean panes.
+
+    | | Pane | Tab | Workspace (⌃⌘) | Session (⌥⌘) |
+    |---|---|---|---|---|
+    | New | ⌘D right, ⇧⌘D down | ⌘T | ⌃⌘T | ⌥⌘T Open Session (was ⇧⌘N) |
+    | Close | ⌘W (the tab too when it is the last pane) | ⇧⌘W (was ⌥⌘W) | ⌃⌘W | ⌥⌘W Detach Session |
+    | Previous / next | ⌘[ ⌘] | ⇧⌘[ ⇧⌘], ⌃⇧⇥ ⌃⇥ | ⌃⌘[ ⌃⌘] | ⌥⌘[ ⌥⌘] |
+    | Jump | — | ⌘1–9 | ⌃⌘1–9 | ⌥⌘1–9 |
+
+    Panes, with arrows: ⌥⌘ arrows select (Ghostty, iTerm2), ⇧⌥⌘ arrows move, ⌥⌘= balances (was ⌃⌘=),
+    ⇧⌘↩ zooms. Resize Pane keeps its palette rows but has no key (was ⌃⌘ arrows; dividers and Balance
+    cover it). The rest: ⌘N new window, Close Window has no key (was ⇧⌘W), ⌘K / ⇧⌘P palette, ⌘/ shortcuts,
+    ⌘. agents, ⌘F / ⌘G find, ⇧⌘G go to directory, Insert Path ⇧⌘I (was ⌃⌘I), ⌃⌘S sidebar (it shows
+    workspaces), ⌘+ ⌘− ⌘0 font size, ⌃⌘F full screen (the macOS key, the one ⌃⌘ that is not a
+    workspace). Move Tab stays ⌃⇧PgUp / PgDn. Update the menus, panel, docs (theme-and-accessibility) and
+    tests; a key that moved must not keep its old binding.
+
+### Lane P: sidebar and panels (items 18, 19, 20)
+
+18. **Agents view header** (`.build/fb/agents-header.png`): remove the separator line. Make the hierarchy
+    clear at a glance: the session name is the title (primary color, semibold, a step larger than the
+    rows' secondary text), the sort control stays quiet on the right, and the group labels ("Working 1",
+    workspace names) are smaller section labels (secondary, like macOS sidebar section headers) with clear
+    space above each group. Use the same title style for the session name in the workspaces view.
+19. **Open Session panel:** the session shown in this window gets a Detach button (detaches it from this
+    window; plain style). Stop and Delete buttons are red.
+20. **Agents button hover:** when nobody needs the user, hovering shows nothing (no panel, no "All caught
+    up"); the panel shows only when it has rows.
