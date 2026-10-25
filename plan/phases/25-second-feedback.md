@@ -301,7 +301,7 @@ found none). If herdr has none, floating is Oriel's own.
 - **For the user to check by hand:** the tab hover card, the Agents popover, the find bar and the palette over a busy
   terminal, Glass dark and light: text behind should be only a soft blur, and the glass rim should still read.
 
-### Lane I2 (items 17, 21, 22, 23, 24)
+### Lane I2 (items 17, 21, 22, 23, 24, 31)
 
 - **Root cause, item 22.** SwiftUI's `Commands` bodies do not observe `@Observable` state (a probe app: a menu item read
   from an observed model kept its first state), so the menu bar changes only when the window's focused `CommandList`
@@ -321,15 +321,26 @@ found none). If herdr has none, floating is Oriel's own.
 - **Item 17.** `KeyboardShortcut.caps` (one glyph per modifier, then the key); a family's `keys` is now only the key
   cap ("←→↑↓", "1–9"). Rows 30 pt, columns 380 pt and 48 pt apart, 24/28 pt padding; a small window scrolls it.
 - **Item 24.** `TabButton` drops `!selected` from the dots; D42 updated.
+- **Item 31.** Move Pane to Tab listed only the workspace's other tabs (`CommandList.pane`). Now New Tab, New
+  Workspace, then each workspace of `sidebarWorkspaces` with its tabs but the pane's own; `Command.heading` makes a
+  SwiftUI `Section` per workspace in the menus (headers and separators, AppKit hides the doubled ones) and a section
+  header on the palette's sub-page (`FilterList.Item.section`).
 - **Decisions.** `follow` without `select`: a split never pulls the page back to its tab. The menu identity strings
   came from the spec review: an equal value keeps SwiftUI's old one and its closures, so two floating windows of one
   session read the same and ⇧⌘W detached the first window's pane.
+- **Deviation.** The shortcuts panel scrolls only vertically: a scroll view on both axes filled the whole window. A
+  window under about 870 pt wide clips its sides (ponytail note).
 - **Learned.** `NSMenu.performKeyEquivalent` matches a disabled item and swallows the key. A probe SwiftUI app with
   `.prohibited` activation shows menu behavior without a window or focus.
 - **Tests.** `testSplitsGiveTheNewPaneTheKeyboardAndKeysFollowTheTree` (⌘D and the header button, ⌘[ ⌘] in tree order
   that differs from creation order, ⇧⌘↩ after a split), `testHoldingControlCommandShowsWorkspaceKeycaps`,
   `testEachFloatingWindowsKeysActOnItsOwnPane`, KeyTests' new close keys and panel rows (moved keys' old rows gone),
   AgentTests' dots on the selected tab; the key tests that used ⇧⌘N, ⌥⌘W, ⌃⌘I, ⌃⌘→ moved.
+- **CI.** 40179112045 (keys, split, zoom: green but the panel's click-outside, fixed), 40179379857 (keycaps),
+  40179953957 (floating windows' ⇧⌘W, latency ⌥⌘T). Full suites: 40180758405 red from herdr's focus left on w2 by
+  lane A2's Split Left (`pane.swap` focuses) in shards whose order my new tests shifted, and lane S's latency test (a
+  new pane now has the keyboard; lane S added the wait); 40182095486 on e4f0b84: only
+  `testRelaunchRestoresThePagesThatStillRun` (not this lane's). Final full run 40183380097 on 1412b96 (carries a9d2763, this lane's last code commit): every lane I2 test green; the one red, `testHoverCardPreviewsTheTabsCardsLive`, is the new hover-card preview (3da7622, caf0728), another lane's.
 - **For the user to check by hand:** ⇧⌘↩ right after ⌘D; the panel's keycaps over a light wallpaper; ⌃⌘ held over the
   sidebar; ⌥⌘T/⌥⌘W on a non-US layout.
 
