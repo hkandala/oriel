@@ -59,7 +59,7 @@ extension OrielUITests {
             ?? .max
     }
 
-    /// 10 s of the app's use, in the result bundle and the log; then 3 s of `sample` in the result bundle.
+    /// 10 s of the app's use, in the result bundle and the log.
     private func measure(_ name: String) async throws -> String {
         let usage = try await String(decoding: Self.post("\(one)/usage", Data("10".utf8)), as: UTF8.self)
         print("usage, \(name):\n\(usage)")
@@ -67,10 +67,6 @@ extension OrielUITests {
         attachment.name = "usage, \(name)"
         attachment.lifetime = .keepAlways
         add(attachment)
-        let sample = try await XCTAttachment(data: Self.post("\(one)/sample", Data("3".utf8)))
-        sample.name = "sample, \(name)"
-        sample.lifetime = .keepAlways
-        add(sample)
         return usage
     }
 }

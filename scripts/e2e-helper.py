@@ -17,7 +17,6 @@ POST /<session>/reveal-file makes a file whose name needs shell escaping in a ne
 window (`open -R`), for a drag from Finder. The file's path comes back.
 POST /<session>/usage with a number of seconds as the body measures the app (the one process named Oriel, on CI) over
 that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory.
-POST /<session>/sample with a number of seconds as the body gives `sample`'s report of the app over that time.
 POST /<session>/ssh-drop with an SSH target as the body kills the app's ControlMaster to it (SIGKILL, as a crash
 would), and gives back the pids it killed, one per line.
 POST /<session>/ssh-connections gives back how many connections the CI sshd (scripts/ci-sshd.sh) has seen.
@@ -76,7 +75,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder",
-                            "reveal-file", "usage", "sample", "ssh-drop", "ssh-connections"):
+                            "reveal-file", "usage", "ssh-drop", "ssh-connections"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
@@ -110,12 +109,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, reply = (200, path.encode()) if run.returncode == 0 else (500, run.stderr)
         elif action == "usage":
             status, reply = 200, usage(session, float(body or b"10"))
-        elif action == "sample":
-            path = os.path.join(tempfile.mkdtemp(prefix="oriel-e2e-sample-", dir="/tmp"), "sample.txt")
-            folders.append(os.path.dirname(path))
-            subprocess.run(["sample", app_pid(), body.decode() or "3", "-file", path], capture_output=True, timeout=60)
-            with open(path, "rb") as file:
-                status, reply = 200, file.read()
         elif action == "start":
             env = {k: v for k, v in os.environ.items() if not k.startswith("HERDR_")}
             subprocess.Popen(["herdr", "--session", session, "server"], env=env, stdin=subprocess.DEVNULL,

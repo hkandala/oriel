@@ -160,8 +160,9 @@ extension OrielUITests {
         try await fill("w1:p1")
         try await expectText(["w1:p1"], "filled")
         let id = try await terminalID("w1:p1")
-        // t1's three cards and four more tabs' out of view: one more than the registry's 4 spare.
-        for index in 0 ..< 4 {
+        // Five more tabs, each shown: t1's three cards (in any order) and the next four's are out of view, so all of
+        // t1's go past the registry's 4 spare.
+        for index in 0 ..< 5 {
             let created = try await Self.call(one, "tab.create", ["workspace_id": "w1", "cwd": "/tmp", "focus": false])
             let tab = try self.id(created, "tab"), pane = try self.id(created, "root_pane")
             closeAfter("tab", tab)
@@ -173,13 +174,19 @@ extension OrielUITests {
         let streams = try await streams(one)
         XCTAssertLessThanOrEqual(streams.count, 5, "\(streams)")
         app.typeKey("1", modifierFlags: .command)
+        let start = Date.now, card = element("pane.w1:p1")
         XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
         var shots: [NSImage] = []
-        let end = Date.now + 1.5
-        while Date.now < end {
+        var drawn: TimeInterval?
+        while Date.now < start + 1.5 {
             shots.append(terminal.screenshot().image)
+            if drawn == nil, !card.stringValue.contains("loading") {
+                drawn = Date.now.timeIntervalSince(start)
+            }
         }
         let inks = shots.map(Self.ink)
+        // For the record: from the key to herdr's frames drawn, give or take a query (about 0.1 s).
+        print("evicted card drawn after \(drawn.map { "\(Int($0 * 1000)) ms" } ?? "over 1.5 s")")
         XCTAssertGreaterThan(inks.min() ?? 0, 0.01, "ink of \(inks.count) screenshots: \(inks)")
         try await expectText(["w1:p1"], "back")
         try await expect("w1:p1's stream again") { try await self.streams(one).contains { $0.contains(id) } }
