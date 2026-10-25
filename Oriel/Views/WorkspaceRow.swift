@@ -64,8 +64,7 @@
             .overlay(alignment: .topTrailing) {
                 if let keycap, !renaming {
                     Keycap(text: "⌃⌘\(keycap)").frame(height: 30).padding(.trailing, 8)
-                        .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.13)),
-                                                removal: .opacity.animation(.easeOut(duration: 0.1))))
+                        .transition(Keycap.transition)
                         .accessibilityIdentifier("workspace.\(workspace.id).keycap")
                 }
             }

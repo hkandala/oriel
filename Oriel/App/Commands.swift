@@ -105,7 +105,8 @@ extension KeyboardShortcut {
     extension View {
         /// The window's commands for the menu bar, again whenever what it shows of them changes. SwiftUI rebuilds the
         /// menu bar only when this value changes: `Commands` do not observe. Zoom Pane, disabled while the tab had one
-        /// card, stayed so after a split, and ⇧⌘↩ did nothing (phase 25).
+        /// card, stayed so after a split, and ⇧⌘↩ did nothing (phase 25). A modifier, so reading `all` re-runs only its
+        /// body, not the window's.
         func menuBar(_ commands: CommandList) -> some View {
             modifier(MenuBar(commands: commands))
         }
