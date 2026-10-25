@@ -249,17 +249,26 @@ extension OrielUITests {
         XCTAssertTrue(until(1) { element("tab.\(made)").frame.maxX <= rowEnd + 1 })
     }
 
-    func testHoldingCommandShowsKeycaps() async throws {
-        let tab = element("tab.w1:t2")
+    /// The keycap sits at the capsule's end, beside the × (user, phase 25): never over the icon or the title.
+    func testHoldingCommandShowsKeycaps() {
+        let tab = element("tab.w1:t2"), keycap = element("tab.w1:t2.keycap")
         XCTAssertTrue(tab.exists(within: connect))
-        XCTAssertFalse(tab.label.contains("⌘2"))
+        XCTAssertFalse(keycap.exists)
+        tab.hover()
+        let close = element("tab.w1:t2.close")
+        XCTAssertTrue(close.exists(within: 2))
         XCUIElement.perform(withKeyModifiers: .command) {
-            XCTAssertTrue(until(3) { tab.label.contains("⌘2") })
+            XCTAssertTrue(keycap.exists(within: 3))
+            XCTAssertEqual(keycap.label, "⌘2")
+            // In the capsule's last quarter, left of the ×.
+            XCTAssertGreaterThan(keycap.frame.minX, tab.frame.maxX - tab.frame.width / 4, "\(keycap.frame)")
+            XCTAssertLessThanOrEqual(keycap.frame.maxX, close.frame.minX + 1, "\(keycap.frame) \(close.frame)")
+            XCTAssertEqual(element("tab.w1:t1.keycap").label, "⌘1")
             // Only the tabs: the sidebar shows none.
             XCTAssertFalse(element("workspace.w1").label.contains("⌘"))
             keepScreenshot("keycap hints")
         }
-        try await expect("the keycaps to go") { !tab.label.contains("⌘2") }
+        XCTAssertTrue(keycap.vanishes(within: 2))
     }
 
     /// A labeled tab's title is its label (testShowsWorkspacesTabsAndSplits: "second - ‹session›").

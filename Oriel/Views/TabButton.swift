@@ -11,7 +11,7 @@
         /// Its page is in view.
         let lit: Bool
         let hovering: Bool
-        /// ⌘1…⌘9 while ⌘ is held.
+        /// 1…9 while ⌘ is held: "⌘1" at the end.
         let keycap: Int?
         /// Before a click selects it.
         let clicked: () -> Void
@@ -42,23 +42,19 @@
                             SpringKeyframe(1.15, duration: 0.15)
                             SpringKeyframe(1, duration: 0.3)
                         }
-                        .overlay(alignment: .leading) {
-                            if let keycap {
-                                Text("⌘\(keycap)").font(.system(size: 10, weight: .semibold)).fixedSize()
-                                    .padding(.horizontal, 4).padding(.vertical, 1)
-                                    .glassEffect(.regular, in: .rect(cornerRadius: 4))
-                                    .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.13)),
-                                                            removal: .opacity.animation(.easeOut(duration: 0.1))))
-                            }
-                        }
                     // Not once the user selected the tab.
                     FadeText(text: announcement.flatMap { selected ? nil : Text($0) } ?? page.titleLabel(tab))
                         .opacity(renaming ? 0 : 1)
                         .foregroundStyle(selected ? look.selected : look.chrome)
+                    // The keycap's room: the title gives way to it.
+                    if let keycap {
+                        Spacer(minLength: 0)
+                        Self.keycap(keycap).hidden()
+                    }
                 }
                 .padding(.leading, 11)
                 // The title's fade ends under the ×'s 28 pt.
-                .padding(.trailing, 12)
+                .padding(.trailing, keycap == nil ? 12 : keycapInset)
                 .frame(width: TabBar.width, height: TabBar.height, alignment: .leading)
             }
             // The selection is the tab bar's marker.
@@ -89,12 +85,23 @@
                         .accessibilityIdentifier("tab.\(tab.id).rename")
                 }
             }
-            // The status slot: × while hovered, else the working dots (not on the selected tab).
+            // The status slot: × while hovered, else the working dots (not on the selected tab) unless a keycap is in
+            // it.
             .overlay(alignment: .trailing) {
-                if working, !hovering || renaming {
+                if working, keycap == nil, !hovering || renaming {
                     WorkingDots().padding(.trailing, 10)
                         .accessibilityElement().accessibilityLabel("working")
                         .accessibilityIdentifier("tab.\(tab.id).working")
+                }
+            }
+            // At the end, beside the ×: never over the icon or the title (user, phase 25). Over the button, so a test
+            // sees its frame.
+            .overlay(alignment: .trailing) {
+                if let keycap {
+                    Self.keycap(keycap).padding(.trailing, keycapInset)
+                        .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.13)),
+                                                removal: .opacity.animation(.easeOut(duration: 0.1))))
+                        .accessibilityIdentifier("tab.\(tab.id).keycap")
                 }
             }
             .overlay(alignment: .trailing) {
@@ -116,6 +123,17 @@
                 guard let new, new >= .finishedUnseen, !selected else { return }
                 announce("\(agent?.agentName ?? "agent") \(new.word)")
             }
+        }
+
+        /// The keycap's end: the status slot, or left of the × while hovered.
+        private var keycapInset: CGFloat {
+            hovering && !renaming ? 32 : 10
+        }
+
+        private static func keycap(_ number: Int) -> some View {
+            Text("⌘\(number)").font(.system(size: 10, weight: .semibold)).fixedSize()
+                .padding(.horizontal, 4).padding(.vertical, 1)
+                .glassEffect(.regular, in: .rect(cornerRadius: 4))
         }
 
         /// The front icon bounces once and the title says what happened for 3 s.
