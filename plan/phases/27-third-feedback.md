@@ -311,3 +311,74 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
 - **For the user to check by hand:** after `make install`, visit 10–15 tabs with agents working, go back to the
   first ones: the old picture, then the new one within a frame or two, no fade and no empty card. `footprint` after
   half an hour (expect 300–650 MB with 16 hidden terminals) and `top` (a few percent).
+
+### Lane T3 (items 6–9)
+
+- **Root cause, item 6.** Three things. (1) The tab history lost each stand-in once herdr's tab took its place:
+  `settle` pruned `usedTabIDs` to the tabs shown, and `new.‹uuid›` was no longer shown, so ⌘W after three quick ⌘T
+  fell back to the oldest tab left (CI on the old code: "after ⌘W: 0", the first tab). `Ahead.arrived` now maps every
+  stand-in to herdr's tab in the snapshot that has it, and every page maps its selection and history through it in
+  the same turn (`HostStore.snapshotted` settles every window). (2) A pane whose shell still started (no program
+  answer yet) waited up to 0.8 s for herdr before its close showed, and a second ⌘W on it was the same close (one ask
+  at a time), so it was dropped. A starting pane in a tab that took a stand-in's place (`Ahead.fresh`) now hides at
+  once like a shell; a program found after the startup wait brings it back with the question and its selection (lane
+  S's rule). Every starting pane at first: CI found a program run in a pane split a second before (lane K's
+  `testClosingATabAsksOnlyWhileAProgramRuns`) vanish, come back with the question, and lose its hover. (3) On a stand-in, ⌘W had no
+  pane: `keyboardPane` returned the first responder's pane, which was still the previous tab's terminal (the strip
+  keeps it), so ⌘W could close a pane of the tab before. `keyboardPane` now takes only the shown tab's terminal; Close
+  Pane falls back to the shown stand-in (`Page.closePane`), and a close whose ids are all stand-ins closes them at once
+  (`.pane(standIn)` too). ⌘T from a stand-in takes the cwd of the latest used tab's keyboard card (it took the old
+  first responder's before). `newTab` no longer uses `arriving`.
+- **Root cause, item 7.** A closed keyboard card left the tab with no record: `keyboardTerminals[tab] = nil`, then
+  herdr's focused pane (herdr focuses the closed pane's neighbor). One list `usedTerminals` (latest last) replaces the
+  per-tab dictionary: a tab's keyboard card is its latest used terminal, so a close gives way to the one before it,
+  most recent first, else herdr's focused pane.
+- **Item 8.** Layout motion 0.13 s (was 0.2). `-recordMotion` adds the span of the latest motion's sizes to the host's
+  label; the motion test bounds zoom and restore under 175 ms (0.2 s gives about 180 here; 0.13 s 113 here, up to
+  153 on CI).
+- **Root cause, item 9 (measured).** A trace of the sidebar's offset per frame after the lift (`-recordLatency`, a
+  trackpad swipe posted at 625 pt/s by `scripts/swipe.swift`) showed lane S's way stood still, then jumped: showing
+  the session at the lift held the main thread for its first draw (349 ms in a debug build under XCUITest), and any
+  `scrollTo` started while the scroll view ran its own paging snap waited for that snap: 100–130 ms still in every
+  variant (a Task, synchronously in `updateTarget`, with the target held). The user's "too fast and odd" was that
+  stall and jump. The system's own snap alone is smooth but takes about 0.4 s (phase 25: too slow), and SwiftUI's
+  paging ignores momentum events. Fix: the scroll monitor (`SwipeRouter`) takes a sidebar swipe's `.ended` and its
+  momentum (`ScrollAnchor.lift`, the strip's anchor made general), so no system snap starts; `Sidebar.lift` slides
+  with `Animation.session(speed:distance:)`: an interpolating spring of 0.2 s, no bounce, initial velocity the
+  fingers' (relative, clamped under ω so a critically damped spring cannot pass the page). The session shows when the
+  pages arrive at the page (geometry within 0.5 pt, or after 0.6 s): the animation's completion runs at once (the
+  scroll view takes the slide over), and showing it there gave a 50–60 ms hitch at the start. The swallowed end goes
+  to the scroll view on arrival, stamped now: without it the scroll view reports no scroll phase again (a probe app),
+  and with the lift's timestamp it flung 4 pt past the page and back. Fingers that stop before they lift (no move for
+  50 ms) go to the nearest page; back to the shown session the scroll view snaps itself (`scrollTo(id:)` of the page
+  in view does nothing, `scrollTo(x:)` does not animate). Now, locally (debug, Retina, Reduce Motion off): a step
+  every 8 ms from the lift, within 2 pt of the page at 157–190 ms, monotonic.
+- **Deviations.** The spring's response is 0.2 s; dots, ⌥⌘[ ] and the overview use it too (`.session()`). It lives in
+  Sidebar.swift: Style.swift is at its 400-line limit. Spec review nit 5 (a floating window's Close Pane while its
+  pane is mid-close could close the main window's stand-in) is left: the fix needed a flag through
+  `CommandList.pane`, past its body length limit, for a rare case.
+- **Learned.** Posting HID events works from the e2e helper (not from the sandboxed runner; events posted to the
+  app's pid arrive but do not scroll), on this Mac and on CI. A SwiftUI `.task` probe app with a scroll view, a local
+  scroll monitor and a CGEvent poster answers scroll questions in seconds. An NSView laid over SwiftUI rows (the
+  anchor, full size in the pages' background) takes accessibility's hit tests: XCUITest found no hit point for the
+  workspace rows; the anchor has no size now. XCUITest's accessibility queries during a slide stall it (240 ms): the
+  test reads nothing until the slide ends. An app launched with a bare argument (`./probe pass`) opens no window
+  (SwiftUI takes it for a document).
+- **Tests.** `testQuickNewTabsThenClosesStepBackOneTabEach` (three ⌘T, three ⌘W, each a step back by capsule place;
+  herdr's tabs as before; red on the old code), `testClosingAPaneGivesTheKeyboardToThePaneUsedBefore` (four panes, two
+  steps back past the neighbor; red on the old code), `testLayoutMotionAnimatesWithoutBlanking` (the span),
+  `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed` (offset at the lift, the page, monotonic, settle
+  150–400 ms, no gap over 100 ms, the first 60 ms at the fingers' speed; a slow lift stays on its page).
+- **Reviews.** Ponytail: one keyboard history instead of a dictionary and a list, one geometry modifier, one anchor
+  lookup, one event poster, comments. Spec: the speed of fingers that stop, a lift during a slide (only the latest
+  shows), not every starting pane hides, a slow-lift test (which found `scrollTo(id:)` back to the page in view does
+  nothing), the four-pane test, `.mayBegin` no longer swallowed after a lift, the poster only over an Oriel window,
+  docs.
+- **CI.** Ad-hoc 40198529378 on af183b3 (the lane's 8 tests, green; HID swipes work on CI). Full 40201584555 on
+  aefb022: red only in `testClosingATabAsksOnlyWhileAProgramRuns`, from this lane (the starting-pane hide, fixed in
+  82d8284). Final full run 40204582584 on 82d8284, this lane's last code commit: green. Main did not build for about
+  two minutes between 46f4514 and af183b3 (the overview used the spring this lane had made private).
+- **For the user to check by hand:** a two-finger swipe between sessions, quick and slow, and one that stops before
+  the fingers lift (Release build; the debug build under XCUITest drops no frame now, a Release one should not
+  either); ⌘T three times quickly then ⌘W three times, also in a slow-starting shell; closing the pane you used last
+  in a tab of three or four panes; split, close and zoom at 0.13 s.
