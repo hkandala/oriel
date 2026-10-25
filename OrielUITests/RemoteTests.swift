@@ -19,7 +19,8 @@ extension OrielUITests {
         XCTAssertTrue(element("terminal.w1:p1", in: first).exists)
         XCTAssertFalse(element("ask.text").exists)
         keepScreenshot("remote window", of: remote)
-        // Picking it in the machine menu opens another window on it.
+        // Picking it in the machine menu opens another window on it. The new window lies over the first.
+        raise(first)
         element("titlebar.machine", in: first).click()
         app.menuItems["Key Host"].click()
         XCTAssertTrue(app.windows.element(boundBy: 2).exists(within: 3))
