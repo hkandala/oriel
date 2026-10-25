@@ -12,6 +12,13 @@ extension OrielUITests {
         let before = try await tabIDs()
         closeNew("tab", besides: before)
         try await settle(["w1:t1"])
+        // Also after a failed step.
+        defer {
+            let attachment = XCTAttachment(string: element("app.latency").stringValue)
+            attachment.name = "latency"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
 
         func key(_ key: String, _ flags: XCUIElement.KeyModifierFlags, until done: () -> Bool) {
             app.typeKey(key, modifierFlags: flags)
@@ -31,6 +38,12 @@ extension OrielUITests {
         key("[", [.command, .control]) { self.element("workspace.w1").isSelected }
         key("]", [.command, .option]) { self.header == self.two }
         key("[", [.command, .option]) { self.header == self.one }
+        // Half a page: the snap does the rest.
+        let sidebar = element("sidebar"), header = element("sidebar.header")
+        try await swipe(sidebar, by: sidebar.frame.width / 2, until: header, \.stringValue, two)
+        try await Task.sleep(for: .seconds(1))
+        try await swipe(sidebar, by: sidebar.frame.width / 2, until: header, \.stringValue, one)
+        try await Task.sleep(for: .seconds(1))
         key("t", .command) { self.element("tab.w1:t1").exists && !self.element("tab.w1:t1").isSelected }
         let made = try await newTabID(after: before)
         try await settle([made])
@@ -40,19 +53,6 @@ extension OrielUITests {
         try await settle([made])
         key("w", .command) { cards.count == 1 }
         key("w", [.command, .option]) { !self.element("tab.\(made)").exists }
-        // Half a page: the snap does the rest.
-        let sidebar = element("sidebar"), header = element("sidebar.header")
-        try await swipe(sidebar, by: sidebar.frame.width / 2, until: header, \.stringValue, two)
-        try await Task.sleep(for: .seconds(1))
-        try await swipe(sidebar, by: sidebar.frame.width / 2, until: header, \.stringValue, one)
-        try await Task.sleep(for: .seconds(1))
-
-        let recorded = element("app.latency").stringValue
-        let attachment = XCTAttachment(string: recorded)
-        attachment.name = "latency"
-        attachment.lifetime = .keepAlways
-        add(attachment)
-        print("latency: \(recorded)")
     }
 }
 
@@ -63,14 +63,10 @@ extension OrielUITests {
         let path = "\(one)/sample"
         async let sampled = Self.post(path)
         try await Task.sleep(for: .milliseconds(300))
-        for _ in 0 ..< 4 {
-            app.typeKey("2", modifierFlags: .command)
-            app.typeKey("1", modifierFlags: .command)
+        for _ in 0 ..< 3 {
+            app.typeKey("k", modifierFlags: .command)
+            app.typeKey(.escape, modifierFlags: [])
         }
-        app.typeKey("k", modifierFlags: .command)
-        app.typeKey(.escape, modifierFlags: [])
-        app.typeKey("k", modifierFlags: .command)
-        app.typeKey(.escape, modifierFlags: [])
         let text = try await String(decoding: sampled, as: UTF8.self)
         let attachment = XCTAttachment(string: text)
         attachment.name = "sample"
