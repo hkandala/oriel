@@ -30,8 +30,16 @@ extension OrielUITests {
         try await swipe(sidebar, by: sidebar.frame.width / 2, until: name, \.stringValue, one)
         try await Task.sleep(for: .seconds(1))
         // Each drawn in the key's own turn.
-        for entry in recorded() where ["⌘", "⌃", "⇧"].contains(entry.name.first.map(String.init)) {
+        let keys = recorded().filter { ["⌘", "⌃", "⇧", "⌥"].contains($0.name.first.map(String.init)) }
+        XCTAssertEqual(keys.map(\.name), ["⌘K", "⌘K", "⇧⌘N", "⌘2", "⌘1", "⌃⌘]", "⌃⌘[", "⌥⌘]", "⌥⌘["])
+        for entry in keys {
             XCTAssertEqual(entry.turns, 0, entry.name)
+        }
+        // The session spring's slide after a lifted swipe; the system's paging snap took 217 ms on CI (phase 25).
+        let swipes = recorded().filter { $0.name == "swipe" }
+        XCTAssertEqual(swipes.count, 2)
+        for swipe in swipes {
+            XCTAssertLessThan(swipe.time, 150)
         }
     }
 
@@ -56,11 +64,45 @@ extension OrielUITests {
             .matching(NSPredicate(format: "identifier MATCHES %@", #"pane\.[^.]+"#))
         key("d", .command) { cards.count == 2 }
         try await settle([made])
+        // The new pane's program is asked a second late; until then a close waits for herdr's answer.
+        try await Task.sleep(for: .seconds(2))
         key("w", .command) { cards.count == 1 }
         key("w", [.command, .shift]) { !self.element("tab.\(made)").exists }
-        for entry in recorded() where ["⌘T", "⌘D", "⌘W", "⇧⌘W"].contains(entry.name) {
+        let keys = recorded().filter { ["⌘", "⇧"].contains($0.name.first.map(String.init)) }
+        XCTAssertEqual(keys.map(\.name), ["⌘T", "⌘D", "⌘W", "⇧⌘W"])
+        for entry in keys {
             XCTAssertEqual(entry.turns, 0, entry.name)
         }
+        // herdr closed it, and it stays closed.
+        try await expect("herdr closed the tab") { try await !tabIDs().contains(made) }
+        XCTAssertFalse(element("tab.\(made)").exists)
+    }
+
+    /// Two quick ⌘T select the second new tab; ⌘T and a close before herdr answers close herdr's tab as it comes.
+    func testQuickNewTabsAndAnEarlyClose() async throws {
+        try launchRecordingLatency()
+        let before = try await tabIDs()
+        closeNew("tab", besides: before)
+        app.typeKey("t", modifierFlags: .command)
+        app.typeKey("t", modifierFlags: .command)
+        let two = try await poll("two new tabs") { () async throws -> [String]? in
+            let new = try await tabIDs().filter { !before.contains($0) }
+            return new.count == 2 ? new : nil
+        }
+        XCTAssertTrue(element("tab.\(two[1])").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(element("tab.\(two[0])").exists)
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'tab.new.'")).count, 0)
+
+        let now = try await tabIDs()
+        app.typeKey("t", modifierFlags: .command)
+        app.typeKey("w", modifierFlags: [.command, .shift])
+        // herdr makes the tab, and the app closes it: no dialog, no tab left.
+        try await expect("the early-closed tab made and closed") {
+            let tabs = try await tabIDs()
+            return tabs.count == now.count && tabs.contains(two[1])
+        }
+        XCTAssertTrue(element("tab.\(two[1])").has(\.isSelected, true, within: 3))
+        XCTAssertFalse(app.sheets.firstMatch.exists)
     }
 
     private func launchRecordingLatency(_ args: [String] = []) throws {
@@ -82,10 +124,16 @@ extension OrielUITests {
         Thread.sleep(forTimeInterval: 0.5)
     }
 
-    private func recorded() -> [(name: String, turns: Int)] {
+    /// "⌘T 12ms 0": the key, the time to its frame, the turns; "swipe 53ms".
+    private struct Entry {
+        let name: String, time: Int, turns: Int
+    }
+
+    private func recorded() -> [Entry] {
         element("app.latency").stringValue.split(separator: "; ").map { entry in
-            let words = entry.split(separator: " ")
-            return (String(words.first ?? ""), Int(words.count > 2 ? words[2] : "") ?? -1)
+            let words = entry.split(separator: " ").map(String.init)
+            return Entry(name: words.first ?? "", time: Int(words.count > 1 ? words[1].dropLast(2) : "") ?? -1,
+                         turns: Int(words.count > 2 ? words[2] : "") ?? -1)
         }
     }
 }

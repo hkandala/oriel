@@ -232,7 +232,7 @@
                             symbol: "arrow.\(heading.rawValue)\(suffix)",
                             keywords: "pane",
                             enabled: enabled, action: {
-                                // A held key's repeat while a write runs is dropped, not a "Busy" notice each time.
+                                // A held key's repeat while a write runs is dropped, not queued behind it each time.
                                 // `isARepeat` raises on a click (the palette, the menu bar).
                                 let event = NSApp.currentEvent
                                 if let page = pages?.current, let pane = page.keyboardPane,

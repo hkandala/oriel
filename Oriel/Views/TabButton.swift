@@ -252,4 +252,25 @@
             return Text("\(title.name)\(Text(title.folder.map { " \($0)" } ?? "").foregroundStyle(.secondary))")
         }
     }
+
+    extension Page {
+        /// The tab's title, from herdr's label; herdr's default label (a bare number) gives the front card's program
+        /// and folder instead (D65), "New Tab" until the program is known (a new pane's is asked a second late).
+        func title(_ tab: HostStore.Tab) -> (name: String, folder: String?) {
+            guard tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
+            guard let pane = stack(tab).first, let name = pane.programName else {
+                // A new tab (a stand-in, or a pane whose shell still starts): "New Tab", never a number. Else the
+                // number, for a pane whose program herdr cannot say.
+                return (stack(tab).first?.starting == false ? tab.label : "New Tab", nil)
+            }
+            // The folder's name ("pi oriel"), as in Rex: a tab is narrow.
+            return (name, pane.folder.map { $0 == "~" ? $0 : ($0 as NSString).lastPathComponent })
+        }
+
+        /// The title in one string, for the window title and menus.
+        func titleText(_ tab: HostStore.Tab) -> String {
+            let title = title(tab)
+            return [title.name, title.folder ?? ""].filter { !$0.isEmpty }.joined(separator: " ")
+        }
+    }
 #endif

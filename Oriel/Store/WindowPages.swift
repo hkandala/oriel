@@ -279,7 +279,9 @@
                     }
                 }
             }
-            terminals.show(shown, alive: alive, client: current.store.client)
+            // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
+            let kept = alive.union(list.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
+            terminals.show(shown, alive: kept, client: current.store.client)
             if !snapshot || !(window?.firstResponder is NSText) {
                 current.shown(alive: alive)
             }

@@ -132,7 +132,7 @@
                         SortMenu(sort: agents)
                     } else {
                         IconButton(symbol: "plus", help: "New Workspace") { Task { await page.newWorkspace() } }
-                            .disabled(store.state != .live || store.writing)
+                            .disabled(store.state != .live)
                             .accessibilityIdentifier("sidebar.new-workspace")
                             // A new workspace, as the ghost row under the rows, which a full page has no room for.
                             .overlay {
@@ -257,7 +257,6 @@
 
         var body: some View {
             Button("New Workspace", systemImage: "plus") { Task { await page.newWorkspace() } }
-                .disabled(page.store.writing)
                 .accessibilityIdentifier("new-workspace")
         }
     }

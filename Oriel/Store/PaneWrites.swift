@@ -15,6 +15,7 @@ extension HostStore {
             let known = Set(tree.paneIDs + (last?.trees[tab.id]?.paneIDs ?? []))
             ahead.split = Ahead.NewSplit(
                 tabID: tab.id,
+                standIn: standIn,
                 tree: tree.split(paneID, direction, new: standIn, before: before),
                 known: known,
             )
@@ -29,7 +30,8 @@ extension HostStore {
             }
             try await even(client, tab: new.tabID, around: new.id)
         }
-        if ahead.split?.tree.paneIDs.contains(standIn) == true {
+        // Not a later split's stand-in, which took the slot.
+        if ahead.split?.standIn == standIn {
             ahead.split?.after = 0
             if !done {
                 ahead.split = nil

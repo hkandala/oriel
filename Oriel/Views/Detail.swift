@@ -84,14 +84,13 @@ struct Notice {
         }
 
         /// The selected workspace's strip, or the button that makes what is missing.
-        @ViewBuilder private func tabs(_ store: HostStore) -> some View {
+        @ViewBuilder private func tabs(_: HostStore) -> some View {
             if let workspace = page.selectedWorkspace {
                 if workspace.tabs.isEmpty {
                     Button { Task { await page.newTab() } } label: {
                         Label("New Tab", systemImage: "plus")
                         Text(KeyboardShortcut.newTab.glyphs).foregroundStyle(.secondary)
                     }
-                    .disabled(store.writing)
                     .accessibilityIdentifier("new-tab")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {

@@ -204,7 +204,6 @@
                 }
                 .accessibilityIdentifier("pane.\(id).close")
             }
-            .disabled(store.writing)
             .foregroundStyle(look.paneButton)
         }
 

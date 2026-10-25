@@ -244,21 +244,6 @@
             select(workspaces[(index + offset + workspaces.count) % workspaces.count])
         }
 
-        /// The tab's title, from herdr's label; herdr's default label (a bare number) gives the front card's program
-        /// and folder instead (D65), "New Tab" until the program is known (a new pane's is asked a second late).
-        func title(_ tab: HostStore.Tab) -> (name: String, folder: String?) {
-            guard tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
-            guard let pane = stack(tab).first, let name = pane.programName else { return ("New Tab", nil) }
-            // The folder's name ("pi oriel"), as in Rex: a tab is narrow.
-            return (name, pane.folder.map { $0 == "~" ? $0 : ($0 as NSString).lastPathComponent })
-        }
-
-        /// The title in one string, for the window title and menus.
-        func titleText(_ tab: HostStore.Tab) -> String {
-            let title = title(tab)
-            return [title.name, title.folder ?? ""].filter { !$0.isEmpty }.joined(separator: " ")
-        }
-
         /// "‹workspace› · ‹tab›", for agent rows and notifications.
         func place(_ pane: HostStore.Pane) -> String {
             let workspace = store.workspace(of: pane.tabID)
@@ -291,21 +276,25 @@
         /// Closes it, or asks first in this window (D41). One at a time: a second ⌥⌘W while herdr is asked would ask
         /// again.
         func close(_ close: HostStore.Close) {
-            guard !asking else { return }
-            // A close shown at once that turns out to ask comes back: so does the selection it moved.
-            let selection = (selectedWorkspaceID, selectedTabIDs)
+            // The same close again (a second ⌥⌘W while herdr is asked) would ask twice; another close goes on.
+            let key = String(describing: close)
+            guard !asking.contains(key) else { return }
+            let before = (selectedWorkspaceID, selectedTabIDs)
             guard let asked = store.ask(close) else { return }
-            asking = true
+            let hidden = (selectedWorkspaceID, selectedTabIDs)
+            asking.insert(key)
             Task {
                 closing = await asked.value
-                if closing != nil {
-                    (selectedWorkspaceID, selectedTabIDs) = selection
+                // A close shown at once that asks after all comes back: so does the selection it moved, unless the
+                // user moved it since.
+                if closing != nil, selectedWorkspaceID == hidden.0, selectedTabIDs == hidden.1 {
+                    (selectedWorkspaceID, selectedTabIDs) = before
                 }
-                asking = false
+                asking.remove(key)
             }
         }
 
-        @ObservationIgnored private var asking = false
+        @ObservationIgnored private var asking: Set<String> = []
     }
 
     extension Page {
@@ -375,12 +364,13 @@
             let standIn = store.standIn(in: workspace.id)
             select(workspace, tab: standIn)
             arriving = standIn
-            let made = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id)
-            if made == nil {
+            guard let made = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id) else {
                 store.dropStandIn(standIn)
-            } else if arriving == standIn {
-                // Not the first new tab of the workspace a snapshot showed (another client's): herdr's answer wins.
-                store.ahead.arrived[standIn] = nil
+                return
+            }
+            store.madeTab(standIn, made)
+            // No snapshot had it yet.
+            if arriving == standIn {
                 arriving = made
             }
         }

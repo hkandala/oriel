@@ -28,6 +28,8 @@ final class HostStore {
     @ObservationIgnored var ahead = Ahead()
     /// The last snapshot, drawn again with `ahead`.
     @ObservationIgnored private(set) var last: Snapshot?
+    /// Panes being closed (`Ahead`), kept with what was asked of them in case the close comes back.
+    @ObservationIgnored private var parked: [String: Pane] = [:]
     /// Writes waiting for the one in flight, first first.
     @ObservationIgnored private var queued: [CheckedContinuation<Void, Never>] = []
 
@@ -209,7 +211,13 @@ final class HostStore {
             }
         }
         focusedWorkspaceID = snapshot.focusedWorkspaceID
-        reuse(self, \.panes, shown.panes, Pane.init(id:)) { pane, new in
+        let herdrs = Set(snapshot.panes.map(\.id))
+        parked = parked.filter { herdrs.contains($0.key) }
+        for pane in panes where ahead.closing.contains(pane.id) {
+            parked[pane.id] = pane
+        }
+        let make = { self.parked.removeValue(forKey: $0) ?? Pane(id: $0) }
+        reuse(self, \.panes, shown.panes, make) { pane, new in
             watchProgram(pane, new)
             pane.agent = new.agent
             pane.terminalTitle = new.title
@@ -225,6 +233,7 @@ final class HostStore {
         }
         let changes = seen.update(snapshot.agents, looking: looking)
         showStates()
+        closeArrived()
         Task { await updateGit(all: false) }
         return changes
     }

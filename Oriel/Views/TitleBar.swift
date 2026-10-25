@@ -74,7 +74,7 @@
                     .accessibilityIdentifier("titlebar.palette")
                 // ⌘T is the menu's.
                 IconButton(symbol: "plus", help: "New Tab", key: .newTab) { Task { await page.newTab() } }
-                    .disabled(page.selectedWorkspace == nil || page.store.writing)
+                    .disabled(page.selectedWorkspace == nil)
                     .accessibilityIdentifier("titlebar.new-tab")
                     // Highlighted too: a full track has no room for the ghost capsule.
                     .overlay {

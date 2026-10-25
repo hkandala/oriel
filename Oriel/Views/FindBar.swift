@@ -166,7 +166,8 @@
         }
 
         /// Scrolls, then places the highlights, one step at a time; what was asked for meanwhile goes after. Not a
-        /// `store.write`: no Busy gate between keystrokes, and `locate`'s `pane.get` is the read after it.
+        /// `store.write`: not queued behind other writes between keystrokes, and `locate`'s `pane.get` is the read
+        /// after it.
         private func work() {
             guard !working, let client = store.client else { return }
             working = true
