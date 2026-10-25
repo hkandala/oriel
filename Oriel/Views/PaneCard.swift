@@ -6,11 +6,12 @@
     struct PaneCard: View {
         let id: String
         let page: Page
+        /// Under a zoomed card: hidden, but there, so its terminal keeps its size.
+        let away: Bool
         @State private var hovering = false
         /// A dragged pane over this card: an edge, or the center (`.some(nil)`).
         @State private var zone: Heading??
         @State private var size = CGSize.zero
-        @Environment(\.zoomedAway) private var zoomedAway
         @Environment(\.appearsActive) private var active
         @Environment(\.look) private var look
         private var settings = AppSettings()
@@ -22,7 +23,7 @@
             let terminal = pane.flatMap(page.terminal)
             // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
             let lit = pane.map { page.keyboardCard($0.tabID) === $0 } ?? false
-            let follow = hovering && settings.followMouse && !zoomedAway && active
+            let follow = hovering && settings.followMouse && !away && active
             // The watching window's dim (D66), on the header and the terminal.
             let content = page.watched ? 0.85 : 1
             VStack(spacing: 0) {
@@ -114,7 +115,7 @@
                     }
                 }
             }
-            .accessibilityHidden(zoomedAway)
+            .accessibilityHidden(away)
         }
 
         private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool) -> some View {

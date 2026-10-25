@@ -20,6 +20,9 @@
 
         func updateNSView(_ host: Host, context _: Context) {
             host.alphaValue = alpha
+            if Host.record {
+                host.setAccessibilityIdentifier("host.\(terminal.paneID)")
+            }
         }
 
         /// Fits the terminal to itself once its size stops changing (a window drag, a divider drag, the sidebar or
@@ -27,13 +30,24 @@
         /// reflows at every step.
         final class Host: NSView {
             private var fitting: Task<Void, Never>?
+            /// e2e (`-recordMotion YES`): the sizes this host took, as its accessibility label. Layout motion gives
+            /// many;
+            /// a card made again, or one that jumps, only one or two.
+            static let record = UserDefaults.standard.bool(forKey: "recordMotion")
+            private var sizes = 0
 
             /// A held terminal stays at the top, as the card's content does.
             override var isFlipped: Bool {
                 true
             }
 
-            override func resizeSubviews(withOldSize _: NSSize) {
+            override func resizeSubviews(withOldSize old: NSSize) {
+                if Self.record, frame.size != old {
+                    sizes += 1
+                    setAccessibilityElement(true)
+                    setAccessibilityRole(.group)
+                    setAccessibilityLabel("\(sizes)")
+                }
                 fitting?.cancel()
                 // At once until its first stream opened (it opens at the card's size; the terminal waits for that to
                 // settle), and for a view that never had a frame.

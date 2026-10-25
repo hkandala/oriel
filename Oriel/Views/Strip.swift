@@ -22,9 +22,12 @@
                         Group {
                             if let tree = tab.tree {
                                 // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
-                                // Layout motion (0.2 s); the terminals keep their size until it ends (`TerminalHost`).
-                                SplitLayout(node: tree, page: page, tabID: tab.id)
+                                // Layout motion (0.2 s): a split, a close, a swap, a zoom. The terminals keep their
+                                // size until it ends (`TerminalHost`).
+                                let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
+                                SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
                                     .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: tree)
+                                    .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: zoomed)
                                     .padding([.horizontal, .bottom], gap)
                                     .padding(.top, 4)
                             } else {
@@ -83,104 +86,108 @@
         }
     }
 
-    /// herdr's split tree: each split divides its rectangle by the ratio, minus the gap, which is the split's divider.
-    /// Both children get an exact size, so no card's content can push its neighbor out of the page. A zoomed card
-    /// (design D11) fills the page: each split above it stacks its sides, the zoomed side at full size, the other
-    /// hidden at its own size. The same views stay, so no terminal view changes host and only the zoomed one resizes.
+    /// herdr's split tree, drawn flat: each card and divider is placed in the page by its rectangle, and keeps its view
+    /// (by pane id, or the split's path) whatever the tree does. So a split, a close, a swap or a zoom moves and sizes
+    /// the same cards: their frames animate, and no terminal view changes host. (Nested stacks, one per split, made a
+    /// new card for a pane whose leaf became a split or whose sibling closed, so it jumped to its new size.)
     private struct SplitLayout: View {
-        let node: SplitNode
+        let tree: SplitNode
+        /// The tab's zoomed card (D11): it fills the page; the others stay at their size, hidden under it, so their
+        /// terminals keep their size.
+        let zoomed: String?
         let page: Page
         let tabID: String
-        /// From the root, `false` = first child, as `layout.set_split_ratio` takes it.
-        var path: [Bool] = []
-        /// The size without zoom, for a split above the zoomed card: it fills the page, its parts keep their size.
-        var natural: CGSize?
-        /// The app's ratio while its divider is dragged or sent, until herdr's snapshot shows its own.
-        @State private var held: Double?
-        /// The last divider change asked for, and the last one sent: only the latest goes, and `held` stays until its
-        /// snapshot.
-        @State private var asked = 0
-        @State private var sent = 0
+        /// The app's ratio of a split (by path) while its divider is dragged or sent, until herdr's snapshot shows its
+        /// own.
+        @State private var held: [[Bool]: Double] = [:]
 
         var body: some View {
-            switch node {
-            case let .leaf(paneID):
-                PaneCard(id: paneID, page: page)
-            case let .split(direction, ratio, first, second):
-                GeometryReader { geometry in
-                    let right = direction == .right
-                    let base = natural ?? geometry.size
-                    let total = max(0, (right ? base.width : base.height) - gap)
-                    // A NaN or out-of-range ratio from herdr must not break the layout.
-                    let shown = held ?? (ratio.isNaN ? 0.5 : min(max(ratio, 0), 1))
-                    let size = total * shown
-                    let sizes = right
-                        ? (CGSize(width: size, height: base.height), CGSize(width: total - size, height: base.height))
-                        : (CGSize(width: base.width, height: size), CGSize(width: base.width, height: total - size))
-                    let zoomed = page.zoomedPaneID.map { (first.paneIDs.contains($0), second.paneIDs.contains($0)) }
-                        ?? (false, false)
-                    let stack = zoomed.0 || zoomed.1 ? AnyLayout(ZStackLayout())
-                        : right ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
-                    stack {
-                        side(first, sizes.0, step: false, zoomed: zoomed, area: geometry.size)
-                        if !zoomed.0, !zoomed.1 {
-                            // The panes beside the divider.
-                            let names = [first.paneIDs.last, second.paneIDs.first]
-                                .map { $0.flatMap(page.store.pane)?.cardTitle ?? "terminal" }
-                            let key = path.isEmpty ? "root" : path.map { $0 ? "1" : "0" }.joined()
-                            SplitDivider(right: right, total: total, ratio: shown, held: $held,
-                                         label: "Divider between \(names[0]) and \(names[1])",
-                                         id: "divider.\(tabID).\(key)",
-                                         send: { send($0, herdr: ratio) })
-                        }
-                        side(second, sizes.1, step: true, zoomed: zoomed, area: geometry.size)
+            GeometryReader { geometry in
+                let area = CGRect(origin: .zero, size: geometry.size)
+                let parts = Parts(tree, in: area, held: held)
+                ZStack(alignment: .topLeading) {
+                    ForEach(parts.cards, id: \.id) { card in
+                        let away = zoomed != nil && zoomed != card.id
+                        let rect = zoomed == card.id ? area : card.rect
+                        PaneCard(id: card.id, page: page, away: away)
+                            .frame(width: rect.width, height: rect.height)
+                            .offset(x: rect.minX, y: rect.minY)
+                            // Under the zoomed card, which covers it, so its terminal views get no clicks.
+                            .opacity(away ? 0 : 1)
+                            .zIndex(away ? 0 : 1)
+                            .allowsHitTesting(!away)
+                            // A new card slides in from its side as the others make room; a closed one shrinks away
+                            // as they grow.
+                            .transition(.asymmetric(insertion: .move(edge: card.edge).combined(with: .opacity),
+                                                    removal: .scale(scale: 0.6).combined(with: .opacity)))
                     }
-                }
-                .onChange(of: ratio) {
-                    if sent == asked {
-                        held = nil
+                    ForEach(parts.dividers, id: \.id) { divider in
+                        // The panes beside the divider.
+                        let names = divider.beside.map { $0.flatMap(page.store.pane)?.cardTitle ?? "terminal" }
+                        SplitDivider(divider: divider, held: $held[divider.path], page: page, tabID: tabID,
+                                     label: "Divider between \(names[0]) and \(names[1])")
+                            .frame(width: divider.rect.width, height: divider.rect.height)
+                            .offset(x: divider.rect.minX, y: divider.rect.minY)
+                            .opacity(zoomed == nil ? 1 : 0)
+                            .allowsHitTesting(zoomed == nil)
+                            .accessibilityHidden(zoomed != nil)
                     }
                 }
             }
         }
+    }
 
-        /// One side of a split: its own size, the whole rectangle when it holds the zoomed card, or hidden under it.
-        /// `zoomed`: whether the first and the second side hold the zoomed card.
-        private func side(_ node: SplitNode, _ size: CGSize, step: Bool, zoomed sides: (Bool, Bool),
-                          area: CGSize) -> some View
+    /// Where each card and divider of the tree goes: each split divides its rectangle by its ratio, less the 8 pt gap,
+    /// which is its divider. Both sides get an exact size, so no card's content can push its neighbor out of the page.
+    private struct Parts {
+        struct Card {
+            let id: String
+            let rect: CGRect
+            /// Its side of its split, where it slides in from.
+            let edge: Edge
+        }
+
+        struct Divider {
+            /// From the root, `false` = first child, as `layout.set_split_ratio` takes it.
+            let path: [Bool]
+            let right: Bool
+            let rect: CGRect
+            /// The split's length without the gap.
+            let total: CGFloat
+            /// herdr's, kept in 0–1 (a NaN or out-of-range ratio from herdr must not break the layout).
+            let ratio: Double
+            /// The last pane of the first side and the first of the second.
+            let beside: [String?]
+
+            /// The path in `0` and `1` digits, `root` for the root split.
+            var id: String {
+                path.isEmpty ? "root" : path.map { $0 ? "1" : "0" }.joined()
+            }
+        }
+
+        private(set) var cards: [Card] = []
+        private(set) var dividers: [Divider] = []
+
+        init(_ tree: SplitNode, in area: CGRect, held: [[Bool]: Double]) {
+            add(tree, area, path: [], edge: .trailing, held: held)
+        }
+
+        private mutating func add(_ node: SplitNode, _ rect: CGRect, path: [Bool], edge: Edge,
+                                  held: [[Bool]: Double])
         {
-            let zoomed = step ? sides.1 : sides.0, away = step ? sides.0 : sides.1
-            return SplitLayout(node: node, page: page, tabID: tabID, path: path + [step], natural: zoomed ? size : nil)
-                .frame(width: zoomed ? area.width : size.width, height: zoomed ? area.height : size.height)
-                // Under the zoomed side (zIndex), which covers it, so its terminal views get no clicks.
-                .opacity(away ? 0 : 1)
-                .zIndex(away ? 0 : 1)
-                .allowsHitTesting(!away)
-                .transformEnvironment(\.zoomedAway) { $0 = $0 || away }
-        }
-
-        /// The divider's ratio to herdr (D10). Held until the snapshot shows it; dropped when herdr refused it, or
-        /// when herdr already has it (no snapshot change would drop it then).
-        private func send(_ value: Double, herdr ratio: Double) {
-            // herdr has it already, and no other change is on its way.
-            guard sent != asked || abs(value - ratio) > 0.0005 else {
-                held = nil
-                return
-            }
-            asked += 1
-            let change = asked
-            Task {
-                // After a write in flight (a quick second change), not refused as busy.
-                while page.store.writing {
-                    try? await Task.sleep(for: .milliseconds(50))
-                }
-                // A newer change replaced it while it waited.
-                guard change == asked else { return }
-                let done = await page.store.setRatio(tab: tabID, path: path, ratio: value)
-                sent = change
-                if !done {
-                    held = nil
-                }
+            switch node {
+            case let .leaf(id):
+                cards.append(Card(id: id, rect: rect, edge: edge))
+            case let .split(direction, ratio, first, second):
+                let right = direction == .right, from: CGRectEdge = right ? .minXEdge : .minYEdge
+                let total = max(0, (right ? rect.width : rect.height) - gap)
+                let herdr = ratio.isNaN ? 0.5 : min(max(ratio, 0), 1)
+                let (one, rest) = rect.divided(atDistance: total * (held[path] ?? herdr), from: from)
+                let (line, two) = rest.divided(atDistance: gap, from: from)
+                add(first, one, path: path + [false], edge: right ? .leading : .top, held: held)
+                dividers.append(Divider(path: path, right: right, rect: line, total: total, ratio: herdr,
+                                        beside: [first.paneIDs.last, second.paneIDs.first]))
+                add(second, two, path: path + [true], edge: right ? .trailing : .bottom, held: held)
             }
         }
     }
@@ -189,18 +196,27 @@
     /// 0.6), a drag that moves the split live and sends on release, a double-click for 0.5, and an adjustable
     /// accessibility element (5 % steps).
     private struct SplitDivider: View {
-        let right: Bool
-        /// The split's length without the gap.
-        let total: CGFloat
-        let ratio: Double
+        let divider: Parts.Divider
+        /// The app's ratio while dragged or sent, until herdr's snapshot shows its own.
         @Binding var held: Double?
+        let page: Page
+        let tabID: String
         let label: String
-        let id: String
-        let send: (Double) -> Void
         @State private var hovering = false
         @Environment(\.look) private var look
         /// The ratio when the drag began.
         @State private var start: Double?
+        /// The last change asked for, and the last one sent: only the latest goes, and `held` stays until its snapshot.
+        @State private var asked = 0
+        @State private var sent = 0
+
+        private var right: Bool {
+            divider.right
+        }
+
+        private var ratio: Double {
+            held ?? divider.ratio
+        }
 
         var body: some View {
             Color.clear
@@ -230,20 +246,50 @@
                         // As the cards: a plain element shows XCUITest no value.
                         .accessibilityAddTraits(.isStaticText)
                         .accessibilityValue("\(Int((ratio * 100).rounded()))%")
-                        .accessibilityIdentifier(id)
+                        .accessibilityIdentifier("divider.\(tabID).\(divider.id)")
                         .accessibilityAdjustableAction { direction in
                             send(hold(ratio + (direction == .increment ? 0.05 : -0.05)))
                         }
                 }
                 // Over both sides' edges: its hit area reaches 4 pt into each card.
                 .zIndex(2)
+                .onChange(of: divider.ratio) {
+                    if sent == asked {
+                        held = nil
+                    }
+                }
+        }
+
+        /// The ratio to herdr (D10). Held until the snapshot shows it; dropped when herdr refused it, or when herdr
+        /// already has it (no snapshot change would drop it then).
+        private func send(_ value: Double) {
+            // herdr has it already, and no other change is on its way.
+            guard sent != asked || abs(value - divider.ratio) > 0.0005 else {
+                held = nil
+                return
+            }
+            asked += 1
+            let change = asked
+            Task {
+                // After a write in flight (a quick second change), not refused as busy.
+                while page.store.writing {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+                // A newer change replaced it while it waited.
+                guard change == asked else { return }
+                let done = await page.store.setRatio(tab: tabID, path: divider.path, ratio: value)
+                sent = change
+                if !done {
+                    held = nil
+                }
+            }
         }
 
         /// The ratio the drag points at, from the ratio when it began.
         private func dragged(_ drag: DragGesture.Value) -> Double {
             let from = start ?? ratio
             start = from
-            return from + (right ? drag.translation.width : drag.translation.height) / max(total, 1)
+            return from + (right ? drag.translation.width : drag.translation.height) / max(divider.total, 1)
         }
 
         /// In herdr's 0.1–0.9, so the view shows what herdr keeps.
@@ -253,10 +299,5 @@
             held = clamped
             return clamped
         }
-    }
-
-    extension EnvironmentValues {
-        /// The card is under a zoomed card: hidden, but there, so its terminal keeps its size.
-        @Entry var zoomedAway = false
     }
 #endif

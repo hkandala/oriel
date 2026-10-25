@@ -96,6 +96,46 @@ extension OrielUITests {
         }
     }
 
+    /// Split, zoom and close animate the card that stays (phase 25, item 3): its host goes through the sizes in between
+    /// (`-recordMotion YES` counts them; a card made again or one that jumps takes one or two), and its text never
+    /// blanks on the way.
+    func testSplitZoomAndCloseAnimateWithoutBlanking() async throws {
+        relaunch(one, ["-recordMotion", "YES"])
+        let (tab, pane) = try await newTab("motion")
+        element("tab.\(tab)").click()
+        try await fill(pane)
+        try await expectText([pane], "filled")
+        let host = element("host.\(pane)"), terminal = element("terminal.\(pane)")
+        var other = ""
+        let steps: [(String, () async throws -> Void)] = [
+            ("split", { other = try await self.split(pane) }),
+            ("zoom", {
+                self.hoverHeader(pane)
+                self.element("pane.\(pane).zoom").click()
+            }),
+            ("restore", { self.app.typeKey(.return, modifierFlags: [.command, .shift]) }),
+            ("close", { _ = try await Self.call(self.one, "pane.close", ["pane_id": other]) }),
+        ]
+        for (step, act) in steps {
+            XCTAssertTrue(host.exists(within: 3), step)
+            let sizes = Int(host.label) ?? 0
+            try await act()
+            var shots: [NSImage] = []
+            let end = Date.now + 1
+            while Date.now < end {
+                shots.append(terminal.screenshot().image)
+            }
+            let inks = shots.map(Self.ink)
+            XCTAssertGreaterThan(inks.min() ?? 0, 0.01, "\(step): ink of \(inks.count) screenshots: \(inks)")
+            XCTAssertGreaterThanOrEqual(
+                (Int(host.label) ?? 0) - sizes,
+                4,
+                "\(step): sizes from \(sizes) to \(host.label)",
+            )
+            try await expectText([pane], step)
+        }
+    }
+
     /// Lines of text in the pane, so an empty card is plain to see.
     private func fill(_ pane: String) async throws {
         try await waitForPrompt(pane)
