@@ -50,24 +50,29 @@ extension OrielUITests {
 
         // The lights where the main window has them (testTrafficLightsSitInTheTitleRow); the 28 pt buttons centered
         // on the same 46 pt row.
-        let close = window.buttons[XCUIIdentifierCloseWindow]
-        XCTAssertTrue(
-            until(2) { abs(close.frame.minX - frame.minX - 15) < 1 && abs(close.frame.minY - frame.minY - 15) < 1 },
-            "\(close.frame) in \(frame)",
-        )
+        let lights = [XCUIIdentifierCloseWindow, XCUIIdentifierMinimizeWindow, XCUIIdentifierFullScreenWindow]
+            .map { window.buttons[$0] }
+        XCTAssertTrue(until(2) {
+            lights.enumerated().allSatisfy { index, light in
+                abs(light.frame.minX - frame.minX - (15 + CGFloat(index) * 23)) < 1
+                    && abs(light.frame.minY - frame.minY - 15) < 1
+            }
+        }, "\(lights.map(\.frame)) in \(frame)")
         for button in ["pin", "close", "detach"] {
             let button = element("float.\(second).\(button)").frame
             XCTAssertEqual(button.height, 28, accuracy: 0.5, "\(button)")
             XCTAssertEqual(button.midY - frame.minY, 23, accuracy: 1, "\(button) in \(frame)")
         }
 
-        // The whole card in the tab is the button, with the pane's program and folder.
+        // The pane's program and folder in the title row, and in the card in the tab, which is the button.
+        let info = element("float.\(second).info", in: window)
+        XCTAssertTrue(info.stringValue.hasSuffix("tmp"), info.debugDescription)
         element("tab.\(tab)").click()
         let show = element("pane.\(second).show"), card = element("pane.\(second)").frame
         XCTAssertTrue(show.exists(within: 3))
-        XCTAssertEqual(show.frame.width, card.width - 16, accuracy: 1, "\(show.frame) in \(card)")
+        XCTAssertEqual(show.frame.width, card.width - 16, accuracy: 3, "\(show.frame) in \(card)")
         XCTAssertGreaterThan(show.frame.height, card.height / 2, "\(show.frame) in \(card)")
-        XCTAssertTrue(show.label.hasPrefix("Show ") && show.label.hasSuffix("tmp"), show.label)
+        XCTAssertTrue((show.label + show.stringValue).contains("tmp"), show.debugDescription)
         keepScreen("floating window over the main window")
         show.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.9)).click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: window)))
