@@ -51,6 +51,8 @@ struct OrielApp: App {
             .defaultSize(width: 560, height: 360)
             .windowResizability(.contentMinSize)
             .restorationBehavior(.disabled)
+            // Its scene's own File items (Close on ⌘W) came back over the main window's: ⌘W closed the main window.
+            .commandsRemoved()
         #else
             WindowGroup {
                 ContentUnavailableView("Oriel for iOS is coming", systemImage: "iphone")
