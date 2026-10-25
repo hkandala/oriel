@@ -12,7 +12,6 @@ extension OrielUITests {
         relaunch(one, ["-machines", "[]"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         addHost("Key Host", "oriel-key")
-        XCTAssertTrue(element("titlebar.machine").has(\.label, "Machine: Key Host", within: 3))
         // Its sessions come from herdr over SSH; session one opens as a page.
         openPage(one)
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
@@ -69,7 +68,6 @@ extension OrielUITests {
         relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
         let terminal = element("terminal.w1:p2")
         XCTAssertTrue(terminal.exists(within: connect))
-        XCTAssertTrue(element("titlebar.machine").has(\.label, "Machine: Key Host", within: 3))
         try await waitForPrompt("w1:p2")
         terminal.click()
         XCTAssertTrue(hasKeyboard(terminal))

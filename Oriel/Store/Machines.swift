@@ -57,8 +57,10 @@ struct Machine: Codable, Hashable, Identifiable {
             .keys.contains { $0 == "session" || $0 == "machines" }
 
         private init() {
+            // The argument as given: the argument domain reads a JSON array as something else.
+            let arguments = ProcessInfo.processInfo.arguments
             let json = Self.isolated
-                ? UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)["machines"] as? String
+                ? arguments.firstIndex(of: "-machines").flatMap { arguments.dropFirst($0 + 1).first }
                 : UserDefaults.standard.string(forKey: "machines")
             list = json.flatMap { try? JSONDecoder().decode([Machine].self, from: Data($0.utf8)) } ?? []
         }

@@ -176,16 +176,15 @@
                 Button("Add Remote Host…", systemImage: "plus") { pages.addingHost = true }
             } label: {
                 // The icon alone (user, phase 22): no chevron.
-                // The menu button's own label in accessibility: one set on the menu does not reach it.
                 Image(systemName: current.icon).fontWeight(.medium)
                     .frame(width: 28, height: 28)
-                    .accessibilityLabel("Machine: \(current.name)")
             }
             .menuStyle(.button)
             .menuIndicator(.hidden)
             .buttonStyle(ChromeStyle(radius: 7))
             .fixedSize()
             .help("Machine")
+            .accessibilityLabel("Machine: \(current.name)")
             .accessibilityIdentifier("titlebar.machine")
         }
     }
