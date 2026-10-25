@@ -60,6 +60,9 @@ extension OrielUITests {
         for (title, keys) in rows {
             XCTAssertEqual(element("shortcuts.\(title)").value as? String, keys, title)
         }
+        // Two columns.
+        XCTAssertGreaterThan(element("shortcuts.section.Sessions").frame.minX,
+                             element("shortcuts.section.Panes").frame.maxX)
         keepScreenshot("keyboard shortcuts")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(panel.vanishes(within: 2))
@@ -78,5 +81,15 @@ extension OrielUITests {
         app.typeText("keyboard shortcuts")
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(panel.exists(within: 2))
+
+        // Glass like the palette in the other look too (for the screenshot).
+        relaunch(one, ["-appearance", "light", "-interfaceStyle", "classic"])
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        app.typeKey("/", modifierFlags: .command)
+        XCTAssertTrue(panel.exists(within: 2))
+        keepScreenshot("keyboard shortcuts, light classic")
+        // A click outside closes it.
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.97)).click()
+        XCTAssertTrue(panel.vanishes(within: 2))
     }
 }

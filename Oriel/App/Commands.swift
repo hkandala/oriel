@@ -139,8 +139,9 @@ extension KeyboardShortcut {
         var key: KeyboardShortcut?
         /// The Keyboard Shortcuts panel's group, when not its section's.
         var group: Group?
-        /// The Keyboard Shortcuts panel's one row for a set of keys ("Select Pane" for ⌥⌘ and each arrow).
-        var family: String?
+        /// The Keyboard Shortcuts panel's one row for a set of commands that differ by the key: "Select Pane",
+        /// "⌥⌘←→↑↓".
+        var family: (title: String, keys: String)?
         /// The palette row's SF Symbol.
         var symbol: String?
         /// More words the palette's filter matches.

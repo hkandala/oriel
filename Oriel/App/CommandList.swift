@@ -194,7 +194,7 @@
             func stepWorkspace(_ title: String, _ symbol: String, _ offset: Int) -> Command {
                 Command(section: .workspaceSteps, title: title,
                         key: .init(offset < 0 ? "[" : "]", modifiers: [.command, .control]), symbol: symbol,
-                        enabled: (page?.store.workspaces.count ?? 0) > 1) { page?.stepWorkspace(offset) }
+                        enabled: (page?.sidebarWorkspaces.count ?? 0) > 1) { page?.stepWorkspace(offset) }
             }
             return [
                 Command(section: .tabSteps, title: "Show Previous Tab", key: .previousTab, symbol: "chevron.backward",
@@ -223,7 +223,8 @@
             {
                 arrows.map { heading, key in
                     Command(section: .paneKeys, title: "\(title) \(heading.rawValue.capitalized)",
-                            key: .init(key, modifiers: modifiers), family: title,
+                            key: .init(key, modifiers: modifiers),
+                            family: (title, KeyboardShortcut(key, modifiers: modifiers).glyphs.dropLast() + "←→↑↓"),
                             symbol: "arrow.\(heading.rawValue)\(suffix)",
                             keywords: "pane",
                             enabled: enabled, action: {
@@ -273,36 +274,31 @@
         /// workspaces, ⌥⌘ the window's sessions. Each finds its place when the key is pressed: the menu may be older
         /// than a switch.
         static func jumps(_ page: Page?, _ pages: WindowPages?) -> [Command] {
-            func number(_ index: Int, _ modifiers: EventModifiers) -> KeyboardShortcut {
-                KeyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: modifiers)
+            func jump(_ section: Command.Section, _ level: String, _ modifiers: EventModifiers, _ titles: [String],
+                      _ show: @escaping (Int) -> Void) -> [Command]
+            {
+                func key(_ index: Int) -> KeyboardShortcut {
+                    KeyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: modifiers)
+                }
+                return titles.prefix(9).enumerated().map { index, title in
+                    Command(section: section, title: title, key: key(index),
+                            family: ("Show \(level) 1–9", key(0).glyphs + "–9")) { show(index) }
+                }
             }
-            let tabs = (page?.selectedWorkspace?.tabs ?? []).prefix(9).enumerated().map { index, tab in
-                Command(section: .tabs, title: page?.titleText(tab) ?? tab.label, key: number(index, .command),
-                        family: "Show Tab 1–9", action: {
-                            if let page, let workspace = page.selectedWorkspace,
-                               workspace.tabs.indices.contains(index)
-                            {
-                                page.select(workspace, tab: workspace.tabs[index].id)
-                            }
-                        })
+            let tabs = page?.selectedWorkspace?.tabs ?? []
+            return jump(.tabs, "Tab", .command, tabs.map { page?.titleText($0) ?? $0.label }) { index in
+                if let page, let workspace = page.selectedWorkspace, workspace.tabs.indices.contains(index) {
+                    page.select(workspace, tab: workspace.tabs[index].id)
+                }
+            } + jump(.workspaces, "Workspace", [.command, .control], (page?.sidebarWorkspaces ?? []).map(\.label)) {
+                if let page, page.sidebarWorkspaces.indices.contains($0) {
+                    page.select(page.sidebarWorkspaces[$0])
+                }
+            } + jump(.sessions, "Session", [.command, .option], (pages?.list ?? []).map(\.id)) {
+                if let pages, pages.list.indices.contains($0) {
+                    pages.show(pages.list[$0])
+                }
             }
-            let workspaces = (page?.sidebarWorkspaces ?? []).prefix(9).enumerated().map { index, workspace in
-                Command(section: .workspaces, title: workspace.label, key: number(index, [.command, .control]),
-                        family: "Show Workspace 1–9", action: {
-                            if let page, page.sidebarWorkspaces.indices.contains(index) {
-                                page.select(page.sidebarWorkspaces[index])
-                            }
-                        })
-            }
-            let sessions = (pages?.list ?? []).prefix(9).enumerated().map { index, other in
-                Command(section: .sessions, title: other.id, key: number(index, [.command, .option]),
-                        family: "Show Session 1–9", action: {
-                            if let pages, pages.list.indices.contains(index) {
-                                pages.show(pages.list[index])
-                            }
-                        })
-            }
-            return tabs + workspaces + sessions
         }
 
         /// The pane's actions (D48), for View ▸ Pane on the keyboard card and the card header's context menu. Actions

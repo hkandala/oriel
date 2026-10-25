@@ -48,7 +48,6 @@
                         .foregroundStyle(selected ? look.selected : look.chrome)
                     // The keycap's room: the title gives way to it.
                     if let keycap {
-                        Spacer(minLength: 0)
                         Self.keycap(keycap).hidden()
                     }
                 }
@@ -97,7 +96,7 @@
             // At the end, beside the ×: never over the icon or the title (user, phase 25). Over the button, so a test
             // sees its frame.
             .overlay(alignment: .trailing) {
-                if let keycap {
+                if let keycap, !renaming {
                     Self.keycap(keycap).padding(.trailing, keycapInset)
                         .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.13)),
                                                 removal: .opacity.animation(.easeOut(duration: 0.1))))
