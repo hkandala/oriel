@@ -96,21 +96,20 @@ extension OrielUITests {
         }
     }
 
-    /// Split, zoom and close animate the card that stays (phase 25, item 3): its host goes through the sizes in between
-    /// (`-recordMotion YES` counts them; a card made again or one that jumps takes one or two), and its text never
-    /// blanks on the way. Under Reduce Motion it jumps.
-    func testSplitZoomAndCloseAnimateWithoutBlanking() async throws {
+    /// Split, zoom, close and the sidebar animate the card that stays (phase 25, item 3): its host goes through the
+    /// sizes in between (`-recordMotion YES` counts them; a card made again or one that jumps takes one or two), and
+    /// its text never blanks on the way (phase 24's rule, never seen with motion before: CI has Reduce Motion on).
+    /// Under Reduce Motion the card jumps.
+    func testLayoutMotionAnimatesWithoutBlanking() async throws {
         relaunch(one, ["-recordMotion", "YES"])
         let (tab, pane) = try await newTab("motion")
         element("tab.\(tab)").click()
         let host = element("host.\(pane)"), terminal = element("terminal.\(pane)")
-        // CI's Mac has Reduce Motion on: the card jumps to its new size in one step.
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             XCTAssertTrue(host.exists(within: 3))
             let sizes = Int(host.label) ?? 0
             let other = try await split(pane)
-            XCTAssertTrue(element("pane.\(other)").exists(within: 3))
-            XCTAssertTrue(until(2) { Int(host.label) == sizes + 1 }, "Reduce Motion: \(host.value ?? "")")
+            XCTAssertTrue(until(3) { Int(host.label) == sizes + 1 }, "Reduce Motion: \(host.value ?? "")")
             _ = try await Self.call(one, "pane.close", ["pane_id": other])
             XCTAssertTrue(element("pane.\(other)").vanishes(within: 3))
             relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
@@ -130,28 +129,28 @@ extension OrielUITests {
             }),
             ("restore", { self.app.typeKey(.return, modifierFlags: [.command, .shift]) }),
             ("close", { _ = try await Self.call(self.one, "pane.close", ["pane_id": other]) }),
+            ("sidebar hidden", { self.element("titlebar.sidebar").click() }),
+            ("sidebar shown", { self.element("titlebar.sidebar").click() }),
         ]
         for (step, act) in steps {
             XCTAssertTrue(host.exists(within: 3), step)
             let sizes = Int(host.label) ?? 0
-            // The screen, not the element: finding the element at each shot asks the app for its accessibility tree,
-            // which kept its main thread too busy to draw the motion. The terminal's top left 40 % stays in the card
-            // through every step.
-            let frame = terminal.frame
-            let region = CGRect(x: frame.minX, y: frame.minY, width: frame.width * 0.4, height: frame.height * 0.4)
+            // The screen, not the element, which moves: a band across the window through the middle of the terminal.
+            // Its text stays in the band while the card moves (no other card has text that low).
+            let frame = terminal.frame, window = app.windows.firstMatch.frame
+            let band = CGRect(x: window.minX, y: frame.minY + frame.height * 0.45, width: window.width,
+                              height: frame.height * 0.2)
+            let before = Self.ink(Self.crop(XCUIScreen.main.screenshot().image, band))
             try await act()
             var shots: [NSImage] = []
             let end = Date.now + 1
             while Date.now < end {
                 shots.append(XCUIScreen.main.screenshot().image)
             }
-            let inks = shots.map { Self.ink(Self.crop($0, region)) }
-            XCTAssertGreaterThan(inks.min() ?? 0, 0.01, "\(step): ink of \(inks.count) screenshots: \(inks)")
-            XCTAssertGreaterThanOrEqual(
-                (Int(host.label) ?? 0) - sizes,
-                4,
-                "\(step): sizes from \(sizes) to \(host.label), \(host.value ?? "")",
-            )
+            let inks = shots.map { Self.ink(Self.crop($0, band)) }
+            XCTAssertGreaterThan(inks.min() ?? 0, before / 3, "\(step): ink \(before) before, then \(inks)")
+            XCTAssertGreaterThanOrEqual((Int(host.label) ?? 0) - sizes, 4,
+                                        "\(step): sizes from \(sizes) to \(host.label), \(host.value ?? "")")
             try await expectText([pane], step)
         }
     }

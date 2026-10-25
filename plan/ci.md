@@ -34,6 +34,9 @@ Findings from the `ci` runs of 2026-10-21 and 22 (40 runs: 17 green, 12 red, 11 
   say which step and what the window showed; guessing costs runs.
 - CI is a 1x, 1024 × 674 pt window on a VM, US layout. Grid and pixel checks must
   hold at 1x.
+- CI's Mac has Reduce Motion on (phase 25, lane A2), so no motion that honors it runs there. A test of motion
+  launches with `-forceMotion YES` (layout motion and the sidebar slide). While a test takes screenshots in a loop,
+  the screen recording gets a frame only every 0.3–0.6 s: look at motion frame by frame in a step without them.
 - Wait on conditions (`exists(within:)`, `has(_:_:within:)`, `until`, `poll`), never a bare sleep; a sleep is
   only the pause inside a poll.
 - Check a fix with `gh run rerun <id>` on the same commit, not only one green run.
