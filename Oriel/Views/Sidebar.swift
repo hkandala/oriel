@@ -108,13 +108,11 @@
             VStack(alignment: .leading, spacing: 0) {
                 // The name and the sort menu's label on one baseline; the `+` has no text to align.
                 HStack(alignment: agents == nil ? .center : .firstTextBaseline) {
-                    // A long session name gives way in its middle; the Agents view's too, with no " · agents" (user,
-                    // phase 25).
+                    // A long session name gives way in its middle.
                     Text(page.id).truncationMode(.middle)
                         .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary).lineLimit(1)
                         // Before the sort menu's label, which gives way first.
                         .layoutPriority(1)
-                        .accessibilityValue(page.id)
                         .accessibilityIdentifier("sidebar.header")
                     Spacer()
                     if let agents {

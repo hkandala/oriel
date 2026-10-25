@@ -134,16 +134,15 @@ struct StatusBadge: View {
         @Environment(\.look) private var look
 
         var body: some View {
-            let lit = page.keyboardCard(page.selectedTab?.id) === pane
             Button {
                 page.go(to: pane)
                 picked()
             } label: {
-                label(pane.state ?? .idle, lit: lit)
+                label(pane.state ?? .idle)
             }
             .buttonStyle(ChromeStyle(selected: lit, radius: 10))
             .accessibilityIdentifier("agent.\(pane.id)")
-            .accessibilityLabel("\(title), \(place ?? page.place(pane))")
+            .accessibilityLabel("\(title), \(line2)")
             .accessibilityValue(pane.state?.capsule ?? "")
             .accessibilityAddTraits(lit ? .isSelected : [])
         }
@@ -153,7 +152,15 @@ struct StatusBadge: View {
             pane.label ?? pane.agentName ?? "agent"
         }
 
-        private func label(_ state: AgentState, lit: Bool) -> some View {
+        private var line2: String {
+            place ?? page.place(pane)
+        }
+
+        private var lit: Bool {
+            page.keyboardCard(page.selectedTab?.id) === pane
+        }
+
+        private func label(_ state: AgentState) -> some View {
             HStack(spacing: 8) {
                 ProgramTile(icon: pane.iconID, letter: pane.letter)
                     .overlay(alignment: .topTrailing) { StatusBadge(state: state) }
@@ -170,7 +177,7 @@ struct StatusBadge: View {
                                 .font(.system(size: 11)).foregroundStyle(.secondary)
                         }
                     }
-                    Text(place ?? page.place(pane)).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(line2).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
             .padding(.horizontal, 8)
@@ -203,7 +210,7 @@ struct StatusBadge: View {
 
         var body: some View {
             let rows = page.store.agentPanes.filter { pane in
-                [pane.agentName ?? "", page.place(pane)].contains { $0.matches(filter) }
+                [pane.label, pane.agentName, page.place(pane)].compactMap(\.self).contains { $0.matches(filter) }
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
@@ -237,6 +244,7 @@ struct StatusBadge: View {
         private func label(_ text: String, id: String) -> some View {
             Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
                 .padding(.horizontal, 8).padding(.top, 6)
+                .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier(id)
         }
 

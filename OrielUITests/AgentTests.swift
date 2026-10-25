@@ -104,13 +104,9 @@ extension OrielUITests {
         XCTAssertEqual(sort.maxX - 6, rows[0].frame.maxX - 8, accuracy: 0.5, frames)
         keepScreenshot("agents view by priority")
 
-        // The footer filter keeps the rows of one workspace.
-        element("sidebar.filter").click()
-        element("sidebar.filter").typeText("beta")
-        XCTAssertTrue(rows[1].vanishes(within: 2))
-        XCTAssertEqual(rows.map(\.exists), [true, false, true, false])
-        app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(rows[3].exists(within: 2))
+        // The footer filter keeps the rows of one workspace, or of a pane's name.
+        filter("beta", keeps: rows, [true, false, true, false])
+        filter("fixer", keeps: rows, [false, true, false, false])
 
         element("agents.sort").click()
         app.menuItems["Workspace order"].click()
@@ -143,7 +139,6 @@ extension OrielUITests {
         app.typeKey(".", modifierFlags: .command)
         let rows = [first, second].map { element("agent.\($0)") }
         XCTAssertTrue(rows[1].exists(within: 2))
-        XCTAssertEqual(rows.map(\.isSelected), [false, false])
         rows[1].click()
         XCTAssertTrue(rows[1].has(\.isSelected, true, within: 2))
         XCTAssertFalse(rows[0].isSelected)
@@ -155,6 +150,7 @@ extension OrielUITests {
         // beta's first tab shown: neither is its keyboard card.
         app.typeKey("1", modifierFlags: .command)
         XCTAssertTrue(rows[0].has(\.isSelected, false, within: 2))
+        XCTAssertFalse(rows[1].isSelected)
     }
 
     func testAFinishShowsDoneUntilItsRowIsClicked() async throws {
@@ -197,6 +193,15 @@ extension OrielUITests {
         try await waitForValue("workspace.w2", containing: "idle")
         XCTAssertFalse((element("workspace.w2").value as? String ?? "").contains("finished"))
         keepScreenshot("idle ring")
+    }
+
+    /// Types in the footer filter, checks which rows stay, then clears it with Esc.
+    private func filter(_ text: String, keeps rows: [XCUIElement], _ kept: [Bool]) {
+        element("sidebar.filter").click()
+        element("sidebar.filter").typeText(text)
+        XCTAssertTrue(until(2) { rows.map(\.exists) == kept }, text)
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(until(2) { rows.allSatisfy(\.exists) }, text)
     }
 
     /// Reports the agent's state with an increasing `seq` (herdr drops an older one).
