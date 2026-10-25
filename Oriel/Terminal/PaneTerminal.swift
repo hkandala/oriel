@@ -15,8 +15,8 @@
         /// drew. Off from a new surface's start and from each grid change until then, so herdr's first frame (the old
         /// screen reflowed at the new size) never shows: the card keeps its last picture meanwhile.
         private(set) var ready = false
-        /// Shown once (only the first reveal fades in).
-        @ObservationIgnored private var revealed = false
+        /// Shown once: only the first reveal fades in, and its layer holds a picture of the pane (the hover card's).
+        @ObservationIgnored private(set) var revealed = false
         @ObservationIgnored private var settling: Task<Void, Never>?
         /// Shows the content at the latest 0.4 s after drawing paused, whatever the frames do.
         @ObservationIgnored private var deadline: Task<Void, Never>?

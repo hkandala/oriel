@@ -174,15 +174,15 @@
         }
     }
 
-    /// Rex's "peek": a tab's title and rolled-up status and a row for each of its first six panes. A click on a row
-    /// goes to that pane; on the title, to the tab. A blocked agent's row shows its last screen lines (herdr 0.9.5
-    /// sends no blocked message), read once when the card opens.
+    /// Rex's "peek": a tab's title and rolled-up status, a preview of its cards, and a row for each of its first six
+    /// panes. A click on a row goes to that pane; on the title or the preview, to the tab. A blocked agent's row shows
+    /// its last screen lines (herdr 0.9.5 sends no blocked message), read once when the card opens.
     struct HoverCard: View {
         let tabID: String
         let page: Page
         let close: () -> Void
-        /// Each blocked pane's last 3 non-empty screen lines.
-        @State private var lines: [String: [String]] = [:]
+        /// Screens read when the card opens: each blocked pane's, and each previewed pane's with no picture.
+        @State private var screens: [String: String] = [:]
 
         var body: some View {
             let store = page.store
@@ -205,6 +205,14 @@
                     }
                     .buttonStyle(ChromeStyle(radius: 6))
                     .accessibilityIdentifier("hovercard.title")
+                    if let tree = tab.tree {
+                        TabPreview(tree: tree, page: page, screens: screens)
+                            .onTapGesture {
+                                page.select(workspace, tab: tabID)
+                                close()
+                            }
+                            .padding(.bottom, 2)
+                    }
                     ForEach(panes.prefix(6)) { pane in row(pane) }
                     if panes.count > 6 {
                         Text("+\(panes.count - 6) more").font(.system(size: 11)).foregroundStyle(.secondary)
@@ -220,18 +228,17 @@
                 .accessibilityIdentifier("hovercard")
                 .task {
                     guard let client = store.client else { return }
-                    for pane in panes.prefix(6) where pane.state == .needsYou {
-                        if let text = try? await client.screen(pane.id) {
-                            lines[pane.id] = text.split(whereSeparator: \.isNewline)
-                                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.suffix(3)
-                        }
+                    for pane in panes where pane.state == .needsYou || TabPreview.picture(pane, page) == nil {
+                        screens[pane.id] = try? await client.screen(pane.id)
                     }
                 }
             }
         }
 
         private func row(_ pane: HostStore.Pane) -> some View {
-            let shown = lines[pane.id] ?? [], name = pane.agentName ?? pane.programName ?? "terminal"
+            let shown = pane.state == .needsYou ? Array((screens[pane.id] ?? "").split(whereSeparator: \.isNewline)
+                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.suffix(3)) : []
+            let name = pane.agentName ?? pane.programName ?? "terminal"
             return Button {
                 page.go(to: pane)
                 close()
@@ -261,6 +268,98 @@
             .accessibilityIdentifier("hovercard.\(pane.id)")
             .accessibilityLabel([name, pane.folder].compactMap(\.self).joined(separator: ", "))
             .accessibilityValue(([pane.state?.capsule].compactMap(\.self) + shown).joined(separator: "\n"))
+        }
+    }
+
+    /// A tab's cards in their layout, as its page draws them in a 1056 × 660 pt page, at a quarter of that size. Each
+    /// card shows its terminal's picture: the IOSurface libghostty's layer shows, shared, not copied, and read again 5
+    /// times a second while the preview is open, so it costs nothing while none is. Live while the card is in the
+    /// window (libghostty draws only there); else the last picture it drew. A pane with no picture (not shown since the
+    /// app started) shows its screen's text instead (design: hover card).
+    struct TabPreview: View {
+        let tree: SplitNode
+        let page: Page
+        /// Screen text for the panes with no picture.
+        let screens: [String: String]
+        @Environment(\.look) private var look
+        private static let scale: CGFloat = 0.25
+        /// With its 2 pt padding, the hover card's width inside its own (268 pt).
+        private static let size = CGSize(width: 264, height: 165)
+
+        /// The picture libghostty's layer shows now (an IOSurface), once it showed the pane; never makes a terminal.
+        /// A terminal a lazy page made but never streamed has a blank one.
+        static func picture(_ pane: HostStore.Pane?, _ page: Page) -> (terminal: PaneTerminal, picture: Any)? {
+            guard let terminal = pane?.terminalID.flatMap({ page.terminals.terminals([$0]).first }), terminal.revealed,
+                  let picture = terminal.view.layer?.contents, terminal.view.frame.width > 0 else { return nil }
+            return (terminal, picture)
+        }
+
+        var body: some View {
+            let area = CGRect(x: 0, y: 0, width: Self.size.width / Self.scale, height: Self.size.height / Self.scale)
+            let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
+            let cards = Parts(tree, in: area, held: [:]).cards.filter { zoomed == nil || $0.id == zoomed }
+            TimelineView(.periodic(from: .now, by: 0.2)) { context in
+                ZStack(alignment: .topLeading) {
+                    ForEach(cards, id: \.id) { card in
+                        let rect = zoomed == nil ? card.rect : area
+                        self.card(card.id, tick: context.date)
+                            .frame(width: rect.width * Self.scale, height: rect.height * Self.scale)
+                            .offset(x: rect.minX * Self.scale, y: rect.minY * Self.scale)
+                    }
+                }
+                .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+            }
+            .padding(gap * Self.scale)
+            .background(look.window, in: .rect(cornerRadius: 6, style: .continuous))
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("hovercard.preview")
+        }
+
+        private func card(_ id: String, tick: Date) -> some View {
+            let pane = page.store.pane(id), picture = Self.picture(pane, page)
+            let shape = RoundedRectangle(cornerRadius: 3, style: .continuous), edge = look.edge(keyboard: false)
+            return GeometryReader { proxy in
+                let width = max(proxy.size.width - 4, 0)
+                Group {
+                    if let (terminal, picture) = picture {
+                        let size = terminal.view.frame.size
+                        TerminalPicture(picture: picture, tick: tick).frame(width: width,
+                                                                            height: width * size.height / size.width)
+                    } else if let text = screens[id] {
+                        Text(text).font(.system(size: 3.25, design: .monospaced)).lineSpacing(0)
+                            .fixedSize().frame(width: width, alignment: .topLeading)
+                    }
+                }
+                .padding(2)
+            }
+            .clipShape(shape)
+            .background(shape.fill(look.cardFill))
+            .overlay(shape.stroke(edge.color, lineWidth: edge.width / 2))
+            .accessibilityElement()
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityLabel(pane?.cardTitle ?? "terminal")
+            .accessibilityValue(picture != nil ? "picture" : screens[id] != nil ? "text" : "empty")
+            .accessibilityIdentifier("hovercard.preview.\(id)")
+        }
+    }
+
+    /// Shows a terminal's picture: libghostty's IOSurface set as a layer's contents, scaled to the view. A
+    /// layer-hosting view, so AppKit never draws over the contents.
+    private struct TerminalPicture: NSViewRepresentable {
+        let picture: Any
+        /// A new tick makes SwiftUI update the view, which reads the surface's latest picture.
+        let tick: Date
+
+        func makeNSView(context _: Context) -> NSView {
+            let view = NSView()
+            view.layer = CALayer()
+            view.wantsLayer = true
+            view.layer?.contentsGravity = .resize
+            return view
+        }
+
+        func updateNSView(_ view: NSView, context _: Context) {
+            view.layer?.contents = picture
         }
     }
 #endif

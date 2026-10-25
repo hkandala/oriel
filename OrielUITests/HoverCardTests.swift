@@ -101,8 +101,8 @@ extension OrielUITests {
             element("tab.\(tab)").hover()
             XCTAssertTrue(card.exists(within: 2), look)
             // The pane row's empty right part, and the same rect over the bare terminal below the card.
-            let frame = card.frame
-            let empty = CGRect(x: frame.midX, y: frame.minY + 40, width: frame.width / 2 - 16, height: 20)
+            let row = element("hovercard.\(pane)").frame
+            let empty = CGRect(x: row.midX, y: row.minY + 3, width: row.width / 2 - 10, height: 20)
             var sharp = (card: 0.0, bare: 0.0)
             // The card fades in, and the terminal draws its lines.
             let blurred = until(2) {
@@ -112,6 +112,61 @@ extension OrielUITests {
             keepScreenshot("\(look): card \(sharp.card), bare \(sharp.bare)")
             XCTAssertTrue(blurred, "\(look): card \(sharp.card), bare \(sharp.bare)")
         }
+    }
+
+    /// The card previews the tab's cards in their layout (phase 25): herdr's screen text for panes no terminal showed
+    /// yet, then each terminal's own picture, which follows the terminal while the card stays open.
+    func testHoverCardPreviewsTheTabsCardsLive() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, pane) = try await newTab("preview")
+        let second = try await split(pane)
+        try await send("echo preview-$((6*7))\r", to: pane)
+        try await waitFor(pane) { $0.contains("\npreview-42") }
+
+        let card = element("hovercard")
+        let left = element("hovercard.preview.\(pane)"), right = element("hovercard.preview.\(second)")
+        element("tab.\(tab)").hover()
+        XCTAssertTrue(card.exists(within: 2))
+        XCTAssertTrue(left.has(\.stringValue, "text", within: 2))
+        XCTAssertEqual(right.stringValue, "text")
+        // Side by side with a 2 pt gap (the page's 8 pt at a quarter), as herdr's split right.
+        XCTAssertEqual(right.frame.minX - left.frame.maxX, 2, accuracy: 1)
+        XCTAssertEqual(left.frame.minY, right.frame.minY, accuracy: 1)
+        XCTAssertEqual(left.frame.height, right.frame.height, accuracy: 1)
+        XCTAssertGreaterThan(left.frame.width, 100)
+
+        // Shown once, each card shows its terminal's picture, and it follows the terminal while the card is open: a
+        // white block, then a clear screen.
+        element("tab.\(tab)").click()
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
+        let block = "for i in 1 2 3 4 5 6 7 8 9 10; do printf '\\033[107m%300s\\033[0m\\n' ''; done"
+        try await send("clear; \(block); echo block-$((6*7))\r", to: pane)
+        try await waitFor(pane) { $0.contains("\nblock-42") }
+        element("workspace.w1").hover()
+        XCTAssertTrue(card.vanishes(within: 2))
+        element("tab.\(tab)").hover()
+        XCTAssertTrue(card.exists(within: 2))
+        XCTAssertTrue(left.has(\.stringValue, "picture", within: 2))
+        XCTAssertEqual(right.stringValue, "picture")
+        var shade = (left: 0, right: 0)
+        let white = until(3) {
+            shade = (mean(left), mean(right))
+            return shade.left > shade.right + 60
+        }
+        keepScreenshot("hover card preview: \(shade)")
+        XCTAssertTrue(white, "\(shade)")
+        try await send("clear\r", to: pane)
+        let cleared = until(3) {
+            shade = (mean(left), mean(right))
+            return shade.left < shade.right + 20
+        }
+        XCTAssertTrue(cleared, "\(shade)")
+    }
+
+    /// The mean brightness of an element's pixels.
+    private func mean(_ element: XCUIElement) -> Int {
+        let brightness = Self.brightness(element.screenshot().image)
+        return brightness.isEmpty ? 0 : brightness.reduce(0, +) / brightness.count
     }
 
     /// The mean brightness step between neighbor pixels in a rect of the window (screen points): high for crisp text,
