@@ -1,6 +1,7 @@
 #if os(macOS)
     import AppKit
     import GhosttyTerminal
+    import HerdrKit
 
     /// Drops paste their paths shell-escaped, as Ghostty (herdr's usual terminal) does; an image with no file is saved
     /// as a PNG first, or received from its source (a browser's image may be only a file promise). A pane drag carries
@@ -66,6 +67,37 @@
             let folder = URL.temporaryDirectory.appending(path: "oriel-\(UUID().uuidString)")
             return (try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true))
                 .map { folder }
+        }
+    }
+
+    extension Page {
+        /// Go to Directory (`directory`, a `cd`) or Insert Path: the system panel at the keyboard card's folder, fresh
+        /// from herdr, then the chosen path typed into the card, quoted. Go to Directory asks again that the card runs
+        /// only its shell (D41). ponytail: This Mac only; remote machines need another picker.
+        func choosePath(directory: Bool) async {
+            guard let pane = keyboardPane, let client = store.client, let window = NSApp.keyWindow else { return }
+            let panel = NSOpenPanel()
+            panel.canChooseDirectories = true
+            panel.canChooseFiles = !directory
+            panel.directoryURL = await (try? client.pane(pane.id).cwd).map { URL(filePath: $0) }
+            guard await panel.beginSheetModal(for: window) == .OK, let path = panel.url?.path(percentEncoded: false)
+            else { return }
+            let quoted = "'" + path.replacing("'", with: #"'\''"#) + "'"
+            if directory {
+                do {
+                    guard try await client.program(pane.id)?.isShell == true else {
+                        await store.show(Notice(text: "A program is running in the pane", tone: .warning))
+                        return
+                    }
+                } catch {
+                    await store.show(Notice(text: error.localizedDescription))
+                    return
+                }
+            }
+            await store.write { client in
+                try await client.sendInput(directory ? "cd -- \(quoted)" : quoted, keys: directory ? ["enter"] : [],
+                                           pane: pane.id)
+            }
         }
     }
 #endif

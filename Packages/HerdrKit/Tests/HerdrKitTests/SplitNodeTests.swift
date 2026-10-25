@@ -59,3 +59,17 @@ private func changes(_ list: [(path: [Bool], ratio: Double)]) -> [String: Double
     #expect(tree.removing(["p1", "p2", "p3"]) == nil)
     #expect(tree.removing([]) == tree)
 }
+
+@Test func `a split is drawn as herdr makes it, evened`() {
+    #expect(leaf("p1").split("p1", .right, new: "n", before: false) == right(0.5, leaf("p1"), leaf("n")))
+    #expect(leaf("p1").split("p1", .down, new: "n", before: true) == down(0.5, leaf("n"), leaf("p1")))
+    // p1 | p2, p2 split right: three thirds.
+    let thirds = right(0.5, leaf("p1"), leaf("p2")).split("p2", .right, new: "n", before: false)
+    #expect(thirds.paneIDs == ["p1", "p2", "n"])
+    #expect(changes(thirds.evened()).isEmpty)
+    guard case let .split(_, ratio, _, _) = thirds else { return }
+    #expect((ratio * 1000).rounded() == 333)
+    // The other way: a new run of its own.
+    #expect(right(0.6, leaf("p1"), leaf("p2")).split("p1", .down, new: "n", before: false)
+        == right(0.6, down(0.5, leaf("p1"), leaf("n")), leaf("p2")))
+}

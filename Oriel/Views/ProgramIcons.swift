@@ -76,6 +76,10 @@ struct IconStack: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
+            // A new tab before herdr has it (`Ahead`).
+            if panes.isEmpty {
+                ProgramTile(icon: "terminal", letter: nil).frame(width: 22, height: 18)
+            }
             ForEach(Array(panes.enumerated()).reversed(), id: \.element.id) { index, pane in
                 ZStack {
                     RoundedRectangle(cornerRadius: 6, style: .continuous).frame(width: 24, height: 20)

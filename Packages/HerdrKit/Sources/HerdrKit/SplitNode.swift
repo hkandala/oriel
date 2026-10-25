@@ -62,6 +62,33 @@ public extension SplitNode {
         }
     }
 
+    /// The tree as herdr makes it when it splits the pane: the pane and the new one share its place (the new one
+    /// second,
+    /// or first when `before`), then the run holding the new one evened out, as `HostStore.split` asks.
+    func split(_ paneID: String, _ direction: Direction, new newID: String, before: Bool) -> SplitNode {
+        let pair: (SplitNode, SplitNode) = before ? (.leaf(paneID: newID), .leaf(paneID: paneID))
+            : (.leaf(paneID: paneID), .leaf(paneID: newID))
+        let split = replacing(paneID, with: .split(direction, ratio: 0.5, first: pair.0, second: pair.1))
+        return split.evened(around: newID).reduce(split) { tree, change in tree.setting(change.ratio, at: change.path) }
+    }
+
+    private func replacing(_ paneID: String, with node: SplitNode) -> SplitNode {
+        switch self {
+        case let .leaf(id): id == paneID ? node : self
+        case let .split(direction, ratio, first, second):
+            .split(direction, ratio: ratio, first: first.replacing(paneID, with: node),
+                   second: second.replacing(paneID, with: node))
+        }
+    }
+
+    private func setting(_ new: Double, at path: [Bool]) -> SplitNode {
+        guard case let .split(direction, ratio, first, second) = self else { return self }
+        guard let step = path.first else { return .split(direction, ratio: new, first: first, second: second) }
+        let rest = Array(path.dropFirst())
+        return step ? .split(direction, ratio: ratio, first: first, second: second.setting(new, at: rest))
+            : .split(direction, ratio: ratio, first: first.setting(new, at: rest), second: second)
+    }
+
     /// The tree without these panes: a split that loses one side becomes its other side, as herdr closes a pane. Nil
     /// when none is left.
     func removing(_ paneIDs: Set<String>) -> SplitNode? {

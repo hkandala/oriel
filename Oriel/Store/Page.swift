@@ -117,6 +117,10 @@
             if let id = zoomedPaneID, alone(id) || store.pane(id)?.tabID != zoomedTabID {
                 zoomedPaneID = nil
             }
+            // herdr's tab took the place of the stand-in this page made.
+            if let id = arriving, let made = store.ahead.arrived.removeValue(forKey: id) {
+                arriving = made
+            }
             if let id = arriving, let workspace = store.workspace(of: id) {
                 select(workspace, tab: id)
             }
@@ -243,7 +247,7 @@
         /// The tab's title, from herdr's label; herdr's default label (a bare number) gives the front card's program
         /// and folder instead (D65), "New Tab" until the program is known (a new pane's is asked a second late).
         func title(_ tab: HostStore.Tab) -> (name: String, folder: String?) {
-            guard !tab.label.isEmpty, tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
+            guard tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
             guard let pane = stack(tab).first, let name = pane.programName else { return ("New Tab", nil) }
             // The folder's name ("pi oriel"), as in Rex: a tab is narrow.
             return (name, pane.folder.map { $0 == "~" ? $0 : ($0 as NSString).lastPathComponent })
@@ -284,10 +288,18 @@
             return store.panes.count { $0.tabID == tab } < 2
         }
 
-        /// Closes it, or asks first in this window (D41).
+        /// Closes it, or asks first in this window (D41). One at a time: a second ⌥⌘W while herdr is asked would ask
+        /// again.
         func close(_ close: HostStore.Close) {
-            Task { closing = await store.ask(close) }
+            guard !asking else { return }
+            asking = true
+            Task {
+                closing = await store.ask(close)
+                asking = false
+            }
         }
+
+        @ObservationIgnored private var asking = false
 
         /// A split restores a zoomed layout first, as tmux does: the new pane shows.
         func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
@@ -342,23 +354,32 @@
                 focusKeyboardCard()
             }
         }
+    }
 
-        /// A new tab in the workspace (the selected one by default), in its keyboard card's directory, else home;
-        /// the snapshot after it selects it.
+    extension Page {
+        /// A new tab in the workspace (the selected one by default), in its keyboard card's directory, else home.
+        /// Selected at once as a stand-in ("New Tab", an empty card); herdr's tab takes its place when a snapshot
+        /// has it.
         func newTab(in workspace: HostStore.Workspace? = nil) async {
             guard let workspace = workspace ?? selectedWorkspace else { return }
             // Another workspace's: the keyboard card of its selected tab.
             let pane = workspace.id == selectedWorkspaceID ? keyboardPane : keyboardCard(selectedTabIDs[workspace.id])
-            arriving = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id) ?? arriving
+            let standIn = store.standIn(in: workspace.id)
+            select(workspace, tab: standIn)
+            arriving = standIn
+            let made = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id)
+            if made == nil {
+                store.dropStandIn(standIn)
+            } else if arriving == standIn {
+                arriving = made
+            }
         }
 
         /// The snapshot after it selects the new workspace.
         func newWorkspace(label: String? = nil, cwd: String = NSHomeDirectory()) async {
             arriving = await store.newWorkspace(label: label, cwd: cwd)?.id ?? arriving
         }
-    }
 
-    extension Page {
         /// The keyboard goes to the previous or next card in the tab's tree, round the ends; not to a floated one.
         func stepCard(_ offset: Int) {
             guard let ids = selectedTab?.tree?.paneIDs.filter({ store.pane($0).map(floats) != true }),
@@ -366,35 +387,6 @@
                   let index = ids.firstIndex(of: from.id),
                   let pane = store.pane(ids[(index + offset + ids.count) % ids.count]) else { return }
             go(to: pane)
-        }
-
-        /// Go to Directory (`directory`, a `cd`) or Insert Path: the system panel at the keyboard card's folder, fresh
-        /// from herdr, then the chosen path typed into the card, quoted. Go to Directory asks again that the card runs
-        /// only its shell (D41). ponytail: This Mac only; remote machines need another picker.
-        func choosePath(directory: Bool) async {
-            guard let pane = keyboardPane, let client = store.client, let window = NSApp.keyWindow else { return }
-            let panel = NSOpenPanel()
-            panel.canChooseDirectories = true
-            panel.canChooseFiles = !directory
-            panel.directoryURL = await (try? client.pane(pane.id).cwd).map { URL(filePath: $0) }
-            guard await panel.beginSheetModal(for: window) == .OK, let path = panel.url?.path(percentEncoded: false)
-            else { return }
-            let quoted = "'" + path.replacing("'", with: #"'\''"#) + "'"
-            if directory {
-                do {
-                    guard try await client.program(pane.id)?.isShell == true else {
-                        await store.show(Notice(text: "A program is running in the pane", tone: .warning))
-                        return
-                    }
-                } catch {
-                    await store.show(Notice(text: error.localizedDescription))
-                    return
-                }
-            }
-            await store.write { client in
-                try await client.sendInput(directory ? "cd -- \(quoted)" : quoted, keys: directory ? ["enter"] : [],
-                                           pane: pane.id)
-            }
         }
     }
 #endif

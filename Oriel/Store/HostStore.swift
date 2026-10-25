@@ -24,6 +24,12 @@ final class HostStore {
     var notice: Notice?
     /// A write in flight; the buttons wait for it.
     private(set) var writing = false
+    /// What shows before herdr has it (phase 25).
+    @ObservationIgnored var ahead = Ahead()
+    /// The last snapshot, drawn again with `ahead`.
+    @ObservationIgnored private(set) var last: Snapshot?
+    /// Writes waiting for the one in flight, first first.
+    @ObservationIgnored private var queued: [CheckedContinuation<Void, Never>] = []
 
     /// The tab the user looks at (D14): selected on the page in view of the key window. Its finishes are seen.
     @ObservationIgnored var lookingTabID: String? {
@@ -179,20 +185,31 @@ final class HostStore {
         }
     }
 
-    /// The snapshot onto the objects; its agent changes.
+    /// The last snapshot drawn again, with what the app shows ahead of herdr.
+    func redraw() {
+        #if os(macOS)
+            if let last {
+                snapshotted(apply(last))
+            }
+        #endif
+    }
+
+    /// The snapshot onto the objects, as the app shows it (`ahead`); its agent changes.
     private func apply(_ snapshot: Snapshot) -> [Seen.Change] {
-        let tabs = Dictionary(grouping: snapshot.tabs, by: \.workspaceID)
-        reuse(self, \.workspaces, snapshot.workspaces, Workspace.init(id:)) { workspace, new in
+        last = snapshot
+        let shown = ahead.show(snapshot)
+        let tabs = Dictionary(grouping: shown.tabs, by: \.workspaceID)
+        reuse(self, \.workspaces, shown.workspaces, Workspace.init(id:)) { workspace, new in
             workspace.label = new.label
             workspace.activeTabID = new.activeTabID
             workspace.worktree = new.worktree
             reuse(workspace, \.tabs, tabs[new.id] ?? [], Tab.init(id:)) { tab, new in
                 tab.label = new.label
-                tab.tree = snapshot.trees[new.id]
+                tab.tree = shown.trees[new.id]
             }
         }
         focusedWorkspaceID = snapshot.focusedWorkspaceID
-        reuse(self, \.panes, snapshot.panes, Pane.init(id:)) { pane, new in
+        reuse(self, \.panes, shown.panes, Pane.init(id:)) { pane, new in
             watchProgram(pane, new)
             pane.agent = new.agent
             pane.terminalTitle = new.title
@@ -277,82 +294,13 @@ extension HostStore {
         await write { try await $0.rename(workspace: workspaceID, label: label) }
     }
 
-    /// Closes at once when every pane of it runs only its shell; else the close to ask about, with what runs (design
-    /// D41), for the asking window. Asked now, not the panes' last answers: a program may have started since.
-    func ask(_ close: Close) async -> Closing? {
-        guard let client else { return nil }
-        let tabs = tabIDs(close)
-        let paneIDs = if case let .pane(id) = close {
-            [id]
-        } else {
-            panes.filter { tabs.contains($0.tabID) }.map(\.id)
-        }
-        let running = await withTaskGroup { group in
-            for id in paneIDs {
-                group.addTask { () -> String? in
-                    do {
-                        return try await client.program(id).flatMap { $0.isShell ? nil : $0.title }
-                    } catch {
-                        // Unknown: ask.
-                        return "A program"
-                    }
-                }
-            }
-            var names = Set<String>()
-            for await case let name? in group {
-                names.insert(name)
-            }
-            return names
-        }
-        // Sorted: "A program" leads the list.
-        guard running.isEmpty else { return Closing(close: close, running: running.sorted()) }
-        await self.close(close)
-        return nil
-    }
-
-    /// The tabs a close of tabs or a workspace takes, as the user sees them now; none for a pane.
-    func tabIDs(_ close: Close) -> [String] {
-        switch close {
-        case .pane: []
-        case let .tab(id): [id]
-        case let .otherTabs(ids, _): ids
-        case let .workspace(id):
-            (workspaces.filter { $0.id == id } + worktrees(of: id)).flatMap(\.tabs).map(\.id)
-        }
-    }
-
-    /// The user said yes.
-    func close(_ close: Close) async {
-        switch close {
-        case let .pane(id): await write { try await $0.close(pane: id) }
-        case let .tab(id): await write { try await $0.close(tab: id) }
-        case let .otherTabs(asked, _):
-            // Not ones closed meanwhile (their close would fail the rest), and all at once: one by one, 20 tabs took
-            // seconds and the bar showed each step.
-            let others = asked.filter { workspace(of: $0) != nil }
-            await write { client in
-                try await withThrowingTaskGroup { group in
-                    for other in others {
-                        group.addTask { try await client.close(tab: other) }
-                    }
-                    try await group.waitForAll()
-                }
-            }
-        case let .workspace(id):
-            // herdr refuses to close a repository's workspace with open worktrees unless the group goes too.
-            let group = workspaces.contains { $0.id == id } && !worktrees(of: id).isEmpty
-            await write { try await $0.close(workspace: id, group: group) }
-        }
-    }
-
     /// One write. No focus change; the snapshot after it draws the result. Whether it went through.
     @discardableResult
     func write(_ action: (any Multiplexer) async throws -> Void) async -> Bool {
         guard let client else { return false }
-        guard !writing else {
-            // A confirmed close must not vanish silently.
-            Task { await show(Notice(text: "Busy, try again")) }
-            return false
+        // One at a time, in order: a quick second close or split waits for the first (both show at once).
+        if writing {
+            await withCheckedContinuation { queued.append($0) }
         }
         writing = true
         notice = nil
@@ -362,7 +310,12 @@ extension HostStore {
         } catch {
             failure = error
         }
-        writing = false
+        // The next write takes over.
+        if queued.isEmpty {
+            writing = false
+        } else {
+            queued.removeFirst().resume()
+        }
         // After a failure too: part of it may have happened (Close Other Tabs).
         await client.refresh()
         if let failure {

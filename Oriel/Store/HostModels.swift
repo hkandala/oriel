@@ -13,6 +13,14 @@ extension HostStore {
         case otherTabs([String], right: Bool)
         /// A workspace, with its linked worktrees' workspaces when it has any.
         case workspace(String)
+
+        var paneID: String? {
+            if case let .pane(id) = self {
+                id
+            } else {
+                nil
+            }
+        }
     }
 
     /// A close waiting for the user's yes, and the programs besides the shells that run in its panes.

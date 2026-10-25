@@ -144,7 +144,8 @@
                 }
                 Spacer(minLength: 0)
                 // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.
-                if showsButtons {
+                // Not on a split's or a new tab's empty card before herdr has its pane (`Ahead`).
+                if showsButtons, pane != nil {
                     buttons(zoomed: zoomed)
                 }
             }
