@@ -21,8 +21,8 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
         XCTAssertTrue(window.exists)
 
-        // Keys go to the floated terminal.
-        window.click()
+        // The main window covers it now; Show brings it forward with the keyboard, and keys go there.
+        element("pane.\(second).show").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: window)))
         app.typeText("echo float-$((6*7))")
         app.typeKey(.return, modifierFlags: [])
@@ -48,10 +48,10 @@ extension OrielUITests {
         openPalette().typeText("float pane")
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("float.\(third)").exists(within: 5))
-        // Back in the main window, ⌘] skips the floated card.
+        // Back in the main window, ⌘[ round the start skips the floated last card.
         element("tab.\(tab)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
-        app.typeKey("]", modifierFlags: .command)
+        app.typeKey("[", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
         openPalette().typeText("float pane")
         app.typeKey(.return, modifierFlags: [])
@@ -85,6 +85,13 @@ extension OrielUITests {
         try await Self.call(one, "pane.close", ["pane_id": second])
         XCTAssertTrue(back.vanishes(within: 5))
         XCTAssertTrue(element("float.\(third)").exists)
+        // ⇧⌘W in a floating window detaches.
+        element("pane.\(third).show").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(third)", in: app.windows.containing(.any, identifier:
+            "float.\(third)").firstMatch)))
+        app.typeKey("w", modifierFlags: [.command, .shift])
+        XCTAssertTrue(element("float.\(third)").vanishes(within: 3))
+        XCTAssertTrue(element("pane.\(third).show").vanishes(within: 3))
     }
 
     func testClosingAFloatedPaneAsksInItsWindow() async throws {
@@ -99,6 +106,12 @@ extension OrielUITests {
         confirm.click()
         XCTAssertTrue(window.vanishes(within: 5))
         try await expect("the pane closed in herdr") { try await order(tab) == [first] }
+
+        // Closing the main window closes its floating windows.
+        let alone = try float(first)
+        element("tab.\(tab)").click()
+        app.typeKey("w", modifierFlags: [.command, .shift])
+        XCTAssertTrue(alone.vanishes(within: 5))
     }
 
     /// A floating window on top over the main window, in Glass and Classic, dark and light.
@@ -124,6 +137,10 @@ extension OrielUITests {
             XCTAssertTrue(window.isHittable)
             keepScreen("floating window, \(look)")
         }
+        // The red traffic light detaches.
+        window.buttons[XCUIIdentifierCloseWindow].click()
+        XCTAssertTrue(window.vanishes(within: 3))
+        XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
     }
 
     /// The card's Float button; its window, once it shows.
