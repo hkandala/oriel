@@ -507,23 +507,29 @@ on top, above other apps (D50). herdr has no floating pane, so this is
 Oriel's own: the pane stays in its herdr tab, and other devices and herdr
 clients see it there.
 - **Float Pane** (the `pip.enter` button in the card header, the pane's menus,
-  View ▸ Pane and the palette) opens the window. Several can be open. A
-  floated pane's Float Pane brings its window to the front.
-- **The window** has no tab bar and no sidebar. Its title row holds the
-  traffic lights, then "session › workspace › tab" in small secondary text,
-  then on the right three buttons: **Stay on Top** (a pin), **Close** (closes
+  View ▸ Pane and the palette) opens the window. Several can be open. On a
+  floated pane's card the button is lit, and it brings the window to the
+  front.
+- **The window** has no tab bar and no sidebar. Its title row is the title
+  bar's 28 pt, so the traffic lights stay where macOS puts them. It holds the
+  traffic lights, then "session › workspace › tab" in 11 pt secondary text on
+  one line (a long session name gives way first, in its middle), then on the
+  right three 22 pt buttons: **Stay on Top** (a pin), **Close** (closes
   the pane, and asks first as any close does) and, rightmost, **Detach**
   (`pip.exit`: the window closes and the card shows its terminal in its tab
   again; nothing stops). The red traffic light detaches too. Below the title
-  row, the glass card holds only the terminal, with no header. It opens at
+  row, the glass card holds only the terminal, with no header, 8 pt in from
+  the window's edges, its text 10 pt in from the card's sides, as in a pane
+  card. It opens at
   560 × 360 pt; it moves and resizes like any window, and keeps its frame
   for the next time that pane floats.
 - **Stay on Top** keeps the window above every app's windows and on every
   Space, like picture in picture. It stays on until turned off.
 - **In the tab** the card keeps its place in the splits and its header. In
   place of the terminal it shows a quiet placeholder: the pane's icon, its
-  name, and **Show**, which brings the window to the front. The placeholder
-  is never the keyboard card.
+  name in secondary text, and **Show**, which brings the window to the front,
+  centered. The placeholder is never the keyboard card: ⌘[ ⌘] and Focus
+  Follows Mouse skip it.
 - **Keys and ⌘K.** In the floating window the menu bar and the palette offer
   only what applies to it: Detach Pane (⇧⌘W), Close Pane (⌘W), Stay on Top,
   Find, Find Next and Find Previous, the font size items, Copy and Paste. The
