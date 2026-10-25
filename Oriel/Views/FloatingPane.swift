@@ -137,13 +137,13 @@
                 }
                 // One line; the session's name gives way first, in its middle.
                 HStack(spacing: 0) {
-                    Text(page.id).truncationMode(.middle)
+                    Text(page.store.title).truncationMode(.middle)
                     Text(rest).layoutPriority(1)
                 }
                 .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                 .accessibilityElement(children: .ignore)
                 .accessibilityAddTraits(.isStaticText)
-                .accessibilityValue(page.id + rest)
+                .accessibilityValue(page.store.title + rest)
                 .accessibilityIdentifier("\(id).place")
                 Spacer(minLength: 0)
                 // The title row's buttons (user, phase 27).
