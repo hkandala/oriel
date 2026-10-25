@@ -16,7 +16,7 @@
         nonisolated let socket: String
         /// The master's pid while it lives: a check costs a `kill(pid, 0)`, not a process.
         /// ponytail: a reused pid reads as a live master until a run fails; `-O check` per run if that bites.
-        private var mux: pid_t?
+        private var connection: pid_t?
         private var starting: Task<Void, Error>?
         /// ssh wants an answer: no start without one until `connect` (machines#health-check).
         private var blocked: HerdrError?
@@ -25,11 +25,15 @@
         private var failures = 0
         /// herdr's path from the machine's login shell, asked once per master; a nil is asked again after 30 s.
         private var lookup: (task: Task<String?, Error>, at: ContinuousClock.Instant)?
-        /// Channels open on the master, and runs waiting for one: sshd allows 10 sessions per connection by default
-        /// (`MaxSessions`), and refuses the 11th.
-        /// ponytail: a fixed 10 that long-lived streams hold too; the app streams only the tabs in view of a remote
-        /// machine, and a run that waits 10 s fails (the page shows Reconnecting, not a freeze). Learn the server's
-        /// limit from a refusal when one shows.
+        /// The one SSH session every run goes through (`Relay`), started by the first run on a master.
+        private var relay: Relay?
+        private var relayStart: Task<Relay?, Never>?
+        /// The machine has no Perl: each run takes its own SSH session until the next master.
+        private var noRelay = false
+        /// Without a relay: the sessions open on the master, and runs waiting for one. sshd allows 10 per connection by
+        /// default (`MaxSessions`) and refuses the 11th.
+        /// ponytail: a fixed 10 that long-lived streams hold too, and a run that waits 10 s fails (the page shows
+        /// Reconnecting, not a freeze).
         private var channels = 0
         private var waiting: [(id: UUID, go: CheckedContinuation<Bool, Never>)] = []
 
@@ -47,6 +51,9 @@
 
         public func run(_ argv: [String]) async throws -> Channel {
             try await up(nil)
+            if let relay = await currentRelay() {
+                return try relay.run(Self.quoted(argv))
+            }
             if channels < 10 {
                 channels += 1
             } else {
@@ -61,13 +68,9 @@
                 timer.cancel()
                 guard got else { throw HerdrError.failed("All 10 SSH sessions to \(target) are in use") }
             }
-            // Without a master these fail at once instead of opening their own connection and prompting again, and
-            // they send none of the user's configured forwards (machines#macos).
             let channel: Channel
             do {
-                channel = try ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-o", "ControlMaster=no", "-o",
-                                                 "BatchMode=yes", "-o", "ProxyCommand=/usr/bin/false", "-S", socket,
-                                                 "--", target, Self.envelope(argv)], environment)
+                channel = try session(argv)
             } catch {
                 closed()
                 throw error
@@ -77,6 +80,38 @@
                 closed()
             }
             return channel
+        }
+
+        /// The live relay, started on first use; nil while the machine has none.
+        private func currentRelay() async -> Relay? {
+            if let relay, relay.alive {
+                return relay
+            }
+            if noRelay {
+                return nil
+            }
+            if let relayStart {
+                return await relayStart.value
+            }
+            let task = Task { () -> Relay? in
+                guard let channel = try? session(["perl", "-e", Relay.script]) else { return nil }
+                return await Relay.start(channel)
+            }
+            relayStart = task
+            let started = await task.value
+            relayStart = nil
+            relay = started
+            noRelay = started == nil
+            return started
+        }
+
+        /// One SSH session on the master that runs the command. Without a master it fails at once instead of opening
+        /// its own connection and prompting again, and it sends none of the user's configured forwards
+        /// (machines#macos).
+        private func session(_ argv: [String]) throws -> Channel {
+            try ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-o", "ControlMaster=no", "-o", "BatchMode=yes",
+                                   "-o", "ProxyCommand=/usr/bin/false", "-S", socket, "--", target,
+                                   Self.envelope(argv)], environment)
         }
 
         private func closed() {
@@ -126,7 +161,7 @@
             while let starting {
                 _ = try? await starting.value
             }
-            if let mux, kill(mux, 0) == 0 {
+            if let connection, kill(connection, 0) == 0 {
                 return
             }
             if ask == nil {
@@ -148,7 +183,7 @@
         /// Starts the master and waits until it serves (`-f`: ssh goes to the background once authenticated). Without
         /// `ask`, BatchMode: a host that needs an answer fails at once and blocks.
         private func start(_ ask: Ask?) async throws {
-            mux = nil
+            connection = nil
             // A master killed hard leaves its socket, and a new one does not bind over it. One that outlived an app
             // that crashed is not used: it may still hold that app's sessions (sshd allows 10); it ends by itself
             // 10 min after its last one.
@@ -201,8 +236,8 @@
                 throw failed(status, ContinuousClock.now - began >= .seconds(30) ? "ssh did not connect within 30 s"
                     : said.joined(separator: "\n"))
             }
-            mux = await pid()
-            guard mux != nil else { throw failed(0, "The SSH connection did not start") }
+            connection = await pid()
+            guard connection != nil else { throw failed(0, "The SSH connection did not start") }
             started()
         }
 
@@ -212,6 +247,8 @@
             retry = nil
             failures = 0
             lookup = nil
+            relay = nil
+            noRelay = false
         }
 
         /// A start that failed: one that needs an answer blocks, any other backs off (2, 4 … 30 s).
@@ -253,13 +290,18 @@
                 .split(separator: "\n").last.map(String.init) ?? ""
             return path.hasPrefix("/") ? path : nil
         }
+    }
 
+    extension SSHExec {
         /// The remote command envelope (talking-to-herdr#run-and-dial): the machine's login shell may be bash, zsh or
         /// fish, so it gets only base64, which every shell passes through; `sh` decodes and runs the quoted argv.
         static func envelope(_ argv: [String]) -> String {
-            let command = argv.map { "'" + $0.replacingOccurrences(of: "'", with: #"'\''"#) + "'" }
-                .joined(separator: " ")
-            return #"sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh "# + Data(command.utf8).base64EncodedString()
+            #"sh -c 'eval "$(printf %s "$1" | base64 -d)"' sh "# + Data(quoted(argv).utf8).base64EncodedString()
+        }
+
+        /// The argv as one POSIX `sh` command, every element single-quoted.
+        static func quoted(_ argv: [String]) -> String {
+            argv.map { "'" + $0.replacingOccurrences(of: "'", with: #"'\''"#) + "'" }.joined(separator: " ")
         }
 
         private static let question = "oriel-askpass "

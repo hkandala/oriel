@@ -77,11 +77,6 @@
                 }
             }
             Self.recent = Self.recent.filter { terminal in !visited.contains { $0 === terminal } } + visited
-            // A remote machine's connection holds about 10 SSH sessions (machines#ssh-sessions): only what is in view
-            // streams there; the others keep their surface and picture, so they show at once and herdr redraws them.
-            if pages?.machine.isRemote == true {
-                terminals.values.filter { !$0.inView }.forEach { $0.pause() }
-            }
             while Self.recent.count(where: { !$0.inView }) > Self.spare,
                   let index = Self.recent.firstIndex(where: { !$0.inView })
             {

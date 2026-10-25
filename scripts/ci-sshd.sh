@@ -3,6 +3,7 @@
 # ~/.ssh/config, as a user would have them:
 # - oriel-key: this user with a key and a known host key, so nothing asks; its herdr sessions are the e2e ones.
 # - oriel-pw: a password user without herdr, behind a host key alias ssh does not know yet, so ssh asks both.
+# Two sessions per connection, as a strict server allows: the app carries everything over one.
 set -euo pipefail
 [ "${CI:-}" = true ] || { echo "CI only: it writes ~/.ssh and adds a user" >&2 && exit 2; }
 d=/tmp/oriel-sshd
@@ -21,6 +22,7 @@ PasswordAuthentication yes
 KbdInteractiveAuthentication yes
 UsePAM yes
 StrictModes no
+MaxSessions 2
 LogLevel VERBOSE
 CONFIG
 # The helper counts connections in the log: this user owns it, root's sshd appends.

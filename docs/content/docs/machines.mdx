@@ -83,6 +83,26 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
     network goes (a network change, sleep, a server restart). The next run
     starts a new one. The app runs no `-O exit` of its own on a failed check.
   - On quit the app runs `ssh -S <ctl> -O exit <target>` for each master.
+- **The relay:** the first run on a new master starts one SSH session that
+  runs a Perl script (`Relay.script` in HerdrKit, sent in the envelope; nothing is
+  installed). It spawns each run as `sh -c <command>` and carries every run's
+  stdin, stdout, exit status and stderr over its own stdin and stdout, as lines:
+  - the app sends `o <id> <command hex>`, `w <id> <line>`, `c <id>` (close
+    stdin) and `k <id>` (SIGKILL by pid);
+  - the relay sends `l <id> <line>`, and `x <id> <status> <stderr hex>` once a
+    run's output ended and it was reaped.
+  - herdr's bridge, events and terminal streams are all lines, so this needs
+    no other framing; one process writes them, so lines of two runs never mix.
+  - When its stdin ends (the app quit, the connection dropped) it closes every
+    run's stdin and kills what still runs 2 s later, as the kernel did for one
+    session per run.
+  - Perl is on nearly every Unix (Debian's `perl-base` is essential, macOS has
+    it). It greets with `oriel-relay 1` within 10 s, or the machine falls back
+    to one session per run until the next master.
+  - herdr's own transports do not fit: `herdr --remote` runs one
+    `remote-client-bridge` session, but it speaks herdr's internal binary
+    client protocol; `herdr --machine` opens one session per request, as
+    `remote-api-bridge` does.
 - **Automatic starts never prompt.** Every start a run makes uses
   `BatchMode=yes`. How it fails decides what follows:
   - ssh needs an answer (its text has "Permission denied", "Host key
@@ -191,13 +211,13 @@ One loop per open session checks that it answers.
   This Mac uses no SSH and has no limit.
 - The app opens a channel when it needs one: a call, a stream, a chat tail,
   a plugin `run`.
-- **Prototype (phase 26):** each remote machine opens at most 10 channels at
-  once; a run past that waits for one to close (CI's first remote page asked
-  for more at once and sshd refused them: "Session open refused by peer"). A
-  remote machine's window streams only the tabs in view, not the recently
-  shown ones (D46), so streams leave room for calls; those keep their surface
-  and picture. The refusal handling
-  below comes later.
+- **One session per host (phase 26, round 2):** every run of a remote
+  machine (calls, the events stream, every terminal stream) goes through one
+  SSH session, the relay ([macOS](#macos)). A server may allow only a few sessions
+  per connection (a Meta devserver refused the third), and a second
+  connection would ask for a second passcode.
+- A machine without Perl gets one session per run, at most 10 at once (a run
+  past that waits up to 10 s, then fails); the rest of this section is for it.
 - When the server refuses one, the app closes the least recently shown kept
   stream (D46, [What streams](/docs/talking-to-herdr#what-streams)) and tries
   once more. If nothing is left to close, or the second try fails too, the

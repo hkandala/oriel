@@ -93,6 +93,43 @@ extension OrielUITests {
         XCTAssertNotEqual(first, second)
     }
 
+    /// CI's sshd allows 2 sessions per connection (a strict server's limit): six panes, the events stream and every
+    /// call still go through, over the one session of the relay.
+    func testAHostThatAllowsTwoSessionsStreamsEveryPane() async throws {
+        try await skipWithoutSSH()
+        let (tab, first) = try await createWorkspace("many")
+        var panes = [first]
+        for (target, direction) in [(0, "right"), (0, "down"), (1, "down"), (1, "right"), (3, "down")] {
+            let created = try await Self.call(
+                one,
+                "pane.split",
+                ["target_pane_id": panes[target], "direction": direction,
+                 "cwd": "/tmp", "focus": false],
+            )
+            try panes.append(id(created, "pane"))
+        }
+        var terminals: [String] = []
+        for pane in panes {
+            try await terminals.append(terminalID(pane))
+        }
+        relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        element("workspace.\(workspace(of: tab))").click()
+        try await expect("every pane of \(tab) to stream", times: 100) {
+            let running = try await streams(one)
+            return terminals.allSatisfy { terminal in running.contains { $0.contains(terminal) } }
+        }
+        keepScreenshot("six panes over two sessions")
+        let last = element("terminal.\(panes[5])")
+        XCTAssertTrue(last.exists)
+        try await waitForPrompt(panes[5])
+        last.click()
+        XCTAssertTrue(hasKeyboard(last))
+        app.typeText("echo oriel-$((40+5))")
+        app.typeKey(.return, modifierFlags: [])
+        try await waitFor(panes[5]) { $0.contains("\noriel-45") }
+    }
+
     /// The machine button's Add Remote Host, filled and added.
     private func addHost(_ name: String, _ target: String) {
         element("titlebar.machine").click()

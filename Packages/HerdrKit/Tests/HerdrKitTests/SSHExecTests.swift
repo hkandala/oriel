@@ -16,3 +16,20 @@ import Testing
     #expect(!SSHExec.isValidTarget("a b"))
     #expect(!SSHExec.isValidTarget(""))
 }
+
+/// The relay here, without ssh: runs at once over one process, their stdin, exits and kills.
+@Test func `relay carries runs over one process`() async throws {
+    let local = await ProcessExec()
+    let relay = try #require(await Relay.start(ProcessExec.spawn(["perl", "-e", Relay.script], local.environment)))
+    let failing = try relay.run("echo out; echo err >&2; exit 3")
+    let echo = try relay.run("cat")
+    let sleeping = try relay.run("sleep 100")
+    echo.write(#"{"a": "b c"}"#)
+    echo.closeInput()
+    #expect(await echo.lines.reduce([]) { $0 + [$1] } == [#"{"a": "b c"}"#])
+    #expect(await echo.exit() == (0, ""))
+    #expect(await failing.lines.reduce([]) { $0 + [$1] } == ["out"])
+    #expect(await failing.exit() == (3, "err\n"))
+    sleeping.terminate()
+    #expect(await sleeping.exit().status == 9)
+}

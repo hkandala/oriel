@@ -149,3 +149,24 @@ has `herdr --machine <label> <command>` and `herdr machine …`. Do this by defa
 3. One passcode per host: nothing may open a second authenticated connection; a dropped master asks once
    (the existing rules on prompts and no retry loop stay).
 4. A CI test with sshd set to a low `MaxSessions` (for example 2) and many panes: everything streams.
+
+### Round 2 findings
+
+- **Root cause:** one SSH session per herdr call and per terminal stream. The devserver allows fewer sessions per
+  connection than a page opens at once (MaxSessions; it refused the third), so cards failed with "Session open
+  refused by peer". The round-1 cap of 10 matched OpenSSH's default, not that server.
+- **herdr's transports:** `herdr --remote` opens one ssh session running `herdr remote-client-bridge`, a byte pipe
+  to the remote `herdr-client.sock` in herdr's internal binary client protocol (the TUI's), so Oriel cannot drive it
+  without reimplementing that protocol. `herdr --machine <label> <cmd>` runs one `remote-api-bridge` session per
+  request (the API answers one request per connection), the same as Oriel's round 1. Terminal streams use the
+  client socket too: the API schema has no terminal method.
+- **Design:** the relay, one SSH session per host running a Perl script sent in the envelope. Every run (calls, the
+  events stream, every terminal stream, git, the herdr lookup) is a line-framed channel inside it
+  (machines.mdx, macOS). `Exec` and everything above it are unchanged: `SSHExec.run` returns the relay's channel.
+  A machine without Perl falls back to one session per run (capped at 10), until the next master.
+- One passcode per host stays: the relay runs on the master like any run (`ControlMaster=no`,
+  `ProxyCommand=/usr/bin/false`), so nothing opens a second authenticated connection; a dropped master is started
+  again in BatchMode, and a host that needs an answer asks only on Connect.
+- Remote windows stream the recently shown tabs again (D46): the round-1 "tabs in view only" rule is gone.
+- CI's sshd now allows 2 sessions per connection; every remote test runs under it, and
+  `testAHostThatAllowsTwoSessionsStreamsEveryPane` streams six panes and types in one.
