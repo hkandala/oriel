@@ -143,6 +143,11 @@ found none). If herdr has none, floating is Oriel's own.
 - **Test.** `testControlShiftKeysReachAKittyProgram`: `printf '\033[>1u'; cat -v`, types ⌃⇧S B T O W ↩ and
   ⌃S, reads the tty's echo `^[[115;6u…^[[13;6u^[[115;5u` (the old code gave ;5u for the letters). CI
   40171964049 green.
+- **Drop test (lane C's, asked by the orchestrator).** `testDroppingAFileFromFinderPastesItsPath` failed in full
+  runs only (40172264488, 40173000382): the recordings show Finder starting no drag from the press (no drag image
+  follows the pointer, even over Finder's window), so nothing drops; the geometry was the same as in a green run.
+  The test drags again, up to 3 times (1567204). Full suite green on it (40174324533), where shard 3 needed the
+  second drag.
 - **For the user to check by hand:** the six pi extension keys in pi inside Oriel.
 
 ### Lane J (item 4)
