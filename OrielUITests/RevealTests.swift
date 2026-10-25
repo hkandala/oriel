@@ -106,29 +106,25 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         let host = element("host.\(pane)"), terminal = element("terminal.\(pane)")
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            XCTAssertTrue(host.exists(within: 3))
-            let sizes = Int(host.label) ?? 0
-            let other = try await split(pane)
-            XCTAssertTrue(until(3) { Int(host.label) == sizes + 1 }, "Reduce Motion: \(host.value ?? "")")
-            _ = try await Self.call(one, "pane.close", ["pane_id": other])
-            XCTAssertTrue(element("pane.\(other)").vanishes(within: 3))
-            relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
-            XCTAssertTrue(element("workspace.w2").exists(within: connect))
-            element("workspace.w2").click()
-            XCTAssertTrue(element("tab.\(tab)").has(\.isHittable, true, within: 3))
-            element("tab.\(tab)").click()
+            try await expectJump(tab, pane)
         }
         try await fill(pane)
         try await expectText([pane], "filled")
-        var other = ""
         let steps: [(String, () async throws -> Void)] = [
-            ("split", { other = try await self.split(pane) }),
+            // The header's button: the app shows a stand-in card at once, then herdr's pane in its place.
+            ("split", {
+                self.hoverHeader(pane)
+                self.element("pane.\(pane).split-right").click()
+            }),
             ("zoom", {
                 self.hoverHeader(pane)
                 self.element("pane.\(pane).zoom").click()
             }),
             ("restore", { self.app.typeKey(.return, modifierFlags: [.command, .shift]) }),
-            ("close", { _ = try await Self.call(self.one, "pane.close", ["pane_id": other]) }),
+            ("close", {
+                let other = try await self.order(tab).first { $0 != pane } ?? ""
+                _ = try await Self.call(self.one, "pane.close", ["pane_id": other])
+            }),
             ("sidebar hidden", { self.element("titlebar.sidebar").click() }),
             ("sidebar shown", { self.element("titlebar.sidebar").click() }),
         ]
@@ -153,6 +149,23 @@ extension OrielUITests {
                                         "\(step): sizes from \(sizes) to \(host.label), \(host.value ?? "")")
             try await expectText([pane], step)
         }
+    }
+
+    /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with
+    /// motion forced on.
+    private func expectJump(_ tab: String, _ pane: String) async throws {
+        let host = element("host.\(pane)")
+        XCTAssertTrue(host.exists(within: 3))
+        let sizes = Int(host.label) ?? 0
+        let other = try await split(pane)
+        XCTAssertTrue(until(3) { Int(host.label) == sizes + 1 }, "Reduce Motion: \(host.value ?? "")")
+        _ = try await Self.call(one, "pane.close", ["pane_id": other])
+        XCTAssertTrue(element("pane.\(other)").vanishes(within: 3))
+        relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        element("workspace.w2").click()
+        XCTAssertTrue(element("tab.\(tab)").has(\.isHittable, true, within: 3))
+        element("tab.\(tab)").click()
     }
 
     /// The part of a screen shot inside a rectangle in screen points.
