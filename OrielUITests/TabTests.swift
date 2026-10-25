@@ -116,9 +116,9 @@ extension OrielUITests {
     }
 
     /// The user's four workspaces (5 tabs, 1, 1, 3), clicked top to bottom and back from a middle tab of the first,
-    /// while herdr's snapshots keep coming (the user's agents worked; here a tab is renamed again and again): every
-    /// workspace shows its cards (phase 25, item 25: a one-tab one came up empty going down from the 4th tab), and so
-    /// does a session shown and left in between.
+    /// while the cards in view keep drawing (the user's agents worked; here their panes are renamed again and again):
+    /// every workspace shows its cards (phase 25, item 25: a one-tab one came up empty going down from the 4th tab),
+    /// and so does a session shown and left in between.
     func testStripShowsEachWorkspaceClickedDownAndUp() async throws {
         var shown: [(workspace: String, tab: String)] = []
         for (index, count) in [5, 1, 1, 3].enumerated() {
@@ -126,10 +126,15 @@ extension OrielUITests {
             shown.append((workspace(of: tabs[0]), tabs[0]))
         }
         let first = try await tabIDs().filter { workspace(of: $0) == shown[0].workspace }
-        // Off the main actor, which the waits below block.
-        let busy = Task.detached { [one, renamed = first[0]] in
+        var panes: [String] = []
+        for tab in first[1 ... 3] {
+            try await panes.append(pane(of: tab))
+        }
+        // Off the main actor, which the waits below block. A card that draws again (its name here) while its page is
+        // in view is what left the next workspace's strip empty.
+        let busy = Task.detached { [one, panes] in
             for count in 0... where !Task.isCancelled {
-                _ = try? await Self.call(one, "tab.rename", ["tab_id": renamed, "label": "busy \(count)"])
+                _ = try? await Self.call(one, "pane.rename", ["pane_id": panes[count % 3], "label": "busy \(count)"])
                 try? await Task.sleep(for: .milliseconds(50))
             }
         }
