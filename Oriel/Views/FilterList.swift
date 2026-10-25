@@ -96,7 +96,8 @@ struct FilterList: View {
             if submit == nil {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 2) {
+                        // Lazy: the palette's 100 rows took 230 ms to build and lay out on CI as it opened (phase 25).
+                        LazyVStack(alignment: .leading, spacing: 2) {
                             ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
                                 if item.section != (offset > 0 ? items[offset - 1].section : nil) {
                                     if let section = item.section, !section.isEmpty {

@@ -40,7 +40,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder",
-                            "reveal-file", "sample"):
+                            "reveal-file"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
@@ -59,9 +59,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             open(path, "w").close()
             run = subprocess.run(["open", "-R", path], capture_output=True, timeout=10)
             status, reply = (200, path.encode()) if run.returncode == 0 else (500, run.stderr)
-        elif action == "sample":
-            run = subprocess.run(["sample", "Oriel", "4"], capture_output=True, timeout=60)
-            status, reply = (200, run.stdout) if run.returncode == 0 else (500, run.stderr)
         elif action == "start":
             env = {k: v for k, v in os.environ.items() if not k.startswith("HERDR_")}
             subprocess.Popen(["herdr", "--session", session, "server"], env=env, stdin=subprocess.DEVNULL,
