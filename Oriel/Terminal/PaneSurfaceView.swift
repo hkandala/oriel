@@ -2,7 +2,6 @@
     import AppKit
     import GhosttyTerminal
     import HerdrKit
-    import IOSurface
     import SwiftUI
 
     /// libghostty's view with herdr's input path. herdr's frames carry none of the app's input

@@ -13,7 +13,7 @@
     final class PaneViewRegistry {
         /// The design's bound on terminals streaming out of view, over all windows (D46). Each keeps a herdr run and
         /// libghostty's three IOSurfaces (52 MB for a full-window card on a Retina screen); one evicted comes back
-        /// under its last picture in about ‹N› ms (phase 25, lane O).
+        /// under its last picture, redrawn within a few hundred ms (phase 25, lane O).
         static let spare = 4
         /// Streaming terminals of every window, the most recently shown last.
         private(set) static var recent: [PaneTerminal] = []

@@ -9,23 +9,6 @@
         /// The app's paste mode; no cursor until herdr's first frame says whether it shows.
         static let modes = "\u{1B}[?2004h\u{1B}[?25l"
 
-        /// A new surface (`PaneSurfaceView.rebuild`) under the old picture: it draws once herdr's frames settle, as a
-        /// first stream's, or at once from what a live stream sent meanwhile. Not the first surface: that one waits for
-        /// its first stream's frames anyway.
-        func rebuilt() {
-            guard grid != nil else { return }
-            ready = false
-            view.setSurfaceVisible(false)
-            if state != .idle {
-                settle()
-            }
-        }
-
-        /// The system took the old picture back (`PaneSurfaceView.purgeable`): the next reveal fades in.
-        func lostPicture() {
-            revealed = false
-        }
-
         /// The grid may change (a new card size or text size): the old picture stays until herdr's frames at the new
         /// grid settle (100 ms if it stayed). Before libghostty hears of it, whose renderer thread may draw at once
         /// (CI: garbled glyphs for 3 frames after a ⌘- paused late), and on libghostty's grid change for other paths.
@@ -40,7 +23,11 @@
         /// view's layer keeps its last picture: the old text, at the top left (libghostty's layer gravity), or nothing
         /// on a new surface (its background is clear). Not an alpha hide: the text went blank between two pictures.
         func settle() {
-            guard !observing else { return reveal() }
+            // A rebuilt watcher settles too: its new surface has not parsed the first frame when that reveal would
+            // draw.
+            if observing, view.still == nil {
+                return reveal()
+            }
             view.setSurfaceVisible(false)
             // A program that redraws all the time never settles. Under the waiting spinner's 0.5 s.
             deadline = deadline ?? Task {
@@ -92,7 +79,8 @@
         /// Frees libghostty's surface; the view keeps its picture.
         func free() {
             guard controller != nil else { return }
-            still = layer
+            // One not dropped yet (shown and evicted again before its new surface drew) stays the picture.
+            still = still ?? layer
             controller = nil
             purgeable(window == nil)
         }
@@ -109,17 +97,15 @@
             still?.superlayer == nil ? layer?.contents : still?.contents
         }
 
-        /// The new surface draws again: the old picture goes once it drew (its layer's contents changed), at the
-        /// latest in 0.5 s.
+        /// The new surface draws again: the old picture goes once it drew (its layer's contents changed; libghostty
+        /// draws when it stops being occluded). One that never draws keeps showing the old picture.
         func dropStill() {
-            guard let still, still.superlayer != nil else { return }
+            // Over a new surface only: not the old layer itself, before its rebuild.
+            guard let still, still !== layer, still.superlayer != nil else { return }
             let id = ObjectIdentifier(still)
+            // libghostty sets the contents on the main thread: gone in the same transaction as the new picture.
             stillWatch = layer?.observe(\.contents) { [weak self] _, _ in
-                Task { @MainActor in self?.drop(id) }
-            }
-            Task { [weak self] in
-                try? await Task.sleep(for: .milliseconds(500))
-                self?.drop(id)
+                MainActor.assumeIsolated { self?.drop(id) }
             }
         }
 
@@ -130,13 +116,26 @@
             stillWatch = nil
         }
 
-        /// The old picture over the new surface's layer, top left as libghostty anchors its own.
+        /// A new surface (`rebuild`) under the old picture: it draws once
+        /// herdr's frames settle, as a first stream's, or soon from what a live stream sent meanwhile. Not the first
+        /// surface (no grid yet): that one waits for its first stream's frames anyway.
         func coverNewSurface() {
             if let still, let layer, still !== layer {
-                still.frame = CGRect(origin: .zero, size: still.bounds.size)
+                // Sized with the view, as it was as its layer; its gravity keeps the picture in place.
+                still.frame = layer.bounds
+                still.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
                 layer.addSublayer(still)
             }
-            terminal?.rebuilt()
+            guard let terminal, terminal.grid != nil else { return }
+            // A settle begun before (a resize while evicted) would reveal the empty surface.
+            terminal.settling?.cancel()
+            terminal.deadline?.cancel()
+            terminal.deadline = nil
+            terminal.ready = false
+            setSurfaceVisible(false)
+            if terminal.state != .idle {
+                terminal.settle()
+            }
         }
 
         /// Volatile while the view is in no window; back in one, a picture the system took is gone, and the next
@@ -148,7 +147,8 @@
             if !volatile, old == 2 {
                 still?.contents = nil
                 still = nil
-                terminal?.lostPicture()
+                // The next reveal fades in, as a first one.
+                terminal?.revealed = false
             }
         }
     }
