@@ -102,6 +102,8 @@ extension OrielUITests {
     /// Under Reduce Motion the card jumps.
     func testLayoutMotionAnimatesWithoutBlanking() async throws {
         relaunch(one, ["-recordMotion", "YES"])
+        // Split Left swaps, and herdr focuses the swapped pane's tab: the next test's launch would show w2.
+        restoreHerdrFocusAfter()
         let (tab, pane) = try await newTab("motion")
         element("tab.\(tab)").click()
         let host = element("host.\(pane)"), terminal = element("terminal.\(pane)")
