@@ -364,6 +364,51 @@ found none). If herdr has none, floating is Oriel's own.
 - **For the user to check by hand:** Stay on Top over another app in full screen and on another Space; a window's frame
   when the same pane floats again; a floating window after quitting and opening Oriel.
 
+### Lane S (items 13, 14, lane K's leftovers)
+
+- **Measured first.** `-recordLatency YES` (`Latency.swift`, e2e only) records, per key or click, the time from the
+  event's timestamp to the end of the run loop turn whose Core Animation commit drew a change of the key window (page,
+  workspace, tab, tabs, cards, panel, dialog), and the turns that took. CI, debug build, before → after (runs
+  40176964309 → 40178588911 and later): ⌘T 79 ms / 20 turns → 68 ms / 0; ⌘D 82 / 17 → 25 / 0; ⌘W 136 / 21 → 31–53 / 0;
+  close tab 165 / 39 → 0 turns; ⌘K 432 then 238 ms → 234 then 153 ms (both in the key's turn); tab, workspace and session
+  keys were in the key's turn already (32–140 ms of SwiftUI render on the VM); the sidebar's snap after a lifted half
+  swipe 217 ms → 53 ms. A slower runner (40175942806) had ⌘T 482 ms / 49 turns and a first ⌘K of 881 ms (the first menu
+  key of a launch pays AppKit's one-time menu donation setup). A herdr call is a new `remote-api-bridge` run: 15–170 ms
+  here (about 20 or 140), and the bridge takes one request per run, so calls cannot be batched.
+- **Root cause, item 13.** A new pane's program is asked a second late (its shell's startup), and `Page.title` showed
+  herdr's numeric label until then. Now "New Tab" while the tab is a stand-in or its pane's shell still starts; the
+  startup watcher sets its last answer before it stops starting, so no number shows between. A pane whose program herdr
+  cannot say keeps the number.
+- **Root cause, item 14.** ⌘T, ⌘D and the closes waited for 2–5 sequential herdr runs (cwd, create, snapshot; split,
+  swap, snapshot, ratios, snapshot; process_info, close, snapshot) before anything changed. `Ahead` shows them in the
+  key's turn: a new tab or split is drawn as an empty card under a stand-in id (`new.‹uuid›`), a close leaves out what
+  it takes; the next snapshots confirm it (herdr's tab or pane takes the stand-in's place) or a failed write takes it
+  back. The palette took 230–430 ms to open on CI because `FilterList` built all ~100 rows (layout and the focus
+  responder walk over every button, from `sample` on CI): its rows are a `LazyVStack` now. The session swipe snapped
+  with the system's paging and showed the session only once the scroll was idle: `SessionPaging` shows the page a swipe
+  lands on as the fingers lift and slides there with `Animation.session` (spring response 0.14 s, half the tab spring);
+  dots and ⌥⌘[ ] use it too.
+- **Lane K's leftovers.** ⌘T then an immediate close: a new pane's shell startup (`ls`, `sort`) is asked again for up
+  to 0.8 s until only the shell runs; a close of the stand-in itself goes at once and herdr's tab is closed as it comes.
+  A big workspace's close asks `process_info` 8 at a time. ⌥⌘W twice: one ask per close (`Page.asking`, by request);
+  another close goes on.
+- **Decisions.** A close is hidden at once only when every pane's last answer is its shell; herdr is still asked, and a
+  program found brings it back with the question and the selection it moved (lane K's rule holds). A pane with no answer
+  yet (a new one) waits for herdr's answer instead of a hide that could come back. Writes queue (FIFO) instead of "Busy,
+  try again", so the buttons no longer disable during writes. Hidden panes keep their `Pane` objects and terminals
+  until herdr closes them. herdr never reuses a closed id in a server's life (checked), so `closing` clears on absence.
+- **Deviations.** Moved `choosePath` to `FileDrop.swift` and the tab title to `TabButton.swift` (Page.swift's 400
+  lines). `plan/standards.md`'s "never patch local state" names `Ahead` as its one exception.
+- **Learned.** CI's Mac has Reduce Motion on, and an XCUITest scroll is one fast gesture: the recordings show no slide,
+  so the swipe is measured in the app (decelerating → idle) with `-forceMotion YES`. `sample` through the e2e helper
+  gave the palette's profile (removed after). swiftformat's `repeatedGuard` plus `unusedArguments` turned `guard let a,
+  !f(x)` into an unused-argument rename; split the condition.
+- **Tests.** `testPanelsAndSwitchesReactAtOnce` (every key drawn in its own turn, the names checked; two swipes under
+  180 ms), `testNewTabSplitAndClosesShowAtOnce` ("New Tab", never a number; ⌘T ⌘D ⌘W ⇧⌘W in their turn; herdr closed
+  it), `testQuickNewTabsAndAnEarlyClose` (two ⌘T select the second; ⌘T then ⇧⌘W closes herdr's tab, no dialog).
+- **For the user to check by hand:** a two-finger swipe between sessions (the spring's feel on a real trackpad); ⌘T,
+  ⌘D, ⌘W and ⌘K on this Mac; ⌘T then an immediate ⌘W in a slow-starting shell.
+
 ## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
 
 Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/fb/agents-header.png` (item 18).
