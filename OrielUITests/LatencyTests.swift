@@ -161,6 +161,37 @@ extension OrielUITests {
         XCTAssertEqual(name.frame.minX, place, accuracy: 1)
     }
 
+    /// A quick flick between sessions (phase 28): the fingers on the pad for 48 ms, then momentum. The pages slide on
+    /// to the next page and rest there with the window on its session. A slide asked of the scroll view on such a
+    /// flick stood still until a 0.6 s timeout; then the pages snapped back while the window showed the next session,
+    /// and then the first again.
+    func testQuickSessionFlickLandsOnTheNextPageInStep() async throws {
+        try launchRecordingLatency(["-forceMotion", "YES"])
+        openPage(two)
+        element("sidebar.dot.\(one)").click()
+        XCTAssertTrue(until(3) { header == one })
+        let sidebar = element("sidebar"), name = element("sidebar.header"), place = name.frame.minX
+        let center = "\(sidebar.frame.midX) \(sidebar.frame.midY)"
+        // The other way if natural scrolling is off.
+        for sign in [-1.0, 1.0] {
+            try await Self.post("\(one)/swipe", Data("\(center) \(20 * sign) 3".utf8))
+            try await Task.sleep(for: .seconds(1.5))
+            if header == two {
+                break
+            }
+        }
+        XCTAssertEqual(header, two)
+        // The pages rest on the session the window shows.
+        XCTAssertEqual(name.frame.minX, place, accuracy: 1)
+        let (swipe, path) = try XCTUnwrap(swipes().last, "no swipe moved")
+        XCTAssertEqual(path.last?[1] ?? 0, sidebar.frame.width - 8, accuracy: 2, "\(swipe)")
+        // A step at least every 100 ms until the page: no stall.
+        let settled = path.first { abs($0[1] - sidebar.frame.width + 8) <= 2 }?[0] ?? 1000
+        XCTAssertLessThan(settled, 400, "\(swipe)")
+        let steps = path.map { $0[0] }.filter { $0 <= settled }
+        XCTAssertLessThan(zip(steps, steps.dropFirst()).map { $1 - $0 }.max() ?? 1000, 100, "\(swipe)")
+    }
+
     /// The "swipe" records in which the pages moved (the gesture's end given to the scroll view at its page makes one
     /// that did not), each with its offsets: [ms, pt].
     private func swipes() -> [(String, [[Double]])] {
