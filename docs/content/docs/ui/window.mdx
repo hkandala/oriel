@@ -550,21 +550,27 @@ once.
   vertically: each workspace's name (13 pt semibold, secondary), then its
   tabs as tiles in a grid, 2 to 4 a row by the window's width, 16 pt apart,
   32 pt between workspaces, 24 pt margins.
-- **Tile.** The tab's title row (its icon stack, title with the folder
-  dimmed, and its status capsule or working dots), then a miniature of the
-  page: the tab's cards in herdr's layout, at the page's real proportions
-  (the strip's page as it shows when the overview closes), each card its fill
-  and rim with its terminal drawn live inside, at the place and size it has
-  in the card. A zoomed tab shows its zoomed card. A floated pane's card
-  shows the float icon. The selected tab of each workspace has the selected
-  pill under its title row. Hover: the tile's soft fill.
+- **Tile.** One card per tab (the card's fill, rim and edge), as in the
+  user's reference: at its top a 36 pt title row like a card header (the
+  tab's icon stack, its title with the folder dimmed, and its status
+  capsule), and under it, 8 pt in, a miniature of the page: the tab's cards in
+  herdr's layout, at the page's real proportions (the strip's page as it
+  shows when the overview closes), each card its fill and edge with its
+  terminal drawn live inside, at the place and size it has in the card (no
+  header content: the tile's title row names the tab). A zoomed tab shows its
+  zoomed card. A floated pane's card shows the float icon. The selected tab
+  of each workspace has the keyboard card's look. On hover the title row
+  shows × at its end (Close Tab, as the tab bar's ×: it asks only when a
+  program runs).
 - **Click.** A click on a tile selects its workspace and tab and leaves the
   overview: the tile's miniature grows to the strip's page over 0.25 s
   (ease out), its terminals scaling up live, then the strip shows. Esc and the
   toggle leave the same way, from the selected tab's tile. Under Reduce Motion
   it leaves at once.
-- **Keyboard.** While the overview is open no terminal has the keyboard; Esc
-  leaves. Closing it gives the keyboard back to the tab's card.
+- **Keyboard.** While the overview is open no terminal has the keyboard (a
+  terminal view in a miniature refuses it); Esc leaves, unless a text field
+  (the palette's) has the keyboard. Closing it gives the keyboard back to the
+  tab's card.
 - VoiceOver: each tile is a button named by its tab's title, with the
   workspace as its group.
 
@@ -582,6 +588,9 @@ once.
   only by it goes back to where it was (its surface and stream let go) and
   the recently shown set is unchanged (D46). Other sessions' pages, beside
   the one in view during a swipe, show each terminal's last picture.
+- Known limit: on a remote machine only the shown tab's cards are live; the
+  others keep their last picture, since a connection holds about 10 SSH sessions
+  ([SSH sessions](/docs/machines#ssh-sessions)).
 - Cost: every terminal of the session keeps a full-size surface while the
   overview is open (measured in phase 27, lane V).
 
