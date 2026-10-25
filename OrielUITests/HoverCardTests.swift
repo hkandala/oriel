@@ -164,6 +164,50 @@ extension OrielUITests {
         XCTAssertTrue(cleared, "\(shade)")
     }
 
+    /// The preview costs little while a card is open and nothing while none is (phase 25): the app's CPU over 5 s with
+    /// no
+    /// card, with a hidden printing tab's card (its text read each second) and with the shown printing tab's card (its
+    /// pictures 5 times a second), each kept in the result bundle.
+    func testHoverCardPreviewCostsLittle() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (hidden, hiddenPane) = try await newTab("hidden")
+        let (shown, shownPane) = try await newTab("shown")
+        let panes = try await [hiddenPane, shownPane, split(shownPane)]
+        for pane in panes {
+            try await waitForPrompt(pane)
+            try await send("while :; do echo $RANDOM $RANDOM $RANDOM $RANDOM; sleep 0.1; done\r", to: pane)
+        }
+        element("tab.\(shown)").click()
+        XCTAssertTrue(element("tab.\(shown)").has(\.isSelected, true, within: 2))
+        let card = element("hovercard")
+        element("workspace.w1").hover()
+        let none = try await cpu("no card")
+        element("tab.\(hidden)").hover()
+        XCTAssertTrue(element("hovercard.preview.\(hiddenPane)").has(\.stringValue, "text", within: 3))
+        let text = try await cpu("a hidden tab's card")
+        element("workspace.w1").hover()
+        XCTAssertTrue(card.vanishes(within: 2))
+        element("tab.\(shown)").hover()
+        XCTAssertTrue(element("hovercard.preview.\(shownPane)").has(\.stringValue, "picture", within: 3))
+        let pictures = try await cpu("the shown tab's card")
+        // About 1 point here (a debug build on an M-series Mac: 4.7, 5.9, 5.4 %); a SwiftUI timeline added 20. Loose:
+        // CI's VMs vary by several points between runs.
+        XCTAssertLessThan(text - none, 8, "\(none) \(text) \(pictures)")
+        XCTAssertLessThan(pictures - none, 8, "\(none) \(text) \(pictures)")
+    }
+
+    /// The app's CPU in percent over 5 s (the e2e helper's `usage`, kept in the result bundle).
+    private func cpu(_ name: String) async throws -> Double {
+        let usage = try await String(decoding: Self.post("\(one)/usage", Data("5".utf8)), as: UTF8.self)
+        let attachment = XCTAttachment(string: usage)
+        attachment.name = "usage, \(name)"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        print("usage, \(name):\n\(usage)")
+        return usage.split(separator: "\n").first { $0.hasPrefix("cpu ") }
+            .flatMap { Double($0.dropFirst(4).dropLast()) } ?? .infinity
+    }
+
     /// The mean brightness of an element's pixels.
     private func mean(_ element: XCUIElement) -> Int {
         let brightness = Self.brightness(element.screenshot().image)
