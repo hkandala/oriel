@@ -96,8 +96,10 @@ extension OrielUITests {
         // The session's name alone.
         XCTAssertEqual(element("sidebar.header").value as? String, one)
         let rows = [blocked, working, done, idle].map { element("agent.\($0)") }
-        XCTAssertTrue(rows[3].exists(within: 2))
-        XCTAssertEqual(rows.map { $0.value as? String }, ["Needs you", "Working", "Done", "Idle"])
+        // The finish lands a moment after its tab's report.
+        try await expect("each row's state") {
+            rows.map { $0.value as? String } == ["Needs you", "Working", "Done", "Idle"]
+        }
         // The pane's name, else the agent's; line 2 names the workspace.
         try await expect("the pane's name as the title") { rows[1].label.hasPrefix("fixer, alpha · ") }
         XCTAssertTrue(rows[3].label.hasPrefix("pi, alpha · "), rows[3].label)
