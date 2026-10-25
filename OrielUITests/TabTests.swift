@@ -115,6 +115,57 @@ extension OrielUITests {
         }
     }
 
+    /// The strip keeps showing the selected tab's page when the tabs before it go or it moves (phase 25, item 25).
+    func testStripShowsTheSelectedTabWhenTabsBeforeItGo() async throws {
+        let tabs = try await newWorkspace("left", tabs: 3).tabs
+        app.typeKey("3", modifierFlags: .command)
+        try await expectShown(tabs[2], "the third tab")
+        app.typeKey(.pageUp, modifierFlags: [.control, .shift])
+        try await expect("the tab moved left") { try await tabIDs().filter { tabs.contains($0) } == [
+            tabs[0],
+            tabs[2],
+            tabs[1],
+        ] }
+        try await expectShown(tabs[2], "the tab moved left")
+        try await Self.call(one, "tab.close", ["tab_id": tabs[0]])
+        XCTAssertTrue(element("tab.\(tabs[0])").vanishes(within: 3))
+        try await expectShown(tabs[2], "the first tab closed")
+    }
+
+    func testStripShowsAOneTabWorkspaceAfterTheThirdTabOfAnother() async throws {
+        let tabs = try await newWorkspace("three", tabs: 3).tabs
+        app.typeKey("3", modifierFlags: .command)
+        try await expectShown(tabs[2], "the third tab")
+        element("workspace.w2").click()
+        try await expectShown("w2:t1", "the one-tab workspace")
+        element("workspace.\(workspace(of: tabs[0]))").click()
+        try await expectShown(tabs[2], "back")
+    }
+
+    func testStripShowsAOneTabSessionAfterTheThirdTabOfAnother() async throws {
+        let tabs = try await newWorkspace("three", tabs: 3).tabs
+        app.typeKey("3", modifierFlags: .command)
+        try await expectShown(tabs[2], "the third tab")
+        openSessionPanel()
+        element("open-session.session.\(two)").click()
+        XCTAssertTrue(until(3) { header == two })
+        XCTAssertTrue(element("pane.w1:p1").has(\.isHittable, true, within: connect), "the other session")
+        element("sidebar.dot.\(one)").click()
+        XCTAssertTrue(until(3) { header == one })
+        try await expectShown(tabs[2], "back")
+    }
+
+    /// The tab's page is in view: its card takes clicks and its capsule is lit.
+    private func expectShown(_ tab: String, _ step: String) async throws {
+        let pane = try await pane(of: tab)
+        let shown = until(3) {
+            element("pane.\(pane)").exists && element("pane.\(pane)").isHittable
+                && element("tab.\(tab)").stringValue.hasPrefix("in view")
+        }
+        keepScreenshot(step)
+        XCTAssertTrue(shown, "\(step): \(tab)'s page is not in view")
+    }
+
     /// The dialog's text, in its label or its value.
     private func sheetText(_ text: String) -> XCUIElement {
         app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text)).firstMatch
