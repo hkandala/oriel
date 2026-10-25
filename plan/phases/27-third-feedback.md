@@ -273,8 +273,8 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   | Footprint, Retina, 33 full-window tabs | 198 MB (4 kept) | 653 MB (IOSurface 419 MB) |
   | herdr runs | 5 (33 MB) | 16–17 (110 MB) |
   | CPU quiet / busy, Retina | 3.4 / 6.5 % | 4.6 / 6.8 % |
-  | Footprint, CI (1x), quiet / busy | 103 / 116 MB (40190929489) | 115 / 125 MB without copies (40193748306) |
-  | CPU quiet / busy, CI | 1.2 / 3.4 % | 2.9 / 5.7 % |
+  | Footprint, CI (1x), quiet / busy | 103 / 116 MB (40190929489) | 131 / 141 MB (40196456202) |
+  | CPU quiet / busy, CI | 1.2 / 3.4 % | 1.7 / 3.9 % |
 
   A kept terminal costs about 6 MB in the app (no scrollback: `scrollback-limit 0`), its picture (17 MB at full window
   on Retina) and a 7 MB herdr run. 32 kept, measured without copies: 359 MB for 33 full tabs, but with copies it would
@@ -295,6 +295,12 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   now; the `purgeable` branches merged; `make`'s parameter renamed.
 - **Known limits.** A minimized or covered window drops its swap chains too (libghostty), so it may show one blank
   frame when it comes back; not copied (Ghostty behaves the same). An evicted card still fades in once (past 16).
+- **CI.** 40192669231 (red: the new test read a hidden card), 40193748306 (green, without copies), 40196456202
+  (green on 4e4451c: the new, eviction, usage, every-path and resize tests); full suite 40197953846 on 3587863 (after
+  4e4451c, the lane's last code commit): every terminal, reveal, usage and latency test green; 4 reds outside lane A3:
+  `testFloatingWindowOpensLargeWithTheMainWindowsTitleRow` and `testPaletteEnterTakesTheMovedRowAndKeysFollow` (red
+  in lane G3's run too), `testDroppingAFileFromFinderPastesItsPath` and `testGoToDirectoryAndInsertPath` (both green
+  alone in 40199753823).
 - **For the user to check by hand:** after `make install`, visit 10–15 tabs with agents working, go back to the
   first ones: the old picture, then the new one within a frame or two, no fade and no empty card. `footprint` after
   half an hour (expect 300–650 MB with 16 hidden terminals) and `top` (a few percent).
