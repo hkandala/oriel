@@ -177,3 +177,8 @@ has `herdr --machine <label> <command>` and `herdr machine …`. Do this by defa
   stdin first (a unit case covers it). Also fixed: runs wait for a relay start in flight instead of each starting
   one, per-run write buffers (a run that reads nothing no longer stalls the host), SIGPIPE back to default in runs,
   `use IO::Handle` for old Perl, `exec` before each command, the stale streaming bullet in talking-to-herdr.mdx.
+- CI (round 2): remote tests 40193637252 (73d4369) and 40194450710 (5564018, after the reviews) green, all four
+  under `MaxSessions 2`. Full suite 40195025282 on ed89f5a (which includes 5564018): green except
+  `testPaletteEnterTakesTheMovedRowAndKeysFollow` in shard 0, red twice (also on the rerun). Not this phase's:
+  the overview lane's "Show Overview" (ef39e2a) now sits between Show Agents and Show Previous Tab, so ↓ after
+  "show" selects it.
