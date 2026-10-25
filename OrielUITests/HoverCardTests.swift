@@ -117,15 +117,15 @@ extension OrielUITests {
     private func sharpness(_ rect: CGRect) -> Double {
         let window = app.windows.firstMatch
         let shot = window.screenshot().image
-        let scale = shot.size.width > 0 ? Double(shot.representations.first?.pixelsWide ?? 0) / shot.size.width : 1
+        guard let full = shot.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return 0 }
+        let scale = Double(full.width) / shot.size.width
         let box = rect.offsetBy(dx: -window.frame.minX, dy: -window.frame.minY)
-        guard let full = shot.cgImage(forProposedRect: nil, context: nil, hints: nil),
-              let crop = full.cropping(to: CGRect(x: box.minX * scale, y: box.minY * scale,
+        guard let crop = full.cropping(to: CGRect(x: box.minX * scale, y: box.minY * scale,
                                                   width: box.width * scale, height: box.height * scale))
         else { return 0 }
-        let brightness = Self.brightness(NSImage(cgImage: crop, size: .zero)), width = crop.width
-        let steps = brightness.indices.filter { ($0 + 1) % width != 0 && $0 + 1 < brightness.count }
-            .map { abs(brightness[$0 + 1] - brightness[$0]) }
+        // Row ends pair with the next row's start: a few steps in thousands, no matter for a ratio.
+        let brightness = Self.brightness(NSImage(cgImage: crop, size: .zero))
+        let steps = zip(brightness, brightness.dropFirst()).map { abs($0 - $1) }
         return steps.isEmpty ? 0 : Double(steps.reduce(0, +)) / Double(steps.count)
     }
 
