@@ -78,7 +78,8 @@
         /// to commands before places, then to the earlier row (the menu's and the sidebar's order). A keyword match
         /// ranks under a title match.
         private func rootItems(_ filter: String, _ list: [Command]) -> [FilterList.Item] {
-            let commands = commandRows(list), places = placeRows()
+            // A floating window's palette lists only its commands (D50).
+            let commands = commandRows(list), places = self.commands.floating == nil ? placeRows() : []
             guard !filter.trimmingCharacters(in: .whitespaces).isEmpty else { return (places + commands).map(\.item) }
             return (commands + places).enumerated().compactMap { index, row in
                 [row.item.title.fuzzyScore(filter), row.keywords.fuzzyScore(filter).map { $0 + 3 }].compactMap(\.self)

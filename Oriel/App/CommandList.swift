@@ -13,8 +13,13 @@
         var shortcuts: Binding<Bool>?
         let openWindow: OpenWindowAction
         let settings: AppSettings
+        /// A floating window's list (D50): only what applies to it.
+        var floating: Floating?
 
         var all: [Command] {
+            if let floating {
+                return floatingCommands(floating)
+            }
             let page = pages?.current, pages = pages, workspace = page?.selectedWorkspace, tab = page?.selectedTab
             let live = page?.store.state == .live
             let file = [
@@ -112,13 +117,8 @@
                         }, previews: true),
                 Command(section: .view, title: "Interface Style", symbol: "paintbrush", keywords: "glass classic theme",
                         menu: [InterfaceStyle.glass, .classic].map { value in
-                            Command(
-                                section: .view,
-                                title: value.rawValue.capitalized,
-                                checked: settings.style == value,
-                            ) {
-                                settings.style = value
-                            }
+                            Command(section: .view, title: value.rawValue.capitalized,
+                                    checked: settings.style == value) { settings.style = value }
                         }, previews: true),
                 // The text size (design: theme and accessibility); the key monitor takes ⌘=.
                 Command(section: .size, title: "Increase Font Size", key: .bigger, symbol: "textformat.size.larger",
@@ -325,6 +325,7 @@
                 return command
             }
             return [
+                act("Float Pane", symbol: "pip.enter") { $0.float($1) },
                 act("Split Right", .splitRight, symbol: "rectangle.split.2x1") { await $0.split($1.id, .right) },
                 act("Split Down", .splitDown, symbol: "rectangle.split.1x2") { await $0.split($1.id, .down) },
                 act("Split Left", symbol: "rectangle.lefthalf.inset.filled") {

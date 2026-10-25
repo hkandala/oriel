@@ -107,9 +107,21 @@
             list.first { $0.store.panes.contains { $0.terminalID == terminalID } }
         }
 
+        /// The terminal shows in a floating window (D50).
+        func floats(_ terminalID: String) -> Bool {
+            list.contains { $0.floating[terminalID] != nil }
+        }
+
         /// After each snapshot of a store this window shows.
         func snapshotted(_ store: HostStore) {
             page(store)?.settle()
+            // A floated pane herdr closed: its window closes.
+            if let page = page(store), store.state == .live {
+                let alive = page.floating.filter { id, _ in store.panes.contains { $0.terminalID == id } }
+                if alive.count < page.floating.count {
+                    page.floating = alive
+                }
+            }
             showTerminals(snapshot: true)
             showPending()
             if Self.windows.first === self {
@@ -139,6 +151,7 @@
         func close(_ page: Page) {
             guard list.count > 1, let index = list.firstIndex(where: { $0 === page }) else { return }
             page.dropFind()
+            page.floating = [:]
             list.remove(at: index)
             if current === page {
                 show(list[max(index - 1, 0)])
@@ -151,7 +164,10 @@
         func closed() {
             gone = true
             Self.windows.removeAll { $0 === self }
-            list.forEach { $0.dropFind() }
+            for item in list {
+                item.dropFind()
+                item.floating = [:]
+            }
             terminals.show([:], alive: [], client: nil)
             list.forEach { leave($0.store) }
             list = []
@@ -250,7 +266,14 @@
                 page.dropFind()
             }
             let alive = Set(list.flatMap { $0.store.panes.compactMap(\.terminalID) })
-            terminals.show(current.shownTerminals, alive: alive, client: current.store.client)
+            // The other pages' floated panes stream too (D50), made with their own page's client.
+            var shown = current.shownTerminals
+            for page in list where page !== current {
+                for pane in page.store.panes where page.floats(pane) && page.terminal(pane) != nil {
+                    shown[pane.terminalID ?? ""] = pane.id
+                }
+            }
+            terminals.show(shown, alive: alive, client: current.store.client)
             if !snapshot || !(window?.firstResponder is NSText) {
                 current.shown(alive: alive)
             }

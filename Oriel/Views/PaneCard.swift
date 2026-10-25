@@ -29,7 +29,9 @@
             VStack(spacing: 0) {
                 header(pane, zoomed: zoomed, showsButtons: lit || hovering || zoomed).opacity(content)
                 Group {
-                    if let terminal {
+                    if let pane, page.floats(pane) {
+                        FloatedPlaceholder(page: page, pane: pane)
+                    } else if let terminal {
                         // Rex's text starts 12 pt in from the card's edge.
                         TerminalCard(terminal: terminal, watched: page.watched, alpha: content)
                             .overlay {
@@ -172,6 +174,12 @@
             let store = page.store
             return HStack(spacing: 2) {
                 if !zoomed {
+                    IconButton(symbol: "pip.enter", help: "Float Pane", size: 22) {
+                        if let pane = store.pane(id) {
+                            page.float(pane)
+                        }
+                    }
+                    .accessibilityIdentifier("pane.\(id).float")
                     IconButton(symbol: "rectangle.split.2x1", help: "Split Right", key: .splitRight, size: 22) {
                         Task { await page.split(id, .right) }
                     }

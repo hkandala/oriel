@@ -29,9 +29,10 @@
             let terminal = PaneTerminal(terminalID: terminalID, paneID: paneID, client: client)
             terminal.view.onKeyboard = { [weak self] in
                 // The newest holder: a view that had the keyboard before must not take it back when SwiftUI moves it
-                // to a new host (`viewWillMove`).
+                // to a new host (`viewWillMove`). Per window: a floating window's terminal and the main window's.
+                let floated = self?.pages?.floats(terminalID)
                 self?.terminals.forEach {
-                    if $0.key != terminalID {
+                    if $0.key != terminalID, self?.pages?.floats($0.key) == floated {
                         $0.value.view.dropClaim()
                     }
                 }
@@ -76,13 +77,16 @@
         /// Gives the keyboard to this terminal. A view that left the window with the keyboard
         /// would take it back when its tab returns; this one wins instead.
         func focus(_ terminalID: String) {
-            terminals.values.forEach { $0.view.dropClaim() }
+            for (id, terminal) in terminals where pages?.floats(id) != true {
+                terminal.view.dropClaim()
+            }
             terminals[terminalID]?.view.takeKeyboard()
         }
 
-        /// The terminal that has the keyboard, from the window itself, so it cannot drift.
+        /// The main window's terminal that has the keyboard, from the window itself, so it cannot drift.
         var keyboardTerminalID: String? {
-            terminals.first { $0.value.view.window?.firstResponder === $0.value.view }?.key
+            terminals.first { pages?.floats($0.key) != true && $0.value.view.window?.firstResponder === $0.value.view }?
+                .key
         }
     }
 #endif

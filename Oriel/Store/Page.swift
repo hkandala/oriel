@@ -37,6 +37,8 @@
         var dragging: Dragged?
         /// A close waiting for the user's yes, in this window only.
         var closing: HostStore.Closing?
+        /// The floated panes (D50) by terminal id, which a move keeps, each with its Stay on Top.
+        var floating: [String: Bool] = [:]
         /// The card whose header shows the rename field.
         var renamingPaneID: String?
         /// The open find bar (⌘F), on one card.
@@ -147,15 +149,15 @@
 
         /// The tab's card that last had the keyboard, else herdr's focused pane. Observed, unlike the first responder.
         func keyboardCard(_ tabID: String?) -> HostStore.Pane? {
-            let terminalID = tabID.flatMap { keyboardTerminals[$0] }
-            return store.panes.first { $0.tabID == tabID && $0.terminalID != nil && $0.terminalID == terminalID }
-                ?? store.panes.first { $0.tabID == tabID && $0.focused }
+            let terminalID = tabID.flatMap { keyboardTerminals[$0] }, panes = store.panes.filter { $0.tabID == tabID }
+            return panes.first { !floats($0) && $0.terminalID != nil && $0.terminalID == terminalID }
+                ?? panes.first { !floats($0) && $0.focused }
         }
 
-        /// The selected tab's terminals (terminal id → pane id): the ones that stream.
+        /// The selected tab's terminals and the floated ones (terminal id → pane id): the ones that stream.
         var shownTerminals: [String: String] {
             Dictionary(store.panes.compactMap { pane in
-                pane.tabID == selectedTab?.id ? pane.terminalID.map { ($0, pane.id) } : nil
+                pane.tabID == selectedTab?.id || floats(pane) ? pane.terminalID.map { ($0, pane.id) } : nil
             }, uniquingKeysWith: { first, _ in first })
         }
 
@@ -166,8 +168,8 @@
         }
 
         func tookKeyboard(_ terminalID: String) {
-            if let tabID = store.panes.first(where: { $0.terminalID == terminalID })?.tabID {
-                keyboardTerminals[tabID] = terminalID
+            if let pane = store.panes.first(where: { $0.terminalID == terminalID }), !floats(pane) {
+                keyboardTerminals[pane.tabID] = terminalID
             }
         }
 
@@ -186,7 +188,7 @@
         /// Gives the keyboard to the selected tab's card: the one it last had, else herdr's focused pane.
         func focusKeyboardCard() {
             guard let tab = selectedTab else { return }
-            let tabPanes = store.panes.filter { $0.tabID == tab.id && $0.terminalID != nil }
+            let tabPanes = store.panes.filter { $0.tabID == tab.id && $0.terminalID != nil && !floats($0) }
             // A moved pane not in the tab yet: wait for the snapshot (`shown` asks again). Giving the keyboard to
             // another card meanwhile would record that card as the tab's keyboard card (`tookKeyboard`) for good.
             if let moved = movedTerminal, keyboardTerminals[tab.id] == moved {
@@ -204,8 +206,9 @@
         }
 
         /// Selects the pane's workspace and tab and gives the pane the keyboard (never herdr focus, D13). A zoom of
-        /// another card restores, so the pane shows.
+        /// another card restores, so the pane shows. A floated pane's window comes to the front instead.
         func go(to pane: HostStore.Pane) {
+            guard !floats(pane) else { return float(pane) }
             guard let workspace = store.workspace(of: pane.tabID) else { return }
             select(workspace, tab: pane.tabID)
             if zoomedPaneID != pane.id, store.pane(zoomedPaneID ?? "")?.tabID == pane.tabID {

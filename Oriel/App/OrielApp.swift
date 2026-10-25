@@ -41,6 +41,16 @@ struct OrielApp: App {
             // A folder dropped on the Dock icon opens a workspace (AppDelegate), not a window.
             .handlesExternalEvents(matching: [])
             .onChange(of: settings.fontSize) { PaneTerminal.setFontSize(settings.fontSize) }
+            // A floated pane (D50). Its main window saves and opens it, so SwiftUI does not restore it.
+            WindowGroup(id: "float", for: Floating.self) { $floating in
+                if let floating {
+                    FloatingWindow(floating: floating)
+                }
+            }
+            .windowStyle(.hiddenTitleBar)
+            .defaultSize(width: 560, height: 360)
+            .windowResizability(.contentMinSize)
+            .restorationBehavior(.disabled)
         #else
             WindowGroup {
                 ContentUnavailableView("Oriel for iOS is coming", systemImage: "iphone")
@@ -342,7 +352,7 @@ struct OrielApp: App {
     }
 
     /// Glass: the desktop blurred behind the window, under the look's tint. Classic: the look's opaque color.
-    private struct WindowBackground: View {
+    struct WindowBackground: View {
         let look: Look
 
         var body: some View {
