@@ -124,8 +124,12 @@
                         Button(action) { show(true) }
                     }
                 }
-                // Opens or closes under a still pointer as there comes to be something to show, or nothing.
-                .onChange(of: enabled) { hovered() }
+                // Nothing left to show: it goes at once. It opens only on a hover, never under a still pointer.
+                .onChange(of: enabled) {
+                    if !enabled {
+                        show(false)
+                    }
+                }
                 .onDisappear { show(false) }
         }
 
