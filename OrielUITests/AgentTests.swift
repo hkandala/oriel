@@ -63,7 +63,8 @@ extension OrielUITests {
         element("sidebar.dot.\(two)").click()
         try await waitForValue("titlebar.agents", containing: "1 need you")
         app.typeKey(".", modifierFlags: .command)
-        try await waitForValue("sidebar.header", containing: "\(two) · agents")
+        XCTAssertTrue(element("agents.sort").exists(within: 2))
+        XCTAssertEqual(element("sidebar.header").value as? String, two)
         try await waitForValue("agent.w1:p1", containing: "Needs you")
     }
 
@@ -74,15 +75,21 @@ extension OrielUITests {
         // A split, not a fourth tab in w1: 220 pt tabs, and only 3 fit on CI's window.
         let working = try await split(idle)
         try await report(working, "working")
+        try await Self.call(one, "pane.rename", ["pane_id": working, "label": "fixer"])
         let blocked = try await newTab("deploy").pane
         try await report(blocked, "blocked", agent: "claude")
         let done = try await finish(newTab("docs"))
 
         app.typeKey(".", modifierFlags: .command)
-        try await waitForValue("sidebar.header", containing: "\(one) · agents")
+        XCTAssertTrue(element("agents.sort").exists(within: 2))
+        // The session's name alone.
+        XCTAssertEqual(element("sidebar.header").value as? String, one)
         let rows = [blocked, working, done, idle].map { element("agent.\($0)") }
         XCTAssertTrue(rows[3].exists(within: 2))
         XCTAssertEqual(rows.map { $0.value as? String }, ["Needs you", "Working", "Done", "Idle"])
+        // The pane's name, else the agent's; line 2 names the workspace.
+        try await expect("the pane's name as the title") { rows[1].label.hasPrefix("fixer, alpha · ") }
+        XCTAssertTrue(rows[3].label.hasPrefix("pi, alpha · "), rows[3].label)
         // Each group's header, with its count, sits above its row and below the row before.
         let groups = ["Needs you", "Working", "Done", "Idle"].map { element("agents.group.\($0)") }
         XCTAssertEqual(groups.map { $0.value as? String }, ["Needs you 1", "Working 1", "Done 1", "Idle 1"])
@@ -109,15 +116,45 @@ extension OrielUITests {
         app.menuItems["Workspace order"].click()
         try await waitForValue("agents.sort", containing: "workspace")
         XCTAssertTrue(element("agents.group.Idle").vanishes(within: 2))
-        try await expect("rows in workspace order") {
-            let order = [idle, working, blocked, done].map { element("agent.\($0)").frame.minY }
+        // Each workspace's name above its rows, whose line 2 drops it.
+        let alpha = element("agents.workspace.w1"), beta = element("agents.workspace.w2")
+        try await expect("rows in workspace order under their workspaces") {
+            let order = [alpha, rows[3], rows[1], beta, rows[0], rows[2]].map(\.frame.minY)
             return order == order.sorted()
         }
+        XCTAssertEqual([alpha, beta].map { $0.value as? String }, ["alpha", "beta"])
+        XCTAssertEqual(alpha.frame.minX, header.minX, accuracy: 0.5)
+        XCTAssertFalse(rows.contains { $0.label.contains("alpha") || $0.label.contains("beta") },
+                       rows.map(\.label).joined(separator: "; "))
         keepScreenshot("agents view in workspace order")
 
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(element("workspace.w1").exists(within: 2))
         XCTAssertEqual(element("sidebar.header").value as? String, one)
+    }
+
+    /// The shown tab's keyboard card lights its agent's row, as the selected workspace row.
+    func testTheKeyboardCardsAgentIsLitInTheAgentsView() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let first = try await newTab("deploy").pane
+        try await report(first, "blocked", agent: "claude")
+        let second = try await split(first)
+        try await report(second, "working")
+        app.typeKey(".", modifierFlags: .command)
+        let rows = [first, second].map { element("agent.\($0)") }
+        XCTAssertTrue(rows[1].exists(within: 2))
+        XCTAssertEqual(rows.map(\.isSelected), [false, false])
+        rows[1].click()
+        XCTAssertTrue(rows[1].has(\.isSelected, true, within: 2))
+        XCTAssertFalse(rows[0].isSelected)
+        // The keyboard moves to the other card without the list.
+        app.typeKey("[", modifierFlags: .command)
+        XCTAssertTrue(rows[0].has(\.isSelected, true, within: 2))
+        XCTAssertFalse(rows[1].isSelected)
+        keepScreenshot("lit agent row")
+        // beta's first tab shown: neither is its keyboard card.
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(rows[0].has(\.isSelected, false, within: 2))
     }
 
     func testAFinishShowsDoneUntilItsRowIsClicked() async throws {
@@ -136,7 +173,7 @@ extension OrielUITests {
         element("titlebar.sidebar").click()
         XCTAssertTrue(element("sidebar").vanishes(within: 2))
         element("titlebar.agents").click()
-        try await waitForValue("sidebar.header", containing: "· agents")
+        XCTAssertTrue(element("agents.sort").exists(within: 2))
         let row = element("agent.\(pane)")
         try await waitForValue("agent.\(pane)", containing: "Done")
         row.click()

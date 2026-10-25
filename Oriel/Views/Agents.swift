@@ -124,26 +124,36 @@ struct StatusBadge: View {
 
 #if os(macOS)
     /// An agent pane in the Agents view and the needs-you popover. A click selects its workspace and tab and gives it
-    /// the keyboard.
+    /// the keyboard. Lit like the selected workspace row while it is the shown tab's keyboard card (user, phase 25).
     struct AgentButton: View {
         let pane: HostStore.Pane
         let page: Page
+        /// Line 2; "‹workspace› · ‹tab›" when nil.
+        var place: String?
         var picked: () -> Void = {}
+        @Environment(\.look) private var look
 
         var body: some View {
+            let lit = page.keyboardCard(page.selectedTab?.id) === pane
             Button {
                 page.go(to: pane)
                 picked()
             } label: {
-                label(pane.state ?? .idle)
+                label(pane.state ?? .idle, lit: lit)
             }
-            .buttonStyle(ChromeStyle(radius: 10))
+            .buttonStyle(ChromeStyle(selected: lit, radius: 10))
             .accessibilityIdentifier("agent.\(pane.id)")
-            .accessibilityLabel("\(pane.agentName ?? "agent"), \(page.place(pane))")
+            .accessibilityLabel("\(title), \(place ?? page.place(pane))")
             .accessibilityValue(pane.state?.capsule ?? "")
+            .accessibilityAddTraits(lit ? .isSelected : [])
         }
 
-        private func label(_ state: AgentState) -> some View {
+        /// The pane's name when it has one, else the agent's (user, phase 25).
+        private var title: String {
+            pane.label ?? pane.agentName ?? "agent"
+        }
+
+        private func label(_ state: AgentState, lit: Bool) -> some View {
             HStack(spacing: 8) {
                 ProgramTile(icon: pane.iconID, letter: pane.letter)
                     .overlay(alignment: .topTrailing) { StatusBadge(state: state) }
@@ -151,7 +161,8 @@ struct StatusBadge: View {
                 // Line 1 the name, the capsule and the age on one centered line; line 2 the place (user, phase 24).
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        Text(pane.agentName ?? "agent").font(.system(size: 13)).lineLimit(1)
+                        Text(title).font(.system(size: 13)).lineLimit(1)
+                            .foregroundStyle(lit ? look.selected : look.chrome)
                         Spacer(minLength: 0)
                         StateCapsule(state: state)
                         if let since = pane.since {
@@ -159,7 +170,7 @@ struct StatusBadge: View {
                                 .font(.system(size: 11)).foregroundStyle(.secondary)
                         }
                     }
-                    Text(page.place(pane)).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(place ?? page.place(pane)).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
             .padding(.horizontal, 8)
@@ -184,7 +195,7 @@ struct StatusBadge: View {
         }
     }
 
-    /// A page's Agents view (D61): its session's agent panes, by priority in groups or in workspace order.
+    /// A page's Agents view (D61): its session's agent panes, by priority or in workspace order, in groups.
     struct AgentsList: View {
         let page: Page
         let filter: String
@@ -200,14 +211,22 @@ struct StatusBadge: View {
                         ForEach([AgentState.needsYou, .working, .finishedUnseen, .idle], id: \.self) { state in
                             let group = rows.filter { $0.state == state }
                             if !group.isEmpty {
-                                Text("\(state.capsule) \(group.count)").font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(.secondary).padding(.horizontal, 8).padding(.top, 6)
-                                    .accessibilityIdentifier("agents.group.\(state.capsule)")
-                                ForEach(group, content: row)
+                                label("\(state.capsule) \(group.count)", id: "agents.group.\(state.capsule)")
+                                ForEach(group) { row($0) }
                             }
                         }
                     } else {
-                        ForEach(rows, content: row)
+                        // Under each workspace's name, so line 2 holds only the tab (user, phase 25).
+                        ForEach(page.store.workspaces) { workspace in
+                            let tabs = workspace.tabs
+                            let group = rows.filter { pane in tabs.contains { $0.id == pane.tabID } }
+                            if !group.isEmpty {
+                                label(workspace.label, id: "agents.workspace.\(workspace.id)")
+                                ForEach(group) { pane in
+                                    row(pane, place: tabs.first { $0.id == pane.tabID }.map(page.titleText))
+                                }
+                            }
+                        }
                     }
                 }
                 .padding(Sidebar.rowInsets)
@@ -215,8 +234,14 @@ struct StatusBadge: View {
             .scrollIndicators(.never)
         }
 
-        private func row(_ pane: HostStore.Pane) -> some View {
-            AgentButton(pane: pane, page: page)
+        private func label(_ text: String, id: String) -> some View {
+            Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
+                .padding(.horizontal, 8).padding(.top, 6)
+                .accessibilityIdentifier(id)
+        }
+
+        private func row(_ pane: HostStore.Pane, place: String? = nil) -> some View {
+            AgentButton(pane: pane, page: page, place: place)
                 .hoverPanel(place: .beside) { close in HoverCard(tabID: pane.tabID, page: page, close: close) }
         }
     }
