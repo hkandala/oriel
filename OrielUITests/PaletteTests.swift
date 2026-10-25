@@ -7,6 +7,9 @@ extension OrielUITests {
     func testPaletteSplitsTheKeyboardCardRight() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("palette")
+        // Its page first: a click on a terminal of a page out of view makes XCUITest scroll the strip there, which
+        // selects nothing until the scroll rests, so the click can land before the card takes the keyboard.
+        element("tab.\(tab)").click()
         element("terminal.\(pane)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
         openPalette()
