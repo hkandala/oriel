@@ -176,12 +176,12 @@
 
     /// Rex's "peek": a tab's title and rolled-up status, a preview of its cards, and a row for each of its first six
     /// panes. A click on a row goes to that pane; on the title or the preview, to the tab. A blocked agent's row shows
-    /// its last screen lines (herdr 0.9.5 sends no blocked message), read once when the card opens.
+    /// its last screen lines (herdr 0.9.5 sends no blocked message), read each second while the card is open.
     struct HoverCard: View {
         let tabID: String
         let page: Page
         let close: () -> Void
-        /// Screens read when the card opens: each blocked pane's, and each previewed pane's with no picture.
+        /// Screens read while the card is open: each blocked pane's, and each previewed pane's with no picture.
         @State private var screens: [String: String] = [:]
 
         var body: some View {
@@ -228,9 +228,12 @@
                 .accessibilityIdentifier("hovercard")
                 .task {
                     guard let client = store.client else { return }
-                    for pane in panes where pane.state == .needsYou || TabPreview.picture(pane, page) == nil {
-                        screens[pane.id] = try? await client.screen(pane.id)
-                    }
+                    // Again each second while it is open, so a pane with no picture is live too.
+                    repeat {
+                        for pane in panes where pane.state == .needsYou || TabPreview.picture(pane, page) == nil {
+                            screens[pane.id] = try? await client.screen(pane.id)
+                        }
+                    } while await (try? Task.sleep(for: .seconds(1))) != nil
                 }
             }
         }
@@ -271,11 +274,10 @@
         }
     }
 
-    /// A tab's cards in their layout, as its page draws them in a 1056 × 660 pt page, at a quarter of that size. Each
-    /// card shows its terminal's picture: the IOSurface libghostty's layer shows, shared, not copied, and read again 5
-    /// times a second while the preview is open, so it costs nothing while none is. Live while the card is in the
-    /// window (libghostty draws only there); else the last picture it drew. A pane with no picture (not shown since the
-    /// app started) shows its screen's text instead (design: hover card).
+    /// A tab's cards in their layout, as its page draws them in a 1056 × 660 pt page, at a quarter of that size. A card
+    /// in the window shows its terminal's picture: the IOSurface libghostty's layer shows, shared, not copied, and read
+    /// again 5 times a second while the preview is open, so it costs nothing while none is. Any other card (another
+    /// tab, whose surface draws nothing or was let go) shows its screen's text, read each second (design: hover card).
     struct TabPreview: View {
         let tree: SplitNode
         let page: Page
@@ -286,11 +288,13 @@
         /// With its 2 pt padding, the hover card's width inside its own (268 pt).
         private static let size = CGSize(width: 264, height: 165)
 
-        /// The picture libghostty's layer shows now (an IOSurface), once it showed the pane; never makes a terminal.
-        /// A terminal a lazy page made but never streamed has a blank one.
+        /// The picture libghostty's layer shows now (an IOSurface), while the terminal is in a window (only there does
+        /// it draw) and once it showed the pane (a lazy page's terminal that never streamed is blank). Never makes a
+        /// terminal.
         static func picture(_ pane: HostStore.Pane?, _ page: Page) -> (terminal: PaneTerminal, picture: Any)? {
             guard let terminal = pane?.terminalID.flatMap({ page.terminals.terminals([$0]).first }), terminal.revealed,
-                  let picture = terminal.view.layer?.contents, terminal.view.frame.width > 0 else { return nil }
+                  terminal.view.window != nil, let picture = terminal.view.layer?.contents,
+                  terminal.view.frame.width > 0 else { return nil }
             return (terminal, picture)
         }
 
