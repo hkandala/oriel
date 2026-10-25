@@ -515,7 +515,8 @@ clients see it there.
   traffic lights, then "session › workspace › tab" in 11 pt secondary text on
   one line (a long session name gives way first, in its middle), then on the
   right three 22 pt buttons: **Stay on Top** (a pin), **Close** (closes
-  the pane, and asks first as any close does) and, rightmost, **Detach**
+  the pane, and asks first as any close does, in the floating window, also
+  for a Close from the card in the tab) and, rightmost, **Detach**
   (`pip.exit`: the window closes and the card shows its terminal in its tab
   again; nothing stops). The red traffic light detaches too. Below the title
   row, the glass card holds only the terminal, with no header, 8 pt in from
@@ -537,7 +538,8 @@ clients see it there.
 - **Saved.** The floating panes and their Stay on Top are kept with the main
   window that floated them, and open again when it restores. A pane that
   herdr closed closes its window; one that moved to another tab or workspace
-  stays floating (its terminal is the same). Closing the main window closes
+  stays floating (its terminal is the same), and the main window stays where
+  it is. Closing the main window closes
   its floating windows.
 - The terminal streams the whole time it floats, whichever tab or session the
   main window shows. Another window on the same session shows the pane as a

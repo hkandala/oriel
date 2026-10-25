@@ -327,14 +327,14 @@
             }
         }
 
-        /// The page goes to the moved pane's tab once a snapshot shows it, and the pane has the keyboard there.
+        /// The page goes to the moved pane's tab once a snapshot shows it, and the pane has the keyboard there. A
+        /// floated pane stays in its window.
         private func follow(_ moved: HerdrKit.Pane?, _ terminalID: String?) {
-            guard let moved else { return }
+            guard let moved, floating[terminalID ?? ""] == nil else { return }
             keyboardTerminals[moved.tabID] = terminalID
             movedTerminal = terminalID
             arriving = moved.tabID
-            // In case the snapshot after the move came in already.
-            settle()
+            settle() // In case the snapshot after the move came in already.
             // The next snapshot gives it the keyboard if the store does not show it in its tab yet (`shown`), also when
             // the tab stays selected (a spring-loaded tab, a re-place).
             keyboardTabID = nil

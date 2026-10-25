@@ -14,10 +14,14 @@
             pane.terminalID.map { floating[$0] != nil } ?? false
         }
 
-        /// Floats the pane in a window of its own, or brings its window to the front. herdr keeps it in its tab.
+        /// Floats the pane in a window of its own, or brings its window to the front, with the keyboard (its window
+        /// takes it as it shows). herdr keeps the pane in its tab. One window per terminal: one another main window
+        /// floats comes to the front.
         func float(_ pane: HostStore.Pane) {
             guard let terminalID = pane.terminalID else { return }
-            if floating[terminalID] == nil {
+            if floating[terminalID] != nil {
+                terminal(pane)?.view.takeKeyboard()
+            } else if !WindowPages.windows.contains(where: { $0.floats(terminalID) }) {
                 floating[terminalID] = false
                 if zoomedPaneID == pane.id {
                     zoomedPaneID = nil
@@ -26,7 +30,6 @@
                 focusKeyboardCard()
             }
             WindowPages.openWindow?(id: "float", value: Floating(session: id, terminalID: terminalID))
-            terminal(pane)?.view.takeKeyboard()
         }
     }
 
@@ -61,7 +64,8 @@
             .background(FloatReader(terminalID: floating.terminalID,
                                     pinned: page?.floating[floating.terminalID] == true,
                                     closed: { page?.floating[floating.terminalID] = nil }))
-            .onChange(of: page == nil) { _, gone in
+            // Also gone before it first drew (a Detach right after the Float).
+            .onChange(of: page == nil, initial: true) { _, gone in
                 if gone {
                     dismissWindow(id: "float", value: floating)
                 }
@@ -77,6 +81,9 @@
                 Group {
                     if let terminal {
                         TerminalCard(terminal: terminal, watched: page.watched, alpha: page.watched ? 0.85 : 1)
+                            // In this window by now: a claim made while it was still the main window's card would
+                            // take that window's keyboard.
+                            .onAppear { terminal.view.takeKeyboard() }
                             .overlay {
                                 if let find = page.find, find.paneID == pane?.id {
                                     FindHighlights(find: find, terminal: terminal)
@@ -168,7 +175,12 @@
             reader.closed = closed
             // Above every app's windows and on every Space, like picture in picture.
             reader.window?.level = pinned ? .floating : .normal
-            reader.window?.collectionBehavior = pinned ? [.canJoinAllSpaces, .fullScreenAuxiliary] : []
+            let onTop: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            if pinned {
+                reader.window?.collectionBehavior.formUnion(onTop)
+            } else {
+                reader.window?.collectionBehavior.subtract(onTop)
+            }
         }
 
         final class Reader: NSView {
@@ -184,7 +196,10 @@
                 window.setFrameAutosaveName("float \(terminalID)")
                 let close = NSWindow.willCloseNotification, center = NotificationCenter.default
                 observer = center.addObserver(forName: close, object: window, queue: .main) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.closed() }
+                    MainActor.assumeIsolated {
+                        self?.closed()
+                        self?.observer.map(center.removeObserver)
+                    }
                 }
             }
         }

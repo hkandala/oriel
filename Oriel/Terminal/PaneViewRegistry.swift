@@ -29,10 +29,10 @@
             let terminal = PaneTerminal(terminalID: terminalID, paneID: paneID, client: client)
             terminal.view.onKeyboard = { [weak self] in
                 // The newest holder: a view that had the keyboard before must not take it back when SwiftUI moves it
-                // to a new host (`viewWillMove`). Per window: a floating window's terminal and the main window's.
-                let floated = self?.pages?.floats(terminalID)
+                // to a new host (`viewWillMove`). Per window: a floating window's terminal (alone in it) drops none.
+                guard self?.pages?.floats(terminalID) != true else { return }
                 self?.terminals.forEach {
-                    if $0.key != terminalID, self?.pages?.floats($0.key) == floated {
+                    if $0.key != terminalID, self?.pages?.floats($0.key) != true {
                         $0.value.view.dropClaim()
                     }
                 }
@@ -56,8 +56,10 @@
                 Self.recent.removeAll { $0 === terminal }
             }
             terminals.values.forEach { $0.inView = false }
-            guard let client else { return }
-            let streaming = shown.map { terminal($0.key, pane: $0.value, client: client) }
+            // Without a client (the page in view connecting), the terminals there go on: another page's floated ones.
+            let streaming = shown.compactMap { id, pane in client.map { terminal(id, pane: pane, client: $0) } ??
+                terminals[id]
+            }
             streaming.forEach { $0.inView = true }
             Self.recent = Self.recent.filter { terminal in !streaming.contains { $0 === terminal } } + streaming
             // Only ones no window shows go: a tab with more than `live` panes keeps them all.
