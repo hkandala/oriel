@@ -53,20 +53,26 @@ struct Notice {
 
         var body: some View {
             let store = page.store
-            let machine = HostStore.name(store.session)
+            let machine = store.name
             switch store.state {
             case .connecting:
                 // After 0.3 s, so a fast connect shows nothing.
                 Waiting(text: "Connecting to \(machine)", delay: .milliseconds(300))
                     .accessibilityIdentifier("detail.connecting")
             case .failed(.notFound):
-                message("herdr is not installed", "Install it in a terminal:",
-                        "curl -fsSL https://herdr.dev/install.sh | sh")
+                message(store.machine.isRemote ? "herdr is not installed on \(store.machine.name)"
+                    : "herdr is not installed", "Install it in a terminal:",
+                    "curl -fsSL https://herdr.dev/install.sh | sh")
+            case let .failed(.disconnected(text)):
+                // Retries stopped: only Connect may ask (machines#health-check).
+                message("Disconnected from \(store.machine.name)", text,
+                        button: ("Connect", { await store.connect() }))
             case let .failed(.unsupported(text)):
                 // The client asks again every 2 s, so an updated herdr clears it.
                 message("herdr is too old", text + ".")
             case .failed where !store.isRunning:
-                message("\(store.session) is not running", start: true)
+                message("\(store.session) is not running",
+                        button: ("Start \(store.session)", { await store.start() }))
             case .live, .failed:
                 // Reconnecting (the server runs, the bridge fails) in one branch, so the strip keeps its state through
                 // it; the notices stay clickable.
@@ -131,9 +137,10 @@ struct Notice {
             .padding(.bottom, 30)
         }
 
-        /// What is wrong and the command that fixes it; a stopped session gets a Start button instead (design D47).
+        /// What is wrong and the command that fixes it, or the button that does: Start for a stopped session (design
+        /// D47), Connect for a machine that needs an answer.
         private func message(_ title: String, _ text: String? = nil, _ command: String? = nil,
-                             start: Bool = false) -> some View
+                             button: (title: String, act: () async -> Void)? = nil) -> some View
         {
             ContentUnavailableView {
                 Label(title, systemImage: "terminal")
@@ -149,9 +156,11 @@ struct Notice {
                     Text(command).monospaced().textSelection(.enabled)
                 }
             } actions: {
-                if start {
-                    Button("Start \(page.store.session)") { Task { await page.store.start() } }
-                        .accessibilityIdentifier("detail.start")
+                if let button {
+                    Button(button.title) { Task { await button.act() } }
+                        // detail.start, detail.connect
+                        .accessibilityIdentifier("detail." +
+                            (button.title.split(separator: " ").first?.lowercased() ?? ""))
                 }
             }
         }

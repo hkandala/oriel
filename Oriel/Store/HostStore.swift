@@ -13,6 +13,7 @@ final class HostStore {
     }
 
     let session: String
+    let machine: Machine
     private(set) var state = State.connecting
     /// Every session herdr knows on this Mac.
     private(set) var sessions: [Session] = []
@@ -58,12 +59,17 @@ final class HostStore {
     @ObservationIgnored private var gitRuns: Set<String> = []
     @ObservationIgnored private var seen = Seen()
 
-    private init(session: String) {
+    private init(session: String, machine: Machine) {
         self.session = session
+        self.machine = machine
     }
 
-    /// The app's stores, one per session open in a window (design D43). A session with no page has none.
+    /// The app's stores, one per machine and session open in a window (design D43). A session with no page has none.
     private static var open: [String: HostStore] = [:]
+
+    private static func key(_ session: String, _ machine: Machine) -> String {
+        "\(machine.id) \(session)"
+    }
 
     /// Every open session's store, each once however many windows show it.
     static var all: [HostStore] {
@@ -72,12 +78,12 @@ final class HostStore {
 
     #if os(macOS)
         /// The session's store, made and connected on first use; `start` starts its server first (stopped or new).
-        static func named(_ session: String, start: Bool = false) -> HostStore {
-            if let store = open[session] {
+        static func named(_ session: String, on machine: Machine, start: Bool = false) -> HostStore {
+            if let store = open[key(session, machine)] {
                 return store
             }
-            let store = HostStore(session: session)
-            open[session] = store
+            let store = HostStore(session: session, machine: machine)
+            open[key(session, machine)] = store
             store.task = Task { await store.run(start: start) }
             return store
         }
@@ -85,28 +91,29 @@ final class HostStore {
         /// Its page closed: the events stream and every herdr run of it end; the session keeps running.
         func disconnect() {
             task?.cancel()
-            Self.open[session] = nil
+            Self.open[Self.key(session, machine)] = nil
         }
 
         /// Starts the session's server when it is not running (a launchd job, D47); a server started here gets
         /// its first workspace in home, as a new one has none.
         /// A second start of a session (a double click on Start, Open Session) joins the one in flight: on its own it
         /// would find the booting server silent and boot it out.
-        static func start(_ session: String) async throws {
-            let start = starting[session] ?? Task {
+        static func start(_ session: String, on machine: Machine) async throws {
+            let key = key(session, machine)
+            let start = starting[key] ?? Task {
                 // herdr is the only multiplexer (design D49).
-                let client: any Multiplexer = await HerdrClient(session: session, exec: exec.value)
+                let client: any Multiplexer = await HerdrClient(session: session, exec: machine.exec())
                 // `-startTimeout 0` makes every start fail, for e2e.
                 let timeout = UserDefaults.standard.double(forKey: "startTimeout")
                 if try await client.startServer(within: .seconds(timeout)),
                    try await client.snapshot().workspaces.isEmpty
                 {
-                    _ = try await client.newWorkspace(label: nil, cwd: NSHomeDirectory())
+                    _ = try await client.newWorkspace(label: nil, cwd: "~")
                 }
             }
-            starting[session] = start
+            starting[key] = start
             // Not a newer start that began as this one ended.
-            defer { starting[session] = starting[session] == start ? nil : starting[session] }
+            defer { starting[key] = starting[key] == start ? nil : starting[key] }
             try await start.value
         }
 
@@ -115,11 +122,25 @@ final class HostStore {
         /// The Start button of a session that stopped: the running store finds it again.
         func start() async {
             do {
-                try await Self.start(session)
+                try await Self.start(session, on: machine)
                 await client?.refresh()
             } catch {
                 await show(Notice(text: error.localizedDescription))
             }
+        }
+
+        /// The Connect button and a new machine: connects to the remote machine, asking the user what ssh asks in the
+        /// window that controls the session (machines#health-check: only this may prompt).
+        func connect() async {
+            guard let ssh = await machine.exec() as? SSHExec else { return }
+            let name = machine.name
+            do {
+                try await ssh
+                    .connect { [weak self] question in await self?.windows.first?.ask(question, machine: name) }
+            } catch {
+                await show(Notice(text: error.localizedDescription))
+            }
+            await client?.refresh()
         }
 
         /// Follows the session until the task is cancelled. A failed start says why, then connects anyway: the page
@@ -127,13 +148,13 @@ final class HostStore {
         private func run(start: Bool) async {
             if start {
                 do {
-                    try await Self.start(session)
+                    try await Self.start(session, on: machine)
                 } catch {
                     // Kept until the session answers.
                     notice = Notice(text: error.localizedDescription)
                 }
             }
-            let client: any Multiplexer = await HerdrClient(session: session, exec: exec.value)
+            let client: any Multiplexer = await HerdrClient(session: session, exec: machine.exec())
             self.client = client
             defer { self.client = nil }
             var loadedSessions = false
@@ -253,7 +274,7 @@ final class HostStore {
                 workspace.gitRoot = root
                 gitRuns.insert(workspace.id)
                 // One after another: 30 workspaces are not 30 git processes at once.
-                workspace.git = await GitStatus.of(root, exec: exec.value)
+                workspace.git = await GitStatus.of(root, exec: machine.exec())
                 gitRuns.remove(workspace.id)
             }
         #endif
@@ -261,10 +282,11 @@ final class HostStore {
 }
 
 #if os(macOS)
-    /// One for the app's life: it reads the login shell's environment once.
-    let exec = Task { await ProcessExec() }
+    /// This Mac's, for the app's life: it reads the login shell's environment once.
+    let localExec = Task { await ProcessExec() }
     /// Checked once at launch, so the developer tools dialog never opens.
-    private let gitUsable = Task { await GitStatus.usable(exec: exec.value) }
+    /// ponytail: This Mac's check, for remote machines' git too; ask each machine when one lacks git.
+    private let gitUsable = Task { await GitStatus.usable(exec: localExec.value) }
 #endif
 
 /// Writes: each is one multiplexer action, then a snapshot read.
@@ -277,12 +299,13 @@ extension HostStore {
             cwd = fresh
         }
         var created: String?
-        await write { created = try await $0.newTab(workspace: workspaceID, cwd: cwd ?? NSHomeDirectory()) }
+        await write { created = try await $0.newTab(workspace: workspaceID, cwd: cwd ?? "~") }
         return created
     }
 
-    /// In home by default: a server launchd started has another cwd. Its first tab.
-    func newWorkspace(label: String? = nil, cwd: String = NSHomeDirectory()) async -> HerdrKit.Tab? {
+    /// In home by default (herdr reads `~` as the machine's home): a server launchd started has another cwd. Its
+    /// first tab.
+    func newWorkspace(label: String? = nil, cwd: String = "~") async -> HerdrKit.Tab? {
         var created: HerdrKit.Tab?
         await write { created = try await $0.newWorkspace(label: label, cwd: cwd) }
         return created

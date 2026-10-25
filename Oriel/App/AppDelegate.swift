@@ -22,6 +22,11 @@
                 .map(ObjectIdentifier.init))
         }
 
+        /// Each remote machine's master ends with the app (machines#macos).
+        func applicationWillTerminate(_: Notification) {
+            Machine.disconnectAll()
+        }
+
         func applicationWillFinishLaunching(_: Notification) {
             // Windows and their pages come back after a normal quit too, whatever the system setting says. A session
             // start waits 10 s for its server (`-startTimeout`).
@@ -45,7 +50,7 @@
                         keyEquivalent: "",
                     )
                     item.target = self
-                    item.representedObject = Notifications.id(pane, session: store.session)
+                    item.representedObject = Notifications.id(pane, of: store)
                     menu.addItem(item)
                 }
             }
@@ -115,8 +120,9 @@
                 let delivered = await center.deliveredNotifications().map(\.request.identifier)
                 // After the wait: a later snapshot's new one must not go.
                 let holding = Set(store.panes.filter { $0.state ?? .idle >= .finishedUnseen }
-                    .map { id($0, session: page.id) })
-                let gone = delivered.filter { $0.hasPrefix("local|\(page.id)|") && !holding.contains($0) }
+                    .map { id($0, of: store) })
+                let gone = delivered
+                    .filter { $0.hasPrefix("\(store.machine.id)|\(store.session)|") && !holding.contains($0) }
                 center.removeDeliveredNotifications(withIdentifiers: gone)
             }
             for change in changes where change.state >= .finishedUnseen {
@@ -125,19 +131,19 @@
                 content.title = "\(pane.agentName ?? "agent") \(change.state.word)"
                 content.body = "\(page.id) · \(page.place(pane))"
                 UNUserNotificationCenter.current()
-                    .add(UNNotificationRequest(identifier: id(pane, session: page.id), content: content, trigger: nil))
+                    .add(UNNotificationRequest(identifier: id(pane, of: store), content: content, trigger: nil))
             }
         }
 
         /// The user looks at these panes.
-        static func remove(_ panes: [HostStore.Pane], session: String) {
+        static func remove(_ panes: [HostStore.Pane], of store: HostStore) {
             UNUserNotificationCenter.current()
-                .removeDeliveredNotifications(withIdentifiers: panes.map { id($0, session: session) })
+                .removeDeliveredNotifications(withIdentifiers: panes.map { id($0, of: store) })
         }
 
         /// One per terminal, so a newer one replaces the older; the Dock menu's rows carry it too.
-        static func id(_ pane: HostStore.Pane, session: String) -> String {
-            "local|\(session)|\(pane.terminalID ?? pane.id)"
+        static func id(_ pane: HostStore.Pane, of store: HostStore) -> String {
+            "\(store.machine.id)|\(store.session)|\(pane.terminalID ?? pane.id)"
         }
     }
 #endif

@@ -53,7 +53,7 @@
             ) { asked in
                 Button("\(asked.verb.capitalized) Session", role: .destructive) {
                     run(asked.session, asked.verb) {
-                        let client = await HerdrClient(session: asked.session, exec: exec.value)
+                        let client = await HerdrClient(session: asked.session, exec: pages.machine.exec())
                         if asked.verb == "stop" {
                             try await client.stopSession()
                         } else {
@@ -71,7 +71,8 @@
         }
 
         private func list() async {
-            let client: any Multiplexer = await HerdrClient(session: pages.current?.id ?? "default", exec: exec.value)
+            let client: any Multiplexer = await HerdrClient(session: pages.current?.id ?? "default",
+                                                            exec: pages.machine.exec())
             sessions = await (try? client.sessions()) ?? sessions
         }
 
@@ -129,7 +130,7 @@
         /// Starts the session when it is not running, then opens its page.
         private func start(_ session: String) {
             run(session, "start") {
-                try await HostStore.start(session)
+                try await HostStore.start(session, on: pages.machine)
                 pages.open(session)
                 open = false
             }

@@ -125,15 +125,16 @@ extension HostStore {
 }
 
 extension HostStore {
-    static func name(_ session: String) -> String {
-        session == "default" ? "This Mac" : "This Mac · \(session)"
+    /// The machine's name, with the session's unless it is `default`.
+    var name: String {
+        session == "default" ? machine.name : "\(machine.name) · \(session)"
     }
 
     /// Failed while its server runs, not for a missing or old herdr: the client tries again every 2 s.
     var reconnecting: Bool {
         guard case let .failed(error) = state else { return false }
         switch error {
-        case .notFound, .unsupported: return false
+        case .notFound, .unsupported, .disconnected: return false
         default: return isRunning
         }
     }

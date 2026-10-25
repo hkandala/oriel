@@ -15,6 +15,7 @@
             fullScreen ? gap : 91
         }
 
+        let pages: WindowPages
         let page: Page
         let fullScreen: Bool
         @Binding var sidebar: Bool
@@ -45,7 +46,7 @@
                         }
                         .accessibilityIdentifier("titlebar.sidebar")
                         .accessibilityValue(sidebar ? "open" : "closed")
-                    MachineButton()
+                    MachineButton(pages: pages)
                 }
                 .frame(width: sidebar ? sidebarWidth - Self.inset(fullScreen: fullScreen) - gap : nil,
                        alignment: .leading)
@@ -150,27 +151,32 @@
         return battery ? "laptopcomputer" : "desktopcomputer"
     }()
 
-    /// The machine's icon; its menu lists the machines (This Mac only for now) and Add Remote Host.
+    /// The machine's icon; its menu lists the machines and Add Remote Host.
     private struct MachineButton: View {
+        let pages: WindowPages
         @Environment(\.openWindow) private var openWindow
 
         var body: some View {
+            let current = pages.machine
             Menu {
-                // The current machine: picking it does nothing; ⌥-click opens it in a new window, as ⌘N.
-                // ponytail: no machine id is stored until remote machines exist; then `WindowGroup(id:for:)` and
-                // `openWindow(id:value:)` carry it. macOS 27 draws no images in these menus (an AppKit
+                // Picking the current machine does nothing; ⌥-click on This Mac opens it in a new window, as ⌘N.
+                // ponytail: ⌥-click on a remote machine switches this window; carry the machine to a new window
+                // (`openWindow(id:value:)`) when that is missed. macOS 27 draws no images in these menus (an AppKit
                 // NSMenuItem.image does not show either); the icons are here for systems that do.
-                Toggle(isOn: Binding { true } set: { _ in
-                    if NSEvent.modifierFlags.contains(.option) {
-                        openWindow(id: "main")
-                    }
-                }) { Label("This Mac", systemImage: thisMacIcon) }
+                ForEach([Machine.thisMac] + MachineList.shared.list) { machine in
+                    Toggle(isOn: Binding { machine == current } set: { _ in
+                        if NSEvent.modifierFlags.contains(.option), !machine.isRemote {
+                            openWindow(id: "main")
+                        } else {
+                            pages.show(machine: machine)
+                        }
+                    }) { Label(machine.name, systemImage: machine.icon) }
+                }
                 Divider()
-                // ponytail: no-op until remote hosts
-                Button("Add Remote Host…", systemImage: "plus") {}
+                Button("Add Remote Host…", systemImage: "plus") { pages.addingHost = true }
             } label: {
                 // The icon alone (user, phase 22): no chevron.
-                Image(systemName: thisMacIcon).fontWeight(.medium)
+                Image(systemName: current.icon).fontWeight(.medium)
                     .frame(width: 28, height: 28)
             }
             .menuStyle(.button)
@@ -178,7 +184,7 @@
             .buttonStyle(ChromeStyle(radius: 7))
             .fixedSize()
             .help("Machine")
-            .accessibilityLabel("Machine: This Mac")
+            .accessibilityLabel("Machine: \(current.name)")
             .accessibilityIdentifier("titlebar.machine")
         }
     }

@@ -69,6 +69,8 @@ struct OrielApp: App {
         /// The open pages' names and the one in view (D43), for a window macOS restores.
         @SceneStorage("pages") private var savedPages = ""
         @SceneStorage("page") private var savedPage = ""
+        /// The window's machine's id (D43).
+        @SceneStorage("machine") private var savedMachine = ""
         /// Each page's selected workspace and tabs, as JSON.
         @SceneStorage("selection") private var savedSelection = ""
         @SceneStorage("sidebar") private var sidebar = true
@@ -101,6 +103,7 @@ struct OrielApp: App {
             }
             .onChange(of: pages.list.map(\.id)) { savedPages = $1.joined(separator: " ") }
             .onChange(of: pages.current?.id) { savedPage = $1 ?? "" }
+            .onChange(of: pages.machine.id) { savedMachine = $1 }
             .onChange(of: selection) { savedSelection = $1 }
             // Git status for the page in view of a visible window: now and every 10 s (D67).
             .task(id: scenePhase == .active ? pages.current?.id : nil) {
@@ -146,9 +149,9 @@ struct OrielApp: App {
             var floating: [String: Bool]?
         }
 
-        /// `-session` on the command line if given, else the restored window's pages that still run, else
-        /// `default` (`-defaultSession` names another, for tests); the first page is started when it is stopped.
-        /// Never another session by itself.
+        /// The restored window's machine (`-machine <id>` on the command line wins), then `-session` if given, else
+        /// the restored window's pages that still run, else `default` (`-defaultSession` names another, for tests);
+        /// This Mac's first page is started when it is stopped. Never another session by itself.
         private func restore() async {
             guard pages.list.isEmpty else { return }
             // A window macOS restores gets its scene storage a moment after it first shows; a restored window always
@@ -161,17 +164,22 @@ struct OrielApp: App {
             // Closed meanwhile: no session may start for it.
             guard !Task.isCancelled else { return }
             // A run against a throwaway session must open only it.
-            let argument = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)["session"]
-                as? String
+            let arguments = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
+            let argument = arguments["session"] as? String
+            if let machine = MachineList.shared.machine(arguments["machine"] as? String ?? savedMachine) {
+                pages.machine = machine
+            }
             // A test run (`-defaultSession`) shares the developer's saved windows: it restores only throwaway sessions.
             let test = UserDefaults.standard.string(forKey: "defaultSession")
             let saved = argument == nil ? savedPages.split(separator: " ").map(String.init)
                 .filter { test == nil || $0.hasPrefix("oriel-e2e-") } : []
             if !saved.isEmpty {
-                let client: any Multiplexer = await HerdrClient(session: saved[0], exec: exec.value)
-                let running = await Set((try? client.sessions())?.filter(\.running).map(\.name) ?? [])
+                let client: any Multiplexer = await HerdrClient(session: saved[0], exec: pages.machine.exec())
+                // A machine that does not answer (a remote one that needs a password) keeps every page: each shows
+                // why.
+                let running = await (try? client.sessions())?.filter(\.running).map(\.name)
                 guard !Task.isCancelled else { return }
-                for name in saved where running.contains(name) {
+                for name in saved where running?.contains(name) ?? true {
                     pages.open(name)
                 }
                 if let page = pages.list.first(where: { $0.id == savedPage }) {
@@ -179,7 +187,7 @@ struct OrielApp: App {
                 }
             }
             if pages.list.isEmpty {
-                pages.open(argument ?? test ?? "default", start: true)
+                pages.open(argument ?? test ?? "default", start: !pages.machine.isRemote)
             }
             restoreSelection()
             pages.showTerminals() // The restored tab streams now, not at the next snapshot.
@@ -214,10 +222,18 @@ struct OrielApp: App {
             // The strip's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
             // cards start at its bottom edge, as in Rex; the row stays on top for its clicks and window drags.
             VStack(spacing: -4) {
-                TitleBar(page: page, fullScreen: fullScreen, sidebar: $sidebar, sidebarWidth: sidebarWidth,
-                         agents: $agents, palette: open(.palette), workspaceMenu: open(.workspaces),
-                         workspaceButtonX: $workspaceButtonX)
-                    .zIndex(1)
+                TitleBar(
+                    pages: pages,
+                    page: page,
+                    fullScreen: fullScreen,
+                    sidebar: $sidebar,
+                    sidebarWidth: sidebarWidth,
+                    agents: $agents,
+                    palette: open(.palette),
+                    workspaceMenu: open(.workspaces),
+                    workspaceButtonX: $workspaceButtonX,
+                )
+                .zIndex(1)
                 HStack(spacing: 0) {
                     if sidebar {
                         // As in Rex, the cards start at the sidebar's width: its handle lies over the strip's 8 pt gap.
@@ -257,6 +273,13 @@ struct OrielApp: App {
                 }
             }
             .modifier(CloseDialog(page: page))
+            .sheet(isPresented: Bindable(pages).addingHost) { AddHost(pages: pages) }
+            // A sheet closed without an answer cancels the question.
+            .sheet(item: Binding { pages.question } set: {
+                if $0 == nil {
+                    pages.question?.answer(nil)
+                }
+            }) { AskSheet(question: $0) }
             .environment(\.look, look)
             .testValue("window.look", "Appearance", "\(style.rawValue) \(look.dark ? "dark" : "light")")
             // The links a test ⌘-clicked (`-recordLinks YES`).
@@ -276,7 +299,7 @@ struct OrielApp: App {
             .background(WindowReader(pages: pages, fullScreen: $fullScreen, lightsOff: $lightsOff))
             .testValue("window.lights", "Traffic Lights Off", "\(lightsOff)",
                        shown: UserDefaults.standard.bool(forKey: "recordLights"))
-            .navigationTitle(page.selectedTab.map { "\(page.titleText($0)) - \(page.id)" } ?? HostStore.name(page.id))
+            .navigationTitle(page.selectedTab.map { "\(page.titleText($0)) - \(page.id)" } ?? page.store.name)
             // Every window, sheet and menu, and the terminals' palettes, follow the app's appearance.
             .onChange(of: appearance, initial: true) {
                 NSApp.appearance = switch appearance {

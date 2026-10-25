@@ -8,7 +8,13 @@
     /// terminals.
     @MainActor @Observable
     final class WindowPages {
+        /// The machine whose sessions the pages are (D43): one per window.
+        var machine = Machine.thisMac
         private(set) var list: [Page] = []
+        /// What ssh asks while this window connects a remote machine; the sheet answers it.
+        var question: Question?
+        /// The Add Remote Host sheet is open.
+        var addingHost = false
         /// The page in view; nil until the first page opens, and after the window closed.
         private(set) var current: Page?
         let terminals = PaneViewRegistry()
@@ -80,7 +86,7 @@
                 show(page)
                 return
             }
-            let store = HostStore.named(session, start: start)
+            let store = HostStore.named(session, on: machine, start: start)
             store.windows.append(self)
             let page = Page(store: store, terminals: terminals)
             page.settle()
@@ -165,6 +171,21 @@
         func closed() {
             gone = true
             Self.windows.removeAll { $0 === self }
+            leaveAll()
+            question?.answer(nil)
+        }
+
+        /// The window shows another machine: its pages give way to that machine's `default` session. This Mac's
+        /// starts when it is stopped; a remote one shows Start.
+        func show(machine: Machine) {
+            guard machine != self.machine else { return }
+            leaveAll()
+            self.machine = machine
+            open("default", start: !machine.isRemote)
+        }
+
+        /// Every page leaves and every terminal closes.
+        private func leaveAll() {
             for item in list {
                 item.dropFind()
                 item.floating = [:]
@@ -176,6 +197,26 @@
             current = nil
         }
 
+        /// One question of ssh's, from the machine named, as a sheet in this window; nil when the user cancels. A newer
+        /// question cancels one still open.
+        func ask(_ text: String, machine: String) async -> String? {
+            question?.answer(nil)
+            return await withCheckedContinuation { continuation in
+                question = Question(text: text, machine: machine) { [weak self] answer in
+                    self?.question = nil
+                    continuation.resume(returning: answer)
+                }
+            }
+        }
+
+        struct Question: Identifiable {
+            let id = UUID()
+            let text: String
+            let machine: String
+            /// Called once.
+            let answer: (String?) -> Void
+        }
+
         /// This window no longer shows the store: the next window controls it, or, the last one gone, it disconnects.
         private func leave(_ store: HostStore) {
             let controlled = store.windows.first === self
@@ -185,7 +226,7 @@
                 store.lookingTabID = nil
             }
             if store.windows.isEmpty {
-                Notifications.remove(store.panes, session: store.session)
+                Notifications.remove(store.panes, of: store)
                 store.disconnect()
                 HostStore.showBadge()
             } else if controlled {
@@ -216,19 +257,25 @@
                 let tabID = key && page === current ? page.selectedTab?.id : nil
                 page.store.lookingTabID = tabID
                 if let tabID {
-                    Notifications.remove(page.store.panes.filter { $0.tabID == tabID }, session: page.id)
+                    Notifications.remove(page.store.panes.filter { $0.tabID == tabID }, of: page.store)
                 }
             }
         }
 
         /// Selects an agent's pane from outside the windows (a notification, the Dock menu) by its notification id,
-        /// "local|‹session›|‹terminal id›": the terminal outlives a pane id that changed. It shows in the window that
-        /// was key last among those with the page open, else the page opens in the front window; the pane is
-        /// selected once a snapshot shows it.
+        /// "‹machine id›|‹session›|‹terminal id›": the terminal outlives a pane id that changed. It shows in the window
+        /// of
+        /// the machine that was key last among those with the page open, else the page opens in the machine's front
+        /// window; the pane is selected once a snapshot shows it.
         static func go(to id: String) {
-            let session = id.split(separator: "|", maxSplits: 2).dropFirst().first.map(String.init)
-            guard let window = windows.first(where: { $0.list.contains { $0.id == session } }) ?? windows.first else {
-                early = id
+            let parts = id.split(separator: "|", maxSplits: 2).map(String.init)
+            let machines = windows.filter { $0.machine.id == parts.first }
+            guard let window = machines.first(where: { $0.list.contains { $0.id == parts.dropFirst().first } })
+                ?? machines.first
+            else {
+                if windows.isEmpty {
+                    early = id
+                }
                 return
             }
             window.window?.makeKeyAndOrderFront(nil)

@@ -376,7 +376,7 @@
         }
 
         /// The snapshot after it selects the new workspace.
-        func newWorkspace(label: String? = nil, cwd: String = NSHomeDirectory()) async {
+        func newWorkspace(label: String? = nil, cwd: String = "~") async {
             arriving = await store.newWorkspace(label: label, cwd: cwd)?.id ?? arriving
         }
 
