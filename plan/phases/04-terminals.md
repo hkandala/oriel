@@ -88,9 +88,9 @@ Stage A (stream level, against throwaway sessions; no GUI yet).
   - arrows, Esc and F1–F12, with or without modifiers (Shift+Esc is Esc);
   - Enter, Tab and Backspace with a modifier;
   - Ctrl chords, named by the layout's letter (Dvorak, AZERTY), or by the key's US character
-    when the layout's letters are not Latin (Ctrl+С on a Russian layout is Ctrl+C). Shift is
-    dropped, as xterm does: Ctrl+Shift+C is Ctrl+C. Trade-off: an app with the kitty keyboard
-    cannot tell the two apart;
+    when the layout's letters are not Latin (Ctrl+С on a Russian layout is Ctrl+C). Shift
+    stays (phase 25): an app with the kitty keyboard gets Ctrl+Shift+C as its own key, and herdr
+    sends Ctrl+C's byte to a legacy app;
   - macOS line editing that `keybind = clear` took from libghostty: Cmd+←/→/⌫ → Ctrl+A/E/U,
     Option+←/→ → Alt+B/F.
 

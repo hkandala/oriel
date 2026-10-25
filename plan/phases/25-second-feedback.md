@@ -127,3 +127,20 @@ found none). If herdr has none, floating is Oriel's own.
   lane's last code push. One review round per lane (spec and ponytail, read only).
 
 ## Findings
+
+### Lane L (item 15)
+
+- **Root cause.** `PaneSurfaceView.herdrKey` dropped Shift from Ctrl chords on letters, digits and symbols
+  (phase 4: "as xterm does"), so ⌃⇧S went to `pane.send_keys` as `ctrl+s` and pi read CSI 115;5u, plain ⌃S.
+  Nothing else eats ⌃⇧ letters: no menu item, monitor or SwiftUI shortcut binds one, and libghostty's
+  `performKeyEquivalent` hands ⌃↩ to `keyDown`. ⌃⇧↩ already went as `ctrl+shift+enter` (CSI 13;6u). Fix: the
+  chord keeps `shift+` (d7eb8f7); herdr encodes it per program, as its own TUI does for Ghostty's keys.
+- **Learned** (a dump program in a throwaway session, `pane send-keys`). Kitty flag 1: `ctrl+shift+s` →
+  CSI 115;6u; flag 7 adds the shifted key (115:83;6u). Legacy programs get the byte they got before for
+  letters and most digits (⌃⇧S → 0x13, ⌃⇧C → 0x03), so a shell's ⌃⇧C is still ^C. herdr's legacy encoding
+  of ⌃- ⌃= ⌃; ⌃' ⌃, ⌃. ⌃\` was CSI u before and stays so (now with 6). One regression: legacy ⌃⇧[ was ESC
+  and is now CSI 91;6u (herdr maps only `ctrl+[` to ESC); rare, left to herdr.
+- **Test.** `testControlShiftKeysReachAKittyProgram`: `printf '\033[>1u'; cat -v`, types ⌃⇧S B T O W ↩ and
+  ⌃S, reads the tty's echo `^[[115;6u…^[[13;6u^[[115;5u` (the old code gave ;5u for the letters). CI
+  40171964049 green.
+- **For the user to check by hand:** the six pi extension keys in pi inside Oriel.
