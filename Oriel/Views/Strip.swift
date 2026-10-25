@@ -169,7 +169,6 @@
 
     /// Where each card and divider of the tree goes: each split divides its rectangle by its ratio, less the 8 pt gap,
     /// which is its divider. Both sides get an exact size, so no card's content can push its neighbor out of the page.
-    /// The hover card's preview draws a tab with it too.
     struct Parts {
         struct Card {
             let id: String

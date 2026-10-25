@@ -174,15 +174,15 @@
         }
     }
 
-    /// Rex's "peek": a tab's title and rolled-up status, a preview of its cards, and a row for each of its first six
-    /// panes. A click on a row goes to that pane; on the title or the preview, to the tab. A blocked agent's row shows
-    /// its last screen lines (herdr 0.9.5 sends no blocked message), read each second while the card is open.
+    /// Rex's "peek": a tab's title and rolled-up status and a row for each of its first six panes. A click on a row
+    /// goes to that pane; on the title, to the tab. A blocked agent's row shows its last screen lines (herdr 0.9.5
+    /// sends no blocked message), read once when the card opens.
     struct HoverCard: View {
         let tabID: String
         let page: Page
         let close: () -> Void
-        /// Screens read while the card is open: each blocked pane's, and each previewed pane's with no picture.
-        @State private var screens: [String: String] = [:]
+        /// Each blocked pane's last 3 non-empty screen lines.
+        @State private var lines: [String: [String]] = [:]
 
         var body: some View {
             let store = page.store
@@ -205,14 +205,6 @@
                     }
                     .buttonStyle(ChromeStyle(radius: 6))
                     .accessibilityIdentifier("hovercard.title")
-                    if let tree = tab.tree {
-                        TabPreview(tree: tree, page: page, screens: screens)
-                            .onTapGesture {
-                                page.select(workspace, tab: tabID)
-                                close()
-                            }
-                            .padding(.bottom, 2)
-                    }
                     ForEach(panes.prefix(6)) { pane in row(pane) }
                     if panes.count > 6 {
                         Text("+\(panes.count - 6) more").font(.system(size: 11)).foregroundStyle(.secondary)
@@ -228,26 +220,18 @@
                 .accessibilityIdentifier("hovercard")
                 .task {
                     guard let client = store.client else { return }
-                    // Again each second while it is open, so a pane with no picture is live too; the tab's panes of
-                    // now (a split or a blocked agent while it is open). A failed read keeps the last screen.
-                    repeat {
-                        for pane in store.panes where pane.tabID == tabID
-                            && (pane.state == .needsYou || TabPreview.pictured(pane, page) == nil)
-                        {
-                            // An equal screen draws nothing again.
-                            if let text = try? await client.screen(pane.id), screens[pane.id] != text {
-                                screens[pane.id] = text
-                            }
+                    for pane in panes.prefix(6) where pane.state == .needsYou {
+                        if let text = try? await client.screen(pane.id) {
+                            lines[pane.id] = text.split(whereSeparator: \.isNewline)
+                                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.suffix(3)
                         }
-                    } while await (try? Task.sleep(for: .seconds(1))) != nil
+                    }
                 }
             }
         }
 
         private func row(_ pane: HostStore.Pane) -> some View {
-            let shown = pane.state == .needsYou ? Array((screens[pane.id] ?? "").split(whereSeparator: \.isNewline)
-                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.suffix(3)) : []
-            let name = pane.agentName ?? pane.programName ?? "terminal"
+            let shown = lines[pane.id] ?? [], name = pane.agentName ?? pane.programName ?? "terminal"
             return Button {
                 page.go(to: pane)
                 close()
