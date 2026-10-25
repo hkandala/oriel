@@ -202,8 +202,11 @@ extension OrielUITests {
         row.rightClick()
         app.windows.firstMatch.menuItems["Close Workspace"].click()
         // D41: a program runs, so it asks, with what runs and the tab and pane count.
-        XCTAssertTrue(app.sheets.staticTexts["sleep is running in it. Its 2 tabs, 2 panes and everything running in "
-                + "them will end, here and in every herdr client. This cannot be undone."].exists(within: 2))
+        // A predicate: a query by identifier takes at most 128 characters.
+        let text = "sleep is running in it. Its 2 tabs, 2 panes and everything running in them will end, here and "
+            + "in every herdr client. This cannot be undone."
+        XCTAssertTrue(app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text))
+            .firstMatch.exists(within: 2))
         app.sheets.buttons["Close Workspace"].click()
         try await expect("herdr to close it") { try await !workspaceIDs().contains(made) }
         XCTAssertTrue(row.vanishes(within: 2))
