@@ -254,7 +254,7 @@ struct StatusBadge: View {
         }
     }
 
-    /// The Agents button's popover: the page's agents that need you. None: no popover (user, phase 25).
+    /// The Agents button's popover: the page's agents that need you.
     struct NeedsYouPanel: View {
         let page: Page
         let close: () -> Void
@@ -276,7 +276,7 @@ struct StatusBadge: View {
             }
             .padding(8)
             .frame(width: 320, alignment: .leading)
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            .floatingGlass(in: .rect(cornerRadius: 12))
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("agents.popover")
         }
