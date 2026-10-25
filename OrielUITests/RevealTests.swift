@@ -129,7 +129,7 @@ extension OrielUITests {
         ]
         for (step, act) in steps {
             XCTAssertTrue(host.exists(within: 3), step)
-            let sizes = Int(host.label) ?? 0
+            let sizes = Self.motion(host).sizes
             // The screen, not the element, which moves: a band across the window through the middle of the terminal.
             // Its text stays in the band while the card moves (no other card has text that low).
             // The largest window: a tooltip or a hover card is a window too.
@@ -145,8 +145,16 @@ extension OrielUITests {
                 inks.append(Self.ink(Self.crop(XCUIScreen.main.screenshot().image, band)))
             }
             XCTAssertGreaterThan(inks.min() ?? 0, before / 3, "\(step): ink \(before) before, then \(inks)")
-            XCTAssertGreaterThanOrEqual((Int(host.label) ?? 0) - sizes, 4,
-                                        "\(step): sizes from \(sizes) to \(host.label)")
+            XCTAssertGreaterThanOrEqual(
+                Self.motion(host).sizes - sizes,
+                4,
+                "\(step): sizes from \(sizes) to \(host.label)",
+            )
+            // A third shorter than phase 25's 0.2 s (phase 27): its sizes span 0.13 s less a frame (0.2 s gave 0.18).
+            // Zoom and restore only: herdr's answers come during the others.
+            if ["zoom", "restore"].contains(step) {
+                XCTAssertLessThan(Self.motion(host).ms, 150, "\(step): \(host.label)")
+            }
             try await expectText([pane], step)
         }
     }
@@ -233,12 +241,18 @@ extension OrielUITests {
 
     /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with
     /// motion forced on.
+    /// `-recordMotion`'s label: the sizes the host took, and the ms its latest motion's sizes spanned.
+    private static func motion(_ host: XCUIElement) -> (sizes: Int, ms: Int) {
+        let words = host.label.split(separator: " ").compactMap { Int($0) }
+        return (words.first ?? 0, words.dropFirst().first ?? 0)
+    }
+
     private func expectJump(_ tab: String, _ pane: String) async throws {
         let host = element("host.\(pane)")
         XCTAssertTrue(host.exists(within: 3))
-        let sizes = Int(host.label) ?? 0
+        let sizes = Self.motion(host).sizes
         let other = try await split(pane)
-        XCTAssertTrue(until(3) { Int(host.label) == sizes + 1 }, "Reduce Motion")
+        XCTAssertTrue(until(3) { Self.motion(host).sizes == sizes + 1 }, "Reduce Motion")
         _ = try await Self.call(one, "pane.close", ["pane_id": other])
         XCTAssertTrue(element("pane.\(other)").vanishes(within: 3))
         relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])

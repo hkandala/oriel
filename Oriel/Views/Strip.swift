@@ -22,7 +22,7 @@
                         Group {
                             if let tree = tab.tree {
                                 // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
-                                // Layout motion (0.2 s): a split, a close, a swap, a zoom. The terminals keep their
+                                // Layout motion (0.13 s): a split, a close, a swap, a zoom. The terminals keep their
                                 // size until it ends (`TerminalHost`).
                                 let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
                                 SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
@@ -104,8 +104,9 @@
         @State private var held: [[Bool]: Double] = [:]
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+        /// A third shorter than phase 25's 0.2 s, which the user found slow (phase 27).
         private var motion: Animation? {
-            reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.2)
+            reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.13)
         }
 
         var body: some View {

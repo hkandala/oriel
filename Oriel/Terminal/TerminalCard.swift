@@ -34,10 +34,11 @@
         /// reflows at every step.
         final class Host: NSView {
             private var fitting: Task<Void, Never>?
-            /// e2e (`-recordMotion YES`): the sizes this host took, as its accessibility label. Layout motion gives
-            /// many; a card made again, or one that jumps, only one or two.
+            /// e2e (`-recordMotion YES`): the sizes this host took, and the ms from the first to the last size of the
+            /// latest motion, as its accessibility label ("12 113"). Layout motion gives many sizes; a card made again,
+            /// or one that jumps, only one or two.
             static let record = UserDefaults.standard.bool(forKey: "recordMotion")
-            private var sizes = 0
+            private var sizes = 0, motion: (start: TimeInterval, last: TimeInterval)?
 
             /// A held terminal stays at the top, as the card's content does.
             override var isFlipped: Bool {
@@ -47,7 +48,11 @@
             override func resizeSubviews(withOldSize old: NSSize) {
                 if Self.record, frame.size != old {
                     sizes += 1
-                    setAccessibilityLabel("\(sizes)")
+                    // A motion's sizes come a frame apart; a pause starts the next one.
+                    let now = ProcessInfo.processInfo.systemUptime
+                    let start = motion.map { now - $0.last < 0.1 ? $0.start : now } ?? now
+                    motion = (start, now)
+                    setAccessibilityLabel("\(sizes) \(Int((now - start) * 1000))")
                 }
                 fitting?.cancel()
                 // At once until its first stream opened (it opens at the card's size; the terminal waits for that to
