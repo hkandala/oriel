@@ -127,3 +127,25 @@ unless the prototype proves a part wrong (then fix the page and say why).
   40186586493 and 40187439217 red ("Session open refused by peer": first too many channels, then a reused master
   that held a killed app's sessions), 40189370959 green.
 - Full suite on 76bbf15, the last code commit: 40190929489 green (all 4 shards and lint-build).
+
+## Round 2 (user, 2026-10-25 05:20)
+
+The user connected to a Meta devserver (`devvm-aai`, one-time passcodes / YubiKey OTP). The sidebar
+loaded, but every card shows "mux_client_request_session: session request failed: Session open refused by
+peer" and Retry (`.build/fb/devserver.png` in the main checkout). The server refuses more sessions (channels)
+on the one connection: Oriel opens one ssh session per herdr call and per terminal stream, more than the
+server's MaxSessions. A second connection would need a second passcode, so it is no way out.
+
+The user's working setup is `~/.config/herdr/herdr-remote.sh`: one ControlMaster authenticated once (an
+askpass for the OTP), and `herdr --remote <host>` running through ssh/scp wrappers that reuse it. herdr also
+has `herdr --machine <label> <command>` and `herdr machine …`. Do this by default:
+
+1. Find how `herdr --remote` and `herdr --machine` carry many requests and terminal streams to a remote
+   herdr (one ssh session with a multiplexed bridge? `remote-api-bridge`?), and how many ssh sessions they
+   open. Read herdr's docs and source if needed (herdr is Apache-2.0).
+2. Carry all of a host's traffic (calls, events, every terminal stream) over one ssh session, or the fewest
+   the server allows, through the one ControlMaster: either herdr's own remote transport (if Oriel can
+   drive it) or one long-lived remote process that multiplexes, never one ssh session per call or stream.
+3. One passcode per host: nothing may open a second authenticated connection; a dropped master asks once
+   (the existing rules on prompts and no retry loop stay).
+4. A CI test with sshd set to a low `MaxSessions` (for example 2) and many panes: everything streams.
