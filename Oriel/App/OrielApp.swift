@@ -69,8 +69,6 @@ struct OrielApp: App {
         @SceneStorage("page") private var savedPage = ""
         /// Each page's selected workspace and tabs, as JSON.
         @SceneStorage("selection") private var savedSelection = ""
-        /// Each page's floated panes (D50): terminal id → Stay on Top, as JSON.
-        @SceneStorage("floating") private var savedFloating = ""
         @SceneStorage("sidebar") private var sidebar = true
         @SceneStorage("sidebarWidth") private var sidebarWidth = 240.0
         /// The sidebar shows the Agents view instead of the workspaces.
@@ -102,9 +100,6 @@ struct OrielApp: App {
             .onChange(of: pages.list.map(\.id)) { savedPages = $1.joined(separator: " ") }
             .onChange(of: pages.current?.id) { savedPage = $1 ?? "" }
             .onChange(of: selection) { savedSelection = $1 }
-            .onChange(of: Self.json(Dictionary(uniqueKeysWithValues: pages.list.map { ($0.id, $0.floating) }))) {
-                savedFloating = $1
-            }
             // Git status for the page in view of a visible window: now and every 10 s (D67).
             .task(id: scenePhase == .active ? pages.current?.id : nil) {
                 pages.visible = scenePhase == .active
@@ -118,26 +113,21 @@ struct OrielApp: App {
         /// Each page's selection, for `savedSelection`; sorted keys, so the same selection is the same text.
         private var selection: String {
             let pages = Dictionary(uniqueKeysWithValues: pages.list.map { page in
-                (page.id, Selection(workspace: page.selectedWorkspaceID, tabs: page.selectedTabIDs))
+                (page.id, Selection(workspace: page.selectedWorkspaceID, tabs: page.selectedTabIDs,
+                                    floating: page.floating))
             })
-            return Self.json(pages)
-        }
-
-        /// Sorted keys, so the same value is the same text.
-        private static func json(_ value: some Encodable) -> String {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .sortedKeys
-            return (try? encoder.encode(value)).map { String(decoding: $0, as: UTF8.self) } ?? ""
+            return (try? encoder.encode(pages)).map { String(decoding: $0, as: UTF8.self) } ?? ""
         }
 
         /// Each page's saved selection; an id that is gone falls back to herdr's focus on the next snapshot.
         private func restoreSelection() {
             let selection = (try? JSONDecoder().decode([String: Selection].self, from: Data(savedSelection.utf8))) ??
                 [:]
-            let floating = try? JSONDecoder().decode([String: [String: Bool]].self, from: Data(savedFloating.utf8))
             for page in pages.list {
-                page.floating = floating?[page.id] ?? [:]
                 guard let saved = selection[page.id] else { continue }
+                page.floating = saved.floating ?? [:]
                 page.selectedWorkspaceID = saved.workspace
                 page.selectedTabIDs = saved.tabs
                 // A store another window has loaded settles now; a new one on its first snapshot.
@@ -150,6 +140,8 @@ struct OrielApp: App {
         private struct Selection: Codable {
             var workspace: String?
             var tabs: [String: String]
+            /// The floated panes (D50); nil in a selection saved before them.
+            var floating: [String: Bool]?
         }
 
         /// `-session` on the command line if given, else the restored window's pages that still run, else

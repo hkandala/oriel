@@ -10,6 +10,8 @@ extension KeyboardShortcut {
     static let splitDown = KeyboardShortcut("d", modifiers: [.command, .shift])
     static let zoom = KeyboardShortcut(.return, modifiers: [.command, .shift])
     static let closePane = KeyboardShortcut("w")
+    /// Close Window; in a floating window Detach Pane, as its close detaches.
+    static let closeWindow = KeyboardShortcut("w", modifiers: [.command, .shift])
     static let previousTab = KeyboardShortcut("[", modifiers: [.command, .shift])
     static let nextTab = KeyboardShortcut("]", modifiers: [.command, .shift])
     static let bigger = KeyboardShortcut("+")

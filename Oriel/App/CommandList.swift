@@ -73,7 +73,7 @@
                                 pages.close(page)
                             }
                         }),
-                Command(section: .close, title: "Close Window", key: .init("w", modifiers: [.command, .shift]),
+                Command(section: .close, title: "Close Window", key: .closeWindow,
                         symbol: "xmark") { NSApp.keyWindow?.performClose(nil) },
             ]
             let find = page?.find

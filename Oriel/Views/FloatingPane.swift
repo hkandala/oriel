@@ -35,11 +35,11 @@
     /// window closed).
     struct FloatingWindow: View {
         let floating: Floating
-        @State private var window: NSWindow?
         @State private var palette = false
         private var settings = AppSettings()
         @Environment(\.colorScheme) private var colorScheme
         @Environment(\.openWindow) private var openWindow
+        @Environment(\.dismissWindow) private var dismissWindow
 
         var body: some View {
             let look = Look(style: settings.style, dark: colorScheme == .dark)
@@ -58,12 +58,12 @@
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
             .environment(\.look, look)
             .navigationTitle(pane?.cardTitle ?? "terminal")
-            .background(FloatReader(window: $window, terminalID: floating.terminalID,
+            .background(FloatReader(terminalID: floating.terminalID,
                                     pinned: page?.floating[floating.terminalID] == true,
                                     closed: { page?.floating[floating.terminalID] = nil }))
             .onChange(of: page == nil) { _, gone in
                 if gone {
-                    window?.close()
+                    dismissWindow(id: "float", value: floating)
                 }
             }
         }
@@ -83,13 +83,7 @@
                                 }
                             }
                             .padding(.horizontal, 10).padding(.vertical, gap)
-                            .contextMenu {
-                                ForEach(["Copy", "Paste"], id: \.self) { title in
-                                    Button(title) { commands.all.first { $0.title == title }?.action() }
-                                }
-                                Divider()
-                                CommandItems(commands: commands.all, sections: [.close])
-                            }
+                            .contextMenu { CommandItems(commands: commands.all, sections: [.palette, .close]) }
                     } else {
                         Color.clear
                     }
@@ -117,8 +111,9 @@
         }
 
         private func header(_ page: Page, _ pane: HostStore.Pane?) -> some View {
-            let tab = pane.flatMap { pane in page.store.workspace(of: pane.tabID)?.tabs.first { $0.id == pane.tabID } }
-            let rest = [pane.flatMap { page.store.workspace(of: $0.tabID)?.label }, tab.map(page.titleText)]
+            let workspace = pane.flatMap { page.store.workspace(of: $0.tabID) }
+            let tab = workspace?.tabs.first { $0.id == pane?.tabID }
+            let rest = [workspace?.label, tab.map(page.titleText)]
                 .compactMap(\.self).map { " › \($0)" }.joined()
             let pinned = page.floating[floating.terminalID] == true
             let id = "float.\(pane?.id ?? "")"
@@ -145,7 +140,7 @@
                     }
                 }
                 .accessibilityIdentifier("\(id).close")
-                IconButton(symbol: "pip.exit", help: "Detach Pane", key: .detach, size: 22) {
+                IconButton(symbol: "pip.exit", help: "Detach Pane", key: .closeWindow, size: 22) {
                     page.floating[floating.terminalID] = nil
                 }
                 .accessibilityIdentifier("\(id).detach")
@@ -157,13 +152,8 @@
         }
     }
 
-    extension KeyboardShortcut {
-        static let detach = KeyboardShortcut("w", modifiers: [.command, .shift])
-    }
-
     /// The floating window's AppKit side: Stay on Top, and its close, which detaches the pane.
     private struct FloatReader: NSViewRepresentable {
-        @Binding var window: NSWindow?
         let terminalID: String
         let pinned: Bool
         let closed: () -> Void
@@ -176,7 +166,6 @@
 
         func updateNSView(_ reader: Reader, context _: Context) {
             reader.closed = closed
-            reader.moved = { window = $0 }
             // Above every app's windows and on every Space, like picture in picture.
             reader.window?.level = pinned ? .floating : .normal
             reader.window?.collectionBehavior = pinned ? [.canJoinAllSpaces, .fullScreenAuxiliary] : []
@@ -184,14 +173,12 @@
 
         final class Reader: NSView {
             var closed: () -> Void = {}
-            var moved: (NSWindow?) -> Void = { _ in }
             var terminalID = ""
             private var observer: NSObjectProtocol?
 
             override func viewDidMoveToWindow() {
                 super.viewDidMoveToWindow()
                 guard let window, observer == nil else { return }
-                moved(window)
                 // AppKit keeps the frame for the next time the pane floats. ponytail: one defaults key per terminal
                 // ever floated; prune them if that ever matters.
                 window.setFrameAutosaveName("float \(terminalID)")
@@ -238,15 +225,9 @@
                 }
             }
             return [
-                Command(section: .close, title: "Detach Pane", key: .detach, symbol: "pip.exit") {
+                Command(section: .close, title: "Detach Pane", key: .closeWindow, symbol: "pip.exit") {
                     page.floating[terminalID] = nil
                 },
-                Command(section: .close, title: "Close Pane", key: .closePane, symbol: "xmark.square",
-                        enabled: pane != nil, action: {
-                            if let pane {
-                                page.close(.pane(pane.id))
-                            }
-                        }),
                 Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",
                         enabled: palette != nil) { palette?.wrappedValue.toggle() },
                 Command(section: .view, title: "Stay on Top", symbol: "pin", checked: page.floating[terminalID] == true,
@@ -260,7 +241,7 @@
                 },
                 edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
                 edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
-            ] + sizes
+            ] + Self.pane(page) { pane }.filter { $0.title == "Close Pane" } + sizes
         }
     }
 #endif

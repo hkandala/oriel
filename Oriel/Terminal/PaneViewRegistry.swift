@@ -85,8 +85,8 @@
 
         /// The main window's terminal that has the keyboard, from the window itself, so it cannot drift.
         var keyboardTerminalID: String? {
-            terminals.first { pages?.floats($0.key) != true && $0.value.view.window?.firstResponder === $0.value.view }?
-                .key
+            terminals.first { pages?.floats($0.key) != true && $0.value.view.window?.firstResponder === $0.value.view }
+                .map(\.key)
         }
     }
 #endif

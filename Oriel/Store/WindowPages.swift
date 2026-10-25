@@ -261,16 +261,21 @@
         /// rename field must not go on in a shell because a pane closed elsewhere.
         func showTerminals(snapshot: Bool = false) {
             guard let current else { return }
-            // A find bar whose card is out of view closes: herdr's viewport is shared, it must not stay scrolled.
-            for page in list where page !== current || page.findHidden {
+            // A find bar whose card is out of view closes: herdr's viewport is shared, it must not stay scrolled. A
+            // floated pane's stays in view.
+            for page in list where page.findHidden || page !== current
+                && page.store.pane(page.find?.paneID ?? "").map(page.floats) != true
+            {
                 page.dropFind()
             }
             let alive = Set(list.flatMap { $0.store.panes.compactMap(\.terminalID) })
             // The other pages' floated panes stream too (D50), made with their own page's client.
             var shown = current.shownTerminals
             for page in list where page !== current {
-                for pane in page.store.panes where page.floats(pane) && page.terminal(pane) != nil {
-                    shown[pane.terminalID ?? ""] = pane.id
+                for pane in page.store.panes where page.floats(pane) {
+                    if let id = pane.terminalID, page.terminal(pane) != nil {
+                        shown[id] = pane.id
+                    }
                 }
             }
             terminals.show(shown, alive: alive, client: current.store.client)
