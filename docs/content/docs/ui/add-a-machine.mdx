@@ -3,27 +3,29 @@ title: "Add a machine"
 description: "The Add Remote Host sheet on macOS and iOS"
 ---
 
-The machine button's "Add Remote Host…" opens the sheet. It is a placeholder
-until remote machines are built. The same sheet works on macOS and iOS (D54):
-- **Name:** how the machine menu lists the machine.
+The machine button's "Add Remote Host…" opens the sheet. The same sheet works
+on macOS and iOS (D54):
+- **Name:** how the machine menu lists the machine; the target when empty.
 - **SSH target:** what `ssh` connects to, for example `user@devbox` or a
-  host alias from `~/.ssh/config`.
+  host alias from `~/.ssh/config`. Add stays off while it is empty, starts
+  with `-` or has a space.
 - **Icon:** laptop, desktop, server, cloud, chip, house, flask or game
   controller. The machine button shows only the icon, so the icon tells
   machines apart ([Machine button](/docs/ui/window#machine-button)).
 
 Then:
-- The app saves the machine, connects, and runs the
-  [checks on connect](/docs/machines#checks-on-connect) for its `default`
-  session.
-- On macOS, ssh's questions (an unknown host key, a password) show in the
-  askpass dialog ([macOS](/docs/machines#macos)). When herdr is on the Mac,
-  the sheet also lists herdr's machines that are not yet added, checked
-  while the app's list is empty
+- The app saves the machine, the window switches to its `default` session,
+  and the app connects and runs the
+  [checks on connect](/docs/machines#checks-on-connect).
+- On macOS, ssh's questions (an unknown host key, a password, a code) show in
+  a sheet of the window ([macOS](/docs/machines#macos)). Later, when herdr is
+  on the Mac, the sheet also lists herdr's machines that are not yet added,
+  checked while the app's list is empty
   ([The machine list](/docs/machines#the-machine-list)).
 - On iOS, the sheet shows the device's public key to copy into
   `authorized_keys`.
-- Rename, change the icon, reorder and remove happen in the app.
+- Rename, change the icon, reorder and remove happen in the app (not built
+  yet).
 - The machine menu lists This Mac first, then the machine list.
 
 Removing a machine never touches herdr on that machine.

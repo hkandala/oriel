@@ -22,6 +22,11 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 - **The app keeps its own list of remote machines**, on macOS and iOS alike
   (D54): name, SSH target, icon and id, in `UserDefaults`. One code path on
   both platforms. Remote machines come after This Mac.
+  - The list is JSON under the `machines` key. A run launched with
+    `-session` (the e2e tests, a run against a throwaway session) never reads
+    or writes it: it takes `-machines <json>` or no machines, so a test never
+    reaches the user's hosts.
+  - A window remembers its machine's id; `-machine <id>` picks it at launch.
 - **This Mac** is always in the list, with a laptop icon when the Mac has an
   internal battery, else a desktop icon.
 - **A machine's sessions** come from `herdr session list --json`, run on that
@@ -37,20 +42,34 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 ## macOS
 - **SSH is the system `ssh`.** The user's `~/.ssh/config`, agent, keys,
   `ProxyJump`, YubiKey and Tailscale SSH work unchanged.
-- **One ControlMaster per host,** started on purpose, once:
+- **One ControlMaster per host,** started on purpose, once, by the first run
+  that finds none (`SSHExec` in HerdrKit):
   ```sh
-  ssh -M -N -f -o ControlPersist=10m -o ServerAliveInterval=20 \
+  ssh -M -N -f -o ControlPersist=10m -o ServerAliveInterval=5 \
+      -o ServerAliveCountMax=3 -o ConnectTimeout=10 \
       -o ForwardAgent=no -o ForwardX11=no -o ClearAllForwardings=yes \
-      -S ~/Library/Caches/oriel/<h8> <target>
-  ssh -S ~/Library/Caches/oriel/<h8> -O check <target>   # wait until this succeeds
+      -o BatchMode=yes -S ~/Library/Caches/oriel/<h8> <target>
+  ssh -F /dev/null -S ~/Library/Caches/oriel/<h8> -O check <target>   # its pid
   ```
+  - With `-f`, ssh goes to the background once it is authenticated and the
+    socket serves, so the start's exit status says whether it worked. Its
+    stderr (merged into stdout) is ssh's reason when it did not.
   - Later runs use `-F /dev/null -o ControlMaster=no -o BatchMode=yes
     -o ProxyCommand=/usr/bin/false -S ~/Library/Caches/oriel/<h8>`. Without a
     master they fail at once instead of opening their own connection and
     prompting again. They send none of the user's configured forwards to the
-    master.
+    master. With a master, ssh never reads the target's config, so an alias
+    works with `-F /dev/null` (checked on OpenSSH 10.3).
+  - Before each run the app checks that the master lives with `kill(pid, 0)`,
+    not a process: the pid comes from `-O check` once per start. A master that
+    is gone (killed, or ended by its keepalive) is started again by the next
+    run. Its socket stays behind when it was killed, and a new master does not
+    bind over it, so the app removes it first. A master that outlived an app
+    that crashed is found by `-O check` and used.
   - Starting the master first means one password, OTP or key prompt per host.
-    With `ControlMaster=auto`, parallel first calls each prompt.
+    With `ControlMaster=auto`, parallel first calls each prompt. Starts are
+    one at a time per host; runs that need a master wait for the start in
+    flight.
   - `<h8>` is 8 hex characters of a hash of the SSH target. The folder is per
     user, mode 0700, with no spaces. The path stays under the 104-byte socket
     limit for user names up to 50 characters, with ssh's 17-character
@@ -58,14 +77,48 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   - Forwarding is off, so a machine cannot reach the Mac's SSH agent or ports
     through the app's long-lived connection. The app's own `-O forward` calls
     still work.
-  - `-O check` only asks whether the master process lives. A dead link is
-    found by the [health check](#health-check).
+  - **A dead link:** ssh's own keepalive (`ServerAliveInterval=5`,
+    `ServerAliveCountMax=3`) ends the master within about 15 s after the
+    network goes (a network change, sleep, a server restart). The next run
+    starts a new one. The app runs no `-O exit` of its own on a failed check.
   - On quit the app runs `ssh -S <ctl> -O exit <target>` for each master.
-- **Password and OTP prompts:** `SSH_ASKPASS` points at a one-file script in
-  the app's `Contents/Resources`, with `SSH_ASKPASS_REQUIRE=force`. It shows
-  an `osascript` dialog with the prompt passed as an argument (never pasted
-  into the script). It hides the answer only for password, passphrase or PIN
-  prompts.
+- **Automatic starts never prompt.** Every start a run makes uses
+  `BatchMode=yes`. How it fails decides what follows:
+  - ssh needs an answer (its text has "Permission denied", "Host key
+    verification failed", "passphrase" or "IDENTIFICATION HAS CHANGED"): the
+    machine is blocked. Runs fail at once with ssh's text and start no ssh,
+    and the pages show **Disconnected** with **Connect**
+    ([States](/docs/ui/states)).
+  - Anything else (no network, the host down, a refused connection): runs fail
+    at once until the next try, 2, 4, 8, 16, then every 30 s, and the pages
+    show Reconnecting.
+- **Prompts:** only **Connect** and Add Remote Host start a master that may
+  ask. That start sets `SSH_ASKPASS` to a small script the app writes beside
+  the sockets (mode 0700) and `SSH_ASKPASS_REQUIRE=force`. ssh runs the
+  script with ssh's own stdin and stderr, which are the app's pipes: the
+  script prints the question, base64 on one line after a marker, to stderr
+  and reads the answer from stdin. The app shows the question in a sheet of
+  the window that connects and writes the answer to ssh's stdin. Nothing is
+  stored. A key or agent that works needs no question, so the start asks
+  only what ssh asks.
+  - A new host key shows ssh's text with its fingerprint and asks yes or no;
+    **Connect** answers yes, and ssh writes `known_hosts` itself.
+  - The answer is hidden for a password, passphrase or PIN question.
+  - Cancel ends the start; the page stays Disconnected.
+  - A `none` question (a security key's touch) gets no sheet.
+  - Why not the `osascript` dialog the design had: a sheet belongs to the
+    window that asked, follows the app's look, and an e2e test can answer it.
+- **herdr on the machine:** the remote login shell gives its path, one run
+  over the master, `"$SHELL" -lic 'echo <marker>; command -v herdr'`, once per
+  master; a missing herdr is asked again at most every 30 s. The page then
+  shows "herdr is not installed on ‹machine›" with the install command.
+- **New tabs and workspaces** pass `cwd` `~`, which herdr reads as the
+  machine's home, so the app never sends This Mac's home to a remote machine.
+- **What the prototype leaves for later:** Local Network privacy (below),
+  herdr's machine list in the sheet, rename, reorder and remove of a machine,
+  ⌥-click on a remote machine (it switches the window, not a new one), a
+  remote home shown as `~` in card headers, `dial`, and file drops and image
+  paste to a remote machine.
 - **Local Network privacy (macOS 15+):** an `ssh` started by the app counts as
   the app. The app declares `NSLocalNetworkUsageDescription`, resolves the
   target with `ssh -G`, and opens an `NWConnection` to a LAN address before
@@ -118,11 +171,14 @@ One loop per open session checks that it answers.
   to every 2 s, so a session started again comes back at once.
 - A session counts as live only while the check answers. While it fails, its
   cards gray out.
-- On a remote machine a failed check also restarts the connection: on macOS
-  `ssh -O exit`, then a new ControlMaster; on iOS a new Citadel connection.
+- On a remote machine a failed check runs over a new connection when the old
+  one is gone: on macOS the next run starts a new ControlMaster (ssh's
+  keepalive ends a dead one, [macOS](#macos)); on iOS a new Citadel
+  connection.
 - **Automatic retries never prompt.** On macOS they run with
   `BatchMode=yes`. A host that needs a password, an OTP or a key prompt shows
-  **Reconnect** and stops retrying; only that button may prompt.
+  **Disconnected** with **Connect** and stops retrying; only that button may
+  prompt.
 - When a check succeeds after a failure, the app opens the event stream and
   the terminal streams again: the same path as the first connect
   ([Checks on connect](#checks-on-connect)).
@@ -170,9 +226,11 @@ One loop per open session checks that it answers.
      - An older job of the label is booted out first (a label loads only
        once). A running server, one that answers a snapshot, is never booted
        out: the app uses it.
-   - **A remote machine:** a **Start herdr** button runs
+   - **A remote machine:** the same **Start** button runs
      `sh -c 'nohup <herdr path> --session S server </dev/null >/dev/null 2>&1 &'`
-     over SSH and polls `session.snapshot` for up to 5 s.
+     over SSH and polls `session.snapshot` as This Mac's start does. A window
+     that switches to a remote machine opens its `default` session without
+     starting it.
 2. Open the event stream. Its `subscription_started` reply counts as an
    event, so the app reads the snapshot once more and misses nothing between
    the two steps.
