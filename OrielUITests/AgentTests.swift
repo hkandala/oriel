@@ -21,12 +21,10 @@ extension OrielUITests {
     func testBlockedAgentNeedsYouAndThePopoverGoesToIt() async throws {
         let button = element("titlebar.agents")
         XCTAssertTrue(button.exists(within: connect))
+        // Nobody needs you: no panel.
         button.hover()
-        XCTAssertTrue(element("agents.popover.empty").exists(within: 2))
-        XCTAssertEqual(element("agents.popover.empty").value as? String, "All caught up")
-        XCTAssertFalse(element("agents.popover.header").exists)
+        XCTAssertFalse(element("agents.popover").exists(within: 1))
         element("workspace.w1").hover()
-        XCTAssertTrue(element("agents.popover").vanishes(within: 2))
 
         let (tab, pane) = try await newTab("deploy")
         try await report(pane, "blocked", agent: "claude")

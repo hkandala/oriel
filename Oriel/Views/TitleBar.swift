@@ -131,7 +131,9 @@
             .accessibilityLabel("Agents")
             .accessibilityIdentifier("titlebar.agents")
             .accessibilityValue("\(waiting) need you")
-            .hoverPanel(place: .underTrailing) { close in NeedsYouPanel(page: page, close: close) }
+            .hoverPanel(place: .underTrailing, enabled: waiting > 0) { close in
+                NeedsYouPanel(page: page, close: close)
+            }
         }
     }
 
