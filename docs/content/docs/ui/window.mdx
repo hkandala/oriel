@@ -396,7 +396,7 @@ A peek at what runs in a tab (D63).
   - The tab title (folder part dimmed) and the tab's status capsule, if any.
   - A preview of the tab: its cards in their layout, as a 1056 × 660 pt page
     draws them, at a quarter of that size (264 × 165 pt, a 2 pt gap), on the
-    window's tint. Each card is live: its terminal's picture, or its screen's
+    opaque window color. Each card is live: its terminal's picture, or its screen's
     text (see [The preview's pictures](#the-previews-pictures)). A zoomed tab shows its
     zoomed card. A click on it selects the tab.
   - One row per pane, at most 6 and then "+N more": the program glyph, the
@@ -423,15 +423,17 @@ A peek at what runs in a tab (D63).
   with the program's colors.
 - **Any other card** (another tab: only the shown tab draws, and a hidden
   surface may be let go) shows its screen's text, read with
-  `pane.read` when the card opens and again each second while it is open.
-  Live too, without colors.
+  `pane.read` when the card opens and again each second while it is open:
+  one `remote-api-bridge` run per such pane each second (and an ssh run on a
+  remote machine). Live too, without colors.
 - Both draw as the page's card would, at a quarter: cells a quarter of their
   size (the text at a quarter of the terminal's font size), from the top left,
   cut at the card's edge, on the card fill over the opaque window color, so a
   text card and a picture card look alike.
 - Cost (debug build, M-series Mac, two printing panes): 4.7 % CPU with no
   card, 5.9 % with a hidden tab's card, 5.4 % with the shown tab's card
-  (`testHoverCardPreviewCostsLittle`).
+  (`testHoverCardPreviewCostsLittle`; the herdr runs of the text reads are
+  not counted).
 - Nothing runs while no card is open. The preview opens no stream, makes no
   terminal or surface, and moves no terminal view: a terminal view stays in
   its card. So it holds when Oriel keeps only a few surfaces alive: the text
@@ -439,7 +441,7 @@ A peek at what runs in a tab (D63).
 
 Options weighed: a snapshot of each card's view on a timer (`cacheDisplay`
 misses the Metal layer, the drag image's known gap); a hidden tab's last
-picture (stale, and gone once its surface is let go); a second, small,
+picture (stale, and the system may purge it); a second, small,
 observe-only libghostty surface per pane (a renderer thread, a font atlas and
 a herdr stream per pane, opened on every hover, and observe cannot resize, so
 the grid would not fit); `pane.read` for every pane, also shown ones (no
@@ -447,8 +449,9 @@ colors where a picture is free); floating's way (F2 moves the terminal view
 to the floating window and its card shows a placeholder: not possible while
 the card stays on screen).
 
-Item 29's overview (a grid of every tab) reuses the preview per tab: text for
-hidden tabs costs one `pane.read` per pane each second while it is open. For
+Item 29's overview (a grid of every tab) reuses `TabPreview` per tab and the
+hover card's read loop: text for hidden tabs costs one `pane.read` per pane
+each second while it is open, so a big grid may read less often. For
 pictures in every tile it can host the terminal views itself while it covers
 the strip.
 
