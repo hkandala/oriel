@@ -130,7 +130,7 @@ unless the prototype proves a part wrong (then fix the page and say why).
 
 ## Round 2 (user, 2026-10-25 05:20)
 
-The user connected to a Meta devserver (`devvm-aai`, one-time passcodes / YubiKey OTP). The sidebar
+The user connected to a server with one-time passcodes (YubiKey OTP). The sidebar
 loaded, but every card shows "mux_client_request_session: session request failed: Session open refused by
 peer" and Retry (`.build/fb/devserver.png` in the main checkout). The server refuses more sessions (channels)
 on the one connection: Oriel opens one ssh session per herdr call and per terminal stream, more than the

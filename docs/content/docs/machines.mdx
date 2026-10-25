@@ -85,7 +85,7 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   - On quit the app runs `ssh -S <ctl> -O exit <target>` for each master.
 - **The relay:** every run of a remote machine (calls, the events stream,
   every terminal stream) goes through one SSH session. A server may allow
-  only a few sessions per connection (`MaxSessions`; a Meta devserver refused
+  only a few sessions per connection (`MaxSessions`; a server with one-time passcodes refused
   the third), and a second connection would ask for a second passcode. The
   first run on a new master starts that session; it runs a Perl script
   (`Relay.script` in HerdrKit, sent in the envelope; nothing is installed).
