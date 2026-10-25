@@ -64,6 +64,16 @@
                 terminal.inView = streaming.contains { $0 === terminal }
             }
             Self.recent = Self.recent.filter { terminal in !streaming.contains { $0 === terminal } } + streaming
+            // A remote machine's connection holds about 10 SSH sessions (machines#ssh-sessions): only what is in view
+            // streams there.
+            if pages?.machine.isRemote == true {
+                for terminal in terminals.values
+                    where !terminal.inView && Self.recent.contains(where: { $0 === terminal })
+                {
+                    Self.recent.removeAll { $0 === terminal }
+                    terminal.hide()
+                }
+            }
             while Self.recent.count(where: { !$0.inView }) > Self.spare,
                   let index = Self.recent.firstIndex(where: { !$0.inView })
             {

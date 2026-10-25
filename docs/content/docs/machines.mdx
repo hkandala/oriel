@@ -190,6 +190,12 @@ One loop per open session checks that it answers.
   This Mac uses no SSH and has no limit.
 - The app opens a channel when it needs one: a call, a stream, a chat tail,
   a plugin `run`.
+- **Prototype (phase 26):** each remote machine opens at most 10 channels at
+  once; a run past that waits for one to close (CI's first remote page asked
+  for more at once and sshd refused them: "Session open refused by peer"). A
+  remote machine's window streams only the tabs in view, not the recently
+  shown ones (D46), so streams leave room for calls. The refusal handling
+  below comes later.
 - When the server refuses one, the app closes the least recently shown kept
   stream (D46, [What streams](/docs/talking-to-herdr#what-streams)) and tries
   once more. If nothing is left to close, or the second try fails too, the

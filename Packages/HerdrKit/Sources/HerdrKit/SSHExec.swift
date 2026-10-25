@@ -25,6 +25,12 @@
         private var failures = 0
         /// herdr's path from the machine's login shell, asked once per master; a nil is asked again after 30 s.
         private var lookup: (task: Task<String?, Never>, at: ContinuousClock.Instant)?
+        /// Channels open on the master, and runs waiting for one: sshd allows 10 sessions per connection by default
+        /// (`MaxSessions`), and refuses the 11th.
+        /// ponytail: a fixed 10 that long-lived streams hold too; the app streams only the tabs in view of a remote
+        /// machine. Learn the server's limit from a refusal when one shows.
+        private var channels = 0
+        private var waiting: [CheckedContinuation<Void, Never>] = []
 
         public init(target: String, local: ProcessExec) {
             self.target = target
@@ -40,11 +46,36 @@
 
         public func run(_ argv: [String]) async throws -> Channel {
             try await up(nil)
+            if channels < 10 {
+                channels += 1
+            } else {
+                // A closing channel hands its place over.
+                await withCheckedContinuation { waiting.append($0) }
+            }
             // Without a master these fail at once instead of opening their own connection and prompting again, and
             // they send none of the user's configured forwards (machines#macos).
-            return try ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-o", "ControlMaster=no", "-o",
-                                          "BatchMode=yes", "-o", "ProxyCommand=/usr/bin/false", "-S", socket,
-                                          target, "--", Self.envelope(argv)], environment)
+            let channel: Channel
+            do {
+                channel = try ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-o", "ControlMaster=no", "-o",
+                                                 "BatchMode=yes", "-o", "ProxyCommand=/usr/bin/false", "-S", socket,
+                                                 target, "--", Self.envelope(argv)], environment)
+            } catch {
+                closed()
+                throw error
+            }
+            Task {
+                _ = await channel.exit()
+                closed()
+            }
+            return channel
+        }
+
+        private func closed() {
+            if waiting.isEmpty {
+                channels -= 1
+            } else {
+                waiting.removeFirst().resume()
+            }
         }
 
         public func herdr() async throws -> String? {
