@@ -10,7 +10,8 @@ struct Ahead {
     /// New tabs not in a snapshot yet, oldest first.
     var tabs: [NewTab] = []
     var split: NewSplit?
-    /// The tab herdr made for a stand-in, by the stand-in's id: the page that selected the stand-in selects it.
+    /// herdr's tabs that took stand-ins' places in the last snapshot, by stand-in id: every page's selection and tab
+    /// history follow them as they settle on that snapshot (phase 27).
     var arrived: [String: String] = [:]
     /// herdr's tabs for stand-ins closed before they came: the store closes them.
     var toClose: [String] = []
@@ -42,6 +43,7 @@ struct Ahead {
 
     /// herdr's tab for the stand-in, from its answer or a snapshot: no other stand-in may take it.
     mutating func made(_ standIn: String, _ id: String) {
+        arrived[standIn] = id
         if tabs.first(where: { $0.id == standIn })?.closed == true {
             closing.insert(id)
             toClose.append(id)
@@ -63,6 +65,7 @@ struct Ahead {
     mutating func show(_ snapshot: Snapshot) -> Shown {
         let ids = snapshot.workspaces.map(\.id) + snapshot.tabs.map(\.id) + snapshot.panes.map(\.id)
         closing.formIntersection(ids)
+        arrived = [:]
         // herdr's tab for each stand-in: the first new one of its workspace.
         tabs.removeAll { standIn in !snapshot.workspaces.contains { $0.id == standIn.workspaceID } }
         for id in tabs.map(\.id) {
@@ -71,10 +74,6 @@ struct Ahead {
                 standIn.made.map { $0 == tab.id }
                     ?? (tab.workspaceID == standIn.workspaceID && !standIn.known.contains(tab.id))
             }) else { continue }
-            // With herdr's answer in, the page knows the tab already.
-            if !standIn.closed, standIn.made == nil {
-                arrived[id] = tab.id
-            }
             made(id, tab.id)
         }
         var trees = snapshot.trees.compactMapValues { $0.removing(closing) }
@@ -115,23 +114,22 @@ struct Ahead {
 extension HostStore {
     /// Closes at once when every pane of it runs only its shell; else the close to ask about, with what runs (design
     /// D41), for the asking window. Asked now, not the panes' last answers: a program may have started since. When the
-    /// last answers say only shells run, it is gone at once, before this returns, while herdr is asked (phase 25); a
-    /// program found brings it back with the question. A pane with no answer yet (a new one's is a second late) waits
-    /// for herdr's: shown at once, a program in it would come back with the question a moment later. Nil: nothing to
-    /// ask.
+    /// last answers say only shells run, or a new pane's shell still starts, it is gone at once, before this returns,
+    /// while herdr is asked (phases 25, 27: quick ⌘W after quick ⌘T step back one tab each); a program found brings it
+    /// back with the question. Any other pane with no answer yet waits for herdr's. Nil: nothing to ask.
     func ask(_ request: Close) -> Task<Closing?, Never>? {
         guard let client else { return nil }
-        // A stand-in (⌘T, then a close before herdr answered) goes now, herdr's tab as it comes.
-        let standIns = closeIDs(request).filter(Ahead.isStandIn)
-        if case .tab = request, !standIns.isEmpty {
+        // Stand-ins only (⌘T, then a close before herdr answered; a new tab's card has its tab's id) go now, herdr's
+        // tabs as they come.
+        let ids = closeIDs(request), standIns = ids.filter(Ahead.isStandIn)
+        if !ids.isEmpty, standIns.count == ids.count {
             closeStandIns(standIns)
             return nil
         }
         let tabs = tabIDs(request)
         let asked = panes.filter { pane in request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
         let action = closing(request)
-        // Not a pane with no answer yet, a new one's too: hidden, a program in it would come back a moment later.
-        let clear = asked.allSatisfy { $0.program?.isShell == true }
+        let clear = asked.allSatisfy { $0.program?.isShell == true || $0.starting }
         if clear {
             hide(request)
         }
@@ -279,9 +277,8 @@ extension HostStore {
     }
 
     /// herdr answered with the stand-in's tab: the stand-in shows until a snapshot has it, and no other stand-in
-    /// takes it. Whether the stand-in was closed.
-    func madeTab(_ standIn: String, _ id: String) -> Bool {
-        ahead.arrived[standIn] = nil
+    /// takes it.
+    func madeTab(_ standIn: String, _ id: String) {
         for index in ahead.tabs.indices {
             if ahead.tabs[index].id == standIn {
                 ahead.tabs[index].made = id
@@ -289,7 +286,6 @@ extension HostStore {
                 ahead.tabs[index].known.insert(id)
             }
         }
-        return ahead.tabs.first { $0.id == standIn }?.closed == true
     }
 
     /// The tabs of stand-ins closed before herdr made them: already left out, closed now.
@@ -301,3 +297,19 @@ extension HostStore {
         }
     }
 }
+
+#if os(macOS)
+    extension Page {
+        /// The selected tab while it is a new tab's stand-in.
+        var standIn: String? {
+            selectedTab.flatMap { Ahead.isStandIn($0.id) ? $0.id : nil }
+        }
+
+        /// Close Pane: the pane, else the shown stand-in, which has no pane yet; ⌘W closes it too (phase 27).
+        func closePane(_ pane: HostStore.Pane?) {
+            if let id = pane?.id ?? standIn {
+                close(.pane(id))
+            }
+        }
+    }
+#endif

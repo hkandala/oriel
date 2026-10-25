@@ -90,6 +90,30 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
     }
 
+    /// Closing the keyboard card gives the keyboard to the card used before it in the tab, most recent first, not to
+    /// herdr's focused pane or the neighbor (phase 27).
+    func testClosingAPaneGivesTheKeyboardToThePaneUsedBefore() async throws {
+        let (tab, first) = try await newTab("used-panes")
+        let second = try await split(first), third = try await split(second)
+        element("tab.\(tab)").click()
+        try await settle([tab])
+        // The third, then the first (herdr's focused pane: splits pass focus:false); closed, the old code gave its
+        // neighbor, the second, which herdr focuses.
+        for pane in [third, first] {
+            element("terminal.\(pane)").click()
+            XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")), pane)
+        }
+        app.typeKey("w", modifierFlags: .command)
+        XCTAssertTrue(element("pane.\(first)").vanishes(within: 3))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
+        // Two back: the second, closed, gives way to the third again.
+        element("terminal.\(second)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        app.typeKey("w", modifierFlags: .command)
+        XCTAssertTrue(element("pane.\(second)").vanishes(within: 3))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
+    }
+
     /// A split's new pane gets the keyboard (⌘D and the header's button); ⌘[ ⌘] step in the tree's order, not the
     /// order the panes were made; ⇧⌘↩ zooms the keyboard card (phase 25: the menu bar kept Zoom Pane disabled from
     /// before the split, so the key did nothing).

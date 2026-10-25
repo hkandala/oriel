@@ -48,13 +48,24 @@
         /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
         var stripPage = 0.0
         /// The terminal that last had the keyboard in each tab. Observed: the tab's icon stack puts it in front.
-        private var keyboardTerminals: [String: String] = [:]
+        private var keyboardTerminals: [String: String] = [:] {
+            didSet {
+                for (tab, terminal) in oldValue where keyboardTerminals[tab] != terminal {
+                    usedTerminals.removeAll { $0 == terminal }
+                    usedTerminals.append(terminal)
+                }
+            }
+        }
+
+        /// The terminals that had the keyboard before, the latest last: a closed keyboard card gives way to the card of
+        /// its tab used before it (phase 27).
+        @ObservationIgnored private var usedTerminals: [String] = []
         /// The tab whose terminal last got the keyboard from the app.
         @ObservationIgnored private var keyboardTabID: String?
         /// A moved pane's terminal, which takes the keyboard once a snapshot shows it in its tab: a write does not wait
         /// for its snapshot.
         @ObservationIgnored private var movedTerminal: String?
-        /// A tab this page just made, selected once a snapshot shows it.
+        /// A tab this page just moved a pane to or a workspace it made, selected once a snapshot shows it.
         @ObservationIgnored private var arriving: String?
 
         /// The session's name.
@@ -90,8 +101,13 @@
         /// After each snapshot: a closed selected tab gives way to the tab used before it, else the one to its left,
         /// else the new first (phase 24); a workspace's first selection, or a saved one that is gone, is herdr's
         /// active tab. A gone workspace falls back to herdr's focused one, and a tab this page made is selected once
-        /// it shows.
+        /// it shows. herdr's tab takes its stand-in's place in the selection and the history (phase 27).
         func settle() {
+            let arrived = store.ahead.arrived
+            if !arrived.isEmpty {
+                usedTabIDs = usedTabIDs.mapValues { $0.map { arrived[$0] ?? $0 } }
+                selectedTabIDs = selectedTabIDs.mapValues { arrived[$0] ?? $0 }
+            }
             for workspace in store.workspaces {
                 let ids = workspace.tabs.map(\.id)
                 switch selectedTabIDs[workspace.id] {
@@ -117,12 +133,7 @@
             if let id = zoomedPaneID, alone(id) || store.pane(id)?.tabID != zoomedTabID {
                 zoomedPaneID = nil
             }
-            // herdr's tab took the place of the stand-in this page made.
-            if let id = arriving, let made = store.ahead.arrived.removeValue(forKey: id) {
-                arriving = made
-            }
-            // Not the stand-in itself: it waits for herdr's tab.
-            if let id = arriving, !Ahead.isStandIn(id), let workspace = store.workspace(of: id) {
+            if let id = arriving, let workspace = store.workspace(of: id) {
                 select(workspace, tab: id)
             }
             if selectedWorkspace == nil {
@@ -131,32 +142,30 @@
             }
         }
 
-        /// The tab's panes for its icon stack, at most 5: the keyboard card's first (herdr's focused pane until one
-        /// had the keyboard), then herdr's order.
-        func stack(_ tab: HostStore.Tab) -> [HostStore.Pane] {
-            let tabPanes = store.panes.filter { $0.tabID == tab.id }
-            let front = keyboardCard(tab.id)
-            return Array(([front].compactMap(\.self) + tabPanes.filter { $0 !== front }).prefix(5))
-        }
-
-        /// The card keys and the menu bar's pane items go to: the selected tab's zoomed card, else the terminal with
-        /// the keyboard, else herdr's focused pane of the selected tab.
+        /// The card keys and the menu bar's pane items go to: the selected tab's zoomed card, else its terminal with
+        /// the keyboard, else its keyboard card. None on a new tab's stand-in.
         var keyboardPane: HostStore.Pane? {
             if let zoomed = zoomedPaneID.flatMap(store.pane), zoomed.tabID == selectedTab?.id {
                 return zoomed
             }
-            if let id = terminals.keyboardTerminalID, let pane = store.panes.first(where: { $0.terminalID == id }) {
+            // Not another tab's: its view keeps the keyboard until the shown tab's terminal takes it (after ⌘T, until
+            // herdr's tab comes), and ⌘W closed that tab's pane.
+            if let id = terminals.keyboardTerminalID, let pane = store.panes.first(where: { $0.terminalID == id }),
+               pane.tabID == selectedTab?.id
+            {
                 return pane
             }
             // A text field has the keyboard: the card that had it last.
             return keyboardCard(selectedTab?.id)
         }
 
-        /// The tab's card that last had the keyboard, else herdr's focused pane. Observed, unlike the first responder.
+        /// The tab's card that last had the keyboard, else the one before it (it closed), else herdr's focused pane.
+        /// Observed, unlike the first responder.
         func keyboardCard(_ tabID: String?) -> HostStore.Pane? {
-            let terminalID = tabID.flatMap { keyboardTerminals[$0] }, panes = store.panes.filter { $0.tabID == tabID }
-            return panes.first { !floats($0) && $0.terminalID != nil && $0.terminalID == terminalID }
-                ?? panes.first { !floats($0) && $0.focused }
+            let panes = store.panes.filter { $0.tabID == tabID && !floats($0) }
+            let used = [tabID.flatMap { keyboardTerminals[$0] }].compactMap(\.self) + usedTerminals.reversed()
+            let pane = used.lazy.compactMap { id in panes.first { $0.terminalID == id } }.first
+            return pane ?? panes.first(where: \.focused)
         }
 
         /// The selected tab's terminals and the floated ones (terminal id → pane id): the ones that stream.
@@ -182,6 +191,7 @@
         /// card it had; herdr's focused pane only picks it the first time a tab is shown. Later snapshots leave it
         /// alone, unless the card with the keyboard closed: then the tab's next card takes it.
         func shown(alive: Set<String>) {
+            usedTerminals.removeAll { !alive.contains($0) }
             if let tab = selectedTab, let gone = keyboardTerminals[tab.id], !alive.contains(gone) {
                 keyboardTerminals[tab.id] = nil
                 focusKeyboardCard()
@@ -243,13 +253,6 @@
             let workspaces = sidebarWorkspaces
             guard let index = workspaces.firstIndex(where: { $0.id == selectedWorkspaceID }) else { return }
             select(workspaces[(index + offset + workspaces.count) % workspaces.count])
-        }
-
-        /// "‹workspace› · ‹tab›", for agent rows and notifications.
-        func place(_ pane: HostStore.Pane) -> String {
-            let workspace = store.workspace(of: pane.tabID)
-            let tab = workspace?.tabs.first { $0.id == pane.tabID }
-            return [workspace?.label, tab.map(titleText)].compactMap(\.self).joined(separator: " · ")
         }
 
         /// Zooms the card, or restores the layout when it is the zoomed one. The zoomed card gets the keyboard.
@@ -360,19 +363,17 @@
         /// has it.
         func newTab(in workspace: HostStore.Workspace? = nil) async {
             guard let workspace = workspace ?? selectedWorkspace else { return }
-            // Another workspace's: the keyboard card of its selected tab.
-            let pane = workspace.id == selectedWorkspaceID ? keyboardPane : keyboardCard(selectedTabIDs[workspace.id])
+            // Another workspace's, or a stand-in shows (⌘T again): the keyboard card of the tab used last there.
+            let tabs = [selectedTabIDs[workspace.id]] + (usedTabIDs[workspace.id] ?? []).reversed()
+            let pane = (workspace.id == selectedWorkspaceID ? keyboardPane : nil)
+                ?? tabs.lazy.compactMap { self.keyboardCard($0) }.first
             let standIn = store.standIn(in: workspace.id)
             select(workspace, tab: standIn)
-            arriving = standIn
             guard let made = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id) else {
                 store.dropStandIn(standIn)
                 return
             }
-            // No snapshot had it yet, and it was not closed.
-            if !store.madeTab(standIn, made), arriving == standIn {
-                arriving = made
-            }
+            store.madeTab(standIn, made)
         }
 
         /// The snapshot after it selects the new workspace.

@@ -198,6 +198,21 @@
             return (name, pane.folder.map { $0 == "~" ? $0 : ($0 as NSString).lastPathComponent })
         }
 
+        /// The tab's panes for its icon stack, at most 5: the keyboard card's first (herdr's focused pane until one
+        /// had the keyboard), then herdr's order.
+        func stack(_ tab: HostStore.Tab) -> [HostStore.Pane] {
+            let tabPanes = store.panes.filter { $0.tabID == tab.id }
+            let front = keyboardCard(tab.id)
+            return Array(([front].compactMap(\.self) + tabPanes.filter { $0 !== front }).prefix(5))
+        }
+
+        /// "‹workspace› · ‹tab›", for agent rows and notifications.
+        func place(_ pane: HostStore.Pane) -> String {
+            let workspace = store.workspace(of: pane.tabID)
+            let tab = workspace?.tabs.first { $0.id == pane.tabID }
+            return [workspace?.label, tab.map(titleText)].compactMap(\.self).joined(separator: " · ")
+        }
+
         /// The title in one string, for the window title and menus.
         func titleText(_ tab: HostStore.Tab) -> String {
             let title = title(tab)

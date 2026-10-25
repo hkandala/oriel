@@ -361,7 +361,8 @@
                 // herdr's label goes: the header shows the program again.
                 act("Reset Pane Name", nil, .paneMove, symbol: "arrow.uturn.backward",
                     enabled: pane?.label != nil) { await $0.store.rename(pane: $1.id, label: "") },
-                act("Close Pane", .closePane, .close, symbol: "xmark.square") { $0.close(.pane($1.id)) },
+                Command(section: .close, title: "Close Pane", key: .closePane, group: .panes, symbol: "xmark.square",
+                        keywords: "pane", enabled: pane != nil || page?.standIn != nil) { page?.closePane(target()) },
             ]
         }
     }

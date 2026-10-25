@@ -72,6 +72,37 @@ extension OrielUITests {
         XCTAssertTrue(capsules[3].has(\.isSelected, true, within: 3))
     }
 
+    /// Quick ⌘T three times, then quick ⌘W: each closes the shown tab and goes to the one used before it, one step
+    /// back each time, while the new tabs are still stand-ins or their shells start (phase 27). The old code lost a
+    /// stand-in from the history once herdr's tab took its place, and waited for a starting shell, so it jumped back
+    /// to the first tab.
+    func testQuickNewTabsThenClosesStepBackOneTabEach() async throws {
+        let before = try await tabIDs()
+        closeNew("tab", besides: before)
+        let first = element("tab.w1:t1")
+        XCTAssertTrue(first.has(\.isSelected, true, within: connect))
+        for _ in 0 ..< 3 {
+            app.typeKey("t", modifierFlags: .command)
+        }
+        // w1's capsules, left to right: t1, t2 and the three new ones; the selected one's place.
+        let selected = { () -> Int? in
+            let capsules = self.app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'tab.'"))
+                .allElementsBoundByIndex.filter { capsule in
+                    ![".close", ".keycap", ".working", ".rename"].contains { capsule.identifier.hasSuffix($0) }
+                }.sorted { $0.frame.minX < $1.frame.minX }
+            return capsules.firstIndex { $0.isSelected }
+        }
+        XCTAssertTrue(until(3) { selected() == 4 })
+        for place in [3, 2, 0] {
+            app.typeKey("w", modifierFlags: .command)
+            XCTAssertTrue(until(2) { selected() == place }, "after ⌘W: \(String(describing: selected()))")
+        }
+        // herdr closed the three, and only them; no dialog.
+        try await expect("herdr's tabs as before") { try await tabIDs().sorted() == before.sorted() }
+        XCTAssertTrue(first.isSelected)
+        XCTAssertFalse(app.sheets.firstMatch.exists)
+    }
+
     /// Close Tabs to the Right, from a capsule's menu and from the palette, keeps the tabs on the left; it asks once
     /// while a program runs in them, else not at all.
     func testCloseTabsToTheRightKeepsTheTabsOnTheLeft() async throws {

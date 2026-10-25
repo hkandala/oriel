@@ -134,6 +134,9 @@ herdr's focus methods (D13):
 - A split (the header buttons, the menus, the palette, ⌘D, ⇧⌘D) gives the
   keyboard to the new pane once a snapshot shows it, as in Ghostty.
 - Moving the keyboard to a card that a zoom hides restores the zoom.
+- When the keyboard card closes, the keyboard goes to the card of its tab
+  used before it (most recent first), as closing a tab goes to the tab used
+  before it; else to herdr's focused pane of the tab (phase 27).
 - ⌥⇧⌘ and an arrow (Move Pane): swaps the keyboard card with its neighbor
   that way, with `pane.swap {pane_id, direction, focus:false}`. The keyboard
   stays with the pane.
