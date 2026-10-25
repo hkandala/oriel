@@ -75,7 +75,9 @@ extension OrielUITests {
         XCTAssertTrue((show.label + show.stringValue).contains("tmp"), show.debugDescription)
         keepScreen("floating window over the main window")
         show.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.9)).click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: window)))
+        // Not through `window`: XCUITest dropped that element once the window came forward (CI 40196255503). The
+        // card in the tab has no terminal, so this one is the floating window's.
+        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
     }
 
     /// Two floating windows, one on top, its own ⌘K, and both back after ⌘Q and a relaunch.
