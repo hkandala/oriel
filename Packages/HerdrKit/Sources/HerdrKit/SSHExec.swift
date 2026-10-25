@@ -10,8 +10,9 @@
         public typealias Ask = @Sendable (String) async -> String?
 
         /// As the user types it in a terminal: `host`, `user@host`, a `~/.ssh/config` alias.
-        public nonisolated let target: String
-        nonisolated let local: ProcessExec
+        nonisolated let target: String
+        /// This Mac's login-shell environment: the user's agent and PATH for ssh.
+        nonisolated let environment: [String: String]
         nonisolated let socket: String
         /// The master's pid while it lives: a check costs a `kill(pid, 0)`, not a process.
         /// ponytail: a reused pid reads as a live master until a run fails; `-O check` per run if that bites.
@@ -27,7 +28,7 @@
 
         public init(target: String, local: ProcessExec) {
             self.target = target
-            self.local = local
+            environment = local.environment
             let hash = SHA256.hash(data: Data(target.utf8)).prefix(4).map { String(format: "%02x", $0) }.joined()
             socket = Self.folder + "/" + hash
         }
@@ -43,7 +44,7 @@
             // they send none of the user's configured forwards (machines#macos).
             return try ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-o", "ControlMaster=no", "-o",
                                           "BatchMode=yes", "-o", "ProxyCommand=/usr/bin/false", "-S", socket,
-                                          target, "--", Self.envelope(argv)], local.environment)
+                                          target, "--", Self.envelope(argv)], environment)
         }
 
         public func herdr() async throws -> String? {
@@ -114,7 +115,7 @@
                         "-o", "ControlPersist=10m", "-o", "ServerAliveInterval=5", "-o", "ServerAliveCountMax=3",
                         "-o", "ConnectTimeout=10", "-o", "ForwardAgent=no", "-o", "ForwardX11=no",
                         "-o", "ClearAllForwardings=yes"]
-            var environment = local.environment
+            var environment = environment
             if ask == nil {
                 argv += ["-o", "BatchMode=yes"]
             } else {
@@ -172,12 +173,11 @@
 
         /// The master's pid, from "Master running (pid=123)".
         private func pid() async -> pid_t? {
-            guard let check = try? ProcessExec.spawn(["sh", "-c", #"exec "$@" 2>&1"#, "sh", "/usr/bin/ssh", "-F",
-                                                      "/dev/null", "-S", socket, "-O", "check", target],
-                                                     local.environment)
+            guard let check = try? ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-S", socket, "-O", "check",
+                                                      target], environment)
             else { return nil }
             check.closeInput()
-            let reply = await check.lines.reduce("") { $0 + $1 }
+            let reply = await check.exit().stderr
             return reply.split(separator: "pid=").last.flatMap { pid_t($0.prefix { $0.isNumber }) }
         }
 

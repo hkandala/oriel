@@ -133,10 +133,9 @@ final class HostStore {
         /// window that controls the session (machines#health-check: only this may prompt).
         func connect() async {
             guard let ssh = await machine.exec() as? SSHExec else { return }
-            let name = machine.name
             do {
                 try await ssh
-                    .connect { [weak self] question in await self?.windows.first?.ask(question, machine: name) }
+                    .connect { [weak self] question in await self?.windows.first?.ask(question) }
             } catch {
                 await show(Notice(text: error.localizedDescription))
             }

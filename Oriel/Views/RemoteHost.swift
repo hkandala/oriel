@@ -53,6 +53,7 @@
     /// PIN. A new host key asks only yes or no, with its fingerprint in the text.
     struct AskSheet: View {
         let question: WindowPages.Question
+        let machine: String
         @State private var answer = ""
         @FocusState private var focused: Bool
 
@@ -61,7 +62,7 @@
             let secret = ["password", "passphrase", "PIN"]
                 .contains { question.text.localizedCaseInsensitiveContains($0) }
             VStack(alignment: .leading, spacing: 12) {
-                Text(question.machine).font(.headline)
+                Text(machine).font(.headline)
                 Text(hostKey ? Self.facts(question.text) : question.text
                     .trimmingCharacters(in: .whitespacesAndNewlines))
                     .font(hostKey ? .body.monospaced() : .body)

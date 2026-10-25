@@ -2,11 +2,10 @@ import Foundation
 
 #if os(macOS)
     public extension HerdrClient {
-        /// Starts this session's server and waits until it answers: on This Mac as a one-shot launchd job, so
-        /// launchd, not the app, is its parent and responsible process (design D47); on a remote machine with nohup. No
-        /// KeepAlive: once
-        /// `herdr session stop` ends it, launchd keeps the job loaded but never runs it again. False when it
-        /// already ran.
+        /// Starts this session's server and waits until it answers; false when it already ran. On This Mac it is a
+        /// one-shot launchd job, so launchd, not the app, is its parent and responsible process (design D47); no
+        /// KeepAlive: once `herdr session stop` ends it, launchd keeps the job loaded but never runs it again. On a
+        /// remote machine it starts with nohup.
         @discardableResult
         nonisolated func startServer(within timeout: Duration) async throws -> Bool {
             // The name goes into a launchd label and file paths.

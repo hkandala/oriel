@@ -279,7 +279,7 @@ struct OrielApp: App {
                 if $0 == nil {
                     pages.question?.answer(nil)
                 }
-            }) { AskSheet(question: $0) }
+            }) { AskSheet(question: $0, machine: pages.machine.name) }
             .environment(\.look, look)
             .testValue("window.look", "Appearance", "\(style.rawValue) \(look.dark ? "dark" : "light")")
             // The links a test ⌘-clicked (`-recordLinks YES`).
