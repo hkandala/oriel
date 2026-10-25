@@ -25,11 +25,7 @@
                                 // Layout motion (0.2 s): a split, a close, a swap, a zoom. The terminals keep their
                                 // size until it ends (`TerminalHost`).
                                 let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
-                                let motion = reduceMotion && !Animation.forceMotion ? nil : Animation
-                                    .easeOut(duration: 0.2)
-                                SplitLayout(tree: tree, zoomed: zoomed, motion: motion, page: page, tabID: tab.id)
-                                    .animation(motion, value: tree)
-                                    .animation(motion, value: zoomed)
+                                SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
                                     .padding([.horizontal, .bottom], gap)
                                     .padding(.top, 4)
                             } else {
@@ -97,7 +93,6 @@
         /// The tab's zoomed card (D11): it fills the page; the others stay at their size, hidden under it, so their
         /// terminals keep their size.
         let zoomed: String?
-        let motion: Animation?
         let page: Page
         let tabID: String
         /// The cards in their place: one new since the page first drew starts beside its place and slides in. Not a
@@ -106,6 +101,11 @@
         /// The app's ratio of a split (by path) while its divider is dragged or sent, until herdr's snapshot shows its
         /// own.
         @State private var held: [[Bool]: Double] = [:]
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        private var motion: Animation? {
+            reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.2)
+        }
 
         var body: some View {
             GeometryReader { geometry in
@@ -116,18 +116,15 @@
                         let away = zoomed != nil && zoomed != card.id
                         // A new card slides in from its side as the others make room, its edge on theirs.
                         let entering = placed.map { !$0.contains(card.id) } ?? false
-                        let rect = zoomed == card.id ? area : entering ? card.rect.offsetBy(dx: card.from.width,
-                                                                                            dy: card.from.height)
-                            : card.rect
+                        let rect = zoomed == card.id ? area : entering ? card.start : card.rect
                         PaneCard(id: card.id, page: page, away: away)
                             .place(rect)
                             // Under the zoomed card, which covers it, so its terminal views get no clicks.
                             .opacity(away || entering ? 0 : 1)
                             .zIndex(away ? 0 : 1)
                             .allowsHitTesting(!away)
-                            // A closed card fades as the others grow (a scale would leave its terminal view at full
-                            // size).
-                            .transition(.opacity)
+                            // A closed card fades as the others grow. A new one fades in with its slide (`entering`).
+                            .transition(.asymmetric(insertion: .identity, removal: .opacity))
                     }
                     ForEach(parts.dividers, id: \.id) { divider in
                         // The panes beside the divider.
@@ -143,10 +140,12 @@
                     }
                 }
             }
-            .onAppear { placed = Set(tree.paneIDs) }
-            .onChange(of: tree) { old, new in
-                // herdr's pane in a split's stand-in (`Ahead`) takes its place without a second slide.
-                withAnimation(old.paneIDs.contains(where: Ahead.isStandIn) ? nil : motion) {
+            .animation(motion, value: tree)
+            .animation(motion, value: zoomed)
+            .onChange(of: tree, initial: true) { old, new in
+                // herdr's pane in a split's stand-in (`Ahead`) takes its place at once, over the stand-in fading out.
+                let standIn = old.paneIDs.contains { Ahead.isStandIn($0) && !new.paneIDs.contains($0) }
+                withAnimation(standIn ? nil : motion) {
                     placed = Set(new.paneIDs)
                 }
             }
@@ -159,18 +158,8 @@
         struct Card {
             let id: String
             let rect: CGRect
-            /// Its side of its split, where it slides in from.
-            let edge: Edge
-
-            /// Where it slides in from: beside its place, on its side.
-            var from: CGSize {
-                switch edge {
-                case .leading: CGSize(width: -rect.width - gap, height: 0)
-                case .trailing: CGSize(width: rect.width + gap, height: 0)
-                case .top: CGSize(width: 0, height: -rect.height - gap)
-                case .bottom: CGSize(width: 0, height: rect.height + gap)
-                }
-            }
+            /// Where it slides in from: beside its place, on its side of its split.
+            let start: CGRect
         }
 
         struct Divider {
@@ -195,25 +184,29 @@
         private(set) var dividers: [Divider] = []
 
         init(_ tree: SplitNode, in area: CGRect, held: [[Bool]: Double]) {
-            add(tree, area, path: [], edge: .trailing, held: held)
+            add(tree, area, path: [], side: CGVector(dx: 1, dy: 0), held: held)
         }
 
-        private mutating func add(_ node: SplitNode, _ rect: CGRect, path: [Bool], edge: Edge,
+        /// `side`: the card's side of its split, as a unit step (right, left, down or up).
+        private mutating func add(_ node: SplitNode, _ rect: CGRect, path: [Bool], side: CGVector,
                                   held: [[Bool]: Double])
         {
             switch node {
             case let .leaf(id):
-                cards.append(Card(id: id, rect: rect, edge: edge))
+                let start = rect.offsetBy(dx: side.dx * (rect.width + gap), dy: side.dy * (rect.height + gap))
+                cards.append(Card(id: id, rect: rect, start: start))
             case let .split(direction, ratio, first, second):
                 let right = direction == .right, from: CGRectEdge = right ? .minXEdge : .minYEdge
                 let total = max(0, (right ? rect.width : rect.height) - gap)
                 let herdr = ratio.isNaN ? 0.5 : min(max(ratio, 0), 1)
                 let (one, rest) = rect.divided(atDistance: total * (held[path] ?? herdr), from: from)
                 let (line, two) = rest.divided(atDistance: gap, from: from)
-                add(first, one, path: path + [false], edge: right ? .leading : .top, held: held)
+                add(first, one, path: path + [false], side: right ? CGVector(dx: -1, dy: 0) : CGVector(dx: 0, dy: -1),
+                    held: held)
                 dividers.append(Divider(path: path, right: right, rect: line, total: total, ratio: herdr,
                                         beside: [first.paneIDs.last, second.paneIDs.first]))
-                add(second, two, path: path + [true], edge: right ? .trailing : .bottom, held: held)
+                add(second, two, path: path + [true], side: right ? CGVector(dx: 1, dy: 0) : CGVector(dx: 0, dy: 1),
+                    held: held)
             }
         }
     }
@@ -329,7 +322,8 @@
 
     private extension View {
         /// At this rectangle of the page, by layout (padding), not `.offset`: a layout change animates every view in
-        /// it, the terminal's too.
+        /// it, the terminal's too. A negative padding (a card sliding in from the left or the top) slides it from
+        /// outside the page; alignment guides there moved the whole stack instead (a spike).
         func place(_ rect: CGRect) -> some View {
             frame(width: rect.width, height: rect.height)
                 .padding(.leading, rect.minX)
