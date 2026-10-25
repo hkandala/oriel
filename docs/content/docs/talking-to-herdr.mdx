@@ -421,8 +421,9 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
   is asked; a program found brings it back with the question. A pane with no
   answer yet waits for herdr's. A pane whose new shell is still starting (its
   first seconds, [Program icons](/docs/ui/program-icons)) runs short-lived
-  startup programs (`ls`, `sort`): it is asked again every 200 ms, up to 4 s,
-  until only its shell runs.
+  startup programs (`ls`, `sort`): it is asked again every 200 ms, up to
+  0.8 s, until only its shell runs; a close of it is not shown before herdr's
+  answer.
 - A tab closed before herdr made it (⌘T, then a close at once) goes at once;
   herdr's tab is closed as it comes.
 - `pane.swap` makes herdr focus that tab and its pane and mark it seen, even

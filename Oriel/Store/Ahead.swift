@@ -130,8 +130,8 @@ extension HostStore {
         let tabs = tabIDs(request)
         let asked = panes.filter { pane in request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
         let action = closing(request)
-        // A new pane's shell still starting counts as one: its startup is waited out below.
-        let clear = asked.allSatisfy { $0.program?.isShell == true || $0.starting }
+        // Not a pane with no answer yet, a new one's too: hidden, a program in it would come back a moment later.
+        let clear = asked.allSatisfy { $0.program?.isShell == true }
         if clear {
             hide(request)
         }
@@ -161,8 +161,8 @@ extension HostStore {
     }
 
     /// What runs besides the shells in the panes, asked now, 8 at a time: a big workspace is not 30 herdr runs at once.
-    /// A new pane's shell still starting runs short-lived programs (`ls`, `sort`, as after ⌘T): asked again, up to
-    /// 4 s as `watchProgram` waits for a slow startup, until only its shell runs.
+    /// A new pane's shell still starting runs short-lived programs (`ls`, `sort`, as after ⌘T): asked again for up to
+    /// 0.8 s until only its shell runs. ponytail: a slower startup (a cold nvm) still asks, naming what it runs.
     private func programs(_ paneIDs: [String], starting: Set<String>, _ client: any Multiplexer) async -> Set<String> {
         await withTaskGroup(of: String?.self) { group in
             var rest = paneIDs[...]
@@ -172,7 +172,7 @@ extension HostStore {
                     let ask = { try await client.program(id).flatMap { $0.isShell ? nil : $0.title } }
                     do {
                         var name = try await ask()
-                        for _ in 0 ..< (starting.contains(id) ? 20 : 0) where name != nil {
+                        for _ in 0 ..< (starting.contains(id) ? 4 : 0) where name != nil {
                             try await Task.sleep(for: .milliseconds(200))
                             name = try await ask()
                         }
