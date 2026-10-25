@@ -434,6 +434,40 @@ found none). If herdr has none, floating is Oriel's own.
 - **For the user to check by hand:** a two-finger swipe between sessions (the spring's feel on a real trackpad); ⌘T,
   ⌘D, ⌘W and ⌘K on this Mac; ⌘T then an immediate ⌘W in a slow-starting shell.
 
+### Lane A2 (item 3)
+
+- **Root cause, cards jumping.** `SplitLayout` nested one view per split and switched on the node, so a pane whose
+  leaf became a split (the pane split) or whose sibling closed (the one left) was a new `PaneCard` in a new branch:
+  it showed at its new size with a fade, and its terminal view moved to a new host. Zoom had no animation at all.
+  Now the cards are one flat `ForEach` keyed by pane id, each placed by the rectangle the tree gives it (`Parts`),
+  the dividers keyed by path: every tree change and zoom moves and sizes the same views (a64aa62).
+- **Found on the way: CI's Mac has Reduce Motion on** (run 40176840327), so no motion that honors it had ever run on
+  CI (layout motion, the sidebar slide). Tests of motion launch with `-forceMotion YES` (`Animation.forceMotion`,
+  also read by lane S's session slide); `plan/ci.md` says so.
+- **Decisions.** A new card slides in from its side (from the left for Split Left), its edge one gap from the
+  shrinking card's the whole way, through a `placed` state and `.position`. Not a transition: `.move` and `.offset`
+  transitions moved nothing in CI's recordings (only their fade ran). Not padding: a card coming from the left got a
+  size below zero. herdr's pane keeps the view of lane S's split stand-in, so the slide goes on (herdr answers within
+  it, and a new view popped in at its place). A card with no terminal (the stand-in) now fills its frame; it was a
+  header-high band. Zoom grows the card to the page and back while the others fade.
+- **Deviation.** A closed card fades instead of shrinking: a scale shrank its SwiftUI parts but left its terminal
+  view at full size (CI recording).
+- **No-blank rule with motion on.** Checked frame by frame on CI (forced motion) and locally (Retina, Reduce Motion
+  off): split left and right, zoom, restore, close and the sidebar slide keep the old picture (`TerminalHost` holds it
+  until 150 ms after the last size) and never blank.
+- **Test.** `testLayoutMotionAnimatesWithoutBlanking` (RevealTests): under Reduce Motion a split jumps (one size);
+  with motion, Split Left (the stand-in path), zoom, restore, close and both sidebar toggles each give the staying
+  card's host at least 4 sizes (`-recordMotion YES` counts them; the old code made a new host with 1 or 2) and keep
+  text in a band of screen shots. The new card's slide has no per-frame hook (it moves, it does not resize): checked
+  on the recordings. No red run on the old code: the first runs were red for Reduce Motion, not for the jump. Also
+  `testPaletteSplitsTheKeyboardCardRight` now selects its tab before it clicks the terminal (flaky in 40183475845).
+- **Learned.** `XCUIScreen.main.screenshot().image.size` is in pixels (crop by `backingScaleFactor`); a tooltip or
+  hover card is a window, so `app.windows.firstMatch` can be one. Split Left swaps, and herdr 0.9.5 moves its focus.
+- **Known limits.** A divider send in flight when the tree changes under it targets its old path (as before). A swap
+  now animates the two cards crossing. While a test loops on screen shots, CI's recording gets a frame every 0.3–0.6 s.
+- **For the user to check by hand:** ⌘D, ⇧⌘D, Split Left and Up from the menu, close, zoom and back, in tabs with 2–4
+  panes, with Reduce Motion off and on: the others resize and slide, the new card slides in, the text never blanks.
+
 ## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
 
 Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/fb/agents-header.png` (item 18).
