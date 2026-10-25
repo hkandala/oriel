@@ -162,3 +162,28 @@ found none). If herdr has none, floating is Oriel's own.
   40172219344), so the group labels stay plain. A `Text` exposes its string as the value with no
   `.accessibilityValue`, so the header's hard-coded value went and the tests read the drawn text. Tests know the
   Agents view is on from `agents.sort`, not the header. CI: 40171834621, 40172583567 (lane's tests green).
+
+### Lane H (items 1, 10, 11)
+
+- **Root cause, item 1.** Two things set the keyboard card apart in Glass. (a) The fade: the other cards drew
+  their header and terminal at 0.7 (0.5 in a window that is not key). (b) The fills: the other cards took Rex's
+  pane backdrop (black 0.14), a step *darker* than the window, and the keyboard card added white 0.05 (2/3 in
+  light). The user's screenshot reads window 24, keyboard card 29, other card 18; CI on the old code 23 / 32 / 20
+  (a gap of 12, 40172012490). Fix: no fade (item 10); Glass cards are white 0.03 (0.6 light), a step brighter
+  than the window, and the keyboard card adds only white 0.02 (0.25 light, so it still ends at 0.7); Glass
+  edges are the same on every card. Classic is unchanged. CI now: dark 35 / 30, light 253 / 252.
+- **Item 10.** The setting, its `@AppStorage` key, the command, the opacity math and its test are gone; D64 now
+  says no card fades. Only the watching window's 0.85 dim (D66) is left, so the card's value is "content 100%"
+  or "content 85%".
+- **Item 11.** Increase, Decrease and Reset Font Size, with the old words as palette keywords. Then "font size"
+  in the palette tied Font Size › with Increase Font Size, and Return increased the size (spec review): a tie now
+  goes to a title that starts with the filter (`Palette.rootItems`, a shared file; the docs say so).
+- **Deviation.** No CI check over a light and a dark wallpaper: CI's VM draws the glass backdrop opaque. A test
+  runner window under Oriel, in black, white and blue, changed no pixel of the window (frames of 40172258178).
+  The keyboard card's lead is about the keyboard fill × (255 − card): dark about 4 to 5 over any desktop, light
+  about 7 at most (light tint 0.7 and card 0.6 keep the card above about 225).
+- **Test.** `testCardsLookAlikeWithAndWithoutTheKeyboard` (AppearanceTests): no Fade item in View; in Glass dark
+  and light the keyboard card's median brightness leads the other's by 0 to 6 (red on the old fills, green on
+  the new: 40172905682). `testSecondShortcuts` reads the three palette rows and opens Font Size › with Return.
+- **For the user to check by hand:** Glass dark and light over your own wallpaper, and over a bright one; the
+  keyboard card should read only a little brighter.
