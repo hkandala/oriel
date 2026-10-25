@@ -33,10 +33,11 @@ Each item says what it is and when to build it. Smaller deferrals are marked
   Checked again on 0.9.5 (phase 27): `plugin.pane.open` with `placement:
   "popup"` answers only `ok`; the popup's terminal runs in the server, but it
   has no pane or terminal id in the reply, the snapshot or `pane.list`, and
-  opening or closing it (`popup.close`) sends no event. `plugin_pane_opened`
-  comes only for the other placements, which are normal panes. The upstream
-  ask: the popup (its terminal id and size) in `session.snapshot`, and events
-  when it opens and closes. Oriel would then stream it in its floating window
+  opening or closing it (`popup.close`) sends no event. The
+  `plugin_pane_opened` reply comes only for the other placements, which are
+  normal panes. The upstream ask: the popup (its terminal id and size) in
+  `session.snapshot`, events when it opens and closes, and a close by id
+  (`popup.close` takes no parameters). Oriel would then stream it in its floating window
   by that id, as it does a floated pane.
 - **Placeholders after a cold restart.** herdr brings a pane started with a
   command back as a plain shell, with its label, so the card still works
