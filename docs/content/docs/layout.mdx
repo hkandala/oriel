@@ -75,9 +75,9 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
   - One `layout.set_split_ratio` per split whose ratio changes, then the app
     reads the snapshot.
   - Closing a pane does not rebalance.
-- **Balance** (⌃⌘=, View ▸ Pane ▸ Balance Splits) applies the same rule to
+- **Balance** (⌥⌘=, View ▸ Pane ▸ Balance Splits) applies the same rule to
   every split of the selected tab; an even tab sends nothing.
-- **Keys.** ⌃⌘ and an arrow sends
+- **Resize Pane** (View ▸ Pane and the palette; no key since phase 25) sends
   `pane.resize {pane_id, direction, amount: 0.05}` for the keyboard card.
   herdr moves the nearest divider that way: right and down raise its ratio,
   left and up lower it. With no divider that way, herdr returns
@@ -129,7 +129,10 @@ herdr's focus methods (D13):
   `pane.neighbor {pane_id, direction}` names. One call per key, so the app
   has no geometry code of its own for this.
 - ⌘[ and ⌘] (Select Previous Pane, Select Next Pane): the previous and next
-  card in the tree's order, round the ends.
+  card in the tree's order (left before right, top before bottom, as in
+  Ghostty), round the ends.
+- A split (the header buttons, the menus, the palette, ⌘D, ⇧⌘D) gives the
+  keyboard to the new pane once a snapshot shows it, as in Ghostty.
 - Moving the keyboard to a card that a zoom hides restores the zoom.
 - ⌥⇧⌘ and an arrow (Move Pane): swaps the keyboard card with its neighbor
   that way, with `pane.swap {pane_id, direction, focus:false}`. The keyboard

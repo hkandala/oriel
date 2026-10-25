@@ -53,7 +53,7 @@ cards start. With the sidebar collapsed the items follow one another as before.
    Its menu: a filter field ("Filter or create…"; a typed name that matches nothing offers
    "New Workspace “‹text›”"), every workspace of every session open in this window,
    **grouped under a session header** (rows show only the workspace's state icon, its name and its branch on
-   the right), then New Workspace and "Open Session…" (⇧⌘N).
+   the right), then New Workspace and "Open Session…" (⌥⌘T).
 5. **Tab bar**: the selected workspace's tabs, always in the title row, whether the sidebar is open or
    collapsed (phase 13 has the tab geometry from Rex). A tab with several panes shows its panes' program
    icons **overlapping** (up to 5, 4 pt apart, the keyboard card's icon in front); a one-pane tab shows one
@@ -113,13 +113,13 @@ The strip under the title row still pages sideways between the selected workspac
     baseline (phase 24). The row of the shown tab's keyboard card is lit like the selected workspace row.
   - Idle agents show. A click goes to that workspace, tab and pane, and records a finish as seen.
 - **Footer**: the filter field (filters the rows of the current view) and one button, **Open Session**
-  (⇧⌘N), which opens the panel below. No New Workspace and no Add Remote Host here.
+  (⌥⌘T), which opens the panel below. No New Workspace and no Add Remote Host here.
 - Width 240 pt, resizable 227–480 pt (kept per window).
 
 ## Open Session panel
 
 The one place to create or open a session. The footer's Open Session button, the workspace menu's
-"Open Session…" and ⇧⌘N open it. A glass panel like the palette (phase 22, the user): no title, no buttons.
+"Open Session…" and ⌥⌘T open it. A glass panel like the palette (phase 22, the user): no title, no buttons.
 - A text field ("Name a new session, or find one"), empty at first.
 - The list, filtered by the field, in groups with the headers "New", "Running", "Stopped" and "Open in this window":
   - **New**: "Create session “‹typed name›”" when the text is a valid new herdr name; with an empty field,

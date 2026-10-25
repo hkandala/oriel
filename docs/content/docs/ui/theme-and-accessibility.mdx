@@ -103,38 +103,44 @@ The palette and the menu bar come from one command list, so each shortcut is
 defined once. A command with two shortcuts shows the first in the menu; a key
 monitor runs the first's menu item for the second (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=).
 
-Each level uses the same pattern: `[` and `]` step, 1 to 9 jump, and the
-modifier names the level.
+One pattern for every level: the key says the action, the modifier says the
+level. `T` makes, `W` closes, `[` and `]` step, `1` to `9` jump. ⌘ is the pane
+(and the tab for New Tab and the jumps), ⇧⌘ the tab, ⌃⌘ the workspace, ⌥⌘ the
+session. Arrows always mean panes.
 
-| Level | New | Previous, next | Jump to 1–9 |
-|---|---|---|---|
-| Pane | ⌘D, ⇧⌘D | ⌘[ ⌘] | |
-| Tab | ⌘T | ⇧⌘[ ⇧⌘], ⌃⇧⇥ ⌃⇥ | ⌘1–9 |
-| Workspace | ⌃⌘T | ⌃⌘[ ⌃⌘] | ⌃⌘1–9 |
-| Session | ⇧⌘N (Open Session) | ⌥⌘[ ⌥⌘] | ⌥⌘1–9 |
+| | Pane | Tab | Workspace | Session |
+|---|---|---|---|---|
+| New | ⌘D right, ⇧⌘D down | ⌘T | ⌃⌘T | ⌥⌘T (Open Session) |
+| Close | ⌘W (the tab too when it is the last pane) | ⇧⌘W | ⌃⌘W | ⌥⌘W (Detach Session) |
+| Previous, next | ⌘[ ⌘] | ⇧⌘[ ⇧⌘], ⌃⇧⇥ ⌃⇥ | ⌃⌘[ ⌃⌘] | ⌥⌘[ ⌥⌘] |
+| Jump to 1–9 | | ⌘1–9 | ⌃⌘1–9 | ⌥⌘1–9 |
 
-Workspace steps go round the ends, as tab steps do, in the sidebar's order;
-session steps stop at the first and last page.
+Pane steps follow the split tree, as in Ghostty: left before right, top before
+bottom, round the ends. Tab and workspace steps go round the ends too,
+workspaces in the sidebar's order; session steps stop at the first and last
+page. A split gives the keyboard to the new pane.
 
 **Keyboard Shortcuts panel.** ⌘/ (Help ▸ Keyboard Shortcuts, also in the
 palette) opens a glass panel over the window, like the palette. It lists
 every command with a shortcut, read from the command list so it never goes
 stale, in two columns grouped as Panes, Tabs, Workspaces, Sessions, View and
-Edit. A command's second shortcut shows on its row. A set of commands that
-differ only by the key shows as one row: "Select Pane ⌥⌘←→↑↓", "Show Tab 1–9
-⌘1–9". Esc, ⌘/ or a click outside closes it.
+Edit. Each modifier and key is its own keycap. A command's second shortcut
+follows after "or". A set of commands that differ only by the key shows as
+one row with one keycap for the keys: "Select Pane ⌥ ⌘ ←→↑↓", "Show Tab 1–9
+⌘ 1–9". Esc, ⌘/ or a click outside closes it.
 
 | Keys | Action | Menu |
 |---|---|---|
 | ⌘N | New Window, on the same machine | File |
 | ⌘T | new tab, in the keyboard card's folder | File |
 | ⌃⌘T | new workspace | File |
-| ⇧⌘N | Open Session (the panel) | File |
+| ⌥⌘T | Open Session (the panel) | File |
 | ⇧⌘G | Go to Directory (in a card that runs only its shell) | File |
 | ⌘W | close the pane (asks first unless the pane runs only its shell) | File |
-| ⌥⌘W | close the tab (asks) | File |
-| ⇧⌘W | close the window | File |
-| ⌃⌘I | Insert Path | Edit |
+| ⇧⌘W | close the tab (asks first when a program runs in it) | File |
+| ⌃⌘W | close the workspace (asks first when a program runs in it) | File |
+| ⌥⌘W | Detach Session: the page leaves the window, the session keeps running | File |
+| ⇧⌘I | Insert Path | Edit |
 | ⌘F | find in the keyboard card | Edit |
 | ⌘G, or Enter in the find bar | next match (⇧Enter: previous match) | Edit |
 | ⌘K | the command palette; ⇧⌘P also opens it (Rex's key) | View |
@@ -142,13 +148,12 @@ differ only by the key shows as one row: "Select Pane ⌥⌘←→↑↓", "Show
 | ⌃⌘S | show or hide the sidebar | View |
 | ⌘D, ⇧⌘D | split right, split down | View ▸ Pane |
 | ⇧⌘↩ | zoom or restore the card | View ▸ Pane |
-| ⌃⌘= | Balance Splits: even out the splits of the tab | View ▸ Pane |
-| ⌥⌘ + arrow | Select Pane Left, Right, Up, Down: the keyboard goes to the next card that way | View ▸ Pane |
+| ⌥⌘= | Balance Splits: even out the splits of the tab | View ▸ Pane |
+| ⌥⌘ + arrow | Select Pane Left, Right, Up, Down: the keyboard goes to the next card that way (as in Ghostty and iTerm2) | View ▸ Pane |
 | ⌘[ and ⌘] | Select Previous Pane, Select Next Pane | View ▸ Pane |
 | ⌥⇧⌘ + arrow | Move Pane: swap the keyboard card with the card that way | View ▸ Pane |
-| ⌃⌘ + arrow | move the nearest divider of the keyboard card 5 % that way | View ▸ Pane |
 | ⌘+ (and ⌘=), ⌘-, ⌘0 | Increase, Decrease, Reset Font Size: the text size | View |
-| ⌃⌘F | full screen | View |
+| ⌃⌘F | full screen (the macOS key, the one ⌃⌘ key that is not a workspace's) | View |
 | ⌘/ | Keyboard Shortcuts (the panel) | Help |
 | ⌘1 … ⌘9 | switch tabs | Window |
 | ⇧⌘[ and ⌃⇧⇥, ⇧⌘] and ⌃⇥ | previous and next tab | Window |
@@ -159,13 +164,19 @@ differ only by the key shows as one row: "Select Pane ⌥⌘←→↑↓", "Show
 | ⌥⌘1 … ⌥⌘9 | switch sessions, in the window's order | Window |
 | hold ⌘ for 0.7 s | keycap hints on the first nine tabs | |
 
-Close Workspace and Detach Session have no shortcut. In the palette: ↩ runs,
-⎋ goes back or closes, ⌫ on an empty field goes back. Keyboard focus among
-the chrome's buttons follows the system's Full Keyboard Access setting.
+Close Window and Resize Pane (View ▸ Pane, the palette) have no shortcut:
+the window's close button closes it, and the dividers and Balance Splits
+cover resizing. In the palette: ↩ runs, ⎋ goes back or closes, ⌫ on an empty
+field goes back. Keyboard focus among the chrome's buttons follows the
+system's Full Keyboard Access setting.
+
+The menu bar redraws whenever a command's title, key, or enabled state
+changes: SwiftUI rebuilds the menu bar only when the window's command list
+changes, and a stale disabled Zoom Pane once ate ⇧⌘↩ after a split.
 
 Rex shortcuts not taken, and why:
 - ⌘K stays the palette (D48), so Change Session (⌘K in Rex) is not taken;
-  sessions open with Open Session (⇧⌘N). ⇧⌘P also opens it (Rex's key).
+  sessions open with Open Session (⌥⌘T). ⇧⌘P also opens it (Rex's key).
 - ⌘/ (sidebar) is Keyboard Shortcuts instead: ⌃⌘S is the macOS sidebar key.
 - ⌘R (refresh) is not needed: the snapshot is live.
 - Find Previous has no shortcut: ⇧⌘G is Go to Directory.

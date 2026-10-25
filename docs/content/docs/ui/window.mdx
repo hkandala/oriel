@@ -91,7 +91,7 @@ Shown only while the sidebar is collapsed, after the machine button.
 - The menu starts with a filter field ("Filter or create…"). Then one group
   per page open in this window, in page order, under the session's name. A
   row shows the workspace's state icon, its name and its branch on the right.
-  At the end: New Workspace, then "Open Session…" (⇧⌘N).
+  At the end: New Workspace, then "Open Session…" (⌥⌘T).
 - The menu is a glass panel under the button, 300 pt wide, its list at most
   340 pt tall, built from the palette's filter list. Rows are 26 pt. The arrows
   or the pointer move the highlight, Enter acts, Esc closes. A typed name that matches no workspace shows
@@ -141,7 +141,7 @@ One capsule per herdr tab of the selected workspace (D42).
   second), the title is "New Tab", never the number.
 - **Status slot.** × only on the hovered tab (a 22 pt hit area over the
   title's fade, so the tab's width never changes). Otherwise three working dots, on every tab with a
-  working agent except the selected one. Needs you
+  working agent, the selected one too. Needs you
   and finished are badges on the front icon
   ([Theme and accessibility](/docs/ui/theme-and-accessibility#status)).
   VoiceOver reads the state in the tab's value: "codex, needs you".
@@ -232,7 +232,7 @@ session open in this window (D43).
   bottom of the list when content is under them.
 - **Empty session.** A session with no workspace shows only a New Workspace
   button, on the page and in the strip.
-- **Footer.** The filter field and one button, **Open Session** (⇧⌘N), which
+- **Footer.** The filter field and one button, **Open Session** (⌥⌘T), which
   opens the [Open Session](#open-session) panel. The filter keeps the rows
   whose name or branch matches. A matching worktree also keeps its
   repository's row. The footer has no New Workspace and no Add Remote Host:
@@ -329,7 +329,7 @@ How it works: [Agents and notifications](/docs/status#agents-and-notifications).
 
 The one place to create or open a session, as a page of this window (D68).
 It replaces the old session picker. The footer's Open Session button, the
-workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open it.
+workspace menu's "Open Session…" and File ▸ Open Session… (⌥⌘T) open it.
 - A glass panel like the command palette, 420 pt wide, near the top of the
   window, with no title and no buttons: Enter acts, Esc or a click outside
   closes it. One panel shows at a time: opening it closes the command palette
@@ -398,7 +398,7 @@ A peek at what runs in a tab (D63).
 - One page per tab, full width, paged.
 - Inside a page, pane cards follow herdr's split tree, with an 8 pt gap
   between them. The gap is the divider: drag it to resize (a grip shows on
-  hover and while dragged), double-click it to reset it to 0.5, and ⌃⌘=
+  hover and while dragged), double-click it to reset it to 0.5, and ⌥⌘=
   balances the tab. A split made in the app gives the panes in its row equal
   shares.
 - Layout changes animate over 0.2 s: a new card slides in from its side, a
@@ -604,7 +604,7 @@ A window that watches a session another window controls (D66).
 - **Go to Directory** (⇧⌘G) opens the system folder panel at the keyboard
   card's folder. Choosing a folder types `cd -- '‹path›'` and Return into the
   card. Enabled only when the card runs only its shell.
-- **Insert Path** (⌃⌘I) opens the same panel with files too. Choosing types
+- **Insert Path** (⇧⌘I) opens the same panel with files too. Choosing types
   the shell-quoted path at the cursor, without Return.
 - **Settings as commands.** Each on/off setting in the menu bar is one command
   whose title says what it does now: "Turn On Focus Follows Mouse" or "Turn
