@@ -166,14 +166,16 @@ extension OrielUITests {
         XCTAssertTrue(streams.contains { $0.contains(id) }, "w1:p1 kept its stream: \(streams)")
         try await send("clear; for i in $(seq 1 \(lines)); do echo oriel-away-$i-oriel-away; done\r", to: "w1:p1")
         try await waitFor("w1:p1") { $0.contains("oriel-away-\(lines)-oriel-away") }
-        app.typeKey("1", modifierFlags: .command)
         let card = element("pane.w1:p1")
-        XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
+        app.typeKey("1", modifierFlags: .command)
+        // From the key on: a rebuilt surface shows loading for about 100 ms.
         var inks: [Double] = [], loading = false
-        let end = Date.now + 1
+        let end = Date.now + 1.5
         while Date.now < end {
-            loading = loading || card.stringValue.contains("loading")
-            inks.append(Self.ink(terminal.screenshot().image))
+            loading = loading || card.exists && card.stringValue.contains("loading")
+            if terminal.exists, terminal.isHittable {
+                inks.append(Self.ink(terminal.screenshot().image))
+            }
         }
         XCTAssertFalse(loading, "loading after the key")
         // Never empty, and the new screen from the first screenshot on, not the old picture.
@@ -193,7 +195,7 @@ extension OrielUITests {
         }
     }
 
-    /// A card past the kept set lets go of its stream and its surface (phase 25, lane O; 4 kept here, 32 by default),
+    /// A card past the kept set lets go of its stream and its surface (phase 25, lane O; 4 kept here, 16 by default),
     /// and comes back under its last picture: never empty, then herdr's text.
     func testAnEvictedCardComesBackWithItsPicture() async throws {
         relaunch(one, ["-spareTerminals", "4"])

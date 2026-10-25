@@ -51,8 +51,8 @@
         /// picture.
         @ObservationIgnored var inView = false {
             didSet {
-                if inView != oldValue, ready {
-                    draw()
+                if inView != oldValue {
+                    inViewChanged()
                 }
             }
         }
@@ -93,14 +93,20 @@
             open()
         }
 
-        /// The card left the recently shown set: let go of its stream and its surface (D46). It keeps its last image.
+        /// Control moved between windows (D66) while it is out of view: its stream ends, its surface and picture
+        /// stay. Shown again, it opens the right stream, and herdr's first frame redraws it at the same grid.
+        func pause() {
+            guard shown else { return }
+            shown = false
+            pending = []
+            paste = nil
+            end()
+        }
+
+        /// The card left the kept set, or the overview alone showed it: let go of its stream and its surface (D46). It
+        /// keeps its last image.
         func hide() {
-            if shown {
-                shown = false
-                pending = []
-                paste = nil
-                end()
-            }
+            pause()
             view.free()
             // For the next surface: libghostty keeps what it receives meanwhile.
             session.receive(Self.modes)
@@ -117,16 +123,18 @@
             open(takeover: true)
         }
 
-        /// Control of the session moved between windows (D66): this window's streams take over, or watch.
+        /// Control of the session moved between windows (D66): this window's streams take over, or watch. A kept one
+        /// out of view ends its stream instead and opens the right one when shown, so a move restarts only the shown
+        /// terminals' herdr runs.
         func control(_ controls: Bool) {
-            if shown, observing == controls {
-                // Keys the old controller had not sent yet do not go out at a later takeover.
-                if !controls {
-                    pending = []
-                    paste = nil
-                }
-                open(observe: !controls, takeover: controls)
+            guard shown, observing == controls else { return }
+            guard inView else { return pause() }
+            // Keys the old controller had not sent yet do not go out at a later takeover.
+            if !controls {
+                pending = []
+                paste = nil
             }
+            open(observe: !controls, takeover: controls)
         }
 
         func keys(_ keys: [String]) {

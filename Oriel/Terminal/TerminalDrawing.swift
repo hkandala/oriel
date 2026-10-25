@@ -45,6 +45,16 @@
             }
         }
 
+        /// Leaving view, its picture is kept first (`keepPicture`).
+        func inViewChanged() {
+            if !inView {
+                view.keepPicture()
+            }
+            if ready {
+                draw()
+            }
+        }
+
         /// Draws while shown; an old picture over a new surface goes once that drew.
         func draw() {
             view.setSurfaceVisible(inView)
@@ -138,24 +148,66 @@
             }
         }
 
-        /// Volatile while the view is in no window; back in one, a picture the system took is gone, and the next
-        /// reveal fades in as a first one. A kept surface's picture too while it does not draw: libghostty let go of
-        /// its swap chain then (occlusion, as Ghostty's hidden tabs), so the layer alone holds that IOSurface; taken
-        /// back, it shows the card's fill until the surface draws.
+        /// An evicted card's: volatile while the view is in no window; back in one, a picture the system took is gone
+        /// (it takes them within seconds), and the next reveal fades in as a first one. A kept card's stays, so it
+        /// comes back as it was.
         func purgeable(_ volatile: Bool) {
-            let live = controller != nil
-            guard !(live && volatile && terminal?.inView == true),
-                  let picture = live ? layer : still, let surface = picture.contents as? IOSurface else { return }
+            guard controller == nil, let surface = still?.contents as? IOSurface else { return }
             var old: UInt32 = 0
             IOSurfaceSetPurgeable(surface, volatile ? 1 : 0, &old)
             if !volatile, old == 2 {
-                picture.contents = nil
-                if !live {
-                    still = nil
-                    // The next reveal fades in, as a first one.
-                    terminal?.revealed = false
-                }
+                still?.removeFromSuperlayer()
+                still = nil
+                // The next reveal fades in, as a first one.
+                terminal?.revealed = false
             }
+        }
+
+        /// The card leaves view: a copy of its last frame stays over the surface until it draws again. libghostty
+        /// frees its swap chain while it does not draw (as Ghostty does for hidden tabs) and empties those IOSurfaces
+        /// as it frees them (`kIOSurfacePurgeableEmpty`), so the layer's own picture is gone when the view is in a
+        /// window again: a blank frame on every return (CI, phase 27), and lane O's evicted stills came back empty and
+        /// faded in. About 2 ms and 17 MB for a full-window card on Retina.
+        func keepPicture() {
+            guard still == nil, let layer, let surface = layer.contents as? IOSurface else { return }
+            var state: UInt32 = 0
+            // 3 reads the state, 2 is empty.
+            IOSurfaceSetPurgeable(surface, 3, &state)
+            guard state != 2, let copy = Self.copy(surface) else { return }
+            let still = CALayer()
+            still.contents = copy
+            still.contentsGravity = layer.contentsGravity
+            still.contentsScale = layer.contentsScale
+            still.frame = layer.bounds
+            still.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            layer.addSublayer(still)
+            CATransaction.commit()
+            self.still = still
+        }
+
+        private static func copy(_ surface: IOSurface) -> IOSurface? {
+            guard let copy = IOSurface(properties: [
+                .width: surface.width, .height: surface.height, .bytesPerElement: surface.bytesPerElement,
+                .bytesPerRow: surface.bytesPerRow, .pixelFormat: surface.pixelFormat,
+            ]) else { return nil }
+            if let space = IOSurfaceCopyValue(surface, kIOSurfaceColorSpace) {
+                IOSurfaceSetValue(copy, kIOSurfaceColorSpace, space)
+            }
+            surface.lock(options: .readOnly, seed: nil)
+            copy.lock(options: [], seed: nil)
+            let row = min(surface.bytesPerRow, copy.bytesPerRow)
+            for line in 0 ..< surface.height {
+                memcpy(
+                    copy.baseAddress + line * copy.bytesPerRow,
+                    surface.baseAddress + line * surface.bytesPerRow,
+                    row,
+                )
+            }
+            copy.unlock(options: [], seed: nil)
+            surface.unlock(options: .readOnly, seed: nil)
+            return copy
         }
     }
 #endif
