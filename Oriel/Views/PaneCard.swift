@@ -60,6 +60,9 @@
                     }
                 }
             }
+            // The whole card, also with no terminal (a split's stand-in): an empty `Group` takes no room, and the card
+            // was a header-high band.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             // As the card shows: what runs in it now, for its icon (the snapshot's ask was when the pane was new). Not
             // the view's task: a lazy page that leaves at once would cancel it.
             .onAppear { Task { await store.askProgram(id) } }
