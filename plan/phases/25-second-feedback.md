@@ -188,6 +188,8 @@ found none). If herdr has none, floating is Oriel's own.
   the new: 40172905682). `testSecondShortcuts` reads the three palette rows and opens Font Size › with Return.
 - **For the user to check by hand:** Glass dark and light over your own wallpaper, and over a bright one; the
   keyboard card should read only a little brighter.
+- **CI.** Full suite green on 1567204, after the lane's last code commit 2d0abaa (40174324533). The full run on
+  7c74def (40173209132) failed only in lane K's dialog query and lane C's Finder drop, both fixed by their lanes.
 
 ### Lane I (items 2, 7)
 
