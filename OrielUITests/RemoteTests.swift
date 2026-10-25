@@ -37,6 +37,8 @@ extension OrielUITests {
             keepScreenshot("host key")
             element("ask.ok").click()
         }
+        // A wrong password: ssh asks again.
+        try typePassword("wrong")
         try typePassword()
         let missing = app.staticTexts["herdr is not installed on Password Host"]
         XCTAssertTrue(missing.exists(within: connect))
@@ -105,15 +107,15 @@ extension OrielUITests {
         element("add-host.add").click()
     }
 
-    /// oriel-pw's password, in the hidden field of ssh's question.
-    private func typePassword() throws {
+    /// oriel-pw's password (or another), in the hidden field of ssh's question; Return answers.
+    private func typePassword(_ password: String = "oriel-e2e-pw") throws {
         let answer = element("ask.answer")
         XCTAssertTrue(answer.exists(within: connect))
         XCTAssertEqual(answer.elementType, .secureTextField)
         keepScreenshot("password")
         answer.click()
-        app.typeText("oriel-e2e-pw")
-        element("ask.ok").click()
+        app.typeText(password)
+        app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(answer.vanishes(within: 3))
     }
 

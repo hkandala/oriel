@@ -62,7 +62,8 @@
                 .contains { question.text.localizedCaseInsensitiveContains($0) }
             VStack(alignment: .leading, spacing: 12) {
                 Text(question.machine).font(.headline)
-                Text(question.text.trimmingCharacters(in: .whitespacesAndNewlines))
+                Text(hostKey ? Self.facts(question.text) : question.text
+                    .trimmingCharacters(in: .whitespacesAndNewlines))
                     .font(hostKey ? .body.monospaced() : .body)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
@@ -78,6 +79,7 @@
                     .labelsHidden()
                     .accessibilityLabel("Answer")
                     .focused($focused)
+                    .onSubmit { question.answer(answer) }
                     .accessibilityIdentifier("ask.answer")
                 }
                 HStack {
@@ -93,6 +95,13 @@
             .padding(20)
             .frame(width: 460)
             .onAppear { focused = true }
+        }
+
+        /// A host key question's facts: without ssh's last line, which Connect says, and with the fingerprint on a line
+        /// of its own.
+        static func facts(_ text: String) -> String {
+            text.split(separator: "\n").filter { !$0.contains("(yes/no") }.joined(separator: "\n")
+                .replacing(#/fingerprint is:? /#, with: "fingerprint is:\n")
         }
     }
 #endif
