@@ -646,29 +646,6 @@
     "url": ""
   },
   {
-    "id": "meta",
-    "title": "Meta (Muse)",
-    "kind": "agent",
-    "match": {
-      "agent": [
-        "muse"
-      ],
-      "process": [
-        "muse"
-      ]
-    },
-    "svg": "svg/meta.svg",
-    "monochrome": true,
-    "brandColor": "#0467df",
-    "tile": {
-      "background": "#1c69c7",
-      "glyph": "#ffffff"
-    },
-    "source": "Simple Icons",
-    "license": "CC0-1.0",
-    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/meta.svg"
-  },
-  {
     "id": "poolside",
     "title": "Poolside",
     "kind": "agent",

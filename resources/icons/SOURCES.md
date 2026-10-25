@@ -1,6 +1,6 @@
 # Program icon sources
 
-Every SVG in `svg/` and its source. Counts: Simple Icons (CC0-1.0): 64, oh-my-pi repo (MIT): 1, Lobe Icons (MIT): 14, Phosphor Icons (MIT): 16, original (CC0-1.0): 8, aider repo (Apache-2.0): 1, jj repo (Apache-2.0): 1, Devicon (MIT): 1.
+Every SVG in `svg/` and its source. Counts: Simple Icons (CC0-1.0): 63, oh-my-pi repo (MIT): 1, Lobe Icons (MIT): 14, Phosphor Icons (MIT): 16, original (CC0-1.0): 8, aider repo (Apache-2.0): 1, jj repo (Apache-2.0): 1, Devicon (MIT): 1.
 
 Notes:
 - One style: a single solid path per icon, `fill="currentColor"`, no strokes, no gradients, no text. Each glyph is fitted into a 24x24 viewBox (about 18 units for wide or tall marks, about 16 for square or dense ones) and optically centered. `tools/build.mjs` generates everything here; see `tools/README.md`.
@@ -37,7 +37,6 @@ Notes:
 | cline | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/cline.svg |  |
 | kiro | Lobe Icons | MIT | https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/kiro.svg) |  |
 | maki | original | CC0-1.0 | — | unknown brand; solid "M" monogram |
-| meta | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/meta.svg |  |
 | poolside | Lobe Icons | MIT | https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/poolside.svg) |  |
 | openclaw | Lobe Icons | MIT | https://github.com/lobehub/lobe-icons (@lobehub/icons-static-svg icons/openclaw.svg) |  |
 | mistral | Simple Icons | CC0-1.0 | https://github.com/simple-icons/simple-icons/blob/develop/icons/mistralai.svg |  |

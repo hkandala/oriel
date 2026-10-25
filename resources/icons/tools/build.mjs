@@ -76,7 +76,6 @@ const E = [
   ['cline', 'Cline', 'agent', 'si:cline', { agent: ['cline'], process: ['cline'] }],
   ['kiro', 'Kiro', 'agent', 'lobe:kiro', { agent: ['kiro'], process: ['kiro-cli', 'kiro'] }, { brandColor: '#9046ff' }],
   ['maki', 'Maki', 'agent', 'orig', { agent: ['maki'], process: ['maki'] }, { brandColor: '#000000', notes: 'unknown brand; solid "M" monogram' }],
-  ['meta', 'Meta (Muse)', 'agent', 'si:meta', { agent: ['muse'], process: ['muse'] }],
   ['poolside', 'Poolside', 'agent', 'lobe:poolside', { process: ['pool', 'poolside'] }, { brandColor: '#4137ff' }],
   ['openclaw', 'OpenClaw', 'agent', 'lobe:openclaw', { process: ['openclaw'] }, { brandColor: '#ff4d4d' }],
   ['mistral', 'Mistral Vibe', 'agent', 'si:mistralai', { process: ['vibe'], titlePrefix: ['Vibe'] }],
