@@ -130,9 +130,9 @@ unless the prototype proves a part wrong (then fix the page and say why).
 
 ## Round 2 (user, 2026-10-25 05:20)
 
-The user connected to a server with one-time passcodes (YubiKey OTP). The sidebar
+The user connected to a server with one-time passcodes. The sidebar
 loaded, but every card shows "mux_client_request_session: session request failed: Session open refused by
-peer" and Retry (`.build/fb/devserver.png` in the main checkout). The server refuses more sessions (channels)
+peer" and Retry (a screenshot in the main checkout's `.build/fb/`). The server refuses more sessions (channels)
 on the one connection: Oriel opens one ssh session per herdr call and per terminal stream, more than the
 server's MaxSessions. A second connection would need a second passcode, so it is no way out.
 
@@ -152,7 +152,7 @@ has `herdr --machine <label> <command>` and `herdr machine …`. Do this by defa
 
 ### Round 2 findings
 
-- **Root cause:** one SSH session per herdr call and per terminal stream. The devserver allows fewer sessions per
+- **Root cause:** one SSH session per herdr call and per terminal stream. That server allows fewer sessions per
   connection than a page opens at once (MaxSessions; it refused the third), so cards failed with "Session open
   refused by peer". The round-1 cap of 10 matched OpenSSH's default, not that server.
 - **herdr's transports:** `herdr --remote` opens one ssh session running `herdr remote-client-bridge`, a byte pipe

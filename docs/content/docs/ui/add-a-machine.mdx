@@ -1,10 +1,11 @@
 ---
 title: "Add a machine"
-description: "The Add Remote Host sheet on macOS and iOS"
+description: "The Add Remote Host dialog on macOS and iOS"
 ---
 
-The machine button's "Add Remote Host…" opens the sheet. The same sheet works
-on macOS and iOS (D54):
+The machine button's "Add Remote Host…" opens the dialog: a glass panel in the
+middle of the window, like the palette, that only its buttons close (Esc is
+Cancel). The same dialog works on macOS and iOS (D54):
 - **Name:** how the machine menu lists the machine; the target when empty.
 - **SSH target:** what `ssh` connects to, for example `user@devbox` or a
   host alias from `~/.ssh/config`. Add stays off while it is empty, starts
@@ -14,15 +15,17 @@ on macOS and iOS (D54):
   machines apart ([Machine button](/docs/ui/window#machine-button)).
 
 Then:
-- The app saves the machine, the window switches to its `default` session,
-  and the app connects and runs the
+- The app saves the machine and opens a new window on it with its `default`
+  session; the window the user added it from keeps its pages. The new window
+  connects and runs the
   [checks on connect](/docs/machines#checks-on-connect).
 - On macOS, ssh's questions (an unknown host key, a password, a code) show in
-  a sheet of the window ([macOS](/docs/machines#macos)). Later, when herdr is
-  on the Mac, the sheet also lists herdr's machines that are not yet added,
+  the same kind of dialog in the new window ([macOS](/docs/machines#macos)).
+  Later, when herdr is on the Mac, the dialog also lists herdr's machines that
+  are not yet added,
   checked while the app's list is empty
   ([The machine list](/docs/machines#the-machine-list)).
-- On iOS, the sheet shows the device's public key to copy into
+- On iOS, the dialog shows the device's public key to copy into
   `authorized_keys`.
 - Rename, change the icon, reorder and remove happen in the app (not built
   yet).
