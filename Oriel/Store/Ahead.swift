@@ -13,6 +13,11 @@ struct Ahead {
     /// herdr's tabs that took stand-ins' places in the last snapshot, by stand-in id: every page's selection and tab
     /// history follow them as they settle on that snapshot (phase 27).
     var arrived: [String: String] = [:]
+    /// herdr's tabs that took a stand-in's place, while they last: a close of one whose shell still starts shows at
+    /// once
+    /// (quick ⌘W after quick ⌘T, phase 27). Not every starting pane: a program run in a pane split a second ago
+    /// would hide, then come back with the question.
+    var fresh: Set<String> = []
     /// herdr's tabs for stand-ins closed before they came: the store closes them.
     var toClose: [String] = []
 
@@ -44,6 +49,7 @@ struct Ahead {
     /// herdr's tab for the stand-in, from its answer or a snapshot: no other stand-in may take it.
     mutating func made(_ standIn: String, _ id: String) {
         arrived[standIn] = id
+        fresh.insert(id)
         if tabs.first(where: { $0.id == standIn })?.closed == true {
             closing.insert(id)
             toClose.append(id)
@@ -65,6 +71,7 @@ struct Ahead {
     mutating func show(_ snapshot: Snapshot) -> Shown {
         let ids = snapshot.workspaces.map(\.id) + snapshot.tabs.map(\.id) + snapshot.panes.map(\.id)
         closing.formIntersection(ids)
+        fresh.formIntersection(ids)
         arrived = [:]
         // herdr's tab for each stand-in: the first new one of its workspace.
         tabs.removeAll { standIn in !snapshot.workspaces.contains { $0.id == standIn.workspaceID } }
@@ -114,7 +121,7 @@ struct Ahead {
 extension HostStore {
     /// Closes at once when every pane of it runs only its shell; else the close to ask about, with what runs (design
     /// D41), for the asking window. Asked now, not the panes' last answers: a program may have started since. When the
-    /// last answers say only shells run, or a new pane's shell still starts, it is gone at once, before this returns,
+    /// last answers say only shells run, or a new tab's shell still starts, it is gone at once, before this returns,
     /// while herdr is asked (phases 25, 27: quick ⌘W after quick ⌘T step back one tab each); a program found brings it
     /// back with the question. Any other pane with no answer yet waits for herdr's. Nil: nothing to ask.
     func ask(_ request: Close) -> Task<Closing?, Never>? {
@@ -129,9 +136,8 @@ extension HostStore {
         let tabs = tabIDs(request)
         let asked = panes.filter { pane in request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
         let action = closing(request)
-        // ponytail: a pane another client just made with a program (`pane split -- vim`) also starts; hidden, it comes
-        // back with the question a second later. Agents are known at once, so they wait.
-        let clear = asked.allSatisfy { $0.program?.isShell == true || $0.starting && $0.agent == nil }
+        // ponytail: a program typed in a new tab in its first seconds hides too, and comes back with the question.
+        let clear = asked.allSatisfy { $0.program?.isShell == true || $0.starting && ahead.fresh.contains($0.tabID) }
         if clear {
             hide(request)
         }

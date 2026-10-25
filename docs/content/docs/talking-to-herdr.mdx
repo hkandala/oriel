@@ -449,9 +449,10 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
   answer yet waits for herdr's. A pane whose new shell is still starting (its
   first seconds, [Program icons](/docs/ui/program-icons)) runs short-lived
   startup programs (`ls`, `sort`): it is asked again every 200 ms, up to
-  0.8 s, until only its shell runs. A close of it still shows at once, so
-  quick ⌘W after quick ⌘T step back one tab each; a program found after the
-  wait brings it back with the question (phase 27).
+  0.8 s, until only its shell runs. In a tab made from a stand-in (⌘T), a
+  close of it still shows at once, so quick ⌘W after quick ⌘T step back one
+  tab each; a program found after the wait brings it back with the question
+  (phase 27).
 - A tab closed before herdr made it (⌘T, then ⌘W or a close at once) goes at
   once; herdr's tab is closed as it comes. When herdr's tab takes the
   stand-in's place, the window's selection and tab history follow it, so a
