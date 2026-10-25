@@ -27,7 +27,7 @@
                                 let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
                                 let motion = reduceMotion && !Animation.forceMotion ? nil : Animation
                                     .easeOut(duration: 0.2)
-                                SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
+                                SplitLayout(tree: tree, zoomed: zoomed, motion: motion, page: page, tabID: tab.id)
                                     .animation(motion, value: tree)
                                     .animation(motion, value: zoomed)
                                     .padding([.horizontal, .bottom], gap)
@@ -97,8 +97,12 @@
         /// The tab's zoomed card (D11): it fills the page; the others stay at their size, hidden under it, so their
         /// terminals keep their size.
         let zoomed: String?
+        let motion: Animation?
         let page: Page
         let tabID: String
+        /// The cards in their place: one new since the page first drew starts beside its place and slides in. Not a
+        /// transition: `.move` and `.offset` transitions moved nothing here (CI recordings), only their fade ran.
+        @State private var placed: Set<String>?
         /// The app's ratio of a split (by path) while its divider is dragged or sent, until herdr's snapshot shows its
         /// own.
         @State private var held: [[Bool]: Double] = [:]
@@ -110,27 +114,27 @@
                 ZStack(alignment: .topLeading) {
                     ForEach(parts.cards, id: \.id) { card in
                         let away = zoomed != nil && zoomed != card.id
-                        let rect = zoomed == card.id ? area : card.rect
+                        // A new card slides in from its side as the others make room, its edge on theirs.
+                        let entering = placed.map { !$0.contains(card.id) } ?? false
+                        let rect = zoomed == card.id ? area : entering ? card.rect.offsetBy(dx: card.from.width,
+                                                                                            dy: card.from.height)
+                            : card.rect
                         PaneCard(id: card.id, page: page, away: away)
-                            .frame(width: rect.width, height: rect.height)
-                            .offset(x: rect.minX, y: rect.minY)
+                            .place(rect)
                             // Under the zoomed card, which covers it, so its terminal views get no clicks.
-                            .opacity(away ? 0 : 1)
+                            .opacity(away || entering ? 0 : 1)
                             .zIndex(away ? 0 : 1)
                             .allowsHitTesting(!away)
-                            // A new card slides in from its side as the others make room, its edge on theirs; a
-                            // closed one fades as they grow. Not `.move` (it slid nothing here) nor `.scale` (the
-                            // terminal view does not scale).
-                            .transition(.asymmetric(insertion: .offset(card.from).combined(with: .opacity),
-                                                    removal: .opacity))
+                            // A closed card fades as the others grow (a scale would leave its terminal view at full
+                            // size).
+                            .transition(.opacity)
                     }
                     ForEach(parts.dividers, id: \.id) { divider in
                         // The panes beside the divider.
                         let names = divider.beside.map { $0.flatMap(page.store.pane)?.cardTitle ?? "terminal" }
                         SplitDivider(divider: divider, held: $held[divider.path], page: page, tabID: tabID,
                                      label: "Divider between \(names[0]) and \(names[1])")
-                            .frame(width: divider.rect.width, height: divider.rect.height)
-                            .offset(x: divider.rect.minX, y: divider.rect.minY)
+                            .place(divider.rect)
                             .opacity(zoomed == nil ? 1 : 0)
                             .allowsHitTesting(zoomed == nil)
                             .accessibilityHidden(zoomed != nil)
@@ -139,6 +143,8 @@
                     }
                 }
             }
+            .onAppear { placed = Set(tree.paneIDs) }
+            .onChange(of: tree) { withAnimation(motion) { placed = Set(tree.paneIDs) } }
         }
     }
 
@@ -313,6 +319,16 @@
             let clamped = min(max(value, 0.1), 0.9)
             held = clamped
             return clamped
+        }
+    }
+
+    private extension View {
+        /// At this rectangle of the page, by layout (padding), not `.offset`: a layout change animates every view in
+        /// it, the terminal's too.
+        func place(_ rect: CGRect) -> some View {
+            frame(width: rect.width, height: rect.height)
+                .padding(.leading, rect.minX)
+                .padding(.top, rect.minY)
         }
     }
 #endif
