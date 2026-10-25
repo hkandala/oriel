@@ -2,9 +2,9 @@ import XCTest
 
 /// The overview (phase 27, D70): every tab of the session as a live miniature, grouped by workspace.
 extension OrielUITests {
-    /// ⌃⌘O hides the sidebar and tab bar and shows a tile per tab under its workspace, two a row on CI's window; a
-    /// tab never shown draws live in its tile; × closes a tab; a click shows that tab, its terminals at their size;
-    /// Esc leaves too.
+    /// ⌃⌘O hides the sidebar, the tab bar and every title-row button but one ×, and shows a tile per tab under its
+    /// workspace, two a row on CI's window, with wide margins; a tab never shown draws live in its tile; × closes a
+    /// tab; a click shows that tab, its terminals at their size; Esc and the title row's × leave too.
     func testOverviewShowsEveryTabLiveAndOpensOne() async throws {
         // The zoom runs, for the recording, and its miniature's sizes are counted.
         relaunch(nil, ["-forceMotion", "YES", "-recordMotion", "YES"])
@@ -20,9 +20,8 @@ extension OrielUITests {
         XCTAssertTrue(overview.exists(within: 2))
         XCTAssertTrue(element("sidebar").vanishes(within: 2))
         XCTAssertFalse(element("tab.w1:t1").exists)
-        XCTAssertEqual(element("titlebar.overview").stringValue, "on")
         // × on hover closes the tab, as on the tab bar (an idle shell: no question). First: its row pushed w2 below
-        // CI's window, where the lazy grid lays out nothing.
+        // CI's window.
         element("overview.tab.\(closing)").hover()
         element("overview.tab.\(closing).close").click()
         XCTAssertTrue(element("overview.tab.\(closing)").vanishes(within: 3))
@@ -38,6 +37,7 @@ extension OrielUITests {
         let first = element("overview.tab.w1:t1").frame, second = element("overview.tab.w1:t2").frame
         XCTAssertEqual(first.minY, second.minY, accuracy: 1)
         XCTAssertEqual(second.minX - first.maxX, 16, accuracy: 1)
+        expectOverviewChrome(first: first, second: second)
         XCTAssertEqual(element("overview.tab.w1:t1").stringValue, "selected")
         keepScreenshot("overview")
         let tile = element("overview.tab.w2:t1"), dark = element("overview.tab.w1:t2")
@@ -58,6 +58,27 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
         XCTAssertTrue(hasKeyboard(element("terminal.w2:p1")))
+
+        app.typeKey("o", modifierFlags: [.command, .control])
+        XCTAssertTrue(overview.exists(within: 2))
+        element("overview.close").click()
+        XCTAssertTrue(overview.vanishes(within: 2))
+        XCTAssertTrue(element("titlebar.overview").exists(within: 2))
+    }
+
+    /// The title row has the traffic lights and one × only; the grid (its first row's two tiles) is centered with wide
+    /// margins all round: 8 % of the width, at least 48 pt, and 40 pt above.
+    private func expectOverviewChrome(first: CGRect, second: CGRect) {
+        for id in ["titlebar.sidebar", "titlebar.machine", "titlebar.agents", "titlebar.overview", "titlebar.palette",
+                   "titlebar.new-tab"]
+        {
+            XCTAssertFalse(element(id).exists, id)
+        }
+        XCTAssertTrue(element("overview.close").exists)
+        let canvas = element("overview").frame, title = element("overview.title").frame
+        XCTAssertEqual(first.minX - canvas.minX, max(48, canvas.width * 0.08), accuracy: 1)
+        XCTAssertEqual(canvas.maxX - second.maxX, first.minX - canvas.minX, accuracy: 1)
+        XCTAssertEqual(title.minY - canvas.minY, 40, accuracy: 2)
     }
 
     /// Sideways, the overview pages through the window's sessions, and the page it lands on is the window's; a click
@@ -99,8 +120,9 @@ extension OrielUITests {
     }
 
     /// What the overview costs (phase 27): lane O's workspace of 6 tabs and 12 panes, 8 of them printing, only its
-    /// first tab shown. Open, the cards of the tiles it lays out stream and draw; closed, the ones only it showed let
-    /// go (no visits, D46). Footprint and CPU of each step are in the result bundle.
+    /// first tab shown. Open, every tile's cards stream and draw, also those scrolled out of view, so scrolling shows
+    /// them at once (phase 28); closed, the ones only it showed let go (no visits, D46). Footprint and CPU of each step
+    /// are in the result bundle.
     func testOverviewCostsAndLetsGoAfter() async throws {
         let (tabs, _) = try await newWorkspace("usage", tabs: 6)
         var panes: [String] = []
@@ -119,14 +141,18 @@ extension OrielUITests {
         let strip = try await measure("strip")
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(element("overview").exists(within: 2))
-        // The tiles laid out (in view: the grid is lazy) stream their cards too.
-        try await poll("the tiles' cards to stream") { () async throws -> Int? in
+        // Every card of the session streams, the tiles below the window's edge too.
+        let cards = try await Self.ids("pane", in: one).count
+        try await poll("every card to stream") { () async throws -> Int? in
             let count = try await helpers(measure("overview", seconds: 1))
-            return count > helpers(strip) ? count : nil
+            return count >= cards ? count : nil
         }
         let open = try await measure("overview")
-        // Down to the new workspace's tiles: those in view stream, the ones scrolled away let go.
-        let last = element("overview.tab.\(tabs[5])")
+        // The last tile, below the window's edge, already has its terminal drawing (a grid comes with its surface).
+        let last = element("overview.tab.\(tabs[5])"), terminal = element("terminal.\(panes[panes.count - 1])")
+        XCTAssertFalse(last.isHittable)
+        XCTAssertTrue(until(3) { !terminal.stringValue.isEmpty }, "no surface below the edge")
+        // Down to the new workspace's tiles: none lets go.
         // Either way: the sign follows the natural scrolling setting.
         for delta in [-3000.0, 3000, -3000] where !(last.exists && last.isHittable) {
             element("overview").scroll(byDeltaX: 0, deltaY: delta)
@@ -135,6 +161,7 @@ extension OrielUITests {
         XCTAssertTrue(last.isHittable)
         keepScreenshot("overview of 6 tabs")
         let scrolled = try await measure("overview, scrolled")
+        XCTAssertGreaterThanOrEqual(helpers(scrolled), cards, scrolled)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
         try await poll("the overview's streams to end") { () async throws -> Int? in

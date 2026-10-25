@@ -54,6 +54,9 @@ start, also during a resize. From left to right:
 8. The [overview](#overview) button (⌃⌘O).
 9. ⌘ (the command palette, ⌘K) and `+` (new tab, ⌘T).
 
+While the overview is open the row shows only the traffic lights and one ×
+that leaves it ([Overview](#overview)).
+
 Each title-row button except the Agents button shows the system tooltip with
 the action's name and its shortcut, for example "New Tab ⌘T". So do the page
 header's `+`, the footer's Open Session button and each card header button.
@@ -536,14 +539,14 @@ How the messages, the reply box and the key buttons work:
 
 Every tab of the session at a glance, live (D70): for watching many agents at
 once.
-- **Open and close.** The title-row button (`square.grid.2x2`, filled while
-  on, between the Agents button and ⌘), View ▸ Show Overview, the palette,
-  and ⌃⌘O toggle it; Esc leaves it. Each window has its own; it does not come
+- **Open and close.** The title-row button (`square.grid.2x2`, between the
+  Agents button and ⌘), View ▸ Show Overview, the palette, and ⌃⌘O toggle it;
+  Esc and the title row's × leave it. Each window has its own; it does not come
   back after a relaunch.
-- **What it hides.** The sidebar and the tab bar. The title row keeps the
-  traffic lights, the machine button, the Agents button, the overview button
-  and ⌘; the sidebar toggle, the workspace button and `+` hide. The overview
-  covers the window below the title row.
+- **What it hides.** The sidebar, the tab bar and every title-row button: the
+  row keeps only the traffic lights and, at its end, one × (Close Overview,
+  ⌃⌘O) that leaves the overview. ⌘K and ⌘. still work. The overview covers
+  the window below the title row.
 - **Canvas.** One page per session of the window, side by side: a sideways
   swipe (or a wheel with Shift) moves to the next or previous session, as on
   the sidebar, and the page it lands on becomes the window's page in view.
@@ -551,8 +554,10 @@ once.
   page header has it (13 pt semibold; This Mac's name for `default`), then
   the session's workspaces in the sidebar's order, 32 pt apart: each
   workspace's name (13 pt semibold, secondary), then its tabs as tiles in a
-  grid, 2 to 4 a row (as many 340 pt tiles as fit), 16 pt apart, 24 pt
-  margins.
+  grid, 2 to 4 a row (as many 340 pt tiles as fit), 16 pt apart. Wide
+  margins all round, as in the user's reference: 8 % of the window's width
+  left and right (at least 48 pt), 40 pt above and below, so the grid sits
+  centered.
 - **Tile.** One card per tab (the card's fill, rim and edge), as in the
   user's reference: at its top a 36 pt title row like a card header (the
   tab's icon stack, its title with the folder dimmed, and its status
@@ -592,12 +597,16 @@ once.
   would). A window resize refits them 150 ms after it stops, as the cards do. No second surface, stream or copy;
   while the overview shows, the strip does not, so a terminal view is still in
   one place (D35). The strip's cards take their views back when it closes.
-- While the overview is open, the cards of the tiles it lays out (the grid is
-  lazy: the tiles in view and a few beside them) stream and draw; a tile
-  scrolled away lets its cards go again. Those are not visits: when the overview closes, a terminal shown
-  only by it goes back to where it was (its surface and stream let go) and
-  the recently shown set is unchanged (D46). Other sessions' pages, beside
-  the one in view during a swipe, show each terminal's last picture.
+- While the overview is open, every card of every session in it streams and
+  draws, also the tiles scrolled out of view and the other sessions' pages:
+  nothing in it is lazy, so each terminal view is in the window and has its
+  surface, and a tile scrolled or swiped into view shows its live screen at
+  once, with no fade (phase 28). The user accepts the memory while it is open
+  (about 50 MB a full-window card on Retina; on a remote machine every card's
+  stream goes through the relay's one SSH session). Those are not visits:
+  when the overview closes, a terminal shown only by it goes back to where it
+  was (its surface and stream let go) and the recently shown set is unchanged
+  (D46).
 - Known limit: on a remote machine only the shown tab's cards are live; the
   others keep their last picture, since a connection holds about 10 SSH sessions
   ([SSH sessions](/docs/machines#ssh-sessions)).

@@ -20,12 +20,10 @@
         let terminals = PaneViewRegistry()
         /// The window is visible (its scene is active): its page in view shows git status.
         var visible = false
-        /// The overview is open (D70): the cards of its tiles laid out (`overviewTabs`) stream and draw. `leaving`
-        /// while its tile zooms to the page.
+        /// The overview is open (D70): every card of every page streams and draws. `leaving` while its tile zooms
+        /// to the page.
         var overview = false
         var leaving = false
-        /// By page: tab ids repeat across sessions.
-        @ObservationIgnored var overviewTabs: [String: Set<String>] = [:]
         /// What to do once the overview's zoom ends (`afterOverview`).
         @ObservationIgnored var afterOverview: (() -> Void)?
         /// A floating panel (the palette, the shortcuts) is open: its Esc is its own.
@@ -310,18 +308,21 @@
                 page.dropFind()
             }
             let alive = Set(list.flatMap { $0.store.panes.compactMap(\.terminalID) })
-            // The other pages' floated panes stream too (D50), made with their own page's client.
-            var shown = current.shownTerminals
-            for page in list where page !== current {
-                for pane in page.store.panes where page.floats(pane) {
-                    if let id = pane.terminalID, page.terminal(pane) != nil {
+            // The other pages' floated panes stream too (D50), and while the overview is open every card of every
+            // page, no visits (D70); each made with its own page's client.
+            var shown = current.shownTerminals, unvisited: [String: String] = [:]
+            for page in list {
+                for pane in page.store.panes {
+                    let floats = page.floats(pane)
+                    guard floats ? page !== current : overview, let id = pane.terminalID, page.terminal(pane) != nil
+                    else { continue }
+                    if floats {
                         shown[id] = pane.id
+                    } else {
+                        unvisited[id] = pane.id
                     }
                 }
             }
-            // The cards of the overview's tiles laid out: no visits (D70). Not on a remote machine, whose connection
-            // holds about 10 SSH sessions (machines#ssh-sessions): its miniatures keep their last picture.
-            let unvisited = overview && !machine.isRemote ? current.cardTerminals(overviewTabs[current.id] ?? []) : [:]
             // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
             let kept = alive.union(list.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
             terminals.show(shown, unvisited: unvisited, alive: kept, client: current.store.client)
