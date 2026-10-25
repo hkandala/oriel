@@ -7,16 +7,24 @@ extension OrielUITests {
     /// Key Host, for a launch that starts on it (`-machine e2e-key`).
     private static let keyHost = #"[{"id":"e2e-key","name":"Key Host","target":"oriel-key","icon":"server.rack"}]"#
 
-    func testAddingAKeyHostConnectsWithoutAskingAndOpensItsSessions() async throws {
+    func testAddingAKeyHostOpensItInANewWindowWithoutAsking() async throws {
         try await skipWithoutSSH()
         relaunch(one, ["-machines", "[]"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        let identifier = app.windows.firstMatch.identifier
+        let first = app.windows[identifier]
         addHost("Key Host", "oriel-key")
-        // Its sessions come from herdr over SSH; session one opens as a page.
-        openPage(one)
-        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        // A new window on it (user, phase 28), with session one from herdr over SSH; this one keeps its page.
+        let remote = try otherWindow(than: identifier)
+        XCTAssertTrue(element("terminal.w1:p1", in: first).exists)
         XCTAssertFalse(element("ask.text").exists)
-        keepScreenshot("remote page")
+        keepScreenshot("remote window", of: remote)
+        // Picking it in the machine menu opens another window on it.
+        element("titlebar.machine", in: first).click()
+        app.menuItems["Key Host"].click()
+        XCTAssertTrue(app.windows.element(boundBy: 2).exists(within: 3))
+        XCTAssertEqual(app.windows.count, 3)
+        XCTAssertTrue(element("terminal.w1:p1", in: first).exists)
         // It went through the host's ControlMaster.
         let dropped = try await Self.post("\(one)/ssh-drop", Data("oriel-key".utf8))
         XCTAssertFalse(dropped.isEmpty)
@@ -29,10 +37,15 @@ extension OrielUITests {
         try await Self.post("\(one)/ssh-forget", Data("oriel-pw".utf8))
         relaunch(one, ["-machines", "[]"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        let identifier = app.windows.firstMatch.identifier
+        let first = app.windows[identifier]
         addHost("Password Host", "oriel-pw")
-        // A new host key: its fingerprint on a line of its own, and Connect instead of ssh's yes or no.
+        // A new host key, asked in the new window: its fingerprint on a line of its own, and Connect instead of
+        // ssh's yes or no.
         let text = element("ask.text")
         XCTAssertTrue(text.exists(within: connect))
+        XCTAssertFalse(element("ask.text", in: first).exists)
+        XCTAssertTrue(element("terminal.w1:p1", in: first).exists)
         let facts = text.value as? String ?? ""
         XCTAssertTrue(facts.contains("fingerprint is:\nSHA256:"), facts)
         XCTAssertFalse(facts.contains("yes/no"), facts)

@@ -41,7 +41,6 @@
         @State private var palette = false
         private var settings = AppSettings()
         @Environment(\.colorScheme) private var colorScheme
-        @Environment(\.openWindow) private var openWindow
         @Environment(\.dismissWindow) private var dismissWindow
 
         private var look: Look {
@@ -81,7 +80,7 @@
 
         private func content(_ pages: WindowPages, _ page: Page, _ pane: HostStore.Pane?) -> some View {
             let terminal = pane.flatMap(page.terminal)
-            let commands = CommandList(pages: pages, palette: $palette, openWindow: openWindow, settings: settings,
+            let commands = CommandList(pages: pages, palette: $palette, settings: settings,
                                        floating: floating)
             return VStack(spacing: 0) {
                 header(page, pane)

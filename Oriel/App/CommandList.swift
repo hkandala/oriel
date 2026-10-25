@@ -11,7 +11,6 @@
         var agents: Binding<Bool>?
         var openSession: Binding<Bool>?
         var shortcuts: Binding<Bool>?
-        let openWindow: OpenWindowAction
         let settings: AppSettings
         /// A floating window's list (D50): only what applies to it.
         var floating: Floating?
@@ -25,8 +24,9 @@
             let page = pages?.current, pages = pages, workspace = page?.selectedWorkspace, tab = page?.selectedTab
             let live = page?.store.state == .live
             let file = [
+                // On the window's machine (D34).
                 Command(section: .file, title: "New Window", key: .init("n"), symbol: "macwindow.badge.plus") {
-                    openWindow(id: "main")
+                    WindowPages.open(machine: pages?.machine ?? .thisMac)
                 },
                 Command(section: .file, title: "New Tab", key: .newTab, group: .tabs, symbol: "plus.square",
                         enabled: workspace != nil) { Task { await page?.newTab() } },

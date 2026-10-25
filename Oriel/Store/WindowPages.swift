@@ -185,14 +185,15 @@
             question?.answer(nil)
         }
 
-        /// The window shows another machine: its pages give way to that machine's `default` session. This Mac's
-        /// starts when it is stopped; a remote one shows Start.
-        func show(machine: Machine) {
-            guard machine != self.machine else { return }
-            leaveAll()
-            self.machine = machine
-            open("default", start: !machine.isRemote)
+        /// A new window on the machine (D43); the other windows and their pages stay. `connect`: it connects at once,
+        /// asking what ssh asks (a machine just added).
+        static func open(machine: Machine, connect: Bool = false) {
+            opening = (machine, connect)
+            openWindow?(id: "main")
         }
+
+        /// What `open(machine:)` asked for, taken by the new window as it restores.
+        static var opening: (machine: Machine, connect: Bool)?
 
         /// Every page leaves and every terminal closes.
         private func leaveAll() {

@@ -92,17 +92,7 @@ extension OrielUITests {
     }
 
     func testWindowsOnDifferentSessionsEachControlTheirOwn() async throws {
-        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
-        // By identifier: `firstMatch` would follow the front window.
-        let identifier = app.windows.firstMatch.identifier
-        let first = app.windows[identifier]
-        // A plain click on This Mac opens nothing; ⌥-click opens a window, as ⌘N.
-        element("titlebar.machine", in: first).click()
-        app.menuItems["This Mac"].click()
-        XCTAssertFalse(app.windows.element(boundBy: 1).exists(within: 2))
-        element("titlebar.machine", in: first).click()
-        XCUIElement.perform(withKeyModifiers: .option) { app.menuItems["This Mac"].click() }
-        let second = try otherWindow(than: identifier)
+        let (first, second) = try newWindow()
         XCTAssertTrue(element("notice.controlled", in: second).exists(within: connect))
 
         // Window 2 opens session two and closes its page of session one.

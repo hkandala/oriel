@@ -89,7 +89,9 @@ struct OrielApp: App {
                 }
             }
             .task {
-                await restore()
+                let opening = WindowPages.opening
+                WindowPages.opening = nil
+                await restore(opening?.machine)
                 // Closed while it restored: nothing of it may stay.
                 if Task.isCancelled {
                     pages.closed()
@@ -99,6 +101,10 @@ struct OrielApp: App {
                         for id in page.floating.keys {
                             openWindow(id: "float", value: Floating(session: page.id, terminalID: id))
                         }
+                    }
+                    // A machine just added connects now, asking what ssh asks in this window.
+                    if opening?.connect == true, let store = pages.current?.store {
+                        await store.connect(in: pages)
                     }
                 }
             }
@@ -150,10 +156,11 @@ struct OrielApp: App {
             var floating: [String: Bool]?
         }
 
-        /// The restored window's machine (`-machine <id>` on the command line wins), then `-session` if given, else
-        /// the restored window's pages that still run, else `default` (`-defaultSession` names another, for tests);
-        /// This Mac's first page is started when it is stopped. Never another session by itself.
-        private func restore() async {
+        /// The machine a new window was opened for (`opening`), else the restored window's (`-machine <id>` on the
+        /// command line wins over that), then `-session` if given, else the restored window's pages that still run,
+        /// else `default` (`-defaultSession` names another, for tests); This Mac's first page is started when it is
+        /// stopped. Never another session by itself.
+        private func restore(_ opening: Machine?) async {
             guard pages.list.isEmpty else { return }
             // A window macOS restores gets its scene storage a moment after it first shows; a restored window always
             // saved its pages.
@@ -167,7 +174,9 @@ struct OrielApp: App {
             // A run against a throwaway session must open only it.
             let arguments = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
             let argument = arguments["session"] as? String
-            if let machine = MachineList.shared.machine(arguments["machine"] as? String ?? savedMachine) {
+            if let machine = opening
+                ?? MachineList.shared.machine(arguments["machine"] as? String ?? savedMachine)
+            {
                 pages.machine = machine
             }
             // A test run (`-defaultSession`) shares the developer's saved windows: it restores only throwaway sessions.
@@ -210,7 +219,6 @@ struct OrielApp: App {
         /// The window's content height, for the palette's list.
         @State private var height: CGFloat = 0
         private var settings = AppSettings()
-        @Environment(\.openWindow) private var openWindow
         @Environment(\.colorScheme) private var colorScheme
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -219,7 +227,7 @@ struct OrielApp: App {
             let look = Look(style: style, dark: colorScheme == .dark)
             let commands = CommandList(pages: pages, palette: open(.palette), sidebar: $sidebar, agents: $agents,
                                        openSession: open(.openSession), shortcuts: open(.shortcuts),
-                                       openWindow: openWindow, settings: settings)
+                                       settings: settings)
             // The strip's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
             // cards start at its bottom edge, as in Rex; the row stays on top for its clicks and window drags.
             VStack(spacing: -4) {

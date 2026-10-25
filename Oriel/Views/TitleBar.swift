@@ -171,21 +171,17 @@
     /// The machine's icon; its menu lists the machines and Add Remote Host.
     private struct MachineButton: View {
         let pages: WindowPages
-        @Environment(\.openWindow) private var openWindow
 
         var body: some View {
             let current = pages.machine
             Menu {
-                // Picking the current machine does nothing; ⌥-click on This Mac opens it in a new window, as ⌘N.
-                // ponytail: ⌥-click on a remote machine switches this window; carry the machine to a new window
-                // (`openWindow(id:value:)`) when that is missed. macOS 27 draws no images in these menus (an AppKit
-                // NSMenuItem.image does not show either); the icons are here for systems that do.
+                // Another machine opens in a new window; this one and its sessions stay (user, phase 28). Picking the
+                // current machine does nothing. macOS 27 draws no images in these menus (an AppKit NSMenuItem.image
+                // does not show either); the icons are here for systems that do.
                 ForEach([Machine.thisMac] + MachineList.shared.list) { machine in
                     Toggle(isOn: Binding { machine == current } set: { _ in
-                        if NSEvent.modifierFlags.contains(.option), !machine.isRemote {
-                            openWindow(id: "main")
-                        } else {
-                            pages.show(machine: machine)
+                        if machine != current {
+                            WindowPages.open(machine: machine)
                         }
                     }) { Label(machine.name, systemImage: machine.icon) }
                 }

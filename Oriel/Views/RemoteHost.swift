@@ -3,7 +3,7 @@
     import SwiftUI
 
     /// The machine button's Add Remote Host sheet (ui/add-a-machine): a name, the SSH target and an icon. Add saves
-    /// the machine, shows its `default` session in the window and connects, asking what ssh asks.
+    /// the machine and opens it in a new window, which connects and asks what ssh asks.
     struct AddHost: View {
         let pages: WindowPages
         @State private var name = ""
@@ -44,8 +44,7 @@
             let machine = Machine(id: UUID().uuidString, name: name.isEmpty ? target : name, target: target, icon: icon)
             MachineList.shared.list.append(machine)
             dismiss()
-            pages.show(machine: machine)
-            Task { await pages.current?.store.connect(in: pages) }
+            WindowPages.open(machine: machine, connect: true)
         }
     }
 

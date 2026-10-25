@@ -216,8 +216,9 @@ extension KeyboardShortcut {
 
         var body: some Commands {
             // With no window: New Window and the settings.
-            let opener = Self.keep(openWindow)
-            let list = (commands ?? CommandList(openWindow: opener, settings: settings)).all
+            // swiftlint:disable:next redundant_discardable_let
+            let _ = Self.keep(openWindow) // `_ =` is no statement in a builder.
+            let list = (commands ?? CommandList(settings: settings)).all
             CommandGroup(replacing: .newItem) { items(list, .file) }
             // ⌘W closes the keyboard card, ⇧⌘W the tab, ⌃⌘W the workspace, ⌥⌘W detaches the session (design: keyboard).
             CommandGroup(replacing: .saveItem) { items(list, .close) }
@@ -236,10 +237,10 @@ extension KeyboardShortcut {
             CommandGroup(replacing: .help) { items(list, .help) }
         }
 
-        /// The menu bar's commands exist with no window: the app delegate opens one through this for a Dock drop.
-        private static func keep(_ openWindow: OpenWindowAction) -> OpenWindowAction {
+        /// The menu bar's commands exist with no window: every main window opens through this (a Dock drop, New
+        /// Window, a machine).
+        private static func keep(_ openWindow: OpenWindowAction) {
             WindowPages.openWindow = openWindow
-            return openWindow
         }
 
         private func items(_ list: [Command], _ section: Command.Section) -> some View {
