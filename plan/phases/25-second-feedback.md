@@ -87,6 +87,9 @@ Wave 1 runs lanes H–L in parallel. Wave 2 (lanes S, A2, F2) starts when wave 1
     pane that the next snapshot confirms or removes), or remove the wait, whichever is simpler. The palette
     opens in the same frame as the key. The swipe between sessions is too slow: make its animation clearly
     quicker (about half), keeping the snap.
+    Also from lane K: ⌘T then an immediate close can ask about the shell's startup programs (ls, sort, zsh);
+    closing a big workspace starts one herdr process per pane to read process_info; ⌥⌘W pressed twice quickly
+    starts two asks.
 
 ### Lane A2: pane animations (item 3)
 
