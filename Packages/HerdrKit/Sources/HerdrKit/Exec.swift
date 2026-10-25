@@ -6,8 +6,8 @@ public protocol Exec: Sendable {
     func run(_ argv: [String]) async throws -> Channel
     /// herdr's absolute path on the machine, from its login shell; nil when it has none. Asked again at most every
     /// 30 s while missing or gone, so a herdr installed or moved since is found
-    /// (talking-to-herdr#herdr-on-each-machine).
-    func herdr() async -> String?
+    /// (talking-to-herdr#herdr-on-each-machine). Throws when the machine cannot be reached.
+    func herdr() async throws -> String?
 }
 
 extension Exec {
@@ -36,7 +36,6 @@ public struct Channel: Sendable {
 
 #if os(macOS)
     /// Runs commands on This Mac with the user's login-shell environment.
-    /// ponytail: This Mac only, so no SSH prefix and no base64 envelope; remote machines add them.
     public final class ProcessExec: Exec {
         let environment: [String: String]
         private let lookup: Mutex<Lookup>
@@ -179,7 +178,7 @@ public struct Channel: Sendable {
             }
         }
 
-        private static func spawn(_ argv: [String], _ environment: [String: String]) throws -> Channel {
+        static func spawn(_ argv: [String], _ environment: [String: String]) throws -> Channel {
             let process = Process()
             let stdin = Pipe(), stdout = Pipe(), stderr = Pipe()
             process.executableURL = URL(filePath: "/usr/bin/env")

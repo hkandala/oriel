@@ -14,6 +14,9 @@ public enum HerdrError: Error, Equatable, Sendable {
     case herdr(code: String, message: String)
     /// The command failed or printed something we cannot read.
     case failed(String)
+    /// ssh needs an answer (a password, a code, a host key) to reach the machine; ssh's text. Only the user's
+    /// Connect asks again.
+    case disconnected(String)
     /// herdr changed nothing, for this reason (`same_tab`, `cross_tab`, `zoomed_tab`).
     case refused(String)
 }
@@ -21,8 +24,8 @@ public enum HerdrError: Error, Equatable, Sendable {
 extension HerdrError: LocalizedError {
     public var errorDescription: String? {
         switch self {
-        case .notFound: "herdr is not installed on this Mac"
-        case let .unsupported(message), let .failed(message): message
+        case .notFound: "herdr is not installed"
+        case let .unsupported(message), let .failed(message), let .disconnected(message): message
         case .timeout: "herdr did not answer"
         case let .herdr(code, message): "\(message) (\(code))"
         case .refused("zoomed_tab"): "The tab is zoomed in herdr"
@@ -240,7 +243,7 @@ public actor HerdrClient {
     }
 
     nonisolated func herdr() async throws -> String {
-        guard let path = await exec.herdr() else { throw HerdrError.notFound }
+        guard let path = try await exec.herdr() else { throw HerdrError.notFound }
         return path
     }
 }

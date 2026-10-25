@@ -2,11 +2,11 @@ import Foundation
 
 #if os(macOS)
     public extension HerdrClient {
-        /// Starts this session's server as a one-shot launchd job, so launchd, not the app, is its parent
-        /// and responsible process (design D47), and waits until it answers. No KeepAlive: once
+        /// Starts this session's server and waits until it answers: on This Mac as a one-shot launchd job, so
+        /// launchd, not the app, is its parent and responsible process (design D47); on a remote machine with nohup. No
+        /// KeepAlive: once
         /// `herdr session stop` ends it, launchd keeps the job loaded but never runs it again. False when it
         /// already ran.
-        /// ponytail: This Mac only; remote machines start herdr over SSH.
         @discardableResult
         nonisolated func startServer(within timeout: Duration) async throws -> Bool {
             // The name goes into a launchd label and file paths.
@@ -17,10 +17,35 @@ import Foundation
                 return false
             } catch {
                 switch error {
-                case HerdrError.notFound, HerdrError.unsupported: throw error
+                case HerdrError.notFound, HerdrError.unsupported, HerdrError.disconnected: throw error
                 default: break
                 }
             }
+            if exec is SSHExec {
+                // No launchd there: the server leaves the SSH channel with nohup (machines#checks-on-connect).
+                _ = try await exec.output([
+                    "sh",
+                    "-c",
+                    #"nohup "$0" --session "$1" server </dev/null >/dev/null 2>&1 &"#,
+                    herdr(),
+                    session,
+                ])
+            } else {
+                try await bootstrap()
+            }
+            // No check at all with no time (e2e's start failure): the job still starts, so Retry finds it running.
+            let deadline = ContinuousClock.now + timeout
+            while ContinuousClock.now < deadline {
+                if await (try? snapshot()) != nil {
+                    return true
+                }
+                try await Task.sleep(for: .milliseconds(100))
+            }
+            throw HerdrError.failed("The server did not answer within \(timeout)")
+        }
+
+        /// This Mac's server as a one-shot launchd job.
+        private nonisolated func bootstrap() async throws {
             // The CLI's user keys, so the server and the CLI agree on paths (XDG_CONFIG_HOME moves herdr's
             // sessions).
             var environment: [String: String] = [:]
@@ -51,15 +76,6 @@ import Foundation
             guard status == 0 else {
                 throw HerdrError.failed("launchctl bootstrap exited \(status): \(stderr)")
             }
-            // No check at all with no time (e2e's start failure): the job still starts, so Retry finds it running.
-            let deadline = ContinuousClock.now + timeout
-            while ContinuousClock.now < deadline {
-                if await (try? snapshot()) != nil {
-                    return true
-                }
-                try await Task.sleep(for: .milliseconds(100))
-            }
-            throw HerdrError.failed("The server did not answer within \(timeout)")
         }
     }
 #endif
