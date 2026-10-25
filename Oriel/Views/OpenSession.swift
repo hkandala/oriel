@@ -4,8 +4,8 @@
 
     /// The one place to create or open a session (D68): a new name, the running and stopped sessions, and the ones
     /// already open in this window. Create, open and start take one path: start the server when it is not running,
-    /// then open its page last. The lit running session has Stop, the lit stopped one Delete; both ask first. A glass
-    /// panel like the palette: Enter acts, Esc or a click outside closes it.
+    /// then open its page last. The lit running session has Stop, the lit stopped one Delete (both red, and ask first),
+    /// the lit open one Detach. A glass panel like the palette: Enter acts, Esc or a click outside closes it.
     struct OpenSession: View {
         let pages: WindowPages
         @Binding var open: Bool
@@ -86,6 +86,7 @@
             let session = { (one: Session) in
                 var row = item("session", one.name, one.running ? "Running" : "Stopped", one.name) { start(one.name) }
                 let verb = one.running ? "stop" : "delete"
+                row.buttonRole = .destructive
                 row.button = (verb.capitalized, {
                     if busy == nil {
                         asking = (verb, one.name)
@@ -94,13 +95,16 @@
                 return row
             }
             return create + others.filter(\.running).map(session) + others.filter { !$0.running }.map(session)
-                + shown.filter { $0.matches(filter) }.map { name in
-                    item("open", name, "Open in this window", name) {
-                        if let page = pages.list.first(where: { $0.id == name }) {
-                            pages.show(page)
-                        }
+                + pages.list.filter { $0.id.matches(filter) }.map { page in
+                    var row = item("open", page.id, "Open in this window", page.id) {
+                        pages.show(page)
                         open = false
                     }
+                    // The session keeps running; never the window's last page.
+                    if pages.list.count > 1 {
+                        row.button = ("Detach", { pages.close(page) })
+                    }
+                    return row
                 }
         }
 

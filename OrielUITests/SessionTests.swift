@@ -99,6 +99,7 @@ extension OrielUITests {
         XCTAssertTrue(row.has(\.isSelected, true, within: 2))
         expectRow(row.identifier, under: "Running", above: nil)
         XCTAssertFalse(element("\(row.identifier).delete").exists)
+        XCTAssertTrue(isRed(element("\(row.identifier).stop")))
         keepScreenshot("stop on the lit row")
         element("\(row.identifier).stop").click()
         let stop = app.sheets.buttons["Stop Session"]
@@ -106,6 +107,7 @@ extension OrielUITests {
         stop.click()
         XCTAssertTrue(element("\(row.identifier).delete").exists(within: 10))
         expectRow(row.identifier, under: "Stopped", above: nil)
+        XCTAssertTrue(isRed(element("\(row.identifier).delete")))
         let stopped = try? await Self.snapshot(seven)
         XCTAssertNil(stopped)
 
@@ -117,6 +119,36 @@ extension OrielUITests {
         XCTAssertTrue(row.vanishes(within: 10))
         // Deleted: the name is free again.
         XCTAssertTrue(element("open-session.new.\(seven)").exists(within: 2))
+    }
+
+    /// Open Session's lit open row has Detach, plain, not red; the window's last page has none.
+    func testOpenSessionDetachesAnOpenSession() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        openSessionPanel()
+        app.typeText(one)
+        let last = element("open-session.open.\(one)")
+        XCTAssertTrue(last.has(\.isSelected, true, within: 2))
+        XCTAssertFalse(element("\(last.identifier).detach").exists)
+        app.typeKey("a", modifierFlags: .command)
+        app.typeText(two)
+        element("open-session.session.\(two)").click()
+        XCTAssertTrue(until(3) { header == two })
+
+        openSessionPanel()
+        app.typeText(two)
+        let row = element("open-session.open.\(two)")
+        XCTAssertTrue(row.has(\.isSelected, true, within: 2))
+        let detach = element("\(row.identifier).detach")
+        XCTAssertTrue(detach.exists)
+        XCTAssertFalse(isRed(detach))
+        keepScreenshot("detach on the lit open row")
+        detach.click()
+        XCTAssertTrue(element("sidebar.dot.\(two)").vanishes(within: 3))
+        XCTAssertTrue(until(3) { header == one })
+        // Still running, and the panel stays open.
+        XCTAssertTrue(element("open-session.session.\(two)").exists(within: 2))
+        expectRow("open-session.session.\(two)", under: "Running", above: nil)
+        try await Self.snapshot(two)
     }
 
     /// A session opened goes last in the window's sessions, not beside the one in view.
@@ -185,6 +217,16 @@ extension OrielUITests {
         let filter = element("open-session.filter", in: window)
         XCTAssertTrue(hasKeyboard(filter))
         return filter
+    }
+
+    /// Whether the element draws mostly red: a destructive button's fill, with the lit row's accent at its corners.
+    private func isRed(_ element: XCUIElement) -> Bool {
+        let pixels = Self.pixels(element.screenshot().image)
+        let count = max(pixels.count / 4, 1)
+        let mean = (0 ..< 3).map { channel in
+            stride(from: channel, to: pixels.count, by: 4).reduce(0) { $0 + Int(pixels[$1]) } / count
+        }
+        return mean[0] > mean[1] + 50 && mean[0] > mean[2] + 50
     }
 
     /// The page in view's session (a static text's value).

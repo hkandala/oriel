@@ -268,12 +268,14 @@ struct MenuRow: View {
     }
 }
 
-/// A lit row's own button (`FilterList.Item.button`), readable on the accent pill.
+/// A lit row's own button (`FilterList.Item.button`), readable on the accent pill; red when destructive.
 struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
+        let pressed = configuration.isPressed
         configuration.label.font(.system(size: 11, weight: .medium)).foregroundStyle(.white)
             .padding(.horizontal, 8).padding(.vertical, 2)
-            .background(.white.opacity(configuration.isPressed ? 0.35 : 0.2), in: .capsule)
+            .background(configuration.role == .destructive ? Color.red.opacity(pressed ? 0.75 : 1)
+                : .white.opacity(pressed ? 0.35 : 0.2), in: .capsule)
     }
 }
 

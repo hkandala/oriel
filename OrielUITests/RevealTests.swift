@@ -200,6 +200,14 @@ extension OrielUITests {
 
     /// Each pixel's brightness, 0–255; none when the image does not draw.
     static func brightness(_ image: NSImage) -> [Int] {
+        let pixels = pixels(image)
+        return stride(from: 0, to: pixels.count, by: 4).map {
+            (Int(pixels[$0]) + Int(pixels[$0 + 1]) + Int(pixels[$0 + 2])) / 3
+        }
+    }
+
+    /// The image's pixels, RGBA row by row; none when the image does not draw.
+    static func pixels(_ image: NSImage) -> [UInt8] {
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return [] }
         let width = cgImage.width, height = cgImage.height
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
@@ -209,9 +217,6 @@ extension OrielUITests {
                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
                 .map { $0.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height)) } != nil
         }
-        guard drawn else { return [] }
-        return stride(from: 0, to: pixels.count, by: 4).map {
-            (Int(pixels[$0]) + Int(pixels[$0 + 1]) + Int(pixels[$0 + 2])) / 3
-        }
+        return drawn ? pixels : []
     }
 }

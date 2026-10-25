@@ -19,8 +19,11 @@ struct FilterList: View {
         var busy = false
         /// Opens a sub-page: a › on the right, and the list stays open.
         var opens = false
-        /// A second action, a button on the lit row's right end (Open Session's Stop and Delete). The list stays open.
+        /// A second action, a button on the lit row's right end (Open Session's Stop, Delete and Detach). The list
+        /// stays open.
         var button: (title: String, act: () -> Void)?
+        /// The button's role: red when destructive.
+        var buttonRole: ButtonRole?
         let act: () -> Void
     }
 
@@ -121,7 +124,8 @@ struct FilterList: View {
                                 .overlay(alignment: .trailing) {
                                     // Not while its spinner shows.
                                     if let button = item.button, offset == index, !item.busy {
-                                        Button(button.title, action: button.act).buttonStyle(RowButtonStyle())
+                                        Button(button.title, role: item.buttonRole, action: button.act)
+                                            .buttonStyle(RowButtonStyle())
                                             .padding(.trailing, 4)
                                             .accessibilityIdentifier("\(name).\(item.id).\(button.title.lowercased())")
                                     }
