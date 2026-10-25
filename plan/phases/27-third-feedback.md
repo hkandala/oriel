@@ -91,3 +91,42 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   last code commit; one review round per lane (spec and ponytail, read only).
 
 ## Findings
+
+### Lane G3 (items 2–5)
+
+- **Item 3, as the user decided later:** a `default` session shows the device's name: for This Mac, the Mac's own
+  name from System Settings (`SCDynamicStoreCopyComputerName`, "Hari's MacBook Pro", read once per launch), not the
+  words "This Mac"; for a remote machine, its name from the machine list. Other sessions show their own name.
+- **Root causes.** 2: the labels were the words of phase 25, and the sort `Menu` had `ChromeStyle(radius: 6)`
+  on a label with 6 pt padding: a hover tint the user did not read as a button, with a square shape. 3: the
+  header drew `page.id`, the herdr session name, as-is. 4: phase 25 lane P made the title 13 pt semibold "a step
+  above the rows"; the rows are 13 pt too, so only the weight changes: 13 pt bold. 5: groups had no fold.
+- **Decisions.** `HostStore.title` (the name above) in the sidebar header, the needs-you panel's header, the page
+  dots' VoiceOver label and the title row's "‹title› | ‹workspace›" button while the sidebar is collapsed (it
+  stands for the header); Open Session, the palette, the workspace menu and the window title keep herdr's names.
+  The sort control is a capsule (`ChromeStyle(radius: 11)`, 22 pt high, 8 pt padding) that ends on the rows' edge
+  and never shortens (`fixedSize`: a long session name shortens instead; on CI "Workspace" read "Works…" before).
+  Groups fold by a click anywhere on the label; a chevron at its end points right while folded and shows pointing
+  down only under the pointer while open, as in a macOS sidebar. Workspace groups got a count ("alpha 2"), so a
+  folded one keeps it as priority groups do. Folds live in one `@AppStorage` string, a line per fold
+  ("‹machine› ‹session› ‹order› ‹group›"; group = the state's case name or herdr's workspace id), so per session and
+  order, across relaunches. The fold animates 0.2 s (none under Reduce Motion). A filter does not unfold a group.
+- **Known limits.** A closed workspace's fold line stays, and herdr can give its id to a new workspace, which then
+  comes up folded (ponytail comment). Renaming the Mac shows after a relaunch.
+- **Tests.** `testAgentGroupsFoldAndStayFoldedAfterARelaunch` (new): the sort capsule's fill under the pointer
+  (median brightness of its screenshot, the one pixel check: no accessibility value says "hovered"), fold and
+  unfold a priority group (label and count stay, value `collapsed` / `expanded`), fold a workspace group, the other
+  order unaffected, still folded after a relaunch; a teardown unfolds both, as the folds outlive the app and
+  session one is shared by the run. `testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder`: "Workspace", the
+  capsule's end on the rows' end, the header the rows' height, labels with counts, and it now waits for the rows'
+  states (CI 40192968701 read the Done row while it still said Working). No test for item 3: it needs a session
+  named `default`, which is read only (rules.md), and the app has no unit target.
+- **CI.** 40192442654 (red: the new test hovered a workspace row the Agents view hides), 40192968701 (red: the
+  states race above), local runs of both tests green (Retina, glass), full suite 40194683589 on c662ac6, the lane's
+  last code commit: every agents and sidebar test green; 2 reds in other lanes' areas
+  (`testFloatingWindowOpensLargeWithTheMainWindowsTitleRow`, lane F3: 368 vs 370 pt;
+  `testPaletteEnterTakesTheMovedRowAndKeysFollow`). The fold test takes about 40 s on CI (a relaunch and the
+  teardown's two order switches).
+- **For the user to check by hand:** the header on This Mac's `default` (your Mac's name, bold, the rows' size) and
+  on a remote machine's `default`; the sort capsule under the pointer in all four looks; folding a group, then
+  relaunching.
