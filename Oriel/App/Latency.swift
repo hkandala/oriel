@@ -67,7 +67,7 @@
         /// The sidebar's pages after a swipe's lift: their offset at each change for 0.8 s, in ms from the lift; first
         /// the ms to the last change: "swipe 230ms 0:145,8:152,…" (phase 27). Not to the scroll's idle: the session
         /// slide's scroll to the page ends the phase as it starts.
-        func scrolled(_ old: ScrollPhase, _: ScrollPhase, _ context: ScrollPhaseChangeContext) {
+        func scrolled(_ old: ScrollPhase, _ context: ScrollPhaseChangeContext) {
             guard Self.isOn, old == .interacting else { return }
             lifted = ProcessInfo.processInfo.systemUptime
             slide = []

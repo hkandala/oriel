@@ -115,11 +115,13 @@ extension OrielUITests {
         element("sidebar.dot.\(one)").click()
         XCTAssertTrue(until(3) { header == one })
         let sidebar = element("sidebar"), width = sidebar.frame.width
+        let center = "\(sidebar.frame.midX) \(sidebar.frame.midY)"
         // 14 steps of 10 pt, 16 ms apart (625 pt/s), past half a page, then momentum; the other way if natural
         // scrolling is off.
+        var forward = -1.0
         for sign in [-1.0, 1.0] {
-            let center = "\(sidebar.frame.midX) \(sidebar.frame.midY)"
-            try await Self.post("\(one)/swipe", Data("\(center) \(10 * sign) 14 m".utf8))
+            forward = sign
+            try await Self.post("\(one)/swipe", Data("\(center) \(10 * sign) 14".utf8))
             // No accessibility query during the slide: XCUITest's snapshots take the main thread (a 240 ms stall).
             try await Task.sleep(for: .seconds(1))
             if header == two {
@@ -127,13 +129,8 @@ extension OrielUITests {
             }
         }
         XCTAssertEqual(header, two)
-        let swipe = try XCTUnwrap(element("app.latency").stringValue.split(separator: "; ")
-            .last { $0.hasPrefix("swipe") })
-        let words = swipe.split(separator: " "), speed = 600.0
-        let path = words.count > 2 ? words[2].split(separator: ",").map { point in
-            point.split(separator: ":").compactMap { Double($0) }
-        } : []
-        XCTAssertGreaterThan(path.count, 4, "\(swipe)")
+        let (swipe, path) = try XCTUnwrap(swipes().last, "no swipe moved")
+        let speed = 10 / 0.016
         let times = path.map { $0[0] }, offsets = path.map { $0[1] }
         // The page went 140 pt with the fingers, give or take the system's own pace.
         XCTAssertEqual(offsets[0], 140, accuracy: 40, "\(swipe)")
@@ -154,6 +151,25 @@ extension OrielUITests {
         let early = path.last { $0[0] <= 60 } ?? path[0]
         XCTAssertGreaterThan((early[1] - offsets[0]) / max(early[0], 1) * 1000, speed / 2, "\(swipe)")
         XCTAssertLessThan((early[1] - offsets[0]) / max(early[0], 1) * 1000, speed * 3, "\(swipe)")
+
+        // 40 pt back, then the fingers stop 0.2 s before they lift: back to the same page (the scroll view's own snap),
+        // no session change.
+        let name = element("sidebar.header"), place = name.frame.minX
+        try await Self.post("\(one)/swipe", Data("\(center) \(-10 * forward) 4 200".utf8))
+        try await Task.sleep(for: .seconds(1))
+        XCTAssertEqual(header, two)
+        XCTAssertEqual(name.frame.minX, place, accuracy: 1)
+    }
+
+    /// The "swipe" records in which the pages moved (the gesture's end given to the scroll view at its page makes one
+    /// that did not), each with its offsets: [ms, pt].
+    private func swipes() -> [(String, [[Double]])] {
+        element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("swipe") }.map { swipe in
+            let words = swipe.split(separator: " ")
+            let path = words.count > 2
+                ? words[2].split(separator: ",").map { $0.split(separator: ":").compactMap { Double($0) } } : []
+            return (String(swipe), path)
+        }.filter { $0.1.count > 4 }
     }
 
     private func launchRecordingLatency(_ args: [String] = []) throws {
@@ -175,7 +191,7 @@ extension OrielUITests {
         Thread.sleep(forTimeInterval: 0.5)
     }
 
-    /// "⌘T 12ms 0": the key, the time to its frame, the turns; "swipe 53ms".
+    /// "⌘T 12ms 0": the key, the time to its frame, the turns; "swipe 230ms 0:145,8:152,…".
     private struct Entry {
         let name: String, time: Int, turns: Int
     }
