@@ -178,7 +178,9 @@ draws them. Input takes two paths:
 - Special keys (arrows, Esc, function keys, keys with modifiers, Ctrl
   chords, and the macOS line-editing keys such as ⌘← and ⌥←) go as
   `pane.send_keys`, one bridge call per burst. Their bytes depend on the
-  program's input modes, and herdr encodes them for those modes. Keys that
+  program's input modes, and herdr encodes them for those modes. A Ctrl
+  chord keeps its Shift: under the kitty keyboard protocol ⌃⇧S is its own
+  key, and a program without that protocol gets ⌃S's byte. Keys that
   pile up during a call go in the next one, in order with the text.
 
 One path is [Future work](/docs/future-work).

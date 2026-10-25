@@ -155,6 +155,29 @@ extension OrielUITests {
         try await typeAndRead(pane)
     }
 
+    /// ⌃⇧ chords keep their Shift for a program with the kitty keyboard protocol: pi's extensions bind ⌃⇧S, ⌃⇧↩…
+    func testControlShiftKeysReachAKittyProgram() async throws {
+        let (tab, pane) = try await newTab("kitty")
+        element("tab.\(tab)").click()
+        let terminal = element("terminal.\(pane)")
+        XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
+        try await waitForPrompt(pane)
+        // CSI > 1 u: the protocol's first flag (keys stay apart), which every kitty program asks for.
+        try await send("clear; printf '\\033[>1u'; cat -v\r", to: pane)
+        try await expect("cat to run") { try await foreground(pane).contains("cat") }
+        terminal.click()
+        XCTAssertTrue(hasKeyboard(terminal))
+        for key in ["s", "b", "t", "o", "w"] {
+            app.typeKey(key, modifierFlags: [.control, .shift])
+        }
+        app.typeKey(.return, modifierFlags: [.control, .shift])
+        app.typeKey("s", modifierFlags: .control)
+        // The tty's echo, ESC as ^[: Shift is modifier 6, Ctrl alone 5.
+        let keys = "^[[115;6u^[[98;6u^[[116;6u^[[111;6u^[[119;6u^[[13;6u^[[115;5u"
+        try await waitFor(pane) { $0.replacing("\n", with: "").contains(keys) }
+        keepScreenshot("control shift keys")
+    }
+
     // MARK: Helpers
 
     private func viewportRows(_ pane: String) async throws -> Int {

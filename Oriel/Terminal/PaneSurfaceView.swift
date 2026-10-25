@@ -288,14 +288,16 @@
                 return prefix + (shift && named != "esc" ? "shift+" : "") + named
             }
             // The layout's letter (Dvorak, AZERTY), else the key's US character (Ctrl+С on a Russian
-            // layout is Ctrl+C). Shift is dropped, as xterm does: Ctrl+Shift+C is Ctrl+C.
+            // layout is Ctrl+C). Shift stays: under the kitty keyboard protocol Ctrl+Shift+S is its own key (pi's
+            // extensions bind them); herdr sends Ctrl+S's byte to a program without it.
             guard control else { return nil }
+            let chord = prefix + (shift ? "shift+" : "")
             if let letter = event.charactersIgnoringModifiers?.lowercased(), letter.count == 1,
                letter.first?.isASCII == true, letter.first?.isLetter == true
             {
-                return prefix + letter
+                return chord + letter
             }
-            return ansi[event.keyCode].map { prefix + $0 }
+            return ansi[event.keyCode].map { chord + $0 }
         }
     }
 
