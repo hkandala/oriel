@@ -154,9 +154,9 @@ extension OrielUITests {
         // ⌘=: Reset Font Size turns on (the menu's state, not the grid: a 1x display may round one step away).
         addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }
         app.typeKey("0", modifierFlags: .command)
-        XCTAssertTrue(actualSize(enabled: false))
+        XCTAssertTrue(resetFontSize(enabled: false))
         app.typeKey("=", modifierFlags: .command)
-        XCTAssertTrue(actualSize(enabled: true))
+        XCTAssertTrue(resetFontSize(enabled: true))
 
         // The palette uses Ghostty's words, as the menu bar does (phase 25). Font Size › lights the current size,
         // scrolled into view below the fold.
@@ -165,12 +165,13 @@ extension OrielUITests {
         for title in ["Increase Font Size", "Decrease Font Size", "Reset Font Size"] {
             XCTAssertTrue(element("palette.command.\(title)").exists(within: 2), title)
         }
-        element("palette.command.Font Size").click()
+        // Font Size › starts with the filter, so it comes before Increase Font Size.
+        app.typeKey(.return, modifierFlags: [])
         app.typeText("30")
         app.typeKey(.return, modifierFlags: [])
         openPalette()
         app.typeText("font size")
-        element("palette.command.Font Size").click()
+        app.typeKey(.return, modifierFlags: [])
         let size = element("palette.choice.30 pt")
         XCTAssertTrue(size.has(\.isSelected, true, within: 2))
         XCTAssertTrue(size.isHittable)
@@ -312,7 +313,7 @@ extension OrielUITests {
     }
 
     /// View ▸ Reset Font Size, read with the menu open (SwiftUI updates a closed menu's items late).
-    private func actualSize(enabled: Bool) -> Bool {
+    private func resetFontSize(enabled: Bool) -> Bool {
         app.menuBars.menuBarItems["View"].click()
         let found = app.menuBars.menuItems["Reset Font Size"].has(\.isEnabled, enabled, within: 2)
         app.typeKey(.escape, modifierFlags: [])

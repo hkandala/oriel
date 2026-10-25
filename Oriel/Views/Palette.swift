@@ -74,16 +74,21 @@
         }
 
         /// Empty field: Tabs, Workspaces, Sessions, then Commands, under headers. Typed: one list, best match first; a
-        /// tie goes to commands before places, then to the earlier row (the menu's and the sidebar's order). A keyword
-        /// match ranks under a title match.
+        /// tie goes to a title that starts with the filter ("font size": Font Size › before Increase Font Size), then
+        /// to commands before places, then to the earlier row (the menu's and the sidebar's order). A keyword match
+        /// ranks under a title match.
         private func rootItems(_ filter: String, _ list: [Command]) -> [FilterList.Item] {
             let commands = commandRows(list), places = placeRows()
             guard !filter.trimmingCharacters(in: .whitespaces).isEmpty else { return (places + commands).map(\.item) }
             return (commands + places).enumerated().compactMap { index, row in
                 [row.item.title.fuzzyScore(filter), row.keywords.fuzzyScore(filter).map { $0 + 3 }].compactMap(\.self)
-                    .min().map { (score: $0, index: index, item: row.item) }
+                    .min().map { score in
+                        let starts = row.item.title.range(of: filter, options: [.anchored, .caseInsensitive,
+                                                                                .diacriticInsensitive]) != nil
+                        return (score: score, rest: starts ? 0 : 1, index: index, item: row.item)
+                    }
             }
-            .sorted { ($0.score, $0.index) < ($1.score, $1.index) }
+            .sorted { ($0.score, $0.rest, $0.index) < ($1.score, $1.rest, $1.index) }
             .map { row in
                 var item = row.item
                 item.section = nil
