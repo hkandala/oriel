@@ -273,3 +273,11 @@ extension View {
         }
     }
 }
+
+extension String {
+    /// Whether this label passes a typed filter: trimmed, case and accent blind, empty passes all.
+    func matches(_ filter: String) -> Bool {
+        let filter = filter.trimmingCharacters(in: .whitespaces)
+        return filter.isEmpty || localizedStandardContains(filter)
+    }
+}

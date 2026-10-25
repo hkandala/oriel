@@ -66,6 +66,43 @@ extension OrielUITests {
         }
     }
 
+    /// Glass cards carry Rex's rim (phase 25): brighter along the top edge than down the sides, on every card alike.
+    /// Asserted in dark; light's rim and the card both end near white, so its screenshot is for people.
+    func testGlassCardsHaveABrighterTopRim() {
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        pick("Interface Style", "Glass")
+        addTeardownBlock { @MainActor [self] in pick("Appearance", "Dark") }
+        for appearance in ["Dark", "Light"] {
+            pick("Appearance", appearance)
+            Thread.sleep(forTimeInterval: 0.3)
+            let rims = ["w1:p1", "w1:p2"].map { rim(element("pane.\($0)")) }
+            keepScreenshot("glass \(appearance.lowercased()) rims over the fill (top, side): \(rims)")
+            for rim in rims where appearance == "Dark" {
+                // Rex's dark rim: the top line about 40 steps over the fill at 1x, the sides about 10.
+                XCTAssertTrue(rim.top - rim.side >= 12 && rim.top >= 25, "\(rims)")
+            }
+        }
+    }
+
+    /// How much brighter than the card's median (its fill) the brightest of its top 3 pixel rows round its middle is,
+    /// and the brightest of its left 3 columns round its middle.
+    private func rim(_ card: XCUIElement) -> (top: Int, side: Int) {
+        let image = card.screenshot().image
+        let brightness = Self.brightness(image)
+        guard let width = image.cgImage(forProposedRect: nil, context: nil, hints: nil)?.width, width > 0,
+              brightness.count > width * 40 else { return (0, 0) }
+        let height = brightness.count / width
+        // The mean of 20 pixels, by their offsets in the image.
+        func mean(_ offsets: [Int]) -> Int {
+            offsets.map { brightness[$0] }.reduce(0, +) / offsets.count
+        }
+        let middle = Array(-10 ..< 10)
+        let top = (0 ..< 3).map { row in mean(middle.map { row * width + width / 2 + $0 }) }.max() ?? 0
+        let side = (0 ..< 3).map { column in mean(middle.map { (height / 2 + $0) * width + column }) }.max() ?? 0
+        let fill = brightness.sorted()[brightness.count / 2]
+        return (top - fill, side - fill)
+    }
+
     /// The median brightness of a card: its fill, as its text is a small share.
     private func median(_ card: XCUIElement) -> Int {
         let brightness = Self.brightness(card.screenshot().image).sorted()

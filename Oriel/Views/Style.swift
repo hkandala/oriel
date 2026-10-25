@@ -53,9 +53,16 @@ struct Look {
         pick(.white.opacity(0.02), .white.opacity(0.25), .black.opacity(0.1), .white.opacity(0.5))
     }
 
-    /// A 0.7 pt rim inside the card's edge, drawn `plusLighter`; Glass only.
-    var rim: Color {
-        pick(.white.opacity(0.1), .white.opacity(0.04), .clear, .clear)
+    /// A 0.7 pt rim inside the card's edge, drawn `plusLighter`, and over it along the top edge Rex's glass rim: a 1 pt
+    /// line that fades out round the corners and a glow under it at about half. Glass only (Rex's Classic cards have a
+    /// flat edge). Dark matches Rex's pixels: line 46 and 28 steps over the card, glow 9, sides 15.
+    var rim: (all: Color, top: Color) {
+        pick(
+            (.white.opacity(0.06), .white.opacity(0.08)),
+            (.white.opacity(0.04), .white.opacity(0.3)),
+            (.clear, .clear),
+            (.clear, .clear),
+        )
     }
 
     /// The stroke just outside the card's edge.
@@ -163,7 +170,17 @@ struct CardSurface: View {
                 }
             }
             .overlay(shape.fill(keyboard ? look.keyboardFill : .clear))
-            .overlay(shape.strokeBorder(look.rim, lineWidth: 0.7).blendMode(.plusLighter))
+            .overlay(alignment: .top) {
+                ZStack(alignment: .top) {
+                    shape.strokeBorder(look.rim.all, lineWidth: 0.7)
+                    shape.strokeBorder(look.rim.top).mask(alignment: .top) {
+                        LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: 14)
+                    }
+                    LinearGradient(colors: [look.rim.top.opacity(0.45), .clear], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 8)
+                }
+                .clipShape(shape).blendMode(.plusLighter).allowsHitTesting(false)
+            }
             .overlay(shape.inset(by: -edge.width / 2).stroke(edge.color, lineWidth: edge.width))
     }
 }
@@ -378,13 +395,5 @@ extension View {
                     .accessibilityValue(value)
             }
         }
-    }
-}
-
-extension String {
-    /// Whether this label passes a typed filter: trimmed, case and accent blind, empty passes all.
-    func matches(_ filter: String) -> Bool {
-        let filter = filter.trimmingCharacters(in: .whitespaces)
-        return filter.isEmpty || localizedStandardContains(filter)
     }
 }
