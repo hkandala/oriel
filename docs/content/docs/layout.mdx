@@ -1,6 +1,6 @@
 ---
 title: "Layout and sizing"
-description: "The split tree, drawing, dividers, fade, motion, keyboard moves, zoom, PTY size, selection per page and seen"
+description: "The split tree, drawing, dividers, the keyboard card, motion, keyboard moves, zoom, PTY size, selection per page and seen"
 ---
 
 ## What herdr returns
@@ -88,25 +88,18 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
   send the ratio. Its identifier is `divider.<tab id>.<path>`, with the path
   as `0` and `1` digits, or `root` for the root split.
 
-## Fade
+## The keyboard card
 
-The card with the keyboard is drawn at full strength; the others fade (D64).
-The fade is the opacity of the card's terminal content (its host view), not an
-overlay, so card edges stay crisp:
+Every card is drawn at full strength, in a key window and in one that is not
+(D64). The keyboard card takes the keyboard-card fill and stroke, the others
+the plain card fill, from the look's tokens
+([Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style)).
+In Glass the two are close: the keyboard card is only a little brighter.
 
-| Card | Window is key | Window is not key |
-|---|---|---|
-| Keyboard card | 1.0 | 0.8 (0.85 in light) |
-| Other cards | 0.7 | 0.5 |
-
-- In a window that watches the session, its 0.85 dim (D66) multiplies with
-  these values.
-- The keyboard card keeps the keyboard-card fill and stroke; the others take
-  the plain card fill, from the look's tokens
-  ([Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style)).
-- The card's accessibility value says the fade, for example "content 70%".
-- One setting, View ▸ **Fade Inactive Panes** (on by default), turns both
-  fades off.
+- A window that watches the session dims every card's header and terminal
+  content (its host view, not an overlay, so card edges stay crisp) to 0.85
+  (D66).
+- The card's accessibility value says the dim: "content 100%" or "content 85%".
 
 ## Layout motion
 

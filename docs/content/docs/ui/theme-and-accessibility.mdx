@@ -27,8 +27,8 @@ and appearance, with values measured from Rex and tuned by eye. In short:
 | Token | Glass | Classic |
 |---|---|---|
 | Window background | behind-window blur (`hudWindow`) + a tint: `#1e1e1e` at 0.5 in dark, with black 0.6 blended `overlay` under it to darken the blur; white at 0.7 in light | opaque `#1e1e1e` dark, `#f6f6f6` light |
-| Card fill | black 0.14 dark (a step darker than the window, Rex's pane backdrop), white 0.10 light; a step brighter on the keyboard card (white 0.05 more in dark, 0.7 in light) | white 0.018 dark (`#222` on `#1e1e1e`), 0.6 light; a step apart on the keyboard card (black 0.1 more in dark, 0.8 in light) |
-| Card edges | a 0.7 pt inner rim (`plusLighter`) and a 1 pt outer stroke (black 0.5 dark; black 0.05, 0.1 on the keyboard card, light); in light a shadow (black 0.1, blur 5, 2 pt down) | light: a 0.7 pt outer stroke, 0.8 pt and stronger on the keyboard card; dark: only the keyboard card has one (0.8 pt, white 0.1); no shadow |
+| Card fill | white 0.03 dark, 0.6 light, a step brighter than the window; the keyboard card only a little brighter (white 0.02 more in dark, 0.25 in light, so it ends at 0.7) | white 0.018 dark (`#222` on `#1e1e1e`), 0.6 light; a step apart on the keyboard card (black 0.1 more in dark, 0.8 in light) |
+| Card edges | a 0.7 pt inner rim (`plusLighter`) and a 1 pt outer stroke (black 0.5 dark, 0.1 light, the same on every card); in light a shadow (black 0.1, blur 5, 2 pt down) | light: a 0.7 pt outer stroke, 0.8 pt and stronger on the keyboard card; dark: only the keyboard card has one (0.8 pt, white 0.1); no shadow |
 | Selected tab and row | Liquid Glass capsule | a flat pill (white 0.045) in dark; white with a fine stroke and a shadow in light |
 | Tab track | the primary color at 0.05 | the same in light; none in dark |
 | Title row and sidebar text and glyphs | white 0.65 dark, black 0.65 light; the selected tab's and row's title white 0.9 / black 0.9 | the same |
@@ -37,8 +37,7 @@ and appearance, with values measured from Rex and tuned by eye. In short:
 
 The hover and pressed fills (rows, tabs, buttons) are the same in both styles:
 the primary color at 0.05 and 0.08, which follows the appearance by itself, so
-they are not tokens. A card without the keyboard fades its header with its
-terminal.
+they are not tokens.
 
 Terminals keep a transparent background, so the card shows through. Their
 text uses libghostty's defaults: Alabaster in light, Afterglow in dark. They
@@ -88,7 +87,8 @@ the Agents view and popover, the hover card, pills, notifications):
   the ratio as a percent ([Dividers](/docs/layout#dividers)).
 - On iOS, the app's chrome and the chat view follow Dynamic Type.
 - The terminal font size is the app's text size: 13 pt by default, 8 to 32,
-  with View ▸ Bigger (⌘+ or ⌘=), Smaller (⌘-) and Actual Size (⌘0)
+  with View ▸ Increase Font Size (⌘+ or ⌘=), Decrease Font Size (⌘-) and Reset
+  Font Size (⌘0)
   ([Settings](/docs/ui/settings)).
 - Reduce Motion stops the working dots (three still dots at 0.6), makes the
   tab selection and the strip jump, and turns off the icon bounce, the layout
@@ -147,7 +147,7 @@ differ only by the key shows as one row: "Select Pane ⌥⌘←→↑↓", "Show
 | ⌘[ and ⌘] | Select Previous Pane, Select Next Pane | View ▸ Pane |
 | ⌥⇧⌘ + arrow | Move Pane: swap the keyboard card with the card that way | View ▸ Pane |
 | ⌃⌘ + arrow | move the nearest divider of the keyboard card 5 % that way | View ▸ Pane |
-| ⌘+ (and ⌘=), ⌘-, ⌘0 | Bigger, Smaller, Actual Size: the text size | View |
+| ⌘+ (and ⌘=), ⌘-, ⌘0 | Increase, Decrease, Reset Font Size: the text size | View |
 | ⌃⌘F | full screen | View |
 | ⌘/ | Keyboard Shortcuts (the panel) | Help |
 | ⌘1 … ⌘9 | switch tabs | Window |
