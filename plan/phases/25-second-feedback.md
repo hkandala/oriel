@@ -468,6 +468,82 @@ found none). If herdr has none, floating is Oriel's own.
 - **For the user to check by hand:** ⌘D, ⇧⌘D, Split Left and Up from the menu, close, zoom and back, in tabs with 2–4
   panes, with Reduce Motion off and on: the others resize and slide, the new card slides in, the text never blanks.
 
+### Lane O (item 30)
+
+- **Scenario** (`testMemoryAndCPUOverManyTabs`, the e2e helper's `usage`): session one's 5 panes plus a workspace of
+  6 tabs and 12 panes, 8 of them printing 10 lines a second, 4 of them working agents (`pane.report_agent`), dots moving
+  (`-forceMotion`); every tab shown once, then 10 s of `ps` CPU and `footprint` on a quiet one-pane tab and on a tab
+  of 3 printing panes. 17 terminals, as on the user's Mac.
+
+  | | Before | After |
+  |---|---|---|
+  | Footprint, Release, this Mac (Retina) | 909 MB | 190 MB |
+  | IOSurface, Release, this Mac | 586 MB (69 surfaces) | 67 MB (stills purgeable, not counted) |
+  | IOAccelerator (graphics), Release, this Mac | 85 MB | 8–21 MB |
+  | CPU quiet tab, Release, this Mac | 54.9 % | 2.9 % |
+  | CPU busy tab, Release, this Mac | 48.9 % | 5.7 % |
+  | Footprint, CI (Debug, 1x VM) | 216 MB | 103–114 MB |
+  | CPU quiet / busy, CI | 23.0 / 27.3 % | 4.0 / 1.2 % |
+  | herdr `terminal session` runs | 16, 110 MB, 0.1–0.3 % | 5, 34 MB, 0.0–0.2 % |
+  | Main thread in a 3 s `sample`, quiet tab (Debug, this Mac) | about half busy in SwiftUI's render (CI 91/187) | 1309 of 1316 samples idle |
+  | Lane S's latency tests (`testPanelsAndSwitchesReactAtOnce`, `testNewTabSplitAndClosesShowAtOnce`, `testQuickNewTabsAndAnEarlyClose`) | green | green (this Mac and CI) |
+
+  Steps, Debug on this Mac: the dots alone took CPU from 51.9 / 50.8 % to 19.6 / 18.0 % (memory unchanged, 917 MB);
+  the surfaces and paused drawing took it to 3.4 / 6.5 % and 190 MB. CI: 23.0 / 27.3 → 6.8 / 6.2 (dots, 40183818674)
+  → 3.1 / 0.9 % (40183996523). Baselines: CI 40183217191, this Mac 760133d.
+- **What cost what.** (1) Memory: each libghostty surface is ghostty's Metal swap chain of 3 IOSurfaces
+  (`swap_chain_count = 3`) at the card's pixel size; the user's were all 2574 × 1754 BGRA, 17.2 MB each, 51.6 MB a
+  terminal, plus 4–5 MB of Metal buffers and atlases. The registry let go of streams only past 24 and never of a
+  surface, and a lazy page's card made one even when never shown, so every terminal ever laid out kept 3 surfaces.
+  (2) CPU, about 30 points: `WorkingDots` was a `TimelineView` at 15 frames a second per dots view (tab capsules,
+  sidebar rows), and each tick made SwiftUI render and lay out the whole window's hosting view and commit its layers;
+  the samples show no Oriel view body in it, only `NSHostingView.layout` → `ViewGraph` → `CA::Transaction::commit`.
+  (3) CPU, about 15 points: hidden terminals drew. libghostty marks a view visible again when it leaves its window
+  (`viewDidMoveToWindow` → `setWindowVisible(true)`), so ghostty's renderer drew each output of the 16 streaming hidden
+  terminals. (4) Snapshots and output: no measurable SwiftUI work. Swift 6.4's `@Observable` skips a set to an equal
+  value (checked in a probe), so the reconcile's unchanged fields notify nothing; frames are decoded off the main thread.
+  (5) The herdr runs: about 7 MB and nearly no CPU each.
+- **Changes.** Core Animation runs the dots: one dot in a `CAReplicatorLayer` (3 instances, 5.5 pt and 0.2 s apart),
+  a keyframe animation at 15 fps at most, phased from the wall clock (d8fa6eb, 809cad8). Only the shown tab's terminals
+  and floating panes draw (`inView`, `setSurfaceVisible`); the 4 most recently shown others (`PaneViewRegistry.spare`,
+  over all windows) keep their stream and surface; the rest end their stream and free their surface (`free`:
+  `controller = nil`). ghostty's old layer keeps showing its last IOSurface after the free (its `deinit` only
+  releases its own reference), so that layer is the still: marked purgeable while its view is in no window, so it costs
+  no footprint (a probe: 10 volatile 17 MB surfaces dropped from 176 MB to 3 MB). Shown again, the surface is made anew
+  (`rebuild`), the still sits over the new surface's layer, drawing pauses until herdr's frames settle (the 100 ms
+  settle, 0.4 s cap), and the still goes when the new surface's layer gets its first contents (KVO, in the same
+  transaction). A terminal gets its first surface only when it first streams (86d22ce, 04d5464).
+- **Decisions.** `spare = 4`: a kept terminal costs 52 MB at full-window Retina size and a herdr run; 4 covers going
+  back and forth between the last few tabs at once, and an older tab comes back under its picture and redraws in one
+  stream open plus the settle. A still the system took back gives the card's fill and the first fade-in. The hover
+  card's preview pictures only cards that draw (the shown tab's, floating ones); others get lane T's text
+  (`TabPreview.picture` reads `inView` and `view.picture`; told the orchestrator for lane T).
+- **One herdr helper per session: not possible without cons, so one per terminal stays.** herdr 0.9.5's
+  `terminal session control <TARGET>` takes one target, and its server ties each client connection to one terminal
+  (`ControlTerminal {target}` is accepted only on a connection still pending terminal mode, `headless.rs`). Several
+  terminals per process would need herdr's private client protocol spoken on its socket. The bound above cuts the runs
+  from 16 to 5 instead.
+- **Reviews.** Spec review: the still could drop at the key (the KVO went on the old layer before its rebuild) or
+  through a 0.5 s fallback before a slow agent's frames came, a rebuilt watcher revealed before its first frame was
+  parsed, a still evicted twice was replaced by an empty layer, the still was not sized with its view, and a settle from
+  before the rebuild could reveal the empty surface: all fixed in 04d5464. A plain `NSView` in a row button took its
+  clicks: `Dots.hitTest` returns nil. Ponytail review: one drop mechanism (KVO, no timer), the replicator layer, an iOS
+  stub instead of a second representable, fewer wrappers.
+- **Tests.** `testMemoryAndCPUOverManyTabs` (red on the old code: 16 runs over its bound of 5 and 7) and
+  `testAnEvictedCardComesBackWithItsPicture` (red on the old code: w1:p1's stream never ends): five more tabs evict
+  t1's three cards; back on t1, every screenshot has ink, herdr's text shows, its stream is back, and a `clear` is drawn
+  (the still did not stay). Not covered by a test: a rebuilt watcher (D66's second window) and a card resized while
+  evicted.
+- **Learned.** libghostty-spm frees a surface only through `controller = nil` (no public free). `footprint` leaves
+  volatile IOSurfaces out ("Reclaimable"). KVO on `CALayer.contents` fires for ghostty's `setContents:`. A dictionary's
+  order put t1's three terminals in `recent` in any order, so the eviction test needs one tab more than it seems (a CI
+  flake on the first version). Local screenshots of a Retina card take about 2 s, so the return time is read on CI.
+- **For the user to check by hand:** after `make install`, use Oriel for half an hour with agents working, then
+  `footprint $(pgrep -f Oriel.app/Contents/MacOS/Oriel)` (expect a few hundred MB, IOSurface about 52 MB per shown card
+  plus 4 more) and `top -l 2 -s 10 -pid …` (a few percent while you watch). Go back to a tab five or more tabs ago: its
+  old picture, then the new one, never an empty card. The working dots' look and their step across tabs. A click on a
+  working agent's icon in the Agents view and the hover card. Minimize the window while agents print: CPU should drop.
+
 ## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
 
 Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/fb/agents-header.png` (item 18).
