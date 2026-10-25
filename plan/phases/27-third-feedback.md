@@ -128,6 +128,7 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   (`testFloatingWindowOpensLargeWithTheMainWindowsTitleRow`, lane F3: 368 vs 370 pt;
   `testPaletteEnterTakesTheMovedRowAndKeysFollow`). The fold test takes about 40 s on CI (a relaunch and the
   teardown's two order switches).
+- **Window title** (57dd4a6): the four window-title tests green on CI 40196247210.
 - **For the user to check by hand:** the header on This Mac's `default` (your Mac's name, bold, the rows' size) and
   on a remote machine's `default`; the sort capsule under the pointer in all four looks; folding a group, then
   relaunching.
