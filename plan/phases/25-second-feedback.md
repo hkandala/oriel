@@ -94,6 +94,10 @@ Wave 1 runs lanes H–L in parallel. Wave 2 (lanes S, A2, F2) starts when wave 1
    side as the others make room; a close shrinks the card away as the others grow; zoom grows the card to
    the full tab and back. The terminal text keeps phase 24's no-blank rule during these (hold the old
    picture, reveal once at the end). Reduce Motion turns them off.
+   The user (2026-10-25): the new card's fade-in on a split is there, but the other cards do not animate
+   their size change; they jump. So the frame animation in Strip (`.animation(…, value: tree)`) does not reach
+   the screen, likely because the terminal host keeps its grid and the card frames change outside it. Fix that
+   first.
 
 ### Lane F2: floating panes (item 16)
 
