@@ -38,14 +38,15 @@ struct Look {
     }
 
     var cardFill: Color {
-        // Glass dark: Rex's pane backdrop darkens the window under cards (6 steps on a #2c window). Classic dark: #222
-        // on #1e1e1e, as in Rex.
-        pick(.black.opacity(0.14), .white.opacity(0.1), .white.opacity(0.018), .white.opacity(0.6))
+        // Glass: a step brighter than the window, close to the keyboard card (phase 25: Rex's darker pane backdrop set
+        // the other cards far apart from it). Classic dark: #222 on #1e1e1e, as in Rex.
+        pick(.white.opacity(0.03), .white.opacity(0.55), .white.opacity(0.018), .white.opacity(0.6))
     }
 
-    /// Over `cardFill` on the card that has the keyboard: light cards end at white 0.7 (Glass) and 0.8 (Classic).
+    /// Over `cardFill` on the card that has the keyboard: Glass a little brighter; light cards end at white 0.7
+    /// (Glass) and 0.8 (Classic).
     var keyboardFill: Color {
-        pick(.white.opacity(0.05), .white.opacity(2 / 3), .black.opacity(0.1), .white.opacity(0.5))
+        pick(.white.opacity(0.02), .white.opacity(1 / 3), .black.opacity(0.1), .white.opacity(0.5))
     }
 
     /// A 0.7 pt rim inside the card's edge, drawn `plusLighter`; Glass only.
@@ -58,7 +59,7 @@ struct Look {
         keyboard
             ? pick((.black.opacity(0.5), 1), (.black.opacity(0.1), 1), (.white.opacity(0.1), 0.8),
                    (.black.opacity(0.18), 0.8))
-            : pick((.black.opacity(0.5), 1), (.black.opacity(0.05), 1), (.clear, 0),
+            : pick((.black.opacity(0.5), 1), (.black.opacity(0.1), 1), (.clear, 0),
                    (.black.opacity(0.12), 0.7))
     }
 
