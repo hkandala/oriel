@@ -98,14 +98,29 @@ extension OrielUITests {
 
     /// Split, zoom and close animate the card that stays (phase 25, item 3): its host goes through the sizes in between
     /// (`-recordMotion YES` counts them; a card made again or one that jumps takes one or two), and its text never
-    /// blanks on the way.
+    /// blanks on the way. Under Reduce Motion it jumps.
     func testSplitZoomAndCloseAnimateWithoutBlanking() async throws {
         relaunch(one, ["-recordMotion", "YES"])
         let (tab, pane) = try await newTab("motion")
         element("tab.\(tab)").click()
+        let host = element("host.\(pane)"), terminal = element("terminal.\(pane)")
+        // CI's Mac has Reduce Motion on: the card jumps to its new size in one step.
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            XCTAssertTrue(host.exists(within: 3))
+            let sizes = Int(host.label) ?? 0
+            let other = try await split(pane)
+            XCTAssertTrue(element("pane.\(other)").exists(within: 3))
+            XCTAssertTrue(until(2) { Int(host.label) == sizes + 1 }, "Reduce Motion: \(host.value ?? "")")
+            _ = try await Self.call(one, "pane.close", ["pane_id": other])
+            XCTAssertTrue(element("pane.\(other)").vanishes(within: 3))
+            relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
+            XCTAssertTrue(element("workspace.w2").exists(within: connect))
+            element("workspace.w2").click()
+            XCTAssertTrue(element("tab.\(tab)").has(\.isHittable, true, within: 3))
+            element("tab.\(tab)").click()
+        }
         try await fill(pane)
         try await expectText([pane], "filled")
-        let host = element("host.\(pane)"), terminal = element("terminal.\(pane)")
         var other = ""
         let steps: [(String, () async throws -> Void)] = [
             ("split", { other = try await self.split(pane) }),
@@ -135,8 +150,7 @@ extension OrielUITests {
             XCTAssertGreaterThanOrEqual(
                 (Int(host.label) ?? 0) - sizes,
                 4,
-                "\(step): sizes from \(sizes) to \(host.label), \(host.value ?? ""), reduce motion "
-                    + "\(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)",
+                "\(step): sizes from \(sizes) to \(host.label), \(host.value ?? "")",
             )
             try await expectText([pane], step)
         }

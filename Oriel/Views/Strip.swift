@@ -14,6 +14,8 @@
         @State private var between = 0
         private static let record = UserDefaults.standard.bool(forKey: "recordStrip")
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        /// e2e (`-forceMotion YES`): layout motion even with Reduce Motion, which CI's Mac has on.
+        private static let forceMotion = UserDefaults.standard.bool(forKey: "forceMotion")
 
         var body: some View {
             ScrollView(.horizontal) {
@@ -25,9 +27,10 @@
                                 // Layout motion (0.2 s): a split, a close, a swap, a zoom. The terminals keep their
                                 // size until it ends (`TerminalHost`).
                                 let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
+                                let motion = reduceMotion && !Self.forceMotion ? nil : Animation.easeOut(duration: 0.2)
                                 SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
-                                    .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: tree)
-                                    .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: zoomed)
+                                    .animation(motion, value: tree)
+                                    .animation(motion, value: zoomed)
                                     .padding([.horizontal, .bottom], gap)
                                     .padding(.top, 4)
                             } else {
