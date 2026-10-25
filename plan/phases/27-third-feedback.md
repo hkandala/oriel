@@ -103,7 +103,8 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   above the rows"; the rows are 13 pt too, so only the weight changes: 13 pt bold. 5: groups had no fold.
 - **Decisions.** `HostStore.title` (the name above) in the sidebar header, the needs-you panel's header, the page
   dots' VoiceOver label and the title row's "‹title› | ‹workspace›" button while the sidebar is collapsed (it
-  stands for the header); Open Session, the palette, the workspace menu and the window title keep herdr's names.
+  stands for the header), and the window title "‹tab› - ‹title›" (orchestrator, after the lane); Open Session, the
+  palette and the workspace menu keep herdr's names.
   The sort control is a capsule (`ChromeStyle(radius: 11)`, 22 pt high, 8 pt padding) that ends on the rows' edge
   and never shortens (`fixedSize`: a long session name shortens instead; on CI "Workspace" read "Works…" before).
   Groups fold by a click anywhere on the label; a chevron at its end points right while folded and shows pointing
