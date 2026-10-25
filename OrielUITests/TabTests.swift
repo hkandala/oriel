@@ -116,9 +116,8 @@ extension OrielUITests {
     }
 
     /// The user's four workspaces (5 tabs, 1, 1, 3), clicked top to bottom and back from a middle tab of the first,
-    /// while the cards in view keep drawing (the user's agents worked; here their panes are renamed again and again):
-    /// every workspace shows its cards (phase 25, item 25: a one-tab one came up empty going down from the 4th tab),
-    /// and so does a session shown and left in between.
+    /// selected twice: every workspace shows its cards (phase 25, item 25: a one-tab one came up empty going down from
+    /// the 4th tab once the strip had drawn again on it), and so does a session shown and left in between.
     func testStripShowsEachWorkspaceClickedDownAndUp() async throws {
         var shown: [(workspace: String, tab: String)] = []
         for (index, count) in [5, 1, 1, 3].enumerated() {
@@ -126,24 +125,14 @@ extension OrielUITests {
             shown.append((workspace(of: tabs[0]), tabs[0]))
         }
         let first = try await tabIDs().filter { workspace(of: $0) == shown[0].workspace }
-        var panes: [String] = []
-        for tab in first[1 ... 3] {
-            try await panes.append(pane(of: tab))
-        }
-        // Off the main actor, which the waits below block. A card that draws again (its name here) while its page is
-        // in view is what left the next workspace's strip empty.
-        let busy = Task.detached { [one, panes] in
-            for count in 0... where !Task.isCancelled {
-                _ = try? await Self.call(one, "pane.rename", ["pane_id": panes[count % 3], "label": "busy \(count)"])
-                try? await Task.sleep(for: .milliseconds(50))
-            }
-        }
-        defer { busy.cancel() }
-        for middle in [1, 2, 3, 3, 3] {
+        for middle in 1 ... 3 {
             element("workspace.\(shown[0].workspace)").click()
-            app.typeKey("\(middle + 1)", modifierFlags: .command)
             shown[0].tab = first[middle]
-            try await expectShown(first[middle], "tab \(middle + 1)")
+            // Twice: the second selects the tab in view again, which draws the strip again.
+            for _ in 0 ..< 2 {
+                app.typeKey("\(middle + 1)", modifierFlags: .command)
+                try await expectShown(first[middle], "tab \(middle + 1)")
+            }
             for (workspace, tab) in shown.dropFirst() + shown.reversed().dropFirst() {
                 element("workspace.\(workspace)").click()
                 try await expectShown(tab, "tab \(middle + 1), then \(workspace)")
