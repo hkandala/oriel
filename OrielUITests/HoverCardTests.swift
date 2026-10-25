@@ -120,7 +120,8 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("preview")
         let second = try await split(pane)
-        try await send("echo preview-$((6*7))\r", to: pane)
+        // A long line too: text wider than its card would widen the card's frame.
+        try await send("printf '%0200d\\n' 0; echo preview-$((6*7))\r", to: pane)
         try await waitFor(pane) { $0.contains("\npreview-42") }
 
         let card = element("hovercard")
@@ -130,7 +131,7 @@ extension OrielUITests {
         XCTAssertTrue(left.has(\.stringValue, "text", within: 2))
         XCTAssertEqual(right.stringValue, "text")
         // Side by side with a 2 pt gap (the page's 8 pt at a quarter), as herdr's split right.
-        XCTAssertEqual(right.frame.minX - left.frame.maxX, 2, accuracy: 1)
+        XCTAssertEqual(right.frame.minX - left.frame.maxX, 2, accuracy: 1, "\(left.frame) \(right.frame)")
         XCTAssertEqual(left.frame.minY, right.frame.minY, accuracy: 1)
         XCTAssertEqual(left.frame.height, right.frame.height, accuracy: 1)
         XCTAssertGreaterThan(left.frame.width, 100)

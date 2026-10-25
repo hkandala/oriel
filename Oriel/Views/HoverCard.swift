@@ -331,8 +331,14 @@
                         TerminalPicture(picture: picture, tick: tick).frame(width: width,
                                                                             height: width * size.height / size.width)
                     } else if let text = screens[id] {
-                        Text(text).font(.system(size: 3.25, design: .monospaced)).lineSpacing(0)
-                            .fixedSize().frame(width: width, alignment: .topLeading)
+                        // A quarter of the terminal's 13 pt, smaller when the longest line would not fit (a monospaced
+                        // glyph is about 0.6 of its size wide), and the lines that fit: text that overflows its card
+                        // widens the card's accessibility frame, though clipped.
+                        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+                        let size = min(3.25, width / (0.6 * CGFloat(max(lines.map(\.count).max() ?? 1, 1))))
+                        Text(lines.prefix(Int(proxy.size.height / (size * 1.2))).joined(separator: "\n"))
+                            .font(.system(size: size, design: .monospaced))
+                            .frame(width: width, height: max(proxy.size.height - 4, 0), alignment: .topLeading)
                     }
                 }
                 .padding(2)
