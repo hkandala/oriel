@@ -184,6 +184,8 @@ extension KeyboardShortcut {
         var family: (title: String, keys: String)?
         /// The palette row's SF Symbol.
         var symbol: String?
+        /// The header of its section in a submenu and a palette sub-page: a workspace's name over its tabs.
+        var heading: String?
         /// More words the palette's filter matches.
         var keywords = ""
         var enabled = true
@@ -254,7 +256,21 @@ extension KeyboardShortcut {
             let shown = sections.map { sections in
                 sections.flatMap { section in commands.filter { $0.section == section } }
             } ?? commands
-            ForEach(Array(shown.enumerated()), id: \.offset) { index, command in
+            // Each run under one heading is a section of the menu (Move Pane to Tab's workspaces).
+            let starts = shown.indices.filter { $0 == 0 || shown[$0].heading != shown[$0 - 1].heading }
+            ForEach(starts, id: \.self) { start in
+                let run = start ..< (starts.first { $0 > start } ?? shown.count)
+                if let heading = shown[start].heading {
+                    Section(heading) { items(shown, run) }
+                } else {
+                    items(shown, run)
+                }
+            }
+        }
+
+        private func items(_ shown: [Command], _ run: Range<Int>) -> some View {
+            ForEach(run, id: \.self) { index in
+                let command = shown[index]
                 if index > 0, sections != nil, shown[index - 1].section != command.section {
                     Divider()
                 }

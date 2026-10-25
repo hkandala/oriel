@@ -294,7 +294,15 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(last)").exists(within: 2))
         element("tab.\(mover)").click()
         XCTAssertTrue(element("pane.\(pane)").has(\.isHittable, true, within: 3))
-        paneMenu(pane, "Move Pane to Tab", "target")
+        // Every tab of the session under its workspace's name, New Tab and New Workspace first (phase 25).
+        paneMenu(pane, "Move Pane to Tab")
+        let entry = app.windows.firstMatch.menuItems["Move Pane to Tab"]
+        XCTAssertTrue(entry.menuItems["second"].exists(within: 2))
+        XCTAssertTrue(entry.menuItems["alpha"].exists)
+        XCTAssertFalse(entry.menuItems["mover"].exists)
+        XCTAssertEqual(entry.menuItems.firstMatch.title, "New Tab")
+        keepScreenshot("move pane to tab")
+        entry.menuItems["target"].click()
         try await expect("the pane right of the last card") { try await order(target) == [first, last, pane] }
 
         // The palette's Move Pane to Tab › moves the keyboard card to a new tab.
@@ -305,6 +313,7 @@ extension OrielUITests {
         app.typeText("move pane to")
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(pageTitle(is: "Move Pane to Tab"))
+        XCTAssertTrue(element("palette.section.alpha").exists(within: 2))
         app.typeText("new tab")
         app.typeKey(.return, modifierFlags: [])
         let moved = try await newTabID(after: before)

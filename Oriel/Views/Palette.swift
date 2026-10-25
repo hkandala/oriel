@@ -156,10 +156,11 @@
                 command.menu.filter { $0.enabled && $0.title.fuzzyScore(filter) != nil }.map { choice in
                     let current = command.previews ? choice.title == kept : choice.checked == true
                     let symbol = current ? "checkmark" : choice.symbol
-                    return FilterList.Item(id: Self.choiceID(choice), symbol: symbol, title: choice.title) {
-                        kept = nil
-                        choice.action()
-                    }
+                    return FilterList.Item(id: Self.choiceID(choice), symbol: symbol, title: choice.title,
+                                           section: choice.heading, act: {
+                                               kept = nil
+                                               choice.action()
+                                           })
                 }
             }
         }

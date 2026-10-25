@@ -307,25 +307,27 @@
         /// The pane's actions (D48), for View ▸ Pane on the keyboard card and the card header's context menu. Actions
         /// ask `target` for the pane when they run: the menu bar may be older than the last keyboard move.
         static func pane(_ page: Page?, _ target: @escaping @MainActor () -> HostStore.Pane?) -> [Command] {
-            let pane = target(), workspace = pane.flatMap { page?.store.workspace(of: $0.tabID) }
-            let zoomed = pane.map { page?.zoomedPaneID == $0.id } ?? false
+            let pane = target(), zoomed = pane.map { page?.zoomedPaneID == $0.id } ?? false
             func act(_ title: String, _ key: KeyboardShortcut? = nil, _ section: Command.Section = .pane,
-                     symbol: String? = nil, enabled: Bool = true,
+                     symbol: String? = nil, enabled: Bool = true, id: String? = nil, heading: String? = nil,
                      _ run: @escaping (Page, HostStore.Pane) async -> Void) -> Command
             {
-                Command(section: section, title: title, key: key, group: .panes, symbol: symbol, keywords: "pane",
-                        enabled: pane != nil && enabled, action: {
+                Command(section: section, title: title, id: id, key: key, group: .panes, symbol: symbol,
+                        heading: heading, keywords: "pane", enabled: pane != nil && enabled, action: {
                             if let page, let pane = target() {
                                 Task { await run(page, pane) }
                             }
                         })
             }
-            // herdr refuses a move into the pane's own tab. A move into a tab lands right of its last card, as a drop
-            // on its capsule does: without a target herdr splits the tab's focused pane.
-            let others = (workspace?.tabs ?? []).filter { $0.id != pane?.tabID }.map { other in
-                var command = act(page?.titleText(other) ?? other.label) { await $0.drop($1.id, on: .tab(other.id)) }
-                command.id = other.id
-                return command
+            // Every tab of the session, under its workspace's name (user, phase 25), but the pane's own: herdr refuses
+            // that move. A move into a tab lands right of its last card, as a drop on its capsule does: without a
+            // target herdr splits the tab's focused pane.
+            let others = (page?.sidebarWorkspaces ?? []).flatMap { workspace in
+                workspace.tabs.filter { $0.id != pane?.tabID }.map { other in
+                    act(page?.titleText(other) ?? other.label, nil, .paneMove, id: other.id, heading: workspace.label) {
+                        await $0.drop($1.id, on: .tab(other.id))
+                    }
+                }
             }
             return [
                 act("Float Pane", symbol: "pip.enter") { $0.float($1) },
@@ -339,7 +341,7 @@
                 act(zoomed ? "Restore Pane" : "Zoom Pane", .zoom, symbol: "plus.magnifyingglass",
                     enabled: pane.map { page?.canZoom($0.id) == true } ?? false) { $0.zoom($1.id) },
                 Command(section: .paneMove, title: "Move Pane to Tab", symbol: "arrow.right.square", keywords: "pane",
-                        enabled: pane != nil, menu: others + [
+                        enabled: pane != nil, menu: [
                             act("New Tab", nil, .paneMove, symbol: "plus.square") { page, pane in
                                 if let workspace = page.store.workspace(of: pane.tabID) {
                                     await page.move(pane, to: .newTab(workspaceID: workspace.id))
@@ -348,7 +350,7 @@
                             act("New Workspace", nil, .paneMove, symbol: "folder.badge.plus") {
                                 await $0.move($1, to: .newWorkspace)
                             },
-                        ]),
+                        ] + others),
                 Command(section: .paneMove, title: "Rename Pane…", symbol: "pencil", keywords: "pane",
                         enabled: pane != nil, name: pane.map { pane in
                             (pane.label ?? "", { await page?.store.rename(pane: pane.id, label: $0) })
