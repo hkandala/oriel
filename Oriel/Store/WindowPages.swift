@@ -334,12 +334,12 @@
                     }
                 }
             }
-            if overview {
-                shown.merge(current.cardTerminals) { shown, _ in shown }
-            }
+            // The overview's other cards: no visits (D70). Not on a remote machine, whose connection holds about 10
+            // SSH sessions (machines#ssh-sessions): its miniatures keep their last picture.
+            let unvisited = overview && !machine.isRemote ? current.cardTerminals.filter { shown[$0.key] == nil } : [:]
             // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
             let kept = alive.union(list.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
-            terminals.show(shown, alive: kept, client: current.store.client)
+            terminals.show(shown, unvisited: unvisited, alive: kept, client: current.store.client)
             // Not while the overview has the keyboard.
             if !overview, !snapshot || !(window?.firstResponder is NSText) {
                 current.shown(alive: alive)
