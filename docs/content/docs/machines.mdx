@@ -195,7 +195,8 @@ One loop per open session checks that it answers.
   once; a run past that waits for one to close (CI's first remote page asked
   for more at once and sshd refused them: "Session open refused by peer"). A
   remote machine's window streams only the tabs in view, not the recently
-  shown ones (D46), so streams leave room for calls. The refusal handling
+  shown ones (D46), so streams leave room for calls; those keep their surface
+  and picture. The refusal handling
   below comes later.
 - When the server refuses one, the app closes the least recently shown kept
   stream (D46, [What streams](/docs/talking-to-herdr#what-streams)) and tries
