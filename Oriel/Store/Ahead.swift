@@ -30,6 +30,10 @@ struct Ahead {
         "new.\(UUID().uuidString)"
     }
 
+    static func isStandIn(_ id: String) -> Bool {
+        id.hasPrefix("new.")
+    }
+
     /// The snapshot as the app shows it.
     struct Shown {
         var workspaces: [Workspace]
@@ -90,26 +94,30 @@ extension HostStore {
     /// last answers say only shells run, it is gone at once while herdr is asked (phase 25); a program found brings it
     /// back with the question. A new pane's shell still starting runs its startup (`ls`, `sort`), nothing of the
     /// user's: not asked.
-    func ask(_ close: Close) async -> Closing? {
+    func ask(_ request: Close) async -> Closing? {
+        // ponytail: a stand-in (⌘T, then a close before herdr answered) is not closed; queue it if users hit this.
         guard let client else { return nil }
-        let tabs = tabIDs(close)
-        let asked = panes.filter { pane in
-            !pane.starting && (close.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID))
+        if closeIDs(request).contains(where: Ahead.isStandIn) {
+            return nil
         }
-        let action = closing(close)
+        let tabs = tabIDs(request)
+        let asked = panes.filter { pane in
+            !pane.starting && (request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID))
+        }
+        let action = closing(request)
         let clear = asked.allSatisfy { $0.program?.isShell != false }
         if clear {
-            hide(close)
+            hide(request)
         }
         let running = await programs(asked.map(\.id), client)
         // Sorted: "A program" leads the list.
         guard running.isEmpty else {
             if clear {
-                unhide(close)
+                unhide(request)
             }
-            return Closing(close: close, running: running.sorted())
+            return Closing(close: request, running: running.sorted())
         }
-        await self.close(close, action)
+        await close(request, action)
         return nil
     }
 

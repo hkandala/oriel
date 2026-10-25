@@ -293,8 +293,13 @@
         func close(_ close: HostStore.Close) {
             guard !asking else { return }
             asking = true
+            // A close shown at once that turns out to ask comes back: so does the selection it moved.
+            let selection = (selectedWorkspaceID, selectedTabIDs)
             Task {
                 closing = await store.ask(close)
+                if closing != nil {
+                    (selectedWorkspaceID, selectedTabIDs) = selection
+                }
                 asking = false
             }
         }
