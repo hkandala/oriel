@@ -120,3 +120,10 @@ unless the prototype proves a part wrong (then fix the page and say why).
   11, 12 (comment), 13, 14, 18. The rest are above.
 - Ponytail (round 1): 9 items, no blocker. Fixed 1–8; 9 (CI script's own login checks) kept: they print sshd's log
   when CI's setup breaks.
+
+### CI
+
+- Remote tests (dispatch): 40184568520 and 40185560770 red (CI's sshd setup, the menu's label, `-machines`),
+  40186586493 and 40187439217 red ("Session open refused by peer": first too many channels, then a reused master
+  that held a killed app's sessions), 40189370959 green.
+- Full suite on 76bbf15, the last code commit: 40190929489 green (all 4 shards and lint-build).
