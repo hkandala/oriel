@@ -16,10 +16,7 @@
         let openSession: () -> Void
         @SceneStorage("agentSort") private var sort = AgentSort.priority
         @State private var filter = ""
-        /// The page in view, as the scroll view has it.
-        @State private var position = ScrollPosition(idType: String.self)
-        /// The pages' offset and a swipe's slide: a plain class, so setting them redraws nothing (a state set as the
-        /// slide began held its first frames).
+        /// Where the pages are: observed only by `Pager`, so a swipe's moves redraw nothing else.
         @State private var swipe = Swipe()
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.look) private var look
@@ -38,46 +35,28 @@
 
         private var pagesAndFooter: some View {
             VStack(spacing: 0) {
-                ScrollView(.horizontal) {
+                Pager(swipe: swipe, width: width - gap) {
                     HStack(spacing: 0) {
                         ForEach(pages.list) { page in
                             SidebarPage(page: page, pages: pages, filter: filter, agents: agents ? $sort : nil)
-                                .containerRelativeFrame(.horizontal)
-                                // Only the page in view, for VoiceOver and the tests: the others are off to the side.
+                                .frame(width: width - gap)
+                                // Only the page in view, for VoiceOver, the tests and clicks: the others are off to the
+                                // side, over the strip.
                                 .accessibilityHidden(page !== pages.current)
+                                .allowsHitTesting(page === pages.current)
                                 .environment(\.offscreen, page !== pages.current)
                         }
                     }
-                    .scrollTargetLayout()
-                    .background(ScrollAnchor(lift: lift))
                 }
-                .scrollTargetBehavior(.paging)
-                .scrollPosition($position)
-                .scrollIndicators(.never)
-                .onScrollGeometryChange(for: Double.self) { $0.contentOffset.x } action: {
-                    swipe.offset = $1
-                    Latency.shared.slid($1)
-                    if let (page, offset) = swipe.arriving, abs($1 - offset) < 0.5 {
-                        arrived(page)
-                    }
+                .background(alignment: .topLeading) {
+                    ScrollAnchor(step: step, drag: drag, lift: lift, width: width - gap)
                 }
-                .onScrollPhaseChange { old, phase, context in
-                    Latency.shared.scrolled(old, context)
-                    // A mouse's wheel, which pages with the system's snap.
-                    if phase == .idle, swipe.arriving == nil, let id = position.viewID(type: String.self),
-                       id != pages.current?.id,
-                       let page = pages.list.first(where: { $0.id == id })
-                    {
-                        pages.show(page)
-                    }
-                }
-                // A dot, a key, a new page or the sheet: slide there with the session spring.
-                .onChange(of: pages.current?.id, initial: true) { old, new in
-                    guard let new, position.viewID(type: String.self) != new else { return }
-                    let still = reduceMotion && !Animation.forceMotion
-                    withAnimation(old == nil || still ? nil : .session()) { position.scrollTo(id: new) }
-                    // A page that opened lays out in this same update, and a scroll to it can miss.
-                    Task { position.scrollTo(id: new) }
+                // A dot, a key, a new page or the sheet: slide there with the session spring. A swipe is there already.
+                .onChange(of: pages.list.map(\.id) + [pages.current?.id ?? ""], initial: true) { old, new in
+                    guard let index = pages.list.firstIndex(where: { $0 === pages.current }),
+                          swipe.slide != Double(index) else { return }
+                    let slides = old.last != new.last && !(reduceMotion && !Animation.forceMotion)
+                    withAnimation(slides ? .session() : nil) { swipe.slide = Double(index) }
                 }
                 if pages.list.count > 1 {
                     PageDots(pages: pages)
@@ -311,52 +290,81 @@
         }
     }
 
+    @MainActor @Observable
     private final class Swipe {
-        var offset = 0.0
-        /// A swipe's slide: the session it shows once the pages arrive at its offset.
-        var arriving: (page: Page, offset: Double)?
+        /// In pages from the first: where the fingers hold them, else where they slide to or rest.
+        var slide = 0.0
+    }
+
+    /// The pages side by side, the one at `swipe.slide` in view.
+    private struct Pager<Content: View>: View {
+        let swipe: Swipe
+        let width: Double
+        @ViewBuilder let content: Content
+
+        var body: some View {
+            content.modifier(Slid(offset: swipe.slide * width))
+                .frame(width: width, alignment: .leading)
+                .frame(maxHeight: .infinity)
+                .clipped()
+        }
+    }
+
+    /// The pages' offset, animatable, so a test can read it at each frame of a slide.
+    private struct Slid: ViewModifier, Animatable {
+        var offset: Double
+        var animatableData: Double {
+            get { offset }
+            set { offset = newValue }
+        }
+
+        func body(content: Content) -> some View {
+            Latency.shared.slid(offset)
+            return content.offset(x: -offset)
+        }
     }
 
     extension Sidebar {
-        /// A swipe's lift (the router hands it over, with the fingers' speed in points a second): the pages slide on
-        /// from that speed to the next page that way, or back to the nearest one when slow, with the session spring;
-        /// the window shows that session as the slide ends. The system's own snap took about 0.4 s (too slow, phase
-        /// 25). Showing the session at the lift held the main thread for its first draw, and a slide started from the
-        /// scroll view's own end waited for its snap: the pages stood still 100–350 ms, then jumped (phase 27). Back to
-        /// the session shown, it leaves the end to the scroll view's own snap (false): `scrollTo(id:)` of the page in
-        /// view does nothing, and `scrollTo(x:)` does not animate.
-        func lift(_ speed: Double) -> Bool {
-            let width = max(Double(width - gap), 1), page = swipe.offset / width
-            let near = abs(speed) < 100 ? page.rounded() : speed > 0 ? page.rounded(.up) : page.rounded(.down)
-            let index = min(max(Int(near), 0), pages.list.count - 1)
-            guard pages.list.indices.contains(index), pages.list[index] !== pages.current else { return false }
-            let target = pages.list[index]
-            guard !reduceMotion || Animation.forceMotion else {
-                position.scrollTo(id: target.id)
-                arrived(target)
-                return true
-            }
-            // Shown when the pages arrive, not on the animation's completion: the scroll view takes the slide over and
-            // the completion runs at once. Also after 0.6 s, should they never come within half a point.
-            swipe.arriving = (target, Double(index) * width)
-            withAnimation(.session(speed: speed / width, distance: Double(index) - page)) {
-                position.scrollTo(id: target.id)
-            }
-            Task {
-                try? await Task.sleep(for: .seconds(0.6))
-                if swipe.arriving?.page === target {
-                    arrived(target)
-                }
-            }
-            return true
+        /// The router's moves of a sideways swipe (in points, toward later pages): the pages follow the fingers, and
+        /// stop at the first and last page.
+        private func drag(_ delta: Double) {
+            let last = Double(max(pages.list.count - 1, 0))
+            swipe.slide = min(max(swipe.slide + delta / max(width - gap, 1), 0), last)
         }
 
-        /// The slide is at its page: the gesture ends, and the window shows the session.
-        private func arrived(_ target: Page) {
-            swipe.arriving = nil
-            SwipeRouter.finish()
-            if target !== pages.current {
+        /// A mouse's sideways wheel: the next or previous page.
+        private func step(_ offset: Int) {
+            if let page = pages.neighbor(offset) {
+                pages.show(page)
+            }
+        }
+
+        /// A swipe's lift, with the fingers' speed in points a second: the pages slide on from that speed to the next
+        /// page that way, or to the nearest one when slow, with the session spring; the window shows that session as
+        /// the slide ends. The pages are the app's own, not a scroll view's: a scroll view's paging snap took about
+        /// 0.4 s (phase 25), and a slide asked of it on a quick flick stood still until a timeout, then snapped back
+        /// while the window showed the other session (phase 28).
+        private func lift(_ speed: Double) {
+            let width = max(Double(width - gap), 1), page = swipe.slide
+            let near = abs(speed) < 100 ? page.rounded() : speed > 0 ? page.rounded(.up) : page.rounded(.down)
+            let index = min(max(Int(near), 0), pages.list.count - 1)
+            guard pages.list.indices.contains(index) else { return }
+            let target = pages.list[index]
+            Latency.shared.lifted(page * width)
+            guard !reduceMotion || Animation.forceMotion else {
+                swipe.slide = Double(index)
                 pages.show(target)
+                return
+            }
+            // Shown once the slide looks done, not in its long tail; first drawn at the lift, the session held the
+            // slide's first frames (phase 27). Not if another swipe took the pages meanwhile.
+            let spring = Animation.session(speed: speed / width, distance: Double(index) - page)
+            withAnimation(spring, completionCriteria: .logicallyComplete) {
+                swipe.slide = Double(index)
+            } completion: {
+                if swipe.slide == Double(index), target !== pages.current {
+                    pages.show(target)
+                }
             }
         }
     }

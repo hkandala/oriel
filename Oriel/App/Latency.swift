@@ -64,14 +64,13 @@
                     page.closing == nil ? "" : "closing", panel].joined(separator: " ")
         }
 
-        /// The sidebar's pages after a swipe's lift: their offset at each change for 0.8 s, in ms from the lift; first
-        /// the ms to the last change: "swipe 230ms 0:145,8:152,…" (phase 27). Not to the scroll's idle: the session
-        /// slide's scroll to the page ends the phase as it starts.
-        func scrolled(_ old: ScrollPhase, _ context: ScrollPhaseChangeContext) {
-            guard Self.isOn, old == .interacting else { return }
+        /// The sidebar's pages after a swipe's lift: their offset at each frame for 0.8 s, in ms from the lift; first
+        /// the ms to the last change: "swipe 230ms 0:145,8:152,…" (phase 27).
+        func lifted(_ offset: Double) {
+            guard Self.isOn else { return }
             lifted = ProcessInfo.processInfo.systemUptime
             slide = []
-            slid(context.geometry.contentOffset.x)
+            slid(offset)
             Task {
                 try? await Task.sleep(for: .seconds(0.8))
                 let path = slide.map { "\($0.0):\(Int($0.1.rounded()))" }.joined(separator: ",")
@@ -81,7 +80,7 @@
         }
 
         func slid(_ offset: Double) {
-            guard let lifted else { return }
+            guard let lifted, slide.last?.1 != offset else { return }
             slide.append((Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000), offset))
         }
 
