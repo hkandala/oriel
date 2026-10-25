@@ -38,8 +38,8 @@ struct Look {
     }
 
     var cardFill: Color {
-        // Glass: a step brighter than the window, close to the keyboard card (phase 25: Rex's darker pane backdrop set
-        // the other cards far apart from it). Classic dark: #222 on #1e1e1e, as in Rex.
+        // Glass: a step brighter than the window; `keyboardFill` keeps the keyboard card close (D64). Classic dark:
+        // #222 on #1e1e1e, as in Rex.
         pick(.white.opacity(0.03), .white.opacity(0.6), .white.opacity(0.018), .white.opacity(0.6))
     }
 
@@ -56,11 +56,9 @@ struct Look {
 
     /// The stroke just outside the card's edge.
     func edge(keyboard: Bool) -> (color: Color, width: CGFloat) {
-        keyboard
-            ? pick((.black.opacity(0.5), 1), (.black.opacity(0.1), 1), (.white.opacity(0.1), 0.8),
-                   (.black.opacity(0.18), 0.8))
-            : pick((.black.opacity(0.5), 1), (.black.opacity(0.1), 1), (.clear, 0),
-                   (.black.opacity(0.12), 0.7))
+        // Glass: the same on every card.
+        pick((.black.opacity(0.5), 1), (.black.opacity(0.1), 1), keyboard ? (.white.opacity(0.1), 0.8) : (.clear, 0),
+             keyboard ? (.black.opacity(0.18), 0.8) : (.black.opacity(0.12), 0.7))
     }
 
     /// A divider's grip: gorex's muted icon color at 0.6.

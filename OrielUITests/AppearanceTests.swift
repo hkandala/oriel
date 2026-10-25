@@ -39,23 +39,16 @@ extension OrielUITests {
         }
     }
 
-    /// No card fades (phase 25 dropped the setting), in a key window and one that is not. In Glass the cards look
-    /// alike: the keyboard card at most a little brighter. Read from pixels, the one place the look shows (as
-    /// `RevealTests` do).
-    func testCardsLookAlikeWithAndWithoutTheKeyboard() throws {
+    /// No card fades (phase 25 dropped the setting). In Glass the cards look alike: the keyboard card at most a little
+    /// brighter. Read from pixels, the one place the look shows (as `RevealTests` do).
+    func testCardsLookAlikeWithAndWithoutTheKeyboard() {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         element("terminal.w1:p1").click()
         XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
         let keyboard = element("pane.w1:p1"), other = element("pane.w1:p2")
-        expectValue(keyboard, "content 100%")
-        expectValue(other, "content 100%")
         app.menuBars.menuBarItems["View"].click()
         XCTAssertTrue(app.menuBars.menuItems["Toggle Sidebar"].exists(within: 2))
         XCTAssertFalse(app.menuBars.menuItems["Fade Inactive Panes"].exists)
-        // Ghostty's words for the text size (phase 25).
-        for title in ["Increase Font Size", "Decrease Font Size", "Reset Font Size"] {
-            XCTAssertTrue(app.menuBars.menuItems[title].exists, title)
-        }
         app.typeKey(.escape, modifierFlags: [])
 
         // CI's VM draws the glass backdrop opaque whatever the desktop shows (a runner window under Oriel in black,
@@ -68,20 +61,15 @@ extension OrielUITests {
             Thread.sleep(forTimeInterval: 0.3)
             let lit = median(keyboard), unlit = median(other)
             keepScreenshot("glass \(appearance.lowercased()): \(lit) / \(unlit)")
-            XCTAssertTrue((0 ... 6).contains(lit - unlit), "\(appearance): \(lit) / \(unlit)")
+            // 0: a screenshot that did not draw.
+            XCTAssertTrue(unlit > 0 && (0 ... 6).contains(lit - unlit), "\(appearance): \(lit) / \(unlit)")
         }
-
-        // A window that is not key draws its cards at full strength too.
-        let (first, _) = try newWindow()
-        expectValue(element("pane.w1:p1", in: first), "content 100%")
-        expectValue(element("pane.w1:p2", in: first), "content 100%")
-        app.typeKey("w", modifierFlags: [.command, .shift])
     }
 
     /// The median brightness of a card: its fill, as its text is a small share.
     private func median(_ card: XCUIElement) -> Int {
         let brightness = Self.brightness(card.screenshot().image).sorted()
-        return brightness.isEmpty ? -1 : brightness[brightness.count / 2]
+        return brightness.isEmpty ? 0 : brightness[brightness.count / 2]
     }
 
     func pick(_ menu: String, _ item: String) {

@@ -23,10 +23,9 @@
             // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
             let lit = pane.map { page.keyboardCard($0.tabID) === $0 } ?? false
             let follow = hovering && settings.followMouse && !zoomedAway && active
-            // The watching window's dim (D66).
+            // The watching window's dim (D66), on the header and the terminal.
             let content = page.watched ? 0.85 : 1
             VStack(spacing: 0) {
-                // Dimmed with the terminal.
                 header(pane, zoomed: zoomed, showsButtons: lit || hovering || zoomed).opacity(content)
                 Group {
                     if let terminal {
