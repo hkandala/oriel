@@ -14,10 +14,11 @@
                 column([.sessions, .view, .edit], rows)
             }
             .padding(.horizontal, 28).padding(.vertical, 24)
-            // A small window scrolls the panel.
-            ViewThatFits {
+            // A short window scrolls the panel. ponytail: a window under about 870 pt wide clips its sides; a scroll
+            // view on both axes filled the whole window.
+            ViewThatFits(in: .vertical) {
                 panel
-                ScrollView([.vertical, .horizontal]) { panel }.scrollIndicators(.never)
+                ScrollView { panel }.scrollIndicators(.never)
             }
             .floatingGlass(in: .rect(cornerRadius: 14))
             .padding(.vertical, 16)
