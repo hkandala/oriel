@@ -53,6 +53,8 @@ struct OrielApp: App {
             .restorationBehavior(.disabled)
             // Its scene's own File items (Close on ⌘W) came back over the main window's: ⌘W closed the main window.
             .commandsRemoved()
+            // Nor does it take a folder dropped on the Dock icon: it opened an empty floating window.
+            .handlesExternalEvents(matching: [])
         #else
             WindowGroup {
                 ContentUnavailableView("Oriel for iOS is coming", systemImage: "iphone")
