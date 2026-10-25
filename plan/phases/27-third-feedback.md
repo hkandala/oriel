@@ -243,6 +243,7 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
 - **For the user to check by hand:** a new floating window's size and place over a large main window and over a
   main window near a screen edge; the title row's lights and buttons against the main window's; a floating window
   in full screen (toolbar on hover); the placeholder's hover fill and click.
+
 ### Lane A3 (item 1)
 
 - **Root cause.** Two things made a tab visited a while ago fade in. (1) Lane O kept the surface and stream of only
