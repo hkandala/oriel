@@ -55,10 +55,10 @@ struct Look {
 
     /// A 0.7 pt rim inside the card's edge, drawn `plusLighter`, and over it along the top edge Rex's glass rim: a 1 pt
     /// line that fades out round the corners and a glow under it at about half. Glass only (Rex's Classic cards have a
-    /// flat edge). Dark matches Rex's pixels: line 46 and 28 steps over the card, glow 9, sides 15.
+    /// flat edge). Dark matches Rex's Retina pixels: the line about 45 steps over the card, the sides 15.
     var rim: (all: Color, top: Color) {
         pick(
-            (.white.opacity(0.06), .white.opacity(0.08)),
+            (.white.opacity(0.06), .white.opacity(0.09)),
             (.white.opacity(0.04), .white.opacity(0.3)),
             (.clear, .clear),
             (.clear, .clear),
