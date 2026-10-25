@@ -372,7 +372,8 @@ found none). If herdr has none, floating is Oriel's own.
   40176964309 → 40178588911 and later): ⌘T 79 ms / 20 turns → 68 ms / 0; ⌘D 82 / 17 → 25 / 0; ⌘W 136 / 21 → 31–53 / 0;
   close tab 165 / 39 → 0 turns; ⌘K 432 then 238 ms → 234 then 153 ms (both in the key's turn); tab, workspace and session
   keys were in the key's turn already (32–140 ms of SwiftUI render on the VM); the sidebar's snap after a lifted half
-  swipe 217 ms → 53 ms. A slower runner (40175942806) had ⌘T 482 ms / 49 turns and a first ⌘K of 881 ms (the first menu
+  swipe 217 ms → 53 ms (270 ms on a runner twice as slow, 40181336917, so the test records it and does not bound it).
+  The herdr-backed keys are asserted in their turn or the next (the action's task); herdr's answer takes 10 or more. A slower runner (40175942806) had ⌘T 482 ms / 49 turns and a first ⌘K of 881 ms (the first menu
   key of a launch pays AppKit's one-time menu donation setup). A herdr call is a new `remote-api-bridge` run: 15–170 ms
   here (about 20 or 140), and the bridge takes one request per run, so calls cannot be batched.
 - **Root cause, item 13.** A new pane's program is asked a second late (its shell's startup), and `Page.title` showed
@@ -403,8 +404,8 @@ found none). If herdr has none, floating is Oriel's own.
   so the swipe is measured in the app (decelerating → idle) with `-forceMotion YES`. `sample` through the e2e helper
   gave the palette's profile (removed after). swiftformat's `repeatedGuard` plus `unusedArguments` turned `guard let a,
   !f(x)` into an unused-argument rename; split the condition.
-- **Tests.** `testPanelsAndSwitchesReactAtOnce` (every key drawn in its own turn, the names checked; two swipes under
-  180 ms), `testNewTabSplitAndClosesShowAtOnce` ("New Tab", never a number; ⌘T ⌘D ⌘W ⇧⌘W in their turn; herdr closed
+- **Tests.** `testPanelsAndSwitchesReactAtOnce` (every key drawn in its own turn, the names checked; the swipes
+  recorded), `testNewTabSplitAndClosesShowAtOnce` ("New Tab", never a number; ⌘T ⌘D ⌘W ⇧⌘W in their turn; herdr closed
   it), `testQuickNewTabsAndAnEarlyClose` (two ⌘T select the second; ⌘T then ⇧⌘W closes herdr's tab, no dialog).
 - **For the user to check by hand:** a two-finger swipe between sessions (the spring's feel on a real trackpad); ⌘T,
   ⌘D, ⌘W and ⌘K on this Mac; ⌘T then an immediate ⌘W in a slow-starting shell.
