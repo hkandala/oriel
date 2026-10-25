@@ -83,7 +83,8 @@ Window menu and Mission Control show it.
 ![Sidebar collapsed, workspace menu open](/mockups/D.jpg)
 
 Shown only while the sidebar is collapsed, after the machine button.
-- An outline folder icon, then "‹session› | ‹workspace›": the session in the
+- An outline folder icon, then "‹page title› | ‹workspace›" (the sidebar page header's title, so the
+  machine's name for `default`): the title in the
   title row's chrome color, a thin vertical line in the divider color, the
   workspace in the selected title color, a step brighter, all semibold. Then
   a chevron. At most 260 pt wide: the session name stops at 110 pt (with an
@@ -179,7 +180,7 @@ One capsule per herdr tab of the selected workspace (D42).
 - **Hover.** When the pointer rests on the button for 0.25 s, a glass panel
   hangs under it: 320 pt wide, at most about 480 pt tall. It lists the agents
   of the page in view that need you, under the header "Needs you ·
-  ‹session›" (11 pt, secondary). The rows are the same as in the Agents view.
+  ‹page title›" (11 pt, secondary; the title as in the [page header](#sidebar)). The rows are the same as in the Agents view.
   A click on a row selects that workspace and tab and gives the pane the
   keyboard; the sidebar does not change. With nobody waiting it does not
   show at all. There is no footer. A click on the button is not a rest: the
@@ -223,7 +224,7 @@ session open in this window (D43).
 - **Page dots.** At the bottom of the page, above the footer: one 6 pt dot per
   open page, 6 pt apart. The current page's dot is in primary text color, the
   others tertiary. A click on a dot shows its page. Hidden while one page is
-  open. VoiceOver reads each dot as its session's name.
+  open. VoiceOver reads each dot as its page's title (the page header's).
 - **Page header.** The session's name, the page's title (13 pt bold, the
   rows' size, primary, as in the Agents view); for a machine's `default`
   session, the machine's name instead: This Mac's own name (System Settings,
@@ -304,7 +305,8 @@ Spaces panel.
 The Agents button turns the sidebar page into a list of the agents of that
 session only (D61). A sideways swipe or a page dot shows the next open
 session's agents. The page dots and the footer stay.
-- **Header.** The session's name (a long name shortens in its middle) and,
+- **Header.** The page's title (the session's name, the machine's name for `default`, as in the
+  page header; a long name shortens in its middle) and,
   on the same baseline, a sort menu: **Priority** (the groups Needs you, Working, Done and Idle,
   each with a count, herdr's order inside a group) or **Workspace**
   (the groups are the workspaces, under each name with a count, in herdr's order of
