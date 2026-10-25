@@ -119,21 +119,36 @@ extension OrielUITests {
         for (step, act) in steps {
             XCTAssertTrue(host.exists(within: 3), step)
             let sizes = Int(host.label) ?? 0
+            // The screen, not the element: finding the element at each shot asks the app for its accessibility tree,
+            // which kept its main thread too busy to draw the motion. The terminal's top left 40 % stays in the card
+            // through every step.
+            let frame = terminal.frame
+            let region = CGRect(x: frame.minX, y: frame.minY, width: frame.width * 0.4, height: frame.height * 0.4)
             try await act()
             var shots: [NSImage] = []
             let end = Date.now + 1
             while Date.now < end {
-                shots.append(terminal.screenshot().image)
+                shots.append(XCUIScreen.main.screenshot().image)
             }
-            let inks = shots.map(Self.ink)
+            let inks = shots.map { Self.ink(Self.crop($0, region)) }
             XCTAssertGreaterThan(inks.min() ?? 0, 0.01, "\(step): ink of \(inks.count) screenshots: \(inks)")
             XCTAssertGreaterThanOrEqual(
                 (Int(host.label) ?? 0) - sizes,
                 4,
-                "\(step): sizes from \(sizes) to \(host.label), \(host.value ?? "")",
+                "\(step): sizes from \(sizes) to \(host.label), \(host.value ?? ""), reduce motion "
+                    + "\(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)",
             )
             try await expectText([pane], step)
         }
+    }
+
+    /// The part of a screen shot inside a rectangle in screen points.
+    private static func crop(_ image: NSImage, _ rect: CGRect) -> NSImage {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return image }
+        let scale = CGFloat(cgImage.width) / image.size.width
+        let pixels = CGRect(x: rect.minX * scale, y: rect.minY * scale, width: rect.width * scale,
+                            height: rect.height * scale)
+        return cgImage.cropping(to: pixels).map { NSImage(cgImage: $0, size: rect.size) } ?? image
     }
 
     /// Lines of text in the pane, so an empty card is plain to see.
