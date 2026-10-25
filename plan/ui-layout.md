@@ -108,7 +108,8 @@ The strip under the title row still pages sideways between the selected workspac
     with a count) or **Workspace** (a group per workspace under its name and count, herdr's order). The name is the
     title (13 pt bold, the rows' size, primary, also in the workspaces view); the sort button is a capsule filled on
     hover; the group labels are 10 pt semibold section labels with room above; no line under the header (phase 25).
-    A click on a group label folds its rows (a chevron at its end); a folded group keeps its label and count; the
+    A click on a group label folds its rows (a chevron at its end: right while folded, down under the pointer while
+    open); a folded group keeps its label and count; the
     folds are kept per session and order across relaunches (phase 27).
   - One row per agent pane, even when several share a tab. Row 48 pt, 4 pt apart, the program tile with its
     badge centered on both lines. Line 1: the pane's name, else the agent's name, then on the right the status capsule ("Needs you"
