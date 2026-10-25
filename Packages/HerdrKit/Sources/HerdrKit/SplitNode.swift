@@ -62,6 +62,20 @@ public extension SplitNode {
         }
     }
 
+    /// The tree without these panes: a split that loses one side becomes its other side, as herdr closes a pane. Nil
+    /// when none is left.
+    func removing(_ paneIDs: Set<String>) -> SplitNode? {
+        switch self {
+        case let .leaf(id): paneIDs.contains(id) ? nil : self
+        case let .split(direction, ratio, first, second):
+            switch (first.removing(paneIDs), second.removing(paneIDs)) {
+            case let (first?, second?): .split(direction, ratio: ratio, first: first, second: second)
+            case let (first?, nil): first
+            case let (nil, second): second
+            }
+        }
+    }
+
     /// The ratio changes that even out the run of same-direction splits holding the pane (all runs when nil):
     /// each split gets the units on its first side over the units under it, where a child split in the other
     /// direction counts as one unit. Paths as `layout.set_split_ratio` takes them (`false` = first child).

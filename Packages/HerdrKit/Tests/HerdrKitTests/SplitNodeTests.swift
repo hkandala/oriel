@@ -50,3 +50,12 @@ private func changes(_ list: [(path: [Bool], ratio: Double)]) -> [String: Double
     #expect(right(0.5, leaf("p1"), leaf("p2")).evened(around: "gone").isEmpty)
     #expect(right(0.5, leaf("p1"), down(0.5, leaf("p2"), leaf("p3"))).paneIDs == ["p1", "p2", "p3"])
 }
+
+@Test func `a removed pane gives its place to its sibling`() {
+    let tree = right(0.6, leaf("p1"), down(0.5, leaf("p2"), leaf("p3")))
+    #expect(tree.removing(["p2"]) == right(0.6, leaf("p1"), leaf("p3")))
+    #expect(tree.removing(["p1"]) == down(0.5, leaf("p2"), leaf("p3")))
+    #expect(tree.removing(["p2", "p3"]) == leaf("p1"))
+    #expect(tree.removing(["p1", "p2", "p3"]) == nil)
+    #expect(tree.removing([]) == tree)
+}
