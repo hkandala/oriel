@@ -104,8 +104,8 @@ extension OrielUITests {
         return (top - fill, side - fill)
     }
 
-    /// The median brightness of a card: its fill, as its text is a small share.
-    private func median(_ card: XCUIElement) -> Int {
+    /// The median brightness of a card or a button: its fill, as its text is a small share.
+    func median(_ card: XCUIElement) -> Int {
         let brightness = Self.brightness(card.screenshot().image).sorted()
         return brightness.isEmpty ? 0 : brightness[brightness.count / 2]
     }

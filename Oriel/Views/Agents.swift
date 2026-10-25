@@ -239,35 +239,46 @@ struct StatusBadge: View {
         }
     }
 
-    /// A page's Agents view (D61): its session's agent panes, by priority or in workspace order, in groups.
+    /// A page's Agents view (D61): its session's agent panes, by priority or in workspace order, in groups that fold.
     struct AgentsList: View {
         let page: Page
         let filter: String
         let sort: AgentSort
+        /// The folded groups, a line each, "‹machine› ‹session› ‹sort› ‹group›": per session and order, kept across
+        /// relaunches (user, phase 27). ponytail: a closed workspace's line stays; prune it if the list ever grows.
+        @AppStorage("agentsFolded") private var folded = ""
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
             let rows = page.store.agentPanes.filter { pane in
                 [pane.label, pane.agentName, page.place(pane)].compactMap(\.self).contains { $0.matches(filter) }
             }
+            let folded = Set(folded.split(separator: "\n").map(String.init))
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
                     if sort == .priority {
                         ForEach([AgentState.needsYou, .working, .finishedUnseen, .idle], id: \.self) { state in
-                            let group = rows.filter { $0.state == state }
+                            let group = rows.filter { $0.state == state }, key = key(state.capsule)
                             if !group.isEmpty {
-                                label("\(state.capsule) \(group.count)", id: "agents.group.\(state.capsule)")
-                                ForEach(group) { row($0) }
+                                label(state.capsule, group.count, key, open: !folded.contains(key),
+                                      id: "agents.group.\(state.capsule)")
+                                if !folded.contains(key) {
+                                    ForEach(group) { row($0) }
+                                }
                             }
                         }
                     } else {
                         // Under each workspace's name, so line 2 holds only the tab (user, phase 25).
                         ForEach(page.store.workspaces) { workspace in
-                            let tabs = workspace.tabs
+                            let tabs = workspace.tabs, key = key(workspace.id)
                             let group = rows.filter { pane in tabs.contains { $0.id == pane.tabID } }
                             if !group.isEmpty {
-                                label(workspace.label, id: "agents.workspace.\(workspace.id)")
-                                ForEach(group) { pane in
-                                    row(pane, place: tabs.first { $0.id == pane.tabID }.map(page.titleText))
+                                label(workspace.label, group.count, key, open: !folded.contains(key),
+                                      id: "agents.workspace.\(workspace.id)")
+                                if !folded.contains(key) {
+                                    ForEach(group) { pane in
+                                        row(pane, place: tabs.first { $0.id == pane.tabID }.map(page.titleText))
+                                    }
                                 }
                             }
                         }
@@ -278,11 +289,37 @@ struct StatusBadge: View {
             .scrollIndicators(.never)
         }
 
-        /// A section label, as in a macOS sidebar: smaller than the title, with room above (user, phase 25).
-        private func label(_ text: String, id: String) -> some View {
-            Text(text).font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary).lineLimit(1)
-                .padding(.horizontal, 8).padding(.top, 12)
-                .accessibilityIdentifier(id)
+        private func key(_ group: String) -> String {
+            "\(page.store.machine.id) \(page.id) \(sort.rawValue) \(group)"
+        }
+
+        /// A section label, as in a macOS sidebar: smaller than the title, with room above (user, phase 25). A click
+        /// folds or unfolds its rows; a folded group keeps its label and count (user, phase 27).
+        private func label(_ text: String, _ count: Int, _ key: String, open: Bool, id: String) -> some View {
+            Button {
+                var lines = folded.split(separator: "\n").map(String.init)
+                if open {
+                    lines.append(key)
+                } else {
+                    lines.removeAll { $0 == key }
+                }
+                withAnimation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.2)) {
+                    folded = lines.joined(separator: "\n")
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text("\(text) \(count)").lineLimit(1)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
+                }
+                .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(text) \(count)")
+            .accessibilityValue(open ? "expanded" : "collapsed")
+            .accessibilityIdentifier(id)
+            .padding(.horizontal, 8).padding(.top, 12)
         }
 
         private func row(_ pane: HostStore.Pane, place: String? = nil) -> some View {

@@ -103,7 +103,7 @@ extension OrielUITests {
         XCTAssertTrue(rows[3].label.hasPrefix("pi, alpha · "), rows[3].label)
         // Each group's header, with its count, sits above its row and below the row before.
         let groups = ["Needs you", "Working", "Done", "Idle"].map { element("agents.group.\($0)") }
-        XCTAssertEqual(groups.map { $0.value as? String }, ["Needs you 1", "Working 1", "Done 1", "Idle 1"])
+        XCTAssertEqual(groups.map(\.label), ["Needs you 1", "Working 1", "Done 1", "Idle 1"])
         let tops = zip(groups, rows).flatMap { [$0.frame.minY, $1.frame.minY] }
         XCTAssertEqual(tops, tops.sorted())
         // One leading edge: the header's text, the group labels and the row icons (8 pt into each row); the sort
@@ -133,7 +133,7 @@ extension OrielUITests {
             let order = [alpha, rows[3], rows[1], beta, rows[0], rows[2]].map(\.frame.minY)
             return order == order.sorted()
         }
-        XCTAssertEqual([alpha, beta].map { $0.value as? String }, ["alpha", "beta"])
+        XCTAssertEqual([alpha, beta].map(\.label), ["alpha 2", "beta 2"])
         XCTAssertEqual(alpha.frame.minX, header.minX, accuracy: 0.5)
         XCTAssertFalse(rows.contains { $0.label.contains("alpha") || $0.label.contains("beta") },
                        rows.map(\.label).joined(separator: "; "))
@@ -142,6 +142,66 @@ extension OrielUITests {
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(element("workspace.w1").exists(within: 2))
         XCTAssertEqual(element("sidebar.header").value as? String, one)
+    }
+
+    /// A group label folds its rows and keeps its count; the fold is per session and order and outlives a relaunch.
+    /// Only in workspace order and on a priority group for a moment: other tests read this session's priority groups.
+    func testAgentGroupsFoldAndStayFoldedAfterARelaunch() async throws {
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        let first = try await newTab("review", in: "w1").pane
+        try await report(first, "working")
+        let second = try await split(first)
+        try await report(second, "idle", agent: "pi")
+        let other = try await newTab("deploy").pane
+        try await report(other, "blocked", agent: "claude")
+        app.typeKey(".", modifierFlags: .command)
+        let sort = element("agents.sort"), rows = [first, second, other].map { element("agent.\($0)") }
+        XCTAssertTrue(rows[0].exists(within: 2))
+
+        // The sort control is a small button: a fill shows under the pointer.
+        element("workspace.w1").hover()
+        let rest = median(sort)
+        sort.hover()
+        try await expect("a fill on the hovered sort button") { abs(median(sort) - rest) >= 4 }
+        keepScreenshot("hovered sort button")
+
+        let working = element("agents.group.Working")
+        working.click()
+        XCTAssertTrue(rows[0].vanishes(within: 2))
+        XCTAssertEqual(working.label, "Working 1")
+        XCTAssertEqual(working.value as? String, "collapsed")
+        XCTAssertTrue(rows[1].exists)
+        working.click()
+        XCTAssertTrue(rows[0].exists(within: 2))
+        XCTAssertEqual(working.value as? String, "expanded")
+
+        sort.click()
+        app.menuItems["Workspace"].click()
+        let alpha = element("agents.workspace.w1")
+        XCTAssertTrue(alpha.exists(within: 2))
+        alpha.click()
+        XCTAssertTrue(rows[1].vanishes(within: 2))
+        XCTAssertFalse(rows[0].exists)
+        XCTAssertTrue(rows[2].exists)
+        XCTAssertEqual(alpha.label, "alpha 2")
+        keepScreenshot("folded workspace group")
+        // Per order: priority shows every row.
+        sort.click()
+        app.menuItems["Priority"].click()
+        XCTAssertTrue(rows[1].exists(within: 2))
+        XCTAssertTrue(rows[0].exists)
+
+        relaunch()
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        app.typeKey(".", modifierFlags: .command)
+        XCTAssertTrue(rows[1].exists(within: 2))
+        sort.click()
+        app.menuItems["Workspace"].click()
+        XCTAssertEqual(alpha.value as? String, "collapsed")
+        XCTAssertFalse(rows[1].exists)
+        alpha.click()
+        XCTAssertTrue(rows[1].exists(within: 2))
+        XCTAssertTrue(rows[0].exists)
     }
 
     /// The shown tab's keyboard card lights its agent's row, as the selected workspace row.
