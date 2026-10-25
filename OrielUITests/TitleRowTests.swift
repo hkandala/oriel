@@ -143,6 +143,7 @@ extension OrielUITests {
         element("tab.\(tabs[1])").hover()
         XCTAssertTrue(close.exists(within: 2))
         // Only its shell runs: no dialog (D41).
+        try await settle([tabs[1]])
         close.click()
         try await expect("herdr to close it") { try await tabsOf(workspace).map(\.id) == [tabs[0], tabs[2]] }
         XCTAssertTrue(element("tab.\(tabs[1])").vanishes(within: 2))
@@ -189,6 +190,7 @@ extension OrielUITests {
         let tabs = try await newWorkspace("row", tabs: 3).tabs
         let workspace = workspace(of: tabs[0])
         try await runSleep(split("\(workspace):p1"))
+        try await settle(tabs)
         element("tab.\(tabs[1])").rightClick()
         app.windows.firstMatch.menuItems["Close Other Tabs"].click()
         let confirm = app.sheets.buttons["Close Tabs"]

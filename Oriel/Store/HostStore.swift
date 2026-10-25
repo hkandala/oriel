@@ -281,10 +281,11 @@ extension HostStore {
     /// D41), for the asking window. Asked now, not the panes' last answers: a program may have started since.
     func ask(_ close: Close) async -> Closing? {
         guard let client else { return nil }
+        let tabs = tabIDs(close)
         let paneIDs = if case let .pane(id) = close {
             [id]
         } else {
-            panes.filter { tabIDs(close).contains($0.tabID) }.map(\.id)
+            panes.filter { tabs.contains($0.tabID) }.map(\.id)
         }
         let running = await withTaskGroup { group in
             for id in paneIDs {

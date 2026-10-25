@@ -357,9 +357,11 @@ workspace menu's "Open Session…" and File ▸ Open Session… (⇧⌘N) open i
   - An open session: its page shows.
 - **Stop and Delete.** The highlighted row of a running session (not open in
   this window) has a Stop button at its right end: the server stops, and every
-  program in it ends. The highlighted row of a stopped session has Delete,
-  which asks first ("Delete the session “‹name›”?"; its workspaces, tabs and
-  panes go for good). The list is read again after each.
+  program in it ends; its workspaces and tabs stay for its next start. The
+  highlighted row of a stopped session has Delete: its workspaces, tabs and
+  panes go for good. Both ask first ("Stop the session “‹name›”?", "Delete the
+  session “‹name›”?"), as a close does (D41). The list is read again after
+  each, and the light stays on the same session.
 - While a server starts, stops or is deleted, its row shows a spinner. A
   failure shows its text in the panel, with Retry, and the panel stays open.
 

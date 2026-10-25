@@ -94,11 +94,14 @@ public actor HerdrClient {
         return try decode(SessionList.self, list).sessions
     }
 
-    /// `herdr session stop` or `delete` of this session; herdr's reason when it refuses.
+    /// `herdr session stop` or `delete` of this session; herdr's reason when it refuses. Bounded by `timeout`, as a
+    /// request is.
     nonisolated func session(_ command: String) async throws {
         let channel = try await exec.run([herdr(), "--session", session, "session", command, session, "--json"])
         channel.closeInput()
-        for await _ in channel.lines {}
+        try await withTimeout(timeout, onTimeout: channel.terminate) {
+            for await _ in channel.lines {}
+        }
         let (status, stderr) = await channel.exit()
         guard status != 0 else { return }
         let error = try? JSONDecoder().decode(Reply<String>.self, from: Data(stderr.utf8)).error

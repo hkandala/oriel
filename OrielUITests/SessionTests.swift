@@ -89,7 +89,7 @@ extension OrielUITests {
         try await Self.snapshot(five)
     }
 
-    /// Open Session's lit running row has Stop; once stopped, Delete, which asks first.
+    /// Open Session's lit running row has Stop; once stopped, Delete. Both ask first.
     func testOpenSessionStopsAndDeletesASession() async throws {
         let seven = try env("ORIEL_SESSION7")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -101,6 +101,9 @@ extension OrielUITests {
         XCTAssertFalse(element("\(row.identifier).delete").exists)
         keepScreenshot("stop on the lit row")
         element("\(row.identifier).stop").click()
+        let stop = app.sheets.buttons["Stop Session"]
+        XCTAssertTrue(stop.exists(within: 2))
+        stop.click()
         XCTAssertTrue(element("\(row.identifier).delete").exists(within: 10))
         expectRow(row.identifier, under: "Stopped", above: nil)
         let stopped = try? await Self.snapshot(seven)

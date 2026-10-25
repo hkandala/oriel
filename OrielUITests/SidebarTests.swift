@@ -198,6 +198,7 @@ extension OrielUITests {
         try await expect("herdr's order back") { try await workspaceIDs().last == made }
 
         try await runSleep(pane(of: tab))
+        try await settle(tabIDs().filter { workspace(of: $0) == made })
         row.rightClick()
         app.windows.firstMatch.menuItems["Close Workspace"].click()
         // D41: a program runs, so it asks, with what runs and the tab and pane count.

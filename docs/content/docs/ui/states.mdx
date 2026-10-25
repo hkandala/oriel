@@ -36,6 +36,7 @@ button. Empty states (no workspaces, no tabs) show only the button.
 | Open Session: the session did not start, or its server did not answer within 10 s | the row's spinner stops, the panel stays open, and a notice capsule in the panel says "Could not start ‹session›." with herdr's reason and **Retry** |
 | Open Session: the page does not connect (the bridge fails) | the page shows the reconnecting state |
 | Open Session: a running session stopped before it opened | Open starts it, as for a stopped session |
+| Open Session: Delete of a stopped session another window shows | that page stays "not running"; its Start makes a new, empty session of that name |
 | Open Session: Stop or Delete failed | the notice capsule in the panel says "Could not stop ‹session›." or "Could not delete ‹session›." with herdr's reason and **Retry** |
 | A restored page's session no longer runs | the page is skipped |
 | Detach Session on the last page | Detach Session is disabled |

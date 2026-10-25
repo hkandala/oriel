@@ -45,7 +45,10 @@ struct FilterList: View {
     /// After a row acted or the field's text was submitted.
     let done: () -> Void
     @State private var filter = ""
-    @State private var index: Int?
+    /// The lit row, by id: rows that move or go (Open Session's Stop and Delete read the list again) must not hand
+    /// the light, and the row's button, to the row that takes its place. None: the start row, or the first once
+    /// something is typed.
+    @State private var litID: String?
     /// The rows' own height: the list is as tall as its rows, up to `maxHeight`, then scrolls.
     @State private var rowsHeight: CGFloat = 0
     #if os(macOS)
@@ -110,24 +113,26 @@ struct FilterList: View {
                                     MenuRow(item: item, selected: offset == index, height: rowHeight)
                                 }
                                 .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
+                                .accessibilityIdentifier("\(name).\(item.id)")
+                                .accessibilityValue(item.state??.word ?? "")
+                                .accessibilityAddTraits(offset == index ? .isSelected : [])
+                                // After the row's accessibility, which would name this button too.
                                 .overlay(alignment: .trailing) {
-                                    if let button = item.button, offset == index {
+                                    // Not while its spinner shows.
+                                    if let button = item.button, offset == index, !item.busy {
                                         Button(button.title, action: button.act).buttonStyle(RowButtonStyle())
                                             .padding(.trailing, 4)
                                             .accessibilityIdentifier("\(name).\(item.id).\(button.title.lowercased())")
                                     }
                                 }
-                                .accessibilityIdentifier("\(name).\(item.id)")
-                                .accessibilityValue(item.state??.word ?? "")
-                                .accessibilityAddTraits(offset == index ? .isSelected : [])
                                 #if os(macOS)
-                                    // The light follows the pointer, as in a menu (user, phase 24).
-                                    .onContinuousHover { phase in
-                                        guard case .active = phase, NSEvent.mouseLocation != pointer else { return }
-                                        pointer = NSEvent.mouseLocation
-                                        pointed = true
-                                        self.index = offset
-                                    }
+                                // The light follows the pointer, as in a menu (user, phase 24).
+                                .onContinuousHover { phase in
+                                    guard case .active = phase, NSEvent.mouseLocation != pointer else { return }
+                                    pointer = NSEvent.mouseLocation
+                                    pointed = true
+                                    litID = item.id
+                                }
                                 #endif
                             }
                             if items.isEmpty {
@@ -152,19 +157,21 @@ struct FilterList: View {
         // A cleared filter lights the start row again.
         .onChange(of: filter) {
             pointed = false
-            self.index = filter.isEmpty ? nil : 0
+            litID = nil
         }
         .onChange(of: items.isEmpty ? nil : items[index].id, initial: true) { lit?.wrappedValue = $1 }
     }
 
     private func current(_ items: [Item]) -> Int {
-        max(0, min(index ?? start, items.count - 1))
+        items.firstIndex { $0.id == litID } ?? max(0, min(filter.isEmpty ? start : 0, items.count - 1))
     }
 
     private func move(_ step: Int) -> KeyPress.Result {
         let items = items(filter)
         pointed = false
-        index = max(0, min(current(items) + step, items.count - 1))
+        if !items.isEmpty {
+            litID = items[max(0, min(current(items) + step, items.count - 1))].id
+        }
         return .handled
     }
 

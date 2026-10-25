@@ -33,6 +33,7 @@ extension OrielUITests {
         element("titlebar.new-tab").click()
         let plus = try await newTabID(after: before)
         XCTAssertTrue(element("tab.\(plus)").has(\.isSelected, true, within: 3))
+        try await settle([plus])
         // Only its shell runs: no dialog.
         app.typeKey("w", modifierFlags: [.command, .option])
         XCTAssertTrue(element("tab.\(plus)").vanishes(within: 3))
@@ -77,6 +78,7 @@ extension OrielUITests {
         let tabs = try await newWorkspace("right", tabs: 4).tabs
         let workspace = workspace(of: tabs[0])
         let order: () async throws -> [String] = { try await self.tabIDs().filter { $0.hasPrefix("\(workspace):") } }
+        try await settle(tabs)
         try await runSleep(pane(of: tabs[3]))
         let confirm = app.sheets.buttons["Close Tabs"]
         element("tab.\(tabs[1])").rightClick()

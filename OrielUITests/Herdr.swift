@@ -76,9 +76,19 @@ extension OrielUITests {
                         "a pane of \(tab)")
     }
 
+    /// Waits for the prompt in every pane of the tabs: a shell's startup runs programs (`path_helper`, nvm's `ls`),
+    /// which would make a close ask (D41).
+    func settle(_ tabs: [String]) async throws {
+        for pane in try await snapshot()["panes"] as? [[String: Any]] ?? []
+            where tabs.contains(pane["tab_id"] as? String ?? "")
+        {
+            try await waitForPrompt(field(pane["pane_id"], "pane id"))
+        }
+    }
+
     /// `sleep 100` in the pane: a program besides its shell, so a close asks (D41).
     func runSleep(_ pane: String) async throws {
-        try await waitFor(pane) { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        try await waitForPrompt(pane)
         try await send("sleep 100\r", to: pane)
         try await expect("sleep in \(pane)") { try await foreground(pane).contains("sleep") }
     }

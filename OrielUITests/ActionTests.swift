@@ -52,6 +52,7 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("doomed")
         let second = try await split(pane)
+        // Its startup over too: a startup program would make the second close ask.
         try await waitForPrompt(pane)
         try await runSleep(second)
         let row = element("tab.\(tab)")
