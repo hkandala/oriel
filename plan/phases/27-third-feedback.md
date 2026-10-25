@@ -186,3 +186,60 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   card in Glass and Classic, × on hover; a click's zoom with Reduce Motion off (smooth, ends where the strip's
   page is, with the sidebar open and closed); a two-finger swipe between sessions inside the overview; memory
   after scrolling through many tabs (`footprint`), and back after Esc.
+
+### Lane F3 (items 10–14)
+
+- **Item 14, not built: herdr 0.9.5 gives Oriel nothing to open.** Probe on a throwaway server with its own config
+  folder (`XDG_CONFIG_HOME=/tmp/hx27f3 herdr --session oriel-dev-27f3-a server`, so the user's `plugins.json` and
+  sessions were never touched), a throwaway plugin linked there (`placement = "popup"`, `sh -c 'echo; sleep'`) and
+  an events subscription on every type. `plugin.pane.open {placement: "popup"}` answers only `{type: "ok"}`: the
+  server spawns the popup's terminal (its log shows `pane.spawn` with 18 × 69 cells, the process runs), but the
+  reply, `session.snapshot`, `pane.list` and `pane.get` have no pane or terminal id for it, `terminal session
+  observe` finds no target, and opening it or `popup.close` sends no event. `plugin_pane_opened` / `_focused` /
+  `_closed` are only replies (`success_response`), never events, and come only for the other placements
+  (`overlay` = a zoomed split, `split`, `tab`: normal panes with `pane.created`). Only herdr's private client socket
+  (bincode `ClientShellPopupSurface`) sees the popup, which D6 and D20 rule out. So phase 25 lane F2 and the
+  research of 2026-10-08 (`resources/research/ui/floating-panes.md`) hold. The upstream ask is in
+  `future-work.mdx`: the popup's terminal id and size in the snapshot, open/close events, a close by id. With
+  those, Oriel streams it by terminal id in this floating window as it does a floated pane. Plugin unlinked,
+  session stopped and deleted, `/tmp/hx27f3` removed.
+- **Root causes.** 10: the scene's `.defaultSize(560, 360)` was the only size, and SwiftUI placed it on its own.
+  11: lane F2 built a quiet placeholder (icon, name, a Show button). 12: the window used `.hiddenTitleBar`, whose
+  title bar is 28 pt with the lights where AppKit puts them; the main window's 46 pt row and Rex's light positions
+  came from `WindowReader`, which only the main window had. 13: the header used 22 pt card-header buttons in
+  primary (dimmed while a write ran), not the title row's 28 pt buttons in `look.chrome`.
+- **Decisions.** 10: `FloatReader` sets a new window's frame when AppKit has none saved for the terminal
+  (`setFrameUsingName` false): `max(720, 0.6 × main)` × `max(460, 0.6 × main)`, centered over the main window that
+  floated it, `constrainFrameRect` for the screen; then the autosave as before, so a pane floated again keeps the
+  user's frame. 12: the light placement moved out of `WindowReader.Reader` into a `TrafficLights` base class both
+  readers subclass (one copy of the observers and the layout hook), and the float scene got the main window's
+  `.unifiedCompact` toolbar with an empty spacer (and the full-screen toolbar on hover, spec review), its row
+  `TitleBar.height` and `TitleBar.inset`, plus a `WindowDragGesture` on empty space. 13: the card header's buttons
+  (22 pt, 11 pt regular, `paneButton`) and the title row's (28 pt, body medium, `chrome`) differ, so "the same as
+  both" cannot be literal: the floating row is a title row now (item 12), so it uses the title row's buttons with
+  the card's icons (`pip.exit` mirrors the card's `pip.enter`, `xmark`). 11: one `PaneInfo` view (program tile,
+  program and folder as the card header writes them, or the label; the state capsule when an agent runs) in both
+  the floating title row (before "session › workspace › tab") and the placeholder, where the whole card body is one
+  `ChromeStyle` button (fill on hover) with the old `pane.‹id›.show` identifier. The place line's session is
+  `HostStore.title` (lane G3: `default` shows the machine's name), per the orchestrator.
+- **Tests.** `testFloatingWindowOpensLargeWithTheMainWindowsTitleRow` (new): frame 60 % / 720 × 460 and centered
+  over the main window, the three lights at Rex's places, the 28 pt buttons centered on the 46 pt row, the pane's
+  info in the title row (`float.‹id›.info`) and in the placeholder, the placeholder button filling the card, a
+  click in its corner bringing the window forward with the keyboard. Checked locally on Retina too (after the GUI
+  was free). The card element is 18 pt wider than the button, not 16 (its border): 3 pt accuracy. Learned: a
+  window element held across a click that brings that window forward was "no longer valid after interruption
+  handling" once on CI: the last check finds the terminal without the window.
+- **Reviews.** Ponytail: no blockers; dropped the screen clamp (AppKit's constrain does it), fixed a wrong comment,
+  `PaneInfo` truncates as the card header does. Spec: full-screen toolbar on hover; the test did not see the pane
+  info (it read the button's own label): the label now comes from `PaneInfo`, with its own identifier in the title
+  row; all three lights checked; future-work wording.
+- **CI.** 40192618928 (8 floating and light tests, green on ed8e451). Full runs: 40196255503 on f81f40c: red in
+  this lane (the stale window, fixed in 9d6c8fe) and in others' areas: `testPaletteEnterTakesTheMovedRowAndKeysFollow`,
+  `testOverviewShowsEveryTabLiveAndOpensOne`, HerdrKit `relay carries runs over one process`
+  (`SSHExecTests.swift:49`).
+  Final full run 40198270835 on 9d6c8fe (this lane's last code commit): every floating, light and HerdrKit test
+  green; the one red is `testPaletteEnterTakesTheMovedRowAndKeysFollow`, red also on lane G3's run 40194683589 on
+  c662ac6, before this lane's code (not this lane's area).
+- **For the user to check by hand:** a new floating window's size and place over a large main window and over a
+  main window near a screen edge; the title row's lights and buttons against the main window's; a floating window
+  in full screen (toolbar on hover); the placeholder's hover fill and click.
