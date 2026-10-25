@@ -111,11 +111,8 @@ extension OrielUITests {
         try await fill(pane)
         try await expectText([pane], "filled")
         let steps: [(String, () async throws -> Void)] = [
-            // The header's button: the app shows a stand-in card at once, then herdr's pane in its place.
-            ("split", {
-                self.hoverHeader(pane)
-                self.element("pane.\(pane).split-right").click()
-            }),
+            // The app shows a stand-in card at once (sliding in from the left), then herdr's pane in its place.
+            ("split left", { self.paneMenu(pane, "Split Left") }),
             ("zoom", {
                 self.hoverHeader(pane)
                 self.element("pane.\(pane).zoom").click()
@@ -146,7 +143,7 @@ extension OrielUITests {
             let inks = shots.map { Self.ink(Self.crop($0, band)) }
             XCTAssertGreaterThan(inks.min() ?? 0, before / 3, "\(step): ink \(before) before, then \(inks)")
             XCTAssertGreaterThanOrEqual((Int(host.label) ?? 0) - sizes, 4,
-                                        "\(step): sizes from \(sizes) to \(host.label), \(host.value ?? "")")
+                                        "\(step): sizes from \(sizes) to \(host.label)")
             try await expectText([pane], step)
         }
     }
@@ -158,7 +155,7 @@ extension OrielUITests {
         XCTAssertTrue(host.exists(within: 3))
         let sizes = Int(host.label) ?? 0
         let other = try await split(pane)
-        XCTAssertTrue(until(3) { Int(host.label) == sizes + 1 }, "Reduce Motion: \(host.value ?? "")")
+        XCTAssertTrue(until(3) { Int(host.label) == sizes + 1 }, "Reduce Motion")
         _ = try await Self.call(one, "pane.close", ["pane_id": other])
         XCTAssertTrue(element("pane.\(other)").vanishes(within: 3))
         relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
