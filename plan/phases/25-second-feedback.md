@@ -219,3 +219,45 @@ found none). If herdr has none, floating is Oriel's own.
   dialog text as a query, the Finder drag), fixed by them in 7c74def, ee3114e, 1567204.
 - **For the user to check by hand:** ⌥⌘1–9 and ⌃⌘1–9 on a non-US keyboard layout; the panel's look over a light
   wallpaper in glass.
+
+### Lane K (items 5, 6, 8, 9)
+
+- **Root cause, item 5.** A pane close already asked only when `pane.process_info` showed more than the shell,
+  but every tab, other-tabs, tabs-to-the-right and workspace close set `page.closing` straight away (D41 said
+  "always asks"). Now every close goes through `Page.close(_:)` → `HostStore.ask`. It reads `process_info` of each
+  pane at once, closes at once when only shells run, and else asks, naming what runs ("sleep is running in it.
+  Its 2 panes and…"). A failed read counts as "A program".
+- **Root cause, item 6.** Nothing cleared herdr's label except an empty Rename. Reset Pane Name is one command in
+  `CommandList.pane`, so the header menu, the right-click menu, View ▸ Pane and the palette all get it. It is
+  enabled only while the pane has a label, and it sends `pane.rename` with `label: null`.
+- **Root cause, item 8.** `WindowPages.open` put a new page after the current one; it now appends. The UI strings
+  were "Close Page" and "Previous/Next Page"; they are now Detach Session and Previous/Next Session. Code names
+  stay.
+- **Item 9.** herdr 0.9.5 has `herdr --session S session stop|delete S --json`. stop is synchronous. delete
+  refuses a running session with `session_delete_failed`. Errors come as JSON on stderr. A delete of a missing
+  session succeeds.
+- **Decisions.** Stop asks too, as Delete does (spec review: it ends every program, which is D41's reason to ask).
+  The message says the workspaces stay: a spike showed the layout comes back on the next start. The Stop and
+  Delete buttons show only on the lit row, since the pointer lights rows. FilterList now keeps the lit row by id,
+  not by position. Otherwise, after Stop the light and the Stop button slid onto the next session.
+- **Deviations.** The close dialog is built in `OrielApp.swift`, `FilterList.swift` got `Item.button`, and
+  `Style.swift` got `RowButtonStyle` (the lint keeps `.white` there). The session tests moved to
+  `SessionTests.swift`, because `SidebarTests` hit 400 lines. e2e.sh makes a seventh session for the Stop and
+  Delete test.
+- **Learned.** An accessibility identifier put after an `.overlay` also names the overlay's button, so the
+  queries found several matches. Put the overlay after the row's accessibility modifiers. XCUITest refuses an
+  identifier query longer than 128 characters; match long texts with a predicate. A new tab's `process_info` can
+  list the shell's startup programs (1 in 5 for the user's zsh: `ls`, `sort`). Tests now wait for every pane's
+  prompt (`settle`) before a close that must not ask.
+- **Known limits.** ⌘T and then an immediate close can still ask "ls, sort and zsh are running" while a slow
+  shell starts. A big workspace starts one `remote-api-bridge` per pane when it closes (for lane S). A double ⌥⌘W
+  starts two asks.
+- **Tests.** `testClosingATabAsksOnlyWhileAProgramRuns`, `testCloseTabsToTheRightKeepsTheTabsOnTheLeft`,
+  `testCloseOtherTabsAsksOnceAndLeavesOneTab` and `testHeaderPlusAndRowMenuChangeHerdr` (Close Workspace): each
+  asks with the program's name, or closes at once. `testContextMenuSplitsLeftRenamesAndMovesToNewTab` (menu) and
+  `testPaletteRenamesTheWorkspaceAndThePane` (palette) reset the name. `testOpenedSessionsGoLast`.
+  `testOpenSessionStopsAndDeletesASession`. One HerdrKit integration test for stop and delete, including herdr's
+  refusal. CI: 40172562917 (red: the overlay's ids and the 128-character query), then 40173230145 (green, the
+  lane's 15 tests).
+- **For the user to check by hand:** ⌘W and ⌥⌘W on a tab where pi runs, and on one with only a shell. Stop on a
+  session open in another Oriel window (that page turns "not running", and Start brings it back).
