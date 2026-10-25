@@ -1,6 +1,6 @@
 ---
 title: "Main window (Mac and iPad)"
-description: "Windows, the title row, tab bar, Agents button, sidebar pages, Agents view, Open Session, hover card, strip, pane cards, zoom, floating panes, find bar, notices and the palette"
+description: "Windows, the title row, tab bar, Agents button, sidebar pages, Agents view, Open Session, hover card, strip, pane cards, zoom, overview, floating panes, find bar, notices and the palette"
 ---
 
 ![Main window with the sidebar open](/mockups/A.jpg)
@@ -51,7 +51,8 @@ start, also during a resize. From left to right:
    is open or collapsed.
 6. A spacer.
 7. The [Agents button](#agents-button).
-8. ⌘ (the command palette, ⌘K) and `+` (new tab, ⌘T).
+8. The [overview](#overview) button (⌃⌘O).
+9. ⌘ (the command palette, ⌘K) and `+` (new tab, ⌘T).
 
 Each title-row button except the Agents button shows the system tooltip with
 the action's name and its shortcut, for example "New Tab ⌘T". So do the page
@@ -525,6 +526,68 @@ How the messages, the reply box and the key buttons work:
   shows. Moving the keyboard to a hidden card restores it too.
 - Restore or ⇧⌘↩ restores the layout. Esc is not used, because the program in
   the pane needs it.
+
+## Overview
+
+Every tab of the session at a glance, live (D70): for watching many agents at
+once.
+- **Open and close.** The title-row button (`square.grid.2x2`, filled while
+  on, between the Agents button and ⌘), View ▸ Show Overview, the palette,
+  and ⌃⌘O toggle it; Esc leaves it. Each window has its own; it does not come
+  back after a relaunch.
+- **What it hides.** The sidebar and the tab bar. The title row keeps the
+  traffic lights, the machine button, the Agents button, the overview button
+  and ⌘; the sidebar toggle, the workspace button and `+` hide. The overview
+  covers the window below the title row.
+- **Canvas.** One page per session of the window, side by side: a sideways
+  swipe (or a wheel with Shift) moves to the next or previous session, as on
+  the sidebar, and the page it lands on becomes the window's page in view.
+  Inside a page, the session's workspaces in the sidebar's order, scrolled
+  vertically: each workspace's name (13 pt semibold, secondary), then its
+  tabs as tiles in a grid, 2 to 4 a row by the window's width, 16 pt apart,
+  32 pt between workspaces, 24 pt margins.
+- **Tile.** The tab's title row (its icon stack, title with the folder
+  dimmed, and its status capsule or working dots), then a miniature of the
+  page: the tab's cards in herdr's layout, at the page's real proportions
+  (the strip's page as it shows when the overview closes), each card its fill
+  and rim with its terminal drawn live inside, at the place and size it has
+  in the card. A zoomed tab shows its zoomed card. A floated pane's card
+  shows the float icon. The selected tab of each workspace has the selected
+  pill under its title row. Hover: the tile's soft fill.
+- **Click.** A click on a tile selects its workspace and tab and leaves the
+  overview: the tile's miniature grows to the strip's page over 0.25 s
+  (ease out), its terminals scaling up live, then the strip shows. Esc and the
+  toggle leave the same way, from the selected tab's tile. Under Reduce Motion
+  it leaves at once.
+- **Keyboard.** While the overview is open no terminal has the keyboard; Esc
+  leaves. Closing it gives the keyboard back to the tab's card.
+- VoiceOver: each tile is a button named by its tab's title, with the
+  workspace as its group.
+
+### How the miniatures draw
+
+- They are the terminals themselves: each tile hosts the pane's own
+  libghostty view (the one its card shows) inside an AppKit view whose bounds
+  are the card's terminal size and whose frame is the tile's. AppKit draws
+  the view scaled (a layer transform), so libghostty keeps its size, grid and
+  pixels, and herdr's PTY never changes. No second surface, stream or copy;
+  while the overview shows, the strip does not, so a terminal view is still in
+  one place (D35). The strip's cards take their views back when it closes.
+- While the overview is open, every terminal of the session in view streams
+  and draws. Those are not visits: when the overview closes, a terminal shown
+  only by it goes back to where it was (its surface and stream let go) and
+  the recently shown set is unchanged (D46). Other sessions' pages, beside
+  the one in view during a swipe, show each terminal's last picture.
+- Cost: every terminal of the session keeps a full-size surface while the
+  overview is open (measured in phase 27, lane V).
+
+Options weighed: a second, small, observe-only surface per pane at a small
+font (a herdr run, a renderer and a font atlas per pane, and observe cannot
+resize, so the grid would not fit the tile); pictures read from the live
+surfaces on a timer (only the shown tab's draw; each other card would need a
+surface anyway); screen text (`pane.read`, no colors: phase 25's hover card
+preview, removed with it); SwiftUI's `scaleEffect` on the strip's page
+(SwiftUI does not scale an AppKit view: the terminal stays at full size).
 
 ## Floating pane
 
