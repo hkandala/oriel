@@ -224,10 +224,10 @@
                 })
             }
 
-            /// A new floating window: 60 % of its main window's width and 75 % of its height, at least 720 × 560 pt,
+            /// A new floating window: 60 % of its main window's width and 75 % of its height, at least 720 × 460 pt,
             /// centered over it (user, phases 27 and 28). AppKit keeps it on the screen.
             static func frame(over main: NSWindow) -> NSRect {
-                let width = max(720, main.frame.width * 0.6), height = max(560, main.frame.height * 0.75)
+                let width = max(720, main.frame.width * 0.6), height = max(460, main.frame.height * 0.75)
                 let frame = NSRect(x: main.frame.midX - width / 2, y: main.frame.midY - height / 2, width: width,
                                    height: height)
                 return main.constrainFrameRect(frame, to: main.screen)

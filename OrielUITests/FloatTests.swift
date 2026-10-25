@@ -34,7 +34,7 @@ extension OrielUITests {
         XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
     }
 
-    /// A new floating window: 60 % of the main window's width and 75 % of its height (at least 720 × 560 pt) centered
+    /// A new floating window: 60 % of the main window's width and 75 % of its height (at least 720 × 460 pt) centered
     /// over it, the main window's title row and traffic lights, title-row buttons, a separator between the pane's info
     /// and its place (phases 27, 28); the card in the tab says where the pane is and offers Show Pane (phase 28).
     func testFloatingWindowOpensLargeWithTheMainWindowsTitleRow() async throws {
@@ -45,7 +45,7 @@ extension OrielUITests {
         let window = try float(second)
         let frame = window.frame, frames = "\(frame) over \(main)"
         XCTAssertEqual(frame.width, max(720, main.width * 0.6), accuracy: 2, frames)
-        XCTAssertEqual(frame.height, max(560, main.height * 0.75), accuracy: 2, frames)
+        XCTAssertEqual(frame.height, max(460, main.height * 0.75), accuracy: 2, frames)
         XCTAssertEqual(frame.midX, main.midX, accuracy: 2, frames)
         XCTAssertEqual(frame.midY, main.midY, accuracy: 2, frames)
 
@@ -137,7 +137,8 @@ extension OrielUITests {
         try await Self.call(one, "pane.close", ["pane_id": second])
         XCTAssertTrue(back.vanishes(within: 5))
         XCTAssertTrue(element("float.\(third)").exists)
-        // ⇧⌘W in a floating window detaches.
+        // ⇧⌘W in a floating window detaches. Show Pane is under the floating window until the main one is in front.
+        element("tab.\(tab)").click()
         element("pane.\(third).show").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(third)", in: app.windows.containing(.any, identifier:
             "float.\(third)").firstMatch)))
