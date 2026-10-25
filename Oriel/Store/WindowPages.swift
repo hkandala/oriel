@@ -24,7 +24,12 @@
         /// while its tile zooms to the page.
         var overview = false
         var leaving = false
-        @ObservationIgnored var overviewTabs: Set<String> = []
+        /// By page: tab ids repeat across sessions.
+        @ObservationIgnored var overviewTabs: [String: Set<String>] = [:]
+        /// What to do once the overview's zoom ends (`afterOverview`).
+        @ObservationIgnored var afterOverview: (() -> Void)?
+        /// A floating panel (the palette, the shortcuts) is open: its Esc is its own.
+        @ObservationIgnored var panelOpen = false
         /// The window is key (D14).
         @ObservationIgnored private var key = false
         /// A notification or Dock row clicked before its page or pane was there.
@@ -292,27 +297,6 @@
             window.showPending()
         }
 
-        func showPending() {
-            guard let id = pending else { return }
-            let parts = id.split(separator: "|", maxSplits: 2).map(String.init)
-            guard parts.count == 3 else {
-                pending = nil
-                return
-            }
-            guard let page = list.first(where: { $0.id == parts[1] }) else {
-                open(parts[1])
-                return
-            }
-            guard let pane = page.store.panes.first(where: { ($0.terminalID ?? $0.id) == parts[2] }) else {
-                // Gone: a dead click does not wait for ever.
-                pending = page.store.state == .connecting ? id : nil
-                return
-            }
-            pending = nil
-            show(page)
-            page.go(to: pane)
-        }
-
         /// Streams the shown tab of the page in view (see the registry), drops the terminals of closed panes and
         /// pages. A snapshot hands the keyboard to a card only while no text field has it: typing in the palette or a
         /// rename field must not go on in a shell because a pane closed elsewhere.
@@ -337,7 +321,7 @@
             }
             // The cards of the overview's tiles laid out: no visits (D70). Not on a remote machine, whose connection
             // holds about 10 SSH sessions (machines#ssh-sessions): its miniatures keep their last picture.
-            let unvisited = overview && !machine.isRemote ? current.cardTerminals(overviewTabs) : [:]
+            let unvisited = overview && !machine.isRemote ? current.cardTerminals(overviewTabs[current.id] ?? []) : [:]
             // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
             let kept = alive.union(list.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
             terminals.show(shown, unvisited: unvisited, alive: kept, client: current.store.client)
@@ -345,6 +329,33 @@
             if !overview, !snapshot || !(window?.firstResponder is NSText) {
                 current.shown(alive: alive)
             }
+        }
+    }
+
+    extension WindowPages {
+        func showPending() {
+            guard let id = pending else { return }
+            let parts = id.split(separator: "|", maxSplits: 2).map(String.init)
+            guard parts.count == 3 else {
+                pending = nil
+                return
+            }
+            guard let page = list.first(where: { $0.id == parts[1] }) else {
+                open(parts[1])
+                return
+            }
+            guard let pane = page.store.panes.first(where: { ($0.terminalID ?? $0.id) == parts[2] }) else {
+                // Gone: a dead click does not wait for ever.
+                pending = page.store.state == .connecting ? id : nil
+                return
+            }
+            pending = nil
+            // A notification's or the Dock's pane shows at once, out of the overview.
+            if overview {
+                closeOverview()
+            }
+            show(page)
+            page.go(to: pane)
         }
     }
 

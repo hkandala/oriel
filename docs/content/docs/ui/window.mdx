@@ -546,10 +546,12 @@ once.
 - **Canvas.** One page per session of the window, side by side: a sideways
   swipe (or a wheel with Shift) moves to the next or previous session, as on
   the sidebar, and the page it lands on becomes the window's page in view.
-  Inside a page, the session's workspaces in the sidebar's order, scrolled
-  vertically: each workspace's name (13 pt semibold, secondary), then its
-  tabs as tiles in a grid, 2 to 4 a row by the window's width, 16 pt apart,
-  32 pt between workspaces, 24 pt margins.
+  Inside a page, scrolled vertically: the session's title as the sidebar's
+  page header has it (13 pt semibold; This Mac's name for `default`), then
+  the session's workspaces in the sidebar's order, 32 pt apart: each
+  workspace's name (13 pt semibold, secondary), then its tabs as tiles in a
+  grid, 2 to 4 a row (as many 340 pt tiles as fit), 16 pt apart, 24 pt
+  margins.
 - **Tile.** One card per tab (the card's fill, rim and edge), as in the
   user's reference: at its top a 36 pt title row like a card header (the
   tab's icon stack, its title with the folder dimmed, and its status
@@ -565,11 +567,15 @@ once.
 - **Click.** A click on a tile selects its workspace and tab and leaves the
   overview: the tile's miniature grows to the strip's page over 0.25 s
   (ease out), its terminals scaling up live, then the strip shows. Esc and the
-  toggle leave the same way, from the selected tab's tile. Under Reduce Motion
-  it leaves at once.
+  toggle leave the same way, from the selected tab's tile (at once when that
+  tile is scrolled away). Under Reduce Motion it leaves at once. The Agents
+  button and ⌘. leave it first and open the Agents view after the zoom; a
+  notification or Dock click leaves it at once and shows its pane. Other keys
+  and the palette act as usual and the overview stays: ⌘T adds a tile, a tab
+  key moves the selected tile.
 - **Keyboard.** While the overview is open no terminal has the keyboard (a
-  terminal view in a miniature refuses it); Esc leaves, unless a text field
-  (the palette's) has the keyboard. Closing it gives the keyboard back to the
+  terminal view in a miniature refuses it); Esc leaves, unless a panel (the
+  palette, Keyboard Shortcuts) or a text field is open. Closing it gives the keyboard back to the
   tab's card.
 - VoiceOver: each tile is a button named by its tab's title, with the
   workspace as its group.
@@ -580,7 +586,9 @@ once.
   libghostty view (the one its card shows) inside an AppKit view whose bounds
   are the card's terminal size and whose frame is the tile's. AppKit draws
   the view scaled (a layer transform), so libghostty keeps its size, grid and
-  pixels, and herdr's PTY never changes. No second surface, stream or copy;
+  pixels, and herdr's PTY keeps the card's size, never the tile's (a terminal
+  that streams for the first time opens at its card's size, as a visit
+  would). A window resize refits them 150 ms after it stops, as the cards do. No second surface, stream or copy;
   while the overview shows, the strip does not, so a terminal view is still in
   one place (D35). The strip's cards take their views back when it closes.
 - While the overview is open, the cards of the tiles it lays out (the grid is

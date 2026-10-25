@@ -96,6 +96,21 @@
             !(superview is MiniTerminal.Mini) && super.acceptsFirstResponder
         }
 
+        private var inMiniature = false
+
+        override func viewWillMove(toSuperview newSuperview: NSView?) {
+            inMiniature = superview is MiniTerminal.Mini
+            super.viewWillMove(toSuperview: newSuperview)
+        }
+
+        /// Back in its card from a miniature, which refused it: a claim made meanwhile (the overview closing) lands.
+        override func viewDidMoveToSuperview() {
+            super.viewDidMoveToSuperview()
+            if inMiniature, claimed, window != nil, window?.firstResponder !== self {
+                claimKeyboard()
+            }
+        }
+
         override func becomeFirstResponder() -> Bool {
             let became = super.becomeFirstResponder()
             terminal?.hasKeyboard = became

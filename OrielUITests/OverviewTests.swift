@@ -2,12 +2,14 @@ import XCTest
 
 /// The overview (phase 27, D70): every tab of the session as a live miniature, grouped by workspace.
 extension OrielUITests {
-    /// ⌃⌘O hides the sidebar and tab bar and shows a tile per tab under its workspace; a tab never shown draws live
-    /// in its tile; a click shows that tab, its terminals at their size; Esc leaves too.
+    /// ⌃⌘O hides the sidebar and tab bar and shows a tile per tab under its workspace, two a row on CI's window; a
+    /// tab never shown draws live in its tile; × closes a tab; a click shows that tab, its terminals at their size;
+    /// Esc leaves too.
     func testOverviewShowsEveryTabLiveAndOpensOne() async throws {
         // The zoom runs, for the recording.
         relaunch(nil, ["-forceMotion", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (closing, _) = try await newTab("closing", in: "w1")
         // A white block in w2's pane, which no card showed yet.
         let block = "clear; for i in 1 2 3 4 5 6 7 8 9 10; do printf '\\033[107m%300s\\033[0m\\n' ''; done"
         try await send("\(block); echo block-$((6*7))\r", to: "w2:p1")
@@ -24,13 +26,19 @@ extension OrielUITests {
         {
             XCTAssertTrue(element(id).exists, id)
         }
-        // Under its workspace's name, and each tile at the page's proportions.
+        // The session's title, then each workspace's name over its tiles, two a row.
+        XCTAssertEqual(element("overview.title").label, one)
         XCTAssertLessThan(element("overview.workspace.w2").frame.maxY, element("overview.tab.w2:t1").frame.minY)
+        let first = element("overview.tab.w1:t1").frame, second = element("overview.tab.w1:t2").frame
+        XCTAssertEqual(first.minY, second.minY, accuracy: 1)
+        XCTAssertEqual(second.minX - first.maxX, 16, accuracy: 1)
         XCTAssertEqual(element("overview.tab.w1:t1").stringValue, "selected")
         keepScreenshot("overview")
-        // × on hover, as on the tab bar.
-        element("overview.tab.w1:t2").hover()
-        XCTAssertTrue(element("overview.tab.w1:t2.close").exists(within: 2))
+        // × on hover closes the tab, as on the tab bar (an idle shell: no question).
+        element("overview.tab.\(closing)").hover()
+        element("overview.tab.\(closing).close").click()
+        XCTAssertTrue(element("overview.tab.\(closing)").vanishes(within: 3))
+        try await expect("herdr closed \(closing)") { try await !Self.ids("tab", in: one).contains(closing) }
         let tile = element("overview.tab.w2:t1"), dark = element("overview.tab.w1:t2")
         XCTAssertTrue(until(3) { mean(tile) > mean(dark) + 30 }, "\(mean(tile)) \(mean(dark))")
 
@@ -59,6 +67,12 @@ extension OrielUITests {
         XCTAssertTrue(until(3) { header == two })
         app.typeKey("[", modifierFlags: [.command, .option])
         XCTAssertTrue(until(3) { header == one })
+        // A tab of session two no card showed, with the id of one of session one's (w1:t2): it draws live there.
+        let created = try await Self.call(two, "tab.create", ["workspace_id": "w1", "cwd": "/tmp", "focus": false])
+        let tab = try id(created, "tab"), pane = try id(created, "root_pane")
+        addTeardownBlock { [two] in _ = try? await Self.call(two, "tab.close", ["tab_id": tab]) }
+        let block = "clear; for i in 1 2 3 4 5 6 7 8 9 10; do printf '\\033[107m%300s\\033[0m\\n' ''; done"
+        try await Self.call(two, "pane.send_text", ["pane_id": pane, "text": "\(block)\r"])
 
         app.typeKey("o", modifierFlags: [.command, .control])
         let overview = element("overview"), window = app.windows.firstMatch
@@ -67,9 +81,18 @@ extension OrielUITests {
         XCTAssertTrue(until(3) { window.title.hasSuffix(" - \(two)") }, window.title)
         XCTAssertFalse(element("overview.page.\(one)").exists)
         keepScreenshot("overview of session two")
-        element("overview.tab.w1:t1").click()
+        let live = element("overview.tab.\(tab)"), dark = element("overview.tab.w1:t1")
+        XCTAssertTrue(until(3) { mean(live) > mean(dark) + 30 }, "\(mean(live)) \(mean(dark))")
+        dark.click()
         XCTAssertTrue(overview.vanishes(within: 2))
         XCTAssertTrue(until(3) { header == two })
+
+        // Without motion (CI's Reduce Motion), Esc leaves at once and the keyboard is back in the card.
+        app.typeKey("o", modifierFlags: [.command, .control])
+        XCTAssertTrue(overview.exists(within: 2))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(overview.vanishes(within: 2))
+        XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
     }
 
     /// What the overview costs (phase 27): lane O's workspace of 6 tabs and 12 panes, 8 of them printing, only its

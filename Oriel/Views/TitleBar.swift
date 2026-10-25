@@ -54,9 +54,7 @@
                 }
                 .frame(width: sidebar && !overview ? sidebarWidth - Self.inset(fullScreen: fullScreen) - gap : nil,
                        alignment: .leading)
-                if overview {
-                    Spacer(minLength: 0)
-                } else if !sidebar, let workspace = page.selectedWorkspace {
+                if !overview, !sidebar, let workspace = page.selectedWorkspace {
                     Capped(width: 260) {
                         WorkspaceButton(session: page.store.title, workspace: workspace.label, open: $workspaceMenu)
                     }
@@ -65,19 +63,16 @@
                         workspaceButtonX = $0
                     }
                 }
-                if overview {
-                    EmptyView()
-                } else if page.store.state == .live || page.store.reconnecting, let workspace = page.selectedWorkspace {
+                if !overview, page.store.state == .live || page.store.reconnecting,
+                   let workspace = page.selectedWorkspace
+                {
                     TabBar(workspace: workspace, page: page, plus: plus)
                 } else {
                     Spacer(minLength: 0)
                 }
                 // ⌘. is the menu's.
                 AgentsButton(page: page, showing: sidebar && agents && !overview) {
-                    if overview {
-                        pages.toggleOverview()
-                    }
-                    toggleAgents($agents, $sidebar)
+                    pages.afterOverview { toggleAgents($agents, $sidebar) }
                     // A click takes the keyboard from the card.
                     page.focusKeyboardCard()
                 }
@@ -91,7 +86,7 @@
                     .accessibilityIdentifier("titlebar.palette")
                 // ⌘T is the menu's.
                 IconButton(symbol: "plus", help: "New Tab", key: .newTab) { Task { await page.newTab() } }
-                    .disabled(page.selectedWorkspace == nil)
+                    .disabled(page.selectedWorkspace == nil || overview)
                     .opacity(overview ? 0 : 1)
                     .accessibilityIdentifier("titlebar.new-tab")
                     // Highlighted too: a full track has no room for the ghost capsule.

@@ -107,7 +107,7 @@
                         keywords: "needs you", enabled: agents != nil && sidebar != nil,
                         checked: agents?.wrappedValue == true && sidebar?.wrappedValue == true, action: {
                             if let agents, let sidebar {
-                                toggleAgents(agents, sidebar)
+                                pages?.afterOverview { toggleAgents(agents, sidebar) }
                             }
                         }),
                 Command(section: .view, title: "Toggle Sidebar", key: .toggleSidebar, symbol: "sidebar.left",

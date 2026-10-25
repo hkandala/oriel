@@ -14,13 +14,19 @@
         /// Each tile's miniature, in the overview: not observed, so a scroll redraws nothing.
         @State private var frames = Frames()
         /// The tab whose miniature grows to the page, from its tile's frame; `grown` once it moves.
-        @State private var zoom: (tab: HostStore.Tab, from: CGRect)?
+        @State private var zoom: Zoom?
         @State private var grown = false
         @State private var monitor: Any?
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         final class Frames {
             var rects: [String: CGRect] = [:]
+        }
+
+        private struct Zoom {
+            let page: Page
+            let tab: HostStore.Tab
+            let from: CGRect
         }
 
         var body: some View {
@@ -36,7 +42,8 @@
                                 page: page,
                                 size: strip.size,
                                 frames: frames,
-                                zooming: zoom?.tab.id,
+                                columns: min(4, max(2, Int((proxy.size.width - 32) / 356))),
+                                zooming: page === zoom?.page ? zoom?.tab.id : nil,
                             ) {
                                 open(page, $0, $1)
                             }
@@ -50,6 +57,8 @@
                 .scrollPosition($position)
                 .scrollIndicators(.never)
                 .opacity(grown ? 0 : 1)
+                // Nothing under the zoom takes a click.
+                .allowsHitTesting(zoom == nil)
                 .onScrollPhaseChange { _, phase in
                     if phase == .idle, let id = position.viewID(type: String.self), id != pages.current?.id,
                        let page = pages.list.first(where: { $0.id == id })
@@ -62,19 +71,22 @@
                     withAnimation(old == nil || reduceMotion && !Animation.forceMotion ? nil : .session) {
                         position.scrollTo(id: new)
                     }
-                    Task { position.scrollTo(id: new) }
+                    // The first layout of the lazy stack can miss it.
+                    if old == nil {
+                        Task { position.scrollTo(id: new) }
+                    }
                 }
                 .overlay(alignment: .topLeading) {
-                    if let zoom, let page = pages.current {
+                    if let zoom {
                         let rect = grown ? strip : zoom.from
-                        Miniature(tab: zoom.tab, page: page, size: strip.size)
+                        Miniature(tab: zoom.tab, page: zoom.page, size: strip.size)
                             .frame(width: rect.width, height: rect.height)
                             .position(x: rect.midX, y: rect.midY)
                     }
                 }
                 .onChange(of: pages.leaving) {
                     if pages.leaving, zoom == nil {
-                        leave(strip: strip)
+                        leave()
                     }
                 }
             }
@@ -86,8 +98,8 @@
                 monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                     guard event.keyCode == 53 else { return event }
                     let leave = MainActor.assumeIsolated {
-                        // Not a text field's (the palette's) Esc.
-                        guard let window = pages.window, NSApp.keyWindow === window,
+                        // Not a panel's (the palette's, the shortcuts').
+                        guard let window = pages.window, NSApp.keyWindow === window, !pages.panelOpen,
                               !(window.firstResponder is NSText) else { return false }
                         pages.leaving = true
                         return true
@@ -111,11 +123,11 @@
 
         /// The selected tab's miniature grows to the strip's page (its terminals scale up live), then the strip shows.
         /// At once under Reduce Motion, or when its tile is not laid out.
-        private func leave(strip _: CGRect) {
-            guard let page = pages.current, let tab = page.selectedTab, let from = frames.rects[tab.id],
+        private func leave() {
+            guard let page = pages.current, let tab = page.selectedTab, let from = frames.rects["\(page.id) \(tab.id)"],
                   !reduceMotion || Animation.forceMotion
             else { return pages.closeOverview() }
-            zoom = (tab, from)
+            zoom = Zoom(page: page, tab: tab, from: from)
             withAnimation(.easeOut(duration: 0.25)) { grown = true } completion: {
                 pages.closeOverview()
             }
@@ -133,12 +145,26 @@
             }
         }
 
+        /// Runs `action` now, or after the overview's zoom when it is open: an action that opens the sidebar would
+        /// move the zoom's target and resize the tiles' terminals.
+        func afterOverview(_ action: @escaping () -> Void) {
+            if overview {
+                afterOverview = action
+                leaving = true
+            } else {
+                action()
+            }
+        }
+
         /// The strip shows again, and the keyboard goes back to the tab's card.
         func closeOverview() {
             overview = false
             leaving = false
+            overviewTabs = [:]
             showTerminals()
             current?.focusKeyboardCard()
+            afterOverview?()
+            afterOverview = nil
         }
     }
 
@@ -158,20 +184,24 @@
         /// The strip's page.
         let size: CGSize
         let frames: Overview.Frames
+        /// Tiles a row: 2 to 4 by the window's width.
+        let columns: Int
         /// The tab whose miniature zooms: its tile leaves the terminals to it.
         let zooming: String?
         let open: (HostStore.Workspace, HostStore.Tab) -> Void
 
         var body: some View {
+            let grid = Array(repeating: GridItem(.flexible(), spacing: 16), count: columns)
             ScrollView(.vertical) {
                 LazyVStack(alignment: .leading, spacing: 32) {
                     Text(page.store.title).font(.system(size: 13, weight: .semibold))
+                        .accessibilityIdentifier("overview.title")
                     ForEach(page.sidebarWorkspaces) { workspace in
                         VStack(alignment: .leading, spacing: 12) {
                             Text(workspace.label).font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(.secondary)
                                 .accessibilityIdentifier("overview.workspace.\(workspace.id)")
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 340), spacing: 16)], spacing: 16) {
+                            LazyVGrid(columns: grid, spacing: 16) {
                                 ForEach(workspace.tabs) { tab in
                                     Tile(
                                         pages: pages,
@@ -185,6 +215,8 @@
                                 }
                             }
                         }
+                        .accessibilityElement(children: .contain)
+                        .accessibilityLabel(workspace.label)
                     }
                 }
                 .padding(24)
@@ -239,7 +271,7 @@
                 }
                 .aspectRatio(size, contentMode: .fit)
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Overview.space)) } action: {
-                    frames.rects[tab.id] = $0
+                    frames.rects["\(page.id) \(tab.id)"] = $0
                 }
                 .padding([.horizontal, .bottom], gap)
             }
@@ -247,7 +279,11 @@
             // Only the tiles the lazy grid lays out stream: the cost follows the tiles in view, not the session (a
             // card at full window costs 52 MB on Retina).
             .onAppear { laidOut(true) }
-            .onDisappear { laidOut(false) }
+            .onDisappear {
+                // Scrolled away: Esc leaves at once, not from where it was.
+                frames.rects["\(page.id) \(tab.id)"] = nil
+                laidOut(false)
+            }
             .contentShape(.rect)
             .onTapGesture(perform: open)
             .onHover { hovering = $0 }
@@ -260,118 +296,14 @@
         }
 
         private func laidOut(_ shown: Bool) {
+            // Closing: `closeOverview` let them all go at once.
+            guard pages.overview else { return }
             if shown {
-                pages.overviewTabs.insert(tab.id)
+                pages.overviewTabs[page.id, default: []].insert(tab.id)
             } else {
-                pages.overviewTabs.remove(tab.id)
+                pages.overviewTabs[page.id]?.remove(tab.id)
             }
             pages.showTerminals()
-        }
-    }
-
-    /// A tab's page at the size it is given: its cards in herdr's layout (or its zoomed card), each with its terminal
-    /// live at its place in the card, scaled from the strip's page (`size`).
-    struct Miniature: View {
-        let tab: HostStore.Tab
-        let page: Page
-        let size: CGSize
-
-        var body: some View {
-            GeometryReader { proxy in
-                let scale = proxy.size.width / size.width, area = CGRect(origin: .zero, size: size)
-                if let tree = tab.tree {
-                    let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
-                    let cards = Parts(tree, in: area, held: [:]).cards.filter { zoomed == nil || $0.id == zoomed }
-                    ZStack(alignment: .topLeading) {
-                        ForEach(cards, id: \.id) { card in
-                            let rect = zoomed == nil ? card.rect : area
-                            MiniCard(id: card.id, page: page, size: rect.size, scale: scale)
-                                .frame(width: rect.width * scale, height: rect.height * scale)
-                                .position(x: rect.midX * scale, y: rect.midY * scale)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// A card at `scale`: its fill and edge, and its terminal where the page's card has it (under the header, 10 pt
-    /// in, 8 pt up from the bottom). A floated pane's shows the float icon.
-    private struct MiniCard: View {
-        let id: String
-        let page: Page
-        /// The card in the strip's page.
-        let size: CGSize
-        let scale: CGFloat
-        @Environment(\.look) private var look
-
-        var body: some View {
-            let shape = RoundedRectangle(cornerRadius: 10 * scale, style: .continuous),
-                edge = look.edge(keyboard: false)
-            let pane = page.store.pane(id)
-            let terminal = CGSize(width: max(size.width - 2 * PaneCard.inset, 1),
-                                  height: max(size.height - PaneCard.header - gap, 1))
-            shape.fill(look.cardFill)
-                .overlay(shape.stroke(edge.color, lineWidth: edge.width))
-                .overlay(alignment: .topLeading) {
-                    if let pane, page.floats(pane) {
-                        Image(systemName: "pip").foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if let view = pane.flatMap(page.terminal) {
-                        MiniTerminal(terminal: view, size: terminal)
-                            .frame(width: terminal.width * scale, height: terminal.height * scale)
-                            .padding(.leading, PaneCard.inset * scale)
-                            .padding(.top, PaneCard.header * scale)
-                    }
-                }
-        }
-    }
-
-    /// The pane's own terminal view, drawn at the miniature's size: its bounds are the card's terminal size, so
-    /// AppKit scales the layer and libghostty keeps its grid (herdr's PTY never resizes). Clicks and scrolls go to
-    /// the tile. The newest host adopts the view, as `TerminalHost`'s do.
-    struct MiniTerminal: NSViewRepresentable {
-        let terminal: PaneTerminal
-        let size: CGSize
-
-        func makeNSView(context _: Context) -> Mini {
-            let mini = Mini()
-            mini.size = size
-            mini.wantsLayer = true
-            mini.clipsToBounds = true
-            mini.addSubview(terminal.view)
-            return mini
-        }
-
-        func updateNSView(_ mini: Mini, context _: Context) {
-            mini.size = size
-            mini.fit()
-        }
-
-        final class Mini: NSView {
-            var size = CGSize.zero
-
-            override var isFlipped: Bool {
-                true
-            }
-
-            override func hitTest(_: NSPoint) -> NSView? {
-                nil
-            }
-
-            override func setFrameSize(_ newSize: NSSize) {
-                super.setFrameSize(newSize)
-                fit()
-            }
-
-            func fit() {
-                guard !frame.isEmpty, size.width > 0, size.height > 0 else { return }
-                setBoundsSize(size)
-                guard let view = subviews.first as? PaneSurfaceView, view.frame.size != size else { return }
-                // Before libghostty hears of the size, as the card's host does.
-                view.terminal?.hold()
-                view.frame = CGRect(origin: .zero, size: size)
-            }
         }
     }
 #endif

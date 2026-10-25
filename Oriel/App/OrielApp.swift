@@ -238,17 +238,18 @@ struct OrielApp: App {
                 HStack(spacing: 0) {
                     if pages.overview {
                         Overview(pages: pages, leading: sidebar ? sidebarWidth - gap : 0)
-                    } else if sidebar {
-                        // As in Rex, the cards start at the sidebar's width: its handle lies over the strip's 8 pt gap.
-                        Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { panel = .openSession }
-                            .padding(.bottom, gap)
-                            // Rex's page header and first row sit 3 pt lower than the strip's 4 pt room.
-                            .padding(.top, 7)
-                            .padding(.trailing, -gap)
-                            .zIndex(1)
-                            .transition(.move(edge: .leading).combined(with: .opacity))
-                    }
-                    if !pages.overview {
+                    } else {
+                        if sidebar {
+                            // As in Rex, the cards start at the sidebar's width: its handle lies over the strip's 8 pt
+                            // gap.
+                            Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { panel = .openSession }
+                                .padding(.bottom, gap)
+                                // Rex's page header and first row sit 3 pt lower than the strip's 4 pt room.
+                                .padding(.top, 7)
+                                .padding(.trailing, -gap)
+                                .zIndex(1)
+                                .transition(.move(edge: .leading).combined(with: .opacity))
+                        }
                         Detail(pages: pages, page: page)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
@@ -288,7 +289,10 @@ struct OrielApp: App {
             .testValue("app.links", "Links", Links.shared.recorded.joined(separator: " "),
                        shown: UserDefaults.standard.bool(forKey: "recordLinks"))
             .testValue("app.latency", "Latency", Latency.shared.recorded.joined(separator: "; "), shown: Latency.isOn)
-            .onChange(of: panel, initial: true) { Latency.shared.panel = panel.map { "\($0)" } ?? "" }
+            .onChange(of: panel, initial: true) {
+                Latency.shared.panel = panel.map { "\($0)" } ?? ""
+                pages.panelOpen = panel != nil
+            }
             .modifier(AgentsWatch(pages: pages, page: page))
             // The title bar row takes the hidden title bar's line.
             .ignoresSafeArea(edges: .top)
