@@ -129,9 +129,13 @@
 
         /// Starts the session when it is not running, then opens its page.
         private func start(_ session: String) {
+            let machine = pages.machine
             run(session, "start") {
-                try await HostStore.start(session, on: pages.machine)
-                pages.open(session)
+                try await HostStore.start(session, on: machine)
+                // Not on a machine the window switched to meanwhile.
+                if pages.machine == machine {
+                    pages.open(session)
+                }
                 open = false
             }
         }

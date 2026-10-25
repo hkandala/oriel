@@ -130,12 +130,11 @@ final class HostStore {
         }
 
         /// The Connect button and a new machine: connects to the remote machine, asking the user what ssh asks in the
-        /// window that controls the session (machines#health-check: only this may prompt).
-        func connect() async {
+        /// window that connects (machines#health-check: only this may prompt).
+        func connect(in pages: WindowPages) async {
             guard let ssh = await machine.exec() as? SSHExec else { return }
             do {
-                try await ssh
-                    .connect { [weak self] question in await self?.windows.first?.ask(question) }
+                try await ssh.connect { question in await pages.ask(question) }
             } catch {
                 await show(Notice(text: error.localizedDescription))
             }

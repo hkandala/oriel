@@ -144,7 +144,9 @@
         }
 
         private func openFolders() {
-            guard let page = current, page.store.state == .live, !Self.folders.isEmpty else { return }
+            // ponytail: a Mac folder means nothing to a remote machine; they wait for a page of This Mac.
+            guard let page = current, page.store.state == .live, !page.store.machine.isRemote, !Self.folders.isEmpty
+            else { return }
             let urls = Self.folders
             Self.folders = []
             Task {
@@ -201,8 +203,11 @@
         /// still open.
         func ask(_ text: String) async -> String? {
             question?.answer(nil)
+            let id = UUID()
             return await withCheckedContinuation { continuation in
-                question = Question(text: text) { [weak self] answer in
+                // Once: a second click, or a late answer to a question a newer one replaced, does nothing.
+                question = Question(id: id, text: text) { [weak self] answer in
+                    guard self?.question?.id == id else { return }
                     self?.question = nil
                     continuation.resume(returning: answer)
                 }
@@ -210,7 +215,7 @@
         }
 
         struct Question: Identifiable {
-            let id = UUID()
+            let id: UUID
             let text: String
             /// Called once.
             let answer: (String?) -> Void
@@ -264,7 +269,8 @@
         /// Selects an agent's pane from outside the windows (a notification, the Dock menu) by its notification id,
         /// "‹machine id›|‹session›|‹terminal id›": the terminal outlives a pane id that changed. It shows in the window
         /// of the machine that was key last among those with the page open, else the page opens in the machine's
-        /// front window; the pane is selected once a snapshot shows it.
+        /// front window; the pane is selected once a snapshot shows it. With no window of the machine, nothing opens.
+        /// ponytail: switch the front window to the machine when such a click is missed.
         static func go(to id: String) {
             let parts = id.split(separator: "|", maxSplits: 2).map(String.init)
             let machines = windows.filter { $0.machine.id == parts.first }

@@ -66,7 +66,7 @@ struct Notice {
             case let .failed(.disconnected(text)):
                 // Retries stopped: only Connect may ask (machines#health-check).
                 message("Disconnected from \(store.machine.name)", text,
-                        button: ("Connect", "connect", { await store.connect() }))
+                        button: ("Connect", "connect", { await store.connect(in: pages) }))
             case let .failed(.unsupported(text)):
                 // The client asks again every 2 s, so an updated herdr clears it.
                 message("herdr is too old", text + ".")

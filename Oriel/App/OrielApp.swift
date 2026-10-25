@@ -274,11 +274,8 @@ struct OrielApp: App {
             }
             .modifier(CloseDialog(page: page))
             .sheet(isPresented: Bindable(pages).addingHost) { AddHost(pages: pages) }
-            // A sheet closed without an answer cancels the question.
-            .sheet(item: Binding { pages.question } set: {
-                if $0 == nil {
-                    pages.question?.answer(nil)
-                }
+            // It closes only through its buttons, which answer.
+            .sheet(item: Binding { pages.question } set: { _ in
             }) { AskSheet(question: $0, machine: pages.machine.name) }
             .environment(\.look, look)
             .testValue("window.look", "Appearance", "\(style.rawValue) \(look.dark ? "dark" : "light")")

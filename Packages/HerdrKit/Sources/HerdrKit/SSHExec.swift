@@ -24,13 +24,14 @@
         private var retry: (at: ContinuousClock.Instant, error: Error)?
         private var failures = 0
         /// herdr's path from the machine's login shell, asked once per master; a nil is asked again after 30 s.
-        private var lookup: (task: Task<String?, Never>, at: ContinuousClock.Instant)?
+        private var lookup: (task: Task<String?, Error>, at: ContinuousClock.Instant)?
         /// Channels open on the master, and runs waiting for one: sshd allows 10 sessions per connection by default
         /// (`MaxSessions`), and refuses the 11th.
         /// ponytail: a fixed 10 that long-lived streams hold too; the app streams only the tabs in view of a remote
-        /// machine. Learn the server's limit from a refusal when one shows.
+        /// machine, and a run that waits 10 s fails (the page shows Reconnecting, not a freeze). Learn the server's
+        /// limit from a refusal when one shows.
         private var channels = 0
-        private var waiting: [CheckedContinuation<Void, Never>] = []
+        private var waiting: [(id: UUID, go: CheckedContinuation<Bool, Never>)] = []
 
         public init(target: String, local: ProcessExec) {
             self.target = target
@@ -50,7 +51,15 @@
                 channels += 1
             } else {
                 // A closing channel hands its place over.
-                await withCheckedContinuation { waiting.append($0) }
+                let id = UUID()
+                let timer = Task {
+                    try? await Task.sleep(for: .seconds(10))
+                    waiting.first { $0.id == id }?.go.resume(returning: false)
+                    waiting.removeAll { $0.id == id }
+                }
+                let got = await withCheckedContinuation { waiting.append((id, $0)) }
+                timer.cancel()
+                guard got else { throw HerdrError.failed("All 10 SSH sessions to \(target) are in use") }
             }
             // Without a master these fail at once instead of opening their own connection and prompting again, and
             // they send none of the user's configured forwards (machines#macos).
@@ -58,7 +67,7 @@
             do {
                 channel = try ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-o", "ControlMaster=no", "-o",
                                                  "BatchMode=yes", "-o", "ProxyCommand=/usr/bin/false", "-S", socket,
-                                                 target, "--", Self.envelope(argv)], environment)
+                                                 "--", target, Self.envelope(argv)], environment)
             } catch {
                 closed()
                 throw error
@@ -74,21 +83,27 @@
             if waiting.isEmpty {
                 channels -= 1
             } else {
-                waiting.removeFirst().resume()
+                waiting.removeFirst().go.resume(returning: true)
             }
         }
 
         public func herdr() async throws -> String? {
             try await up(nil)
-            if let lookup {
-                let path = await lookup.task.value
-                if path != nil || ContinuousClock.now - lookup.at < .seconds(30) {
-                    return path
+            // A run that failed is no answer: it is asked again at once.
+            do {
+                if let lookup {
+                    let path = try await lookup.task.value
+                    if path != nil || ContinuousClock.now - lookup.at < .seconds(30) {
+                        return path
+                    }
                 }
+                let task = Task { try await findHerdr() }
+                lookup = (task, .now)
+                return try await task.value
+            } catch {
+                lookup = nil
+                throw error
             }
-            let task = Task { await findHerdr() }
-            lookup = (task, .now)
-            return await task.value
         }
 
         /// Starts the master if none lives, asking the user what ssh asks: the Connect button and a new machine.
@@ -100,7 +115,7 @@
         public nonisolated func disconnect() {
             let process = Process()
             process.executableURL = URL(filePath: "/usr/bin/ssh")
-            process.arguments = ["-F", "/dev/null", "-S", socket, "-O", "exit", target]
+            process.arguments = ["-F", "/dev/null", "-S", socket, "-O", "exit", "--", target]
             process.standardError = FileHandle.nullDevice
             try? process.run()
             process.waitUntilExit()
@@ -155,13 +170,23 @@
                 environment["SSH_ASKPASS"] = Self.askpass
                 environment["SSH_ASKPASS_REQUIRE"] = "force"
             }
-            let channel = try ProcessExec.spawn(argv + ["-S", socket, target], environment)
+            let channel = try ProcessExec.spawn(argv + ["-S", socket, "--", target], environment)
+            // ConnectTimeout covers only the TCP connect and the banner: a login that hangs (a jump host, a security
+            // key
+            // under BatchMode) must not hold every run. One that asks has no limit: the user answers.
+            let began = ContinuousClock.now
+            let limit = ask == nil ? Task {
+                try await Task.sleep(for: .seconds(30))
+                channel.terminate()
+            } : nil
+            defer { limit?.cancel() }
             var said: [String] = []
             for await line in channel.lines.map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) }) {
                 if line.hasPrefix(Self.question), let ask {
                     let prompt = Data(base64Encoded: String(line.dropFirst(Self.question.count)))
                         .map { String(decoding: $0, as: UTF8.self) } ?? ""
                     guard let answer = await ask(prompt) else {
+                        channel.closeInput()
                         channel.terminate()
                         let error = HerdrError.disconnected("Canceled")
                         blocked = error
@@ -174,7 +199,10 @@
             }
             channel.closeInput()
             let (status, _) = await channel.exit()
-            guard status == 0 else { throw failed(status, said.joined(separator: "\n")) }
+            guard status == 0 else {
+                throw failed(status, ContinuousClock.now - began >= .seconds(30) ? "ssh did not connect within 30 s"
+                    : said.joined(separator: "\n"))
+            }
             mux = await pid()
             guard mux != nil else { throw failed(0, "The SSH connection did not start") }
             started()
@@ -205,19 +233,24 @@
         /// The master's pid, from "Master running (pid=123)".
         private func pid() async -> pid_t? {
             guard let check = try? ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-S", socket, "-O", "check",
-                                                      target], environment)
+                                                      "--", target], environment)
             else { return nil }
             check.closeInput()
-            let reply = await check.exit().stderr
+            // A master that is stopped (SIGSTOP) never answers.
+            guard let reply = try? await withTimeout(
+                .seconds(5),
+                onTimeout: check.terminate,
+                { await check.exit().stderr },
+            )
+            else { return nil }
             return reply.split(separator: "pid=").last.flatMap { pid_t($0.prefix { $0.isNumber }) }
         }
 
         /// The last absolute path the login shell prints after our marker (an rc file may print first).
-        private func findHerdr() async -> String? {
+        private func findHerdr() async throws -> String? {
             let marker = "oriel-herdr"
             let shell = #"exec "${SHELL:-sh}" -lic "$0" </dev/null 2>/dev/null"#
-            guard let text = try? await output(["sh", "-c", shell, "echo \(marker); command -v herdr"])
-            else { return nil }
+            let text = try await output(["sh", "-c", shell, "echo \(marker); command -v herdr"])
             let path = text.components(separatedBy: marker).last?
                 .split(separator: "\n").last.map(String.init) ?? ""
             return path.hasPrefix("/") ? path : nil

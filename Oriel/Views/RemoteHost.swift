@@ -45,7 +45,7 @@
             MachineList.shared.list.append(machine)
             dismiss()
             pages.show(machine: machine)
-            Task { await pages.current?.store.connect() }
+            Task { await pages.current?.store.connect(in: pages) }
         }
     }
 

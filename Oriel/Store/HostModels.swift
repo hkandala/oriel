@@ -130,6 +130,11 @@ extension HostStore {
         session == "default" ? machine.name : "\(machine.name) · \(session)"
     }
 
+    /// The session in a notification or a Dock row: a remote one with its machine.
+    var label: String {
+        machine.isRemote ? name : session
+    }
+
     /// Failed while its server runs, not for a missing or old herdr: the client tries again every 2 s.
     var reconnecting: Bool {
         guard case let .failed(error) = state else { return false }

@@ -23,14 +23,15 @@ struct Machine: Codable, Hashable, Identifiable {
         @MainActor func exec() async -> any Exec {
             let local = await localExec.value
             guard isRemote else { return local }
-            if let exec = Self.execs[id] {
+            if let exec = Self.execs[target] {
                 return exec
             }
             let exec = SSHExec(target: target, local: local)
-            Self.execs[id] = exec
+            Self.execs[target] = exec
             return exec
         }
 
+        /// By target, as the sockets are: two machines of one target share a master.
         @MainActor private static var execs: [String: SSHExec] = [:]
 
         /// The app quits: each remote machine's master ends (machines#macos).

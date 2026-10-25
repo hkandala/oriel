@@ -45,7 +45,7 @@
                     guard let state = pane.state, state >= .finishedUnseen else { continue }
                     let workspace = store.workspace(of: pane.tabID)?.label ?? ""
                     let item = NSMenuItem(
-                        title: "\(pane.agentName ?? "agent") \(state.word) · \(store.session) · \(workspace)",
+                        title: "\(pane.agentName ?? "agent") \(state.word) · \(store.label) · \(workspace)",
                         action: #selector(pick),
                         keyEquivalent: "",
                     )
@@ -129,7 +129,7 @@
                 guard let pane = store.pane(change.paneID), pane.tabID != store.lookingTabID else { continue }
                 let content = UNMutableNotificationContent()
                 content.title = "\(pane.agentName ?? "agent") \(change.state.word)"
-                content.body = "\(page.id) · \(page.place(pane))"
+                content.body = "\(store.label) · \(page.place(pane))"
                 UNUserNotificationCenter.current()
                     .add(UNNotificationRequest(identifier: id(pane, of: store), content: content, trigger: nil))
             }
