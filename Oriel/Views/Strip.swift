@@ -337,13 +337,12 @@
     }
 
     private extension View {
-        /// At this rectangle of the page, by layout (padding), not `.offset`: a layout change animates every view in
-        /// it, the terminal's too. A negative padding (a card sliding in from the left or the top) slides it from
-        /// outside the page; alignment guides there moved the whole stack instead (a spike).
+        /// At this rectangle of the page, by layout (`position`), not `.offset`: a layout change animates every view in
+        /// it, the terminal's too. (Padding gave a card sliding in from the left a size below zero, and it came in
+        /// header high.)
         func place(_ rect: CGRect) -> some View {
             frame(width: rect.width, height: rect.height)
-                .padding(.leading, rect.minX)
-                .padding(.top, rect.minY)
+                .position(x: rect.midX, y: rect.midY)
         }
     }
 #endif
