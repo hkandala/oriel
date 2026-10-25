@@ -422,6 +422,15 @@ found none). If herdr has none, floating is Oriel's own.
 - **Tests.** `testPanelsAndSwitchesReactAtOnce` (every key drawn in its own turn, the names checked; the swipes
   recorded), `testNewTabSplitAndClosesShowAtOnce` ("New Tab", never a number; ⌘T ⌘D ⌘W ⇧⌘W in their turn; herdr closed
   it), `testQuickNewTabsAndAnEarlyClose` (two ⌘T select the second; ⌘T then ⇧⌘W closes herdr's tab, no dialog).
+- **Reviews.** Ponytail (one round: the diagnosis fields went, one ask closure). Spec, two rounds: quick repeated ⌘T,
+  ⌘D, ⌘W and ⇧⌘W raced the stand-ins and the one-ask guard; a closed stand-in lost the key; hidden panes lost their
+  objects and terminals; a stand-in was "arrived" by settle itself (found by the double-⌘T test on CI). Declined: hiding
+  a pane whose shell still starts (a program in it would come back after the startup wait; it waits 0.8 s instead).
+- **CI.** Close tests green with the startup wait (40180184450); lane tests green on 97e3db9 (40182990393). Full suite on
+  1412b96 (40183475845, after the last code commit 97e3db9): every lane S test green; two reds in other lanes' areas,
+  `testPaletteSplitsTheKeyboardCardRight` (XCUITest scrolls the strip to an unselected tab's terminal and the click
+  does not give it the keyboard; flaky since about fa64713) and `testHoverCardPreviewsTheTabsCardsLive` (preview at
+  −60 pt).
 - **For the user to check by hand:** a two-finger swipe between sessions (the spring's feel on a real trackpad); ⌘T,
   ⌘D, ⌘W and ⌘K on this Mac; ⌘T then an immediate ⌘W in a slow-starting shell.
 
