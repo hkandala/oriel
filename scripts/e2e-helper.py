@@ -39,10 +39,6 @@ sessions, command = sys.argv[1:split], sys.argv[split + 1:]
 folders = []
 
 
-def app_pid():
-    return subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
-
-
 def cpu_seconds(pids):
     """The CPU time the processes used so far (`ps`'s [[h:]m:]s.cc)."""
     if not pids:
@@ -53,7 +49,7 @@ def cpu_seconds(pids):
 
 
 def usage(session, seconds):
-    pid = app_pid()
+    pid = subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
     pattern = f"^[^ ]*herdr --session {session} terminal session"
     helpers = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True).stdout.split()
     start, app_start, helpers_start = time.time(), cpu_seconds([pid]), cpu_seconds(helpers)

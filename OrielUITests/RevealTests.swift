@@ -176,19 +176,21 @@ extension OrielUITests {
         let start = Date.now, card = element("pane.w1:p1")
         XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
         var shots: [NSImage] = []
-        var drawn: TimeInterval?
+        // For the record: when the card stopped loading (herdr's frames drawn), between screenshots.
+        var times: [String] = []
         while Date.now < start + 1.5 {
             shots.append(terminal.screenshot().image)
-            if drawn == nil, !card.stringValue.contains("loading") {
-                drawn = Date.now.timeIntervalSince(start)
-            }
+            let loading = card.stringValue.contains("loading")
+            times.append("\(Int(Date.now.timeIntervalSince(start) * 1000))\(loading ? "L" : "")")
         }
+        print("evicted card, ms after the key (L: loading): \(times)")
         let inks = shots.map(Self.ink)
-        // For the record: from the key to herdr's frames drawn, give or take a query (about 0.1 s).
-        print("evicted card drawn after \(drawn.map { "\(Int($0 * 1000)) ms" } ?? "over 1.5 s")")
         XCTAssertGreaterThan(inks.min() ?? 0, 0.01, "ink of \(inks.count) screenshots: \(inks)")
         try await expectText(["w1:p1"], "back")
         try await expect("w1:p1's stream again") { try await self.streams(one).contains { $0.contains(id) } }
+        // The new surface draws, not the old picture held for good: a cleared screen has a prompt's ink only.
+        try await send("clear\r", to: "w1:p1")
+        try await expect("the cleared screen drawn") { Self.ink(terminal.screenshot().image) < (inks.min() ?? 0) / 3 }
     }
 
     /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with
