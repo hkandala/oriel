@@ -76,13 +76,22 @@ extension OrielUITests {
         let drop = CGPoint(x: card.midX, y: (finderFrame.maxY + card.maxY) / 2)
         XCTAssertGreaterThan(card.maxY - finderFrame.maxY, 40, "\(finderFrame) covers \(card)")
         let start = file.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), from = file.frame
-        start.click(
-            forDuration: 0.5,
-            thenDragTo: start.withOffset(CGVector(dx: drop.x - from.midX, dy: drop.y - from.midY)),
-            withVelocity: .slow,
-            thenHoldForDuration: 0.5,
-        )
         let folder = URL(filePath: path).deletingLastPathComponent().lastPathComponent
-        try await waitFor(pane) { $0.replacing("\n", with: "").contains(#"\#(folder)/drop\ me\'s\ \(1\).txt"#) }
+        // Now and then Finder starts no drag from the press, and nothing drops (no drag image in the recordings of CI
+        // 40172264488 and 40173000382, in full shards only): drag again.
+        for attempt in 1 ... 3 {
+            start.click(
+                forDuration: 0.5,
+                thenDragTo: start.withOffset(CGVector(dx: drop.x - from.midX, dy: drop.y - from.midY)),
+                withVelocity: .slow,
+                thenHoldForDuration: 0.5,
+            )
+            do {
+                try await waitFor(pane, times: 30) {
+                    $0.replacing("\n", with: "").contains(#"\#(folder)/drop\ me\'s\ \(1\).txt"#)
+                }
+                break
+            } catch where attempt < 3 {}
+        }
     }
 }
