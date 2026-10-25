@@ -544,6 +544,29 @@ found none). If herdr has none, floating is Oriel's own.
   old picture, then the new one, never an empty card. The working dots' look and their step across tabs. A click on a
   working agent's icon in the Agents view and the hover card. Minimize the window while agents print: CPU should drop.
 
+### Lane B2 (item 25)
+
+- **Root cause.** `Strip` was one view for every workspace and session (the same place in `Detail`), so its
+  `LazyHStack` and scroll state carried over a switch. Once the strip drew again while a middle tab was in view (the
+  tab selected again: `page.selectedTabIDs[ws] = same` notifies, a dictionary write always does), a switch to a
+  workspace with fewer tabs laid out no page: an empty strip until the next switch to a workspace with more tabs. That
+  is the user's repro (top to bottom, the one-tab workspaces after mira's 4th tab are empty; bottom to top fine; gone
+  after a relaunch). Fix: `Strip(…).id("\(page.id) \(workspace.id)")`, a strip per workspace of each session (9be880e).
+- **Learned.** Any accessibility client hides the bug: SwiftUI then lays the pages out anyway. In a standalone
+  harness one second of an AX client's tree walk at launch took the blanks from 3–4 of 20 switches to 0. So no XCUITest
+  saw it (6 CI runs and 3 local runs of the old code passed, with pane renames, tab renames and re-selects). Phase 24
+  lane A's "empty panes" may have had the same blind spot. The app driven with no AX client showed it at once.
+- **Decisions.** `make strip-check` (`scripts/strip-check.sh`, `.swift`), run in CI shard 0 after e2e: the built app
+  on a throwaway session, keys by `CGEvent.postToPid`, the window title to confirm each key, `screencapture -l` and the
+  brightness spread under the title row. Old code: rounds 2–3 spread 0.000 (CI 40186393195; its capture is the user's
+  screenshot); fix: 0.120 every round (40186370458). A last round closes the tabs around the shown one (spec review):
+  the card stays. `testStripShowsEachWorkspaceClickedBackAndForth` guards the new strip landing on its tab, also after a
+  session hop. standards.md names the pixel exception.
+- **Deviation.** The UI test cannot fail on the old code; the script check does. Old-code CI runs used throwaway tags
+  (`b2-oldcode*`, deleted), not branches.
+- **For the user to check by hand:** the four workspaces clicked top to bottom and back, after reselecting a middle
+  tab or swiping to it; a workspace switch with VoiceOver off.
+
 ## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
 
 Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/fb/agents-header.png` (item 18).
