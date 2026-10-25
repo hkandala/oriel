@@ -150,6 +150,39 @@ extension OrielUITests {
         }
     }
 
+    /// A card out of the recently shown set lets go of its stream and its surface (phase 25, lane O), and comes back
+    /// under its last picture: never empty, then herdr's text.
+    func testAnEvictedCardComesBackWithItsPicture() async throws {
+        let terminal = element("terminal.w1:p1")
+        XCTAssertTrue(terminal.exists(within: connect))
+        try await fill("w1:p1")
+        try await expectText(["w1:p1"], "filled")
+        let id = try await terminalID("w1:p1")
+        // t1's three cards and four more tabs' out of view: one more than the registry's 4 spare.
+        for index in 0 ..< 4 {
+            let created = try await Self.call(one, "tab.create", ["workspace_id": "w1", "cwd": "/tmp", "focus": false])
+            let tab = try self.id(created, "tab"), pane = try self.id(created, "root_pane")
+            closeAfter("tab", tab)
+            XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
+            app.typeKey("\(index + 3)", modifierFlags: .command)
+            XCTAssertTrue(element("pane.\(pane)").exists(within: 3))
+        }
+        try await expect("w1:p1's stream to end") { try await !streams(one).contains { $0.contains(id) } }
+        let streams = try await streams(one)
+        XCTAssertLessThanOrEqual(streams.count, 5, "\(streams)")
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
+        var shots: [NSImage] = []
+        let end = Date.now + 1.5
+        while Date.now < end {
+            shots.append(terminal.screenshot().image)
+        }
+        let inks = shots.map(Self.ink)
+        XCTAssertGreaterThan(inks.min() ?? 0, 0.01, "ink of \(inks.count) screenshots: \(inks)")
+        try await expectText(["w1:p1"], "back")
+        try await expect("w1:p1's stream again") { try await self.streams(one).contains { $0.contains(id) } }
+    }
+
     /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with
     /// motion forced on.
     private func expectJump(_ tab: String, _ pane: String) async throws {

@@ -36,10 +36,13 @@ extension OrielUITests {
         }
         app.typeKey("1", modifierFlags: .command)
         try drawn(panes[0])
-        try await measure("quiet tab")
+        // The shown cards and the 4 most recently shown others keep a herdr run (D46).
+        let quiet = try await measure("quiet tab")
+        XCTAssertLessThanOrEqual(helpers(quiet), 1 + 4, quiet)
         app.typeKey("6", modifierFlags: .command)
         try drawn(panes[5])
-        try await measure("busy tab")
+        let busy = try await measure("busy tab")
+        XCTAssertLessThanOrEqual(helpers(busy), 3 + 4, busy)
     }
 
     /// Every card of the tab drew herdr's frames.
@@ -50,8 +53,14 @@ extension OrielUITests {
         }
     }
 
+    /// The `terminal session` runs in a `usage` report.
+    private func helpers(_ usage: String) -> Int {
+        usage.split(separator: "\n").first { $0.hasPrefix("helpers ") }.flatMap { Int($0.split(separator: " ")[1]) }
+            ?? .max
+    }
+
     /// 10 s of the app's use, in the result bundle and the log; then 3 s of `sample` in the result bundle.
-    private func measure(_ name: String) async throws {
+    private func measure(_ name: String) async throws -> String {
         let usage = try await String(decoding: Self.post("\(one)/usage", Data("10".utf8)), as: UTF8.self)
         print("usage, \(name):\n\(usage)")
         let attachment = XCTAttachment(string: usage)
@@ -62,5 +71,6 @@ extension OrielUITests {
         sample.name = "sample, \(name)"
         sample.lifetime = .keepAlways
         add(sample)
+        return usage
     }
 }
