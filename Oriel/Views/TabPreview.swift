@@ -77,7 +77,8 @@
             .accessibilityElement()
             .accessibilityAddTraits(.isStaticText)
             .accessibilityLabel(pane?.cardTitle ?? "terminal")
-            .accessibilityValue(pictured != nil ? "picture" : screens[id] != nil ? "text" : "empty")
+            // The text a text card shows, for VoiceOver and tests.
+            .accessibilityValue(pictured != nil ? "picture" : screens[id] ?? "")
             .accessibilityIdentifier("hovercard.preview.\(id)")
         }
     }

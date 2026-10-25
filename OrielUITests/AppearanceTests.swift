@@ -78,8 +78,9 @@ extension OrielUITests {
             let rims = ["w1:p1", "w1:p2"].map { rim(element("pane.\($0)")) }
             keepScreenshot("glass \(appearance.lowercased()) rims over the fill (top, side): \(rims)")
             for rim in rims where appearance == "Dark" {
-                // Rex's dark rim: the top line about 40 steps over the fill at 1x, the sides about 10.
-                XCTAssertTrue(rim.top - rim.side >= 12 && rim.top >= 25, "\(rims)")
+                // Rex's dark rim: the top line about 40 steps over the fill at 1x, the sides about 10; every card
+                // alike.
+                XCTAssertTrue(rim.top - rim.side >= 12 && rim.top >= 25 && abs(rim.top - rims[0].top) <= 6, "\(rims)")
             }
         }
     }

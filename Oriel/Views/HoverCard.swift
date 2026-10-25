@@ -228,12 +228,14 @@
                 .accessibilityIdentifier("hovercard")
                 .task {
                     guard let client = store.client else { return }
-                    // Again each second while it is open, so a pane with no picture is live too.
+                    // Again each second while it is open, so a pane with no picture is live too; the tab's panes of
+                    // now (a split or a blocked agent while it is open). A failed read keeps the last screen.
                     repeat {
-                        for pane in panes where pane.state == .needsYou || TabPreview.pictured(pane, page) == nil {
-                            let text = try? await client.screen(pane.id)
+                        for pane in store.panes where pane.tabID == tabID
+                            && (pane.state == .needsYou || TabPreview.pictured(pane, page) == nil)
+                        {
                             // An equal screen draws nothing again.
-                            if screens[pane.id] != text {
+                            if let text = try? await client.screen(pane.id), screens[pane.id] != text {
                                 screens[pane.id] = text
                             }
                         }

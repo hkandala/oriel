@@ -128,8 +128,8 @@ extension OrielUITests {
         let left = element("hovercard.preview.\(pane)"), right = element("hovercard.preview.\(second)")
         element("tab.\(tab)").hover()
         XCTAssertTrue(card.exists(within: 2))
-        XCTAssertTrue(left.has(\.stringValue, "text", within: 2))
-        XCTAssertEqual(right.stringValue, "text")
+        XCTAssertTrue(until(2) { left.stringValue.contains("preview-42") }, left.stringValue)
+        XCTAssertFalse(right.stringValue.isEmpty || right.stringValue == "picture")
         // Side by side with a 2 pt gap (the page's 8 pt at a quarter), as herdr's split right.
         XCTAssertEqual(right.frame.minX - left.frame.maxX, 2, accuracy: 1, "\(left.frame) \(right.frame)")
         XCTAssertEqual(left.frame.minY, right.frame.minY, accuracy: 1)
@@ -166,7 +166,9 @@ extension OrielUITests {
 
     /// The preview costs little while a card is open and nothing while none is (phase 25): the app's CPU over 5 s with
     /// no card, with a hidden printing tab's card (its text read each second) and with the shown printing tab's card
-    /// (its pictures 5 times a second), each kept in the result bundle.
+    /// (its pictures 5 times a second), each kept in the result bundle. The text card's `pane.read` runs are herdr
+    /// processes, not counted here. Only the app before a card opens is "no card": a timer left after one closes would
+    /// not show at this rate anyway (its view leaves the window and stops it).
     func testHoverCardPreviewCostsLittle() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (hidden, hiddenPane) = try await newTab("hidden")
@@ -182,7 +184,8 @@ extension OrielUITests {
         element("workspace.w1").hover()
         let none = try await cpu("no card")
         element("tab.\(hidden)").hover()
-        XCTAssertTrue(element("hovercard.preview.\(hiddenPane)").has(\.stringValue, "text", within: 3))
+        let preview = element("hovercard.preview.\(hiddenPane)")
+        XCTAssertTrue(until(3) { preview.exists && !preview.stringValue.isEmpty && preview.stringValue != "picture" })
         let text = try await cpu("a hidden tab's card")
         element("workspace.w1").hover()
         XCTAssertTrue(card.vanishes(within: 2))
