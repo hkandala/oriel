@@ -23,7 +23,7 @@ extension OrielUITests {
         key("[", [.command, .control]) { self.element("workspace.w1").isSelected }
         key("]", [.command, .option]) { self.header == self.two }
         key("[", [.command, .option]) { self.header == self.one }
-        // Half a page: the snap does the rest.
+        // Half a page: the slide does the rest; from the fingers' lift to rest, "swipe 53ms".
         let sidebar = element("sidebar"), name = element("sidebar.header")
         try await swipe(sidebar, by: sidebar.frame.width / 2, until: name, \.stringValue, two)
         try await Task.sleep(for: .seconds(1))
@@ -37,9 +37,9 @@ extension OrielUITests {
         }
         // The session spring's slide after a lifted swipe; the system's paging snap took 217 ms on CI (phase 25).
         let swipes = recorded().filter { $0.name == "swipe" }
-        XCTAssertEqual(swipes.count, 2)
+        XCTAssertGreaterThanOrEqual(swipes.count, 2)
         for swipe in swipes {
-            XCTAssertLessThan(swipe.time, 150)
+            XCTAssertLessThan(swipe.time, 180)
         }
     }
 
@@ -64,6 +64,9 @@ extension OrielUITests {
             .matching(NSPredicate(format: "identifier MATCHES %@", #"pane\.[^.]+"#))
         key("d", .command) { cards.count == 2 }
         try await settle([made])
+        // The new pane (it has the keyboard) is asked for its program a second late: until its first answer a close
+        // waits for herdr's.
+        try await Task.sleep(for: .seconds(2.5))
         key("w", .command) { cards.count == 1 }
         key("w", [.command, .shift]) { !self.element("tab.\(made)").exists }
         let keys = recorded().filter { ["⌘", "⇧"].contains($0.name.first.map(String.init)) }

@@ -65,11 +65,13 @@
         }
 
         /// The sidebar's pages: how long a swipe moved on after the fingers lifted, "swipe 480ms".
-        func scrolled(_ phase: ScrollPhase) {
+        func scrolled(_ old: ScrollPhase, _ phase: ScrollPhase) {
             guard Self.isOn else { return }
-            if phase == .decelerating {
+            // To a snap (decelerating) or to the session spring's slide (animating).
+            if old == .interacting {
                 lifted = ProcessInfo.processInfo.systemUptime
-            } else if phase == .idle, let lifted {
+            }
+            if phase == .idle, let lifted {
                 recorded.append("swipe \(Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000))ms")
                 self.lifted = nil
             }
