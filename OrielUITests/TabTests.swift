@@ -142,6 +142,21 @@ extension OrielUITests {
         try await expectShown(tabs[2], "back")
     }
 
+    /// The user's repro: four workspaces, clicked top to bottom, then bottom to top; each shows its selected tab.
+    func testStripShowsEachWorkspaceClickedDownAndUp() async throws {
+        var shown: [(workspace: String, tab: String)] = []
+        for (index, count) in [3, 2, 1, 2].enumerated() {
+            let tabs = try await newWorkspace("order\(index)", tabs: count).tabs
+            app.typeKey("\(count)", modifierFlags: .command)
+            try await expectShown(tabs[count - 1], "made \(index)")
+            shown.append((workspace(of: tabs[0]), tabs[count - 1]))
+        }
+        for (workspace, tab) in shown + shown.reversed() {
+            element("workspace.\(workspace)").click()
+            try await expectShown(tab, "clicked \(workspace)")
+        }
+    }
+
     func testStripShowsAOneTabSessionAfterTheThirdTabOfAnother() async throws {
         let tabs = try await newWorkspace("three", tabs: 3).tabs
         app.typeKey("3", modifierFlags: .command)
