@@ -244,7 +244,6 @@ struct StatusBadge: View {
         private func label(_ text: String, id: String) -> some View {
             Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
                 .padding(.horizontal, 8).padding(.top, 6)
-                .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier(id)
         }
 
