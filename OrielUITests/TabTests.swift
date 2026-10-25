@@ -115,28 +115,21 @@ extension OrielUITests {
         }
     }
 
-    /// The user's four workspaces (5 tabs, 1, 1, 3), clicked top to bottom and back from a middle tab of the first,
-    /// selected twice: every workspace shows its cards (phase 25, item 25: a one-tab one came up empty going down from
-    /// the 4th tab once the strip had drawn again on it), and so does a session shown and left in between.
+    /// The user's four workspaces (5 tabs, 1, 1, 3), clicked top to bottom and back from the 4th tab of the first
+    /// (phase 25, item 25), then a session shown and left: each strip, made new for its workspace, shows its selected
+    /// tab. The old empty strip does not show here (any accessibility client hides it): `make strip-check` checks it.
     func testStripShowsEachWorkspaceClickedDownAndUp() async throws {
         var shown: [(workspace: String, tab: String)] = []
         for (index, count) in [5, 1, 1, 3].enumerated() {
             let tabs = try await newWorkspace("order\(index)", tabs: count).tabs
-            shown.append((workspace(of: tabs[0]), tabs[0]))
+            shown.append((workspace(of: tabs[0]), tabs[count == 5 ? 3 : 0]))
         }
-        let first = try await tabIDs().filter { workspace(of: $0) == shown[0].workspace }
-        for middle in 1 ... 3 {
-            element("workspace.\(shown[0].workspace)").click()
-            shown[0].tab = first[middle]
-            // Twice: the second selects the tab in view again, which draws the strip again.
-            for _ in 0 ..< 2 {
-                app.typeKey("\(middle + 1)", modifierFlags: .command)
-                try await expectShown(first[middle], "tab \(middle + 1)")
-            }
-            for (workspace, tab) in shown.dropFirst() + shown.reversed().dropFirst() {
-                element("workspace.\(workspace)").click()
-                try await expectShown(tab, "tab \(middle + 1), then \(workspace)")
-            }
+        element("workspace.\(shown[0].workspace)").click()
+        app.typeKey("4", modifierFlags: .command)
+        try await expectShown(shown[0].tab, "the 4th tab")
+        for (workspace, tab) in shown.dropFirst() + shown.reversed().dropFirst() {
+            element("workspace.\(workspace)").click()
+            try await expectShown(tab, "then \(workspace)")
         }
         openSessionPanel()
         element("open-session.session.\(two)").click()

@@ -100,9 +100,9 @@ struct Notice {
                     .accessibilityIdentifier("new-tab")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // A strip of its own per workspace: one strip for all of them laid out no page after a switch
-                    // from a middle tab to a workspace with fewer tabs (its lazy stack kept the old offset's pages;
-                    // the scroll to the new one did not lay them out again), so the strip stayed empty.
+                    // A strip of its own per workspace: one strip for all of them, once it drew again on a middle tab
+                    // (the tab selected again, say), laid out no page after a switch to a workspace with fewer tabs,
+                    // and stayed empty (phase 25). Any accessibility client hides it: `make strip-check`.
                     Strip(workspace: workspace, page: page).id("\(page.id) \(workspace.id)")
                 }
             } else {

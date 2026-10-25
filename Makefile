@@ -1,5 +1,5 @@
 SHELL := /bin/bash -eo pipefail
-.PHONY: setup format lint build test e2e run app dmg install
+.PHONY: setup format lint build test e2e strip-check run app dmg install
 
 DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
@@ -40,6 +40,10 @@ e2e:
 		-test-timeouts-enabled YES -default-test-execution-time-allowance 120 \
 		-resultBundlePath $(DERIVED_DATA)/e2e.xcresult $(addprefix -only-testing:,$(subst $(comma), ,$(ONLY))) \
 		test $(BEAUTIFY)
+
+# After e2e (it builds the app): the empty strip check, which no UI test can see (scripts/strip-check.sh).
+strip-check:
+	scripts/strip-check.sh $(DERIVED_DATA)/Build/Products/Debug/Oriel.app
 
 run:
 	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)
