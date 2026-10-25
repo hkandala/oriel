@@ -118,13 +118,21 @@
 
         private func header(_ page: Page, _ pane: HostStore.Pane?) -> some View {
             let tab = pane.flatMap { pane in page.store.workspace(of: pane.tabID)?.tabs.first { $0.id == pane.tabID } }
-            let place = [page.id, pane.flatMap { page.store.workspace(of: $0.tabID)?.label }, tab.map(page.titleText)]
-                .compactMap(\.self).joined(separator: " › ")
+            let rest = [pane.flatMap { page.store.workspace(of: $0.tabID)?.label }, tab.map(page.titleText)]
+                .compactMap(\.self).map { " › \($0)" }.joined()
             let pinned = page.floating[floating.terminalID] == true
             let id = "float.\(pane?.id ?? "")"
             return HStack(spacing: 2) {
-                Text(place).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                    .accessibilityIdentifier("\(id).place")
+                // One line; the session's name gives way first, in its middle.
+                HStack(spacing: 0) {
+                    Text(page.id).truncationMode(.middle)
+                    Text(rest).layoutPriority(1)
+                }
+                .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                .accessibilityElement(children: .ignore)
+                .accessibilityAddTraits(.isStaticText)
+                .accessibilityValue(page.id + rest)
+                .accessibilityIdentifier("\(id).place")
                 Spacer(minLength: 8)
                 IconButton(symbol: pinned ? "pin.fill" : "pin", help: "Stay on Top", size: 22, accent: pinned) {
                     page.floating[floating.terminalID]?.toggle()
