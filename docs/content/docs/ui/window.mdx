@@ -414,15 +414,15 @@ A peek at what runs in a tab (D63).
 
 ### The preview's pictures
 
-- **A card in the window** (the shown tab, or the neighbor page during a
-  swipe) shows the picture its terminal's libghostty layer already holds: the
+- **A card that draws** (the shown tab's, or a floating pane's) shows the
+  picture its terminal's libghostty layer already holds: the
   layer's IOSurface (a shared GPU image), set as the contents of a small
   layer, so nothing is copied or drawn twice. An AppKit timer in that layer's
   view reads it again 5 times a second while the card is open (a SwiftUI
   timeline laid out the whole window at each tick: about 20 % CPU). Live,
   with the program's colors.
-- **Any other card** (another tab: libghostty draws only in the window, and a
-  hidden surface may be let go) shows its screen's text, read with
+- **Any other card** (another tab: only the shown tab draws, and a hidden
+  surface may be let go) shows its screen's text, read with
   `pane.read` when the card opens and again each second while it is open.
   Live too, without colors.
 - Both draw as the page's card would, at a quarter: cells a quarter of their

@@ -4,10 +4,10 @@
     import SwiftUI
 
     /// A tab's cards in their layout, as its page draws them in a 1056 × 660 pt page, at a quarter of that size. A card
-    /// in the window shows its terminal's picture: the IOSurface libghostty's layer shows, shared, not copied, and read
-    /// again 5 times a second while the preview is open (`TerminalPicture`), so it costs nothing while none is. Any
-    /// other card (another
-    /// tab, whose surface draws nothing or was let go) shows its screen's text, read each second (design: hover card).
+    /// that draws (the shown tab's, or a floated one) shows its terminal's picture: the IOSurface libghostty's layer
+    /// shows, shared, not copied, and read again 5 times a second while the preview is open (`TerminalPicture`), so it
+    /// costs nothing while none is. Any other card (another tab, whose surface draws nothing or was let go) shows its
+    /// screen's text, read each second (design: hover card).
     struct TabPreview: View {
         let tree: SplitNode
         let page: Page
