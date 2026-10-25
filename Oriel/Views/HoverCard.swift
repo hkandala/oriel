@@ -230,7 +230,7 @@
                     guard let client = store.client else { return }
                     // Again each second while it is open, so a pane with no picture is live too.
                     repeat {
-                        for pane in panes where pane.state == .needsYou || TabPreview.picture(pane, page) == nil {
+                        for pane in panes where pane.state == .needsYou || TabPreview.pictured(pane, page) == nil {
                             let text = try? await client.screen(pane.id)
                             // An equal screen draws nothing again.
                             if screens[pane.id] != text {

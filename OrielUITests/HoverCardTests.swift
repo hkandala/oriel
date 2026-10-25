@@ -165,9 +165,8 @@ extension OrielUITests {
     }
 
     /// The preview costs little while a card is open and nothing while none is (phase 25): the app's CPU over 5 s with
-    /// no
-    /// card, with a hidden printing tab's card (its text read each second) and with the shown printing tab's card (its
-    /// pictures 5 times a second), each kept in the result bundle.
+    /// no card, with a hidden printing tab's card (its text read each second) and with the shown printing tab's card
+    /// (its pictures 5 times a second), each kept in the result bundle.
     func testHoverCardPreviewCostsLittle() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (hidden, hiddenPane) = try await newTab("hidden")
@@ -196,15 +195,9 @@ extension OrielUITests {
         XCTAssertLessThan(pictures - none, 8, "\(none) \(text) \(pictures)")
     }
 
-    /// The app's CPU in percent over 5 s (the e2e helper's `usage`, kept in the result bundle).
+    /// The app's CPU in percent over 5 s (the e2e helper's `usage`).
     private func cpu(_ name: String) async throws -> Double {
-        let usage = try await String(decoding: Self.post("\(one)/usage", Data("5".utf8)), as: UTF8.self)
-        let attachment = XCTAttachment(string: usage)
-        attachment.name = "usage, \(name)"
-        attachment.lifetime = .keepAlways
-        add(attachment)
-        print("usage, \(name):\n\(usage)")
-        return usage.split(separator: "\n").first { $0.hasPrefix("cpu ") }
+        try await measure(name, seconds: 5).split(separator: "\n").first { $0.hasPrefix("cpu ") }
             .flatMap { Double($0.dropFirst(4).dropLast()) } ?? .infinity
     }
 

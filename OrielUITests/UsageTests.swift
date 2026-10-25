@@ -59,9 +59,9 @@ extension OrielUITests {
             ?? .max
     }
 
-    /// 10 s of the app's use, in the result bundle and the log.
-    private func measure(_ name: String) async throws -> String {
-        let usage = try await String(decoding: Self.post("\(one)/usage", Data("10".utf8)), as: UTF8.self)
+    /// `seconds` of the app's use, in the result bundle and the log.
+    func measure(_ name: String, seconds: Int = 10) async throws -> String {
+        let usage = try await String(decoding: Self.post("\(one)/usage", Data("\(seconds)".utf8)), as: UTF8.self)
         print("usage, \(name):\n\(usage)")
         let attachment = XCTAttachment(string: usage)
         attachment.name = "usage, \(name)"

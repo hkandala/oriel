@@ -170,7 +170,7 @@ struct CardSurface: View {
                 }
             }
             .overlay(shape.fill(keyboard ? look.keyboardFill : .clear))
-            .overlay(alignment: .top) {
+            .overlay {
                 ZStack(alignment: .top) {
                     shape.strokeBorder(look.rim.all, lineWidth: 0.7)
                     shape.strokeBorder(look.rim.top).mask(alignment: .top) {
@@ -179,7 +179,7 @@ struct CardSurface: View {
                     LinearGradient(colors: [look.rim.top.opacity(0.45), .clear], startPoint: .top, endPoint: .bottom)
                         .frame(height: 8)
                 }
-                .clipShape(shape).blendMode(.plusLighter).allowsHitTesting(false)
+                .clipShape(shape).blendMode(.plusLighter)
             }
             .overlay(shape.inset(by: -edge.width / 2).stroke(edge.color, lineWidth: edge.width))
     }
