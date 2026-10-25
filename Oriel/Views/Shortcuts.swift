@@ -14,10 +14,10 @@
                 column([.sessions, .view, .edit], rows)
             }
             .padding(.horizontal, 28).padding(.vertical, 24)
-            // A short window scrolls the panel.
-            ViewThatFits(in: .vertical) {
+            // A small window scrolls the panel.
+            ViewThatFits {
                 panel
-                ScrollView { panel }.scrollIndicators(.never)
+                ScrollView([.vertical, .horizontal]) { panel }.scrollIndicators(.never)
             }
             .floatingGlass(in: .rect(cornerRadius: 14))
             .padding(.vertical, 16)

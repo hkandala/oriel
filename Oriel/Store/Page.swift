@@ -273,10 +273,10 @@
             return store.panes.count { $0.tabID == tab } < 2
         }
 
-        /// Closes it, or asks first in this window (D41). One at a time: a second ⌥⌘W while herdr is asked would ask
+        /// Closes it, or asks first in this window (D41). One at a time: a second ⇧⌘W while herdr is asked would ask
         /// again.
         func close(_ close: HostStore.Close) {
-            // The same close again (a second ⌥⌘W while herdr is asked) would ask twice; another close goes on.
+            // The same close again (a second ⇧⌘W while herdr is asked) would ask twice; another close goes on.
             let key = String(describing: close)
             guard !asking.contains(key) else { return }
             let before = (selectedWorkspaceID, selectedTabIDs)
@@ -381,7 +381,7 @@
 
         /// The keyboard goes to the previous or next card in the tab's tree, round the ends; not to a floated one.
         func stepCard(_ offset: Int) {
-            guard let ids = selectedTab?.tree?.paneIDs.filter({ store.pane($0).map(floats) != true }),
+            guard let ids = selectedTab?.tree?.paneIDs.filter({ store.pane($0).map { !floats($0) } == true }),
                   let from = keyboardPane,
                   let index = ids.firstIndex(of: from.id),
                   let pane = store.pane(ids[(index + offset + ids.count) % ids.count]) else { return }
