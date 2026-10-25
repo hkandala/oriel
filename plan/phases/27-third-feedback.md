@@ -243,3 +243,58 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
 - **For the user to check by hand:** a new floating window's size and place over a large main window and over a
   main window near a screen edge; the title row's lights and buttons against the main window's; a floating window
   in full screen (toolbar on hover); the placeholder's hover fill and click.
+### Lane A3 (item 1)
+
+- **Root cause.** Two things made a tab visited a while ago fade in. (1) Lane O kept the surface and stream of only
+  4 hidden terminals; the rest were freed and rebuilt on show. (2) Their "still" never held a picture: ghostty frees
+  a surface's swap chain while it does not draw (ghostty c4e16970a, in our libghostty, the same as Ghostty's hidden
+  tabs) and marks each IOSurface `kIOSurfacePurgeableEmpty` as it frees it (`pkg/macos/iosurface`), so the layer kept
+  an emptied picture; and a volatile still is taken back by the system within seconds (logged: `old == 2` on every
+  return), so `revealed = false` and the card faded in. Kept terminals had the same hole: CI's recording showed a
+  kept card blank for one frame (83 ms) when its tab came back (40192669231), the view re-entering the window before
+  the surface drew again (about 0.1 s later).
+- **Ghostty's way, copied.** Ghostty keeps every tab's surface and PTY reader, occludes hidden tabs and covered
+  windows (`ghostty_surface_set_occlusion`), drops the swap chain while occluded and builds it again on the next draw
+  (0.43 ms in its commit), and does not shrink anything. Oriel already occludes hidden cards (lane O), so libghostty
+  frees their swap chains; what was missing is keeping the terminals and a picture.
+- **Changes.** `PaneViewRegistry.spare` 4 → 16 (78d941f, 7282cb1, 4e4451c): visited terminals keep stream and
+  surface, drawing paused. A card that leaves view copies its last frame (`keepPicture`: one IOSurface, a row copy
+  under the surfaces' locks, about 2 ms for a full-window Retina card) into a `still` sublayer before drawing pauses;
+  it shows until the surface's first new frame drops it (lane O's KVO). Evicted stills stay volatile (lane O); kept
+  ones do not. A control move between windows (D66) ends the hidden kept terminals' streams (`pause`) instead of
+  reopening up to 16 per window; they open the right stream when shown. Lane V's hook:
+  `show(_:unvisited:alive:client:)`, overview showings are no visit and are freed when it stops showing them unless
+  kept. `-spareTerminals N` for tests.
+- **Numbers** (lane O's scenario, `testMemoryAndCPUOverManyTabs`; Retina = this Mac, Debug):
+
+  | | Before (lane O, 4 kept) | After (16 kept, copies) |
+  |---|---|---|
+  | Footprint, Retina, quiet / busy tab | 190 MB | 405 / 419 MB (IOSurface 218 MB) |
+  | Footprint, Retina, 33 full-window tabs | 198 MB (4 kept) | 653 MB (IOSurface 419 MB) |
+  | herdr runs | 5 (33 MB) | 16–17 (110 MB) |
+  | CPU quiet / busy, Retina | 3.4 / 6.5 % | 4.6 / 6.8 % |
+  | Footprint, CI (1x), quiet / busy | 103 / 116 MB (40190929489) | 115 / 125 MB without copies (40193748306) |
+  | CPU quiet / busy, CI | 1.2 / 3.4 % | 2.9 / 5.7 % |
+
+  A kept terminal costs about 6 MB in the app (no scrollback: `scrollback-limit 0`), its picture (17 MB at full window
+  on Retina) and a 7 MB herdr run. 32 kept, measured without copies: 359 MB for 33 full tabs, but with copies it would
+  pass 1 GB at full window, so 16 (the user's 17 terminals fit).
+- **Decisions.** A count, not bytes: the picture is the one size-dependent part and 16 full-window ones measured
+  653 MB. Copies over purgeable copies: the system took purgeable ones within seconds. Copies over a shrunken copy:
+  the picture shows for about 0.1 s and must match the frame after it. The remote rule went with lane R2's relay
+  (one SSH session per host, b8e0455): remote terminals are kept like local ones.
+- **Tests.** `testAVisitedCardComesBackAtOnce` (new): six more tabs, the card's herdr run stays, text printed while
+  away; from the key on, never loading, every screenshot has ink and shows the new screen (red on the old code:
+  w1:p1's stream ended, 40192763939 on a throwaway tag). `testAnEvictedCardComesBackWithItsPicture` runs with
+  `-spareTerminals 4`. `testMemoryAndCPUOverManyTabs` expects all 16 shown terminals' runs (13–17). The one-frame
+  blank is too short for XCUITest's screenshots (about 0.15 s each); checked on recordings frame by frame instead
+  (local, Retina, motion on: old picture, then the new screen, no blank frame).
+- **Reviews.** Spec: the copy fixes its items 1, 2, 7 (no volatile live picture any more); 3 measured (above); 4
+  wired by lane V (eab529b); 5 the loop starts at the key; 6 `pause` on a control move; 8–10 comments, docs, the
+  helper count range. 11 (a remote test) dropped: the remote rule is gone. Ponytail: `unvisited` is called by lane V
+  now; the `purgeable` branches merged; `make`'s parameter renamed.
+- **Known limits.** A minimized or covered window drops its swap chains too (libghostty), so it may show one blank
+  frame when it comes back; not copied (Ghostty behaves the same). An evicted card still fades in once (past 16).
+- **For the user to check by hand:** after `make install`, visit 10–15 tabs with agents working, go back to the
+  first ones: the old picture, then the new one within a frame or two, no fade and no empty card. `footprint` after
+  half an hour (expect 300–650 MB with 16 hidden terminals) and `top` (a few percent).
