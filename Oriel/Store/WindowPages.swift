@@ -20,6 +20,10 @@
         let terminals = PaneViewRegistry()
         /// The window is visible (its scene is active): its page in view shows git status.
         var visible = false
+        /// The overview is open (D70): every terminal of the page in view streams and draws. `leaving` while its tile
+        /// zooms to the page.
+        var overview = false
+        var leaving = false
         /// The window is key (D14).
         @ObservationIgnored private var key = false
         /// A notification or Dock row clicked before its page or pane was there.
@@ -330,10 +334,14 @@
                     }
                 }
             }
+            if overview {
+                shown.merge(current.cardTerminals) { shown, _ in shown }
+            }
             // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
             let kept = alive.union(list.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
             terminals.show(shown, alive: kept, client: current.store.client)
-            if !snapshot || !(window?.firstResponder is NSText) {
+            // Not while the overview has the keyboard.
+            if !overview, !snapshot || !(window?.firstResponder is NSText) {
                 current.shown(alive: alive)
             }
         }

@@ -5,6 +5,7 @@ extension KeyboardShortcut {
     static let newTab = KeyboardShortcut("t")
     static let openSession = KeyboardShortcut("t", modifiers: [.command, .option])
     static let toggleSidebar = KeyboardShortcut("s", modifiers: [.command, .control])
+    static let overview = KeyboardShortcut("o", modifiers: [.command, .control])
     static let palette = KeyboardShortcut("k")
     static let splitRight = KeyboardShortcut("d")
     static let splitDown = KeyboardShortcut("d", modifiers: [.command, .shift])

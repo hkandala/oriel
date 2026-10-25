@@ -236,7 +236,9 @@ struct OrielApp: App {
                 )
                 .zIndex(1)
                 HStack(spacing: 0) {
-                    if sidebar {
+                    if pages.overview {
+                        Overview(pages: pages, leading: sidebar ? sidebarWidth - gap : 0)
+                    } else if sidebar {
                         // As in Rex, the cards start at the sidebar's width: its handle lies over the strip's 8 pt gap.
                         Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { panel = .openSession }
                             .padding(.bottom, gap)
@@ -246,8 +248,10 @@ struct OrielApp: App {
                             .zIndex(1)
                             .transition(.move(edge: .leading).combined(with: .opacity))
                     }
-                    Detail(pages: pages, page: page)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if !pages.overview {
+                        Detail(pages: pages, page: page)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 }
             }
             // Rex's collapse time, for the title row too (tabs over the cards); the toggle and ⌃⌘S only flip the value.

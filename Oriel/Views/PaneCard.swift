@@ -4,6 +4,9 @@
 
     /// A translucent card: a header with the pane's title and buttons, and its terminal.
     struct PaneCard: View {
+        /// The header's height, and the terminal's inset from the card's sides (the overview's miniatures too).
+        static let header: CGFloat = 36
+        static let inset: CGFloat = 10
         let id: String
         let page: Page
         /// Under a zoomed card: hidden, but there, so its terminal keeps its size.
@@ -40,7 +43,7 @@
                                     FindHighlights(find: find, terminal: terminal)
                                 }
                             }
-                            .padding(.horizontal, 10).padding(.bottom, gap)
+                            .padding(.horizontal, Self.inset).padding(.bottom, gap)
                             // The terminal sends a right click here (without ⌥, see `PaneSurfaceView`), as herdr opens
                             // its pane menu. Copy and the rest act on this terminal, not on the keyboard card.
                             .contextMenu {
@@ -157,7 +160,13 @@
             .padding(.leading, 11)
             .padding(.trailing, 8)
             // A card narrower than its header cuts the header (the card clips) instead of growing.
-            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 36, maxHeight: 36, alignment: .leading)
+            .frame(
+                minWidth: 0,
+                maxWidth: .infinity,
+                minHeight: Self.header,
+                maxHeight: Self.header,
+                alignment: .leading,
+            )
             // Behind the header, so its buttons still take their own clicks.
             .background {
                 Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) }

@@ -32,6 +32,8 @@
         @Environment(\.look) private var look
 
         var body: some View {
+            // The overview (D70) hides what acts on the strip and the sidebar.
+            let overview = pages.overview
             HStack(spacing: gap) {
                 HStack(spacing: gap) {
                     // ⌃⌘S is the menu's.
@@ -46,11 +48,15 @@
                         }
                         .accessibilityIdentifier("titlebar.sidebar")
                         .accessibilityValue(sidebar ? "open" : "closed")
+                        .opacity(overview ? 0 : 1)
+                        .disabled(overview)
                     MachineButton(pages: pages)
                 }
-                .frame(width: sidebar ? sidebarWidth - Self.inset(fullScreen: fullScreen) - gap : nil,
+                .frame(width: sidebar && !overview ? sidebarWidth - Self.inset(fullScreen: fullScreen) - gap : nil,
                        alignment: .leading)
-                if !sidebar, let workspace = page.selectedWorkspace {
+                if overview {
+                    Spacer(minLength: 0)
+                } else if !sidebar, let workspace = page.selectedWorkspace {
                     Capped(width: 260) {
                         WorkspaceButton(session: page.id, workspace: workspace.label, open: $workspaceMenu)
                     }
@@ -59,23 +65,34 @@
                         workspaceButtonX = $0
                     }
                 }
-                if page.store.state == .live || page.store.reconnecting, let workspace = page.selectedWorkspace {
+                if overview {
+                    EmptyView()
+                } else if page.store.state == .live || page.store.reconnecting, let workspace = page.selectedWorkspace {
                     TabBar(workspace: workspace, page: page, plus: plus)
                 } else {
                     Spacer(minLength: 0)
                 }
                 // ⌘. is the menu's.
-                AgentsButton(page: page, showing: sidebar && agents) {
+                AgentsButton(page: page, showing: sidebar && agents && !overview) {
+                    if overview {
+                        pages.toggleOverview()
+                    }
                     toggleAgents($agents, $sidebar)
                     // A click takes the keyboard from the card.
                     page.focusKeyboardCard()
                 }
+                // ⌃⌘O is the menu's.
+                IconButton(symbol: overview ? "square.grid.2x2.fill" : "square.grid.2x2", help: "Show Overview",
+                           key: .overview) { pages.toggleOverview() }
+                    .accessibilityIdentifier("titlebar.overview")
+                    .accessibilityValue(overview ? "on" : "off")
                 // ⌘K is the menu's.
                 IconButton(symbol: "command", help: "Command Palette", key: .palette) { palette.toggle() }
                     .accessibilityIdentifier("titlebar.palette")
                 // ⌘T is the menu's.
                 IconButton(symbol: "plus", help: "New Tab", key: .newTab) { Task { await page.newTab() } }
                     .disabled(page.selectedWorkspace == nil)
+                    .opacity(overview ? 0 : 1)
                     .accessibilityIdentifier("titlebar.new-tab")
                     // Highlighted too: a full track has no room for the ghost capsule.
                     .overlay {

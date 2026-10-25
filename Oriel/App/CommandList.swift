@@ -111,7 +111,10 @@
                             }
                         }),
                 Command(section: .view, title: "Toggle Sidebar", key: .toggleSidebar, symbol: "sidebar.left",
-                        enabled: sidebar != nil) { sidebar?.wrappedValue.toggle() },
+                        enabled: sidebar != nil && pages?.overview != true) { sidebar?.wrappedValue.toggle() },
+                Command(section: .view, title: "Show Overview", key: .overview, symbol: "square.grid.2x2",
+                        keywords: "all tabs grid expose", enabled: pages?.current != nil,
+                        checked: pages?.overview == true) { pages?.toggleOverview() },
                 Command(section: .view, title: "Appearance", symbol: "circle.lefthalf.filled",
                         keywords: "auto light dark theme mode", menu: [Appearance.auto, .light, .dark].map { value in
                             Command(section: .view, title: value.rawValue.capitalized,

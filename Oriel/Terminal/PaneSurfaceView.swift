@@ -91,6 +91,11 @@
             }
         }
 
+        /// Not in an overview's miniature (D70): keys go to the overview, whatever claims the keyboard meanwhile.
+        override var acceptsFirstResponder: Bool {
+            !(superview is MiniTerminal.Mini) && super.acceptsFirstResponder
+        }
+
         override func becomeFirstResponder() -> Bool {
             let became = super.becomeFirstResponder()
             terminal?.hasKeyboard = became
