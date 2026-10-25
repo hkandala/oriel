@@ -306,7 +306,9 @@
         }
 
         @ObservationIgnored private var asking = false
+    }
 
+    extension Page {
         /// A split restores a zoomed layout first, as tmux does: the new pane shows.
         /// The new pane gets the keyboard, as in Ghostty (user, phase 25).
         func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
@@ -353,9 +355,7 @@
             guard let moved, floating[terminalID ?? ""] == nil else { return }
             keyboardTerminals[moved.tabID] = terminalID
             movedTerminal = terminalID
-            if select {
-                arriving = moved.tabID
-            }
+            arriving = select ? moved.tabID : arriving
             settle() // In case the snapshot after the move came in already.
             // The next snapshot gives it the keyboard if the store does not show it in its tab yet (`shown`), also when
             // the tab stays selected (a spring-loaded tab, a re-place).
@@ -364,9 +364,7 @@
                 focusKeyboardCard()
             }
         }
-    }
 
-    extension Page {
         /// A new tab in the workspace (the selected one by default), in its keyboard card's directory, else home.
         /// Selected at once as a stand-in ("New Tab", an empty card); herdr's tab takes its place when a snapshot
         /// has it.
