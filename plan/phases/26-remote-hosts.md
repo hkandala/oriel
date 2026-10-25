@@ -163,7 +163,8 @@ has `herdr --machine <label> <command>` and `herdr machine …`. Do this by defa
 - **Design:** the relay, one SSH session per host running a Perl script sent in the envelope. Every run (calls, the
   events stream, every terminal stream, git, the herdr lookup) is a line-framed channel inside it
   (machines.mdx, macOS). `Exec` and everything above it are unchanged: `SSHExec.run` returns the relay's channel.
-  A machine without Perl falls back to one session per run (capped at 10), until the next master.
+  A machine without Perl shows "Oriel needs Perl on ‹machine›"; the next run tries again. The round-1 fallback of
+  one session per run (capped at 10) is gone: it cannot serve a strict server either.
 - One passcode per host stays: the relay runs on the master like any run (`ControlMaster=no`,
   `ProxyCommand=/usr/bin/false`), so nothing opens a second authenticated connection; a dropped master is started
   again in BatchMode, and a host that needs an answer asks only on Connect.

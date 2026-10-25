@@ -52,7 +52,9 @@ closed need push notifications ([Future work](/docs/future-work)).
    [Data: app vs herdr](/docs/data).
 2. **Use what exists.** herdr's API and CLI, OpenSSH, Apple's frameworks. On
    each machine the app only runs commands and opens TCP streams over SSH. No
-   daemon, relay or server of our own.
+   daemon or server of our own; the one exception is the relay, a script sent
+   with each SSH connection, never installed, gone with it
+   ([Machines](/docs/machines#macos)).
 3. **One picker for every pane kind.** Terminal, agent and web page are built
    in. Every other pane kind is a plugin: a small web page in a native web
    view, yours included.

@@ -7,8 +7,8 @@
     /// passcode. Runs are lines both ways, as herdr's bridge, events and terminal streams are. The app sends
     /// `o <id> <command hex>` (open), `w <id> <line>`, `c <id>` (close stdin) and `k <id>` (kill by pid); the relay
     /// answers `l <id> <line>` and, once the run's output ended and it was reaped, `x <id> <status> <stderr hex>`.
-    /// ponytail: Perl, which nearly every Unix has (Debian's perl-base is essential); a machine without it gets one SSH
-    /// session per run, as before.
+    /// ponytail: Perl, which nearly every Unix has (Debian's perl-base is essential); a machine without it shows "Oriel
+    /// needs Perl". A relay in another language when one is missed.
     final class Relay: Sendable {
         private struct Run {
             let lines: AsyncStream<String>.Continuation
@@ -120,36 +120,31 @@
         }
 
         /// The relay: `select` over its stdin and every run's stdout and stderr; a run's lines go out whole, so frames
-        /// of two runs never mix. Its stdin's end (the app quit, the connection dropped) closes every run's stdin and
-        /// kills what still runs 2 s later.
+        /// of two runs never mix. When its stdin ends (the app quit, the connection dropped) it exits, and every run's
+        /// stdin closes with it.
+        /// ponytail: a write to a run's stdin blocks the relay while that run reads nothing (a full pipe); herdr reads
+        /// its stdin at once. Buffer per run if one ever stalls.
         static let script = #"""
         use strict; use warnings; use IO::Select; use POSIX ();
         $SIG{PIPE} = 'IGNORE';
+        $| = 1;
         my $select = IO::Select->new(\*STDIN);
-        my (%input, %pid, %out, %err, %open, %owner, $quit);
+        my (%input, %pid, %err, %open, %owner);
         my $commands = '';
-        sub put {
-            my $s = shift;
-            for (my $at = 0; $at < length $s;) {
-                my $n = syswrite(STDOUT, $s, length($s) - $at, $at);
-                exit 1 unless defined $n;
-                $at += $n;
-            }
-        }
-        sub lines {
-            my ($buffer, $each) = @_;
-            while ((my $i = index($$buffer, "\n")) >= 0) {
-                $each->(substr($$buffer, 0, $i));
-                substr($$buffer, 0, $i + 1) = '';
-            }
-        }
+        sub put { print @_ or exit 1 }
+        # Runs whose output ended: reaped when they exit; how many still run.
         sub reap {
+            my $left = 0;
             for my $id (grep { !$open{$_} } keys %pid) {
-                next unless waitpid($pid{$id}, POSIX::WNOHANG()) > 0;
-                my $status = $? & 127 ? $? & 127 : $? >> 8;
-                put("x $id $status " . unpack('H*', $err{$id}) . "\n");
-                delete $_->{$id} for \%pid, \%out, \%err, \%open, \%input;
+                if (waitpid($pid{$id}, POSIX::WNOHANG()) > 0) {
+                    my $status = $? & 127 ? $? & 127 : $? >> 8;
+                    put("x $id $status " . unpack('H*', $err{$id}) . "\n");
+                    delete $_->{$id} for \%pid, \%err, \%open, \%input;
+                } else {
+                    $left++;
+                }
             }
+            return $left;
         }
         sub command {
             my ($op, $id, $arg) = split / /, shift, 3;
@@ -165,9 +160,9 @@
                 close $_ for $child_in, $child_out, $child_err;
                 return put("x $id 127 \n") unless defined $p;
                 $in->autoflush(1);
-                ($input{$id}, $pid{$id}, $out{$id}, $err{$id}, $open{$id}) = ($in, $p, '', '', 2);
-                $owner{fileno $out} = [$id, \$out{$id}];
-                $owner{fileno $errors} = [$id, undef];
+                ($input{$id}, $pid{$id}, $err{$id}, $open{$id}) = ($in, $p, '', 2);
+                $owner{fileno $out} = [$id, ''];
+                $owner{fileno $errors} = [$id];
                 $select->add($out, $errors);
             } elsif ($op eq 'w') { print { $input{$id} } "$arg\n" if $input{$id} }
             elsif ($op eq 'c') { close(delete $input{$id}) if $input{$id} }
@@ -175,28 +170,25 @@
         }
         put("oriel-relay 1\n");
         while (1) {
-            reap();
-            if ($quit) {
-                exit 0 unless %pid;
-                kill 9, values %pid if time - $quit > 2;
-            }
-            my $waiting = grep { !$open{$_} } keys %pid;
-            for my $fh ($select->can_read($waiting || $quit ? 0.1 : undef)) {
+            my $waiting = reap();
+            for my $fh ($select->can_read($waiting ? 0.1 : undef)) {
                 my $n = sysread($fh, my $chunk, 65536);
+                # The app or the connection is gone: exiting closes every run's stdin, which ends it (T6).
                 if (fileno $fh == 0) {
-                    if (!$n) { $select->remove($fh); $quit = time; close $_ for values %input; %input = (); next }
+                    exit 0 unless $n;
                     $commands .= $chunk;
-                    lines(\$commands, \&command);
+                    command($1) while $commands =~ s/^(.*)\n//;
                     next;
                 }
-                my ($id, $buffer) = @{ $owner{fileno $fh} };
+                my $run = $owner{fileno $fh};
+                my $id = $run->[0];
                 if (!$n) {
                     $select->remove($fh); delete $owner{fileno $fh}; close $fh;
-                    put("l $id $$buffer\n") if $buffer && length $$buffer;
+                    put("l $id $run->[1]\n") if defined $run->[1] && length $run->[1];
                     $open{$id}--;
-                } elsif ($buffer) {
-                    $$buffer .= $chunk;
-                    lines($buffer, sub { put("l $id $_[0]\n") });
+                } elsif (@$run == 2) {
+                    $run->[1] .= $chunk;
+                    put("l $id $1\n") while $run->[1] =~ s/^(.*)\n//;
                 } else {
                     $err{$id} = substr($err{$id} . $chunk, -8192);
                 }

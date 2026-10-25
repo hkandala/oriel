@@ -28,14 +28,6 @@
         /// The one SSH session every run goes through (`Relay`), started by the first run on a master.
         private var relay: Relay?
         private var relayStart: Task<Relay?, Never>?
-        /// The machine has no Perl: each run takes its own SSH session until the next master.
-        private var noRelay = false
-        /// Without a relay: the sessions open on the master, and runs waiting for one. sshd allows 10 per connection by
-        /// default (`MaxSessions`) and refuses the 11th.
-        /// ponytail: a fixed 10 that long-lived streams hold too, and a run that waits 10 s fails (the page shows
-        /// Reconnecting, not a freeze).
-        private var channels = 0
-        private var waiting: [(id: UUID, go: CheckedContinuation<Bool, Never>)] = []
 
         public init(target: String, local: ProcessExec) {
             self.target = target
@@ -51,47 +43,17 @@
 
         public func run(_ argv: [String]) async throws -> Channel {
             try await up(nil)
-            if let relay = await currentRelay() {
-                return try relay.run(Self.quoted(argv))
-            }
-            if channels < 10 {
-                channels += 1
-            } else {
-                // A closing channel hands its place over.
-                let id = UUID()
-                let timer = Task {
-                    try? await Task.sleep(for: .seconds(10))
-                    waiting.first { $0.id == id }?.go.resume(returning: false)
-                    waiting.removeAll { $0.id == id }
-                }
-                let got = await withCheckedContinuation { waiting.append((id, $0)) }
-                timer.cancel()
-                guard got else { throw HerdrError.failed("All 10 SSH sessions to \(target) are in use") }
-            }
-            let channel: Channel
-            do {
-                channel = try session(argv)
-            } catch {
-                closed()
-                throw error
-            }
-            Task {
-                _ = await channel.exit()
-                closed()
-            }
-            return channel
+            return try await currentRelay().run(Self.quoted(argv))
         }
 
-        /// The live relay, started on first use; nil while the machine has none.
-        private func currentRelay() async -> Relay? {
+        /// The live relay, started on first use. One that does not start (no Perl, a login slower than 10 s) is tried
+        /// again by the next run.
+        private func currentRelay() async throws -> Relay {
             if let relay, relay.alive {
                 return relay
             }
-            if noRelay {
-                return nil
-            }
-            if let relayStart {
-                return await relayStart.value
+            if let relayStart, let started = await relayStart.value {
+                return started
             }
             let task = Task { () -> Relay? in
                 guard let channel = try? session(["perl", "-e", Relay.script]) else { return nil }
@@ -101,7 +63,7 @@
             let started = await task.value
             relayStart = nil
             relay = started
-            noRelay = started == nil
+            guard let started else { throw HerdrError.failed("Oriel needs Perl on \(target): its relay did not start") }
             return started
         }
 
@@ -112,14 +74,6 @@
             try ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-o", "ControlMaster=no", "-o", "BatchMode=yes",
                                    "-o", "ProxyCommand=/usr/bin/false", "-S", socket, "--", target,
                                    Self.envelope(argv)], environment)
-        }
-
-        private func closed() {
-            if waiting.isEmpty {
-                channels -= 1
-            } else {
-                waiting.removeFirst().go.resume(returning: true)
-            }
         }
 
         public func herdr() async throws -> String? {
@@ -248,7 +202,6 @@
             failures = 0
             lookup = nil
             relay = nil
-            noRelay = false
         }
 
         /// A start that failed: one that needs an answer blocks, any other backs off (2, 4 … 30 s).
