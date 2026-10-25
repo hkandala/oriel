@@ -35,7 +35,7 @@ Schemas. The research used `rex 0.0.1792519967-gd05acf`, API revision 4.
 | session | workspace | ordered; generated label such as `crisp-forest` |
 | window | tab | ordered; each session has an `active_window_id` |
 | layer `tiled` | the tab's split tree | `split.direction` `horizontal` is `.right`, `vertical` is `.down`; `ratio` is the first child's share |
-| layer `floating` | none | skipped (Oriel has no floating panes yet) |
+| layer `floating` | none | skipped (Oriel floats a pane in its own window, D50) |
 | block | pane and terminal | one stable id, `block:<uuidv7>`, so `Pane.id == Pane.terminalID` |
 | client | one Oriel app on one machine | survives a dropped connection for 60 s |
 

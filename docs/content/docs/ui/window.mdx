@@ -1,6 +1,6 @@
 ---
 title: "Main window (Mac and iPad)"
-description: "Windows, the title row, tab bar, Agents button, sidebar pages, Agents view, Open Session, hover card, strip, pane cards, zoom, find bar, notices and the palette"
+description: "Windows, the title row, tab bar, Agents button, sidebar pages, Agents view, Open Session, hover card, strip, pane cards, zoom, floating panes, find bar, notices and the palette"
 ---
 
 ![Main window with the sidebar open](/mockups/A.jpg)
@@ -497,6 +497,43 @@ How the messages, the reply box and the key buttons work:
   shows. Moving the keyboard to a hidden card restores it too.
 - Restore or ⇧⌘↩ restores the layout. Esc is not used, because the program in
   the pane needs it.
+
+## Floating pane
+
+A pane can float in a small window of its own, above the main window or, kept
+on top, above other apps (D50). herdr has no floating pane, so this is
+Oriel's own: the pane stays in its herdr tab, and other devices and herdr
+clients see it there.
+- **Float Pane** (the `pip.enter` button in the card header, the pane's menus,
+  View ▸ Pane and the palette) opens the window. Several can be open. A
+  floated pane's Float Pane brings its window to the front.
+- **The window** has no tab bar and no sidebar. Its title row holds the
+  traffic lights, then "session › workspace › tab" in small secondary text,
+  then on the right three buttons: **Stay on Top** (a pin), **Close** (closes
+  the pane, and asks first as any close does) and, rightmost, **Detach**
+  (`pip.exit`: the window closes and the card shows its terminal in its tab
+  again; nothing stops). The red traffic light detaches too. Below the title
+  row, the glass card holds only the terminal, with no header. It opens at
+  560 × 360 pt; it moves and resizes like any window, and keeps its frame
+  for the next time that pane floats.
+- **Stay on Top** keeps the window above every app's windows and on every
+  Space, like picture in picture. It stays on until turned off.
+- **In the tab** the card keeps its place in the splits and its header. In
+  place of the terminal it shows a quiet placeholder: the pane's icon, its
+  name, and **Show**, which brings the window to the front. The placeholder
+  is never the keyboard card.
+- **Keys and ⌘K.** In the floating window the menu bar and the palette offer
+  only what applies to it: Detach Pane (⇧⌘W), Close Pane (⌘W), Stay on Top,
+  Find, Find Next and Find Previous, the font size items, Copy and Paste. The
+  palette lists no tabs, workspaces or sessions.
+- **Saved.** The floating panes and their Stay on Top are kept with the main
+  window that floated them, and open again when it restores. A pane that
+  herdr closed closes its window; one that moved to another tab or workspace
+  stays floating (its terminal is the same). Closing the main window closes
+  its floating windows.
+- The terminal streams the whole time it floats, whichever tab or session the
+  main window shows. Another window on the same session shows the pane as a
+  normal card.
 
 ## Notice
 
