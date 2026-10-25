@@ -206,7 +206,6 @@ struct FilterField: View {
                 .accessibilityHidden(true)
             if editing || autofocus || !text.isEmpty {
                 TextField(prompt, text: $text)
-                    .textFieldStyle(.plain)
                     .focused($focused)
                     .focusSoon($focused)
                     .onChange(of: focused) { editing = focused }
@@ -220,9 +219,7 @@ struct FilterField: View {
                 .accessibilityIdentifier(identifier)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(.primary.opacity(0.07), in: .capsule)
+        .fieldCapsule()
         .contentShape(.capsule)
         .onTapGesture { editing = true }
     }
@@ -260,6 +257,12 @@ struct FilterField: View {
 #endif
 
 extension View {
+    /// A text field in a soft capsule: the palette's filter, Add Remote Host, ssh's questions.
+    func fieldCapsule() -> some View {
+        textFieldStyle(.plain).padding(.horizontal, 8).padding(.vertical, 5)
+            .background(.primary.opacity(0.07), in: .capsule)
+    }
+
     /// Focuses the field as it appears.
     func focusSoon(_ focused: FocusState<Bool>.Binding) -> some View {
         task {

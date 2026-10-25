@@ -287,10 +287,15 @@ struct OrielApp: App {
                 }
             }
             .modifier(CloseDialog(page: page))
-            .sheet(isPresented: Bindable(pages).addingHost) { AddHost(pages: pages) }
-            // It closes only through its buttons, which answer.
-            .sheet(item: Binding { pages.question } set: { _ in
-            }) { AskSheet(question: $0, machine: pages.machine.name) }
+            .overlay {
+                if pages.addingHost {
+                    AddHost(pages: pages).dialog()
+                }
+                // A new question gets a new field.
+                if let question = pages.question {
+                    AskDialog(question: question, machine: pages.machine).id(question.id).dialog()
+                }
+            }
             .environment(\.look, look)
             .testValue("window.look", "Appearance", "\(style.rawValue) \(look.dark ? "dark" : "light")")
             // The links a test ⌘-clicked (`-recordLinks YES`).
