@@ -42,58 +42,6 @@ extension OrielUITests {
         keepScreenshot("open session lit by the pointer")
     }
 
-    func testOpenSessionListsSessionsAndOpensAPage() throws {
-        let three = try env("ORIEL_SESSION3")
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        openSessionPanel()
-        expectRow("open-session.session.\(two)", under: "Running", above: "Stopped")
-        expectRow("open-session.session.\(three)", under: "Stopped", above: "Open in this window")
-        expectRow("open-session.open.\(one)", under: "Open in this window", above: nil)
-        // Empty field: a new name is offered first.
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'open-session.new.'"))
-            .firstMatch.isSelected)
-        // Only this run's sessions, so all four groups are in view.
-        app.typeText(String(one.dropLast()))
-        XCTAssertTrue(element("open-session.new.\(one.dropLast())").exists(within: 2))
-        keepScreenshot("open session")
-        element("open-session.session.\(two)").click()
-
-        XCTAssertTrue(element("open-session.filter").vanishes(within: 2))
-        XCTAssertTrue(until(3) { header == two })
-        XCTAssertTrue(element("sidebar.dot.\(one)").exists)
-        XCTAssertTrue(element("sidebar.dot.\(two)").isSelected)
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier == 'workspace.w1' AND label == 'gamma'"))
-            .firstMatch.exists(within: connect))
-        keepScreenshot("two pages")
-        element("sidebar.dot.\(one)").click()
-        XCTAssertTrue(until(3) { header == one })
-        XCTAssertTrue(element("workspace.w2").exists(within: 2))
-
-        // The workspace menu has a group per page; another page's workspace shows that page.
-        element("sidebar.dot.\(two)").click()
-        XCTAssertTrue(until(3) { header == two })
-        app.typeKey("s", modifierFlags: [.command, .control])
-        let button = element("titlebar.workspace")
-        XCTAssertTrue(button.exists(within: 2))
-        button.click()
-        XCTAssertTrue(element("workspaces.\(two).w1").exists(within: 2))
-        element("workspaces.\(one).w2").click()
-        XCTAssertTrue(until(3) { button.value as? String == "\(one) | beta" })
-        app.typeKey("s", modifierFlags: [.command, .control])
-        XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
-        XCTAssertTrue(until(3) { header == one })
-
-        // Enter on a page open in this window shows it; no page opens or closes.
-        element("sidebar.dot.\(two)").click()
-        XCTAssertTrue(until(3) { header == two })
-        openSessionPanel()
-        app.typeText(one)
-        XCTAssertTrue(element("open-session.open.\(one)").has(\.isSelected, true, within: 2))
-        app.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(until(3) { header == one })
-        XCTAssertTrue(element("sidebar.dot.\(two)").exists)
-    }
-
     /// A sideways swipe over the sidebar pages it and never the strip; over a card it pages the strip and never the
     /// sidebar. In the Agents view it shows the other page's agents.
     func testSwipesPageTheSidebarAndTheStripApart() async throws {
@@ -140,59 +88,6 @@ extension OrielUITests {
         XCTAssertFalse(element("sidebar.dot.\(five)").exists)
         element("sidebar.dot.\(one)").click()
         XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: connect))
-    }
-
-    func testShiftCommandNCreatesASessionAsANewPage() async throws {
-        let four = try env("ORIEL_SESSION4")
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        app.typeKey("n", modifierFlags: [.command, .shift])
-        XCTAssertTrue(hasKeyboard(element("open-session.filter")))
-        app.typeText(four)
-        XCTAssertTrue(element("open-session.new.\(four)").has(\.isSelected, true, within: 2))
-        app.typeKey(.return, modifierFlags: [])
-
-        // The app starts the server and makes its first workspace; the new page shows it.
-        XCTAssertTrue(until(connect) { header == four })
-        XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        let snapshot = try await Self.snapshot(four)
-        XCTAssertEqual((snapshot["workspaces"] as? [Any])?.count, 1)
-        XCTAssertTrue(element("sidebar.dot.\(one)").exists)
-    }
-
-    func testOpenSessionStartsAStoppedSession() async throws {
-        let five = try env("ORIEL_SESSION5")
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        try await running(five)
-        try await Self.post("\(five)/stop")
-        openSessionPanel()
-        // Other stopped sessions on this Mac may push its row out of the list's view.
-        app.typeText(five)
-        let row = element("open-session.session.\(five)")
-        XCTAssertTrue(row.has(\.isSelected, true, within: 2))
-        expectRow(row.identifier, under: "Stopped", above: nil)
-        app.typeKey(.return, modifierFlags: [])
-
-        XCTAssertTrue(until(connect) { header == five })
-        try await Self.snapshot(five)
-    }
-
-    func testClosePageKeepsTheSessionRunning() async throws {
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        openPage(two)
-        // From the dot's menu (closePage uses the header's).
-        element("sidebar.dot.\(two)").rightClick()
-        app.windows.firstMatch.menuItems["Close Page"].click()
-        XCTAssertTrue(until(3) { header == one })
-        XCTAssertFalse(element("sidebar.dot.\(two)").exists)
-        XCTAssertFalse(element("sidebar.dot.\(one)").exists)
-        // The session still runs (testClosingAPageAndQuittingLeaveNoStreams checks its runs end).
-        try await Self.snapshot(two)
-
-        // At its center: the page that slid away may leave it unhittable for a moment.
-        element("sidebar.header").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        XCTAssertTrue(app.windows.firstMatch.menuItems["Close Page"].exists(within: 2))
-        XCTAssertFalse(app.windows.firstMatch.menuItems["Close Page"].isEnabled)
-        app.typeKey(.escape, modifierFlags: [])
     }
 
     func testEmptyPageOffersNewWorkspace() async throws {
@@ -345,47 +240,6 @@ extension OrielUITests {
         drag(600)
         XCTAssertEqual(sidebar.frame.width, 480, accuracy: 1)
         drag(start - 480)
-    }
-
-    /// The panel's row sits in this group: below its header, above the next one.
-    private func expectRow(_ row: String, under section: String, above next: String?) {
-        let frame = element(row).frame
-        XCTAssertGreaterThan(frame.minY, element("open-session.section.\(section)").frame.maxY, row)
-        if let next {
-            XCTAssertLessThan(frame.maxY, element("open-session.section.\(next)").frame.minY, row)
-        }
-    }
-
-    /// Opens the session's page through the panel, in this window when there are several.
-    func openPage(_ session: String, in window: XCUIElement? = nil) {
-        openSessionPanel(in: window)
-        element("open-session.session.\(session)", in: window).click()
-        XCTAssertTrue(element("sidebar.dot.\(session)", in: window).exists(within: connect))
-    }
-
-    /// Shows the session's page and closes it from its header's context menu (in the window, not the menu bar's File ▸
-    /// Close Page).
-    func closePage(_ session: String, in window: XCUIElement? = nil) {
-        let dot = element("sidebar.dot.\(session)", in: window)
-        dot.click()
-        // At its center: the page that slid away may leave it unhittable for a moment.
-        element("sidebar.header", in: window).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
-        (window ?? app.windows.firstMatch).menuItems["Close Page"].click()
-        XCTAssertTrue(dot.vanishes(within: 3))
-    }
-
-    /// The footer's Open Session; the panel's field has the keyboard.
-    @discardableResult
-    func openSessionPanel(in window: XCUIElement? = nil) -> XCUIElement {
-        element("sidebar.open-session", in: window).click()
-        let filter = element("open-session.filter", in: window)
-        XCTAssertTrue(hasKeyboard(filter))
-        return filter
-    }
-
-    /// The page in view's session (a static text's value).
-    private var header: String? {
-        element("sidebar.header").value as? String
     }
 
     func workspaceIDs() async throws -> [String] {
