@@ -241,9 +241,10 @@ struct StatusBadge: View {
             .scrollIndicators(.never)
         }
 
+        /// A section label, as in a macOS sidebar: smaller than the title, with room above (user, phase 25).
         private func label(_ text: String, id: String) -> some View {
-            Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
-                .padding(.horizontal, 8).padding(.top, 6)
+            Text(text).font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary).lineLimit(1)
+                .padding(.horizontal, 8).padding(.top, 12)
                 .accessibilityIdentifier(id)
         }
 

@@ -102,6 +102,9 @@ extension OrielUITests {
         XCTAssertEqual(header.minX, rows[0].frame.minX + 8, accuracy: 0.5, frames)
         XCTAssertEqual(groups[0].frame.minX, header.minX, accuracy: 0.5, frames)
         XCTAssertEqual(sort.maxX - 6, rows[0].frame.maxX - 8, accuracy: 0.5, frames)
+        // The name is the title, larger than the section labels, and each group has room above it.
+        XCTAssertGreaterThan(header.height, groups[0].frame.height, frames)
+        XCTAssertGreaterThanOrEqual(groups[1].frame.minY - rows[0].frame.maxY, 14, frames)
         keepScreenshot("agents view by priority")
 
         // The footer filter keeps the rows of one workspace, or of a pane's name.

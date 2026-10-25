@@ -119,8 +119,9 @@
                 // The name and the sort menu's label on one baseline; the `+` has no text to align.
                 HStack(alignment: agents == nil ? .center : .firstTextBaseline) {
                     // A long session name gives way in its middle.
+                    // The page's title, a step above the rows (user, phase 25).
                     Text(page.id).truncationMode(.middle)
-                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary).lineLimit(1)
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(.primary).lineLimit(1)
                         // Before the sort menu's label, which gives way first.
                         .layoutPriority(1)
                         .accessibilityIdentifier("sidebar.header")
@@ -152,8 +153,6 @@
                 // The herdr session keeps running.
                 .contextMenu { Button("Detach Session") { pages.close(page) }.disabled(pages.list.count < 2) }
                 if let agents {
-                    // The header reads apart from the list (user, phase 25).
-                    Divider()
                     AgentsList(page: page, filter: filter, sort: agents.wrappedValue)
                 } else if store.state == .live, store.workspaces.isEmpty {
                     NewWorkspaceButton(page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
