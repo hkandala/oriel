@@ -36,7 +36,7 @@ extension OrielUITests {
         }
         app.typeKey("1", modifierFlags: .command)
         try drawn(panes[0])
-        // Every card shown keeps its herdr run, up to 16 out of view (D46): the 12 here, t1's 3 and w2's 1.
+        // Every card shown keeps its herdr run, up to 32 out of view (D46): the 12 here, t1's 3 and w2's 1.
         let quiet = try await measure("quiet tab")
         XCTAssertEqual(helpers(quiet), 16, quiet)
         app.typeKey("6", modifierFlags: .command)

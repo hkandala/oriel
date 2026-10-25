@@ -11,11 +11,12 @@
     /// repeat across sessions. Key by session too if they ever do.
     @MainActor
     final class PaneViewRegistry {
-        /// The design's bound on terminals kept out of view, over all windows (D46). Each keeps a herdr run (7 MB) and
-        /// its surface; libghostty frees the surface's swap chain while it does not draw and makes it again in under a
-        /// millisecond when shown, and its last picture is purgeable out of a window. One evicted comes back under its
-        /// last picture, redrawn within a few hundred ms (phase 25, lane O). `-spareTerminals N` for tests.
-        static let spare = UserDefaults.standard.string(forKey: "spareTerminals").flatMap { Int($0) } ?? 16
+        /// The design's bound on terminals kept out of view, over all windows (D46). Each keeps its surface, about
+        /// 6 MB (libghostty frees the swap chain while it does not draw and makes it again in under a millisecond when
+        /// shown; its last picture is purgeable out of a window), and a herdr run of 7 MB: about 420 MB at most (phase
+        /// 27). One evicted comes back under its last picture, redrawn within a few hundred ms (phase 25, lane O).
+        /// `-spareTerminals N` for tests.
+        static let spare = UserDefaults.standard.string(forKey: "spareTerminals").flatMap { Int($0) } ?? 32
         /// Streaming terminals of every window, the most recently shown last.
         private(set) static var recent: [PaneTerminal] = []
         /// Its window's pages: they hear of the keyboard, Return and input in its terminals.
