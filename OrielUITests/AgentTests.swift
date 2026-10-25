@@ -13,9 +13,13 @@ extension OrielUITests {
         try await waitForValue("workspace.w1", containing: "working")
         keepScreenshot("working dots")
 
-        // The selected tab shows no dots.
+        // The selected tab shows them too (user, phase 25); the × takes their place while hovered.
         element("tab.\(tab)").click()
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
         XCTAssertTrue(dots.vanishes(within: 2))
+        element("workspace.w1").hover()
+        XCTAssertTrue(dots.exists(within: 2))
+        keepScreenshot("working dots, selected tab")
     }
 
     func testBlockedAgentNeedsYouAndThePopoverGoesToIt() async throws {

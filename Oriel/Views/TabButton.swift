@@ -28,7 +28,7 @@
             let selected = workspace.id == page.selectedWorkspaceID && tab.id == page.selectedTabIDs[workspace.id]
             let stack = page.stack(tab)
             let agent = store.strongest([tab.id])
-            let working = !selected && store.panes.contains { $0.tabID == tab.id && $0.state == .working }
+            let working = store.panes.contains { $0.tabID == tab.id && $0.state == .working }
             // The strip scrolls to the new selection and the marker follows, as during a swipe.
             Button {
                 clicked()
@@ -84,8 +84,8 @@
                         .accessibilityIdentifier("tab.\(tab.id).rename")
                 }
             }
-            // The status slot: × while hovered, else the working dots (not on the selected tab) unless a keycap is in
-            // it.
+            // The status slot: × while hovered, else the working dots (the selected tab too, user, phase 25) unless a
+            // keycap is in it.
             .overlay(alignment: .trailing) {
                 if working, keycap == nil, !hovering || renaming {
                     WorkingDots().padding(.trailing, 10)
