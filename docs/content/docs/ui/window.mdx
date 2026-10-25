@@ -37,7 +37,7 @@ start, also during a resize. From left to right:
    own row is 40 pt) and moves the three standard buttons with plain frame
    changes, again after every AppKit layout; full screen has none. The row's
    items start 91 pt in, so the sidebar toggle sits where Rex has it.
-2. The sidebar toggle, always shown (⌃⌘S). It has no highlight when the
+2. The sidebar toggle, always shown outside the overview (⌃⌘S). It has no highlight when the
    sidebar is open. The icon changes instead: an outline window with a sidebar
    line while the sidebar is closed (`sidebar.left`), and the sidebar part
    filled while it is open (`sidebar.left` under
@@ -572,10 +572,11 @@ once.
   program runs).
 - **Click.** A click on a tile selects its workspace and tab and leaves the
   overview: the tile's miniature grows to the strip's page over 0.25 s
-  (ease out), its terminals scaling up live, then the strip shows. Esc and the
-  toggle leave the same way, from the selected tab's tile (at once when that
-  tile is scrolled away). Under Reduce Motion it leaves at once. The Agents
-  button and ⌘. leave it first and open the Agents view after the zoom; a
+  (ease out), its terminals scaling up live, then the strip shows. Esc, the title
+  row's × and ⌃⌘O leave the same way, from the selected tab's tile (at once
+  when that tile is scrolled away). Under Reduce Motion it leaves at once. ⌘.
+  (Show Agents in the menu or palette) leaves it first and opens the Agents
+  view after the zoom; a
   notification or Dock click leaves it at once and shows its pane. Other keys
   and the palette act as usual and the overview stays: ⌘T adds a tile, a tab
   key moves the selected tile.
@@ -601,24 +602,19 @@ once.
   draws, also the tiles scrolled out of view and the other sessions' pages:
   nothing in it is lazy, so each terminal view is in the window and has its
   surface, and a tile scrolled or swiped into view shows its live screen at
-  once, with no fade (phase 28). The user accepts the memory while it is open
-  (about 50 MB a full-window card on Retina; on a remote machine every card's
-  stream goes through the relay's one SSH session). Those are not visits:
-  when the overview closes, a terminal shown only by it goes back to where it
-  was (its surface and stream let go) and the recently shown set is unchanged
-  (D46).
-- Known limit: on a remote machine only the shown tab's cards are live; the
-  others keep their last picture, since a connection holds about 10 SSH sessions
-  ([SSH sessions](/docs/machines#ssh-sessions)).
-- Cost: each card laid out keeps a surface at its full card size (about
-  52 MB for a full-window card on a Retina screen), so the cost follows the
-  tiles laid out, not the session. Lane O's scenario (17 cards, 8 printing;
-  debug build, this Mac, Retina): 166 MB and 1.4 % CPU with the strip; about
-  700 MB with the 12 cards first in view; 902 MB and 16.7 % CPU scrolled so
-  all 17 were laid out; 224 MB, 1.7 % and the strip's 4 herdr runs after it
-  closed. CI (1x): 84 MB → 134 MB. libghostty-spm takes its content scale only
-  from the window, so smaller surfaces for the miniatures would need a change
-  there.
+  once, with no fade (phase 28). On a remote machine every card's stream goes
+  through the relay's one SSH session ([SSH sessions](/docs/machines#ssh-sessions)).
+  Those are not visits: when the overview closes, a terminal shown only by it
+  goes back to where it was (its surface and stream let go) and the recently
+  shown set is unchanged (D46).
+- Cost: the user accepts the memory while it is open. Every card of the
+  window's sessions keeps a surface at its full card size (about 52 MB for a
+  full-window card on a Retina screen), so the cost follows the sessions.
+  Phase 27, lane O's scenario (17 cards, 8 printing; debug build, this Mac,
+  Retina): 166 MB and 1.4 % CPU with the strip; 902 MB and 16.7 % CPU with
+  all 17 laid out; 224 MB, 1.7 % and the strip's 4 herdr runs after it
+  closed. libghostty-spm takes its content scale only from the window, so
+  smaller surfaces for the miniatures would need a change there.
 
 Options weighed: a second, small, observe-only surface per pane at a small
 font (a herdr run, a renderer and a font atlas per pane, and observe cannot

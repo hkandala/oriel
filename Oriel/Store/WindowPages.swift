@@ -309,9 +309,10 @@
             window.showPending()
         }
 
-        /// Streams the shown tab of the page in view (see the registry), drops the terminals of closed panes and
-        /// pages. A snapshot hands the keyboard to a card only while no text field has it: typing in the palette or a
-        /// rename field must not go on in a shell because a pane closed elsewhere.
+        /// Streams the shown tab of the page in view (see the registry), and while the overview is open every card of
+        /// every page (no visits); drops the terminals of closed panes and pages. A snapshot hands the keyboard to a
+        /// card only while no text field has it: typing in the palette or a rename field must not go on in a shell
+        /// because a pane closed elsewhere.
         func showTerminals(snapshot: Bool = false) {
             guard let current else { return }
             // A find bar whose card is out of view closes: herdr's viewport is shared, it must not stay scrolled. A
@@ -329,6 +330,7 @@
                 // A float-only page's other cards are in no overview tile.
                 let tiles = overview && list.contains { $0 === page }
                 for pane in page.store.panes {
+                    // Another page's floated pane; any card while the overview is open.
                     let floats = page.floats(pane)
                     guard floats ? page !== current : tiles, let id = pane.terminalID, page.terminal(pane) != nil
                     else { continue }

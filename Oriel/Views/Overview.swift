@@ -75,7 +75,7 @@
                     withAnimation(old == nil || reduceMotion && !Animation.forceMotion ? nil : .session()) {
                         position.scrollTo(id: new)
                     }
-                    // The first layout of the lazy stack can miss it.
+                    // The first layout can miss it.
                     if old == nil {
                         Task { position.scrollTo(id: new) }
                     }

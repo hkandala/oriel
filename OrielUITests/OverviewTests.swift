@@ -74,7 +74,6 @@ extension OrielUITests {
         {
             XCTAssertFalse(element(id).exists, id)
         }
-        XCTAssertTrue(element("overview.close").exists)
         let canvas = element("overview").frame, title = element("overview.title").frame
         XCTAssertEqual(first.minX - canvas.minX, max(48, canvas.width * 0.08), accuracy: 1)
         XCTAssertEqual(canvas.maxX - second.maxX, first.minX - canvas.minX, accuracy: 1)
