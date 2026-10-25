@@ -301,6 +301,38 @@ found none). If herdr has none, floating is Oriel's own.
 - **For the user to check by hand:** the tab hover card, the Agents popover, the find bar and the palette over a busy
   terminal, Glass dark and light: text behind should be only a soft blur, and the glass rim should still read.
 
+### Lane I2 (items 17, 21, 22, 23, 24)
+
+- **Root cause, item 22.** SwiftUI's `Commands` bodies do not observe `@Observable` state (a probe app: a menu item read
+  from an observed model kept its first state), so the menu bar changes only when the window's focused `CommandList`
+  changes. After a split nothing in that struct changed (same `pages`, same bindings), so Zoom Pane kept the
+  `enabled: false` it got while the tab had one card; AppKit matched ⇧⌘↩ to the disabled item and nothing ran
+  (libghostty and the key monitors do not take ⇧⌘↩). Fix: `menuBar(_:)`, a modifier that stores what the menu shows
+  (`Command.shown`: title, enabled, checked, key) plus the window, page, floating pane and keyboard card in the focused
+  value; `CommandList` is `Equatable` on that. Other stale states it fixes: ⌘[ ⌘] or ⌘D disabled from a menu built
+  before the store went live, Show Next Tab after the first ⌘T.
+- **Item 21.** ⌘[ ⌘] already stepped in tree order (`stepCard`); the keyboard simply stayed on the old card after a
+  split. `HostStore.split` returns herdr's new pane and `Page.split` gives it the keyboard through `follow(select:
+  false)`, as a move does, once a snapshot shows it. Every split path (header, menus, palette, ⌘D, ⇧⌘D) goes there.
+- **Item 23.** The table as written; Close Window and Resize Pane have no key, ⇧⌘W in a floating window stays Detach
+  Pane (it closes the window, as F2 chose). Orchestrator's addition: holding ⌃⌘ 0.7 s shows ⌃⌘1–9 keycaps at the end of
+  the first nine workspace rows (`sidebarWorkspaces` order, as the jumps); the hold logic is one `keycapHints`
+  modifier with the tabs' (`Keycap.swift`). ⌃⇥ / ⌃⇧⇥ stay second keys and show on the panel.
+- **Item 17.** `KeyboardShortcut.caps` (one glyph per modifier, then the key); a family's `keys` is now only the key
+  cap ("←→↑↓", "1–9"). Rows 30 pt, columns 380 pt and 48 pt apart, 24/28 pt padding; a small window scrolls it.
+- **Item 24.** `TabButton` drops `!selected` from the dots; D42 updated.
+- **Decisions.** `follow` without `select`: a split never pulls the page back to its tab. The menu identity strings
+  came from the spec review: an equal value keeps SwiftUI's old one and its closures, so two floating windows of one
+  session read the same and ⇧⌘W detached the first window's pane.
+- **Learned.** `NSMenu.performKeyEquivalent` matches a disabled item and swallows the key. A probe SwiftUI app with
+  `.prohibited` activation shows menu behavior without a window or focus.
+- **Tests.** `testSplitsGiveTheNewPaneTheKeyboardAndKeysFollowTheTree` (⌘D and the header button, ⌘[ ⌘] in tree order
+  that differs from creation order, ⇧⌘↩ after a split), `testHoldingControlCommandShowsWorkspaceKeycaps`,
+  `testEachFloatingWindowsKeysActOnItsOwnPane`, KeyTests' new close keys and panel rows (moved keys' old rows gone),
+  AgentTests' dots on the selected tab; the key tests that used ⇧⌘N, ⌥⌘W, ⌃⌘I, ⌃⌘→ moved.
+- **For the user to check by hand:** ⇧⌘↩ right after ⌘D; the panel's keycaps over a light wallpaper; ⌃⌘ held over the
+  sidebar; ⌥⌘T/⌥⌘W on a non-US layout.
+
 ## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
 
 Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/fb/agents-header.png` (item 18).
