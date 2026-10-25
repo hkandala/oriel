@@ -111,6 +111,8 @@
         @State private var drop = RowsDrop.State()
         /// A pane dragged over the header's `+`.
         @State private var plus = false
+        /// ⌃⌘ held for 0.7 s: keycaps on the first nine workspaces (their jump keys).
+        @State private var hints = false
 
         var body: some View {
             let store = page.store
@@ -165,7 +167,9 @@
                                 WorkspaceRow(workspace: row.workspace, parent: row.parent, page: page,
                                              guideBelow: rows.indices.contains(index + 1)
                                                  && rows[index + 1].parent != nil,
-                                             ends: (groups.first?.first?.id, groups.last?.first?.id))
+                                             ends: (groups.first?.first?.id, groups.last?.first?.id),
+                                             keycap: hints ? page.sidebarWorkspaces.prefix(9)
+                                                 .firstIndex { $0.id == id }.map { $0 + 1 } : nil)
                                     .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("rows")) } action: {
                                         if page.dragging == nil {
                                             frames[id] = $0
@@ -193,6 +197,7 @@
                         .padding(Sidebar.rowInsets)
                     }
                     .scrollIndicators(.never)
+                    .keycapHints([.command, .control], $hints)
                     .coordinateSpace(.named("rows"))
                     .onDrop(of: [.orielDrag], delegate: rowsDrop)
                     .clearsDrop(page) {

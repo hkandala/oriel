@@ -267,6 +267,7 @@ extension OrielUITests {
             XCTAssertEqual(element("tab.w1:t1.keycap").stringValue, "⌘1")
             // Only the tabs: the sidebar shows none.
             XCTAssertFalse(element("workspace.w1").label.contains("⌘"))
+            XCTAssertFalse(element("workspace.w1.keycap").exists)
             keepScreenshot("keycap hints")
         }
         XCTAssertTrue(keycap.vanishes(within: 2))

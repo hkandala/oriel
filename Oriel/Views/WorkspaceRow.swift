@@ -12,6 +12,8 @@
         let guideBelow: Bool
         /// The first and the last group's workspace: they cannot move up or down.
         let ends: (first: String?, last: String?)
+        /// 1…9 while ⌃⌘ is held: "⌃⌘1" at the end of the name's line.
+        let keycap: Int?
         @State private var renaming = false
         @Environment(\.look) private var look
 
@@ -26,6 +28,11 @@
                         StateIcon(state: state)
                         Text(workspace.label).font(.system(size: 13)).lineLimit(1).opacity(renaming ? 0 : 1)
                             .foregroundStyle(selected ? look.selected : look.chrome)
+                        // The keycap's room: the name gives way to it.
+                        if let keycap {
+                            Spacer(minLength: 0)
+                            Keycap(text: "⌃⌘\(keycap)").hidden()
+                        }
                     }
                     if let git {
                         HStack(spacing: 4) {
@@ -53,6 +60,15 @@
             .accessibilityAddTraits(selected ? .isSelected : [])
             .accessibilityValue([state?.word, git.map { "\($0.branch) ahead \($0.ahead) behind \($0.behind)" },
                                  parent.map { "worktree of \($0.label)" }].compactMap(\.self).joined(separator: ", "))
+            // At the end of the name's line, never over the name (user, phase 25). Over the button, so a test sees it.
+            .overlay(alignment: .topTrailing) {
+                if let keycap, !renaming {
+                    Keycap(text: "⌃⌘\(keycap)").frame(height: 30).padding(.trailing, 8)
+                        .transition(.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.13)),
+                                                removal: .opacity.animation(.easeOut(duration: 0.1))))
+                        .accessibilityIdentifier("workspace.\(workspace.id).keycap")
+                }
+            }
             .overlay(alignment: .leading) {
                 if renaming {
                     // Enter: herdr's label; the snapshot after it shows it.

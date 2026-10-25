@@ -32,9 +32,6 @@
         @State private var visible: ClosedRange<CGFloat> = 0 ... .infinity
         /// ⌘ held for 0.7 s: keycaps on the first nine tabs.
         @State private var hints = false
-        @State private var pendingHints: Task<Void, Never>?
-        @State private var monitor: Any?
-        @Environment(\.appearsActive) private var appearsActive
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.look) private var look
 
@@ -137,24 +134,8 @@
             .frame(height: Self.height + 10)
             .testValue("tabs.fades", "Tab Fades", [hidden.leading ? "leading" : nil, hidden.trailing ? "trailing" : nil]
                 .compactMap(\.self).joined(separator: ", "))
-            .onAppear {
-                if monitor == nil {
-                    monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown], handler: watch)
-                }
-            }
-            .onDisappear {
-                spring?.cancel()
-                pendingHints?.cancel()
-                monitor.map(NSEvent.removeMonitor)
-                monitor = nil
-            }
-            // ⌘-Tab away: the ⌘ release goes to the other app.
-            .onChange(of: appearsActive) {
-                if !appearsActive {
-                    pendingHints?.cancel()
-                    hints = false
-                }
-            }
+            .keycapHints(.command, $hints)
+            .onDisappear { spring?.cancel() }
         }
 
         /// A tab dragged along the track: it and the tabs it passes trade places as it goes (the others slide apart).
@@ -186,28 +167,6 @@
                 .frame(width: Self.width, height: Self.height - 2 * Self.inset)
                 .offset(x: offset * (Self.width + 1))
                 .allowsHitTesting(false)
-        }
-
-        /// ⌘ alone held 0.7 s with the window key shows the keycaps; releasing it hides them. A key pressed first
-        /// (⌘T) cancels.
-        private func watch(_ event: NSEvent) -> NSEvent? {
-            MainActor.assumeIsolated {
-                pendingHints?.cancel()
-                let command = event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command
-                // ponytail: any key window of the app, so ⌘ held in one window lights every window's keycaps;
-                // compare event.window to this bar's window to stop that.
-                if event.type == .flagsChanged, command, event.window?.isKeyWindow == true {
-                    pendingHints = Task {
-                        try? await Task.sleep(for: .milliseconds(700))
-                        if !Task.isCancelled {
-                            hints = true
-                        }
-                    }
-                } else if !command {
-                    hints = false
-                }
-            }
-            return event
         }
     }
 #endif
