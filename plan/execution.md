@@ -25,8 +25,8 @@ for a small phase. The budget per phase:
 | E2E reviewer | round 1 only, at most 15 min of lock: drive the new UI through XCUITest (or by hand with screenshots) and read the tests; no full `make e2e` | later rounds, unless its own blocker was fixed (then single tests only) |
 | Spec and ponytail reviewers, verifier | none: read the code, the tests, the phase agent's final run and CI | any GUI run |
 
-- **Now:** the user works on the Mac (2026-10-24); the orchestrator holds the lock for "user". UI tests
-  run on CI only.
+- **Now:** the user lets agents use the GUI (2026-10-25 03:20); local GUI runs are allowed under the GUI
+  budget. CI ad-hoc runs stay available.
 - **Ad-hoc UI tests on CI** (when the GUI is paused; about 2.5 min for two tests). Push the commit to main
   (`[skip ci]` in the subject for a WIP step), then:
   `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB`,
