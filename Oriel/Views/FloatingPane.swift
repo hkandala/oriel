@@ -134,13 +134,15 @@
             return HStack(spacing: gap) {
                 if let pane {
                     PaneInfo(pane: pane).layoutPriority(1).accessibilityIdentifier("\(id).info")
+                    // The pane, then its place, a step quieter (user, phase 28).
+                    Rectangle().fill(look.divider).frame(width: 1, height: 12)
                 }
                 // One line; the session's name gives way first, in its middle.
                 HStack(spacing: 0) {
                     Text(page.store.title).truncationMode(.middle)
                     Text(rest).layoutPriority(1)
                 }
-                .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                .font(.system(size: 11)).foregroundStyle(.tertiary).lineLimit(1)
                 .accessibilityElement(children: .ignore)
                 .accessibilityAddTraits(.isStaticText)
                 .accessibilityValue(page.store.title + rest)
@@ -223,10 +225,10 @@
                 })
             }
 
-            /// A new floating window: 60 % of its main window, at least 720 × 460 pt, centered over it (user, phase
-            /// 27). AppKit keeps it on the screen.
+            /// A new floating window: 60 % of its main window's width and 75 % of its height, at least 720 × 560 pt,
+            /// centered over it (user, phases 27 and 28). AppKit keeps it on the screen.
             static func frame(over main: NSWindow) -> NSRect {
-                let width = max(720, main.frame.width * 0.6), height = max(460, main.frame.height * 0.6)
+                let width = max(720, main.frame.width * 0.6), height = max(560, main.frame.height * 0.75)
                 let frame = NSRect(x: main.frame.midX - width / 2, y: main.frame.midY - height / 2, width: width,
                                    height: height)
                 return main.constrainFrameRect(frame, to: main.screen)
@@ -234,8 +236,8 @@
         }
     }
 
-    /// A floated pane's quick info, in its window's title row and its card in the tab: its icon, its program and
-    /// folder (or its label), and its agent's state.
+    /// A floated pane's quick info in its window's title row: its icon, its program and folder (or its label), and
+    /// its agent's state.
     private struct PaneInfo: View {
         let pane: HostStore.Pane
 
@@ -256,19 +258,22 @@
         }
     }
 
-    /// A floated pane's card in its tab: its quick info, and the whole card a button that brings its window to the
-    /// front (user, phase 27).
+    /// A floated pane's card in its tab, under its header: a line that says where the pane is, and Show Pane, which
+    /// brings its window to the front (user, phase 28).
     struct FloatedPlaceholder: View {
         let page: Page
         let pane: HostStore.Pane
 
         var body: some View {
-            Button { page.float(pane) } label: {
-                PaneInfo(pane: pane).padding(gap).frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: 12) {
+                Text("This pane is open in a floating window.").foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("pane.\(pane.id).floating")
+                Button("Show Pane") { page.float(pane) }.buttonStyle(.glass)
+                    .accessibilityIdentifier("pane.\(pane.id).show")
             }
-            .buttonStyle(ChromeStyle(radius: 8))
-            .padding([.horizontal, .bottom], gap)
-            .accessibilityIdentifier("pane.\(pane.id).show")
+            .padding(gap)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 

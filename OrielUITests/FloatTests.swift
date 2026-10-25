@@ -34,8 +34,9 @@ extension OrielUITests {
         XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
     }
 
-    /// A new floating window: 60 % of the main window (at least 720 × 460 pt) centered over it, the main window's title
-    /// row and traffic lights, title-row buttons; the card in the tab is one button with the pane's info (phase 27).
+    /// A new floating window: 60 % of the main window's width and 75 % of its height (at least 720 × 560 pt) centered
+    /// over it, the main window's title row and traffic lights, title-row buttons, a separator between the pane's info
+    /// and its place (phases 27, 28); the card in the tab says where the pane is and offers Show Pane (phase 28).
     func testFloatingWindowOpensLargeWithTheMainWindowsTitleRow() async throws {
         let (tab, first) = try await newTab("float-frame")
         let second = try await split(first)
@@ -44,7 +45,7 @@ extension OrielUITests {
         let window = try float(second)
         let frame = window.frame, frames = "\(frame) over \(main)"
         XCTAssertEqual(frame.width, max(720, main.width * 0.6), accuracy: 2, frames)
-        XCTAssertEqual(frame.height, max(460, main.height * 0.6), accuracy: 2, frames)
+        XCTAssertEqual(frame.height, max(560, main.height * 0.75), accuracy: 2, frames)
         XCTAssertEqual(frame.midX, main.midX, accuracy: 2, frames)
         XCTAssertEqual(frame.midY, main.midY, accuracy: 2, frames)
 
@@ -64,17 +65,22 @@ extension OrielUITests {
             XCTAssertEqual(button.midY - frame.minY, 23, accuracy: 1, "\(button) in \(frame)")
         }
 
-        // The pane's program and folder in the title row, and in the card in the tab, which is the button.
+        // The pane's program and folder in the title row, then a 1 pt separator 8 pt from each, then its place.
         let info = element("float.\(second).info", in: window)
         XCTAssertTrue(info.stringValue.hasSuffix("tmp"), info.debugDescription)
+        let place = element("float.\(second).place", in: window).frame
+        XCTAssertEqual(place.minX - info.frame.maxX, 2 * 8 + 1, accuracy: 1, "\(place) after \(info.frame)")
+
+        // In the tab, under the card's header: a line that says where the pane is, and Show Pane in the middle.
         element("tab.\(tab)").click()
         let show = element("pane.\(second).show"), card = element("pane.\(second)").frame
         XCTAssertTrue(show.exists(within: 3))
-        XCTAssertEqual(show.frame.width, card.width - 16, accuracy: 3, "\(show.frame) in \(card)")
-        XCTAssertGreaterThan(show.frame.height, card.height / 2, "\(show.frame) in \(card)")
-        XCTAssertTrue((show.label + show.stringValue).contains("tmp"), show.debugDescription)
+        XCTAssertEqual(show.label, "Show Pane")
+        XCTAssertEqual(element("pane.\(second).floating").stringValue, "This pane is open in a floating window.")
+        XCTAssertEqual(show.frame.midX, card.midX, accuracy: 1, "\(show.frame) in \(card)")
+        XCTAssertLessThan(show.frame.width, card.width / 2, "\(show.frame) in \(card)")
         keepScreen("floating window over the main window")
-        show.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.9)).click()
+        show.click()
         // Not through `window`: XCUITest dropped that element once the window came forward (CI 40196255503). The
         // card in the tab has no terminal, so this one is the floating window's.
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
