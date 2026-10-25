@@ -85,7 +85,8 @@ unless the prototype proves a part wrong (then fix the page and say why).
   path) lives there. `Exec.herdr()` now throws, so "cannot reach the machine" is never "herdr is not installed".
 - Execs are kept by target, as sockets are (`~/Library/Caches/oriel/<8 hex of the target's SHA-256>`).
 - Automatic starts time out after 30 s (ConnectTimeout covers only TCP and the banner); `-O check` after 5 s.
-- A master that outlived a crashed app is used (`-O check` before a start); a killed one's socket is removed.
+- A master that outlived a crashed app is not used (it may hold that app's sessions); the socket is removed and a
+  new master starts.
 - Remote Start runs `nohup herdr --session S server` over SSH (`exec is SSHExec` in `startServer`).
 - Notification ids are `‹machine id›|‹session›|‹terminal id›`; a remote session's notification and Dock row show
   the machine's name.

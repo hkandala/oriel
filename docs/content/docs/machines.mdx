@@ -65,7 +65,8 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
     is gone (killed, or ended by its keepalive) is started again by the next
     run. Its socket stays behind when it was killed, and a new master does not
     bind over it, so the app removes it first. A master that outlived an app
-    that crashed is found by `-O check` and used.
+    that crashed is not used: it may still hold that app's sessions. It ends
+    10 min after its last one.
   - Starting the master first means one password, OTP or key prompt per host.
     With `ControlMaster=auto`, parallel first calls each prompt. Starts are
     one at a time per host; runs that need a master wait for the start in

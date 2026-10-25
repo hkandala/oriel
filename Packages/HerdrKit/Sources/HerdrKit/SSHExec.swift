@@ -148,12 +148,10 @@
         /// Starts the master and waits until it serves (`-f`: ssh goes to the background once authenticated). Without
         /// `ask`, BatchMode: a host that needs an answer fails at once and blocks.
         private func start(_ ask: Ask?) async throws {
-            // One that outlived an app that crashed is still good.
-            mux = await pid()
-            if mux != nil {
-                return started()
-            }
-            // A master killed hard leaves its socket, and a new one does not bind over it.
+            mux = nil
+            // A master killed hard leaves its socket, and a new one does not bind over it. One that outlived an app
+            // that crashed is not used: it may still hold that app's sessions (sshd allows 10); it ends by itself
+            // 10 min after its last one.
             unlink(socket)
             // Forwarding off: a machine cannot reach the Mac's agent or ports through the long-lived connection.
             // ssh's keepalive ends a dead link's master within 15 s; the next run starts a new one.
