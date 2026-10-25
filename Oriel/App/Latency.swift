@@ -2,6 +2,7 @@
     import AppKit
     import HerdrKit
     import Observation
+    import SwiftUI
 
     /// e2e (`-recordLatency YES`): for each key or click, the time from the event to the end of the run loop turn whose
     /// Core Animation commit drew a change of the key window (its page, workspace, tab, tabs, cards, panel or dialog),
@@ -16,6 +17,8 @@
         @ObservationIgnored private var pending: Pending?
         private struct Pending {
             let name: String, time: TimeInterval, state: String
+            /// When the app got the event.
+            let got = ProcessInfo.processInfo.systemUptime
             var turns = 0
         }
 
@@ -45,7 +48,8 @@
             let elapsed = ProcessInfo.processInfo.systemUptime - pending.time
             if state != pending.state {
                 self.pending = nil
-                recorded.append("\(pending.name) \(Int(elapsed * 1000))ms \(pending.turns)")
+                let got = Int((pending.got - pending.time) * 1000)
+                recorded.append("\(pending.name) \(Int(elapsed * 1000))ms \(pending.turns) got \(got)")
             } else if elapsed > 3 {
                 self.pending = nil
             } else {
@@ -62,6 +66,19 @@
                     tab?.tree?.paneIDs.joined(separator: ",") ?? "", page.zoomedPaneID ?? "",
                     page.closing == nil ? "" : "closing", panel].joined(separator: " ")
         }
+
+        /// The sidebar's pages: how long a swipe moved on after the fingers lifted, "swipe 480ms".
+        func scrolled(_ phase: ScrollPhase) {
+            guard Self.isOn else { return }
+            if phase == .decelerating {
+                lifted = ProcessInfo.processInfo.systemUptime
+            } else if phase == .idle, let lifted {
+                recorded.append("swipe \(Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000))ms")
+                self.lifted = nil
+            }
+        }
+
+        @ObservationIgnored private var lifted: TimeInterval?
 
         private static func glyphs(_ flags: NSEvent.ModifierFlags) -> String {
             [(NSEvent.ModifierFlags.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")]

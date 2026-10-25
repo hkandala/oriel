@@ -51,6 +51,7 @@
                 .scrollPosition($position)
                 .scrollIndicators(.never)
                 .onScrollPhaseChange { _, phase in
+                    Latency.shared.scrolled(phase)
                     if phase == .idle, let id = position.viewID(type: String.self), id != pages.current?.id,
                        let page = pages.list.first(where: { $0.id == id })
                     {

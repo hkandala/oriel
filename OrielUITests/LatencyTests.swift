@@ -21,6 +21,8 @@ extension OrielUITests {
         let palette = element("palette.filter"), openSession = element("open-session.filter")
         key("k", .command) { palette.exists }
         key(XCUIKeyboardKey.escape.rawValue, []) { !palette.exists }
+        key("k", .command) { palette.exists }
+        key(XCUIKeyboardKey.escape.rawValue, []) { !palette.exists }
         key("n", [.command, .shift]) { openSession.exists }
         key(XCUIKeyboardKey.escape.rawValue, []) { !openSession.exists }
         key("2", .command) { self.element("tab.w1:t2").isSelected }
@@ -38,6 +40,12 @@ extension OrielUITests {
         try await settle([made])
         key("w", .command) { cards.count == 1 }
         key("w", [.command, .option]) { !self.element("tab.\(made)").exists }
+        // Half a page: the snap does the rest.
+        let sidebar = element("sidebar"), header = element("sidebar.header")
+        try await swipe(sidebar, by: sidebar.frame.width / 2, until: header, \.stringValue, two)
+        try await Task.sleep(for: .seconds(1))
+        try await swipe(sidebar, by: sidebar.frame.width / 2, until: header, \.stringValue, one)
+        try await Task.sleep(for: .seconds(1))
 
         let recorded = element("app.latency").stringValue
         let attachment = XCTAttachment(string: recorded)

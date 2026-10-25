@@ -241,10 +241,10 @@
         }
 
         /// The tab's title, from herdr's label; herdr's default label (a bare number) gives the front card's program
-        /// and folder instead (D65).
+        /// and folder instead (D65), "New Tab" until the program is known (a new pane's is asked a second late).
         func title(_ tab: HostStore.Tab) -> (name: String, folder: String?) {
-            guard !tab.label.isEmpty, tab.label.allSatisfy(\.isNumber), let pane = stack(tab).first,
-                  let name = pane.programName else { return (tab.label, nil) }
+            guard !tab.label.isEmpty, tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
+            guard let pane = stack(tab).first, let name = pane.programName else { return ("New Tab", nil) }
             // The folder's name ("pi oriel"), as in Rex: a tab is narrow.
             return (name, pane.folder.map { $0 == "~" ? $0 : ($0 as NSString).lastPathComponent })
         }
