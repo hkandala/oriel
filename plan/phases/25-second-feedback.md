@@ -393,3 +393,22 @@ Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/f
     behind shows through it. Make it as readable as the palette: a thicker material or a tint under it, so
     text behind is only a soft blur; check over a busy terminal in all four looks. Apply the same to any
     other floating glass (agents popover, menus) that has the same problem.
+
+### Lane T: tab preview and card rim (user, 2026-10-25 02:30)
+
+27. **Live tab preview on hover.** The tab hover card also shows a preview of the tab: its cards in their
+    layout, like the drag image when a pane is grabbed (240 × 150 pt), drawn from the panes' real terminal
+    content. Live if it is not much work (refresh while the card is open; at most a few frames a second);
+    else the last picture of each pane. It must cost nothing while no hover card is open, and must not take
+    a terminal away from its card (a terminal view lives in one place). Pick the simplest way that can grow
+    into item 29; write the choice in the design pages. New view: send the orchestrator one rough CI
+    screenshot before polishing.
+28. **Card rim like Rex** (`.build/fb/rex-border.png`): Rex's cards have a thin light glass rim (brighter at
+    the top edge). Oriel's cards have none. Add the same rim to every card in Glass (Classic: check what
+    Rex does and match it), light and dark, without making the keyboard card stand out more (item 1).
+
+### Later (not in this phase)
+
+29. **Overview of all tabs** (`.build/fb/overview.png`, the user's reference): a full-window view of every
+    tab of a workspace as live previews in a grid, under the workspace name, scrolling through workspaces;
+    for watching many agents at a glance. Item 27 lays its base.
