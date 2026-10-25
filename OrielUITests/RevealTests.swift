@@ -124,7 +124,15 @@ extension OrielUITests {
 
     /// The share of pixels whose brightness is far from the image's median: about 0 for an empty card.
     private static func ink(_ image: NSImage) -> Double {
-        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return 0 }
+        let brightness = brightness(image)
+        guard !brightness.isEmpty else { return 0 }
+        let median = brightness.sorted()[brightness.count / 2]
+        return Double(brightness.count { abs($0 - median) > 60 }) / Double(brightness.count)
+    }
+
+    /// Each pixel's brightness, 0–255; none when the image does not draw.
+    static func brightness(_ image: NSImage) -> [Int] {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return [] }
         let width = cgImage.width, height = cgImage.height
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         let drawn = pixels.withUnsafeMutableBytes { buffer in
@@ -133,11 +141,9 @@ extension OrielUITests {
                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
                 .map { $0.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height)) } != nil
         }
-        guard drawn, width * height > 0 else { return 0 }
-        let brightness = stride(from: 0, to: pixels.count, by: 4).map {
+        guard drawn else { return [] }
+        return stride(from: 0, to: pixels.count, by: 4).map {
             (Int(pixels[$0]) + Int(pixels[$0 + 1]) + Int(pixels[$0 + 2])) / 3
         }
-        let median = brightness.sorted()[brightness.count / 2]
-        return Double(brightness.count { abs($0 - median) > 60 }) / Double(brightness.count)
     }
 }
