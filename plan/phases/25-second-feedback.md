@@ -489,3 +489,27 @@ Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/f
 29. **Overview of all tabs** (`.build/fb/overview.png`, the user's reference): a full-window view of every
     tab of a workspace as live previews in a grid, under the workspace name, scrolling through workspaces;
     for watching many agents at a glance. Item 27 lays its base.
+
+### Lane O: memory and CPU (user, 2026-10-25 03:00)
+
+30. Measured on the user's Mac (Release build, about 50 minutes up, agents working): Oriel used 1.2 GB
+    (footprint; 828 MB IOSurface for 17 live terminals, about 49 MB each, plus 83 MB other GPU memory) and
+    17–32% of one core (60% peak); its 18 `herdr … terminal session` helpers used 112 MB and about 0.1% CPU.
+    A 5 s `sample` showed the main thread mostly in SwiftUI's AttributeGraph updates. The user: "our app
+    shouldn't take this much memory and CPU". Analyse fully, then optimise wherever it pays:
+    - **GPU buffers:** keep live terminal surfaces only for a bounded set (LRU, a small number beyond the
+      visible cards, chosen by measurement); free the others' surfaces and rebuild on show, with phase 24's
+      no-blank and reveal rules intact (a rebuilt card must not flash or stay empty).
+    - **Hidden terminals:** pause drawing for every terminal not on screen (other tabs, other workspaces and
+      sessions, minimized or occluded windows), and resume on show.
+    - **One herdr helper per session** instead of one per terminal, if it has no cons (check herdr 0.9.5's
+      stream API: can one `terminal session` process carry several terminals, and what happens to control
+      hand-off, observe/takeover, sizes and floating windows); if it has cons, write them down and keep one
+      per terminal.
+    - **SwiftUI main-thread work:** find what invalidates the views on each snapshot or output change and
+      on the working-dot animation, and cut it (narrower observation, equatable views, one clock for all
+      dots).
+    - Measure before and after on the same scenario (a script that builds a throwaway session with many
+      tabs and panes, some running output, and samples footprint and CPU with `footprint`, `top`, `sample`).
+      Targets: memory about what the visible cards need; idle CPU a few percent; no regression in snappiness
+      (lane S's numbers). Put the numbers in the Findings.
