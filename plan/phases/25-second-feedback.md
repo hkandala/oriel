@@ -373,7 +373,11 @@ found none). If herdr has none, floating is Oriel's own.
   close tab 165 / 39 → 0 turns; ⌘K 432 then 238 ms → 234 then 153 ms (both in the key's turn); tab, workspace and session
   keys were in the key's turn already (32–140 ms of SwiftUI render on the VM); the sidebar's snap after a lifted half
   swipe 217 ms → 53 ms (270 ms on a runner twice as slow, 40181336917, so the test records it and does not bound it).
-  The herdr-backed keys are asserted in their turn or the next (the action's task); herdr's answer takes 10 or more. A slower runner (40175942806) had ⌘T 482 ms / 49 turns and a first ⌘K of 881 ms (the first menu
+  The herdr-backed keys are asserted in their turn or the next (the action's task); herdr's answer takes 10 or more.
+  On this Mac (one local run, Retina, motion on, debug): ⌘K 219 then 175 ms, tab keys 44–47 ms, workspace keys
+  101–144 ms, swipes 82 and 163 ms. A `sample` of that run shows about two thirds of the main thread in XCUITest's
+  accessibility snapshots (and SwiftUI's accessibility focus walk, on only while accessibility is in use): without a
+  test, opening and closing the palette took about 30 ms of main thread each. A slower runner (40175942806) had ⌘T 482 ms / 49 turns and a first ⌘K of 881 ms (the first menu
   key of a launch pays AppKit's one-time menu donation setup). A herdr call is a new `remote-api-bridge` run: 15–170 ms
   here (about 20 or 140), and the bridge takes one request per run, so calls cannot be batched.
 - **Root cause, item 13.** A new pane's program is asked a second late (its shell's startup), and `Page.title` showed
