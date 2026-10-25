@@ -40,8 +40,8 @@ extension OrielUITests {
     }
 
     /// No card fades (phase 25 dropped the setting), in a key window and one that is not. In Glass the cards look
-    /// alike over a dark and a light desktop: the keyboard card at most a little brighter. Read from pixels, the one
-    /// place the look shows (as `RevealTests` do).
+    /// alike: the keyboard card at most a little brighter. Read from pixels, the one place the look shows (as
+    /// `RevealTests` do).
     func testCardsLookAlikeWithAndWithoutTheKeyboard() throws {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         element("terminal.w1:p1").click()
@@ -58,27 +58,17 @@ extension OrielUITests {
         }
         app.typeKey(.escape, modifierFlags: [])
 
-        // A window of the test runner under every other window stands in for the desktop picture.
-        let desktop = NSWindow(contentRect: NSScreen.screens[0].frame, styleMask: .borderless, backing: .buffered,
-                               defer: false)
-        desktop.level = NSWindow.Level(Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
-        desktop.isReleasedWhenClosed = false
-        desktop.orderFront(nil)
+        // CI's VM draws the glass backdrop opaque whatever the desktop shows (a runner window under Oriel in black,
+        // white and blue changed no pixel of it), so a desktop's effect is not checked here.
         pick("Interface Style", "Glass")
-        addTeardownBlock { @MainActor [self] in
-            desktop.close()
-            pick("Appearance", "Dark")
-        }
+        addTeardownBlock { @MainActor [self] in pick("Appearance", "Dark") }
         for appearance in ["Dark", "Light"] {
             pick("Appearance", appearance)
-            for (name, color) in [("black", NSColor.black), ("white", .white), ("blue", .systemBlue)] {
-                desktop.backgroundColor = color
-                // The blur follows the window behind it within a frame or two.
-                Thread.sleep(forTimeInterval: 0.5)
-                let lit = median(keyboard), unlit = median(other)
-                keepScreenshot("glass \(appearance.lowercased()) over \(name): \(lit) / \(unlit)")
-                XCTAssertTrue((0 ... 6).contains(lit - unlit), "\(appearance) over \(name): \(lit) / \(unlit)")
-            }
+            // The fills follow the look within a frame or two.
+            Thread.sleep(forTimeInterval: 0.3)
+            let lit = median(keyboard), unlit = median(other)
+            keepScreenshot("glass \(appearance.lowercased()): \(lit) / \(unlit)")
+            XCTAssertTrue((0 ... 6).contains(lit - unlit), "\(appearance): \(lit) / \(unlit)")
         }
 
         // A window that is not key draws its cards at full strength too.
