@@ -7,17 +7,19 @@ extension OrielUITests {
         let second = try await split(first)
         element("tab.\(tab)").click()
         XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
-        hoverHeader(second)
-        element("pane.\(second).float").click()
-
-        let window = app.windows.containing(.any, identifier: "float.\(second)").firstMatch
-        XCTAssertTrue(window.exists(within: 5))
+        let window = try float(second)
         XCTAssertTrue(element("terminal.\(second)", in: window).exists(within: 3))
         XCTAssertTrue(element("pane.\(second).show").exists(within: 3))
         // herdr keeps the pane in its tab.
         try await expect("both panes in herdr's tab") { try await order(tab) == [first, second] }
         XCTAssertTrue(element("float.\(second).place").has(\.stringValue, "\(one) › beta › float", within: 3))
-        keepScreen("floating window and placeholder")
+
+        // The main window's keyboard card is never the placeholder, also on ⌘].
+        element("tab.\(tab)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        app.typeKey("]", modifierFlags: .command)
+        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(window.exists)
 
         // Keys go to the floated terminal.
         window.click()
@@ -32,30 +34,41 @@ extension OrielUITests {
         XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
     }
 
-    func testFloatingWindowHasItsOwnCommandsAndComesBackAfterRelaunch() async throws {
+    /// Two floating windows, one on top, its own ⌘K, and both back after ⌘Q and a relaunch.
+    func testFloatingWindowsHaveTheirOwnCommandsAndComeBackAfterRelaunch() async throws {
         // As testRelaunchRestoresThePagesThatStillRun: ⌘Q saves the window.
         app.launchArguments = ["-session", one, "-NSQuitAlwaysKeepsWindows", "YES"]
         app.launch()
         let (tab, first) = try await newTab("float-keep")
-        let second = try await split(first)
+        let second = try await split(first), third = try await split(second)
         element("tab.\(tab)").click()
-        element("terminal.\(second)").click()
+        // Each through the palette, on the keyboard card: no floating window covers a card's header then.
+        element("terminal.\(third)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
+        openPalette().typeText("float pane")
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(element("float.\(third)").exists(within: 5))
+        // Back in the main window, ⌘] skips the floated card.
+        element("tab.\(tab)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        app.typeKey("]", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
         openPalette().typeText("float pane")
         app.typeKey(.return, modifierFlags: [])
-        let window = app.windows.containing(.any, identifier: "float.\(second)").firstMatch
-        XCTAssertTrue(window.exists(within: 5))
+        let pinned = app.windows.containing(.any, identifier: "float.\(second)").firstMatch
+        XCTAssertTrue(pinned.exists(within: 5))
 
         // ⌘K in the floating window: its commands only, no places.
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: window)))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: pinned)))
         openPalette()
-        XCTAssertTrue(element("palette.command.Detach Pane", in: window).exists(within: 2))
-        XCTAssertFalse(element("palette.command.New Tab", in: window).exists)
-        XCTAssertFalse(element("palette.tab.\(tab)", in: window).exists)
+        XCTAssertTrue(element("palette.command.Detach Pane", in: pinned).exists(within: 2))
+        XCTAssertFalse(element("palette.command.New Tab", in: pinned).exists)
+        XCTAssertFalse(element("palette.tab.\(tab)", in: pinned).exists)
         app.typeText("stay on top")
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("float.\(second).pin").has(\.stringValue, "on", within: 2))
-        keepScreen("floating window on top")
+        XCTAssertTrue(element("float.\(third).pin").has(\.stringValue, "off", within: 2))
+        keepScreen("two floating windows, one on top")
 
         app.typeKey("q", modifierFlags: .command)
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
@@ -64,11 +77,14 @@ extension OrielUITests {
         let back = app.windows.containing(.any, identifier: "float.\(second)").firstMatch
         XCTAssertTrue(back.exists(within: connect))
         XCTAssertTrue(element("float.\(second).pin").has(\.stringValue, "on", within: 3))
+        XCTAssertTrue(element("float.\(third).pin").has(\.stringValue, "off", within: 3))
         XCTAssertTrue(element("pane.\(second).show").exists(within: 3))
+        XCTAssertTrue(element("pane.\(third).show").exists)
 
-        // herdr closed the pane: its window closes.
+        // herdr closed a pane: its window closes, the other stays.
         try await Self.call(one, "pane.close", ["pane_id": second])
         XCTAssertTrue(back.vanishes(within: 5))
+        XCTAssertTrue(element("float.\(third)").exists)
     }
 
     func testClosingAFloatedPaneAsksInItsWindow() async throws {
@@ -76,16 +92,47 @@ extension OrielUITests {
         let second = try await split(first)
         try await runSleep(second)
         element("tab.\(tab)").click()
-        hoverHeader(second)
-        element("pane.\(second).float").click()
-        let window = app.windows.containing(.any, identifier: "float.\(second)").firstMatch
-        XCTAssertTrue(window.exists(within: 5))
+        let window = try float(second)
         element("float.\(second).close").click()
         let confirm = window.sheets.buttons["Close Pane"]
         XCTAssertTrue(confirm.exists(within: 5))
         confirm.click()
         XCTAssertTrue(window.vanishes(within: 5))
         try await expect("the pane closed in herdr") { try await order(tab) == [first] }
+    }
+
+    /// A floating window on top over the main window, in Glass and Classic, dark and light.
+    func testFloatingWindowInEachLook() async throws {
+        let (tab, first) = try await newTab("float-look")
+        let second = try await split(first)
+        element("tab.\(tab)").click()
+        let window = try float(second)
+        element("float.\(second).pin").click()
+        XCTAssertTrue(element("float.\(second).pin").has(\.stringValue, "on", within: 2))
+        // The main window's menu bar has the looks; the window on top stays in view.
+        element("tab.\(tab)").click()
+        addTeardownBlock { @MainActor [self] in
+            pick("Interface Style", "Glass")
+            pick("Appearance", "Dark")
+        }
+        for (menu, item, look) in [("Interface Style", "Glass", "glass dark"), ("Appearance", "Light", "glass light"),
+                                   ("Interface Style", "Classic", "classic light"),
+                                   ("Appearance", "Dark", "classic dark")]
+        {
+            pick(menu, item)
+            XCTAssertTrue(element("window.look").has(\.stringValue, look, within: 3))
+            XCTAssertTrue(window.isHittable)
+            keepScreen("floating window, \(look)")
+        }
+    }
+
+    /// The card's Float button; its window, once it shows.
+    func float(_ pane: String) throws -> XCUIElement {
+        hoverHeader(pane)
+        element("pane.\(pane).float").click()
+        let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
+        XCTAssertTrue(window.exists(within: 5))
+        return window
     }
 
     /// The whole screen: the main window and the floating ones.
