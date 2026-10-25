@@ -74,6 +74,61 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
     }
 
+    /// In every look the card over a busy terminal shows the text behind only as a soft blur: its empty part is far
+    /// less sharp than the same text below the card (Liquid Glass alone let it read clearly, user, phase 25).
+    func testHoverCardBlursTheTextBehindIt() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, pane) = try await newTab("busy")
+        element("tab.\(tab)").click()
+        let line = String(repeating: "@#W", count: 60)
+        try await send("clear; yes '\(line)' | head -300\r", to: pane)
+        try await waitFor(pane) { $0.components(separatedBy: "@#W@#W@#W").count > 50 }
+        pick("Interface Style", "Glass")
+        addTeardownBlock { @MainActor [self] in
+            pick("Interface Style", "Glass")
+            pick("Appearance", "Dark")
+        }
+        let card = element("hovercard")
+        for (menu, item, look) in [("Appearance", "Dark", "glass dark"), ("Appearance", "Light", "glass light"),
+                                   ("Interface Style", "Classic", "classic light"),
+                                   ("Appearance", "Dark", "classic dark")]
+        {
+            pick(menu, item)
+            element("workspace.w1").hover()
+            XCTAssertTrue(card.vanishes(within: 2), look)
+            element("tab.\(tab)").hover()
+            XCTAssertTrue(card.exists(within: 2), look)
+            // The pane row's empty right part, and the same rect over the bare terminal below the card.
+            let frame = card.frame
+            let empty = CGRect(x: frame.midX, y: frame.minY + 40, width: frame.width / 2 - 16, height: 20)
+            var sharp = (card: 0.0, bare: 0.0)
+            // The card fades in, and the terminal draws its lines.
+            let blurred = until(2) {
+                sharp = (sharpness(empty), sharpness(empty.offsetBy(dx: 0, dy: 100)))
+                return sharp.bare > 4 && sharp.card < sharp.bare * 0.3
+            }
+            keepScreenshot("\(look): card \(sharp.card), bare \(sharp.bare)")
+            XCTAssertTrue(blurred, "\(look): card \(sharp.card), bare \(sharp.bare)")
+        }
+    }
+
+    /// The mean brightness step between neighbor pixels in a rect of the window (screen points): high for crisp text,
+    /// low for a blur.
+    private func sharpness(_ rect: CGRect) -> Double {
+        let window = app.windows.firstMatch
+        let shot = window.screenshot().image
+        let scale = shot.size.width > 0 ? Double(shot.representations.first?.pixelsWide ?? 0) / shot.size.width : 1
+        let box = rect.offsetBy(dx: -window.frame.minX, dy: -window.frame.minY)
+        guard let full = shot.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let crop = full.cropping(to: CGRect(x: box.minX * scale, y: box.minY * scale,
+                                                  width: box.width * scale, height: box.height * scale))
+        else { return 0 }
+        let brightness = Self.brightness(NSImage(cgImage: crop, size: .zero)), width = crop.width
+        let steps = brightness.indices.filter { ($0 + 1) % width != 0 && $0 + 1 < brightness.count }
+            .map { abs(brightness[$0 + 1] - brightness[$0]) }
+        return steps.isEmpty ? 0 : Double(steps.reduce(0, +)) / Double(steps.count)
+    }
+
     /// The tooltip and the VoiceOver label are one string (`IconButton`). macOS gives the help tag's text to no
     /// accessibility attribute, and on CI the tag showed in one run of two, so the label stands in for it.
     func testChromeButtonsNameTheirShortcuts() {

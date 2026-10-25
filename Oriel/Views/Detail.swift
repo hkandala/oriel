@@ -41,7 +41,7 @@ struct Notice {
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 36)
-            .glassEffect()
+            .floatingGlass(in: .capsule)
             .accessibilityElement(children: .contain)
         }
     }

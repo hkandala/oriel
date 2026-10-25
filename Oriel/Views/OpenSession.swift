@@ -34,7 +34,7 @@
             }
             .padding(8)
             .frame(width: 420)
-            .glassEffect(.regular, in: .rect(cornerRadius: 14))
+            .floatingGlass(in: .rect(cornerRadius: 14))
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Open Session")
             .task {

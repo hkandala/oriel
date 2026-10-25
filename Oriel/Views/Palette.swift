@@ -32,7 +32,7 @@
             }
             .padding(8)
             .frame(width: 480)
-            .glassEffect(.regular, in: .rect(cornerRadius: 14))
+            .floatingGlass(in: .rect(cornerRadius: 14))
             // Rex's preview delay.
             .task(id: lit) {
                 guard command?.previews == true, let lit,

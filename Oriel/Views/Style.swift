@@ -325,6 +325,13 @@ struct IconButton: View {
 }
 
 extension View {
+    /// Floating glass (panels, hover panels, the find bar, notices): the system glass over a material, so the text
+    /// behind is only a soft blur. Liquid Glass alone is thin on a small panel, and a terminal read clearly through
+    /// the hover card (user, phase 25).
+    func floatingGlass(in shape: some Shape) -> some View {
+        glassEffect(.regular, in: shape).background(.regularMaterial, in: shape)
+    }
+
     /// A panel over the window (the workspace menu, Open Session, the palette): a click outside it or Esc closes it.
     func floatingPanel(open: Binding<Bool>, alignment: Alignment) -> some View {
         Color.clear.contentShape(.rect).onTapGesture { open.wrappedValue = false }

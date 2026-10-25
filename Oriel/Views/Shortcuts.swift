@@ -19,7 +19,7 @@
                 panel
                 ScrollView { panel }.scrollIndicators(.never)
             }
-            .glassEffect(.regular, in: .rect(cornerRadius: 14))
+            .floatingGlass(in: .rect(cornerRadius: 14))
             .padding(.vertical, 16)
             // The panel takes the keyboard, so Esc reaches it.
             .focusable()

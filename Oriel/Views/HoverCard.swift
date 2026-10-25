@@ -210,7 +210,7 @@
                 .padding(6)
                 // Not narrower when it fits: the screen lines come in after it shows and would widen it.
                 .frame(width: 280, alignment: .leading)
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                .floatingGlass(in: .rect(cornerRadius: 12))
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Panes of \(page.titleText(tab))")
                 .accessibilityIdentifier("hovercard")

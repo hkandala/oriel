@@ -239,7 +239,7 @@
             .padding(.leading, 12)
             .padding(.trailing, 6)
             .frame(width: 320, height: 32)
-            .glassEffect()
+            .floatingGlass(in: .capsule)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("find")
             // A second ⌘F while the bar is open: the field again.

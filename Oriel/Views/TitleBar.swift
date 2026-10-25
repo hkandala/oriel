@@ -243,7 +243,7 @@
                        maxHeight: 340) { open = false }
                 .padding(8)
                 .frame(width: 300)
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                .floatingGlass(in: .rect(cornerRadius: 12))
         }
 
         private func items(_ filter: String) -> [FilterList.Item] {
