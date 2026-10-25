@@ -24,18 +24,20 @@ extension OrielUITests {
 
     func testAPasswordHostAsksAndNeverRetriesByItself() async throws {
         try await skipWithoutSSH()
-        // Not one an earlier test left: it would need no password.
+        // Not one an earlier test left: it would need no password. Its host key is new again.
         try await Self.post("\(one)/ssh-drop", Data("oriel-pw".utf8))
+        try await Self.post("\(one)/ssh-forget", Data("oriel-pw".utf8))
         relaunch(one, ["-machines", "[]"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         addHost("Password Host", "oriel-pw")
-        // A new host key: its fingerprint, and yes or no (accepted once per CI machine).
+        // A new host key: its fingerprint on a line of its own, and Connect instead of ssh's yes or no.
         let text = element("ask.text")
         XCTAssertTrue(text.exists(within: connect))
-        if (text.value as? String ?? "").contains("fingerprint") {
-            keepScreenshot("host key")
-            element("ask.ok").click()
-        }
+        let facts = text.value as? String ?? ""
+        XCTAssertTrue(facts.contains("fingerprint is:\nSHA256:"), facts)
+        XCTAssertFalse(facts.contains("yes/no"), facts)
+        keepScreenshot("host key")
+        element("ask.ok").click()
         // A wrong password: ssh asks again.
         try typePassword("wrong")
         try typePassword()
