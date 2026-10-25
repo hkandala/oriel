@@ -379,6 +379,8 @@
             if made == nil {
                 store.dropStandIn(standIn)
             } else if arriving == standIn {
+                // Not the first new tab of the workspace a snapshot showed (another client's): herdr's answer wins.
+                store.ahead.arrived[standIn] = nil
                 arriving = made
             }
         }

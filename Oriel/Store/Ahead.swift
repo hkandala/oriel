@@ -48,10 +48,12 @@ struct Ahead {
         var trees = snapshot.trees.compactMapValues { $0.removing(closing) }
         if let split {
             let now = snapshot.trees[split.tabID]
-            let even = now?.paneIDs.first { !split.known.contains($0) }.map { now?.evened(around: $0).isEmpty == true }
+            let even = now.flatMap { tree in
+                tree.paneIDs.first { !split.known.contains($0) }.map { tree.evened(around: $0).isEmpty }
+            } == true
             // Once herdr answered: the first snapshot with its pane evened, else the second (a ratio herdr kept its own
             // way, or a snapshot read before the answer).
-            if now == nil || split.after.map({ $0 > 0 || even == true }) == true {
+            if now == nil || split.after.map({ $0 > 0 || even }) == true {
                 self.split = nil
             } else {
                 trees[split.tabID] = split.tree.removing(closing)
@@ -130,11 +132,12 @@ extension HostStore {
             func next() {
                 guard let id = rest.popFirst() else { return }
                 group.addTask {
+                    let ask = { try await client.program(id).flatMap { $0.isShell ? nil : $0.title } }
                     do {
-                        var name = try await client.program(id).flatMap { $0.isShell ? nil : $0.title }
+                        var name = try await ask()
                         for _ in 0 ..< (starting.contains(id) ? 5 : 0) where name != nil {
                             try await Task.sleep(for: .milliseconds(200))
-                            name = try await client.program(id).flatMap { $0.isShell ? nil : $0.title }
+                            name = try await ask()
                         }
                         return name
                     } catch {
