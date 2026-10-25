@@ -23,13 +23,14 @@
             let terminal = pane.flatMap(page.terminal)
             // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
             let lit = pane.map { page.keyboardCard($0.tabID) === $0 } ?? false
-            let follow = hovering && settings.followMouse && !away && active
+            let floated = pane.map(page.floats) ?? false
+            let follow = hovering && settings.followMouse && !away && active && !floated
             // The watching window's dim (D66), on the header and the terminal.
             let content = page.watched ? 0.85 : 1
             VStack(spacing: 0) {
                 header(pane, zoomed: zoomed, showsButtons: lit || hovering || zoomed).opacity(content)
                 Group {
-                    if let pane, page.floats(pane) {
+                    if let pane, floated {
                         FloatedPlaceholder(page: page, pane: pane)
                     } else if let terminal {
                         // Rex's text starts 12 pt in from the card's edge.
@@ -174,12 +175,14 @@
             let store = page.store
             return HStack(spacing: 2) {
                 if !zoomed {
-                    IconButton(symbol: "pip.enter", help: "Float Pane", size: 22) {
-                        if let pane = store.pane(id) {
-                            page.float(pane)
-                        }
-                    }
-                    .accessibilityIdentifier("pane.\(id).float")
+                    // Lit on a floated pane's card, where it brings the window to the front.
+                    IconButton(symbol: "pip.enter", help: "Float Pane", size: 22,
+                               accent: store.pane(id).map(page.floats) == true, action: {
+                                   if let pane = store.pane(id) {
+                                       page.float(pane)
+                                   }
+                               })
+                               .accessibilityIdentifier("pane.\(id).float")
                     IconButton(symbol: "rectangle.split.2x1", help: "Split Right", key: .splitRight, size: 22) {
                         Task { await page.split(id, .right) }
                     }

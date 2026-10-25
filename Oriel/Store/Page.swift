@@ -302,14 +302,6 @@
             go(to: pane)
         }
 
-        /// The keyboard goes to the previous or next card in the tab's tree, round the ends.
-        func stepCard(_ offset: Int) {
-            guard let ids = selectedTab?.tree?.paneIDs, let from = keyboardPane,
-                  let index = ids.firstIndex(of: from.id),
-                  let pane = store.pane(ids[(index + offset + ids.count) % ids.count]) else { return }
-            go(to: pane)
-        }
-
         /// The pane goes to another tab or workspace; the page follows it there and it keeps the keyboard.
         func move(_ pane: HostStore.Pane, to destination: Destination) async {
             let terminalID = pane.terminalID
@@ -367,6 +359,15 @@
     }
 
     extension Page {
+        /// The keyboard goes to the previous or next card in the tab's tree, round the ends; not to a floated one.
+        func stepCard(_ offset: Int) {
+            guard let ids = selectedTab?.tree?.paneIDs.filter({ store.pane($0).map(floats) != true }),
+                  let from = keyboardPane,
+                  let index = ids.firstIndex(of: from.id),
+                  let pane = store.pane(ids[(index + offset + ids.count) % ids.count]) else { return }
+            go(to: pane)
+        }
+
         /// Go to Directory (`directory`, a `cd`) or Insert Path: the system panel at the keyboard card's folder, fresh
         /// from herdr, then the chosen path typed into the card, quoted. Go to Directory asks again that the card runs
         /// only its shell (D41). ponytail: This Mac only; remote machines need another picker.
