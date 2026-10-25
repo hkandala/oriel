@@ -128,8 +128,6 @@
                     // The page's title: the rows' size, bold (user, phase 27).
                     Text(store.title).truncationMode(.middle)
                         .font(.system(size: 13, weight: .bold)).foregroundStyle(.primary).lineLimit(1)
-                        // Before the sort menu's label, which gives way first.
-                        .layoutPriority(1)
                         .accessibilityIdentifier("sidebar.header")
                     Spacer()
                     if let agents {
@@ -250,6 +248,8 @@
             .menuStyle(.button)
             // A small button, as the header buttons: a capsule filled on hover (user, phase 27).
             .buttonStyle(ChromeStyle(radius: 11))
+            // Whole: the session's name gives way.
+            .fixedSize()
             .accessibilityIdentifier("agents.sort")
             .accessibilityValue(sort.rawValue)
         }

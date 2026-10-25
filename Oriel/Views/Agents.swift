@@ -306,13 +306,7 @@ struct StatusBadge: View {
                     folded = keys.joined(separator: "\n")
                 }
             } label: {
-                HStack(spacing: 4) {
-                    Text("\(text) \(count)").lineLimit(1)
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
-                }
-                .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
-                .contentShape(.rect)
+                GroupLabel(text: "\(text) \(count)", open: open)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("\(text) \(count)")
@@ -324,6 +318,26 @@ struct StatusBadge: View {
         private func row(_ pane: HostStore.Pane, place: String? = nil) -> some View {
             AgentButton(pane: pane, page: page, place: place)
                 .hoverPanel(place: .beside) { close in HoverCard(tabID: pane.tabID, page: page, close: close) }
+        }
+    }
+
+    /// A group label's text and chevron: the chevron points right while folded, and shows down only under the
+    /// pointer while open, as in a macOS sidebar.
+    private struct GroupLabel: View {
+        let text: String
+        let open: Bool
+        @State private var hovering = false
+
+        var body: some View {
+            HStack(spacing: 4) {
+                Text(text).lineLimit(1)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
+                    .opacity(open && !hovering ? 0 : 1)
+            }
+            .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
+            .contentShape(.rect)
+            .onHover { hovering = $0 }
         }
     }
 
