@@ -37,19 +37,20 @@ enum AgentSort: String {
 }
 
 /// Rex's three working dots: each fades 0.3 → 0.85 → 0.3 over 1.2 s, 0.2 s after the one before, from the wall
-/// clock so every tab is in step. At most 15 frames a second; still under Reduce Motion.
+/// clock so every tab is in step. At most 15 frames a second; still under Reduce Motion (but with `-forceMotion`).
 struct WorkingDots: View {
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.offscreen) private var offscreen
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 15, paused: reduceMotion || offscreen)) { context in
+        let still = reduceMotion && !Animation.forceMotion
+        TimelineView(.animation(minimumInterval: 1 / 15, paused: still || offscreen)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
             HStack(spacing: 2) {
                 ForEach(0 ..< 3, id: \.self) { index in
                     RoundedRectangle(cornerRadius: 1.75).fill(look.working).frame(width: 3.5, height: 3.5)
-                        .opacity(reduceMotion ? 0.6 : Self.opacity(time - 0.2 * Double(index)))
+                        .opacity(still ? 0.6 : Self.opacity(time - 0.2 * Double(index)))
                 }
             }
             .frame(width: 14, height: 14)

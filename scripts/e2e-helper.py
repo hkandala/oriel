@@ -15,6 +15,9 @@ app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <sessi
 `--args`). The folder's path comes back.
 POST /<session>/reveal-file makes a file whose name needs shell escaping in a new folder in /tmp and shows it in a Finder
 window (`open -R`), for a drag from Finder. The file's path comes back.
+POST /<session>/usage with a number of seconds as the body measures the app (the one process named Oriel, on CI) over
+that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory.
+POST /<session>/sample with a number of seconds as the body gives `sample`'s report of the app over that time.
 Any session not named on the command line is refused.
 """
 
@@ -27,10 +30,40 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 
 split = sys.argv.index("--")
 sessions, command = sys.argv[1:split], sys.argv[split + 1:]
 folders = []
+
+
+def app_pid():
+    return subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
+
+
+def cpu_seconds(pids):
+    """The CPU time the processes used so far (`ps`'s [[h:]m:]s.cc)."""
+    if not pids:
+        return 0.0
+    out = subprocess.run(["ps", "-o", "time=", "-p", ",".join(pids)], capture_output=True, text=True).stdout
+    return sum(sum(float(part) * 60 ** index for index, part in enumerate(reversed(line.strip().split(":"))))
+               for line in out.splitlines() if line.strip())
+
+
+def usage(session, seconds):
+    pid = app_pid()
+    pattern = f"^[^ ]*herdr --session {session} terminal session"
+    helpers = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True).stdout.split()
+    start, app_start, helpers_start = time.time(), cpu_seconds([pid]), cpu_seconds(helpers)
+    time.sleep(seconds)
+    wall = time.time() - start
+    app_cpu, helpers_cpu = cpu_seconds([pid]) - app_start, cpu_seconds(helpers) - helpers_start
+    rss = subprocess.run(["ps", "-o", "rss=", "-p", ",".join(helpers)], capture_output=True, text=True).stdout \
+        if helpers else ""
+    summary = subprocess.run(["footprint", pid], capture_output=True, text=True).stdout.splitlines()
+    return "\n".join([f"cpu {100 * app_cpu / wall:.1f}%",
+                      f"helpers {len(helpers)} {sum(int(n) for n in rss.split()) // 1024} MB "
+                      f"{100 * helpers_cpu / wall:.1f}%"] + summary[:16]).encode()
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -40,7 +73,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder",
-                            "reveal-file"):
+                            "reveal-file", "usage", "sample"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
@@ -59,6 +92,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             open(path, "w").close()
             run = subprocess.run(["open", "-R", path], capture_output=True, timeout=10)
             status, reply = (200, path.encode()) if run.returncode == 0 else (500, run.stderr)
+        elif action == "usage":
+            status, reply = 200, usage(session, float(body or b"10"))
+        elif action == "sample":
+            path = os.path.join(tempfile.mkdtemp(prefix="oriel-e2e-sample-", dir="/tmp"), "sample.txt")
+            folders.append(os.path.dirname(path))
+            subprocess.run(["sample", app_pid(), body.decode() or "3", "-file", path], capture_output=True, timeout=60)
+            with open(path, "rb") as file:
+                status, reply = 200, file.read()
         elif action == "start":
             env = {k: v for k, v in os.environ.items() if not k.startswith("HERDR_")}
             subprocess.Popen(["herdr", "--session", session, "server"], env=env, stdin=subprocess.DEVNULL,
