@@ -23,7 +23,7 @@ extension OrielUITests {
         key("[", [.command, .control]) { self.element("workspace.w1").isSelected }
         key("]", [.command, .option]) { self.header == self.two }
         key("[", [.command, .option]) { self.header == self.one }
-        // Half a page: the slide does the rest; from the fingers' lift to rest, "swipe 53ms".
+        // Half a page: the slide does the rest ("swipe 230ms …", from the fingers' lift to its last step).
         let sidebar = element("sidebar"), name = element("sidebar.header")
         try await swipe(sidebar, by: sidebar.frame.width / 2, until: name, \.stringValue, two)
         try await Task.sleep(for: .seconds(1))
@@ -103,6 +103,57 @@ extension OrielUITests {
         }
         XCTAssertTrue(element("tab.\(two[1])").has(\.isSelected, true, within: 3))
         XCTAssertFalse(app.sheets.firstMatch.exists)
+    }
+
+    /// A two-finger swipe between sessions (phase 27): the page follows the fingers, and from their lift slides on
+    /// to the next page with the session spring, from their speed: no jump or stall at the lift, no bounce, calmer
+    /// than phase 25's 0.14 s spring. A trackpad's events at a known speed (`scripts/swipe.swift`): XCUITest's scroll
+    /// is one flick, at the page before the fingers lift.
+    func testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed() async throws {
+        try launchRecordingLatency(["-forceMotion", "YES"])
+        openPage(two)
+        element("sidebar.dot.\(one)").click()
+        XCTAssertTrue(until(3) { header == one })
+        let sidebar = element("sidebar"), width = sidebar.frame.width
+        // 14 steps of 10 pt, 16 ms apart (625 pt/s), past half a page, then momentum; the other way if natural
+        // scrolling is off.
+        for sign in [-1.0, 1.0] {
+            let center = "\(sidebar.frame.midX) \(sidebar.frame.midY)"
+            try await Self.post("\(one)/swipe", Data("\(center) \(10 * sign) 14 m".utf8))
+            // No accessibility query during the slide: XCUITest's snapshots take the main thread (a 240 ms stall).
+            try await Task.sleep(for: .seconds(1))
+            if header == two {
+                break
+            }
+        }
+        XCTAssertEqual(header, two)
+        let swipe = try XCTUnwrap(element("app.latency").stringValue.split(separator: "; ")
+            .last { $0.hasPrefix("swipe") })
+        let words = swipe.split(separator: " "), speed = 600.0
+        let path = words.count > 2 ? words[2].split(separator: ",").map { point in
+            point.split(separator: ":").compactMap { Double($0) }
+        } : []
+        XCTAssertGreaterThan(path.count, 4, "\(swipe)")
+        let times = path.map { $0[0] }, offsets = path.map { $0[1] }
+        // The page went 140 pt with the fingers, give or take the system's own pace.
+        XCTAssertEqual(offsets[0], 140, accuracy: 40, "\(swipe)")
+        // The next page, one page width over (the sidebar's minus its 8 pt handle), never past it, never back.
+        let target = offsets.last ?? 0
+        XCTAssertEqual(target, width - 8, accuracy: 2, "\(swipe)")
+        XCTAssertTrue(zip(offsets, offsets.dropFirst()).allSatisfy { $0 <= $1 }, "\(swipe)")
+        // Within 2 pt of the page: 0.14 s from rest takes about 0.13 s; the 0.2 s spring from the fingers' speed 0.17
+        // to 0.19 s here, the system's snap 0.33 s.
+        let settled = path.first { abs($0[1] - target) <= 2 }?[0] ?? 0
+        XCTAssertGreaterThan(settled, 150, "\(swipe)")
+        XCTAssertLessThan(settled, 400, "\(swipe)")
+        // A step at least every 100 ms until then: no stall (a slide started at the scroll view's own end stood still
+        // 100–350 ms, then jumped). A debug build under XCUITest still drops a few frames at the start (about 50 ms).
+        let steps = times.filter { $0 <= settled }
+        XCTAssertLessThan(zip(steps, steps.dropFirst()).map { $1 - $0 }.max() ?? 1000, 100, "\(swipe)")
+        // Its first 60 ms keep at least half the fingers' speed: no jump, no stall.
+        let early = path.last { $0[0] <= 60 } ?? path[0]
+        XCTAssertGreaterThan((early[1] - offsets[0]) / max(early[0], 1) * 1000, speed / 2, "\(swipe)")
+        XCTAssertLessThan((early[1] - offsets[0]) / max(early[0], 1) * 1000, speed * 3, "\(swipe)")
     }
 
     private func launchRecordingLatency(_ args: [String] = []) throws {

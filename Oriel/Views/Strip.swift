@@ -38,7 +38,7 @@
                     }
                 }
                 .scrollTargetLayout()
-                .background(StripAnchor(step: turn))
+                .background(ScrollAnchor(step: turn))
             }
             .scrollTargetBehavior(.paging)
             .scrollPosition($position, anchor: .leading)

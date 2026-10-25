@@ -64,20 +64,29 @@
                     page.closing == nil ? "" : "closing", panel].joined(separator: " ")
         }
 
-        /// The sidebar's pages: how long a swipe moved on after the fingers lifted, "swipe 480ms".
-        func scrolled(_ old: ScrollPhase, _ phase: ScrollPhase) {
-            guard Self.isOn else { return }
-            // To a snap (decelerating) or to the session spring's slide (animating).
-            if old == .interacting {
-                lifted = ProcessInfo.processInfo.systemUptime
-            }
-            if phase == .idle, let lifted {
-                recorded.append("swipe \(Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000))ms")
-                self.lifted = nil
+        /// The sidebar's pages after a swipe's lift: their offset at each change for 0.8 s, in ms from the lift; first
+        /// the ms to the last change: "swipe 230ms 0:145,8:152,…" (phase 27). Not to the scroll's idle: the session
+        /// slide's scroll to the page ends the phase as it starts.
+        func scrolled(_ old: ScrollPhase, _: ScrollPhase, _ context: ScrollPhaseChangeContext) {
+            guard Self.isOn, old == .interacting else { return }
+            lifted = ProcessInfo.processInfo.systemUptime
+            slide = []
+            slid(context.geometry.contentOffset.x)
+            Task {
+                try? await Task.sleep(for: .seconds(0.8))
+                let path = slide.map { "\($0.0):\(Int($0.1.rounded()))" }.joined(separator: ",")
+                recorded.append("swipe \(slide.last?.0 ?? 0)ms \(path)")
+                lifted = nil
             }
         }
 
+        func slid(_ offset: Double) {
+            guard let lifted else { return }
+            slide.append((Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000), offset))
+        }
+
         @ObservationIgnored private var lifted: TimeInterval?
+        @ObservationIgnored private var slide: [(Int, Double)] = []
 
         private static func glyphs(_ flags: NSEvent.ModifierFlags) -> String {
             [(NSEvent.ModifierFlags.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")]

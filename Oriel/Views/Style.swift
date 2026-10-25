@@ -9,8 +9,6 @@ extension Animation {
     static let tab = Animation.spring(response: 0.28, dampingFraction: 1)
     /// e2e (`-forceMotion YES`): layout motion and the sidebar's slide even with Reduce Motion, which CI's Mac has on.
     static let forceMotion = UserDefaults.standard.bool(forKey: "forceMotion")
-    /// The sidebar's session pages: half the tab spring, as the user asked for a clearly quicker swipe (phase 25).
-    static let session = Animation.spring(response: 0.14, dampingFraction: 1)
 }
 
 /// The appearance setting (D44): Auto follows macOS.

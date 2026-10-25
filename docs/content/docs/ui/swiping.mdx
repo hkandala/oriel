@@ -18,9 +18,15 @@ description: "Session pages in the sidebar and tab pages in the strip"
   that can scroll sideways (its content is wider than its frame). Over the
   sidebar, that is the sidebar's pages, not the page's list; over the strip,
   the strip. So swiping the sidebar never pages the strip, and the reverse.
-- A tab page slides with the strip's spring. A session page slides with a
-  spring twice as quick (response 0.14 s), and the window shows the session a
-  swipe lands on as the fingers lift, not after the slide (phase 25). Under
+- A tab page slides with the strip's spring. A session page follows the
+  fingers, and as they lift it slides on to the page it lands on with a
+  spring of response 0.2 s and no bounce (between the tab spring's 0.28 s and
+  phase 25's 0.14 s, which felt too quick), starting at the fingers' speed:
+  the next page that way, or back when the fingers stop. The app's scroll
+  monitor takes the gesture's end and its momentum from the scroll view, so
+  the system's own snap (about 0.4 s) never starts. The window shows that
+  session as the slide ends: shown at the lift, its first draw held the
+  slide still for up to 0.35 s, then it jumped (phase 27). Under
   Reduce Motion they switch without motion. The keys, a click on a tab and the palette show the tab's
   page at once, with no slide.
 - First visit to a session page: the app shows herdr's focused workspace and

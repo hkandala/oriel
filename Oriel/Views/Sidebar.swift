@@ -18,8 +18,9 @@
         @State private var filter = ""
         /// The page in view, as the scroll view has it.
         @State private var position = ScrollPosition(idType: String.self)
-        /// From a swipe's start to its rest.
-        @State private var swiping = false
+        /// For a swipe's lift. Not state: a scroll or a slide redraws nothing (a state set as the slide began held
+        /// its first frames).
+        @State private var swipe = Swipe()
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.look) private var look
 
@@ -48,33 +49,32 @@
                         }
                     }
                     .scrollTargetLayout()
+                    .background(ScrollAnchor(lift: lift))
                 }
-                // The page a swipe lands on shows as the fingers lift, and slides there with the quick spring, not
-                // the system's slower snap (phase 25).
-                .scrollTargetBehavior(SessionPaging { index in
-                    Task {
-                        // A swipe's, not a layout's (a restored window's first pages would show the first page).
-                        if swiping, pages.list.indices.contains(index), pages.list[index] !== pages.current {
-                            pages.show(pages.list[index])
-                        }
-                    }
-                })
+                .scrollTargetBehavior(.paging)
                 .scrollPosition($position)
                 .scrollIndicators(.never)
-                .onScrollPhaseChange { old, phase in
-                    Latency.shared.scrolled(old, phase)
-                    swiping = phase == .interacting || swiping && phase != .idle
-                    if phase == .idle, let id = position.viewID(type: String.self), id != pages.current?.id,
+                .onScrollGeometryChange(for: Double.self) {
+                    $0.contentOffset.x / max($0.containerSize.width, 1)
+                } action: {
+                    swipe.pages = $1
+                }
+                .onScrollGeometryChange(for: Double.self) { $0.contentOffset.x } action: { Latency.shared.slid($1) }
+                .onScrollPhaseChange { old, phase, context in
+                    Latency.shared.scrolled(old, phase, context)
+                    // A mouse's wheel, which pages with the system's snap.
+                    if phase == .idle, !swipe.sliding, let id = position.viewID(type: String.self),
+                       id != pages.current?.id,
                        let page = pages.list.first(where: { $0.id == id })
                     {
                         pages.show(page)
                     }
                 }
-                // A dot, a key, a new page, the sheet or a swipe's end: slide there with the session spring.
+                // A dot, a key, a new page or the sheet: slide there with the session spring.
                 .onChange(of: pages.current?.id, initial: true) { old, new in
                     guard let new, position.viewID(type: String.self) != new else { return }
                     let still = reduceMotion && !Animation.forceMotion
-                    withAnimation(old == nil || still ? nil : .session) { position.scrollTo(id: new) }
+                    withAnimation(old == nil || still ? nil : .session()) { position.scrollTo(id: new) }
                     // A page that opened lays out in this same update, and a scroll to it can miss.
                     Task { position.scrollTo(id: new) }
                 }
@@ -310,15 +310,47 @@
         }
     }
 
-    /// Paging that says which page a swipe ends on, as the fingers lift.
-    private struct SessionPaging: ScrollTargetBehavior {
-        let landed: (Int) -> Void
+    final class Swipe {
+        /// The pages' offset, in pages.
+        var pages = 0.0
+        /// A swipe's slide to its page, until the window shows that session.
+        var sliding = false
+    }
 
-        func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
-            PagingScrollTargetBehavior.paging.updateTarget(&target, context: context)
-            if context.containerSize.width > 0 {
-                landed(Int((target.rect.minX / context.containerSize.width).rounded()))
+    extension Sidebar {
+        /// A swipe's lift (the router hands it over, with the fingers' speed in points a second): the pages slide on
+        /// from that speed to the next page that way, or back to the nearest one when slow, with the session spring;
+        /// the window shows that session as the slide ends. The system's own snap took about 0.4 s (too slow, phase
+        /// 25). Showing the session at the lift held the main thread for its first draw, and a slide started from the
+        /// scroll view's own end waited for its snap: the pages stood still 100–350 ms, then jumped (phase 27).
+        func lift(_ speed: Double) {
+            let width = max(Double(width - gap), 1), page = swipe.pages
+            let near = abs(speed) < 100 ? page.rounded() : speed > 0 ? page.rounded(.up) : page.rounded(.down)
+            let index = min(max(Int(near), 0), pages.list.count - 1)
+            guard pages.list.indices.contains(index) else { return }
+            let target = pages.list[index], still = reduceMotion && !Animation.forceMotion
+            swipe.sliding = true
+            let slide = Animation.session(speed: speed / width, distance: Double(index) - page)
+            withAnimation(still ? nil : slide, completionCriteria: .removed) {
+                position.scrollTo(id: target.id)
+            } completion: {
+                swipe.sliding = false
+                if target !== pages.current {
+                    pages.show(target)
+                }
             }
+        }
+    }
+
+    private extension Animation {
+        /// The sidebar's session pages: between the tab spring and phase 25's 0.14 s, which the user found too quick
+        /// and odd (phase 27), with no bounce. A swipe's slide starts at the fingers' `speed` toward the page
+        /// `distance`
+        /// away (in pages a second, and pages), so it goes on from the lift instead of starting again from rest.
+        static func session(speed: Double = 0, distance: Double = 0) -> Animation {
+            // Critically damped, it would go past the page from a relative speed over ω = 2π / response.
+            let response = 0.2, initial = distance == 0 ? 0 : min(max(speed / distance, 0), 2 * .pi / response)
+            return .interpolatingSpring(duration: response, bounce: 0, initialVelocity: initial)
         }
     }
 #endif

@@ -21,6 +21,7 @@ POST /<session>/ssh-drop with an SSH target as the body kills the app's ControlM
 would), and gives back the pids it killed, one per line.
 POST /<session>/ssh-forget with an SSH target as the body removes its host key from ~/.ssh/known_hosts, on CI only, so
 ssh asks for it again.
+POST /<session>/swipe with "x y step steps" as the body posts a two-finger trackpad swipe there (scripts/swipe.swift).
 POST /<session>/ssh-connections gives back how many connections the CI sshd (scripts/ci-sshd.sh) has seen.
 Any session not named on the command line is refused.
 """
@@ -73,12 +74,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder",
-                            "reveal-file", "usage", "ssh-drop", "ssh-forget", "ssh-connections"):
+                            "reveal-file", "usage", "ssh-drop", "ssh-forget", "ssh-connections", "swipe"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
         elif action in ("ssh-drop", "ssh-forget") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be an SSH target"
+        elif action == "swipe" and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}( m)?", body):
+            status, reply = 400, b"the body must be x y step steps"
+        elif action == "swipe":
+            run = subprocess.run(["swift", "scripts/swipe.swift"] + body.decode().split(), capture_output=True,
+                                 timeout=120)
+            status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "ssh-drop":
             pattern = f"ssh -M -N -f .* {body.decode()}$"
             pids = subprocess.run(["pgrep", "-f", pattern], capture_output=True).stdout
