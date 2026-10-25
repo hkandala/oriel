@@ -31,7 +31,13 @@
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(pages.list) { page in
-                            OverviewPage(page: page, size: strip.size, frames: frames, zooming: zoom?.tab.id) {
+                            OverviewPage(
+                                pages: pages,
+                                page: page,
+                                size: strip.size,
+                                frames: frames,
+                                zooming: zoom?.tab.id,
+                            ) {
                                 open(page, $0, $1)
                             }
                             .containerRelativeFrame([.horizontal, .vertical])
@@ -137,15 +143,17 @@
     }
 
     extension Page {
-        /// Every card's terminal of the session (terminal id → pane id), floated ones aside: the overview's.
-        var cardTerminals: [String: String] {
-            Dictionary(store.panes.compactMap { pane in floats(pane) ? nil : pane.terminalID.map { ($0, pane.id) } },
-                       uniquingKeysWith: { first, _ in first })
+        /// The cards' terminals of these tabs (terminal id → pane id), floated ones aside.
+        func cardTerminals(_ tabIDs: Set<String>) -> [String: String] {
+            Dictionary(store.panes.compactMap { pane in
+                tabIDs.contains(pane.tabID) && !floats(pane) ? pane.terminalID.map { ($0, pane.id) } : nil
+            }, uniquingKeysWith: { first, _ in first })
         }
     }
 
     /// One session: its workspaces in the sidebar's order, each its name over a grid of its tabs.
     private struct OverviewPage: View {
+        let pages: WindowPages
         let page: Page
         /// The strip's page.
         let size: CGSize
@@ -165,8 +173,15 @@
                                 .accessibilityIdentifier("overview.workspace.\(workspace.id)")
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 340), spacing: 16)], spacing: 16) {
                                 ForEach(workspace.tabs) { tab in
-                                    Tile(page: page, workspace: workspace, tab: tab, size: size, frames: frames,
-                                         zooming: zooming == tab.id) { open(workspace, tab) }
+                                    Tile(
+                                        pages: pages,
+                                        page: page,
+                                        workspace: workspace,
+                                        tab: tab,
+                                        size: size,
+                                        frames: frames,
+                                        zooming: zooming == tab.id,
+                                    ) { open(workspace, tab) }
                                 }
                             }
                         }
@@ -182,6 +197,7 @@
     /// A tab as one card: its title row (icon stack, title, status; × on hover) over the miniature of its page. The
     /// selected tab of its workspace has the keyboard card's look.
     private struct Tile: View {
+        let pages: WindowPages
         let page: Page
         let workspace: HostStore.Workspace
         let tab: HostStore.Tab
@@ -228,6 +244,10 @@
                 .padding([.horizontal, .bottom], gap)
             }
             .background(CardSurface(keyboard: selected))
+            // Only the tiles the lazy grid lays out stream: the cost follows the tiles in view, not the session (a
+            // card at full window costs 52 MB on Retina).
+            .onAppear { laidOut(true) }
+            .onDisappear { laidOut(false) }
             .contentShape(.rect)
             .onTapGesture(perform: open)
             .onHover { hovering = $0 }
@@ -237,6 +257,15 @@
             .accessibilityValue(selected ? "selected" : "")
             .accessibilityIdentifier("overview.tab.\(tab.id)")
             .accessibilityAction(.default, open)
+        }
+
+        private func laidOut(_ shown: Bool) {
+            if shown {
+                pages.overviewTabs.insert(tab.id)
+            } else {
+                pages.overviewTabs.remove(tab.id)
+            }
+            pages.showTerminals()
         }
     }
 

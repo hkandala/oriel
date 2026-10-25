@@ -583,16 +583,21 @@ once.
   pixels, and herdr's PTY never changes. No second surface, stream or copy;
   while the overview shows, the strip does not, so a terminal view is still in
   one place (D35). The strip's cards take their views back when it closes.
-- While the overview is open, every terminal of the session in view streams
-  and draws. Those are not visits: when the overview closes, a terminal shown
+- While the overview is open, the cards of the tiles it lays out (the grid is
+  lazy: the tiles in view and a few beside them) stream and draw; a tile
+  scrolled away lets its cards go again. Those are not visits: when the overview closes, a terminal shown
   only by it goes back to where it was (its surface and stream let go) and
   the recently shown set is unchanged (D46). Other sessions' pages, beside
   the one in view during a swipe, show each terminal's last picture.
 - Known limit: on a remote machine only the shown tab's cards are live; the
   others keep their last picture, since a connection holds about 10 SSH sessions
   ([SSH sessions](/docs/machines#ssh-sessions)).
-- Cost: every terminal of the session keeps a full-size surface while the
-  overview is open (measured in phase 27, lane V).
+- Cost: each card in view keeps a surface at its full card size (about 52 MB
+  for a full-window card on a Retina screen), so the cost follows the tiles in
+  view, not the session: lane O's scenario measured 164 MB with the strip and
+  about 710 MB with 12 cards in view (debug build, this Mac, Retina), back to
+  164 MB after. libghostty-spm takes its content scale only from the window,
+  so a smaller surface per miniature would need a change there.
 
 Options weighed: a second, small, observe-only surface per pane at a small
 font (a herdr run, a renderer and a font atlas per pane, and observe cannot

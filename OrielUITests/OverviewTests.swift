@@ -73,8 +73,8 @@ extension OrielUITests {
     }
 
     /// What the overview costs (phase 27): lane O's workspace of 6 tabs and 12 panes, 8 of them printing, only its
-    /// first tab shown. Open, every card of the session streams and draws; closed, the ones only it showed let go
-    /// (no visits, D46). Footprint and CPU of each step are in the result bundle.
+    /// first tab shown. Open, the cards of the tiles it lays out stream and draw; closed, the ones only it showed let
+    /// go (no visits, D46). Footprint and CPU of each step are in the result bundle.
     func testOverviewCostsAndLetsGoAfter() async throws {
         let (tabs, _) = try await newWorkspace("usage", tabs: 6)
         var panes: [String] = []
@@ -93,13 +93,22 @@ extension OrielUITests {
         let strip = try await measure("strip")
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(element("overview").exists(within: 2))
-        // Session one's 5 cards and these 12.
-        try await poll("every card to stream") { () async throws -> Int? in
+        // The tiles laid out (in view: the grid is lazy) stream their cards too.
+        try await poll("the tiles' cards to stream") { () async throws -> Int? in
             let count = try await helpers(measure("overview", seconds: 1))
-            return count >= 17 ? count : nil
+            return count > helpers(strip) ? count : nil
         }
-        keepScreenshot("overview of 6 tabs")
         let open = try await measure("overview")
+        // Down to the new workspace's tiles: those in view stream, the ones scrolled away let go.
+        let last = element("overview.tab.\(tabs[5])")
+        // Either way: the sign follows the natural scrolling setting.
+        for delta in [-3000.0, 3000, -3000] where !(last.exists && last.isHittable) {
+            element("overview").scroll(byDeltaX: 0, deltaY: delta)
+            _ = last.has(\.isHittable, true, within: 1)
+        }
+        XCTAssertTrue(last.isHittable)
+        keepScreenshot("overview of 6 tabs")
+        let scrolled = try await measure("overview, scrolled")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
         try await poll("the overview's streams to end") { () async throws -> Int? in
@@ -107,7 +116,7 @@ extension OrielUITests {
             return count == helpers(strip) ? count : nil
         }
         _ = try await measure("after the overview")
-        print("overview cost: strip\n\(strip)\nopen\n\(open)")
+        print("overview cost: strip\n\(strip)\nopen\n\(open)\nscrolled\n\(scrolled)")
     }
 
     /// The mean brightness of an element's pixels.
