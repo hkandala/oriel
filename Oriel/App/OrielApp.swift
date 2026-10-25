@@ -47,8 +47,9 @@ struct OrielApp: App {
                     FloatingWindow(floating: floating)
                 }
             }
-            .windowStyle(.hiddenTitleBar)
-            .defaultSize(width: 560, height: 360)
+            .windowToolbarStyle(.unifiedCompact)
+            // The floor of a new one's frame (FloatReader); AppKit's autosave after.
+            .defaultSize(width: 720, height: 460)
             .windowResizability(.contentMinSize)
             .restorationBehavior(.disabled)
             // Its scene's own File items (Close on ⌘W) came back over the main window's: ⌘W closed the main window.

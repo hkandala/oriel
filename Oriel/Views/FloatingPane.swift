@@ -44,8 +44,11 @@
         @Environment(\.openWindow) private var openWindow
         @Environment(\.dismissWindow) private var dismissWindow
 
+        private var look: Look {
+            Look(style: settings.style, dark: colorScheme == .dark)
+        }
+
         var body: some View {
-            let look = Look(style: settings.style, dark: colorScheme == .dark)
             let pages = WindowPages.windows.first { $0.list.contains { $0.floating[floating.terminalID] != nil } }
             let page = pages?.list.first { $0.id == floating.session && $0.floating[floating.terminalID] != nil }
             let pane = page?.store.panes.first { $0.terminalID == floating.terminalID }
@@ -57,11 +60,13 @@
             .frame(minWidth: 320, minHeight: 200)
             .ignoresSafeArea(edges: .top)
             .containerBackground(for: .window) { WindowBackground(look: look) }
+            // The main window's title row: an empty compact toolbar under it, the traffic lights on its 46 pt.
+            .toolbar { ToolbarSpacer(.flexible) }
             .toolbar(removing: .title)
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
             .environment(\.look, look)
             .navigationTitle(pane?.cardTitle ?? "terminal")
-            .background(FloatReader(terminalID: floating.terminalID,
+            .background(FloatReader(terminalID: floating.terminalID, main: pages?.window,
                                     pinned: page?.floating[floating.terminalID] == true,
                                     closed: { page?.floating[floating.terminalID] = nil }))
             // Also gone before it first drew (a Detach right after the Float).
@@ -124,7 +129,10 @@
                 .compactMap(\.self).map { " › \($0)" }.joined()
             let pinned = page.floating[floating.terminalID] == true
             let id = "float.\(pane?.id ?? "")"
-            return HStack(spacing: 2) {
+            return HStack(spacing: gap) {
+                if let pane {
+                    PaneInfo(pane: pane).layoutPriority(1)
+                }
                 // One line; the session's name gives way first, in its middle.
                 HStack(spacing: 0) {
                     Text(page.id).truncationMode(.middle)
@@ -135,39 +143,45 @@
                 .accessibilityAddTraits(.isStaticText)
                 .accessibilityValue(page.id + rest)
                 .accessibilityIdentifier("\(id).place")
-                Spacer(minLength: 8)
-                IconButton(symbol: pinned ? "pin.fill" : "pin", help: "Stay on Top", size: 22, accent: pinned) {
+                Spacer(minLength: 0)
+                // The title row's buttons (user, phase 27).
+                IconButton(symbol: pinned ? "pin.fill" : "pin", help: "Stay on Top", accent: pinned) {
                     page.floating[floating.terminalID]?.toggle()
                 }
                 .accessibilityValue(pinned ? "on" : "off")
                 .accessibilityIdentifier("\(id).pin")
-                IconButton(symbol: "xmark", help: "Close Pane", key: .closePane, size: 22) {
+                IconButton(symbol: "xmark", help: "Close Pane", key: .closePane) {
                     if let pane {
                         page.close(.pane(pane.id))
                     }
                 }
                 .accessibilityIdentifier("\(id).close")
-                IconButton(symbol: "pip.exit", help: "Detach Pane", key: .closeTab, size: 22) {
+                IconButton(symbol: "pip.exit", help: "Detach Pane", key: .closeTab) {
                     page.floating[floating.terminalID] = nil
                 }
                 .accessibilityIdentifier("\(id).detach")
             }
-            .foregroundStyle(page.store.writing ? .secondary : .primary)
-            // Right of the traffic lights, in the title bar's 28 pt.
-            .padding(.leading, 78).padding(.trailing, gap)
-            .frame(height: 28)
+            .foregroundStyle(look.chrome)
+            // The main window's title row: its height, and its start after the traffic lights.
+            .padding(.leading, TitleBar.inset(fullScreen: false)).padding(.trailing, gap)
+            .frame(height: TitleBar.height)
+            // The title bar is hidden, so the row's empty space moves the window.
+            .background { Color.clear.contentShape(.rect).gesture(WindowDragGesture()) }
         }
     }
 
     /// The floating window's AppKit side: Stay on Top, and its close, which detaches the pane.
     private struct FloatReader: NSViewRepresentable {
         let terminalID: String
+        /// The main window that floated the pane, for a new window's frame.
+        weak var main: NSWindow?
         let pinned: Bool
         let closed: () -> Void
 
         func makeNSView(context _: Context) -> Reader {
             let reader = Reader()
             reader.terminalID = terminalID
+            reader.main = main
             return reader
         }
 
@@ -183,42 +197,77 @@
             }
         }
 
-        final class Reader: NSView {
+        final class Reader: TrafficLights {
             var closed: () -> Void = {}
             var terminalID = ""
-            private var observer: NSObjectProtocol?
+            weak var main: NSWindow?
 
             override func viewDidMoveToWindow() {
                 super.viewDidMoveToWindow()
-                guard let window, observer == nil else { return }
+                guard let window else { return }
                 // AppKit keeps the frame for the next time the pane floats. ponytail: one defaults key per terminal
                 // ever floated; prune them if that ever matters.
-                window.setFrameAutosaveName("float \(terminalID)")
-                let close = NSWindow.willCloseNotification, center = NotificationCenter.default
-                observer = center.addObserver(forName: close, object: window, queue: .main) { [weak self] _ in
+                let name = "float \(terminalID)"
+                if !window.setFrameUsingName(name), let main {
+                    window.setFrame(Self.frame(over: main), display: false)
+                }
+                window.setFrameAutosaveName(name)
+                let center = NotificationCenter.default, close = NSWindow.willCloseNotification
+                observers.append(center.addObserver(forName: close, object: window, queue: .main) { [weak self] _ in
                     MainActor.assumeIsolated {
                         self?.closed()
-                        self?.observer.map(center.removeObserver)
+                        self?.stop()
                     }
+                })
+            }
+
+            /// A new floating window: 60 % of its main window, at least 720 × 460 pt and at most its screen, centered
+            /// over it (user, phase 27).
+            static func frame(over main: NSWindow) -> NSRect {
+                let screen = main.screen?.visibleFrame.size ?? main.frame.size
+                let width = min(max(720, main.frame.width * 0.6), screen.width)
+                let height = min(max(460, main.frame.height * 0.6), screen.height)
+                let frame = NSRect(x: main.frame.midX - width / 2, y: main.frame.midY - height / 2, width: width,
+                                   height: height)
+                return main.constrainFrameRect(frame, to: main.screen)
+            }
+        }
+    }
+
+    /// A floated pane's quick info, in its window's title row and its card in the tab: its icon, its program and
+    /// folder (or its label), and its agent's state.
+    private struct PaneInfo: View {
+        let pane: HostStore.Pane
+
+        var body: some View {
+            let (name, folder) = pane.header
+            HStack(spacing: 6) {
+                ProgramTile(icon: pane.iconID, letter: pane.letter)
+                let lead = name.map { "\($0) " } ?? ""
+                Text("\(lead)\(Text(folder).foregroundStyle(name == nil ? .primary : .secondary))")
+                    .fontWeight(.medium).lineLimit(1).truncationMode(.middle)
+                if let state = pane.state {
+                    StateCapsule(state: state)
                 }
             }
         }
     }
 
-    /// A floated pane's card in its tab: its icon, its name and Show, which brings its window to the front.
+    /// A floated pane's card in its tab: its quick info, and the whole card a button that brings its window to the
+    /// front (user, phase 27).
     struct FloatedPlaceholder: View {
         let page: Page
         let pane: HostStore.Pane
 
         var body: some View {
-            VStack(spacing: 10) {
-                ProgramTile(icon: pane.iconID, letter: pane.letter).scaleEffect(1.5)
-                Text(pane.cardTitle).foregroundStyle(.secondary).lineLimit(1)
-                Button("Show") { page.float(pane) }
-                    .accessibilityIdentifier("pane.\(pane.id).show")
+            Button { page.float(pane) } label: {
+                PaneInfo(pane: pane).padding(gap).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .padding(gap)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .buttonStyle(ChromeStyle(radius: 8))
+            .padding([.horizontal, .bottom], gap)
+            .accessibilityLabel("Show \(pane.cardTitle)")
+            .accessibilityValue(pane.state?.capsule ?? "")
+            .accessibilityIdentifier("pane.\(pane.id).show")
         }
     }
 

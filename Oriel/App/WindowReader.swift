@@ -23,17 +23,15 @@
             reader.lightsOff = { lightsOff += 1 }
         }
 
-        final class Reader: NSView {
+        final class Reader: TrafficLights {
             var changed: (Bool) -> Void = { _ in }
             var lightsOff: () -> Void = {}
             weak var pages: WindowPages?
-            private var observers: [NSObjectProtocol] = []
             /// e2e: the `-recordLights` counter.
             private var lightsObserver: CFRunLoopObserver?
 
             override func viewDidMoveToWindow() {
                 super.viewDidMoveToWindow()
-                stop()
                 guard let window else { return }
                 pages?.window = window
                 let center = NotificationCenter.default
@@ -52,21 +50,6 @@
                         MainActor.assumeIsolated { self?.changed(value) }
                     })
                 }
-                // AppKit lays the buttons out again on title changes (each tab or workspace switch), resizes, key
-                // changes and full screen. They go back in this view's layout, after AppKit's tiling and before the
-                // draw: a move from the frame notification is dropped for the button AppKit is moving
-                // (`setFrameOrigin:ignoreRentry:`), and one on the next turn came after a draw (phase 24).
-                let place: @Sendable (Notification) -> Void = { [weak self] _ in
-                    MainActor.assumeIsolated { self?.needsLayout = true }
-                }
-                for button in buttons(of: window) {
-                    observers.append(center.addObserver(forName: NSView.frameDidChangeNotification, object: button,
-                                                        queue: .main, using: place))
-                }
-                // Leaving full screen, the window still says full screen until it is out.
-                observers.append(center.addObserver(forName: NSWindow.didExitFullScreenNotification, object: window,
-                                                    queue: .main, using: place))
-                placeButtons()
                 if UserDefaults.standard.bool(forKey: "recordLights") {
                     recordLights()
                 }
@@ -97,44 +80,75 @@
                 lightsObserver = observer
             }
 
-            override func layout() {
-                super.layout()
-                placeButtons()
-            }
-
-            private func stop() {
-                observers.forEach(NotificationCenter.default.removeObserver)
-                observers = []
+            override func stop() {
+                super.stop()
                 lightsObserver.map(CFRunLoopObserverInvalidate)
                 lightsObserver = nil
             }
+        }
+    }
 
-            private func buttons(of window: NSWindow) -> [NSButton] {
-                [.closeButton, .miniaturizeButton, .zoomButton].compactMap(window.standardWindowButton)
+    /// Rex's traffic lights: centered on a title row of `TitleBar.height` at 23, 46 and 69 pt from the left (the
+    /// compact toolbar centers them at 19, 20), in the main window and the floating ones. Public AppKit: plain frame
+    /// changes of the standard buttons.
+    class TrafficLights: NSView {
+        var observers: [NSObjectProtocol] = []
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            stop()
+            guard let window else { return }
+            // AppKit lays the buttons out again on title changes (each tab or workspace switch), resizes, key
+            // changes and full screen. They go back in this view's layout, after AppKit's tiling and before the
+            // draw: a move from the frame notification is dropped for the button AppKit is moving
+            // (`setFrameOrigin:ignoreRentry:`), and one on the next turn came after a draw (phase 24).
+            let place: @Sendable (Notification) -> Void = { [weak self] _ in
+                MainActor.assumeIsolated { self?.needsLayout = true }
             }
-
-            /// Rex's traffic lights: centered on the title row at 23, 46 and 69 pt from the left (the compact
-            /// toolbar centers them at 19, 20). Public AppKit: plain frame changes of the standard buttons.
-            private func placeButtons() {
-                for (button, origin) in moved() {
-                    button.setFrameOrigin(origin)
-                }
+            let center = NotificationCenter.default
+            for button in buttons(of: window) {
+                observers.append(center.addObserver(forName: NSView.frameDidChangeNotification, object: button,
+                                                    queue: .main, using: place))
             }
+            // Leaving full screen, the window still says full screen until it is out.
+            observers.append(center.addObserver(forName: NSWindow.didExitFullScreenNotification, object: window,
+                                                queue: .main, using: place))
+            placeButtons()
+        }
 
-            /// The buttons off their place, each with its place in its superview; none in full screen.
-            private func moved() -> [(button: NSButton, origin: NSPoint)] {
-                guard let window, !window.styleMask.contains(.fullScreen) else { return [] }
-                return buttons(of: window).enumerated().compactMap { index, button in
-                    guard let superview = button.superview else { return nil }
-                    let size = button.frame.size, center = TitleBar.height / 2
-                    let frame = NSRect(x: center + CGFloat(index) * 23 - size.width / 2,
-                                       y: window.frame.height - center - size.height / 2, width: size.width,
-                                       height: size.height)
-                    let origin = superview.convert(frame, from: nil).origin
-                    // Only a real move: setting the frame posts the notification that leads here.
-                    let off = abs(button.frame.minX - origin.x) > 0.1 || abs(button.frame.minY - origin.y) > 0.1
-                    return off ? (button, origin) : nil
-                }
+        override func layout() {
+            super.layout()
+            placeButtons()
+        }
+
+        func stop() {
+            observers.forEach(NotificationCenter.default.removeObserver)
+            observers = []
+        }
+
+        private func buttons(of window: NSWindow) -> [NSButton] {
+            [.closeButton, .miniaturizeButton, .zoomButton].compactMap(window.standardWindowButton)
+        }
+
+        private func placeButtons() {
+            for (button, origin) in moved() {
+                button.setFrameOrigin(origin)
+            }
+        }
+
+        /// The buttons off their place, each with its place in its superview; none in full screen.
+        func moved() -> [(button: NSButton, origin: NSPoint)] {
+            guard let window, !window.styleMask.contains(.fullScreen) else { return [] }
+            return buttons(of: window).enumerated().compactMap { index, button in
+                guard let superview = button.superview else { return nil }
+                let size = button.frame.size, center = TitleBar.height / 2
+                let frame = NSRect(x: center + CGFloat(index) * 23 - size.width / 2,
+                                   y: window.frame.height - center - size.height / 2, width: size.width,
+                                   height: size.height)
+                let origin = superview.convert(frame, from: nil).origin
+                // Only a real move: setting the frame posts the notification that leads here.
+                let off = abs(button.frame.minX - origin.x) > 0.1 || abs(button.frame.minY - origin.y) > 0.1
+                return off ? (button, origin) : nil
             }
         }
     }
