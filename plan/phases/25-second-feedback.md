@@ -273,6 +273,34 @@ found none). If herdr has none, floating is Oriel's own.
 - **For the user to check by hand:** ⌘W and ⌥⌘W on a tab where pi runs, and on one with only a shell. Stop on a
   session open in another Oriel window (that page turns "not running", and Start brings it back).
 
+### Lane P (items 18, 19, 20, 26)
+
+- **Root causes.** 18: the session name was 12 pt semibold *secondary* and the group labels 11 pt medium secondary
+  with 6 pt above, so the two read as one level; lane J's `Divider()` stood in for the hierarchy. 19: `OpenSession`'s
+  open rows had no `button`, and `RowButtonStyle` drew every button white 0.2. 20: `NeedsYouPanel` drew "All caught
+  up" and `hoverPanel` opened whatever the panel held; an empty panel also kept its Esc monitor. 26: every floating
+  panel was `.glassEffect(.regular)` alone; Liquid Glass is thin on a small panel (it thickens with size, so the
+  palette read fine), and the hover card showed the terminal's text clearly.
+- **Decisions.** The title is 13 pt semibold primary in both views (one `Text`); group labels 10 pt semibold
+  secondary with 12 pt above. `hoverPanel(enabled:)`: no open while false, and it closes at once when it turns
+  false; it never opens under a still pointer (spec review: that would take the terminal's next Esc). Detach is
+  on every open row of the window, not its last page (the guard of `WindowPages.close`); after it the light goes to
+  the first row (FilterList keeps the light by id, and the row's id changes). Red is `look.error`, through a
+  `FilterList.Item.buttonRole` (a 3-tuple trips `large_tuple`). `floatingGlass(in:)` (Style.swift) puts
+  `.regularMaterial` under the glass of every floating panel: hover card, Agents popover, palette, Open Session,
+  workspace menu, shortcuts, find bar, notices.
+- **Deviation.** No CI check that fails on the old glass: CI's VM draws Liquid Glass with no backdrop, so the old
+  hover card hid the terminal there too (40174324533). `testHoverCardBlursTheTextBehindIt` keeps a screenshot per
+  look and guards only against a see-through panel (card 0.27 vs bare 52 steps per pixel).
+- **Tests.** `testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder` (room above a group: old 10 pt, now 16),
+  `testBlockedAgentNeedsYouAndThePopoverGoesToIt` (no panel when empty; it goes when answered, and does not come
+  back under the still pointer), `testOpenSessionDetachesAnOpenSession`, `testOpenSessionStopsAndDeletesASession`
+  (Stop red by pixels), `testHoverCardBlursTheTextBehindIt`. CI 40178592579 green. Full suite 40179423684 on bc8b3cc: every
+  lane P test green; 5 reds outside lane P (lane I2's key moves: the latency test's ⇧⌘N, the shortcuts panel, ⌃⌘S
+  in the windows test; lane K/S's tab close; the relaunch restore).
+- **For the user to check by hand:** the tab hover card, the Agents popover, the find bar and the palette over a busy
+  terminal, Glass dark and light: text behind should be only a soft blur, and the glass rim should still read.
+
 ## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
 
 Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/fb/agents-header.png` (item 18).
