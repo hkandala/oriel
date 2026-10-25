@@ -513,3 +513,8 @@ Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/f
       tabs and panes, some running output, and samples footprint and CPU with `footprint`, `top`, `sample`).
       Targets: memory about what the visible cards need; idle CPU a few percent; no regression in snappiness
       (lane S's numbers). Put the numbers in the Findings.
+
+31. (Lane I2) **Move Pane to Tab** (`.build/fb/move-to-tab.png`) lists only the other tabs of the current
+    workspace. It lists New Tab and New Workspace first, a separator, then every tab of the session grouped
+    by workspace: each workspace's name as a section header, a separator between workspaces, the pane's
+    own tab left out. Same in the header menu, the right-click menu, View ▸ Pane and the palette's sub-page.
