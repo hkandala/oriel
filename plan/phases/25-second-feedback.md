@@ -333,6 +333,37 @@ found none). If herdr has none, floating is Oriel's own.
 - **For the user to check by hand:** ⇧⌘↩ right after ⌘D; the panel's keycaps over a light wallpaper; ⌃⌘ held over the
   sidebar; ⌥⌘T/⌥⌘W on a non-US layout.
 
+### Lane F2 (item 16)
+
+- **herdr.** 0.9.5 has no floating pane: its popup is not a pane, has no id in the API and is not in the snapshot
+  (`herdr api schema --json`). So floating is Oriel's own (D50, rewritten): the pane stays in its herdr tab and keeps
+  its place in the splits, and Oriel shows its terminal in a window of its own. No herdr call; the item's "herdr-native
+  floating pane opens the same window" has nothing to open.
+- **Decisions.** A SwiftUI `WindowGroup(id: "float", for: Floating)` (session + terminal id, so a second open brings the
+  window forward) with `.restorationBehavior(.disabled)`: the main window saves its floats in its selection
+  (`Page.floating`, terminal id → Stay on Top) and opens them after its pages restore; SwiftUI's own restore would
+  bring them back before their page. The window uses its main window's page and `PaneViewRegistry` (one stream, D66
+  unchanged); floated terminals stream whatever tab or page is in view. One window per terminal: a second main window
+  on the session brings the first one's window forward. The red light and ⇧⌘W detach. Close asks (D41) in the
+  floating window, also for a Close from the placeholder's header (`CloseDialog`, moved out of `OrielApp.swift`). The
+  title row is the title bar's 28 pt, not a card header's 36 (the traffic lights stay where AppKit puts them); the
+  card's insets are a pane card's (8, 10). Frame: AppKit's autosave per terminal. Stay on Top: `.floating` level and
+  all Spaces. A floated pane is never the keyboard card; ⌘[ ⌘], Focus Follows Mouse and a move skip it; a move keeps
+  the main window where it is.
+- **Learned.** A second `WindowGroup` brings back SwiftUI's default File items, Close on ⌘W among them, over the main
+  scene's `CommandGroup(replacing: .saveItem)`: ⌘W closed the main window (lane S, CI 40176463285).
+  `.commandsRemoved()` on the floating scene (a5761cc). It also took a folder dropped on the Dock icon and opened an
+  empty floating window (`testFoldersDroppedOnTheDockOpenWorkspaces`): `.handlesExternalEvents(matching: [])`. An unpinned floating window goes behind the main window when
+  that is clicked; a test reaches it again through Show.
+- **Tests** (`FloatTests.swift`): float, keys, ⌘] in the main window, Show, Detach; two windows (palette, header),
+  ⌘K's own list, Stay on Top, ⌘Q and relaunch, herdr's close, ⇧⌘W; the close dialog in the floating window and the main
+  window's close; the four looks and the red light. CI 40176106059 (rough), 40176761922 (a click under the main window,
+  fixed with Show), 40177294645 (green, with the ⌘W tests), 40179306253 (Dock drop green). Full suite on fa64713 (after
+  the last code commit 399b2d4, 40179575565): every floating test green; the 9 reds are other lanes' areas (close
+  dialogs and stand-ins, ⌘N/⌃⌘S window keys, relaunch's page in view, Finder drop, latency).
+- **For the user to check by hand:** Stay on Top over another app in full screen and on another Space; a window's frame
+  when the same pane floats again; a floating window after quitting and opening Oriel.
+
 ## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
 
 Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/fb/agents-header.png` (item 18).
