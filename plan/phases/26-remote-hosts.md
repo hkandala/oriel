@@ -41,3 +41,81 @@ unless the prototype proves a part wrong (then fix the page and say why).
 - One review round (spec and ponytail). Findings at the end of this file.
 
 ## Findings
+
+### What works (CI on localhost sshd, `scripts/ci-sshd.sh`)
+
+- Add Remote Host (name, SSH target, icon) in the machine menu; the window switches to the machine's `default`
+  session and connects. The list is JSON in `UserDefaults` (`machines`). A run with `-session` (the tests) never
+  sees the user's machines.
+- No-prompt connect: a BatchMode ControlMaster per host (`SSHExec` in HerdrKit), with the system `ssh` and the
+  user's config, agent and keys. Every herdr call, the events stream and terminal streams go through it in the
+  base64 envelope. Open Session lists the machine's sessions; a remote page types and streams like This Mac's.
+- Prompts: Connect and Add start the master with `SSH_ASKPASS` pointing at a script the app writes beside the
+  sockets. ssh runs it with its own stdin and stderr, which are the app's pipes: the question comes out on stderr,
+  the answer goes in on stdin. Nothing is stored. Each question is a sheet (host key: ssh's facts with the
+  fingerprint on its own line, and Connect; a password, passphrase or PIN: a hidden field; Return answers, Esc
+  cancels). A wrong password gets ssh's next question.
+- herdr missing on the host: "herdr is not installed on ‹machine›" with the install command (the password user has
+  none).
+- Reconnect: a dead master (killed, or ended by ssh's keepalive within about 15 s) is started again by the next run,
+  without a prompt; the cards stream again. A host that needs an answer is blocked: Disconnected with ssh's text
+  and Connect, and no ssh runs until the user clicks it (the test counts sshd's connections). Other failures back
+  off from 2 s to 30 s and show Reconnecting.
+
+### Deviations
+
+- **ssh's questions are an Oriel sheet, not an `osascript` dialog** (machines.mdx said a dialog). The sheet belongs
+  to the window that connects, follows the look, and an e2e test can answer it. The phase file asked for it.
+- **No `-O exit` on a failed health check.** `ServerAliveInterval=5`, `ServerAliveCountMax=3` let ssh end a dead
+  link's master by itself; the next run starts a new one. Less code than restarting from the health check.
+- **The master's liveness is `kill(pid, 0)`, not `-O check` per run** (the pid comes from one `-O check` per start).
+- **At most 10 channels per connection, and remote windows stream only the tabs in view.** The first CI run of a
+  remote page asked for more at once and sshd refused them ("Session open refused by peer", `MaxSessions` 10).
+  A run past 10 waits up to 10 s, then fails (Reconnecting, not a freeze). The design's "close the least recently
+  shown stream and try again" comes later.
+- **Disconnected/Connect instead of Reconnect**, per the phase file; states.mdx follows.
+- **herdr's version check** is the snapshot's (as on This Mac), not a separate `herdr --version`: the login shell's
+  `command -v herdr` finds the path, the first snapshot says the version.
+- **cwd `~`** for new tabs and workspaces everywhere: herdr reads it as its machine's home, so This Mac's home never
+  goes to a remote machine.
+
+### Decisions
+
+- `SSHExec` is an actor: one start in flight per host, joined by every run; state (pid, blocked, backoff, herdr's
+  path) lives there. `Exec.herdr()` now throws, so "cannot reach the machine" is never "herdr is not installed".
+- Execs are kept by target, as sockets are (`~/Library/Caches/oriel/<8 hex of the target's SHA-256>`).
+- Automatic starts time out after 30 s (ConnectTimeout covers only TCP and the banner); `-O check` after 5 s.
+- A master that outlived a crashed app is used (`-O check` before a start); a killed one's socket is removed.
+- Remote Start runs `nohup herdr --session S server` over SSH (`exec is SSHExec` in `startServer`).
+- Notification ids are `‹machine id›|‹session›|‹terminal id›`; a remote session's notification and Dock row show
+  the machine's name.
+
+### Not yet (later phases)
+
+- Local Network privacy (macOS 15+): a LAN target fails with "No route to host" and shows Reconnecting with no hint.
+- herdr's machine list in the Add sheet; rename, icon change, reorder, remove of a machine.
+- ⌥-click on a remote machine switches the window instead of opening a new one; a notification of a machine no
+  window shows opens nothing.
+- MaxSessions refusal handling (D46 eviction), a remote home shown as `~` in card headers, `dial` and web cards,
+  file drops and image paste to a remote machine, git's availability checked per machine.
+- No test sees Reconnecting (it needs sshd stopped and started by the helper); Connect has no busy state.
+- A security key touch prompt (`SSH_ASKPASS_PROMPT=none`) shows nothing.
+
+### Learned
+
+- ssh runs `SSH_ASKPASS` with ssh's own stdin and stderr, also with `-f` before it forks: the app needs no socket
+  or FIFO to talk to its helper.
+- With `-f` and ControlPersist the background master lets go of the start's pipes, so the start's exit status says
+  whether the master serves.
+- With a master, ssh never resolves the target, so `-F /dev/null` works with config aliases.
+- macOS sshd admits a new user only in `com.apple.access_ssh` (CI's first password login failed without it).
+- The argument domain does not keep a JSON array argument as a string: read `-machines` from argv.
+- XCUITest's `label` of a SwiftUI `Menu` with `.menuStyle(.button)` is empty even with `.accessibilityLabel`.
+
+### Reviews
+
+- Spec (round 1): 18 items, no blocker. Fixed 1–8 (channel wait limit, failed herdr lookup, answer once, execs by
+  target, the connecting window asks, start timeouts, close input on cancel, host key asked every run) and nits 10,
+  11, 12 (comment), 13, 14, 18. The rest are above.
+- Ponytail (round 1): 9 items, no blocker. Fixed 1–8; 9 (CI script's own login checks) kept: they print sshd's log
+  when CI's setup breaks.
