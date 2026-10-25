@@ -117,7 +117,14 @@ extension KeyboardShortcut {
 
         func body(content: Content) -> some View {
             var commands = commands
-            commands.shown = commands.all.map(\.shown)
+            // What the actions act on too: an equal value keeps the old one, and its actions (another floating
+            // window's pane, another page). The keyboard card, read here so a keyboard move redraws the menu.
+            let page = commands.pages?.current
+            commands.shown = [
+                [commands.floating as Any, commands.pages.map(ObjectIdentifier.init) as Any,
+                 page.map(ObjectIdentifier.init) as Any].map { String(describing: $0) }.joined(separator: " "),
+                page?.keyboardCard(page?.selectedTab?.id)?.id ?? "",
+            ] + commands.all.map(\.shown)
             return content.focusedSceneValue(\.commands, commands)
         }
     }
