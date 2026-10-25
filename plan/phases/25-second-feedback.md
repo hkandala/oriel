@@ -226,7 +226,8 @@ found none). If herdr has none, floating is Oriel's own.
   columns, family and second-key rows, Esc, ⌘/, Help menu, palette, click outside, a light classic screenshot).
   CI 40172090772 and 40172488406 (test fixes), 40172892960 green. Full suite on 9a2654d (40173113791): lane I's
   tests green; 4 reds in lanes K and C's areas (Open Session's Stop button shares the row's identifier, the long
-  dialog text as a query, the Finder drag), fixed by them in 7c74def, ee3114e, 1567204.
+  dialog text as a query, the Finder drag), fixed by them in 7c74def, ee3114e, 1567204. Full suite green on 1567204, which
+  carries lane I's last code commit (40174324533).
 - **For the user to check by hand:** ⌥⌘1–9 and ⌃⌘1–9 on a non-US keyboard layout; the panel's look over a light
   wallpaper in glass.
 
