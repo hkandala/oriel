@@ -18,6 +18,9 @@ window (`open -R`), for a drag from Finder. The file's path comes back.
 POST /<session>/usage with a number of seconds as the body measures the app (the one process named Oriel, on CI) over
 that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory.
 POST /<session>/sample with a number of seconds as the body gives `sample`'s report of the app over that time.
+POST /<session>/ssh-drop with an SSH target as the body kills the app's ControlMaster to it (SIGKILL, as a crash
+would), and gives back the pids it killed, one per line.
+POST /<session>/ssh-connections gives back how many connections the CI sshd (scripts/ci-sshd.sh) has seen.
 Any session not named on the command line is refused.
 """
 
@@ -73,10 +76,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder",
-                            "reveal-file", "usage", "sample"):
+                            "reveal-file", "usage", "sample", "ssh-drop", "ssh-connections"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
+        elif action == "ssh-drop" and not re.fullmatch(rb"\w[\w-]*", body):
+            status, reply = 400, b"the body must be an SSH target"
+        elif action == "ssh-drop":
+            pattern = f"ssh -M -N -f .* {body.decode()}$"
+            pids = subprocess.run(["pgrep", "-f", pattern], capture_output=True).stdout
+            subprocess.run(["pkill", "-9", "-f", pattern])
+            status, reply = 200, pids
+        elif action == "ssh-connections":
+            try:
+                with open("/tmp/oriel-sshd/sshd.log") as log:
+                    status, reply = 200, str(log.read().count("Connection from")).encode()
+            except OSError as error:
+                status, reply = 500, str(error).encode()
         elif action == "open-folder" and not body.endswith(b".app"):
             status, reply = 400, b"the body must be an app's path"
         elif action == "open-folder":
