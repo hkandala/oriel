@@ -157,7 +157,7 @@
         var body: some View {
             ScrollView(.vertical) {
                 LazyVStack(alignment: .leading, spacing: 32) {
-                    Text(page.id).font(.system(size: 13, weight: .semibold))
+                    Text(page.store.title).font(.system(size: 13, weight: .semibold))
                     ForEach(page.sidebarWorkspaces) { workspace in
                         VStack(alignment: .leading, spacing: 12) {
                             Text(workspace.label).font(.system(size: 13, weight: .semibold))
