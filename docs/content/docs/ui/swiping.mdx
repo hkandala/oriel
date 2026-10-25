@@ -14,22 +14,25 @@ description: "Session pages in the sidebar and tab pages in the strip"
 - **Strip.** A sideways swipe on the strip pages between the selected
   workspace's tabs (also ⇧⌘[ and ⇧⌘], ⌃⇥).
 - **One target.** The app's scroll monitor locks a gesture to one axis (D35).
-  It gives a sideways gesture to the innermost scroll view under the pointer
-  that can scroll sideways (its content is wider than its frame). Over the
-  sidebar, that is the sidebar's pages, not the page's list; over the strip,
-  the strip. So swiping the sidebar never pages the strip, and the reverse.
+  It gives a sideways gesture over the sidebar (its pages, the dots and the
+  filter) to the sidebar's pages, and elsewhere to the innermost scroll view
+  under the pointer that can scroll sideways (its content is wider than its
+  frame): over the strip, the strip. So swiping the sidebar never pages the strip, and the reverse.
 - A tab page slides with the strip's spring. A session page follows the
   fingers, and as they lift it slides on to the page it lands on with a
   spring of response 0.2 s and no bounce (between the tab spring's 0.28 s and
   phase 25's 0.14 s, which felt too quick), starting at the fingers' speed:
   the next page that way, or the nearest page when they move slowly or
-  stop before they lift. The app's scroll
-  monitor takes the gesture's end and its momentum from the scroll view, so
-  the system's own snap (about 0.4 s) never starts. The window shows that
-  session as the slide ends: shown at the lift, its first draw held the
-  slide still for up to 0.35 s, then it jumped (phase 27). Under
-  Reduce Motion they switch without motion. The keys, a click on a tab and the palette show the tab's
-  page at once, with no slide.
+  stop before they lift. At the first and last page the pages stop. The
+  session pages are the app's own, not a scroll view's: the app's scroll
+  monitor gives them the gesture's moves and its lift and drops the momentum.
+  A scroll view's own snap took about 0.4 s, and a slide asked of it on a
+  quick flick stood still, then snapped back (phase 28). The window shows
+  the session once the slide looks done: shown at the lift, its first draw
+  held the slide still (phase 27). A mouse's sideways wheel over the sidebar
+  turns one page. Under Reduce Motion they switch without motion. The keys,
+  a click on a tab and the palette show the tab's page at once, with no
+  slide.
 - First visit to a session page: the app shows herdr's focused workspace and
   its active tab. Later visits: the workspace and tab the user last picked
   there, in that window.

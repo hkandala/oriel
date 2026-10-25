@@ -4,7 +4,9 @@ description: "What the user sees in every connection, pane and error state"
 ---
 
 Connecting and reconnecting states show at most one line of words and one
-button. Empty states (no workspaces, no tabs) show only the button.
+button. Empty states show only the button: no tabs, and no workspaces on the
+sidebar's page; the strip of a session with no workspaces says only that it
+is empty.
 
 | State | What the user sees |
 |---|---|
@@ -26,7 +28,7 @@ button. Empty states (no workspaces, no tabs) show only the button.
 | Session controlled in another window | cards dim a little; a bottom capsule "Controlled in another window" with **Take Back** ([Control capsule](/docs/ui/window#control-capsule)) |
 | Close a pane that runs a program | "Close “‹pane label, else its folder›”?" over "‹program› is running in it and will end, here and in every herdr client. This cannot be undone." (a pane that runs only its shell, a web page or a plugin pane closes at once) |
 | Close a tab, other tabs, tabs to the right or a workspace | asks only when a pane of them runs a program besides its shell: "‹programs› is (are) running in it (them)." then the pane count and the same warning |
-| No workspaces | a **New Workspace** button, no text |
+| No workspaces | a **New Workspace** button on the sidebar's page; in the strip an icon and "This session is empty", no button |
 | A workspace with no tabs | a **New Tab** button with its shortcut, no text |
 | New tab or split | the pane picker; herdr is called only after a pick |
 | Agent did not start (10 s) | "Agent did not start" and the last screen lines |
