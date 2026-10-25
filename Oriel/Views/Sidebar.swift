@@ -47,7 +47,15 @@
                     }
                     .scrollTargetLayout()
                 }
-                .scrollTargetBehavior(.paging)
+                // The page a swipe lands on shows as the fingers lift, and slides there with the quick spring, not
+                // the system's slower snap (phase 25).
+                .scrollTargetBehavior(SessionPaging { index in
+                    Task {
+                        if pages.list.indices.contains(index), pages.list[index] !== pages.current {
+                            pages.show(pages.list[index])
+                        }
+                    }
+                })
                 .scrollPosition($position)
                 .scrollIndicators(.never)
                 .onScrollPhaseChange { _, phase in
@@ -58,10 +66,12 @@
                         pages.show(page)
                     }
                 }
-                // A dot, a new page or the sheet: slide there with the strip's spring.
+                // A dot, a key, a new page, the sheet or a swipe's end: slide there with the session spring.
                 .onChange(of: pages.current?.id, initial: true) { old, new in
                     guard let new, position.viewID(type: String.self) != new else { return }
-                    withAnimation(old == nil || reduceMotion ? nil : .tab) { position.scrollTo(id: new) }
+                    // e2e: `-forceMotion YES` slides on CI, whose Mac has Reduce Motion on.
+                    let still = reduceMotion && !UserDefaults.standard.bool(forKey: "forceMotion")
+                    withAnimation(old == nil || still ? nil : .session) { position.scrollTo(id: new) }
                     // A page that opened lays out in this same update, and a scroll to it can miss.
                     Task { position.scrollTo(id: new) }
                 }
@@ -291,6 +301,18 @@
                 .accessibilityElement()
                 .accessibilityLabel("Sidebar Width")
                 .accessibilityIdentifier("sidebar.resize")
+        }
+    }
+
+    /// Paging that says which page a swipe ends on, as the fingers lift.
+    private struct SessionPaging: ScrollTargetBehavior {
+        let landed: (Int) -> Void
+
+        func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+            PagingScrollTargetBehavior.paging.updateTarget(&target, context: context)
+            if context.containerSize.width > 0 {
+                landed(Int((target.rect.minX / context.containerSize.width).rounded()))
+            }
         }
     }
 #endif

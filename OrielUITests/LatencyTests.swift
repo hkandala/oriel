@@ -4,7 +4,8 @@ import XCTest
 /// the key to the first frame that drew its change and how many run loop turns that took ("⌘T 12ms 0 …").
 extension OrielUITests {
     func testPanelsAndSwitchesReactAtOnce() async throws {
-        try launchRecordingLatency()
+        // The session slide's spring, as on a Mac without Reduce Motion.
+        try launchRecordingLatency(["-forceMotion", "YES"])
         openPage(two)
         element("sidebar.dot.\(one)").click()
         XCTAssertTrue(until(3) { header == one })
@@ -62,8 +63,8 @@ extension OrielUITests {
         }
     }
 
-    private func launchRecordingLatency() throws {
-        relaunch(one, ["-recordLatency", "YES"])
+    private func launchRecordingLatency(_ args: [String] = []) throws {
+        relaunch(one, ["-recordLatency", "YES"] + args)
         XCTAssertTrue(element("pane.w1:p1").exists(within: connect))
         // Also after a failed step.
         addTeardownBlock { @MainActor in
