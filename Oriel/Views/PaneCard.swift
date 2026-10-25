@@ -2,8 +2,7 @@
     import HerdrKit
     import SwiftUI
 
-    /// A translucent card: a header with the pane's title and buttons, and its terminal. Cards without the keyboard
-    /// fade (D64).
+    /// A translucent card: a header with the pane's title and buttons, and its terminal.
     struct PaneCard: View {
         let id: String
         let page: Page
@@ -13,7 +12,6 @@
         @State private var size = CGSize.zero
         @Environment(\.zoomedAway) private var zoomedAway
         @Environment(\.appearsActive) private var active
-        @Environment(\.colorScheme) private var scheme
         @Environment(\.look) private var look
         private var settings = AppSettings()
 
@@ -25,11 +23,10 @@
             // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
             let lit = pane.map { page.keyboardCard($0.tabID) === $0 } ?? false
             let follow = hovering && settings.followMouse && !zoomedAway && active
-            // Rex's content opacities; the watching window's dim (D66) multiplies.
-            let content = (settings.fade ? lit ? active ? 1 : scheme == .dark ? 0.8 : 0.85 : active ? 0.7 : 0.5 : 1)
-                * (page.watched ? 0.85 : 1)
+            // The watching window's dim (D66).
+            let content = page.watched ? 0.85 : 1
             VStack(spacing: 0) {
-                // Faded with the terminal, as in Rex.
+                // Dimmed with the terminal.
                 header(pane, zoomed: zoomed, showsButtons: lit || hovering || zoomed).opacity(content)
                 Group {
                     if let terminal {

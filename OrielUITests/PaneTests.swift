@@ -1,8 +1,7 @@
 import XCTest
 
-/// Pane cards and the layout (phase 17): dividers, equal splits, keys, the header's context menu, zoom and the fade.
-/// Each test makes its own tab in w2 (closed after) and checks herdr's tree, except the fade test, which only reads
-/// session one's t1 (p1 | (p2 / p3)).
+/// Pane cards and the layout (phase 17): dividers, equal splits, keys, the header's context menu and zoom. Each test
+/// makes its own tab in w2 (closed after) and checks herdr's tree.
 extension OrielUITests {
     func testDividersDragDoubleClickAndBalance() async throws {
         let (tab, first) = try await newTab("dividers")
@@ -162,46 +161,6 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(first).split-right").exists(within: 3))
         XCTAssertEqual(element("pane.\(first).zoom").label, "Zoom Pane ⇧⌘↩")
         XCTAssertFalse(element("pane.\(first).zoom").isEnabled)
-    }
-
-    func testCardsWithoutTheKeyboardFade() throws {
-        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
-        element("terminal.w1:p1").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
-        let keyboard = element("pane.w1:p1"), other = element("pane.w1:p2")
-        expectValue(keyboard, "content 100%")
-        expectValue(other, "content 70%")
-        keepScreenshot("faded cards, key window")
-
-        // The setting turns the fade off; back on after a failure too (the app's defaults are the user's).
-        addTeardownBlock { @MainActor in
-            // Both cards unfaded: the setting is off.
-            if [keyboard, other].allSatisfy({ $0.value as? String == "content 100%" }) {
-                self.app.menuBars.menuBarItems["View"].click()
-                self.app.menuBars.menuItems["Fade Inactive Panes"].click()
-            }
-        }
-        app.menuBars.menuBarItems["View"].click()
-        app.menuBars.menuItems["Fade Inactive Panes"].click()
-        expectValue(other, "content 100%")
-        keepScreenshot("unfaded cards")
-        app.menuBars.menuBarItems["View"].click()
-        app.menuBars.menuItems["Fade Inactive Panes"].click()
-        expectValue(other, "content 70%")
-
-        // A window that is not key: 0.5 for the others, 0.8 (0.85 in light) for the keyboard card.
-        let (first, _) = try newWindow()
-        let card = element("pane.w1:p1", in: first)
-        expectValue(element("pane.w1:p2", in: first), "content 50%")
-        expectValue(card, "content 80%", "content 85%")
-        let shot = XCTAttachment(screenshot: first.screenshot())
-        shot.name = "faded cards, window not key"
-        shot.lifetime = .keepAlways
-        add(shot)
-        app.typeKey("w", modifierFlags: [.command, .shift])
-        // Key again, the keyboard is still on the card it was on (phase 12 saw it move once after a re-activation).
-        expectValue(card, "content 100%")
-        XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
     }
 }
 

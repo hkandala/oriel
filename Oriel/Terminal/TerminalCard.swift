@@ -74,7 +74,7 @@
         let terminal: PaneTerminal
         /// Another window controls the session (D66): the window's capsule offers Take Back instead of the card.
         let watched: Bool
-        /// The content's opacity: the fade (D64) and the watching dim.
+        /// The content's opacity: the watching dim (D66).
         let alpha: CGFloat
 
         var body: some View {

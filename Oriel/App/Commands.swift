@@ -94,7 +94,6 @@ extension KeyboardShortcut {
         @AppStorage("appearance") var appearance = Appearance.dark
         @AppStorage("interfaceStyle") var style = InterfaceStyle.glass
         @AppStorage("fontSize") var fontSize = PaneTerminal.fontSize
-        @AppStorage("fadeInactivePanes") var fade = true
         @AppStorage("focusFollowsMouse") var followMouse = false
     }
 

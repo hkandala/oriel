@@ -116,8 +116,6 @@
                                 settings.style = value
                             }
                         }, previews: true),
-                Command(section: .view, title: "Fade Inactive Panes", symbol: "circle.dotted", keywords: "dim",
-                        checked: settings.fade, setting: true) { settings.fade.toggle() },
                 // The text size (design: theme and accessibility); the key monitor takes ⌘=.
                 Command(section: .size, title: "Bigger", key: .bigger, symbol: "textformat.size.larger",
                         keywords: "font text", enabled: size < sizes.upperBound) { PaneTerminal.stepFontSize(1) },
