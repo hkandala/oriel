@@ -27,6 +27,7 @@ make format     # fix what lint can fix
 make build      # the macOS and iOS builds
 make test       # HerdrKit's unit and integration tests (swift test)
 make e2e        # the UI tests against throwaway herdr sessions
+make strip-check   # after e2e: the empty strip check, with no accessibility client
 ```
 
 Pass `DERIVED_DATA=/tmp/oriel-dd-<name>` to keep separate build folders when several checkouts build at once.

@@ -65,7 +65,8 @@ before writing code. In short:
 
 - e2e first: XCUITest in `OrielUITests` against a throwaway herdr session with a known
   layout. Assert through accessibility identifiers and through herdr itself (`pane.read`,
-  `session.snapshot`), not through pixels.
+  `session.snapshot`), not through pixels. Exception: the empty strip shows only with no
+  accessibility client, so `make strip-check` drives the app by key events and reads a window capture.
 - Unit tests (`swift test` in `Packages/HerdrKit`) only for logic with branches: decoding,
   split-tree rebuild, pacing, envelope/argv building, frame parsing. Recorded herdr JSON
   fixtures live next to the tests.
