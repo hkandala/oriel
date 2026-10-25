@@ -45,8 +45,8 @@
                         }),
             ]
             let close = [
-                Command(section: .close, title: "Close Tab", key: .init("w", modifiers: [.command, .option]),
-                        group: .tabs, symbol: "xmark.rectangle", enabled: tab != nil, action: {
+                Command(section: .close, title: "Close Tab", key: .closeTab, group: .tabs, symbol: "xmark.rectangle",
+                        enabled: tab != nil, action: {
                             if let page, let tab = page.selectedTab {
                                 page.close(.tab(tab.id))
                             }
@@ -63,24 +63,24 @@
                                 page.closeTabs(besides: tab.id, right: true)
                             }
                         }),
-                Command(section: .close, title: "Close Workspace", symbol: "folder.badge.minus",
-                        enabled: workspace != nil, action: {
+                Command(section: .close, title: "Close Workspace", key: .init("w", modifiers: [.command, .control]),
+                        group: .workspaces, symbol: "folder.badge.minus", enabled: workspace != nil, action: {
                             if let page, let workspace = page.selectedWorkspace {
                                 page.close(.workspace(workspace.id))
                             }
                         }),
-                Command(section: .close, title: "Detach Session", symbol: "rectangle.stack.badge.minus",
-                        enabled: (pages?.list.count ?? 0) > 1, action: {
+                Command(section: .close, title: "Detach Session", key: .init("w", modifiers: [.command, .option]),
+                        group: .sessions, symbol: "rectangle.stack.badge.minus", enabled: (pages?.list.count ?? 0) > 1,
+                        action: {
                             if let pages, let page = pages.current {
                                 pages.close(page)
                             }
                         }),
-                Command(section: .close, title: "Close Window", key: .closeWindow,
-                        symbol: "xmark") { NSApp.keyWindow?.performClose(nil) },
+                Command(section: .close, title: "Close Window", symbol: "xmark") { NSApp.keyWindow?.performClose(nil) },
             ]
             let find = page?.find
             let edit = [
-                Command(section: .edit, title: "Insert Path…", key: .init("i", modifiers: [.command, .control]),
+                Command(section: .edit, title: "Insert Path…", key: .init("i", modifiers: [.command, .shift]),
                         symbol: "text.insert", keywords: "file folder path",
                         enabled: page?.keyboardPane != nil) { Task { await page?.choosePath(directory: false) } },
                 // As in Rex, Find Previous has no key: ⇧⌘G is Go to Directory.
@@ -213,20 +213,22 @@
                 step("Next Session", "chevron.right.2", 1),
             ] + Self.jumps(page, pages)
         }
+    }
 
+    extension CommandList {
         /// Keys that move the keyboard, the pane or a divider; and Focus Follows Mouse.
         private var paneKeys: [Command] {
             let enabled = pages?.current?.keyboardPane != nil, tab = pages?.current?.selectedTab
             let arrows: [(Heading, KeyEquivalent)] = [
                 (.left, .leftArrow), (.right, .rightArrow), (.up, .upArrow), (.down, .downArrow),
             ]
-            func each(_ title: String, _ modifiers: EventModifiers, symbol suffix: String,
+            func each(_ title: String, _ modifiers: EventModifiers?, symbol suffix: String,
                       _ act: @escaping (Page, HostStore.Pane, Heading) async -> Void) -> [Command]
             {
                 arrows.map { heading, key in
                     Command(section: .paneKeys, title: "\(title) \(heading.rawValue.capitalized)",
-                            key: .init(key, modifiers: modifiers),
-                            family: (title, KeyboardShortcut(key, modifiers: modifiers).glyphs.dropLast() + "←→↑↓"),
+                            key: modifiers.map { .init(key, modifiers: $0) },
+                            family: (title, "←→↑↓"),
                             symbol: "arrow.\(heading.rawValue)\(suffix)",
                             keywords: "pane",
                             enabled: enabled, action: {
@@ -243,7 +245,7 @@
             }
             // Even when it looks even: the menu may be older than the tab's last change.
             let balance = Command(section: .paneKeys, title: "Balance Splits",
-                                  key: .init("=", modifiers: [.command, .control]), symbol: "equal.square",
+                                  key: .init("=", modifiers: [.command, .option]), symbol: "equal.square",
                                   keywords: "pane even", enabled: tab != nil, action: {
                                       if let page = pages?.current, let tab = page.selectedTab {
                                           Task { await page.store.balance(tab) }
@@ -262,16 +264,15 @@
                 + each("Move Pane", [.command, .option, .shift], symbol: ".square") {
                     await $0.store.swap($1.id, $2)
                 }
-                + each("Resize Pane", [.command, .control], symbol: ".to.line") {
+                // No key (user, phase 25): dividers and Balance Splits cover it.
+                + each("Resize Pane", nil, symbol: ".to.line") {
                     await $0.store.resize($1.id, $2)
                 }
                 + [Command(section: .paneSetting, title: "Focus Follows Mouse", symbol: "cursorarrow.motionlines",
                            keywords: "hover pane", checked: settings.followMouse, setting: true,
                            action: { settings.followMouse.toggle() })]
         }
-    }
 
-    extension CommandList {
         /// The places on 1…9, one modifier per level (user, phase 25): ⌘ the workspace's tabs, ⌃⌘ the sidebar's
         /// workspaces, ⌥⌘ the window's sessions. Each finds its place when the key is pressed: the menu may be older
         /// than a switch.
@@ -284,7 +285,7 @@
                 }
                 return titles.prefix(9).enumerated().map { index, title in
                     Command(section: section, title: title, key: key(index),
-                            family: ("Show \(level) 1–9", key(0).glyphs + "–9")) { show(index) }
+                            family: ("Show \(level) 1–9", "1–9")) { show(index) }
                 }
             }
             let tabs = page?.selectedWorkspace?.tabs ?? []

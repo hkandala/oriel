@@ -55,10 +55,10 @@ extension OrielUITests {
         XCTAssertTrue(element("sidebar.dot.\(two)").exists)
     }
 
-    func testShiftCommandNCreatesASessionAsANewPage() async throws {
+    func testOptionCommandTCreatesASessionAsANewPage() async throws {
         let four = try env("ORIEL_SESSION4")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        app.typeKey("n", modifierFlags: [.command, .shift])
+        app.typeKey("t", modifierFlags: [.command, .option])
         XCTAssertTrue(hasKeyboard(element("open-session.filter")))
         app.typeText(four)
         XCTAssertTrue(element("open-session.new.\(four)").has(\.isSelected, true, within: 2))

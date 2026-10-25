@@ -35,7 +35,7 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.\(plus)").has(\.isSelected, true, within: 3))
         try await settle([plus])
         // Only its shell runs: no dialog.
-        app.typeKey("w", modifierFlags: [.command, .option])
+        app.typeKey("w", modifierFlags: [.command, .shift])
         XCTAssertTrue(element("tab.\(plus)").vanishes(within: 3))
         XCTAssertTrue(second.has(\.isSelected, true, within: 2))
         // One from ⌘T, closed by herdr.

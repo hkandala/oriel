@@ -230,7 +230,7 @@ extension OrielUITests {
         XCTAssertTrue(element("sidebar.header").has(\.stringValue, two, within: 3))
     }
 
-    /// ⇧⌘G: the folder panel; the chosen folder is typed into the shell as a `cd`. ⌃⌘I types a chosen file's path,
+    /// ⇧⌘G: the folder panel; the chosen folder is typed into the shell as a `cd`. ⇧⌘I types a chosen file's path,
     /// quoted, without Return.
     func testGoToDirectoryAndInsertPath() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -264,7 +264,7 @@ extension OrielUITests {
 
         try await send("clear\r", to: pane)
         element("terminal.\(pane)").click()
-        app.typeKey("i", modifierFlags: [.command, .control])
+        app.typeKey("i", modifierFlags: [.command, .shift])
         choose("\(folder)/a b")
         try await waitFor(pane, times: 100) { $0.replacing("\n", with: "").contains("'\(folder)/a b'") }
     }

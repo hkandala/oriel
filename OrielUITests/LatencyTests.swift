@@ -35,7 +35,7 @@ extension OrielUITests {
         }
     }
 
-    /// ⌘T, ⌘D, ⌘W and ⌥⌘W show their change in the key's turn: herdr catches up after (`Ahead`).
+    /// ⌘T, ⌘D, ⌘W and ⇧⌘W show their change in the key's turn: herdr catches up after (`Ahead`).
     func testNewTabSplitAndClosesShowAtOnce() async throws {
         try launchRecordingLatency()
         let before = try await tabIDs()
@@ -57,8 +57,8 @@ extension OrielUITests {
         key("d", .command) { cards.count == 2 }
         try await settle([made])
         key("w", .command) { cards.count == 1 }
-        key("w", [.command, .option]) { !self.element("tab.\(made)").exists }
-        for entry in recorded() where ["⌘T", "⌘D", "⌘W", "⌥⌘W"].contains(entry.name) {
+        key("w", [.command, .shift]) { !self.element("tab.\(made)").exists }
+        for entry in recorded() where ["⌘T", "⌘D", "⌘W", "⇧⌘W"].contains(entry.name) {
             XCTAssertEqual(entry.turns, 0, entry.name)
         }
     }

@@ -31,7 +31,7 @@ extension OrielUITests {
         // No time to answer: every start the app makes fails, though launchd starts the server.
         relaunch(one, ["-startTimeout", "0"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        app.typeKey("n", modifierFlags: [.command, .shift])
+        app.typeKey("t", modifierFlags: [.command, .option])
         let filter = element("open-session.filter")
         XCTAssertTrue(hasKeyboard(filter))
         app.typeText(six)

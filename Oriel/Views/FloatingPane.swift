@@ -147,7 +147,7 @@
                     }
                 }
                 .accessibilityIdentifier("\(id).close")
-                IconButton(symbol: "pip.exit", help: "Detach Pane", key: .closeWindow, size: 22) {
+                IconButton(symbol: "pip.exit", help: "Detach Pane", key: .closeTab, size: 22) {
                     page.floating[floating.terminalID] = nil
                 }
                 .accessibilityIdentifier("\(id).detach")
@@ -240,7 +240,7 @@
                 }
             }
             return [
-                Command(section: .close, title: "Detach Pane", key: .closeWindow, symbol: "pip.exit") {
+                Command(section: .close, title: "Detach Pane", key: .closeTab, symbol: "pip.exit") {
                     page.floating[terminalID] = nil
                 },
                 Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",

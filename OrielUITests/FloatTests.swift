@@ -110,7 +110,8 @@ extension OrielUITests {
         // Closing the main window closes its floating windows.
         let alone = try float(first)
         element("tab.\(tab)").click()
-        app.typeKey("w", modifierFlags: [.command, .shift])
+        app.menuBars.menuBarItems["File"].click()
+        app.menuBars.menuItems["Close Window"].click()
         XCTAssertTrue(alone.vanishes(within: 5))
     }
 

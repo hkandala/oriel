@@ -12,7 +12,7 @@ extension OrielUITests {
         // The second split's divider: the app has all three panes.
         XCTAssertTrue(element("divider.\(tab).1").exists(within: 3))
 
-        // ⌃⌘= through its menu item: a global hotkey on this Mac takes the key before the app sees it.
+        // ⌥⌘= through its menu item: a global hotkey on this Mac takes the key before the app sees it.
         pick("Pane", "Balance Splits")
         try await expectWidths(tab, [first: 1 / 3, second: 1 / 3, third: 1 / 3])
         expectValue(divider, "33%")
@@ -66,7 +66,9 @@ extension OrielUITests {
         app.typeKey("]", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
 
+        // Resize Pane has no key (phase 25): ⌃⌘→ resizes nothing.
         app.typeKey(.rightArrow, modifierFlags: [.command, .control])
+        pick("Pane", "Resize Pane Right")
         try await expectRatio(tab, at: [], 0.55)
 
         // ⌥⇧⌘→ through its menu item: global hotkeys of other apps take ⌥⇧ chords.

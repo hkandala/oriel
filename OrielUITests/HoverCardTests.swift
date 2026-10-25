@@ -136,7 +136,7 @@ extension OrielUITests {
         XCTAssertTrue(button.exists(within: connect))
         XCTAssertEqual(button.label, "New Tab ⌘T")
         XCTAssertEqual(element("titlebar.palette").label, "Command Palette ⌘K")
-        XCTAssertEqual(element("sidebar.open-session").label, "Open Session ⇧⌘N")
+        XCTAssertEqual(element("sidebar.open-session").label, "Open Session ⌥⌘T")
     }
 
     /// The card's pane rows.

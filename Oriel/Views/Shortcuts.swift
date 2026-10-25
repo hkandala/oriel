@@ -9,11 +9,11 @@
 
         var body: some View {
             let rows = Self.rows(commands)
-            let panel = HStack(alignment: .top, spacing: 32) {
+            let panel = HStack(alignment: .top, spacing: 48) {
                 column([.panes, .tabs, .workspaces], rows)
                 column([.sessions, .view, .edit], rows)
             }
-            .padding(16)
+            .padding(.horizontal, 28).padding(.vertical, 24)
             // A short window scrolls the panel.
             ViewThatFits(in: .vertical) {
                 panel
@@ -34,46 +34,61 @@
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(groups, id: \.self) { group in
                     Text(group.rawValue).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
-                        .padding(.top, group == groups.first ? 0 : 12).padding(.bottom, 2)
+                        .padding(.top, group == groups.first ? 0 : 18).padding(.bottom, 4)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityIdentifier("shortcuts.section.\(group.rawValue)")
                     ForEach(rows.filter { $0.group == group }, id: \.title) { row in
-                        HStack {
+                        HStack(spacing: 4) {
                             Text(row.title)
-                            Spacer(minLength: 16)
-                            Text(row.keys).foregroundStyle(.secondary)
+                            Spacer(minLength: 24)
+                            ForEach(Array(row.keys.enumerated()), id: \.offset) { index, caps in
+                                if index > 0 {
+                                    Text("or").foregroundStyle(.secondary).padding(.horizontal, 4)
+                                }
+                                ForEach(caps, id: \.self, content: Self.keycap)
+                            }
                         }
-                        .font(.system(size: 12))
-                        .frame(height: 20)
+                        .font(.system(size: 13))
+                        .frame(height: 30)
                         .accessibilityElement(children: .ignore)
                         .accessibilityAddTraits(.isStaticText)
                         .accessibilityLabel(row.title)
-                        .accessibilityValue(row.keys)
+                        .accessibilityValue(row.keys.map { $0.joined() }.joined(separator: " or "))
                         .accessibilityIdentifier("shortcuts.\(row.title)")
                     }
                 }
             }
-            .frame(width: 280)
+            .frame(width: 380)
+        }
+
+        /// One modifier or key in its own box, so a long shortcut reads clearly.
+        private static func keycap(_ cap: String) -> some View {
+            Text(cap).font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+                .padding(.horizontal, 5)
+                .frame(minWidth: 22, minHeight: 22)
+                .background(.quaternary, in: .rect(cornerRadius: 5))
         }
 
         private struct Row {
             let group: Command.Group
             let title: String
-            let keys: String
+            /// Each shortcut's keycaps: the first, then a second key ("⌘K or ⇧⌘P").
+            let keys: [[String]]
         }
 
-        /// One row per command with a key, in the command list's order, with its second key ("⇧⌘P"); a family's
-        /// commands share one row ("Select Pane ⌥⌘←→↑↓", "Show Tab 1–9 ⌘1–9").
+        /// One row per command with a key, in the command list's order, with its second key; a family's commands share
+        /// one row and one keycap for their keys ("Select Pane ⌥ ⌘ ←→↑↓", "Show Tab 1–9 ⌘ 1–9").
         private static func rows(_ commands: [Command]) -> [Row] {
             var rows: [Row] = []
             for command in commands {
                 guard let key = command.key, !rows.contains(where: { $0.title == command.family?.title }) else {
                     continue
                 }
-                let seconds = KeyboardShortcut.seconds.filter { $0.first == key }.map(\.second.glyphs)
+                let caps = command.family.map { key.caps.dropLast() + [$0.keys] } ?? key.caps
+                let seconds = KeyboardShortcut.seconds.filter { $0.first == key }.map(\.second.caps)
                 rows.append(Row(group: command.group ?? command.section.group,
                                 title: command.family?.title ?? command.title.replacing("…", with: ""),
-                                keys: command.family?.keys ?? ([key.glyphs] + seconds).joined(separator: "  ")))
+                                keys: [caps] + seconds))
             }
             return rows
         }

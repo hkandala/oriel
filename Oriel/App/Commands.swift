@@ -3,15 +3,15 @@ import SwiftUI
 /// Shortcuts written in more than one place: the command list, the chrome buttons' tooltips, the second keys.
 extension KeyboardShortcut {
     static let newTab = KeyboardShortcut("t")
-    static let openSession = KeyboardShortcut("n", modifiers: [.command, .shift])
+    static let openSession = KeyboardShortcut("t", modifiers: [.command, .option])
     static let toggleSidebar = KeyboardShortcut("s", modifiers: [.command, .control])
     static let palette = KeyboardShortcut("k")
     static let splitRight = KeyboardShortcut("d")
     static let splitDown = KeyboardShortcut("d", modifiers: [.command, .shift])
     static let zoom = KeyboardShortcut(.return, modifiers: [.command, .shift])
     static let closePane = KeyboardShortcut("w")
-    /// Close Window; in a floating window Detach Pane, as its close detaches.
-    static let closeWindow = KeyboardShortcut("w", modifiers: [.command, .shift])
+    /// Close Tab; in a floating window Detach Pane, which closes the window and puts the pane back in its tab.
+    static let closeTab = KeyboardShortcut("w", modifiers: [.command, .shift])
     static let previousTab = KeyboardShortcut("[", modifiers: [.command, .shift])
     static let nextTab = KeyboardShortcut("]", modifiers: [.command, .shift])
     static let bigger = KeyboardShortcut("+")
@@ -25,8 +25,13 @@ extension KeyboardShortcut {
         (KeyboardShortcut("="), .bigger),
     ]
 
-    /// As the menu bar draws it: "⇧⌘N".
+    /// As the menu bar draws it: "⌥⌘T".
     var glyphs: String {
+        caps.joined()
+    }
+
+    /// One glyph per modifier, then the key's: ["⌥", "⌘", "T"].
+    var caps: [String] {
         let modifiers: [(EventModifiers, String)] = [(.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")]
         let keys: [Character: String] = [
             KeyEquivalent.return.character: "↩", KeyEquivalent.tab.character: "⇥",
@@ -34,8 +39,8 @@ extension KeyboardShortcut {
             KeyEquivalent.upArrow.character: "↑", KeyEquivalent.downArrow.character: "↓",
             KeyEquivalent.pageUp.character: "⇞", KeyEquivalent.pageDown.character: "⇟",
         ]
-        return modifiers.filter { self.modifiers.contains($0.0) }.map(\.1).joined()
-            + (keys[key.character] ?? String(key.character).uppercased())
+        return modifiers.filter { self.modifiers.contains($0.0) }.map(\.1)
+            + [keys[key.character] ?? String(key.character).uppercased()]
     }
 }
 
@@ -166,8 +171,8 @@ extension KeyboardShortcut {
         var key: KeyboardShortcut?
         /// The Keyboard Shortcuts panel's group, when not its section's.
         var group: Group?
-        /// The Keyboard Shortcuts panel's one row for a set of commands that differ by the key: "Select Pane",
-        /// "⌥⌘←→↑↓".
+        /// The Keyboard Shortcuts panel's one row for a set of commands that differ by the key: "Select Pane" and
+        /// one keycap for the keys, "←→↑↓", after the modifiers'.
         var family: (title: String, keys: String)?
         /// The palette row's SF Symbol.
         var symbol: String?
@@ -203,7 +208,7 @@ extension KeyboardShortcut {
             let opener = Self.keep(openWindow)
             let list = (commands ?? CommandList(openWindow: opener, settings: settings)).all
             CommandGroup(replacing: .newItem) { items(list, .file) }
-            // ⌘W closes the keyboard card, ⇧⌘W the window (design: keyboard).
+            // ⌘W closes the keyboard card, ⇧⌘W the tab, ⌃⌘W the workspace, ⌥⌘W detaches the session (design: keyboard).
             CommandGroup(replacing: .saveItem) { items(list, .close) }
             CommandGroup(after: .pasteboard) { items(list, .edit) }
             CommandGroup(after: .sidebar) {
