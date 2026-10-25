@@ -144,3 +144,21 @@ found none). If herdr has none, floating is Oriel's own.
   ⌃S, reads the tty's echo `^[[115;6u…^[[13;6u^[[115;5u` (the old code gave ;5u for the letters). CI
   40171964049 green.
 - **For the user to check by hand:** the six pi extension keys in pi inside Oriel.
+
+### Lane J (item 4)
+
+- **Root causes.** Workspace order was a flat list: `AgentsList` grouped only by priority, and each row's line 2
+  always came from `Page.place` ("‹workspace› · ‹tab›"). The row title read `pane.agentName` only, never herdr's
+  pane label. The header was an HStack of the name plus `" · agents"`, with no line under it. `AgentButton`
+  used `ChromeStyle(radius:)` with no `selected`, so no row was ever lit.
+- **Decisions.** Workspace groups reuse the priority labels' view (`label(_:id:)`, `agents.workspace.<id>`) in
+  `store.workspaces` order; line 2 is the tab's title there (`AgentButton.place`), "‹workspace› · ‹tab›" in
+  priority order and the needs-you popover. Title: `pane.label ?? agentName ?? "agent"`, the card header's
+  order; the filter matches the pane name too (spec review). Lit: `page.keyboardCard(selectedTab)`, the same
+  source as the lit card (follows a zoom and a focused text field); also in the needs-you popover, whose rows
+  are the Agents view's. The separator is a `Divider()` across the page, in the Agents view only (the item's
+  scope); the workspaces header keeps its look.
+- **Learned.** `.accessibilityAddTraits(.isHeader)` on a SwiftUI `Text` empties its AX value on macOS (CI
+  40172219344), so the group labels stay plain. A `Text` exposes its string as the value with no
+  `.accessibilityValue`, so the header's hard-coded value went and the tests read the drawn text. Tests know the
+  Agents view is on from `agents.sort`, not the header. CI: 40171834621, 40172583567 (lane's tests green).
