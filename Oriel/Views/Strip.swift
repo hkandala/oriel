@@ -131,6 +131,8 @@
                             .opacity(zoomed == nil ? 1 : 0)
                             .allowsHitTesting(zoomed == nil)
                             .accessibilityHidden(zoomed != nil)
+                            // Over both sides' edges: its hit area reaches 4 pt into each card.
+                            .zIndex(2)
                     }
                 }
             }
@@ -251,13 +253,13 @@
                             send(hold(ratio + (direction == .increment ? 0.05 : -0.05)))
                         }
                 }
-                // Over both sides' edges: its hit area reaches 4 pt into each card.
-                .zIndex(2)
                 .onChange(of: divider.ratio) {
                     if sent == asked {
                         held = nil
                     }
                 }
+                // Its split closed: a later split at the same path must not take its ratio.
+                .onDisappear { held = nil }
         }
 
         /// The ratio to herdr (D10). Held until the snapshot shows it; dropped when herdr refused it, or when herdr

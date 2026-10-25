@@ -31,10 +31,16 @@
         final class Host: NSView {
             private var fitting: Task<Void, Never>?
             /// e2e (`-recordMotion YES`): the sizes this host took, as its accessibility label. Layout motion gives
-            /// many;
-            /// a card made again, or one that jumps, only one or two.
+            /// many; a card made again, or one that jumps, only one or two.
             static let record = UserDefaults.standard.bool(forKey: "recordMotion")
             private var sizes = 0
+            private static var made = 0
+            private lazy var serial: Int = {
+                Self.made += 1
+                return Self.made
+            }()
+
+            private var widths: [Int] = []
 
             /// A held terminal stays at the top, as the card's content does.
             override var isFlipped: Bool {
@@ -47,6 +53,8 @@
                     setAccessibilityElement(true)
                     setAccessibilityRole(.group)
                     setAccessibilityLabel("\(sizes)")
+                    widths.append(Int(frame.width))
+                    setAccessibilityValue("host \(serial): \(widths)")
                 }
                 fitting?.cancel()
                 // At once until its first stream opened (it opens at the card's size; the terminal waits for that to

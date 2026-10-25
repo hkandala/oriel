@@ -130,7 +130,7 @@ extension OrielUITests {
             XCTAssertGreaterThanOrEqual(
                 (Int(host.label) ?? 0) - sizes,
                 4,
-                "\(step): sizes from \(sizes) to \(host.label)",
+                "\(step): sizes from \(sizes) to \(host.label), \(host.value ?? "")",
             )
             try await expectText([pane], step)
         }
