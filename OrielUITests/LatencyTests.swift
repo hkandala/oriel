@@ -64,8 +64,6 @@ extension OrielUITests {
             .matching(NSPredicate(format: "identifier MATCHES %@", #"pane\.[^.]+"#))
         key("d", .command) { cards.count == 2 }
         try await settle([made])
-        // The new pane's program is asked a second late; until then a close waits for herdr's answer.
-        try await Task.sleep(for: .seconds(2))
         key("w", .command) { cards.count == 1 }
         key("w", [.command, .shift]) { !self.element("tab.\(made)").exists }
         let keys = recorded().filter { ["⌘", "⇧"].contains($0.name.first.map(String.init)) }

@@ -71,7 +71,7 @@ struct Notice {
                 // Reconnecting (the server runs, the bridge fails) in one branch, so the strip keeps its state through
                 // it; the notices stay clickable.
                 let reconnecting = store.reconnecting
-                tabs(store)
+                tabs()
                     .opacity(reconnecting ? 0.5 : 1)
                     .allowsHitTesting(!reconnecting)
                     .overlay {
@@ -84,7 +84,7 @@ struct Notice {
         }
 
         /// The selected workspace's strip, or the button that makes what is missing.
-        @ViewBuilder private func tabs(_: HostStore) -> some View {
+        @ViewBuilder private func tabs() -> some View {
             if let workspace = page.selectedWorkspace {
                 if workspace.tabs.isEmpty {
                     Button { Task { await page.newTab() } } label: {

@@ -21,6 +21,8 @@ struct Ahead {
         var known: Set<String>
         /// Closed before herdr's tab came: it is closed as it comes.
         var closed = false
+        /// herdr's answer: its tab, shown in the stand-in's place once a snapshot has it.
+        var made: String?
     }
 
     /// The tab's tree with the stand-in, its panes before the split, and the snapshots since herdr answered (nil
@@ -65,10 +67,12 @@ struct Ahead {
         tabs.removeAll { standIn in !snapshot.workspaces.contains { $0.id == standIn.workspaceID } }
         for id in tabs.map(\.id) {
             // Read again: `made` adds to the others' known tabs.
-            guard let standIn = tabs.first(where: { $0.id == id }), let tab = snapshot.tabs.first(where: {
-                $0.workspaceID == standIn.workspaceID && !standIn.known.contains($0.id)
+            guard let standIn = tabs.first(where: { $0.id == id }), let tab = snapshot.tabs.first(where: { tab in
+                standIn.made.map { $0 == tab.id }
+                    ?? (tab.workspaceID == standIn.workspaceID && !standIn.known.contains(tab.id))
             }) else { continue }
-            if !standIn.closed {
+            // With herdr's answer in, the page knows the tab already.
+            if !standIn.closed, standIn.made == nil {
                 arrived[id] = tab.id
             }
             made(id, tab.id)
@@ -119,19 +123,15 @@ extension HostStore {
         guard let client else { return nil }
         // A stand-in (⌘T, then a close before herdr answered) goes now, herdr's tab as it comes.
         let standIns = closeIDs(request).filter(Ahead.isStandIn)
-        if !standIns.isEmpty {
-            for index in ahead.tabs.indices where standIns.contains(ahead.tabs[index].id) {
-                ahead.tabs[index].closed = true
-            }
-            redraw()
-            if case .tab = request {
-                return nil
-            }
+        if case .tab = request, !standIns.isEmpty {
+            closeStandIns(standIns)
+            return nil
         }
         let tabs = tabIDs(request)
         let asked = panes.filter { pane in request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
         let action = closing(request)
-        let clear = asked.allSatisfy { $0.program?.isShell == true }
+        // A new pane's shell still starting counts as one: its startup is waited out below.
+        let clear = asked.allSatisfy { $0.program?.isShell == true || $0.starting }
         if clear {
             hide(request)
         }
@@ -145,9 +145,19 @@ extension HostStore {
                 }
                 return Closing(close: request, running: running.sorted())
             }
+            // Close Other Tabs: the stand-ins among them too, once it goes ahead.
+            closeStandIns(standIns)
             await close(request, action)
             return nil
         }
+    }
+
+    private func closeStandIns(_ ids: [String]) {
+        guard !ids.isEmpty else { return }
+        for index in ahead.tabs.indices where ids.contains(ahead.tabs[index].id) {
+            ahead.tabs[index].closed = true
+        }
+        redraw()
     }
 
     /// What runs besides the shells in the panes, asked now, 8 at a time: a big workspace is not 30 herdr runs at once.
@@ -268,11 +278,18 @@ extension HostStore {
         redraw()
     }
 
-    /// herdr answered with the stand-in's tab; a closed stand-in's is closed.
-    func madeTab(_ standIn: String, _ id: String) {
-        ahead.made(standIn, id)
+    /// herdr answered with the stand-in's tab: the stand-in shows until a snapshot has it, and no other stand-in
+    /// takes it. Whether the stand-in was closed.
+    func madeTab(_ standIn: String, _ id: String) -> Bool {
         ahead.arrived[standIn] = nil
-        closeArrived()
+        for index in ahead.tabs.indices {
+            if ahead.tabs[index].id == standIn {
+                ahead.tabs[index].made = id
+            } else {
+                ahead.tabs[index].known.insert(id)
+            }
+        }
+        return ahead.tabs.first { $0.id == standIn }?.closed == true
     }
 
     /// The tabs of stand-ins closed before herdr made them: already left out, closed now.

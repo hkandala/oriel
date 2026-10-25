@@ -208,11 +208,18 @@ extension HostStore {
                     // ponytail: one sample of the shell alone can fall between two startup programs; require two in
                     // a row if a guess still shows.
                     var tries = 0
-                    while tries < 6, await (try? client?.program(pane.id))?.isShell == false {
+                    var program = try? await client?.program(pane.id)
+                    while tries < 6, program?.isShell == false {
                         tries += 1
                         try? await Task.sleep(for: .milliseconds(500))
+                        program = try? await client?.program(pane.id)
                     }
+                    // Its last answer, before it stops starting: a tab title shows "New Tab" until then (phase 25).
+                    pane.program = program ?? pane.program
                     pane.starting = false
+                    if program != nil {
+                        return
+                    }
                 }
                 await askProgram(pane.id)
             }

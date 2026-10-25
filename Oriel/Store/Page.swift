@@ -368,9 +368,8 @@
                 store.dropStandIn(standIn)
                 return
             }
-            store.madeTab(standIn, made)
-            // No snapshot had it yet.
-            if arriving == standIn {
+            // No snapshot had it yet, and it was not closed.
+            if !store.madeTab(standIn, made), arriving == standIn {
                 arriving = made
             }
         }
