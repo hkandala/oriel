@@ -4,15 +4,17 @@
     import HerdrKit
 
     /// Owns every pane's terminal of one window's pages, keyed by `terminal_id`, so SwiftUI never destroys
-    /// one while the strip scrolls. The shown tab's terminals stream; those of recently shown tabs, of any
-    /// page, keep streaming, up to `live` of them over all windows, so coming back to a tab resizes nothing
-    /// (design: what streams).
+    /// one while the strip scrolls. The shown tab's terminals stream and draw; the `spare` most recently shown others,
+    /// over all windows, keep streaming and their surface without drawing, so coming back to them is at once; the rest
+    /// keep only their last picture (design: what streams).
     /// ponytail: keyed by terminal id alone; herdr's ids (`term_` and 14 hex digits, from the clock) did not
     /// repeat across sessions. Key by session too if they ever do.
     @MainActor
     final class PaneViewRegistry {
-        /// The design's bound on streaming terminals over all windows (D46).
-        static let live = 24
+        /// The design's bound on terminals streaming out of view, over all windows (D46). Each keeps a herdr run and
+        /// libghostty's three IOSurfaces (52 MB for a full-window card on a Retina screen); one evicted comes back
+        /// under its last picture in about ‹N› ms (phase 25, lane O).
+        static let spare = 4
         /// Streaming terminals of every window, the most recently shown last.
         private(set) static var recent: [PaneTerminal] = []
         /// Its window's pages: they hear of the keyboard, Return and input in its terminals.
@@ -45,27 +47,26 @@
             return terminal
         }
 
-        /// Streams these terminals (terminal id → pane id); past the `live` most recently shown, the
-        /// others let go. Drops the terminals not in `alive` (their panes closed). A surface draws only
-        /// while it is in the window (a page in view or next to it, so a swipe shows the neighbor's last
-        /// image); libghostty stops drawing one that leaves it.
+        /// Streams and draws these terminals (terminal id → pane id); past the `spare` most recently shown others,
+        /// the rest let go. Drops the terminals not in `alive` (their panes closed). The others keep their last
+        /// picture (a swipe shows the neighbor's).
         func show(_ shown: [String: String], alive: Set<String>, client: (any Multiplexer)?) {
             for (terminalID, terminal) in terminals where !alive.contains(terminalID) {
                 terminal.close()
                 terminals[terminalID] = nil
                 Self.recent.removeAll { $0 === terminal }
             }
-            terminals.values.forEach { $0.inView = false }
             // Without a client (the page in view connecting), the terminals there go on: another page's floated ones.
             let streaming = shown.compactMap { id, pane in client.map { terminal(id, pane: pane, client: $0) } ??
                 terminals[id]
             }
-            streaming.forEach { $0.inView = true }
+            for terminal in terminals.values {
+                terminal.inView = streaming.contains { $0 === terminal }
+            }
             Self.recent = Self.recent.filter { terminal in !streaming.contains { $0 === terminal } } + streaming
-            // Only ones no window shows go: a tab with more than `live` panes keeps them all.
-            // ponytail: an evicted terminal keeps its surface (its last image) until its pane closes
-            // or its page closes.
-            while Self.recent.count > Self.live, let index = Self.recent.firstIndex(where: { !$0.inView }) {
+            while Self.recent.count(where: { !$0.inView }) > Self.spare,
+                  let index = Self.recent.firstIndex(where: { !$0.inView })
+            {
                 Self.recent.remove(at: index).hide()
             }
             streaming.forEach { $0.show() }

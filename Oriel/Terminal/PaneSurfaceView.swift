@@ -2,6 +2,7 @@
     import AppKit
     import GhosttyTerminal
     import HerdrKit
+    import IOSurface
     import SwiftUI
 
     /// libghostty's view with herdr's input path. herdr's frames carry none of the app's input
@@ -23,6 +24,9 @@
         var onKeyboard: (() -> Void)?
         /// Return, with or without modifiers, not repeated.
         var onReturn: (() -> Void)?
+        /// The surface's last picture while it has none (`free`), and over a new surface until that draws.
+        var still: CALayer?
+        var stillWatch: NSKeyValueObservation?
 
         override init(frame: NSRect) {
             super.init(frame: frame)
@@ -79,6 +83,7 @@
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            purgeable(window == nil)
             // A view that left the window leaves without resignFirstResponder; the flag must not stay on.
             terminal?.hasKeyboard = window != nil && window?.firstResponder === self
             if wantsKeyboard, window != nil {
@@ -328,6 +333,7 @@
             if window?.firstResponder !== self {
                 _ = resignFirstResponder()
             }
+            coverNewSurface()
         }
 
         func terminalDidDetachSurface() {}

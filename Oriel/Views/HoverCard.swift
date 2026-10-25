@@ -288,12 +288,12 @@
         /// With its 2 pt padding, the hover card's width inside its own (268 pt).
         private static let size = CGSize(width: 264, height: 165)
 
-        /// The picture libghostty's layer shows now (an IOSurface), while the terminal is in a window (only there does
-        /// it draw) and once it showed the pane (a lazy page's terminal that never streamed is blank). Never makes a
-        /// terminal.
+        /// The picture libghostty's layer shows now (an IOSurface), while the terminal draws (its window's shown tab or
+        /// floated: others keep an old picture) and once it showed the pane (a lazy page's terminal that never streamed
+        /// is blank). Never makes a terminal.
         static func picture(_ pane: HostStore.Pane?, _ page: Page) -> (terminal: PaneTerminal, picture: Any)? {
             guard let terminal = pane?.terminalID.flatMap({ page.terminals.terminals([$0]).first }), terminal.revealed,
-                  terminal.view.window != nil, let picture = terminal.view.layer?.contents,
+                  terminal.inView, let picture = terminal.view.picture,
                   terminal.view.frame.width > 0 else { return nil }
             return (terminal, picture)
         }

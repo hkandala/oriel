@@ -14,12 +14,12 @@
         /// The content shows: herdr's frames at the card's grid settled (PTY resized, program redrawn), or a watcher
         /// drew. Off from a new surface's start and from each grid change until then, so herdr's first frame (the old
         /// screen reflowed at the new size) never shows: the card keeps its last picture meanwhile.
-        private(set) var ready = false
+        var ready = false
         /// Shown once: only the first reveal fades in, and its layer holds a picture of the pane (the hover card's).
-        @ObservationIgnored private(set) var revealed = false
-        @ObservationIgnored private var settling: Task<Void, Never>?
+        @ObservationIgnored var revealed = false
+        @ObservationIgnored var settling: Task<Void, Never>?
         /// Shows the content at the latest 0.4 s after drawing paused, whatever the frames do.
-        @ObservationIgnored private var deadline: Task<Void, Never>?
+        @ObservationIgnored var deadline: Task<Void, Never>?
         /// The surface's last grid; nil until the first stream opens. Read by the host, which fits the view at once
         /// until then.
         @ObservationIgnored private(set) var grid: InMemoryTerminalViewport?
@@ -37,7 +37,7 @@
         @ObservationIgnored private var run: Task<Void, Never>?
         @ObservationIgnored private var resizing: Task<Void, Never>?
         @ObservationIgnored private var stream: TerminalStream?
-        @ObservationIgnored private var observing = false
+        @ObservationIgnored private(set) var observing = false
         @ObservationIgnored private var shown = false
         /// Counts streams, so a stream that is ending cannot change the state of the next one.
         @ObservationIgnored private var generation = 0
@@ -47,8 +47,15 @@
         @ObservationIgnored var onInput: () -> Void = {}
         /// A frame came (the find bar places its highlights again).
         @ObservationIgnored var onFrame: (() -> Void)?
-        /// Shown lately, by its window (the registry): not evicted while it is.
-        @ObservationIgnored var inView = false
+        /// In its window's shown tab, or floated (the registry): drawn, and not evicted. Others keep their last
+        /// picture.
+        @ObservationIgnored var inView = false {
+            didSet {
+                if inView != oldValue, ready {
+                    draw()
+                }
+            }
+        }
 
         init(terminalID: String, paneID: String, client: any Multiplexer) {
             self.terminalID = terminalID
@@ -64,9 +71,9 @@
             )
             // Pastes leave libghostty framed, and herdr frames them again for the app's own mode. No cursor on the
             // empty surface before herdr's first frame, which says whether it shows.
-            session.receive("\u{1B}[?2004h\u{1B}[?25l")
+            session.receive(Self.modes)
             view.terminal = self
-            view.controller = Self.controller
+            // No surface until it streams (`show`): a lazy page's card that never does costs no GPU memory.
             view.configuration = TerminalSurfaceOptions(backend: .inMemory(session))
             tasks = [
                 Task { for await text in texts {
@@ -82,15 +89,19 @@
         func show() {
             guard !shown || state.isFailed else { return }
             shown = true
+            view.rebuild()
             open()
         }
 
-        /// The card left the recently shown set: let go (D46). It keeps its last image.
+        /// The card left the recently shown set: let go of its stream and its surface (D46). It keeps its last image.
         func hide() {
             shown = false
             pending = []
             paste = nil
             end()
+            view.free()
+            // For the next surface: libghostty keeps what it receives meanwhile.
+            session.receive(Self.modes)
         }
 
         /// Its pane closed, or its page or window did: it is not used again.
@@ -130,12 +141,6 @@
                 takeBack()
             } else if state == .live {
                 stream?.mouse(action, button, column: column, row: row, modifiers: modifiers)
-            }
-        }
-
-        func scroll(lines: Int, column: Int, row: Int, modifiers: Int) {
-            if state == .live {
-                stream?.scroll(lines: lines, column: column, row: row, modifiers: modifiers)
             }
         }
 
@@ -327,6 +332,12 @@
     }
 
     extension PaneTerminal {
+        func scroll(lines: Int, column: Int, row: Int, modifiers: Int) {
+            if state == .live {
+                stream?.scroll(lines: lines, column: column, row: row, modifiers: modifiers)
+            }
+        }
+
         enum State: Equatable {
             /// No stream, or one still opening (no frame yet): not shown lately (D46), closed, or the pane is gone.
             case idle
@@ -346,55 +357,6 @@
             case text(String)
             /// herdr logical keys, encoded by herdr for the app's input modes.
             case keys([String])
-        }
-
-        /// The grid may change (a new card size or text size): the old picture stays until herdr's frames at the new
-        /// grid settle (100 ms if it stayed). Before libghostty hears of it, whose renderer thread may draw at once
-        /// (CI: garbled glyphs for 3 frames after a ⌘- paused late), and on libghostty's grid change for other paths.
-        /// Also with no stream (an evicted card back at a new size); a watcher shows the reflow: it cannot resize.
-        func hold() {
-            guard ready, !observing else { return }
-            ready = false
-            settle()
-        }
-
-        /// libghostty draws nothing until frames stop for 100 ms (a watcher cannot resize: shown at once), so the
-        /// view's layer keeps its last picture: the old text, at the top left (libghostty's layer gravity), or nothing
-        /// on a new surface (its background is clear). Not an alpha hide: the text went blank between two pictures.
-        private func settle() {
-            guard !observing else { return reveal() }
-            view.setSurfaceVisible(false)
-            // A program that redraws all the time never settles. Under the waiting spinner's 0.5 s.
-            deadline = deadline ?? Task {
-                try? await Task.sleep(for: .milliseconds(400))
-                if !Task.isCancelled {
-                    reveal()
-                }
-            }
-            settling?.cancel()
-            settling = Task {
-                try? await Task.sleep(for: .milliseconds(100))
-                if !Task.isCancelled {
-                    reveal()
-                }
-            }
-        }
-
-        /// Drawing resumes: the new picture at once. The first fades in from 0: a fade that never ran leaves it shown.
-        private func reveal() {
-            settling?.cancel()
-            deadline?.cancel()
-            deadline = nil
-            ready = true
-            view.setSurfaceVisible(true)
-            let first = !revealed
-            revealed = true
-            if first, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-                let fade = CABasicAnimation(keyPath: "opacity")
-                fade.fromValue = 0
-                fade.duration = 0.12
-                view.layer?.add(fade, forKey: "reveal")
-            }
         }
     }
 #endif
