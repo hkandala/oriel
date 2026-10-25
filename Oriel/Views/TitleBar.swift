@@ -4,7 +4,7 @@
     import SwiftUI
 
     /// The title row (D45): sidebar toggle, machine button, workspace button while the sidebar is collapsed, the tab
-    /// bar, then Agents, ⌘ and +.
+    /// bar, then Agents, the overview, ⌘ and +; in the overview only its ×.
     struct TitleBar: View {
         /// Rex's bar; `WindowReader` centers the traffic lights on it.
         static let height: CGFloat = 46
@@ -32,73 +32,16 @@
         @Environment(\.look) private var look
 
         var body: some View {
-            // The overview (D70) hides what acts on the strip and the sidebar.
-            let overview = pages.overview
             HStack(spacing: gap) {
-                HStack(spacing: gap) {
-                    // ⌃⌘S is the menu's.
-                    // Its sidebar part filled while open; no highlight: the icon says open or closed.
-                    // `rectangle.leftthird.inset.filled` alone drew too thin a bar at 13 pt to tell the two apart.
-                    IconButton(symbol: "sidebar.left", help: "Toggle Sidebar", key: .toggleSidebar) { sidebar.toggle() }
-                        .overlay {
-                            if sidebar {
-                                Image(systemName: "rectangle.leftthird.inset.filled").font(.body.weight(.medium))
-                                    .allowsHitTesting(false).accessibilityHidden(true)
-                            }
-                        }
-                        .accessibilityIdentifier("titlebar.sidebar")
-                        .accessibilityValue(sidebar ? "open" : "closed")
-                        .opacity(overview ? 0 : 1)
-                        .disabled(overview)
-                    MachineButton(pages: pages)
-                }
-                .frame(width: sidebar && !overview ? sidebarWidth - Self.inset(fullScreen: fullScreen) - gap : nil,
-                       alignment: .leading)
-                if !overview, !sidebar, let workspace = page.selectedWorkspace {
-                    Capped(width: 260) {
-                        WorkspaceButton(session: page.store.title, workspace: workspace.label, open: $workspaceMenu)
-                    }
-                    .layoutPriority(1)
-                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: {
-                        workspaceButtonX = $0
-                    }
-                }
-                if !overview, page.store.state == .live || page.store.reconnecting,
-                   let workspace = page.selectedWorkspace
-                {
-                    TabBar(workspace: workspace, page: page, plus: plus)
-                } else {
+                if pages.overview {
+                    // The overview (D70): the traffic lights and one × that leaves it.
                     Spacer(minLength: 0)
+                    // ⌃⌘O is the menu's.
+                    IconButton(symbol: "xmark", help: "Close Overview", key: .overview) { pages.toggleOverview() }
+                        .accessibilityIdentifier("overview.close")
+                } else {
+                    row
                 }
-                // ⌘. is the menu's.
-                AgentsButton(page: page, showing: sidebar && agents && !overview) {
-                    pages.afterOverview { toggleAgents($agents, $sidebar) }
-                    // A click takes the keyboard from the card.
-                    page.focusKeyboardCard()
-                }
-                // ⌃⌘O is the menu's.
-                IconButton(symbol: overview ? "square.grid.2x2.fill" : "square.grid.2x2", help: "Show Overview",
-                           key: .overview) { pages.toggleOverview() }
-                    .accessibilityIdentifier("titlebar.overview")
-                    .accessibilityValue(overview ? "on" : "off")
-                // ⌘K is the menu's.
-                IconButton(symbol: "command", help: "Command Palette", key: .palette) { palette.toggle() }
-                    .accessibilityIdentifier("titlebar.palette")
-                // ⌘T is the menu's.
-                IconButton(symbol: "plus", help: "New Tab", key: .newTab) { Task { await page.newTab() } }
-                    .disabled(page.selectedWorkspace == nil || overview)
-                    .opacity(overview ? 0 : 1)
-                    .accessibilityIdentifier("titlebar.new-tab")
-                    // Highlighted too: a full track has no room for the ghost capsule.
-                    .overlay {
-                        if plus, page.dragging != nil {
-                            DropIndicator(radius: 7)
-                        }
-                    }
-                    .onDrop(of: page.selectedWorkspaceID == nil ? [] : [.orielDrag], delegate: PaneDrop(
-                        page: page, target: .move(.newTab(workspaceID: page.selectedWorkspaceID ?? "")), over: $plus,
-                    ))
-                    .clearsDrop(page) { plus = false }
             }
             .padding(.leading, Self.inset(fullScreen: fullScreen))
             .padding(.trailing, gap)
@@ -106,6 +49,68 @@
             .foregroundStyle(look.chrome)
             // The title bar is hidden, so the row's empty space moves the window.
             .background { Color.clear.contentShape(.rect).gesture(WindowDragGesture()) }
+        }
+
+        @ViewBuilder private var row: some View {
+            HStack(spacing: gap) {
+                // ⌃⌘S is the menu's.
+                // Its sidebar part filled while open; no highlight: the icon says open or closed.
+                // `rectangle.leftthird.inset.filled` alone drew too thin a bar at 13 pt to tell the two apart.
+                IconButton(symbol: "sidebar.left", help: "Toggle Sidebar", key: .toggleSidebar) { sidebar.toggle() }
+                    .overlay {
+                        if sidebar {
+                            Image(systemName: "rectangle.leftthird.inset.filled").font(.body.weight(.medium))
+                                .allowsHitTesting(false).accessibilityHidden(true)
+                        }
+                    }
+                    .accessibilityIdentifier("titlebar.sidebar")
+                    .accessibilityValue(sidebar ? "open" : "closed")
+                MachineButton(pages: pages)
+            }
+            .frame(width: sidebar ? sidebarWidth - Self.inset(fullScreen: fullScreen) - gap : nil,
+                   alignment: .leading)
+            if !sidebar, let workspace = page.selectedWorkspace {
+                Capped(width: 260) {
+                    WorkspaceButton(session: page.store.title, workspace: workspace.label, open: $workspaceMenu)
+                }
+                .layoutPriority(1)
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: {
+                    workspaceButtonX = $0
+                }
+            }
+            if page.store.state == .live || page.store.reconnecting,
+               let workspace = page.selectedWorkspace
+            {
+                TabBar(workspace: workspace, page: page, plus: plus)
+            } else {
+                Spacer(minLength: 0)
+            }
+            // ⌘. is the menu's.
+            AgentsButton(page: page, showing: sidebar && agents) {
+                toggleAgents($agents, $sidebar)
+                // A click takes the keyboard from the card.
+                page.focusKeyboardCard()
+            }
+            // ⌃⌘O is the menu's.
+            IconButton(symbol: "square.grid.2x2", help: "Show Overview", key: .overview) { pages.toggleOverview() }
+                .accessibilityIdentifier("titlebar.overview")
+            // ⌘K is the menu's.
+            IconButton(symbol: "command", help: "Command Palette", key: .palette) { palette.toggle() }
+                .accessibilityIdentifier("titlebar.palette")
+            // ⌘T is the menu's.
+            IconButton(symbol: "plus", help: "New Tab", key: .newTab) { Task { await page.newTab() } }
+                .disabled(page.selectedWorkspace == nil)
+                .accessibilityIdentifier("titlebar.new-tab")
+                // Highlighted too: a full track has no room for the ghost capsule.
+                .overlay {
+                    if plus, page.dragging != nil {
+                        DropIndicator(radius: 7)
+                    }
+                }
+                .onDrop(of: page.selectedWorkspaceID == nil ? [] : [.orielDrag], delegate: PaneDrop(
+                    page: page, target: .move(.newTab(workspaceID: page.selectedWorkspaceID ?? "")), over: $plus,
+                ))
+                .clearsDrop(page) { plus = false }
         }
     }
 
