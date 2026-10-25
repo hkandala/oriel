@@ -534,6 +534,13 @@ found none). If herdr has none, floating is Oriel's own.
   t1's three cards; back on t1, every screenshot has ink, herdr's text shows, its stream is back, and a `clear` is drawn
   (the still did not stay). Not covered by a test: a rebuilt watcher (D66's second window) and a card resized while
   evicted.
+- **CI.** Ad-hoc runs: 40183217191 (baseline), 40183818674 (dots), 40183996523 (surfaces; the first eviction test's
+  order flake), 40185259269 (eviction, usage, hover card, latency: green). Full suite green on 269e8d4, after lane O's
+  last code commit 2e4fb72 (40186890188). There an evicted card was drawn by the first check, 0.67 s after the key (an
+  upper bound: XCUITest's hittable wait and a screenshot come first).
+- **The user's Mac after the rebuild** (04:21 build, 6 minutes up, the user testing): 192–209 MB footprint, IOSurface
+  66–89 MB (plus 44 MB purgeable), 4–5 herdr runs, 11–21 % CPU while in use (was 1.2 GB, 828 MB IOSurface, 18 runs,
+  17–32 %). Idle CPU with agents working is still to read.
 - **Learned.** libghostty-spm frees a surface only through `controller = nil` (no public free). `footprint` leaves
   volatile IOSurfaces out ("Reclaimable"). KVO on `CALayer.contents` fires for ghostty's `setContents:`. A dictionary's
   order put t1's three terminals in `recent` in any order, so the eviction test needs one tab more than it seems (a CI
