@@ -90,6 +90,39 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
     }
 
+    /// A split's new pane gets the keyboard (⌘D and the header's button); ⌘[ ⌘] step in the tree's order, not the
+    /// order the panes were made; ⇧⌘↩ zooms the keyboard card (phase 25: the menu bar kept Zoom Pane disabled from
+    /// before the split, so the key did nothing).
+    func testSplitsGiveTheNewPaneTheKeyboardAndKeysFollowTheTree() async throws {
+        let (tab, first) = try await newTab("split-keys")
+        element("tab.\(tab)").click()
+        element("terminal.\(first)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        app.typeKey("d", modifierFlags: .command)
+        let second = try await poll("a pane right of the first") { try await order(tab).last { $0 != first } }
+        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        // Below the first: the tree's order is first, third, second.
+        hoverHeader(first)
+        element("pane.\(first).split-down").click()
+        let third = try await poll("a pane below the first") { () async throws -> String? in
+            let panes = try await order(tab)
+            return panes.count == 3 ? panes[1] : nil
+        }
+        let tree = try await order(tab)
+        XCTAssertEqual(tree, [first, third, second])
+        XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
+        for (key, pane) in [("]", second), ("]", first), ("[", second), ("[", third)] {
+            app.typeKey(key, modifierFlags: .command)
+            XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")), "⌘\(key) to \(pane)")
+        }
+
+        app.typeKey(.return, modifierFlags: [.command, .shift])
+        XCTAssertTrue(element("pane.\(first)").vanishes(within: 2))
+        XCTAssertEqual(element("pane.\(third).zoom").label, "Restore Pane ⇧⌘↩")
+        app.typeKey(.return, modifierFlags: [.command, .shift])
+        XCTAssertTrue(element("pane.\(first)").exists(within: 2))
+    }
+
     func testContextMenuSplitsLeftRenamesAndMovesToNewTab() async throws {
         let (tab, pane) = try await newTab("menu")
         restoreHerdrFocusAfter()

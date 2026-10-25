@@ -7,8 +7,8 @@ extension HostStore {
     /// Split Right or Down, or Left or Up (`before`): herdr splits only right and down, so a swap puts the new pane
     /// first. Then the run of same-direction splits holding the new pane is evened out, from herdr's tree after
     /// the split, as Rex does (33 / 33 / 33, not herdr's 50 / 25 / 25).
-    /// Shown at once with an empty card for the new pane (phase 25), until a snapshot has herdr's.
-    func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
+    /// Shown at once with an empty card for the new pane (phase 25), until a snapshot has herdr's. The new pane.
+    func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async -> HerdrKit.Pane? {
         let tab = workspaces.flatMap(\.tabs).first { $0.tree?.paneIDs.contains(paneID) == true }
         let standIn = Ahead.standIn()
         if let tab, let tree = tab.tree {
@@ -20,8 +20,10 @@ extension HostStore {
             )
             redraw()
         }
+        var made: HerdrKit.Pane?
         let done = await write { client in
             guard let new = try await client.split(paneID, direction) else { return }
+            made = new
             if before {
                 try await client.swap(paneID, direction == .right ? .right : .down)
             }
@@ -34,6 +36,7 @@ extension HostStore {
                 redraw()
             }
         }
+        return made
     }
 
     /// The run of splits holding the pane evened out, from herdr's tree now.

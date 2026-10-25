@@ -308,9 +308,11 @@
         @ObservationIgnored private var asking = false
 
         /// A split restores a zoomed layout first, as tmux does: the new pane shows.
+        /// The new pane gets the keyboard, as in Ghostty (user, phase 25).
         func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
             zoomedPaneID = nil
-            await store.split(paneID, direction, before: before)
+            let new = await store.split(paneID, direction, before: before)
+            follow(new, new?.terminalID, select: false)
         }
 
         /// The keyboard goes to the nearest card that way, as herdr's `pane.neighbor` finds it (read only).
@@ -345,13 +347,15 @@
             }
         }
 
-        /// The page goes to the moved pane's tab once a snapshot shows it, and the pane has the keyboard there. A
-        /// floated pane stays in its window.
-        private func follow(_ moved: HerdrKit.Pane?, _ terminalID: String?) {
+        /// The page goes to the moved pane's tab once a snapshot shows it (unless not `select`), and the pane has the
+        /// keyboard there. A floated pane stays in its window.
+        private func follow(_ moved: HerdrKit.Pane?, _ terminalID: String?, select: Bool = true) {
             guard let moved, floating[terminalID ?? ""] == nil else { return }
             keyboardTerminals[moved.tabID] = terminalID
             movedTerminal = terminalID
-            arriving = moved.tabID
+            if select {
+                arriving = moved.tabID
+            }
             settle() // In case the snapshot after the move came in already.
             // The next snapshot gives it the keyboard if the store does not show it in its tab yet (`shown`), also when
             // the tab stays selected (a spring-loaded tab, a re-place).
