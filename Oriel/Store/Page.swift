@@ -121,7 +121,8 @@
             if let id = arriving, let made = store.ahead.arrived.removeValue(forKey: id) {
                 arriving = made
             }
-            if let id = arriving, let workspace = store.workspace(of: id) {
+            // Not the stand-in itself: it waits for herdr's tab.
+            if let id = arriving, !Ahead.isStandIn(id), let workspace = store.workspace(of: id) {
                 select(workspace, tab: id)
             }
             if selectedWorkspace == nil {

@@ -55,6 +55,8 @@ extension OrielUITests {
         })
         XCTAssertFalse(titles.contains { !$0.isEmpty && $0.allSatisfy(\.isNumber) }, "\(titles)")
         let made = try await newTabID(after: before)
+        // herdr's tab took the stand-in's place, still selected.
+        XCTAssertTrue(element("tab.\(made)").has(\.isSelected, true, within: 3))
         try await settle([made])
         let cards = element("page.\(made)").descendants(matching: .any)
             .matching(NSPredicate(format: "identifier MATCHES %@", #"pane\.[^.]+"#))

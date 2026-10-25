@@ -18,6 +18,8 @@
         @State private var filter = ""
         /// The page in view, as the scroll view has it.
         @State private var position = ScrollPosition(idType: String.self)
+        /// From a swipe's start to its rest.
+        @State private var swiping = false
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.look) private var look
 
@@ -51,7 +53,8 @@
                 // the system's slower snap (phase 25).
                 .scrollTargetBehavior(SessionPaging { index in
                     Task {
-                        if pages.list.indices.contains(index), pages.list[index] !== pages.current {
+                        // A swipe's, not a layout's (a restored window's first pages would show the first page).
+                        if swiping, pages.list.indices.contains(index), pages.list[index] !== pages.current {
                             pages.show(pages.list[index])
                         }
                     }
@@ -60,6 +63,7 @@
                 .scrollIndicators(.never)
                 .onScrollPhaseChange { old, phase in
                     Latency.shared.scrolled(old, phase)
+                    swiping = phase == .interacting || swiping && phase != .idle
                     if phase == .idle, let id = position.viewID(type: String.self), id != pages.current?.id,
                        let page = pages.list.first(where: { $0.id == id })
                     {
