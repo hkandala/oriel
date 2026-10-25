@@ -181,7 +181,13 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   never-shown tab of session two draws live, Esc without motion gives the keyboard back),
   `testOverviewCostsAndLetsGoAfter` (streams up while open, back to the strip's count after).
 - **CI.** 40192962147 (rough: Esc red), 40193514086, 40194287889 (green), 40196409137 (a layout check below CI's
-  fold; fixed in 1b881f4); full suite 40197782383 on 1b881f4.
+  fold; fixed in 1b881f4); full suite 40197782383 on 1b881f4 (one red: `testPaletteEnterTakesTheMovedRowAndKeysFollow`,
+  ↓ after "show" now lands on Show Overview, the View menu's order; fixed in fd0f177). Full suite 40199215983 on
+  fd0f177, the lane's last code commit, and its rerun of the failed shards: every overview, hover card and palette
+  test green; three reds in lane T3's area, red in both attempts: `testClosingATabAsksOnlyWhileAProgramRuns` (the
+  tab bar's × of w2:t4 not found), `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed` (4 steps, needs
+  more) and `testLayoutMotionAnimatesWithoutBlanking` (restore 153 ms over 150, then a pane read timeout); all
+  three green on 1b881f4, before T3's c83d6ea, 20d3b7f and 46f4514.
 - **For the user to check by hand:** ⌃⌘O in a busy session: tiles live and readable at Retina, the selected tab's
   card in Glass and Classic, × on hover; a click's zoom with Reduce Motion off (smooth, ends where the strip's
   page is, with the sidebar open and closed); a two-finger swipe between sessions inside the overview; memory
