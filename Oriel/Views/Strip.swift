@@ -60,20 +60,20 @@
             }
             .testValue("strip.between", "Strip Between Pages", "\(between)", shown: Self.record)
             .onScrollPhaseChange { _, phase in
-                // Not a page of the workspace that was shown before a switch.
+                // Not a tab that closed meanwhile.
                 if phase == .idle, let shown = position.viewID(type: String.self),
                    workspace.tabs.contains(where: { $0.id == shown })
                 {
                     page.selectedTabIDs[workspace.id] = shown
                 }
             }
-            // One strip for every workspace. The tab marker follows the scroll.
-            .onChange(of: [workspace.id, page.selectedTabIDs[workspace.id]], initial: true) {
+            // The tab marker follows the scroll.
+            .onChange(of: page.selectedTabIDs[workspace.id], initial: true) {
                 guard let target = page.selectedTabIDs[workspace.id],
                       position.viewID(type: String.self) != target else { return }
                 withTransaction(\.animation, nil) { position.scrollTo(id: target, anchor: .leading) }
-                // A page that lays out in this same update (another workspace's, a new tab's) can miss the scroll (a
-                // new workspace came up blank): again once it has.
+                // A page that lays out in this same update (the strip's first, a new tab's) can miss the scroll (a new
+                // workspace came up blank): again once it has.
                 Task { position.scrollTo(id: target, anchor: .leading) }
             }
         }
