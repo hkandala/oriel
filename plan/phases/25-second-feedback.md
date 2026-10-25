@@ -316,3 +316,16 @@ Screenshots in the main checkout: `.build/fb/shortcuts.png` (item 17), `.build/f
     window; plain style). Stop and Delete buttons are red.
 20. **Agents button hover:** when nobody needs the user, hovering shows nothing (no panel, no "All caught
     up"); the panel shows only when it has rows.
+
+### More from the user (2026-10-25 01:45)
+
+24. (Lane I2) **Working dots on the selected tab too.** D42 hid them on the selected tab, as Rex does; the
+    user wants them on every tab, the selected one included. Update D42.
+25. (Lane B2) **Empty strip again** (`.build/fb/blank.png`): the whole strip is empty, no card and no card
+    header, in a workspace with one tab ("ui polish"); sidebar and tab bar are fine. The user's build is
+    main at about 01:10 (wave 1, before any wave 2 code). Phase 24 lane A blamed the terminal reveal without
+    a repro; this shot shows the cards themselves missing, so the cause is likely the strip: its scroll
+    position or page layout (for example a scroll offset left from a workspace or session with more tabs,
+    an instant `scrollTo` plus retry that targets a page not laid out yet, a stale tree, a strip page width
+    of 0). Find a way to reproduce it on CI, find the root cause and fix it, with a test that fails on the
+    old code.
