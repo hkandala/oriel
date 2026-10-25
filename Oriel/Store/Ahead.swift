@@ -129,7 +129,9 @@ extension HostStore {
         let tabs = tabIDs(request)
         let asked = panes.filter { pane in request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
         let action = closing(request)
-        let clear = asked.allSatisfy { $0.program?.isShell == true || $0.starting }
+        // ponytail: a pane another client just made with a program (`pane split -- vim`) also starts; hidden, it comes
+        // back with the question a second later. Agents are known at once, so they wait.
+        let clear = asked.allSatisfy { $0.program?.isShell == true || $0.starting && $0.agent == nil }
         if clear {
             hide(request)
         }

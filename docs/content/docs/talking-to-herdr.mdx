@@ -389,7 +389,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 |---|---|
 | New workspace (page header `+`, workspace menu, an empty session's New Workspace) | `workspace.create {cwd: "~", label, focus: false}` in that page's session (herdr reads `~` as its machine's home; a launchd-started server's cwd is not home); the label only when the user typed one; then the snapshot selects it |
 | Folder dropped on the Dock icon | `workspace.create {cwd, focus: false}`, one per folder, in the session of the last key window's page in view, once that page is live; the last one is selected when it appears. With no window (a drop that starts the app), a window opens first |
-| New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a workspace row's New Tab, that workspace's keyboard card, or `~` |
+| New tab | `tab.create {workspace_id, cwd}`, with the cwd of the keyboard card; from a workspace row's New Tab, that workspace's keyboard card; while a new tab's stand-in shows (⌘T again), the keyboard card of the tab used last there; else `~` |
 | Split right or down | `pane.split {target_pane_id, direction: right or down, focus:false}`, then [equal splits](/docs/layout#dividers): a fresh snapshot, and one `layout.set_split_ratio` per split of the new pane's run whose ratio changes |
 | Split left or up | `pane.split` right or down (`focus:false`), then `pane.swap {pane_id: old, direction: right or down}`: the old pane swaps with the new one beside it (herdr splits only right and down); then equal splits |
 | Drag a divider | `layout.set_split_ratio {tab_id, path, ratio}` on release; ratio kept in 0.1–0.9 |

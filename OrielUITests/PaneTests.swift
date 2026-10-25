@@ -94,24 +94,22 @@ extension OrielUITests {
     /// herdr's focused pane or the neighbor (phase 27).
     func testClosingAPaneGivesTheKeyboardToThePaneUsedBefore() async throws {
         let (tab, first) = try await newTab("used-panes")
-        let second = try await split(first), third = try await split(second)
+        let second = try await split(first), third = try await split(second), fourth = try await split(third)
         element("tab.\(tab)").click()
         try await settle([tab])
-        // The third, then the first (herdr's focused pane: splits pass focus:false); closed, the old code gave its
-        // neighbor, the second, which herdr focuses.
-        for pane in [third, first] {
+        // The second, the fourth, then the first (herdr's focused pane: splits pass focus:false). Closed, the old code
+        // gave the first's neighbor, the second, which herdr focuses.
+        for pane in [second, fourth, first] {
             element("terminal.\(pane)").click()
             XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")), pane)
         }
         app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(element("pane.\(first)").vanishes(within: 3))
-        XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
-        // Two back: the second, closed, gives way to the third again.
-        element("terminal.\(second)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(fourth)")))
+        // Two back: the second, not the fourth's neighbor, the third.
         app.typeKey("w", modifierFlags: .command)
-        XCTAssertTrue(element("pane.\(second)").vanishes(within: 3))
-        XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
+        XCTAssertTrue(element("pane.\(fourth)").vanishes(within: 3))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
     }
 
     /// A split's new pane gets the keyboard (⌘D and the header's button); ⌘[ ⌘] step in the tree's order, not the
