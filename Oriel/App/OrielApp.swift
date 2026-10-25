@@ -289,6 +289,12 @@ struct OrielApp: App {
             .testValue("app.links", "Links", Links.shared.recorded.joined(separator: " "),
                        shown: UserDefaults.standard.bool(forKey: "recordLinks"))
             .testValue("app.latency", "Latency", Latency.shared.recorded.joined(separator: "; "), shown: Latency.isOn)
+            .testValue(
+                "overview.motion",
+                "Overview Motion",
+                "\(MiniTerminal.Mini.most)",
+                shown: TerminalHost.Host.record,
+            )
             .onChange(of: panel, initial: true) {
                 Latency.shared.panel = panel.map { "\($0)" } ?? ""
                 pages.panelOpen = panel != nil

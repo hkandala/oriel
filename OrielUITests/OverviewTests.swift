@@ -6,8 +6,8 @@ extension OrielUITests {
     /// tab never shown draws live in its tile; × closes a tab; a click shows that tab, its terminals at their size;
     /// Esc leaves too.
     func testOverviewShowsEveryTabLiveAndOpensOne() async throws {
-        // The zoom runs, for the recording.
-        relaunch(nil, ["-forceMotion", "YES"])
+        // The zoom runs, for the recording, and its miniature's sizes are counted.
+        relaunch(nil, ["-forceMotion", "YES", "-recordMotion", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (closing, _) = try await newTab("closing", in: "w1")
         // A white block in w2's pane, which no card showed yet.
@@ -27,7 +27,7 @@ extension OrielUITests {
             XCTAssertTrue(element(id).exists, id)
         }
         // The session's title, then each workspace's name over its tiles, two a row.
-        XCTAssertEqual(element("overview.title").label, one)
+        XCTAssertEqual(element("overview.title").stringValue, one)
         XCTAssertLessThan(element("overview.workspace.w2").frame.maxY, element("overview.tab.w2:t1").frame.minY)
         let first = element("overview.tab.w1:t1").frame, second = element("overview.tab.w1:t2").frame
         XCTAssertEqual(first.minY, second.minY, accuracy: 1)
@@ -52,6 +52,8 @@ extension OrielUITests {
         element("titlebar.overview").click()
         XCTAssertTrue(overview.exists(within: 2))
         XCTAssertEqual(element("overview.tab.w2:t1").stringValue, "selected")
+        // The zoom grew its miniature frame by frame (a jump takes one or two sizes).
+        XCTAssertGreaterThanOrEqual(Int(element("overview.motion").stringValue) ?? 0, 4)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
         XCTAssertTrue(hasKeyboard(element("terminal.w2:p1")))

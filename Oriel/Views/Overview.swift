@@ -78,10 +78,8 @@
                 }
                 .overlay(alignment: .topLeading) {
                     if let zoom {
-                        let rect = grown ? strip : zoom.from
                         Miniature(tab: zoom.tab, page: zoom.page, size: strip.size)
-                            .frame(width: rect.width, height: rect.height)
-                            .position(x: rect.midX, y: rect.midY)
+                            .modifier(Grow(progress: grown ? 1 : 0, from: zoom.from, page: strip))
                     }
                 }
                 .onChange(of: pages.leaving) {
@@ -128,9 +126,32 @@
                   !reduceMotion || Animation.forceMotion
             else { return pages.closeOverview() }
             zoom = Zoom(page: page, tab: tab, from: from)
-            withAnimation(.easeOut(duration: 0.25)) { grown = true } completion: {
-                pages.closeOverview()
+            // Next turn: a view inserted in the same update as the change starts at its end, with no motion.
+            Task {
+                withAnimation(.easeOut(duration: 0.25)) { grown = true } completion: {
+                    pages.closeOverview()
+                }
             }
+        }
+    }
+
+    /// The zoom's frame at each step: a plain animated frame reached the miniature's terminal views only at its end
+    /// (their sizes come from a `GeometryReader`, which a layout animation gives the final size at once).
+    private struct Grow: ViewModifier, Animatable {
+        var progress: CGFloat
+        let from: CGRect
+        let page: CGRect
+
+        var animatableData: CGFloat {
+            get { progress }
+            set { progress = newValue }
+        }
+
+        func body(content: Content) -> some View {
+            let step = { (start: CGFloat, end: CGFloat) in start + (end - start) * progress }
+            let rect = CGRect(x: step(from.minX, page.minX), y: step(from.minY, page.minY),
+                              width: step(from.width, page.width), height: step(from.height, page.height))
+            content.frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
         }
     }
 

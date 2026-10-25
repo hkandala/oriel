@@ -82,9 +82,17 @@
             mini.fit()
         }
 
+        static func dismantleNSView(_ mini: Mini, coordinator _: ()) {
+            Mini.most = max(Mini.most, mini.sizes)
+        }
+
         final class Mini: NSView {
             var size = CGSize.zero
             private var fitting: Task<Void, Never>?
+            /// e2e (`-recordMotion YES`): the most sizes a miniature took, the zoom's among them (many when it grows
+            /// frame by frame, one or two when it jumps).
+            static var most = 0
+            private(set) var sizes = 0
 
             override var isFlipped: Bool {
                 true
@@ -96,6 +104,7 @@
 
             override func setFrameSize(_ newSize: NSSize) {
                 super.setFrameSize(newSize)
+                sizes += 1
                 fit()
             }
 
