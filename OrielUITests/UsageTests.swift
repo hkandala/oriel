@@ -54,7 +54,7 @@ extension OrielUITests {
     }
 
     /// The `terminal session` runs in a `usage` report.
-    private func helpers(_ usage: String) -> Int {
+    func helpers(_ usage: String) -> Int {
         usage.split(separator: "\n").first { $0.hasPrefix("helpers ") }.flatMap { Int($0.split(separator: " ")[1]) }
             ?? .max
     }

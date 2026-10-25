@@ -16,7 +16,7 @@
         /// The tab whose miniature grows to the page, from its tile's frame; `grown` once it moves.
         @State private var zoom: (tab: HostStore.Tab, from: CGRect)?
         @State private var grown = false
-        @FocusState private var focused: Bool
+        @State private var monitor: Any?
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         final class Frames {
@@ -73,15 +73,25 @@
                 }
             }
             .coordinateSpace(.named(Self.space))
-            .focusable()
-            .focusEffectDisabled()
-            .focused($focused)
-            .onKeyPress(.escape) {
-                pages.leaving = true
-                return .handled
+            // The keyboard leaves the terminals, which take none while in a miniature (`PaneSurfaceView`). Esc by a
+            // monitor: a SwiftUI focus did not take the keyboard from a terminal moving into a miniature (CI).
+            .onAppear {
+                pages.window?.makeFirstResponder(nil)
+                monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                    guard event.keyCode == 53 else { return event }
+                    let leave = MainActor.assumeIsolated {
+                        // Not a text field's (the palette's) Esc.
+                        guard let window = pages.window, NSApp.keyWindow === window,
+                              !(window.firstResponder is NSText) else { return false }
+                        pages.leaving = true
+                        return true
+                    }
+                    return leave ? nil : event
+                }
             }
-            // The keyboard leaves the terminals, which take none while in a miniature (`PaneSurfaceView`).
-            .onAppear { focused = true }
+            .onDisappear {
+                monitor.map(NSEvent.removeMonitor)
+            }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("overview")
         }
@@ -155,7 +165,8 @@
                                 .accessibilityIdentifier("overview.workspace.\(workspace.id)")
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 340), spacing: 16)], spacing: 16) {
                                 ForEach(workspace.tabs) { tab in
-                                    tile(workspace, tab)
+                                    Tile(page: page, workspace: workspace, tab: tab, size: size, frames: frames,
+                                         zooming: zooming == tab.id) { open(workspace, tab) }
                                 }
                             }
                         }
@@ -166,45 +177,66 @@
             .scrollIndicators(.never)
             .accessibilityIdentifier("overview.page.\(page.id)")
         }
+    }
 
-        private func tile(_ workspace: HostStore.Workspace, _ tab: HostStore.Tab) -> some View {
+    /// A tab as one card: its title row (icon stack, title, status; × on hover) over the miniature of its page. The
+    /// selected tab of its workspace has the keyboard card's look.
+    private struct Tile: View {
+        let page: Page
+        let workspace: HostStore.Workspace
+        let tab: HostStore.Tab
+        /// The strip's page.
+        let size: CGSize
+        let frames: Overview.Frames
+        /// Its miniature zooms to the page: the tile leaves the terminals to it.
+        let zooming: Bool
+        let open: () -> Void
+        @State private var hovering = false
+
+        var body: some View {
             let selected = page.selectedTabIDs[workspace.id] == tab.id
             let state = page.store.strongest([tab.id])?.state
-            return Button { open(workspace, tab) } label: {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        IconStack(panes: page.stack(tab), badge: state)
-                        FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
-                        Spacer(minLength: 0)
-                        if let state, state != .idle {
-                            StateCapsule(state: state)
+            VStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    IconStack(panes: page.stack(tab), badge: state)
+                    FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
+                    Spacer(minLength: 0)
+                    if hovering {
+                        // As the tab bar's ×: asks first only when a program runs.
+                        IconButton(symbol: "xmark", help: "Close Tab", key: .closeTab, size: 22) {
+                            page.close(.tab(tab.id))
                         }
-                    }
-                    .padding(.horizontal, 6)
-                    .frame(height: 28)
-                    .background {
-                        if selected {
-                            Pill(shape: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        }
-                    }
-                    Group {
-                        if zooming == tab.id {
-                            Color.clear
-                        } else {
-                            Miniature(tab: tab, page: page, size: size)
-                        }
-                    }
-                    .aspectRatio(size, contentMode: .fit)
-                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Overview.space)) } action: {
-                        frames.rects[tab.id] = $0
+                        .accessibilityIdentifier("overview.tab.\(tab.id).close")
+                    } else if let state, state != .idle {
+                        StateCapsule(state: state)
                     }
                 }
-                .padding(6)
+                .padding(.leading, 11)
+                .padding(.trailing, 8)
+                .frame(height: PaneCard.header)
+                Group {
+                    if zooming {
+                        Color.clear
+                    } else {
+                        Miniature(tab: tab, page: page, size: size)
+                    }
+                }
+                .aspectRatio(size, contentMode: .fit)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Overview.space)) } action: {
+                    frames.rects[tab.id] = $0
+                }
+                .padding([.horizontal, .bottom], gap)
             }
-            .buttonStyle(ChromeStyle(radius: 12))
+            .background(CardSurface(keyboard: selected))
+            .contentShape(.rect)
+            .onTapGesture(perform: open)
+            .onHover { hovering = $0 }
+            .accessibilityElement(children: .contain)
+            .accessibilityAddTraits(.isButton)
             .accessibilityLabel(page.titleText(tab))
             .accessibilityValue(selected ? "selected" : "")
             .accessibilityIdentifier("overview.tab.\(tab.id)")
+            .accessibilityAction(.default, open)
         }
     }
 
