@@ -308,7 +308,8 @@
                         let rect = zoomed == nil ? card.rect : area
                         self.card(card.id, tick: context.date)
                             .frame(width: rect.width * Self.scale, height: rect.height * Self.scale)
-                            .offset(x: rect.minX * Self.scale, y: rect.minY * Self.scale)
+                            // By layout, not `.offset`, which leaves the accessibility frame at the corner.
+                            .padding(.leading, rect.minX * Self.scale).padding(.top, rect.minY * Self.scale)
                     }
                 }
                 .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
