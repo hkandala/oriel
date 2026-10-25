@@ -305,7 +305,7 @@ struct OrielApp: App {
             .background(WindowReader(pages: pages, fullScreen: $fullScreen, lightsOff: $lightsOff))
             .testValue("window.lights", "Traffic Lights Off", "\(lightsOff)",
                        shown: UserDefaults.standard.bool(forKey: "recordLights"))
-            .navigationTitle(page.selectedTab.map { "\(page.titleText($0)) - \(page.id)" } ?? page.store.name)
+            .navigationTitle(page.selectedTab.map { "\(page.titleText($0)) - \(page.store.title)" } ?? page.store.name)
             // Every window, sheet and menu, and the terminals' palettes, follow the app's appearance.
             .onChange(of: appearance, initial: true) {
                 NSApp.appearance = switch appearance {
