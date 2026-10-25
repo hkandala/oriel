@@ -394,6 +394,11 @@ A peek at what runs in a tab (D63).
   in from 0.97 over 0.13 s.
 - **Content**, top to bottom:
   - The tab title (folder part dimmed) and the tab's status capsule, if any.
+  - A preview of the tab: its cards in their layout, as a 1056 × 660 pt page
+    draws them, at a quarter of that size (264 × 165 pt, a 2 pt gap), on the
+    window's tint. Each card shows its terminal's picture, live (see
+    [The preview's pictures](#the-previews-pictures)). A zoomed tab shows its
+    zoomed card. A click on it selects the tab.
   - One row per pane, at most 6 and then "+N more": the program glyph, the
     program or agent name, the folder in secondary text, and the status
     capsule or the working dots on the right.
@@ -401,10 +406,41 @@ A peek at what runs in a tab (D63).
     secondary monospaced text. The app reads them with `pane.read` when the
     card opens, one call per such pane, and shows nothing if the read fails.
 - A click on a pane row selects the workspace and tab and gives that pane the
-  keyboard. A click on the title selects the tab.
+  keyboard. A click on the title or the preview selects the tab.
 - VoiceOver: the card is a panel in the window (the Agents button's hover
   panel) with the rows as buttons. A tab's action
   "Show Panes" opens it.
+
+### The preview's pictures
+
+Each preview card shows the picture its terminal's libghostty layer already
+holds: the layer's IOSurface (a shared GPU image), set as the contents of a
+small layer, so nothing is copied or drawn twice. The preview reads it again
+5 times a second while the card is open, and has no timer while no card is.
+It opens no stream, makes no terminal and moves no terminal view: a terminal
+view stays in its card.
+
+- **Live** while the pane's card is in the window: the shown tab, or the
+  neighbor page during a swipe. libghostty draws only there.
+- **The last picture** for a pane shown before but not in view now: its
+  surface keeps its last image, also after its stream let go (D46).
+- **herdr's text** for a pane no terminal showed yet (a tab not opened since
+  the app started): its screen read with `pane.read` once when the card opens,
+  in 3.25 pt monospaced text.
+
+Options weighed: a snapshot of each card's view on a timer (`cacheDisplay`
+misses the Metal layer, the drag image's known gap); a second, small,
+observe-only libghostty surface per pane (a renderer thread, a font atlas and
+a herdr stream per pane, opened on every hover, and observe cannot resize, so
+the grid would not fit); `pane.read` on a timer for every pane (one
+`remote-api-bridge` process per pane per refresh, and no colors); floating's
+way (F2 moves the terminal view to the floating window, so its card shows a
+placeholder: not possible while the card stays on screen).
+
+Item 29's overview (a grid of every tab) reuses the preview per tab. To make
+every tab live it needs their surfaces drawing: while the overview covers the
+strip, it can host the terminal views itself; the preview's pictures follow
+whatever the surfaces draw.
 
 ## Strip
 
