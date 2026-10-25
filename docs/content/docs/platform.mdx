@@ -53,6 +53,11 @@ description: "One codebase, dependencies, the strip, the tab bar and tests"
    (web pages and plugin cards together; 2 on iPhone), least recently used
    first out; an evicted card frees its surface and keeps its last image. Web page message handlers
    sit behind a weak proxy.
+   A lazy stack whose pages change under it can lay
+   out none: one strip shared by every workspace drew no page after it drew
+   again on a middle tab and the next workspace had fewer tabs. So each
+   workspace gets its own strip. Any accessibility client (VoiceOver,
+   XCUITest) hides that bug, so `make strip-check` drives the app without one.
 3. **libghostty's default key bindings eat the app's shortcuts.** Every
    surface gets `keybind = clear`, and keys go to the main menu first.
 
