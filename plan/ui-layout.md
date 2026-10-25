@@ -103,14 +103,17 @@ The strip under the title row still pages sideways between the selected workspac
     Move Up, Move Down, Close Workspace. Double-click the name to rename. Drag to reorder (phase 18).
 - **Agents view** (the Agents button): the same page, listing the agents of **that session only**; a sideways
   swipe shows the next session's agents.
-  - Header: the session's name and a sort menu: **Priority** (groups Needs you, Working, Done, Idle, each
-    with a count) or **Workspace order** (a group per workspace under its name, herdr's order). The name is the title (13 pt
-    semibold, primary, also in the workspaces view); the group labels are 10 pt semibold section labels with
-    room above; no line under the header (phase 25).
+  - Header: the session's name (a `default` session shows its machine's name: This Mac's own name or the
+    remote machine's; phase 27) and a sort button: **Priority** (groups Needs you, Working, Done, Idle, each
+    with a count) or **Workspace** (a group per workspace under its name and count, herdr's order). The name is the
+    title (13 pt bold, the rows' size, primary, also in the workspaces view); the sort button is a capsule filled on
+    hover; the group labels are 10 pt semibold section labels with room above; no line under the header (phase 25).
+    A click on a group label folds its rows (a chevron at its end); a folded group keeps its label and count; the
+    folds are kept per session and order across relaunches (phase 27).
   - One row per agent pane, even when several share a tab. Row 48 pt, 4 pt apart, the program tile with its
     badge centered on both lines. Line 1: the pane's name, else the agent's name, then on the right the status capsule ("Needs you"
     amber, "Working" blue, "Done" green, "Idle" gray) and the age ("now", "3m", "2h"), on one centered line;
-    line 2 "‹workspace› · ‹tab›" (only "‹tab›" in workspace order). The header and the sort menu share a
+    line 2 "‹workspace› · ‹tab›" (only "‹tab›" in Workspace order). The header and the sort menu share a
     baseline (phase 24). The row of the shown tab's keyboard card is lit like the selected workspace row.
   - Idle agents show. A click goes to that workspace, tab and pane, and records a finish as seen.
 - **Footer**: the filter field (filters the rows of the current view) and one button, **Open Session**

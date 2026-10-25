@@ -223,8 +223,11 @@ session open in this window (D43).
   open page, 6 pt apart. The current page's dot is in primary text color, the
   others tertiary. A click on a dot shows its page. Hidden while one page is
   open. VoiceOver reads each dot as its session's name.
-- **Page header.** The session's name, the page's title (13 pt semibold,
-  primary, as in the Agents view), 22 pt in
+- **Page header.** The session's name, the page's title (13 pt bold, the
+  rows' size, primary, as in the Agents view); for a machine's `default`
+  session, the machine's name instead: This Mac's own name (System Settings,
+  "Hari's MacBook Pro") or the remote machine's name from the list. The Open
+  Session panel and the palette keep the real names. 22 pt in
   from the window's edge and 3 pt above the first row, and, at the trailing
   end, a `+` that makes a new workspace in that session, in `$HOME`. The
   snapshot after it selects the new workspace.
@@ -302,15 +305,20 @@ session only (D61). A sideways swipe or a page dot shows the next open
 session's agents. The page dots and the footer stay.
 - **Header.** The session's name (a long name shortens in its middle) and,
   on the same baseline, a sort menu: **Priority** (the groups Needs you, Working, Done and Idle,
-  each with a count, herdr's order inside a group) or **Workspace order**
-  (the groups are the workspaces, under each name, in herdr's order of
+  each with a count, herdr's order inside a group) or **Workspace**
+  (the groups are the workspaces, under each name with a count, in herdr's order of
   workspaces, tabs and panes). Priority is the default.
   Each window keeps its choice. The name starts on the edge of the group
   labels and the row icons; the sort label's text ends where the times end.
-  The name is the title (13 pt semibold, primary); the sort menu is quiet
-  (11 pt, secondary). The group labels ("Working 1", a workspace's name) are
+  The name is the title (13 pt bold, primary, as in the workspaces view); the sort menu is a
+  small quiet button (11 pt, secondary, a capsule filled on hover, its edge on the rows' edge).
+  The group labels ("Working 1", "alpha 2") are
   section labels, as in a macOS sidebar: 10 pt semibold, secondary, with
   12 pt of room above each group. No line under the header.
+- **Folding.** A click on a group label folds its rows or shows them again; a
+  chevron at the label's end points right while folded, down while open. A
+  folded group keeps its label and count. The folds are kept per session and
+  per order, across relaunches.
 - **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
   lines, 4 pt apart; the program tile with its badge centers on both. Line 1,
   on one centered line: the pane's name when it has one, else the agent's
@@ -318,7 +326,7 @@ session's agents. The page dots and the footer stay.
   capsule, "Needs you" (amber), "Working" (blue), "Done" (green) or "Idle"
   (gray), the text in the color on a 0.15 fill of it, and the age ("now", "3m", "2h", "4d"), counted from the
   time the app saw the change. Line 2: "‹workspace› · ‹tab title›" in
-  secondary text (the tab bar's title, D65); only the tab title in workspace
+  secondary text (the tab bar's title, D65); only the tab title in Workspace
   order, where the group names the workspace.
 - The row of the shown tab's keyboard card is lit like the selected
   workspace row.
