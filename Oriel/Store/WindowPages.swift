@@ -117,7 +117,8 @@
             page(store)?.settle()
             // A floated pane herdr closed: its window closes.
             if let page = page(store), store.state == .live {
-                let alive = page.floating.filter { id, _ in store.panes.contains { $0.terminalID == id } }
+                // herdr's panes, not the shown ones: a close shown at once may still come back (`Ahead`).
+                let alive = page.floating.filter { id, _ in store.last?.panes.contains { $0.terminalID == id } ?? true }
                 if alive.count < page.floating.count {
                     page.floating = alive
                 }

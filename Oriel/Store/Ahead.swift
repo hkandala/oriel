@@ -91,45 +91,52 @@ struct Ahead {
 extension HostStore {
     /// Closes at once when every pane of it runs only its shell; else the close to ask about, with what runs (design
     /// D41), for the asking window. Asked now, not the panes' last answers: a program may have started since. When the
-    /// last answers say only shells run, it is gone at once while herdr is asked (phase 25); a program found brings it
-    /// back with the question. A new pane's shell still starting runs its startup (`ls`, `sort`), nothing of the
-    /// user's: not asked.
-    func ask(_ request: Close) async -> Closing? {
-        // ponytail: a stand-in (⌘T, then a close before herdr answered) is not closed; queue it if users hit this.
+    /// last answers say only shells run (or a new pane's shell still starts), it is gone at once, before this returns,
+    /// while herdr is asked (phase 25); a program found brings it back with the question. Nil: nothing to ask.
+    func ask(_ request: Close) -> Task<Closing?, Never>? {
         guard let client else { return nil }
+        // ponytail: a stand-in (⌘T, then a close before herdr answered) is not closed; queue it if users hit this.
         if closeIDs(request).contains(where: Ahead.isStandIn) {
             return nil
         }
         let tabs = tabIDs(request)
-        let asked = panes.filter { pane in
-            !pane.starting && (request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID))
-        }
+        let asked = panes.filter { pane in request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
         let action = closing(request)
         let clear = asked.allSatisfy { $0.program?.isShell != false }
         if clear {
             hide(request)
         }
-        let running = await programs(asked.map(\.id), client)
-        // Sorted: "A program" leads the list.
-        guard running.isEmpty else {
-            if clear {
-                unhide(request)
+        let starting = Set(asked.filter(\.starting).map(\.id))
+        return Task {
+            let running = await programs(asked.map(\.id), starting: starting, client)
+            // Sorted: "A program" leads the list.
+            guard running.isEmpty else {
+                if clear {
+                    unhide(request)
+                }
+                return Closing(close: request, running: running.sorted())
             }
-            return Closing(close: request, running: running.sorted())
+            await close(request, action)
+            return nil
         }
-        await close(request, action)
-        return nil
     }
 
     /// What runs besides the shells in the panes, asked now, 8 at a time: a big workspace is not 30 herdr runs at once.
-    private func programs(_ paneIDs: [String], _ client: any Multiplexer) async -> Set<String> {
+    /// A new pane's shell still starting runs short-lived programs (`ls`, `sort`, as after ⌘T): asked again for a
+    /// second until only its shell runs.
+    private func programs(_ paneIDs: [String], starting: Set<String>, _ client: any Multiplexer) async -> Set<String> {
         await withTaskGroup(of: String?.self) { group in
             var rest = paneIDs[...]
             func next() {
                 guard let id = rest.popFirst() else { return }
                 group.addTask {
                     do {
-                        return try await client.program(id).flatMap { $0.isShell ? nil : $0.title }
+                        var name = try await client.program(id).flatMap { $0.isShell ? nil : $0.title }
+                        for _ in 0 ..< (starting.contains(id) ? 5 : 0) where name != nil {
+                            try await Task.sleep(for: .milliseconds(200))
+                            name = try await client.program(id).flatMap { $0.isShell ? nil : $0.title }
+                        }
+                        return name
                     } catch {
                         // Unknown: ask.
                         return "A program"
