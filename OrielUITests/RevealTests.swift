@@ -239,14 +239,14 @@ extension OrielUITests {
         try await expect("the cleared screen drawn") { Self.ink(terminal.screenshot().image) < (inks.min() ?? 0) / 3 }
     }
 
-    /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with
-    /// motion forced on.
     /// `-recordMotion`'s label: the sizes the host took, and the ms its latest motion's sizes spanned.
     private static func motion(_ host: XCUIElement) -> (sizes: Int, ms: Int) {
         let words = host.label.split(separator: " ").compactMap { Int($0) }
         return (words.first ?? 0, words.dropFirst().first ?? 0)
     }
 
+    /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with
+    /// motion forced on.
     private func expectJump(_ tab: String, _ pane: String) async throws {
         let host = element("host.\(pane)")
         XCTAssertTrue(host.exists(within: 3))
