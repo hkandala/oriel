@@ -227,6 +227,54 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   commits): both green, 219 passed; 8 failures in other lanes' tests (quick splits, select-pane keys, Agents view
   order, floating window size, Open Session per machine, three session-swipe tests).
 
+### Lane K
+
+- **Root cause, item 9.** Two things. (1) A split's new card is a stand-in with no terminal, so the first responder
+  stays on the old card until herdr answers: every quick ⌘D split that old card again (A | D | C | B, not Ghostty's
+  A | B | C | D). (2) Each split's `follow` recorded its pane in the keyboard history before any snapshot had it, and
+  the next ⌘D's redraw (its stand-in) ran `shown(alive:)` on the old snapshot: the new terminal was pruned as closed,
+  so the keyboard went back to an older card, and the panes took it in the order their snapshots and views arrived.
+  Now `Page.newest` (the latest split's stand-in, then herdr's pane, until its terminal has the keyboard) is the ⌘D
+  target and is lit at once; its write splits herdr's pane for it (`Ahead.splitPanes`, read in the write's own turn,
+  as writes are FIFO), and a herdr pane still drawn as its stand-in is split where it shows. Only the newest split's
+  pane takes the keyboard: a new split cancels the earlier one's handoff, the older panes join the history before it
+  (so ⌘W steps back through them), and `shown` prunes only terminals it saw alive before. ⌘W while the stand-in is
+  lit does nothing (it would close the old card); a tab or workspace switch ends the chain.
+- **Root cause, item 10.** ⌥⌘ arrows asked herdr's `pane.neighbor` (a new `remote-api-bridge` run per key, 15–170 ms,
+  and a repeat dropped while a write ran), and herdr picks the pane at the middle of the edge (the second of four
+  rows). `SplitNode.neighbor` picks from the tree at once: of the panes along that edge, the one used last (the
+  page's keyboard history), else the one sharing most of the edge, the first in tree order (top or left) on a tie.
+  `pane.neighbor` left HerdrKit (Multiplexer, model, integration test).
+- **Item 11.** Move Tab Left / Right on ⇧⌘← ⇧⌘→ (iTerm2's), in the menu, palette and panel; the ⇞⇟ glyphs went. The
+  menu takes the key before a text field, so the arrow there still selects to the line's start or end; the palette
+  and a menu click move the tab (the spec review's blocker: the palette's field still has the keyboard while its
+  action runs, so only the arrow's own key event forwards).
+- **Item 12.** `keycapHints` takes several modifier sets: the workspace rows show theirs for ⌘ or ⌃⌘.
+- **Tests.** `testQuickSplitsSplitTheNewestAndItKeepsTheKeyboard` (⌘ held, "ddd" in one burst: four panes left to
+  right in creation order, the last has the keyboard and takes typing, ⌘W twice steps back),
+  `testSelectPaneKeysPickTheLastUsedElseTheTopNeighbor` (the user's layout: → → lands on the top row; back from the
+  left to the row used last; nothing past the edge), a unit test for `SplitNode.neighbor`,
+  `testTabContextMenuRenamesAndMoves` (⇧⌘←, a rename field keeps it, the palette), `testHoldingCommandShowsKeycaps`
+  (the workspace keycaps), the panel rows.
+- **Reviews (one round).** Ponytail: tie-break by tree order, the required `standIn`, a hoisted selector, doc wraps.
+  Spec: 2 blockers fixed (the palette forwarding; the window between a split's answer and its snapshot), shoulds
+  fixed (the lit card only in the shown tab, ⌘W on a lit stand-in, a tab switch ends the chain, a 1 s negative wait
+  in the rename check, the history pruning, a failed split's follower sends no stand-in id). Not taken: a header
+  split button on the old card in the ~100 ms before herdr answers splits the newest card too (rare); `splitPanes`
+  cleared on a snapshot with no pending split (with the stand-in lookup every chained split has its slot).
+  `Page.close` moved to Ahead.swift and `use`, `follow`, `asking`, `keyboardTabID`, `movedTerminal` lost `private`:
+  Page.swift's 400-line limit.
+- **CI.** Ad-hoc 40251134535 and 40252256832 (red: the burst typed "ddd", the width check missed the rows),
+  40252832245 (red: the 32-bit tie), 40255277497 on f75d42e (green: the arrows and quick splits). Full suite
+  40255296505 on f75d42e, the lane's last code commit: every lane K test green but the quick-split test's id order
+  check (herdr's pane ids are not hex past 15; the check went, 2241a7c: the keyboard on the rightmost card covers it);
+  the other reds are other lanes' (session swipes, the overview, the floating window's title row, the Agents view's
+  order, Open Session's window, the stress test). Local run (Retina, this Mac's herdr): both new pane tests green.
+- **For the user to check by hand:** ⌘D three or four times as fast as you can (also on a remote machine, where herdr
+  answers slower): cards left to right, the last one lit and taking your typing, ⌘W stepping back; the arrows in your
+  three-column layout (→ → to the top row; ← then → back to the row you came from) and how quick they feel now;
+  ⇧⌘← ⇧⌘→ on a tab and in a rename field; holding ⌘ over the sidebar.
+
 ## More from the user (2026-10-25 17:35)
 
 - (Lane R) The glass dialogs have poor contrast (`.build/fb/remote-glass.png`): grey text on grey glass, the
