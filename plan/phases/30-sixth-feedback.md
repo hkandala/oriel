@@ -420,3 +420,60 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
 - **For the user to check by hand:** ⌘D three or four times as fast as you can, and ⇧⌘D, locally and on the remote
   machine. Each new card slides in once and stays put when herdr's pane takes it (only its title changes).
   ⌘W fast: each card fades with its own title.
+
+### Lane W (item 1)
+
+- **What the capture shows** (A, 60 fps around 0:11.4–0:12.6, and the swipes at 0:21 and 0:22.5). Into the big
+  session (swebench-autopilot, about 40 workspaces), the sidebar's pages slide 11.61–11.83, then nothing on the
+  screen changes for 0.55 s; at 12.38 the tab bar and strip switch together, the card blank for 75 ms, then its
+  text. Into the small session (devvm-aai) the strip switches with the sidebar (21.38 → 21.40). So the cost grows
+  with the session, and it is all main-thread work in the commit after `pages.show` (no frame at all meanwhile).
+- **Root cause.** Each card's VoiceOver actions (`PaneActions`, `.accessibilityActions`) flattened Move Pane to
+  Tab ▸ into one action per tab of the session. SwiftUI builds a view's accessibility actions with the view whenever
+  an accessibility client is connected, so every new card built hundreds of actions (and a title per tab). The
+  user's app has that graph on: `heap` of the running Oriel listed 1,727 accessibility action storages and thousands
+  of accessibility attachments (BetterTouchTool, Raycast, Scrawl and superwhisper run; XCUITest does the same on CI).
+  The menus were already built only when opened (phase 29); the actions were not.
+- **How it was found** (throwaway tags, deleted). A probe of ⌥⌘[ ] between a stress session (300 tabs, 30
+  workspaces, CI Debug, XCUITest attached) and a small one, with `sample` and launch flags that drop one part each
+  (40273601032, 40274821311): into the big session 1050 ms; without the strip 210 ms, without the tab bar or the
+  sidebar still about 1000 ms, without all three 55 ms; into the small session 290 ms. `show()` itself (the
+  registry, the streams) took 11–18 ms. The sample's top cost was `AccessibilityProxyTransformModifier`, the
+  modifier behind `.accessibilityActions`. Not the cause: the SSH streams (they open after the commit), the
+  overview snapshot and the stills (`takeSnapshot` and `keepPicture` under 5 % of the switch), the strip made new per
+  page (with the actions gone, a new strip of 3–4 cards costs about 100 ms in Release, the same in a small session).
+- **Fix** (3682e6b, 4a7c5a0). The card's actions keep Move Pane to Tab ▸ New Tab and New Workspace only
+  (`CommandList.pane(tabs: false)`, the parameter lane 11 added for the menu bar). VO-Shift-M on the card opens its
+  menu, built when it opens, with every tab; the palette lists them too. Numbers, CI Debug, XCUITest attached:
+
+  | | Before | After |
+  |---|---|---|
+  | ⌥⌘[ into 300 tabs (2 cards) | 920–1240 ms | 330–450 ms |
+  | ⌥⌘] into the small session | 290–300 ms | 205–240 ms |
+  | Swipe into 200 tabs (5 cards), `session` record | 755–807 ms | 236–303 ms |
+
+  This Mac, Release, XCUITest attached, the same swipe test: 212 ms into the 200-tab session, 134 ms into the
+  small one.
+- **Not done: the strip still follows the sidebar by the switch's own time.** The window shows the session when
+  the slide looks done (phase 27: shown at the lift, the commit held the slide). What is left is SwiftUI building
+  the new tab bar, strip and sidebar page with accessibility on: in Release about 100 ms for 3–4 cards, about
+  100 ms for the rest (flags as above, this Mac), with no single view to blame in `sample`. Making all three change
+  in one frame needs either the commit to run while the slide runs (a Core Animation slide on a nested hosting view:
+  it would cut the sidebar off the window's hover panels, drops and environment) or every page's views kept built
+  (duplicate accessibility ids, every page's snapshots redrawn). Neither was worth its risk for about 0.1–0.2 s.
+  A card whose terminal was let go (past the 16 kept, over both windows) still shows its fill until it draws, then
+  fades in 0.06 s (D46, and lane V's rule: no small snapshot in a strip card).
+- **Test.** `testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar` (LatencyTests): a 200-tab session (the helper's
+  stress, no agents), w1's first tab split to five cards, swipes there, back and there again; the new `session`
+  record (`Latency.shown`: from the show to the end of the turn whose commit drew it) must be under 600 ms for the
+  better of the two. Red on the old code (40280514408: 807 and 755 ms), green after (40280494023: 303 and 236 ms;
+  40278329330 with two cards). Locally (Release) green.
+- **Reviews (one round).** Ponytail: comments cut to the why, the numbers kept in the docs, one `now`, the dead
+  optionals in the test. Spec: VO-Shift-M menu on the card (VoiceOver lost per-tab moves on the card), the test
+  waits for the page before the first swipe, quiet shells in its splits, the record's limits in its comment, and
+  this gap measured and written down. Not taken: an `.id` on the tab bar per page (spec nit: its scroll offset could
+  carry over between sessions that select the same tab id; nothing in the capture shows it).
+- **Docs.** theme-and-accessibility.mdx: the card's VoiceOver actions and VO-Shift-M.
+- **For the user to check by hand:** swipe into swebench-autopilot and back a few times: the tab bar and strip now
+  follow the sidebar by about a tenth of a second instead of half a second. ⌘K ▸ Move Pane to Tab and the card's
+  right-click menu still list every tab. With VoiceOver, VO-Shift-M on a card opens that menu.
