@@ -116,8 +116,9 @@ extension KeyboardShortcut {
 
     @MainActor
     extension CommandList {
-        /// The key window's commands, now (phase 31): a key acts on the window it was pressed in. nil when the key
-        /// window has none (a sheet, no window).
+        /// The key window's commands, now (phase 31): a key acts on the window it was pressed in. The menu bar's list
+        /// may be another window's a moment after a switch, and its actions act on that window. nil when the key window
+        /// has none (a sheet, no window).
         static var keyWindow: [Command]? {
             KeyWindowList.Holder.all.allObjects.first { $0.window?.isKeyWindow == true }?.commands?.menuBarList
         }
@@ -241,7 +242,19 @@ extension KeyboardShortcut {
             // Every main window opens through it. `_ =` is no statement in a builder.
             // swiftlint:disable:next redundant_discardable_let
             let _ = (WindowPages.openWindow = openWindow)
-            let list = (commands ?? CommandList(settings: settings)).menuBarList
+            // A key runs the key window's command for it, whichever window's list the menu bar holds.
+            let list = (commands ?? CommandList(settings: settings)).menuBarList.map { command in
+                guard let key = command.key else { return command }
+                var keyed = command
+                keyed.action = {
+                    if let live = CommandList.keyWindow {
+                        live.run(key)
+                    } else {
+                        command.action()
+                    }
+                }
+                return keyed
+            }
             CommandGroup(replacing: .newItem) { items(list, .file) }
             // ⌘W closes the keyboard card, ⇧⌘W the tab, ⌃⌘W the workspace, ⌥⌘W detaches the session (design: keyboard).
             CommandGroup(replacing: .saveItem) { items(list, .close) }

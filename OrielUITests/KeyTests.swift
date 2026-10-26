@@ -103,6 +103,45 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
     }
 
+    /// A key acts on the key window (user, phase 31): with two windows on different tabs, ⌘D right after switching
+    /// splits the key window's tab only, each time.
+    func testCommandDSplitsInTheKeyWindowOnly() async throws {
+        let (first, second) = try newWindow()
+        var counts: [String: Int] = [:]
+        var tabs: [String] = []
+        for (window, label) in [(first, "key-first"), (second, "key-second")] {
+            let created = try await Self.call(one, "tab.create", ["workspace_id": "w2", "label": label, "cwd": "/tmp",
+                                                                  "focus": false])
+            let tab = try id(created, "tab")
+            closeAfter("tab", tab)
+            raise(window)
+            element("workspace.w2", in: window).click()
+            element("tab.\(tab)", in: window).click()
+            XCTAssertTrue(element("tab.\(tab)", in: window).has(\.isSelected, true, within: 3))
+            counts[tab] = 1
+            tabs.append(tab)
+        }
+        func count(_ tab: String) async throws -> Int {
+            try await (snapshot()["panes"] as? [[String: Any]] ?? []).count { $0["tab_id"] as? String == tab }
+        }
+        // Then right after the switch, with no wait: a window just made key.
+        for round in 0 ..< 4 {
+            for (window, tab) in zip([first, second], tabs) {
+                if round < 2 {
+                    raise(window)
+                } else {
+                    app.typeKey("`", modifierFlags: .command)
+                }
+                app.typeKey("d", modifierFlags: .command)
+                counts[tab, default: 0] += 1
+                try await expect("round \(round): \(tab) split, the other not") {
+                    let now = try await (count(tabs[0]), count(tabs[1]))
+                    return now.0 == counts[tabs[0]] && now.1 == counts[tabs[1]]
+                }
+            }
+        }
+    }
+
     /// Holding ⌃⌘ shows the workspaces' jump keys at the end of their rows, as ⌘ does on the tabs.
     func testHoldingControlCommandShowsWorkspaceKeycaps() {
         let row = element("workspace.w2"), keycap = element("workspace.w2.keycap")
