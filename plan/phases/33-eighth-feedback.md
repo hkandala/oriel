@@ -97,3 +97,23 @@ per hold, at most 10 minutes, released with a trap).
    `scripts/test-times.tsv` refreshed.
 
 ## Findings
+
+### Lane I
+
+- **What:** the iOS placeholder is gone (item 1). The app target is macOS only: no iOS destination or
+  `sdk=iphone*` settings, `SDKROOT = macosx`, no `TARGETED_DEVICE_FAMILY`, no `platformFilters` on
+  GhosttyTerminal. `make build` builds only macOS. The iOS icon (`icon_ios_1024.png`, its three
+  Contents.json entries, its lines in `scripts/app-icon.py`) is deleted. HerdrKit's `Package.swift` lists only
+  macOS 26. Every `#if os(macOS)` in `Oriel/` and `Packages/HerdrKit` is removed, with the two `#else` stubs
+  (OrielApp's "Oriel for iOS is coming" `ContentUnavailableView` and the empty `WorkingDots`). The imports that
+  were inside guards moved to the file tops (`Commands.swift`, `Detail.swift`). The tests had no guards.
+- **Cause:** phase 32 kept a placeholder iOS target. The user decided to drop it until iOS is built.
+- **Commits:** 40109e6 (project, Makefile, icon, package), 520cd9a (guards and stubs; `git show -w` shows the
+  guard lines only), 99d5402 (redundant `SUPPORTED_PLATFORMS`, a reviewer nit).
+- **Tests:** `make lint build test` green. No behavior change on macOS, so no new tests. CI full run 40414394168
+  on 520cd9a.
+- **Docs:** the lines that say the app builds for iOS (README, AGENTS.md, plan/README, ci.md, standards.md,
+  features, machines, platform, decisions D34, index, iphone-and-ipad, resources/branding/README.md) went to
+  lane D (l33-docs) as a list.
+- **Review:** l33-ios-review: no blockers or shoulds. Two nits: `SUPPORTED_PLATFORMS` (fixed) and the branding
+  README line (sent to lane D).
