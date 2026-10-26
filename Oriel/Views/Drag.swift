@@ -189,7 +189,7 @@
     }
 
     /// A pane dragged over a place with one target (the `+`, the tab track's end, a sidebar's empty space, a workspace
-    /// menu row), or a tab over a new tab in another workspace (a workspace menu row).
+    /// menu row), or a tab over a new tab in another workspace (a workspace menu row) or a new workspace.
     struct PaneDrop: DropDelegate {
         let page: Page
         let target: DropTarget
@@ -223,6 +223,8 @@
                 Task { await page.drop(id, on: target) }
             case let (.tab(id), .move(.newTab(workspaceID, _))):
                 Task { await page.drop(tab: id, on: workspaceID) }
+            case let (.tab(id), .move(.newWorkspace)):
+                Task { await page.drop(tab: id, on: nil) }
             default:
                 return false
             }
@@ -234,6 +236,7 @@
             return switch (page.dragging, target) {
             case (.pane, _): true
             case let (.tab(id), .move(.newTab(workspaceID, _))): page.store.workspace(of: id)?.id != workspaceID
+            case (.tab, .move(.newWorkspace)): true
             default: false
             }
         }

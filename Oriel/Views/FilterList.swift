@@ -25,7 +25,8 @@ struct FilterList: View {
         /// The button's role: red when destructive.
         var buttonRole: ButtonRole?
         #if os(macOS)
-            /// A workspace of the page whose dragged pane or tab a drop on the row moves there (the workspace menu).
+            /// Where a drop on the row moves the page's dragged pane or tab: a workspace, or a new one (the workspace
+            /// menu).
             var drop: MenuRowDrop.Target?
         #endif
         let act: () -> Void

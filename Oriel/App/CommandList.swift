@@ -361,7 +361,7 @@
                                 }
                             },
                             act("New Workspace", nil, .paneMove, symbol: "folder.badge.plus") {
-                                await $0.move($1, to: .newWorkspace)
+                                await $0.move($1, to: .newWorkspace())
                             },
                         ] + others),
                 Command(section: .paneMove, title: "Rename Pane…", symbol: "pencil", keywords: "pane",

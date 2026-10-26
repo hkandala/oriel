@@ -168,17 +168,8 @@ extension OrielUITests {
     /// label, and the page follows it. Its own workspace's row is not a target. Then back from a collapsed sidebar:
     /// held over the workspace button, the menu opens and its row takes the drop.
     func testDraggingATabOntoAWorkspaceRowOrMenuRowMovesItWithItsLayout() async throws {
-        let (tabs, first) = try await newWorkspace("tabs", tabs: 2)
-        let tab = tabs[0], home = workspace(of: tab)
-        let second = try await split(first)
-        _ = try await Self.call(one, "pane.split", ["target_pane_id": second, "direction": "down", "cwd": "/tmp",
-                                                    "focus": false])
-        try await Self.call(one, "layout.set_split_ratio", ["tab_id": tab, "path": [Bool](), "ratio": 0.3])
-        try await Self.call(one, "layout.set_split_ratio", ["tab_id": tab, "path": [true], "ratio": 0.7])
-        try await Self.call(one, "tab.rename", ["tab_id": tab, "label": "moving"])
-        let layout = try await terminalLayout(tab), terminal = try await terminalID(first)
-        let before = try await tabIDs()
-        closeNew("tab", besides: before)
+        let (tab, terminal) = try await movingTab(), layout = try await terminalLayout(tab)
+        let home = workspace(of: tab)
         let capsule = element("tab.\(tab)")
         XCTAssertTrue(capsule.has(\.isHittable, true, within: 3))
 
@@ -190,7 +181,7 @@ extension OrielUITests {
         XCTAssertEqual(stayed, tab)
         during(capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
                to: element("workspace.w2").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
-        let moved = try await movedTab(of: terminal, in: "w2", layout, "moving")
+        let moved = try await movedTab(of: terminal, layout, "moving") { $0 == "w2" }
         let after = try await tabIDs()
         XCTAssertFalse(after.contains(tab))
         XCTAssertTrue(element("tab.\(moved)").has(\.isSelected, true, within: 3))
@@ -213,13 +204,58 @@ extension OrielUITests {
         let from = element("tab.\(moved)").frame, over = button.frame
         try await Self.post("\(one)/drag", Data("\(from.midX) \(from.midY) \(over.midX) \(over.midY) 1.2 "
                 .appending("\(target.midX) \(target.midY) 0.5").utf8))
-        let back = try await movedTab(of: terminal, in: home, layout, "moving")
+        let back = try await movedTab(of: terminal, layout, "moving") { $0 == home }
         XCTAssertTrue(row.vanishes(within: 2))
         XCTAssertTrue(element("tab.\(back)").has(\.isSelected, true, within: 3))
         let arrived = try await place(of: terminal)
         XCTAssertTrue(try hasKeyboard(element("terminal.\(XCTUnwrap(arrived).pane)")))
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
         element("titlebar.sidebar").click()
+    }
+
+    /// A tab dragged onto New Workspace moves there whole (phase 30): the collapsed sidebar's workspace menu row (held
+    /// over the workspace button), then the sidebar's empty space under its rows; the workspace it leaves closes with
+    /// its last tab.
+    func testDraggingATabOntoNewWorkspaceMovesItWithItsLayout() async throws {
+        let (tab, terminal) = try await movingTab(), layout = try await terminalLayout(tab)
+        let workspaces = try await workspaceIDs()
+        closeNew("workspace", besides: workspaces)
+        XCTAssertTrue(element("tab.\(tab)").has(\.isHittable, true, within: 3))
+
+        // Where the menu's New Workspace row is, then a drag held over the button and onto it.
+        element("titlebar.sidebar").click()
+        let button = element("titlebar.workspace")
+        XCTAssertTrue(button.has(\.isHittable, true, within: 3))
+        button.click()
+        let row = element("workspaces.new")
+        XCTAssertTrue(row.exists(within: 2))
+        let target = row.frame
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(row.vanishes(within: 2))
+        let from = element("tab.\(tab)").frame, over = button.frame
+        try await Self.post("\(one)/drag", Data("\(from.midX) \(from.midY) \(over.midX) \(over.midY) 1.2 "
+                .appending("\(target.midX) \(target.midY) 0.5").utf8))
+        let away = try await movedTab(of: terminal, layout, "moving") { !workspaces.contains($0) }
+        XCTAssertTrue(row.vanishes(within: 2))
+        XCTAssertTrue(element("tab.\(away)").has(\.isSelected, true, within: 3))
+        let arrived = try await place(of: terminal)
+        XCTAssertTrue(try hasKeyboard(element("terminal.\(XCTUnwrap(arrived).pane)")))
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
+
+        // The sidebar's empty space under its rows (the ghost row).
+        element("titlebar.sidebar").click()
+        let made = workspace(of: away)
+        XCTAssertTrue(element("workspace.\(made)").exists(within: 3))
+        let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workspace.w'"))
+        let bottom = rows.allElementsBoundByIndex.map(\.frame.maxY).max() ?? 0
+        let sidebar = element("sidebar")
+        during(element("tab.\(away)").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
+               to: sidebar.coordinate(withNormalizedOffset: .zero)
+                   .withOffset(CGVector(dx: sidebar.frame.width / 2, dy: bottom + 40 - sidebar.frame.minY)))
+        let last = try await movedTab(of: terminal, layout, "moving") { !workspaces.contains($0) && $0 != made }
+        XCTAssertTrue(element("tab.\(last)").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(element("workspace.\(made)").vanishes(within: 3))
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
     }
 
     func testDraggingWorkspaceRowsReordersThemAndAWorktreeMovesWithItsRepository() async throws {
@@ -281,12 +317,26 @@ extension OrielUITests {
         return try await text(root(tab))
     }
 
-    /// The terminal's tab once herdr has it in the workspace with this layout and label.
-    private func movedTab(of terminal: String, in workspace: String, _ layout: String,
-                          _ label: String) async throws -> String
+    /// A 3-pane tab at 0.3 / 0.7 labelled "moving", the first of two in a new workspace, and its first pane's terminal.
+    private func movingTab() async throws -> (tab: String, terminal: String) {
+        let (tabs, first) = try await newWorkspace("tabs", tabs: 2)
+        let tab = tabs[0], second = try await split(first)
+        _ = try await Self.call(one, "pane.split", ["target_pane_id": second, "direction": "down", "cwd": "/tmp",
+                                                    "focus": false])
+        try await Self.call(one, "layout.set_split_ratio", ["tab_id": tab, "path": [Bool](), "ratio": 0.3])
+        try await Self.call(one, "layout.set_split_ratio", ["tab_id": tab, "path": [true], "ratio": 0.7])
+        try await Self.call(one, "tab.rename", ["tab_id": tab, "label": "moving"])
+        let before = try await tabIDs()
+        closeNew("tab", besides: before)
+        return try await (tab, terminalID(first))
+    }
+
+    /// The terminal's tab once herdr has it in a workspace that passes `found`, with this layout and label.
+    private func movedTab(of terminal: String, _ layout: String, _ label: String,
+                          in found: (String) -> Bool) async throws -> String
     {
-        try await poll("the tab in \(workspace) as it was") { () async throws -> String? in
-            guard let tab = try await place(of: terminal)?.tab, self.workspace(of: tab) == workspace else { return nil }
+        try await poll("the tab moved as it was") { () async throws -> String? in
+            guard let tab = try await place(of: terminal)?.tab, found(self.workspace(of: tab)) else { return nil }
             let tabs = try await snapshot()["tabs"] as? [[String: Any]] ?? []
             let same = try await terminalLayout(tab) == layout
             return same && tabs.first { $0["tab_id"] as? String == tab }?["label"] as? String == label ? tab : nil

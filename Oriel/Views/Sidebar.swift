@@ -124,7 +124,7 @@
                                     DropIndicator(radius: 7)
                                 }
                             }
-                            .onDrop(of: [.orielDrag], delegate: PaneDrop(page: page, target: .move(.newWorkspace),
+                            .onDrop(of: [.orielDrag], delegate: PaneDrop(page: page, target: .move(.newWorkspace()),
                                                                          over: $plus))
                             .clearsDrop(page) { plus = false }
                     }

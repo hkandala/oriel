@@ -87,7 +87,8 @@ public enum Destination: Sendable {
     /// Split right or down beside a pane of the tab, else beside the tab's focused pane (herdr 0.9.5); `ratio` is the
     /// first side's share, else herdr halves the place.
     case tab(String, beside: String? = nil, split: SplitNode.Direction = .right, ratio: Double? = nil)
-    case newWorkspace
+    /// With herdr's default labels (the pane's folder, the tab's number) when none.
+    case newWorkspace(tabLabel: String? = nil)
 }
 
 extension HerdrClient: Multiplexer {
@@ -148,7 +149,7 @@ extension HerdrClient: Multiplexer {
         case let .tab(tabID, target, split, ratio):
             ["type": "tab", "tab_id": tabID, "split": split.rawValue, "target_pane_id": target ?? NSNull(),
              "ratio": ratio ?? NSNull()]
-        case .newWorkspace: ["type": "new_workspace"]
+        case let .newWorkspace(tabLabel): ["type": "new_workspace", "tab_label": tabLabel ?? NSNull()]
         }
         let result = try await (call("pane.move", ["pane_id": paneID, "destination": place,
                                                    "focus": false]) as Moved).moveResult

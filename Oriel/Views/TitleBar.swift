@@ -311,8 +311,9 @@
                                     title: workspace.label,
                                     detail: workspace.git?.branch ?? "", section: page.id,
                                     // The page in view's drag: a pane or a tab goes there.
-                                    drop: page === self.page ? MenuRowDrop.Target(page: page, workspaceID: workspace.id,
-                                                                                  shown: open) : nil, act: {
+                                    drop: page === self.page ? MenuRowDrop.Target(
+                                        page: page, destination: .newTab(workspaceID: workspace.id), shown: open,
+                                    ) : nil, act: {
                                         pages.show(page)
                                         page.select(workspace)
                                     })
@@ -325,9 +326,9 @@
                 },
             ]
             return create + workspaces + [
-                FilterList.Item(id: "new", symbol: "plus", title: "New Workspace", section: "") {
-                    Task { await page.newWorkspace() }
-                },
+                FilterList.Item(id: "new", symbol: "plus", title: "New Workspace", section: "",
+                                drop: MenuRowDrop.Target(page: page, destination: .newWorkspace(), shown: open),
+                                act: { Task { await page.newWorkspace() } }),
                 FilterList.Item(id: "open-session", symbol: "plus.square.on.square", title: "Open Session…",
                                 detail: KeyboardShortcut.openSession.glyphs, section: "", act: openSession),
             ]

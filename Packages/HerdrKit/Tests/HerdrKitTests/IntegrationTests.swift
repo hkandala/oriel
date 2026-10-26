@@ -318,7 +318,7 @@ func `changes a layout in a throwaway herdr session`() async throws {
         #expect(moved?.tabID != "w1:t1")
         #expect(try await client.snapshot().tabs.first { $0.id == moved?.tabID }?.label
             == "named tab")
-        let away = try await client.move(pane: second.id, to: .newWorkspace)
+        let away = try await client.move(pane: second.id, to: .newWorkspace())
         #expect(away?.id.hasPrefix("w2:") == true)
     }
 }

@@ -75,11 +75,12 @@
     }
 
     /// A workspace menu row (the collapsed sidebar's): a pane or a tab of the page dropped on it goes to a new tab in
-    /// that workspace, as on a sidebar row, highlighted the same; no spring-load in a menu.
+    /// that workspace, or on New Workspace to a new workspace, as in the sidebar, highlighted the same; no spring-load
+    /// in a menu.
     struct MenuRowDrop: ViewModifier {
         struct Target {
             let page: Page
-            let workspaceID: String
+            let destination: Destination
             /// The menu is open. It is there, hidden, through the whole drag: macOS 27 finds no drop target added
             /// after the drag entered the window.
             let shown: Bool
@@ -99,7 +100,7 @@
                         }
                     }
                     .onDrop(of: [.orielDrag], delegate: PaneDrop(
-                        page: target.page, target: .move(.newTab(workspaceID: target.workspaceID)), over: $over,
+                        page: target.page, target: .move(target.destination), over: $over,
                         enabled: target.shown,
                     ))
             } else {
@@ -109,15 +110,15 @@
     }
 
     /// A drag over a page's workspace rows. A pane over a row highlights it and spring-loads it after 0.65 s; a drop
-    /// moves it to a new tab there, and a drop under the last row to a new workspace. A tab over another workspace's
-    /// row highlights it, and a drop moves the tab there whole; no spring-load (that workspace's tab row would not take
-    /// it). A dragged workspace goes to the place under the pointer, its worktrees with it; a worktree moves only among
-    /// its repository's worktrees.
+    /// moves it to a new tab there. A tab over another workspace's row highlights it, and a drop moves the tab there
+    /// whole; no spring-load (that workspace's tab row would not take it). A pane or a tab dropped under the last row
+    /// goes to a new workspace. A dragged workspace goes to the place under the pointer, its worktrees with it; a
+    /// worktree moves only among its repository's worktrees.
     struct RowsDrop: DropDelegate {
         struct State {
             /// The row a pane or a tab is over.
             var over: String?
-            /// A pane under the last row.
+            /// A pane or a tab under the last row.
             var ghost = false
             /// Where a dragged workspace goes, among its blocks.
             var slot: Int?
@@ -150,7 +151,7 @@
                 return DropProposal(operation: .move)
             }
             let pane = page.dragging?.paneID != nil
-            let ghost = pane && pointY > frames.values.map(\.maxY).max() ?? 0
+            let ghost = pointY > frames.values.map(\.maxY).max() ?? 0
             if ghost != state.ghost {
                 withAnimation(.highlight) { state.ghost = ghost }
             }
@@ -185,12 +186,12 @@
             state = State()
             switch page.dragging {
             case let .pane(id):
-                guard let target: DropTarget = dropped.ghost ? .move(.newWorkspace)
+                guard let target: DropTarget = dropped.ghost ? .move(.newWorkspace())
                     : dropped.over.map({ .move(.newTab(workspaceID: $0)) }) else { return false }
                 Task { await page.drop(id, on: target) }
             case let .tab(id):
-                guard let workspaceID = dropped.over else { return false }
-                Task { await page.drop(tab: id, on: workspaceID) }
+                guard dropped.ghost || dropped.over != nil else { return false }
+                Task { await page.drop(tab: id, on: dropped.over) }
             case let .workspace(id):
                 let blocks = blocks(id)
                 guard let slot = dropped.slot, let from = blocks.firstIndex(where: { $0.contains { $0.id == id } }),
@@ -252,9 +253,9 @@
     }
 
     extension Page {
-        /// A dragged tab dropped on another workspace: the page follows it there, and its keyboard card keeps the
-        /// keyboard.
-        func drop(tab tabID: String, on workspaceID: String) async {
+        /// A dragged tab dropped on another workspace or (nil) a new one: the page follows it there, and its keyboard
+        /// card keeps the keyboard.
+        func drop(tab tabID: String, on workspaceID: String?) async {
             let keyboard = keyboardCard(tabID)
             let moved = await store.move(tab: tabID, to: workspaceID)
             let pane = moved.first { $0.old == keyboard?.id }?.new ?? moved.first?.new
