@@ -106,10 +106,10 @@
         let zoomed: String?
         let page: Page
         let tabID: String
-        /// The cards in their place, by pane id, with the id their view goes by: one new since the page first drew
-        /// starts beside its place and slides in. Not a transition: `.move` and `.offset` transitions moved nothing
-        /// here (CI recordings), only their fade ran.
-        @State private var placed: [String: String]?
+        /// The cards in their place, in the tree's order, with the id their view goes by: one new since the page first
+        /// drew starts beside its place and slides in. Not a transition: `.move` and `.offset` transitions moved
+        /// nothing here (CI recordings), only their fade ran.
+        @State private var placed: [(id: String, view: String)]?
         /// The app's ratio of a split (by path) while its divider is dragged or sent, until herdr's snapshot shows its
         /// own.
         @State private var held: [[Bool]: Double] = [:]
@@ -168,21 +168,20 @@
             .onChange(of: tree, initial: true) {
                 let views = views(tree.paneIDs)
                 withAnimation(motion) {
-                    placed = Dictionary(uniqueKeysWithValues: tree.paneIDs.map { ($0, views[$0] ?? $0) })
+                    placed = tree.paneIDs.map { ($0, views[$0] ?? $0) }
                 }
             }
         }
 
-        /// The view id of each of these cards already in place. herdr's pane that took a split's stand-in (`Ahead`)
-        /// keeps the stand-in's view, so its slide goes on: herdr answers within the slide, and a new view popped in
-        /// at its place.
+        /// The view id of each of these cards already in place. herdr's panes that took splits' stand-ins (`Ahead`)
+        /// keep the stand-ins' views, in order, so each new card comes once, where it ends up: a quick ⌘D's stand-ins
+        /// are replaced in one snapshot, and herdr's panes as new views slid in beside them as they went (phase 30).
         private func views(_ ids: [String]) -> [String: String] {
             guard let placed else { return [:] }
-            var views = placed.filter { ids.contains($0.key) }
-            let gone = placed.keys.filter { Ahead.isStandIn($0) && !ids.contains($0) }
-            let new = ids.filter { placed[$0] == nil }
-            if gone.count == 1, new.count == 1 {
-                views[new[0]] = placed[gone[0]]
+            var views = Dictionary(uniqueKeysWithValues: placed.filter { ids.contains($0.id) })
+            let gone = placed.filter { Ahead.isStandIn($0.id) && !ids.contains($0.id) }
+            for (new, old) in zip(ids.filter { views[$0] == nil }, gone) {
+                views[new] = old.view
             }
             return views
         }
