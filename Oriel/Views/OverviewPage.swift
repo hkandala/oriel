@@ -55,6 +55,12 @@
                 .padding(.vertical, 40)
             }
             .scrollIndicators(.never)
+            .onScrollPhaseChange { _, phase in
+                pages.overviewScrolling = phase != .idle
+                if phase == .idle {
+                    pages.settleOverview()
+                }
+            }
             .accessibilityIdentifier("overview.page.\(page.id)")
         }
     }

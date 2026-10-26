@@ -226,6 +226,7 @@
             overview = false
             leaving = false
             overviewTabs = [:]
+            overviewScrolling = false
             overviewSettling?.cancel()
             showTerminals()
             current?.focusKeyboardCard()
@@ -256,6 +257,17 @@
             return cards
         }
 
+        /// The cards that stream for the overview: chosen again when it settles (`overviewCards`), kept on a herdr
+        /// snapshot (4 a second while agents work) but for closed panes: choosing there made and freed surfaces in the
+        /// middle of a scroll (phase 30).
+        func overviewStreams(_ page: Page, snapshot: Bool) -> [String: String] {
+            guard snapshot else { return overviewCards(page) }
+            let kept = page.store.panes.compactMap { pane in
+                pane.terminalID.flatMap { overviewLive.contains($0) ? ($0, pane.id) : nil }
+            }
+            return Dictionary(kept) { first, _ in first }
+        }
+
         /// A tab's cards in its tile (terminal id, pane id), as its miniature draws them: its zoomed card alone, no
         /// floated one.
         func tileCards(_ page: Page, _ tab: String) -> [(String, String)] {
@@ -275,6 +287,9 @@
         func settleOverview() {
             guard overview, !leaving else { return }
             overviewSettling?.cancel()
+            // Not while the grid scrolls: its end settles (phase 30, a surface made or freed mid-scroll dropped
+            // frames).
+            guard !overviewScrolling else { return }
             overviewSettling = Task {
                 try? await Task.sleep(for: .milliseconds(150))
                 if !Task.isCancelled {

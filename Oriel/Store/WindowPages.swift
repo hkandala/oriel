@@ -27,13 +27,15 @@
         var visible = false
         /// The overview is open (D70): its tiles laid out (`overviewTabs`, by page, the latest last), up to a cap,
         /// stream and draw (`overviewLive`); `leaving` while its tile zooms to the page; `tileScale`, the tiles' scale
-        /// of the strip's page (a third before they laid out), for snapshots; `afterOverview` runs after the zoom.
+        /// of the strip's page (a third before they laid out), for snapshots; `afterOverview` runs after the zoom;
+        /// `overviewScrolling` while its grid scrolls (`settleOverview`).
         var overview = false
         var leaving = false
         @ObservationIgnored var overviewTabs: [String: [String]] = [:]
         @ObservationIgnored var overviewSettling: Task<Void, Never>?
         private(set) var overviewLive: Set<String> = []
         @ObservationIgnored var tileScale: CGFloat = 0.35
+        @ObservationIgnored var overviewScrolling = false
         @ObservationIgnored var afterOverview: (() -> Void)?
         /// A floating panel (the palette, the shortcuts) is open: its Esc is its own.
         @ObservationIgnored var panelOpen = false
@@ -44,8 +46,7 @@
         /// Its AppKit window, to bring it to the front.
         @ObservationIgnored weak var window: NSWindow?
 
-        /// The open windows, the one that was key last first; added once a window restored its pages (a `@State`
-        /// initial value is made again with each view, so not in `init`).
+        /// The open windows, the last key one first; added once its pages are restored (a `@State` is made per view).
         static var windows: [WindowPages] = []
         /// The window closed.
         @ObservationIgnored private var gone = false
@@ -228,8 +229,7 @@
             current = nil
         }
 
-        /// One question of ssh's, as a dialog in this window; nil when the user cancels. A newer question cancels one
-        /// still open.
+        /// One question of ssh's, as a dialog in this window; nil when the user cancels or a newer one comes.
         func ask(_ text: String) async -> String? {
             question?.answer(nil)
             let id = UUID()
@@ -338,7 +338,7 @@
                     }
                 }
             }
-            let unvisited = overview ? overviewCards(current) : [:]
+            let unvisited = overview ? overviewStreams(current, snapshot: snapshot) : [:]
             overviewLive = overview ? Set(unvisited.keys).union(current.shownTerminals.keys) : []
             // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
             let kept = alive.union(withFloats.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
