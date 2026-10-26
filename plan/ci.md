@@ -136,11 +136,12 @@ The suite had grown to 175 UI tests and about 2400 s of test time; a full run to
   for each post, up to 10 s each on CI.
 - **Flakes fixed at their cause** (phase 31's Integration findings): a run needs no rerun.
 
-| | Before (40300354731) | After (40317477966, 70f3caf) |
-|---|---|---|
-| Push to done (no queue) | 14 min 13 s | 12 min 10 s |
-| Slowest job | 12 min 50 s | 12 min 1 s (test (0)); the others 8 min 55 s – 11 min 4 s |
-| UI test time in the run | 2382 s | about 2300 s |
+| | Before (40300354731) | After (40317477966, 70f3caf) | After (40347859891, 7c2f95c) |
+|---|---|---|---|
+| Start to done | 14 min 13 s | 12 min 10 s | 13 min 34 s (1 min 45 s of it waiting for runners) |
+| Jobs | 4 min 35 s, then 11 min 15 s – 12 min 50 s | 8 min 55 s – 12 min 1 s | 9 min 29 s – 11 min 48 s |
+| UI test time in the run | 2382 s (175 tests) | about 2300 s | 2302 s (171 tests; 11 more on demand) |
+| Reruns | 0 (most runs before needed 1–2) | 0 | 0, and 40347875413 after it |
 
 The same tests take ±10 % from run to run, and some runs' machines are slower as a whole: in 40312470304 every test
 took 28 % longer (median), and its jobs 10–14 minutes. 40309820769 had jobs of 8.4–9.1 minutes.

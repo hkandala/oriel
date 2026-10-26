@@ -473,3 +473,104 @@ Tab paging is good now (G #1).
   on bb95dbc: cancelled by a later push, shard 0 red only in `testQuickSessionFlickLandsOnTheNextPageInStep` (the
   sidebar's flick, 22 vs 20.5 ± 1 pt; integration's flake list). Full suite 40336170747 on 95663e5 (has 867a057, the
   lane's last code commit): green, all five shards.
+
+### Integration (items 8–10)
+
+- **Item 8, cause.** The close dialog and Open Session's Stop / Delete were `confirmationDialog`s with a destructive
+  button. macOS gives such a button no Return: `.keyboardShortcut(.defaultAction)` on it did nothing there (CI
+  40304584542: the dialog stayed after Return). **Fix** (e4e638d, e6cc32f): both are `.alert`s, the destructive button
+  carries `.defaultAction`, plus a `.cancel` button for Esc. Without `.defaultAction` an alert takes no Return either
+  (tried locally). Every close goes through `CloseDialog` (pane, tab, other tabs, tabs to the right, workspace, the
+  floating pane in its own window), Stop and Delete through Open Session's alert. **Tests:** Esc cancels the pane and
+  tab dialogs; Return closes a pane, the floated pane and confirms Stop and Delete
+  (`testClosingAPaneAsksUnlessOnlyItsShellRuns`, `testClosingATabAsksOnlyWhileAProgramRuns`,
+  `testClosingAFloatedPaneAsksInItsWindow`, `testOpenSessionStopsAndDeletesASession`). Docs: D41, window.mdx.
+  Found on the way: after Esc the pointer still on a capsule shows no ×, since its hover saw no end under the dialog;
+  it shows once the pointer leaves and comes back (AppKit's tracking; not changed).
+- **Item 10, the reds and flakes, each at its cause** (bullets from the fixers: swipe-flake-fixer, split-flake-fixer,
+  misc-flake-fixer, and mine):
+  - `testSwitchingTabsShowsTheirPageAtOnce`: red only on 511c1bd's old body; XCUITest's scroll is a wheel, which since
+    13481fa turns a page with no motion under Reduce Motion. Lane G's 10370e7 posts a trackpad swipe, which follows
+    the fingers; green since (40295293239, 40299936835, 40300354731, 40303429405, 40304560553 and every full run after).
+  - `testTabAndOverviewSwipesFollowTheFingersAndLandSoon`: its reds were a clipped frame width (fixed in 10370e7) and a
+    record filter that wanted more than 4 frames of an animated scroll (13b62ec). Green in the full runs after but one (lane M's jump bound, below); lane M
+    owns it now (smooth paging).
+  - `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed`, `testQuickSessionFlickLandsOnTheNextPageInStep`: the
+    80 ms bound measured the show's own frame, and CI's VM drew no frame from 200 to 260 ms (40283556151:
+    `…200:231,260:232`, shown at 262). **Fix** (c71cd9b): the bound reads the slide's last frame before the show's
+    (18 ms in that run); a show in the spring's tail (phase 28's bug) still fails by 150–200 ms. The reds of
+    40291250564 were the strip writing into the sidebar's record, fixed by lane G's 273d8cc.
+  - `testQuickSplitsSplitTheNewestAndItKeepsTheKeyboard` and lane Q's A | C | B | D: one app bug. `Page.split` read
+    the keyboard pane twice; a snapshot between the ⌘D and its task made the split before's pane the keyboard pane,
+    so the ⌘D no longer matched `newest` and split the old card; that pane's pending keyboard request also landed
+    after the next ⌘D and cleared `newest` (recordings of 40280765449 and 40277225989). **Fix** (845d9d9, 7781098): a
+    ⌘D on the card that had the keyboard before the burst also goes to the newest; a ⌘D in a burst drops the older
+    pane's keyboard request. The test asserts herdr's tree P | (Q | (R | S)).
+  - `testDoubleClickRenamesAndEscapeCancels`: XCUITest sent a real double-click (clickCount 2, 0.1 s apart), but
+    SwiftUI's `TapGesture(count: 2)` missed it while the first click's selection kept the app busy (0.35 s to draw).
+    **Fix** (25afd2c, ad84bf5): the workspace row and the tab capsule start a rename on AppKit's own clickCount 2.
+  - `testTabContextMenuRenamesAndMoves`: the right-click read the moved capsule's frame before the app drew it back
+    and hit the middle tab (40262288574). The test waits for the drawn order (50e29b0).
+  - `testGoToDirectoryAndInsertPath`: clicked the card of a tab not in view (made with focus:false); the strip slid
+    back and the click hit the first tab. The test shows the tab first (3dd5754).
+  - `testDroppingAFileFromFinderPastesItsPath`: Finder now and then started no drag on CI (no drag image in the
+    recordings of 40274997505, 40277225989, 40304584542), always several tries in a row. Now
+    `testDroppingAFilePastesItsPath`: a small window of `scripts/file-drag.swift` holds the file and
+    `scripts/drag.swift` drags it (b9d6847, then the review's merge); 8 s instead of 11–29 s.
+  - `testAgentGroupsFoldAndStayFoldedAfterARelaunch`: its body passed; its unfold teardown ran after the tabs closed,
+    and XCUITest's menu click hit a menu that ended under it. The unfold now runs first (17c338f). A probe found no
+    menu that closes by itself when tabs close.
+  - `testOrielURLFloatsAPaneOfASessionWithNoPage`: its body passed; tearDown hovered `windows.firstMatch`, a floating
+    window closing with its tab (INFINITY point). tearDown hovers the main window (cf86e78).
+  - HerdrKit `relay carries runs over one process` (exit 9): the relay closed a run's stdin before its SIGKILL; the
+    observe wrapper ends on EOF by itself (143) when the VM is slow. Reproduced with a 0.2 s sleep between the two.
+    **Fix** (b5f09f3): kill first; 27 green runs under load.
+  - `testMenuLightFollowsThePointer` (new red in 40309820769): the palette lit the row the pointer only crossed. A
+    busy app ran the crossed row's hover late, with `NSEvent.mouseLocation` already on the next row, so the next row's
+    hover saw no move. **Fix** (ab33702): only a pointer moved since the panel opened, or since keys or the filter last
+    moved the light, lights a row; a row's own hover no longer resets that place.
+  - Three reds in the first runs on 66f5097 (40319705774, 40319783362), none seen before:
+    `testBlockedAgentNeedsYouAndThePopoverGoesToIt`: the recording shows the Agents panel gone before XCUITest's
+    click reached its row (the pointer crosses the gap under the button); the busy app ran the panel's hover after the
+    trigger's 0.15 s grace, and the click went to the card under it. **Fix** (c10dfaa): at the grace's end and on a
+    click, a pointer inside the open panel's frame keeps it open, whatever its hover says (as ab33702 for the palette).
+    `testHoverCardBlursTheTextBehindIt`: the click on the new capsule landed right of it (recording at the click), so
+    the tab never showed and its hover card never came. Not proven why its frame was off then; likely the bar laid out
+    again after `newTab`'s workspace change. `newTab` now also waits for the capsule's frame to rest (c5a9184).
+    `testLayoutMotionAnimatesWithoutBlanking`: herdr's screen had lines 24–59 and then the prompt: the card attached
+    after the lines, its resize made bash redraw the prompt over line 60. The test now waits for its card to draw
+    before its fill (ac47679; the same wait in every `fill` failed, since a card of a tab not in view stays loading).
+  - `testMoveToTabLandsBesideTheLastCard` (40330239513): the click on the moved card went to the last card
+    (recording: keyboard in the middle card); herdr's order came before the app drew the card there. The test waits for
+    the drawn order (95663e5), as 50e29b0 does for capsules.
+  - `testEditingARemoteHostRenamesItAndRemoveTakesItOff` (40335691646): the machine menu, opened while the remote
+    page's cards still loaded, closed under XCUITest's click into its submenu (recording). The test opens it once the
+    page drew (8aaea72). Likely the same for a user who opens it in the first second after a remote launch; not changed.
+  - `testTabAndOverviewSwipesFollowTheFingersAndLandSoon`, lane M's new jump bound (40335707458): one frame's offset
+    came late and the next caught up (50 pt in 28 ms, then 111 pt in 21 ms). The bound now holds over two frames
+    (3.3k pt/s there, bound 4.9k); the old spring's jump lasted several frames (bb3899b).
+  - `testFloatingWindowOpensLargeWithTheMainWindowsTitleRow` (40335691646, 40342555702): XCUITest failed it inside
+    `hasKeyboard` ("Failed to get matching snapshot"): its `exists` bound the terminal, and the focus read a moment later
+    found that element gone as the floating window came forward. `hasKeyboard("id", in:)` is now one query with the
+    focus in its predicate (7c2f95c, 57 call sites).
+- **Item 9, CI** (plan/ci.md, "Phase 31"): 5 jobs, lint/build/HerdrKit on job 0; tests split by measured time
+  (`scripts/shard.py`, `scripts/test-times.tsv`); the stress, cost, frame-record and look-scene tests on demand
+  (`make e2e ON_DEMAND_ONLY=1`, the `on_demand` dispatch input), with one recorded tab change kept in every run
+  (`testATabClickComesIntoViewWithoutAFlicker`); the swipe and drag helpers compiled once. Before: 40300354731, push to
+  done 14 min 13 s, jobs to 12 min 50 s, 2382 s of tests. After: 40347859891 (7c2f95c): start to done 13 min 34 s with 1 min 45 s waiting for runners, jobs 9 min 29 s – 11 min 48 s, 2302 s of tests; 40317477966: 12 min 10 s. **7–8 minutes is not reached:** about 2 minutes of
+  setup and build per job plus a fifth of about 2300 s of tests is 9–12 minutes, depending on the VMs (40309820769:
+  jobs 8.4–9.1 min; 40312470304: 10–14 min, every test 28 % slower). It needs about 1500 s of tests on 5 runners or
+  about 8 runners; each runner more saves about a minute. The slow tests have no idle waits to cut.
+- **Item 10, proof.** Two full runs in a row on 7c2f95c (my last code commit), each green on its first try: 40347859891
+  and 40347875413. Before them every full run had found one or two rare flakes (the list above); each got a fix at its
+  cause. Earlier single greens: 40300354731, 40312470304, 40317477966, 40328866622, 40342540801.
+- **Reviews (one round).** Spec: the time goal (above, not reachable with 5 runners: written down, not hidden), plain
+  `make e2e` ran the on-demand tests (now `-skip-testing`), `ON_DEMAND_ONLY` without a shard, a dispatch with both
+  inputs, an unknown on-demand name (shard.py stops), the docs (plan/ci.md, workflow.md, D41), a flicker check left
+  in every run, the floating window's Return, a late dialog check (`exists(within: 1)`), the session swipe's frame
+  pick; all taken. Ponytail: file-drag.swift reuses drag.swift (and its Oriel-only guard), one build-failure branch,
+  one SHARD step, one head default; all taken; `.defaultAction` stays (an alert needs it, tried).
+- **For the user to check by hand:** ⌘W on a pane running a program, then Return (closes) and Esc (stays); the same
+  for a tab, Close Other Tabs, a workspace, a floating pane and Open Session's Stop and Delete. ⌘D three or four
+  times fast: each new pane to the right of the newest, the keyboard on the last. A double-click on a workspace row
+  or a tab while the app is busy renames it.
