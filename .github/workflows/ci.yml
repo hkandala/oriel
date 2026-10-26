@@ -71,8 +71,9 @@ jobs:
         env:
           ONLY: ${{ inputs.only_testing }}
       - if: ${{ !inputs.only_testing && !inputs.on_demand }}
-        # SHARD_HEAD: shard 0's checks above and the strip check below, in seconds (scripts/shard.py).
-        run: make e2e SHARD=${{ matrix.shard }}/5 SHARD_HEAD=210
+        # SHARD_HEAD (scripts/shard.py): shard 0's checks above and the strip check below take about 210 s, less the
+        # 60–80 s its UI test build saves on the app built by make build.
+        run: make e2e SHARD=${{ matrix.shard }}/5 SHARD_HEAD=140
       - if: ${{ inputs.on_demand }}
         run: make e2e SHARD=${{ matrix.shard }}/4 ON_DEMAND_ONLY=1
       - if: ${{ !cancelled() && env.CHECKS == 'true' }}
