@@ -34,7 +34,7 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   ([Open Session](/docs/ui/window#open-session)). herdr on the Mac is needed
   only for This Mac's sessions, not for remote machines.
 - **herdr's machines (macOS):** when herdr is on the Mac, the Add Remote Host
-  sheet lists the targets of the enabled entries of `herdr machine list --json`
+  dialog lists the targets of the enabled entries of `herdr machine list --json`
   (`{id, label, target, session, enabled}`) that are not in the app's list,
   each with a checkbox. While the app's list is empty, they start checked.
   The app never writes herdr's list.
@@ -56,7 +56,9 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
     stderr (merged into stdout) is ssh's reason when it did not.
   - `LogLevel=ERROR`: that reason is ssh's own error lines only. The server's
     login banner and ssh's notices ("Permanently added … to the list of known
-    hosts") are INFO, so they never show on the Disconnected page.
+    hosts") are INFO, so they never show on the Disconnected page. So is
+    "Connection closed by …": a start that ends with no text says "The
+    connection to ‹target› closed".
   - Later runs use `-F /dev/null -o ControlMaster=no -o BatchMode=yes
     -o ProxyCommand=/usr/bin/false -S ~/Library/Caches/oriel/<h8>`. Without a
     master they fail at once instead of opening their own connection and
@@ -147,8 +149,7 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 - **New tabs and workspaces** pass `cwd` `~`, which herdr reads as the
   machine's home, so the app never sends This Mac's home to a remote machine.
 - **What the prototype leaves for later:** Local Network privacy (below),
-  herdr's machine list in the sheet, rename, reorder and remove of a machine,
-  ⌥-click on a remote machine (it switches the window, not a new one), a
+  herdr's machine list in the dialog, rename, reorder and remove of a machine, a
   remote home shown as `~` in card headers, `dial`, and file drops and image
   paste to a remote machine.
 - **Local Network privacy (macOS 15+):** an `ssh` started by the app counts as
@@ -161,7 +162,7 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 
 - One Citadel SSH connection per host, with exec channels on it.
 - The key is a Secure Enclave P-256 key (`ecdsa-sha2-nistp256`). It cannot
-  leave the device. The add-machine sheet shows its public line to copy into
+  leave the device. The add-machine dialog shows its public line to copy into
   `authorized_keys`.
 - The first connect shows the host key's SHA256 fingerprint and asks. After
   that the key is pinned, and a changed key blocks the connection.
