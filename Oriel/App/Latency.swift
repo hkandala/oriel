@@ -93,6 +93,13 @@
             }
         }
 
+        /// A test's note in the record.
+        func note(_ text: String) {
+            if Self.isOn {
+                recorded.append(text)
+            }
+        }
+
         @ObservationIgnored private var shownAt = -1
         @ObservationIgnored private var lifted: TimeInterval?
         @ObservationIgnored private var slide: [(Int, Double)] = []
