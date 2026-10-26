@@ -234,9 +234,12 @@ extension OrielUITests {
             return ((read as? [String: Any])?["text"] as? String)?.contains("\nurl-42") == true
         }
 
-        // Again, with the main window in front: the same window comes forward.
+        // Again, with the main window in front, as `oriel://float/?…`: the same window comes forward. That path ("/")
+        // once opened a workspace too, as a dropped folder (429a02c): checked after the next steps.
         element("workspace.w1").click()
-        _ = try await floatByURL(two, pane)
+        let workspaces = try await workspaceIDs()
+        try await openFloatURL("session=\(two)&pane=\(pane)", path: "/")
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)", in: window))
         XCTAssertEqual(app.windows.containing(.any, identifier: "float.\(pane)").count, 1)
 
         // Not there: a notice in the main window, no window.
@@ -249,6 +252,8 @@ extension OrielUITests {
         let none = NSPredicate(format: "value BEGINSWITH %@", "Can't float pane \(pane) of oriel-e2e-none: ")
         XCTAssertTrue(notice.staticTexts.matching(none).firstMatch.exists(within: connect))
         XCTAssertFalse(element("sidebar.dot.oriel-e2e-none").exists)
+        let after = try await workspaceIDs()
+        XCTAssertEqual(after, workspaces)
 
         // Detach: the window goes, and so does two's connection. The URL brings the window forward first: a click on a
         // window behind the main one lands in the main one.
@@ -348,9 +353,9 @@ extension OrielUITests {
         return window
     }
 
-    func openFloatURL(_ query: String) async throws {
+    func openFloatURL(_ query: String, path: String = "") async throws {
         let oriel = Bundle.main.bundleURL.deletingLastPathComponent().appending(path: "Oriel.app").path
-        _ = try await Self.post("\(one)/open-url", Data("\(oriel)\noriel://float?\(query)".utf8))
+        _ = try await Self.post("\(one)/open-url", Data("\(oriel)\noriel://float\(path)?\(query)".utf8))
     }
 
     /// The card's Float button; its window, once it shows.
