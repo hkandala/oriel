@@ -11,7 +11,7 @@ extension OrielUITests {
         // selects nothing until the scroll rests, so the click can land before the card takes the keyboard.
         element("tab.\(tab)").click()
         element("terminal.\(pane)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         openPalette()
         let headers = ["Tabs", "Workspaces", "Sessions", "Commands"].map { element("palette.section.\($0)").frame.minY }
         XCTAssertEqual(headers, headers.sorted())
@@ -70,7 +70,7 @@ extension OrielUITests {
     func testPaletteRenamesTheWorkspaceAndThePane() async throws {
         let (tabs, pane) = try await newWorkspace("before")
         element("terminal.\(pane)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         let filter = openPalette()
         app.typeText("rename workspace")
         XCTAssertTrue(element("palette.command.Rename Workspace").has(\.isSelected, true, within: 2))
@@ -249,7 +249,7 @@ extension OrielUITests {
             _ = try? await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "rm -rf \(folder)\r"])
         }
         element("terminal.\(pane)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         // A program in the card: the pick is refused (D41), nothing is typed.
         try await send("cat\r", to: pane)
         try await expect("cat in the pane") { try await foreground(pane).contains("cat") }
@@ -317,7 +317,7 @@ extension OrielUITests {
         XCTAssertTrue(until(3) { card.frame.minX > lastCard.frame.maxX })
 
         element("terminal.\(pane)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         // The menu bar's has no tabs (phase 30): AppKit searched them at every key.
         app.menuBars.menuBarItems["View"].click()
         app.menuBars.menuItems["Pane"].hover()

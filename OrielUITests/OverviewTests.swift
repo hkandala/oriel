@@ -49,7 +49,7 @@ extension OrielUITests {
         // The sidebar stayed under the overview and faded in with the zoom; made after it, it came late (phase 30).
         XCTAssertEqual(sidebarsMade, made)
         XCTAssertTrue(element("tab.w2:t1").has(\.isSelected, true, within: 2))
-        XCTAssertTrue(hasKeyboard(element("terminal.w2:p1")))
+        XCTAssertTrue(hasKeyboard("terminal.w2:p1"))
         try await expectPTYSize("w2:p1")
 
         element("titlebar.overview").click()
@@ -60,7 +60,7 @@ extension OrielUITests {
         XCTAssertGreaterThanOrEqual(Int(element("overview.motion").stringValue) ?? 0, 4)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
-        XCTAssertTrue(hasKeyboard(element("terminal.w2:p1")))
+        XCTAssertTrue(hasKeyboard("terminal.w2:p1"))
 
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(overview.exists(within: 2))
@@ -175,7 +175,7 @@ extension OrielUITests {
         XCTAssertTrue(overview.exists(within: 2))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
-        XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
+        XCTAssertTrue(hasKeyboard("terminal.w1:p1"))
     }
 
     /// What the overview costs (phase 27): lane O's workspace of 6 tabs and 12 panes, 8 of them printing, only its

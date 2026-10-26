@@ -45,7 +45,7 @@ extension OrielUITests {
 
         // Quitting vim from its card: Return asks again, and the keyboard card's icon is in front.
         element("terminal.\(vim)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(vim)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(vim)"))
         app.typeText(":q")
         app.typeKey(.return, modifierFlags: [])
         try await expectIcons(first, within: 2) { $0 == ["terminal", "sleep", "nano"] }

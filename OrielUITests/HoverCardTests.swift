@@ -38,7 +38,7 @@ extension OrielUITests {
         XCTAssertEqual(rows(of: card).count, 2)
         element("hovercard.\(second)").click()
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)"))
         XCTAssertTrue(card.vanishes(within: 2))
 
         // Shown again, it still goes when the pointer leaves (it closed under the pointer).

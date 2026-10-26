@@ -92,7 +92,7 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(field.vanishes(within: 2))
         try await expect("herdr back at the bottom") { try await scrollOffset(pane) == 0 }
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         // Its ✕ closes it too.
         app.typeKey("f", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard(field))
@@ -129,7 +129,7 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         try await send("for i in $(seq 1 200); do echo line $i; done\r", to: pane)
         try await waitFor(pane) { $0.contains("\nline 200\n") }
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         return pane
     }
 

@@ -270,7 +270,7 @@ extension OrielUITests {
 
     /// Types a command into the pane once its terminal has the keyboard, and waits for the output.
     func typeAndRead(_ pane: String) async throws {
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         app.typeText("echo oriel-keys-$((6*7))")
         app.typeKey(.return, modifierFlags: [])
         try await waitFor(pane) { $0.contains("\noriel-keys-42") }
@@ -297,6 +297,13 @@ extension OrielUITests {
     }
 
     /// Waits for the element to take the keyboard; focus lands a moment after it appears.
+    /// By one query a try: `exists` and then a focus read found a terminal gone between the two as its floating window
+    /// came forward, which XCUITest fails the test for (CI 40335691646, 40342555702).
+    func hasKeyboard(_ identifier: String, in window: XCUIElement? = nil) -> Bool {
+        let focused = NSPredicate(format: "identifier == %@ AND hasKeyboardFocus == true", identifier)
+        return until(2) { (window ?? app).descendants(matching: .any).matching(focused).firstMatch.exists }
+    }
+
     func hasKeyboard(_ element: XCUIElement) -> Bool {
         let focus = NSPredicate(format: "hasKeyboardFocus == true")
         return until(2) { element.exists && focus.evaluate(with: element) }

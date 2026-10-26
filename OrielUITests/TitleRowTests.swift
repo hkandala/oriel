@@ -123,7 +123,7 @@ extension OrielUITests {
 
         openWorkspaceMenu()
         element("workspaces.open-session").click()
-        XCTAssertTrue(hasKeyboard(element("open-session.filter")))
+        XCTAssertTrue(hasKeyboard("open-session.filter"))
         XCTAssertFalse(filter.exists)
     }
 

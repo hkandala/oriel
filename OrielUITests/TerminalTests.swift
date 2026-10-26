@@ -116,7 +116,7 @@ extension OrielUITests {
         terminal.click()
         XCTAssertTrue(hasKeyboard(terminal))
         element("tab.w1:t2").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.w1:p4")))
+        XCTAssertTrue(hasKeyboard("terminal.w1:p4"))
         element("tab.w1:t1").click()
         // Back on t1, the keyboard is on p2 again, not on herdr's focused p1.
         XCTAssertTrue(hasKeyboard(terminal))

@@ -58,13 +58,13 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
         element("terminal.\(first)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
 
         app.typeKey(.rightArrow, modifierFlags: [.command, .option])
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)"))
         // Round the ends: after the last card is the first.
         app.typeKey("]", modifierFlags: .command)
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
 
         // Resize Pane has no key (phase 25): ⌃⌘→ resizes nothing.
         app.typeKey(.rightArrow, modifierFlags: [.command, .control])
@@ -74,20 +74,20 @@ extension OrielUITests {
         // ⌥⇧⌘→ through its menu item: global hotkeys of other apps take ⌥⇧ chords.
         pick("Pane", "Move Pane Right")
         try await expect("the two swapped") { try await order(tab) == [second, first] }
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
 
         // Focus follows mouse: a pointer resting on the other card takes the keyboard there, also once a rename
         // that held it back ends (Esc gives the keyboard back to the first card first).
         pick("Pane", "Focus Follows Mouse")
         addTeardownBlock { @MainActor in self.pick("Pane", "Focus Follows Mouse") }
         paneMenu(first, "Rename Pane…")
-        XCTAssertTrue(hasKeyboard(element("pane.\(first).rename")))
+        XCTAssertTrue(hasKeyboard("pane.\(first).rename"))
         hoverHeader(second)
         // For a second the rename keeps the keyboard: typing holds the move back.
         let rename = element("pane.\(first).rename")
         XCTAssertFalse(until(1) { !NSPredicate(format: "hasKeyboardFocus == true").evaluate(with: rename) })
         app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)"))
     }
 
     /// Closing the keyboard card gives the keyboard to the card used before it in the tab, most recent first, not to
@@ -101,15 +101,15 @@ extension OrielUITests {
         // gave the first's neighbor, the second, which herdr focuses.
         for pane in [second, fourth, first] {
             element("terminal.\(pane)").click()
-            XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")), pane)
+            XCTAssertTrue(hasKeyboard("terminal.\(pane)"), pane)
         }
         app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(element("pane.\(first)").vanishes(within: 3))
-        XCTAssertTrue(hasKeyboard(element("terminal.\(fourth)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(fourth)"))
         // Two back: the second, not the fourth's neighbor, the third.
         app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(element("pane.\(fourth)").vanishes(within: 3))
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)"))
     }
 
     /// A split's new pane gets the keyboard (⌘D and the header's button); ⌘[ ⌘] step in the tree's order, not the
@@ -119,10 +119,10 @@ extension OrielUITests {
         let (tab, first) = try await newTab("split-keys")
         element("tab.\(tab)").click()
         element("terminal.\(first)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
         app.typeKey("d", modifierFlags: .command)
         let second = try await poll("a pane right of the first") { try await order(tab).last { $0 != first } }
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)"))
         // Below the first: the tree's order is first, third, second.
         hoverHeader(first)
         element("pane.\(first).split-down").click()
@@ -132,10 +132,10 @@ extension OrielUITests {
         }
         let tree = try await order(tab)
         XCTAssertEqual(tree, [first, third, second])
-        XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(third)"))
         for (key, pane) in [("]", second), ("]", first), ("[", second), ("[", third)] {
             app.typeKey(key, modifierFlags: .command)
-            XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")), "⌘\(key) to \(pane)")
+            XCTAssertTrue(hasKeyboard("terminal.\(pane)"), "⌘\(key) to \(pane)")
         }
 
         app.typeKey(.return, modifierFlags: [.command, .shift])
@@ -154,7 +154,7 @@ extension OrielUITests {
         let (tab, first) = try await newTab("quick-splits")
         element("tab.\(tab)").click()
         element("terminal.\(first)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
         let cards = element("cards.\(tab)")
         XCTAssertTrue(cards.exists(within: 2))
         let before = cards.stringValue.split(separator: " ").compactMap { Int($0) }
@@ -179,14 +179,14 @@ extension OrielUITests {
             XCTAssertEqual((node["first"] as? [String: Any])?["pane_id"] as? String, pane, "herdr's tree: \(node)")
             node = node["second"] as? [String: Any] ?? [:]
         }
-        XCTAssertTrue(hasKeyboard(element("terminal.\(panes[3])")))
+        XCTAssertTrue(hasKeyboard("terminal.\(panes[3])"))
         // herdr's cards shown: three came, none went.
         XCTAssertTrue(cards.has(\.stringValue, counts(came: 3, went: 0), within: 2), "came went: \(cards.stringValue)")
         try await typeAndRead(panes[3])
         for (closed, next) in [(panes[3], panes[2]), (panes[2], panes[1])] {
             app.typeKey("w", modifierFlags: .command)
             XCTAssertTrue(element("pane.\(closed)").vanishes(within: 3))
-            XCTAssertTrue(hasKeyboard(element("terminal.\(next)")), "after closing \(closed)")
+            XCTAssertTrue(hasKeyboard("terminal.\(next)"), "after closing \(closed)")
         }
         XCTAssertTrue(cards.has(\.stringValue, counts(came: 3, went: 2), within: 2), "came went: \(cards.stringValue)")
     }
@@ -205,7 +205,7 @@ extension OrielUITests {
         pick("Pane", "Balance Splits")
         try await expectWidths(tab, Dictionary(uniqueKeysWithValues: ([first, second] + rows).map { ($0, 1.0 / 3) }))
         element("terminal.\(first)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
         let steps: [(XCUIKeyboardKey, String)] = [
             (.rightArrow, second), (.rightArrow, rows[0]), (.downArrow, rows[1]), (.downArrow, rows[2]),
             // Back to the row used last, not the top one.
@@ -214,7 +214,7 @@ extension OrielUITests {
         ]
         for (index, (key, pane)) in steps.enumerated() {
             app.typeKey(key, modifierFlags: [.command, .option])
-            XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")), "step \(index) to \(pane)")
+            XCTAssertTrue(hasKeyboard("terminal.\(pane)"), "step \(index) to \(pane)")
         }
     }
 
@@ -262,7 +262,7 @@ extension OrielUITests {
                 "pane_id",
             ] as? String
         }
-        XCTAssertTrue(hasKeyboard(element("terminal.\(away)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(away)"))
     }
 
     func testZoomIsDisabledAloneAndAZoomedCardShowsRestoreAndClose() async throws {

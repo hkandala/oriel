@@ -26,7 +26,7 @@ extension OrielUITests {
         XCTAssertEqual(after, before)
         // Its tab stayed selected, its card has the keyboard, and the three share the width, as after a split.
         XCTAssertTrue(element("tab.\(tab)").isSelected)
-        XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(third)"))
         try await expectWidths(tab, [third: 1 / 3, second: 1 / 3, first: 1 / 3])
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
     }
@@ -188,7 +188,7 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").isSelected)
         let inBeta = try await place(of: terminal)
         let keyboard = try XCTUnwrap(inBeta).pane
-        XCTAssertTrue(hasKeyboard(element("terminal.\(keyboard)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(keyboard)"))
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
 
         // The collapsed sidebar's workspace menu: where its row is, then a drag held over the button and onto it.
@@ -208,7 +208,7 @@ extension OrielUITests {
         XCTAssertTrue(row.vanishes(within: 2))
         XCTAssertTrue(element("tab.\(back)").has(\.isSelected, true, within: 3))
         let arrived = try await place(of: terminal)
-        XCTAssertTrue(try hasKeyboard(element("terminal.\(XCTUnwrap(arrived).pane)")))
+        XCTAssertTrue(try hasKeyboard("terminal.\(XCTUnwrap(arrived).pane)"))
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
         element("titlebar.sidebar").click()
     }
@@ -239,7 +239,7 @@ extension OrielUITests {
         XCTAssertTrue(row.vanishes(within: 2))
         XCTAssertTrue(element("tab.\(away)").has(\.isSelected, true, within: 3))
         let arrived = try await place(of: terminal)
-        XCTAssertTrue(try hasKeyboard(element("terminal.\(XCTUnwrap(arrived).pane)")))
+        XCTAssertTrue(try hasKeyboard("terminal.\(XCTUnwrap(arrived).pane)"))
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
 
         // The sidebar's empty space under its rows (the ghost row).

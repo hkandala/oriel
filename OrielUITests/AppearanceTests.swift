@@ -44,7 +44,7 @@ extension OrielUITests {
     func testCardsLookAlikeWithAndWithoutTheKeyboard() {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         element("terminal.w1:p1").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
+        XCTAssertTrue(hasKeyboard("terminal.w1:p1"))
         let keyboard = element("pane.w1:p1"), other = element("pane.w1:p2")
         app.menuBars.menuBarItems["View"].click()
         XCTAssertTrue(app.menuBars.menuItems["Toggle Sidebar"].exists(within: 2))

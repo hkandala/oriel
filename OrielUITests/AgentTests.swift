@@ -53,7 +53,7 @@ extension OrielUITests {
         XCTAssertTrue(row.exists(within: 2))
         row.click()
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         XCTAssertTrue(element("agents.popover").vanishes(within: 2))
         XCTAssertEqual(element("sidebar.header").value as? String, one)
     }

@@ -59,7 +59,7 @@ extension OrielUITests {
         let four = try env("ORIEL_SESSION4")
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         app.typeKey("t", modifierFlags: [.command, .option])
-        XCTAssertTrue(hasKeyboard(element("open-session.filter")))
+        XCTAssertTrue(hasKeyboard("open-session.filter"))
         app.typeText(four)
         XCTAssertTrue(element("open-session.new.\(four)").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])

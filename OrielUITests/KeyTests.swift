@@ -63,13 +63,13 @@ extension OrielUITests {
         // Show Window sits in the card's middle, under the floating windows: the main window comes forward first.
         element("tab.\(tab)").click()
         element("pane.\(second).show").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: secondWindow)))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)", in: secondWindow))
         app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(secondWindow.vanishes(within: 3))
         XCTAssertTrue(firstWindow.exists)
         element("tab.\(tab)").click()
         element("pane.\(first).show").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)", in: firstWindow)))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)", in: firstWindow))
         app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(firstWindow.vanishes(within: 3))
     }
@@ -95,12 +95,12 @@ extension OrielUITests {
         element("workspace.\(workspace(of: tab))").click()
         XCTAssertTrue(element("terminal.\(other)").exists(within: 3))
         element("terminal.\(pane)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         // Each way on its own: with two panes, a step and a step back would land on the first again.
         for flags: XCUIElement.KeyModifierFlags in [.control, [.control, .shift]] {
             app.typeKey(.tab, modifierFlags: flags)
             XCTAssertFalse(until(1) { self.hasKeyboard(self.element("terminal.\(other)")) })
-            XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+            XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         }
     }
 
@@ -191,7 +191,7 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(panel.vanishes(within: 2))
         // The keyboard is back on the card.
-        XCTAssertTrue(hasKeyboard(element("terminal.w1:p1")))
+        XCTAssertTrue(hasKeyboard("terminal.w1:p1"))
 
         // Help ▸ Keyboard Shortcuts; ⌘/ closes it.
         app.menuBars.menuBarItems["Help"].click()

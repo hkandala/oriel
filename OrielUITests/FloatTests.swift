@@ -16,14 +16,14 @@ extension OrielUITests {
 
         // The main window's keyboard card is never the placeholder, also on ⌘].
         element("tab.\(tab)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
         app.typeKey("]", modifierFlags: .command)
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
         XCTAssertTrue(window.exists)
 
         // The main window covers it now; Show brings it forward with the keyboard, and keys go there.
         element("pane.\(second).show").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: window)))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)", in: window))
         app.typeText("echo float-$((6*7))")
         app.typeKey(.return, modifierFlags: [])
         try await waitFor(second) { $0.contains("\nfloat-42") }
@@ -34,7 +34,7 @@ extension OrielUITests {
         element("pane.\(second).back").click()
         XCTAssertTrue(window.vanishes(within: 3))
         XCTAssertTrue(element("pane.\(second).show").vanishes(within: 3))
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)"))
     }
 
     /// A new floating window: 60 % of the main window's width and 75 % of its height (at least 720 × 460 pt) centered
@@ -93,7 +93,7 @@ extension OrielUITests {
         show.click()
         // Not through `window`: XCUITest dropped that element once the window came forward (CI 40196255503). The
         // card in the tab has no terminal, so this one is the floating window's.
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)"))
     }
 
     /// Two floating windows, one on top, its own ⌘K, and both back after ⌘Q and a relaunch.
@@ -106,22 +106,22 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         // Each through the palette, on the keyboard card: no floating window covers a card's header then.
         element("terminal.\(third)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(third)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(third)"))
         openPalette().typeText("float pane")
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("float.\(third)").exists(within: 5))
         // Back in the main window, ⌘[ round the start skips the floated last card.
         element("tab.\(tab)").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
         app.typeKey("[", modifierFlags: .command)
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)"))
         openPalette().typeText("float pane")
         app.typeKey(.return, modifierFlags: [])
         let pinned = app.windows.containing(.any, identifier: "float.\(second)").firstMatch
         XCTAssertTrue(pinned.exists(within: 5))
 
         // ⌘K in the floating window: its commands only, no places.
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: pinned)))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)", in: pinned))
         openPalette()
         XCTAssertTrue(element("palette.command.Detach Pane", in: pinned).exists(within: 2))
         XCTAssertFalse(element("palette.command.New Tab", in: pinned).exists)
@@ -150,8 +150,8 @@ extension OrielUITests {
         // ⌘W in a floating window detaches. Show Window is under the floating window until the main one is in front.
         element("tab.\(tab)").click()
         element("pane.\(third).show").click()
-        XCTAssertTrue(hasKeyboard(element("terminal.\(third)", in: app.windows.containing(.any, identifier:
-            "float.\(third)").firstMatch)))
+        XCTAssertTrue(hasKeyboard("terminal.\(third)", in: app.windows.containing(.any, identifier:
+            "float.\(third)").firstMatch))
         app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(element("float.\(third)").vanishes(within: 3))
         XCTAssertTrue(element("pane.\(third).show").vanishes(within: 3))
@@ -164,7 +164,7 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         let window = try float(second)
         // ⇧⌘W is Close Pane there, and asks too (⌘W detaches).
-        XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: window)))
+        XCTAssertTrue(hasKeyboard("terminal.\(second)", in: window))
         app.typeKey("w", modifierFlags: [.command, .shift])
         XCTAssertTrue(window.sheets.buttons["Close Pane"].exists(within: 5))
         window.sheets.buttons["Cancel"].click()
@@ -342,7 +342,7 @@ extension OrielUITests {
         try await openFloatURL("session=\(session)&pane=\(pane)")
         let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
         XCTAssertTrue(window.exists(within: connect))
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)", in: window))
         return window
     }
 
