@@ -104,16 +104,33 @@ final class HostStore {
         }
 
         /// The Connect button and a new machine: connects to the remote machine, asking the user what ssh asks in the
-        /// window that connects (machines#health-check: only this may prompt).
+        /// window that connects (machines#health-check: only this may prompt). The page shows Connecting from the click
+        /// until the session answers (user, phase 30).
         func connect(in pages: WindowPages) async {
             guard let ssh = await machine.exec() as? SSHExec else { return }
+            connecting = true
+            connects += 1
+            if case .failed = state {
+                state = .connecting
+            }
+            var failure: Error?
             do {
                 try await ssh.connect { question in await pages.ask(question) }
             } catch {
-                await show(Notice(text: error.localizedDescription))
+                failure = error
             }
+            connecting = false
+            // Its answer ends Connecting; the notice's 4 s do not hold it.
             await client?.refresh()
+            if let failure {
+                await show(Notice(text: failure.localizedDescription))
+            }
         }
+
+        /// `connect` runs, and how many began: runs that wait for its start fail with the old "Disconnected", which
+        /// does not show.
+        @ObservationIgnored private var connecting = false
+        @ObservationIgnored private var connects = 0
 
         /// Follows the session until the task is cancelled. A failed start says why, then connects anyway: the page
         /// shows "not running" with Start.
@@ -145,8 +162,12 @@ final class HostStore {
                         await loadSessions()
                     }
                 case let .error(error):
+                    // Not while Connect runs, nor one that waited for its start: Connect's own read follows.
+                    let connects = connects
+                    guard !connecting else { continue }
                     // First, to tell "not running" from other failures without a flash of the other text.
                     await loadSessions()
+                    guard connects == self.connects else { continue }
                     state = .failed(error)
                     snapshotted([])
                 }

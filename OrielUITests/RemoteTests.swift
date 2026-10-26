@@ -62,10 +62,14 @@ extension OrielUITests {
         XCTAssertTrue(facts.contains("fingerprint is:\nSHA256:"), facts)
         XCTAssertFalse(facts.contains("yes/no"), facts)
         keepScreenshot("host key")
+        // The question replaces the page's Connecting.
+        XCTAssertFalse(element("detail.connecting").exists)
         element("ask.ok").click()
         // A wrong password: ssh asks again.
         try typePassword("wrong")
         try typePassword()
+        // Connecting again while oriel-pw's slow login shell looks for herdr (scripts/ci-sshd.sh).
+        XCTAssertTrue(element("detail.connecting").exists(within: 2))
         let missing = app.staticTexts["herdr is not installed on Password Host"]
         XCTAssertTrue(missing.exists(within: connect))
 
@@ -88,9 +92,15 @@ extension OrielUITests {
         }
         keepScreenshot("disconnected")
 
-        // Connect asks again.
+        // Connect asks again: Connecting from the click until the question, then until the session answers
+        // (user, phase 30). Disconnected never shows meanwhile.
         element("detail.connect").click()
+        XCTAssertTrue(element("detail.connect").vanishes(within: 1))
+        XCTAssertTrue(element("ask.answer").exists(within: connect))
+        XCTAssertFalse(element("detail.connecting").exists)
         try typePassword()
+        XCTAssertTrue(element("detail.connecting").exists(within: 2))
+        XCTAssertFalse(element("detail.connect").exists)
         XCTAssertTrue(missing.exists(within: connect))
     }
 

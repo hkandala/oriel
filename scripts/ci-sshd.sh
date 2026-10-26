@@ -33,6 +33,8 @@ touch "$d/sshd.log"
 sudo /usr/sbin/sshd -f "$d/sshd_config" -E "$d/sshd.log"
 sudo sysadminctl -addUser oriel-pw -password oriel-e2e-pw -home /Users/oriel-pw 2>&1
 sudo createhomedir -c -u oriel-pw >/dev/null 2>&1 || true
+# A login shell as slow as a busy dev machine's: the app looks for herdr in one, and Connecting shows meanwhile.
+echo 'sleep 2' | sudo tee /Users/oriel-pw/.zshrc >/dev/null
 # Remote Login may admit only this group's members.
 sudo dseditgroup -o edit -a oriel-pw -t user com.apple.access_ssh 2>/dev/null || true
 cat >>~/.ssh/config <<CONFIG
