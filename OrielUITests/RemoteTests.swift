@@ -165,9 +165,11 @@ extension OrielUITests {
             relaunch(one, ["-appearance", appearance, "-interfaceStyle", style, "-machines", "[]"])
             XCTAssertTrue(element("window.look").has(\.stringValue, "\(style) \(appearance)", within: connect))
             element("titlebar.machine").click()
+            let add = app.menuItems["Add Remote Host…"]
+            XCTAssertTrue(add.exists(within: 2))
             // No hosts: nothing to edit.
             XCTAssertFalse(app.menuItems["Edit Remote Host"].exists)
-            app.menuItems["Add Remote Host…"].click()
+            add.click()
             XCTAssertTrue(element("host.name").exists(within: 3))
             keepScreenshot("add remote host \(style) \(appearance)")
             if style == "classic", appearance == "light" {
@@ -178,14 +180,23 @@ extension OrielUITests {
         }
         let icon = element("host.icon")
         XCTAssertEqual(icon.value as? String, "server.rack")
+        // Esc closes the popover only.
         icon.click()
         XCTAssertTrue(element("host.icon.gamecontroller").exists(within: 3))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(element("host.icon.gamecontroller").vanishes(within: 2))
+        XCTAssertTrue(element("host.name").exists)
+        icon.click()
+        XCTAssertTrue(element("host.icon.search").exists(within: 3))
         element("host.icon.search").click()
-        app.typeText("globe")
+        app.typeText("globe.eu")
         XCTAssertTrue(element("host.icon.gamecontroller").vanishes(within: 2))
         keepScreenshot("icon search")
-        element("host.icon.globe.europe.africa").click()
-        XCTAssertTrue(element("host.icon.globe").vanishes(within: 2))
+        // A dotted search: only Europe and Africa's globe, not the plain one.
+        XCTAssertFalse(element("host.icon.globe").exists)
+        let europe = element("host.icon.globe.europe.africa")
+        europe.click()
+        XCTAssertTrue(europe.vanishes(within: 2))
         XCTAssertEqual(icon.value as? String, "globe.europe.africa")
     }
 
@@ -202,7 +213,12 @@ extension OrielUITests {
         name.click()
         app.typeKey("a", modifierFlags: .command)
         app.typeText("Build Box")
+        let target = element("host.target")
+        target.click()
+        app.typeKey("a", modifierFlags: .command)
+        app.typeText("oriel-pw")
         element("host.icon").click()
+        XCTAssertTrue(element("host.icon.search").exists(within: 3))
         element("host.icon.search").click()
         app.typeText("flask")
         element("host.icon.flask").click()
@@ -217,6 +233,9 @@ extension OrielUITests {
         editHost("Build Box") {
             XCTAssertFalse(app.menuItems["Key Host"].exists)
         }
+        // The edit was kept; the open page stays on its connection.
+        XCTAssertEqual(target.value as? String, "oriel-pw")
+        XCTAssertEqual(element("host.icon").value as? String, "flask")
         element("host.remove").click()
         XCTAssertTrue(name.vanishes(within: 2))
         element("titlebar.machine").click()

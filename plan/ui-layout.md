@@ -34,8 +34,8 @@ the install command (`curl -fsSL https://herdr.dev/install.sh | sh`), because th
   user), no name. Its menu lists the machines with icon and name, a checkmark on the current one, then "Open
   Session…", "Add Remote Host…" and "Edit Remote Host ▸" (phase 29). Picking another machine opens it in a new
   window (phase 28); this window keeps its sessions.
-- Adding a remote host (later) asks for a name, the SSH target and an icon (laptop, desktop, server, cloud,
-  chip, house, flask, game controller), because the button shows only the icon.
+- Adding a remote host asks for a name, the SSH target and an icon from a searchable grid of SF Symbols
+  ([Add a machine](/docs/ui/add-a-machine)), because the button shows only the icon.
 
 ## Title row (always the same row; 46 pt, as in Rex)
 
