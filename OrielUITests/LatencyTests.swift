@@ -241,59 +241,62 @@ extension OrielUITests {
     }
 
     /// A two-finger swipe between tabs, and between sessions in the overview (phase 31): the page moves with the
-    /// fingers, and from their lift lands on the next page soon; a short flick does too. Prints the page's move by
-    /// the lift (the fingers' 420 or 140 pt) and the ms from the lift to within 2 pt of the page.
+    /// fingers, one to one, and from their lift lands on the next page within 300 ms; a short flick does too, and
+    /// fingers that stop before they lift go back. The system's paging took 0.55 s and sent the flick back. Prints the
+    /// page's move by the lift and the ms from the lift to within 2 pt of the page.
     func testTabAndOverviewSwipesFollowTheFingersAndLandSoon() async throws {
+        continueAfterFailure = true // the old paging's numbers for every swipe; out with the new paging
         try launchRecordingLatency(["-forceMotion", "YES"])
         openPage(two)
         element("sidebar.dot.\(one)").click()
         XCTAssertTrue(until(3) { header == one })
         let first = element("tab.w1:t1"), second = element("tab.w1:t2"), window = app.windows.firstMatch
         let card = element("terminal.w1:p1").frame, width = element("page.w1:t1").frame.width
-        let forward = try await swipeLands(over: card, from: 0, to: width, "tab") { second.isSelected }
-        _ = try await swipeLands(over: card, from: width, to: 0, "tab flick", forward: -forward) { first.isSelected }
+        // 30 pt steps (1875 pt/s), the other way if natural scrolling is off; then a 10 pt flick (625 pt/s) back.
+        let forward = try await swipeLands(over: card, 30, pages: (0, width)) { second.isSelected }
+        try await swipeLands(over: card, -10 * forward, pages: (width, 0)) { first.isSelected }
+        // 40 pt, then the fingers stop 0.2 s before they lift: back to the same page.
+        try await swipeLands(over: card, 10 * forward, "4 200", pages: (0, 0)) { first.isSelected }
 
         app.typeKey("o", modifierFlags: [.command, .control])
         let page = element("overview.page.\(one)")
         XCTAssertTrue(page.exists(within: 2))
         let frame = page.frame
-        _ = try await swipeLands(over: frame, from: 0, to: frame.width, "overview") {
+        try await swipeLands(over: frame, 30 * forward, pages: (0, frame.width)) {
             window.title.hasSuffix(" - \(self.two)")
         }
-        _ = try await swipeLands(over: frame, from: frame.width, to: 0, "overview flick", forward: -forward) {
+        try await swipeLands(over: frame, -10 * forward, pages: (frame.width, 0)) {
             window.title.hasSuffix(" - \(self.one)")
         }
     }
 
-    /// 14 steps over the frame, 16 ms apart, then momentum: 30 pt steps (1875 pt/s), or 10 pt (625 pt/s) for a flick;
-    /// `forward` the step's sign, else either (natural scrolling decides), until `done`. Then the record of the page's
-    /// slide from the offset `start` to `target`. Gives the sign that went.
-    private func swipeLands(
-        over frame: CGRect,
-        from start: Double,
-        to target: Double,
-        _ name: String,
-        forward: Double? = nil,
-        until done: () -> Bool,
-    ) async throws -> Double {
-        let step = name.hasSuffix("flick") ? 10.0 : 30
-        var sign = 0.0
-        for next in forward.map({ [$0] }) ?? [-1, 1] {
+    /// `step` pt over the frame `steps` times, 16 ms apart, then momentum (`"steps pause"`: the fingers stop `pause` ms
+    /// before they lift, no momentum), the other way too if that did not reach `done` (natural scrolling decides).
+    /// Then the record of the page's slide between the offsets `pages`. Gives the step's sign that went.
+    @discardableResult
+    private func swipeLands(over frame: CGRect, _ step: Double, _ steps: String = "14", pages: (Double, Double),
+                            until done: () -> Bool) async throws -> Double
+    {
+        var sign = 1.0
+        for next in [1.0, -1] {
             sign = next
-            try await Self.post("\(one)/swipe", Data("\(frame.midX) \(frame.midY) \(step * sign) 14".utf8))
+            try await Self.post("\(one)/swipe", Data("\(frame.midX) \(frame.midY) \(step * sign) \(steps)".utf8))
             // No accessibility query during the slide.
             try await Task.sleep(for: .seconds(1))
             if done() {
                 break
             }
         }
-        let (swipe, path, _) = try XCTUnwrap(swipes("page").last, "no \(name) swipe moved")
-        let settled = path.first { abs($0[1] - target) <= 2 }?[0] ?? -1
-        let moved = Int(abs(path[0][1] - start))
-        print("\(name): \(moved) pt of \(Int(14 * step)) by the lift, landed at \(Int(settled)) ms: \(swipe)")
-        XCTAssertTrue(done(), "\(name): \(swipe)")
-        XCTAssertEqual(path.last?[1] ?? 0, target, accuracy: 2, "\(name): \(swipe)")
-        XCTAssertGreaterThan(settled, 0, "\(name): \(swipe)")
+        let (swipe, path, _) = try XCTUnwrap(swipes("page").last, "no swipe of \(step) moved")
+        let fingers = abs(step) * (Double(steps.split(separator: " ")[0]) ?? 0), moved = abs(path[0][1] - pages.0)
+        // Where it came to rest: the page's offset, within the strip's 8 pt gap and a page element's clipped frame.
+        let rest = path.last?[1] ?? 0, settled = path.first { abs($0[1] - rest) <= 2 }?[0] ?? -1
+        print("\(fingers) pt swipe: \(Int(moved)) pt by the lift, at rest at \(Int(settled)) ms: \(swipe)")
+        XCTAssertTrue(done(), swipe)
+        XCTAssertEqual(moved, fingers, accuracy: abs(step), swipe)
+        XCTAssertEqual(rest, pages.1, accuracy: 20, swipe)
+        XCTAssertGreaterThan(settled, 0, swipe)
+        XCTAssertLessThan(settled, 300, swipe)
         return sign
     }
 
