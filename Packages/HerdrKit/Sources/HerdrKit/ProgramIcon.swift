@@ -32,8 +32,10 @@ public extension [ProgramIcon] {
             return id
         }
         if let program, !program.isShell {
-            // A path's folder; a login shell's leading `-`.
-            let base = { (path: String) in String(URL(filePath: path).lastPathComponent.trimmingPrefix("-")) }
+            // A path's last part; a login shell's leading `-`. Not `URL(filePath:)`: a bare name made it read the
+            // working
+            // folder (getcwd), for each tile's icons in each overview frame (phase 31).
+            let base = { (path: String) in String((path.split(separator: "/").last ?? "").trimmingPrefix("-")) }
             var names = [program.name, program.argv0].compactMap(\.self).map(base)
             // A Node CLI (`pi`) is its script, not `node`: the package's path, else the bin link's name it was
             // started through (`gemini`).
