@@ -248,3 +248,25 @@ paths had been through phases 24–31 and held up: no race or stale-state bug fo
   paths (known `ponytail:` limits in FileDrop.swift). Cost: disabling them for remote stores is a few lines in
   CommandList and the drop types (r-app, r-terminal); real support needs copying files over SSH. Recommendation:
   disable them on remote machines now; add the copy with image paste.
+
+### r-strip
+
+Read the eight files (Strip, SwipeRouter, ThreeFingers, PaneCard, Detail, Drag, ListDrops, CloseDialog; 1,943
+lines) line by line. Paging, the swipe router, the drops and the close dialog had been worked over in phases 24–31
+and held up. 7 commits, +49 −38 lines.
+
+- **Bugs fixed:** (1) `SplitLayout.views` built its map with `Dictionary(uniqueKeysWithValues:)`, which traps on a
+  pane id that appears twice in herdr's tree: the app crashed on bad herdr input. It keeps the first now. (2) A
+  remote host with no Perl failed every try with "Oriel needs Perl…", but the page showed only "Reconnecting to
+  ‹machine›": the reason now shows under it (`detail.text`; d-spec, machines.mdx). (3) A new notice was never
+  announced to VoiceOver; it is now, once per notice (a-security-a11y). (4) The wheel's page turn was the one
+  motion that ignored `-forceMotion`. No test for 1–3: herdr gives no duplicate pane, CI has no host without Perl,
+  and XCUITest cannot hear an announcement.
+- **Comments:** "The tab marker follows the scroll" sat on the change that scrolls to the selection (wrong,
+  removed); the layout-motion note moved from the padding to `SplitLayout.motion`; two what-comments removed.
+- **Code removed:** `ScrollAnchor.Anchor` copied the five fields of its representable; it holds one `marks` now. The
+  card header's title is `PaneTitle`, for r-panels' `PaneInfo` to share (a-ponytail-app).
+- **For the user:** each card's VoiceOver value is "content 100%" (85 % while another window controls the
+  session), left from the dropped Fade Inactive Panes; the tests read only its `content` prefix and `, loading`.
+  Cost: the value becomes "loading" or empty, and five UI test files change their checks (r-tests). Recommendation:
+  do it with the next a11y pass.
