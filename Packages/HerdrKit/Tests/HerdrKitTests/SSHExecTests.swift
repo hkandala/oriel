@@ -5,7 +5,7 @@ import Testing
 /// The envelope runs in the remote login shell; `sh` here stands in for it.
 @Test func `envelope runs the argv unchanged`() async throws {
     let argv = ["printf", "%s|", "it's", "a b", "$HOME", "\"q\"", "`x`", "ü\n2"]
-    let exec = await ProcessExec()
+    let exec = localExec
     let out = try await exec.output(["sh", "-c", SSHExec.envelope(argv)])
     #expect(out == "it's|a b|$HOME|\"q\"|`x`|ü\n2|")
 }
@@ -19,7 +19,7 @@ import Testing
 
 /// The relay here, without ssh: runs at once over one process, their stdin, exits and kills.
 @Test func `relay carries runs over one process`() async throws {
-    let local = await ProcessExec()
+    let local = localExec
     let relay = try #require(await Relay.start(ProcessExec.spawn(["perl", "-e", Relay.script], local.environment)))
     let failing = try relay.run("echo out; echo err >&2; exit 3")
     let echo = try relay.run("cat")

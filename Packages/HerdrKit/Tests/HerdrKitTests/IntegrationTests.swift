@@ -22,6 +22,16 @@ private func shell(_ argv: String...) async -> Int32 {
     }
 }
 
+/// This Mac's runs with the test run's environment and herdr from its PATH, not the app's login-shell lookup: its 3 s
+/// bound ran out under heavy load (a load of 200), and herdr was not found.
+let localExec: ProcessExec = {
+    ProcessExec.prepare()
+    let env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("HERDR_") }
+    let herdr = env["PATH"]?.split(separator: ":").map { "\($0)/herdr" }
+        .first { FileManager.default.isExecutableFile(atPath: $0) }
+    return ProcessExec(env, herdr: herdr, asked: .now)
+}()
+
 private let herdrInstalled: @Sendable () async -> Bool = { await shell("which", "herdr") == 0 }
 
 /// A client for a new throwaway session, removed after `body`.
@@ -65,7 +75,7 @@ private final class SubscribeCounter: Exec {
 
 @Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `stops and deletes a throwaway session`() async throws {
-    try await withSession(ProcessExec()) { client in
+    try await withSession(localExec) { client in
         // herdr refuses to delete a running session, and says why.
         let refused = await #expect(throws: HerdrError.self) { try await client.deleteSession() }
         #expect(refused?.localizedDescription.contains("stop it before deleting") == true)
@@ -78,7 +88,7 @@ func `stops and deletes a throwaway session`() async throws {
 
 @Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `talks to a throwaway herdr session`() async throws {
-    let exec = await SubscribeCounter(ProcessExec())
+    let exec = SubscribeCounter(localExec)
     try await withSession(exec) { client in try await talk(client, exec) }
 }
 
@@ -117,7 +127,7 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
 }
 
 @Test func `output of fast commands always ends`() async throws {
-    let exec = await ProcessExec()
+    let exec = localExec
     try await withThrowingTaskGroup(of: [String].self) { group in
         for _ in 0 ..< 30 {
             group.addTask {
@@ -135,7 +145,7 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
 }
 
 @Test func `a long line and the lines around it read whole, and quickly`() async throws {
-    let exec = await ProcessExec()
+    let exec = localExec
     // 8 MB in one line, as a big session's snapshot comes (280 KB at 400 panes), in many pipe chunks.
     let channel = try await exec.run(["sh", "-c", "echo a; head -c 8000000 /dev/zero | tr '\\0' x; echo; echo b"])
     channel.closeInput()
@@ -148,7 +158,7 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
 }
 
 @Test func `terminate stops the readers when a grandchild keeps the pipes open`() async throws {
-    let exec = await ProcessExec()
+    let exec = localExec
     let channel = try await exec.run(["sh", "-c", "sleep 8 & echo hi"])
     #expect(await channel.lines.first { _ in true } == "hi")
     channel.terminate()
@@ -202,7 +212,7 @@ private func closedReason(_ events: inout AsyncStream<TerminalStream.Event>.Iter
 
 @Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `controls a throwaway terminal`() async throws {
-    try await withSession(ProcessExec(), control)
+    try await withSession(localExec, control)
 }
 
 private func control(_ client: HerdrClient) async throws {
@@ -277,7 +287,7 @@ func `a started server shares the CLI's paths`() async throws {
         try? FileManager.default.removeItem(atPath: config)
         try? FileManager.default.removeItem(at: URL.libraryDirectory.appending(path: "Logs/Oriel/\(session).log"))
     }
-    let base = await ProcessExec()
+    let base = localExec
     let client = HerdrClient(session: session, exec: Moved(base: base, config: config))
     try await client.startServer(within: .seconds(10))
     #expect(FileManager.default.fileExists(atPath: "\(config)/herdr/sessions/\(session)"))
@@ -290,7 +300,7 @@ func `a started server shares the CLI's paths`() async throws {
 
 @Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `changes a layout in a throwaway herdr session`() async throws {
-    try await withSession(ProcessExec()) { client in
+    try await withSession(localExec) { client in
         let _: Created = try await client.call("workspace.create", ["cwd": "/tmp", "focus": false])
         let second = try #require(try await client.split("w1:p1", .right))
         let third = try #require(try await client.split(second.id, .right))
@@ -325,7 +335,7 @@ func `changes a layout in a throwaway herdr session`() async throws {
 
 @Test(.enabled("herdr is not on PATH", herdrInstalled))
 func `moves beside a pane, swaps by id, and throws herdr's refusals`() async throws {
-    try await withSession(ProcessExec()) { client in
+    try await withSession(localExec) { client in
         let _: Created = try await client.call("workspace.create", ["cwd": "/tmp", "focus": false])
         let second = try #require(try await client.split("w1:p1", .right))
         let other = try #require(try await client.move(pane: second.id, to: .newTab(workspaceID: "w1")))

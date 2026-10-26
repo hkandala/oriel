@@ -46,6 +46,14 @@ public struct Channel: Sendable {
 
         /// Reads the login shell once (herdr again while it has none); keep one instance for the app's life.
         public convenience init() async {
+            Self.prepare()
+            var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("HERDR_") }
+            let (found, herdr) = await Self.loginShell(env)
+            env.merge(found.filter { Self.isUserKey($0.key) }) { $1 }
+            self.init(env, herdr: herdr, asked: .now)
+        }
+
+        static func prepare() {
             // A write to a child that already exited must fail, not kill the app.
             signal(SIGPIPE, SIG_IGN)
             // A GUI app's soft limit is 256 fds; the first snapshot asks every pane at once, three pipes per run.
@@ -54,10 +62,6 @@ public struct Channel: Sendable {
                 files.rlim_cur = min(files.rlim_max, rlim_t(OPEN_MAX))
                 setrlimit(RLIMIT_NOFILE, &files)
             }
-            var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("HERDR_") }
-            let (found, herdr) = await Self.loginShell(env)
-            env.merge(found.filter { Self.isUserKey($0.key) }) { $1 }
-            self.init(env, herdr: herdr, asked: .now)
         }
 
         init(_ environment: [String: String], herdr: String?, asked: ContinuousClock.Instant) {
