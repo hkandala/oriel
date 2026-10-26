@@ -85,6 +85,70 @@ extension OrielUITests {
         }
     }
 
+    /// Text selected in a terminal reads well in all four looks (phase 29 lane C): its own color over the selection,
+    /// where libghostty's default drew it in the window background, about the selection's own grey. A drag over a
+    /// plain shell selects locally (herdr drops mouse events for a program without mouse mode).
+    func testSelectedTextIsReadable() async throws {
+        let terminal = element("terminal.w1:p1")
+        XCTAssertTrue(terminal.exists(within: connect))
+        try await waitForPrompt("w1:p1")
+        // Every row full: full blocks (3 cells in 10) draw the cell's text color edge to edge.
+        try await send(
+            "clear; for i in $(seq 600); do printf '\u{2588}\u{2588}\u{2588} oriel '; done; echo\r",
+            to: "w1:p1",
+        )
+        try await waitFor("w1:p1") { $0.components(separatedBy: "oriel").count > 100 }
+        addTeardownBlock { @MainActor [self] in
+            pick("Interface Style", "Glass")
+            pick("Appearance", "Dark")
+        }
+        for (style, appearance) in [("Glass", "Dark"), ("Glass", "Light"), ("Classic", "Light"), ("Classic", "Dark")] {
+            pick("Interface Style", style)
+            pick("Appearance", appearance)
+            try await Task.sleep(for: .milliseconds(300))
+            // The top half of the rows, every one full width.
+            terminal.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.01))
+                .click(
+                    forDuration: 0.2,
+                    thenDragTo: terminal.coordinate(withNormalizedOffset: CGVector(dx: 0.99, dy: 0.5)),
+                )
+            try await Task.sleep(for: .milliseconds(200))
+            let look = "\(style) \(appearance)".lowercased(),
+                (text, selection) = Self.contrast(terminal.screenshot().image)
+            keepScreenshot("\(look) selection: text \(text), selection over the card \(selection)")
+            // WCAG's 4.5 for text; the old default drew 1.2 in dark, 1.4 in light. The selection shows on the card.
+            XCTAssertGreaterThan(text, 4.5, look)
+            XCTAssertGreaterThan(selection, 1.1, look)
+        }
+    }
+
+    /// In the image's top third (selected), the contrast of its text color with the selection's: the most common
+    /// color there, and a pixel at the 85th percentile of contrast with it (full blocks fill 30 %). And the
+    /// selection's contrast with the bottom row of pixels (the card under the unselected rows).
+    private static func contrast(_ image: NSImage) -> (text: Double, selection: Double) {
+        let pixels = pixels(image)
+        guard let width = image.cgImage(forProposedRect: nil, context: nil, hints: nil)?.width, width > 0,
+              pixels.count > width * 4 * 30 else { return (0, 0) }
+        let rows = pixels.count / 4 / width
+        func luminance(_ offset: Int) -> Double {
+            let linear = (0 ..< 3).map { channel in
+                let value = Double(pixels[offset + channel]) / 255
+                return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+        }
+        func ratio(_ one: Double, _ other: Double) -> Double {
+            (max(one, other) + 0.05) / (min(one, other) + 0.05)
+        }
+        let top = (0 ..< rows / 3 * width).map { $0 * 4 }
+        let colors = Dictionary(grouping: top) { pixels[$0 ..< $0 + 3].reduce(0) { $0 << 8 | Int($1) } }
+        guard let selection = colors.max(by: { $0.value.count < $1.value.count })?.value.first else { return (0, 0) }
+        let background = luminance(selection)
+        let text = top.map { ratio(luminance($0), background) }.sorted()[top.count * 85 / 100]
+        let card = luminance(((rows - 1) * width + width / 2) * 4)
+        return (text, ratio(background, card))
+    }
+
     /// How much brighter than the card's median (its fill) the brightest of its top 3 pixel rows round its middle is,
     /// and the brightest of its left 3 columns round its middle.
     private func rim(_ card: XCUIElement) -> (top: Int, side: Int) {
