@@ -7,6 +7,7 @@ struct About: View {
     private var settings = AppSettings()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @Environment(\.dismiss) private var dismiss
 
     // A group, then each credit: name, license, home page.
     // swiftlint:disable:next large_tuple
@@ -71,6 +72,7 @@ struct About: View {
         .frame(width: 340)
         .containerBackground(for: .window) { WindowBackground(look: look) }
         .windowMinimizeBehavior(.disabled)
-        .environment(\.look, look)
+        // ⌘W closes it, as it does the system's About panel: the menu bar's ⌘W is a main window's Close Pane.
+        .background { Button("Close") { dismiss() }.keyboardShortcut("w").opacity(0).accessibilityHidden(true) }
     }
 }

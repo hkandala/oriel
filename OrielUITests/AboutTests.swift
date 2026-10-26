@@ -18,6 +18,10 @@ extension OrielUITests {
             XCTAssertTrue(element("about.\(name)", in: about).staticTexts[license].exists, name)
         }
         XCTAssertTrue(element("about.Drawn for Oriel", in: about).staticTexts["CC0-1.0"].exists)
+        about.typeKey("w", modifierFlags: .command)
+        XCTAssertTrue(about.vanishes(within: 2))
+        app.menuBarItems["Oriel"].menuItems["About Oriel"].click()
+        XCTAssertTrue(about.exists(within: 3))
 
         // The button opens the bundled texts in TextEdit, where it opens .txt files and is not open already: the test
         // quits it after.
