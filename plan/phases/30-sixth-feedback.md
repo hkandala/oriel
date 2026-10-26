@@ -57,6 +57,14 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
    If it only works with a system setting changed, say which, and show nothing in the UI about it (no hint
    text); the orchestrator tells the user.
 
+   **Decision (user, 22:30): ⌥ + swipe is the main way.** Holding ⌥ (Option) and swiping with two fingers
+   (or a mouse wheel) moves between sessions horizontally and between workspaces vertically, anywhere in
+   the window (over cards too), one step per gesture with the session spring / a workspace switch, and
+   never scrolls the terminal while ⌥ is held. It mirrors the layout (sessions side by side, workspaces in a
+   vertical list) and the keys (⌥ is the session level). ⌃ + scroll is out (macOS screen zoom), ⇧ + scroll
+   is out (macOS turns it into horizontal scroll), ⌘ + scroll stays free. Three-finger swipes stay an extra
+   only if an app can receive them with the user's settings; report what you find.
+
 ## Lane D: a tab dropped on New Workspace (item 9)
 
 9. Dragging a pane over the sidebar offers a New Workspace drop row; dragging a tab does not (phase 29
