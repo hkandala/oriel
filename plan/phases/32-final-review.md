@@ -209,7 +209,7 @@ broken link. `pnpm build` in `docs/` is green.
   and listed unit tests that do not exist (label parser, state file, transcripts). The pane header has five buttons
   (Float Pane first), and the card menu starts with Float Pane. The keys table had no ⌃⌘O; the second-key monitor
   runs the key window's command (phase 31), not a menu item. 105 program icons, not 106. machines.mdx said a host
-  without Perl shows "Oriel needs Perl"; the page shows only Reconnecting (sent to r-strip, `Detail.swift`). D45 gains
+  without Perl shows "Oriel needs Perl"; r-strip then showed the reason under Reconnecting (6c85120), and the pages say so. D45 gains
   the overview button, D62 names Focus Follows Mouse, data.mdx the `machine` key, the floats in `selection`,
   `agentsFolded` and the floating windows' frames; herdr-calls gains `pane.report_metadata` and the UI tests' calls.
 - **Not built, now said so.** Each page or row for a part that is not built says "not built yet" or "planned":

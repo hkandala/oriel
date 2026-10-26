@@ -110,8 +110,8 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   - Perl is on nearly every Unix (Debian's `perl-base` is essential, macOS has
     it). The relay greets with `oriel-relay 1` within 10 s. On a machine where
     it does not, every run fails with "Oriel needs Perl on ‹machine›: its relay
-    did not start", and the next run tries again. The page shows only
-    Reconnecting: it does not show that text yet.
+    did not start", and the next run tries again. The page shows Reconnecting
+    with that text under it.
   - herdr's own transports do not fit: `herdr --remote` runs one
     `remote-client-bridge` session, but it speaks herdr's internal binary
     client protocol; `herdr --machine` opens one session per request, as
