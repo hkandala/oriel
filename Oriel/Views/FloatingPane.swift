@@ -152,14 +152,7 @@
                 }
             }
             .frame(minWidth: 320, minHeight: 200)
-            .ignoresSafeArea(edges: .top)
-            .containerBackground(for: .window) { WindowBackground(look: look) }
-            // The main window's title row: an empty compact toolbar under it, the traffic lights on its 46 pt.
-            .toolbar { ToolbarSpacer(.flexible) }
-            .toolbar(removing: .title)
-            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-            // In full screen the empty toolbar would cover the title row; it shows on hover only.
-            .windowToolbarFullScreenVisibility(.onHover)
+            .windowChrome(look)
             .environment(\.look, look)
             .navigationTitle(pane?.cardTitle ?? "terminal")
             .background(FloatReader(terminalID: floating.terminalID, main: pages?.window,
