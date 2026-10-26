@@ -25,18 +25,18 @@ extension OrielUITests {
         element("titlebar.machine", in: remote).click()
         app.menuItems["Key Host"].click()
         XCTAssertFalse(app.windows.element(boundBy: 2).exists(within: 2))
-        // Picked in the first window's menu, it opens another window on it (the new one lies over the first).
+        // Picked in the first window's menu, it brings the Key Host window forward (user, phase 29): no new one.
         raise(first)
         element("titlebar.machine", in: first).click()
         app.menuItems["Key Host"].click()
-        XCTAssertTrue(app.windows.element(boundBy: 2).exists(within: 3))
-        XCTAssertTrue(until(3) { machine(of: app.windows.firstMatch) == "Key Host" })
+        XCTAssertTrue(until(3) { app.windows.firstMatch.identifier == remote.identifier })
+        XCTAssertFalse(app.windows.element(boundBy: 2).exists)
         XCTAssertEqual(machine(of: first), "This Mac")
         // ⌘N in a Key Host window stays on Key Host.
         app.typeKey("n", modifierFlags: .command)
-        XCTAssertTrue(app.windows.element(boundBy: 3).exists(within: 3))
+        XCTAssertTrue(app.windows.element(boundBy: 2).exists(within: 3))
         XCTAssertTrue(until(3) { machine(of: app.windows.firstMatch) == "Key Host" })
-        XCTAssertEqual(app.windows.count, 4)
+        XCTAssertEqual(app.windows.count, 3)
         // It went through the host's ControlMaster.
         let dropped = try await Self.post("\(one)/ssh-drop", Data("oriel-key".utf8))
         XCTAssertFalse(dropped.isEmpty)

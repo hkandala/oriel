@@ -177,12 +177,16 @@
         var body: some View {
             let current = pages.machine
             Menu {
-                // Another machine opens in a new window; this one and its sessions stay (user, phase 28). Picking the
-                // current machine does nothing. macOS 27 draws no images in these menus (an AppKit NSMenuItem.image
-                // does not show either); the icons are here for systems that do.
+                // Another machine shows in its own window: the one used last comes forward, else a new one opens; this
+                // one and its sessions stay (user, phases 28 and 29). Picking the current machine does nothing.
+                // macOS 27 draws no images in these menus (an AppKit NSMenuItem.image does not show either); the icons
+                // are here for systems that do.
                 ForEach([Machine.thisMac] + MachineList.shared.list) { machine in
                     Toggle(isOn: Binding { machine == current } set: { _ in
-                        if machine != current {
+                        guard machine != current else { return }
+                        if let window = WindowPages.windows.first(where: { $0.machine == machine }) {
+                            window.window?.makeKeyAndOrderFront(nil)
+                        } else {
                             WindowPages.open(machine: machine)
                         }
                     }) { Label(machine.name, systemImage: machine.icon) }
