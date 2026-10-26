@@ -139,3 +139,45 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
 - **CI.** 40273349296 (the drag tests on 48bc723, green). Full suite 40274069052 on 127bf21 (has 00f1c04): green.
 - **Check by hand.** With many workspaces, collapse the sidebar, hold a tab over the workspace button and drop it on
   New Workspace; the menu's New Workspace and Open Session rows now stay under the list when it scrolls.
+
+### Lane G
+
+- **What an app gets (item 8).** macOS sends no scroll event for three fingers. AppKit's `swipe(with:)` needs
+  Trackpad ▸ Swipe between pages on three fingers (TrackpadKit's lab saw none on macOS 26), and
+  `NSGestureRecognizer` never sees the trackpad. What works is the trackpad's raw touches (`NSTouch`), which a
+  window gets once a view in it takes indirect touches. The system's three-finger gestures win when they are on, so
+  the swipes need: Swipe between full-screen apps, Mission Control and App Exposé on four fingers or off, and no
+  three-finger drag. The user's Mac already has that (read only with `defaults read`:
+  `TrackpadThreeFingerHorizSwipeGesture` 0, `…VertSwipeGesture` 0, `…ThreeFingerDrag` 0, the four-finger ones 2).
+  Nothing in the UI mentions it. Spike: `/tmp/touchspike/main.swift` (compiled, not run: a hand on a trackpad and
+  the GUI are needed) prints every gesture, swipe and scroll event a window gets.
+- **⌥ + swipe (the user's decision).** `SwipeRouter` locks ⌥ when a gesture begins (`.mayBegin`/`.began`) and then
+  takes every event of it and its momentum, so no terminal scrolls. Sideways it drives the window's sidebar pages
+  from anywhere (the same follow-the-fingers paging and session spring); with the sidebar hidden or in the overview
+  it steps one session (`WindowPages.step`, now also used by ⌥⌘[ ] and the sidebar's wheel step). Up or down it
+  steps one workspace (`Page.stepWorkspace`, as ⌃⌘[ ]). A ⌥ wheel steps once per burst (0.3 s apart). Under a
+  panel, in a floating pane's window or a sheet, a ⌥ swipe steps nothing.
+- **Three fingers.** `ThreeFingers` (pure, 40 lines): three fingers down 60 ms that moved 20 pt (trackpad points)
+  mostly one way (2:1) give one step; four fingers or a cancelled touch give none until every finger lifts.
+  Fingers left = next session, up = next workspace, as the system's swipes. `WindowReader` puts indirect touches on
+  the window's frame view: SwiftUI's hosting view overrides `touchesBegan` (checked at run time) and replaces
+  `.direct`, so it stays out. A `.gesture` monitor reads `allTouches()`. Not tried on hardware.
+- **Tests.** `testOptionSwipesMoveBetweenSessionsAndWorkspaces`: a ⌥ trackpad swipe over a card moves sessions
+  either way and never pages the strip; ⌥ up and down change the workspace and back; a ⌥ wheel (XCUITest's
+  `perform(withKeyModifiers:)`) changes it; with the sidebar hidden a ⌥ swipe steps the session.
+  `scripts/swipe.swift` takes a 7th argument for ⌥. `scripts/three-fingers-check.swift` (in `make test`) checks
+  the recognizer: no trackpad on CI, and XCUITest cannot post touches.
+- **Reviews.** Ponytail: one session step in `WindowPages` (was three copies), `take(Step)` instead of a Bool,
+  a shorter doc: fixed. Spec: a hidden-sidebar test and docs wording (swipe begun with ⌥; the unverified claim
+  about system gestures softened; D35 and platform.mdx): fixed. Not done: a 20 pt wait before a ⌥ step (a ⌥ gesture
+  steps at 4 pt, as any gesture picks its axis); a floating window's ⌥ swipe stepping its main window.
+- **CI.** 40273976883 (the ⌥ test and the two swipe tests on 86687aa, green). Full suite 40274997505 on d9f037d:
+  lane G's and every swipe test green (`testOptionSwipesMoveBetweenSessionsAndWorkspaces`,
+  `testSwipesPageTheSidebarAndTheStripApart`, `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed`); 19 red
+  in other lanes' areas: 17 on "titlebar.sidebar: multiple matching elements" (the title row kept laid out under
+  the overview since 30f8074, lane V), `testACardNeverShowsTheOverviewsSmallSnapshot` and
+  `testDroppingAFileFromFinderPastesItsPath`.
+- **For the user to check by hand:** ⌥ + two-finger swipe over a card, sideways (sessions, with the sidebar shown
+  and hidden) and up/down (workspaces), one step a gesture, the terminal not scrolling; ⌥ + mouse wheel; plain
+  two-finger scrolling in a terminal and on the strip still the same; a three-finger swipe sideways and up/down
+  (once each per gesture); a four-finger swipe still switches Spaces and steps nothing in Oriel.
