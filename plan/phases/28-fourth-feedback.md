@@ -83,3 +83,44 @@ the orchestrator says otherwise.
   lane's last code commit; one review round per lane (spec and ponytail, read only).
 
 ## Findings
+
+### Lane R (items 8–11)
+
+- **Root causes.**
+  - 8: the machine menu and Add called `WindowPages.show(machine:)`, which left every page of the window and
+    opened the machine's `default` in it. Now both call `WindowPages.open(machine:connect:)`: a static hand-off
+    (`opening`) that the new window's restore takes; Add also connects there, so ssh asks in the new window.
+    The current machine does nothing; the ⌥-click path is gone. ⌘N now keeps the window's machine, as
+    window.mdx already said (it always opened This Mac).
+  - 9: the master's start output (stderr merged) was shown whole on Disconnected, and OpenSSH prints the
+    server's login banner there at LogLevel INFO. The master now runs with `-o LogLevel=ERROR`: only ssh's
+    error lines (fatal, error) remain. That also hides "Connection closed by …" (logged at INFO), so a start
+    that fails with no text says "The connection to ‹target› closed (ssh exited N)".
+  - 10: the question was a plain `.sheet`. It and Add Remote Host are now one `dialog()` overlay: the palette's
+    `floatingGlass`, 14 pt corners, 13 pt type, the field in the palette's capsule (`fieldCapsule()`, now shared
+    with `FilterField`), `.glass` / `.glassProminent` buttons, the machine's icon and name as the title. The
+    window behind takes no clicks; only the buttons close it (Esc is Cancel).
+  - 11: the hidden field depended on the prompt naming "password", "passphrase" or "PIN"; "Passcode:" did not.
+    Now every answer is a `SecureField`; only the host-key yes/no has no field.
+- **Company names:** the plans (phase 26 round 2) no longer name the user's servers or their OTP product; the
+  Meta (Muse) program icon is gone (catalog, `build.mjs`, SOURCES, svg, image set, contact sheet regenerated
+  with the pinned packages: only that entry changed). Left on purpose: generic tool logos (GitHub, AWS, …),
+  "muse" in third-party research notes quoting upstream agent lists, and git history.
+- **Tests.** CI's sshd has a generic `Banner`; `testAPasswordHostAsksAndNeverRetriesByItself` checks the
+  Disconnected text has "Permission denied" and not the banner, and that the host key and password are asked in
+  the new window while the first keeps its page. `testAddingAKeyHostOpensItInANewWindowWithoutAsking` checks
+  the new window's machine (`window.machine` test value), the first stays This Mac, the window's own machine in
+  its menu opens nothing, a pick in the first window opens another Key Host window, and ⌘N there stays on Key
+  Host. `testWindowsOnDifferentSessionsEachControlTheirOwn` opens its second window with ⌘N (no ⌥-click).
+  The hidden field is asserted on the password prompt only: no CI prompt lacks the word, and the code no longer
+  branches on it.
+- **Accepted (nits).** While a dialog shows, the window's menu commands (⌘W, ⌘T, ⌘K) still act on the page
+  under it, and Tab can leave the dialog; a sheet blocked both. Two machine picks before the first new window
+  restores give the second This Mac (`ponytail:` on `opening`). No test presses Esc on the dialog.
+- **Reviews (one round).** Ponytail: 12 items, no blocker; fixed 1–4, 9–11 (stale "sheet" wording, the
+  `keep` func inlined, shorter docs); 5–6 (move `dialog()`/`fieldCapsule()` to Style.swift) not done: Style.swift
+  is at the 400-line limit. Spec: 8 items, no blocker; fixed 1 (closed-connection text), 2 (no hand-off without
+  an opener), 5–6 (the machine of each window, ⌘N and the menu), 8 (docs); 3, 4, 7 above.
+- **CI.** Dispatch 40246511257 (f15de32): the key host test red (the new window lay over the first, so the
+  click hit its menu; fa83cc6 raises the first), the rest green. 40247028967 (fa83cc6): both remote tests
+  green.
