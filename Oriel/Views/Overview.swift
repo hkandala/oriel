@@ -232,15 +232,17 @@ private struct UnderOverview: ViewModifier {
 
     func body(content: Content) -> some View {
         let open = pages.overview && !pages.leaving
-        content.opacity(open == own ? 1 : 0)
-            // One quick fade with the zoom's start, the tab bar's pill in it (user, phase 31: 0.18 s looked slow).
-            .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.12), value: open)
-            .allowsHitTesting(open == own)
-            // Not `accessibilityHidden(false)`, which overrides the hidden ones inside (a button's overlay image
-            // took its identifier too).
-            .accessibilityElement(children: open == own ? .contain : .ignore)
-            // Out of the key view loop too: Tab would reach a hidden field.
-            .disabled(open != own)
+        // One quick fade with the zoom's start, the tab bar's pill in it (user, phase 31: 0.18 s looked slow). The
+        // opacity alone: what the tile's pick changes in the same update (the tab, the page) slid in it (phase 33).
+        content.animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.12)) {
+            $0.opacity(open == own ? 1 : 0)
+        }
+        .allowsHitTesting(open == own)
+        // Not `accessibilityHidden(false)`, which overrides the hidden ones inside (a button's overlay image
+        // took its identifier too).
+        .accessibilityElement(children: open == own ? .contain : .ignore)
+        // Out of the key view loop too: Tab would reach a hidden field.
+        .disabled(open != own)
     }
 }
 
