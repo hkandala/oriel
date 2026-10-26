@@ -26,15 +26,14 @@
         /// The window is visible (its scene is active): its page in view shows git status.
         var visible = false
         /// The overview is open (D70): its tiles laid out (`overviewTabs`, by page, the latest last), up to a cap,
-        /// stream and draw (`overviewLive`). `leaving` while its tile zooms to the page.
+        /// stream and draw (`overviewLive`); `leaving` while its tile zooms to the page; `tileScale`, the tiles' scale
+        /// of the strip's page (a third before they laid out), for snapshots; `afterOverview` runs after the zoom.
         var overview = false
         var leaving = false
         @ObservationIgnored var overviewTabs: [String: [String]] = [:]
         @ObservationIgnored var overviewSettling: Task<Void, Never>?
         private(set) var overviewLive: Set<String> = []
-        /// The overview's tiles' scale of the strip's page, from their last layout: a third until one laid out.
         @ObservationIgnored var tileScale: CGFloat = 0.35
-        /// What to do once the overview's zoom ends (`afterOverview`).
         @ObservationIgnored var afterOverview: (() -> Void)?
         /// A floating panel (the palette, the shortcuts) is open: its Esc is its own.
         @ObservationIgnored var panelOpen = false
@@ -165,8 +164,7 @@
             }
         }
 
-        /// A workspace in each folder, in the session of the last key window's page in view; the last one is selected
-        /// when it appears.
+        /// A workspace in each folder, in the session of the last key window's page in view; the last one selected.
         static func open(folders urls: [URL]) {
             folders += urls
             windows.first?.openFolders()
