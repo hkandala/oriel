@@ -152,8 +152,7 @@ extension OrielUITests {
                 "\(step): sizes from \(sizes) to \(host.label)",
             )
             // A third shorter than phase 25's 0.2 s (phase 27): its sizes span 0.13 s less a frame here, up to 0.153 s
-            // on
-            // CI's slower frames (0.2 s gave 0.18 here). Zoom and restore only: herdr's answers come during the others.
+            // on CI's slower frames (0.2 s gave 0.18 here). Zoom and restore only: herdr answers during the others.
             if ["zoom", "restore"].contains(step) {
                 XCTAssertLessThan(Self.motion(host).ms, 175, "\(step): \(host.label)")
             }
@@ -247,8 +246,6 @@ extension OrielUITests {
         return (words.first ?? 0, words.dropFirst().first ?? 0)
     }
 
-    /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with
-    /// motion forced on.
     /// The card drew at its size (", loading" until then): one that still attaches resizes the pane after a fill's
     /// lines, and bash redraws its prompt over the last one (CI 40319705774: 59, then the prompt).
     private func drawn(_ pane: String) -> Bool {
@@ -256,6 +253,8 @@ extension OrielUITests {
         return until(5) { card.exists && !card.stringValue.hasSuffix(", loading") }
     }
 
+    /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with
+    /// motion forced on.
     private func expectJump(_ tab: String, _ pane: String) async throws {
         let host = element("host.\(pane)")
         XCTAssertTrue(host.exists(within: 3))
