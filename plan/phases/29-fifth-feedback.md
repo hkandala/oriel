@@ -63,6 +63,35 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
 
 ## Findings
 
+### Lane M
+
+- **Root cause, item 7.** `ChromeStyle` put `.animation(.easeOut(duration: 0.14), value: hovering)` on the whole
+  button. FilterList lights the hovered row, so the update that changed `hovering` also changed `selected`: the old
+  row's accent pill faded out and the new one faded in, with the row's white text, over 0.14 s. The animation now
+  sits on the hover tint alone; the pill moves in the hover's own update. Second cost: the palette passed `lit` on
+  every page, so each new light drew the whole palette (its command list and ~100 rows) again; only a preview page
+  reads it now. Checked and kept: FilterList's `onContinuousHover` writes (a write of an equal value draws nothing).
+- **Root cause, item 8.** Open Session kept its own `@State` list, empty as the panel opened: the first draw had only
+  the open pages (and no New row: the suggested name came after the read), then the sessions and New pushed in above
+  them. It now reads the page store's `sessions` (read as the page connects, `HostStore.loadSessions`), shows them at
+  once and reads them again as it opens; rows change in place (by id). The suggested name is picked in `init` from
+  that list and picked again only when the new read has it. "Per machine" is per page: a window is on one machine.
+- **Tests.** `testPanelsAndSwitchesReactAtOnce`: Open Session's first draw lists the sessions (`-recordLatency`'s
+  `open-session ‹names›` note at `onAppear`; empty before the fix). `testMenuLightFollowsThePointer`: the palette's
+  light follows the pointer too. The fade itself is not visible to a test (the trait flips in the same update either
+  way): it needs the user's eye.
+- **Commits.** b62d0f8 (menu light), 780c6ab (Open Session), 40158b3 (review fixes), 0a7616a (docs).
+- **Reviews.** Spec: the note test read the first open's record (now the last), the palette check cannot see a fade
+  (said so), docs. Ponytail: inline `list()`, a shorter comment. Both applied.
+- **CI.** 40250277596 (the lane's tests on 780c6ab: all green but `testPanelsAndSwitchesReactAtOnce`'s swipe step,
+  lane E's). Full suite 40250869762 on f057423 (has 40158b3): every lane M test green; red in other lanes' areas:
+  `testPanelsAndSwitchesReactAtOnce` and `testQuickSessionFlickLandsOnTheNextPageInStep` (swipe),
+  `testClosingAPageAndQuittingLeaveNoStreams` (no "Detach Session" menu item),
+  `testAddingAKeyHostOpensItInANewWindowWithoutAsking` (two "Key Host" menu items).
+- **For the user to check by hand:** move the pointer quickly down the ⌘K palette, the collapsed sidebar's workspace
+  menu and Open Session: the light jumps row to row, no fade. Hovered buttons elsewhere (tabs, sidebar rows) still
+  fade their tint. Open Session several times: the list is there at once, with no rows pushing in.
+
 ### Lane D
 
 - **Root cause.** No drop target took a tab outside its tab track: `RowsDrop` refused `.tab` on purpose (phase 18,
