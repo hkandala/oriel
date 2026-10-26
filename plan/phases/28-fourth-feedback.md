@@ -169,3 +169,49 @@ the orchestrator says otherwise.
   down and up and swipe between sessions: no tile empty or fading; the title row (lights and × only) and the
   margins against your reference; × and Esc leave with the zoom; `footprint` while open (about 52 MB per
   full-window card on Retina) and back after it closes.
+
+### Lane F (items 5, 6, 7)
+
+- **Item 5, root cause.** `FloatReader.frame(over:)` made a new window 60 % of the main window's height. In the
+  title row, `PaneInfo`'s folder and the place line were both `.secondary` with only the 8 pt stack gap between,
+  so "pi ~/code/oriel" and "hkandala-mbp › oriel › oriel" read as one run. Now 75 % of the height (floor 460 pt;
+  a 560 floor made CI's 674 pt window almost all float), a 1 pt `look.divider` line 12 pt tall (as the
+  collapsed sidebar's workspace button) and the place in `.tertiary` (4bdb56a, c8a256e). A frame AppKit saved
+  for a terminal floated before still wins (autosave per terminal).
+- **Item 6, root cause.** Phase 27 lane F3 made the placeholder the pane's quick info on a card-wide button: the
+  card's header already says the same, so the body read as empty. Now "This pane is open in a floating window."
+  (secondary) and a glass **Show Pane** button, centered (4bdb56a). The button is in the card's middle, which a
+  new float (centered over the main window) covers until the main window comes forward; the tests click the
+  main window first (c8a256e).
+- **Item 7.** `oriel://float?session=…&pane=…[&machine=…]` (9f0caf9, 1316f18): the front main window of the
+  machine floats the pane. A session with no page there gets a float-only page (`WindowPages.floatOnly`): its
+  store connects, no sidebar row, no strip page, never settled (so no selection, and a float never hands its
+  cards the keyboard), not saved; `Page.floating`'s `didSet` drops it with its last float (detach, red light,
+  herdr closed the pane, window closed). Open Session on that session makes it a page with its floats. The
+  lookups the floating window, the registry and `showTerminals` use go over `withFloats`; the overview's
+  every-card streaming (lane V) stays on `list`. Unknown pane, session or machine: a warning notice in the front
+  window. No window at all: one opens and floats it (`early`).
+- **Learned.** SwiftUI swallows a custom-scheme URL when every scene has `handlesExternalEvents(matching: [])`:
+  `application(_:open:)` never ran (CI 40246598046). The app installs its own `kAEGetURL` handler in
+  `applicationWillFinishLaunching` and hands the URL to `application(_:open:)`. `XCUIApplication.open(_:)` on a
+  running app left it "not foreground" for XCUITest after a second URL (CI 40247366831); the tests open the URL
+  with `open -g -a <app>` through the e2e helper (`open-url`), as pi-herd does. SwiftFormat's `andOperator`
+  turned `guard a ? b : c && d` into `guard a ? b : c, d`, which changes its meaning: the overview guard now
+  uses a `tiles` local.
+- **pi-herd** (pi-hkandala d7db340, 32de79e). `attach`: outside a popup, when the frontmost app is Oriel
+  (`lsappinfo info -only bundleid "$(lsappinfo front)"` has `"dev.hkandala.oriel"`; macOS only, never with
+  `SSH_CONNECTION`, asked at click time, about 40 ms), it runs `open -g "oriel://float?session=<socket's
+  session>&pane=<pane>"`, for every agent: also one on the same server (Oriel shows neither herdr's popups nor
+  its focus, D13) and from the `pi-herd` session itself. Else as before. `npm run check` green; `sessionOf` and
+  `orielInFront` checked with node on this Mac.
+- **Reviews.** Ponytail: no blockers; `takeFloatOnly` inlined into `open`, one lookup (`floatPending` holds the
+  page), comments. Spec: shoulds fixed: a second pending URL dropped the first one's page, notifications for a
+  session whose first window has it only float-only, no window (opens one), unknown machine (notice), D50 and the
+  window page, tests for Open Session on a float-only session and for closing the main window, pi-herd's
+  `pi-herd`-session refusal before the Oriel check. Left: one `early` slot (a URL and a notification click at
+  launch: the later wins); a notice shows in every window on the current session.
+- **Tests.** `testFloatingWindowOpensLargeWithTheMainWindowsTitleRow` (75 %, the 17 pt gap of the line, the
+  placeholder's text and its centered Show Pane), `testOrielURLFloatsAPaneOfASessionWithNoPage` (no page, keys
+  reach two's pane, again = the same window, the no-pane and no-session notices, Detach ends two's runs, a page's
+  pane in a workspace not in view), `testOrielURLFloatGoesWithItsWindowAndOpensOne` (closing the main window ends
+  two's runs; a URL with no window opens one; Open Session keeps the float and the connection).
