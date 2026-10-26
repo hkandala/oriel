@@ -224,9 +224,8 @@
         /// (phase 30: a card showed blurred, then sharp): the card shows its fill, and its terminal fades in when it
         /// draws, as a first one.
         func dropSmallStill() {
-            // Only a snapshot's (stretched): a full-size still of a card that grew meanwhile shows its old picture as
-            // it
-            // was, unscaled.
+            // Only a snapshot's (stretched): a full-size still of a card that grew meanwhile shows its old picture
+            // unscaled.
             guard !(superview is MiniTerminal.Mini), let still, still !== layer, still.contentsGravity == .resize,
                   still.small(in: self) else { return }
             still.removeFromSuperlayer()

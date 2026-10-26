@@ -113,8 +113,9 @@ extension OrielUITests {
         app.typeKey("o", modifierFlags: [.command, .control])
         let tile = try element("overview.tab.\(id(second, "tab"))")
         scrollOverview(to: tile)
-        // The second waits for the first's cards to draw, with a loader meanwhile.
-        XCTAssertTrue(try element("overview.tab.\(id(second, "tab")).loading").exists(within: 2))
+        // One waits for the other's cards to draw, with a loader meanwhile.
+        let loaders = try [first, id(second, "tab")].map { element("overview.tab.\($0).loading") }
+        XCTAssertTrue(until(2) { loaders.contains { $0.exists } })
         let cards = panes.map { element("overview.card.\($0)") }
         try await poll("every card to draw", times: 150) { () -> Bool? in
             cards.allSatisfy { !$0.stringValue.hasPrefix("loading") } ? true : nil

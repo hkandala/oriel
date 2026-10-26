@@ -83,9 +83,12 @@
                 inks[key] = ink
                 return ink
             }
+            // A snapshot's still (stretched, as `dropSmallStill` drops), narrower than the card.
+            let still = view.still.flatMap { $0 !== view.layer && $0.superlayer != nil && $0.contentsGravity == .resize
+                ? $0 : nil
+            }
             return Sample(ink: ink, fading: view.layer?.animation(forKey: "reveal") != nil,
-                          small: view.still.map { $0 !== view.layer && $0.superlayer != nil && $0.small(in: view) }
-                              ?? false,
+                          small: still?.small(in: view) == true,
                           topLeft: view.convert(view.bounds, to: nil).integral.topLeft)
         }
 
