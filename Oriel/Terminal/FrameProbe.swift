@@ -11,69 +11,68 @@
     /// size change is no move). Phase 29, lane T. `recorded`: "tab bad/states codes" per change, each card's states
     /// as they changed, the codes of bad ones (`-` gone, `0` no picture, `f` fading, `p` another picture, `j` moved,
     /// with the first move in points).
+    /// Not seen: commits off the main thread or from a flush within a turn, and a card's own SwiftUI opacity (only the
+    /// terminal layer's fade). libghostty sets a new picture on the main thread, so each is a turn's commit.
     @MainActor @Observable
     final class FrameProbe {
         static let shared = FrameProbe()
         static let isOn = UserDefaults.standard.bool(forKey: "recordFrames")
         /// The changes' records, "; " between them.
         private(set) var recorded = ""
-        @ObservationIgnored private var shown = ""
+        /// The page and tab being recorded.
+        @ObservationIgnored private var shown: (page: String, tab: String)?
         @ObservationIgnored private var start = 0.0
-        /// Each card's states of the change being recorded.
-        @ObservationIgnored private var samples: [ObjectIdentifier: [Sample]] = [:]
+        /// Each card's states of the change being recorded; nil while its terminal is in no card's host of the window.
+        @ObservationIgnored private var samples: [ObjectIdentifier: [Sample?]] = [:]
         /// The ink of each picture (surface and seed) seen in this change.
         @ObservationIgnored private var inks: [String: [Bool]?] = [:]
 
         private struct Sample: Equatable {
-            /// In its window, in a card's host.
-            var there = false
             /// Ink per cell of a coarse grid; nil without a picture.
-            var ink: [Bool]?
-            var fading = false
-            var frame = CGRect.zero
+            let ink: [Bool]?
+            let fading: Bool
+            /// In the window (bottom-left based): a held view keeps its top left while its card's size changes.
+            let topLeft: CGPoint
         }
 
         func install() {
-            guard Self.isOn else { return }
-            // After Core Animation's commit (order 2000000), as `Latency` does.
-            let turn = CFRunLoopActivity.beforeWaiting.rawValue | CFRunLoopActivity.exit.rawValue
-            let observer = CFRunLoopObserverCreateWithHandler(nil, turn, true, Int.max) { _, _ in
-                MainActor.assumeIsolated { self.turned() }
+            if Self.isOn {
+                afterCommit { _ in self.turned() }
             }
-            CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
         }
 
         private func turned() {
-            guard let pages = WindowPages.windows.first, let page = pages.current else { return }
+            guard let pages = WindowPages.windows.first, let window = pages.window, let page = pages.current
+            else { return }
             // Its zoom is the overview's; the strip after it is a change, also to the tab shown before.
             guard !pages.overview else {
                 finish()
-                shown = ""
+                shown = nil
                 return
             }
-            let tab = "\(page.id) \(page.selectedTab?.id ?? "")"
+            let tab = (page: page.id, tab: page.selectedTab?.id ?? "")
             let now = ProcessInfo.processInfo.systemUptime
-            if tab != shown {
+            if shown.map({ $0 != tab }) ?? true {
                 finish()
                 shown = tab
                 start = now
+                // Its record ends with a turn after 1.5 s, also in an idle app.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { self.turned() }
             }
             guard now - start < 1.5 else { return finish() }
             let ids = page.store.panes.filter { $0.tabID == page.selectedTab?.id && !page.floats($0) }
                 .compactMap(\.terminalID)
             for terminal in pages.terminals.terminals(Set(ids)) {
-                let sample = sample(terminal.view, in: pages.window), id = ObjectIdentifier(terminal)
-                if samples[id]?.last != sample {
+                let sample = sample(terminal.view, in: window), id = ObjectIdentifier(terminal)
+                if samples[id]?.last != .some(sample) {
                     samples[id, default: []].append(sample)
                 }
             }
         }
 
-        private func sample(_ view: PaneSurfaceView, in window: NSWindow?) -> Sample {
-            guard window != nil, view.window === window, view.superview is TerminalHost.Host else { return Sample() }
-            let still = view.still?.superlayer == nil ? nil : view.still
-            let picture = (still ?? view.layer)?.contents as? IOSurface
-            let ink = picture.flatMap { surface in
+        private func sample(_ view: PaneSurfaceView, in window: NSWindow) -> Sample? {
+            guard view.window === window, view.superview is TerminalHost.Host else { return nil }
+            let ink = (view.picture as? IOSurface).flatMap { surface in
                 let key = "\(ObjectIdentifier(surface)) \(IOSurfaceGetSeed(surface))"
                 if let ink = inks[key] {
                     return ink
@@ -82,45 +81,46 @@
                 inks[key] = ink
                 return ink
             }
-            return Sample(there: true, ink: ink,
-                          fading: view.layer?.animation(forKey: "reveal") != nil,
-                          frame: view.convert(view.bounds, to: nil).integral)
+            return Sample(ink: ink, fading: view.layer?.animation(forKey: "reveal") != nil,
+                          topLeft: view.convert(view.bounds, to: nil).integral.topLeft)
         }
 
         /// The change's record, once.
         private func finish() {
-            guard !samples.isEmpty else { return }
+            guard let shown, !samples.isEmpty else { return }
             var bad = 0, frames = 0, codes = ""
             for list in samples.values {
-                guard let first = list.first, let last = list.last else { continue }
+                guard let first = list.first, let last = list.last ?? nil else { continue }
                 frames = max(frames, list.count)
                 for sample in list {
+                    guard let sample else {
+                        bad += 1
+                        codes += "-"
+                        continue
+                    }
                     let blank = sample.ink.map { !$0.contains(true) && last.ink?.contains(true) == true } ?? true
-                    let code = !sample.there ? "-" : blank ? "0" : sample.fading ? "f"
-                        : !Self.same(sample.ink, first.ink) && !Self.same(sample.ink, last.ink) ? "p"
-                        : sample.frame.origin != last.frame.origin ? "j" : ""
+                    let code = blank ? "0" : sample.fading ? "f"
+                        : !Self.same(sample.ink, first?.ink) && !Self.same(sample.ink, last.ink) ? "p"
+                        : sample.topLeft != last.topLeft ? "j" : ""
                     if !code.isEmpty {
                         bad += 1
                         codes += code
                     }
                     if code == "j", !codes.contains("(") {
-                        let move = [sample.frame.minX - last.frame.minX, sample.frame.minY - last.frame.minY]
-                        codes += "(" + move.map { "\(Int($0))" }.joined(separator: ",") + ")"
+                        codes += "(\(Int(sample.topLeft.x - last.topLeft.x)),\(Int(sample.topLeft.y - last.topLeft.y)))"
                     }
                 }
             }
-            let tab = shown.split(separator: " ").last ?? ""
-            recorded += (recorded.isEmpty ? "" : "; ") + "\(tab) \(bad)/\(frames) \(codes)"
+            recorded += (recorded.isEmpty ? "" : "; ") + "\(shown.tab) \(bad)/\(frames) \(codes)"
             samples = [:]
             inks = [:]
         }
 
         /// Ink in each of 48 × 32 cells: a cell with a pixel of 4 × 4 far from the picture's corner (its
-        /// background). nil for an emptied surface (the system took it back).
+        /// background). nil for an emptied surface.
         private static func ink(_ surface: IOSurface) -> [Bool]? {
-            var state: UInt32 = 0
-            IOSurfaceSetPurgeable(surface, 3, &state)
-            guard state != 2, surface.bytesPerElement == 4, surface.width > 0, surface.height > 0 else { return nil }
+            guard !surface.emptied, surface.bytesPerElement == 4, surface.width > 0,
+                  surface.height > 0 else { return nil }
             surface.lock(options: .readOnly, seed: nil)
             defer { surface.unlock(options: .readOnly, seed: nil) }
             let base = surface.baseAddress.assumingMemoryBound(to: UInt8.self), row = surface.bytesPerRow
@@ -129,11 +129,12 @@
                 return Int(byte[0]) + Int(byte[1]) + Int(byte[2]) + Int(byte[3])
             }
             let background = pixel(1, 1)
-            let width = surface.width, height = surface.height
-            return (0 ..< 32 * 48).map { cell in
-                (0 ..< 16).contains { dot in
-                    let column = ((cell % 48) * 4 + dot % 4) * width / 192
-                    return abs(pixel(column, ((cell / 48) * 4 + dot / 4) * height / 128) - background) > 60
+            let columns = 48, lines = 32, dots = 4, width = surface.width, height = surface.height
+            return (0 ..< columns * lines).map { cell in
+                (0 ..< dots * dots).contains { dot in
+                    let column = ((cell % columns) * dots + dot % dots) * width / (columns * dots)
+                    let line = ((cell / columns) * dots + dot / dots) * height / (lines * dots)
+                    return abs(pixel(column, line) - background) > 60
                 }
             }
         }
@@ -142,6 +143,12 @@
         private static func same(_ one: [Bool]?, _ two: [Bool]?) -> Bool {
             guard let one, let two else { return one == nil && two == nil }
             return zip(one, two).count { $0 != $1 } <= 8
+        }
+    }
+
+    private extension CGRect {
+        var topLeft: CGPoint {
+            CGPoint(x: minX, y: maxY)
         }
     }
 #endif

@@ -1,63 +1,56 @@
 import XCTest
 
-/// A tab coming into view never flickers (phase 29, lane T), read from the app's own record of each display frame.
 extension OrielUITests {
     /// A tab comes into view in every way (phase 29, lane T): from the change on, each of its cards shows its last
-    /// picture, then herdr's screen, and nothing between. The app records each display frame (`-recordFrames`): no
-    /// card gone, blank, fading, with a third picture or moved. Every tab is shown once first: a new card's first
-    /// reveal fades in on purpose.
+    /// picture, then herdr's screen, and nothing between. The app records each commit (`-recordFrames`): no card gone,
+    /// blank, fading, with a third picture or moved. Every tab is shown once first: a new card's first reveal fades in
+    /// on purpose. w1's second tab is a middle one (of three), shown whenever a new strip comes (a workspace, a
+    /// session,
+    /// the overview): an empty strip drew its first page, then jumped there.
     func testATabComesIntoViewWithoutAFlicker() async throws {
         relaunch(one, ["-recordFrames", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        _ = try await newTab("third", in: "w1")
         for pane in ["w1:p1", "w1:p2", "w1:p3", "w1:p4", "w2:p1"] {
             try await fill(pane)
         }
         openPage(two)
-        // Each tab once; keys for the tabs: right after a session change a click went beside the capsule (CI).
-        for (id, panes) in [("sidebar.dot.\(one)", ["w1:p1"]), ("2", ["w1:p4"]), ("workspace.w2", ["w2:p1"]),
-                            ("workspace.w1", ["w1:p4"]), ("1", ["w1:p1", "w1:p2", "w1:p3"])]
+        // Keys for the tabs: right after a session change a click went beside the capsule (CI).
+        for (act, panes) in [(click("sidebar.dot.\(one)"), ["w1:p1"]), (key("2"), ["w1:p4"]),
+                             (click("workspace.w2"), ["w2:p1"]), (click("workspace.w1"), ["w1:p4"]),
+                             (key("1"), ["w1:p1", "w1:p2", "w1:p3"])]
         {
-            if id.count == 1 {
-                app.typeKey(id, modifierFlags: .command)
-            } else {
-                element(id).click()
-            }
-            try await expectText(panes, id)
+            act()
+            try await expectText(panes, "warm-up")
         }
+        // The last change's record is done.
+        try await Task.sleep(for: .seconds(2))
         try await expectNoFlicker()
     }
 
-    /// Each way to show another tab, recorded (`frames`): none may flicker. The second tab is the one shown when a
-    /// new strip comes (a workspace, a session, the overview): an empty strip drew its first page first.
+    /// Each way to show another tab, recorded (`frames`): none may flicker.
     private func expectNoFlicker() async throws {
         var records: [String] = []
-        let click = { (id: String) in { self.element(id).click() } }
-        let key = { (key: String, flags: XCUIElement.KeyModifierFlags) in
-            { self.app.typeKey(key, modifierFlags: flags) }
-        }
+        let option: XCUIElement.KeyModifierFlags = [.command, .option]
         for (name, act) in [
-            ("tab click", click("tab.w1:t2")), ("tab click back", click("tab.w1:t1")), ("tab key", key("2", .command)),
+            ("tab click", click("tab.w1:t2")), ("tab click back", click("tab.w1:t1")), ("tab key", key("2")),
             ("workspace", click("workspace.w2")), ("workspace back", click("workspace.w1")),
             ("session dot", click("sidebar.dot.\(two)")), ("session dot back", click("sidebar.dot.\(one)")),
-            ("next session key", key("]", [.command, .option])), (
-                "previous session key",
-                key("[", [.command, .option]),
-            ),
+            ("next session key", key("]", option)), ("previous session key", key("[", option)),
         ] {
             try await records.append(frames(name, act))
         }
-        let sidebar = element("sidebar"), center = "\(sidebar.frame.midX) \(sidebar.frame.midY)"
+        let sidebar = element("sidebar"), swipe = "\(one)/swipe", center = "\(sidebar.frame.midX) \(sidebar.frame.midY)"
         // Either way, by natural scrolling: a swipe that turns no page records nothing.
         for (name, step) in [("session swipe", -10), ("session swipe back", 10)] {
-            try await records.append(frames(name) { try await Self.post(
-                "\(self.one)/swipe",
-                Data("\(center) \(step) 14".utf8),
-            ) })
+            try await records.append(frames(name, swiped: true) {
+                try await Self.post(swipe, Data("\(center) \(step) 14".utf8))
+            })
         }
-        if header != one {
-            element("sidebar.dot.\(one)").click()
-        }
-        try await records.append(frames("tab key back", key("1", .command)))
+        XCTAssertTrue(records.suffix(2).contains { $0.contains("/") }, "no swipe changed the session: \(records)")
+        element("sidebar.dot.\(one)").click()
+        try await Task.sleep(for: .seconds(2))
+        try await records.append(frames("tab key back", key("1")))
         for name in ["overview zoom into another tab", "overview zoom into the shown tab"] {
             try await records.append(frames(name) {
                 self.app.typeKey("o", modifierFlags: [.command, .control])
@@ -69,10 +62,10 @@ extension OrielUITests {
             })
         }
         // The tab's cards take the new size once shown: their terminals hold their grid and redraw at the new one.
-        for (name, key) in [("tab after the sidebar hid", "1"), ("tab after the sidebar showed", "2")] {
+        for (name, tab) in [("tab after the sidebar hid", "1"), ("tab after the sidebar showed", "2")] {
             element("titlebar.sidebar").click()
             try await Task.sleep(for: .seconds(1))
-            try await records.append(frames(name) { self.app.typeKey(key, modifierFlags: .command) })
+            try await records.append(frames(name, key(tab)))
         }
         let attachment = XCTAttachment(string: records.joined(separator: "\n"))
         attachment.name = "frames"
@@ -82,13 +75,24 @@ extension OrielUITests {
         XCTAssertTrue(flickers.isEmpty, "\(flickers) of \(records)")
     }
 
-    /// The app's frame records (`-recordFrames`) of the changes `act` makes, named.
-    private func frames(_ name: String, _ act: () async throws -> Void) async throws -> String {
+    /// The app's frame record (`-recordFrames`) of the change `act` makes, named: one, or none for a swipe that turned
+    /// no page.
+    private func frames(_ name: String, swiped: Bool = false, _ act: () async throws -> Void) async throws -> String {
         let probe = element("app.frames"), before = probe.stringValue.split(separator: "; ").count
         try await act()
-        // No accessibility query until the record is done: each one holds the app's main thread (up to 240 ms), and
-        // the frames meanwhile go unrecorded.
+        // No accessibility query until the record is done: each one holds the app's main thread (up to 240 ms), which
+        // moves the commits' timing.
         try await Task.sleep(for: .seconds(2))
-        return "\(name): " + probe.stringValue.split(separator: "; ").dropFirst(before).joined(separator: ", ")
+        let new = probe.stringValue.split(separator: "; ").dropFirst(before)
+        XCTAssertTrue(new.count == 1 || swiped && new.isEmpty, "\(name): \(new)")
+        return "\(name): " + new.joined(separator: ", ")
+    }
+
+    private func click(_ id: String) -> () -> Void {
+        { self.element(id).click() }
+    }
+
+    private func key(_ key: String, _ flags: XCUIElement.KeyModifierFlags = .command) -> () -> Void {
+        { self.app.typeKey(key, modifierFlags: flags) }
     }
 }
