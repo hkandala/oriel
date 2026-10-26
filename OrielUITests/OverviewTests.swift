@@ -207,6 +207,10 @@ extension OrielUITests {
             return count > helpers(strip) ? count : nil
         }
         let open = try await measure("overview")
+        // The second tab's tile turns live (its one card is checked again below).
+        let card = element("overview.card.\(panes[3])")
+        scrollOverview(to: element("overview.tab.\(tabs[1])"))
+        XCTAssertTrue(until(5) { card.stringValue.hasPrefix("live") }, card.stringValue)
         // Down to the new workspace's tiles: those in view stream, the ones scrolled away let go. Either way: the
         // sign follows the natural scrolling setting.
         let last = element("overview.tab.\(tabs[5])")
@@ -221,7 +225,6 @@ extension OrielUITests {
         XCTAssertLessThanOrEqual(helpers(scrolled), helpers(strip) + 16 + 2, scrolled)
         // Back up: the second tab's card, live on the way down, shows its snapshot or its terminal at once, never the
         // bare fill.
-        let card = element("overview.card.\(panes[3])")
         scrollOverview(to: element("overview.tab.\(tabs[1])"), step: 3000, steps: 1)
         XCTAssertTrue(card.exists)
         XCTAssertFalse(card.stringValue.hasPrefix("loading"), card.stringValue)

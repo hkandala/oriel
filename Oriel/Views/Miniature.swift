@@ -70,6 +70,8 @@
                             }
                         }
                         .accessibilityElement()
+                        // A group's value does not reach XCUITest; static text's does (as the pane card's).
+                        .accessibilityAddTraits(.isStaticText)
                         .accessibilityIdentifier("overview.card.\(pane.id)")
                         // e2e: and its snapshot's width in pixels.
                         .accessibilityValue("\(view?.pictured != true ? "loading" : isLive ? "live" : "snapshot") "
