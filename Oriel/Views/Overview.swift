@@ -12,6 +12,8 @@
         let leading: CGFloat
         @State private var position = ScrollPosition(idType: String.self)
         @State private var paging = Paging()
+        /// A swipe holds or slides the pages: no tile takes the pointer or turns live meanwhile (phase 31).
+        @State private var sliding = false
         /// Each tile's miniature, in the overview: not observed, so a scroll redraws nothing.
         @State private var frames = Frames()
         /// The tab whose miniature grows to the page, from its tile's frame; `grown` once it moves.
@@ -40,7 +42,9 @@
                 // Wide margins round the grid, as in the user's reference.
                 let side = max(48, proxy.size.width * 0.08)
                 ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
+                    // Not lazy: the next session's page was made in the swipe's first frame (40–60 ms in a few tabs)
+                    // and the last one's dropped after it landed (phase 31). Each page's grid is lazy itself.
+                    HStack(spacing: 0) {
                         ForEach(pages.list) { page in
                             OverviewPage(
                                 pages: pages,
@@ -53,11 +57,15 @@
                             ) {
                                 open(page, $0, $1)
                             }
+                            .equatable()
                             .containerRelativeFrame([.horizontal, .vertical])
                             .accessibilityHidden(page !== pages.current)
                         }
                     }
                     .scrollTargetLayout()
+                    // Nothing under the zoom or a swipe takes the pointer; in the scroll view, which the router finds
+                    // under it for a swipe mid-slide.
+                    .shielded(zoom != nil || sliding)
                     .background(ScrollAnchor(step: step, drag: drag, lift: lift))
                 }
                 // No `.paging`: it snapped a swipe's first move to the next page (phase 31, CI).
@@ -65,9 +73,10 @@
                 .scrollIndicators(.never)
                 .onScrollGeometryChange(for: ScrollGeometry.self, of: { $0 }, action: { paging.laid($1) })
                 .opacity(grown ? 0 : 1)
-                // Nothing under the zoom takes a click.
-                .allowsHitTesting(zoom == nil)
                 .onScrollPhaseChange { _, phase in
+                    if phase == .idle {
+                        rested()
+                    }
                     if phase == .idle, let id = position.viewID(type: String.self), id != pages.current?.id,
                        let page = pages.list.first(where: { $0.id == id })
                     {
@@ -136,16 +145,30 @@
         /// A swipe's moves and lift (`Paging`), or a wheel's step; the window shows the session it lands on as its
         /// page arrives. Not under a panel, which would then act on another page.
         private func drag(_ delta: Double, _: Bool) {
-            if !pages.panelOpen {
-                paging.drag(delta, count: pages.list.count, $position)
+            guard !pages.panelOpen else { return }
+            if !sliding {
+                sliding = true
+                pages.overviewScrolling = true
+                Latency.shared.tiles = 0
             }
+            paging.drag(delta, count: pages.list.count, $position)
         }
 
         private func lift(_ speed: Double) {
             guard !pages.panelOpen else { return }
+            Latency.shared.note("tiles \(Latency.shared.tiles)")
             paging.lift(speed, ids: pages.list.map(\.id), $position, reduceMotion: reduceMotion) { id in
                 pages.list.first { $0.id == id }.map(pages.show)
+                rested()
             }
+        }
+
+        /// The pages came to rest (also after a key or a click moved them mid-slide): the tiles in view settle.
+        private func rested() {
+            guard sliding else { return }
+            sliding = false
+            pages.overviewScrolling = false
+            pages.settleOverview()
         }
 
         private func step(_ offset: Int) {

@@ -2,8 +2,9 @@
     import HerdrKit
     import SwiftUI
 
-    /// One session: its workspaces in the sidebar's order, each its name over a grid of its tabs.
-    struct OverviewPage: View {
+    /// One session: its workspaces in the sidebar's order, each its name over a grid of its tabs. Equatable: a swipe's
+    /// every move redraws the overview's scroll view, which made every tile's body again at each frame (phase 31).
+    struct OverviewPage: View, Equatable {
         let pages: WindowPages
         let page: Page
         /// The strip's page.
@@ -39,6 +40,7 @@
                                         frames: frames,
                                         zooming: zooming == tab.id,
                                     ) { open(workspace, tab) }
+                                        .equatable()
                                 }
                             } header: {
                                 // 32 pt below the rows above, 12 pt above its own.
@@ -54,9 +56,7 @@
                 }
                 .padding(.horizontal, side)
                 .padding(.vertical, 40)
-                // No hover or hit tests in the tiles while it scrolls: SwiftUI looked for the tile under the pointer
-                // at every frame (a tenth of the main thread, phase 30).
-                .allowsHitTesting(!scrolling)
+                .shielded(scrolling)
             }
             .scrollIndicators(.never)
             .onScrollPhaseChange { _, phase in
@@ -68,11 +68,33 @@
             }
             .accessibilityIdentifier("overview.page.\(page.id)")
         }
+
+        /// All but `open`, a closure made anew with the overview's body.
+        nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.pages === rhs.pages && lhs.page === rhs.page && lhs.frames === rhs.frames && lhs.size == rhs.size && lhs
+                .side == rhs.side
+                && lhs.columns == rhs.columns && lhs.zooming == rhs.zooming
+        }
+    }
+
+    extension View {
+        /// No hover or hit test reaches the views under it while `shielding` (a scroll, a slide, the zoom): SwiftUI
+        /// looked for
+        /// the tile under the pointer at every frame (a tenth of the main thread, phase 30). Not `allowsHitTesting`,
+        /// whose change made every tile's body again (phase 31: 30–60 tiles, 20–40 ms at a swipe's start).
+        func shielded(_ shielding: Bool) -> some View {
+            overlay {
+                if shielding {
+                    Color.clear.contentShape(.rect)
+                }
+            }
+        }
     }
 
     /// A tab as one card: its title row (icon stack, title, status; × on hover) over the miniature of its page. The
-    /// selected tab of its workspace has the keyboard card's look.
-    private struct Tile: View {
+    /// selected tab of its workspace has the keyboard card's look. Equatable: the page's body runs again when its grid
+    /// starts or stops scrolling, and the first event of a sideways swipe does that (phase 31: 30–70 tiles, 40 ms).
+    private struct Tile: View, Equatable {
         let pages: WindowPages
         let page: Page
         let workspace: HostStore.Workspace
@@ -86,6 +108,9 @@
         @State private var hovering = false
 
         var body: some View {
+            // e2e: counted (`Latency.tiles`). A bare `_ =` would be a view in the builder.
+            // swiftformat:disable:next redundantLet
+            let _ = Latency.shared.tiles += 1 // swiftlint:disable:this redundant_discardable_let
             let selected = page.selectedTabIDs[workspace.id] == tab.id
             let state = tab.agent?.state
             let loading = !zooming && !pages.pictured(page, pages.tileCards(page, tab.id))
@@ -144,6 +169,12 @@
             .accessibilityValue(selected ? "selected" : "")
             .accessibilityIdentifier("overview.tab.\(tab.id)")
             .accessibilityAction(.default, open)
+        }
+
+        /// All but `open`, a closure made anew with the page's body.
+        nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.pages === rhs.pages && lhs.page === rhs.page && lhs.workspace === rhs.workspace && lhs.tab === rhs.tab
+                && lhs.size == rhs.size && lhs.frames === rhs.frames && lhs.zooming == rhs.zooming
         }
 
         private func laidOut(_ shown: Bool) {

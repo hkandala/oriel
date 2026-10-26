@@ -65,10 +65,11 @@
                     area: area,
                 ))
                 // A dot, a key, a new page or the sheet: slide there with the session spring. A swipe is there already.
+                // Under the overview at once: hidden, it drew both pages for 0.3 s after an overview swipe (phase 31).
                 .onChange(of: pages.list.map(\.id) + [pages.current?.id ?? ""], initial: true) { old, new in
                     guard let index = pages.list.firstIndex(where: { $0 === pages.current }),
                           swipe.slide != Double(index) else { return }
-                    let slides = old.last != new.last && !(reduceMotion && !Animation.forceMotion)
+                    let slides = old.last != new.last && !pages.overview && !(reduceMotion && !Animation.forceMotion)
                     slide(to: index, with: slides ? .session() : nil)
                 }
                 if pages.list.count > 1 {

@@ -183,6 +183,9 @@
         }
 
         @ObservationIgnored private var shownAt = -1
+        /// The overview's tiles made since a swipe's first move: "tiles <count>" at its lift (phase 31: every tile in
+        /// view at each move, 20–40 ms a frame).
+        @ObservationIgnored var tiles = 0
         @ObservationIgnored private var lifted: (TimeInterval, String)?
         @ObservationIgnored private var slide: [(Int, Double)] = []
 
