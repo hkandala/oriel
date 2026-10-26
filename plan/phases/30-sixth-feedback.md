@@ -351,8 +351,16 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   snapshot) and 11 shoulds, all taken (eviction of the waiting still, per-window scale, the last turn, zoomed tabs,
   key view loop and hover card under the overview, the ⌥ swipe, only a snapshot's still dropped, flaky loader check,
   a size check that failed on the old code, docs); verify round clean.
-- **CI.** Ad-hoc 40274766574, 40276311322 (red: the duplicate id and the card values above). Full suite on 1691e6f:
-  see the report.
+- **CI.** Ad-hoc 40274766574, 40276311322 (red: the duplicate id and the card values above), 40289080832 (red: the
+  load test's first layout halved one pane 8 times, cards too small to draw a row at 1x; now 3 × 3 grids),
+  40291217718 (green). Full suites: 40281024114 on 1691e6f (red: the load test over its 2 minutes, one query per card),
+  40285260661, 40289083877 (red: only the load test, see above), and 40291250564 on cb596bf, the lane's last code
+  commit: every lane V test green (all overview, flicker, title-row, sidebar and hover-card tests); red only in
+  other lanes' tests (`testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed`,
+  `testQuickSessionFlickLandsOnTheNextPageInStep`, `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` at its tab
+  swipe, `testAgentGroupsFoldAndStayFoldedAfterARelaunch`).
+- **Known limit.** A card too small to hold a row never draws, so its tile keeps its loader and, while in view, its
+  turn (a tab of eight halvings at 1x); `ponytail`: count such a card as drawn if it shows up in real sessions.
 - **For the user to check by hand:** a big remote session's overview: spinners in tiles that have nothing yet, and
   each tile filling in turn; text sharp when scrolling back (no blur, then sharpen); after a click on a tile the
   sidebar and tab bar fade in with the zoom; scroll the overview fast (smoother; tiles turn live once it stops);
