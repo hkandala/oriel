@@ -25,12 +25,12 @@
                 Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
                     GridRow {
                         label("Name")
-                        TextField("", text: $draft.name).focused($focused).focusSoon($focused).fieldCapsule()
+                        TextField("", text: $draft.name).focused($focused).focusSoon($focused).dialogField()
                             .accessibilityLabel("Name").accessibilityIdentifier("host.name")
                     }
                     GridRow {
                         label("SSH Target")
-                        TextField("", text: $draft.target).fieldCapsule()
+                        TextField("", text: $draft.target).dialogField()
                             .accessibilityLabel("SSH Target").accessibilityIdentifier("host.target")
                     }
                     GridRow {
@@ -62,7 +62,7 @@
         }
 
         private func label(_ text: String) -> some View {
-            Text(text).foregroundStyle(.secondary).gridColumnAlignment(.trailing)
+            Text(text).gridColumnAlignment(.trailing)
         }
 
         private func save(_ target: String) {
@@ -161,7 +161,6 @@
                 Text(hostKey ? Self.facts(question.text) : question.text
                     .trimmingCharacters(in: .whitespacesAndNewlines))
                     .font(hostKey ? .system(size: 12).monospaced() : .system(size: 13))
-                    .foregroundStyle(.secondary)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("ask.text")
@@ -175,7 +174,7 @@
                             .onSubmit { question.answer(answer) }
                             .accessibilityIdentifier("ask.answer")
                     }
-                    .fieldCapsule()
+                    .dialogField()
                 }
                 HStack {
                     Spacer()
@@ -200,6 +199,14 @@
     }
 
     extension View {
+        /// A dialog's field: filled and outlined, so it reads on the glass over light and dark content (the palette's
+        /// soft capsule nearly vanished there, user, phase 29).
+        func dialogField() -> some View {
+            textFieldStyle(.plain).padding(.horizontal, 8).padding(.vertical, 6)
+                .background(.background.opacity(0.6), in: .capsule)
+                .overlay(Capsule().strokeBorder(.primary.opacity(0.2)))
+        }
+
         /// In the middle of the window, in the palette's glass. The window behind takes no clicks: only the dialog's
         /// buttons close it, and Esc is Cancel (not `floatingPanel`: its Esc and outside click close).
         func dialog() -> some View {
