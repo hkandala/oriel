@@ -4,7 +4,7 @@ Goal: pane cards look and act like Rex's (header, buttons, fade, context menu), 
 can be changed by hand: drag, double-click and keys on dividers, balance, focus and move panes with
 keys.
 
-Read first: `resources/research/clients/rex-internals.md` (§3.6, §5.3, §5.4: SuperSplit, fade values, divider debounce; facts only, write your own code), `plan/ui-polish.md`, `plan/ui-layout.md` (drag and drop table: what herdr allows),
+Read first: `resources/research/clients/rex-internals.md` (§3.6, §5.3, §5.4: SuperSplit, fade values, divider debounce; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md` (drag and drop table: what herdr allows),
 `resources/research/clients/rex-ui.md` (panes, dividers, zoom, fade, pane actions),
 `resources/inspirations/rex-app/three-splits.jpg`, `zoomed-pane.jpg`, `docs/content/docs/layout.mdx`,
 `docs/content/docs/ui/window.mdx` (pane card, zoom), `docs/content/docs/talking-to-herdr.mdx` (writes

@@ -6,7 +6,7 @@ like herdr's Spaces panel: a state icon, the name, the git branch with ahead and
 linked worktrees indented under their repository. The footer has the filter and one Open Session
 button, which opens the Open Session sheet. Tabs are no longer sidebar rows.
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (sidebar, Open Session sheet),
+Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md` (sidebar, Open Session sheet),
 `resources/mockups/layout.html` (scenes A, B, F), `resources/research/clients/rex-ui.md` (sidebar),
 `resources/research/herdr/herdr-core.md` (workspace calls, worktrees),
 `docs/content/docs/ui/window.mdx`, `docs/content/docs/ui/swiping.mdx`, `docs/content/docs/layout.mdx`

@@ -4,7 +4,7 @@ Goal: the ⌘K palette becomes Oriel's command center, like Rex's: every command
 sub-pages for choices and names, settings as commands. The menu bar gets Rex's structure and the
 shortcuts in one table.
 
-Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in rex-ui.md, §5.2: palette panel, pages, list height; facts only, write your own code), `plan/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, Open Session sheet),
+Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in rex-ui.md, §5.2: palette panel, pages, list height; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, Open Session sheet),
 `resources/research/clients/rex-ui.md` (command palette, menu tree, default shortcuts),
 `resources/inspirations/rex-app/command-palette.jpg`, decision D48,
 `docs/content/docs/ui/theme-and-accessibility.mdx` (keyboard shortcuts), `Oriel/Views/Palette.swift`,

@@ -352,7 +352,7 @@ Radii: window 12, pane 10, tab container 40 (capsule), tab selection 16.5 (all s
 
 ## 6. Ideas for Oriel (what to copy, how)
 
-Written before the UI polish scope was set: `plan/ui-polish.md` decides what Oriel builds (no compact density, no themes, no tear-off).
+Written before the UI polish scope was set: `plan/archive/ui-polish.md` decides what Oriel builds (no compact density, no themes, no tear-off).
 
 1. **Tab bar geometry**: equal-width tabs, `w = (avail − (n−1)) / n`, max 220 pt, min 64 pt, 1 pt divider gap, horizontal
    scroll with gradient edge fades when below min; optional "fill available space" removes the max. Bar height 46/40 pt

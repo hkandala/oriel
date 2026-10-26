@@ -5,7 +5,7 @@ pages. Windows that show the same session share its live data, keep their own se
 one controller per session (D66): the window where the user last typed or clicked in a terminal
 controls; the other watches and offers Take Back. Windows come back after a relaunch.
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (windows and machines, sidebar: open pages and
+Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md` (windows and machines, sidebar: open pages and
 restore), `resources/mockups/layout.html` (scenes E, I, J), `docs/content/docs/talking-to-herdr.mdx`
 (terminal plane, one controller per pane, control between windows), `docs/content/docs/data.mdx`,
 `docs/content/docs/platform.mdx`, decisions D7, D8, D34, D46, D66, `Oriel/App/OrielApp.swift`,

@@ -1,10 +1,12 @@
 # UI polish: every Rex interface feature, checked against Oriel and herdr
 
+Archived in phase 32, kept as history. The design pages in `docs/content/docs/` describe the app as built.
+
 This file is the scope of phases 10–21. It lists every interface feature of Superlogical's Rex app
 (build 1327, reverse engineered in October 2026) and says, for each one, whether Oriel builds it, in
 which phase, and with which herdr call. It also lists what Oriel leaves out, and why.
 
-The window's layout comes from [ui-layout.md](ui-layout.md), agreed with the user, with the mock-ups in
+The window's layout comes from [ui-layout.md](../ui-layout.md), agreed with the user, with the mock-ups in
 `resources/mockups/layout.html` (scenes A–K). Where this file and ui-layout.md disagree, ui-layout.md wins.
 
 The Rex research is in `resources/research/clients/rex-ui.md` (UI, sizes, timings, materials) and

@@ -5,7 +5,7 @@ button, workspace button (only while the sidebar is collapsed), the tab bar (alw
 with Rex's geometry), a spacer, then ⌘ and +. Phase 15 adds the Agents button before ⌘. The session
 picker stays where it is until phase 14 removes it.
 
-Read first: `resources/research/clients/rex-internals.md` (§3.1, §3.2, §3.4, §5.1: tab bar view, traffic lights, timings; facts only, write your own code), `plan/ui-polish.md`, `plan/ui-layout.md` (title row; windows and machines),
+Read first: `resources/research/clients/rex-internals.md` (§3.1, §3.2, §3.4, §5.1: tab bar view, traffic lights, timings; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md` (title row; windows and machines),
 `resources/mockups/layout.html` (scenes A, C, D, E), `resources/research/clients/rex-ui.md` (tab bar, tab
 item, animation table), `resources/inspirations/rex-app/` (tabs-with-status, three-splits),
 `docs/content/docs/ui/window.mdx`, decisions D42, D45, D65, `Oriel/Views/TitleBar.swift`,

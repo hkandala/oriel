@@ -4,7 +4,7 @@ Goal: Oriel draws in light or dark (or follows the system) and in two interface 
 frosted look) and Classic (an opaque window), with Rex's surface values. Every later phase draws with
 the tokens this phase makes.
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md`, `resources/research/clients/rex-ui.md`
+Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md`, `resources/research/clients/rex-ui.md`
 (interface styles and materials, pane fade), `docs/content/docs/ui/theme-and-accessibility.mdx`,
 decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Frosted`,
 `.preferredColorScheme`), `Oriel/Terminal/PaneTerminal.swift` (the static `TerminalController`).

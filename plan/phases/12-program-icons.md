@@ -5,7 +5,7 @@ tile in tab capsules and Agents rows, a plain glyph in card headers, and overlap
 pane, for a tab with several panes. The sidebar has no tab rows (`plan/ui-layout.md`), so it shows no
 program icons.
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md` (title row, item 5), `resources/mockups/layout.html`
+Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md` (title row, item 5), `resources/mockups/layout.html`
 (scene A, the tab bar), `resources/icons/` (`catalog.json`, `svg/`, `SOURCES.md`,
 `contact-sheet.png`), `resources/research/clients/rex-ui.md` (tab icon, icon stack, how Rex matches
 programs), `docs/content/docs/ui/window.mdx` (tab bar: "the icon of the pane last selected in that

@@ -4,7 +4,7 @@ Goal: the last Rex features that work over herdr (find in a pane, opening links)
 states and notices, the "Controlled in another window" state, the Open Session failures, small launch
 and Dock touches, and a final pass over the whole UI against the Rex references and the mock-ups.
 
-Read first: `resources/research/clients/rex-internals.md` (§3.6 find bar, §3.8 notices; facts only, write your own code), `plan/ui-polish.md`, `plan/ui-layout.md`, `resources/research/clients/rex-ui.md` (find
+Read first: `resources/research/clients/rex-internals.md` (§3.6 find bar, §3.8 notices; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md`, `resources/research/clients/rex-ui.md` (find
 bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/states.mdx`,
 `docs/content/docs/talking-to-herdr.mdx` (scrolling, queries and links; `pane.read`),
 `Oriel/App/OrielApp.swift` (`Detail`, notice).

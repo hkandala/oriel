@@ -1,180 +1,94 @@
-# Oriel v0 plan
+# Oriel plan
 
-**Status: v0 is done** (phases 1–6 merged): the v0 subset of build-order step 1, This Mac only. See the root
-`README.md` for how to build, run and test.
+This folder holds how Oriel is built: the working rules, the phase files with their findings, and the CI
+notes. The design of the app lives in `docs/content/docs/` and wins on any conflict. The root `README.md`
+says how to build, run and test.
 
-Deferred past v0 (in the design, not built): remote machines over SSH, the iOS app (the target only builds and
-shows an empty state), plugins and plugin cards, the chat view, floating panes, notifications, the Dock badge,
-the Agents view, pills and agent rows in the sidebar, Start an agent, the "seen" state for finished agents,
-drag and drop (with swapping and moving panes), divider drag, keyboard resize, equal splits and divider
-double-click, renaming and reordering tabs and workspaces, more machines in the sidebar ("Add Remote Host" is
-a placeholder), a text size setting, IME composition tests, and trackpad gestures in e2e (checked by hand).
+## Status
 
-**Next: UI polish (phases 10–21)**, see [UI polish](#ui-polish-phases-1021) below.
+Phases 1–31 are done. Phase 32, a review of the whole repository and a cleanup, runs now
+([phases/32-final-review.md](phases/32-final-review.md)).
 
-The working plan for the first app code. The design lives in `docs/content/docs/` and wins
-on any conflict, except where this file narrows the scope for v0, and except `plan/ui-layout.md`, which
-wins for phases 10–21 until the pages match it.
+The app shows the herdr sessions of This Mac and of remote machines over SSH, in one or more windows: a
+sidebar with one page per open session, a tab bar in the title row, a strip of live terminal cards per
+tab, the Agents view, the overview of all tabs, floating panes, drag and drop, find, the command palette,
+notifications and the Dock badge. The iOS target only builds and shows an empty state. What is not built
+yet is in [Future work](../docs/content/docs/future-work.mdx).
 
-## The request (from the user, structured)
+## Files
 
-Build the first, very basic version of the Oriel app:
-
-1. **Scaffold.** A standard Xcode project (created the way Xcode creates it), one
-   multiplatform SwiftUI app target. macOS is the real target. iOS is boilerplate only: it
-   builds, launches and shows an empty state. No iOS backend, no simulator work in v0.
-2. **Terminal panes with libghostty.** Use the official `Lakr233/libghostty-spm`
-   (`GhosttyTerminal`). Switch to uHerdr's patched build only if tests show double replies
-   to terminal queries.
-3. **Interface like herdr.** Sidebar, tabs, panes, horizontal and vertical splits, laid out
-   exactly as herdr lays them out (its split tree and ratios).
-4. **First backend: herdr on This Mac.** Follow the design
-   ([talking-to-herdr](../docs/content/docs/talking-to-herdr.mdx)): `remote-api-bridge` per
-   call, one `events.subscribe` stream, paced `session.snapshot` reads, and
-   `herdr terminal session control` per visible pane.
-5. **Live panes.** As soon as the app opens, the selected tab's panes attach and fit their
-   card (cols × rows from the card size). Typing, clicks, Nerd Font glyphs and scrolling
-   work.
-6. **Horizontal scrolling across tabs.** One tab = one page in a horizontal strip. A
-   sideways trackpad swipe pages between tabs.
-7. **Session picker.** The sidebar lets the user pick a herdr session
-   (`herdr session list`). Default: `default`.
-8. **Liquid Glass**, dark theme, and the look of the reference screenshots in
-   `resources/inspirations/ui-target/` (frosted window, glass sidebar with filter, session
-   picker with filter, title-bar tabs, frosted pane cards). See phase 3b.
-9. **Clear modules**, easy to extend later (machines, iOS, plugins come after v0).
-10. **Ponytail, strictly.** The simplest thing that works. No speculative code.
-11. **End-to-end tests first.** The app must be testable end to end, by agents too: launch
-    it, see the GUI, drive it, fix what breaks. Unit tests only where logic is non-trivial.
-12. **CI.** GitHub Actions runs lint, builds and the e2e suite.
-13. **Lint and format** on every commit (pre-commit hook) and in CI.
-14. **Small atomic commits**, pushed regularly.
-15. **`AGENTS.md`**, concise. Anything a tool can check goes in a tool, not in prose.
-
-## Confirmed decisions
-
-| Topic | Decision |
+| File | What it holds |
 |---|---|
-| Transport | The design: `herdr --session S remote-api-bridge` (one call per request, 10 s timeout), events on one long-lived bridge run, terminals via `herdr --session S terminal session control <terminal_id>` |
-| Scope | This Mac only. Read the layout, show it live, type, click, scroll, resize to fit, swipe tabs, pick a session. No divider drag, drag and drop, close/split UI, plugins, chat, floating panes, zoom, remote machines, notifications. Widened by phase 4b: close, split and zoom buttons, new tab/workspace/session, the ⌘K palette |
-| iOS | Boilerplate: the same target builds for iOS and shows an empty state |
-| Terminal | Official `libghostty-spm`, exact pin |
-| Project | A committed `Oriel.xcodeproj` in Xcode's own format (file-system synchronized groups), plus a local Swift package `HerdrKit` |
-| Lint / format | SwiftFormat (formatting) + SwiftLint (lint), the most common pair in the Swift community |
-| CI | GitHub Actions, `runs-on: xcode-27`. Repo is public |
-| herdr safety | Existing sessions: read only. Every write goes to throwaway sessions named `oriel-e2e-*` / `oriel-dev-*`, cleaned up afterwards |
-| Bundle id | `dev.hkandala.oriel`, signed to run locally, no team. App Sandbox off, Hardened Runtime on |
-| Minimum OS | macOS 26, iOS 26 |
+| [rules.md](rules.md) | Commits, the Makefile, DerivedData, the GUI lock, herdr safety |
+| [standards.md](standards.md) | The coding rules that tools cannot check |
+| [workflow.md](workflow.md) | How a change of several phases runs with agents, from plan to report |
+| [execution.md](execution.md) | Inside a phase: the GUI budget, speed rules, the phase loop, review briefs, metrics, the progress log |
+| [ci.md](ci.md) | The CI layout, how to keep it green, its speed and its flakes |
+| [ui-layout.md](ui-layout.md) | A short map of the main window as built, with links to the design pages |
+| [phases/](phases/) | One file per phase: its goal, its build list and its Findings |
+| [metrics/](metrics/) | Per-phase numbers for phases 10–23 and the final review (`resources/metrics/dashboard.html`) |
+| [archive/](archive/) | The v0 plan and request ([v0-plan.md](archive/v0-plan.md)), the UI polish scope ([ui-polish.md](archive/ui-polish.md)), the phases 10–23 run notes ([execution-10-23.md](archive/execution-10-23.md)) |
 
 ## Modules
 
 ```
 Oriel.xcodeproj
 Oriel/                     the app target (SwiftUI, macOS + iOS)
-  App/                     @main, scenes, launch arguments
-  Store/                   HostStore: the live @Observable model of one herdr session; Page and
-                           WindowPages: a window's pages and their selection
-  Terminal/                libghostty glue, TerminalStream wiring, PaneViewRegistry
-  Views/                   FilterList, OpenSession, Palette, Sidebar, Strip, Style, TabBar, TitleBar
-OrielUITests/              XCUITest end-to-end suite (macOS)
-Packages/HerdrKit/         Swift package, no UI: Exec, ProcessExec, HerdrClient (call,
-                           events, pacing), lenient models, split-tree rebuild,
-                           TerminalStream (control NDJSON). Tests: `swift test`
-scripts/                   e2e session setup/teardown, helpers
+  App/                     @main, scenes, the menu commands and the palette's command list, the app delegate
+  Store/                   HostStore (the live model of one herdr session) and its writes; Page and
+                           WindowPages (a window's pages and selection); machines and presence
+  Terminal/                libghostty glue: PaneTerminal (one pane's stream), PaneSurfaceView (keys, mouse,
+                           scroll), PaneViewRegistry (which terminals stream), links and file drops
+  Views/                   title row, tab bar, sidebar, Agents view, strip and cards, overview, floating
+                           panes, palette, Open Session, find bar, drag and drop, swipes, the Look tokens
+OrielUITests/              the XCUITest end-to-end suite (macOS)
+Packages/HerdrKit/         Swift package, no UI: Exec (ProcessExec, SSHExec, Relay), HerdrClient (calls,
+                           events, paced snapshots), lenient models, split tree, TerminalStream, git
+                           status, program icons, starting a server. Tests: `swift test`
+scripts/                   throwaway herdr sessions, the e2e helper, CI's sshd, shards and test times
 ```
 
-`HerdrKit` knows nothing about SwiftUI or libghostty. The app knows nothing about argv or
-JSON. That seam is where remote machines and iOS plug in later.
+`HerdrKit` knows nothing about SwiftUI or libghostty. The app knows nothing about herdr's argv or JSON.
 
 ## Phases
 
 | # | Phase | File |
 |---|---|---|
-| 1 | Scaffold, tooling, CI, e2e harness | [phases/01-scaffold.md](phases/01-scaffold.md) |
-| 2 | HerdrKit control plane | [phases/02-herdrkit.md](phases/02-herdrkit.md) |
-| 3 | App shell: sidebar, tabs, strip, splits | [phases/03-app-shell.md](phases/03-app-shell.md) |
-| 3b | UI style: match the reference look | [phases/03b-ui-style.md](phases/03b-ui-style.md) |
-| 4 | Live terminals | [phases/04-terminals.md](phases/04-terminals.md) |
-| 4b | Actions: close, zoom, new tab/workspace/session, palette | [phases/04b-actions.md](phases/04b-actions.md) |
-| 5 | Swipe across tabs, tab pills, chrome polish | [phases/05-strip-and-glass.md](phases/05-strip-and-glass.md) |
-| 6 | Hardening and v0 wrap-up | [phases/06-hardening.md](phases/06-hardening.md) |
+| 1 | Scaffold, tooling, CI, e2e harness | [01-scaffold.md](phases/01-scaffold.md) |
+| 2 | HerdrKit control plane | [02-herdrkit.md](phases/02-herdrkit.md) |
+| 3 | App shell: sidebar, tabs, strip, splits | [03-app-shell.md](phases/03-app-shell.md) |
+| 3b | UI style: match the reference look | [03b-ui-style.md](phases/03b-ui-style.md) |
+| 4 | Live terminals | [04-terminals.md](phases/04-terminals.md) |
+| 4b | Actions: close, zoom, new tab, workspace and session, palette | [04b-actions.md](phases/04b-actions.md) |
+| 5 | Swipe across tabs, tab pills, chrome polish | [05-strip-and-glass.md](phases/05-strip-and-glass.md) |
+| 6 | Hardening and v0 wrap-up | [06-hardening.md](phases/06-hardening.md) |
+| 7 | Rename Herdlight to Oriel | [07-rename.md](phases/07-rename.md) |
+| 8 | Design refresh | [08-design-refresh.md](phases/08-design-refresh.md) |
+| 9 | Simplify the design: same features, simpler mechanisms | [09-simplify.md](phases/09-simplify.md) |
+| 10 | Appearance (Auto, Light, Dark) and interface style (Glass, Classic) | [10-appearance.md](phases/10-appearance.md) |
+| 11 | Font size and menus | [11-settings.md](phases/11-settings.md) |
+| 12 | Program icons | [12-program-icons.md](phases/12-program-icons.md) |
+| 13 | Title row, tab bar and menus | [13-title-row.md](phases/13-title-row.md) |
+| 14 | Sidebar: session pages, workspace rows, Open Session | [14-sidebar.md](phases/14-sidebar.md) |
+| 15 | Agents, notifications and the Dock | [15-agents.md](phases/15-agents.md) |
+| 16 | Several windows and per-session control | [16-windows.md](phases/16-windows.md) |
+| 17 | Pane cards and layout | [17-panes-and-layout.md](phases/17-panes-and-layout.md) |
+| 18 | Drag and drop | [18-drag-and-drop.md](phases/18-drag-and-drop.md) |
+| 19 | Hover card and tooltips | [19-hover-card.md](phases/19-hover-card.md) |
+| 20 | Command palette and the key map | [20-palette-and-keys.md](phases/20-palette-and-keys.md) |
+| 21 | Find, links, states and finish | [21-find-and-finish.md](phases/21-find-and-finish.md) |
+| 22 | Visual match with Rex | [22-visual-match.md](phases/22-visual-match.md) |
+| 23 | Comment pass | [23-comments.md](phases/23-comments.md) |
+| 24 | Fixes from the user's first hands-on use | [24-feedback-fixes.md](phases/24-feedback-fixes.md) |
+| 25 | Second feedback: keys, agents, sessions, floating panes, speed | [25-second-feedback.md](phases/25-second-feedback.md) |
+| 26 | Remote hosts, first prototype | [26-remote-hosts.md](phases/26-remote-hosts.md) |
+| 27 | Third feedback: live surfaces, the overview | [27-third-feedback.md](phases/27-third-feedback.md) |
+| 28 | Fourth feedback: empty sessions, overview, floats, remote hosts | [28-fourth-feedback.md](phases/28-fourth-feedback.md) |
+| 29 | Fifth feedback: tab drags, menus, scale, selection colors | [29-fifth-feedback.md](phases/29-fifth-feedback.md) |
+| 30 | Sixth feedback: many tabs, two windows, three-finger swipes | [30-sixth-feedback.md](phases/30-sixth-feedback.md) |
+| 31 | Seventh feedback: selection in view, gestures, float requests, CI | [31-seventh-feedback.md](phases/31-seventh-feedback.md) |
+| 32 | Final review of the whole repository and cleanup | [32-final-review.md](phases/32-final-review.md) |
 
-Rules for working: [rules.md](rules.md). Coding standards: [standards.md](standards.md).
-
-## UI polish (phases 10–21)
-
-The request (from the user, structured): give Oriel every interface feature that Superlogical's Rex
-app has and that works with herdr, built now even where the design put it in a later step, in the
-window layout the user agreed in [ui-layout.md](ui-layout.md) (mock-ups: `resources/mockups/layout.html`,
-scenes A–K). Rex was reverse engineered for this (`resources/research/clients/rex-ui.md`,
-`rex-server.md`, screenshots in `resources/inspirations/rex-app/`). In short:
-
-1. Rex's look and behavior for the tab bar, pane cards, dividers, palette and states, with Rex's sizes
-   and timings.
-2. The agreed layout: a machine (This Mac now) per window and several windows; one title row with the
-   sidebar toggle, the machine button, the workspace button (sidebar collapsed only), the tab bar
-   always in the title row, and the Agents button; a sidebar with one Arc-style page per session open
-   in the window, listing workspaces like herdr (state, git branch, ahead and behind, worktrees); the
-   Open Session sheet to create, start or open a session.
-3. Light and dark (and Auto), and two interface styles: Glass and Classic. No other themes, no
-   compact density.
-4. Program icons from our own SVG set (`resources/icons/`, open licenses), overlapping per pane in
-   each tab, with status badges.
-5. Agents: working dots, needs-you and finished badges, workspace state icons, the needs-you popover,
-   the session-scoped Agents view, notifications, the Dock badge.
-6. Several windows with per-session control: the window with the last terminal input controls, the
-   other watches with Take Back.
-7. The hover card (peek), keycap hints, tooltips with keys.
-8. Pane resizing, balancing, moving with keys, context menus, drag and drop within what herdr allows.
-9. A few basic settings, in the menu bar for now; the Settings window comes after its mock-ups.
-10. No explanatory text in the UI beyond what ui-layout.md lists.
-11. Rex as a multiplexer is **not** built: it is future work (`docs/content/docs/rex-backend.mdx`).
-    No tab tear-off.
-
-The full list of what is built and what is left out, feature by feature, is
-[ui-polish.md](ui-polish.md). Each phase updates the design pages it changes.
-
-| # | Phase | File |
-|---|---|---|
-| 10 | Appearance (Auto, Light, Dark) and interface style (Glass, Classic) | [phases/10-appearance.md](phases/10-appearance.md) |
-| 11 | Font size and menus | [phases/11-settings.md](phases/11-settings.md) |
-| 12 | Program icons | [phases/12-program-icons.md](phases/12-program-icons.md) |
-| 13 | Title row, tab bar and menus | [phases/13-title-row.md](phases/13-title-row.md) |
-| 14 | Sidebar: session pages, workspace rows and the Open Session sheet | [phases/14-sidebar.md](phases/14-sidebar.md) |
-| 15 | Agents, notifications and the Dock | [phases/15-agents.md](phases/15-agents.md) |
-| 16 | Several windows and per-session control | [phases/16-windows.md](phases/16-windows.md) |
-| 17 | Pane cards and layout | [phases/17-panes-and-layout.md](phases/17-panes-and-layout.md) |
-| 18 | Drag and drop | [phases/18-drag-and-drop.md](phases/18-drag-and-drop.md) |
-| 19 | Hover card and tooltips | [phases/19-hover-card.md](phases/19-hover-card.md) |
-| 20 | Command palette and the key map | [phases/20-palette-and-keys.md](phases/20-palette-and-keys.md) |
-| 21 | Find, links, states and finish | [phases/21-find-and-finish.md](phases/21-find-and-finish.md) |
-| 22 | Visual match with Rex | [phases/22-visual-match.md](phases/22-visual-match.md) |
-| 23 | Comment pass | [phases/23-comments.md](phases/23-comments.md) |
-
-The phases run in this order, one implementer at a time ([rules.md](rules.md)); each builds on the
-tokens and views of the ones before.
-
-The orchestrator starts each phase with the brief in
-[execution.md](execution.md#phase-agent-brief-the-orchestrator-sends-this).
-
-## Known risks (check early)
-
-- **Key encoding.** herdr frames carry none of the inner app's modes (application cursor
-  keys, kitty keyboard, bracketed paste). libghostty encodes keys from its own state, which
-  may be wrong. herdr-web solved it by sending special keys as herdr logical keys
-  (`pane.send_keys`). Phase 4 tests arrows in `less`/`vim` and Shift+Enter, and picks the
-  simplest path that works.
-- **Session resolution for `terminal session`.** herdr-web had to set `HERDR_SOCKET_PATH`;
-  the design uses `--session S`. Phase 2 checks which one herdr 0.9.3 honors.
-- **Scroll routing.** Terminal views eat scroll events; horizontal swipes must page the
-  strip (design: one `NSEvent` monitor with an axis lock). Phase 5.
-- **XCUITest drives the real mouse and keyboard** on this Mac. Local e2e runs interrupt
-  the user; keep them short and scoped.
-
-## References
-
-- herdr-web (`~/code/herdr-web`, the user's working web client): stream handling, input,
-  mouse and sizing notes in its README and `server/terminal-stream.ts`, `src/lib/keys.ts`.
-- `resources/research/herdr/herdr-core.md`, `resources/research/clients/macos-clients.md`,
-  `resources/research/clients/gorex.md` (tab bar behavior).
-- libghostty-spm README and its `Example/GhosttyTerminalApp/`.
+Phases 1–6 built v0 (This Mac only). Phases 10–23 were the UI polish, run by [execution.md](execution.md).
+Phases 24–31 came from the user's hands-on rounds, each in parallel lanes. Each phase file's Findings say
+what the phase changed and why.

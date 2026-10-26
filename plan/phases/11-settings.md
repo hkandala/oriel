@@ -4,7 +4,7 @@ Goal: the text size setting in the menu bar, applied live to every terminal, and
 `ui/settings.mdx`. No Settings window: the user dropped it during this phase; it comes after its
 mock-ups, once phases 10–21 are done (D62, future work).
 
-Read first: `plan/ui-polish.md`, `plan/ui-layout.md`, `docs/content/docs/data.mdx` (per-device settings
+Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md`, `docs/content/docs/data.mdx` (per-device settings
 live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text size),
 `docs/content/docs/ui/settings.mdx`, decision D62, `Oriel/Terminal/PaneTerminal.swift`,
 `Oriel/Terminal/PaneSurfaceView.swift` (Option key mapping, `ponytail:` note).
