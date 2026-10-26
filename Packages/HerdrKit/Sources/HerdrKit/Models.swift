@@ -214,7 +214,7 @@ public struct Program: Equatable, Sendable {
     /// Only the pane's shell runs.
     public let isShell: Bool
 
-    public init(name: String, argv0: String? = nil, script: String? = nil, isShell: Bool = false) {
+    init(name: String, argv0: String? = nil, script: String? = nil, isShell: Bool = false) {
         self.name = name
         self.argv0 = argv0
         self.script = script
@@ -224,7 +224,8 @@ public struct Program: Equatable, Sendable {
     /// The name people know it by: a Node CLI's script name (`gemini`), else the process name.
     public var title: String {
         guard let script, ["node", "bun"].contains(name) else { return name }
-        return URL(filePath: script).lastPathComponent
+        // Not `URL(filePath:)`: for a relative path it reads the working folder (`ProgramIcon`'s note).
+        return script.split(separator: "/").last.map(String.init) ?? name
     }
 }
 

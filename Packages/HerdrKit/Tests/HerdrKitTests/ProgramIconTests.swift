@@ -1,5 +1,5 @@
 import Foundation
-import HerdrKit
+@testable import HerdrKit
 import Testing
 
 private let catalog: [ProgramIcon] = {
