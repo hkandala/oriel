@@ -468,3 +468,8 @@ Tab paging is good now (G #1).
   right after a swipe opens it. Click a tile: the sidebar, the tab bar and its pill fade in together, quickly, with the
   zoom; no separate pill fade.
 - **Commits.** 5cd1ae9, e4982ce, 39915d5, 867a057, bb95dbc (docs) and these Findings.
+- **CI.** Ad-hoc 40330062174 on 39915d5 (the overview, swipe and capsule tests, then with the separate test): green;
+  the overview's slide on CI's VM a frame every 16–17 ms to the page (1024 pt in 284–304 ms). Push run 40332987968
+  on bb95dbc: cancelled by a later push, shard 0 red only in `testQuickSessionFlickLandsOnTheNextPageInStep` (the
+  sidebar's flick, 22 vs 20.5 ± 1 pt; integration's flake list). Full suite 40336170747 on 95663e5 (has 867a057, the
+  lane's last code commit): green, all five shards.
