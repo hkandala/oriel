@@ -62,3 +62,16 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   last code commit; one review round per lane (spec and ponytail, read only).
 
 ## Findings
+
+## More from the user (2026-10-25 17:35)
+
+- (Lane R) The glass dialogs have poor contrast (`.build/fb/remote-glass.png`): grey text on grey glass, the
+  answer field nearly invisible. Same for Add Remote Host. The user also could not find how to list and
+  open a remote machine's other sessions: Open Session in a remote window must list that machine's
+  sessions.
+- (Lane V, replaces phase 28 item 3) A stress test with hundreds of agents on a remote server made the
+  overview very laggy, so keeping every tile live does not scale. Only tiles in or near view are live
+  (hard cap, lower for remote machines); every other tile shows a cached, downscaled snapshot (memory-
+  bounded cache) so it appears at once and turns live in place; never-seen tiles show herdr's text drawn
+  small or a quiet placeholder, never a fade. A stress harness with 100–200 panes measures scroll frame
+  rate, CPU and memory. Target: 60 fps scrolling at 200 tabs, memory bounded regardless of tab count.
