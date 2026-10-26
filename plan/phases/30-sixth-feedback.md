@@ -454,7 +454,7 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   overview snapshot and the stills (`takeSnapshot` and `keepPicture` under 5 % of the switch), the strip made new per
   page (with the actions gone, a new strip of 3–4 cards costs about 100 ms in Release, the same in a small session).
 - **Fix** (3682e6b, 4a7c5a0). The card's actions keep Move Pane to Tab ▸ New Tab and New Workspace only
-  (`CommandList.pane(tabs: false)`, the parameter lane 11 added for the menu bar). VO-Shift-M on the card opens its
+  (`CommandList.pane(tabs: false)`, the parameter 127bf21 added for the menu bar). VO-Shift-M on the card opens its
   menu, built when it opens, with every tab; the palette lists them too. Numbers, CI Debug, XCUITest attached:
 
   | | Before | After |
@@ -485,6 +485,11 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   this gap measured and written down. Not taken: an `.id` on the tab bar per page (spec nit: its scroll offset could
   carry over between sessions that select the same tab id; nothing in the capture shows it).
 - **Docs.** theme-and-accessibility.mdx: the card's VoiceOver actions and VO-Shift-M.
+- **CI.** Full suite 40283556151 on d37d32c (the lane's last code commit): lint-build and shards 0, 1, 3 green (the
+  new test 47 s, every other swipe and flicker test green). Shard 2 red in `testOverviewLoadsEveryTileInTurn`
+  (lane V's) and `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed` at its bound (show 80 ms after the
+  settle, the bound < 80; this lane changed neither the slide nor its show). That test, the flick test and the new
+  one green in 40287100030 on the same code.
 - **For the user to check by hand:** swipe into swebench-autopilot and back a few times: the tab bar and strip now
   follow the sidebar by about a tenth of a second instead of half a second. ⌘K ▸ Move Pane to Tab and the card's
   right-click menu still list every tab. With VoiceOver, VO-Shift-M on a card opens that menu.
