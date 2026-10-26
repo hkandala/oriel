@@ -84,7 +84,14 @@ struct Notice {
                     .allowsHitTesting(!reconnecting)
                     .overlay {
                         if reconnecting {
-                            Waiting(text: "Reconnecting to \(machine)").accessibilityIdentifier("detail.reconnecting")
+                            VStack(spacing: gap) {
+                                Waiting(text: "Reconnecting to \(machine)")
+                                    .accessibilityIdentifier("detail.reconnecting")
+                                // Why, when it says (a remote with no Perl fails every try).
+                                if case let .failed(.failed(why)) = store.state {
+                                    Text(why).foregroundStyle(.secondary).accessibilityIdentifier("detail.text")
+                                }
+                            }
                         }
                     }
                     .overlay(alignment: .bottom) { notices(store) }
