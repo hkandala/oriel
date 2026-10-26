@@ -234,7 +234,8 @@ extension OrielUITests {
         // The strip's kept terminals, at most 16 cards, and a run or two ending.
         XCTAssertLessThanOrEqual(most, helpers(strip) + 16 + 2, "\(most) runs")
         XCTAssertGreaterThan(Int(end.split(separator: " ").last ?? "") ?? 0, 8, end)
-        XCTAssertLessThan(footprint(scrolled), footprint(open) + 300, scrolled)
+        // Bounded by the live cap, whatever the tab count: 16 full-window cards are about 1.1 GB on Retina.
+        XCTAssertLessThan(footprint(scrolled), footprint(strip) + 1600, scrolled)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
     }
