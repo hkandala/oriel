@@ -212,7 +212,8 @@
             let gone = self.alive.subtracting(alive)
             self.alive = alive
             let closed = usedTerminals.last.map(gone.contains) ?? false
-            usedTerminals.removeAll(where: gone.contains)
+            // A set, which skips an equal value; an in-place edit notified at each snapshot, redrawing the window.
+            usedTerminals = usedTerminals.filter { !gone.contains($0) }
             if closed || selectedTab?.id != keyboardTabID {
                 focusKeyboardCard()
             }
