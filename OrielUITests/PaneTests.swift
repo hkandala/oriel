@@ -15,7 +15,7 @@ extension OrielUITests {
         // ⌥⌘= through its menu item: a global hotkey on this Mac takes the key before the app sees it.
         pick("Pane", "Balance Splits")
         try await expectWidths(tab, [first: 1 / 3, second: 1 / 3, third: 1 / 3])
-        expectValue(divider, "33%")
+        XCTAssertTrue(divider.has(\.stringValue, "33%", within: 3), divider.stringValue)
 
         // The row less the page's two edges and the root's gap.
         let total = element("page.\(tab)").frame.width - 3 * 8
@@ -23,11 +23,11 @@ extension OrielUITests {
         center.hover()
         keepScreenshot("three panes, grip")
         center.click(forDuration: 0.2, thenDragTo: center.withOffset(CGVector(dx: total * 0.15, dy: 0)))
-        try await expectRatio(tab, at: [], 1 / 3 + 0.15)
+        try await expectRatio(tab, 1 / 3 + 0.15)
 
         divider.doubleClick()
-        try await expectRatio(tab, at: [], 0.5)
-        expectValue(divider, "50%")
+        try await expectRatio(tab, 0.5)
+        XCTAssertTrue(divider.has(\.stringValue, "50%", within: 3), divider.stringValue)
     }
 
     func testSplitRightTwiceGivesThirds() async throws {
@@ -69,7 +69,7 @@ extension OrielUITests {
         // Resize Pane has no key (phase 25): ⌃⌘→ resizes nothing.
         app.typeKey(.rightArrow, modifierFlags: [.command, .control])
         pick("Pane", "Resize Pane Right")
-        try await expectRatio(tab, at: [], 0.55)
+        try await expectRatio(tab, 0.55)
 
         // ⌥⇧⌘→ through its menu item: global hotkeys of other apps take ⌥⇧ chords.
         pick("Pane", "Move Pane Right")
@@ -193,7 +193,7 @@ extension OrielUITests {
 
     /// ⌥⌘ arrows pick from the layout, at once, as Ghostty does (phase 29, the user's layout): three columns, the third
     /// in four rows. Of the cards along the edge, the one used last, else the one sharing most of it, the top one on a
-    /// tie (herdr's `pane.neighbor` gave the second row).
+    /// tie.
     func testSelectPaneKeysPickTheLastUsedElseTheTopNeighbor() async throws {
         let (tab, first) = try await newTab("arrows")
         let second = try await split(first)
@@ -357,21 +357,9 @@ extension OrielUITests {
         }
     }
 
-    /// The ratio of the split at `path` (`false` = first child), within 0.02.
-    func expectRatio(_ tab: String, at path: [Bool], _ ratio: Double) async throws {
-        try await expect("ratio \(ratio)") {
-            var node = try await root(tab)
-            for step in path {
-                node = node[step ? "second" : "first"] as? [String: Any] ?? [:]
-            }
-            return abs((node["ratio"] as? Double ?? -1) - ratio) <= 0.02
-        }
-    }
-
-    /// Waits up to 3 s for the element's accessibility value to be one of these.
-    func expectValue(_ element: XCUIElement, _ values: String...) {
-        XCTAssertTrue(until(3) { values.contains(element.stringValue) },
-                      "\(element.identifier) has \(element.value ?? "no value"), not \(values)")
+    /// The ratio of the tab's root split, within 0.02.
+    func expectRatio(_ tab: String, _ ratio: Double) async throws {
+        try await expect("ratio \(ratio)") { try await abs((root(tab)["ratio"] as? Double ?? -1) - ratio) <= 0.02 }
     }
 
     func label(_ pane: String) async throws -> String? {

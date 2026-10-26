@@ -365,14 +365,13 @@ extension OrielUITests {
 
     /// "⌘T 12ms 0 9ms": the key, the time to its frame, the turns, the app's own time; "swipe 230ms 0:145,8:152,…".
     struct Entry {
-        let name: String, time: Int, turns: Int
+        let name: String, turns: Int
     }
 
     func recorded() -> [Entry] {
         element("app.latency").stringValue.split(separator: "; ").map { entry in
             let words = entry.split(separator: " ").map(String.init)
-            return Entry(name: words.first ?? "", time: Int(words.count > 1 ? words[1].dropLast(2) : "") ?? -1,
-                         turns: Int(words.count > 2 ? words[2] : "") ?? -1)
+            return Entry(name: words.first ?? "", turns: Int(words.count > 2 ? words[2] : "") ?? -1)
         }
     }
 }

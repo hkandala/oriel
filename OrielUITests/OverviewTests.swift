@@ -144,7 +144,7 @@ extension OrielUITests {
     /// there shows that session's tab.
     func testOverviewSwipesBetweenSessions() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        _ = openSessionPanel()
+        openSessionPanel()
         app.typeText(two)
         element("open-session.session.\(two)").click()
         XCTAssertTrue(until(3) { header == two })
@@ -275,10 +275,7 @@ extension OrielUITests {
         for _ in 0 ..< 4 {
             try await Self.post("\(one)/swipe", Data("\(frame.midX) \(frame.midY) \(-30 * sign) 20 0 1".utf8))
         }
-        let sampled = try await XCTAttachment(string: String(decoding: profile, as: UTF8.self))
-        sampled.name = "sample, overview scrolling"
-        sampled.lifetime = .keepAlways
-        add(sampled)
+        try await keep(String(decoding: profile, as: UTF8.self), as: "sample, overview scrolling")
         let scrolled = try await measure("overview, 200 tabs, scrolled", seconds: 5, session: eight)
         // "‹live cards› ‹snapshots›".
         let snapshots = element("overview.snapshots").stringValue

@@ -66,8 +66,8 @@ extension OrielUITests {
         XCTAssertFalse(element("detail.connecting").exists)
         element("ask.ok").click()
         // A wrong password: ssh asks again.
-        try typePassword("wrong")
-        try typePassword()
+        typePassword("wrong")
+        typePassword()
         // Connecting again while oriel-pw's slow login shell looks for herdr (scripts/ci-sshd.sh).
         XCTAssertTrue(element("detail.connecting").exists(within: 2))
         let missing = app.staticTexts["herdr is not installed on Password Host"]
@@ -99,7 +99,7 @@ extension OrielUITests {
         XCTAssertTrue(element("ask.answer").exists(within: connect))
         XCTAssertFalse(element("detail.connecting").exists)
         XCTAssertFalse(element("detail.connect").exists)
-        try typePassword()
+        typePassword()
         XCTAssertTrue(element("detail.connecting").exists(within: 2))
         XCTAssertFalse(element("detail.connect").exists)
         XCTAssertTrue(missing.exists(within: connect))
@@ -281,7 +281,7 @@ extension OrielUITests {
         other.click()
         XCTAssertTrue(element("sidebar.header").has(\.stringValue, two, within: connect))
         XCTAssertEqual(machine(of: app.windows.firstMatch), "Key Host")
-        _ = openSessionPanel()
+        openSessionPanel()
         XCTAssertTrue(element("open-session.open.\(one)").exists(within: 2))
         XCTAssertTrue(element("open-session.open.\(two)").exists)
         app.typeKey(.escape, modifierFlags: [])
@@ -296,14 +296,14 @@ extension OrielUITests {
         relaunch(one, ["-machines", "[]"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         let first = app.windows.firstMatch.identifier
-        _ = openSessionPanel()
+        openSessionPanel()
         XCTAssertTrue(element("open-session.session.\(two)").exists(within: connect))
         XCTAssertTrue(element("open-session.section.Running").exists)
         app.typeKey(.escape, modifierFlags: [])
         addHost("Password Host", "oriel-pw")
         XCTAssertTrue(element("ask.text").exists(within: connect))
         element("ask.ok").click()
-        try typePassword()
+        typePassword()
         XCTAssertTrue(app.staticTexts["herdr is not installed on Password Host"].exists(within: connect))
         XCTAssertNotEqual(app.windows.firstMatch.identifier, first)
         let menu = element("titlebar.machine", in: app.windows.firstMatch)
@@ -346,7 +346,7 @@ extension OrielUITests {
     }
 
     /// oriel-pw's password (or another), in the hidden field of ssh's question; Return answers.
-    private func typePassword(_ password: String = "oriel-e2e-pw") throws {
+    private func typePassword(_ password: String = "oriel-e2e-pw") {
         let answer = element("ask.answer")
         XCTAssertTrue(answer.exists(within: connect))
         XCTAssertEqual(answer.elementType, .secureTextField)

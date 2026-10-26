@@ -191,19 +191,9 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard("terminal.\(keyboard)"))
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
 
-        // The collapsed sidebar's workspace menu: where its row is, then a drag held over the button and onto it.
+        // The collapsed sidebar's workspace menu.
         element("titlebar.sidebar").click()
-        let button = element("titlebar.workspace")
-        XCTAssertTrue(button.has(\.isHittable, true, within: 3))
-        button.click()
-        let row = element("workspaces.\(one).\(home)")
-        XCTAssertTrue(row.exists(within: 2))
-        let target = row.frame
-        app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(row.vanishes(within: 2))
-        let from = element("tab.\(moved)").frame, over = button.frame
-        try await Self.post("\(one)/drag", Data("\(from.midX) \(from.midY) \(over.midX) \(over.midY) 1.2 "
-                .appending("\(target.midX) \(target.midY) 0.5").utf8))
+        let row = try await dragThroughWorkspaceMenu(moved, onto: "workspaces.\(one).\(home)")
         let back = try await movedTab(of: terminal, layout, "moving") { $0 == home }
         XCTAssertTrue(row.vanishes(within: 2))
         XCTAssertTrue(element("tab.\(back)").has(\.isSelected, true, within: 3))
@@ -222,19 +212,9 @@ extension OrielUITests {
         closeNew("workspace", besides: workspaces)
         XCTAssertTrue(element("tab.\(tab)").has(\.isHittable, true, within: 3))
 
-        // Where the menu's New Workspace row is, then a drag held over the button and onto it.
+        // The collapsed sidebar's workspace menu's New Workspace row.
         element("titlebar.sidebar").click()
-        let button = element("titlebar.workspace")
-        XCTAssertTrue(button.has(\.isHittable, true, within: 3))
-        button.click()
-        let row = element("workspaces.new")
-        XCTAssertTrue(row.exists(within: 2))
-        let target = row.frame
-        app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(row.vanishes(within: 2))
-        let from = element("tab.\(tab)").frame, over = button.frame
-        try await Self.post("\(one)/drag", Data("\(from.midX) \(from.midY) \(over.midX) \(over.midY) 1.2 "
-                .appending("\(target.midX) \(target.midY) 0.5").utf8))
+        let row = try await dragThroughWorkspaceMenu(tab, onto: "workspaces.new")
         let away = try await movedTab(of: terminal, layout, "moving") { !workspaces.contains($0) }
         XCTAssertTrue(row.vanishes(within: 2))
         XCTAssertTrue(element("tab.\(away)").has(\.isSelected, true, within: 3))
@@ -341,6 +321,23 @@ extension OrielUITests {
             let same = try await terminalLayout(tab) == layout
             return same && tabs.first { $0["tab_id"] as? String == tab }?["label"] as? String == label ? tab : nil
         }
+    }
+
+    /// Drags the tab's capsule onto a row of the collapsed sidebar's workspace menu: where the row is (the menu opened
+    /// by a click), then a drag held over the workspace button, which opens the menu, and onto the row. The row.
+    private func dragThroughWorkspaceMenu(_ tab: String, onto id: String) async throws -> XCUIElement {
+        let button = element("titlebar.workspace")
+        XCTAssertTrue(button.has(\.isHittable, true, within: 3))
+        button.click()
+        let row = element(id)
+        XCTAssertTrue(row.exists(within: 2))
+        let target = row.frame
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(row.vanishes(within: 2))
+        let from = element("tab.\(tab)").frame, over = button.frame
+        try await Self.post("\(one)/drag", Data("\(from.midX) \(from.midY) \(over.midX) \(over.midY) 1.2 "
+                .appending("\(target.midX) \(target.midY) 0.5").utf8))
+        return row
     }
 
     /// The tab is one split down, with these panes top to bottom.

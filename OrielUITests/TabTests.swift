@@ -178,9 +178,8 @@ extension OrielUITests {
 
     /// A zoom from the overview into a middle tab of a workspace of many, the workspace shown again and ⌘4 (a session
     /// shown again: `testStripShowsEachWorkspaceClickedBackAndForth`): the selection capsule rests on the tab shown,
-    /// not between two (phase 31: after the zoom, or on a
-    /// new strip, it sat between the tab and the next one until the next click), and after the zoom it never shows on
-    /// another tab.
+    /// not between two (phase 31: after the zoom, or on a new strip, it sat between the tab and the next one until the
+    /// next click), and after the zoom it never shows on another tab.
     func testTheCapsuleRestsOnTheTabShownHoweverItShows() async throws {
         relaunch(one, ["-forceMotion", "YES", "-recordLatency", "YES"])
         let tabs = try await newWorkspace("capsule", tabs: 5).tabs
@@ -220,7 +219,7 @@ extension OrielUITests {
     }
 
     /// The dialog's text, in its label or its value.
-    private func sheetText(_ text: String) -> XCUIElement {
+    func sheetText(_ text: String) -> XCUIElement {
         app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text)).firstMatch
     }
 }

@@ -99,7 +99,7 @@ extension OrielUITests {
         // Each way on its own: with two panes, a step and a step back would land on the first again.
         for flags: XCUIElement.KeyModifierFlags in [.control, [.control, .shift]] {
             app.typeKey(.tab, modifierFlags: flags)
-            XCTAssertFalse(until(1) { self.hasKeyboard(self.element("terminal.\(other)")) })
+            XCTAssertFalse(hasKeyboard("terminal.\(other)"))
             XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         }
     }

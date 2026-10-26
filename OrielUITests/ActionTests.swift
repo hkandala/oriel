@@ -8,11 +8,9 @@ extension OrielUITests {
         let (tab, first) = try await newTab("close")
         let second = try await split(first)
         element("tab.\(tab)").click()
-        try await waitForPrompt(second)
 
         // Something besides the shell runs: the app asks, and Esc keeps the pane.
-        try await send("sleep 100\r", to: second)
-        try await expect("sleep to run") { try await foreground(second).contains("sleep") }
+        try await runSleep(second)
         hoverHeader(second)
         element("pane.\(second).close").click()
         let confirm = app.sheets.buttons["Close Pane"]
@@ -67,8 +65,7 @@ extension OrielUITests {
         XCTAssertTrue(confirm.exists(within: 2))
         let text = "sleep is running in it. Its 2 panes and everything running in them will end, here and in every "
             + "herdr client. This cannot be undone."
-        XCTAssertTrue(app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text))
-            .firstMatch.exists(within: 2))
+        XCTAssertTrue(sheetText(text).exists(within: 2))
         keepScreenshot("close tab dialog")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(confirm.vanishes(within: 2))

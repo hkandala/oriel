@@ -28,26 +28,26 @@ extension OrielUITests {
         }
         for index in tabs.indices {
             app.typeKey("\(index + 1)", modifierFlags: .command)
-            try drawn(panes[index])
+            drawn(panes[index])
         }
         for workspace in ["w1", "w2", workspace(of: tabs[0])] {
             element("workspace.\(workspace)").click()
             XCTAssertTrue(element("workspace.\(workspace)").has(\.isSelected, true, within: 3))
         }
         app.typeKey("1", modifierFlags: .command)
-        try drawn(panes[0])
+        drawn(panes[0])
         // Every card shown keeps its herdr run, up to 16 out of view (D46): the 12 here, t1's 3 and w2's 1
         // (one more while a run ends, a few less is still past lane O's 4).
         let quiet = try await measure("quiet tab")
         XCTAssertTrue((13 ... 17).contains(helpers(quiet)), quiet)
         app.typeKey("6", modifierFlags: .command)
-        try drawn(panes[5])
+        drawn(panes[5])
         let busy = try await measure("busy tab")
         XCTAssertTrue((13 ... 17).contains(helpers(busy)), busy)
     }
 
     /// Every card of the tab drew herdr's frames.
-    private func drawn(_ panes: [String]) throws {
+    private func drawn(_ panes: [String]) {
         for pane in panes {
             let card = element("pane.\(pane)")
             XCTAssertTrue(until(5) { card.exists && !card.stringValue.contains("loading") }, "\(pane) drew")

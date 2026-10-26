@@ -5,8 +5,7 @@ extension OrielUITests {
     /// picture, then herdr's screen, and nothing between. The app records each commit (`-recordFrames`): no card gone,
     /// blank, fading, with a third picture or moved. Every tab is shown once first: a new card's first reveal fades in
     /// on purpose. w1's second tab is a middle one (of three), shown whenever a new strip comes (a workspace, a
-    /// session,
-    /// the overview): an empty strip drew its first page, then jumped there.
+    /// session, the overview): an empty strip drew its first page, then jumped there.
     func testATabComesIntoViewWithoutAFlicker() async throws {
         relaunch(one, ["-recordFrames", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
@@ -119,10 +118,7 @@ extension OrielUITests {
             try await Task.sleep(for: .seconds(1))
             try await records.append(frames(name, key(tab)))
         }
-        let attachment = XCTAttachment(string: records.joined(separator: "\n"))
-        attachment.name = "frames"
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        keep(records.joined(separator: "\n"), as: "frames")
         let flickers = records.filter { $0.contains(#/ [1-9][0-9]*\//#) }
         XCTAssertTrue(flickers.isEmpty, "\(flickers) of \(records)")
     }
