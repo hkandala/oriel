@@ -58,6 +58,55 @@ extension OrielUITests {
         XCTAssertEqual(element("sidebar.header").value as? String, one)
     }
 
+    /// The panel also lists unseen finishes, under the Agents view's labels, after needs you (user, phase 30).
+    func testTheAgentsPanelListsDoneAgentsAfterNeedsYou() async throws {
+        let button = element("titlebar.agents"), panel = element("agents.popover")
+        XCTAssertTrue(button.exists(within: connect))
+        let docs = try await newTab("docs")
+        let done = try await finish(docs)
+        try await waitForValue("tab.\(docs.tab)", containing: "codex, finished")
+        // Done alone opens the panel; the badge counts only needs you.
+        XCTAssertEqual(button.value as? String, "0 need you")
+        button.hover()
+        let row = { (pane: String) in panel.descendants(matching: .any)["agent.\(pane)"] }
+        let group = { (name: String) in panel.descendants(matching: .any)["agents.popover.group.\(name)"] }
+        XCTAssertTrue(row(done).exists(within: 2))
+        XCTAssertEqual(group("Done").label, "Done 1")
+        XCTAssertFalse(group("Needs you").exists)
+        element("workspace.w1").hover()
+        XCTAssertTrue(panel.vanishes(within: 2))
+
+        let blocked = try await newTab("deploy").pane
+        try await report(blocked, "blocked", agent: "claude")
+        try await waitForValue("titlebar.agents", containing: "1 need you")
+        button.hover()
+        XCTAssertTrue(row(blocked).exists(within: 2))
+        let order = [group("Needs you"), row(blocked), group("Done"), row(done)]
+        XCTAssertEqual([order[0], order[2]].map(\.label), ["Needs you 1", "Done 1"])
+        let tops = order.map(\.frame.minY)
+        XCTAssertEqual(tops, tops.sorted())
+        XCTAssertEqual(element("agents.popover.header").stringValue, "Agents · \(one)")
+        keepScreenshot("agents panel, needs you and done")
+
+        // A click shows the done agent's tab, which clears it.
+        row(done).click()
+        XCTAssertTrue(element("tab.\(docs.tab)").has(\.isSelected, true, within: 2))
+        XCTAssertTrue(panel.vanishes(within: 2))
+        try await expect("the finish seen") { !element("tab.\(docs.tab)").stringValue.contains("finished") }
+        element("workspace.w1").hover()
+        button.hover()
+        XCTAssertTrue(row(blocked).exists(within: 2))
+        XCTAssertFalse(group("Done").exists)
+        XCTAssertFalse(row(done).exists)
+
+        // Answered: both groups empty, so no panel.
+        try await report(blocked, "working", agent: "claude")
+        XCTAssertTrue(panel.vanishes(within: 2))
+        element("workspace.w1").hover()
+        button.hover()
+        XCTAssertFalse(panel.exists(within: 1))
+    }
+
     func testAnotherSessionsAgentCountsInTheDockBadgeOnly() async throws {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         openPage(two)

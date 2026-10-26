@@ -160,7 +160,8 @@ struct StatusBadge: View {
 }
 
 #if os(macOS)
-    /// An agent pane in the Agents view and the needs-you popover. A click selects its workspace and tab and gives it
+    /// An agent pane in the Agents view and the Agents button's panel. A click selects its workspace and tab and gives
+    /// it
     /// the keyboard. Lit like the selected workspace row while it is the shown tab's keyboard card (user, phase 25).
     struct AgentButton: View {
         let pane: HostStore.Pane
@@ -326,50 +327,24 @@ struct StatusBadge: View {
     }
 
     /// A group label's text and chevron: the chevron points right while folded, and shows down only under the
-    /// pointer while open, as in a macOS sidebar.
-    private struct GroupLabel: View {
+    /// pointer while open, as in a macOS sidebar. No chevron for a group that does not fold (nil).
+    struct GroupLabel: View {
         let text: String
-        let open: Bool
+        var open: Bool?
         @State private var hovering = false
 
         var body: some View {
             HStack(spacing: 4) {
                 Text(text).lineLimit(1)
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
-                    .opacity(open && !hovering ? 0 : 1)
+                if let open {
+                    Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
+                        .opacity(open && !hovering ? 0 : 1)
+                }
             }
             .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
             .contentShape(.rect)
             .onHover { hovering = $0 }
-        }
-    }
-
-    /// The Agents button's popover: the page's agents that need you.
-    struct NeedsYouPanel: View {
-        let page: Page
-        let close: () -> Void
-
-        var body: some View {
-            let waiting = page.store.agentPanes.filter { $0.state == .needsYou }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Needs you · \(page.store.title)").font(.system(size: 11)).foregroundStyle(.secondary)
-                    .padding(.horizontal, 8).padding(.bottom, 2)
-                    .accessibilityIdentifier("agents.popover.header")
-                ScrollView {
-                    VStack(spacing: 4) {
-                        ForEach(waiting) { AgentButton(pane: $0, page: page, picked: close) }
-                    }
-                }
-                .scrollBounceBehavior(.basedOnSize)
-                .frame(maxHeight: 440)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(8)
-            .frame(width: 320, alignment: .leading)
-            .floatingGlass(in: .rect(cornerRadius: 12))
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("agents.popover")
         }
     }
 

@@ -128,7 +128,7 @@
     }
 
     /// A list of statuses, filled while the Agents view is on; an amber dot while an agent of the page in view needs
-    /// you. Its hover lists them (no tooltip).
+    /// you. Its hover lists them and the unseen finishes (no tooltip).
     private struct AgentsButton: View {
         let page: Page
         /// The Agents view is on.
@@ -152,9 +152,48 @@
             .accessibilityLabel("Agents")
             .accessibilityIdentifier("titlebar.agents")
             .accessibilityValue("\(waiting) need you")
-            .hoverPanel(place: .underTrailing, enabled: waiting > 0) { close in
-                NeedsYouPanel(page: page, close: close)
+            .hoverPanel(place: .underTrailing, enabled: waiting > 0 || page.store.done > 0) { close in
+                AgentsPanel(page: page, close: close)
             }
+        }
+    }
+
+    /// The Agents button's panel: the page's agents that need you, then those whose finish is not seen yet, under the
+    /// Agents view's group labels (user, phase 30). A click on a done row shows its tab, which clears it.
+    private struct AgentsPanel: View {
+        let page: Page
+        let close: () -> Void
+
+        var body: some View {
+            let agents = page.store.agentPanes
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Agents · \(page.store.title)").font(.system(size: 11)).foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .accessibilityIdentifier("agents.popover.header")
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach([AgentState.needsYou, .finishedUnseen], id: \.self) { state in
+                            let group = agents.filter { $0.state == state }
+                            if !group.isEmpty {
+                                GroupLabel(text: "\(state.capsule) \(group.count)")
+                                    .accessibilityElement(children: .ignore)
+                                    .accessibilityLabel("\(state.capsule) \(group.count)")
+                                    .accessibilityIdentifier("agents.popover.group.\(state.capsule)")
+                                    .padding(.horizontal, 8).padding(.top, 8)
+                                ForEach(group) { AgentButton(pane: $0, page: page, picked: close) }
+                            }
+                        }
+                    }
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(maxHeight: 440)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(8)
+            .frame(width: 320, alignment: .leading)
+            .floatingGlass(in: .rect(cornerRadius: 12))
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("agents.popover")
         }
     }
 

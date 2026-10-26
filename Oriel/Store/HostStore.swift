@@ -24,6 +24,8 @@ final class HostStore {
     private(set) var tabPanes: [String: [Pane]] = [:]
     /// Its panes that need you.
     private(set) var waiting = 0
+    /// Its panes whose finish is not seen yet.
+    private(set) var done = 0
     /// herdr's focused workspace: a page's first selection.
     private(set) var focusedWorkspaceID: String?
     /// The last failed write, shown for a few seconds; ✕ clears it.
@@ -212,8 +214,9 @@ final class HostStore {
         showStrongest()
     }
 
-    /// Each tab's strongest agent, each workspace's state and the panes that need you, kept here: views that read
-    /// every pane's state for them drew again on any agent's change, every capsule and sidebar row (phase 29).
+    /// Each tab's strongest agent, each workspace's state and the panes that need you or are done, kept here: views
+    /// that read every pane's state for them drew again on any agent's change, every capsule and sidebar row (phase
+    /// 29).
     private func showStrongest() {
         for workspace in workspaces {
             for tab in workspace.tabs {
@@ -228,6 +231,7 @@ final class HostStore {
             workspace.state = workspace.tabs.compactMap { $0.agent?.state }.max()
         }
         waiting = panes.count { $0.state == .needsYou }
+        done = panes.count { $0.state == .finishedUnseen }
     }
 
     /// The last snapshot drawn again, with what the app shows ahead of herdr.
