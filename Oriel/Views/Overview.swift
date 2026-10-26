@@ -148,7 +148,7 @@
             .accessibilityIdentifier("overview")
         }
 
-        static let space = "overview"
+        nonisolated static let space = "overview"
 
         /// A swipe's moves and lift (`Paging`), or a wheel's step; the window shows the session it lands on as its
         /// page arrives. Not under a panel, which would then act on another page.
