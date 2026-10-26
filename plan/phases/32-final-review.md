@@ -141,6 +141,8 @@ Perl too. No dead code, flags or test hooks found (`-machines` and `-session` ha
 - **For the user (small, not changed).** The sockets' folder and askpass are made once per launch
   (`static let`): a cache cleaner that deletes `~/Library/Caches/oriel` while Oriel runs breaks remote
   connects until a relaunch. Cost: make both per start (about 5 lines). Recommendation: leave it unless seen.
+- **CI.** 40356234915 (the 9 RemoteTests and `testShownPanesAreMarkedAndAFloatRequestFloats`): 10 green.
+  (40355358744 ran 0 tests: `only_testing` takes `OrielUITests/OrielUITests/<test>`, not the file's name.)
 
 ### r-tests
 
