@@ -109,7 +109,9 @@
         private func turn(_ offset: Int) {
             page.step(offset)
             if let target = page.selectedTabIDs[workspace.id] {
-                withAnimation(reduceMotion ? nil : .tab) { position.scrollTo(id: target, anchor: .leading) }
+                withAnimation(reduceMotion && !Animation.forceMotion ? nil : .tab) {
+                    position.scrollTo(id: target, anchor: .leading)
+                }
             }
         }
     }
