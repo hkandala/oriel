@@ -315,9 +315,10 @@ struct OrielApp: App {
                 "\(MiniTerminal.Mini.most)",
                 shown: TerminalHost.Host.record,
             )
-            .onChange(of: panel, initial: true) {
-                Latency.shared.panel = panel.map { "\($0)" } ?? ""
-                pages.panelOpen = panel != nil
+            .onChange(of: panel, initial: true) { pages.panelOpen = panel != nil }
+            // The sidebar and the Agents view count as drawn changes too (phase 29).
+            .onChange(of: "\(panel.map { "\($0)" } ?? "") \(sidebar) \(agents)", initial: true) {
+                Latency.shared.panel = $1
             }
             .modifier(AgentsWatch(pages: pages, page: page))
             // The title bar row takes the hidden title bar's line.
