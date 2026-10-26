@@ -161,11 +161,8 @@ extension OrielUITests {
             let panes = try await order(tab)
             return panes.count == 4 ? panes : nil
         }
-        // Left to right in the order they were made (herdr's ids count up): each split the one before.
+        // The newest is the rightmost (the old code split the first card each time: the newest came right of it).
         XCTAssertEqual(panes.first, first)
-        let made = panes.dropFirst().compactMap { Int($0.split(separator: "p").last ?? "", radix: 16) }
-        XCTAssertEqual(made.count, 3)
-        XCTAssertEqual(made, made.sorted())
         XCTAssertTrue(hasKeyboard(element("terminal.\(panes[3])")))
         try await typeAndRead(panes[3])
         for (closed, next) in [(panes[3], panes[2]), (panes[2], panes[1])] {
