@@ -39,8 +39,9 @@ final class HostStore {
     @ObservationIgnored var ahead = Ahead()
     /// The last snapshot, drawn again with `ahead`.
     @ObservationIgnored private(set) var last: Snapshot?
-    /// Panes being closed (`Ahead`), kept with what was asked of them in case the close comes back.
-    @ObservationIgnored private var parked: [String: Pane] = [:]
+    /// Panes being closed (`Ahead`), kept with what was asked of them in case the close comes back. A closing card
+    /// fades out with its header, not a stand-in's "terminal" (phase 30).
+    @ObservationIgnored private(set) var parked: [String: Pane] = [:]
     /// The tab the user looks at (D14): selected on the page in view of the key window. Its finishes are seen.
     @ObservationIgnored var lookingTabID: String? {
         didSet {
@@ -184,11 +185,6 @@ final class HostStore {
 
     func pane(_ id: String) -> Pane? {
         panes.first { $0.id == id }
-    }
-
-    /// A pane being closed (`Ahead`): its card fades out with its header, not a stand-in's "terminal" (phase 30).
-    func parkedPane(_ id: String) -> Pane? {
-        parked[id]
     }
 
     /// False only when herdr lists the session as stopped (or not at all).

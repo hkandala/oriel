@@ -147,9 +147,7 @@ extension OrielUITests {
 
     /// ⌘D pressed fast three times splits the newest card each time, as Ghostty does, and the last one made keeps the
     /// keyboard; ⌘W then steps back through them (phase 29: each split the old card, and the keyboard went to the pane
-    /// whose terminal settled last). Each new card comes once, where it ends up: herdr's pane takes its stand-in's card
-    /// (`-recordMotion`'s cards that came and went; phase 30: stand-ins replaced in one snapshot went, and herdr's
-    /// panes slid in again beside them).
+    /// whose terminal settled last). Each new card comes once: herdr's pane takes its stand-in's card (phase 30).
     func testQuickSplitsSplitTheNewestAndItKeepsTheKeyboard() async throws {
         relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
