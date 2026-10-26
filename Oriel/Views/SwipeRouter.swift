@@ -49,8 +49,8 @@
             switch step {
             case let .session(offset): pages.step(offset)
             case let .row(offset):
-                let sidebar = anchors.allObjects.first { $0.window === event.window && $0.agent != nil }
-                if let agent = sidebar?.agent {
+                let sidebar = anchors.allObjects.first { $0.window === event.window && $0.marks.agent != nil }
+                if let agent = sidebar?.marks.agent {
                     agent(offset)
                 } else {
                     pages.current?.stepWorkspace(offset)
@@ -124,21 +124,21 @@
                 if pager == nil {
                     target = scrollView(event)
                     // The strip's and the overview's pages take it as the sidebar's do (phase 31).
-                    if let paged = anchor(target), paged.drag != nil {
+                    if let paged = anchor(target), paged.marks.drag != nil {
                         (pager, target) = (paged, nil)
                     }
                 }
-                pager?.drag?(sideways, true)
+                pager?.marks.drag?(sideways, true)
             }
         }
 
         private static func give(_ event: NSEvent, to pager: ScrollAnchor.Anchor) {
             if event.phase == .changed {
-                pager.drag?(-event.scrollingDeltaX, false)
+                pager.marks.drag?(-event.scrollingDeltaX, false)
             } else if event.phase == .ended || event.phase == .cancelled, !lifted {
                 lifted = true
                 // A gesture the system took (Mission Control) turns no page.
-                pager.lift?(event.phase == .cancelled ? 0 : speed)
+                pager.marks.lift?(event.phase == .cancelled ? 0 : speed)
             }
         }
 
@@ -149,11 +149,11 @@
             let deltaX = event.scrollingDeltaX, deltaY = event.scrollingDeltaY
             guard abs(deltaX) > abs(deltaY) else { return false }
             if let pages = anchors.allObjects.first(where: { $0.contains(event) }) {
-                turn(pages.step, deltaX)
+                turn(pages.marks.step, deltaX)
                 return true
             }
             guard let scrollView = scrollView(event) else { return false }
-            if let step = anchor(scrollView)?.step {
+            if let step = anchor(scrollView)?.marks.step {
                 turn(step, deltaX)
             } else {
                 scrollView.scrollWheel(with: event)
@@ -200,18 +200,14 @@
         var agent: ((Int) -> Void)?
         var area = CGRect.zero
 
-        func makeNSView(context: Context) -> Anchor {
+        func makeNSView(context _: Context) -> Anchor {
             let view = Anchor()
-            updateNSView(view, context: context)
+            view.marks = self
             return view
         }
 
         func updateNSView(_ view: Anchor, context _: Context) {
-            view.step = step
-            view.drag = drag
-            view.lift = lift
-            view.agent = agent
-            view.area = area
+            view.marks = self
         }
 
         /// No size: over the sidebar's rows, a view the size of the pages took accessibility's hit tests, and XCUITest
@@ -221,18 +217,15 @@
         }
 
         final class Anchor: NSView {
-            var step: ((Int) -> Void)?
-            var drag: ((Double, Bool) -> Void)?
-            var lift: ((Double) -> Void)?
-            var agent: ((Int) -> Void)?
-            var area = CGRect.zero
+            var marks = ScrollAnchor()
 
             /// Under the event, for the sidebar's pages. The window's content view is its whole SwiftUI host, the
             /// window's full size; its points count from the bottom.
             func contains(_ event: NSEvent) -> Bool {
-                guard drag != nil, let window, event.window === window,
+                guard marks.drag != nil, let window, event.window === window,
                       let height = window.contentView?.bounds.height else { return false }
                 let point = event.locationInWindow
+                let area = marks.area
                 return point.x >= area.minX && point.x < area.maxX && height - point.y >= area.minY
             }
 
