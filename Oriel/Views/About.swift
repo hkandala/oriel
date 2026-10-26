@@ -13,6 +13,8 @@ struct About: View {
     // swiftlint:disable:next large_tuple
     private static let credits: [(group: String, lines: [(name: String, license: String, url: String?)])] = [
         ("Terminal", [("Ghostty", "MIT", "https://ghostty.org"),
+                      // FreeType, Oniguruma, libpng, zlib and the others, in Acknowledgements.txt.
+                      ("Ghostty's libraries", "Various", nil),
                       ("libghostty-spm", "MIT", "https://github.com/Lakr233/libghostty-spm"),
                       ("DisplayLink", "MIT", "https://github.com/Lakr233/DisplayLink"),
                       ("bash-preexec", "MIT", "https://github.com/rcaloras/bash-preexec")]),
