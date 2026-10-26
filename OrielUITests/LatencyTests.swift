@@ -201,9 +201,7 @@ extension OrielUITests {
     }
 
     /// A swipe into a session of 200 tabs (phase 30): the window draws its tab bar and strip as the pages arrive, not
-    /// 0.4–0.8 s after the sidebar. Each card's VoiceOver actions listed every tab (Move Pane to Tab), and with any
-    /// accessibility client (here XCUITest) SwiftUI builds them with the card: about 0.8 s per switch on CI, 0.3 s
-    /// without.
+    /// 0.4–0.8 s after the sidebar.
     func testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar() async throws {
         let eight = try env("ORIEL_SESSION8")
         addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
@@ -211,12 +209,13 @@ extension OrielUITests {
         try await Self.post("\(eight)/stress", Data("200 20 200 0".utf8))
         for _ in 0 ..< 3 {
             try await Self.call(eight, "pane.split", ["target_pane_id": "w1:p1", "direction": "down", "cwd": "/tmp",
-                                                      "focus": false])
+                                                      "focus": false, "env": ["ZDOTDIR": "/var/empty"]])
         }
         relaunch(eight, ["-recordLatency", "YES", "-forceMotion", "YES"])
         addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
         XCTAssertTrue(element("pane.w1:p1").exists(within: 20))
         openPage(one)
+        XCTAssertTrue(until(3) { header == one })
         let sidebar = element("sidebar"), center = "\(sidebar.frame.midX) \(sidebar.frame.midY)"
         // There, back, there again: which sign goes back follows natural scrolling.
         var back = 10.0
@@ -238,8 +237,7 @@ extension OrielUITests {
             .compactMap { Int($0.split(separator: " ")[1].dropLast(2)) }
         XCTAssertEqual(shows.count, 3, "\(shows)")
         // The better of the two: CI's first show of a page after a launch is sometimes twice as slow.
-        let into = [shows.first, shows.last].compactMap(\.self).min() ?? 1000
-        XCTAssertLessThan(into, 600, "\(shows)")
+        XCTAssertLessThan(min(shows[0], shows[2]), 600, "\(shows)")
     }
 
     /// The "swipe" records in which the pages moved (a swipe back to the page in view makes one that did not), each
