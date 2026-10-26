@@ -118,14 +118,14 @@
             try await up(ask)
         }
 
-        /// Ends the master (the app quits); a run after it starts a new one.
+        /// Ends the master (the app quits); a run after it starts a new one. No wait: a stopped (SIGSTOP) master never
+        /// answers, and the quit must not hang on it; the `ssh -O exit` outlives the app.
         public nonisolated func disconnect() {
             let process = Process()
             process.executableURL = URL(filePath: "/usr/bin/ssh")
             process.arguments = ["-F", "/dev/null", "-S", socket, "-O", "exit", "--", target]
             process.standardError = FileHandle.nullDevice
             try? process.run()
-            process.waitUntilExit()
         }
 
         /// One start at a time; the others wait for it and use its master.
@@ -198,7 +198,8 @@
                         blocked = error
                         throw error
                     }
-                    channel.write(answer)
+                    // One line: the rest of a multi-line paste would answer ssh's next question.
+                    channel.write(String(answer.prefix { !$0.isNewline }))
                 } else if !line.isEmpty {
                     said.append(line)
                 }
