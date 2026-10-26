@@ -259,3 +259,35 @@ per hold, at most 10 minutes, released with a trap).
 - **For the user to check by hand:** with Increase Contrast on (System Settings ▸ Accessibility ▸ Display), the title
   row, tab dividers and card buttons look stronger; the card buttons in light read clearly; a tab picked in the
   overview (also in another session or workspace) shows its pill there with no slide.
+
+### Lane S
+
+- **Result: not reproduced, so no fix (user's decision: leave it, they will report the pattern if it comes back).**
+  The user swiped by hand in a logging build on the throwaway sessions `oriel-dev-33strip-full` and `-empty`.
+  Three-finger swipes worked on the empty session in two setups. With one window: 10 steps in a row, into and out
+  of the empty session, 5 of them starting on it, with the pointer over the empty area. With two Oriel windows
+  stacked at the same frame, as in the capture (where "reviews - devvm-aai" sat behind the front window): 7 steps,
+  all in the front, key window. Logs: `/tmp/oriel-shots/lane-s-touch.log` and `lane-s-touch-two-windows.log`.
+  The first hand test logged nothing because of a mistake in the probe.
+- **What was checked.** A temporary probe build (never committed) read AppKit's touch routing in the running app,
+  first on an empty session and then on one with a terminal. In both, AppKit's own touch-target function
+  (`_touchTargetViewForPosition`, called directly) picks the window's frame view at every point. The gesture event
+  masks are the same, and no view or gesture recognizer takes indirect touches in only one case. Two things differ
+  in the empty session: the view under the pointer is WindowReader's background view, and the window itself is
+  the first responder. The hand tests show that neither stops the swipes. A two-finger scroll posted over the
+  empty area of the front window of two stacked windows also went to the front window. Reconnecting and loading
+  take the same path: touches go to the frame view whatever the window shows, and `take` only needs the window and
+  its pages. They were not tested by hand.
+- **What can make a swipe step nothing.** (1) A fourth finger landing (within about 7 ms in the log): the system
+  takes it as its four-finger swipe (Spaces), as designed. In the capture, though, the screen neither switched nor
+  bounced from 1:33 to 1:41. (2) The direction: steps do not wrap, as with ⌥⌘[ ]. In the capture the empty session
+  (pi-herd) is the last page, so fingers to the left (next) do nothing there. A user who repeats the swipe that
+  worked from the first page sees "works on a session, not on the empty one". (Touches with no window, while
+  another app or Space is in front, step nothing either. But in the log they were all one-finger touches, and
+  scrawl.json shows Oriel in front from 88 to 108 s, so that does not explain G #6.)
+- **Seen in the capture, not changed:** two-finger swipes over the sidebar at 1:30 and 1:48 landed on the previous
+  page. The one at 1:42 slid toward it and sprang back, because the lift was slow and the page was short of half
+  (`Swipe.landing`).
+- **Also:** `SplitDivider`'s doc comment now says the grip is drawn in `Look.grip` (lane C's request).
+- **Check by hand:** if it happens again, note the swipe's direction (the last page has no next), the number of
+  fingers, and whether the page in view was the last.
