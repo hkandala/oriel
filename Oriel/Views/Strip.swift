@@ -72,8 +72,9 @@
                 guard let target = page.selectedTabIDs[workspace.id],
                       position.viewID(type: String.self) != target else { return }
                 withTransaction(\.animation, nil) { position.scrollTo(id: target, anchor: .leading) }
-                // A page that lays out in this same update (the strip's first, a new tab's) can miss the scroll (a new
-                // workspace came up blank): again once it has.
+                // A page that lays out in this same update (a new tab's, or herdr's tab taking its stand-in's place)
+                // can
+                // miss the scroll: again once it has.
                 Task { position.scrollTo(id: target, anchor: .leading) }
             }
         }
@@ -132,11 +133,11 @@
                         let rect = zoomed == card.id ? area : entering ? card.start : card.rect
                         PaneCard(id: card.id, page: page, away: away)
                             .place(rect)
-                            // Under the zoomed card, which covers it, so its terminal views get no clicks. The fade
-                            // takes half the slide: a longer one made the panes feel slow (user, phase 29).
-                            .animation(motion.map { _ in .easeOut(duration: 0.06) }) {
-                                $0.opacity(away || entering ? 0 : 1)
-                            }
+                            // Under the zoomed card, which covers it, so its terminal views get no clicks.
+                            .opacity(away ? 0 : 1)
+                            // A new card fades in over half its slide: a longer fade made the panes feel slow (user,
+                            // phase 29).
+                            .animation(motion.map { _ in .easeOut(duration: 0.06) }) { $0.opacity(entering ? 0 : 1) }
                             .zIndex(away ? 0 : 1)
                             .allowsHitTesting(!away)
                             // A closed card fades as the others grow. A new one fades in with its slide (`entering`).
