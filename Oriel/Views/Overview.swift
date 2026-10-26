@@ -193,6 +193,10 @@
         }
 
         private func open(_ page: Page, _ workspace: HostStore.Workspace, _ tab: HostStore.Tab) {
+            // A tile of the page sliding away (a wheel's or a key's step): the zoom is the current page's.
+            if page !== pages.current {
+                pages.show(page)
+            }
             page.select(workspace, tab: tab.id)
             pages.leaving = true
         }
