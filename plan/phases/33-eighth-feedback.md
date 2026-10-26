@@ -179,7 +179,7 @@ per hold, at most 10 minutes, released with a trap).
   40416668954 (the panel version), 40417516982 and 40418053483 (the window).
 - **Screenshots** (`/tmp/oriel-shots/33about/`, the About window only, Release build, throwaway e2e sessions):
   `1-before-system-panel.png`, `2-mid-panel-lines-dark.png` / `-light.png`, `3-after-window-dark.png` /
-  `-light.png`.
+  `-light.png`, and `4-after-libraries-ci.png` (CI run 40419209275, 1x: 643 pt of the 674 pt screen).
 - **Docs:** program-icons (the About window, the license texts, where a new credit goes).
 - **Review:** l33-about-review, two rounds, no blockers. Applied: the bash-preexec credit, the TextEdit guard and
   teardown, the license check, ⌘W, plainer docs, a light screenshot. Left: a grouped `Form` instead of the glass
