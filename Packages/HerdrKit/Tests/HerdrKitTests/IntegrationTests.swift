@@ -136,14 +136,15 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
 
 @Test func `a long line and the lines around it read whole, and quickly`() async throws {
     let exec = await ProcessExec()
-    // 4 MB in one line, as a big session's snapshot comes (280 KB at 400 panes), in many pipe chunks.
-    let channel = try await exec.run(["sh", "-c", "echo a; head -c 4000000 /dev/zero | tr '\\0' x; echo; echo b"])
+    // 8 MB in one line, as a big session's snapshot comes (280 KB at 400 panes), in many pipe chunks.
+    let channel = try await exec.run(["sh", "-c", "echo a; head -c 8000000 /dev/zero | tr '\\0' x; echo; echo b"])
     channel.closeInput()
     let start = ContinuousClock.now
     let lines = await channel.lines.reduce(into: []) { $0.append($1) }
-    #expect(lines.map(\.count) == [1, 4_000_000, 1])
-    // A scan from the line's start for each chunk took seconds.
-    #expect(ContinuousClock.now - start < .seconds(1))
+    #expect(lines.map(\.count) == [1, 8_000_000, 1])
+    // A scan from the line's start for each chunk took about 16 s here, the linear split under 1 s: a bound a slow,
+    // shared CI runner meets (1 s did not).
+    #expect(ContinuousClock.now - start < .seconds(6))
 }
 
 @Test func `terminate stops the readers when a grandchild keeps the pipes open`() async throws {
