@@ -126,6 +126,62 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
 - **Known limit (check by hand).** Once a drag springs the menu open, the panel's full-window backdrop sits over the
   strip, so the drag can end only on a menu row (or nowhere) until it ends; the menu closes then.
 
+### Lane R (items 2, 3; contrast, remote sessions, machine picks, the new window's size, titles)
+
+- **Root causes.**
+  - 2: `addhost.png` predates phase 28's dialog; the current one already used the palette's `floatingGlass` in every
+    look. What did not fit was the system segmented control for the icon (small blue-accent segments) and, from the
+    user's second report (`remote-glass.png`), contrast: the question text and the labels were `.secondary`, and the
+    fields used the palette's soft `fieldCapsule` (7 % primary), which vanished on the grey glass. Now the text is
+    primary and a dialog field is `dialogField()`: the capsule over 60 % of the background color with a 20 % primary
+    outline. CI screenshots in all four looks: "add remote host glass|classic dark|light".
+  - 3: nothing could change a machine after Add (`addingHost: Bool`, a list only appended to). Now
+    `WindowPages.hostDialog: Machine?` (a new machine, or one of the list) drives one `HostDialog` for Add and Edit;
+    the machine menu has "Edit Remote Host ▸ ‹machine›" with Save and Remove. `MachineList.save` updates the list,
+    every window of the machine (all of it: their next windows and pages use the new target) and every open store
+    (name and icon only: they stay on the connection to the old target; `HostStore.machine` is now a `var`). The icon
+    is a button whose popover is a 10-column grid of 136 SF Symbols (each checked with `NSImage(systemSymbolName:)`)
+    with a search by symbol name, dots read as spaces on both sides.
+  - Remote sessions: the panel was right (it reads the page's own store, so the window's machine; CI shows the
+    remote's sessions); the user had no way to find it besides the small sidebar footer button and ⌥⌘T. The machine
+    menu now has "Open Session…" too.
+  - "Another device's sessions" (18:30): no path in the code shows another machine's list. Lane M's cache is
+    `HostStore.sessions`, one per store, and a store is per machine id and session (`HostStore.open`'s key); a
+    window's current page is always of its machine. The likely confusion: both machines run the same names
+    (`default`, `pi-herd`), and the groups did not say which machine. A remote window's groups now read "Running on
+    ‹machine›" / "Stopped on ‹machine›". `testOpenSessionListsOnlyItsWindowsMachine` guards it: This Mac's panel
+    reads session two, then a Password Host window (no herdr there) lists none of it.
+  - Titles (18:30): the Add / Edit title was a `Label` whose `+` / pencil glyph sat off the text line and pushed the
+    text past the form's edge. Now text only, flush with the form's leading edge.
+  - Machine picks: `WindowPages.open(machine:)` always opened a window. A pick now brings the machine's window used
+    last forward (`WindowPages.windows` is in key order) and opens one only when there is none; Add still opens one.
+  - New window size: `defaultWindowPlacement` gave 1200 × 760 at most. Now 90 % of the visible screen, at least
+    1200 × 760 and at most the screen, centered; restored windows keep their frames. CI's 1024 pt screen still gets a
+    full-width window, so no other test's layout changed.
+- **Also.** A window restored on a removed machine opened its saved remote session names on This Mac; it now opens
+  This Mac's `default` only. Open Session's start compares the machine by id (an edit during a start kept the open).
+- **Tests.** `testTheRemoteHostDialogInEveryLook` (four looks, no Edit item without hosts, Esc on the dialog and on
+  the popover, a dotted search, the pick). `testEditingARemoteHostRenamesItAndRemoveTakesItOff` (name, target and icon
+  saved; the open window's machine name and its button's icon follow; Remove drops it and the Edit item).
+  `testARemoteWindowOpensAnotherSessionOfItsMachine` (the machine menu's Open Session lists and opens session two in
+  a Key Host window; the sidebar's panel lists both pages). `testAddingAKeyHostOpensItInANewWindowWithoutAsking` now
+  checks a pick brings the Key Host window forward (two windows, then ⌘N makes three).
+  `testNewWindowFillsMostOfTheScreen` checks ⌘N's frame against the formula. Not caught by a test: oriel-key is this
+  Mac, so a panel that read This Mac would list the same sessions (the code uses the window's machine).
+- **Accepted.** An edit while another window edits or removes the same machine: the later Save of a removed one does
+  nothing. A window still restoring misses an edit. The popover is the system's (glass on macOS 26 in both styles).
+  Reorder is not built.
+- **Reviews (one round).** Spec: 5 shoulds fixed (a menu check that ran before the menu opened, the target edit
+  untested, the popover's Esc untested, a removed machine's restore, ui-layout.md), nits 6–9 fixed, 10–11 above.
+  Ponytail: no blocker; fixed 1–5 (ui-layout.md, the needless `.id`, `dialogField` over `fieldCapsule`, the label
+  helper, a what-comment); 6–7 kept (fixed columns, the loop's last look left open).
+- **CI.** 40251071910 (8752697): the four new and changed remote tests green; testAddingAKeyHost… red, its
+  `menuItems["Key Host"]` now also matched the Edit submenu's row (`firstMatch`, 6a92455). Full suite 40252301014
+  (6a92455): every lane R test green except testNewWindowFillsMostOfTheScreen (a screen-tall window is 677 pt in a
+  674 pt visible frame; 7c8e059 allows 4 pt); red in other lanes' areas: testClosingAPageAndQuittingLeaveNoStreams
+  (the sidebar header's context menu, already red before lane R's window change), the swipe, overview, split,
+  select-pane and stress tests. Full suite on the last code commit c25aa43: 40254897138.
+
 ## More from the user (2026-10-25 17:35)
 
 - (Lane R) The glass dialogs have poor contrast (`.build/fb/remote-glass.png`): grey text on grey glass, the
