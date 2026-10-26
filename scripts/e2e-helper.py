@@ -109,17 +109,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, reply = (200, run.stdout) if run.returncode == 0 else (500, run.stderr)
         elif action == "sample" and not re.fullmatch(rb"\d+", body):
             status, reply = 400, b"the body must be seconds"
-        elif action == "sample":
+        elif action in ("sample", "heap"):
             pid = subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
+            argv = ["sample", pid, body.decode()] if action == "sample" else ["heap", "-s", "-H", "-q", pid]
             try:
-                run = subprocess.run(["sample", pid, body.decode()], capture_output=True, timeout=60)
+                run = subprocess.run(argv, capture_output=True, timeout=60)
                 status, reply = (200, run.stdout) if run.returncode == 0 else (500, run.stderr)
             except subprocess.TimeoutExpired:
-                status, reply = 500, b"sample took over 60 s"
-        elif action == "heap":
-            pid = subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
-            run = subprocess.run(["heap", "-s", "-H", "-q", pid], capture_output=True, timeout=120)
-            status, reply = (200, run.stdout) if run.returncode == 0 else (500, run.stderr)
+                status, reply = 500, f"{action} took over 60 s".encode()
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
         elif action in ("swipe", "drag"):

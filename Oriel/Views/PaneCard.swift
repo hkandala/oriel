@@ -268,7 +268,7 @@
 
     /// VoiceOver's actions on the card, Move Pane to Tab ▸ flattened to New Tab and New Workspace: with any
     /// accessibility client (BetterTouchTool, Raycast, XCUITest) SwiftUI builds them with the card: one per tab made
-    /// a switch to a session of 300 tabs take 1.05 s on CI, 0.34 s without (phase 30). The menu bar and the palette
+    /// a switch to a session of 300 tabs take 1.05 s on CI, 0.34 s without (phase 30). The card's menu and the palette
     /// list every tab. Their own view, as the menu items are.
     private struct PaneActions: View {
         let page: Page

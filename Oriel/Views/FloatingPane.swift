@@ -371,7 +371,7 @@
                 },
                 edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
                 edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
-            ] + Self.pane(page) { pane }.filter { $0.title == "Close Pane" }.map { close in
+            ] + Self.pane(page, tabs: false) { pane }.filter { $0.title == "Close Pane" }.map { close in
                 // ⌘W detaches, as the red light (user, phase 29).
                 var close = close
                 close.key = .closeTab

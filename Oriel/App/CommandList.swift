@@ -17,7 +17,6 @@
         /// What the menu bar shows of `all`, when it was made (`menuBar`).
         var shown: [String] = []
 
-        /// Move Pane to Tab lists the session's tabs; not in the menu bar (`menuBarList`).
         private var tabs = true
 
         /// The menu bar's: Move Pane to Tab without the session's tabs (phase 30). AppKit's key equivalent search walks
@@ -304,21 +303,22 @@
                 func key(_ index: Int) -> KeyboardShortcut {
                     KeyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: modifiers)
                 }
-                return titles.prefix(9).enumerated().map { index, title in
+                return titles.enumerated().map { index, title in
                     Command(section: section, title: title, key: key(index),
                             family: ("Show \(level) 1–9", "1–9")) { show(index) }
                 }
             }
-            let tabs = page?.selectedWorkspace?.tabs ?? []
+            // The first 9 only: the menu bar is made again when what they read changes (phase 30).
+            let tabs = (page?.selectedWorkspace?.tabs ?? []).prefix(9), workspaces = page?.sidebarWorkspaces ?? []
             return jump(.tabs, "Tab", .command, tabs.map { page?.titleText($0) ?? $0.label }) { index in
                 if let page, let workspace = page.selectedWorkspace, workspace.tabs.indices.contains(index) {
                     page.select(workspace, tab: workspace.tabs[index].id)
                 }
-            } + jump(.workspaces, "Workspace", [.command, .control], (page?.sidebarWorkspaces ?? []).map(\.label)) {
+            } + jump(.workspaces, "Workspace", [.command, .control], workspaces.prefix(9).map(\.label)) {
                 if let page, page.sidebarWorkspaces.indices.contains($0) {
                     page.select(page.sidebarWorkspaces[$0])
                 }
-            } + jump(.sessions, "Session", [.command, .option], (pages?.list ?? []).map(\.id)) {
+            } + jump(.sessions, "Session", [.command, .option], (pages?.list ?? []).prefix(9).map(\.id)) {
                 if let pages, pages.list.indices.contains($0) {
                     pages.show(pages.list[$0])
                 }

@@ -317,9 +317,8 @@ extension OrielUITests {
         bar.hover()
         XCTAssertTrue(bar.menuItems["New Workspace"].exists(within: 2))
         XCTAssertFalse(bar.menuItems["second"].exists)
-        app.typeKey(.escape, modifierFlags: [])
-        app.typeKey(.escape, modifierFlags: [])
-        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(bar.menuItems["alpha"].exists)
+        app.menuBars.menuBarItems["View"].click()
         // The palette's Move Pane to Tab › moves the keyboard card to a new tab.
         let before = try await tabIDs()
         openPalette()

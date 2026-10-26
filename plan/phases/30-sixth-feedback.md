@@ -258,8 +258,10 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
     (`AnyTrackedValue`, `PropertyList`, `AccessibilityProperties`, about 60 MB) that XCUITest's queries fill.
 - **Item 11** (127bf21). `CommandList.menuBarList` is `all` with Move Pane to Tab's tab list left out (a private
   `tabs` flag, passed to `CommandList.pane`); the menu bar and its `shown` key read it, so a tab's new title no longer
-  makes the menu bar again. The card's header and context menus (`PaneItems`), VoiceOver's actions and the palette
-  still list every tab. Keys, the app's own time from the event to the frame, median of 5–12 (same script, the
+  makes the menu bar again. The card's header and context menus (`PaneItems`) and the palette still list every tab;
+  VoiceOver's actions have New Tab and New Workspace only (3682e6b, another lane). The Window menu's ⌘1–9 jumps read
+  only the first 9 tabs', workspaces' and sessions' titles (they read every title before, so the menu bar's list was
+  made again at any title change of the workspace). Keys, the app's own time from the event to the frame, median of 5–12 (same script, the
   commit before vs 127bf21):
 
   | | ⌘1 | ⌘2–⌘5 | ⌃⌘[ | ⌃⌘] | ⌘K |
