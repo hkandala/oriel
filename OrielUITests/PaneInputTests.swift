@@ -50,48 +50,20 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
     }
 
-    /// A file dragged from Finder pastes its shell-escaped path, as a drop on Ghostty (herdr's usual terminal) does.
-    func testDroppingAFileFromFinderPastesItsPath() async throws {
+    /// A dragged file pastes its shell-escaped path, as a drop on Ghostty (herdr's usual terminal) does. The drag comes
+    /// from a window of the helper's: from Finder, now and then no drag started on CI (40304584542, phase 31).
+    func testDroppingAFilePastesItsPath() async throws {
         let (tab, pane) = try await newTab("drop")
         element("tab.\(tab)").click()
         let terminal = element("terminal.\(pane)")
         XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
         try await waitForPrompt(pane)
 
-        let path = try await String(decoding: Self.post("\(one)/reveal-file"), as: UTF8.self)
-        // Its windows close, or they would cover the app in the next tests.
-        addTeardownBlock { @MainActor in
-            let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
-            finder.activate()
-            finder.typeKey("w", modifierFlags: [.command, .option])
-        }
-        let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
-        let name = URL(filePath: path).lastPathComponent
-        let file = finder.windows.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@ OR title == %@", name, name)).firstMatch
-        XCTAssertTrue(file.exists(within: 10))
-
-        // Finder's window opens over the app (920 × 436 pt on CI): the drop goes on the terminal below it.
-        let card = terminal.frame, finderFrame = finder.windows.firstMatch.frame
-        let drop = CGPoint(x: card.midX, y: (finderFrame.maxY + card.maxY) / 2)
-        XCTAssertGreaterThan(card.maxY - finderFrame.maxY, 40, "\(finderFrame) covers \(card)")
-        let start = file.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), from = file.frame
+        // From over the sidebar onto the card.
+        let from = element("sidebar").frame, card = terminal.frame
+        let points = "\(from.midX) \(from.midY) \(card.midX) \(card.midY)"
+        let path = try await String(decoding: Self.post("\(one)/file-drag", Data(points.utf8)), as: UTF8.self)
         let folder = URL(filePath: path).deletingLastPathComponent().lastPathComponent
-        // Now and then Finder starts no drag from the press, and nothing drops (no drag image in the recordings of CI
-        // 40172264488 and 40173000382, in full shards only): drag again.
-        for attempt in 1 ... 3 {
-            start.click(
-                forDuration: 0.5,
-                thenDragTo: start.withOffset(CGVector(dx: drop.x - from.midX, dy: drop.y - from.midY)),
-                withVelocity: .slow,
-                thenHoldForDuration: 0.5,
-            )
-            do {
-                try await waitFor(pane, times: 30) {
-                    $0.replacing("\n", with: "").contains(#"\#(folder)/drop\ me\'s\ \(1\).txt"#)
-                }
-                break
-            } catch where attempt < 3 {}
-        }
+        try await waitFor(pane) { $0.replacing("\n", with: "").contains(#"\#(folder)/drop\ me\'s\ \(1\).txt"#) }
     }
 }

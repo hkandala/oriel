@@ -13,8 +13,9 @@ terminal.
 POST /<session>/open-folder with the built app's path as the body makes a folder in /tmp and opens it with the
 app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>` (a running app ignores
 `--args`). The folder's path comes back.
-POST /<session>/reveal-file makes a file whose name needs shell escaping in a new folder in /tmp and shows it in a Finder
-window (`open -R`), for a drag from Finder. The file's path comes back.
+POST /<session>/file-drag with "x y tx ty" (screen points) as the body makes a file whose name needs shell escaping in
+a new folder in /tmp, shows its icon at x y in a window of scripts/file-drag.swift and drags it to tx ty. The file's
+path comes back once a drop took it.
 POST /<session>/usage with a number of seconds as the body measures the app (the one process named Oriel, on CI) over
 that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory.
 POST /<session>/ssh-drop with an SSH target as the body kills the app's ControlMaster to it (SIGKILL, as a crash
@@ -51,7 +52,7 @@ folders = []
 tools = tempfile.mkdtemp()
 folders.append(tools)
 builds = {name: subprocess.Popen(["swiftc", f"scripts/{name}.swift", "-o", f"{tools}/{name}"],
-                                 stderr=open(f"{tools}/{name}.log", "wb")) for name in ("swipe", "drag")}
+                                 stderr=open(f"{tools}/{name}.log", "wb")) for name in ("swipe", "drag", "file-drag")}
 
 
 def cpu_seconds(pids):
@@ -86,7 +87,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder", "open-url",
-                            "reveal-file", "usage", "ssh-drop", "ssh-forget", "ssh-connections", "swipe", "drag",
+                            "file-drag", "usage", "ssh-drop", "ssh-forget", "ssh-connections", "swipe", "drag",
                             "stress", "sample", "heap"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
@@ -162,13 +163,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             app, url = body.decode().split("\n")
             run = subprocess.run(["open", "-g", "-a", app, url], capture_output=True, timeout=10)
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
-        elif action == "reveal-file":
+        elif action == "file-drag" and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}", body):
+            status, reply = 400, b"the body must be x y tx ty"
+        elif action == "file-drag" and builds[action].wait() != 0:
+            with open(f"{tools}/{action}.log", "rb") as log:
+                status, reply = 500, log.read()
+        elif action == "file-drag":
             folder = tempfile.mkdtemp(prefix="oriel-e2e-file-", dir="/tmp")
             folders.append(folder)
             path = os.path.join(folder, "drop me's (1).txt")
             open(path, "w").close()
-            run = subprocess.run(["open", "-R", path], capture_output=True, timeout=10)
-            status, reply = (200, path.encode()) if run.returncode == 0 else (500, run.stderr)
+            run = subprocess.run([f"{tools}/{action}", path] + body.decode().split(), capture_output=True, timeout=30)
+            status, reply = (200, path.encode()) if run.returncode == 0 else (500, run.stderr or b"the drop was refused")
         elif action == "usage":
             status, reply = 200, usage(session, float(body or b"10"))
         elif action == "start":
