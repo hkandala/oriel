@@ -102,3 +102,5 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
 - (Lane R, 17:50) Picking a machine whose window is already open brings that window forward instead of
   opening another. ⌘N opens a new window at a big default size (about 90% of the screen's visible frame,
   centered); restored windows keep their frames.
+- (Lane T, 17:58) Every pane fade-in about twice as fast (first reveal, rebuilt card, split's new pane),
+  or a straight swap where it looks fine; the no-blank rule stays.
