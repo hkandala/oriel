@@ -70,6 +70,7 @@
                         await pages.current?.store.loadSessions()
                     }
                 }
+                .keyboardShortcut(.defaultAction)
             } message: { asked in
                 Text(asked.verb == "stop"
                     ? "Every program in it will end, here and in every herdr client. Its workspaces and tabs stay "

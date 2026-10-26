@@ -104,7 +104,8 @@ extension OrielUITests {
         element("\(row.identifier).stop").click()
         let stop = app.sheets.buttons["Stop Session"]
         XCTAssertTrue(stop.exists(within: 2))
-        stop.click()
+        // Return confirms, as a click does.
+        app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("\(row.identifier).delete").exists(within: 10))
         expectRow(row.identifier, under: "Stopped", above: nil)
         let stopped = try? await Self.snapshot(seven)
@@ -114,7 +115,7 @@ extension OrielUITests {
         let confirm = app.sheets.buttons["Delete Session"]
         XCTAssertTrue(confirm.exists(within: 2))
         keepScreenshot("delete asks")
-        confirm.click()
+        app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(row.vanishes(within: 10))
         // Deleted: the name is free again.
         XCTAssertTrue(element("open-session.new.\(seven)").exists(within: 2))

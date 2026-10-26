@@ -25,6 +25,8 @@
                 Button(closing.close.button, role: .destructive) {
                     Task { await page.store.close(closing.close) }
                 }
+                // Return confirms (a destructive button is not the default on its own); Esc cancels.
+                .keyboardShortcut(.defaultAction)
             } message: { _ in
                 Text(dialog?.message ?? "")
             }

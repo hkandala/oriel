@@ -10,7 +10,7 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         try await waitForPrompt(second)
 
-        // Something besides the shell runs: the app asks, and Cancel keeps the pane.
+        // Something besides the shell runs: the app asks, and Esc keeps the pane.
         try await send("sleep 100\r", to: second)
         try await expect("sleep to run") { try await foreground(second).contains("sleep") }
         hoverHeader(second)
@@ -20,18 +20,22 @@ extension OrielUITests {
         XCTAssertTrue(app.sheets.staticTexts["sleep is running in it and will end, here and in every herdr client. "
                 + "This cannot be undone."].exists)
         keepScreenshot("close pane dialog")
-        app.sheets.buttons["Cancel"].click()
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(confirm.vanishes(within: 2))
         XCTAssertTrue(element("pane.\(second)").exists)
-
-        // Only the shell: the card goes at once.
-        try await Self.call(one, "pane.send_keys", ["pane_id": second, "keys": ["ctrl+c"]])
-        try await expect("the shell to be back") { try await !foreground(second).contains("sleep") }
+        // Return is the dialog's default button: it closes the pane (phase 31, item 8).
         hoverHeader(second)
         element("pane.\(second).close").click()
+        XCTAssertTrue(confirm.exists(within: 2))
+        app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("pane.\(second)").vanishes(within: 3))
+
+        // Only the shell (its startup over): the card goes at once.
+        try await waitForPrompt(first)
+        hoverHeader(first)
+        element("pane.\(first).close").click()
+        XCTAssertTrue(element("pane.\(first)").vanishes(within: 3))
         XCTAssertFalse(confirm.exists)
-        XCTAssertTrue(element("pane.\(first)").exists)
     }
 
     func testClosingTheKeyboardCardHandsKeysToItsNeighbor() async throws {
@@ -65,7 +69,7 @@ extension OrielUITests {
         XCTAssertTrue(app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text))
             .firstMatch.exists(within: 2))
         keepScreenshot("close tab dialog")
-        app.sheets.buttons["Cancel"].click()
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(confirm.vanishes(within: 2))
 
         // Only the shells: it closes at once.
