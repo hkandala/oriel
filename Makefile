@@ -1,5 +1,5 @@
 SHELL := /bin/bash -eo pipefail
-.PHONY: setup format lint build test e2e strip-check run app dmg install
+.PHONY: setup format lint build test e2e strip-check run app dmg install icons
 
 DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
@@ -10,6 +10,10 @@ BEAUTIFY := $(if $(shell command -v xcbeautify),| xcbeautify $(if $(CI),--render
 setup:
 	brew bundle
 	git config core.hooksPath .githooks
+
+# Optional artwork export; Pillow is only needed when regenerating the committed icons.
+icons:
+	python3 scripts/app-icon.py
 
 format:
 	swiftlint lint --fix --quiet
@@ -66,3 +70,4 @@ install: app
 dmg: app
 	rm -f .build/Oriel.dmg
 	hdiutil create -volname Oriel -srcfolder $(DERIVED_DATA)/Build/Products/Release/Oriel.app -ov -format UDZO .build/Oriel.dmg
+
