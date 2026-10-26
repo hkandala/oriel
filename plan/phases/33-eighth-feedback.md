@@ -185,6 +185,11 @@ per hold, at most 10 minutes, released with a trap).
   teardown, the license check, ⌘W, plainer docs, a light screenshot. Left: a grouped `Form` instead of the glass
   cards (the user asked for the app's glass); no scroll view (the window is about 620 pt tall, CI's screen 674 pt:
   add one with the next few credits).
+- **Smaller window** (user, after the cards): the About window keeps only the icon, the name, the version and
+  one "Acknowledgements" glass button that opens `Acknowledgements.txt`; the two credit cards and the brand-marks
+  line are gone (the file's header keeps that line). The test is now `testAboutWindowOpensTheAcknowledgements`
+  (name and version, ⌘W, the button opens TextEdit); CI run 40419941830. Screenshots `5-small-dark-ci.png` (CI)
+  and `5-small-light.png`, `5-small-dark.png` (local Release). Commits eebbd35, 75c844e.
 - **Ghostty's libraries** (follow-up): `libghostty.a` (the macOS slice: its object files, symbols and strings)
   builds in FreeType, libpng, zlib, Oniguruma, simdutf, Highway, Wuffs, stb_image, GNU libintl, libxev, libvaxis,
   zig-objc, z2d, uucode, Zig's standard library and compiler-rt, and two fonts (JetBrains Mono, Symbols Nerd Font).
