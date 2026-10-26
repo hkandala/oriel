@@ -25,6 +25,7 @@
         @Binding var agents: Bool
         @Binding var palette: Bool
         @Binding var workspaceMenu: Bool
+        @Binding var openSession: Bool
         /// Where the workspace button starts in the window, for its menu.
         @Binding var workspaceButtonX: CGFloat
         /// A pane dragged over the `+`.
@@ -65,7 +66,7 @@
                     }
                     .accessibilityIdentifier("titlebar.sidebar")
                     .accessibilityValue(sidebar ? "open" : "closed")
-                MachineButton(pages: pages)
+                MachineButton(pages: pages, openSession: $openSession)
             }
             .frame(width: sidebar ? sidebarWidth - Self.inset(fullScreen: fullScreen) - gap : nil,
                    alignment: .leading)
@@ -168,9 +169,10 @@
         return battery ? "laptopcomputer" : "desktopcomputer"
     }()
 
-    /// The machine's icon; its menu lists the machines and Add Remote Host.
+    /// The machine's icon; its menu lists the machines, Open Session, Add Remote Host and Edit Remote Host.
     private struct MachineButton: View {
         let pages: WindowPages
+        @Binding var openSession: Bool
 
         var body: some View {
             let current = pages.machine
@@ -185,6 +187,9 @@
                         }
                     }) { Label(machine.name, systemImage: machine.icon) }
                 }
+                Divider()
+                // The machine's other sessions, also from here (user, phase 29: not found in a remote window).
+                Button("Open Session…", systemImage: "plus.square.on.square") { openSession = true }
                 Divider()
                 Button("Add Remote Host…", systemImage: "plus") {
                     pages.hostDialog = Machine(id: UUID().uuidString, name: "", target: "", icon: "server.rack")

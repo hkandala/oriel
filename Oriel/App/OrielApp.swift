@@ -239,6 +239,7 @@ struct OrielApp: App {
                     agents: $agents,
                     palette: open(.palette),
                     workspaceMenu: open(.workspaces),
+                    openSession: open(.openSession),
                     workspaceButtonX: $workspaceButtonX,
                 )
                 .zIndex(1)

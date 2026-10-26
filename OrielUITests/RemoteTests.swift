@@ -226,6 +226,27 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
     }
 
+    /// A remote window's Open Session, from the machine menu and the sidebar, lists that machine's sessions and opens
+    /// one as a page (user, phase 29).
+    func testARemoteWindowOpensAnotherSessionOfItsMachine() async throws {
+        try await skipWithoutSSH()
+        relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        let menu = element("titlebar.machine")
+        menu.click()
+        menu.menuItems["Open Session…"].click()
+        let other = element("open-session.session.\(two)")
+        XCTAssertTrue(other.exists(within: connect))
+        keepScreenshot("remote open session")
+        other.click()
+        XCTAssertTrue(element("sidebar.header").has(\.stringValue, two, within: connect))
+        XCTAssertEqual(machine(of: app.windows.firstMatch), "Key Host")
+        _ = openSessionPanel()
+        XCTAssertTrue(element("open-session.open.\(one)").exists(within: 2))
+        XCTAssertTrue(element("open-session.open.\(two)").exists)
+        app.typeKey(.escape, modifierFlags: [])
+    }
+
     /// The machine menu's Edit Remote Host ▸ ‹name›.
     private func editHost(_ name: String, menu: () -> Void = {}) {
         element("titlebar.machine").click()
