@@ -186,6 +186,11 @@ final class HostStore {
         panes.first { $0.id == id }
     }
 
+    /// A pane being closed (`Ahead`): its card fades out with its header, not a stand-in's "terminal" (phase 30).
+    func parkedPane(_ id: String) -> Pane? {
+        parked[id]
+    }
+
     /// False only when herdr lists the session as stopped (or not at all).
     var isRunning: Bool {
         sessions.isEmpty || sessions.contains { $0.name == session && $0.running }

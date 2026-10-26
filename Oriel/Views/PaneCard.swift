@@ -38,7 +38,8 @@
             // The watching window's dim (D66), on the header and the terminal.
             let content = page.watched ? 0.85 : 1
             VStack(spacing: 0) {
-                header(pane, zoomed: zoomed, showsButtons: lit || hovering || zoomed).opacity(content)
+                header(pane ?? store.parkedPane(id), zoomed: zoomed, showsButtons: lit || hovering || zoomed)
+                    .opacity(content)
                 Group {
                     if let pane, floated {
                         FloatedPlaceholder(page: page, pane: pane)
