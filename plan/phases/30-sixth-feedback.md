@@ -275,7 +275,18 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   `heap` action, 02eebea).
 - **Docs.** window.mdx (View ▸ Pane's Move Pane to Tab has New Tab and New Workspace only).
 - **CI.** 40274017771 (`testMoveToTabLandsBesideTheLastCard`, green), 40274683473 and 40276792304 (the stress test,
-  green; busy tab 15.9–16.6 %, footprint 217–222 MB as phase 29).
+  green; busy tab 15.9–16.6 %, footprint 217–222 MB as phase 29). Full suite 40280765449 on 381f34d (the lane's last
+  code commit), with a rerun of the failed jobs: lint-build (HerdrKit's flaky "relay carries runs over one process" on
+  the first try) and shards 0, 2, 3 green; shard 1 red both times in lane V's overview tests
+  (`testACardNeverShowsTheOverviewsSmallSnapshot`, `testOverviewCostsAndLetsGoAfter`), and on the rerun only in
+  `testDraggingATabOntoNewWorkspaceMovesItWithItsLayout` and `testQuickSplitsSplitTheNewestAndItKeepsTheKeyboard`:
+  none of them goes through this lane's code (the menu bar's command list). Passed to the orchestrator.
+- **Reviews.** Ponytail: one helper branch for `sample` and `heap` with the timeout caught, a stale comment in
+  `PaneActions`, `tabs: false` for the floating window's Close Pane, a redundant doc line; all taken but a one-line
+  `menuBarList` (semicolons). Spec: the same comment and floating call, the Window menu's jumps read every title of
+  the workspace before `prefix(9)` (now only 9 per level), the test closes the menu with one click and checks "alpha"
+  too, the doc's "There", these Findings; all taken (381f34d).
+- **Commits.** 127bf21 (item 11), 02eebea (the heap summary), 381f34d (review fixes), 2965cf6 and this (Findings).
 - **For the user to check by hand:** View ▸ Pane ▸ Move Pane to Tab shows New Tab and New Workspace only; a card's
   header menu, its right-click menu and ⌘K's Move Pane to Tab still list every tab. Tab and workspace keys in a big
   session feel a little quicker. `footprint Oriel`: about 0.8–1 GB with two full-screen Retina windows after many
