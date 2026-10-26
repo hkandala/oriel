@@ -590,8 +590,8 @@ once.
   terminal view in a miniature refuses it); Esc leaves, unless a panel (the
   palette, Keyboard Shortcuts) or a text field is open. Closing it gives the keyboard back to the
   tab's card.
-- VoiceOver: each tile is a button named by its tab's title, with the
-  workspace as its group.
+- VoiceOver: each tile is a button named by its tab's title, after its
+  workspace's name.
 
 ### How the miniatures draw
 
@@ -604,23 +604,30 @@ once.
   would). A window resize refits them 150 ms after it stops, as the cards do. No second surface, stream or copy;
   while the overview shows, the strip does not, so a terminal view is still in
   one place (D35). The strip's cards take their views back when it closes.
-- While the overview is open, every card of every session in it streams and
-  draws, also the tiles scrolled out of view and the other sessions' pages:
-  nothing in it is lazy, so each terminal view is in the window and has its
-  surface, and a tile scrolled or swiped into view shows its live screen at
-  once, with no fade (phase 28). On a remote machine every card's stream goes
-  through the relay's one SSH session ([SSH sessions](/docs/machines#ssh-sessions)).
-  Those are not visits: when the overview closes, a terminal shown only by it
-  goes back to where it was (its surface and stream let go) and the recently
-  shown set is unchanged (D46).
-- Cost: the user accepts the memory while it is open. Every card of the
-  window's sessions keeps a surface at its full card size (about 52 MB for a
-  full-window card on a Retina screen), so the cost follows the sessions.
-  Phase 27, lane O's scenario (17 cards, 8 printing; debug build, this Mac,
-  Retina): 166 MB and 1.4 % CPU with the strip; 902 MB and 16.7 % CPU with
-  all 17 laid out; 224 MB, 1.7 % and the strip's 4 herdr runs after it
-  closed. libghostty-spm takes its content scale only from the window, so
-  smaller surfaces for the miniatures would need a change there.
+- Live tiles are bounded (phase 28): the overview is lazy by row, so only the
+  tiles in or near view are made, and of those the most recently made stream
+  and draw, at most 24 cards (8 on a remote machine, whose streams share the
+  relay's one SSH session, [SSH sessions](/docs/machines#ssh-sessions)), plus
+  the selected tab's, which streams anyway. A tile scrolled away lets its
+  cards go. Those are not visits: when the overview closes, a terminal shown
+  only by it goes back to where it was (its surface and stream let go) and the
+  recently shown set is unchanged (D46).
+- Every other tile shows a snapshot: whenever a terminal stops drawing (it
+  leaves the strip's view or a live tile), the app keeps a small copy of its
+  last picture, at most 480 px wide (about 0.6 MB), for the 256 terminals that
+  stopped last. A tile scrolled into view shows its snapshot at once, and the
+  terminal in its place, with no fade, once it drew. A terminal never shown
+  shows the card's fill until it drew.
+- Cost: bounded by the cap, not by the session's size. A live card keeps a
+  surface at its full card size (about 52 MB for a full-window card on a
+  Retina screen); the snapshots add at most about 150 MB. Phase 27, lane O's
+  scenario (17 cards, 8 printing; debug build, this Mac, Retina): 166 MB and
+  1.4 % CPU with the strip; 902 MB and 16.7 % CPU with all 17 live; 224 MB,
+  1.7 % and the strip's 4 herdr runs after it closed. libghostty-spm takes its
+  content scale only from the window, so smaller surfaces for the miniatures
+  would need a change there. `scripts/overview-stress.py` fills a throwaway
+  session with 200 tabs for a check by hand; `testOverviewOfManyTabsStaysBounded`
+  measures 100 on CI.
 
 Options weighed: a second, small, observe-only surface per pane at a small
 font (a herdr run, a renderer and a font atlas per pane, and observe cannot
