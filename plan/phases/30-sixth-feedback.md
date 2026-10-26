@@ -57,6 +57,14 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
    If it only works with a system setting changed, say which, and show nothing in the UI about it (no hint
    text); the orchestrator tells the user.
 
+## Lane D: a tab dropped on New Workspace (item 9)
+
+9. Dragging a pane over the sidebar offers a New Workspace drop row; dragging a tab does not (phase 29
+   lane D refused it: "not asked"). Offer the same New Workspace row for a tab, and dropping there moves the
+   whole tab (terminals, split tree, ratios, label) into a new workspace: the first pane with
+   `pane.move {new_workspace}`, then the others as phase 29 lane D's `move(tab:to:)` does. Same in the
+   collapsed sidebar's workspace menu.
+
 ## Waiting on the user
 
 - Move Pane to Tab's tab list in the menu bar: lane S measured about 30 ms per key at 300 tabs (AppKit's
