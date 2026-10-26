@@ -56,21 +56,24 @@ extension KeyboardShortcut {
             return NSEvent.ModifierFlags(pairs.filter { modifiers.contains($0.0) }.map(\.1))
         }
 
+        /// The key event is this shortcut's: its modifiers, and its key with or without Shift's character (⇧⌘[ types
+        /// "{"). Tab by its key code: with Shift its character is backtab.
+        func matches(_ event: NSEvent) -> Bool {
+            let keys = event.keyCode == 48 ? "\t"
+                : (event.charactersIgnoringModifiers ?? "") + (event.characters(byApplyingModifiers: []) ?? "")
+            return event.modifierFlags.intersection([.command, .shift, .option, .control]) == modifierFlags
+                && keys.lowercased().contains(key.character)
+        }
+
         /// The second shortcut's key went down in an Oriel window: runs its first's command there, when enabled, and
         /// takes the key either way. A disabled Show Next Tab (one tab) let ⌃⇥ go on to AppKit's key view loop, which
         /// stepped the panes (phase 31). Whether it took the key.
         @MainActor static func second(_ event: NSEvent) -> Bool {
-            let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
-            // Tab by its key code: with Shift its character is backtab.
-            let key = event.keyCode == 48 ? KeyEquivalent.tab.character : event.charactersIgnoringModifiers?
-                .lowercased()
-                .first
-            guard let first = seconds
-                .first(where: { $0.second.modifierFlags == flags && $0.second.key.character == key })?.first,
-                let commands = CommandList.keyWindow else { return false }
+            guard let first = seconds.first(where: { $0.second.matches(event) })?.first,
+                  let commands = CommandList.keyWindow else { return false }
             // ⌃⇥ in a text field (the palette, a rename) does nothing: the tabs behind it must not move.
-            if key != KeyEquivalent.tab.character || !(NSApp.keyWindow?.firstResponder is NSText) {
-                commands.run(first)
+            if event.keyCode != 48 || !(NSApp.keyWindow?.firstResponder is NSText) {
+                commands.run { $0 == first }
             }
             return true
         }
@@ -116,20 +119,19 @@ extension KeyboardShortcut {
 
     @MainActor
     extension CommandList {
-        /// The key window's commands, now (phase 31): a key acts on the window it was pressed in. The menu bar's list
-        /// may be another window's a moment after a switch, and its actions act on that window. nil when the key window
-        /// has none (a sheet, no window).
+        /// The key window's commands, made when the key is pressed (phase 31): the menu bar's list may still be another
+        /// window's. nil without one (a sheet, no window).
         static var keyWindow: [Command]? {
             KeyWindowList.Holder.all.allObjects.first { $0.window?.isKeyWindow == true }?.commands?.menuBarList
         }
     }
 
     extension [Command] {
-        /// Runs the command on this key, when enabled.
-        func run(_ key: KeyboardShortcut) {
-            if let command = first(where: { $0.key == key }), command.enabled {
-                command.action()
-            }
+        /// Runs the command whose key `matches`, when enabled. Whether it ran.
+        @discardableResult func run(_ matches: (KeyboardShortcut) -> Bool) -> Bool {
+            guard let command = first(where: { $0.key.map(matches) == true }), command.enabled else { return false }
+            command.action()
+            return true
         }
     }
 
@@ -231,7 +233,8 @@ extension KeyboardShortcut {
         }
     }
 
-    /// The menu bar, drawn from the key window's command list; the shortcuts work wherever the keyboard is.
+    /// The menu bar, drawn from the focused window's command list; its keys run the key window's commands
+    /// (`CommandList.keyWindow`), wherever the keyboard is.
     struct AppCommands: Commands {
         @FocusedValue(\.commands) private var commands
         @Environment(\.openWindow) private var openWindow
@@ -242,15 +245,17 @@ extension KeyboardShortcut {
             // Every main window opens through it. `_ =` is no statement in a builder.
             // swiftlint:disable:next redundant_discardable_let
             let _ = (WindowPages.openWindow = openWindow)
-            // A key runs the key window's command for it, whichever window's list the menu bar holds.
+            // A key runs the key window's command for it, whichever window's list the menu bar holds; behind a sheet,
+            // none.
             let list = (commands ?? CommandList(settings: settings)).menuBarList.map { command in
-                guard let key = command.key else { return command }
                 var keyed = command
-                keyed.action = {
-                    if let live = CommandList.keyWindow {
-                        live.run(key)
-                    } else {
-                        command.action()
+                if let key = command.key {
+                    keyed.action = {
+                        if let live = CommandList.keyWindow {
+                            live.run { $0 == key }
+                        } else if NSApp.keyWindow?.sheetParent == nil {
+                            command.action()
+                        }
                     }
                 }
                 return keyed

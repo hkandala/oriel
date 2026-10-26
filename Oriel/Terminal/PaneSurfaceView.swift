@@ -147,9 +147,10 @@
                 window?.toggleFullScreen(nil)
             } else if hasMarkedText() || !event.modifierFlags.contains(.command) {
                 super.keyDown(with: event)
-            } else {
-                // A ⌘ key no menu item took (a disabled one, such as ⌘0 at the default size, or ⌘9 without a
-                // ninth tab): libghostty, with no key bindings, would type its character. AppKit's beep instead.
+            } else if CommandList.keyWindow?.run({ $0.matches(event) }) != true {
+                // A ⌘ key no menu item took runs the key window's command for it: the menu bar may still hold another
+                // window's list (a floating window's has no ⌘D). Else (⌘0 at the default size, ⌘9 without a ninth
+                // tab) libghostty, with no key bindings, would type its character: AppKit's beep instead.
                 NSSound.beep()
             }
         }
