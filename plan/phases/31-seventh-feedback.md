@@ -39,8 +39,8 @@ the end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the 
      the target (session and pane id, for example `oriel.float = pi-herd/<pane id>`) and a nonce.
    - **Oriel:** it already follows every shown session's events, over the relay for remote machines. On a
      float request token it opens that pane in its floating window (phase 28's `oriel://` path inside, on
-     the machine the event came from, loading a float-only page when the session has no page), then
-     answers on the same pane with an ack token carrying the nonce.
+     the machine the event came from, loading a float-only page when the session has no page). No ack
+     (below).
    - **No ack wait (user, 02:45):** waiting for an ack would slow herdr's own popup when Oriel is not
      attached and be flaky over slow links. Instead Oriel marks the panes it shows with a presence token
      (source `oriel`, for example `oriel.shown`, `ttl_ms` about 30 s, refreshed about every 10 s while
@@ -220,3 +220,50 @@ Capture F: `/Users/hkandala/Library/Application Support/scrawl/captures/scrawl-1
 - **For the user to check by hand:** zoom from the overview into a middle tab of `mira` (and a workspace switch to a
   workspace on a middle tab): the capsule on that tab at once. In a session with many workspaces, ⌃⌘[ ] and the
   overview to a row below the fold: the list scrolls just enough; the same in the Agents view.
+
+### Lane F (item 7)
+
+- **Spike** (herdr 0.9.5, `oriel-dev-31f-spike`). `pane.report_metadata` sends `pane.updated` with the whole pane,
+  `tokens` included, about 100 ms after the report, and again when a token expires (no `metadata_updated` for panes);
+  `pane.get` and `session.snapshot` list `tokens` too. The tokens are one map per pane by name, whatever the source: a
+  report changes only the names it gives (`null` clears one), so Oriel's never touch pi's display agent, title, state
+  labels or tokens; another source writing the same name overwrites it, and its expiry removes it. `ttl_ms` is per
+  token. Names `^[A-Za-z0-9_-]{1,32}$` (so `oriel-shown`, not `oriel.shown`), 16 per report (`invalid_metadata_token`),
+  32 per pane (`metadata_token_limit`), values cut to 80 characters.
+- **Protocol** (talking-to-herdr#float-requests, D50). Presence: Oriel reports `oriel-shown` = `1` (source `oriel`,
+  `ttl_ms` 30000) on every pane in view of a visible window (the shown tab of the page in view, and floats), on change,
+  again every 10 s, cleared when it leaves view, its page or window closes or hides, and at quit (up to 1 s, in
+  `applicationShouldTerminate`). Ask: pi-herd at a click reads its own pane (`pane.get` on its own socket); with
+  `oriel-shown` it reports `oriel-float` = `‹session›/‹pane›` and `oriel-float-id` = a UUID (`ttl_ms` 1000) and opens
+  nothing else; without it herdr's popup at once. Float: Oriel reads the request off the event (the one payload it
+  reads), once per nonce, and floats over the asking session's controller window (`oriel://float`'s path, a
+  float-only page when needed, on the event's machine).
+- **Deviations.** The first build had an ack (`oriel-float-ack`) and pi-herd waited 500 ms for it; replaced by
+  presence before the reviews (user, 02:45). The 10 s refresh is its own app-wide loop, not the git loop (a slow git
+  pass over ssh could outlast the 30 s mark).
+- **Left (reviews).** A float detached from a page that is not in view keeps its mark until the next snapshot or
+  refresh (Page.swift is at 399 lines; its stream did so before too). A pane herdr moves keeps its old mark until it
+  expires (the clear goes to the old id). Two Macs share `oriel-shown` (one's clear drops the other's until its
+  refresh) and both float a request. A request while the events stream reopens (agent panes changed) is lost: the
+  click does nothing. A click in herdr's own TUI on a pane Oriel also shows floats in Oriel. The hide path
+  (`visible` false) has no test; leave, detach, out of view and quit do.
+- **Reviews.** Ponytail: lean; took dropping `Equatable`, a plain loop for the marks, docs trims, the D50 typos and
+  Rejected column. Spec: 4 shoulds fixed (the refresh apart from git, marks cleared at quit, a nonce set instead of
+  the last nonce, tests for the detach and quit clears); nits taken: the controller window, empty session or pane
+  rejected, docs for the reopen gap, moved panes and two Macs.
+- **pi-herd** (pi-hkandala 9aa02d5, 522e6ca). `orielShows(socket, pane)` and `orielFloat(...)` in herdr.ts replace
+  `orielInFront` (lsappinfo) and `open -g oriel://float`; `attach` asks before the hidden-session refusal, so an
+  agent in the `pi-herd` session that Oriel shows floats too. `npm run check` green; both checked with node against
+  the spike session.
+- **Tests.** `testShownPanesAreMarkedAndAFloatRequestFloats` and `testARemoteMachinesPanesAreMarkedAndFloatThere`
+  (through CI's sshd, over the relay) share `markAndFloat`: a new tab's pane is marked, its request floats two's
+  w1:p1 (marked), Detach clears it, w1 clears the tab; the local one quits and finds w1:p1 cleared within 5 s. HerdrKit:
+  one request per nonce, never again, malformed targets dropped.
+- **CI.** 40303049900 (first build, the three float tests green, remote 16.6 s), 40304579954 (after the reviews, the
+  four float and URL tests green on 279dd60). Full suite 40305646647 on ce4ba95 (after 0417eb0, the lane's last code
+  commit): every float, URL and remote test green; red: `testClosingAPaneAsksUnlessOnlyItsShellRuns` and
+  `testOpenSessionStopsAndDeletesASession`, both at Return in a dialog (integration item 8).
+- **For the user to check by hand:** after `/reload` in pi, from a pi shown in Oriel (This Mac, or a remote host's
+  session), open an agent from the dashboard or pi-footer: it floats in Oriel, no herdr popup. The same pi in the
+  herdr TUI with Oriel showing another tab: herdr's popup at once. Quit Oriel: `herdr pane get <pane>` shows no
+  `oriel-shown` right after.
