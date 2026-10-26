@@ -76,6 +76,21 @@ Capture F: `/Users/hkandala/Library/Application Support/scrawl/captures/scrawl-1
     windows, floating windows, panels open, a window just made key, focus in a field. Tests for ⌃⇥ / ⌃⇧⇥
     in a tab with several panes, and for ⌘D with two windows after switching between them.
 
+## Lane O: overview session paging and one fade (items 14, 15)
+
+Capture G: `/Users/hkandala/Library/Application Support/scrawl/captures/scrawl-1793017285451-6f5d-15.scrawl`.
+Tab paging is good now (G #1).
+
+14. **Swiping between sessions in the overview still drops frames** (G #2 0:10). Profile it locally on a
+    Release build with real sessions of many tabs (scripts/stress.py), find what each frame waits on (the
+    next session page's lazy grid built during the slide, live tiles turning on, snapshots decoding, SwiftUI
+    layout of the whole page), and fix it: for example lay out the neighbor session pages before the swipe,
+    keep every tile on its snapshot during a slide and turn tiles live only after it lands, or draw the
+    sliding pages as cached pictures. A longer slide is the last resort, not the fix.
+15. **One fade after the overview** (G #4 0:39, #5 0:54): the sidebar and the tab bar fade in with the zoom,
+    but the tab bar's pill fades in on its own afterwards. All of them fade in together, in one shorter fade
+    (about 0.12 s, the zoom's length or less).
+
 ## Integration (items 8–10)
 
 8. **Return confirms the close dialog:** when closing a pane or tab asks first, Return does nothing and the
