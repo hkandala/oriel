@@ -19,7 +19,7 @@ extension KeyboardShortcut {
     static let bigger = KeyboardShortcut("+")
     static let findNext = KeyboardShortcut("g")
 
-    /// A command's second shortcut runs the menu item of its first (OrielApp's key monitor); the menu shows the first.
+    /// A command's second shortcut runs its first's command (OrielApp's key monitor); the menu shows the first.
     static let seconds: [(second: KeyboardShortcut, first: KeyboardShortcut)] = [
         (KeyboardShortcut("p", modifiers: [.command, .shift]), .palette),
         (KeyboardShortcut(.tab, modifiers: [.control, .shift]), .previousTab),
@@ -56,7 +56,9 @@ extension KeyboardShortcut {
             return NSEvent.ModifierFlags(pairs.filter { modifiers.contains($0.0) }.map(\.1))
         }
 
-        /// The second shortcut's key went down: runs the menu item of its first, when enabled. Whether it did.
+        /// The second shortcut's key went down in an Oriel window: runs its first's command there, when enabled, and
+        /// takes the key either way. A disabled Show Next Tab (one tab) let ⌃⇥ go on to AppKit's key view loop, which
+        /// stepped the panes (phase 31). Whether it took the key.
         @MainActor static func second(_ event: NSEvent) -> Bool {
             let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
             // Tab by its key code: with Shift its character is backtab.
@@ -65,30 +67,12 @@ extension KeyboardShortcut {
                 .first
             guard let first = seconds
                 .first(where: { $0.second.modifierFlags == flags && $0.second.key.character == key })?.first,
-                let item = NSApp.mainMenu?.item(first), item.isEnabled, let menu = item.menu,
-                // ⌃⇥ in a text field (the palette, a rename) stays the field's: the tabs behind it must not move.
-                key != KeyEquivalent.tab.character || !(NSApp.keyWindow?.firstResponder is NSText),
-                // Not behind a sheet (Go to Directory's open panel).
-                NSApp.keyWindow?.sheetParent == nil else { return false }
-            // Not `performKeyEquivalent` with a made-up event: AppKit did not match "]" with ⇧⌘ to ⇧⌘].
-            menu.performActionForItem(at: menu.index(of: item))
-            return true
-        }
-    }
-
-    private extension NSMenu {
-        func item(_ shortcut: KeyboardShortcut) -> NSMenuItem? {
-            for item in items {
-                if item.keyEquivalent == String(shortcut.key.character),
-                   item.keyEquivalentModifierMask == shortcut.modifierFlags
-                {
-                    return item
-                }
-                if let found = item.submenu?.item(shortcut) {
-                    return found
-                }
+                let commands = CommandList.keyWindow else { return false }
+            // ⌃⇥ in a text field (the palette, a rename) does nothing: the tabs behind it must not move.
+            if key != KeyEquivalent.tab.character || !(NSApp.keyWindow?.firstResponder is NSText) {
+                commands.run(first)
             }
-            return nil
+            return true
         }
     }
 
@@ -126,7 +110,45 @@ extension KeyboardShortcut {
                  page.map(ObjectIdentifier.init) as Any].map { String(describing: $0) }.joined(separator: " "),
                 page?.keyboardCard(page?.selectedTab?.id)?.id ?? "",
             ] + commands.menuBarList.map(\.shown)
-            return content.focusedSceneValue(\.commands, commands)
+            return content.focusedSceneValue(\.commands, commands).background(KeyWindowList(commands: commands))
+        }
+    }
+
+    @MainActor
+    extension CommandList {
+        /// The key window's commands, now (phase 31): a key acts on the window it was pressed in. nil when the key
+        /// window has none (a sheet, no window).
+        static var keyWindow: [Command]? {
+            KeyWindowList.Holder.all.allObjects.first { $0.window?.isKeyWindow == true }?.commands?.menuBarList
+        }
+    }
+
+    extension [Command] {
+        /// Runs the command on this key, when enabled.
+        func run(_ key: KeyboardShortcut) {
+            if let command = first(where: { $0.key == key }), command.enabled {
+                command.action()
+            }
+        }
+    }
+
+    /// The window's commands where a key finds them (`CommandList.keyWindow`).
+    private struct KeyWindowList: NSViewRepresentable {
+        let commands: CommandList
+
+        func makeNSView(context _: Context) -> Holder {
+            let holder = Holder()
+            Holder.all.add(holder)
+            return holder
+        }
+
+        func updateNSView(_ holder: Holder, context _: Context) {
+            holder.commands = commands
+        }
+
+        final class Holder: NSView {
+            static let all = NSHashTable<Holder>.weakObjects()
+            var commands: CommandList?
         }
     }
 

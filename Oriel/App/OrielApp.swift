@@ -15,8 +15,8 @@ struct OrielApp: App {
             NSWindow.allowsAutomaticWindowTabbing = false
             // Before any surface exists, so none starts at libghostty's default size.
             PaneTerminal.setFontSize(settings.fontSize)
-            // Second shortcuts (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=) run their first's menu item. A monitor sees them before any view:
-            // an invisible button's shortcut kept its first action (phase 11). A disabled item lets the key go on.
+            // Second shortcuts (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=) run their first's command. A monitor sees them before any view: an
+            // invisible button's shortcut kept its first action (phase 11).
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 MainActor.assumeIsolated { KeyboardShortcut.second(event) } ? nil : event
             }

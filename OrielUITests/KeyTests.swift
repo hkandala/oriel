@@ -74,6 +74,35 @@ extension OrielUITests {
         XCTAssertTrue(firstWindow.vanishes(within: 3))
     }
 
+    /// ⌃⇥ and ⌃⇧⇥ step the tabs, never the panes (user, phase 31): in a tab of three panes, also with one tab, where
+    /// they do nothing (AppKit's key view loop stepped the terminals).
+    func testControlTabStepsTabsNeverPanes() async throws {
+        let first = element("tab.w1:t1"), second = element("tab.w1:t2")
+        XCTAssertTrue(first.has(\.isSelected, true, within: connect))
+        let card = element("terminal.w1:p2")
+        card.click()
+        XCTAssertTrue(hasKeyboard(card))
+        for _ in 0 ..< 3 {
+            app.typeKey(.tab, modifierFlags: .control)
+            XCTAssertTrue(second.has(\.isSelected, true, within: 2))
+            app.typeKey(.tab, modifierFlags: [.control, .shift])
+            XCTAssertTrue(first.has(\.isSelected, true, within: 2))
+            XCTAssertTrue(hasKeyboard(card))
+        }
+        // A workspace of one tab and two panes: nothing moves.
+        let (tab, pane) = try await createWorkspace("one-tab")
+        let other = try await split(pane)
+        element("workspace.\(workspace(of: tab))").click()
+        XCTAssertTrue(element("terminal.\(other)").exists(within: 3))
+        element("terminal.\(pane)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        app.typeKey(.tab, modifierFlags: .control)
+        app.typeKey(.tab, modifierFlags: [.control, .shift])
+        app.typeKey(.tab, modifierFlags: .control)
+        XCTAssertFalse(until(1) { self.hasKeyboard(self.element("terminal.\(other)")) })
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+    }
+
     /// Holding ⌃⌘ shows the workspaces' jump keys at the end of their rows, as ⌘ does on the tabs.
     func testHoldingControlCommandShowsWorkspaceKeycaps() {
         let row = element("workspace.w2"), keycap = element("workspace.w2.keycap")
