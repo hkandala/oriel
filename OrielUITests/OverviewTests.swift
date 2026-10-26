@@ -113,14 +113,12 @@ extension OrielUITests {
         app.typeKey("o", modifierFlags: [.command, .control])
         let tile = try element("overview.tab.\(id(second, "tab"))")
         scrollOverview(to: tile)
+        // The second waits for the first's cards to draw, with a loader meanwhile.
+        XCTAssertTrue(try element("overview.tab.\(id(second, "tab")).loading").exists(within: 2))
         let cards = panes.map { element("overview.card.\($0)") }
-        var loaders = false
         try await poll("every card to draw", times: 150) { () -> Bool? in
-            let values = cards.map(\.stringValue)
-            loaders = loaders || values.contains("loading")
-            return values.allSatisfy { $0 == "live" || $0.hasPrefix("snapshot") } ? true : nil
+            cards.allSatisfy { !$0.stringValue.hasPrefix("loading") } ? true : nil
         }
-        XCTAssertTrue(loaders, "no loader while the tiles loaded")
     }
 
     /// The title row has the traffic lights and one × only; the grid (its first row's two tiles) is centered with wide
@@ -189,7 +187,8 @@ extension OrielUITests {
         for (index, tab) in tabs.enumerated() {
             var last = try await pane(of: tab)
             panes.append(last)
-            for _ in 0 ..< index % 3 {
+            // The second tab's one card is wide enough to tell its snapshot's size at 1x (below).
+            for _ in 0 ..< (index + 2) % 3 {
                 last = try await split(last)
                 panes.append(last)
             }
@@ -221,14 +220,14 @@ extension OrielUITests {
         XCTAssertLessThanOrEqual(helpers(scrolled), helpers(strip) + 16 + 2, scrolled)
         // Back up: the second tab's card, live on the way down, shows its snapshot or its terminal at once, never the
         // bare fill.
-        let card = element("overview.card.\(panes[1])")
+        let card = element("overview.card.\(panes[3])")
         scrollOverview(to: element("overview.tab.\(tabs[1])"), step: 3000, steps: 1)
         XCTAssertTrue(card.exists)
-        XCTAssertNotEqual(card.stringValue, "loading")
-        // A snapshot at the tile's pixel size (phase 30): "snapshot ‹width in pixels›".
-        if let width = Double(card.stringValue.dropFirst("snapshot ".count)) {
-            XCTAssertGreaterThanOrEqual(width, card.frame.width * (NSScreen.main?.backingScaleFactor ?? 1) - 2)
-        }
+        XCTAssertFalse(card.stringValue.hasPrefix("loading"), card.stringValue)
+        // Its snapshot at the tile's pixel size (phase 30): "‹live or snapshot› ‹its width in pixels›".
+        let width = Double(card.stringValue.split(separator: " ").last ?? "") ?? 0
+        XCTAssertGreaterThanOrEqual(width, card.frame.width * (NSScreen.main?.backingScaleFactor ?? 1) - 2,
+                                    card.stringValue)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
         try await poll("the overview's streams to end") { () async throws -> Int? in

@@ -29,7 +29,7 @@
         func hoverPanel(place: PanelPlace, action: String? = nil, enabled: Bool = true,
                         @ViewBuilder _ panel: @escaping (_ close: @escaping () -> Void) -> some View) -> some View
         {
-            modifier(HoverPanel(place: place, action: action, enabled: enabled, panel: panel))
+            modifier(HoverPanel(place: place, action: action, wanted: enabled, panel: panel))
         }
 
         /// Draws the open hover panel over this view, the window's content: no scroll view or mask around its
@@ -95,13 +95,19 @@
     private struct HoverPanel<Panel: View>: ViewModifier {
         let place: PanelPlace
         let action: String?
-        let enabled: Bool
+        let wanted: Bool
         let panel: (_ close: @escaping () -> Void) -> Panel
         @State private var open = false
         @State private var overTrigger = false
         @State private var overPanel = false
         @State private var pending: Task<Void, Never>?
         @State private var monitor: Any?
+        /// Off under the overview, which hides its trigger (`underOverview`).
+        @Environment(\.isEnabled) private var isEnabled
+
+        private var enabled: Bool {
+            wanted && isEnabled
+        }
 
         func body(content: Content) -> some View {
             content

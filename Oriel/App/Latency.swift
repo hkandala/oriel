@@ -129,13 +129,14 @@
             }
         }
 
-        /// What the key window shows, in short.
+        /// What the key window shows, in short; the overview too (its close: the zoom's 0.18 s, then the strip's turn).
         private var state: String {
-            guard let page = WindowPages.windows.first?.current else { return "" }
+            guard let pages = WindowPages.windows.first, let page = pages.current else { return "" }
             let workspace = page.selectedWorkspace, tab = page.selectedTab
             return [page.id, workspace?.id ?? "", tab?.id ?? "", workspace?.tabs.map(\.id).joined(separator: ",") ?? "",
                     tab?.tree?.paneIDs.joined(separator: ",") ?? "", page.zoomedPaneID ?? "",
-                    page.closing == nil ? "" : "closing", panel].joined(separator: " ")
+                    page.closing == nil ? "" : "closing", panel, pages.overview ? "overview" : ""]
+                .joined(separator: " ")
         }
 
         /// The sidebar's pages after a swipe's lift: their offset at each frame for 0.8 s, in ms from the lift; first

@@ -153,9 +153,8 @@
 
     extension View {
         /// The window's chrome (the sidebar, the title row) under the overview: laid out while it is open, hidden, so
-        /// it
-        /// fades in with the zoom; made once the zoom ended, it came a moment late in a big session (phase 30). `own`:
-        /// the overview's ×, the other way round.
+        /// it fades in with the zoom; made once the zoom ended, it came a moment late in a big session (phase 30).
+        /// `own`: the overview's ×, the other way round.
         func underOverview(_ pages: WindowPages, own: Bool = false) -> some View {
             modifier(UnderOverview(pages: pages, own: own))
         }
@@ -173,6 +172,8 @@
                 .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18), value: open)
                 .allowsHitTesting(open == own)
                 .accessibilityHidden(open != own)
+                // Out of the key view loop too: Tab would reach a hidden field.
+                .disabled(open != own)
         }
     }
 
@@ -237,26 +238,33 @@
         /// the session. A remote machine's cards share the relay's one SSH session: 6. The other tiles show their
         /// snapshot.
         func overviewCards(_ page: Page) -> [String: String] {
-            let tabs = (overviewTabs[page.id] ?? []).reversed().map { tab in
-                (page.store.tabPanes[tab] ?? []).filter { !page.floats($0) }
-                    .compactMap { pane in pane.terminalID.map { ($0, pane.id) } }
-            }
+            let tabs = (overviewTabs[page.id] ?? []).reversed().map { tileCards(page, $0) }
             // Those with a card that has no picture yet first (a loader shows there), so each tile in view gets one in
-            // turn (phase 30); one that drew lets go if another waits, and keeps its snapshot.
-            let drawn = { (tab: [(String, String)]) in
-                tab.allSatisfy { id, _ in
-                    page.terminals.terminals([id]).first
-                        .map { $0.snapshot != nil || $0.inView && $0.ready || $0.state.isFailed }
-                        ?? false
-                }
-            }
+            // turn (phase 30); one that drew lets go if another waits, and keeps its snapshot. Then the live ones, so
+            // the last turn does not start another.
+            let drawn = { (tab: [(String, String)]) in self.pictured(page, tab) }
+            let live = { (tab: [(String, String)]) in tab.allSatisfy { self.overviewLive.contains($0.0) } }
             var cards: [String: String] = [:]
-            for tabCards in tabs.filter({ !drawn($0) }) + tabs.filter(drawn) {
+            let waiting = tabs.filter { !drawn($0) }, shown = tabs.filter { drawn($0) && live($0) }
+            for tabCards in waiting + shown + tabs.filter({ drawn($0) && !live($0) }) {
                 // A tab over the cap alone still loads.
                 guard cards.isEmpty || cards.count + tabCards.count <= (machine.isRemote ? 6 : 16) else { continue }
                 cards.merge(tabCards) { first, _ in first }
             }
             return cards
+        }
+
+        /// A tab's cards in its tile (terminal id, pane id), as its miniature draws them: its zoomed card alone, no
+        /// floated one.
+        func tileCards(_ page: Page, _ tab: String) -> [(String, String)] {
+            let panes = (page.store.tabPanes[tab] ?? []).filter { !page.floats($0) }
+            let zoomed = panes.filter { $0.id == page.zoomedPaneID }
+            return (zoomed.isEmpty ? panes : zoomed).compactMap { pane in pane.terminalID.map { ($0, pane.id) } }
+        }
+
+        /// Each of these cards has a picture for its tile.
+        func pictured(_ page: Page, _ cards: [(String, String)]) -> Bool {
+            cards.allSatisfy { id, _ in page.terminals.terminals([id]).first?.pictured == true }
         }
 
         /// The tiles in view turn live 150 ms after the last change: while tiles keep coming (a scroll), none does (a

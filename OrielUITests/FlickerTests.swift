@@ -41,7 +41,7 @@ extension OrielUITests {
             // Its tile turns live and draws; Esc: it lets go and keeps its snapshot.
             app.typeKey("o", modifierFlags: [.command, .control])
             let card = element("overview.card.\(pane)"), tile = element("overview.tab.\(tab)")
-            XCTAssertTrue(card.has(\.stringValue, "live", within: 5), card.stringValue)
+            XCTAssertTrue(until(5) { card.stringValue.hasPrefix("live") }, card.stringValue)
             app.typeKey(.escape, modifierFlags: [])
             XCTAssertTrue(element("overview").vanishes(within: 2))
             try await Task.sleep(for: .seconds(2))

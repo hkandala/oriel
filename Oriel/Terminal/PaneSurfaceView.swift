@@ -23,6 +23,8 @@
         var onKeyboard: (() -> Void)?
         /// Return, with or without modifiers, not repeated.
         var onReturn: (() -> Void)?
+        /// Its window's overview tiles' scale of the strip's page: its snapshot's (`takeSnapshot`).
+        var tileScale: () -> CGFloat = { 0.35 }
         /// The surface's last picture while it has none (`free`), and over a new surface until that draws.
         var still: CALayer?
         var stillWatch: NSKeyValueObservation?

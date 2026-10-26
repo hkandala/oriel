@@ -54,8 +54,13 @@
                     }
                 }
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { area = $0 }
-                // None under the overview, which takes its own swipes.
-                .background(ScrollAnchor(step: step, drag: drag, lift: lift, area: pages.overview ? .zero : area))
+                // Not under the overview, which takes its own swipes.
+                .background(ScrollAnchor(
+                    step: step,
+                    drag: pages.overview ? nil : drag as (Double, Bool) -> Void,
+                    lift: lift,
+                    area: area,
+                ))
                 // A dot, a key, a new page or the sheet: slide there with the session spring. A swipe is there already.
                 .onChange(of: pages.list.map(\.id) + [pages.current?.id ?? ""], initial: true) { old, new in
                     guard let index = pages.list.firstIndex(where: { $0 === pages.current }),

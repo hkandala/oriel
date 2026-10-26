@@ -83,9 +83,9 @@
                 inks[key] = ink
                 return ink
             }
-            let still = view.still.flatMap { $0 !== view.layer && $0.superlayer != nil ? $0 : nil }
             return Sample(ink: ink, fading: view.layer?.animation(forKey: "reveal") != nil,
-                          small: still?.small(in: view) == true,
+                          small: view.still.map { $0 !== view.layer && $0.superlayer != nil && $0.small(in: view) }
+                              ?? false,
                           topLeft: view.convert(view.bounds, to: nil).integral.topLeft)
         }
 

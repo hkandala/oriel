@@ -32,6 +32,8 @@
         @ObservationIgnored var overviewTabs: [String: [String]] = [:]
         @ObservationIgnored var overviewSettling: Task<Void, Never>?
         private(set) var overviewLive: Set<String> = []
+        /// The overview's tiles' scale of the strip's page, from their last layout: a third until one laid out.
+        @ObservationIgnored var tileScale: CGFloat = 0.35
         /// What to do once the overview's zoom ends (`afterOverview`).
         @ObservationIgnored var afterOverview: (() -> Void)?
         /// A floating panel (the palette, the shortcuts) is open: its Esc is its own.

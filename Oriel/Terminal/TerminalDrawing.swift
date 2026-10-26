@@ -92,21 +92,22 @@
 
     /// The overview's snapshots (phase 28): a tile that is not live shows its terminal's last picture, at the tile's
     /// pixel size (phase 30: 360 px wide blurred on Retina, then sharpened as it turned live), so one scrolled into
-    /// view
-    /// shows at once, with no fade, until it is live. An IOSurface: Core Animation shows it without a copy of its own
-    /// (a
-    /// `CGImage` doubled the memory, phase 28 on Retina).
+    /// view shows at once, with no fade, until it is live. An IOSurface: Core Animation shows it without a copy of its
+    /// own (a `CGImage` doubled the memory, phase 28 on Retina).
     extension PaneTerminal {
         /// Least recently taken first out, past 100 MB (lane P): a full-window card's is about 1.3–1.7 MB on Retina.
         @MainActor static var snapshots: [PaneTerminal] = []
-        /// The overview's tiles' scale of the strip's page, from their last layout (`Overview`); until one laid out,
-        /// more than any tile's.
-        @MainActor static var tileScale: CGFloat = 0.5
         private static let context = CIContext(options: [.cacheIntermediates: false])
 
+        /// It has a picture for a tile: a snapshot, or it is live and drew (or failed, and shows why in its card).
+        var pictured: Bool {
+            snapshot != nil || inView && ready || state.isFailed
+        }
+
         func takeSnapshot() {
-            guard let surface = view.picture as? IOSurface, !surface.emptied else { return }
-            let space = IOSurfaceCopyValue(surface, kIOSurfaceColorSpace), scale = min(1, Self.tileScale)
+            // Not of its snapshot standing in for a tile that has not drawn: it would shrink at each turn.
+            guard let surface = view.picture as? IOSurface, !surface.emptied, surface !== snapshot else { return }
+            let space = IOSurfaceCopyValue(surface, kIOSurfaceColorSpace), scale = min(1, view.tileScale())
             // Bilinear: Lanczos cost a few ms more on every tab switch, for a picture shown a moment.
             let image = CIImage(ioSurface: surface).transformed(by: CGAffineTransform(scaleX: scale, y: scale))
             let size = image.extent.integral
@@ -123,7 +124,13 @@
             Self.snapshots.removeAll { $0 === self }
             Self.snapshots.append(self)
             while Self.snapshots.reduce(0, { $0 + ($1.snapshot?.allocationSize ?? 0) }) > 100 << 20 {
-                Self.snapshots.removeFirst().snapshot = nil
+                let old = Self.snapshots.removeFirst()
+                // Its still waiting for the next surface (`dropPicture`) goes too, unless it shows now.
+                if let still = old.view.still, still.superlayer == nil, still.contents as AnyObject? === old.snapshot {
+                    old.view.still = nil
+                    old.revealed = false
+                }
+                old.snapshot = nil
             }
         }
     }
@@ -217,8 +224,11 @@
         /// (phase 30: a card showed blurred, then sharp): the card shows its fill, and its terminal fades in when it
         /// draws, as a first one.
         func dropSmallStill() {
-            guard !(superview is MiniTerminal.Mini), let still, still !== layer, still.small(in: self) == true
-            else { return }
+            // Only a snapshot's (stretched): a full-size still of a card that grew meanwhile shows its old picture as
+            // it
+            // was, unscaled.
+            guard !(superview is MiniTerminal.Mini), let still, still !== layer, still.contentsGravity == .resize,
+                  still.small(in: self) else { return }
             still.removeFromSuperlayer()
             self.still = nil
             stillWatch = nil
@@ -288,9 +298,10 @@
     }
 
     extension CALayer {
-        /// Its picture is narrower than the view's pixels; nil out of a window.
-        func small(in view: NSView) -> Bool? {
-            guard let scale = view.window?.backingScaleFactor, let surface = contents as? IOSurface else { return nil }
+        /// Its picture is narrower than the view's pixels (not known out of a window).
+        func small(in view: NSView) -> Bool {
+            guard let scale = view.window?.backingScaleFactor,
+                  let surface = contents as? IOSurface else { return false }
             return CGFloat(surface.width) < view.bounds.width * scale - 1
         }
     }

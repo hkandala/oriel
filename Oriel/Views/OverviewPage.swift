@@ -77,6 +77,7 @@
         var body: some View {
             let selected = page.selectedTabIDs[workspace.id] == tab.id
             let state = tab.agent?.state
+            let loading = !zooming && !pages.pictured(page, pages.tileCards(page, tab.id))
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     IconStack(panes: page.stack(tab), badge: state)
@@ -102,10 +103,18 @@
                         Miniature(tab: tab, page: page, size: size, live: pages.overviewLive)
                     }
                 }
+                // A card with no picture yet (never drawn, or its snapshot gone): it loads in turn (`overviewCards`).
+                .overlay {
+                    if loading {
+                        Waiting().accessibilityIdentifier("overview.tab.\(tab.id).loading")
+                    }
+                }
+                // It drew: a tile waiting loads.
+                .onChange(of: loading) { pages.settleOverview() }
                 .aspectRatio(size, contentMode: .fit)
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Overview.space)) } action: {
                     frames.rects["\(page.id) \(tab.id)"] = $0
-                    PaneTerminal.tileScale = $0.width / size.width
+                    pages.tileScale = $0.width / size.width
                 }
                 .padding([.horizontal, .bottom], gap)
             }
