@@ -22,7 +22,14 @@
             let git = workspace.git
             let state = workspace.state
             let height: CGFloat = git == nil ? 30 : 44
-            Button { page.select(workspace) } label: {
+            Button {
+                page.select(workspace)
+                // AppKit's double-click, counted from the events' times: SwiftUI's TapGesture(count: 2) missed one
+                // while the app was busy drawing the first click's selection (phase 31).
+                if let event = NSApp.currentEvent, event.type == .leftMouseUp, event.clickCount == 2 {
+                    startRenaming()
+                }
+            } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         StateIcon(state: state)
@@ -54,7 +61,6 @@
                 .frame(maxWidth: .infinity, minHeight: height, maxHeight: height, alignment: .leading)
             }
             .buttonStyle(ChromeStyle(selected: selected, radius: 10))
-            .simultaneousGesture(TapGesture(count: 2).onEnded { startRenaming() })
             .dragSource(.workspace(workspace.id), page: page)
             .accessibilityIdentifier("workspace.\(workspace.id)")
             .accessibilityAddTraits(selected ? .isSelected : [])
