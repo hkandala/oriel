@@ -53,7 +53,7 @@ extension OrielUITests {
     }
 
     /// A sideways swipe over the sidebar pages it and never the strip; over a card it pages the strip and never the
-    /// sidebar. In the Agents view it shows the other page's agents.
+    /// sidebar. In the Agents view, with its header in the same place, it shows the other page's agents.
     func testSwipesPageTheSidebarAndTheStripApart() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openPage(two)
@@ -76,8 +76,11 @@ extension OrielUITests {
         })
         XCTAssertEqual(header.stringValue, one)
 
+        let place = header.frame.origin
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(element("agents.sort").exists(within: 2))
+        // The name stays where the workspaces view has it (it moved up and left, phase 33).
+        XCTAssertEqual(header.frame.origin, place)
         try await swipe(sidebar, until: header, \.stringValue, two)
     }
 

@@ -149,12 +149,11 @@ extension OrielUITests {
         XCTAssertEqual(groups.map(\.label), ["Needs you 1", "Working 1", "Done 1", "Idle 1"])
         let tops = zip(groups, rows).flatMap { [$0.frame.minY, $1.frame.minY] }
         XCTAssertEqual(tops, tops.sorted())
-        // One leading edge: the header's text, the group labels and the row icons (8 pt into each row); the sort
-        // label's text (8 pt into its capsule) ends where the rows' times do (8 pt before each row's end).
+        // One leading edge: the group labels and the row icons (8 pt into each row); the sort label's text (8 pt
+        // into its capsule) ends where the rows' times do (8 pt before each row's end).
         let header = element("sidebar.header").frame, sort = element("agents.sort").frame
         let frames = "header \(header), sort \(sort), group \(groups[0].frame), row \(rows[0].frame)"
-        XCTAssertEqual(header.minX, rows[0].frame.minX + 8, accuracy: 0.5, frames)
-        XCTAssertEqual(groups[0].frame.minX, header.minX, accuracy: 0.5, frames)
+        XCTAssertEqual(groups[0].frame.minX, rows[0].frame.minX + 8, accuracy: 0.5, frames)
         XCTAssertEqual(sort.maxX, rows[0].frame.maxX, accuracy: 0.5, frames)
         // The name is the title, the rows' size, larger than the section labels; each group has room above it.
         XCTAssertGreaterThan(header.height, groups[0].frame.height, frames)

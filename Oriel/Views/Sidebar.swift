@@ -118,6 +118,8 @@ private struct SidebarPage: View {
                 Text(store.title).truncationMode(.middle)
                     .font(.system(size: 13, weight: .bold)).foregroundStyle(.primary).lineLimit(1)
                     .accessibilityIdentifier("sidebar.header")
+                    // The `+`'s height in both views, so the name stays put by the shorter sort capsule (phase 33).
+                    .frame(height: 28)
                 Spacer()
                 if let agents {
                     SortMenu(sort: agents)
@@ -136,8 +138,8 @@ private struct SidebarPage: View {
                         .clearsDrop(page) { plus = false }
                 }
             }
-            // Agents view: the name starts where the group labels and row icons do (rows' insets, 8 pt padding).
-            .padding(.leading, agents == nil ? 22 : Sidebar.rowInsets.leading + 8)
+            // The same in both views (it moved 4 pt left in the Agents view, user, phase 33).
+            .padding(.leading, 22)
             // The `+` and the sort capsule end where the rows do: the sort label's text where the times end.
             .padding(.trailing, Sidebar.rowInsets.trailing)
             // Rex's first row sits 31.5 pt below the header's baseline.
