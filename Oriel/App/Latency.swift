@@ -72,8 +72,8 @@
             }
             let line = "main \(Int(busy * 1000))ms \(Int(longest * 1000))ms \(snapshots) \(Int(applying * 1000))ms"
             recorded.append(line)
-            // Also for a run by hand, without an accessibility client's queries on the main thread.
-            print(line)
+            // Also for a run by hand, without an accessibility client's queries on the main thread; unbuffered.
+            FileHandle.standardError.write(Data("\(line)\n".utf8))
             (busy, longest, snapshots, applying) = (0, 0, 0, 0)
         }
 
