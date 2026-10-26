@@ -130,6 +130,10 @@ struct Notice {
                             .accessibilityIdentifier("notice.close")
                     }
                     .accessibilityIdentifier("detail.notice")
+                    // By id: the same text again is a new notice.
+                    .onChange(of: notice.id, initial: true) {
+                        AccessibilityNotification.Announcement(notice.text).post()
+                    }
                 }
                 // Another window controls the session (D66). Under a notice; no ✕: only Take Back ends it.
                 if page.watched {
