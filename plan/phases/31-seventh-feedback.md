@@ -267,3 +267,72 @@ Capture F: `/Users/hkandala/Library/Application Support/scrawl/captures/scrawl-1
   session), open an agent from the dashboard or pi-footer: it floats in Oriel, no herdr popup. The same pi in the
   herdr TUI with Oriel showing another tab: herdr's popup at once. Quit Oriel: `herdr pane get <pane>` shows no
   `oriel-shown` right after.
+
+### Lane M (items 11, 12)
+
+- **Item 11, root causes** (capture F frame by frame, the screen recording's own frame times; an offscreen probe app
+  of a paged `ScrollView`; lane G's `page` records). Two, each a cut:
+  1. **The landing ran at the lift.** `withAnimation(_, completionCriteria: .logicallyComplete)` around
+     `ScrollPosition.scrollTo` completes at once for a scroll (probe: 8 ms after the lift, in the slide's first
+     frame; `.idle` came at full rest). So `Paging`'s landing (select the tab: its terminals stream, the keyboard; in
+     the overview `pages.show`: the session's title row and sidebar, its live tiles) ran in the first frame and held it:
+     CI (40299936835) drew the first frame after the lift 54–149 ms late; this Mac (Release-like Debug, 120 Hz) 57 ms,
+     then 504 pt in one frame. The docs already said "shown at the lift, its first draw held the slide still (phase
+     27)": `.logicallyComplete` looked like the sidebar's fix but is not one for a scroll.
+  2. **The 0.2 s spring from a slow lift lurched.** In F (0:21.4, the strip) the fingers moved the page 54, 38, 27 pt a
+     frame (about 1.6k pt/s at the lift); the next frames moved 360, 363, 189, 201 pt (up to 21k pt/s): most of a page
+     in four frames, the spring's own path (a critically damped 0.2 s spring peaks at ω·d/e ≈ 15k pt/s over a page).
+     The overview at 0:54.5 is the same, 84 % of a page in the first frame after the lift.
+  **Fix** (475bc36, 5a38d2b): `Paging.slide`, a cubic whose x is linear: its first slope is the fingers' speed, it
+  speeds up only as much as 0.28 s needs and eases out (slope 2, a plain ease-out, when their speed covers the rest
+  sooner: duration `min(0.28, 2d/v)`). The landing runs from `laid` once the pages are within 1 pt of the page
+  (`landing`, cleared by a drag; the page's offset as laid out then, so a resize mid-slide still lands). Not changed:
+  the sidebar's session pages keep the session spring (not reported; they animate an offset, where
+  `.logicallyComplete` works).
+- **Numbers** (`page` records, ms:pt from the lift; 420 pt swipe at 1875 pt/s unless noted):
+
+  | | Before | After |
+  |---|---|---|
+  | CI strip: first frame after the lift | 103 ms, 303 pt of 372 at once | 35 ms, 27 pt; largest step 78 pt in 51 ms; landed 284 ms |
+  | CI flick back 140 pt at 625 pt/s | 54 ms, then 307 pt in one frame | 17 ms; largest 105 pt in 34 ms; landed 336 ms |
+  | CI overview: first frame | 149 ms, 567 pt of 604 at once | 17 ms, 6 pt; largest 100 pt in 31 ms; landed 304 ms |
+  | CI overview flick back | 76 ms, 574 pt at once | 17 ms; largest 163 pt in 33 ms; landed 308 ms |
+  | This Mac, strip (page 1324 pt) | 11:443, **68:947**, 111:1196, 147:1274, 211:1313 | a frame every 8–9 ms: 9:427, 28:467, 50:541 … 262:1479, 286:1496 (page 1496) |
+  | This Mac, overview (page 1728 pt) | (same stall) | 9:428, 17:447, 28:470 … largest step 137 pt in 19 ms; at rest 301 ms |
+  | Landing (tab selected / session shown) | at the lift (16–20 ms) | 269–301 ms, within 1 pt of the page |
+
+- **Item 12, root cause.** The pill sits at `page.stripPage`, the strip's offset. Under the overview there is no
+  strip; a tab chosen there changed the selection but not `stripPage`, so the title row faded in with the pill (and
+  the lit title) on the tab selected before, and the new strip's geometry moved it a turn after the zoom (F 1:31:
+  "video" for 0.2 s, then "long horizon"). **Fix** (bab0811, 5a38d2b): no pill while the overview is open (the lit
+  title is the selected tab's); `closeOverview` sets `stripPage` to the selected tab before the strip comes back, and
+  the pill fades in there over 0.18 s (the user's idea).
+- **Tests.** `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` (lane G's, `swipeLands`): the landing comes once
+  the pages are within 2 pt (the record's 4th field, `Latency.shown` now also for `page`), and no frame's step
+  exceeds 1.5 × max(the fingers' speed, 1.5 × distance / 0.3 s) over its own Δt (17 ms floor) + 2 pt. Both by the
+  slide's own frames and times, so a frame CI's VM skips does not count (no bare "first frame < 60 ms": integration's
+  ask). `testTheCapsuleRestsOnTheTabShownHoweverItShows` launches with `-recordLatency` and asserts no "pill <tab> 2"
+  note after the zoom (`TabBar.marker` notes the pill shown at rest on a tab other than the selected one). Both red
+  on the old code (CI 40308630278 on a throwaway tag: "shown at 16 ms, before the pages arrived … 0:420,185:783", and
+  `["pill 0.0 2"]`; this Mac the same for the swipe), green on the new code on this Mac.
+- **Reviews (one round).** Spec: the model-value pill note fired at the overview's close on the stale `stripPage`
+  (would have been red) and the fade animated the pill's place; fixed at the source (`closeOverview` sets the page;
+  the animation covers the opacity only). The landing keyed to the page index, not a fixed offset; the immediate
+  landing within the same 1 pt; comments, docs. Ponytail: the Animatable `Marker` replaced by an `onChange` note,
+  `Latency.shown` keys on the record's name, one `Page.selectedIndex(in:)` (Page.step, Strip, TabBar).
+  Not done: a slide's landing is dropped when its view goes away within the 0.28 s (⌃⌘O, a three-finger step) —
+  the page the fingers chose is not selected then; and during the slide keys still act on the tab or session before
+  it (as the sidebar since phase 27).
+- **Learned.** `.logicallyComplete` completes at once for an animated `ScrollPosition.scrollTo`: time a scroll's end
+  from its geometry (or `.idle`, at full rest). A spring's look depends on the distance: a 0.2 s response over a
+  1500 pt page is a 15k pt/s lurch; to start from the fingers' speed and stay quick, a timing curve with a matched
+  first slope. Lane G's "geometry reports only some frames of an animated scroll" were frames not drawn.
+- **For the user to check by hand:** a quick two-finger flick between tabs and between sessions in the overview: the
+  page leaves at the fingers' speed and glides in, no jump, on the page about 0.28 s after the lift; a slow drag and
+  lift the same; choose a tab in the overview (one that is not the selected one): the tab bar comes back with no
+  pill, and the pill fades in on the chosen tab. Not changed: the sidebar's session swipe (the spring).
+- **Commits.** 475bc36 (paging), bab0811 (pill), 59d1fcd (docs), fac75fd, 5a38d2b (review fixes).
+- **CI.** Old code on a throwaway tag: 40308630278 (both tests red, above). Full suite 40311050579 on b9d6847 (has
+  5a38d2b, the lane's last code commit): shards 0–3 green, both lane M tests and `testSwitchingTabsShowsTheirPageAtOnce`
+  green; red only `testLayoutMotionAnimatesWithoutBlanking` (RevealTests, its `fill` step: a pane read timed out with
+  the text on the pane, not paging or the pill). The push runs on 5a38d2b were cancelled by later pushes.
