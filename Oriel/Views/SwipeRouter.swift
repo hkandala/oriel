@@ -68,8 +68,6 @@
                     picked = true
                     if abs(deltaX) > abs(deltaY) {
                         pager = anchors.allObjects.first { $0.contains(event) }
-                        Latency.shared.note("pick \(pager != nil) \(anchors.allObjects.map { "\($0.area)" }) "
-                            + "\(event.locationInWindow) \(event.window?.contentView?.bounds.height ?? -1)")
                         pager?.drag?(sideways, true)
                         target = pager == nil ? scrollView(event) : nil
                     }
@@ -186,6 +184,50 @@
             override func hitTest(_: NSPoint) -> NSView? {
                 nil
             }
+        }
+    }
+
+    /// Where the sidebar's session pages are: `slide` is observed only by `Pager`, so a swipe's moves redraw nothing
+    /// else; `moving` by the sidebar, which lays out the other pages only then.
+    @MainActor @Observable
+    final class Swipe {
+        /// In pages from the first: where the fingers hold them, else where they slide to or rest.
+        var slide = 0.0
+        /// In points, as last drawn: mid-slide, where a new swipe takes the pages from.
+        @ObservationIgnored var drawn = 0.0
+        /// The fingers hold the pages, or they slide.
+        var moving = false
+        /// Counts the moves, so only the latest one's end sets the pages at rest.
+        @ObservationIgnored var moves = 0
+    }
+
+    /// The pages side by side, the one at `swipe.slide` in view.
+    struct Pager<Content: View>: View {
+        let swipe: Swipe
+        let width: Double
+        @ViewBuilder let content: Content
+
+        var body: some View {
+            content.modifier(Slid(offset: swipe.slide * width, swipe: swipe))
+                .frame(width: width, alignment: .leading)
+                .frame(maxHeight: .infinity)
+                .clipped()
+        }
+    }
+
+    /// The pages' offset, animatable, so a test can read it at each frame of a slide.
+    private struct Slid: ViewModifier, Animatable {
+        var offset: Double
+        let swipe: Swipe
+        var animatableData: Double {
+            get { offset }
+            set { offset = newValue }
+        }
+
+        func body(content: Content) -> some View {
+            swipe.drawn = offset
+            Latency.shared.slid(offset)
+            return content.offset(x: -offset)
         }
     }
 #endif

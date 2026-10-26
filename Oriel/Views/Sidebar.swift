@@ -16,7 +16,6 @@
         let openSession: () -> Void
         @SceneStorage("agentSort") private var sort = AgentSort.priority
         @State private var filter = ""
-        /// Where the pages are: observed only by `Pager`, so a swipe's moves redraw nothing else.
         @State private var swipe = Swipe()
         /// The pages' frame in the window, for the router.
         @State private var area = CGRect.zero
@@ -39,14 +38,19 @@
             VStack(spacing: 0) {
                 Pager(swipe: swipe, width: width - gap) {
                     HStack(spacing: 0) {
+                        // The other pages only while the pages move: at rest they would lie over the strip, in the
+                        // sidebar's accessibility frame and in AppKit's hit tests.
                         ForEach(pages.list) { page in
-                            SidebarPage(page: page, pages: pages, filter: filter, agents: agents ? $sort : nil)
-                                .frame(width: width - gap)
-                                // Only the page in view, for VoiceOver, the tests and clicks: the others are off to the
-                                // side, over the strip.
-                                .accessibilityHidden(page !== pages.current)
-                                .allowsHitTesting(page === pages.current)
-                                .environment(\.offscreen, page !== pages.current)
+                            Group {
+                                if page === pages.current || swipe.moving {
+                                    SidebarPage(page: page, pages: pages, filter: filter, agents: agents ? $sort : nil)
+                                        .accessibilityHidden(page !== pages.current)
+                                        .allowsHitTesting(page === pages.current)
+                                        .environment(\.offscreen, page !== pages.current)
+                                        .transition(.identity)
+                                }
+                            }
+                            .frame(width: width - gap)
                         }
                     }
                 }
@@ -54,9 +58,10 @@
                 .background(ScrollAnchor(step: step, drag: drag, lift: lift, area: area))
                 // A dot, a key, a new page or the sheet: slide there with the session spring. A swipe is there already.
                 .onChange(of: pages.list.map(\.id) + [pages.current?.id ?? ""], initial: true) { old, new in
-                    guard let index = pages.list.firstIndex(where: { $0 === pages.current }) else { return }
+                    guard let index = pages.list.firstIndex(where: { $0 === pages.current }),
+                          swipe.slide != Double(index) else { return }
                     let slides = old.last != new.last && !(reduceMotion && !Animation.forceMotion)
-                    withAnimation(slides ? .session() : nil) { swipe.slide = Double(index) }
+                    slide(to: index, with: slides ? .session() : nil)
                 }
                 if pages.list.count > 1 {
                     PageDots(pages: pages)
@@ -282,44 +287,6 @@
         }
     }
 
-    @MainActor @Observable
-    private final class Swipe {
-        /// In pages from the first: where the fingers hold them, else where they slide to or rest.
-        var slide = 0.0
-        /// In points, as last drawn: mid-slide, where a new swipe takes the pages from.
-        @ObservationIgnored var drawn = 0.0
-    }
-
-    /// The pages side by side, the one at `swipe.slide` in view.
-    private struct Pager<Content: View>: View {
-        let swipe: Swipe
-        let width: Double
-        @ViewBuilder let content: Content
-
-        var body: some View {
-            content.modifier(Slid(offset: swipe.slide * width, swipe: swipe))
-                .frame(width: width, alignment: .leading)
-                .frame(maxHeight: .infinity)
-                .clipped()
-        }
-    }
-
-    /// The pages' offset, animatable, so a test can read it at each frame of a slide.
-    private struct Slid: ViewModifier, Animatable {
-        var offset: Double
-        let swipe: Swipe
-        var animatableData: Double {
-            get { offset }
-            set { offset = newValue }
-        }
-
-        func body(content: Content) -> some View {
-            swipe.drawn = offset
-            Latency.shared.slid(offset)
-            return content.offset(x: -offset)
-        }
-    }
-
     extension Sidebar {
         /// The router's moves of a sideways swipe (in points, toward later pages): the pages follow the fingers from
         /// where they are drawn (a slide stops), and stop at the first and last page. Not under a panel (the palette,
@@ -327,6 +294,10 @@
         private func drag(_ delta: Double, first: Bool) {
             guard !pages.panelOpen else { return }
             let width = max(width - gap, 1), last = Double(max(pages.list.count - 1, 0))
+            if first {
+                swipe.moves += 1
+                swipe.moving = true
+            }
             swipe.slide = min(max((first ? swipe.drawn / width : swipe.slide) + delta / width, 0), last)
         }
 
@@ -349,22 +320,36 @@
             guard pages.list.indices.contains(index) else { return }
             let target = pages.list[index]
             Latency.shared.lifted(page * width)
-            guard !reduceMotion || Animation.forceMotion else {
-                swipe.slide = Double(index)
-                if target !== pages.current {
-                    pages.show(target)
-                }
-                return
-            }
             // Shown once the slide looks done, not in its long tail; first drawn at the lift, the session held the
-            // slide's first frames (phase 27). Not if another swipe took the pages meanwhile.
-            let spring = Animation.session(speed: speed / width, distance: Double(index) - page)
-            withAnimation(spring, completionCriteria: .logicallyComplete) {
-                swipe.slide = Double(index)
-            } completion: {
-                if swipe.slide == Double(index), target !== pages.current {
+            // slide's first frames (phase 27).
+            let still = reduceMotion && !Animation.forceMotion
+            slide(to: index, with: still ? nil : .session(speed: speed / width, distance: Double(index) - page)) {
+                if target !== pages.current {
                     Latency.shared.shown()
                     pages.show(target)
+                }
+            }
+        }
+
+        /// The pages slide to the page at `index` (or go, with no animation); `then` runs as they arrive, unless
+        /// another move took them meanwhile.
+        private func slide(to index: Int, with animation: Animation?, then: @escaping () -> Void = {}) {
+            swipe.moves += 1
+            let move = swipe.moves
+            // No move (a flick at the first or last page), no animation: it might never end.
+            guard let animation, swipe.slide != Double(index) else {
+                swipe.slide = Double(index)
+                swipe.moving = false
+                then()
+                return
+            }
+            withAnimation(animation, completionCriteria: .logicallyComplete) {
+                swipe.moving = true
+                swipe.slide = Double(index)
+            } completion: {
+                if swipe.moves == move {
+                    swipe.moving = false
+                    then()
                 }
             }
         }
