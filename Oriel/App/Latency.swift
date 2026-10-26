@@ -20,7 +20,8 @@
 
     /// e2e (`-recordLatency YES`): for each key or click, the time from the event to the end of the run loop turn whose
     /// Core Animation commit drew a change of the key window (its page, workspace, tab, tabs, cards, panel or dialog),
-    /// and how many turns that took: "⌘T 12ms 0" (phase 25).
+    /// how many turns that took, and the time from the app taking the event to that end: "⌘T 12ms 0 9ms" (phase 25;
+    /// the last since phase 29: an accessibility client's queries can hold the event back for seconds).
     @MainActor @Observable
     final class Latency {
         static let shared = Latency()
@@ -31,6 +32,8 @@
         @ObservationIgnored private var pending: Pending?
         private struct Pending {
             let name: String, time: TimeInterval, state: String
+            /// When the app took the event: what came before is waiting (another app's queries, an earlier turn).
+            let taken = ProcessInfo.processInfo.systemUptime
             var turns = 0
         }
 
@@ -71,10 +74,15 @@
                 self.awake = now
             }
             let line = "main \(Int(busy * 1000))ms \(Int(longest * 1000))ms \(snapshots) \(Int(applying * 1000))ms"
-            recorded.append(line)
-            // Also for a run by hand, without an accessibility client's queries on the main thread; unbuffered.
-            FileHandle.standardError.write(Data("\(line)\n".utf8))
+            record(line)
             (busy, longest, snapshots, applying) = (0, 0, 0, 0)
+        }
+
+        /// In `recorded`, and on stderr (unbuffered) for a run by hand: there no accessibility client's queries take
+        /// the main thread.
+        private func record(_ line: String) {
+            recorded.append(line)
+            FileHandle.standardError.write(Data("\(line)\n".utf8))
         }
 
         /// A snapshot's apply on the main thread, from `start` on.
@@ -89,7 +97,7 @@
         @ObservationIgnored private var longest = 0.0
         @ObservationIgnored private var applying = 0.0
         @ObservationIgnored private var snapshots = 0
-        @ObservationIgnored private lazy var meter = ScrollMeter { self.recorded.append($0) }
+        @ObservationIgnored private lazy var meter = ScrollMeter { self.record($0) }
 
         private func event(_ event: NSEvent) {
             let name = event.type == .keyDown
@@ -108,7 +116,8 @@
             let elapsed = ProcessInfo.processInfo.systemUptime - pending.time
             if state != pending.state {
                 self.pending = nil
-                recorded.append("\(pending.name) \(Int(elapsed * 1000))ms \(pending.turns)")
+                let work = ProcessInfo.processInfo.systemUptime - pending.taken
+                recorded.append("\(pending.name) \(Int(elapsed * 1000))ms \(pending.turns) \(Int(work * 1000))ms")
             } else if elapsed > 3 {
                 self.pending = nil
             } else {

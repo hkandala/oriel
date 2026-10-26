@@ -66,9 +66,7 @@ extension OrielUITests {
     /// ⌘T, a quiet tab of its own (measured while 100 agents work in others), ⌘D, ⌘W and ⇧⌘W.
     private func newTabSplitAndCloses(in eight: String) async throws {
         let before = try await tabIDs(in: eight)
-        let selected = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'tab.' AND selected == true"))
-            .firstMatch
-        quietKey("t", .command) { selected.label == "New Tab" && !self.element("tab.w1:t1").isSelected }
+        quietKey("t", .command) { !self.element("tab.w1:t1").isSelected }
         let new = try await poll("the new tab") { try await self.tabIDs(in: eight).first { !before.contains($0) } }
         XCTAssertTrue(element("tab.\(new)").has(\.isSelected, true, within: 10))
         _ = try await measure("quiet tab, 100 agents elsewhere", seconds: 5, session: eight)
