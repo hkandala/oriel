@@ -84,14 +84,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, reply = 400, b"the body must be an SSH target"
         elif action == "swipe" and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3,4}", body):
             status, reply = 400, b"the body must be x y step steps [pause]"
-        elif action == "swipe":
-            run = subprocess.run(["swift", "scripts/swipe.swift"] + body.decode().split(), capture_output=True,
-                                 timeout=120)
-            status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
-        elif action == "drag":
-            run = subprocess.run(["swift", "scripts/drag.swift"] + body.decode().split(), capture_output=True,
+        elif action in ("swipe", "drag"):
+            run = subprocess.run(["swift", f"scripts/{action}.swift"] + body.decode().split(), capture_output=True,
                                  timeout=120)
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "ssh-drop":

@@ -215,10 +215,11 @@
 
         func performDrop(info _: DropInfo) -> Bool {
             over = false
+            guard takes else { return false }
             switch (page.dragging, target) {
             case let (.pane(id), _):
                 Task { await page.drop(id, on: target) }
-            case let (.tab(id), .move(.newTab(workspaceID, _))) where takes:
+            case let (.tab(id), .move(.newTab(workspaceID, _))):
                 Task { await page.drop(tab: id, on: workspaceID) }
             default:
                 return false

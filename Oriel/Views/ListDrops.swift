@@ -144,10 +144,15 @@
             if ghost != state.ghost {
                 withAnimation(.highlight) { state.ghost = ghost }
             }
-            // The 2 pt gaps count as the row above. Not a tab's own workspace.
+            // A tab's own workspace is not a target.
+            let home: HostStore.Workspace? = if case let .tab(id) = page.dragging {
+                page.store.workspace(of: id)
+            } else {
+                nil
+            }
+            // The 2 pt gaps count as the row above.
             let row = state.ghost ? nil : page.store.workspaces.first { workspace in
-                frames[workspace.id].map { pointY >= $0.minY && pointY < $0.maxY + 2 } ?? false
-                    && (pane || !workspace.tabs.contains { .tab($0.id) == page.dragging })
+                frames[workspace.id].map { pointY >= $0.minY && pointY < $0.maxY + 2 } ?? false && workspace !== home
             }
             if row?.id != state.over {
                 withAnimation(.highlight) { state.over = row?.id }
