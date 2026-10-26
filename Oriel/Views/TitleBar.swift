@@ -84,7 +84,7 @@
             if page.store.state == .live || page.store.reconnecting,
                let workspace = page.selectedWorkspace
             {
-                TabBar(workspace: workspace, page: page, plus: plus)
+                TabBar(workspace: workspace, page: page, plus: plus, overview: pages.overview)
             } else {
                 Spacer(minLength: 0)
             }

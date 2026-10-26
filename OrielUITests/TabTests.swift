@@ -179,9 +179,10 @@ extension OrielUITests {
     /// A zoom from the overview into a middle tab of a workspace of many, the workspace shown again and ⌘4 (a session
     /// shown again: `testStripShowsEachWorkspaceClickedBackAndForth`): the selection capsule rests on the tab shown,
     /// not between two (phase 31: after the zoom, or on a
-    /// new strip, it sat between the tab and the next one until the next click).
+    /// new strip, it sat between the tab and the next one until the next click), and after the zoom it never shows on
+    /// another tab.
     func testTheCapsuleRestsOnTheTabShownHoweverItShows() async throws {
-        relaunch(one, ["-forceMotion", "YES"])
+        relaunch(one, ["-forceMotion", "YES", "-recordLatency", "YES"])
         let tabs = try await newWorkspace("capsule", tabs: 5).tabs
         let workspace = workspace(of: tabs[0])
         app.typeKey("o", modifierFlags: [.command, .control])
@@ -193,6 +194,10 @@ extension OrielUITests {
         tile.click()
         XCTAssertTrue(element("overview").vanishes(within: 2))
         try await expectShown(tabs[2], "zoomed into the middle tab")
+        // The pill's frames on another tab while the middle one is selected (`Marker`, "pill <tab> <selected>"): it
+        // showed on the tab selected before through the zoom, then jumped. Now it fades in on the middle one.
+        let astray = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("pill ") }
+        XCTAssertFalse(astray.contains { $0.hasSuffix(" 2") }, "the pill on another tab after the overview: \(astray)")
         element("workspace.w2").click()
         element("workspace.\(workspace)").click()
         try await expectShown(tabs[2], "its workspace shown again")

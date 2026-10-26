@@ -16,6 +16,8 @@
         let page: Page
         /// A pane dragged over the `+`; with one over the track's end, a ghost capsule at the end, when it fits.
         let plus: Bool
+        /// The overview is open: no pill (`marker`).
+        let overview: Bool
         @State private var end = false
         /// A drag over the track: the capsule a pane is over, or the place a dragged tab goes.
         @State private var over: Int?
@@ -39,8 +41,10 @@
             let tabs = workspace.tabs, count = CGFloat(tabs.count), width = Self.width
             let content = count * width + count - 1
             let hidden = (leading: visible.lowerBound > 0.5, trailing: visible.upperBound < content - 0.5)
-            // Pages floor(x/w) through ceil((x+w)/w) − 1, that is floor(page)...ceil(page).
-            let lit = Int(page.stripPage.rounded(.down)) ... Int(page.stripPage.rounded(.up))
+            // Pages floor(x/w) through ceil((x+w)/w) − 1, that is floor(page)...ceil(page). With no strip under the
+            // overview, the selected tab's.
+            let place = overview ? Double(selected) : page.stripPage
+            let lit = Int(place.rounded(.down)) ... Int(place.rounded(.up))
             ScrollViewReader { proxy in
                 ScrollView(.horizontal) {
                     HStack(spacing: 0) {
@@ -82,7 +86,7 @@
                     .background {
                         ZStack(alignment: .leading) {
                             Capsule().fill(look.track).opacity(tabs.count > 1 ? 1 : 0)
-                            marker(count: tabs.count)
+                            marker(place, count: tabs.count)
                         }
                     }
                     // Room for the Classic pill's shadow (radius 3.5, y 1.5): the scroll view clips.
@@ -159,14 +163,40 @@
             }
         }
 
+        private var selected: Int {
+            workspace.tabs.firstIndex { $0.id == page.selectedTabIDs[workspace.id] } ?? 0
+        }
+
         /// The look's pill on the page in view, between two tabs while the strip is between their pages: it slides
-        /// with a swipe or a wheel turn and jumps on any other switch, as the strip does.
-        private func marker(count: Int) -> some View {
-            let offset = min(max(page.stripPage, 0), Double(max(count - 1, 0)))
-            return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
+        /// with a swipe or a wheel turn and jumps on any other switch, as the strip does. None under the overview: it
+        /// fades in on the tab shown once the strip is back; it showed on the tab selected before for the zoom's
+        /// 0.18 s, then jumped (user, phase 31).
+        private func marker(_ place: Double, count: Int) -> some View {
+            Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
                 .frame(width: Self.width, height: Self.height - 2 * Self.inset)
-                .offset(x: offset * (Self.width + 1))
+                .modifier(Marker(shown: overview ? 0 : 1, place: min(max(place, 0), Double(max(count - 1, 0))),
+                                 selected: selected))
+                .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18), value: overview)
                 .allowsHitTesting(false)
+        }
+    }
+
+    /// The pill's opacity and place (in tabs), animatable: e2e (`-recordLatency YES`) notes each frame it shows on a
+    /// tab at rest that is not the selected one ("pill <place> <selected>").
+    private struct Marker: ViewModifier, Animatable {
+        var shown: Double
+        var place: Double
+        let selected: Int
+        var animatableData: AnimatablePair<Double, Double> {
+            get { AnimatablePair(shown, place) }
+            set { (shown, place) = (newValue.first, newValue.second) }
+        }
+
+        func body(content: Content) -> some View {
+            if Latency.isOn, shown > 0, place == place.rounded(), Int(place) != selected {
+                Task { @MainActor [place, selected] in Latency.shared.note("pill \(place) \(selected)") }
+            }
+            return content.opacity(shown).offset(x: place * (TabBar.width + 1))
         }
     }
 #endif
