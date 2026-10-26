@@ -211,3 +211,70 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   testGoToDirectoryAndInsertPath, and HerdrKit's "relay carries runs over one process" (`exit().status == 9`), so
   both look flaky. All 9 remote tests ran on CI's sshd and were green; testAPasswordHost… took 31.8 s (the 2 s
   login shell, twice).
+
+### Lane P (items 6 and 11)
+
+- **The user's Oriel, read only** (Release built 21:37, launched 21:42; two windows, one on the remote `devvm-aai`
+  with many workspaces, one on This Mac's `default`; 22:08–23:00): footprint 750 MB–1.07 GB, peak 1.5 GB (with the
+  overview used in capture B); IOSurface 470–630 MB: 14 full-window pictures or surfaces of 2920 × 1972 (22 MB each:
+  the 16 kept terminals' copies, D46, and the two shown tabs), 8 half-window ones (11 MB), 193 overview snapshots of
+  360 × 244 (0.37 MB, 71 MB); malloc 153–155 MB allocated, stable over 70 minutes (no leak); 18 libghostty surfaces
+  (16 kept + 2 shown), 64 threads. CPU 0.6–3 % with no input, 10–50 % while the user worked (overview scrolls, tab
+  switches). One SSH master (2 s of CPU in 42 min) and one relay carry the remote; 11 local herdr runs. `sample` of
+  the main thread while the user worked: about half idle, the rest SwiftUI layout and Core Animation commits.
+- **The 15.4 GB peak** (lane S, the user's build before 21:37) was the overview's leak lane V fixed in 4d3ae63 (phase
+  28): every terminal the overview alone showed kept a full-size copy of its picture when its tile let go (4.4 GB
+  after one 200-tab scroll then). This build peaks at 1.5 GB after the same use, and three overview open-and-close
+  rounds here (below) end within 20 MB of each other.
+- **Reproduced** (`scripts/stress.py` 300 tabs, 30 workspaces, 300 panes, 100 agents; local Release, Retina,
+  2920 × 1972 window, no XCUITest; keys posted to the app's pid only; script `/tmp/p30-measure/run.sh`):
+
+  | | Footprint | IOSurface | Malloc (dirty) | herdr runs | CPU, no input |
+  |---|---|---|---|---|---|
+  | Launch, quiet tab | 149 MB | 66 MB | 43 MB | 2 | 9.4 % |
+  | 30 tabs visited | 662 MB | 430 MB | 118 MB | 18 | 11.7 % |
+  | Overview open, scrolled | 2058 MB | 1535 MB | 185 MB | 35 | 16.2 % |
+  | Overview closed | 787 MB | 483 MB | 188 MB | 18 | |
+  | Two windows | 854 MB | 522 MB | 203 MB | 19 | 15.1 % |
+
+  The two-window state matches the user's app. Peak 2.2 GB, in the overview.
+- **Where it goes.**
+  1. The overview: +1.3–1.4 GB while it is open. A live tile's terminal draws at its card's full size, scaled into
+     the miniature (`MiniTerminal`), so each of its 16 live tiles has a full-window swap chain (3 × 22 MB here).
+     Lane V's area: passed to the orchestrator for lane V's item 5. On main after lane V's 728c071 the overview
+     opened at 1.1–1.5 GB instead of 1.7–1.8 GB in the same script.
+  2. The kept set (D46): about 30 MB per full-window terminal on Retina (its 22 MB copy of the last picture and about
+     5 MB of libghostty's heap), so about 500 MB for 16. By design; no change.
+  3. Malloc keeps about 70 MB dirty after the first overview (85 → 153 MB; 7 MB more per later round) though the
+     heap holds only 88 MB (`heap`): freed libghostty surfaces' pages. `malloc_zone_pressure_relief` 2 s after a
+     surface is freed gave nothing back (tried, reverted).
+  4. CPU with no input, 100 agents working: about 9 %. `sample` (6 s): the main thread 4.3 % (Core Animation
+     commits of the shown tab's printing agents, then SwiftUI and `HostStore.apply`), snapshot decoding 2.6 %
+     (`JSONDecoder` of the 280 KB snapshot, about 6 ms, 4 a second: D5's 250 ms spacing), the rest the 18 surfaces'
+     threads. The user's real session, with fewer events, sits at 0.6–3 %. No change.
+  5. Per key: AppKit's key-equivalent search over the menu bar, and the menu bar made again whenever a tab title in
+     View ▸ Pane ▸ Move Pane to Tab changed (item 11).
+  - CI's heap (40276792304, Debug, XCUITest attached) is not the app's own: SwiftUI's accessibility tracking
+    (`AnyTrackedValue`, `PropertyList`, `AccessibilityProperties`, about 60 MB) that XCUITest's queries fill.
+- **Item 11** (127bf21). `CommandList.menuBarList` is `all` with Move Pane to Tab's tab list left out (a private
+  `tabs` flag, passed to `CommandList.pane`); the menu bar and its `shown` key read it, so a tab's new title no longer
+  makes the menu bar again. The card's header and context menus (`PaneItems`), VoiceOver's actions and the palette
+  still list every tab. Keys, the app's own time from the event to the frame, median of 5–12 (same script, the
+  commit before vs 127bf21):
+
+  | | ⌘1 | ⌘2–⌘5 | ⌃⌘[ | ⌃⌘] | ⌘K |
+  |---|---|---|---|---|---|
+  | Before | 116 ms | 129–138 ms | 160 ms | 175 ms | 119 ms |
+  | After | 81 ms | 99–109 ms | 122 ms | 140 ms | 109 ms |
+
+  CPU with no input did not change (9.5 % → 9.4 %).
+- **Tests.** `testMoveToTabLandsBesideTheLastCard` also opens View ▸ Pane ▸ Move Pane to Tab in the menu bar: New
+  Workspace there, no tab. `testHundredsOfPanesStayQuick` keeps `heap`'s summary ("heap, busy tab", the helper's new
+  `heap` action, 02eebea).
+- **Docs.** window.mdx (View ▸ Pane's Move Pane to Tab has New Tab and New Workspace only).
+- **CI.** 40274017771 (`testMoveToTabLandsBesideTheLastCard`, green), 40274683473 and 40276792304 (the stress test,
+  green; busy tab 15.9–16.6 %, footprint 217–222 MB as phase 29).
+- **For the user to check by hand:** View ▸ Pane ▸ Move Pane to Tab shows New Tab and New Workspace only; a card's
+  header menu, its right-click menu and ⌘K's Move Pane to Tab still list every tab. Tab and workspace keys in a big
+  session feel a little quicker. `footprint Oriel`: about 0.8–1 GB with two full-screen Retina windows after many
+  tabs visited (16 kept terminals at about 30 MB each), more only while the overview is open.
