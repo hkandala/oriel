@@ -84,3 +84,18 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
     reveal or fade on a kept terminal, a strip page rebuilt) and fix it there, for every path: session
     swipe and dots, ⌥⌘[ ], the overview's zoom, tab clicks and keys, workspace switches. Lane T owns this;
     lanes V (overview) and E (session swipe, phase 28) leave the flicker to it.
+
+## Lane S: the whole UI at scale (2026-10-25 17:45)
+
+14. The UI must stay snappy with hundreds of workspaces, tabs and panes while panes print output (agents
+    working). Build one stress harness (a script that creates a throwaway session with, say, 30 workspaces,
+    300 tabs and 600 panes, a share of them printing like agents, some with agent states) and measure,
+    before and after: key-to-frame latency of every main interaction (lane S of phase 25 has latency tests:
+    ⌘T, ⌘W, ⌘D, ⌘K, tab and workspace switches, session swipe, the sidebar, the Agents view, the hover card,
+    Open Session, drag and drop), frame rate while scrolling the tab bar and the sidebar, CPU and memory
+    idle and busy, snapshot and event handling cost on the main thread. Profile (Instruments / `sample` on a
+    local Release build when the GUI is free; CI meanwhile) and fix what scales badly (work per snapshot
+    that grows with the number of panes, views that rebuild for every output line, lists that build every
+    row). Lane V (overview) uses the same harness for the overview; lane S owns everything else.
+    Targets: every interaction under one frame of main-thread work on top of herdr's own time, smooth
+    scrolling, idle CPU a few percent, memory bounded by what is shown (phases 25 O and 27 A3).
