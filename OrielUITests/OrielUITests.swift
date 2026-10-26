@@ -38,9 +38,12 @@ final class OrielUITests: XCTestCase {
     /// The pointer goes off the title row: left on a capsule, it would open a hover card in the next test's launch.
     /// Not async: a failure stops an async test inside the main actor's job, and an async tearDown then waits for
     /// the main actor until the 2-minute allowance runs out.
+    /// The main window: the first match can be a floating window that a teardown block's close is closing, with no
+    /// frame (an INFINITY point, CI 40294678064).
     override func tearDown() {
-        if app.windows.firstMatch.exists {
-            app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.9)).hover()
+        let main = app.windows.matching(NSPredicate(format: "identifier BEGINSWITH 'main-'")).firstMatch
+        if main.exists {
+            main.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.9)).hover()
         }
     }
 
