@@ -312,8 +312,7 @@ struct OrielApp: App {
             .testValue("window.machine", "Machine", pages.machine.name)
             .testValue("window.look", "Appearance", "\(style.rawValue) \(look.dark ? "dark" : "light")")
             // The links a test ⌘-clicked (`-recordLinks YES`).
-            .testValue("app.links", "Links", Links.shared.recorded.joined(separator: " "),
-                       shown: UserDefaults.standard.bool(forKey: "recordLinks"))
+            .testValue("app.links", "Links", Links.shared.recorded.joined(separator: " "), shown: Links.record)
             .testValue("app.latency", "Latency", Latency.shared.recorded.joined(separator: "; "), shown: Latency.isOn)
             .testValue("app.frames", "Frames", FrameProbe.shared.recorded, shown: FrameProbe.isOn)
             .onChange(of: panel, initial: true) { pages.panelOpen = panel != nil }
