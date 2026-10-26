@@ -79,13 +79,9 @@
                     FilterField(prompt: "Filter", text: $filter, identifier: "sidebar.filter")
                         .onExitCommand { filter = "" }
                         .padding(.trailing, 4)
-                    IconButton(
-                        symbol: "plus.square.on.square",
-                        help: "Open Session",
-                        key: .openSession,
-                        action: openSession,
-                    )
-                    .accessibilityIdentifier("sidebar.open-session")
+                    IconButton(symbol: "plus.square.on.square", help: "Open Session", key: .openSession,
+                               action: openSession)
+                        .accessibilityIdentifier("sidebar.open-session")
                 }
                 .padding(Sidebar.rowInsets)
                 .padding(.top, 8)
@@ -119,8 +115,7 @@
             VStack(alignment: .leading, spacing: 0) {
                 // The name and the sort menu's label on one baseline; the `+` has no text to align.
                 HStack(alignment: agents == nil ? .center : .firstTextBaseline) {
-                    // A long session name gives way in its middle.
-                    // The page's title: the rows' size, bold (user, phase 27).
+                    // The rows' size, bold (user, phase 27); a long session name gives way in its middle.
                     Text(store.title).truncationMode(.middle)
                         .font(.system(size: 13, weight: .bold)).foregroundStyle(.primary).lineLimit(1)
                         .accessibilityIdentifier("sidebar.header")
@@ -295,12 +290,17 @@
                 .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global).onChanged { drag in
                     let start = start ?? width
                     self.start = start
-                    width = min(max(start + drag.translation.width, Sidebar.widths.lowerBound),
-                                Sidebar.widths.upperBound)
+                    resize(to: start + drag.translation.width)
                 }.onEnded { _ in start = nil })
                 .accessibilityElement()
                 .accessibilityLabel("Sidebar Width")
+                .accessibilityValue("\(Int(width)) points")
+                .accessibilityAdjustableAction { resize(to: width + ($0 == .increment ? 20 : -20)) }
                 .accessibilityIdentifier("sidebar.resize")
+        }
+
+        private func resize(to value: Double) {
+            width = min(max(value, Sidebar.widths.lowerBound), Sidebar.widths.upperBound)
         }
     }
 

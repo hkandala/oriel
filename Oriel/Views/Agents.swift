@@ -342,6 +342,7 @@ struct StatusBadge: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("\(text) \(count)")
+            .accessibilityAddTraits(.isHeader)
             .accessibilityValue(open ? "expanded" : "collapsed")
             .accessibilityIdentifier(id)
             .padding(.horizontal, 8).padding(.top, 12)
