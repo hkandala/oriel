@@ -153,15 +153,18 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         element("terminal.\(first)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
-        // One burst: the second and third ⌘D come before herdr made the first's pane.
-        XCUIElement.perform(withKeyModifiers: .command) { app.typeText("ddd") }
+        // Back to back: the second and third ⌘D come while herdr makes the first's pane (a split is 4 herdr runs).
+        for _ in 0 ..< 3 {
+            app.typeKey("d", modifierFlags: .command)
+        }
         let panes = try await poll("four panes") { () async throws -> [String]? in
             let panes = try await order(tab)
             return panes.count == 4 ? panes : nil
         }
         // Left to right in the order they were made (herdr's ids count up): each split the one before.
         XCTAssertEqual(panes.first, first)
-        let made = panes.dropFirst().compactMap { Int($0.split(separator: "p").last ?? "") }
+        let made = panes.dropFirst().compactMap { Int($0.split(separator: "p").last ?? "", radix: 16) }
+        XCTAssertEqual(made.count, 3)
         XCTAssertEqual(made, made.sorted())
         XCTAssertTrue(hasKeyboard(element("terminal.\(panes[3])")))
         try await typeAndRead(panes[3])
@@ -184,7 +187,7 @@ extension OrielUITests {
         }
         element("tab.\(tab)").click()
         pick("Pane", "Balance Splits")
-        try await expectWidths(tab, [first: 1 / 3, second: 1 / 3, rows[0]: 1 / 3])
+        try await expectWidths(tab, Dictionary(uniqueKeysWithValues: ([first, second] + rows).map { ($0, 1.0 / 3) }))
         element("terminal.\(first)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
         let steps: [(XCUIKeyboardKey, String)] = [
