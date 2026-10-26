@@ -22,6 +22,8 @@ times = {
                           if not line.startswith("#"))
 }
 tests = {t for f in Path("OrielUITests").glob("*.swift") for t in re.findall(r"func (test\w+)\(", f.read_text())}
+if listed - tests:
+    sys.exit(f"on-demand names no test: {sorted(listed - tests)}")
 shards = [[head if k == 0 else 0, []] for k in range(n)]
 for test in sorted((t for t in tests if (t in listed) == on_demand), key=lambda t: (-times.get(t, 15), t)):
     shard = min(shards, key=lambda s: s[0])

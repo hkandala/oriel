@@ -109,7 +109,7 @@ The last spec round also checks every Build and e2e item of the phase file is do
   release it in the same command, at most 10 minutes per hold. Never send keys with osascript. When the
   user works on the Mac, the orchestrator holds the lock for the user and everything runs on CI.
 - Ad-hoc CI runs: `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testX`.
-  A full run takes about 6 minutes on 4 shards; the account has 5 macOS runners.
+  A full run takes about 9–12 minutes on 5 shards (plan/ci.md, Speed); the account has 5 macOS runners.
 - Fast tests: wait with `exists(within:)` / `until` (100 ms polls), never XCTest's waits; read the failing
   step in the xcresult and its screen recording before re-running; CI's display is 1x.
 - A machine for parallel GUI runs (a Tart VM) is described in `resources/research/dev/parallel-gui-testing.md`.

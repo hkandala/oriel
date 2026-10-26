@@ -35,15 +35,19 @@ test:
 # Runs the UI tests against throwaway herdr sessions, removed even when tests fail.
 # ONLY=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB runs just those.
 # SHARD=i/n runs shard i (0-based) of n, split by the tests' measured times (scripts/shard.py, scripts/test-times.tsv);
-# SHARD_HEAD=s: shard 0 spends s seconds on other work first. The ON_DEMAND tests are left out: the stress tests, the
-# cost and frame-record measurements and the look scenes (minutes in all, numbers and screenshots more than
-# behaviour; plan/ci.md). Run them with ON_DEMAND_ONLY=1 (CI: the on_demand input) or ONLY=.
+# SHARD_HEAD=s: shard 0 spends s seconds on other work first. Without ONLY, the ON_DEMAND tests are left out: the
+# stress tests, the cost and frame-record measurements and the look scenes (minutes in all, numbers and screenshots
+# more than behaviour; plan/ci.md). ON_DEMAND_ONLY=1 runs only them (CI: the on_demand input).
 ON_DEMAND := testHundredsOfPanesStayQuick testOverviewOfManyTabsStaysBounded testMemoryAndCPUOverManyTabs \
 	testOverviewCostsAndLetsGoAfter testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar \
 	testATabComesIntoViewWithoutAFlicker testACardNeverShowsTheOverviewsSmallSnapshot \
 	testScenesGlassDark testScenesGlassLight testScenesClassicDark testScenesClassicLight
+ifdef ON_DEMAND_ONLY
+SHARD ?= 0/1
+endif
 ifdef SHARD
-ONLY := $(shell scripts/shard.py $(SHARD) $(if $(ON_DEMAND_ONLY),--on-demand) --head $(or $(SHARD_HEAD),0) $(ON_DEMAND))
+ONLY := $(shell scripts/shard.py $(SHARD) $(if $(ON_DEMAND_ONLY),--on-demand) $(if $(SHARD_HEAD),--head $(SHARD_HEAD)) \
+	$(ON_DEMAND))
 # An empty list would run every test.
 $(if $(ONLY),,$(error no tests for SHARD=$(SHARD)))
 endif
@@ -51,7 +55,8 @@ e2e:
 	rm -rf $(DERIVED_DATA)/e2e.xcresult
 	scripts/e2e.sh $(XCODEBUILD) $(MAC) \
 		-test-timeouts-enabled YES -default-test-execution-time-allowance 120 \
-		-resultBundlePath $(DERIVED_DATA)/e2e.xcresult $(addprefix -only-testing:,$(subst $(comma), ,$(ONLY))) \
+		-resultBundlePath $(DERIVED_DATA)/e2e.xcresult \
+		$(if $(ONLY),$(addprefix -only-testing:,$(subst $(comma), ,$(ONLY))),$(addprefix -skip-testing:OrielUITests/OrielUITests/,$(ON_DEMAND))) \
 		test $(BEAUTIFY)
 
 # After e2e, which builds the app. It drives the app: the GUI lock (plan/rules.md).

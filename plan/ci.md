@@ -76,9 +76,10 @@ Measured 2026-10-22 from the xcresults of green run 39843820616 (before) and the
 
 - **100 ms waits** (3bf94a4): `exists(within:)`, `vanishes(within:)`, `has(_:_:within:)` on `XCUIElement` and
   `until(_:_:)` replace XCTest's waits; a SwiftLint rule (`fast_waits`) rejects the old ones in the UI tests.
-- **4 parallel e2e jobs** (10cd9e1, 2e6ff98): `make e2e SHARD=i/4` runs every 4th test by name (by name, not
-  file order: files hold similar tests). lint, both builds and the HerdrKit tests share one job, so a run
-  needs 5 macOS runners, the account's limit; a second run at the same time queues.
+- **4 parallel e2e jobs** (10cd9e1, 2e6ff98): `make e2e SHARD=i/4` ran every 4th test by name (by name, not
+  file order: files hold similar tests). lint, both builds and the HerdrKit tests shared one job, so a run needed 5
+  macOS runners, the account's limit; a second run at the same time queues. Phase 31 made it 5 jobs split by time
+  (below).
 - **No teardown waits for the main actor** (6c76c1a, 886a4a4): a timed-out `poll` throws instead of calling
   XCTFail, tearDown is sync, and async teardown blocks use the nonisolated `ids(_:in:)`. A failure now shows at
   once and keeps its screen recording.
@@ -103,6 +104,52 @@ and the 4 jobs end up to a minute apart (split by name, not by time).
 
 Flakes seen in these runs: see [Flakes](#flakes).
 
+### Phase 31: five shards by measured time, on-demand tests (2026-10-26)
+
+The suite had grown to 175 UI tests and about 2400 s of test time; a full run took 13–16 minutes, more with reruns.
+
+| Part (green run 40300354731, before) | Time |
+|---|---|
+| Push to done | 14 min 13 s |
+| lint-build job (brew, lint, both builds, HerdrKit tests) | 4 min 35 s |
+| Each of 4 e2e jobs | 11 min 15 s – 12 min 50 s |
+| An e2e job's build and setup before its first test | 100–170 s |
+| UI test time, all 175 tests | 2382 s; the 12 slowest 30–86 s each |
+| One test's fixed cost (launch, connect, teardown) | 3–4 s; the rest is clicks (about 1 s each) and queries (0.1–0.3 s) |
+
+- **5 jobs, the runners' limit, and no separate lint-build job.** Job `test (0)` runs `make lint build test` and the strip
+  check before its UI tests; its `make build` also builds the app the UI tests use, so its UI test build adds only the
+  test bundle. A sixth job would wait for a runner.
+- **Split by measured time** (`scripts/shard.py`): the slowest test first, each to the shard with the least time so
+  far, from `scripts/test-times.tsv`. Shard 0 starts with `SHARD_HEAD` seconds (180) for its checks. A test not in
+  the file counts 15 s. Refresh the file when tests are added or get slower: the mean of the passed tests of two or
+  three green full runs, `xcrun xcresulttool get test-results tests --path <e2e.xcresult> | jq -r '.. | objects |
+  select(.nodeType == "Test Case" and .result == "Passed") | "\(.durationInSeconds)\t\(.name | rtrimstr("()"))"'`
+  over each shard's artifact.
+- **On-demand tests** (the Makefile's `ON_DEMAND`): the stress tests, the cost and memory measurements, the frame-record
+  tests (`testATabComesIntoViewWithoutAFlicker`, `testACardNeverShowsTheOverviewsSmallSnapshot`), the 200-tab swipe
+  and the four look scenes, about 340 s plus the stress tests' minutes. `make e2e` leaves them out unless `ONLY` names
+  them; `make e2e ON_DEMAND_ONLY=1` runs only them, and so does `gh workflow run ci.yml --ref main -f on_demand=true`
+  (4 jobs). Run them before a release and on changes to what they measure. `testATabClickComesIntoViewWithoutAFlicker`
+  keeps one recorded tab change in every run.
+- **The swipe and drag helpers are compiled once per run** (`e2e-helper.py`): `swift` interpreted the script again
+  for each post, up to 10 s each on CI.
+- **Flakes fixed at their cause** (phase 31's Integration findings): a run needs no rerun.
+
+| | Before (40300354731) | After (40317477966, 70f3caf) |
+|---|---|---|
+| Push to done (no queue) | 14 min 13 s | 12 min 10 s |
+| Slowest job | 12 min 50 s | 12 min 1 s (test (0)); the others 8 min 55 s – 11 min 4 s |
+| UI test time in the run | 2382 s | about 2300 s |
+
+The same tests take ±10 % from run to run, and some runs' machines are slower as a whole: in 40312470304 every test
+took 28 % longer (median), and its jobs 10–14 minutes. 40309820769 had jobs of 8.4–9.1 minutes.
+
+- **Not reached: 7–8 minutes.** With 5 runners a job is about 2 minutes of setup and build plus a fifth of the test
+  time: about 2300 s of tests give 9–12 minutes. 7–8 minutes needs about 1500 s of tests on 5 runners, or about 8
+  runners for today's suite (each runner more saves about a minute). Shortening tests is not where the time is: the
+  12 slowest have no idle waits; they click through many steps, and each test pays 3–4 s to launch.
+
 ### Writing fast tests
 
 - Wait with `exists(within:)`, `vanishes(within:)`, `has(_:_:within:)`, `until` or `poll` (lint enforces it).
@@ -111,7 +158,8 @@ Flakes seen in these runs: see [Flakes](#flakes).
 - A launch costs ~2.5 s: relaunch only when the launch is what the test checks.
 - Each element query takes 0.1–0.2 s and each click about 1 s: check the outcome through one herdr call or one
   accessibility value, not a walk over many elements.
-- Keep a test under ~30 s: one long test sets its shard's time. New tests join a shard by name on their own.
+- Keep a test under ~30 s: one long test sets its shard's time. A new test joins the shards at 15 s until
+  `scripts/test-times.tsv` lists it.
 
 ## Flakes
 
