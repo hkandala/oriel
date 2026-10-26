@@ -3,7 +3,7 @@ name: ci
 on:
   push:
     branches: [main]
-    paths-ignore: &docs-only [plan/**, docs/**, resources/**, '**/*.md']
+    paths-ignore: &docs-only [playbook/**, docs/**, resources/**, '**/*.md']
   pull_request:
     paths-ignore: *docs-only
   # Ad-hoc UI tests: gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,...
@@ -31,7 +31,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 5 parallel jobs, the account's macOS limit (plan/ci.md, Speed): shard 0 also runs lint, both builds and HerdrKit's
+  # 5 parallel jobs, the account's macOS limit (playbook/ci.md, Layout): shard 0 also runs lint, the build and HerdrKit's
   # tests (they need herdr), and gets fewer UI tests for it. An ad-hoc run of chosen tests takes one.
   test:
     runs-on: xcode-27

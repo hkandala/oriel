@@ -2,7 +2,7 @@
 
 The user asked for this on 2026-10-26 (about 03:00), to start once phase 31's lanes (integration, herdr
 float requests, paging and pill, hotkey routing) are done and main is green. The orchestrator runs it with
-the workflow in `plan/workflow.md` (final review → fixers → metrics and report) and decides open points
+the workflow in `playbook/workflow.md` (final review → fixers → metrics and report) and decides open points
 itself.
 
 ## Goals
@@ -34,7 +34,7 @@ itself.
   quality in its area, in worktrees, files not overlapping.
 - Two or three ponytail agents across areas, looking for dead code and needless complexity (they report
   to the area owners or fix in their own non-overlapping files).
-- Docs agents: one for `docs/content/docs/` (the spec and decisions vs the code), one for `plan/` and
+- Docs agents: one for `docs/content/docs/` (the spec and decisions vs the code), one for `playbook/` and
   `resources/` md files (stale plans and research, workflow and CI docs).
 - An e2e/CI agent at the end: full suite twice, local checks, flakes.
 - Any other reviewer that adds value (for example accessibility or security of the SSH path).
@@ -56,7 +56,7 @@ pages 4,871 (mdx), plan and resources md 22,622; 1,390 commits.
 | r-panels | Oriel/Views: Overview, OverviewPage, Miniature, FloatingPane, FindBar, FilterList, Palette, OpenSession, Shortcuts |
 | r-tests | OrielUITests/*, scripts/*, Makefile, .github/workflows/*, .swiftlint.yml, .swiftformat |
 | d-spec | docs/content/docs/**, docs app config only if links break |
-| d-plan | plan/**, resources/**, README.md, AGENTS.md, other root md |
+| d-plan | playbook/**, resources/**, README.md, AGENTS.md, other root md |
 
 Read-only auditors (send findings to the owning agent by name, never edit): a-ponytail-app (Oriel/),
 a-ponytail-kit (HerdrKit, tests, scripts), a-security-a11y (the SSH path, secrets, sandbox and entitlements,

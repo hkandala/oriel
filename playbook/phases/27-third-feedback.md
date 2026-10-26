@@ -116,7 +116,7 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   session one is shared by the run. `testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder`: "Workspace", the
   capsule's end on the rows' end, the header the rows' height, labels with counts, and it now waits for the rows'
   states (CI 40192968701 read the Done row while it still said Working). No test for item 3: it needs a session
-  named `default`, which is read only (`plan/workflow.md`), and the app has no unit target.
+  named `default`, which is read only (`playbook/workflow.md`), and the app has no unit target.
 - **Window title** (57dd4a6): the four window-title tests green on CI 40196247210.
 
 ### Lane V (items 15, 16)

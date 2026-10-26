@@ -445,7 +445,7 @@ Tab paging is good now (G #1).
     `hasKeyboard` ("Failed to get matching snapshot"): its `exists` bound the terminal, and the focus read a moment later
     found that element gone as the floating window came forward. `hasKeyboard("id", in:)` is now one query with the
     focus in its predicate (7c2f95c, 57 call sites).
-- **Item 9, CI** (plan/ci.md, "Phase 31"): 5 jobs, lint/build/HerdrKit on job 0; tests split by measured time
+- **Item 9, CI** (playbook/ci.md, "Phase 31"): 5 jobs, lint/build/HerdrKit on job 0; tests split by measured time
   (`scripts/shard.py`, `scripts/test-times.tsv`); the stress, cost, frame-record and look-scene tests on demand
   (`make e2e ON_DEMAND_ONLY=1`, the `on_demand` dispatch input), with one recorded tab change kept in every run
   (`testATabClickComesIntoViewWithoutAFlicker`); the swipe and drag helpers compiled once. Before: 40300354731, push to

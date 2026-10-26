@@ -315,7 +315,8 @@ extension OrielUITests {
 }
 
 /// XCTest's own waits (waitForExistence, wait(for:toEqual:), predicate expectations) check about once a second
-/// and take over a second even when the condition already holds; these check every 100 ms (plan/ci.md, Speed).
+/// and take over a second even when the condition already holds; these check every 100 ms
+/// (playbook/ci.md, Writing fast tests).
 extension XCUIElement {
     func exists(within timeout: TimeInterval) -> Bool {
         until(timeout) { exists }

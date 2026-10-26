@@ -5,7 +5,7 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 ## Layout
 
 - **Workflows.** `.github/workflows/ci.yml` runs the app's checks on every push to main and on pull
-  requests, except docs-only changes (`plan/**`, `docs/**`, `resources/**`, `**/*.md`).
+  requests, except docs-only changes (`playbook/**`, `docs/**`, `resources/**`, `**/*.md`).
   `.github/workflows/docs-deploy.yml` builds the docs site and deploys it to Vercel when `docs/` changes.
 - **Machines.** `runs-on: xcode-27`: a VM with a 1x display (a 1024 × 674 pt window), the US keyboard layout
   and Reduce Motion on. The account has 5 macOS runners. herdr is downloaded and checked by its SHA-256

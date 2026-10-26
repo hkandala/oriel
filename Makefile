@@ -40,7 +40,7 @@ test:
 # SHARD=i/n runs shard i (0-based) of n, split by the tests' measured times (scripts/shard.py, scripts/test-times.tsv);
 # SHARD_HEAD=s: shard 0 spends s seconds on other work first. Without ONLY, the ON_DEMAND tests are left out: the
 # stress tests, the cost and frame-record measurements and the look scenes (minutes in all, numbers and screenshots
-# more than behaviour; plan/ci.md). ON_DEMAND_ONLY=1 runs only them (CI: the on_demand input).
+# more than behaviour; playbook/ci.md). ON_DEMAND_ONLY=1 runs only them (CI: the on_demand input).
 ON_DEMAND := testHundredsOfPanesStayQuick testOverviewOfManyTabsStaysBounded testMemoryAndCPUOverManyTabs \
 	testOverviewCostsAndLetsGoAfter testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar \
 	testATabComesIntoViewWithoutAFlicker testACardNeverShowsTheOverviewsSmallSnapshot \
@@ -62,7 +62,7 @@ e2e:
 		$(if $(ONLY),$(addprefix -only-testing:,$(subst $(comma), ,$(ONLY))),$(addprefix -skip-testing:OrielUITests/OrielUITests/,$(ON_DEMAND))) \
 		test $(BEAUTIFY)
 
-# After e2e, which builds the app. It drives the app: the GUI lock (plan/rules.md).
+# After e2e, which builds the app. It drives the app: the GUI lock (playbook/workflow.md).
 strip-check:
 	scripts/strip-check.sh $(DERIVED_DATA)/Build/Products/Debug/Oriel.app
 

@@ -51,6 +51,6 @@ pane kinds, floating status pills, a Settings window. The list is in
 
 - Design docs: [`docs/content/docs/`](docs/content/docs/), published at
   [oriel-docs.vercel.app](https://oriel-docs.vercel.app) (`cd docs && pnpm install && pnpm dev` to run it).
-- How it is built, for agents: [`plan/`](plan/README.md).
+- How it is built, for agents: [`playbook/`](playbook/README.md).
 - Code: `Oriel/` (the app), `Packages/HerdrKit/` (herdr calls, no UI), `OrielUITests/` (UI tests),
   `scripts/`, `resources/` (the app icon, program icons and research notes).

@@ -23,7 +23,7 @@ The design in `docs/content/docs/` wins on any conflict about what the app does.
 ## The whole run
 
 1. **Plan (orchestrator, with the user).** Write down the target behavior once (the design pages). Cut the
-   work into phase files `plan/phases/NN-name.md` (template below), each one agent's work for 1–3 hours.
+   work into phase files `playbook/phases/NN-name.md` (template below), each one agent's work for 1–3 hours.
    For a feedback round, one phase file with one lane per area, so no two lanes edit the same files; name
    the owner of any shared file in both briefs.
 2. **Plan review (read only, in parallel).** Consistency (docs, plan and phases agree; nothing built twice
@@ -216,7 +216,7 @@ phase.
 ## Briefs
 
 **Phase or lane agent.** "You are the agent for phase NN ‹lane, items› of Oriel. Read `AGENTS.md` and
-`plan/workflow.md` and follow the phase loop. Build everything in `plan/phases/NN-*.md` ‹your section›; the
+`playbook/workflow.md` and follow the phase loop. Build everything in `playbook/phases/NN-*.md` ‹your section›; the
 design pages win. Worktree `../oriel-NN<lane>`, branch `wt-NN<lane>`, `DERIVED_DATA=/tmp/oriel-dd-NN<lane>`.
 Your files: ‹list›; ‹owner of shared files›. Push straight to main after a rebase and a build. Start your
 reviewers yourself (NN<lane>-spec-review, …). Decide open points yourself. Write Findings under ‹heading›.
@@ -224,7 +224,7 @@ Reply when done with what you fixed, the causes, the tests and CI run ids, and a
 decide or check by hand."
 
 **Reviewer.** "Read-only ‹focus› review of ‹phase/lane› (`git diff <base>..HEAD`), against the phase file,
-the design pages and `plan/workflow.md`. ‹Spec: missing or wrong behavior, bugs, races, leaks, error paths,
+the design pages and `playbook/workflow.md`. ‹Spec: missing or wrong behavior, bugs, races, leaks, error paths,
 herdr safety, accessibility identifiers. Ponytail: follow the ponytail-review skill; what can be deleted
 or made simpler. E2E: drive the new UI through XCUITest under the lock (at most 15 minutes, a throwaway
 session), then read the tests and flag slop: asserting nothing real, only that an element exists, sleeping,

@@ -15,7 +15,7 @@ Goal: v0 is solid end to end and documented; CI green; nothing extra.
    needed.
 3. **Docs**: update the root `README.md` (how to build, run, test; layout of the code),
    `AGENTS.md` (only if a rule changed), and mark build-order step 1's v0 subset done in
-   `plan/README.md` with what was deferred.
+   `playbook/README.md` with what was deferred.
 4. **CI**: all jobs green on `main`; e2e time reasonable (note it).
 
 ## Known issues carried in (fix or record)

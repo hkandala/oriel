@@ -5,7 +5,7 @@ points below without asking; each lane records what it changed in `## Findings` 
 
 The user works on this Mac and runs Oriel from the main checkout. Never launch Oriel locally, take the GUI
 lock, or use `.build/DerivedData`. Build with your own `DERIVED_DATA=/tmp/oriel-dd-24<lane>`. UI tests run
-on CI (`gh workflow run ci.yml --ref main -f only_testing=…`, see `plan/ci.md`); their screenshots and screen
+on CI (`gh workflow run ci.yml --ref main -f only_testing=…`, see `playbook/ci.md`); their screenshots and screen
 recordings are the visual check.
 
 Screenshots from the user: `.build/fb/12.40.27.png` (tab bar, item 6) and `.build/fb/12.33.37.png` (agents

@@ -1,6 +1,6 @@
 # Seconds per UI test on CI, for scripts/shard.py: the mean of full runs 40364570313 and 40364583734 (passed tries).
-# The on-demand tests (Makefile ON_DEMAND) from the runs named in plan/ci.md, Speed.
-# Refresh: plan/ci.md, Speed.
+# The on-demand tests (Makefile ON_DEMAND) from green full runs.
+# Refresh: playbook/ci.md, Refresh the test times.
 310	testHundredsOfPanesStayQuick
 300	testOverviewOfManyTabsStaysBounded
 89	testATabComesIntoViewWithoutAFlicker

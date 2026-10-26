@@ -58,13 +58,13 @@ per hold, at most 10 minutes, released with a trap).
 
 ## Lane D: docs, plan and resources cleanup (capture H)
 
-8. **One dedicated agent** cleans up `docs/`, `plan/`, `resources/`, `README.md` and `AGENTS.md`
+8. **One dedicated agent** cleans up `docs/`, `playbook/`, `resources/`, `README.md` and `AGENTS.md`
    (capture H #1–#12):
    - **docs/:** minimal and matching the app as built. Remove every UI mock-up (the overview page,
      `docs/public/mockups`, `docs/components/design`) and old or deprecated content.
-   - **plan/:** keep the phases (they track the whole build); make them concise and well structured.
-     Remove `plan/archive/` (fold anything still useful into the phases or the files below) and
-     `plan/metrics/`. Merge `workflow.md`, `execution.md`, `rules.md`, `standards.md` and the other small
+   - **playbook/:** keep the phases (they track the whole build); make them concise and well structured.
+     Remove `playbook/archive/` (fold anything still useful into the phases or the files below) and
+     `playbook/metrics/`. Merge `workflow.md`, `execution.md`, `rules.md`, `standards.md` and the other small
      files into one standard way of working: when a task needs phases (a complex project) and when not (a
      small bug), the plan, review cycles, review agents, lanes, cleanups and the final pass. Move the
      lessons from all phases into one lessons file. `ci.md`: current setup only. `ui-layout.md`: short, or
@@ -77,7 +77,7 @@ per hold, at most 10 minutes, released with a trap).
      repeated content. One `clients/` folder (web client notes merged in, one file per client), keep
      `multiplexers/` (deduplicated), and move the `dev/` (GUI testing) and `herdr/` notes to where they
      belong instead of their own folders.
-   - **The folder name `plan/`** does not fit; the user picks a new name (orchestrator's suggestions).
+   - **The folder name `playbook/`** does not fit; the user picks a new name (orchestrator's suggestions).
      Rename it last, in one commit, and fix every link.
 
 ## Lane L: lessons from the sessions (feeds lane D)
@@ -113,7 +113,7 @@ per hold, at most 10 minutes, released with a trap).
 - **Tests:** `make lint build test` green. No behavior change on macOS, so no new tests. CI run 40414849033 on
   9b0886e (a targeted run that builds and tests the whole tree) passed. The full push runs 40414394168 and
   40414747064 were cancelled by later pushes; lane F's full runs cover this lane.
-- **Docs:** the lines that say the app builds for iOS (README, AGENTS.md, plan/README, ci.md, standards.md,
+- **Docs:** the lines that say the app builds for iOS (README, AGENTS.md, playbook/README, ci.md, standards.md,
   features, machines, platform, decisions D34, index, iphone-and-ipad, resources/branding/README.md) went to
   lane D (l33-docs) as a list.
 - **Review:** l33-ios-review: no blockers or shoulds. Two nits: `SUPPORTED_PLATFORMS` (fixed) and the branding

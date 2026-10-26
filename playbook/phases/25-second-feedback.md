@@ -364,7 +364,7 @@ found none). If herdr has none, floating is Oriel's own.
   try again", so the buttons no longer disable during writes. Hidden panes keep their `Pane` objects and terminals
   until herdr closes them. herdr never reuses a closed id in a server's life (checked), so `closing` clears on absence.
 - **Deviations.** Moved `choosePath` to `FileDrop.swift` and the tab title to `TabButton.swift` (Page.swift's 400
-  lines). `plan/workflow.md`'s "never patch local state" names `Ahead` as its one exception.
+  lines). `playbook/workflow.md`'s "never patch local state" names `Ahead` as its one exception.
 - **Tests.** `testPanelsAndSwitchesReactAtOnce` (every key drawn in its own turn, the names checked; the swipes
   recorded), `testNewTabSplitAndClosesShowAtOnce` ("New Tab", never a number; ⌘T ⌘D ⌘W ⇧⌘W in their turn; herdr closed
   it), `testQuickNewTabsAndAnEarlyClose` (two ⌘T select the second; ⌘T then ⇧⌘W closes herdr's tab, no dialog).
@@ -378,7 +378,7 @@ found none). If herdr has none, floating is Oriel's own.
   the dividers keyed by path: every tree change and zoom moves and sizes the same views (a64aa62).
 - **Found on the way: CI's Mac has Reduce Motion on** (run 40176840327), so no motion that honors it had ever run on
   CI (layout motion, the sidebar slide). Tests of motion launch with `-forceMotion YES` (`Animation.forceMotion`,
-  also read by lane S's session slide); `plan/ci.md` says so.
+  also read by lane S's session slide); `playbook/ci.md` says so.
 - **Decisions.** A new card slides in from its side (from the left for Split Left), its edge one gap from the
   shrinking card's the whole way, through a `placed` state and `.position`. Not a transition: `.move` and `.offset`
   transitions moved nothing in CI's recordings (only their fade ran). Not padding: a card coming from the left got a
@@ -476,7 +476,7 @@ found none). If herdr has none, floating is Oriel's own.
   brightness spread under the title row. Old code: rounds 2–3 spread 0.000 (CI 40186393195; its capture is the user's
   screenshot); fix: 0.120 every round (40186370458). A last round closes the tabs around the shown one (spec review):
   the card stays. `testStripShowsEachWorkspaceClickedBackAndForth` guards the new strip landing on its tab, also after a
-  session hop. `plan/workflow.md` names the pixel exception.
+  session hop. `playbook/workflow.md` names the pixel exception.
 - **Deviation.** The UI test cannot fail on the old code; the script check does. Old-code CI runs used throwaway tags
   (`b2-oldcode*`, deleted), not branches.
 
