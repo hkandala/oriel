@@ -41,6 +41,10 @@
                 .background(ScrollAnchor(step: turn))
             }
             .scrollTargetBehavior(.paging)
+            // A new strip (a workspace or session shown, the overview closed) is laid out on the selected tab's page
+            // from its first frame: the scroll below finds a lazy page only once it is laid out, so the strip drew its
+            // first page for a frame and then jumped (phase 29).
+            .defaultScrollAnchor(start, for: .initialOffset)
             .scrollPosition($position, anchor: .leading)
             .scrollIndicators(.never)
             .onScrollGeometryChange(for: Double.self) {
@@ -72,6 +76,12 @@
                 // workspace came up blank): again once it has.
                 Task { position.scrollTo(id: target, anchor: .leading) }
             }
+        }
+
+        /// The selected tab's page as a point of the pages' width.
+        private var start: UnitPoint {
+            let index = workspace.tabs.firstIndex { $0.id == page.selectedTabIDs[workspace.id] } ?? 0
+            return UnitPoint(x: workspace.tabs.count > 1 ? Double(index) / Double(workspace.tabs.count - 1) : 0, y: 0)
         }
 
         /// A mouse's sideways wheel turns a page with Rex's spring, as a swipe would. The scroll is there before the
