@@ -140,7 +140,6 @@
             return HStack(spacing: 3) {
                 // Clicks pass through to the header's double-click.
                 ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
-                    .accessibilityIdentifier("pane.\(id).icon")
                 if page.renamingPaneID == id {
                     // Enter: herdr's label (an empty one clears it); the snapshot after it shows it. A click elsewhere
                     // keeps the keyboard and the selection where it went.
@@ -155,6 +154,7 @@
                         // A path keeps its end, a label its start.
                         .truncationMode(pane?.label != nil ? .tail : name == nil ? .head : .middle)
                         .allowsHitTesting(false)
+                        .accessibilityIdentifier("pane.\(id).title")
                 }
                 Spacer(minLength: 0)
                 // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.

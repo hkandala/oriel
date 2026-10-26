@@ -42,15 +42,13 @@ struct ProgramTile: View {
     }
 }
 
-/// The program's glyph alone, for card headers and hover card rows. An image named by its icon id, so tests can
-/// find it (a hover card row's button hides it).
+/// The program's glyph alone, for card headers and hover card rows.
 struct ProgramGlyph: View {
     let icon: String
     var letter: String?
 
     var body: some View {
-        ProgramMark(icon: icon, letter: letter, size: 16).foregroundStyle(.secondary)
-            .accessibilityElement().accessibilityAddTraits(.isImage).accessibilityLabel(icon)
+        ProgramMark(icon: icon, letter: letter, size: 16).foregroundStyle(.secondary).accessibilityHidden(true)
     }
 }
 

@@ -87,12 +87,11 @@ extension OrielUITests {
         // Shown after they run, so the cards ask herdr what runs as they show (as above).
         element("workspace.\(workspace(of: tab))").click()
         try await expectIcons(tab, within: 6) { Set($0) == ["vim", "placeholder"] }
-        let logo = element("pane.\(vim).icon"), letter = element("pane.\(cat).icon")
-        XCTAssertTrue(letter.has(\.label, "placeholder", within: 2))
+        XCTAssertTrue(element("pane.\(cat).title").exists(within: 2))
         keepScreenshot("logo and letter")
-        XCTAssertEqual(letter.frame.size, logo.frame.size)
-        XCTAssertEqual(letter.frame.minY - element("pane.\(cat)").frame.minY,
-                       logo.frame.minY - element("pane.\(vim)").frame.minY)
+        // Where each header's name starts in its card: the same with a letter as with a logo.
+        let starts = [vim, cat].map { element("pane.\($0).title").frame.minX - element("pane.\($0)").frame.minX }
+        XCTAssertEqual(starts[0], starts[1])
     }
 
     /// Waits for the capsule's icon ids (front first) to pass `check`.
