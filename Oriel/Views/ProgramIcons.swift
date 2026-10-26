@@ -42,28 +42,33 @@ struct ProgramTile: View {
     }
 }
 
-/// The program's glyph alone, for card headers and hover card rows.
+/// The program's glyph alone, for card headers and hover card rows. An image named by its icon id, so tests can
+/// find it (a hover card row's button hides it).
 struct ProgramGlyph: View {
     let icon: String
     var letter: String?
 
     var body: some View {
-        ProgramMark(icon: icon, letter: letter, size: 16).foregroundStyle(.secondary).accessibilityHidden(true)
+        ProgramMark(icon: icon, letter: letter, size: 16).foregroundStyle(.secondary)
+            .accessibilityElement().accessibilityAddTraits(.isImage).accessibilityLabel(icon)
     }
 }
 
-/// The catalog's template image, or the placeholder's letter.
+/// The catalog's template image, or the placeholder's letter, in the same square: names after it line up.
 private struct ProgramMark: View {
     let icon: String
     let letter: String?
     let size: CGFloat
 
     var body: some View {
-        if icon == "placeholder", let letter {
-            Text(letter).font(.system(size: size * 0.65, weight: .bold, design: .rounded))
-        } else {
-            Image("program.\(icon)").resizable().frame(width: size, height: size)
+        Group {
+            if icon == "placeholder", let letter {
+                Text(letter).font(.system(size: size * 0.65, weight: .bold, design: .rounded))
+            } else {
+                Image("program.\(icon)").resizable()
+            }
         }
+        .frame(width: size, height: size)
     }
 }
 

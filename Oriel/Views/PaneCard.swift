@@ -140,6 +140,7 @@
             return HStack(spacing: 3) {
                 // Clicks pass through to the header's double-click.
                 ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
+                    .accessibilityIdentifier("pane.\(id).icon")
                 if page.renamingPaneID == id {
                     // Enter: herdr's label (an empty one clears it); the snapshot after it shows it. A click elsewhere
                     // keeps the keyboard and the selection where it went.
