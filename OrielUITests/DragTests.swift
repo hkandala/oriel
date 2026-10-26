@@ -164,6 +164,60 @@ extension OrielUITests {
         }
     }
 
+    /// A tab dragged onto another workspace's row moves there whole (phase 29): its terminals, split tree, ratios and
+    /// label, and the page follows it. Its own workspace's row is not a target. Then back from a collapsed sidebar:
+    /// held over the workspace button, the menu opens and its row takes the drop.
+    func testDraggingATabOntoAWorkspaceRowOrMenuRowMovesItWithItsLayout() async throws {
+        let (tabs, first) = try await newWorkspace("tabs", tabs: 2)
+        let tab = tabs[0], home = workspace(of: tab)
+        let second = try await split(first)
+        _ = try await Self.call(one, "pane.split", ["target_pane_id": second, "direction": "down", "cwd": "/tmp",
+                                                    "focus": false])
+        try await Self.call(one, "layout.set_split_ratio", ["tab_id": tab, "path": [Bool](), "ratio": 0.3])
+        try await Self.call(one, "layout.set_split_ratio", ["tab_id": tab, "path": [true], "ratio": 0.7])
+        try await Self.call(one, "tab.rename", ["tab_id": tab, "label": "moving"])
+        let layout = try await terminalLayout(tab), terminal = try await terminalID(first)
+        let before = try await tabIDs()
+        closeNew("tab", besides: before)
+        let capsule = element("tab.\(tab)")
+        XCTAssertTrue(capsule.has(\.isHittable, true, within: 3))
+
+        // Its own row: no move (the drag below would find no capsule).
+        during(capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
+               to: element("workspace.\(home)").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        XCTAssertFalse(element("detail.notice").exists(within: 1))
+        during(capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
+               to: element("workspace.w2").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        let moved = try await movedTab(of: terminal, in: "w2", layout, "moving")
+        let after = try await tabIDs()
+        XCTAssertFalse(after.contains(tab))
+        XCTAssertTrue(element("tab.\(moved)").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(element("workspace.w2").isSelected)
+        let place = try await place(of: terminal)
+        let keyboard = try XCTUnwrap(place).pane
+        XCTAssertTrue(hasKeyboard(element("terminal.\(keyboard)")))
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
+
+        // The collapsed sidebar's workspace menu: where its row is, then a drag held over the button and onto it.
+        element("titlebar.sidebar").click()
+        let button = element("titlebar.workspace")
+        XCTAssertTrue(button.has(\.isHittable, true, within: 3))
+        button.click()
+        let row = element("workspaces.\(one).\(home)")
+        XCTAssertTrue(row.exists(within: 2))
+        let target = row.frame
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(row.vanishes(within: 2))
+        let from = element("tab.\(moved)").frame, over = button.frame
+        try await Self.post("\(one)/drag", Data("\(from.midX) \(from.midY) \(over.midX) \(over.midY) 1.2 "
+                .appending("\(target.midX) \(target.midY) 0.5").utf8))
+        let back = try await movedTab(of: terminal, in: home, layout, "moving")
+        XCTAssertTrue(row.vanishes(within: 2))
+        XCTAssertTrue(element("tab.\(back)").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
+        element("titlebar.sidebar").click()
+    }
+
     func testDraggingWorkspaceRowsReordersThemAndAWorktreeMovesWithItsRepository() async throws {
         let (tabs, pane) = try await newWorkspace("first")
         let first = workspace(of: tabs[0]), second = try await workspace(of: createWorkspace("second").tab)
@@ -205,6 +259,33 @@ extension OrielUITests {
         return panes.first { $0["terminal_id"] as? String == terminal }.flatMap { pane in
             guard let id = pane["pane_id"] as? String, let tab = pane["tab_id"] as? String else { return nil }
             return (id, tab)
+        }
+    }
+
+    /// The tab's split tree with each pane's terminal and the ratios to 0.01: the same after a move to another
+    /// workspace, which gives the panes new ids.
+    private func terminalLayout(_ tab: String) async throws -> String {
+        let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
+        func text(_ node: [String: Any]) -> String {
+            if let id = node["pane_id"] as? String {
+                return panes.first { $0["pane_id"] as? String == id }?["terminal_id"] as? String ?? id
+            }
+            let ratio = (node["ratio"] as? Double).map { String(format: "%.2f", $0) } ?? "?"
+            return "\(node["direction"] ?? "?") \(ratio) (\(text(node["first"] as? [String: Any] ?? [:])), "
+                + "\(text(node["second"] as? [String: Any] ?? [:])))"
+        }
+        return try await text(root(tab))
+    }
+
+    /// The terminal's tab once herdr has it in the workspace with this layout and label.
+    private func movedTab(of terminal: String, in workspace: String, _ layout: String,
+                          _ label: String) async throws -> String
+    {
+        try await poll("the tab in \(workspace) as it was") { () async throws -> String? in
+            guard let tab = try await place(of: terminal)?.tab, self.workspace(of: tab) == workspace else { return nil }
+            let tabs = try await snapshot()["tabs"] as? [[String: Any]] ?? []
+            let same = try await terminalLayout(tab) == layout
+            return same && tabs.first { $0["tab_id"] as? String == tab }?["label"] as? String == label ? tab : nil
         }
     }
 
