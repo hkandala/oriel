@@ -2,7 +2,7 @@
 
 How a large change (many phases) is planned, built, reviewed and finished in this repo. It is the
 playbook from the UI polish (phases 10–23, see `plan/execution.md` and `resources/metrics/dashboard.html`),
-with the lessons folded in. Point the main agent at this file at the start of a session: "follow
+the user's feedback rounds (phases 24–31) and the final review (phase 32), with the lessons folded in. Point the main agent at this file at the start of a session: "follow
 plan/workflow.md for <goal>".
 
 ## Roles
@@ -13,6 +13,7 @@ plan/workflow.md for <goal>".
 | Phase agent | one per phase | builds the phase, self-reviews, starts its reviewers, fixes, pushes, writes Findings and metrics | starts the next phase; pushes red builds |
 | Reviewer | started by a phase agent, read only | one focus each (below); a numbered list with file:line, severity, fix | edits, commits, GUI runs beyond its budget |
 | Fixer | one per area, after the final review | fixes a report's findings in its own files | touches another fixer's files |
+| Lane | one per area in a feedback round (below) | a phase agent for its items, in its own worktree and files | edits another lane's files; asks the user |
 
 ## The whole run
 
@@ -56,7 +57,7 @@ push and start building.
      each nit.
   8. **Later rounds** (only after fixes): the **spec** reviewer alone, plus the e2e reviewer only if its
      own blocker was fixed. Stop when a round is clean. Small phases: round 1 only.
-  9. One full `make e2e` after the last code change; CI green on the last code commit.
+  9. CI's full run green on the last code commit (a local full `make e2e` takes about 40 minutes of GUI).
   10. Findings (Deviations, Decisions, Assumptions, Learned) and `plan/metrics/NN.json`; report.
 - **Orchestrator check after each phase:** commits are small and on `main`; CI green; read the diff with
   the ponytail eye; the new tests would fail if the feature broke; look at the screenshots; fold Findings
@@ -73,13 +74,35 @@ code; fix wrong ones. A script proves the diff is comments only. One reviewer, o
 
 **Ponytail** over the whole repo (duplication across phases, dead code, files near the 400-line limit),
 **bugs and edge cases** (races, leaks, error paths, multi-window, safety rules), **spec** (code vs the
-source-of-truth file and the docs; docs vs code; e2e gaps; slop tests). No separate verifier.
+design pages; docs vs code; e2e gaps; slop tests). No separate verifier.
+
+For a large repo, review and fix by area instead (phase 32): one agent per code area reads every file in
+it and fixes bugs, comments and needless code with small, safe changes; read-only auditors (ponytail,
+security and accessibility) send findings to the area owners; two docs agents (the design pages; plan and
+resources); one e2e agent runs the full suite at the end. Anything big (a redesign, a large refactor, a
+removal that changes behavior) goes on a list for the user, with the reason, the cost and a
+recommendation.
 
 ### 6. Fixers (parallel, disjoint files)
 
 App and kit code (main checkout) · UI tests (worktree) · docs (worktree). Each: self-review, one
 reviewer, CI green, worktree removed. The orchestrator checks every commit is on `main`, CI is green
 on the last commit, no worktree or throwaway session is left.
+
+## Feedback rounds
+
+After the build, the user tries the app and sends a list, screenshots or a Scrawl capture (a screen
+recording with voice and red marks; phases 28, 30 and 31). One round is one phase file:
+
+- The orchestrator numbers the items, settles the open points itself, and groups them into lanes, one per
+  area, so no two lanes edit the same files. Each lane is a phase agent in its own worktree. Items that come
+  in during a round become new lanes in the same file.
+- Each lane writes its Findings under its own heading at the end of the phase file, and updates the design
+  pages it changes.
+- When the user tests on this Mac, the lock is held for "user": UI tests run on CI only, and their
+  recordings are the visual check.
+- The last lane (integration) fixes the flakes it finds at their cause and makes two full CI runs in a row
+  green on its first try.
 
 ### 7. Metrics and report
 
@@ -105,11 +128,13 @@ The last spec round also checks every Build and e2e item of the phase file is do
 
 ## GUI and CI
 
-- XCUITest drives the real mouse and keyboard. One GUI lock (`/tmp/oriel-gui.lock`): take it for one run,
-  release it in the same command, at most 10 minutes per hold. Never send keys with osascript. When the
+- XCUITest drives the real mouse and keyboard. One GUI lock (`/tmp/oriel-gui.lock`, the recipe in
+  [rules.md](rules.md#building-and-running)): take it for one run, release it in the same command, at most
+  10 minutes per hold. Never send keys with osascript. When the
   user works on the Mac, the orchestrator holds the lock for the user and everything runs on CI.
 - Ad-hoc CI runs: `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testX`.
-  A full run takes about 9–12 minutes on 5 shards (plan/ci.md, Speed); the account has 5 macOS runners.
+  A full run takes 10–14 minutes on 5 shards split by measured time; the on-demand tests (stress, costs,
+  frame records, look scenes) run only when asked ([ci.md](ci.md#layout)). The account has 5 macOS runners.
 - Fast tests: wait with `exists(within:)` / `until` (100 ms polls), never XCTest's waits; read the failing
   step in the xcresult and its screen recording before re-running; CI's display is 1x.
 - A machine for parallel GUI runs (a Tart VM) is described in `resources/research/dev/parallel-gui-testing.md`.
