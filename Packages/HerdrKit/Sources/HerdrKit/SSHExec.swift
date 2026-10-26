@@ -14,8 +14,8 @@
         /// This Mac's login-shell environment: the user's agent and PATH for ssh.
         nonisolated let environment: [String: String]
         nonisolated let socket: String
-        /// The master's pid while it lives: a check costs a `kill(pid, 0)`, not a process.
-        /// ponytail: a reused pid reads as a live master until a run fails; `-O check` per run if that bites.
+        /// The master's pid while it lives: a check costs a `kill(pid, 0)`, not a process. A reused pid reads as a live
+        /// master until its relay is needed again and does not start (`currentRelay`).
         private var connection: pid_t?
         private var starting: Task<Void, Error>?
         /// ssh wants an answer: no start without one until `connect` (machines#health-check).
@@ -69,7 +69,15 @@
                 relayStart = nil
             }
             relay = started
-            guard let started else { throw Self.noRelay(target) }
+            guard let started else {
+                // A master gone with its pid reused, or with its socket deleted, serves no session: the next run
+                // starts a new one.
+                if await pid() != connection {
+                    connection = nil
+                    throw HerdrError.failed("The SSH connection to \(target) closed")
+                }
+                throw Self.noRelay(target)
+            }
             return started
         }
 
