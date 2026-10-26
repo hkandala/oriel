@@ -1,161 +1,254 @@
-# Workflow: building a multi-phase change with agents
+# How we work
 
-How a large change (many phases) is planned, built, reviewed and finished in this repo. It is the
-playbook from the UI polish (phases 10–23, see `plan/execution.md` and `resources/metrics/dashboard.html`),
-the user's feedback rounds (phases 24–31) and the final review (phase 32), with the lessons folded in. Point the main agent at this file at the start of a session: "follow
-plan/workflow.md for <goal>".
+The one way of working for Oriel, for every agent. Read it with [lessons.md](lessons.md) before you start.
+The design in `docs/content/docs/` wins on any conflict about what the app does.
+
+## Pick the size of the job
+
+| Job | How |
+|---|---|
+| A small fix (a bug, a wording, one file or a few) | Fix it in the main checkout or one worktree: the fix and its test, `make lint build test`, the UI tests it touches, push. One reviewer only if the change is risky. |
+| One feature or a short list | One phase file, one phase agent, the phase loop below. |
+| A project (several features, a redesign, a round of the user's feedback) | The whole run below: plan, plan review, phases or lanes in parallel, final pass. |
 
 ## Roles
 
-| Role | Who | Does | Never |
-|---|---|---|---|
-| Orchestrator | the main agent | plans, starts agents, answers their questions from the design, checks each phase, merges, keeps `plan/execution.md` current, reports | writes app code; skips a check |
-| Phase agent | one per phase | builds the phase, self-reviews, starts its reviewers, fixes, pushes, writes Findings and metrics | starts the next phase; pushes red builds |
-| Reviewer | started by a phase agent, read only | one focus each (below); a numbered list with file:line, severity, fix | edits, commits, GUI runs beyond its budget |
-| Fixer | one per area, after the final review | fixes a report's findings in its own files | touches another fixer's files |
-| Lane | one per area in a feedback round (below) | a phase agent for its items, in its own worktree and files | edits another lane's files; asks the user |
+| Role | Does | Never |
+|---|---|---|
+| Orchestrator (the main agent) | plans with the user, writes the phase files, starts and briefs agents, answers their questions from the design, checks each phase, reports | writes app code; asks the user what the design or the rules already answer |
+| Phase or lane agent | builds its items in its own worktree and files, self-reviews, starts its reviewers, fixes, pushes, writes Findings | edits another lane's files; asks the user; starts the next phase |
+| Reviewer | read only, one focus; reports a numbered list: file:line, severity (blocker / should / nit), the concrete fix; says when an area is clean; ends with a verdict | edits, commits, GUI runs beyond its budget |
+| Helper | read only, does a piece of reading for an agent and writes a report file | edits the repo |
 
 ## The whole run
 
+1. **Plan (orchestrator, with the user).** Write down the target behavior once (the design pages). Cut the
+   work into phase files `plan/phases/NN-name.md` (template below), each one agent's work for 1–3 hours.
+   For a feedback round, one phase file with one lane per area, so no two lanes edit the same files; name
+   the owner of any shared file in both briefs.
+2. **Plan review (read only, in parallel).** Consistency (docs, plan and phases agree; nothing built twice
+   or missing), ponytail (simpler mechanisms, fewer settings, native APIs), feasibility (real APIs, herdr's
+   schema, what the test harness can do, phase order). One fixer applies the findings.
+3. **Phases or lanes.** One agent each, in parallel where the files are disjoint (the phase loop below). A
+   lane that others depend on (a removal, a rename) goes first and pushes early.
+4. **Comment pass** (after a big build). Every comment says what the code cannot (why, assumptions, quirks,
+   measured numbers, safety rules); what-comments and dead code go. A script proves the diff is comments
+   only. One reviewer.
+5. **Final review.** For a large repo, by area: one agent per code area reads every file and fixes bugs,
+   comments and needless code with small, safe changes; read-only auditors (ponytail, security,
+   accessibility) send findings to the area owners. Anything big (a redesign, a removal that changes
+   behavior) goes on a list for the user with the reason, the cost and a recommendation.
+6. **Integration (last).** Fix the flakes at their cause; two full CI runs in a row green on the last code
+   commit with no reruns; refresh `scripts/test-times.tsv` ([ci.md](ci.md)).
+7. **Report** to the user: what was built, what to check by hand, what is left to decide.
+
+### Feedback rounds
+
+The user tries the app and sends a list, screenshots or a Scrawl capture (screen, voice and red marks). Read
+a capture fully, every frame, before acting. The orchestrator numbers the items, settles the open points
+itself, and groups them into lanes in one phase file. Items that come in during the round become new lanes
+in the same file. Each lane writes its Findings under its own heading and updates the design pages it
+changes.
+
+## Mechanics
+
+### Worktrees and pushing
+
+- **One worktree per phase or lane:** `git worktree add ../oriel-NN<lane> origin/main -b wt-NN<lane>`. Work
+  and commit there. When done, `git worktree remove ../oriel-NN<lane>` and `git branch -D wt-NN<lane>`.
+- **Push straight to main.** No remote branches, no PRs: `git pull --rebase --autostash origin main`, then
+  `make lint build test` on the rebased tree, then `git push origin HEAD:main`. After a rebase over another
+  lane's work, check your commits did not revert theirs.
+- **Never `git stash`.** Worktrees share one stash list: a pop in one worktree can take another's stash.
+  Commit first, or let `--autostash` do it.
+- **Own DerivedData per worktree:** `DERIVED_DATA=/tmp/oriel-dd-NN<lane>` (the Makefile honors it).
+  Never build into the DerivedData a running test suite uses.
+- **Commits:** small and atomic, one logical change with its tests, pushed when it builds.
+  `type(scope): summary`, imperative, ≤ 72 characters (`feat`, `fix`, `chore`, `test`, `docs`, `refactor`,
+  `perf`, `ci`, `build`). The hooks in `.githooks/` must pass; never `--no-verify`. Never commit build
+  output, DerivedData, `.xcresult`, screenshots or secrets.
+- **Commands:** use the Makefile targets (`make lint`, `format`, `build`, `test`, `e2e`, `strip-check`,
+  `run`). A new command gets a target. A rule a tool can check gets a lint rule or a script, not a line in
+  a doc.
+
+### The GUI lock
+
+XCUITest and manual runs take over the real mouse and keyboard of the Mac the user works on. One agent
+drives the GUI at a time:
+
+```sh
+( mkdir /tmp/oriel-gui.lock || exit 1; trap 'rm -rf /tmp/oriel-gui.lock' EXIT
+  echo "$NAME $(date +%H:%M)" > /tmp/oriel-gui.lock/owner; make e2e ONLY=… )
 ```
-1. Plan         → 2. Plan review → 3. Phases (one or more lanes) → 4. Comment pass
-→ 5. Final review → 6. Fixers (parallel) → 7. Metrics and report
-```
 
-### 1. Plan (orchestrator, with the user)
+- Take it only if it is free; if it is not, work on and try later (no waiting loop). One run per hold, at
+  most 10 minutes, released by the trap, also on failure. Never hold it while you read results, edit,
+  build or wait for CI. Never remove someone else's lock.
+- When the user tests on the Mac, the orchestrator holds the lock with owner `user`. Then everyone runs
+  UI tests on CI only ([chosen-tests runs](ci.md#running-part-of-it)), and the CI recordings are the
+  visual check.
+- Never send keys with `osascript` or System Events: when Oriel loses focus, the keys land in the user's
+  apps. Keys go through XCUITest only.
+- Screenshots: `screencapture -x -l <windowid>`, the xcresult's attachments, or frames of a CI recording.
+  Put the ones you report in `/tmp/oriel-shots/`.
 
-- Write the target layout or behavior as one source-of-truth file (like `plan/ui-layout.md`) and, for UI
-  work, HTML mock-ups (`resources/mockups/`). Agree them with the user before any code.
-- Cut the work into phase files `plan/phases/NN-*.md`: Goal, Read first, Build (numbered items), e2e,
-  Done when, and an empty `## Findings`. Each phase is buildable by one agent in 1–3 hours.
-- Write the run file (`plan/execution.md` style): progress log, "for the user to check at the end",
-  open tasks.
+### herdr safety
 
-### 2. Plan review (read only, in parallel)
+- The user's sessions (`default` and any other in `herdr session list`) are read only: no writes, no
+  `control` streams, no `--takeover`, no running the app against them. Look with `observe` or `pane.read`.
+- Writes go only to throwaway sessions `oriel-e2e-*` (tests) and `oriel-dev-*` (by hand), made with
+  `scripts/herdr-session.sh up|down` and deleted when done. Run the app by hand with `make run SESSION=…`.
+- Every herdr argv carries `--session`. Never call focus methods (`*.focus`); creates pass `focus:false`.
+- Remote machines: tests use CI's sshd on localhost (`scripts/ci-sshd.sh`). Never connect to the user's
+  hosts.
 
-Three reviewers: **consistency** (docs, plan and phases agree; nothing built twice or missing),
-**ponytail** (simpler mechanisms, fewer settings, native APIs), **feasibility** (real APIs, herdr schema,
-test harness limits, phase order). One fixer applies the findings; one verifier checks the fixes. Then
-push and start building.
+### CI
 
-### 3. Phases
+A push to main runs the full suite (10–14 minutes, 5 machines). Don't sit waiting on it between steps: push
+and keep working, check it at the end. While a full run matters, batch pushes (a push cancels the run in
+flight). For one or two tests, use a chosen-tests run instead of a full run or a local run. Details:
+[ci.md](ci.md).
 
-- **One phase agent per phase.** Start it with the brief below. Phases that touch different parts run in
-  parallel, each in its own git worktree (`git worktree add ../oriel-<name> origin/main -b <name>`); name
-  who owns shared files (for example tokens) in both briefs. Everyone pushes straight to `main` after
-  `git pull --rebase`; no branches or PRs on the remote.
-- **The phase loop** (inside the phase agent):
-  1. Pull, read the plan, the phase file, the Findings of earlier phases, the ponytail skill.
-  2. Spike herdr (and any API) for five minutes: the exact calls, their side effects (focus), defaults.
-  3. Build in small commits, `make lint build test` green, push as you go (batch pushes while a full CI
-     run is in flight).
-  4. New window, panel or screen: send the orchestrator one rough screenshot before polishing. Settle
-     ordering and wording questions then.
-  5. Run only the e2e tests the phase adds or changes (single local runs, or ad-hoc CI runs).
-  6. Self-review the diff.
-  7. **Review round 1** (parallel): spec, ponytail, e2e/visual. Fix every blocker and should; answer
-     each nit.
-  8. **Later rounds** (only after fixes): the **spec** reviewer alone, plus the e2e reviewer only if its
-     own blocker was fixed. Stop when a round is clean. Small phases: round 1 only.
-  9. CI's full run green on the last code commit (a local full `make e2e` takes about 40 minutes of GUI).
-  10. Findings (Deviations, Decisions, Assumptions, Learned) and `plan/metrics/NN.json`; report.
-- **Orchestrator check after each phase:** commits are small and on `main`; CI green; read the diff with
-  the ponytail eye; the new tests would fail if the feature broke; look at the screenshots; fold Findings
-  into the design pages and later phase files; send back a numbered list if anything is wrong. In
-  parallel lanes, check every commit landed and no later rebase reverted another lane's work.
+### Agents
 
-### 4. Comment pass
+- **Start** an agent with `agent_start`, a kebab-case name that says what it works on (`l33-docs`,
+  `phase14-spec-review`), and a brief with everything it needs (below): its files, its worktree, where to
+  write. Agents that a phase agent needs (reviewers, helpers) are started by that agent, not the
+  orchestrator.
+- **Ask** with `needsReply: true` when you want an answer; you are woken when it replies or stops. FYIs go
+  with `needsReply: false`. Never send acknowledgements.
+- **Wait** without polling: `agent_watch` with no timeout for an agent already working; no sleep loops.
+- **Stop** agents when their work is done, together in one `agent_stop`. Read a stuck one with
+  `agent_read` (with `screen: true`).
+- An agent asks the orchestrator only when the design and these rules don't answer it; the orchestrator
+  decides open points itself rather than asking the user.
 
-One agent (helpers on disjoint files allowed): every comment says what the code cannot (why,
-assumptions, quirks, measured numbers, decision links, safety rules); delete what-comments and dead
-code; fix wrong ones. A script proves the diff is comments only. One reviewer, one round.
+### Docs site
 
-### 5. Final review (read only, in parallel)
+The docs deploy only through `.github/workflows/docs-deploy.yml` to the Vercel project `oriel` (Vercel's own
+git deploys are off: they deployed every push and hit the free plan's 100 deploys a day). Run the `vercel`
+CLI only from the repo root; in another folder `vercel pull --yes` creates and links a new project.
 
-**Ponytail** over the whole repo (duplication across phases, dead code, files near the 400-line limit),
-**bugs and edge cases** (races, leaks, error paths, multi-window, safety rules), **spec** (code vs the
-design pages; docs vs code; e2e gaps; slop tests). No separate verifier.
+## The phase loop
 
-For a large repo, review and fix by area instead (phase 32): one agent per code area reads every file in
-it and fixes bugs, comments and needless code with small, safe changes. Read-only auditors (ponytail,
-security and accessibility) send findings to the area owners. Two docs agents take the design pages, and
-plan and resources. One e2e agent runs the full suite at the end. Anything big (a redesign, a large refactor, a
-removal that changes behavior) goes on a list for the user, with the reason, the cost and a
-recommendation.
+1. Pull. Read `AGENTS.md`, this file, [lessons.md](lessons.md), the phase file, the Findings of earlier
+   phases it touches, the design pages it names, and the ponytail skill.
+2. Spike herdr (and any API) for five minutes in a throwaway session: the exact calls the code will send,
+   their results and side effects (focus, defaults).
+3. Build the parts that cannot change first (menus, keys, herdr calls), then the look. A new window, panel
+   or screen: send the orchestrator one rough screenshot before polishing, and settle order and wording
+   then.
+4. Small commits, `make lint build test` green, push as you go.
+5. Run only the UI tests you add or change (one local run under the lock, or a chosen-tests CI run).
+6. Self-review the diff against the phase file and the ponytail rules.
+7. **Review round 1** in parallel: spec, ponytail, e2e (table below). Fix every blocker and should;
+   answer each nit with a fix or a one-line reason. **Later rounds** only after fixes: the spec reviewer
+   alone, plus the e2e reviewer if its own blocker was fixed. Stop when a round is clean; at most 4 rounds.
+   A small phase (a few files, no new view) gets round 1 only.
+8. Update the design pages you changed, in plain English.
+9. CI's full run green on the last code commit.
+10. Write the Findings and report: what was built, the commits, the tests and CI run ids, screenshot paths,
+    anything open. At 2 hours, report progress anyway.
 
-### 6. Fixers (parallel, disjoint files)
+### The orchestrator's check after each phase or lane
 
-App and kit code (main checkout) · UI tests (worktree) · docs (worktree). Each: self-review, one
-reviewer, CI green, worktree removed. The orchestrator checks every commit is on `main`, CI is green
-on the last commit, no worktree or throwaway session is left.
+Every commit is small and on `main`, and no later rebase reverted another lane's work. CI is green on the
+last code commit. Read the diff with the ponytail eye (no new protocol, manager, option or file the phase did
+not need; no dead code). Each new test checks behavior through herdr or accessibility values and would
+fail if the feature broke. Look at the screenshots. Fold the Findings into the design pages and later phase
+files. Anything wrong goes back to the same agent as a numbered list.
 
-## Feedback rounds
-
-After the build, the user tries the app and sends a list, screenshots or a Scrawl capture (a screen
-recording with voice and red marks; phases 28, 30 and 31). One round is one phase file:
-
-- The orchestrator numbers the items, settles the open points itself, and groups them into lanes, one per
-  area, so no two lanes edit the same files. Each lane is a phase agent in its own worktree. Items that come
-  in during a round become new lanes in the same file.
-- Each lane writes its Findings under its own heading at the end of the phase file, and updates the design
-  pages it changes.
-- When the user tests on this Mac, the lock is held for "user": UI tests run on CI only, and their
-  recordings are the visual check.
-- The last lane (integration) fixes the flakes it finds at their cause and makes two full CI runs in a row
-  green on its first try.
-
-### 7. Metrics and report
-
-`python3 resources/metrics/build.py` rebuilds `resources/metrics/dashboard.html` from
-`plan/metrics/*.json`, git and CI. Report to the user: what was built, the dashboard, which reviews
-mattered, the "for the user to check" list, open tasks.
-
-## Reviews: who and when
-
-Measured over 132 review agents in the UI polish (dashboard, "Which reviews are a must"):
+### Reviews: who and when
 
 | Reviewer | Round 1 | Later rounds | Why |
 |---|---|---|---|
-| Spec (and bugs) | yes | yes, alone | found the most real bugs in every round (value 4–5 in 93 % of round-1 runs, 57 % later) |
-| E2E / visual | yes | only if its own blocker was fixed | caught suite-wide breaks and rendering bugs; slow (about 10 min) |
-| Ponytail | yes | no | cheap (about 1 min), most findings stick, little after round 1 |
-| Verifier | no | no | 10 real findings in about 3 hours; fold its item checklist into the last spec round |
+| Spec (and bugs) | yes | yes, alone | finds the most real bugs in every round |
+| E2E / visual | yes | only if its own blocker was fixed | catches suite-wide breaks and rendering bugs; slow (about 10 min) |
+| Ponytail | yes | no | cheap, most findings stick, little after round 1 |
+| Verifier | no | no | adds little; the last spec round checks every Build and e2e item instead |
 
-The last spec round also checks every Build and e2e item of the phase file is done.
+GUI budget: the e2e reviewer gets at most 15 minutes of lock in round 1; spec and ponytail reviewers get
+none. A phase agent runs single tests while building; the full suite runs on CI, not locally (a local full
+`make e2e` is about 40 minutes of the user's screen).
 
-- Worktrees share one `git stash` list: a pop in one worktree can take another's stash. Never `git stash`;
-  commit first, or use `git pull --rebase --autostash`.
+## Phase file template
 
-## GUI and CI
+```markdown
+# Phase NN: <name>
 
-- XCUITest drives the real mouse and keyboard. One GUI lock (`/tmp/oriel-gui.lock`, the recipe in
-  [rules.md](rules.md#building-and-running)): take it for one run, release it in the same command, at most
-  10 minutes per hold. Never send keys with osascript. When the
-  user works on the Mac, the orchestrator holds the lock for the user and everything runs on CI.
-- Ad-hoc CI runs: `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testX`.
-  A full run takes 10–14 minutes on 5 shards split by measured time; the on-demand tests (stress, costs,
-  frame records, look scenes) run only when asked ([ci.md](ci.md#layout)). The account has 5 macOS runners.
-- Fast tests: wait with `exists(within:)` / `until` (100 ms polls), never XCTest's waits; read the failing
-  step in the xcresult and its screen recording before re-running; CI's display is 1x.
-- A machine for parallel GUI runs (a Tart VM) is described in `resources/research/dev/parallel-gui-testing.md`.
+Goal: <what the user gets, in two or three sentences>.
+
+## Build
+1. **<item>.** <what, where, the design page that rules it>.
+
+## e2e
+- <the UI tests that prove each item, through herdr or accessibility values>
+
+## Done when
+- <checks>
+
+## Findings
+```
+
+A feedback round puts the items under `## Lane X: <area> (items n–m)` headings instead, and each lane writes
+its Findings under `### Lane X` at the end.
+
+**Findings** are short bullets with a bold lead that say why, not only what: **Deviations** (where the code
+differs from the plan or the design, and why), **Decisions** (choices the design did not make), and anything
+the user must check by hand. A lesson that will come back goes to [lessons.md](lessons.md), not into the
+phase.
 
 ## Briefs
 
-**Phase agent.** "You are the phase agent for phase NN (‹name›) of Oriel. Follow `plan/workflow.md`
-(the phase loop) and `plan/execution.md`. Build everything in `plan/phases/NN-*.md`; ‹source-of-truth
-file› wins. Read the Findings of earlier phases. Work in ‹folder› (worktree if parallel; name the owner
-of shared files). Small commits pushed straight to main after pull --rebase. DERIVED_DATA=/tmp/oriel-dd-
-phaseNN, the GUI lock for one run at a time, throwaway oriel-dev-*/oriel-e2e-* herdr sessions only.
-Start your reviewers (phaseNN-spec-review, phaseNN-ponytail-review, phaseNN-e2e-review) yourself. Send
-one rough screenshot of any new view. Report at 2 hours. Reply with the report, which reviewers were a
-must, and your top 3 lessons."
+**Phase or lane agent.** "You are the agent for phase NN ‹lane, items› of Oriel. Read `AGENTS.md` and
+`plan/workflow.md` and follow the phase loop. Build everything in `plan/phases/NN-*.md` ‹your section›; the
+design pages win. Worktree `../oriel-NN<lane>`, branch `wt-NN<lane>`, `DERIVED_DATA=/tmp/oriel-dd-NN<lane>`.
+Your files: ‹list›; ‹owner of shared files›. Push straight to main after a rebase and a build. Start your
+reviewers yourself (NN<lane>-spec-review, …). Decide open points yourself. Write Findings under ‹heading›.
+Reply when done with what you fixed, the causes, the tests and CI run ids, and anything the user must
+decide or check by hand."
 
-**Reviewer.** Read only; one focus; "file:line, severity (blocker / should / nit), the concrete fix";
-say when an area is clean; end with a verdict.
+**Reviewer.** "Read-only ‹focus› review of ‹phase/lane› (`git diff <base>..HEAD`), against the phase file,
+the design pages and `plan/workflow.md`. ‹Spec: missing or wrong behavior, bugs, races, leaks, error paths,
+herdr safety, accessibility identifiers. Ponytail: follow the ponytail-review skill; what can be deleted
+or made simpler. E2E: drive the new UI through XCUITest under the lock (at most 15 minutes, a throwaway
+session), then read the tests and flag slop: asserting nothing real, only that an element exists, sleeping,
+duplicates, mocks where herdr is cheap, pixels where herdr or an accessibility value can say it.› Report a
+numbered list: file:line, severity, the concrete fix. Say what is clean. End with a verdict."
 
-## House rules that apply throughout
+## Code
 
-`AGENTS.md`, `plan/rules.md` and `plan/standards.md`: ponytail; herdr safety (every argv carries
-`--session`, `focus:false`, no focus methods, read the snapshot after writes, never touch the user's
-sessions); no hint text in the UI; never send the user to herdr; plain English in docs; commit subjects
-`type(scope): summary` ≤ 72 characters; never `--no-verify`.
+Tools enforce what they can (SwiftFormat, SwiftLint, the compiler in Swift 6 mode with strict
+concurrency). The rest:
+
+- **Ponytail.** Read `/Users/hkandala/code/pi-hkandala/extensions/pi-ponytail/skills/ponytail/SKILL.md`
+  before writing code. Does it need to exist? Is it already here? Does the stdlib, SwiftUI, AppKit or an
+  installed package do it? Only then the minimum. No protocol with one conformer except `Exec` (local and
+  remote machines) and `Multiplexer` (`HerdrClient` is its only conformer; it grows a method only when the
+  app uses a new feature). No factories, managers, coordinators or service layers; no scaffolding for
+  later. A deliberate shortcut gets a `// ponytail:` comment with its ceiling and upgrade path. A type gets
+  its own file when more than one file uses it or it passes about 200 lines.
+- **Swift.** No `@unchecked Sendable` or `nonisolated(unsafe)` without a one-line reason. UI state is
+  `@Observable` classes on the main actor; no Combine or `ObservableObject` (except where libghostty-spm
+  needs it). `async`/`await`, `AsyncStream`, structured tasks; cancel what you start. Errors: `throws` with
+  a small enum per module, shown in the UI as text; never crash on bad input from herdr; no `try!` or force
+  unwraps outside tests. Decoding: hand-written lenient `Decodable` models with only the fields the app uses.
+  Names follow the design's words (machine, session, page, window, workspace, tab, pane, card, strip). Comments
+  say why, not what; no commented-out code.
+- **Look.** Views draw only with the `Look` tokens in `Style.swift`, read from the environment; no color
+  literal outside it. Glass is one behind-window `NSVisualEffectView` under a tint plus the system glass APIs;
+  Classic is opaque; pane cards are never glass. No hardcoded sizes where layout can decide; the fixed sizes
+  are written down in the design pages. Every control and region a test touches has an
+  `accessibilityIdentifier`. No hint text in the UI, and never send the user to herdr: the app shows the
+  button that does it.
+- **herdr in code.** Every argv carries `--session`; no focus methods; never patch local state after a write
+  (read the snapshot again; the one exception is `Ahead`, which shows a new tab, split or close before herdr
+  answers). Every long-running child ends when its stdin closes; the one fallback kill signals by pid, never
+  by process group.
+- **Tests.** UI tests first: XCUITest in `OrielUITests` against a throwaway herdr session with a known
+  layout, asserting through accessibility identifiers and herdr (`pane.read`, `session.snapshot`), not
+  pixels. Unit tests (`swift test` in `Packages/HerdrKit`) only for logic with branches, with recorded herdr
+  JSON next to them. App logic no UI test can drive gets a small check script that `make test` runs. No
+  mocks of herdr where the real one is cheap; one `Exec` fake for pacing tests is fine.
+- **Docs.** Plain English: short sentences, active voice, every term defined at first use. Docs describe the
+  app as it is now: no dates, no history.

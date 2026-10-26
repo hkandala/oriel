@@ -1,28 +1,23 @@
 # AGENTS.md
 
-Oriel: a native SwiftUI client for herdr (macOS now, iOS later).
+Oriel: a native SwiftUI client for herdr on macOS.
 
-## Read first
+## Read first, every time
 
-- `plan/README.md` (status, modules, phases), `plan/standards.md`, `plan/rules.md`.
-- The design in `docs/content/docs/` wins on any conflict. `plan/ui-layout.md` is a short map of the
-  main window.
+- `plan/workflow.md`: how we work. When a task needs phases and when not, worktrees and pushing, the GUI
+  lock, herdr safety, how to start and brief agents, the phase loop, reviews and the coding rules. Follow
+  it without being told.
+- `plan/lessons.md`: problems that came back, and the rule for each.
+- `plan/phases/`: one file per phase, with its Findings. Read the ones your change touches; a new phase is
+  a new file there.
+- The design in `docs/content/docs/` wins on any conflict about what the app does.
 
-## Large changes
-
-- For work in several phases, follow `plan/workflow.md` (plan, plan review, phases with reviewers,
-  comment pass, final review, fixers, metrics).
-
-## Rules
+## The rules that never bend
 
 - Ponytail: the simplest code that works; no speculative abstractions or "for later" code.
-- `make lint build test` before you push, and the UI tests your change touches (`make e2e ONLY=…` under
-  the GUI lock, or an ad-hoc CI run: `plan/ci.md`). CI runs the full suite on every push. Never
-  `git commit --no-verify`.
-- Small atomic commits.
-- e2e tests (XCUITest against a real herdr) over unit tests. Unit tests only for logic
-  with branches.
-- herdr: existing sessions are read only. Never run the app or a `control` stream against
-  them. Write only to throwaway sessions `oriel-e2e-*` / `oriel-dev-*`, and delete them after.
-- Never call herdr focus methods. Every herdr argv carries `--session`.
-- Add a lint rule or a script instead of a line here when a tool can check it.
+- `make lint build test` on the rebased tree before you push, and the UI tests your change touches (one
+  local run under the GUI lock, or a chosen-tests CI run: `plan/ci.md`). Never `git commit --no-verify`,
+  never `git stash`.
+- herdr: the user's sessions are read only. Write only to throwaway sessions `oriel-e2e-*` / `oriel-dev-*`
+  and delete them after. Every herdr argv carries `--session`; never call herdr focus methods.
+- A rule a tool can check gets a lint rule or a script, not a line here.

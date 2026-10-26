@@ -1,54 +1,14 @@
-# Oriel plan
+# Playbook
 
-This folder holds how Oriel is built: the working rules, the phase files with their findings, and the CI
-notes. The design of the app lives in `docs/content/docs/` and wins on any conflict. The root `README.md`
-says how to build, run and test.
-
-## Status
-
-Phases 1–31 are done. Phase 32, a review of the whole repository and a cleanup, runs now
-([phases/32-final-review.md](phases/32-final-review.md)).
-
-The app shows the herdr sessions of This Mac and of remote machines over SSH, in one or more windows: a
-sidebar with one page per open session, a tab bar in the title row, a strip of live terminal cards per
-tab, the Agents view, the overview of all tabs, floating panes, drag and drop, find, the command palette,
-notifications and the Dock badge. The iOS target only builds and shows an empty state. What is not built
-yet is in [Future work](../docs/content/docs/future-work.mdx).
-
-## Files
+How Oriel is built, for the agents that build it. What the app does is in `docs/content/docs/`; how to build,
+run and test it is in the root `README.md`.
 
 | File | What it holds |
 |---|---|
-| [rules.md](rules.md) | Commits, the Makefile, DerivedData, the GUI lock, herdr safety |
-| [standards.md](standards.md) | The coding rules that tools cannot check |
-| [workflow.md](workflow.md) | How a change of several phases runs with agents, from plan to report |
-| [execution.md](execution.md) | Inside a phase: the GUI budget, speed rules, the phase loop, review briefs, metrics, the progress log |
-| [ci.md](ci.md) | The CI layout, how to keep it green, its speed and its flakes |
-| [ui-layout.md](ui-layout.md) | A short map of the main window as built, with links to the design pages |
-| [phases/](phases/) | One file per phase: its goal, its build list and its Findings |
-| [metrics/](metrics/) | Per-phase numbers for phases 10–23 and the final review (`resources/metrics/dashboard.html`) |
-| [archive/](archive/) | The v0 plan and request ([v0-plan.md](archive/v0-plan.md)), the UI polish scope ([ui-polish.md](archive/ui-polish.md)), the phases 10–23 run notes ([execution-10-23.md](archive/execution-10-23.md)) |
-
-## Modules
-
-```
-Oriel.xcodeproj
-Oriel/                     the app target (SwiftUI, macOS + iOS)
-  App/                     @main, scenes, the menu commands and the palette's command list, the app delegate
-  Store/                   HostStore (the live model of one herdr session) and its writes; Page and
-                           WindowPages (a window's pages and selection); machines and presence
-  Terminal/                libghostty glue: PaneTerminal (one pane's stream), PaneSurfaceView (keys, mouse,
-                           scroll), PaneViewRegistry (which terminals stream), links and file drops
-  Views/                   title row, tab bar, sidebar, Agents view, strip and cards, overview, floating
-                           panes, palette, Open Session, find bar, drag and drop, swipes, the Look tokens
-OrielUITests/              the XCUITest end-to-end suite (macOS)
-Packages/HerdrKit/         Swift package, no UI: Exec (ProcessExec, SSHExec, Relay), HerdrClient (calls,
-                           events, paced snapshots), lenient models, split tree, TerminalStream, git
-                           status, program icons, starting a server. Tests: `swift test`
-scripts/                   throwaway herdr sessions, the e2e helper, CI's sshd, shards and test times
-```
-
-`HerdrKit` knows nothing about SwiftUI or libghostty. The app knows nothing about herdr's argv or JSON.
+| [workflow.md](workflow.md) | How we work: when to use phases, roles, worktrees, the GUI lock, herdr safety, agents, the phase loop, reviews, briefs, coding rules |
+| [lessons.md](lessons.md) | Problems that came back across phases, and the rule that stops each |
+| [ci.md](ci.md) | The CI layout, chosen-tests runs, CI-only failures, fast tests |
+| [phases/](phases/) | One file per phase: what was asked and its Findings |
 
 ## Phases
 
@@ -88,7 +48,7 @@ scripts/                   throwaway herdr sessions, the e2e helper, CI's sshd, 
 | 30 | Sixth feedback: many tabs, two windows, three-finger swipes | [30-sixth-feedback.md](phases/30-sixth-feedback.md) |
 | 31 | Seventh feedback: selection in view, gestures, float requests, CI | [31-seventh-feedback.md](phases/31-seventh-feedback.md) |
 | 32 | Final review of the whole repository and cleanup | [32-final-review.md](phases/32-final-review.md) |
+| 33 | Eighth feedback: iOS removed, chrome, About panel, remote drops, this playbook | [33-eighth-feedback.md](phases/33-eighth-feedback.md) |
 
-Phases 1–6 built v0 (This Mac only). Phases 10–23 were the UI polish, run by [execution.md](execution.md).
-Phases 24–31 came from the user's hands-on rounds, each in parallel lanes. Each phase file's Findings say
-what the phase changed and why.
+Phases 1–6 built v0 (This Mac only), 7–9 renamed and simplified the design, 10–23 were the UI polish, and
+24 onward came from the user's rounds of feedback, each in parallel lanes.
