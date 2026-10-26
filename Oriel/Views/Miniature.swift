@@ -55,7 +55,10 @@
                     if let pane, page.floats(pane) {
                         Image(systemName: "pip").foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if let pane, let id = pane.terminalID, let view = page.terminal(pane) {
+                    } else if let pane, let id = pane.terminalID, let view = live.contains(id) ? page.terminal(pane)
+                        // Not made for a tile that is not live (a view and a session each, while it scrolls).
+                        : page.terminals.terminals([id]).first
+                    {
                         let drawn = live.contains(id) && view.ready
                         ZStack {
                             // Under a live one too, until it drew: a terminal's background may be clear.

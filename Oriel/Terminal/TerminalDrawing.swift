@@ -46,10 +46,14 @@
             }
         }
 
-        /// Leaving view, its picture is kept first (`keepPicture`), and a small copy for the overview.
+        /// Leaving view, a kept one's picture is kept first (`keepPicture`, a full copy); every one's small copy for
+        /// the
+        /// overview. One the overview alone showed lets go of its surface next: its snapshot is all it needs.
         func inViewChanged() {
             if !inView {
-                view.keepPicture()
+                if PaneViewRegistry.recent.contains(where: { $0 === self }) {
+                    view.keepPicture()
+                }
                 takeSnapshot()
             }
             if ready {
