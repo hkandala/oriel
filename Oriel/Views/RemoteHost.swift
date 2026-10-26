@@ -20,8 +20,8 @@
         var body: some View {
             let target = draft.target.trimmingCharacters(in: .whitespaces)
             VStack(alignment: .leading, spacing: 14) {
-                Label(editing ? "Edit Remote Host" : "Add Remote Host", systemImage: editing ? "pencil" : "plus")
-                    .font(.system(size: 13, weight: .semibold))
+                // Text only, flush with the form (user, phase 29: the glyph sat off the line).
+                Text(editing ? "Edit Remote Host" : "Add Remote Host").font(.system(size: 13, weight: .semibold))
                 Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
                     GridRow {
                         Text("Name").gridColumnAlignment(.trailing)
