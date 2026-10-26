@@ -108,13 +108,14 @@ views only read it.
   including the app's image sets (`Oriel/Assets.xcassets/program.<id>`,
   templates with their vector data). The app bundles `catalog.json` as it
   is.
-- No icon art comes from Rex. The About panel (Oriel ▸ About Oriel) lists
-  each icon source and each library on one short line: its name, which
-  links to its home page, and its license. Its "License Texts" link opens
-  `Acknowledgements.txt`, a file shipped inside the app, in the default text
-  editor (TextEdit), with every license in full. A new icon source or
-  library gets a line in `About.credits` (`Commands.swift`) and its license
-  in `Oriel/Acknowledgements.txt`; `make test` fails when an icon license
-  is missing there.
+- No icon art comes from Rex. Oriel's own About window (Oriel ▸ About
+  Oriel) shows the icon, the name and the version, then each library and
+  icon source on one line in a glass card: its name, which links to its
+  home page, and its license on the right. Its "License Texts" button
+  opens `Acknowledgements.txt`, a file shipped inside the app, in the
+  default text editor (TextEdit), with every license in full. A new icon
+  source or library gets a line in `About.credits` (`About.swift`) and its
+  license in `Oriel/Acknowledgements.txt`; `make test` fails when an icon
+  license is missing there.
 
 How it works: [herdr calls](/docs/reference/herdr-calls).
