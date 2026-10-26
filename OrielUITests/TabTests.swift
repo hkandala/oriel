@@ -169,8 +169,9 @@ extension OrielUITests {
         try await expectShown(shown[0].tab, "back from the other session")
     }
 
-    /// A zoom from the overview into a middle tab of a workspace of many, a workspace shown again, ⌘4 and a session
-    /// shown again: the selection capsule rests on the tab shown, not between two (phase 31: after the zoom, or on a
+    /// A zoom from the overview into a middle tab of a workspace of many, the workspace shown again and ⌘4 (a session
+    /// shown again: `testStripShowsEachWorkspaceClickedBackAndForth`): the selection capsule rests on the tab shown,
+    /// not between two (phase 31: after the zoom, or on a
     /// new strip, it sat between the tab and the next one until the next click).
     func testTheCapsuleRestsOnTheTabShownHoweverItShows() async throws {
         relaunch(one, ["-forceMotion", "YES"])
@@ -190,11 +191,6 @@ extension OrielUITests {
         try await expectShown(tabs[2], "its workspace shown again")
         app.typeKey("4", modifierFlags: .command)
         try await expectShown(tabs[3], "⌘4")
-        openSessionPanel()
-        element("open-session.session.\(two)").click()
-        XCTAssertTrue(element("pane.w1:p1").has(\.isHittable, true, within: connect), "the other session")
-        element("sidebar.dot.\(one)").click()
-        try await expectShown(tabs[3], "its session shown again")
     }
 
     /// The tab's page is in view: its card takes clicks and its capsule alone is lit.

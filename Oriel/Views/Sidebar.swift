@@ -200,7 +200,7 @@
                     // The selected row and the fade's room round it (its background) into view, just enough, however
                     // it was selected (phase 31); again once laid out, for a row new in this update (a new page).
                     .onChange(of: "into view \(page.selectedWorkspaceID ?? "")", initial: true) { _, id in
-                        position.scrollTo(id: id)
+                        withTransaction(\.animation, nil) { position.scrollTo(id: id) }
                         Task { position.scrollTo(id: id) }
                     }
                     .keycapHints(.command, [.command, .control], shown: $hints)

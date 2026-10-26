@@ -272,12 +272,13 @@ struct StatusBadge: View {
             }
             .scrollIndicators(.never)
             .scrollPosition($position)
-            // The lit row into view, just enough, however its pane was shown (phase 31). The lazy stack finds a row it
-            // has not built.
-            .onChange(of: page.keyboardCard(page.selectedTab?.id)?.id, initial: true) { _, id in
-                if let id {
-                    position.scrollTo(id: id)
-                }
+            // The lit row into view, just enough, without motion, however its pane was shown, and in a stack made anew
+            // (the view opened, the other order); the lazy stack finds a row it has not built. Again once laid out: on
+            // the stack's first layout the scroll can miss (phase 31).
+            .onChange(of: [page.keyboardCard(page.selectedTab?.id)?.id ?? "", sort.rawValue], initial: true) {
+                let id = $1[0]
+                withTransaction(\.animation, nil) { position.scrollTo(id: id) }
+                Task { position.scrollTo(id: id) }
             }
         }
 
