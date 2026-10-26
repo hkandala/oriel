@@ -12,12 +12,13 @@ extension OrielUITests {
         addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
         let made = try await String(decoding: Self.post("\(eight)/stress", Data("300 30 400 100".utf8)), as: UTF8.self)
         print(made)
-        // From the launch to the first card drawn: before phase 29 it stayed blank past 30 s on CI.
+        // From the launch to the first card drawn: 7–8 s on CI; before phase 29 it stayed blank past 30 s (400 program
+        // asks at once).
         let launched = Date.now
         relaunch(eight, ["-recordLatency", "YES"])
         // Also after a failed step.
         addTeardownBlock { @MainActor in self.note(self.element("app.latency").stringValue) }
-        XCTAssertTrue(element("pane.w1:p1").exists(within: 120))
+        XCTAssertTrue(element("pane.w1:p1").exists(within: 20))
         note("connect \(Int(Date.now.timeIntervalSince(launched) * 1000))ms")
         // The first snapshot's program asks (one per pane), and the agents' first states.
         try await Task.sleep(for: .seconds(10))
@@ -46,7 +47,10 @@ extension OrielUITests {
 
         // A busy tab: an agent and a printing pane, in view.
         quietKey("1", .command) { self.element("tab.w1:t1").isSelected }
-        _ = try await measure("busy tab", seconds: 5, session: eight)
+        let busy = try await measure("busy tab", seconds: 5, session: eight)
+        // 15 % on CI; over 100 % before phase 29 (snapshot reads back to back, an O(n²) line split).
+        let cpu = busy.split(separator: "\n")[0].split(separator: " ")
+        XCTAssertLessThan(Double(cpu[1].dropLast()) ?? 100, 50, busy)
         try await sample("busy tab", in: eight)
 
         // Another session's page and back (its own snapshots stop mattering while it is out of view).
@@ -60,6 +64,13 @@ extension OrielUITests {
         for entry in keys {
             XCTAssertLessThanOrEqual(entry.turns, 1, entry.name)
         }
+        // A snapshot's apply on the main thread ("main … <snapshots> <their ms>"): about 6 ms on CI, 75 ms before
+        // phase 29 (a set of every tab's focused pane made again for each pane).
+        let main = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("main ") }
+            .map { $0.split(separator: " ") }
+        let applies = main.reduce(0) { $0 + (Int($1[3]) ?? 0) }
+        let applied = main.reduce(0) { $0 + (Int($1[4].dropLast(2)) ?? 0) }
+        XCTAssertLessThan(applied, 25 * max(applies, 1), "\(applied) ms for \(applies) snapshots")
     }
 
     /// ⌘T, a quiet tab of its own (measured while 100 agents work in others), ⌘D, ⌘W and ⇧⌘W.
