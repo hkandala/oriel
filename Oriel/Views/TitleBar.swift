@@ -186,7 +186,16 @@
                     }) { Label(machine.name, systemImage: machine.icon) }
                 }
                 Divider()
-                Button("Add Remote Host…", systemImage: "plus") { pages.addingHost = true }
+                Button("Add Remote Host…", systemImage: "plus") {
+                    pages.hostDialog = Machine(id: UUID().uuidString, name: "", target: "", icon: "server.rack")
+                }
+                if !MachineList.shared.list.isEmpty {
+                    Menu("Edit Remote Host", systemImage: "pencil") {
+                        ForEach(MachineList.shared.list) { machine in
+                            Button(machine.name) { pages.hostDialog = machine }
+                        }
+                    }
+                }
             } label: {
                 // The icon alone (user, phase 22): no chevron.
                 Image(systemName: current.icon).fontWeight(.medium)
@@ -198,6 +207,7 @@
             .fixedSize()
             .help("Machine")
             .accessibilityLabel("Machine: \(current.name)")
+            .accessibilityValue(current.icon)
             .accessibilityIdentifier("titlebar.machine")
         }
     }

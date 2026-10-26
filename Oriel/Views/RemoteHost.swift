@@ -2,53 +2,61 @@
     import HerdrKit
     import SwiftUI
 
-    /// The machine button's Add Remote Host dialog (ui/add-a-machine): a name, the SSH target and an icon. Add saves
-    /// the machine and opens it in a new window, which connects and asks what ssh asks.
-    struct AddHost: View {
+    /// The machine menu's remote host dialog (ui/add-a-machine): a name, the SSH target and an icon. Add saves a new
+    /// machine and opens it in a new window, which connects and asks what ssh asks; Save keeps an edit, Remove takes
+    /// the machine off the list.
+    struct HostDialog: View {
         let pages: WindowPages
-        @State private var name = ""
-        @State private var target = ""
-        @State private var icon = "server.rack"
+        let editing: Bool
+        @State private var draft: Machine
         @FocusState private var focused: Bool
 
-        static let icons = ["laptopcomputer", "desktopcomputer", "server.rack", "cloud", "cpu", "house", "flask",
-                            "gamecontroller"]
+        init(pages: WindowPages, machine: Machine) {
+            self.pages = pages
+            editing = MachineList.shared.list.contains { $0.id == machine.id }
+            _draft = State(initialValue: machine)
+        }
 
         var body: some View {
-            let target = target.trimmingCharacters(in: .whitespaces)
+            let target = draft.target.trimmingCharacters(in: .whitespaces)
             VStack(alignment: .leading, spacing: 14) {
-                Label("Add Remote Host", systemImage: "plus").font(.system(size: 13, weight: .semibold))
+                Label(editing ? "Edit Remote Host" : "Add Remote Host", systemImage: editing ? "pencil" : "plus")
+                    .font(.system(size: 13, weight: .semibold))
                 Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
                     GridRow {
                         label("Name")
-                        TextField("", text: $name).focused($focused).focusSoon($focused).fieldCapsule()
-                            .accessibilityLabel("Name").accessibilityIdentifier("add-host.name")
+                        TextField("", text: $draft.name).focused($focused).focusSoon($focused).fieldCapsule()
+                            .accessibilityLabel("Name").accessibilityIdentifier("host.name")
                     }
                     GridRow {
                         label("SSH Target")
-                        TextField("", text: $target).fieldCapsule()
-                            .accessibilityLabel("SSH Target").accessibilityIdentifier("add-host.target")
+                        TextField("", text: $draft.target).fieldCapsule()
+                            .accessibilityLabel("SSH Target").accessibilityIdentifier("host.target")
                     }
                     GridRow {
                         label("Icon")
-                        Picker("Icon", selection: $icon) {
-                            ForEach(Self.icons, id: \.self) { Image(systemName: $0).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
+                        IconPicker(icon: $draft.icon)
                     }
                 }
                 .font(.system(size: 13))
                 HStack {
+                    if editing {
+                        Button("Remove", role: .destructive) {
+                            MachineList.shared.list.removeAll { $0.id == draft.id }
+                            pages.hostDialog = nil
+                        }
+                        .buttonStyle(.glass)
+                        .accessibilityIdentifier("host.remove")
+                    }
                     Spacer()
-                    Button("Cancel") { pages.addingHost = false }
+                    Button("Cancel") { pages.hostDialog = nil }
                         .keyboardShortcut(.cancelAction)
                         .buttonStyle(.glass)
-                    Button("Add") { add(target) }
+                    Button(editing ? "Save" : "Add") { save(target) }
                         .keyboardShortcut(.defaultAction)
                         .buttonStyle(.glassProminent)
                         .disabled(!SSHExec.isValidTarget(target))
-                        .accessibilityIdentifier("add-host.add")
+                        .accessibilityIdentifier("host.save")
                 }
             }
         }
@@ -57,13 +65,85 @@
             Text(text).foregroundStyle(.secondary).gridColumnAlignment(.trailing)
         }
 
-        private func add(_ target: String) {
-            let name = name.trimmingCharacters(in: .whitespaces)
-            let machine = Machine(id: UUID().uuidString, name: name.isEmpty ? target : name, target: target, icon: icon)
-            MachineList.shared.list.append(machine)
-            pages.addingHost = false
-            WindowPages.open(machine: machine, connect: true)
+        private func save(_ target: String) {
+            var machine = draft
+            let name = machine.name.trimmingCharacters(in: .whitespaces)
+            machine.name = name.isEmpty ? target : name
+            machine.target = target
+            pages.hostDialog = nil
+            if editing {
+                MachineList.shared.save(machine)
+            } else {
+                MachineList.shared.list.append(machine)
+                WindowPages.open(machine: machine, connect: true)
+            }
         }
+    }
+
+    /// The icon, as a button; its popover is a grid of SF Symbols with a search by symbol name.
+    private struct IconPicker: View {
+        @Binding var icon: String
+        @State private var open = false
+        @State private var filter = ""
+
+        var body: some View {
+            Button { open = true } label: {
+                Image(systemName: icon).frame(width: 36, height: 20)
+            }
+            .buttonStyle(.glass)
+            .help("Icon")
+            .accessibilityLabel("Icon")
+            .accessibilityValue(icon)
+            .accessibilityIdentifier("host.icon")
+            .popover(isPresented: $open, arrowEdge: .bottom) {
+                let shown = Self.icons.filter { $0.replacing(".", with: " ").matches(filter) }
+                VStack(spacing: 8) {
+                    FilterField(prompt: "Search", text: $filter, identifier: "host.icon.search",
+                                symbol: "magnifyingglass", autofocus: true)
+                    ScrollView {
+                        LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 2), count: 10), spacing: 2) {
+                            ForEach(shown, id: \.self) { symbol in
+                                Button {
+                                    icon = symbol
+                                    open = false
+                                } label: {
+                                    Image(systemName: symbol).font(.system(size: 14)).frame(width: 30, height: 30)
+                                }
+                                .buttonStyle(ChromeStyle(selected: symbol == icon, radius: 7))
+                                .help(symbol)
+                                .accessibilityLabel(symbol)
+                                .accessibilityIdentifier("host.icon.\(symbol)")
+                            }
+                        }
+                    }
+                    .frame(height: 200)
+                }
+                .padding(10)
+                .frame(width: 340)
+            }
+        }
+
+        /// Computers first, then networks, places and things: SF Symbols that tell machines apart in the title row.
+        static let icons = [
+            "laptopcomputer", "desktopcomputer", "macmini", "macstudio", "macpro.gen3", "display", "server.rack",
+            "externaldrive", "internaldrive", "cpu", "memorychip", "opticaldiscdrive", "terminal", "apple.terminal",
+            "keyboard", "printer", "tv", "appletv", "iphone", "ipad", "applewatch", "visionpro", "gamecontroller",
+            "headphones", "hifispeaker", "homepod", "cloud", "icloud", "network", "globe",
+            "antenna.radiowaves.left.and.right", "wifi", "dot.radiowaves.left.and.right",
+            "point.3.connected.trianglepath.dotted", "cable.connector", "bolt.horizontal", "lock", "shield", "key",
+            "house", "building", "building.2", "building.columns", "briefcase", "graduationcap", "books.vertical",
+            "book", "flask", "testtube.2", "atom", "brain", "cube", "shippingbox", "archivebox", "tray.full", "folder",
+            "doc.text", "chart.bar", "gauge.with.dots.needle.67percent", "hammer", "wrench.and.screwdriver",
+            "gearshape", "gearshape.2", "paintbrush", "paintpalette", "pencil", "camera", "film", "music.note", "mic",
+            "sparkles", "star", "heart", "flag", "bell", "tag", "bookmark", "leaf", "tree", "mountain.2", "sun.max",
+            "moon", "snowflake", "flame", "drop", "bolt", "tortoise", "hare", "ant", "ladybug", "bird", "fish",
+            "pawprint", "cat", "dog", "car", "bus", "tram", "airplane", "ferry", "bicycle", "sailboat",
+            "globe.americas", "globe.europe.africa", "globe.asia.australia", "map", "location", "mappin.and.ellipse",
+            "circle", "square", "triangle", "diamond", "hexagon", "seal", "crown", "trophy", "gift",
+            "cup.and.saucer", "fork.knife", "cart", "bag", "creditcard", "banknote", "dollarsign.circle", "person",
+            "person.2", "figure.walk", "eye", "hand.raised", "lightbulb", "puzzlepiece", "function",
+            "chevron.left.forwardslash.chevron.right", "curlybraces", "number", "textformat",
+        ]
     }
 
     /// One of ssh's questions (machines#macos): its text, and a hidden answer field (a password, a passcode, any

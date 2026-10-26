@@ -18,8 +18,8 @@
         @ObservationIgnored var floatPending: (page: Page, pane: String)?
         /// What ssh asks while this window connects a remote machine; its dialog answers it.
         var question: Question?
-        /// The Add Remote Host dialog is open.
-        var addingHost = false
+        /// The remote host dialog's machine: a new one to add, or one of the list to edit.
+        var hostDialog: Machine?
         /// The page in view; nil until the first page opens, and after the window closed.
         private(set) var current: Page?
         let terminals = PaneViewRegistry()

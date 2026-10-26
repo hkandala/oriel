@@ -287,8 +287,8 @@ struct OrielApp: App {
             }
             .modifier(CloseDialog(page: page))
             .overlay {
-                if pages.addingHost {
-                    AddHost(pages: pages).dialog()
+                if let machine = pages.hostDialog {
+                    HostDialog(pages: pages, machine: machine).id(machine.id).dialog()
                 }
                 // A new question gets a new field.
                 if let question = pages.question {

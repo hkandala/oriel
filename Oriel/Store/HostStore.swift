@@ -13,7 +13,8 @@ final class HostStore {
     }
 
     let session: String
-    let machine: Machine
+    /// An edit changes its name and icon (`MachineList.save`).
+    var machine: Machine
     private(set) var state = State.connecting
     /// Every session herdr knows on the machine.
     private(set) var sessions: [Session] = []

@@ -72,6 +72,20 @@ struct Machine: Codable, Hashable, Identifiable {
             list = json.flatMap { try? JSONDecoder().decode([Machine].self, from: Data($0.utf8)) } ?? []
         }
 
+        /// An edit of a listed machine. Its open windows take it all, so their next windows and pages use the new
+        /// target; its open sessions take the name and icon only, as they stay connected to the old target.
+        func save(_ machine: Machine) {
+            guard let index = list.firstIndex(where: { $0.id == machine.id }) else { return }
+            list[index] = machine
+            for window in WindowPages.windows where window.machine.id == machine.id {
+                window.machine = machine
+            }
+            for store in HostStore.all where store.machine.id == machine.id {
+                store.machine.name = machine.name
+                store.machine.icon = machine.icon
+            }
+        }
+
         func machine(_ id: String) -> Machine? {
             id == Machine.thisMac.id ? .thisMac : list.first { $0.id == id }
         }

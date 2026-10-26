@@ -159,18 +159,97 @@ extension OrielUITests {
         try await waitFor(panes[5]) { $0.contains("\noriel-45") }
     }
 
+    /// The dialog in the palette's glass in each look (screenshots), and its icon picker's search.
+    func testTheRemoteHostDialogInEveryLook() {
+        for (appearance, style) in [("dark", "glass"), ("light", "glass"), ("dark", "classic"), ("light", "classic")] {
+            relaunch(one, ["-appearance", appearance, "-interfaceStyle", style, "-machines", "[]"])
+            XCTAssertTrue(element("window.look").has(\.stringValue, "\(style) \(appearance)", within: connect))
+            element("titlebar.machine").click()
+            // No hosts: nothing to edit.
+            XCTAssertFalse(app.menuItems["Edit Remote Host"].exists)
+            app.menuItems["Add Remote Host…"].click()
+            XCTAssertTrue(element("host.name").exists(within: 3))
+            keepScreenshot("add remote host \(style) \(appearance)")
+            if style == "classic", appearance == "light" {
+                break
+            }
+            app.typeKey(.escape, modifierFlags: [])
+            XCTAssertTrue(element("host.name").vanishes(within: 2))
+        }
+        let icon = element("host.icon")
+        XCTAssertEqual(icon.value as? String, "server.rack")
+        icon.click()
+        XCTAssertTrue(element("host.icon.gamecontroller").exists(within: 3))
+        element("host.icon.search").click()
+        app.typeText("globe")
+        XCTAssertTrue(element("host.icon.gamecontroller").vanishes(within: 2))
+        keepScreenshot("icon search")
+        element("host.icon.globe.europe.africa").click()
+        XCTAssertTrue(element("host.icon.globe").vanishes(within: 2))
+        XCTAssertEqual(icon.value as? String, "globe.europe.africa")
+    }
+
+    /// The machine menu's Edit Remote Host: a rename, a new target and icon reach the open window of the machine;
+    /// Remove takes it off the menu.
+    func testEditingARemoteHostRenamesItAndRemoveTakesItOff() async throws {
+        try await skipWithoutSSH()
+        relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        editHost("Key Host")
+        let name = element("host.name")
+        XCTAssertEqual(name.value as? String, "Key Host")
+        XCTAssertEqual(element("host.target").value as? String, "oriel-key")
+        name.click()
+        app.typeKey("a", modifierFlags: .command)
+        app.typeText("Build Box")
+        element("host.icon").click()
+        element("host.icon.search").click()
+        app.typeText("flask")
+        element("host.icon.flask").click()
+        keepScreenshot("edit remote host")
+        element("host.save").click()
+        XCTAssertTrue(name.vanishes(within: 2))
+        let window = app.windows.firstMatch
+        XCTAssertEqual(machine(of: window), "Build Box")
+        XCTAssertEqual(element("titlebar.machine").value as? String, "flask")
+        XCTAssertTrue(element("terminal.w1:p1").exists)
+
+        editHost("Build Box") {
+            XCTAssertFalse(app.menuItems["Key Host"].exists)
+        }
+        element("host.remove").click()
+        XCTAssertTrue(name.vanishes(within: 2))
+        element("titlebar.machine").click()
+        XCTAssertTrue(app.menuItems["Add Remote Host…"].exists(within: 2))
+        XCTAssertFalse(app.menuItems["Build Box"].exists)
+        XCTAssertFalse(app.menuItems["Edit Remote Host"].exists)
+        app.typeKey(.escape, modifierFlags: [])
+    }
+
+    /// The machine menu's Edit Remote Host ▸ ‹name›.
+    private func editHost(_ name: String, menu: () -> Void = {}) {
+        element("titlebar.machine").click()
+        let edit = app.menuItems["Edit Remote Host"]
+        XCTAssertTrue(edit.exists(within: 2))
+        XCTAssertTrue(app.menuItems[name].exists)
+        menu()
+        edit.hover()
+        edit.menuItems[name].click()
+        XCTAssertTrue(element("host.name").exists(within: 3))
+    }
+
     /// The machine button's Add Remote Host, filled and added.
     private func addHost(_ name: String, _ target: String) {
         element("titlebar.machine").click()
         app.menuItems["Add Remote Host…"].click()
-        let field = element("add-host.name")
+        let field = element("host.name")
         XCTAssertTrue(field.exists(within: 3))
         field.click()
         app.typeText(name)
-        element("add-host.target").click()
+        element("host.target").click()
         app.typeText(target)
         keepScreenshot("add remote host")
-        element("add-host.add").click()
+        element("host.save").click()
     }
 
     /// oriel-pw's password (or another), in the hidden field of ssh's question; Return answers.
