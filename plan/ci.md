@@ -36,7 +36,8 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 | Same locally | `make e2e ONLY=…`, `make e2e ON_DEMAND_ONLY=1` (under the GUI lock) | this Mac |
 
 - Get the id with `gh run list --workflow ci.yml --event workflow_dispatch --limit 1` and check it at most
-  once a minute. A chosen-tests run takes about 2.5 minutes for two tests.
+  once a minute. Read the result with `gh run view <id> --json conclusion`: `gh run watch --exit-status` has
+  exited 0 on a failed run. A chosen-tests run takes about 2.5 minutes for two tests.
 - A push cancels the push run in flight (`cancel-in-progress`). A dispatch never cancels a push run or
   another dispatch. So batch pushes while a full run matters, and use chosen-tests runs for single checks.
 - Docs-only pushes skip CI.
