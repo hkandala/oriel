@@ -215,3 +215,15 @@ the orchestrator says otherwise.
   reach two's pane, again = the same window, the no-pane and no-session notices, Detach ends two's runs, a page's
   pane in a workspace not in view), `testOrielURLFloatGoesWithItsWindowAndOpensOne` (closing the main window ends
   two's runs; a URL with no window opens one; Open Session keeps the float and the connection).
+- **CI.** 40245708850 (Show Pane under the taller float: fixed in c8a256e), 40246598046 (the URL never reached
+  the app), 40247366831 (`XCUIApplication.open`), 40248364247 (a Detach click under the main window),
+  40249713224 (both URL tests green on 3d1f6db). Full suite 40250012874 on 5980a94 (after 3d1f6db, the lane's
+  last code commit): every floating, URL, key and Dock-drop test green; the reds are other lanes' areas: the
+  session swipe tests (`testPanelsAndSwitchesReactAtOnce`, `testQuickSessionFlickLandsOnTheNextPageInStep`,
+  `testSwipesPageTheSidebarAndTheStripApart`, `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed`) and
+  `testGoToDirectoryAndInsertPath`.
+- **For the user to check by hand:** float a pane never floated before (a saved frame wins): taller, the line
+  between the pane and its place, the place quieter; the placeholder's line and Show Pane in a small split; in
+  pi, from Oriel, open a `pi-herd` agent from the dashboard or pi-footer (after `/reload`): it opens in Oriel's
+  floating window, not herdr's popup; again brings it forward; from the herdr TUI (another app in front) it
+  stays herdr's popup. `open -g "oriel://float?session=<s>&pane=<id>"` from a shell does the same.
