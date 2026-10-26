@@ -153,10 +153,14 @@ public struct Channel: Sendable {
             return Task {
                 var buffer = Data()
                 for await data in output {
+                    // Only the new bytes: a scan from the start for each chunk made a 400 KB snapshot line cost
+                    // O(n²), the app's top function in a stress profile (phase 29).
+                    var from = buffer.endIndex
                     buffer.append(data)
-                    while let newline = buffer.firstIndex(of: UInt8(ascii: "\n")) {
+                    while let newline = buffer[from...].firstIndex(of: UInt8(ascii: "\n")) {
                         lines.yield(String(decoding: buffer[..<newline], as: UTF8.self))
                         buffer.removeSubrange(...newline)
+                        from = buffer.startIndex
                     }
                 }
                 if !buffer.isEmpty {
