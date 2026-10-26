@@ -52,6 +52,44 @@ extension OrielUITests {
         XCTAssertFalse(workspace.isSelected)
     }
 
+    /// With ⌥ held, a swipe anywhere (over a card here) moves between sessions sideways, with the sidebar's pages, and
+    /// between workspaces up or down, one step a gesture, and never pages the strip (phase 30); so does a wheel.
+    func testOptionSwipesMoveBetweenSessionsAndWorkspaces() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        openPage(two)
+        element("sidebar.dot.\(one)").click()
+        XCTAssertTrue(until(3) { header == one })
+        let card = element("terminal.w1:p1").frame, center = "\(card.midX) \(card.midY)"
+        // 14 steps of 10 pt (625 pt/s) with ⌥; the other way if natural scrolling is off.
+        var forward = -1.0
+        for sign in [-1.0, 1.0] where header != two {
+            forward = sign
+            try await Self.post("\(one)/swipe", Data("\(center) \(10 * sign) 14 0 0 1".utf8))
+            _ = until(1.5) { header == two }
+        }
+        XCTAssertEqual(header, two)
+        try await Self.post("\(one)/swipe", Data("\(center) \(-10 * forward) 14 0 0 1".utf8))
+        XCTAssertTrue(until(3) { header == one })
+        // A sideways swipe that reached the strip would have shown t2.
+        XCTAssertTrue(element("tab.w1:t1").isSelected)
+
+        // Session one has two workspaces: a step either way shows w2, and the other way back w1.
+        let alpha = element("workspace.w1")
+        XCTAssertTrue(alpha.isSelected)
+        try await Self.post("\(one)/swipe", Data("\(center) 10 4 0 1 1".utf8))
+        XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 3))
+        try await Self.post("\(one)/swipe", Data("\(center) -10 4 0 1 1".utf8))
+        XCTAssertTrue(alpha.has(\.isSelected, true, within: 3))
+        XCTAssertEqual(header, one)
+
+        // A wheel with ⌥: a workspace too.
+        let terminal = element("terminal.w1:p1")
+        XCUIElement.perform(withKeyModifiers: .option) {
+            terminal.scroll(byDeltaX: 0, deltaY: 30)
+        }
+        XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 3))
+    }
+
     /// A sideways swipe over the sidebar pages it and never the strip; over a card it pages the strip and never the
     /// sidebar. In the Agents view it shows the other page's agents.
     func testSwipesPageTheSidebarAndTheStripApart() async throws {

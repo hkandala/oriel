@@ -5,13 +5,27 @@
     /// The app's one scroll monitor (design D35). A gesture picks its axis once it moved 4 pt: a sideways one goes to
     /// the sidebar's pages when over them, else to the scroll view under the pointer (the strip, over a card), so a
     /// terminal never sees it; any other goes to the view under the pointer as usual. Its momentum follows, except to
-    /// the sidebar's pages. A wheel picks per event; Shift makes it sideways.
+    /// the sidebar's pages. A wheel picks per event; Shift makes it sideways. With ⌥ held, a gesture or a wheel
+    /// anywhere in a window goes to its sessions (sideways: the sidebar's pages, else one step) or workspaces (one
+    /// step), never to a terminal.
     @MainActor
     enum SwipeRouter {
         /// Once, at launch.
         static func install() {
             NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
                 MainActor.assumeIsolated { route(event) } ? nil : event
+            }
+        }
+
+        /// The event's window shows its next (1) or previous (-1) session, sideways, or workspace, as ⌥⌘[ ] and ⌃⌘[ ];
+        /// not under a panel, as the sidebar's pages.
+        private static func step(_ event: NSEvent, sideways: Bool, _ offset: Int) {
+            guard let pages = WindowPages.windows.first(where: { $0.window === event.window }), !pages.panelOpen
+            else { return }
+            if !sideways {
+                pages.current?.stepWorkspace(offset)
+            } else if let page = pages.neighbor(offset) {
+                pages.show(page)
             }
         }
 
@@ -23,6 +37,8 @@
         private weak static var pager: ScrollAnchor.Anchor?
         private static var lifted = false
         private static var picked = false
+        /// ⌥ was held as the current gesture began.
+        private static var option = false
         private static var moved = 0.0, sideways = 0.0
         private static var wheeled = Date.distantPast
         /// The gesture's sideways speed in the content's points a second, from its last moves.
@@ -32,7 +48,10 @@
         private static func route(_ event: NSEvent) -> Bool {
             let deltaX = event.scrollingDeltaX, deltaY = event.scrollingDeltaY
             if event.phase.isEmpty, event.momentumPhase.isEmpty {
-                return wheel(event, sideways: abs(deltaX) > abs(deltaY) ? deltaX : 0)
+                return wheel(event)
+            }
+            if event.phase == .mayBegin || event.phase == .began {
+                option = event.modifierFlags.contains(.option)
             }
             if event.phase == .began {
                 picked = false
@@ -67,15 +86,27 @@
                 sideways -= deltaX
                 if moved >= 4 {
                     picked = true
-                    if abs(deltaX) > abs(deltaY) {
-                        pager = anchors.allObjects.first { $0.contains(event) }
-                        pager?.drag?(sideways, true)
-                        target = pager == nil ? scrollView(event) : nil
-                    }
+                    pick(event)
                 }
             }
             target?.scrollWheel(with: event)
-            return target != nil || pager != nil
+            return target != nil || pager != nil || option
+        }
+
+        /// Where the gesture goes, by its axis: see `SwipeRouter`.
+        private static func pick(_ event: NSEvent) {
+            if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) {
+                pager = anchors.allObjects.first { anchor in
+                    anchor.contains(event) || option && anchor.drag != nil && anchor.window === event.window
+                }
+                pager?.drag?(sideways, true)
+                if option, pager == nil {
+                    step(event, sideways: true, sideways > 0 ? 1 : -1)
+                }
+                target = pager == nil && !option ? scrollView(event) : nil
+            } else if option {
+                step(event, sideways: false, event.scrollingDeltaY > 0 ? -1 : 1)
+            }
         }
 
         private static func give(_ event: NSEvent, to pager: ScrollAnchor.Anchor) {
@@ -89,9 +120,16 @@
         }
 
         /// A sideways wheel step: over the sidebar's pages, or over the strip as a burst of line steps (a mouse, which
-        /// would only nudge a paged strip), it turns one page; else it goes to the scroll view under the pointer.
-        private static func wheel(_ event: NSEvent, sideways deltaX: CGFloat) -> Bool {
-            guard deltaX != 0 else { return false }
+        /// would only nudge a paged strip), it turns one page; else it goes to the scroll view under the pointer. With
+        /// ⌥, a burst steps the session or the workspace.
+        private static func wheel(_ event: NSEvent) -> Bool {
+            let deltaX = event.scrollingDeltaX, deltaY = event.scrollingDeltaY
+            if event.modifierFlags.contains(.option) {
+                let across = abs(deltaX) > abs(deltaY)
+                turn({ step(event, sideways: across, $0) }, across ? deltaX : deltaY)
+                return true
+            }
+            guard abs(deltaX) > abs(deltaY) else { return false }
             if let pages = anchors.allObjects.first(where: { $0.contains(event) }) {
                 turn(pages.step, deltaX)
                 return true
@@ -105,9 +143,10 @@
             return true
         }
 
-        private static func turn(_ step: ((Int) -> Void)?, _ deltaX: CGFloat) {
-            if Date.now.timeIntervalSince(wheeled) > 0.3 {
-                step?(deltaX > 0 ? -1 : 1)
+        /// One step per burst of wheel clicks (0.3 s apart at most); a zero delta (the other axis) none.
+        private static func turn(_ step: ((Int) -> Void)?, _ delta: CGFloat) {
+            if delta != 0, Date.now.timeIntervalSince(wheeled) > 0.3 {
+                step?(delta > 0 ? -1 : 1)
             }
             wheeled = .now
         }
