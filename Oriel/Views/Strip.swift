@@ -204,7 +204,8 @@
         /// are replaced in one snapshot, and herdr's panes as new views slid in beside them as they went (phase 30).
         private func views(_ ids: [String]) -> [String: String] {
             guard let placed else { return [:] }
-            var views = Dictionary(uniqueKeysWithValues: placed.filter { ids.contains($0.id) })
+            // Not `uniqueKeysWithValues`: a pane twice in herdr's tree must not crash the app.
+            var views = Dictionary(placed.filter { ids.contains($0.id) }, uniquingKeysWith: { first, _ in first })
             let gone = placed.filter { Ahead.isStandIn($0.id) && !ids.contains($0.id) }
             for (new, old) in zip(ids.filter { views[$0] == nil }, gone) {
                 views[new] = old.view
