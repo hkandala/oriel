@@ -288,6 +288,9 @@ struct StatusBadge: View {
                     }
                 }
                 .padding(Sidebar.rowInsets)
+                // Built anew for the other order: the lazy stack kept the first order's rows (line 2 with the
+                // workspace) for the same panes.
+                .id(sort)
             }
             .scrollIndicators(.never)
         }
