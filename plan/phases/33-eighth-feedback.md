@@ -185,9 +185,16 @@ per hold, at most 10 minutes, released with a trap).
   teardown, the license check, ⌘W, plainer docs, a light screenshot. Left: a grouped `Form` instead of the glass
   cards (the user asked for the app's glass); no scroll view (the window is about 620 pt tall, CI's screen 674 pt:
   add one with the next few credits).
-- **Debt:** libghostty links third-party C and Zig libraries (oniguruma and others) whose notices Ghostty's MIT text
-  does not cover; the old credits had the same gap. Check Ghostty's list of bundled libraries and add them to
-  `Acknowledgements.txt`.
+- **Ghostty's libraries** (follow-up): `libghostty.a` (the macOS slice: its object files, symbols and strings)
+  builds in FreeType, libpng, zlib, Oniguruma, simdutf, Highway, Wuffs, stb_image, GNU libintl, libxev, libvaxis,
+  zig-objc, z2d, uucode, Zig's standard library and compiler-rt, and two fonts (JetBrains Mono, Symbols Nerd Font).
+  Their texts, from the exact versions Ghostty's `build.zig.zon` pins (ref 35a81a9), are in `Acknowledgements.txt`
+  under "Inside Ghostty"; the Terminal card has one line for them, "Ghostty's libraries · Various". Not built in:
+  HarfBuzz, fontconfig, imgui, glslang, Sentry, Noto Emoji (no symbols or names in the archive). The window is still
+  about 640 pt tall, under CI's 674 pt screen, so no scroll view.
+- **For the user:** GNU libintl is LGPL-2.1, and libghostty links it statically. The LGPL asks that users can relink
+  the app with their own libintl (for example, the app's object files on request). That is a libghostty-spm build
+  choice; decide whether it matters for how Oriel ships. z2d is MPL-2.0: its source is at the linked repo.
 
 ### Lane C
 
