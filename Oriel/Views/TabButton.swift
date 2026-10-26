@@ -199,7 +199,7 @@
         /// The tab's panes for its icon stack, at most 5: the keyboard card's first (herdr's focused pane until one
         /// had the keyboard), then herdr's order.
         func stack(_ tab: HostStore.Tab) -> [HostStore.Pane] {
-            let tabPanes = store.panes.filter { $0.tabID == tab.id }
+            let tabPanes = store.tabPanes[tab.id] ?? []
             let front = keyboardCard(tab.id)
             return Array(([front].compactMap(\.self) + tabPanes.filter { $0 !== front }).prefix(5))
         }

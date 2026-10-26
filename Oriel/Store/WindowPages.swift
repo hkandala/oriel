@@ -284,7 +284,7 @@
                 let tabID = key && page === current ? page.selectedTab?.id : nil
                 page.store.lookingTabID = tabID
                 if let tabID {
-                    Notifications.remove(page.store.panes.filter { $0.tabID == tabID }, of: page.store)
+                    Notifications.remove(page.store.tabPanes[tabID] ?? [], of: page.store)
                 }
             }
         }

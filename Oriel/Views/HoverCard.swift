@@ -187,7 +187,7 @@
         var body: some View {
             let store = page.store
             if let workspace = store.workspace(of: tabID), let tab = workspace.tabs.first(where: { $0.id == tabID }) {
-                let panes = store.panes.filter { $0.tabID == tabID }
+                let panes = store.tabPanes[tabID] ?? []
                 VStack(alignment: .leading, spacing: 4) {
                     Button {
                         page.select(workspace, tab: tabID)

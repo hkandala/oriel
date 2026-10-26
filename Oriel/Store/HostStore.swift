@@ -20,6 +20,8 @@ final class HostStore {
     private(set) var sessions: [Session] = []
     private(set) var workspaces: [Workspace] = []
     private(set) var panes: [Pane] = []
+    /// Each tab's panes in herdr's order, set only when it changes: a view of one tab reads its own (phase 29).
+    private(set) var tabPanes: [String: [Pane]] = [:]
     /// Its panes that need you.
     private(set) var waiting = 0
     /// herdr's focused workspace: a page's first selection.
@@ -60,8 +62,7 @@ final class HostStore {
     @ObservationIgnored private var task: Task<Void, Never>?
     /// Workspaces with a git run in flight: one at a time each.
     @ObservationIgnored private var gitRuns: Set<String> = []
-    /// Program asks in flight, 8 at most: a 600-pane session's first snapshot started 600 herdr runs at once
-    /// (phase 29).
+    /// Program asks in flight, 8 at most: a 600-pane session's first snapshot made 600 herdr runs (phase 29).
     @ObservationIgnored let asks = Gate(8)
     @ObservationIgnored private var seen = Seen()
 
@@ -203,7 +204,7 @@ final class HostStore {
 
     /// The panes of the tab the user looks at, as `Seen` keys them.
     private var looking: Set<String> {
-        Set(panes.filter { $0.tabID == lookingTabID }.map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) })
+        Set((tabPanes[lookingTabID ?? ""] ?? []).map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) })
     }
 
     private func showStates() {
@@ -218,10 +219,9 @@ final class HostStore {
     /// Each tab's strongest agent, each workspace's state and the panes that need you, kept here: views that read
     /// every pane's state for them drew again on any agent's change, every capsule and sidebar row (phase 29).
     private func showStrongest() {
-        let agents = Dictionary(grouping: panes.filter { $0.state != nil }, by: \.tabID)
         for workspace in workspaces {
             for tab in workspace.tabs {
-                let tabAgents = agents[tab.id] ?? []
+                let tabAgents = (tabPanes[tab.id] ?? []).filter { $0.state != nil }
                 let strongest = tabAgents.max { $0.state ?? .idle < $1.state ?? .idle }
                 // Observation skips an equal value, but not an identical object.
                 if tab.agent !== strongest {
@@ -275,6 +275,10 @@ final class HostStore {
             pane.focused = focused.contains(new.id)
             pane.tabID = new.tabID
             pane.terminalID = new.terminalID
+        }
+        let grouped = Dictionary(grouping: panes, by: \.tabID)
+        if grouped.mapValues({ $0.map(\.id) }) != tabPanes.mapValues({ $0.map(\.id) }) {
+            tabPanes = grouped
         }
         let agents = Dictionary(snapshot.agents.map { ($0.paneID, $0) }, uniquingKeysWith: { first, _ in first })
         for pane in panes {
