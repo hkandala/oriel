@@ -109,7 +109,7 @@ extension OrielUITests {
             "Show Next Tab": "⇧⌘] or ⌃⇥",
             "Command Palette": "⌘K or ⇧⌘P", "Find": "⌘F", "Reset Font Size": "⌘0", "Open Session": "⌥⌘T",
             "Close Tab": "⇧⌘W", "Close Workspace": "⌃⌘W", "Detach Session": "⌥⌘W", "Balance Splits": "⌥⌘=",
-            "Insert Path": "⇧⌘I", "Zoom Pane": "⇧⌘↩",
+            "Insert Path": "⇧⌘I", "Zoom Pane": "⇧⌘↩", "Move Tab Left": "⇧⌘←", "Move Tab Right": "⇧⌘→",
         ]
         for (title, keys) in rows {
             XCTAssertEqual(element("shortcuts.\(title)").value as? String, keys, title)

@@ -38,7 +38,6 @@ extension KeyboardShortcut {
             KeyEquivalent.return.character: "↩", KeyEquivalent.tab.character: "⇥",
             KeyEquivalent.leftArrow.character: "←", KeyEquivalent.rightArrow.character: "→",
             KeyEquivalent.upArrow.character: "↑", KeyEquivalent.downArrow.character: "↓",
-            KeyEquivalent.pageUp.character: "⇞", KeyEquivalent.pageDown.character: "⇟",
         ]
         return modifiers.filter { self.modifiers.contains($0.0) }.map(\.1)
             + [keys[key.character] ?? String(key.character).uppercased()]

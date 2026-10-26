@@ -184,6 +184,17 @@ extension OrielUITests {
         let moved = element("tab.\(tabs[0])")
         XCTAssertTrue(moved.isSelected)
         try await expect("the marker on the moved tab") { (moved.value as? String)?.hasPrefix("in view") == true }
+        // ⇧⌘← moves it back (phase 29: it was ⌃⇧Page Up); in a rename field it selects to the line's start instead.
+        app.typeKey(.leftArrow, modifierFlags: [.command, .shift])
+        try await expect("the order back") { try await tabsOf(workspace).map(\.id) == tabs }
+        moved.rightClick()
+        app.menuItems["Rename Tab"].click()
+        XCTAssertTrue(field.exists(within: 2))
+        app.typeKey(.rightArrow, modifierFlags: [.command, .shift])
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(field.vanishes(within: 2))
+        let order = try await tabsOf(workspace).map(\.id)
+        XCTAssertEqual(order, tabs)
     }
 
     func testCloseOtherTabsAsksOnceAndLeavesOneTab() async throws {
