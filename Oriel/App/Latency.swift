@@ -62,8 +62,10 @@
                 longest = max(longest, now - awake)
                 self.awake = now
             }
-            recorded
-                .append("main \(Int(busy * 1000))ms \(Int(longest * 1000))ms \(snapshots) \(Int(applying * 1000))ms")
+            let line = "main \(Int(busy * 1000))ms \(Int(longest * 1000))ms \(snapshots) \(Int(applying * 1000))ms"
+            recorded.append(line)
+            // Also for a run by hand, without an accessibility client's queries on the main thread.
+            print(line)
             (busy, longest, snapshots, applying) = (0, 0, 0, 0)
         }
 
