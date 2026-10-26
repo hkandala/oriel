@@ -74,3 +74,23 @@ scripts/test-times.tsv, and checks locally under the GUI budget.
   unit), docs pages, commits, and other stats; what the cleanup removed.
 
 ## Findings
+
+### r-panels
+
+Overview, OverviewPage, Miniature, FloatingPane, FindBar, FilterList, Palette, OpenSession, Shortcuts: every
+line read. No dead code or leftover hooks found: every test value and identifier has a reader in the UI tests.
+
+- **Bugs fixed.** (1) A floating window's ⌘K lit the row at the main window's selected tab's index (it lists
+  no tabs), so Return ran some other command (`Palette`, 3f24e30; the test line went to r-tests for
+  FloatTests). (2) A tile clicked while its page slid away (a wheel's or a key's step) selected its tab, but
+  the zoom took the new current page's tab (`Overview.open`). (3) A page two away is not made: its tiles
+  reported no leaving, so their tabs stayed in `overviewTabs` and could stream out of view when the page came
+  back (`OverviewPage.onDisappear`). (4) A float request (an `oriel://float` URL, herdr's metadata) put any
+  session name into a herdr argv; it now needs `Session.isValidName` (a-security-a11y; a leading `-` still
+  passes, sent to r-herdrkit). (5) VoiceOver said nothing when ↑↓ moved the lit row of a filter list
+  (a-security-a11y). Floating Close Pane is picked by its key, not its title (a-ponytail-app).
+- **Comments.** 3 fixed: `Overview.frames` (frames, not miniatures), `FilterField` (stale caller list),
+  `MiniCard` (a doc split in two).
+- **Not done (small, cross-area):** `reduceMotion && !Animation.forceMotion` repeats in 8 files of 5 areas (one
+  `Animation` helper would do); `Mini.fit` and `TerminalCard`'s `Host.fit` share a debounce; FloatingWindow
+  can use r-strip's `PaneTitle` and r-app's `windowChrome(look:)` once they land. No big items.
