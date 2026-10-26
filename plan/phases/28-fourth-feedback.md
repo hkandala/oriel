@@ -194,7 +194,7 @@ the orchestrator says otherwise.
 - **CI.** 40246320315 (green on aa8a5e1), 40250079540 (zoom tests), 40255771813 (green on f775c07). Full suite
   40263346919 on 63f685c, the lane's last code commit: all four UI test shards green (every overview, title-row,
   reveal and usage test); lint-build red only in HerdrKit's timing test "a long line and the lines around it read
-  whole, and quickly" (2.7 s over 1 s, not this lane's area), rerun of that job below. Local Retina: the stress test
+  whole, and quickly" (2.7 s, then 1.3 s on the rerun, over 1 s; HerdrKit, not this lane's area). Local Retina: the stress test
   (Debug and Release) and the two layout tests green on 63f685c.
 - **For the user to check by hand:** a session with 100+ tabs: ⌃⌘O, scroll fast down and up: tiles show their
   picture at once (soft for a moment), then turn sharp and live in place with no blink; tiles never shown show the
