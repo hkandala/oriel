@@ -127,7 +127,7 @@ One capsule per herdr tab of the selected workspace (D42).
   between two capsules while the strip is between their pages. It is 30 pt
   tall and fully round, 2 pt inside the track, as in Rex. Only a swipe or a
   mouse's sideways wheel slides the strip, and the marker with it: a swipe
-  follows the fingers and slides on with the session spring
+  follows the fingers and slides on from their speed
   ([Swiping](/docs/ui/swiping)), a wheel turns a page with Rex's spring
   (stiffness 520, damping 46); Reduce Motion makes both jump. Any other
   switch (a click, +, ⌘T, ⌘1…⌘9, ⇧⌘[ and ⇧⌘], the palette, a close) shows the
@@ -601,7 +601,9 @@ once.
   (ease out), its terminals scaling up live, then the strip shows. The sidebar
   and the title row stay laid out under the overview, hidden, and fade in over
   the same 0.18 s (made only once the zoom ended, they came a moment late in a
-  big session, phase 30). Esc, the title
+  big session, phase 30). The tab bar comes back with no marker: it fades in
+  on the selected tab over 0.18 s once the strip shows (it showed on the tab
+  selected before through the zoom, then jumped; user, phase 31). Esc, the title
   row's × and ⌃⌘O leave the same way, from the selected tab's tile (at once
   when that tile is scrolled away). Under Reduce Motion it leaves at once. ⌘.
   (Show Agents in the menu or palette) leaves it first and opens the Agents
