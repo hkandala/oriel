@@ -195,3 +195,31 @@ commits (`paths-ignore`). The working docs went from 1,517 to 1,150 lines; 371 l
 - **For the user:** `resources/mockups/layout.html` shows phase 10's plan, not the app, and
   `docs/public/overview/index.html` dates from phase 9. Redrawing them is a day of work for little use now
   that CI recordings show the app. Recommendation: leave them as history, or delete the overview page.
+### d-spec
+
+`docs/content/docs/**`: every page read and checked against the code (39 pages; 31 changed, +217 −119 lines).
+Links: a script checked every `/docs/…#anchor`, every `/public` file and every repository path the pages name: no
+broken link. `pnpm build` in `docs/` is green.
+
+- **Wrong now, fixed.** The Mac app has remote machines, but index, features, build order, machines, the glossary and
+  D43 said "This Mac only" or "SSH hosts later". D43 still had the pre-relay plan (close the least recently shown
+  stream when sshd refuses a channel; moved to Rejected). D5 said no event payload is read (float requests are).
+  talking-to-herdr showed remote runs as one `ssh` each (they go through the relay) and `herdr()` without `throws`.
+  platform said 4 terminals stream out of view (D46: 16), the pill panel was the only other window (floating panes),
+  and listed unit tests that do not exist (label parser, state file, transcripts). The pane header has five buttons
+  (Float Pane first), and the card menu starts with Float Pane. The keys table had no ⌃⌘O; the second-key monitor
+  runs the key window's command (phase 31), not a menu item. 105 program icons, not 106. machines.mdx said a host
+  without Perl shows "Oriel needs Perl"; the page shows only Reconnecting (sent to r-strip, `Detail.swift`). D45 gains
+  the overview button, D62 names Focus Follows Mouse, data.mdx the `machine` key, the floats in `selection`,
+  `agentsFolded` and the floating windows' frames; herdr-calls gains `pane.report_metadata` and the UI tests' calls.
+- **Not built, now said so.** Each page or row for a part that is not built says "not built yet" or "planned":
+  plugins and the pane picker, web pages, the chat view, image paste, pills, iOS, herdr's machines in the Add dialog,
+  the Local Network preflight, `dial`, and the states and herdr calls of those parts.
+- **Decisions.** A Superseded table keeps the history of D16, D19, D23, D28, D33 and D39 (from git), each with the
+  decision that replaced it.
+- **Big items for the user.** (1) `docs/public/overview/index.html` and the `docs/components/design/` mock-ups (chat
+  card, pills, phones) show the look from before phases 10–22 (d-plan's open item from phase 21). Redrawing them is a
+  design task; recommendation: redraw only when chat, pills or iOS are built, and keep the sources.mdx note meanwhile.
+  (2) The pages follow plain English only in part: long sentences with semicolons remain in window, swiping and
+  talking-to-herdr. A full rewrite touches every page (about a day); recommendation: rewrite a page when its feature
+  next changes.
