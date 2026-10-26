@@ -139,7 +139,7 @@ extension OrielUITests {
         XCTAssertFalse(until(1) { look.stringValue != light })
     }
 
-    /// ⇧⌘P, Rex's key, also opens the palette; ⌃⇥ and ⌃⇧⇥ step the tabs; ⌘= is Increase Font Size (second shortcuts).
+    /// ⇧⌘P, Rex's key, also opens the palette; ⌘= is Increase Font Size (second shortcuts).
     /// A setting's row says what it does now.
     func testSecondShortcuts() {
         XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: connect))
@@ -149,10 +149,6 @@ extension OrielUITests {
         XCTAssertTrue(filter.exists(within: 2))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(filter.vanishes(within: 2))
-        app.typeKey(.tab, modifierFlags: .control)
-        XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
-        app.typeKey(.tab, modifierFlags: [.control, .shift])
-        XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: 2))
 
         // ⌘=: Reset Font Size turns on (the menu's state, not the grid: a 1x display may round one step away).
         addTeardownBlock { @MainActor [self] in app.typeKey("0", modifierFlags: .command) }

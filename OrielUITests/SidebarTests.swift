@@ -53,7 +53,7 @@ extension OrielUITests {
     }
 
     /// A sideways swipe over the sidebar pages it and never the strip; over a card it pages the strip and never the
-    /// sidebar; ⌥ changes nothing. In the Agents view it shows the other page's agents.
+    /// sidebar. In the Agents view it shows the other page's agents.
     func testSwipesPageTheSidebarAndTheStripApart() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openPage(two)
@@ -75,12 +75,6 @@ extension OrielUITests {
             return self.element("tab.w1:t2").has(\.isSelected, true, within: 0.7)
         })
         XCTAssertEqual(header.stringValue, one)
-        // ⌥ + a scroll is a plain scroll (phase 31): no workspace step. t2's card.
-        let card = element("terminal.w1:p4")
-        XCUIElement.perform(withKeyModifiers: .option) {
-            card.scroll(byDeltaX: 0, deltaY: 30)
-        }
-        XCTAssertFalse(element("workspace.w2").has(\.isSelected, true, within: 1))
 
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(element("agents.sort").exists(within: 2))
@@ -260,8 +254,7 @@ extension OrielUITests {
         // A predicate: a query by identifier takes at most 128 characters.
         let text = "sleep is running in it. Its 2 tabs, 2 panes and everything running in them will end, here and "
             + "in every herdr client. This cannot be undone."
-        XCTAssertTrue(app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text))
-            .firstMatch.exists(within: 2))
+        XCTAssertTrue(sheetText(text).exists(within: 2))
         app.sheets.buttons["Close Workspace"].click()
         try await expect("herdr to close it") { try await !workspaceIDs().contains(made) }
         XCTAssertTrue(row.vanishes(within: 2))

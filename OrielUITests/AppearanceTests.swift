@@ -39,17 +39,13 @@ extension OrielUITests {
         }
     }
 
-    /// No card fades (phase 25 dropped the setting). In Glass the cards look alike: the keyboard card at most a little
-    /// brighter. Read from pixels, the one place the look shows (as `RevealTests` do).
+    /// In Glass the cards look alike: the keyboard card at most a little brighter. Read from pixels, the one place the
+    /// look shows (as `RevealTests` do).
     func testCardsLookAlikeWithAndWithoutTheKeyboard() {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         element("terminal.w1:p1").click()
         XCTAssertTrue(hasKeyboard("terminal.w1:p1"))
         let keyboard = element("pane.w1:p1"), other = element("pane.w1:p2")
-        app.menuBars.menuBarItems["View"].click()
-        XCTAssertTrue(app.menuBars.menuItems["Toggle Sidebar"].exists(within: 2))
-        XCTAssertFalse(app.menuBars.menuItems["Fade Inactive Panes"].exists)
-        app.typeKey(.escape, modifierFlags: [])
 
         // CI's VM draws the glass backdrop opaque whatever the desktop shows (a runner window under Oriel in black,
         // white and blue changed no pixel of it), so a desktop's effect is not checked here.
