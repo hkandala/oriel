@@ -271,10 +271,8 @@ and held up. 7 commits, +49 −38 lines.
   removed); the layout-motion note moved from the padding to `SplitLayout.motion`; two what-comments removed.
 - **Code removed:** `ScrollAnchor.Anchor` copied the five fields of its representable; it holds one `marks` now. The
   card header's title is `PaneTitle`, for r-panels' `PaneInfo` to share (a-ponytail-app).
-- **For the user:** each card's VoiceOver value is "content 100%" (85 % while another window controls the
-  session), left from the dropped Fade Inactive Panes; the tests read only its `content` prefix and `, loading`.
-  Cost: the value becomes "loading" or empty, and five UI test files change their checks (r-tests). Recommendation:
-  do it with the next a11y pass.
+- **Done by f-e2e (976580f):** each card's VoiceOver value was "content 100%" (85 % while another window controls
+  the session), left from the dropped Fade Inactive Panes. It is now "loading" or empty; two UI test files changed.
 
 ### r-chrome
 
@@ -351,3 +349,39 @@ Read every line of Ahead, Gate, HostModels, HostStore, Page, PaneWrites and Wind
   what they count.
 - **For the user:** `OrielApp.swift` is at 391 of 400 lines (`file_length`); the next feature in it should move
   `ContentView`'s restore into its own file first.
+
+### f-e2e
+
+The reviewers' leftovers, then main proven green. 6 code commits (976580f..5dad206).
+
+- **Fixed.** (1) The card's VoiceOver value is "loading" while loading, else empty (PaneCard; FinishTests and
+  RevealTests read it; layout.mdx). (2) The strip's swipe turns no page under a panel opened mid-swipe and goes back
+  to the selected tab (Strip's `drag` and `lift`, as the sidebar and overview). A swipe that starts with a panel open
+  never reaches the strip: the panel's full-window backdrop takes the hit test. A local test showed it (a swipe with
+  the palette open paged nothing on the old code), so no UI test was added, and the wheel's `turn` needs no guard.
+  A panel opened mid-swipe cannot be made in XCUITest (`scroll` is one step). (3) `app.links` reads `Links.record`.
+  (4) The floating-window ⌘K check was in already (096c84c). (5) HerdrKit's integration tests use one `localExec`
+  (the test run's environment, herdr from PATH), not a 3 s login-shell lookup per test. `ProcessExec.prepare()`
+  holds the SIGPIPE and file-limit setup both use; the app is unchanged. (6) `scripts/test-times.tsv` is the mean of
+  full runs 40364570313 and 40364583734. The on-demand rows are kept: the stress tests from 40274683473 and
+  40276792304, the rest from 40300354731, 40309820769 and 40312470304. Shards: 513–517 s each, shard 0's 180 s of
+  checks included.
+- **A red on main, fixed:** push run 40358914225 (f007a33) failed `testFloatingWindowOpensLargeWithTheMainWindowsTitleRow`
+  after its body passed. tearDown's XCUITest hover first looked for windows over the point, found the floating
+  window that a teardown block's tab close was closing, and failed when it vanished. tearDown now warps the pointer
+  (`CGWarpMouseCursorPosition`) to the same point (92d2946).
+- **Infra red, not the app:** 40369587533's job 0 failed in `brew update`: the runner could not resolve ghcr.io.
+  So the two greens in a row came from two new dispatches.
+- **Proof on 5dad206 (last code commit), no reruns:** full runs 40374546065 (14 min 19 s start to done, jobs 8 min
+  40 s – 14 min 12 s) and 40374563084, both green; 40369582161 green before them. On demand: 40369594060, green
+  (4 jobs, 6 min 40 s – 7 min 15 s each). On 92d2946: 40364570313 (13 min 26 s) and 40364583734, green.
+- **Local, under the GUI budget:** the touched UI tests (7 reveal, finish, link, swipe and flicker tests; 4 float and 3
+  hover-card tests). A Release build smoke check on a throwaway `oriel-dev-32e2e-smoke` session: launch, ⌘K, the
+  overview, ⌘T and ⌘D, a tab made by the herdr CLI, ⌃⌘S. All drew right (`/tmp/oriel-shots/smoke-*`). The session is
+  deleted.
+- **Seen locally only:** `testFloatingWindowsHaveTheirOwnCommandsAndComeBackAfterRelaunch` launches without
+  `-ApplePersistenceIgnoreState`, so on this Mac it restored two saved main windows and failed with "multiple
+  matching elements". CI's fresh machines have no saved state.
+- **Review (f-e2e-spec-review):** no blockers. Its two nits are done here: the on-demand rows' run ids, and r-strip's
+  item marked done.
+
