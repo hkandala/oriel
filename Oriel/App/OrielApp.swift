@@ -28,11 +28,15 @@ struct OrielApp: App {
                 ContentView()
             }
             .windowToolbarStyle(.unifiedCompact)
-            // 1200 × 760, at most the screen, and a zoom fills the screen. A larger window AppKit shrank to fit came
-            // back at its full size on a zoom, past the screen's edges (CI's 1024 pt screen).
+            // 90 % of the screen, centered (user, phase 29: 1200 × 760 was small on a large screen), at least
+            // 1200 × 760 and at most the screen; a zoom fills the screen. A larger window AppKit shrank to fit came
+            // back at its full size on a zoom, past the screen's edges (CI's 1024 pt screen). A restored window keeps
+            // its frame.
             .defaultWindowPlacement { _, context in
                 let screen = context.defaultDisplay.visibleRect.size
-                return WindowPlacement(size: CGSize(width: min(1200, screen.width), height: min(760, screen.height)))
+                let size = { (side: CGFloat, least: CGFloat) in min(side, max(least, side * 0.9)) }
+                return WindowPlacement(.center, size: CGSize(width: size(screen.width, 1200),
+                                                             height: size(screen.height, 760)))
             }
             .windowIdealSize(.maximum)
             // Content never grows the window (the title-bar tabs would, when the sidebar hides).

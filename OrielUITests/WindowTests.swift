@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 
 /// Several windows (phase 16): windows on one session share its store and agree on one controller (D66); the other
@@ -121,6 +122,19 @@ extension OrielUITests {
         let identifier = first.identifier
         app.typeKey("n", modifierFlags: .command)
         return try (app.windows[identifier], otherWindow(than: identifier))
+    }
+
+    /// ⌘N opens a big window in the middle of the screen (user, phase 29): 90 % of it, 1200 × 760 at least, the
+    /// screen at most.
+    func testNewWindowFillsMostOfTheScreen() throws {
+        let (_, window) = try newWindow()
+        let screen = try XCTUnwrap(NSScreen.screens.first).visibleFrame
+        func side(_ length: CGFloat, _ least: CGFloat) -> CGFloat {
+            min(length, max(least, length * 0.9))
+        }
+        XCTAssertEqual(window.frame.width, side(screen.width, 1200), accuracy: 2, "\(window.frame) in \(screen)")
+        XCTAssertEqual(window.frame.height, side(screen.height, 760), accuracy: 2, "\(window.frame) in \(screen)")
+        XCTAssertEqual(window.frame.midX, screen.midX, accuracy: 2, "\(window.frame) in \(screen)")
     }
 
     /// The window that is not this one, once there are two; it shows session one.
