@@ -37,6 +37,8 @@ extension HostStore {
         /// herdr's active tab: a page's first selection in it.
         var activeTabID = ""
         var worktree: Worktree?
+        /// Its tabs' strongest agent state (`HostStore.showStrongest`).
+        var state: AgentState?
         /// The branch of its root (`worktree.checkout_path`, else its first pane's cwd); nil when not a repository.
         var git: GitStatus?
         /// The root of the last git run.
@@ -52,6 +54,10 @@ extension HostStore {
         let id: String
         var label = ""
         var tree: SplitNode?
+        /// Its agent pane with the strongest state (needs you > finished > working > idle), and whether an agent of it
+        /// works (`HostStore.showStrongest`).
+        var agent: Pane?
+        var working = false
 
         init(id: String) {
             self.id = id
@@ -151,11 +157,6 @@ extension HostStore {
         case .notFound, .unsupported, .disconnected: return false
         default: return isRunning
         }
-    }
-
-    /// The pane of these tabs with the strongest state (needs you > finished > working > idle); nil without agents.
-    func strongest(_ tabIDs: [String]) -> Pane? {
-        panes.filter { $0.state != nil && tabIDs.contains($0.tabID) }.max { $0.state ?? .idle < $1.state ?? .idle }
     }
 
     func workspace(of tabID: String) -> Workspace? {

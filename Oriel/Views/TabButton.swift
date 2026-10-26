@@ -24,11 +24,9 @@
         @Environment(\.look) private var look
 
         var body: some View {
-            let store = page.store
             let selected = workspace.id == page.selectedWorkspaceID && tab.id == page.selectedTabIDs[workspace.id]
             let stack = page.stack(tab)
-            let agent = store.strongest([tab.id])
-            let working = store.panes.contains { $0.tabID == tab.id && $0.state == .working }
+            let agent = tab.agent, working = tab.working
             // The strip scrolls to the new selection and the marker follows, as during a swipe.
             Button {
                 clicked()

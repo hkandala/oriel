@@ -301,7 +301,7 @@
 
         var body: some View {
             let selected = page.selectedTabIDs[workspace.id] == tab.id
-            let state = page.store.strongest([tab.id])?.state
+            let state = tab.agent?.state
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     IconStack(panes: page.stack(tab), badge: state)

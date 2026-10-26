@@ -135,7 +135,7 @@
         @Environment(\.look) private var look
 
         var body: some View {
-            let waiting = page.store.panes.count { $0.state == .needsYou }
+            let waiting = page.store.waiting
             Button(action: toggle) {
                 Image(systemName: showing ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
                     .fontWeight(.medium)
@@ -305,7 +305,7 @@
                 page.store.workspaces.filter { $0.label.matches(filter) }.map { workspace in
                     // Another page's workspace shows that page.
                     FilterList.Item(id: "\(page.id).\(workspace.id)",
-                                    state: page.store.strongest(workspace.tabs.map(\.id))?.state,
+                                    state: workspace.state,
                                     title: workspace.label,
                                     detail: workspace.git?.branch ?? "", section: page.id,
                                     // The page in view's drag: a pane or a tab goes there.

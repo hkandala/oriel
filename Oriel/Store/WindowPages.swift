@@ -377,7 +377,7 @@
     extension HostStore {
         /// Agents that need you over every open session, each once.
         static var needsYou: Int {
-            all.reduce(0) { count, store in count + store.panes.count { $0.state == .needsYou } }
+            all.reduce(0) { $0 + $1.waiting }
         }
 
         static func showBadge() {

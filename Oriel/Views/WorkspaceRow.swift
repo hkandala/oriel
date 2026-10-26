@@ -20,7 +20,7 @@
         var body: some View {
             let selected = workspace.id == page.selectedWorkspaceID
             let git = workspace.git
-            let state = page.store.strongest(workspace.tabs.map(\.id))?.state
+            let state = workspace.state
             let height: CGFloat = git == nil ? 30 : 44
             Button { page.select(workspace) } label: {
                 VStack(alignment: .leading, spacing: 2) {

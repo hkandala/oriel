@@ -196,7 +196,7 @@
                         HStack(spacing: 8) {
                             FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
                             Spacer(minLength: 0)
-                            if let state = store.strongest([tabID])?.state, state != .idle {
+                            if let state = tab.agent?.state, state != .idle {
                                 StateCapsule(state: state)
                             }
                         }
