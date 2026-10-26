@@ -6,7 +6,8 @@
     /// landing late is a system swipe) that moved 20 pt mostly one way. One step, then nothing until the fingers lift.
     struct ThreeFingers {
         enum Step: Equatable {
-            case session(Int), workspace(Int)
+            /// `row`: the sidebar's next (1) or previous (-1) workspace, or agent in the Agents view.
+            case session(Int), row(Int)
         }
 
         /// Where and when the three fingers were first down together.
@@ -35,8 +36,9 @@
             let long = max(abs(deltaX), abs(deltaY)), short = min(abs(deltaX), abs(deltaY))
             guard time - start.time >= 0.06, long >= 20, long >= 2 * short else { return nil }
             done = true
-            // As the system's swipes: fingers to the left show the next session, up the next workspace.
-            return abs(deltaX) > abs(deltaY) ? .session(deltaX < 0 ? 1 : -1) : .workspace(deltaY > 0 ? 1 : -1)
+            // Fingers to the left show the next session, as the system's swipes; up the row above in the sidebar, down
+            // the one below (user, phase 31).
+            return abs(deltaX) > abs(deltaY) ? .session(deltaX < 0 ? 1 : -1) : .row(deltaY > 0 ? -1 : 1)
         }
     }
 #endif

@@ -59,6 +59,9 @@
                     step: step,
                     drag: pages.overview ? nil : drag as (Double, Bool) -> Void,
                     lift: lift,
+                    agent: agents && !pages.overview
+                        ? { offset in pages.current.map { AgentsList.step(offset, $0, filter: filter, sort: sort) } }
+                        : nil,
                     area: area,
                 ))
                 // A dot, a key, a new page or the sheet: slide there with the session spring. A swipe is there already.

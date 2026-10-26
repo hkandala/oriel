@@ -21,8 +21,8 @@ enum ThreeFingersCheck {
         let left = (0 ... 10).map { (-3.0 * Double($0), 0.0) }
         precondition(steps(left) == [.session(1)], "fingers to the left: the next session, once")
         precondition(steps(left.map { (-$0.0, 0) }) == [.session(-1)], "to the right: the previous one")
-        precondition(steps(left.map { (0, -$0.0) }) == [.workspace(1)], "up: the next workspace")
-        precondition(steps(left.map { (0, $0.0) }) == [.workspace(-1)], "down: the previous one")
+        precondition(steps(left.map { (0, -$0.0) }) == [.row(-1)], "up: the row above")
+        precondition(steps(left.map { (0, $0.0) }) == [.row(1)], "down: the one below")
         precondition(steps(left, fingers: 2).isEmpty, "two fingers scroll")
         precondition(steps(left, fingers: 4).isEmpty, "four are the system's")
         precondition(steps(left.map { ($0.0, $0.0) }).isEmpty, "a diagonal steps nothing")

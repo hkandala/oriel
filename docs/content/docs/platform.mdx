@@ -40,8 +40,7 @@ description: "One codebase, dependencies, the strip, the tab bar and tests"
 1. **Terminals and web views swallow the swipe.** On macOS one `NSEvent`
    monitor locks the axis at the start of each scroll gesture: a horizontal
    gesture that starts in the strip pages the
-   strip; anything else goes to the view under the pointer. A gesture begun
-   with ⌥ held goes to the window's sessions or workspaces, and a
+   strip; anything else goes to the view under the pointer. A
    three-finger swipe comes from the trackpad's touches
    ([Swiping](/docs/ui/swiping)). On iOS the
    terminal subclass yields its pan gesture when the motion is mostly

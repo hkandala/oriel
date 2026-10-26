@@ -251,38 +251,15 @@ struct StatusBadge: View {
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
-            let rows = page.store.agentPanes.filter { pane in
-                [pane.label, pane.agentName, page.place(pane)].compactMap(\.self).contains { $0.matches(filter) }
-            }
             let folded = Set(folded.split(separator: "\n").map(String.init))
             ScrollView {
                 // Lazy: only the rows in view are built, of a hundred agents or more (phase 29).
                 LazyVStack(alignment: .leading, spacing: 4) {
-                    if sort == .priority {
-                        ForEach([AgentState.needsYou, .working, .finishedUnseen, .idle], id: \.self) { state in
-                            let group = rows.filter { $0.state == state }, key = key("\(state)")
-                            if !group.isEmpty {
-                                label(state.capsule, group.count, key, open: !folded.contains(key),
-                                      id: "agents.group.\(state.capsule)")
-                                if !folded.contains(key) {
-                                    ForEach(group) { row($0) }
-                                }
-                            }
-                        }
-                    } else {
-                        // Under each workspace's name, so line 2 holds only the tab (user, phase 25).
-                        ForEach(page.store.workspaces) { workspace in
-                            let tabs = workspace.tabs, key = key(workspace.id)
-                            let group = rows.filter { pane in tabs.contains { $0.id == pane.tabID } }
-                            if !group.isEmpty {
-                                label(workspace.label, group.count, key, open: !folded.contains(key),
-                                      id: "agents.workspace.\(workspace.id)")
-                                if !folded.contains(key) {
-                                    ForEach(group) { pane in
-                                        row(pane, place: tabs.first { $0.id == pane.tabID }.map(page.titleText))
-                                    }
-                                }
-                            }
+                    ForEach(Self.groups(page, filter: filter, sort: sort), id: \.id) { group in
+                        let open = !folded.contains(group.key)
+                        label(group.label, group.rows.count, group.key, open: open, id: group.id)
+                        if open {
+                            ForEach(group.rows) { row($0) }
                         }
                     }
                 }
@@ -294,8 +271,42 @@ struct StatusBadge: View {
             .scrollIndicators(.never)
         }
 
-        private func key(_ group: String) -> String {
-            "\(page.store.machine.id) \(page.id) \(sort.rawValue) \(group)"
+        struct Group {
+            let label: String, key: String, id: String
+            let rows: [HostStore.Pane]
+        }
+
+        /// The groups with rows, in order, of the agents that match the filter: by priority, or under each workspace's
+        /// name. `key` folds one: "‹machine› ‹session› ‹sort› ‹group›".
+        static func groups(_ page: Page, filter: String, sort: AgentSort) -> [Group] {
+            let rows = page.store.agentPanes.filter { pane in
+                [pane.label, pane.agentName, page.place(pane)].compactMap(\.self).contains { $0.matches(filter) }
+            }
+            let key = { (group: String) in "\(page.store.machine.id) \(page.id) \(sort.rawValue) \(group)" }
+            let groups = switch sort {
+            case .priority:
+                [AgentState.needsYou, .working, .finishedUnseen, .idle].map { state in
+                    Group(label: state.capsule, key: key("\(state)"), id: "agents.group.\(state.capsule)",
+                          rows: rows.filter { $0.state == state })
+                }
+            case .workspace:
+                page.store.workspaces.map { workspace in
+                    Group(label: workspace.label, key: key(workspace.id), id: "agents.workspace.\(workspace.id)",
+                          rows: rows.filter { pane in workspace.tabs.contains { $0.id == pane.tabID } })
+                }
+            }
+            return groups.filter { !$0.rows.isEmpty }
+        }
+
+        /// Goes to the agent row above (-1) or below (1) the lit one, round the ends, as a click on it does; a folded
+        /// group's rows are skipped (a three-finger swipe, phase 31).
+        static func step(_ offset: Int, _ page: Page, filter: String, sort: AgentSort) {
+            let folded = Set((UserDefaults.standard.string(forKey: "agentsFolded") ?? "").split(separator: "\n")
+                .map(String.init))
+            let rows = groups(page, filter: filter, sort: sort).filter { !folded.contains($0.key) }.flatMap(\.rows)
+            guard !rows.isEmpty else { return }
+            let lit = rows.firstIndex { page.keyboardCard(page.selectedTab?.id) === $0 }
+            page.go(to: rows[lit.map { ($0 + offset + rows.count) % rows.count } ?? (offset > 0 ? 0 : rows.count - 1)])
         }
 
         /// A section label, as in a macOS sidebar: smaller than the title, with room above (user, phase 25). A click
@@ -319,8 +330,10 @@ struct StatusBadge: View {
             .padding(.horizontal, 8).padding(.top, 12)
         }
 
-        private func row(_ pane: HostStore.Pane, place: String? = nil) -> some View {
-            AgentButton(pane: pane, page: page, place: place)
+        /// Under its workspace's name, line 2 holds only the tab (user, phase 25).
+        private func row(_ pane: HostStore.Pane) -> some View {
+            let tabs = sort == .workspace ? page.store.workspace(of: pane.tabID)?.tabs : nil
+            return AgentButton(pane: pane, page: page, place: tabs?.first { $0.id == pane.tabID }.map(page.titleText))
                 .hoverPanel(place: .beside) { close in HoverCard(tabID: pane.tabID, page: page, close: close) }
         }
     }
