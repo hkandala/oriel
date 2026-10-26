@@ -1,6 +1,6 @@
 ---
 title: "Machines and SSH"
-description: "What a machine is, its sessions, macOS and iOS connections, the health check, SSH sessions and checks on connect"
+description: "What a machine is, its sessions, the SSH connection, the health check and checks on connect"
 ---
 
 ## What a machine is
@@ -19,9 +19,8 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 
 ## The machine list
 
-- **The app keeps its own list of remote machines**, on macOS and iOS alike
-  (D54): name, SSH target, icon and id, in `UserDefaults`. One code path on
-  both platforms. The machine menu lists This Mac first, then the list.
+- **The app keeps its own list of remote machines** (D54): name, SSH target,
+  icon and id, in `UserDefaults`. The machine menu lists This Mac first, then the list.
   - The list is JSON under the `machines` key. A run launched with
     `-session` (the e2e tests, a run against a throwaway session) never reads
     or writes it: it takes `-machines <json>` or no machines, so a test never
@@ -33,13 +32,8 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   machine. The Open Session panel lists them
   ([Open Session](/docs/ui/window#open-session)). herdr on the Mac is needed
   only for This Mac's sessions, not for remote machines.
-- **herdr's machines (macOS, not built yet):** when herdr is on the Mac, the
-  Add Remote Host dialog lists the targets of the enabled entries of `herdr machine list --json`
-  (`{id, label, target, session, enabled}`) that are not in the app's list,
-  each with a checkbox. While the app's list is empty, they start checked.
-  The app never writes herdr's list.
 
-## macOS
+## The SSH connection
 - **SSH is the system `ssh`.** The user's `~/.ssh/config`, agent, keys,
   `ProxyJump`, YubiKey and Tailscale SSH work unchanged.
 - **One ControlMaster per host,** started on purpose, once, by the first run
@@ -145,7 +139,7 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
     so a login that hangs without asking shows Connecting until ssh gives up.
   - Cancel ends the start; the page shows Disconnected.
   - A `none` question (a security key's touch) gets no dialog.
-  - Why not the `osascript` dialog the design had: the app's dialog belongs to
+  - Why the app's own dialog and not `osascript`: it belongs to
     the window that asked, follows the app's look, and an e2e test can answer
     it.
 - **herdr on the machine:** the remote login shell gives its path, one run
@@ -157,41 +151,9 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 - **Dropped files** (and Insert Path's file) are copied to the machine over the
   relay, one run per file, and the copies' paths are pasted
   ([Drag and drop](/docs/ui/drag-and-drop#files-and-images)).
-- **Not built yet:** Local Network privacy (below),
-  herdr's machine list in the dialog, reorder of the machines, a
-  remote home shown as `~` in card headers, `dial`, image paste, and Go to
-  Directory on a remote machine.
-- **Local Network privacy (macOS 15+, not built yet):** an `ssh` started by
-  the app counts as the app, so a LAN target fails with "No route to host"
-  today. The plan: The app declares `NSLocalNetworkUsageDescription`, resolves the
-  target with `ssh -G`, and opens an `NWConnection` to a LAN address before
-  the first SSH, so the system asks once. Tailscale addresses are not
+- **Local Network privacy:** an `ssh` started by the app counts as the app,
+  so a LAN target fails with "No route to host"; Tailscale addresses are not
   affected.
-
-## iOS
-
-Not built yet: the iOS target builds and shows an empty state.
-
-- One Citadel SSH connection per host, with exec channels on it.
-- The key is a Secure Enclave P-256 key (`ecdsa-sha2-nistp256`). It cannot
-  leave the device. The add-machine dialog shows its public line to copy into
-  `authorized_keys`.
-- The first connect shows the host key's SHA256 fingerprint and asks. After
-  that the key is pinned, and a changed key blocks the connection.
-- The phone reaches the Mac like any SSH machine: turn on System Settings ›
-  General › Sharing › Remote Login, then add the Mac by its Tailscale or LAN
-  name.
-- Reachability is the user's network (LAN or Tailscale), with no server in
-  between.
-  Jump hosts come later (Citadel has `jump(to:)`).
-- Citadel has no keepalive; the [health check](#health-check) finds dead
-  links.
-- When the app goes to the background, it closes its terminal streams. iOS
-  then gives about 30 s. The app holds its other connections with
-  `beginBackgroundTask`, closes them when that time ends, and reconnects and
-  reads the snapshot again on return.
-- [Spike S7](/docs/build-order#s7-ios-transport) tests Citadel's exec
-  channels before the iOS work starts.
 
 ## Open sessions
 
@@ -201,7 +163,7 @@ Not built yet: the iOS target builds and shows an empty state.
   them, by machine and session name; a page takes its session's store from it, made on
   first use. Detach Session disconnects the store.
 - An open session keeps its control plane open (one event stream plus short
-  calls), so notifications, the Dock and pills cover every open session in
+  calls), so notifications and the Dock cover every open session in
   every window. The Agents button covers the page in view.
 - A session with no page has no store, no snapshot reads and no event stream.
   A machine with many sessions costs nothing until the user opens them.
@@ -218,11 +180,9 @@ One loop per open session checks that it answers.
 - A session counts as live only while the check answers. While it fails, its
   cards gray out.
 - On a remote machine a failed check runs over a new connection when the old
-  one is gone: on macOS the next run starts a new ControlMaster (ssh's
-  keepalive ends a dead one, [macOS](#macos)); on iOS a new Citadel
-  connection.
-- **Automatic retries never prompt.** On macOS they run with
-  `BatchMode=yes`. A host that needs a password, an OTP or a key prompt shows
+  one is gone: the next run starts a new ControlMaster (ssh's keepalive ends
+  a dead one, [macOS](#the-ssh-connection)).
+- **Automatic retries never prompt.** They run with `BatchMode=yes`. A host that needs a password, an OTP or a key prompt shows
   **Disconnected** with **Connect** and stops retrying; only that button may
   prompt.
 - When a check succeeds after a failure, the app opens the event stream and
@@ -232,9 +192,7 @@ One loop per open session checks that it answers.
 ## SSH sessions
 
 - A remote machine uses one SSH session, the relay's
-  ([macOS](#macos)), whatever it streams. This Mac uses no SSH.
-- Port forwards for web pages use no session: `MaxSessions` counts only
-  sessions.
+  ([macOS](#the-ssh-connection)), whatever it streams. This Mac uses no SSH.
 
 ## Checks on connect
 
@@ -273,9 +231,6 @@ One loop per open session checks that it answers.
 2. Open the event stream. Its `subscription_started` reply counts as an
    event, so the app reads the snapshot once more and misses nothing between
    the two steps.
-
-The agent picker reads `integration.list` when it opens
-([Agent](/docs/plugins/terminal-and-agent#agent)).
 
 What it looks like: [Add a machine](/docs/ui/add-a-machine),
 [States](/docs/ui/states).

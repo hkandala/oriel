@@ -3,24 +3,15 @@ title: "Introduction"
 description: "What Oriel is, the problem it solves and the principles behind it"
 ---
 
-A native Apple client for terminal multiplexers: programs that keep
-terminals alive in workspaces, tabs and panes. [herdr](https://github.com/herdrdev/herdr)
-comes first and is the only backend for now. The multiplexer stays the
-backend: it owns every workspace, tab, pane, terminal and agent. The app
-draws them, drives them, and keeps as little state of its own as it can.
+Oriel is a native macOS client for [herdr](https://github.com/herdrdev/herdr), a
+terminal multiplexer for AI coding agents: a program that keeps terminals alive
+in workspaces, tabs and panes. herdr stays the backend. It owns every workspace,
+tab, pane, terminal and agent. The app draws them, drives them, and keeps as
+little state of its own as it can.
 
-- Name: **Oriel**. These pages are the design. The Mac app is built for
-  This Mac and remote machines over SSH. Pane kinds other than the terminal,
-  plugins, the chat view, the pills and the iOS app are not built yet
-  ([Build order](/docs/build-order#build-order)).
-- Targets: herdr 0.9.3 (protocol 22) or newer on each machine, macOS 26, iOS
-  and iPadOS 26. The Mac needs herdr only for its own sessions.
-- See it: the [main window mock-ups](/mockups/layout.html) show every scene
-  of the window on one page.
-- Evidence for the claims is in the repository's
-  [`resources/research/`](https://github.com/hkandala/oriel/tree/main/resources/research)
-  and [`resources/inspirations/`](https://github.com/hkandala/oriel/tree/main/resources/inspirations)
-  folders (see [Sources](/docs/reference/sources)).
+These pages describe the app as it is built. It needs macOS 26 and herdr 0.9.3
+(protocol 22) or newer on each machine; the Mac needs herdr only for its own
+sessions. Ideas for later are in [Future work](/docs/future-work).
 
 ## The problem
 
@@ -28,40 +19,35 @@ People run many coding agents (Claude Code, Codex, pi) at once, often on
 several machines. herdr keeps those agents alive in panes on each machine and
 knows when each one is working, blocked or done (the app shows these as
 working, needs you and finished). But herdr's interface is a terminal UI: one
-machine at a time, keyboard-first, and nothing when you are away from the
-terminal.
+machine at a time, keyboard first.
 
-## What we build
+## What the app does
 
-One app for Mac, iPad and iPhone for all your herdr machines:
-- a window per machine, with a sidebar page per herdr session, workspace
-  rows with agent status and git branches, and an Agents view;
-- a strip of tabs you swipe through, with resizable panes;
-- an overview of every tab as a live miniature, and panes that float in
-  windows of their own;
-- panes for terminals, agents, web pages and plugins;
-- a chat view for any agent or terminal pane;
-- floating status pills on the Mac screen edge when you are in another app;
-- light and dark, Glass and Classic, with program icons and Rex's tab bar.
-
-On iPhone, v1 shows status while the app is open. Alerts while the app is
-closed need push notifications ([Future work](/docs/future-work)).
+- A window per machine (This Mac, or a remote machine over SSH), with a sidebar
+  page per herdr session, workspace rows with agent status and git branches,
+  and an Agents view.
+- A strip of tabs you swipe through, each tab a page of live terminal cards
+  laid out the way herdr splits them.
+- An overview of every tab, and panes that float in windows of their own.
+- Light and dark, Glass and Classic, with program icons and a tab bar in the
+  title row.
 
 ## Principles
 
-1. **The multiplexer is the source of truth.** If it can hold a piece of
-   state, it holds it: anything that takes space in the layout is one of its
-   panes, with a label. A fresh app on a new device rebuilds everything from
-   it. Everything the app keeps for itself is listed in
-   [Data: app vs herdr](/docs/data).
+1. **The multiplexer is the source of truth.** If herdr can hold a piece of
+   state, it holds it. A fresh app on a new Mac rebuilds everything from it.
+   Everything the app keeps for itself is listed in [Data](/docs/data).
 2. **Use what exists.** herdr's API and CLI, OpenSSH, Apple's frameworks. On
-   each machine the app only runs commands and opens TCP streams over SSH. No
-   daemon or server of our own; the one exception is the relay, a script sent
-   with each SSH connection, never installed, gone with it
-   ([Machines](/docs/machines#macos)).
-3. **One picker for every pane kind.** Terminal, agent and web page are built
-   in. Every other pane kind is a plugin: a small web page in a native web
-   view, yours included.
+   each machine the app only runs commands over SSH. No daemon or server of
+   our own; the one exception is the relay, a script sent with each SSH
+   connection, never installed, gone with it
+   ([Machines](/docs/machines#the-ssh-connection)).
+3. **Never send the user to herdr.** Everything a user does with sessions,
+   workspaces, tabs, panes and machines is done in the app. No text in the UI
+   tells the user to run a herdr command; where there is nothing yet, the app
+   shows the button that makes it. The one exception: when herdr is not
+   installed, the page shows the install command, because the app cannot
+   install herdr.
 4. **The simplest thing that works.** Each shortcut we take on purpose is
    marked "Simpler choice" and says when to revisit it.
 
@@ -69,10 +55,8 @@ closed need push notifications ([Future work](/docs/future-work)).
 
 <Cards>
   <Card title="Features" href="/docs/features" description="Everything the app does, in one list" />
-  <Card title="Inspirations" href="/docs/inspirations" description="Cube, Rex, gorex, One and lessons from existing herdr clients" />
-  <Card title="UI design" href="/docs/ui/window" description="The window, swiping, cards, pills, iPhone and iPad" />
-  <Card title="How it works" href="/docs/architecture" description="Architecture, data, talking to herdr, machines, layout, chat and status" />
-  <Card title="Pane kinds and plugins" href="/docs/plugins" description="Terminal, agent, web page and your own plugins" />
-  <Card title="Planning" href="/docs/decisions" description="Design decisions, risks, spikes, the build order and future work" />
-  <Card title="Reference" href="/docs/reference/glossary" description="Glossary, herdr calls and sources" />
+  <Card title="UI design" href="/docs/ui/window" description="The window, swiping, drag and drop, states, theme" />
+  <Card title="How it works" href="/docs/architecture" description="Architecture, data, talking to herdr, machines, layout, status" />
+  <Card title="Decisions" href="/docs/decisions" description="Design decisions and future work" />
+  <Card title="Reference" href="/docs/reference/glossary" description="Glossary and herdr calls" />
 </Cards>

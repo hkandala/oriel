@@ -1,89 +1,52 @@
 ---
 title: "Future work"
-description: "Everything the design defers, in one list"
+description: "Ideas the app does not have yet, and what it leaves out on purpose"
 ---
 
-Each item says what it is and when to build it. Smaller deferrals are marked
-"Simpler choice" on their own pages.
+None of this is built. Smaller deferrals are marked "Simpler choice" on their
+own pages.
 
-## Plugins
+## Maybe later
 
-- **(a) A TypeScript + React kit drawn as native SwiftUI.** Plugins written in
-  React against a component kit (`List`, `Detail`, `Diff`, `Form`), run in one
-  JavaScriptCore VM per card and drawn as real SwiftUI (Raycast 1.x's model).
-  Measured at about 3 MB per card. It looks fully native, but it needs our own
-  component set, a reconciler and a build tool. Plugins are web pages instead
-  ([Plugin UI](/docs/plugins/plugin-ui)). Revisit when web plugins look or feel
-  wrong next to native cards. Research and spike:
-  [`plugin-system-v2.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugin-system-v2.md).
-- **Your own plugins on iOS** ([Plugins on iOS](/docs/plugins/ios)).
-
-## Settings window
-
-- **A Settings window** (⌘,), designed with mock-ups first. It would hold the settings that have no menu item today: the
-  terminal font, cursor style and blink, Option as Alt, copy on select, and
-  the notification switches ([Settings](/docs/ui/settings)). Phase 11 built a
-  stock tabbed form and the user dropped it as too plain.
-
-## Panes and layout
-
-- **herdr's popup** in a floating window: herdr's API does not show it yet
-  ([`floating-panes.md`](https://github.com/hkandala/oriel/blob/main/resources/research/ui/floating-panes.md)).
-  Checked again on 0.9.5 (phase 27): `plugin.pane.open` with `placement:
-  "popup"` answers only `ok`; the popup's terminal runs in the server, but it
-  has no pane or terminal id in the reply, the snapshot or `pane.list`, and
-  opening or closing it (`popup.close`) sends no event. The
-  `plugin_pane_opened` reply comes only for the other placements, which are
-  normal panes. The upstream ask: the popup (its terminal id and size) in
-  `session.snapshot`, events when it opens and closes, and a close by id
-  (`popup.close` takes no parameters). Oriel would then stream it in its floating window
-  by that id, as it does a floated pane.
-- **Placeholders after a cold restart.** herdr brings a pane started with a
-  command back as a plain shell, with its label, so the card still works
-  ([Labels and instance ids](/docs/plugins/labels)). The upstream ask: restore
-  panes with a `launch_argv` on a cold restart, opt-in (herdr discussion
-  [#1367](https://github.com/herdrdev/herdr/discussions/1367)).
-
-## Machines and multiplexers
-
-- **More multiplexers.** Rex ([superlogical.com](https://www.superlogical.com)),
-  designed in [Rex as a second multiplexer](/docs/rex-backend), and tmux, as
-  more implementations of the
+- **An iPhone and iPad app.** The same machines over SSH: one pane per page on
+  iPhone, the Mac layout on iPad. Alerts while the app is closed would need a
+  small stateless push relay.
+- **A chat view** for an agent pane: its transcript file tailed and drawn as
+  messages, with replies sent through herdr's `agent.prompt`.
+- **Floating status pills** on the screen edge that show who needs you while you
+  are in another app.
+- **More pane kinds:** an agent picker, web pages, and plugins (small web pages
+  in a native web view). Image paste into agents.
+- **A Settings window** for the settings that have no menu item today (terminal
+  font, cursor, Option as Alt, copy on select, notification switches). It must
+  meet the design bar; a stock tabbed form was tried and dropped.
+- **herdr's machines in Add Remote Host**, and reordering machines.
+- **Bundling herdr** with the app, so a Mac without herdr can still show its own
+  sessions.
+- **More multiplexers** (Rex, tmux) behind the
   [`Multiplexer` interface](/docs/architecture#the-multiplexer-interface).
-- **OSC 7501** (the Program Status Protocol, a terminal escape sequence that a
-  program sends to report its status;
-  [spec](https://www.superlogical.com/rex/docs/build/program-status)). herdr does
-  not support it yet (draft PR
-  [#5172](https://github.com/herdrdev/herdr/pull/5172) adds `program_status` to
-  `pane.get` and `pane.list`; a change to it alone sends no event). Once herdr
-  ships it, show its `message` on needs-you and finished rows and in notifications, and say
-  "failed" for `error`. Another multiplexer's
-  implementation may parse OSC 7501 itself where the app owns the terminal
-  bytes ([Status](/docs/status#agents-and-notifications)).
-- **A small server helper** behind the same `run` and `dial` calls: one program
-  of ours per machine that carries every call on one SSH channel. Build it only
-  when one of these is real:
-  1. **SSH sessions:** cards show **Retry** because terminals,
-     chat tails and plugin calls exceed `MaxSessions` on busy tabs.
-  2. **Latency:** a plugin needs many small calls (a file tree, search), and
-     users on slow links feel it.
-  3. **File watching:** a plugin needs pushed file changes, not refreshes on
-     snapshots.
-  4. **`AllowTcpForwarding no`:** a server refuses `dial`.
-  5. **Windows servers:** herdr supports them; our `sh` envelope does not.
+- **A small server helper**: one program per machine that carries every call on
+  one SSH channel. Only when SSH session limits, latency or a server without
+  TCP forwarding make it necessary.
 
-  Plugins, labels and state files stay the same when it comes. Research:
-  [`remote-plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/remote-plugins.md).
-- **Keys on the terminal stream.** Ask herdr to accept named keys on
-  `terminal.input` (`{"type":"terminal.input","keys":["up"]}`), encoded as
-  `pane.send_keys` does. Then all input takes one path, with no bridge call
-  per key burst, which matters over SSH
-  ([Terminal plane](/docs/talking-to-herdr#terminal-plane)).
-- iOS jump hosts (Citadel has `jump(to:)`).
+## Waiting on herdr
 
-## Notifications and chat
+- **herdr's popup in a floating window.** The API gives the popup no pane or
+  terminal id and sends no event when it opens or closes.
+- **Panes started with a command after a cold restart** come back as plain
+  shells. The ask: restore them with their `launch_argv`, opt-in
+  ([discussion #1367](https://github.com/herdrdev/herdr/discussions/1367)).
+- **Named keys on the terminal stream** (`terminal.input` with `keys`), so all
+  input takes one path.
+- **OSC 7501** (a program reports its status with an escape sequence;
+  [draft PR #5172](https://github.com/herdrdev/herdr/pull/5172)): show its
+  message on needs-you and finished rows and in notifications.
 
-- **iOS push.** A tiny stateless relay that forwards encrypted payloads to
-  Apple's push service, so the phone alerts while the app is closed. v1 shows
-  status while the app is open ([Notifications](/docs/status#notifications)).
-- More chat parsers.
+## Left out on purpose
+
+- Tearing a tab off into a new window.
+- Key sequences and custom shortcuts.
+- Traffic lights inside the tab bar (needs private API).
+- Jump to prompt (needs OSC 133 marks from the shell).
+- A font size per pane, paste confirmation, an installer for agent integrations.
+- Many themes, a theme editor, a compact density.

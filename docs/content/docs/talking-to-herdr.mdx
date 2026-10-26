@@ -31,7 +31,7 @@ the work. A later server helper would sit behind the same two calls
   3 s timeout, output parsed after a unique marker). `HERDR_*` variables are removed from
   child processes.
 - **A remote machine on macOS:** every run goes through the relay, one SSH
-  session on the host's ControlMaster ([macOS](/docs/machines#macos)). The
+  session on the host's ControlMaster ([macOS](/docs/machines#the-ssh-connection)). The
   app starts it with a `Process` like this, the relay's script in the
   envelope:
   ```sh

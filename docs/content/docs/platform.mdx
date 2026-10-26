@@ -1,62 +1,47 @@
 ---
 title: "Platform and code"
-description: "One codebase, dependencies, the strip, the tab bar and tests"
+description: "The codebase, dependencies, the strip, the tab bar and tests"
 ---
 
 ## One codebase
 
-- One Xcode project, one multiplatform SwiftUI app target (macOS, iPadOS,
-  iOS), and one local Swift package, `HerdrKit`.
-- Minimum OS: macOS 26 and iOS 26 (Liquid Glass; one
-  minimum means no fallbacks). Building needs Xcode 27.
-- **Several windows on macOS** (`WindowGroup`; File ▸ New Window, ⌘N). Each
-  window shows one machine and has its own state: open pages and selection.
-  Windows that show the same session share its `HostStore`, and control
-  passes between them per session, so two windows never fight over a pane
-  (D66). iPad keeps one scene. The other windows are the floating panes'
-  (D50), each owned by a main window, and the pill panel (not built yet),
-  which opens no terminal stream.
-- iPhone uses its own `NavigationStack` layout instead of a collapsed split
-  view.
-- macOS only: `ProcessExec`, `SSHExec` and its relay, the pill panel, the
-  askpass script, the Local Network preflight, scroll routing with `NSEvent`, the AppKit terminal
-  subclass, the Dock badge, the `WindowGroup` scene. iOS only:
-  `CitadelExec`, the UIKit terminal subclass, the compact layout.
-- Signing: macOS has App Sandbox off and Hardened Runtime on, and ships as a
-  notarized Developer ID download (it runs the `herdr` CLI and `ssh`). iOS
-  ships on the App Store. Citadel is linked for iOS only.
+- One Xcode project, one macOS SwiftUI app target, and one local Swift
+  package, `HerdrKit`.
+- Minimum OS: macOS 26 (Liquid Glass; one minimum means no fallbacks).
+  Building needs Xcode 27.
+- **Several windows** (`WindowGroup`; File ▸ New Window, ⌘N). Each window
+  shows one machine and has its own state: open pages and selection. Windows
+  that show the same session share its `HostStore`, and control passes
+  between them per session, so two windows never fight over a pane (D66).
+  The other windows are the floating panes' (D50), each owned by a main
+  window.
+- Signing: App Sandbox off and Hardened Runtime on, shipped as a notarized
+  Developer ID download (it runs the `herdr` CLI and `ssh`).
 
 ## Dependencies
 
 | Need | Choice | Why |
 |---|---|---|
-| Terminal drawing | `Lakr233/libghostty-spm`, exact pin, plus uHerdr's `suppressesTerminalResponses` patch (a vendored wrapper; upstreamed if accepted) | Metal, IME, one API on AppKit and UIKit, a built-in iOS key bar; used by bigtty and Heeler. The patch stops libghostty from answering terminal queries that herdr already answered |
-| SSH on iOS | `orlandos-nl/Citadel` 0.12.1, exact pin | pure Swift; exec and `direct-tcpip` channels are enough (it depends on a swift-nio-ssh fork, so updates are reviewed) |
-| SSH on macOS | the system `/usr/bin/ssh` | the user's SSH setup works unchanged |
-| Plugin runtime and web pages | `WKWebView` with a `WKUIDelegate`, wrapped for SwiftUI, one per card | built in; the same plugin runs on both OSes; the delegate sees new-window requests, which SwiftUI's `WebPage` drops |
-| Markdown | `AttributedString(markdown:)` | built in |
+| Terminal drawing | `Lakr233/libghostty-spm`, exact pin | Metal, IME, one Swift API |
+| SSH | the system `/usr/bin/ssh` | the user's SSH setup works unchanged |
 
 ## Making the strip work
 
-1. **Terminals and web views swallow the swipe.** On macOS one `NSEvent`
+1. **Terminals swallow the swipe.** One `NSEvent`
    monitor locks the axis at the start of each scroll gesture: a horizontal
    gesture that starts in the strip pages the
    strip; anything else goes to the view under the pointer. A
    three-finger swipe comes from the trackpad's touches
-   ([Swiping](/docs/ui/swiping)). On iOS the
-   terminal subclass yields its pan gesture when the motion is mostly
-   horizontal.
+   ([Swiping](/docs/ui/swiping)).
 2. **Lazy SwiftUI containers destroy views that scroll off screen.** The
-   PaneViewRegistry owns every terminal view, web page and plugin card. Each
+   PaneViewRegistry owns every terminal view. Each
    SwiftUI wrapper makes its own container; the newest container adopts the
    view, and a container removes it only if it still owns it. Stream lifetime
    follows the HostStore, never whether a view is in a window. Off-screen
    surfaces stop drawing but keep reading their stream (herdr drops a watcher
    that reads nothing for 30 s). At most 16 streaming terminals out of view
-   (D46) and 6 live web views (web pages and plugin cards together; 2 on
-   iPhone), least recently used first out; an evicted card frees its surface
-   and keeps its last image. Web page message handlers
-   sit behind a weak proxy.
+   (D46), least recently used first out; an evicted card frees its surface
+   and keeps its last image.
    A lazy stack whose pages change under it can lay
    out none: one strip shared by every workspace drew no page after it drew
    again on a middle tab and the next workspace had fewer tabs. So each
@@ -64,9 +49,6 @@ description: "One codebase, dependencies, the strip, the tab bar and tests"
    XCUITest) hides that bug, so `make strip-check` drives the app without one.
 3. **libghostty's default key bindings eat the app's shortcuts.** Every
    surface gets `keybind = clear`, and keys go to the main menu first.
-
-If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or UIKit paging container
-(about 300 lines per platform) holding the cached views.
 
 ## Tab bar and Liquid Glass
 
@@ -85,14 +67,11 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
   frame; needs you and
   finished are badges on the icon (D42).
 - The window title (`navigationTitle`) is "‹tab title› - ‹page title›" (the machine's name for `default`).
-- Reference for this Rex-like behavior: the Rex study
-  ([`rex-ui.md`](https://github.com/hkandala/oriel/blob/main/resources/research/clients/rex-ui.md)),
-  then [gorex](https://github.com/hkandala/oriel/blob/main/resources/research/clients/gorex.md).
-  Neither is a reference for the glass API.
+- The tab bar follows Rex's (research notes in `resources/research/clients/rex.md`).
 - One `Look` token value per style and appearance draws every surface (D44).
   Glass is only on the Glass style's tab marker and sidebar pill, popovers,
   the palette and floating panels; the sidebar sits flat on the window, pane
-  cards are translucent on it, and pills are opaque.
+  cards are translucent on it.
 
 ## Other details
 
@@ -102,9 +81,6 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
   the app's drop targets. Tab capsules spring-load. During a drag, drop
   zones sit above each card's surface. Drops on another session or machine
   are refused.
-- iOS key bar: libghostty-spm's `inputAccessoryItems`.
-- Plugin bridge: `window.oriel`, injected into each plugin page; every call
-  checks the card's machine binding in Swift.
 
 ## Tests
 
@@ -120,8 +96,6 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
   requests, the seen rules, git status parsing, fuzzy matching, program icon
   matching, the terminal stream's frames, the remote command envelope and
   the relay.
-- Not built yet, with their parts: the label parser, the state-file write
-  command, the bridge's machine check and the transcript parsers.
 
 What it looks like: [Main window](/docs/ui/window),
 [Theme and accessibility](/docs/ui/theme-and-accessibility).

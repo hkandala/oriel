@@ -6,50 +6,31 @@ description: "What the app stores and what herdr owns"
 ## Where things live
 
 One rule decides where each new thing goes (D57):
-- **Anything that takes space in the layout** is a multiplexer pane with a
-  label: terminals, agents, web pages and plugin panes.
+- **Anything that takes space in the layout** is a multiplexer pane.
 - **Transient UI** (the palette, popovers, hover, chips) lives in app memory
   only.
 - **Per-device settings** live in app storage.
 
 ## Every piece of data
 
-The rows for web pages, plugins, chat, pills and iOS are for parts that are
-not built yet.
-
 | Data | Owner | Where |
 |---|---|---|
 | Workspaces, tabs, panes, order, labels | herdr | `session.snapshot` |
 | Split tree and ratios | herdr | `snapshot.layouts[]` |
 | Terminal content and PTY | herdr | `terminal session` frames |
-| Agent kind, status, `completion_seq`, transcript pointer | herdr | `agents[]`, `panes[]` |
-| Web page address the user typed | herdr | pane label `oriel:web#<iid> <url>` |
-| Plugin, pane kind, instance id, argument | herdr | pane label `oriel:<plugin>[/<pane>]#<iid> <arg>` |
-| Plugin instance state; a web card's current address and scroll position | the machine | `$HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json` (`web` for web cards; [State and restore](/docs/plugins/state)) |
-| Chat history | the agent | its transcript file on the machine |
+| Agent kind, status, `completion_seq` | herdr | `agents[]`, `panes[]` |
 | A machine's sessions | herdr | `herdr session list --json`, run on the machine |
 | Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults`, JSON under `machines` |
-| iOS SSH key and pinned host keys | app, disk | Secure Enclave, Keychain |
 | Settings: appearance, interface style, text size and Focus Follows Mouse ([Settings](/docs/ui/settings)); the Agents view's folded groups (`agentsFolded`); a floating pane's window frame, per pane | app, disk | app storage (`UserDefaults`) |
 | Per window: the machine's id (`machine`), the names of its open pages (`pages`), the page in view (`page`), each page's selected workspace and tabs and its floating panes with their Stay on Top (`selection`, one JSON string), sidebar shown or hidden (`sidebar`), sidebar view (workspaces or agents, `agents`) and its sort (`agentSort`), and sidebar width (`sidebarWidth`) | app, disk | `@SceneStorage`, one set per window |
-| Plugin code and source record | app, disk | `Application Support/Oriel/plugins/` |
-| Plugin consent and This Mac answers | app, disk | `UserDefaults` |
-| Plugin preferences | app, disk | `UserDefaults`, passwords in the Keychain |
-| Approved web origins per machine, the web safe list | app, disk | `UserDefaults` |
-| Web cookies | WebKit | one data store per machine |
-| Per page of a window: the selected workspace, the tab per workspace, the keyboard card per tab, the zoomed card. Per open session: its `HostStore`, made on first use. Per session: which window controls it ([Control between windows](/docs/talking-to-herdr#control-between-windows)). Chat or terminal per pane, drafts | app, per device | memory |
+| Per page of a window: the selected workspace, the tab per workspace, the keyboard card per tab, the zoomed card. Per open session: its `HostStore`, made on first use. Per session: which window controls it ([Control between windows](/docs/talking-to-herdr#control-between-windows)). | app, per device | memory |
 | Seen values and the time of each status change (Agents view), program icons, git state of each workspace, a divider's ratio while it is dragged | app, per device | memory |
-| ControlMaster sockets, port forwards | app | `~/Library/Caches/oriel/` (macOS), while running |
-
-`<session>` is the herdr session name. `$HOME` is the machine's home folder;
-commands start there, so paths are relative to it.
+| ControlMaster sockets | app | `~/Library/Caches/oriel/`, while running |
 
 <Callout title="Nothing the app saves describes herdr's state">
 The only exception is each window's restore state: the names of its pages.
-A page whose session no longer runs is skipped. A fresh install on a new device rebuilds
-every workspace, tab, pane, web page and plugin pane from
-herdr's labels and the machines' state files
-([State and restore](/docs/plugins/state)).
+A page whose session no longer runs is skipped. A fresh install on a new Mac rebuilds
+every workspace, tab and pane from herdr.
 </Callout>
 
 ## Which pages a window opens

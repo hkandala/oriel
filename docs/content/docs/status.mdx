@@ -1,12 +1,12 @@
 ---
-title: "Status, notifications and pills"
-description: "The Agents button and view, notifications, the Dock and how the floating pills work"
+title: "Status and notifications"
+description: "The Agents button and view, notifications and the Dock"
 ---
 
 ## Agents and notifications
 
-- Tab capsules, workspace rows, the Agents button and view, the hover card, notifications, the
-  Dock and the pills all read `agent_status` and `completion_seq` from the
+- Tab capsules, workspace rows, the Agents button and view, the hover card, notifications and the
+  Dock all read `agent_status` and `completion_seq` from the
   snapshot. No extra calls.
 - Status comes only from the multiplexer's API (D55), never from
   [OSC 7501](/docs/reference/glossary) ([Future work](/docs/future-work)).
@@ -61,8 +61,7 @@ the session:
 - The app asks for permission (alerts and the badge) at launch; macOS asks the
   user only once.
 - Notifications are on for needs you and for finished; the Dock badge counts
-  needs you only; no sounds. These are fixed until the Settings window
-  ([Settings](/docs/ui/settings)).
+  needs you only; no sounds. These are fixed ([Settings](/docs/ui/settings)).
 
 ### macOS
 
@@ -70,70 +69,6 @@ the session:
   delegate (`NSApplicationDelegateAdaptor`), so a click that starts the app
   is not lost.
 - **Dock badge:** the number of panes that need you, over every open page.
-- **Sounds:** none until the Settings window.
+- **Sounds:** none.
 - **Dock menu:** a row per pane that needs you or finished ("codex needs you ·
   default · infra"; a click selects it), a separator, then New Tab.
-- While the pill is on screen, notifications are posted as `.passive`
-  (Notification Center, no banner). The exception is when VoiceOver or Switch
-  Control is on, because those users cannot reach the pill.
-
-### iOS
-
-Not built yet.
-
-- The same notifications, while the app is open or within its ~30 s
-  background time.
-- No push in v1: the iPhone shows status while the app is open. Alerts while
-  the app is closed need a small relay that forwards encrypted payloads to
-  Apple's push service ([Future work](/docs/future-work)).
-
-## Floating pills: how they work (macOS)
-
-Not built yet. This section is their design.
-
-The look and behavior are in [Floating pills (macOS)](/docs/ui/pills).
-
-- **When:** the pill shows whenever the app is not active, and hides when it
-  becomes active. Two notifications drive it, plus screen changes for
-  placement. Nothing polls. The only timer is the peek's 8 s shrink. It
-  appears on the screen under the pointer. A setting turns the pill off.
-- **One AppKit `NSPanel` hosting SwiftUI.** No SwiftUI scene can do this:
-  `UtilityWindow` hides when the app is inactive, and a floating `Window`
-  activates the app when clicked.
-- One fixed-size transparent panel on the right edge holds the pill, list and
-  pill card, so it never resizes. Transparent parts let clicks through.
-- **Panel settings:**
-  ```swift
-  // in init
-  styleMask = [.borderless, .nonactivatingPanel]
-  level = .floating
-  collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle,
-                        .fullScreenAuxiliary, .canJoinAllApplications]
-  hidesOnDeactivate = false
-  canHide = false
-  becomesKeyOnlyIfNeeded = false
-  hasShadow = false
-  backgroundColor = .clear
-  // ignoresMouseEvents is never set: transparent pixels pass clicks through
-  ```
-- **Keyboard:** a borderless panel cannot become key by default. So
-  `PillPanel` overrides `canBecomeKey` to return true only while a pill card
-  is open and has been clicked.
-- **First click:** `PillPanel.sendEvent` catches a mouse-down inside a pill
-  card that is not key, makes the panel key, and swallows the event. A pill, a
-  list or a peek never takes a keystroke from the app the user is typing in.
-- After the pill card closes or a reply is sent, the panel orders out and
-  back in, which hands the keyboard back.
-- An `NSTrackingArea` with `.activeAlways` tells the peek that the pointer is
-  over it (SwiftUI hover is unreliable in an inactive app).
-- **Same data and rules:** glyphs and pill cards read the HostStore snapshot.
-  The pill card is the chat view, so it never opens a terminal stream. Its key
-  buttons use the key guard
-  ([Sending and answering](/docs/chat-view#sending-and-answering)). Peeking
-  or opening a pill card does not mark an agent seen. **Mark seen**, a reply
-  or **Open in app** does.
-- **Accessibility:** each glyph and row has a label ("codex, needs you,
-  infra") and an Open action. The pill is never the only path. The Agents
-  view, notifications and the Dock badge remain.
-- Simpler choices: no dragging, no notch placement, no global hotkey, no
-  per-workspace pills. Revisit each one when users ask for it.

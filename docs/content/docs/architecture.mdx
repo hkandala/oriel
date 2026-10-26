@@ -3,24 +3,22 @@ title: "Architecture"
 description: "The pieces of the app and how they reach each machine"
 ---
 
-<Architecture caption="How a call reaches a machine." />
+A call goes from the views to `HostStore` (one per open session), to
+`HerdrClient` (the `Multiplexer`), to the machine's `Exec`: `ProcessExec` on
+This Mac, `SSHExec` and the relay on a remote machine. There it runs herdr's
+API bridge, a `terminal session` per streamed pane, and the event stream.
 
 ## Pieces
 
-Pieces marked "planned" are not built yet.
-
-| Piece | Platform | Job |
-|---|---|---|
-| `HerdrKit` (Swift package) | both | `Exec`, the `Multiplexer` interface and its herdr implementation: `call()`, the event stream, snapshot decoding, the split-tree rebuild, the remote command envelope and the relay; planned: the label parser, transcript parsers |
-| `ProcessExec` | macOS | `Process` with pipes, for This Mac |
-| `SSHExec` | macOS | a remote machine: its ControlMaster, the askpass prompts and the relay that carries every run; planned: `dial` through `ssh -W` or `-O forward` |
-| `CitadelExec` (planned) | iOS | the Citadel SSH client, exec and `direct-tcpip` channels, a Secure Enclave key |
-| `HostStore` | both | the app's live model of one open session: snapshot, events, streams, seen state, git state, and which window controls it. One per session, shared by every window that shows it |
-| Window state | both | one per window: its machine, its open pages and its selection (page, workspace, tab, keyboard card, zoom, sidebar view and width), restored with `@SceneStorage` |
-| `PaneViewRegistry` | both | owns terminal views (planned: web pages and plugin cards), so scrolling never destroys them |
-| `PluginRegistry` (planned) | both | core plugins plus installed and linked plugins; manifests; consent |
-| `PluginHost` (planned) | both | one web page per plugin card; the bridge (`window.oriel`) to `run`, `dial` and the API |
-| Views | both | title row, sidebar pages, Agents view, tab bar, strip, cards, overview, floating panes, panels and dialogs; planned: chat, pills |
+| Piece | Job |
+|---|---|
+| `HerdrKit` (Swift package) | `Exec`, the `Multiplexer` interface and its herdr implementation: `call()`, the event stream, snapshot decoding, the split-tree rebuild, the remote command envelope and the relay |
+| `ProcessExec` | `Process` with pipes, for This Mac |
+| `SSHExec` | a remote machine: its ControlMaster, the askpass prompts and the relay that carries every run |
+| `HostStore` | the app's live model of one open session: snapshot, events, streams, seen state, git state, and which window controls it. One per session, shared by every window that shows it |
+| Window state | one per window: its machine, its open pages and its selection (page, workspace, tab, keyboard card, zoom, sidebar view and width), restored with `@SceneStorage` |
+| `PaneViewRegistry` | owns terminal views, so scrolling never destroys them |
+| Views | title row, sidebar pages, Agents view, tab bar, strip, cards, overview, floating panes, panels and dialogs |
 
 `Exec` and `Multiplexer` are the only protocols. `HerdrKit` is a separate
 package, so its single test target runs with `swift test`.
@@ -35,11 +33,11 @@ interface and the app's own model types, never herdr's JSON or argv.
 
 | Part | What it gives the app | herdr implementation |
 |---|---|---|
-| Machine connection | one session on one machine, through that machine's `Exec` (`run` and `dial`) | [herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine), [Checks on connect](/docs/machines#checks-on-connect), [Health check](/docs/machines#health-check) |
+| Machine connection | one session on one machine, through that machine's `Exec` | [herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine), [Checks on connect](/docs/machines#checks-on-connect), [Health check](/docs/machines#health-check) |
 | Snapshot | every workspace, tab, pane, label and split tree, in the app's model types | `session.snapshot`, [Reconcile](/docs/talking-to-herdr#reconcile), [Layout](/docs/layout) |
 | Events | "the state changed, read the snapshot again" | `events.subscribe`, [Events](/docs/talking-to-herdr#events) |
 | Terminal streams | one pane's screen as ANSI frames; keys, resize, scroll and mouse back; control or watch | `terminal session control/observe`, [Terminal plane](/docs/talking-to-herdr#terminal-plane) |
-| Actions | create, split, move, swap, close, rename, resize; start, prompt and send keys to an agent; read a pane's text | [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls), [Chat view](/docs/chat-view) |
+| Actions | create, split, move, swap, close, rename, resize; read a pane's text | [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | Agent status | per agent pane: working, needs you, idle, and a finish counter | `agent_status`, `completion_seq`, [Status](/docs/status) |
 
 Agent status comes only from the interface, never from escape sequences in

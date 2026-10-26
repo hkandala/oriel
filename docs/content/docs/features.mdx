@@ -3,12 +3,7 @@ title: "Features"
 description: "Everything Oriel does, in one list"
 ---
 
-Each part of the window has its own page under UI design. The
-[main window mock-ups](/mockups/layout.html) show every scene on one page.
-The Mac app has everything on this page except the parts marked "not built
-yet" ([Build order](/docs/build-order#build-order)).
-
-![Main window with the sidebar open](/mockups/A.jpg)
+Each part of the window has its own page under UI design.
 
 ## Machines and workspaces
 
@@ -63,43 +58,11 @@ yet" ([Build order](/docs/build-order#build-order)).
   renames, moves, appearance and the font size, Go to Directory and Insert
   Path.
 
-## Pane kinds
-
-Only Terminal is built. The rest is not built yet.
-
-- **Terminal**, **Agent** (any agent that has a herdr integration and is on
-  that machine's `PATH`) and **Web page** (any address, drawn natively next to
-  your terminals).
-- **Git history**, **Diff** and **Markdown** are core plugins: small web pages
-  with the same API as yours.
-- **Your own plugins**: small web pages (HTML and JavaScript) in a native web
-  view, that run commands and reach ports on the pane's machine.
-
 ## Agents
 
-- Not built yet: switch any agent or terminal pane between its terminal and a **chat view**.
-  Agents show messages from their own transcript, or the screen text if there
-  is no transcript. Terminals show the screen text. The chat view has a reply
-  box and buttons to answer a blocked prompt.
-- Not built yet: paste an image into an agent, terminal or chat reply box:
-  the app copies it to the pane's machine and pastes its path.
 - Notifications when an agent needs you or finishes. The Dock badge shows the
   number of agents that need you; the Dock menu lists those that need you or
-  finished. No sounds. Per-status
-  switches wait for the Settings window.
-- Not built yet: floating pills (macOS). While you work in another app, a small black pill on
-  the screen edge shows a glyph per agent. A blocked or finished agent opens a
-  small pill card with its output and a reply box. One click opens the main
-  window at that pane.
-
-## iPhone and iPad
-
-Not built yet: the iOS target builds and shows an empty state.
-
-- iPad in regular width uses the Mac layout. In compact width (Slide Over,
-  narrow Split View) it uses the iPhone layout.
-- iPhone shows one pane per page, opens agents in chat, and has a key bar for
-  terminals.
+  finished. No sounds.
 
 ## Look and settings
 
@@ -109,5 +72,5 @@ Not built yet: the iOS target builds and shows an empty state.
   Glass style's tab marker and selected workspace row, and on floating panels.
 - Our own program icons, from open-license sets.
 - A few settings in the menu bar: appearance, interface style, the text size
-  and Focus Follows Mouse. A Settings window comes later
-  ([Future work](/docs/future-work#settings-window)).
+  and Focus Follows Mouse. There is no Settings window
+  ([Future work](/docs/future-work)).

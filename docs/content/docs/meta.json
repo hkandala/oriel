@@ -3,7 +3,6 @@
   "pages": [
     "index",
     "features",
-    "inspirations",
     "---UI design---",
     "...ui",
     "---How it works---",
@@ -12,17 +11,11 @@
     "talking-to-herdr",
     "machines",
     "layout",
-    "chat-view",
     "status",
     "platform",
-    "---Pane kinds and plugins---",
-    "...plugins",
-    "---Planning---",
+    "---Decisions---",
     "decisions",
-    "risks",
-    "build-order",
     "future-work",
-    "rex-backend",
     "---Reference---",
     "...reference"
   ]
