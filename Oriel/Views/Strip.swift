@@ -58,7 +58,7 @@
                     between += 1
                 }
             }
-            .onScrollGeometryChange(for: Double.self) { $0.contentOffset.x } action: { Latency.shared.slid($1) }
+            .onScrollGeometryChange(for: Double.self) { $0.contentOffset.x } action: { Latency.shared.slid($1, "page") }
             .testValue("strip.between", "Strip Between Pages", "\(between)", shown: Self.record)
             .onScrollPhaseChange { _, phase in
                 // Not a tab that closed meanwhile.

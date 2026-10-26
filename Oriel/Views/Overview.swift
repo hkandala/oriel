@@ -61,7 +61,9 @@
                 .scrollTargetBehavior(.paging)
                 .scrollPosition($position)
                 .scrollIndicators(.never)
-                .onScrollGeometryChange(for: Double.self) { $0.contentOffset.x } action: { Latency.shared.slid($1) }
+                .onScrollGeometryChange(for: Double.self) { $0.contentOffset.x } action: {
+                    Latency.shared.slid($1, "page")
+                }
                 .opacity(grown ? 0 : 1)
                 // Nothing under the zoom takes a click.
                 .allowsHitTesting(zoom == nil)

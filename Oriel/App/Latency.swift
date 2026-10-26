@@ -139,25 +139,25 @@
                 .joined(separator: " ")
         }
 
-        /// The sidebar's pages after a swipe's lift: their offset at each frame for 0.8 s, in ms from the lift; first
-        /// the ms to the last change, last the ms to the session's show (-1: none): "swipe 230ms 0:145,8:152,… 190"
-        /// (phases 27, 28).
-        func lifted(_ offset: Double) {
+        /// The sidebar's pages after a swipe's lift (`swipe`), or the strip's or the overview's (`page`, phase 31):
+        /// their offset at each frame for 0.8 s, in ms from the lift; first the ms to the last change, last the ms to
+        /// the session's show (-1: none): "swipe 230ms 0:145,8:152,… 190" (phases 27, 28).
+        func lifted(_ offset: Double, _ name: String = "swipe") {
             guard Self.isOn else { return }
-            lifted = ProcessInfo.processInfo.systemUptime
+            lifted = (ProcessInfo.processInfo.systemUptime, name)
             slide = []
             shownAt = -1
-            slid(offset)
+            slid(offset, name)
             Task {
                 try? await Task.sleep(for: .seconds(0.8))
                 let path = slide.map { "\($0.0):\(Int($0.1.rounded()))" }.joined(separator: ",")
-                record("swipe \(slide.last?.0 ?? 0)ms \(path) \(shownAt)")
+                record("\(name) \(slide.last?.0 ?? 0)ms \(path) \(shownAt)")
                 lifted = nil
             }
         }
 
-        func slid(_ offset: Double) {
-            guard let lifted, slide.last?.1 != offset else { return }
+        func slid(_ offset: Double, _ name: String = "swipe") {
+            guard let (lifted, liftedName) = lifted, name == liftedName, slide.last?.1 != offset else { return }
             slide.append((Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000), offset))
         }
 
@@ -165,7 +165,7 @@
         /// drew it ("session 40ms 0 40ms", phase 30). One record waits at a time: a key during the switch takes its
         /// place.
         func shown() {
-            if let lifted {
+            if let (lifted, _) = lifted {
                 let now = ProcessInfo.processInfo.systemUptime
                 shownAt = Int((now - lifted) * 1000)
                 pending = Pending(name: "session", time: now, state: state)
@@ -180,7 +180,7 @@
         }
 
         @ObservationIgnored private var shownAt = -1
-        @ObservationIgnored private var lifted: TimeInterval?
+        @ObservationIgnored private var lifted: (TimeInterval, String)?
         @ObservationIgnored private var slide: [(Int, Double)] = []
 
         private static func glyphs(_ flags: NSEvent.ModifierFlags) -> String {
