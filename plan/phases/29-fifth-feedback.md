@@ -178,3 +178,7 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
     `selection-foreground = cell-foreground` with a translucent accent or system selection color
     background), matching macOS's selection feel. Keep libghostty's palette otherwise (the user rejected
     other palettes).
+16. (Lane C, 18:15) **Letter icons** (`.build/fb/letter-icons.png`): a program without a logo shows a
+    letter ("G" for glow) that is smaller than the logos, so names after it do not line up. Every program
+    icon, letters included, takes the same box everywhere it shows (hover card rows, tab capsules, card
+    headers, Agents rows, palette, overview tiles), so the names align.
