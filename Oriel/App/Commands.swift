@@ -333,7 +333,8 @@ enum About {
     private static let credits: [(group: String, lines: [(name: String, license: String, url: String?)])] = [
         ("Terminal", [("Ghostty", "MIT", "https://ghostty.org"),
                       ("libghostty-spm", "MIT", "https://github.com/Lakr233/libghostty-spm"),
-                      ("DisplayLink", "MIT", "https://github.com/Lakr233/DisplayLink")]),
+                      ("DisplayLink", "MIT", "https://github.com/Lakr233/DisplayLink"),
+                      ("bash-preexec", "MIT", "https://github.com/rcaloras/bash-preexec")]),
         ("Program Icons", [("Simple Icons", "CC0-1.0", "https://simpleicons.org"),
                            ("Lobe Icons", "MIT", "https://github.com/lobehub/lobe-icons"),
                            ("Phosphor Icons", "MIT", "https://phosphoricons.com"),
