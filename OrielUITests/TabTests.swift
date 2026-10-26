@@ -46,8 +46,15 @@ extension OrielUITests {
         XCTAssertTrue(second.has(\.isSelected, true, within: 3))
         XCTAssertFalse(until(0.5) { between.stringValue != launched }, "the strip slid \(between.stringValue) times")
 
-        // A swipe does slide: the count sees slides.
-        try await swipe(element("terminal.w1:p4"), until: first, \.isSelected, true)
+        // A swipe does slide (the pages follow the fingers, even under Reduce Motion): the count sees slides. A
+        // trackpad's swipe: XCUITest's scroll is a wheel's, which turns a page without motion there. The other way
+        // if natural scrolling is off.
+        let card = element("terminal.w1:p4").frame
+        for step in [30, -30] where !first.isSelected {
+            try await Self.post("\(one)/swipe", Data("\(card.midX) \(card.midY) \(step) 14".utf8))
+            _ = first.has(\.isSelected, true, within: 1)
+        }
+        XCTAssertTrue(first.isSelected)
         XCTAssertNotEqual(between.stringValue, launched)
     }
 

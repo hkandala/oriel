@@ -250,31 +250,34 @@ extension OrielUITests {
         element("sidebar.dot.\(one)").click()
         XCTAssertTrue(until(3) { header == one })
         let first = element("tab.w1:t1"), second = element("tab.w1:t2"), window = app.windows.firstMatch
+        // About a page's width: its element's frame is clipped to what shows; the first swipe's rest gives the scroll
+        // view's own.
         let card = element("terminal.w1:p1").frame, width = element("page.w1:t1").frame.width
         // 30 pt steps (1875 pt/s), the other way if natural scrolling is off; then a 10 pt flick (625 pt/s) back.
-        let forward = try await swipeLands(over: card, 30, pages: (0, width)) { second.isSelected }
-        try await swipeLands(over: card, -10 * forward, pages: (width, 0)) { first.isSelected }
+        let (forward, page) = try await swipeLands(over: card, 30, pages: (0, width)) { second.isSelected }
+        try await swipeLands(over: card, -10 * forward, pages: (page, 0)) { first.isSelected }
         // 40 pt, then the fingers stop 0.2 s before they lift: back to the same page.
         try await swipeLands(over: card, 10 * forward, (4, 200), pages: (0, 0)) { first.isSelected }
 
         app.typeKey("o", modifierFlags: [.command, .control])
-        let page = element("overview.page.\(one)")
-        XCTAssertTrue(page.exists(within: 2))
-        let frame = page.frame
-        try await swipeLands(over: frame, 30 * forward, pages: (0, frame.width)) {
+        let overview = element("overview.page.\(one)")
+        XCTAssertTrue(overview.exists(within: 2))
+        let frame = overview.frame
+        let (_, rested) = try await swipeLands(over: frame, 30 * forward, pages: (0, frame.width)) {
             window.title.hasSuffix(" - \(self.two)")
         }
-        try await swipeLands(over: frame, -10 * forward, pages: (frame.width, 0)) {
+        try await swipeLands(over: frame, -10 * forward, pages: (rested, 0)) {
             window.title.hasSuffix(" - \(self.one)")
         }
     }
 
     /// `step` pt over the frame `steps.count` times, 16 ms apart, then momentum (with a `pause`, the fingers stop that
     /// many ms before they lift, no momentum), the other way too if that did not reach `done` (natural scrolling
-    /// decides). Then the record of the page's slide between the offsets `pages`. Gives the step's sign that went.
+    /// decides). Then the record of the page's slide between the offsets `pages`. Gives the step's sign that went and
+    /// the offset the page came to rest at.
     @discardableResult
     private func swipeLands(over frame: CGRect, _ step: Double, _ steps: (count: Int, pause: Int) = (14, 0),
-                            pages: (Double, Double), until done: () -> Bool) async throws -> Double
+                            pages: (Double, Double), until done: () -> Bool) async throws -> (Double, Double)
     {
         var sign = 1.0
         for next in [1.0, -1] {
@@ -298,7 +301,7 @@ extension OrielUITests {
         XCTAssertGreaterThan(settled, 0, swipe)
         // The spring takes about 250 ms to within 2 pt of a page from the fingers' speed (0.2 s response).
         XCTAssertLessThan(settled, 400, swipe)
-        return sign
+        return (sign, rest)
     }
 
     /// The "swipe" records (the sidebar's; "page": the strip's or the overview's) in which the pages moved (a swipe
