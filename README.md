@@ -8,8 +8,8 @@ page of live terminal cards laid out the way herdr splits them, and a sideways s
 It works with herdr on This Mac and on remote machines over SSH, in one or more windows. It can open, start,
 stop and make sessions; make, rename, move and close workspaces, tabs and panes; split, zoom, resize and drag
 panes; float a pane in its own window; show every tab at once in the overview; list the agents and their
-states; find text in a pane; and jump anywhere with ⌘K. The iOS target builds and shows an empty state. The
-full design, including what comes later, is in [`docs/content/docs/`](docs/content/docs/).
+states; find text in a pane; and jump anywhere with ⌘K. The
+design is in [`docs/content/docs/`](docs/content/docs/).
 
 ## Requirements
 
@@ -26,7 +26,7 @@ make run        # build and open the app on the default session
 make run SESSION=oriel-dev-me   # open it on another session (agents: SESSION=oriel-dev-* only, see AGENTS.md)
 make lint       # SwiftFormat and SwiftLint, as the hook and CI run them
 make format     # fix what lint can fix
-make build      # the macOS and iOS builds
+make build      # build the app
 make test       # HerdrKit's unit and integration tests (swift test), and the three-finger check
 make e2e        # the UI tests against throwaway herdr sessions (ONLY=… for some, ON_DEMAND_ONLY=1)
 make strip-check   # after e2e: the empty strip check, with no accessibility client
@@ -38,7 +38,7 @@ Pass `DERIVED_DATA=/tmp/oriel-dd-<name>` to keep separate build folders when sev
 ## Code layout
 
 ```
-Oriel/                     the app target (SwiftUI, macOS + iOS)
+Oriel/                     the app target (SwiftUI)
   App/                     @main, the windows, menu commands and the palette's command list
   Store/                   HostStore: the live @Observable model of one herdr session, and its writes;
                            a window's pages; machines
@@ -51,9 +51,9 @@ Packages/HerdrKit/         Swift package, no UI: Exec (local, SSH, relay), Herdr
                            paced snapshots), models, split tree, TerminalStream, git status, starting a server
 scripts/                   throwaway herdr sessions, the e2e helper and its swipe and drag tools, CI's sshd,
                            the shard split and the tests' measured times
-plan/                      the plan, the phase files and their findings, CI notes
+plan/                      how we build it: the way of working, lessons, CI notes and the phase files
 docs/                      the design site (MDX pages under docs/content/docs/)
-resources/                 research notes, icons, mock-ups and UI references
+resources/                 the app icon, the program icons and their sources, research notes
 ```
 
 HerdrKit knows nothing about SwiftUI or libghostty; the app knows nothing about herdr's argv or JSON.
@@ -75,13 +75,13 @@ HerdrKit knows nothing about SwiftUI or libghostty; the app knows nothing about 
 - Never point the app or a test at a session you care about. Use `scripts/herdr-session.sh up oriel-dev-<name>` for
   hand testing, and `down` to remove it.
 
-CI (GitHub Actions, `.github/workflows/ci.yml`) runs lint, both builds, `make test` and the UI tests in 5
-parallel jobs with herdr 0.9.5 ([plan/ci.md](plan/ci.md)).
+CI (GitHub Actions, `.github/workflows/ci.yml`) runs lint, the build, `make test` and the UI tests in 5
+parallel jobs ([plan/ci.md](plan/ci.md)).
 
 ## Known limitations
 
-- No iOS app yet, no chat view, plugins, pills, web pages or Settings window
-  ([Future work](docs/content/docs/future-work.mdx)).
+- macOS only. What may come later (an iOS app, a chat view, plugins) is in
+  [Future work](docs/content/docs/future-work.mdx).
 - A window left in full screen opens as a normal window (macOS restored it with an empty title bar).
 - IME composition (marked text, such as Japanese kana) is not tested yet. Committed text and dead keys work.
 - Notifications and the Dock badge need a signed build: the ad-hoc dev build gets no notification permission.
@@ -101,8 +101,6 @@ pnpm dev
 
 The site needs pnpm 10 or newer (`docs/package.json` pins it). With an older global pnpm, run
 `npx pnpm@10 install` and `npx pnpm@10 dev` instead.
-
-The raw inspiration videos and frames are kept locally only; they are not in git.
 
 The workflow `.github/workflows/docs-deploy.yml` builds the docs site and deploys it to Vercel: a push to `main`
 that changes `docs/` deploys production; a pull request only builds it. It needs the repository secrets
