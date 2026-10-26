@@ -44,7 +44,7 @@
             // e2e: what the first draw lists.
             .onAppear { Latency.shared.note("open-session \(sessions.map(\.name).joined(separator: ","))") }
             .task {
-                await list()
+                await pages.current?.store.loadSessions()
                 if sessions.contains(where: { $0.name == suggested }) {
                     suggested = sessions.newName
                 }
@@ -67,7 +67,7 @@
                         } else {
                             try await client.deleteSession()
                         }
-                        await list()
+                        await pages.current?.store.loadSessions()
                     }
                 }
             } message: { asked in
@@ -78,15 +78,9 @@
             }
         }
 
-        /// herdr's session list as the page last read it (as it connected): shown at once, then read again as the
-        /// panel opens, its rows changing in place. An empty list first drew only the open pages, then the sessions
-        /// pushed in above them (user, phase 29).
+        /// The page's last known list: shown at once, read again as the panel opens (user, phase 29).
         private var sessions: [Session] {
             pages.current?.store.sessions ?? []
-        }
-
-        private func list() async {
-            await pages.current?.store.loadSessions()
         }
 
         /// New, then Running and Stopped sessions not open in this window, then the ones open in it.

@@ -41,6 +41,7 @@ extension OrielUITests {
         XCTAssertTrue(open.has(\.isSelected, true, within: 2))
         keepScreenshot("open session lit by the pointer")
         app.typeKey(.escape, modifierFlags: [])
+        // The light moves in the hover's own update with or without a fade: the fade itself (phase 29) needs an eye.
         app.typeKey("k", modifierFlags: .command)
         let tab = element("palette.tab.w1:t1"), workspace = element("palette.workspace.\(one).w2")
         XCTAssertTrue(workspace.exists(within: 2))

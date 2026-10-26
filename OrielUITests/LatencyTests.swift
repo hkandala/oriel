@@ -18,7 +18,7 @@ extension OrielUITests {
         key("t", [.command, .option]) { openSession.exists }
         // Its first draw lists the sessions the page read as it connected, not an empty list that fills a moment later
         // (user, phase 29).
-        let first = element("app.latency").stringValue.split(separator: "; ").first { $0.hasPrefix("open-session") }
+        let first = element("app.latency").stringValue.split(separator: "; ").last { $0.hasPrefix("open-session") }
         XCTAssertTrue(first?.split(separator: " ").last?.split(separator: ",").contains { $0 == two } == true,
                       "\(first ?? "none")")
         key(escape, []) { !openSession.exists }
