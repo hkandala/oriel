@@ -250,27 +250,37 @@
     }
 
     /// A paged scroll view's pages that a swipe moves as the sidebar's (the strip's, the overview's; phase 31): they
-    /// follow the fingers one to one and slide on from the lift with the session spring. With the system's paging a
-    /// 140 pt flick at 625 pt/s slid back to its page over 0.55 s (CI).
+    /// follow the fingers one to one and slide on from the lift (`slide`). With the system's paging a 140 pt flick at
+    /// 625 pt/s slid back to its page over 0.55 s (CI).
     @MainActor
     final class Paging {
         /// The offset and the page width as last laid out (`laid`), or moved to.
         private var offset = 0.0, width = 1.0
+        /// The slide's end offset, and what runs once the pages are within a point of it.
+        private var landing: (offset: Double, land: () -> Void)?
 
-        /// From `onScrollGeometryChange`.
+        /// From `onScrollGeometryChange`, at each frame of a slide.
         func laid(_ geometry: ScrollGeometry) {
             (offset, width) = (geometry.contentOffset.x, max(geometry.containerSize.width, 1))
             Latency.shared.slid(offset, "page")
+            if let landing, abs(offset - landing.offset) < 1 {
+                self.landing = nil
+                Latency.shared.shown(session: false)
+                landing.land()
+            }
         }
 
         /// The router's moves, in points toward later pages, within the first and last of `count` pages.
         func drag(_ delta: Double, count: Int, _ position: Binding<ScrollPosition>) {
+            landing = nil
             offset = min(max(offset + delta, 0), Double(max(count - 1, 0)) * width)
             withTransaction(\.animation, nil) { position.wrappedValue.scrollTo(x: offset) }
         }
 
         /// The router's lift: the pages slide to the page it lands on (at once under Reduce Motion), and `land` runs
-        /// with its id as they arrive, unless a key, a click or another swipe moved them meanwhile.
+        /// with its id as they arrive, unless a key, a click or another swipe moved them meanwhile. Not at the
+        /// animation's `.logicallyComplete`: for a scroll that fires at once, and the tab's terminals or the session
+        /// shown in the slide's first frame held it for 50–150 ms (CI), so it jumped most of a page (phase 31).
         func lift(_ speed: Double, ids: [String], _ position: Binding<ScrollPosition>, reduceMotion: Bool,
                   land: @escaping (String) -> Void)
         {
@@ -283,14 +293,25 @@
                 position.wrappedValue.scrollTo(id: id, anchor: .leading)
                 return land(id)
             }
-            let animation = Animation.session(speed: speed / width, distance: Double(index) - page)
-            withAnimation(animation, completionCriteria: .logicallyComplete) {
-                position.wrappedValue.scrollTo(id: id, anchor: .leading)
-            } completion: {
+            landing = (Double(index) * width, {
                 if position.wrappedValue.viewID(type: String.self) == id {
                     land(id)
                 }
+            })
+            withAnimation(Self.slide(speed, (Double(index) - page) * width)) {
+                position.wrappedValue.scrollTo(id: id, anchor: .leading)
             }
+        }
+
+        /// From the fingers' `speed` over the `distance` left (points a second, points), in at most 0.28 s: it starts
+        /// at their speed (a cubic whose x is linear, so its first slope is the start's speed in distances per
+        /// duration), speeds up only as much as that time needs and eases out; when their speed alone covers it in
+        /// that time it only slows down (slope 2: a quadratic ease-out). The session spring (0.2 s) went from 1.6k
+        /// to 15k pt/s in two frames after a slow lift, a page in four (capture F, phase 31): it looked cut.
+        private static func slide(_ speed: Double, _ distance: Double) -> Animation {
+            let toward = max(distance < 0 ? -speed : speed, 0), length = max(abs(distance), 1)
+            let duration = toward > 0 ? min(0.28, 2 * length / toward) : 0.28
+            return .timingCurve(1 / 3, toward * duration / length / 3, 2 / 3, 1, duration: duration)
         }
     }
 

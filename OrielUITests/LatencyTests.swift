@@ -239,9 +239,9 @@ extension OrielUITests {
     }
 
     /// A two-finger swipe between tabs, and between sessions in the overview (phase 31): the page moves with the
-    /// fingers, one to one, and from their lift lands on the next page within 400 ms; a short flick does too, and
-    /// fingers that stop before they lift go back. The system's paging took 0.55 s and sent the flick back. Prints the
-    /// page's move by the lift and the ms from the lift to within 2 pt of the page.
+    /// fingers, one to one, and from their lift lands on the next page within 400 ms with no jump between frames; a
+    /// short flick does too, and fingers that stop before they lift go back. The system's paging took 0.55 s and sent
+    /// the flick back. Prints the page's move by the lift and the ms from the lift to within 2 pt of the page.
     func testTabAndOverviewSwipesFollowTheFingersAndLandSoon() async throws {
         try launchRecordingLatency(["-forceMotion", "YES"])
         openPage(two)
@@ -288,7 +288,7 @@ extension OrielUITests {
                 break
             }
         }
-        let (swipe, path, _) = try XCTUnwrap(swipes("page").last, "no swipe of \(step) moved")
+        let (swipe, path, shown) = try XCTUnwrap(swipes("page").last, "no swipe of \(step) moved")
         let fingers = abs(step) * Double(steps.count), moved = abs(path[0][1] - pages.0)
         // Where it came to rest: the page's offset, within the strip's 8 pt gap and a page element's clipped frame.
         let rest = path.last?[1] ?? 0, settled = path.first { abs($0[1] - rest) <= 2 }?[0] ?? -1
@@ -297,15 +297,26 @@ extension OrielUITests {
         XCTAssertEqual(moved, fingers, accuracy: abs(step), swipe)
         XCTAssertEqual(rest, pages.1, accuracy: 20, swipe)
         XCTAssertGreaterThan(settled, 0, swipe)
-        // The spring takes about 250 ms to within 2 pt of a page from the fingers' speed (0.2 s response).
+        // The slide takes at most 280 ms from the fingers' speed (`Paging`).
         XCTAssertLessThan(settled, 400, swipe)
+        // Smooth (phase 31). The tab or session is shown once the pages arrived: shown at the lift (the animation's
+        // logicallyComplete, at once for a scroll), it held the slide's first frame for 54–149 ms. And no frame is
+        // faster than the slide needs: the fingers' speed, or what lands in 0.3 s (an ease in and out's top speed is
+        // 1.5 times its mean), with room for CI's frames; the session spring went up to 7.5k pt/s after a 625 pt/s
+        // flick. Both by the slide's own frames and times, so a frame CI's VM skips does not count.
+        let landed = path.last { $0[0] <= shown }?[1] ?? path[0][1]
+        XCTAssertEqual(landed, rest, accuracy: 2, "shown at \(Int(shown)) ms, before the pages arrived: \(swipe)")
+        let speed = steps.pause > 0 ? 0 : abs(step) / 0.016, top = 1.5 * max(speed, 1.5 * abs(rest - path[0][1]) / 0.3)
+        for (one, two) in zip(path, path.dropFirst()) {
+            XCTAssertLessThanOrEqual(abs(two[1] - one[1]), top * max(two[0] - one[0], 17) / 1000 + 2,
+                                     "a jump at \(Int(two[0])) ms: \(swipe)")
+        }
         return (sign, rest)
     }
 
-    /// The "swipe" records (the sidebar's; "page": the strip's or the overview's) in which the pages moved (a swipe
-    /// back to the page in view makes one that did not), each with its offsets: [ms, pt], and the ms to the session's
-    /// show (-1: none). A scroll view's geometry reports only some frames of an animated scroll (the screen recording
-    /// has them all), so a "page" record that moved can have two.
+    /// The "swipe" records (the sidebar's; "page": the strip's or the overview's, a frame each) in which the pages
+    /// moved (a swipe back to the page in view makes one that did not), each with its offsets: [ms, pt], and the ms to
+    /// the session's show (-1: none).
     private func swipes(_ name: String = "swipe")
         -> [(String, [[Double]], Double)] // swiftlint:disable:this large_tuple
     {
