@@ -128,9 +128,7 @@
         }
 
         private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool) -> some View {
-            // The label wins; else the program in primary text and the folder in secondary, as in Rex ("zsh ~").
-            let (name, folder) = pane?.header ?? (nil, "terminal")
-            return HStack(spacing: 3) {
+            HStack(spacing: 3) {
                 // Clicks pass through to the header's double-click.
                 ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
                 if page.renamingPaneID == id {
@@ -141,11 +139,7 @@
                     }, end: { stopRenaming(pane) }, blur: { page.renamingPaneID = nil })
                         .accessibilityIdentifier("pane.\(id).rename")
                 } else {
-                    let lead = name.map { "\($0) " } ?? ""
-                    Text("\(lead)\(Text(folder).foregroundStyle(name == nil ? .primary : .secondary))")
-                        .lineLimit(1)
-                        // A path keeps its end, a label its start.
-                        .truncationMode(pane?.label != nil ? .tail : name == nil ? .head : .middle)
+                    PaneTitle(pane: pane)
                         .allowsHitTesting(false)
                         .accessibilityIdentifier("pane.\(id).title")
                 }
@@ -223,6 +217,20 @@
             if let pane {
                 page.go(to: pane)
             }
+        }
+    }
+
+    /// The label; else the program in primary text and the folder in secondary, as in Rex ("zsh ~"). A label keeps
+    /// its start, a path its end. The card's header and the floating window's title row.
+    struct PaneTitle: View {
+        let pane: HostStore.Pane?
+
+        var body: some View {
+            let (name, folder) = pane?.header ?? (nil, "terminal")
+            let lead = name.map { "\($0) " } ?? ""
+            Text("\(lead)\(Text(folder).foregroundStyle(name == nil ? .primary : .secondary))")
+                .lineLimit(1)
+                .truncationMode(pane?.label != nil ? .tail : name == nil ? .head : .middle)
         }
     }
 
