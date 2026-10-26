@@ -347,3 +347,31 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   sidebar and tab bar fade in with the zoom; scroll the overview fast (smoother; tiles turn live once it stops);
   after the overview, a tab shown in the strip never shows a blurred picture first; `footprint Oriel` with the
   overview open (about 0.3–0.5 GB here, was 1.2–2 GB).
+
+### Lane N (item 13)
+
+- **Root cause.** The Agents button's panel (`NeedsYouPanel`) filtered `agentPanes` to `.needsYou`, and its hover was
+  enabled only by `HostStore.waiting`.
+- **Decisions.** `AgentsPanel` (now in `TitleBar.swift`, next to its one user) lists two groups, the priority order's
+  first and third: Needs you, then Done (`.finishedUnseen`), each under the Agents view's label look and text
+  ("Needs you 1", "Done 2"; a plain `Text`, no fold: a hover panel has no place to keep folds). The header is
+  "Agents · ‹title›", since the group labels now name the states. `HostStore.done` counts done panes next to
+  `waiting` (in `showStrongest`), so the button stays off the per-pane states; the hover opens when either count is
+  above 0. The amber dot, `titlebar.agents`' value and the Dock badge still count only needs you. A click on a done
+  row goes to its pane (`AgentButton`, as before); the tab in view counts its finish as seen (D14), which clears it.
+  The panel's rows stay an eager `VStack`: done rows pile up until seen, so make it lazy only if `scripts/stress.py`
+  shows a hitch when it opens.
+- **Learned.** A plain `Text` gives XCUITest its string as the value, and its label is "" (lane J of phase 25 found
+  the same). The test reads the group labels' `stringValue`.
+- **Test.** `testTheAgentsPanelListsDoneAgentsAfterNeedsYou`: a done agent alone opens the panel (the badge still
+  says 0); needs you and done in that order, with labels and header; a click on the done row selects its tab, closes
+  the panel and clears the finish; the next hover has no Done group. `testBlockedAgentNeedsYouAndThePopoverGoesToIt`
+  still covers the empty panel.
+- **CI.** 40276253590 (9b6d5b6): the new test and the agents tests green;
+  `testAFinishShowsDoneUntilItsRowIsClicked` red on two `titlebar.sidebar` elements (lane V's 30f8074, fixed in
+  a6dec94). 40276544611 (65f14c9): the new test red on `.label` of a plain `Text` (fixed in 984e7ad).
+  40279636152 (984e7ad, agents tests) green. Full suite 40279661212 on 984e7ad: every agents test green; 2 reds in
+  lane V's overview area (`testACardNeverShowsTheOverviewsSmallSnapshot`, `testOverviewCostsAndLetsGoAfter`).
+- **For the user to check by hand:** let an agent finish in a tab you are not looking at, then hover the Agents
+  button: Done group under Needs you, the amber dot only for needs you; click the done row: its tab shows and the
+  Done goes away; with nothing waiting or done, no panel.
