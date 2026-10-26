@@ -735,8 +735,13 @@ clients see it there.
   and no strip page, and it disconnects when its last float goes (such a
   float does not come back after a relaunch). Open again for the same pane,
   it brings the window forward. A session or pane that is not there shows a
-  notice and no window. pi-herd opens its agents this way when Oriel is the
-  frontmost app, as herdr's own popups do not show in Oriel.
+  notice and no window.
+- **From a pane, on any machine:** a
+  [float request](/docs/talking-to-herdr#float-requests) on a pane of a
+  session the app follows floats the pane it names the same way, over a main
+  window of that machine. The app marks the panes it shows, so pi-herd asks
+  it only for a click in one of them; herdr's own popups do not show in
+  Oriel.
 
 ## Notice
 

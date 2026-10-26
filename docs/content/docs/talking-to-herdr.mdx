@@ -129,7 +129,7 @@ the work. A later server helper would sit behind the same two calls
   - No `*.focused` events. They fire on every herdr TUI navigation, and the
     app ignores herdr's focus.
 - **Any event line means "read `session.snapshot` again".** Event payloads
-  are never decoded.
+  are never decoded, except a [float request](#float-requests).
 - **Snapshot pacing, per session:** at most one `session.snapshot` is in
   flight. An event, or the app's own write, starts a read at once if none is
   in flight; otherwise it sets "read again", and the read that ends with it
@@ -144,6 +144,38 @@ the work. A later server helper would sit behind the same two calls
   buffer) and on `pane_not_found` (a listed pane closed first).
 - The [health check](/docs/machines#health-check) reads the snapshot every
   30 s, so a missed event is caught there.
+
+## Float requests
+
+A tool in a pane (pi-herd) asks Oriel to float a pane through herdr's pane
+metadata tokens, so it works for an agent on any machine Oriel follows
+(D50). Nothing waits for an answer:
+
+| Step | Who | What |
+|---|---|---|
+| Presence | Oriel | `pane.report_metadata` on each pane in view of a visible window (the shown tab of the page in view, and the floated panes): source `oriel`, token `oriel-shown` = `1`, `ttl_ms` 30000. Written when a pane comes into view, again every 10 s while it stays, and cleared (`null`) when it leaves view, its page closes or its window hides or closes. Over the relay for a remote machine |
+| Ask | the tool, at a click | `pane.get` of its own pane on its own herdr socket (a few ms, on the agent's machine). With `oriel-shown`: `pane.report_metadata` on its pane, source `pi-herd`, tokens `oriel-float` = `‹session›/‹pane id›` (a session on the same machine) and `oriel-float-id` = a nonce (a UUID), `ttl_ms` 1000; no popup. Without it: herdr's popup at once |
+| Float | Oriel | on the `pane.updated` event carrying `oriel-float` with a nonce it has not seen: floats the pane over a main window of the machine the event came from ([`oriel://float`](/docs/ui/window#floating-pane)'s path, a float-only page when the session has none) |
+
+- herdr sends `pane.updated` with the whole pane, `tokens` included, on
+  each report and again when a token expires. The event arrives about
+  100 ms after the report (measured locally, herdr 0.9.5). `pane.get` and
+  `session.snapshot` list the tokens as well.
+- The tokens are one map per pane, by name, whatever the source: a report
+  changes only the tokens it names. Oriel's never touch pi's own metadata
+  (agent, title, state labels, its tokens). Two Macs showing one pane share
+  `oriel-shown`: one's clear drops the other's mark until its next refresh.
+- Each token's `ttl_ms` is its own. An app that quit or crashed stops
+  claiming its panes within 30 s.
+- The float request is the only event payload Oriel reads. It acts on the
+  event, not on the snapshot after it. Every change of the asking pane
+  (Oriel's own mark too) sends the request again until it expires, so
+  Oriel floats once per nonce. It acts only on events: a request from
+  before its stream opened is never floated.
+- A click in herdr's own TUI on a pane that Oriel also shows floats it in
+  Oriel, not in herdr's popup: the mark says only that Oriel shows the pane.
+- Limits (herdr 0.9.5): names match `^[A-Za-z0-9_-]{1,32}$` (no dots), at
+  most 16 tokens per report and 32 per pane, values cut at 80 characters.
 
 ## Reconcile
 
@@ -430,6 +462,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Start an agent | [agent.start steps](/docs/plugins/terminal-and-agent#agent) |
 | Resize Pane (View ▸ Pane, the palette; no key) | `pane.resize {pane_id, direction, amount: 0.05}` on the keyboard card; herdr moves the nearest divider that way, or returns `changed:false` when there is none |
 | Move the keyboard (⌥⌘ + arrow; not a write) | no herdr call: the app picks the card from the split tree ([Moving the keyboard](/docs/layout#moving-the-keyboard)) |
+| A pane comes into view or leaves it | `pane.report_metadata {pane_id, source:"oriel", tokens:{"oriel-shown": "1" or null}, ttl_ms:30000}` ([Float requests](#float-requests)) |
 | Git state of the workspace rows (not a write) | no herdr call: `git status` on the machine ([Git status](#git-status)) |
 
 - No close can be undone.
