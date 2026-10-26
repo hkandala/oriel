@@ -329,14 +329,9 @@
         let pane: HostStore.Pane
 
         var body: some View {
-            let (name, folder) = pane.header
             HStack(spacing: 6) {
                 ProgramTile(icon: pane.iconID, letter: pane.letter)
-                let lead = name.map { "\($0) " } ?? ""
-                Text("\(lead)\(Text(folder).foregroundStyle(name == nil ? .primary : .secondary))")
-                    // A label keeps its start, a path its end, as in the card header.
-                    .fontWeight(.medium).lineLimit(1)
-                    .truncationMode(pane.label != nil ? .tail : name == nil ? .head : .middle)
+                PaneTitle(pane: pane).fontWeight(.medium)
                 if let state = pane.state {
                     StateCapsule(state: state)
                 }
