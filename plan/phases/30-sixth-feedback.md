@@ -375,3 +375,48 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
 - **For the user to check by hand:** let an agent finish in a tab you are not looking at, then hover the Agents
   button: Done group under Needs you, the amber dot only for needs you; click the done row: its tab shows and the
   Done goes away; with nothing waiting or done, no panel.
+
+### Lane Q
+
+- **What the capture shows** (ffmpeg, every frame of capture C's header band). First burst (8.7–9.2 s): each
+  ⌘D's stand-in slides in from the right, as designed. About 0.8 s later herdr's three panes all arrive in one
+  frame: the stand-ins fade where they are, and herdr's panes come in again as new cards that slide from beside
+  their place (the second and third from the left, the fourth from the right) into the same spots. Second burst
+  (22.7 s): the first stand-in fades as two new cards slide in at once, and at the end two cards slide in again.
+  ⌘W (19.1 s, 30.7 s): each close is one motion (the card fades, its neighbor grows), but the fading card's header
+  turned into a stand-in's "terminal", without buttons, crossfading with its old title.
+- **Root cause.** `Ahead.split` holds the newest stand-in tree until the last split's write answers, so after quick
+  ⌘D presses one snapshot replaces two or three stand-ins with herdr's panes at once. `SplitLayout.views` passed a
+  stand-in's card to herdr's pane only when exactly one stand-in went and one pane came. In every other case
+  herdr's panes became new cards that started at `card.start` and slid in a second time, while the stand-ins faded
+  out at those same spots. Not the cause: the order. Both trees have the same shape and ratios (`split`,
+  `evened`), and `Ahead.show` swaps the whole tree in one snapshot.
+- **Fix.** `placed` keeps the tree's order, and herdr's new panes take the gone stand-ins' cards in that order
+  (`zip`). Each new pane comes once, where it ends up. The closing card's header reads the parked pane
+  (`HostStore.parked`), so it fades out unchanged. Only the header: no terminal is made for a closing pane.
+- **Test.** `testQuickSplitsSplitTheNewestAndItKeepsTheKeyboard` launches with `-recordMotion YES -forceMotion
+  YES`. The page records the cards that came and went (`cards.<tab>`, "came went"): three quick ⌘D add 3 came and
+  0 went, and two ⌘W then add 2 went. Red on the old code (5276707, run 40274307166: "6 2", that is two of herdr's
+  panes came again and two stand-ins went). Green on ed38390 (40275176928).
+- **Reviews (one round).** Ponytail: `parked` became `private(set)` instead of an accessor; comments cut. Spec: the
+  record's state writes are guarded off outside e2e; this red run is recorded. Declined: pairing only when no more
+  panes come than stand-ins go (spec nit). The second burst had one stand-in go as two panes came, and the pairing
+  keeps the first card in place there. The case it would help is a pane from another client arriving in that same
+  snapshot, which is rare. Kept the before/after deltas in the test (ponytail nit): the page is lazy and can be
+  built before it is selected.
+- **Also seen** (lane K's area, not changed): in the second burst herdr's final order was A | C | B | D. One split
+  went to the first card, not the newest, so the second ⌘D likely found `newest` cleared. It could not be traced
+  without logs.
+- **CI.** Full suite 40277225989 on 02eebea (has ed38390, the lane's last code commit). Red in other lanes' areas:
+  - About 20 tests fail at "multiple `titlebar.sidebar`" (the button and its open-state image). That started with
+    30f8074, lane V's title row under `underOverview`; `testLayoutMotionAnimatesWithoutBlanking` hit it in
+    40275176928 too.
+  - HerdrKit's SSH relay test (`watching.exit().status == 9`).
+  - The overview, remote host, Agents panel and file drop tests.
+
+  The quick-split test failed there once, at lane K's keyboard check: the newest card was lit, but the third card's
+  terminal had the keyboard. My came/went check was not reached. The same test was green in 40275176928,
+  40280973810 and 40280981576 on the same code. Flaky, cause not found.
+- **For the user to check by hand:** ⌘D three or four times as fast as you can, and ⇧⌘D, locally and on the remote
+  machine. Each new card slides in once and stays put when herdr's pane takes it (only its title changes).
+  ⌘W fast: each card fades with its own title.
