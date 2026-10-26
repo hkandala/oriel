@@ -24,6 +24,8 @@ final class PaneSurfaceView: AppTerminalView {
     var onReturn: (() -> Void)?
     /// Its window's overview tiles' scale of the strip's page: its snapshot's (`takeSnapshot`).
     var tileScale: () -> CGFloat = { 0.35 }
+    /// Its page's store: a file dropped on a remote machine's card is copied there (`FileDrop`).
+    var store: () -> HostStore? = { nil }
     /// The surface's last picture while it has none (`free`), and over a new surface until that draws.
     var still: CALayer?
     var stillWatch: NSKeyValueObservation?

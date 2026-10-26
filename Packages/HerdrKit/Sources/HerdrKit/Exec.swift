@@ -19,6 +19,43 @@ extension Exec {
             await channel.lines.reduce("") { $0 + $1 + "\n" }
         }.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    /// Copies the file to a new folder of its own in `oriel-drops-<uid>` in the machine's temporary folder and gives
+    /// back its path there, as herdr's remote client does with a dropped image (`herdr-clipboard-images-<uid>`): the
+    /// folder is the user's alone (0700), and each copy removes the folders older than a day. The bytes go as base64
+    /// lines, which the relay's line protocol carries.
+    /// ponytail: the whole file is queued on the connection at once, so files over 100 MB are refused; stream it with
+    /// backpressure if bigger files are needed.
+    public func upload(_ file: URL) async throws -> String {
+        let name = file.lastPathComponent
+        let values = try file.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+        guard values.isRegularFile == true else { throw HerdrError.failed("\(name) is not a file") }
+        guard values.fileSize ?? 0 <= 100_000_000 else { throw HerdrError.failed("\(name) is over 100 MB") }
+        let handle = try FileHandle(forReadingFrom: file)
+        defer { try? handle.close() }
+        let channel = try await run(["sh", "-c", Self.uploadScript, "sh", name])
+        // Whole groups of 3 bytes: no padding inside the stream.
+        while let chunk = try handle.read(upToCount: 49152), !chunk.isEmpty {
+            channel.write(chunk.base64EncodedString())
+        }
+        channel.closeInput()
+        let folder = await channel.lines.reduce("") { $1 }
+        let (status, stderr) = await channel.exit()
+        guard status == 0, folder.hasPrefix("/") else {
+            throw HerdrError.failed(stderr.isEmpty ? "Copying \(name) failed (\(status))" : stderr)
+        }
+        return folder + "/" + name
+    }
+
+    /// Prints only the new folder, whose name holds no line break (a file's may): the path is put together here.
+    static var uploadScript: String {
+        #"""
+        umask 077; r=${TMPDIR:-/tmp}; r=${r%/}/oriel-drops-$(id -u)
+        mkdir -p "$r" && chmod 700 "$r" || exit 1
+        find "$r" -mindepth 1 -maxdepth 1 -mtime +0 -exec rm -rf {} + 2>/dev/null
+        d=$(mktemp -d "$r/XXXXXXXX") && base64 -d >"$d/$1" && echo "$d"
+        """#
+    }
 }
 
 public struct Channel: Sendable {

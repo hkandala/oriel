@@ -3,9 +3,9 @@ import GhosttyTerminal
 import HerdrKit
 
 /// Drops paste their paths shell-escaped, as Ghostty (herdr's usual terminal) does; an image with no file is saved
-/// as a PNG first, or received from its source (a browser's image may be only a file promise). A pane drag carries
-/// none of these types, so it goes on to the card's drop zones.
-/// ponytail: paths on This Mac; a remote machine needs the files copied there first (as image paste plans).
+/// as a PNG first, or received from its source (a browser's image may be only a file promise). On a remote machine
+/// the files are copied there first and their copies' paths pasted (`Exec.upload`). A pane drag carries none of these
+/// types, so it goes on to the card's drop zones.
 extension PaneSurfaceView {
     static let dropTypes: [NSPasteboard.PasteboardType] = [.fileURL, .tiff, .png]
         + NSFilePromiseReceiver.readableDraggedTypes.map { .init($0) }
@@ -22,7 +22,7 @@ extension PaneSurfaceView {
             urls = [image]
         }
         if !urls.isEmpty {
-            return paste(text: urls.map { Self.escaped($0.path(percentEncoded: false)) }.joined(separator: " "))
+            return drop(urls)
         }
         // ponytail: each promised file pastes on its own; join them when a source promises several.
         let promises = board.readObjects(forClasses: [NSFilePromiseReceiver.self]) as? [NSFilePromiseReceiver]
@@ -33,10 +33,30 @@ extension PaneSurfaceView {
             operationQueue: .main,
             reader: { [weak self] url, error in
                 guard error == nil else { return }
-                let path = Self.escaped(url.path(percentEncoded: false))
-                MainActor.assumeIsolated { _ = self?.paste(text: path) }
+                MainActor.assumeIsolated { _ = self?.drop([url]) }
             },
         )
+        return true
+    }
+
+    /// Pastes the files' paths, joined by spaces; on a remote machine, the paths of their copies there, once all are
+    /// copied. A copy that fails shows why, and nothing is pasted.
+    private func drop(_ urls: [URL]) -> Bool {
+        guard let store = store(), store.machine.isRemote else {
+            return paste(text: urls.map { Self.escaped($0.path(percentEncoded: false)) }.joined(separator: " "))
+        }
+        Task {
+            let exec = await store.machine.exec()
+            do {
+                var paths: [String] = []
+                for url in urls {
+                    try await paths.append(Self.escaped(exec.upload(url)))
+                }
+                _ = paste(text: paths.joined(separator: " "))
+            } catch {
+                await store.show(Notice(text: error.localizedDescription))
+            }
+        }
         return true
     }
 
@@ -75,27 +95,32 @@ extension PaneSurfaceView {
 extension Page {
     /// Go to Directory (`directory`, a `cd`) or Insert Path: the system panel at the keyboard card's folder, fresh
     /// from herdr, then the chosen path typed into the card, quoted. Go to Directory asks again that the card runs
-    /// only its shell (D41). ponytail: This Mac only; remote machines need another picker.
+    /// only its shell (D41). On a remote machine Insert Path picks a file of This Mac and types the path of its copy
+    /// there, as a drop does. ponytail: Go to Directory is This Mac's only; a remote machine needs another picker.
     func choosePath(directory: Bool) async {
         guard let pane = keyboardPane, let client = store.client, let window = NSApp.keyWindow else { return }
+        let remote = store.machine.isRemote
         let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
+        panel.canChooseDirectories = directory || !remote
         panel.canChooseFiles = !directory
-        panel.directoryURL = await (try? client.pane(pane.id).cwd).map { URL(filePath: $0) }
-        guard await panel.beginSheetModal(for: window) == .OK, let path = panel.url?.path(percentEncoded: false)
-        else { return }
-        let quoted = "'" + path.replacing("'", with: #"'\''"#) + "'"
-        if directory {
-            do {
-                guard try await client.program(pane.id)?.isShell == true else {
-                    await store.show(Notice(text: "A program is running in the pane", tone: .warning))
-                    return
-                }
-            } catch {
-                await store.show(Notice(text: error.localizedDescription))
+        if !remote {
+            panel.directoryURL = await (try? client.pane(pane.id).cwd).map { URL(filePath: $0) }
+        }
+        guard await panel.beginSheetModal(for: window) == .OK, let url = panel.url else { return }
+        var path = url.path(percentEncoded: false)
+        do {
+            if remote, !directory {
+                path = try await store.machine.exec().upload(url)
+            }
+            if directory, try await client.program(pane.id)?.isShell != true {
+                await store.show(Notice(text: "A program is running in the pane", tone: .warning))
                 return
             }
+        } catch {
+            await store.show(Notice(text: error.localizedDescription))
+            return
         }
+        let quoted = "'" + path.replacing("'", with: #"'\''"#) + "'"
         await store.write { client in
             try await client.sendInput(directory ? "cd -- \(quoted)" : quoted, keys: directory ? ["enter"] : [],
                                        pane: pane.id)

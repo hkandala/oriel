@@ -42,18 +42,14 @@ the agent gets it as a file on its own machine (D56).
 
 1. ⌘V (or Paste on iOS) with an image and no text on the clipboard. The app
    encodes it as PNG, at most 10 MB.
-2. It writes the image to a new temporary folder on the pane's machine with
-   `run`, the PNG on stdin, and reads the path back:
-   ```sh
-   sh -c 'umask 077; d=$(mktemp -d "${TMPDIR:-/tmp}/oriel.XXXXXX") &&
-          cat >"$d/paste.png" && printf %s "$d/paste.png"'
-   ```
+2. It copies the image to the pane's machine as a dropped file is copied
+   (`Exec.upload`, [Drag and drop](/docs/ui/drag-and-drop#files-and-images)),
+   and gets the copy's path back.
 3. It pastes that path into the pane like a text paste, or adds it to the
    chat draft. Agents such as Claude Code read the image from the pasted
    path.
 
 - The same steps on This Mac and over SSH. uHerdr, collie, termote and
   roamgate do the same: upload, then paste the path.
-- Simpler choice: the system's temporary-file cleanup removes old images.
-  Revisit when users ask. Dropped files and images paste their paths on This
-  Mac ([Drag and drop](/docs/ui/drag-and-drop#files-and-images)).
+- Dropped files and images are built: on a remote machine they are copied
+  there the same way ([Drag and drop](/docs/ui/drag-and-drop#files-and-images)).

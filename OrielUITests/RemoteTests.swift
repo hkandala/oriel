@@ -179,6 +179,30 @@ extension OrielUITests {
         try await markAndFloat()
     }
 
+    /// A file dropped on Key Host's card is copied there, as herdr's remote client does, and the copy's path is pasted:
+    /// `cat` reads it on the machine. The machine is this Mac, so the path must also not be the dropped file's own.
+    func testAFileDroppedOnARemoteCardPastesItsCopysPath() async throws {
+        try await skipWithoutSSH()
+        relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, pane) = try await newTab("drop")
+        element("tab.\(tab)").click()
+        let terminal = element("terminal.\(pane)")
+        XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
+        try await waitForPrompt(pane)
+        try await send("cat ", to: pane)
+        let from = element("sidebar").frame, card = terminal.frame
+        let points = "\(from.midX) \(from.midY) \(card.midX) \(card.midY)"
+        let path = try await String(decoding: Self.post("\(one)/file-drag", Data(points.utf8)), as: UTF8.self)
+        let folder = URL(filePath: path).deletingLastPathComponent().lastPathComponent
+        try await waitFor(pane) { $0.replacing("\n", with: "").contains(#"/drop\ me\'s\ \(1\).txt"#) }
+        let pasted = try await read(pane).replacing("\n", with: "")
+        XCTAssertTrue(pasted.contains("/oriel-drops-"), pasted)
+        XCTAssertFalse(pasted.contains(folder), pasted)
+        try await send("\r", to: pane)
+        try await waitFor(pane) { $0.contains("\noriel-e2e-dropped") }
+    }
+
     /// The dialog in the palette's glass in each look (screenshots), and its icon picker's search.
     func testTheRemoteHostDialogInEveryLook() {
         for (appearance, style) in [("dark", "glass"), ("light", "glass"), ("dark", "classic"), ("light", "classic")] {

@@ -85,9 +85,19 @@ spaces, in one bracketed paste. That is what Ghostty, herdr's usual terminal,
 sends herdr for a drop. An image with no file (from a browser or a screenshot
 thumbnail) is saved as a PNG in a new folder in the user's temporary folder
 first, or, when the source only promises a file (as browsers may), received
-there; then that path is pasted. The paths are This Mac's: a pane that runs
-`ssh` gets them as they are, as in any terminal. A pane drag over a terminal
-still shows its drop zones.
+there; then that path is pasted. A pane drag over a terminal still shows its
+drop zones.
+
+On a remote machine's card, each file is copied to that machine first, and
+the paths of the copies are pasted, escaped the same way, once all are
+copied. herdr's own remote client does the same with a dropped image. Each
+copy goes over the machine's one SSH connection (its relay) as base64 lines,
+into a new folder of its own in `oriel-drops-‹user id›` in the machine's
+temporary folder (`$TMPDIR`, else `/tmp`), so it keeps its name. Only the
+user can read that folder, and each copy deletes the folders in it that are
+more than a day old. A folder, or a file over 100 MB, is not copied: a notice
+says why, and nothing is pasted. A pane that runs `ssh` on This Mac still
+gets This Mac's paths, as in any terminal.
 
 ## Tabs and workspaces
 

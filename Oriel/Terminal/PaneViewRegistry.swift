@@ -41,6 +41,7 @@ final class PaneViewRegistry {
         terminal.view.onReturn = { [weak self] in self?.pages?.returned(terminalID) }
         terminal.onInput = { [weak self] in self?.pages?.input(terminalID) }
         terminal.watches = { [weak self] in self?.pages?.page(of: terminalID)?.watched ?? false }
+        terminal.view.store = { [weak self] in self?.pages?.page(of: terminalID)?.store }
         terminal.view.tileScale = { [weak self] in self?.pages?.tileScale ?? 0.35 }
         terminals[terminalID] = terminal
         return terminal

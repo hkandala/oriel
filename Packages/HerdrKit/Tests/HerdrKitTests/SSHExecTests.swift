@@ -46,3 +46,33 @@ import Testing
     watching.terminate()
     #expect(await watching.exit().status == 9)
 }
+
+/// A dropped file's copy over the relay (here without ssh): the same bytes under the same name, in a folder of its own.
+@Test func `upload copies a file whole`() async throws {
+    struct RelayExec: Exec {
+        let relay: Relay
+        func run(_ argv: [String]) throws -> Channel {
+            try relay.run("exec " + SSHExec.quoted(argv))
+        }
+
+        func herdr() -> String? {
+            nil
+        }
+    }
+    let relay = try #require(await Relay.start(ProcessExec.spawn(["perl", "-e", Relay.script], localExec.environment)))
+    let exec = RelayExec(relay: relay)
+    let folder = URL.temporaryDirectory.appending(path: "oriel-upload-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let file = folder.appending(path: "it's a\nfile.bin")
+    let bytes = Data((0 ..< 100_001).map { UInt8(truncatingIfNeeded: $0 &* 31) })
+    try bytes.write(to: file)
+    let copy = try await URL(filePath: exec.upload(file))
+    #expect(copy.lastPathComponent == file.lastPathComponent)
+    #expect(copy.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent == "oriel-drops-\(getuid())")
+    #expect(try Data(contentsOf: copy) == bytes)
+    try FileManager.default.removeItem(at: copy.deletingLastPathComponent())
+    await #expect(throws: HerdrError.failed("\(folder.lastPathComponent) is not a file")) {
+        try await exec.upload(folder)
+    }
+}

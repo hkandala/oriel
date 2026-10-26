@@ -15,7 +15,7 @@ app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <sessi
 `--args`). The folder's path comes back.
 POST /<session>/open-url with the built app's path, a newline and an oriel:// URL opens the URL with that app (`open -g -a`).
 POST /<session>/file-drag with "x y tx ty" (screen points) as the body makes a file whose name needs shell escaping in
-a new folder in /tmp, shows its icon at x y in a window of scripts/file-drag.swift and drags it to tx ty
+a new folder in /tmp (its one line: oriel-e2e-dropped), shows its icon at x y in a window of scripts/file-drag.swift and drags it to tx ty
 (scripts/drag.swift: both points in an Oriel window). The file's path comes back once a drop took it.
 POST /<session>/usage with a number of seconds as the body measures the app (the one process named Oriel, on CI) over
 that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory.
@@ -168,7 +168,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             folder = tempfile.mkdtemp(prefix="oriel-e2e-file-", dir="/tmp")
             folders.append(folder)
             path = os.path.join(folder, "drop me's (1).txt")
-            open(path, "w").close()
+            with open(path, "w") as file:
+                file.write("oriel-e2e-dropped\n")
             x, y, tx, ty = body.decode().split()
             source = subprocess.Popen([f"{tools}/file-drag", path, x, y], stderr=subprocess.PIPE)
             time.sleep(0.5)  # its window up

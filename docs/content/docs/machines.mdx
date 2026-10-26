@@ -154,10 +154,13 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   shows "herdr is not installed on ‹machine›" with the install command.
 - **New tabs and workspaces** pass `cwd` `~`, which herdr reads as the
   machine's home, so the app never sends This Mac's home to a remote machine.
+- **Dropped files** (and Insert Path's file) are copied to the machine over the
+  relay, one run per file, and the copies' paths are pasted
+  ([Drag and drop](/docs/ui/drag-and-drop#files-and-images)).
 - **Not built yet:** Local Network privacy (below),
   herdr's machine list in the dialog, reorder of the machines, a
-  remote home shown as `~` in card headers, `dial`, and file drops and image
-  paste to a remote machine.
+  remote home shown as `~` in card headers, `dial`, image paste, and Go to
+  Directory on a remote machine.
 - **Local Network privacy (macOS 15+, not built yet):** an `ssh` started by
   the app counts as the app, so a LAN target fails with "No route to host"
   today. The plan: The app declares `NSLocalNetworkUsageDescription`, resolves the
