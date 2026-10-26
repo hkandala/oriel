@@ -206,7 +206,7 @@ extension OrielUITests {
         app.typeKey("o", modifierFlags: [.command, .control])
         let overview = element("overview"), meter = element("overview.frames")
         XCTAssertTrue(overview.exists(within: 5))
-        let open = try await measure("overview, 200 tabs", seconds: 5, session: eight)
+        _ = try await measure("overview, 200 tabs", seconds: 5, session: eight)
         let start = meter.stringValue, frame = overview.frame
         // Down, the sign following the natural scrolling setting: 20 swipes of 600 pt and their momentum.
         var sign = -1.0, most = 0
