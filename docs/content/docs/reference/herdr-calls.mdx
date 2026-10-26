@@ -5,28 +5,31 @@ description: "Every herdr call and command the app uses, and the ones it never u
 
 ## API calls
 
+Calls marked "planned" belong to parts that are not built yet.
+
 | Call | Used for | Page |
 |---|---|---|
 | `session.snapshot` | all state and herdr's version of an open session, read after events and after every write; the health check every 30 s; waiting for a server the app started | [Reconcile](/docs/talking-to-herdr#reconcile) |
 | `events.subscribe` (long-lived) | "read the snapshot again" | [Events](/docs/talking-to-herdr#events) |
-| `integration.list` | the agent picker, when it opens | [Agent](/docs/plugins/terminal-and-agent#agent) |
+| `integration.list` | planned: the agent picker, when it opens | [Agent](/docs/plugins/terminal-and-agent#agent) |
 | `workspace.create` \| `close` \| `rename` | sidebar actions: new (page header `+`, workspace menu), close, rename in place; folders dropped on the Dock icon | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `workspace.move_block` | Move Up and Down, drag to reorder (always with the row's group: the workspace and its linked worktrees) | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `tab.create` \| `close` \| `rename` \| `move` | tab bar and sidebar actions: new (also from a workspace row), close, Close Other Tabs and Close Tabs to the Right, rename, Move Tab Left and Right, drag to reorder | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
-| `pane.split` \| `close` \| `move` | split (left and up add a swap), close, Move Pane to Tab ▸ (a tab, New Tab, New Workspace), drag (an edge of a card in the same tab is two moves and a swap; a tab dropped on another workspace or New Workspace moves pane by pane), placing a new web or plugin pane | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
+| `pane.split` \| `close` \| `move` | split (left and up add a swap), close, Move Pane to Tab ▸ (a tab, New Tab, New Workspace), drag (an edge of a card in the same tab is two moves and a swap; a tab dropped on another workspace or New Workspace moves pane by pane); planned: placing a new web or plugin pane | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.swap` | drag onto a card in the same tab; the last step of a drop on a left or top edge; split left and up; with `direction`, ⌥⇧⌘ and an arrow | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.resize` | Resize Pane (View ▸ Pane, the palette), 5 % each | [Dividers](/docs/layout#dividers) |
-| `layout.apply` | create a web or plugin pane with its label and placeholder command, in a new tab; never with `tab_id` (it replaces the tab) | [Labels](/docs/plugins/labels#create) |
-| `pane.rename` | Rename Pane; web address edits, `setArg` | [Labels](/docs/plugins/labels) |
-| `pane.send_input` | screen-text replies; Go to Directory and Insert Path | [Chat view](/docs/chat-view#screen-text-chat) |
+| `layout.apply` | planned: create a web or plugin pane with its label and placeholder command, in a new tab; never with `tab_id` (it replaces the tab) | [Labels](/docs/plugins/labels#create) |
+| `pane.rename` | Rename Pane, Reset Pane Name; planned: web address edits, `setArg` | [Labels](/docs/plugins/labels) |
+| `pane.send_input` | Go to Directory and Insert Path; planned: screen-text replies | [Chat view](/docs/chat-view#screen-text-chat) |
 | `pane.send_keys` | special keys and Ctrl chords typed in a terminal card | [Terminal plane](/docs/talking-to-herdr#terminal-plane) |
-| `pane.read` | `visible`: screen-text chat, blocked panel, the hover card's lines for a pane that needs you; `recent`: find in a pane; `visible` again after a find scroll, for the highlights. Not built yet: VoiceOver's screen text, swipe previews | [Chat view](/docs/chat-view) |
-| `pane.process_info` | close check, Go to Directory's shell check, Codex transcript, program icons | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr) |
-| `pane.get` | the keyboard card's fresh folder for New Tab, Go to Directory and Insert Path; the viewport's offset after a find scroll | [Command palette](/docs/ui/window#command-palette) |
+| `pane.read` | `visible`: the hover card's lines for a pane that needs you; `recent`: find in a pane; `visible` again after a find scroll, for the highlights. Planned: screen-text chat, the blocked panel, VoiceOver's screen text, swipe previews | [Chat view](/docs/chat-view) |
+| `pane.process_info` | close check, Go to Directory's shell check, program icons; planned: the Codex transcript | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr) |
+| `pane.get` | the keyboard card's fresh folder for New Tab, Go to Directory and Insert Path; the viewport's offset after a find scroll |
+| `pane.report_metadata` | the `oriel-shown` mark on each pane in view, for float requests | [Float requests](/docs/talking-to-herdr#float-requests) | [Command palette](/docs/ui/window#command-palette) |
 | `pane.scroll` | find in a pane: scroll herdr's viewport to a match, and back to the bottom | [Find bar](/docs/ui/window#find-bar) |
-| `layout.set_split_ratio` | divider drag, double-click, balance (⌥⌘=), autobalance, divider accessibility | [Layout](/docs/layout) |
+| `layout.set_split_ratio` | divider drag, double-click, balance (⌥⌘=), equal splits after a split or move, divider accessibility | [Layout](/docs/layout) |
 | `layout.export` | fallback when the leaf count is wrong | [Rebuilding the tree](/docs/layout#rebuilding-the-tree) |
-| `agent.start` \| `prompt` \| `send_keys` | start an agent, reply, key buttons | [Chat view](/docs/chat-view#sending-and-answering) |
+| `agent.start` \| `prompt` \| `send_keys` | planned: start an agent, reply, key buttons | [Chat view](/docs/chat-view#sending-and-answering) |
 
 ## Commands
 
@@ -39,7 +42,7 @@ herdr --session S terminal session control|observe <terminal_id> \
     --cols C --rows R [--takeover]
 herdr --session S session list --json               # each machine: the Open Session panel, restore, "not running"
 herdr --session S session stop|delete S --json      # Open Session's Stop and Delete; errors as JSON on stderr
-herdr machine list --json                           # macOS, the Add Remote Host sheet
+herdr machine list --json                           # planned: macOS, the Add Remote Host dialog
 herdr --session S server        # remote: nohup, on request; This Mac: a launchd job (D47)
 ```
 
@@ -57,8 +60,9 @@ git --no-optional-locks -C <root> status --porcelain=v2 --branch --untracked-fil
 
 ## Tests only
 
-`pane.report_agent`: the e2e helper reports agent status on a throwaway pane.
-The app never calls it.
+The UI tests call these on throwaway panes; the app never does:
+`pane.report_agent` and `pane.release_agent` (agent status), `pane.send_text`
+(type into a pane) and `pane.zoom` (a tab zoomed as a herdr TUI zooms it).
 
 ## Never used
 

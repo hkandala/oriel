@@ -7,17 +7,20 @@ description: "The pieces of the app and how they reach each machine"
 
 ## Pieces
 
+Pieces marked "planned" are not built yet.
+
 | Piece | Platform | Job |
 |---|---|---|
-| `HerdrKit` (Swift package) | both | `Exec`, the `Multiplexer` interface and its herdr implementation: `call()`, the event stream, snapshot decoding, the split-tree rebuild, the label parser, transcript parsers, the remote command envelope |
-| `ProcessExec` | macOS | `Process` with pipes; an argv prefix makes it local or remote; `dial` through `ssh -W` or `-O forward` |
-| `CitadelExec` | iOS | the Citadel SSH client, exec and `direct-tcpip` channels, a Secure Enclave key |
+| `HerdrKit` (Swift package) | both | `Exec`, the `Multiplexer` interface and its herdr implementation: `call()`, the event stream, snapshot decoding, the split-tree rebuild, the remote command envelope and the relay; planned: the label parser, transcript parsers |
+| `ProcessExec` | macOS | `Process` with pipes, for This Mac |
+| `SSHExec` | macOS | a remote machine: its ControlMaster, the askpass prompts and the relay that carries every run; planned: `dial` through `ssh -W` or `-O forward` |
+| `CitadelExec` (planned) | iOS | the Citadel SSH client, exec and `direct-tcpip` channels, a Secure Enclave key |
 | `HostStore` | both | the app's live model of one open session: snapshot, events, streams, seen state, git state, and which window controls it. One per session, shared by every window that shows it |
 | Window state | both | one per window: its machine, its open pages and its selection (page, workspace, tab, keyboard card, zoom, sidebar view and width), restored with `@SceneStorage` |
-| `PaneViewRegistry` | both | owns terminal views, web pages and plugin cards, so scrolling never destroys them |
-| `PluginRegistry` | both | core plugins plus installed and linked plugins; manifests; consent |
-| `PluginHost` | both | one web page per plugin card; the bridge (`window.oriel`) to `run`, `dial` and the API |
-| Views | both | title row, sidebar pages, Agents view, tab bar, strip, cards, chat, status, pills, sheets |
+| `PaneViewRegistry` | both | owns terminal views (planned: web pages and plugin cards), so scrolling never destroys them |
+| `PluginRegistry` (planned) | both | core plugins plus installed and linked plugins; manifests; consent |
+| `PluginHost` (planned) | both | one web page per plugin card; the bridge (`window.oriel`) to `run`, `dial` and the API |
+| Views | both | title row, sidebar pages, Agents view, tab bar, strip, cards, overview, floating panes, panels and dialogs; planned: chat, pills |
 
 `Exec` and `Multiplexer` are the only protocols. `HerdrKit` is a separate
 package, so its single test target runs with `swift test`.

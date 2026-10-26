@@ -6,7 +6,7 @@ description: "What the user sees in every connection, pane and error state"
 Connecting and reconnecting states show at most one line of words and one
 button. Empty states show only the button: no tabs, and no workspaces on the
 sidebar's page; the strip of a session with no workspaces says only that it
-is empty.
+is empty. Rows marked "not built yet" belong to parts that are not built yet.
 
 | State | What the user sees |
 |---|---|
@@ -22,16 +22,16 @@ is empty.
 | Connection lost (Reconnecting) | "Reconnecting to ‹machine›" with a spinner over the cards, dimmed to 0.5; the app retries every 2 s without prompts (a remote machine's SSH connection backs off from 2 s to 30 s), then reads a fresh snapshot ([Health check](/docs/machines#health-check)). Also when a page's first connect fails while its server runs |
 | Reconnecting needs a password, a code or a host key answer | "Disconnected from ‹machine›" over ssh's text, and **Connect**; the app stops retrying, and only this button may prompt ([macOS](/docs/machines#macos)) |
 | Request timed out (10 s) | A write shows the notice "herdr did not answer", with no Retry. A read shows Reconnecting |
-| No SSH session left on the connection | the card shows its last image and **Retry** |
-| Local Network access denied | "Allow Local Network access for Oriel in System Settings › Privacy & Security" |
+| No SSH session left on the connection (iOS, not built yet; the Mac's relay uses one session) | the card shows its last image and **Retry** |
+| Local Network access denied (not built yet: today a LAN target shows Reconnecting) | "Allow Local Network access for Oriel in System Settings › Privacy & Security" |
 | Pane in use on another device | the content (watching) and "In use elsewhere · Take Back" |
 | Session controlled in another window | cards dim a little; a bottom capsule "Controlled in another window" with **Take Back** ([Control capsule](/docs/ui/window#control-capsule)) |
 | Close a pane that runs a program | "Close “‹pane label, else its folder›”?" over "‹program› is running in it and will end, here and in every herdr client. This cannot be undone." (a pane that runs only its shell, a web page or a plugin pane closes at once) |
 | Close a tab, other tabs, tabs to the right or a workspace | asks only when a pane of them runs a program besides its shell: "‹programs› is (are) running in it (them)." then the pane count and the same warning |
 | No workspaces | a **New Workspace** button on the sidebar's page; in the strip an icon and "This session is empty", no button |
 | A workspace with no tabs | a **New Tab** button with its shortcut, no text |
-| New tab or split | the pane picker; herdr is called only after a pick |
-| Agent did not start (10 s) | "Agent did not start" and the last screen lines |
+| New tab or split | a terminal at once; with the pane picker (not built yet), herdr is called only after a pick |
+| Agent did not start (10 s; not built yet) | "Agent did not start" and the last screen lines |
 | Move refused by herdr | herdr's reason in words, in the notice |
 | A drop step failed | the pane stays where it got to; the notice says so |
 | Open Session: the name is not a valid herdr name | no Create row |
@@ -56,13 +56,13 @@ is empty.
 | A folder dropped on the Dock icon while the page in view is not live | the folders wait for a live page in view |
 | Nobody needs you (Agents button hover) | no panel |
 | A session with no agents (Agents view) | an empty list, no text |
-| Web page failed | WebKit's error in the card |
-| Server refuses port forwarding | "‹machine› does not allow port forwarding" in the web card; Tailscale or LAN addresses still load |
-| Web address from the machine, origin not approved | "Open ‹url›?" with an Open button ([Web page](/docs/plugins/web-page#when-a-page-loads-by-itself)) |
-| Plugin not installed on this device | the plugin id, the argument, **Show placeholder** (switch the card to the pane's terminal) and **Close pane**; on macOS also **Install from ‹source›…** when the machine suggests it ([State and restore](/docs/plugins/state)) |
-| Plugin not responding | "‹title› is not responding · Refresh" |
-| Pasted image over 10 MB | "Image too large to paste"; nothing is sent |
-| Full chat not available | the screen-text chat, with a tooltip that says why |
+| Web page failed (not built yet) | WebKit's error in the card |
+| Server refuses port forwarding (not built yet) | "‹machine› does not allow port forwarding" in the web card; Tailscale or LAN addresses still load |
+| Web address from the machine, origin not approved (not built yet) | "Open ‹url›?" with an Open button ([Web page](/docs/plugins/web-page#when-a-page-loads-by-itself)) |
+| Plugin not installed on this device (not built yet) | the plugin id, the argument, **Show placeholder** (switch the card to the pane's terminal) and **Close pane**; on macOS also **Install from ‹source›…** when the machine suggests it ([State and restore](/docs/plugins/state)) |
+| Plugin not responding (not built yet) | "‹title› is not responding · Refresh" |
+| Pasted image over 10 MB (not built yet) | "Image too large to paste"; nothing is sent |
+| Full chat not available (not built yet) | the screen-text chat, with a tooltip that says why |
 
 How it works: [Checks on connect](/docs/machines#checks-on-connect),
 [How a stream ends](/docs/talking-to-herdr#how-a-stream-ends).

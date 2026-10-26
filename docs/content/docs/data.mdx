@@ -14,6 +14,9 @@ One rule decides where each new thing goes (D57):
 
 ## Every piece of data
 
+The rows for web pages, plugins, chat, pills and iOS are for parts that are
+not built yet.
+
 | Data | Owner | Where |
 |---|---|---|
 | Workspaces, tabs, panes, order, labels | herdr | `session.snapshot` |
@@ -25,10 +28,10 @@ One rule decides where each new thing goes (D57):
 | Plugin instance state; a web card's current address and scroll position | the machine | `$HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json` (`web` for web cards; [State and restore](/docs/plugins/state)) |
 | Chat history | the agent | its transcript file on the machine |
 | A machine's sessions | herdr | `herdr session list --json`, run on the machine |
-| Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults` (on macOS the add dialog offers `herdr machine list`) |
+| Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults`, JSON under `machines` |
 | iOS SSH key and pinned host keys | app, disk | Secure Enclave, Keychain |
-| Settings: appearance, interface style, text size and pane options ([Settings](/docs/ui/settings)); pill settings | app, disk | app storage (`UserDefaults`) |
-| Per window: the machine (once remote machines exist), the names of its open pages (`pages`), the page in view (`page`), each page's selected workspace and tabs (`selection`, one JSON string), sidebar shown or hidden (`sidebar`), sidebar view (workspaces or agents, `agents`) and its sort (`agentSort`), and sidebar width (`sidebarWidth`) | app, disk | `@SceneStorage`, one set per window |
+| Settings: appearance, interface style, text size and Focus Follows Mouse ([Settings](/docs/ui/settings)); the Agents view's folded groups (`agentsFolded`); a floating pane's window frame, per pane | app, disk | app storage (`UserDefaults`) |
+| Per window: the machine's id (`machine`), the names of its open pages (`pages`), the page in view (`page`), each page's selected workspace and tabs and its floating panes with their Stay on Top (`selection`, one JSON string), sidebar shown or hidden (`sidebar`), sidebar view (workspaces or agents, `agents`) and its sort (`agentSort`), and sidebar width (`sidebarWidth`) | app, disk | `@SceneStorage`, one set per window |
 | Plugin code and source record | app, disk | `Application Support/Oriel/plugins/` |
 | Plugin consent and This Mac answers | app, disk | `UserDefaults` |
 | Plugin preferences | app, disk | `UserDefaults`, passwords in the Keychain |

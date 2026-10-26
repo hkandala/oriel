@@ -74,17 +74,21 @@ Citadel exec channels, before any iOS work. Pass:
 
 ## Build order
 
-**v0 and step 1 are built** (the repository's `plan/`, phases 1–23): This
-Mac only. v0 had the strip with swipes between tabs, herdr's splits, live
-terminals, close, split and zoom, new tabs, workspaces and sessions, and the
-⌘K palette. Step 1 replaced v0's session picker and tab rows with the agreed
-window layout. The steps after it follow from there.
+**v0, step 1 and step 2 are built** (the repository's `plan/`, phases 1–31).
+v0 had the strip with swipes between tabs, herdr's splits, live terminals,
+close, split and zoom, new tabs, workspaces and sessions, and the ⌘K palette.
+Step 1 replaced v0's session picker and tab rows with the agreed window
+layout. Step 2 added remote machines (phases 26–28). The user's feedback
+rounds (phases 24–31) also added floating panes (D50) and the overview (D70),
+which the steps did not plan. Not built from step 2: herdr's machines in the
+Add Remote Host dialog, the Local Network preflight and reordering the
+machines. Steps 2b to 6 are not started.
 
 | Step | What |
 |---|---|
 | 0 | Spikes S1–S7, for the parts v0 did not cover |
 | 1 | **Finish This Mac:** divider drag and keyboard resize, drag and drop, renames and reorders, the agreed window layout and the UI polish (phases 10–23: appearance, font size and menus, program icons, several windows, session pages, the Agents view, git state, Open Session, notifications and the Dock, palette, find), "seen" |
-| 2 | **Remote machines (Mac):** the app's machine list (with herdr's machines in the add sheet), ControlMaster, askpass, remote hosts in the machine menu |
+| 2 | **Remote machines (Mac):** the app's machine list (with herdr's machines in the add dialog), ControlMaster, askpass, the relay, remote hosts in the machine menu |
 | 2b | **Thin iOS slice:** Citadel connect, snapshot, sidebar, one terminal stream |
 | 3 | **Pane kinds and chat:** the plugin registry and picker; placeholder panes with `layout.apply`; the web page with `run` and `dial` (same-port forwards, the Open :port chip, the ports list); transcript and screen-text chat; image paste |
 | 4 | **Plugin system:** the plugin host (a web view per card, `window.oriel`, the content rule and CSP); the Git history, Diff and Markdown plugins; install and dev mode |
