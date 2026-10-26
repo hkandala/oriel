@@ -99,7 +99,7 @@ struct Look {
 
     /// The selected tab's and workspace row's title.
     var selected: Color {
-        (dark ? Color.white : .black).opacity(0.9)
+        (dark ? Color.white : .black).opacity(contrast ? 1 : 0.9)
     }
 
     /// A card header's buttons, dimmer than the title row's; 3.3:1 or more on the card (Rex's was 2.3:1 in light).
