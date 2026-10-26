@@ -214,15 +214,48 @@
 
         func body(content: Content) -> some View {
             let open = pages.overview && !pages.leaving
-            content.opacity(open == own ? 1 : 0)
-                // The zoom's time.
-                .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18), value: open)
+            content.modifier(Fade(opacity: open == own ? 1 : 0))
+                // One quick fade with the zoom's start, the tab bar's pill in it (user, phase 31: 0.18 s looked slow).
+                .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.12), value: open)
                 .allowsHitTesting(open == own)
                 // Not `accessibilityHidden(false)`, which overrides the hidden ones inside (a button's overlay image
                 // took its identifier too).
                 .accessibilityElement(children: open == own ? .contain : .ignore)
                 // Out of the key view loop too: Tab would reach a hidden field.
                 .disabled(open != own)
+        }
+    }
+
+    /// An opacity that also gives its views the product of the fades above them (`fade`), at each frame: e2e records
+    /// it where the tab bar and its pill draw (`FadeRecord`).
+    private struct Fade: ViewModifier, Animatable {
+        var opacity: Double
+        @Environment(\.fade) private var outer
+
+        var animatableData: Double {
+            get { opacity }
+            set { opacity = newValue }
+        }
+
+        func body(content: Content) -> some View {
+            content.opacity(opacity).environment(\.fade, outer * opacity)
+        }
+    }
+
+    extension EnvironmentValues {
+        @Entry var fade = 1.0
+    }
+
+    /// e2e (`-recordLatency YES`): "fade <name> <ms> <opacity>" at each frame of a fade over it.
+    struct FadeRecord: View {
+        let name: String
+        @Environment(\.fade) private var fade
+
+        var body: some View {
+            Color.clear.onChange(of: fade, initial: true) {
+                let now = Int(ProcessInfo.processInfo.systemUptime * 1000)
+                Latency.shared.note("fade \(name) \(now) \(String(format: "%.2f", $1))")
+            }
         }
     }
 
@@ -270,8 +303,8 @@
 
         /// The strip shows again, and the keyboard goes back to the tab's card.
         func closeOverview() {
-            // The tab bar's pill fades in on the selected tab, not where the strip before the overview left it (a tab
-            // chosen in the overview); the new strip's geometry comes a turn later (phase 31).
+            // The tab bar's pill stays on the selected tab, where it faded in, not where the strip before the overview
+            // left it (a tab chosen in the overview); the new strip's geometry comes a turn later (phase 31).
             if let current, let workspace = current.selectedWorkspace {
                 current.stripPage = Double(current.selectedIndex(in: workspace))
             }

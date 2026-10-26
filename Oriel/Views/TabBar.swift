@@ -16,7 +16,7 @@
         let page: Page
         /// A pane dragged over the `+`; with one over the track's end, a ghost capsule at the end, when it fits.
         let plus: Bool
-        /// The overview is open: no pill (`marker`).
+        /// The overview is open: the pill sits on the selected tab (`marker`).
         let overview: Bool
         @State private var end = false
         /// A drag over the track: the capsule a pane is over, or the place a dragged tab goes.
@@ -87,6 +87,9 @@
                         ZStack(alignment: .leading) {
                             Capsule().fill(look.track).opacity(tabs.count > 1 ? 1 : 0)
                             marker(place, count: tabs.count)
+                            if Latency.isOn {
+                                FadeRecord(name: "tabs")
+                            }
                         }
                     }
                     // Room for the Classic pill's shadow (radius 3.5, y 1.5): the scroll view clips.
@@ -164,17 +167,20 @@
         }
 
         /// The look's pill on the page in view, between two tabs while the strip is between their pages: it slides
-        /// with a swipe or a wheel turn and jumps on any other switch, as the strip does. None under the overview: it
-        /// fades in on the tab shown once the strip is back; it showed on the tab selected before for the zoom's
-        /// 0.18 s, then jumped (user, phase 31).
+        /// with a swipe or a wheel turn and jumps on any other switch, as the strip does. Under the overview, on the
+        /// selected tab (the strip's place was the tab selected before), so it fades in there with the title row; a
+        /// fade of its own came after the zoom (user, phase 31).
         private func marker(_ place: Double, count: Int) -> some View {
             let place = min(max(place, 0), Double(max(count - 1, 0))), selected = page.selectedIndex(in: workspace)
             let rest = !overview && place == place.rounded()
             let astray = rest && Int(place) != selected ? "pill \(place) \(selected)" : ""
             return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
                 .frame(width: Self.width, height: Self.height - 2 * Self.inset)
-                .opacity(overview ? 0 : 1)
-                .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18), value: overview)
+                .overlay {
+                    if Latency.isOn {
+                        FadeRecord(name: "pill")
+                    }
+                }
                 .offset(x: place * (Self.width + 1))
                 .allowsHitTesting(false)
                 // e2e (`-recordLatency YES`): "pill <place> <selected>" when it shows at rest on another tab.
