@@ -100,6 +100,8 @@
         @State private var open = false
         @State private var overTrigger = false
         @State private var overPanel = false
+        /// The open panel's frame in the window (top left based).
+        @State private var panelFrame = CGRect.null
         @State private var pending: Task<Void, Never>?
         @State private var monitor: Any?
         /// Off under the overview, which hides its trigger (`underOverview`).
@@ -123,7 +125,9 @@
                     open ? OpenPanel(trigger: anchor, place: place, content: AnyView(panel { show(false) }
                             .onHover { overPanel = $0
                                 hovered()
-                            })) : nil
+                            }
+                            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { panelFrame = $0 }))
+                        : nil
                 }
                 .accessibilityActions {
                     if let action {
@@ -147,9 +151,18 @@
                 try? await Task.sleep(for: .milliseconds(over ? 250 : 150))
                 // A drag may have started meanwhile.
                 if !Task.isCancelled, !over || NSEvent.pressedMouseButtons == 0 {
-                    show(over)
+                    show(over || enabled && pointerInPanel)
                 }
             }
+        }
+
+        /// Over the open panel by its frame: a busy app runs the panel's hover late, after the trigger's grace or a
+        /// click in it, which then closed it and went to the view under it (CI 40319783362).
+        private var pointerInPanel: Bool {
+            guard open, let window = NSApp.keyWindow,
+                  let height = window.contentView?.bounds.height else { return false }
+            let point = window.mouseLocationOutsideOfEventStream
+            return panelFrame.contains(CGPoint(x: point.x, y: height - point.y))
         }
 
         private func show(_ value: Bool) {
@@ -161,7 +174,7 @@
                     guard event.type != .keyDown || event.keyCode == 53 else { return event }
                     let escape = event.type == .keyDown
                     let swallow = MainActor.assumeIsolated {
-                        if escape || !overPanel {
+                        if escape || !overPanel && !pointerInPanel {
                             show(false)
                         }
                         // A text field that edits (a rename, a filter) still gets its Esc.
