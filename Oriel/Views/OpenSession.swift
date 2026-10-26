@@ -49,8 +49,8 @@
                     suggested = sessions.newName
                 }
             }
-            // Both end what runs for good, on every device (D41's reason to ask).
-            .confirmationDialog(
+            // Both end what runs for good, on every device (D41's reason to ask). An alert: Return confirms it.
+            .alert(
                 "\(asking?.verb.capitalized ?? "") the session “\(asking?.session ?? "")”?",
                 isPresented: Binding { asking != nil } set: {
                     if !$0 {
@@ -71,6 +71,7 @@
                     }
                 }
                 .keyboardShortcut(.defaultAction)
+                Button("Cancel", role: .cancel) {}
             } message: { asked in
                 Text(asked.verb == "stop"
                     ? "Every program in it will end, here and in every herdr client. Its workspaces and tabs stay "

@@ -17,16 +17,17 @@
                 return floated == id ? closing : nil
             }
             let dialog = dialog(closing)
-            content.confirmationDialog(dialog?.title ?? "", isPresented: Binding { closing != nil } set: {
+            // An alert: a confirmation dialog ignored its .defaultAction button's Return (phase 31, item 8).
+            content.alert(dialog?.title ?? "", isPresented: Binding { closing != nil } set: {
                 if !$0 {
                     page.closing = nil
                 }
-            }, titleVisibility: .visible, presenting: closing) { closing in
+            }, presenting: closing) { closing in
                 Button(closing.close.button, role: .destructive) {
                     Task { await page.store.close(closing.close) }
                 }
-                // Return confirms (a destructive button is not the default on its own); Esc cancels.
                 .keyboardShortcut(.defaultAction)
+                Button("Cancel", role: .cancel) {}
             } message: { _ in
                 Text(dialog?.message ?? "")
             }
