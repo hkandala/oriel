@@ -110,8 +110,9 @@ per hold, at most 10 minutes, released with a trap).
 - **Cause:** phase 32 kept a placeholder iOS target. The user decided to drop it until iOS is built.
 - **Commits:** 40109e6 (project, Makefile, icon, package), 520cd9a (guards and stubs; `git show -w` shows the
   guard lines only), 99d5402 (redundant `SUPPORTED_PLATFORMS`, a reviewer nit).
-- **Tests:** `make lint build test` green. No behavior change on macOS, so no new tests. CI full run 40414394168
-  on 520cd9a.
+- **Tests:** `make lint build test` green. No behavior change on macOS, so no new tests. CI run 40414849033 on
+  9b0886e (a targeted run that builds and tests the whole tree) passed. The full push runs 40414394168 and
+  40414747064 were cancelled by later pushes; lane F's full runs cover this lane.
 - **Docs:** the lines that say the app builds for iOS (README, AGENTS.md, plan/README, ci.md, standards.md,
   features, machines, platform, decisions D34, index, iphone-and-ipad, resources/branding/README.md) went to
   lane D (l33-docs) as a list.
