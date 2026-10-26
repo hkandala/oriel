@@ -85,6 +85,9 @@
                let workspace = page.selectedWorkspace
             {
                 TabBar(workspace: workspace, page: page, plus: plus, overview: pages.overview)
+                    // Made anew per session: herdr's ids repeat across sessions ("w1:t1"), so a tab's announcement or
+                    // rename, and the row's scroll, carried over to the other session's tab.
+                    .id(page.id)
             } else {
                 Spacer(minLength: 0)
             }

@@ -222,4 +222,33 @@ extension OrielUITests {
     func sheetText(_ text: String) -> XCUIElement {
         app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text)).firstMatch
     }
+
+    /// A tab's "claude needs you" stays on its session's tab: session two's w1:t1 has the same id, and its capsule
+    /// showed the other session's announcement (phase 32).
+    func testAnnouncementStaysInItsSession() async throws {
+        XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
+        let created = try await Self.call(two, "tab.create", ["workspace_id": "w1", "label": "delta", "cwd": "/tmp",
+                                                              "focus": false])
+        let tab = try id(created, "tab")
+        addTeardownBlock { [one, two] in
+            _ = try? await Self.call(two, "tab.close", ["tab_id": tab])
+            _ = try? await Self.call(one, "pane.release_agent", ["pane_id": "w1:p1", "source": "oriel-e2e",
+                                                                 "agent": "claude"])
+        }
+        // Session two on its new tab, session one on t2: both w1:t1 capsules show, unselected.
+        openPage(two)
+        element("tab.\(tab)").click()
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
+        element("sidebar.dot.\(one)").click()
+        element("tab.w1:t2").click()
+        XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
+
+        try await report("w1:p1", "blocked", agent: "claude")
+        let capsule = element("tab.w1:t1")
+        XCTAssertTrue(until(3) { capsule.label.contains("claude needs you") }, capsule.label)
+        // Within its 3 s.
+        element("sidebar.dot.\(two)").click()
+        XCTAssertTrue(element("sidebar.header").has(\.stringValue, two, within: 2))
+        XCTAssertFalse(capsule.label.contains("needs you"), capsule.label)
+    }
 }
