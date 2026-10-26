@@ -111,9 +111,12 @@
             WindowPages.go(to: id)
         }
 
+        /// In the last key window, out of the Dock if minimized; with no window, a new one.
         @objc private func newTab() {
             NSApp.activate()
-            Task { await WindowPages.windows.first?.current?.newTab() }
+            guard let pages = WindowPages.windows.first, let page = pages.current else { return openWindowIfNone() }
+            pages.window?.makeKeyAndOrderFront(nil)
+            Task { await page.newTab() }
         }
 
         /// While the app is active too: it posts only for panes the user is not looking at.
