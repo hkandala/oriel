@@ -34,14 +34,16 @@
 
         var body: some View {
             HStack(spacing: gap) {
+                row
+            }
+            .underOverview(pages)
+            .overlay(alignment: .trailing) {
+                // The overview (D70): the traffic lights and one × that leaves it.
                 if pages.overview {
-                    // The overview (D70): the traffic lights and one × that leaves it.
-                    Spacer(minLength: 0)
                     // ⌃⌘O is the menu's.
                     IconButton(symbol: "xmark", help: "Close Overview", key: .overview) { pages.toggleOverview() }
                         .accessibilityIdentifier("overview.close")
-                } else {
-                    row
+                        .underOverview(pages, own: true)
                 }
             }
             .padding(.leading, Self.inset(fullScreen: fullScreen))

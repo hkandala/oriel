@@ -32,6 +32,8 @@
             .foregroundStyle(look.chrome)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("sidebar")
+            // e2e: made when it shows, not when the overview closes (phase 30).
+            .onAppear { Latency.shared.note("sidebar made") }
         }
 
         private var pagesAndFooter: some View {
@@ -52,7 +54,8 @@
                     }
                 }
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { area = $0 }
-                .background(ScrollAnchor(step: step, drag: drag, lift: lift, area: area))
+                // None under the overview, which takes its own swipes.
+                .background(ScrollAnchor(step: step, drag: drag, lift: lift, area: pages.overview ? .zero : area))
                 // A dot, a key, a new page or the sheet: slide there with the session spring. A swipe is there already.
                 .onChange(of: pages.list.map(\.id) + [pages.current?.id ?? ""], initial: true) { old, new in
                     guard let index = pages.list.firstIndex(where: { $0 === pages.current }),

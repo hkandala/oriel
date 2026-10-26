@@ -60,6 +60,9 @@
                         let isLive = live.contains(id)
                         // Not made for a tile that is not live (a view and a session each, while it scrolls).
                         let view = isLive ? page.terminal(pane) : page.terminals.terminals([id]).first
+                        // No picture yet: never drawn, or its snapshot gone; it loads in turn (`overviewCards`).
+                        let loading = view?.snapshot == nil && !(isLive && view?.ready == true)
+                            && view?.state.isFailed != true
                         ZStack {
                             Color.clear
                             if isLive, let view {
@@ -68,10 +71,16 @@
                             } else if let snapshot = view?.snapshot {
                                 Snapshot(surface: snapshot)
                             }
+                            if loading {
+                                Waiting()
+                            }
                         }
+                        // It drew: the next tile waiting loads (`overviewCards`).
+                        .onChange(of: loading) { page.terminals.pages?.settleOverview() }
                         .accessibilityElement()
                         .accessibilityIdentifier("overview.card.\(pane.id)")
-                        .accessibilityValue(isLive ? "live" : view?.snapshot == nil ? "empty" : "snapshot")
+                        .accessibilityValue(loading ? "loading" : isLive ? "live" :
+                            "snapshot \(view?.snapshot?.width ?? 0)")
                         .frame(width: terminal.width * scale, height: terminal.height * scale)
                         .padding(.leading, PaneCard.inset * scale)
                         .padding(.top, PaneCard.header * scale)

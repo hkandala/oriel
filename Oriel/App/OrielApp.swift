@@ -251,22 +251,25 @@ struct OrielApp: App {
                 )
                 .zIndex(1)
                 HStack(spacing: 0) {
+                    if sidebar {
+                        // As in Rex, the cards start at the sidebar's width: its handle lies over the strip's 8 pt gap.
+                        Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { panel = .openSession }
+                            .padding(.bottom, gap)
+                            // Rex's page header and first row sit 3 pt lower than the strip's 4 pt room.
+                            .padding(.top, 7)
+                            .padding(.trailing, -gap)
+                            .underOverview(pages)
+                            .zIndex(1)
+                            .transition(.move(edge: .leading).combined(with: .opacity))
+                    }
+                    if !pages.overview {
+                        Detail(pages: pages, page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .overlay {
                     if pages.overview {
                         Overview(pages: pages, leading: sidebar ? sidebarWidth - gap : 0)
-                    } else {
-                        if sidebar {
-                            // As in Rex, the cards start at the sidebar's width: its handle lies over the strip's 8 pt
-                            // gap.
-                            Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { panel = .openSession }
-                                .padding(.bottom, gap)
-                                // Rex's page header and first row sit 3 pt lower than the strip's 4 pt room.
-                                .padding(.top, 7)
-                                .padding(.trailing, -gap)
-                                .zIndex(1)
-                                .transition(.move(edge: .leading).combined(with: .opacity))
-                        }
-                        Detail(pages: pages, page: page)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
             }
@@ -312,12 +315,6 @@ struct OrielApp: App {
                        shown: UserDefaults.standard.bool(forKey: "recordLinks"))
             .testValue("app.latency", "Latency", Latency.shared.recorded.joined(separator: "; "), shown: Latency.isOn)
             .testValue("app.frames", "Frames", FrameProbe.shared.recorded, shown: FrameProbe.isOn)
-            .testValue(
-                "overview.motion",
-                "Overview Motion",
-                "\(MiniTerminal.Mini.most)",
-                shown: TerminalHost.Host.record,
-            )
             .onChange(of: panel, initial: true) { pages.panelOpen = panel != nil }
             // The sidebar and the Agents view count as drawn changes too (phase 29).
             .onChange(of: "\(panel.map { "\($0)" } ?? "") \(sidebar) \(agents)", initial: true) {

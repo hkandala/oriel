@@ -98,6 +98,12 @@
             // e2e: the live cards and the snapshots kept (`-recordMotion YES`).
             .testValue("overview.snapshots", "Overview Snapshots",
                        "\(pages.overviewLive.count) \(PaneTerminal.snapshots.count)", shown: TerminalHost.Host.record)
+            .testValue(
+                "overview.motion",
+                "Overview Motion",
+                "\(MiniTerminal.Mini.most)",
+                shown: TerminalHost.Host.record,
+            )
             // The keyboard leaves the terminals, which take none while in a miniature (`PaneSurfaceView`). Esc by a
             // monitor: a SwiftUI focus did not take the keyboard from a terminal moving into a miniature (CI).
             .onAppear {
@@ -142,6 +148,31 @@
                     pages.closeOverview()
                 }
             }
+        }
+    }
+
+    extension View {
+        /// The window's chrome (the sidebar, the title row) under the overview: laid out while it is open, hidden, so
+        /// it
+        /// fades in with the zoom; made once the zoom ended, it came a moment late in a big session (phase 30). `own`:
+        /// the overview's ×, the other way round.
+        func underOverview(_ pages: WindowPages, own: Bool = false) -> some View {
+            modifier(UnderOverview(pages: pages, own: own))
+        }
+    }
+
+    private struct UnderOverview: ViewModifier {
+        let pages: WindowPages
+        let own: Bool
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        func body(content: Content) -> some View {
+            let open = pages.overview && !pages.leaving
+            content.opacity(open == own ? 1 : 0)
+                // The zoom's time.
+                .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18), value: open)
+                .allowsHitTesting(open == own)
+                .accessibilityHidden(open != own)
         }
     }
 
@@ -206,154 +237,38 @@
         /// the session. A remote machine's cards share the relay's one SSH session: 6. The other tiles show their
         /// snapshot.
         func overviewCards(_ page: Page) -> [String: String] {
-            var cards: [String: String] = [:]
-            for tab in (overviewTabs[page.id] ?? []).reversed() {
-                let tabCards = (page.store.tabPanes[tab] ?? []).filter { !page.floats($0) }
+            let tabs = (overviewTabs[page.id] ?? []).reversed().map { tab in
+                (page.store.tabPanes[tab] ?? []).filter { !page.floats($0) }
                     .compactMap { pane in pane.terminalID.map { ($0, pane.id) } }
-                guard cards.count + tabCards.count <= (machine.isRemote ? 6 : 16) else { continue }
+            }
+            // Those with a card that has no picture yet first (a loader shows there), so each tile in view gets one in
+            // turn (phase 30); one that drew lets go if another waits, and keeps its snapshot.
+            let drawn = { (tab: [(String, String)]) in
+                tab.allSatisfy { id, _ in
+                    page.terminals.terminals([id]).first
+                        .map { $0.snapshot != nil || $0.inView && $0.ready || $0.state.isFailed }
+                        ?? false
+                }
+            }
+            var cards: [String: String] = [:]
+            for tabCards in tabs.filter({ !drawn($0) }) + tabs.filter(drawn) {
+                // A tab over the cap alone still loads.
+                guard cards.isEmpty || cards.count + tabCards.count <= (machine.isRemote ? 6 : 16) else { continue }
                 cards.merge(tabCards) { first, _ in first }
             }
             return cards
         }
-    }
 
-    /// One session: its workspaces in the sidebar's order, each its name over a grid of its tabs.
-    private struct OverviewPage: View {
-        let pages: WindowPages
-        let page: Page
-        /// The strip's page.
-        let size: CGSize
-        let frames: Overview.Frames
-        /// The margin left and right; the grid between them.
-        let side: CGFloat
-        /// Tiles a row: 2 to 4 by the window's width.
-        let columns: Int
-        /// The tab whose miniature zooms: its tile leaves the terminals to it.
-        let zooming: String?
-        let open: (HostStore.Workspace, HostStore.Tab) -> Void
-
-        var body: some View {
-            ScrollView(.vertical) {
-                // Lazy by row: only the tiles in or near view are made, whatever the session's size. Fixed columns:
-                // a short last row keeps their width.
-                let grid = Array(repeating: GridItem(.flexible(), spacing: 16), count: columns)
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(page.store.title).font(.system(size: 13, weight: .semibold))
-                        .accessibilityIdentifier("overview.title")
-                    LazyVGrid(columns: grid, alignment: .leading, spacing: 16) {
-                        ForEach(page.sidebarWorkspaces) { workspace in
-                            Section {
-                                ForEach(workspace.tabs) { tab in
-                                    Tile(
-                                        pages: pages,
-                                        page: page,
-                                        workspace: workspace,
-                                        tab: tab,
-                                        size: size,
-                                        frames: frames,
-                                        zooming: zooming == tab.id,
-                                    ) { open(workspace, tab) }
-                                }
-                            } header: {
-                                // 32 pt below the rows above, 12 pt above its own.
-                                Text(workspace.label).font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.top, 16)
-                                    .padding(.bottom, -4)
-                                    .accessibilityIdentifier("overview.workspace.\(workspace.id)")
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, side)
-                .padding(.vertical, 40)
-            }
-            .scrollIndicators(.never)
-            .accessibilityIdentifier("overview.page.\(page.id)")
-        }
-    }
-
-    /// A tab as one card: its title row (icon stack, title, status; × on hover) over the miniature of its page. The
-    /// selected tab of its workspace has the keyboard card's look.
-    private struct Tile: View {
-        let pages: WindowPages
-        let page: Page
-        let workspace: HostStore.Workspace
-        let tab: HostStore.Tab
-        /// The strip's page.
-        let size: CGSize
-        let frames: Overview.Frames
-        /// Its miniature zooms to the page: the tile leaves the terminals to it.
-        let zooming: Bool
-        let open: () -> Void
-        @State private var hovering = false
-
-        var body: some View {
-            let selected = page.selectedTabIDs[workspace.id] == tab.id
-            let state = tab.agent?.state
-            VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    IconStack(panes: page.stack(tab), badge: state)
-                    FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
-                    Spacer(minLength: 0)
-                    if hovering {
-                        // As the tab bar's ×: asks first only when a program runs.
-                        IconButton(symbol: "xmark", help: "Close Tab", key: .closeTab, size: 22) {
-                            page.close(.tab(tab.id))
-                        }
-                        .accessibilityIdentifier("overview.tab.\(tab.id).close")
-                    } else if let state, state != .idle {
-                        StateCapsule(state: state)
-                    }
-                }
-                .padding(.leading, 11)
-                .padding(.trailing, 8)
-                .frame(height: PaneCard.header)
-                Group {
-                    if zooming {
-                        Color.clear
-                    } else {
-                        Miniature(tab: tab, page: page, size: size, live: pages.overviewLive)
-                    }
-                }
-                .aspectRatio(size, contentMode: .fit)
-                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Overview.space)) } action: {
-                    frames.rects["\(page.id) \(tab.id)"] = $0
-                }
-                .padding([.horizontal, .bottom], gap)
-            }
-            .frame(maxWidth: .infinity)
-            .background(CardSurface(keyboard: selected))
-            // The tiles in view may be live (`showTerminals`); the others show their snapshot.
-            .onScrollVisibilityChange(threshold: 0.01) { laidOut($0) }
-            .contentShape(.rect)
-            .onTapGesture(perform: open)
-            .onHover { hovering = $0 }
-            .accessibilityElement(children: .contain)
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(page.titleText(tab))
-            .accessibilityValue(selected ? "selected" : "")
-            .accessibilityIdentifier("overview.tab.\(tab.id)")
-            .accessibilityAction(.default, open)
-        }
-
-        private func laidOut(_ shown: Bool) {
-            // Closing: `closeOverview` lets them all go at once.
-            guard pages.overview else { return }
-            // The latest in view last: they go live first.
-            pages.overviewTabs[page.id, default: []].removeAll { $0 == tab.id }
-            if shown {
-                pages.overviewTabs[page.id, default: []].append(tab.id)
-            }
-            // While tiles keep coming (a scroll), none turns live (a new surface and stream each, on the main thread):
-            // they show their snapshots, and those in view turn live 150 ms after the last came in. A tile scrolled
-            // away lets go then too.
-            pages.overviewSettling?.cancel()
-            pages.overviewSettling = Task {
+        /// The tiles in view turn live 150 ms after the last change: while tiles keep coming (a scroll), none does (a
+        /// new surface and stream each, on the main thread); they show their snapshots meanwhile. A tile scrolled away
+        /// lets go then too, and one that drew while another waits (`overviewCards`).
+        func settleOverview() {
+            guard overview, !leaving else { return }
+            overviewSettling?.cancel()
+            overviewSettling = Task {
                 try? await Task.sleep(for: .milliseconds(150))
                 if !Task.isCancelled {
-                    pages.showTerminals()
+                    showTerminals()
                 }
             }
         }

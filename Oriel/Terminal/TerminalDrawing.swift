@@ -90,17 +90,23 @@
         }
     }
 
-    /// The overview's snapshots (phase 28): a tile that is not live shows its terminal's last picture, 360 px wide at
-    /// most (about 0.4 MB), so one scrolled into view shows at once, with no fade, until it is live. An IOSurface: Core
-    /// Animation shows it without a copy of its own (a `CGImage` doubled the memory, phase 28 on Retina).
+    /// The overview's snapshots (phase 28): a tile that is not live shows its terminal's last picture, at the tile's
+    /// pixel size (phase 30: 360 px wide blurred on Retina, then sharpened as it turned live), so one scrolled into
+    /// view
+    /// shows at once, with no fade, until it is live. An IOSurface: Core Animation shows it without a copy of its own
+    /// (a
+    /// `CGImage` doubled the memory, phase 28 on Retina).
     extension PaneTerminal {
-        /// ponytail: a count, not bytes; 256 at most is about 100 MB. Least recently taken first out.
+        /// Least recently taken first out, past 100 MB (lane P): a full-window card's is about 1.3–1.7 MB on Retina.
         @MainActor static var snapshots: [PaneTerminal] = []
+        /// The overview's tiles' scale of the strip's page, from their last layout (`Overview`); until one laid out,
+        /// more than any tile's.
+        @MainActor static var tileScale: CGFloat = 0.5
         private static let context = CIContext(options: [.cacheIntermediates: false])
 
         func takeSnapshot() {
             guard let surface = view.picture as? IOSurface, !surface.emptied else { return }
-            let space = IOSurfaceCopyValue(surface, kIOSurfaceColorSpace), scale = min(1, 360 / CGFloat(surface.width))
+            let space = IOSurfaceCopyValue(surface, kIOSurfaceColorSpace), scale = min(1, Self.tileScale)
             // Bilinear: Lanczos cost a few ms more on every tab switch, for a picture shown a moment.
             let image = CIImage(ioSurface: surface).transformed(by: CGAffineTransform(scaleX: scale, y: scale))
             let size = image.extent.integral
@@ -116,7 +122,7 @@
             snapshot = small
             Self.snapshots.removeAll { $0 === self }
             Self.snapshots.append(self)
-            while Self.snapshots.count > 256 {
+            while Self.snapshots.reduce(0, { $0 + ($1.snapshot?.allocationSize ?? 0) }) > 100 << 20 {
                 Self.snapshots.removeFirst().snapshot = nil
             }
         }

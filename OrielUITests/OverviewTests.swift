@@ -7,9 +7,10 @@ extension OrielUITests {
     /// tab; a click shows that tab, its terminals at their size; Esc and the title row's × leave too.
     func testOverviewShowsEveryTabLiveAndOpensOne() async throws {
         // The zoom runs, for the recording, and its miniature's sizes are counted.
-        relaunch(nil, ["-forceMotion", "YES", "-recordMotion", "YES"])
+        relaunch(nil, ["-forceMotion", "YES", "-recordMotion", "YES", "-recordLatency", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (closing, _) = try await newTab("closing", in: "w1")
+        let made = sidebarsMade
         // A white block in w2's pane, which no card showed yet.
         let block = "clear; for i in 1 2 3 4 5 6 7 8 9 10; do printf '\\033[107m%300s\\033[0m\\n' ''; done"
         try await send("\(block); echo block-$((6*7))\r", to: "w2:p1")
@@ -45,6 +46,8 @@ extension OrielUITests {
         tile.click()
         XCTAssertTrue(overview.vanishes(within: 2))
         XCTAssertTrue(element("sidebar").exists(within: 2))
+        // The sidebar stayed under the overview and faded in with the zoom; made after it, it came late (phase 30).
+        XCTAssertEqual(sidebarsMade, made)
         XCTAssertTrue(element("tab.w2:t1").has(\.isSelected, true, within: 2))
         XCTAssertTrue(hasKeyboard(element("terminal.w2:p1")))
         try await expectPTYSize("w2:p1")
@@ -88,6 +91,36 @@ extension OrielUITests {
             print("zoom, \(round): \(values) host \(element("host.\(pane)").label)")
             XCTAssertFalse(values.contains { $0.contains("loading") }, "\(round): \(values)")
         }
+    }
+
+    /// Tiles with nothing to show yet show a loader, and each tile in view gets its picture in turn (phase 30): two
+    /// never shown tabs of 9 panes each, side by side, more than the 16 live cards together. Before, the one past the
+    /// cap stayed blank as long as it was in view.
+    func testOverviewLoadsEveryTileInTurn() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (first, root) = try await createWorkspace("loads")
+        let second = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: first), "cwd": "/tmp",
+                                                             "focus": false])
+        var panes: [String] = []
+        for pane in try [root, id(second, "root_pane")] {
+            var last = pane
+            panes.append(last)
+            for index in 0 ..< 8 {
+                last = try await split(last, index.isMultiple(of: 2) ? "right" : "down")
+                panes.append(last)
+            }
+        }
+        app.typeKey("o", modifierFlags: [.command, .control])
+        let tile = try element("overview.tab.\(id(second, "tab"))")
+        scrollOverview(to: tile)
+        let cards = panes.map { element("overview.card.\($0)") }
+        var loaders = false
+        try await poll("every card to draw", times: 150) { () -> Bool? in
+            let values = cards.map(\.stringValue)
+            loaders = loaders || values.contains("loading")
+            return values.allSatisfy { $0 == "live" || $0.hasPrefix("snapshot") } ? true : nil
+        }
+        XCTAssertTrue(loaders, "no loader while the tiles loaded")
     }
 
     /// The title row has the traffic lights and one × only; the grid (its first row's two tiles) is centered with wide
@@ -191,7 +224,11 @@ extension OrielUITests {
         let card = element("overview.card.\(panes[1])")
         scrollOverview(to: element("overview.tab.\(tabs[1])"), step: 3000, steps: 1)
         XCTAssertTrue(card.exists)
-        XCTAssertNotEqual(card.stringValue, "empty")
+        XCTAssertNotEqual(card.stringValue, "loading")
+        // A snapshot at the tile's pixel size (phase 30): "snapshot ‹width in pixels›".
+        if let width = Double(card.stringValue.dropFirst("snapshot ".count)) {
+            XCTAssertGreaterThanOrEqual(width, card.frame.width * (NSScreen.main?.backingScaleFactor ?? 1) - 2)
+        }
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
         try await poll("the overview's streams to end") { () async throws -> Int? in
@@ -251,6 +288,11 @@ extension OrielUITests {
         XCTAssertLessThan(footprint(scrolled), footprint(strip) + 1600, scrolled)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
+    }
+
+    /// How many times the sidebar was made (`-recordLatency`).
+    var sidebarsMade: Int {
+        element("app.latency").stringValue.components(separatedBy: "sidebar made").count
     }
 
     /// The footprint in a `usage` report, in MB.
