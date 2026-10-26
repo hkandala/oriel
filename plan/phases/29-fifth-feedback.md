@@ -182,3 +182,16 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
     letter ("G" for glow) that is smaller than the logos, so names after it do not line up. Every program
     icon, letters included, takes the same box everywhere it shows (hover card rows, tab capsules, card
     headers, Agents rows, palette, overview tiles), so the names align.
+
+## More from the user (2026-10-25 18:30)
+
+- (Lane R) The + and pencil glyphs in the Add / Edit Remote Host titles look off and out of line
+  (`.build/fb/s-6.21.46.png`, `s-6.21.55.png`): drop them (title text only) or size and align them on the
+  title's text line; the title's leading edge lines up with the form.
+- (Lane R) Open Session shows another device's sessions: a window lists only the sessions of its own
+  machine. The phase 29 lane M cache must be per machine and must never show another machine's list.
+- (Lane E) With several sessions, the sidebar shows workspaces only for the first one once a swipe settles
+  (`.build/fb/s-6.20.01.png`, `s-6.20.06.png`: the pages overlap mid-way). Likely the bug 643e336 fixed;
+  confirm on the user's case.
+- (Lane F) The floating placeholder gets two buttons: "Show Window" (brings the floating window forward)
+  and "Bring Back Here" (detaches: closes the floating window and shows the pane in its card again).
