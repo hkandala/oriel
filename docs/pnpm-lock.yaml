@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      cnfast:
-        specifier: ^0.0.8
-        version: 0.0.8
       fumadocs-core:
         specifier: 16.11.4
         version: 16.11.4(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.17)(lucide-react@1.24.0(react@19.2.7))(next@16.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.4.3)
