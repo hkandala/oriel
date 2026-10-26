@@ -30,7 +30,7 @@ test:
 	swift test --package-path Packages/HerdrKit --scratch-path $(DERIVED_DATA)/HerdrKit
 	swiftc -parse-as-library Oriel/Views/ThreeFingers.swift scripts/three-fingers-check.swift -o $(DERIVED_DATA)/three-fingers
 	$(DERIVED_DATA)/three-fingers
-	@# The About panel's license texts hold every icon license as build.mjs writes it.
+	@# The About window's Acknowledgements hold every icon license as build.mjs writes it.
 	python3 -c 'import pathlib, sys; texts = pathlib.Path("Oriel/Acknowledgements.txt").read_text(); \
 		sys.exit([f"{f} is not in Oriel/Acknowledgements.txt" for f in pathlib.Path("resources/icons/licenses").iterdir() \
 			if f.read_text().strip() not in texts] or None)'
