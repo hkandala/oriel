@@ -11,10 +11,13 @@
         /// `keybind = clear`: app shortcuts reach the menu. Transparent, so the card shows through.
         /// No padding, so cells map from the view's origin; no scrollback, herdr keeps it. The system
         /// monospaced font (SF Mono) rather than libghostty's own JetBrains Mono.
+        ///
         /// Selections keep each cell's own text color over a macOS-like blue. libghostty's Alabaster and Afterglow set
         /// only a selection background, and Ghostty then draws selected text in the window background: `#212121` on
         /// `#303030` in dark, `#F7F7F7` on `#C9D0D9` in light (phase 29 lane C). Light: macOS's selected-text blue;
-        /// dark: the system blue at 0.25 over Afterglow's background, so Afterglow's text keeps about its old contrast.
+        /// dark: the system blue at 0.25 over Afterglow's background, for 7.6 to 1 under Afterglow's text (macOS's dark
+        /// `#3F638B` gives 4.0, under WCAG's 4.5). Reverse-video cells still draw in the background color
+        /// (Ghostty's rule).
         /// ponytail: always blue; follow the accent color (`NSColor.selectedTextBackgroundColor`) if users ask.
         static let controller = TerminalController(theme: TerminalTheme(
             light: .alabaster.selectionBackground("B3D7FF").selectionForeground("cell-foreground"),
