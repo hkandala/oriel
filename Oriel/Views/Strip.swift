@@ -113,6 +113,9 @@
         /// The app's ratio of a split (by path) while its divider is dragged or sent, until herdr's snapshot shows its
         /// own.
         @State private var held: [[Bool]: Double] = [:]
+        /// e2e (`-recordMotion YES`): the cards that came into the page and went from it. Each new pane comes once:
+        /// herdr's pane takes its stand-in's card (phase 30).
+        @State private var cards = (came: 0, went: 0)
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         /// A third shorter than phase 25's 0.2 s, which the user found slow (phase 27).
@@ -142,6 +145,8 @@
                             .allowsHitTesting(!away)
                             // A closed card fades as the others grow. A new one fades in with its slide (`entering`).
                             .transition(.asymmetric(insertion: .identity, removal: .opacity))
+                            .onAppear { cards.came += TerminalHost.Host.record ? 1 : 0 }
+                            .onDisappear { cards.went += TerminalHost.Host.record ? 1 : 0 }
                     }
                     ForEach(parts.dividers, id: \.id) { divider in
                         // The panes beside the divider.
@@ -157,6 +162,7 @@
                     }
                 }
             }
+            .testValue("cards.\(tabID)", "Cards", "\(cards.came) \(cards.went)", shown: TerminalHost.Host.record)
             .animation(motion, value: tree)
             .animation(motion, value: zoomed)
             .onChange(of: tree, initial: true) {

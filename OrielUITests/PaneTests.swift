@@ -147,12 +147,23 @@ extension OrielUITests {
 
     /// ⌘D pressed fast three times splits the newest card each time, as Ghostty does, and the last one made keeps the
     /// keyboard; ⌘W then steps back through them (phase 29: each split the old card, and the keyboard went to the pane
-    /// whose terminal settled last).
+    /// whose terminal settled last). Each new card comes once, where it ends up: herdr's pane takes its stand-in's card
+    /// (`-recordMotion`'s cards that came and went; phase 30: stand-ins replaced in one snapshot went, and herdr's
+    /// panes slid in again beside them).
     func testQuickSplitsSplitTheNewestAndItKeepsTheKeyboard() async throws {
+        relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let (tab, first) = try await newTab("quick-splits")
         element("tab.\(tab)").click()
         element("terminal.\(first)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        let cards = element("cards.\(tab)")
+        XCTAssertTrue(cards.exists(within: 2))
+        let before = cards.stringValue.split(separator: " ").compactMap { Int($0) }
+        XCTAssertEqual(before.count, 2, cards.stringValue)
+        func counts(came: Int, went: Int) -> String {
+            "\(before[0] + came) \(before[1] + went)"
+        }
         // Back to back: the second and third ⌘D come while herdr makes the first's pane (a split is 4 herdr runs).
         for _ in 0 ..< 3 {
             app.typeKey("d", modifierFlags: .command)
@@ -164,12 +175,15 @@ extension OrielUITests {
         // The newest is the rightmost (the old code split the first card each time: the newest came right of it).
         XCTAssertEqual(panes.first, first)
         XCTAssertTrue(hasKeyboard(element("terminal.\(panes[3])")))
+        // herdr's cards shown: three came, none went.
+        XCTAssertTrue(cards.has(\.stringValue, counts(came: 3, went: 0), within: 2), "came went: \(cards.stringValue)")
         try await typeAndRead(panes[3])
         for (closed, next) in [(panes[3], panes[2]), (panes[2], panes[1])] {
             app.typeKey("w", modifierFlags: .command)
             XCTAssertTrue(element("pane.\(closed)").vanishes(within: 3))
             XCTAssertTrue(hasKeyboard(element("terminal.\(next)")), "after closing \(closed)")
         }
+        XCTAssertTrue(cards.has(\.stringValue, counts(came: 3, went: 2), within: 2), "came went: \(cards.stringValue)")
     }
 
     /// ⌥⌘ arrows pick from the layout, at once, as Ghostty does (phase 29, the user's layout): three columns, the third
