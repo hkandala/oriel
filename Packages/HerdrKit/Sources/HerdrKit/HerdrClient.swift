@@ -54,6 +54,10 @@ public actor HerdrClient {
     private var lastRead: ContinuousClock.Instant?
     private var reading = false
     private var readAgain = false
+    /// Set by a write's refresh: the next read is not spaced.
+    private var hurry = false
+    /// The wait before a spaced read, which a write's refresh cuts short.
+    private var pause: Task<Void, Never>?
     private var heartbeat: Task<Void, Never>?
     private var events: Task<Void, Never>?
     /// Agent panes of the open events stream; nil when no stream is open.
@@ -163,11 +167,6 @@ public actor HerdrClient {
         pause?.cancel()
         read()
     }
-
-    /// Set by a write's refresh: the next read is not spaced.
-    private var hurry = false
-    /// The wait before a spaced read, which a write's refresh cuts short.
-    private var pause: Task<Void, Never>?
 
     private func read() {
         guard out != nil else { return }
