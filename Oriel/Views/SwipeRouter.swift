@@ -209,7 +209,8 @@
         @ViewBuilder let content: Content
 
         var body: some View {
-            content.modifier(Slid(offset: swipe.slide * width, swipe: swipe))
+            // At rest it holds only the page in view.
+            content.modifier(Slid(offset: swipe.moving ? swipe.slide * width : 0, swipe: swipe))
                 .frame(width: width, alignment: .leading)
                 .frame(maxHeight: .infinity)
                 .clipped()
@@ -226,8 +227,10 @@
         }
 
         func body(content: Content) -> some View {
-            swipe.drawn = offset
-            Latency.shared.slid(offset)
+            if swipe.moving {
+                swipe.drawn = offset
+                Latency.shared.slid(offset)
+            }
             return content.offset(x: -offset)
         }
     }

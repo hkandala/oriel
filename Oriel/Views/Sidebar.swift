@@ -38,22 +38,16 @@
             VStack(spacing: 0) {
                 Pager(swipe: swipe, width: width - gap) {
                     HStack(spacing: 0) {
-                        // The other pages only while the pages move: at rest they would lie over the strip, in the
-                        // sidebar's accessibility frame and in AppKit's hit tests.
-                        ForEach(pages.list) { page in
-                            Group {
-                                if page === pages.current || swipe.moving {
-                                    SidebarPage(page: page, pages: pages, filter: filter, agents: agents ? $sort : nil)
-                                        .accessibilityHidden(page !== pages.current)
-                                        .allowsHitTesting(page === pages.current)
-                                        .environment(\.offscreen, page !== pages.current)
-                                        .transition(.identity)
-                                } else {
-                                    // Its room: an empty group takes none, and the pages after it moved over.
-                                    Color.clear
-                                }
-                            }
-                            .frame(width: width - gap)
+                        // At rest only the page in view (`Pager`): the others would lie over the strip, in the
+                        // sidebar's accessibility frame (which takes in laid-out views past the clip) and in AppKit's
+                        // hit tests.
+                        ForEach(swipe.moving ? pages.list : pages.list.filter { $0 === pages.current }) { page in
+                            SidebarPage(page: page, pages: pages, filter: filter, agents: agents ? $sort : nil)
+                                .frame(width: width - gap)
+                                .accessibilityHidden(page !== pages.current)
+                                .allowsHitTesting(page === pages.current)
+                                .environment(\.offscreen, page !== pages.current)
+                                .transition(.identity)
                         }
                     }
                 }
@@ -299,9 +293,13 @@
             let width = max(width - gap, 1), last = Double(max(pages.list.count - 1, 0))
             if first {
                 swipe.moves += 1
+                // Mid-slide: from where the pages are drawn.
+                if swipe.moving {
+                    swipe.slide = swipe.drawn / width
+                }
                 swipe.moving = true
             }
-            swipe.slide = min(max((first ? swipe.drawn / width : swipe.slide) + delta / width, 0), last)
+            swipe.slide = min(max(swipe.slide + delta / width, 0), last)
         }
 
         /// A mouse's sideways wheel: the next or previous page.
@@ -346,15 +344,28 @@
                 then()
                 return
             }
-            withAnimation(animation, completionCriteria: .logicallyComplete) {
-                swipe.moving = true
-                swipe.slide = Double(index)
-            } completion: {
-                if swipe.moves == move {
-                    swipe.moving = false
-                    then()
+            let slide = {
+                withAnimation(animation, completionCriteria: .logicallyComplete) {
+                    swipe.slide = Double(index)
+                } completion: {
+                    if swipe.moves == move {
+                        swipe.moving = false
+                        then()
+                    }
                 }
             }
+            guard swipe.moving else {
+                // The other pages first, in an update of their own: in the slide's, the pages' offset from rest (0)
+                // would slide too.
+                swipe.moving = true
+                Task {
+                    if swipe.moves == move {
+                        slide()
+                    }
+                }
+                return
+            }
+            slide()
         }
     }
 
