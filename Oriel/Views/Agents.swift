@@ -235,7 +235,9 @@ struct StatusBadge: View {
     extension HostStore {
         /// The agent panes in herdr's order of workspaces, tabs and panes.
         var agentPanes: [Pane] {
-            workspaces.flatMap(\.tabs).flatMap { tab in panes.filter { $0.tabID == tab.id && $0.state != nil } }
+            // Grouped once: a filter of every pane for each tab was 180,000 steps at 300 tabs and 600 panes (phase 29).
+            let agents = Dictionary(grouping: panes.filter { $0.state != nil }, by: \.tabID)
+            return workspaces.flatMap(\.tabs).flatMap { agents[$0.id] ?? [] }
         }
     }
 
@@ -256,7 +258,8 @@ struct StatusBadge: View {
             }
             let folded = Set(folded.split(separator: "\n").map(String.init))
             ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
+                // Lazy: only the rows in view are built, of a hundred agents or more (phase 29).
+                LazyVStack(alignment: .leading, spacing: 4) {
                     if sort == .priority {
                         ForEach([AgentState.needsYou, .working, .finishedUnseen, .idle], id: \.self) { state in
                             let group = rows.filter { $0.state == state }, key = key("\(state)")
