@@ -60,7 +60,7 @@ The split tree is `proto.Layout` (`internal/proto/layout.go:6-12`): a leaf has `
 (side by side, else stacked), `Ratio`, `A` and `B`. It is almost the same as Oriel's `SplitNode`. Kero splits
 in all four directions in the tree itself: `Split(at, pane, direction, ratio)` puts the new pane first for
 left and up (`layout.go:51-76`). herdr has only right and down, so Oriel needs a swap after a move for left
-and top (see `plan/ui-layout.md`).
+and top (see `docs/content/docs/ui/drag-and-drop.mdx`).
 
 Other layout operations: `Remove` (`layout.go:80-100`), `Neighbor` by pane centers on a unit square
 (`layout.go:104-137`), `Move` as remove then split beside a target at 0.5 (`layout.go:169-178`) and `Swap`
@@ -290,7 +290,7 @@ and plugin cards placeholder herdr panes with a label `oriel:<kind>#<iid> <arg>`
 - Other devices and iOS: each device runs its own git calls on the machine, over SSH on iOS. Nothing syncs.
   On iPhone, the panel is a sheet or a pushed page from the card's git chip. On iPad, the same drawer.
 - Header chip (idea 3): a small chip in the card header with branch and `+N −M` from
-  `git diff --numstat HEAD`, one run per worktree. `plan/ui-layout.md` says workspace rows show no
+  `git diff --numstat HEAD`, one run per worktree. `docs/content/docs/ui/window.mdx` says workspace rows show no
   changed-file count. The chip is on cards, not rows, so it does not break that rule, but the user must agree
   to it.
 - Colors (idea 5): take the green, red and yellow of the terminal theme that Oriel already gives libghostty.
@@ -314,7 +314,7 @@ and plugin cards placeholder herdr panes with a label `oriel:<kind>#<iid> <arg>`
 
 ### Git refresh (idea 4)
 
-Oriel now runs `git status` every 10 s for the page in view (`plan/ui-layout.md`, "Git data"). Kero's
+Oriel now runs `git status` every 10 s for the page in view (`docs/content/docs/talking-to-herdr.mdx`, "Git status"). Kero's
 approach costs less on the Mac and is faster: stat `HEAD`, `index` and the branch ref each second, and run
 `git status` only on a change or an agent status change. On a remote machine each stat is a round trip, so
 batch them in one `stat` command per tick, or keep the 10 s poll there. This needs no herdr data.
@@ -347,7 +347,7 @@ other. `WKWebView` exists on both macOS and iOS.
 
 ### Drop zones and motion (idea 8)
 
-Oriel's drop table in `plan/ui-layout.md` already has center swap and edge split. Take Kero's numbers as a
+Oriel's drop table in `docs/content/docs/ui/drag-and-drop.mdx` already has center swap and edge split. Take Kero's numbers as a
 starting point: the swap zone is the middle 30-70 % on both axes, and the label pill names the action. Phase
 18 owns the look.
 
@@ -404,7 +404,7 @@ placeholder pane.
 - Automatic size claims from the system idle time. Oriel's explicit control hand-off with Take Back is
   clearer. Kero's "claim on scroll" is a small extra worth noting, not a model to replace Oriel's.
 - Drag and drop that only works inside one session. Kero cannot move a pane to another session
-  (`panes.go:221-231` checks `d.session == s.ID`). Oriel's table in `plan/ui-layout.md` already does more.
+  (`panes.go:221-231` checks `d.session == s.ID`). Oriel's table in `docs/content/docs/ui/drag-and-drop.mdx` already does more.
 
 ## Assumptions
 
