@@ -275,7 +275,7 @@ extension OrielUITests {
         try await Self.post("\(one)/ssh-forget", Data("oriel-pw".utf8))
         relaunch(one, ["-machines", "[]"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
-        let first = app.windows.firstMatch
+        let first = app.windows.firstMatch.identifier
         _ = openSessionPanel()
         XCTAssertTrue(element("open-session.session.\(two)").exists(within: connect))
         XCTAssertTrue(element("open-session.section.Running").exists)
@@ -285,7 +285,7 @@ extension OrielUITests {
         element("ask.ok").click()
         try typePassword()
         XCTAssertTrue(app.staticTexts["herdr is not installed on Password Host"].exists(within: connect))
-        XCTAssertNotEqual(app.windows.firstMatch.identifier, first.identifier)
+        XCTAssertNotEqual(app.windows.firstMatch.identifier, first)
         let menu = element("titlebar.machine", in: app.windows.firstMatch)
         menu.click()
         menu.menuItems["Open Session…"].click()
