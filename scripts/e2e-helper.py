@@ -47,6 +47,11 @@ import time
 split = sys.argv.index("--")
 sessions, command = sys.argv[1:split], sys.argv[split + 1:]
 folders = []
+# Compiled once, beside the app's build: `swift` interpreting the script again took up to 10 s a swipe on CI.
+tools = tempfile.mkdtemp()
+folders.append(tools)
+builds = {name: subprocess.Popen(["swiftc", f"scripts/{name}.swift", "-o", f"{tools}/{name}"],
+                                 stderr=open(f"{tools}/{name}.log", "wb")) for name in ("swipe", "drag")}
 
 
 def cpu_seconds(pids):
@@ -120,9 +125,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
         elif action in ("swipe", "drag"):
-            run = subprocess.run(["swift", f"scripts/{action}.swift"] + body.decode().split(), capture_output=True,
-                                 timeout=120)
-            status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
+            if builds[action].wait() != 0:
+                with open(f"{tools}/{action}.log", "rb") as log:
+                    status, reply = 500, log.read()
+            else:
+                run = subprocess.run([f"{tools}/{action}"] + body.decode().split(), capture_output=True, timeout=120)
+                status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "ssh-drop":
             pattern = f"ssh -M -N -f .* {body.decode()}$"
             pids = subprocess.run(["pgrep", "-f", pattern], capture_output=True).stdout
