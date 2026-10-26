@@ -17,6 +17,18 @@
         /// What the menu bar shows of `all`, when it was made (`menuBar`).
         var shown: [String] = []
 
+        /// Move Pane to Tab lists the session's tabs; not in the menu bar (`menuBarList`).
+        private var tabs = true
+
+        /// The menu bar's: Move Pane to Tab without the session's tabs (phase 30). AppKit's key equivalent search walks
+        /// the whole menu bar at every key (about 30 ms at 300 tabs), and each tab's new title made the menu bar again.
+        /// The card's menus and the palette list them.
+        var menuBarList: [Command] {
+            var bar = self
+            bar.tabs = false
+            return bar.all
+        }
+
         var all: [Command] {
             if let floating {
                 return floatingCommands(floating)
@@ -91,7 +103,7 @@
                     Task { await page?.find?.step(-1) }
                 },
             ]
-            return file + Self.pane(page) { [page] in page?.keyboardPane } + close + edit + view + paneKeys
+            return file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + view + paneKeys
                 + palette(page) + window(page, pages)
         }
 
@@ -318,8 +330,11 @@
         }
 
         /// The pane's actions (D48), for View ▸ Pane on the keyboard card and the card header's context menu. Actions
-        /// ask `target` for the pane when they run: the menu bar may be older than the last keyboard move.
-        static func pane(_ page: Page?, _ target: @escaping @MainActor () -> HostStore.Pane?) -> [Command] {
+        /// ask `target` for the pane when they run: the menu bar may be older than the last keyboard move. `tabs`: Move
+        /// Pane to Tab lists the session's tabs (not in the menu bar).
+        static func pane(_ page: Page?, tabs: Bool = true, _ target: @escaping @MainActor () -> HostStore.Pane?)
+            -> [Command]
+        {
             let pane = target(), zoomed = pane.map { page?.zoomedPaneID == $0.id } ?? false
             func act(_ title: String, _ key: KeyboardShortcut? = nil, _ section: Command.Section = .pane,
                      symbol: String? = nil, enabled: Bool = true, id: String? = nil, heading: String? = nil,
@@ -335,7 +350,7 @@
             // Every tab of the session, under its workspace's name (user, phase 25), but the pane's own: herdr refuses
             // that move. A move into a tab lands right of its last card, as a drop on its capsule does: without a
             // target herdr splits the tab's focused pane.
-            let others = (page?.sidebarWorkspaces ?? []).flatMap { workspace in
+            let others = (tabs ? page?.sidebarWorkspaces ?? [] : []).flatMap { workspace in
                 workspace.tabs.filter { $0.id != pane?.tabID }.map { other in
                     act(page?.titleText(other) ?? other.label, nil, .paneMove, id: other.id, heading: workspace.label) {
                         await $0.drop($1.id, on: .tab(other.id))

@@ -308,9 +308,19 @@ extension OrielUITests {
         entry.menuItems["target"].click()
         try await expect("the pane right of the last card") { try await order(target) == [first, last, pane] }
 
-        // The palette's Move Pane to Tab › moves the keyboard card to a new tab.
         element("terminal.\(pane)").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")))
+        // The menu bar's has no tabs (phase 30): AppKit searched them at every key.
+        app.menuBars.menuBarItems["View"].click()
+        app.menuBars.menuItems["Pane"].hover()
+        let bar = app.menuBars.menuItems["Move Pane to Tab"]
+        bar.hover()
+        XCTAssertTrue(bar.menuItems["New Workspace"].exists(within: 2))
+        XCTAssertFalse(bar.menuItems["second"].exists)
+        app.typeKey(.escape, modifierFlags: [])
+        app.typeKey(.escape, modifierFlags: [])
+        app.typeKey(.escape, modifierFlags: [])
+        // The palette's Move Pane to Tab › moves the keyboard card to a new tab.
         let before = try await tabIDs()
         openPalette()
         app.typeText("move pane to")

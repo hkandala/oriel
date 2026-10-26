@@ -125,7 +125,7 @@ extension KeyboardShortcut {
                 [commands.floating as Any, commands.pages.map(ObjectIdentifier.init) as Any,
                  page.map(ObjectIdentifier.init) as Any].map { String(describing: $0) }.joined(separator: " "),
                 page?.keyboardCard(page?.selectedTab?.id)?.id ?? "",
-            ] + commands.all.map(\.shown)
+            ] + commands.menuBarList.map(\.shown)
             return content.focusedSceneValue(\.commands, commands)
         }
     }
@@ -219,7 +219,7 @@ extension KeyboardShortcut {
             // Every main window opens through it. `_ =` is no statement in a builder.
             // swiftlint:disable:next redundant_discardable_let
             let _ = (WindowPages.openWindow = openWindow)
-            let list = (commands ?? CommandList(settings: settings)).all
+            let list = (commands ?? CommandList(settings: settings)).menuBarList
             CommandGroup(replacing: .newItem) { items(list, .file) }
             // ⌘W closes the keyboard card, ⇧⌘W the tab, ⌃⌘W the workspace, ⌥⌘W detaches the session (design: keyboard).
             CommandGroup(replacing: .saveItem) { items(list, .close) }

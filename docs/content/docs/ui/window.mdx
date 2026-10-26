@@ -485,7 +485,9 @@ How it works: [Layout and sizing](/docs/layout).
   - Close Pane (⌘W).
 - The same items are in View ▸ Pane in the menu bar, for the keyboard card
   (the zoomed card of the selected tab, when there is one). Close Pane stays
-  in the File menu.
+  in the File menu. There Move Pane to Tab ▸ has New Tab and New Workspace
+  only: AppKit searches the whole menu bar for a shortcut at every key (about
+  30 ms at 300 tabs). The card's menu and the palette list the tabs.
 - After a move, the window selects the tab the pane went to, and the pane
   keeps the keyboard.
 - **Rename Pane** puts a text field in the header. Enter saves the label; an
