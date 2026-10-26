@@ -123,4 +123,8 @@ the orchestrator says otherwise.
   an opener), 5–6 (the machine of each window, ⌘N and the menu), 8 (docs); 3, 4, 7 above.
 - **CI.** Dispatch 40246511257 (f15de32): the key host test red (the new window lay over the first, so the
   click hit its menu; fa83cc6 raises the first), the rest green. 40247028967 (fa83cc6): both remote tests
-  green.
+  green. 40247752826 (f3626b4, after the reviews): the four remote and window tests green. Full
+  suite 40247826547 on 6a1946d (code as of 0914774, the lane's last code commit): every remote and window test
+  green (all six of RemoteTests, testWindowsOnDifferentSessionsEachControlTheirOwn, testMachineMenuListsThisMac);
+  red only in other lanes' areas: testEmptyPageOffersNewWorkspace and the swipe tests (lane E),
+  testOrielURLFloat* (lane F).
