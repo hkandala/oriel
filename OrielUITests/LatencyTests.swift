@@ -240,6 +240,45 @@ extension OrielUITests {
         XCTAssertLessThan(min(shows[0], shows[2]), 600, "\(shows)")
     }
 
+    /// A two-finger swipe between tabs, and between sessions in the overview (phase 31): the page moves with the
+    /// fingers, and from their lift lands on the next page soon. Prints the page's move by the lift (the fingers' 140
+    /// pt) and the ms from the lift to within 2 pt of the page.
+    func testTabAndOverviewSwipesFollowTheFingersAndLandSoon() async throws {
+        try launchRecordingLatency(["-forceMotion", "YES"])
+        openPage(two)
+        element("sidebar.dot.\(one)").click()
+        XCTAssertTrue(until(3) { header == one })
+        let tab = element("tab.w1:t2"), window = app.windows.firstMatch
+        try await swipeLands(over: element("terminal.w1:p1").frame, page: element("page.w1:t1").frame.width,
+                             "tab") { tab.isSelected }
+
+        app.typeKey("o", modifierFlags: [.command, .control])
+        let page = element("overview.page.\(one)")
+        XCTAssertTrue(page.exists(within: 2))
+        try await swipeLands(over: page.frame, page: page.frame.width, "overview") {
+            window.title.hasSuffix(" - \(self.two)")
+        }
+    }
+
+    /// 14 steps of 10 pt (625 pt/s) over the frame, then momentum, the other way if natural scrolling is off, until
+    /// `done`; then the record of the swipe from the first page to the second, `page` points over.
+    private func swipeLands(over frame: CGRect, page: Double, _ name: String, until done: () -> Bool) async throws {
+        for sign in [-1.0, 1.0] {
+            try await Self.post("\(one)/swipe", Data("\(frame.midX) \(frame.midY) \(10 * sign) 14".utf8))
+            // No accessibility query during the slide.
+            try await Task.sleep(for: .seconds(1))
+            if done() {
+                break
+            }
+        }
+        XCTAssertTrue(done(), name)
+        let (swipe, path, _) = try XCTUnwrap(swipes().last, "no \(name) swipe moved")
+        let settled = path.first { abs($0[1] - page) <= 2 }?[0] ?? -1
+        print("\(name) swipe: \(Int(path[0][1])) pt by the lift, landed at \(Int(settled)) ms: \(swipe)")
+        XCTAssertEqual(path.last?[1] ?? 0, page, accuracy: 2, "\(name): \(swipe)")
+        XCTAssertGreaterThan(settled, 0, "\(name): \(swipe)")
+    }
+
     /// The "swipe" records in which the pages moved (a swipe back to the page in view makes one that did not), each
     /// with its offsets: [ms, pt], and the ms to the session's show (-1: none).
     private func swipes() -> [(String, [[Double]], Double)] { // swiftlint:disable:this large_tuple

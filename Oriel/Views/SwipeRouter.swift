@@ -113,6 +113,9 @@
                 }
             }
             target?.scrollWheel(with: event)
+            if let target, event.phase == .ended {
+                Latency.shared.lifted(target.contentView.bounds.minX)
+            }
             return target != nil || pager != nil || option
         }
 
