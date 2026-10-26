@@ -5,8 +5,8 @@ Usage: scripts/stress.py <oriel-dev-*|oriel-e2e-*> [tabs=300] [workspaces=30] [-
 Start the session first (scripts/herdr-session.sh up <name>); remove it after (… down <name>): hundreds of shells.
 Makes `tabs` tabs over `workspaces` workspaces and `--panes` panes (default 400): the first tabs of each workspace
 split in two until the count is reached. macOS gives at most `kern.tty.ptmx_max` (511) terminals to all its programs
-together, so more needs `sudo sysctl -w kern.tty.ptmx_max=999` first (CI does). Every other pane prints a line every
-0.2 s. The first `--agents` panes (default 100, spread over the tabs) work like agents instead: a line every 0.1 s, a
+together, so more needs `sudo sysctl -w kern.tty.ptmx_max=999` first (CI does). Every other pane prints a line a
+second. The first `--agents` panes (default 100, spread over the tabs) work like agents instead: a line every 0.2 s, a
 new terminal title every second (its first word stays, as an agent's does), and a new agent state (`pane report-agent`)
 every 5 s, mostly working, sometimes blocked or idle. Then open Oriel on the session (`-session <name>`).
 """
@@ -75,12 +75,12 @@ with concurrent.futures.ThreadPoolExecutor(8) as pool:
 # Spread over the tabs: the first pane of every few tabs.
 step = max(len(panes) // max(args.agents, 1), 1)
 agents = set(panes[::step][:args.agents])
-agent = ("i=$((RANDOM % 50)); s=working; while :; do i=$((i + 1)); echo \"$s $i $RANDOM $RANDOM $RANDOM\"; "
-         "[ $((i % 10)) = 0 ] && printf '\\033]2;task %s %d\\007' $s $i; "
-         "[ $((i % 50)) = 0 ] && s=$(echo working working blocked idle | cut -d' ' -f$((RANDOM % 4 + 1))) && "
+agent = ("i=$((RANDOM % 25)); s=working; while :; do i=$((i + 1)); echo \"$s $i $RANDOM $RANDOM $RANDOM\"; "
+         "[ $((i % 5)) = 0 ] && printf '\\033]2;task %s %d\\007' $s $i; "
+         "[ $((i % 25)) = 0 ] && s=$(echo working working blocked idle | cut -d' ' -f$((RANDOM % 4 + 1))) && "
          "herdr pane report-agent \"$HERDR_PANE_ID\" --source oriel-stress --agent claude --state $s --seq $i "
-         ">/dev/null; sleep 0.1; done\r")
-printing = "while :; do echo output $RANDOM $RANDOM $RANDOM; sleep 0.2; done\r"
+         ">/dev/null; sleep 0.2; done\r")
+printing = "while :; do echo output $RANDOM $RANDOM $RANDOM; sleep 1; done\r"
 for index, pane in enumerate(panes):
     if pane in agents or index % 2 == 0:
         call("pane.send_text", pane_id=pane, text=agent if pane in agents else printing)
