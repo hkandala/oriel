@@ -7,6 +7,7 @@
     /// or a mouse's wheel slides (phase 24).
     struct Strip: View {
         let workspace: HostStore.Workspace
+        let pages: WindowPages
         let page: Page
         /// The page in view, as the scroll view has it.
         @State private var position = ScrollPosition(idType: String.self)
@@ -89,11 +90,17 @@
         }
 
         /// A swipe's moves and lift (`Paging`); the tab it lands on is selected as its page arrives, unless it closed.
+        /// Not under a panel opened mid-swipe (the palette, Open Session): back to the selected tab's page. A swipe
+        /// that starts under one never comes here (the panel's backdrop takes the hit test).
         private func drag(_ delta: Double, _: Bool) {
+            guard !pages.panelOpen else { return }
             paging.drag(delta, count: workspace.tabs.count, $position)
         }
 
         private func lift(_ speed: Double) {
+            guard !pages.panelOpen else {
+                return position.scrollTo(id: workspace.tabs[page.selectedIndex(in: workspace)].id, anchor: .leading)
+            }
             paging.lift(speed, ids: workspace.tabs.map(\.id), $position, reduceMotion: reduceMotion) { tab in
                 if page.store.workspace(of: tab) != nil {
                     page.selectedTabIDs[workspace.id] = tab

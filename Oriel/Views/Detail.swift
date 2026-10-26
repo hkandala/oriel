@@ -112,7 +112,7 @@ struct Notice {
                 } else {
                     // A strip of its own per workspace: a shared one could lay out no page after a switch and stay
                     // empty (phase 25, `make strip-check`).
-                    Strip(workspace: workspace, page: page).id("\(page.id) \(workspace.id)")
+                    Strip(workspace: workspace, pages: pages, page: page).id("\(page.id) \(workspace.id)")
                 }
             } else if page.store.state == .live {
                 // Not while it reconnects before its first snapshot.
