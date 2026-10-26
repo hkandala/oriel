@@ -230,11 +230,10 @@ extension OrielUITests {
         let created = try await Self.call(two, "tab.create", ["workspace_id": "w1", "label": "delta", "cwd": "/tmp",
                                                               "focus": false])
         let tab = try id(created, "tab")
-        addTeardownBlock { [one, two] in
-            _ = try? await Self.call(two, "tab.close", ["tab_id": tab])
-            _ = try? await Self.call(one, "pane.release_agent", ["pane_id": "w1:p1", "source": "oriel-e2e",
-                                                                 "agent": "claude"])
-        }
+        addTeardownBlock { [two] in _ = try? await Self.call(two, "tab.close", ["tab_id": tab]) }
+        // The agent in a pane of its own, closed after: a released agent on w1:p1 still counted as needing you.
+        let agent = try await split("w1:p1", "down")
+        closeAfter("pane", agent)
         // Session two on its new tab, session one on t2: both w1:t1 capsules show, unselected.
         openPage(two)
         element("tab.\(tab)").click()
@@ -243,7 +242,7 @@ extension OrielUITests {
         element("tab.w1:t2").click()
         XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
 
-        try await report("w1:p1", "blocked", agent: "claude")
+        try await report(agent, "blocked", agent: "claude")
         let capsule = element("tab.w1:t1")
         XCTAssertTrue(until(3) { capsule.label.contains("claude needs you") }, capsule.label)
         // Within its 3 s.
