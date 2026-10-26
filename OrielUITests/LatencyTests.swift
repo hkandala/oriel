@@ -211,8 +211,8 @@ extension OrielUITests {
         }.filter { $0.1.count > 4 }
     }
 
-    private func launchRecordingLatency(_ args: [String] = []) throws {
-        relaunch(one, ["-recordLatency", "YES"] + args)
+    func launchRecordingLatency(_ args: [String] = [], session: String? = nil) throws {
+        relaunch(session ?? one, ["-recordLatency", "YES"] + args)
         XCTAssertTrue(element("pane.w1:p1").exists(within: connect))
         // Also after a failed step.
         addTeardownBlock { @MainActor in
@@ -224,18 +224,18 @@ extension OrielUITests {
     }
 
     /// The key, then its change; a pause, so the next key's record starts clean.
-    private func key(_ key: String, _ flags: XCUIElement.KeyModifierFlags, until done: () -> Bool) {
+    func key(_ key: String, _ flags: XCUIElement.KeyModifierFlags, until done: () -> Bool) {
         app.typeKey(key, modifierFlags: flags)
         XCTAssertTrue(until(5, done), "after \(key)")
         Thread.sleep(forTimeInterval: 0.5)
     }
 
     /// "⌘T 12ms 0": the key, the time to its frame, the turns; "swipe 230ms 0:145,8:152,…".
-    private struct Entry {
+    struct Entry {
         let name: String, time: Int, turns: Int
     }
 
-    private func recorded() -> [Entry] {
+    func recorded() -> [Entry] {
         element("app.latency").stringValue.split(separator: "; ").map { entry in
             let words = entry.split(separator: " ").map(String.init)
             return Entry(name: words.first ?? "", time: Int(words.count > 1 ? words[1].dropLast(2) : "") ?? -1,

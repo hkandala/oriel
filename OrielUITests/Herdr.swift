@@ -186,6 +186,8 @@ extension OrielUITests {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = body
+        // The stress test's session takes up to a few minutes to fill on CI.
+        request.timeoutInterval = 300
         let (data, response) = try await URLSession.shared.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw Failed(description: "\(path): \(String(decoding: data, as: UTF8.self))")
