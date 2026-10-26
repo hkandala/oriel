@@ -239,8 +239,15 @@ extension OrielUITests {
         if !row.isSelected {
             row.click()
         }
-        // Hittable, not only there: the capsule slides in, and a click during that misses it.
-        XCTAssertTrue(element("tab.\(tab)").has(\.isHittable, true, within: 2))
+        // Hittable and at rest, not only there: the capsule slides in, and the bar lays out again after a workspace
+        // change; a click on an earlier frame went beside it (CI 40319705774).
+        let capsule = element("tab.\(tab)")
+        XCTAssertTrue(capsule.has(\.isHittable, true, within: 2))
+        var frame = CGRect.null
+        XCTAssertTrue(until(2) {
+            defer { frame = capsule.frame }
+            return capsule.frame == frame
+        })
         return (tab, pane)
     }
 

@@ -275,6 +275,12 @@ extension OrielUITests {
 
     /// Lines of text in the pane, so an empty card is plain to see.
     func fill(_ pane: String) async throws {
+        // A shown card that still attaches resizes the pane after the lines, and bash redraws its prompt over the last
+        // one (CI 40319705774: 59, then the prompt). Its value says ", loading" until herdr drew at its size.
+        let card = element("pane.\(pane)")
+        if card.exists(within: 1) {
+            XCTAssertTrue(until(5) { !card.stringValue.hasSuffix(", loading") }, card.stringValue)
+        }
         try await waitForPrompt(pane)
         try await send("clear; for i in $(seq 1 60); do echo oriel-reveal-$i-oriel-reveal; done\r", to: pane)
         try await waitFor(pane) { $0.contains("oriel-reveal-60-oriel-reveal") }
