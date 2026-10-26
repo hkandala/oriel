@@ -189,60 +189,59 @@ extension OrielUITests {
         print("overview cost: strip\n\(strip)\nopen\n\(open)\nscrolled\n\(scrolled)")
     }
 
-    /// The overview of 100 tabs over 4 workspaces, every fourth printing (phase 28; `scripts/stress.py` makes
-    /// more for a check by hand): however far it scrolls, at most 24 cards stream beside the strip's, the tiles that
-    /// were live keep a snapshot, and the frames dropped while scrolling are counted. Footprint, CPU and frames are in
-    /// the result bundle.
+    /// The overview of 200 tabs over 8 workspaces, 272 panes, 50 of them agents and half the rest printing
+    /// (`scripts/stress.py`, phase 28): while trackpad scrolls go through it, at most 24 cards stream beside the
+    /// strip's,
+    /// the tiles that were live keep a snapshot, and the footprint stays bounded. Footprint, CPU, the frames dropped
+    /// while scrolling and the main thread's profile are in the result bundle.
     func testOverviewOfManyTabsStaysBounded() async throws {
-        executionTimeAllowance = 400
-        relaunch(nil, ["-recordMotion", "YES"])
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        var tabs: [String] = []
-        for index in 1 ... 4 {
-            let (tab, pane) = try await createWorkspace("many \(index)")
-            tabs.append(tab)
-            try await send("while :; do echo $RANDOM $RANDOM; sleep 0.5; done\r", to: pane)
-            for count in 1 ..< 25 {
-                let created = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: tab), "cwd": "/tmp",
-                                                                      "focus": false])
-                try tabs.append(id(created, "tab"))
-                if count % 4 == 0 {
-                    try await send("while :; do echo $RANDOM $RANDOM; sleep 0.5; done\r", to: id(created, "root_pane"))
-                }
-            }
-        }
-        let strip = try await measure("strip, 100 tabs")
+        executionTimeAllowance = 600
+        let eight = try env("ORIEL_SESSION8")
+        addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
+        _ = try await Self.post("\(eight)/stress", Data("200 8 272 50".utf8))
+        relaunch(eight, ["-recordMotion", "YES"])
+        XCTAssertTrue(element("pane.w1:p1").exists(within: 120))
+        try await Task.sleep(for: .seconds(5))
+        let strip = try await measure("strip, 200 tabs", seconds: 5, session: eight)
         app.typeKey("o", modifierFlags: [.command, .control])
         let overview = element("overview"), meter = element("overview.frames")
-        XCTAssertTrue(overview.exists(within: 2))
-        let open = try await measure("overview, 100 tabs")
-        let start = meter.stringValue
-        // Down to the last tile, counting the streams on the way.
-        let last = element("overview.tab.\(tabs[99])")
-        var most = 0, delta = -600.0
-        overview.scroll(byDeltaX: 0, deltaY: delta)
-        // The sign follows the natural scrolling setting.
-        if element("overview.title").isHittable {
-            delta = -delta
+        XCTAssertTrue(overview.exists(within: 5))
+        let open = try await measure("overview, 200 tabs", seconds: 5, session: eight)
+        let start = meter.stringValue, frame = overview.frame
+        // Down, the sign following the natural scrolling setting: 20 swipes of 600 pt and their momentum.
+        var sign = -1.0, most = 0
+        for index in 0 ..< 20 {
+            try await Self.post("\(one)/swipe", Data("\(frame.midX) \(frame.midY) \(30 * sign) 20 0 1".utf8))
+            if index == 0, element("overview.title").isHittable {
+                sign = -sign
+            }
+            most = try await max(most, streams(eight).count)
         }
-        for _ in 0 ..< 120 where !(last.exists && last.isHittable) {
-            overview.scroll(byDeltaX: 0, deltaY: delta)
-            most = try await max(most, streams(one).count)
-        }
-        XCTAssertTrue(last.isHittable)
         let end = meter.stringValue
-        let scrolled = try await measure("overview, 100 tabs, scrolled")
+        async let profile = Self.post("\(eight)/sample", Data("3".utf8))
+        for _ in 0 ..< 4 {
+            try await Self.post("\(one)/swipe", Data("\(frame.midX) \(frame.midY) \(-30 * sign) 20 0 1".utf8))
+        }
+        let sampled = try await XCTAttachment(string: String(decoding: profile, as: UTF8.self))
+        sampled.name = "sample, overview scrolling"
+        sampled.lifetime = .keepAlways
+        add(sampled)
+        let scrolled = try await measure("overview, 200 tabs, scrolled", seconds: 5, session: eight)
+        let frames = XCTAttachment(string: "frames hitches snapshots: from \(start) to \(end); most runs \(most)")
+        frames.name = "overview frames"
+        frames.lifetime = .keepAlways
+        add(frames)
         // The strip's kept terminals, at most 24 cards, and a run or two ending.
         XCTAssertLessThanOrEqual(most, helpers(strip) + 24 + 2, "\(most) runs")
-        let snapshots = Int(end.split(separator: " ").last ?? "") ?? 0
-        XCTAssertGreaterThan(snapshots, 8, end)
-        print("overview of 100 tabs: frames from \(start) to \(end)\nstrip\n\(strip)\nopen\n\(open)\n\(scrolled)")
-        let attachment = XCTAttachment(string: "frames hitches snapshots: from \(start) to \(end); most runs \(most)")
-        attachment.name = "overview frames"
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        XCTAssertGreaterThan(Int(end.split(separator: " ").last ?? "") ?? 0, 8, end)
+        XCTAssertLessThan(footprint(scrolled), footprint(open) + 300, scrolled)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
+    }
+
+    /// The footprint in a `usage` report, in MB.
+    func footprint(_ usage: String) -> Int {
+        usage.firstMatch(of: /Footprint: (\d+) MB/).flatMap { Int($0.1) } ?? .max
     }
 
     /// Scrolls the overview until the element is hittable, `step` at a time; either way, as the sign follows the

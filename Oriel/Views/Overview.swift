@@ -238,11 +238,13 @@
                         .accessibilityIdentifier("overview.title")
                     ForEach(page.sidebarWorkspaces) { workspace in
                         Section {
-                            // Rows of `columns` equal tiles; a short last row keeps their width.
-                            let tabs = workspace.tabs
-                            ForEach(Array(stride(from: 0, to: tabs.count, by: columns)), id: \.self) { start in
+                            // Rows of `columns` equal tiles; a short last row keeps their width. Each by its first tab:
+                            // the lazy stack's rows of all workspaces need ids of their own.
+                            let tabs = workspace.tabs, rows = stride(from: 0, to: tabs.count, by: columns)
+                                .map { tabs[$0 ..< min($0 + columns, tabs.count)] }
+                            ForEach(rows, id: \.first?.id) { row in
                                 HStack(spacing: 16) {
-                                    ForEach(tabs[start ..< min(start + columns, tabs.count)]) { tab in
+                                    ForEach(row) { tab in
                                         Tile(
                                             pages: pages,
                                             page: page,
@@ -253,7 +255,7 @@
                                             zooming: zooming == tab.id,
                                         ) { open(workspace, tab) }
                                     }
-                                    ForEach(tabs.count ..< max(start + columns, tabs.count), id: \.self) { _ in
+                                    ForEach(row.count ..< columns, id: \.self) { _ in
                                         Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
                                     }
                                 }
