@@ -24,6 +24,10 @@ struct FilterList: View {
         var button: (title: String, act: () -> Void)?
         /// The button's role: red when destructive.
         var buttonRole: ButtonRole?
+        #if os(macOS)
+            /// A workspace of the page whose dragged pane or tab a drop on the row moves there (the workspace menu).
+            var drop: (page: Page, workspaceID: String)?
+        #endif
         let act: () -> Void
     }
 
@@ -131,6 +135,7 @@ struct FilterList: View {
                                     }
                                 }
                                 #if os(macOS)
+                                .modifier(MenuRowDrop(drop: item.drop))
                                 // The light follows the pointer, as in a menu (user, phase 24).
                                 .onContinuousHover { phase in
                                     guard case .active = phase, NSEvent.mouseLocation != pointer else { return }

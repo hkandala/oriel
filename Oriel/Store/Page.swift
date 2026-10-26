@@ -349,7 +349,7 @@
 
         /// The page goes to the moved pane's tab once a snapshot shows it (when `select`), and the pane has the
         /// keyboard there. A floated pane stays in its window.
-        private func follow(_ moved: HerdrKit.Pane?, _ terminalID: String?, select: Bool = true) {
+        func follow(_ moved: HerdrKit.Pane?, _ terminalID: String?, select: Bool = true) {
             guard let moved, floating[terminalID ?? ""] == nil else { return }
             if let terminalID {
                 use(terminalID)

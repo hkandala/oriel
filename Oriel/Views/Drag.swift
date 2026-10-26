@@ -110,11 +110,11 @@
         }
     }
 
-    /// Holding a dragged pane over a tab's capsule or a workspace's row 0.65 s selects it (Rex's spring-loading); not
-    /// after the drag ended (a late update).
+    /// Holding a dragged pane over a tab's capsule or a workspace's row 0.65 s selects it (Rex's spring-loading), and a
+    /// pane or a tab over the workspace button opens its menu; not after the drag ended (a late update).
     func springTask(_ page: Page, _ select: @escaping () -> Void) -> Task<Void, Never> {
         Task {
-            if await (try? Task.sleep(for: .milliseconds(650))) != nil, page.dragging?.paneID != nil {
+            if await (try? Task.sleep(for: .milliseconds(650))) != nil, page.dragging != nil {
                 select()
             }
         }
@@ -188,18 +188,19 @@
         }
     }
 
-    /// A pane dragged over a place with one target (the `+`, the tab track's end, a sidebar's empty space).
+    /// A pane dragged over a place with one target (the `+`, the tab track's end, a sidebar's empty space, a workspace
+    /// menu row), or a tab over a new tab in another workspace (a workspace menu row).
     struct PaneDrop: DropDelegate {
         let page: Page
         let target: DropTarget
         @Binding var over: Bool
 
         func validateDrop(info _: DropInfo) -> Bool {
-            page.dragging?.paneID != nil
+            takes
         }
 
         func dropEntered(info _: DropInfo) {
-            if page.dragging?.paneID != nil {
+            if takes {
                 withAnimation(.highlight) { over = true }
             }
         }
@@ -214,9 +215,53 @@
 
         func performDrop(info _: DropInfo) -> Bool {
             over = false
-            guard let id = page.dragging?.paneID else { return false }
-            Task { await page.drop(id, on: target) }
+            switch (page.dragging, target) {
+            case let (.pane(id), _):
+                Task { await page.drop(id, on: target) }
+            case let (.tab(id), .move(.newTab(workspaceID, _))) where takes:
+                Task { await page.drop(tab: id, on: workspaceID) }
+            default:
+                return false
+            }
             return true
+        }
+
+        private var takes: Bool {
+            switch (page.dragging, target) {
+            case (.pane, _): true
+            case let (.tab(id), .move(.newTab(workspaceID, _))): page.store.workspace(of: id)?.id != workspaceID
+            default: false
+            }
+        }
+    }
+
+    /// A drag held over the collapsed sidebar's workspace button opens the workspace menu after 0.65 s, so the drop
+    /// can go on a row there; a drop on the button itself is none. Any drag here is a pane's or a tab's: workspace
+    /// rows are in the sidebar, which is closed while the button shows.
+    struct SpringDrop: DropDelegate {
+        let page: Page
+        @Binding var over: Bool
+        @Binding var spring: Task<Void, Never>?
+        let open: () -> Void
+
+        func validateDrop(info _: DropInfo) -> Bool {
+            page.dragging != nil
+        }
+
+        func dropEntered(info _: DropInfo) {
+            withAnimation(.highlight) { over = true }
+            spring?.cancel()
+            spring = springTask(page, open)
+        }
+
+        func dropExited(info _: DropInfo) {
+            spring?.cancel()
+            withAnimation(.highlight) { over = false }
+        }
+
+        func performDrop(info: DropInfo) -> Bool {
+            dropExited(info: info)
+            return false
         }
     }
 

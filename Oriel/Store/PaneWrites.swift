@@ -121,6 +121,36 @@ extension HostStore {
         return moved
     }
 
+    /// The tab, with its panes, split tree and ratios, to another workspace of the session, last there. herdr 0.9.5's
+    /// `tab.move` stays inside a workspace, so its first pane goes to a new tab there (with its label, unless herdr's
+    /// number) and each other pane beside one moved before (`SplitNode.rebuild`); each move gives a new pane id.
+    /// The source tab closes with its last pane, its workspace with its last tab. A failed step leaves the panes where
+    /// they got to. Each pane where it went, by its old id.
+    func move(tab tabID: String, to workspaceID: String) async -> [String: HerdrKit.Pane] {
+        guard let tab = workspace(of: tabID)?.tabs.first(where: { $0.id == tabID }), let tree = tab.tree,
+              !tree.paneIDs.contains(where: Ahead.isStandIn) else { return [:] }
+        let label = tab.label.allSatisfy(\.isNumber) ? nil : tab.label
+        var moved: [String: HerdrKit.Pane] = [:]
+        await write { client in
+            do {
+                guard let first = try await client.move(pane: tree.paneIDs[0],
+                                                        to: .newTab(workspaceID: workspaceID, label: label))
+                else { throw HerdrError.failed("herdr named no pane") }
+                moved[tree.paneIDs[0]] = first
+                for step in tree.rebuild {
+                    guard let beside = moved[step.beside]?.id, let pane = try await client.move(
+                        pane: step.paneID,
+                        to: .tab(first.tabID, beside: beside, split: step.direction, ratio: step.ratio),
+                    ) else { throw HerdrError.failed("herdr named no pane") }
+                    moved[step.paneID] = pane
+                }
+            } catch {
+                throw moved.isEmpty ? error : HerdrError.failed("Moved part of the tab: herdr refused the next step")
+            }
+        }
+        return moved
+    }
+
     /// Trimmed; an empty label clears it; nothing when the same.
     func rename(pane paneID: String, label: String) async {
         let label = label.trimmingCharacters(in: .whitespaces)

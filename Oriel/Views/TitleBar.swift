@@ -72,7 +72,7 @@
                    alignment: .leading)
             if !sidebar, let workspace = page.selectedWorkspace {
                 Capped(width: 260) {
-                    WorkspaceButton(session: page.store.title, workspace: workspace.label, open: $workspaceMenu)
+                    WorkspaceButton(page: page, workspace: workspace.label, open: $workspaceMenu)
                 }
                 .layoutPriority(1)
                 .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: {
@@ -217,11 +217,14 @@
         }
     }
 
-    /// While the sidebar is collapsed: "‹session› | ‹workspace›"; a click opens the workspace menu.
+    /// While the sidebar is collapsed: "‹session› | ‹workspace›"; a click opens the workspace menu, and so does a pane
+    /// or a tab held over it, whose rows then take the drop.
     private struct WorkspaceButton: View {
-        let session: String
+        let page: Page
         let workspace: String
         @Binding var open: Bool
+        @State private var over = false
+        @State private var spring: Task<Void, Never>?
         @Environment(\.look) private var look
 
         var body: some View {
@@ -229,7 +232,7 @@
                 HStack(spacing: 6) {
                     Image(systemName: "folder").fontWeight(.medium)
                     // A long session name stops at 110 pt, so a long workspace name fades instead of hiding it.
-                    Capped(width: 110) { Text(session).lineLimit(1) }.layoutPriority(1)
+                    Capped(width: 110) { Text(page.store.title).lineLimit(1) }.layoutPriority(1)
                     Rectangle().fill(look.divider).frame(width: 1, height: 12)
                     FadeText(text: Text(workspace)).foregroundStyle(look.selected)
                     Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
@@ -240,10 +243,21 @@
                 .frame(height: 28)
             }
             .buttonStyle(ChromeStyle(selected: open, radius: 7))
+            .overlay {
+                if over, page.dragging != nil {
+                    DropIndicator(radius: 7)
+                }
+            }
+            .onDrop(of: [.orielDrag], delegate: SpringDrop(page: page, over: $over, spring: $spring) { open = true })
+            .clearsDrop(page) {
+                spring?.cancel()
+                over = false
+            }
+            .onDisappear { spring?.cancel() }
             .accessibilityIdentifier("titlebar.workspace")
             .help("Workspace")
             .accessibilityLabel("Workspace")
-            .accessibilityValue("\(session) | \(workspace)")
+            .accessibilityValue("\(page.store.title) | \(workspace)")
         }
     }
 
@@ -278,6 +292,8 @@
                 .padding(8)
                 .frame(width: 300)
                 .floatingGlass(in: .rect(cornerRadius: 12))
+                // Opened by a drag held over the button: it closes with the drag.
+                .clearsDrop(page) { open = false }
         }
 
         private func items(_ filter: String) -> [FilterList.Item] {
@@ -287,7 +303,9 @@
                     FilterList.Item(id: "\(page.id).\(workspace.id)",
                                     state: page.store.strongest(workspace.tabs.map(\.id))?.state,
                                     title: workspace.label,
-                                    detail: workspace.git?.branch ?? "", section: page.id, act: {
+                                    detail: workspace.git?.branch ?? "", section: page.id,
+                                    // The page in view's drag: a pane or a tab goes there.
+                                    drop: page === self.page ? (page, workspace.id) : nil, act: {
                                         pages.show(page)
                                         page.select(workspace)
                                     })
