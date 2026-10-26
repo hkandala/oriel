@@ -112,3 +112,30 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   last code commit; one review round per lane (spec and ponytail, read only).
 
 ## Findings
+
+### Lane D
+
+- **Root cause.** Phase 29 refused a tab on New Workspace on purpose ("not asked"): `RowsDrop` showed the ghost row
+  only for a pane, `PaneDrop` took a tab only for `.newTab`, and the workspace menu's New Workspace row had no drop.
+- **Build.** `HostStore.move(tab:to:)` takes a nil workspace for a new one: the first pane goes with `pane.move
+  {new_workspace, tab_label}` (`Destination.newWorkspace(tabLabel:)`, null when none), the rest as before
+  (`SplitNode.rebuild`). `RowsDrop`'s ghost row, the header `+` (`PaneDrop`) and the menu's New Workspace row
+  (`MenuRowDrop.Target` now holds a `Destination`) take a tab; the page follows it as for a row.
+- **Decisions.** The new workspace keeps herdr's name (the first pane's folder), as a pane's move does; the tab keeps
+  its label. A tab alone in its workspace is taken too, as a lone pane is (its workspace comes back last, named after
+  the folder). The menu's New Workspace and Open Session rows now sit under the scrolled list (`FilterList.pinned`):
+  with many workspaces New Workspace was below the fold, and by phase 29's macOS 27 rule a row not built as the drag
+  starts never takes a drop. Workspace rows out of view still do not (a known limit).
+- **Learned (spike).** `pane.move {new_workspace}` with no `label` names the workspace after the pane's folder;
+  `tab_label` names its tab.
+- **Test.** `testDraggingATabOntoNewWorkspaceMovesItWithItsLayout`: phase 29's 3-pane tab (0.3 / 0.7, labelled), held
+  over the collapsed sidebar's workspace button and dropped on the menu's New Workspace: the same tree by terminal,
+  ratios and label in a new workspace, selected, keyboard kept; then onto the sidebar's empty space: another new
+  workspace, the first one closed. The header `+` with a tab is not driven (the same `PaneDrop` case as the menu row).
+  Its setup is `movingTab()`, shared with phase 29's test.
+- **Review.** Spec: the doc table row had 4 cells (fixed); New Workspace below the menu's fold (pinned, above); nits
+  taken: the `+` comment, these Findings. Not taken: a `+` leg in the test, an `underRows()` helper (two uses).
+- **Commits.** 48bc723 (the drop, test, docs), 00f1c04 (New Workspace kept in view, review fixes).
+- **CI.** 40273349296 (the drag tests on 48bc723, green). Full suite 40274069052 on 127bf21 (has 00f1c04): green.
+- **Check by hand.** With many workspaces, collapse the sidebar, hold a tab over the workspace button and drop it on
+  New Workspace; the menu's New Workspace and Open Session rows now stay under the list when it scrolls.
