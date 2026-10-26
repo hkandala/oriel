@@ -203,9 +203,9 @@ extension OrielUITests {
     func testOrielURLFloatsAPaneOfASessionWithNoPage() async throws {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         // Two's gamma; one has a w1:p1 too, so always within the floating window.
-        let pane = "w1:p1", url = floatURL
+        let pane = "w1:p1"
 
-        app.open(url("session=\(two)&pane=\(pane)"))
+        try await openFloatURL("session=\(two)&pane=\(pane)")
         let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
         XCTAssertTrue(window.exists(within: connect))
         XCTAssertTrue(until(3) { element("float.\(pane).place", in: window).stringValue.hasPrefix("\(two) › gamma › ")
@@ -221,17 +221,17 @@ extension OrielUITests {
 
         // Again, with the main window in front: the same window comes forward.
         element("workspace.w1").click()
-        app.open(url("session=\(two)&pane=\(pane)"))
+        try await openFloatURL("session=\(two)&pane=\(pane)")
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
         XCTAssertEqual(app.windows.containing(.any, identifier: "float.\(pane)").count, 1)
 
         // Not there: a notice in the main window, no window.
         element("workspace.w1").click()
-        app.open(url("session=\(two)&pane=w9:p9"))
+        try await openFloatURL("session=\(two)&pane=w9:p9")
         let notice = element("detail.notice")
         XCTAssertTrue(notice.staticTexts["Can't float pane w9:p9 of \(two): no such pane."].exists(within: 5))
         XCTAssertFalse(element("float.w9:p9").exists)
-        app.open(url("session=oriel-e2e-none&pane=\(pane)"))
+        try await openFloatURL("session=oriel-e2e-none&pane=\(pane)")
         let none = NSPredicate(format: "value BEGINSWITH %@", "Can't float pane \(pane) of oriel-e2e-none: ")
         XCTAssertTrue(notice.staticTexts.matching(none).firstMatch.exists(within: connect))
         XCTAssertFalse(element("sidebar.dot.oriel-e2e-none").exists)
@@ -245,13 +245,13 @@ extension OrielUITests {
         let (tab, other) = try await newTab("float-url")
         element("workspace.w1").click()
         XCTAssertTrue(element("tab.\(tab)").vanishes(within: 3))
-        app.open(url("session=\(one)&pane=\(other)"))
+        try await openFloatURL("session=\(one)&pane=\(other)")
         XCTAssertTrue(hasKeyboard(element("terminal.\(other)", in: app.windows.containing(.any, identifier:
             "float.\(other)").firstMatch)))
 
         // Two's pane again, then Open Session on two: its page comes, the window stays, and after Detach the page
         // keeps the connection.
-        app.open(url("session=\(two)&pane=\(pane)"))
+        try await openFloatURL("session=\(two)&pane=\(pane)")
         XCTAssertTrue(window.exists(within: connect))
         element("workspace.w1").click()
         openSessionPanel()
@@ -269,7 +269,7 @@ extension OrielUITests {
     func testOrielURLFloatGoesWithItsWindowAndOpensOne() async throws {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let pane = "w1:p1"
-        app.open(floatURL("session=\(two)&pane=\(pane)"))
+        try await openFloatURL("session=\(two)&pane=\(pane)")
         let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
         XCTAssertTrue(window.exists(within: connect))
         element("workspace.w1").click()
@@ -278,14 +278,17 @@ extension OrielUITests {
         XCTAssertTrue(window.vanishes(within: 5))
         try await expect("two's herdr runs end") { try await runs(two).isEmpty }
 
-        app.open(floatURL("session=\(two)&pane=\(pane)"))
+        try await openFloatURL("session=\(two)&pane=\(pane)")
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         XCTAssertTrue(window.exists(within: connect))
         XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
     }
 
-    func floatURL(_ query: String) -> URL {
-        URL(string: "oriel://float?\(query)")!
+    /// `open -g` of `oriel://float?‹query›` with the app under test, through the helper, as pi-herd opens it.
+    /// XCUIApplication.open(_:) left the app not foreground for XCUITest after its second URL (CI 40247366831).
+    func openFloatURL(_ query: String) async throws {
+        let oriel = Bundle.main.bundleURL.deletingLastPathComponent().appending(path: "Oriel.app").path
+        _ = try await Self.post("\(one)/open-url", Data("\(oriel)\noriel://float?\(query)".utf8))
     }
 
     /// The card's Float button; its window, once it shows.

@@ -73,7 +73,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
-        elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder",
+        elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder", "open-url",
                             "reveal-file", "usage", "ssh-drop", "ssh-forget", "ssh-connections", "swipe"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
@@ -110,6 +110,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             run = subprocess.run(["open", "-a", body.decode(), folder, "--args", "-session", session,
                                   "-ApplePersistenceIgnoreState", "YES"], capture_output=True, timeout=10)
             status, reply = (200, folder.encode()) if run.returncode == 0 else (500, run.stderr)
+        elif action == "open-url" and not re.fullmatch(rb"[^\n]+\.app\noriel://\S+", body):
+            status, reply = 400, b"the body must be an app's path, a newline and an oriel:// URL"
+        elif action == "open-url":
+            # As pi-herd opens it, to that app: LaunchServices may know other builds of the app.
+            app, url = body.decode().split("\n")
+            run = subprocess.run(["open", "-g", "-a", app, url], capture_output=True, timeout=10)
+            status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "reveal-file":
             folder = tempfile.mkdtemp(prefix="oriel-e2e-file-", dir="/tmp")
             folders.append(folder)
