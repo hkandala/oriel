@@ -196,7 +196,7 @@
 
         /// A new window on the machine (D43); the others stay. `connect`: it connects at once, asking what ssh asks.
         static func open(machine: Machine, connect: Bool = false) {
-            opening = (machine, connect)
+            opening = openWindow == nil ? nil : (machine, connect)
             openWindow?(id: "main")
         }
 

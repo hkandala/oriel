@@ -296,6 +296,7 @@ struct OrielApp: App {
                 }
             }
             .environment(\.look, look)
+            .testValue("window.machine", "Machine", pages.machine.name)
             .testValue("window.look", "Appearance", "\(style.rawValue) \(look.dark ? "dark" : "light")")
             // The links a test ⌘-clicked (`-recordLinks YES`).
             .testValue("app.links", "Links", Links.shared.recorded.joined(separator: " "),

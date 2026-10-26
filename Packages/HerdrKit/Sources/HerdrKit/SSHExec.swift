@@ -224,7 +224,9 @@
                 return .disconnected(text)
             }
             failures += 1
-            let error = HerdrError.failed(text.isEmpty ? "ssh exited \(status)" : text)
+            // LogLevel=ERROR also hides ssh's "Connection closed by …" (INFO): no text says only that.
+            let error = HerdrError
+                .failed(text.isEmpty ? "The connection to \(target) closed (ssh exited \(status))" : text)
             retry = (.now + .seconds(min(1 << min(failures, 5), 30)), error)
             return error
         }
