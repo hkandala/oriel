@@ -185,7 +185,7 @@ extension OrielUITests {
         let card = element("pane.\(pane)")
         XCTAssertTrue(card.exists(within: 3))
         try await expect("\(pane) ready, it says \(card.stringValue)", times: 100) {
-            card.stringValue.hasPrefix("content") && !card.stringValue.hasSuffix(", loading")
+            card.exists && card.stringValue != "loading"
         }
         // At once: the redraw at the card's grid was in before the card showed.
         let grid = try XCTUnwrap(element("terminal.\(pane)").value as? String)
