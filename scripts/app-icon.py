@@ -45,14 +45,7 @@ def main():
     master.alpha_composite(tile, (96, 96))
     master.save(BRAND / "oriel-macos-1024.png", optimize=True)
 
-    # The iOS target builds from the same catalog: one opaque 1024 px square, unmasked (iOS rounds it).
-    artwork_ios = Image.open(BRAND / "oriel-flat-stack-original.png").convert("RGB")
-    artwork_ios.resize((1024, 1024), Image.Resampling.LANCZOS).save(CATALOG / "icon_ios_1024.png", optimize=True)
-
     contents = json.loads((CATALOG / "Contents.json").read_text())
-    for entry in contents["images"]:
-        if entry.get("platform") == "ios" and "appearances" not in entry:
-            entry["filename"] = "icon_ios_1024.png"
     entries = {(e["size"], e["scale"]): e for e in contents["images"] if e["idiom"] == "mac"}
     icns = bytearray()
     for points, scale, kind in SLOTS:

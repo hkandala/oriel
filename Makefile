@@ -25,7 +25,6 @@ lint:
 
 build:
 	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)
-	$(XCODEBUILD) -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build $(BEAUTIFY)
 
 test:
 	swift test --package-path Packages/HerdrKit --scratch-path $(DERIVED_DATA)/HerdrKit

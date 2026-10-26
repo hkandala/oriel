@@ -6,7 +6,7 @@ let strict: [SwiftSetting] = [.treatAllWarnings(as: .error)]
 
 let package = Package(
     name: "HerdrKit",
-    platforms: [.macOS(.v26), .iOS(.v26)],
+    platforms: [.macOS(.v26)],
     products: [
         .library(name: "HerdrKit", targets: ["HerdrKit"]),
     ],
