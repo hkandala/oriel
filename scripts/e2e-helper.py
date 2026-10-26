@@ -25,7 +25,7 @@ POST /<session>/swipe with "x y step steps [pause]" as the body posts a two-fing
 POST /<session>/drag with "x y (x y hold)..." as the body drags the mouse from the first point through the others,
 holding at each (scripts/drag.swift).
 POST /<session>/stress with "tabs workspaces panes agents" as the body starts the session and fills it with
-scripts/stress.py (on CI first allowing 1024 terminals: macOS's default 511 is for all programs together); its summary
+scripts/stress.py (on CI first allowing 999 terminals: macOS's default 511 is for all programs together); its summary
 comes back. With an empty body it removes the session, so the next tests do not run beside its shells.
 POST /<session>/sample with a number of seconds as the body gives back `sample`'s profile of the app over that time.
 POST /<session>/ssh-connections gives back how many connections the CI sshd (scripts/ci-sshd.sh) has seen.
@@ -92,9 +92,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif action == "stress" and not re.fullmatch(rb"(\d+ \d+ \d+ \d+)?", body):
             status, reply = 400, b"the body must be tabs workspaces panes agents, or empty"
         elif action == "stress":
-            if os.environ.get("CI") == "true":
-                subprocess.run(["sudo", "-n", "sysctl", "-w", "kern.tty.ptmx_max=1024"], capture_output=True)
-            run = subprocess.run(["scripts/herdr-session.sh", "up" if body else "down", session], capture_output=True)
+            # 999 is the kernel's most.
+            run = subprocess.run(["sudo", "-n", "sysctl", "-w", "kern.tty.ptmx_max=999"], capture_output=True) \
+                if os.environ.get("CI") == "true" and body else None
+            if run is None or run.returncode == 0:
+                run = subprocess.run(["scripts/herdr-session.sh", "up" if body else "down", session],
+                                     capture_output=True)
             if run.returncode == 0 and body:
                 tabs, workspaces, panes, agents = body.decode().split()
                 # This Mac's terminals are shared with the user's own programs (511 in all).
