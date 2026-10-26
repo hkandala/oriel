@@ -123,6 +123,15 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   Ponytail: one helper branch for both scripts, one own-workspace rule. Not taken: `drop(tab:on:)` back in Page.swift
   (its 400-line limit; `follow` is internal for it), a labelled 4-tuple for `Move` (SwiftLint `large_tuple`), a
   number-only label kept (herdr's number rule is `Page.title`'s), a stand-in tab refused silently (a sub-second case).
+- **Root cause, menu rows on this Mac (macOS 27.0.1).** Local runs (once the GUI was free) failed at the menu step
+  while CI passed: no drop delegate in the menu was ever asked (`validateDrop` logged nothing), nor one on its list or
+  the whole menu, nor the sidebar's rows when the spring opened the sidebar instead. macOS 27 finds no SwiftUI drop
+  target added after a drag entered the window; one there from the start but hidden takes drops once shown. So with
+  the sidebar collapsed the workspace menu is there through every drag, hidden and not hit-testable (its field does
+  not take the keys, its rows refuse drops) until the hold opens it (3c0a8ca). The same likely holds for a spring-
+  loaded tab's cards that were not laid out before the drag (not checked). Menu rows take drops only during a drag:
+  `testMenuLightFollowsThePointer` failed on CI in 2 of 4 runs with drop targets on every row (915ec06; 3 green
+  after).
 - **Known limit (check by hand).** Once a drag springs the menu open, the panel's full-window backdrop sits over the
   strip, so the drag can end only on a menu row (or nowhere) until it ends; the menu closes then.
 
