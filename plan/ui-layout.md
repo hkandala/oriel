@@ -32,8 +32,8 @@ the install command (`curl -fsSL https://herdr.dev/install.sh | sh`), because th
   **Take Back**. Two windows on different sessions each control their own session.
 - **Machine button** (title row, after the sidebar toggle): the machine's icon only: no chevron (phase 22, the
   user), no name. Its menu lists the machines with icon and name, a checkmark on the current one, then "Open
-  Session…", "Add Remote Host…" and "Edit Remote Host ▸" (phase 29). Picking another machine opens it in a new
-  window (phase 28); this window keeps its sessions.
+  Session…", "Add Remote Host…" and "Edit Remote Host ▸" (phase 29). Picking another machine brings its
+  window forward, else opens a new one on it (phases 28, 29); this window keeps its sessions.
 - Adding a remote host asks for a name, the SSH target and an icon from a searchable grid of SF Symbols
   ([Add a machine](/docs/ui/add-a-machine)), because the button shows only the icon.
 

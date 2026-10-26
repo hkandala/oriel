@@ -18,8 +18,10 @@ All scenes: the [main window mock-ups](/mockups/layout.html).
 - Two windows on the same machine share the live data of each session. Each
   window keeps its own selection: page, workspace, tab, keyboard card, zoom,
   sidebar view and sidebar width.
-- A new window opens at 1200 × 760 pt, or the screen's size on a smaller
-  screen. Zooming the window (⌥-click on the green button) fills the screen.
+- A new window opens in the middle of the screen at 90 % of its size, at
+  least 1200 × 760 pt and at most the screen's size. A window macOS restores
+  keeps its frame. Zooming the window (⌥-click on the green button) fills the
+  screen.
 - Control is per session (D66). When two windows show the same session, the
   window where the user last typed or clicked in a terminal controls that
   session's panes. The other window watches: its cards dim a little and a
@@ -76,8 +78,9 @@ Window menu and Mission Control show it.
   as ⌥⌘T, for the machine's other sessions), "Add Remote Host…" and, with
   remote machines in the list, "Edit Remote Host ▸" with each of them
   ([Add a machine](/docs/ui/add-a-machine)).
-- Picking another machine opens a new window on it, with its `default`
-  session; this window and its pages stay. Picking the window's own machine
+- Picking another machine brings its window forward (the one used last, when
+  there are several); with none open, a new window on it opens with its
+  `default` session. This window and its pages stay. Picking the window's own machine
   does nothing (⌘N opens another window on it).
 - macOS 27 draws no images in these menu rows, so there only the names show.
 
