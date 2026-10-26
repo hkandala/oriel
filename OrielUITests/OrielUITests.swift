@@ -39,11 +39,13 @@ final class OrielUITests: XCTestCase {
     /// Not async: a failure stops an async test inside the main actor's job, and an async tearDown then waits for
     /// the main actor until the 2-minute allowance runs out.
     /// The main window: the first match can be a floating window that a teardown block's close is closing, with no
-    /// frame (an INFINITY point, CI 40294678064).
+    /// frame (an INFINITY point, CI 40294678064). A warp, not XCUITest's hover: that first looks for a window over the
+    /// point, and a floating window gone meanwhile failed the test (CI 40358914225).
     override func tearDown() {
         let main = app.windows.matching(NSPredicate(format: "identifier BEGINSWITH 'main-'")).firstMatch
         if main.exists {
-            main.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.9)).hover()
+            let frame = main.frame
+            CGWarpMouseCursorPosition(CGPoint(x: frame.minX + frame.width * 0.6, y: frame.minY + frame.height * 0.9))
         }
     }
 
