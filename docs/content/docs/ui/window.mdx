@@ -470,15 +470,15 @@ How it works: [Layout and sizing](/docs/layout).
   (16 pt, secondary), 3 pt before herdr's pane label if set, else the
   program's name and the folder in secondary text, for example "vim ~/code" or
   "zsh ~" ([Program icons](/docs/ui/program-icons)). 8 pt in from the trailing
-  edge, four 22 × 22 pt buttons, 2 pt apart: Split Right, Split Down, Zoom and
-  Close, with 11 pt regular glyphs, dimmer than the title row's buttons (white
+  edge, five 22 × 22 pt buttons, 2 pt apart: Float Pane, Split Right, Split
+  Down, Zoom and Close, with 11 pt regular glyphs, dimmer than the title row's buttons (white
   or black 0.33), as in Rex. Zoom is disabled when the tab has one pane.
 - **Terminal.** 10 pt in from the card's sides and 8 pt above its bottom; its
   text starts 12 pt in, as in Rex.
 - On macOS the buttons show on the keyboard card and on a hovered card. On iOS
   they always show.
-- Agent and terminal cards also have a chat|term view switch, plugin panes a
-  plugin|term switch. Plugin and web cards also have **Refresh**, which loads
+- Not built yet: agent and terminal cards also get a chat|term view switch,
+  plugin panes a plugin|term switch. Plugin and web cards also get **Refresh**, which loads
   the card again from the machine
   ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
 - **Context menu** on the header, and on the terminal, where it starts with
@@ -488,8 +488,8 @@ How it works: [Layout and sizing](/docs/layout).
   in one that does not (herdr's `right_click_passthrough_modifier = "alt"`).
   herdr's per-pane setting that gives a pane's right clicks to its program is
   not in its API, so the app does not follow it:
-  - Split Right (⌘D), Split Down (⇧⌘D), Split Left, Split Up, Zoom Pane or
-    Restore Pane (⇧⌘↩).
+  - Float Pane, Split Right (⌘D), Split Down (⇧⌘D), Split Left, Split Up,
+    Zoom Pane or Restore Pane (⇧⌘↩).
   - Move Pane to Tab ▸ (New Tab and New Workspace, a separator, then every
     tab of the session but the pane's own, grouped by workspace: each
     workspace's name as a section header, in the sidebar's order), Rename

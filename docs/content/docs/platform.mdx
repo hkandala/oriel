@@ -13,12 +13,13 @@ description: "One codebase, dependencies, the strip, the tab bar and tests"
   window shows one machine and has its own state: open pages and selection.
   Windows that show the same session share its `HostStore`, and control
   passes between them per session, so two windows never fight over a pane
-  (D66). iPad keeps one scene. The pill panel is the only other window, and
-  it opens no terminal stream.
+  (D66). iPad keeps one scene. The other windows are the floating panes'
+  (D50), each owned by a main window, and the pill panel (not built yet),
+  which opens no terminal stream.
 - iPhone uses its own `NavigationStack` layout instead of a collapsed split
   view.
-- macOS only: `ProcessExec`, the pill panel, the askpass script, the Local
-  Network preflight, scroll routing with `NSEvent`, the AppKit terminal
+- macOS only: `ProcessExec`, `SSHExec` and its relay, the pill panel, the
+  askpass script, the Local Network preflight, scroll routing with `NSEvent`, the AppKit terminal
   subclass, the Dock badge, the `WindowGroup` scene. iOS only:
   `CitadelExec`, the UIKit terminal subclass, the compact layout.
 - Signing: macOS has App Sandbox off and Hardened Runtime on, and ships as a
@@ -51,9 +52,10 @@ description: "One codebase, dependencies, the strip, the tab bar and tests"
    view, and a container removes it only if it still owns it. Stream lifetime
    follows the HostStore, never whether a view is in a window. Off-screen
    surfaces stop drawing but keep reading their stream (herdr drops a watcher
-   that reads nothing for 30 s). At most 4 streaming terminals out of view and 6 live web views
-   (web pages and plugin cards together; 2 on iPhone), least recently used
-   first out; an evicted card frees its surface and keeps its last image. Web page message handlers
+   that reads nothing for 30 s). At most 16 streaming terminals out of view
+   (D46) and 6 live web views (web pages and plugin cards together; 2 on
+   iPhone), least recently used first out; an evicted card frees its surface
+   and keeps its last image. Web page message handlers
    sit behind a weak proxy.
    A lazy stack whose pages change under it can lay
    out none: one strip shared by every workspace drew no page after it drew
@@ -104,17 +106,22 @@ If [spike S1](/docs/build-order#s1-strip) fails, the strip becomes one AppKit or
 - Plugin bridge: `window.oriel`, injected into each plugin page; every call
   checks the card's machine binding in Swift.
 
-## One test target
+## Tests
 
-Recorded herdr 0.9.3 JSON (snapshot, layouts, closed reasons) and short
-transcript samples. It checks: decoding, the
-split-tree rebuild, the lit-tab math, the snapshot pacing (one read in flight,
-read again), the equal-splits ratios, the label parser (`oriel:` with
-and without a pane name, an argument with spaces and `#`), the remote command
-envelope (hostile strings round-tripped through bash, zsh and fish), the
-state-file write command, the bridge refusing
-`run` and `dial` to another machine, and each
-transcript parser.
+- **End to end first.** `OrielUITests` drives the app with XCUITest against
+  a real herdr in throwaway sessions (`oriel-e2e-*`), and checks the result
+  through accessibility identifiers and through herdr itself
+  (`session.snapshot`, `pane.read`). Remote tests go through a local `sshd`
+  on CI. Trackpad swipes and drags are posted as CGEvents by
+  `scripts/swipe.swift` and `scripts/drag.swift`.
+- **Unit tests** in `HerdrKit` (`swift test`), only for logic with branches:
+  decoding a recorded herdr snapshot, the split-tree rebuild, the equal-split
+  ratios, the snapshot pacing (one read in flight, read again), float
+  requests, the seen rules, git status parsing, fuzzy matching, program icon
+  matching, the terminal stream's frames, the remote command envelope and
+  the relay.
+- Not built yet, with their parts: the label parser, the state-file write
+  command, the bridge's machine check and the transcript parsers.
 
 What it looks like: [Main window](/docs/ui/window),
 [Theme and accessibility](/docs/ui/theme-and-accessibility).

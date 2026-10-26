@@ -114,7 +114,9 @@ the Agents view and popover, the hover card, pills, notifications):
 
 The palette and the menu bar come from one command list, so each shortcut is
 defined once. A command with two shortcuts shows the first in the menu; a key
-monitor runs the first's menu item for the second (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=).
+monitor runs the first's command for the second (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=), always on
+the key window's own command list. In a text field ⌃⇥ does nothing (phase
+31: a key passed on moved the keyboard to the next terminal).
 
 One pattern for every level: the key says the action, the modifier says the
 level. `T` makes, `W` closes, `[` and `]` step, `1` to `9` jump. ⌘ is the pane
@@ -160,6 +162,7 @@ one row with one keycap for the keys: "Select Pane ⌥ ⌘ ←→↑↓", "Show 
 | ⌘K | the command palette; ⇧⌘P also opens it (Rex's key) | View |
 | ⌘. | Show Agents: the Agents view on or off | View |
 | ⌃⌘S | show or hide the sidebar | View |
+| ⌃⌘O | Show Overview: the overview on or off | View |
 | ⌘D, ⇧⌘D | split right, split down | View ▸ Pane |
 | ⇧⌘↩ | zoom or restore the card | View ▸ Pane |
 | ⌥⌘= | Balance Splits: even out the splits of the tab | View ▸ Pane |
@@ -179,9 +182,9 @@ one row with one keycap for the keys: "Select Pane ⌥ ⌘ ←→↑↓", "Show 
 | hold ⌘ for 0.7 s | keycap hints on the first nine tabs and workspace rows | |
 | hold ⌃⌘ for 0.7 s | keycap hints on the first nine workspace rows | |
 
-Close Window and Resize Pane (View ▸ Pane, the palette) have no shortcut:
-the window's close button closes it, and the dividers and Balance Splits
-cover resizing. In the palette: ↩ runs, ⎋ goes back or closes, ⌫ on an empty
+Close Window, Float Pane and Resize Pane (View ▸ Pane, the palette) have no
+shortcut: the window's close button closes it, the card header's button
+floats a pane, and the dividers and Balance Splits cover resizing. In the palette: ↩ runs, ⎋ goes back or closes, ⌫ on an empty
 field goes back. Keyboard focus among the chrome's buttons follows the
 system's Full Keyboard Access setting.
 
