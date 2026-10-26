@@ -94,3 +94,23 @@ line read. No dead code or leftover hooks found: every test value and identifier
 - **Not done (small, cross-area):** `reduceMotion && !Animation.forceMotion` repeats in 8 files of 5 areas (one
   `Animation` helper would do); `Mini.fit` and `TerminalCard`'s `Host.fit` share a debounce; FloatingWindow
   can use r-strip's `PaneTitle` and r-app's `windowChrome(look:)` once they land. No big items.
+
+### r-herdrkit
+
+HerdrKit except SSHExec, Relay and StartServer, with its tests: every line read. Every public API and every
+`Multiplexer` requirement has a caller in Oriel/ (a-ponytail-kit agrees); no dead code or leftover hooks.
+
+- **Bugs fixed.** (1) A write's `refresh()` that came during the 250 ms wait between spaced reads waited it out,
+  though D5 says a write's result is read at once (`HerdrClient.read`: the wait is now a task `refresh` cancels;
+  test `a write while events keep coming is read at once, not spaced`, which fails on the old code).
+  (2) `Session.isValidName` let a name start with `-`, which an argv reads as an option; float requests now pass
+  their session through it (r-panels; a test line).
+- **Code.** `Program.title` takes the path's last part without `URL(filePath:)` (phase 31's getcwd note);
+  `Program.init` is internal (only tests build one); the observe wrapper is one `TerminalStream.observeWrapper`,
+  so r-remote's SSHExec test uses it instead of a copy; one `leaf` helper for the tree tests.
+- **Comments.** A doc split in two (`SplitNode.split`) rejoined; a swap note said twice dropped; the "like Rex"
+  extension doc moved onto `evened`; `refresh`'s doc reworded.
+- **Seen, not changed.** `TerminalStream.init` sets `onTermination` after its reader starts, so a stream that
+  closes in that first instant never calls `terminate` (harmless: the run already ended). A login shell slower
+  than 3 s at launch finds no herdr until the next ask 30 s later; under a load of 200 a local integration test
+  saw `.notFound` once (a rerun passed). No big items.
