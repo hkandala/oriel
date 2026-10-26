@@ -58,7 +58,7 @@
                                 edit("Paste", #selector(NSText.paste(_:)), terminal)
                                 edit("Select All", #selector(NSText.selectAll(_:)), terminal)
                                 Divider()
-                                paneItems(pane)
+                                PaneItems(page: page, pane: pane)
                             }
                     }
                 }
@@ -172,15 +172,11 @@
                     // The drag image is the whole card: the header starts at its top left.
                     .dragSource(.pane(id), page: page, previewSize: size)
             }
-            .contextMenu { paneItems(pane) }
+            .contextMenu { PaneItems(page: page, pane: pane) }
         }
 
         private func edit(_ title: String, _ action: Selector, _ terminal: PaneTerminal) -> some View {
             Button(title) { NSApp.sendAction(action, to: terminal.view, from: nil) }
-        }
-
-        private func paneItems(_ pane: HostStore.Pane?) -> some View {
-            PaneItems(page: page, pane: pane)
         }
 
         private func buttons(zoomed: Bool) -> some View {

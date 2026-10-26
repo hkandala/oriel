@@ -28,17 +28,19 @@ final class HostStore {
     private(set) var focusedWorkspaceID: String?
     /// The last failed write, shown for a few seconds; ✕ clears it.
     var notice: Notice?
-    /// A write in flight; the buttons wait for it.
-    private(set) var writing = false
+    /// Writes, one at a time in order: a quick second close or split waits for the first (both show at once).
+    @ObservationIgnored private let writes = Gate(1)
+    /// A write in flight (not observed: read when a key or a drag acts).
+    var writing: Bool {
+        writes.busy
+    }
+
     /// What shows before herdr has it (phase 25).
     @ObservationIgnored var ahead = Ahead()
     /// The last snapshot, drawn again with `ahead`.
     @ObservationIgnored private(set) var last: Snapshot?
     /// Panes being closed (`Ahead`), kept with what was asked of them in case the close comes back.
     @ObservationIgnored private var parked: [String: Pane] = [:]
-    /// Writes waiting for the one in flight, first first.
-    @ObservationIgnored private var queued: [CheckedContinuation<Void, Never>] = []
-
     /// The tab the user looks at (D14): selected on the page in view of the key window. Its finishes are seen.
     @ObservationIgnored var lookingTabID: String? {
         didSet {
@@ -187,6 +189,10 @@ final class HostStore {
         }
     #endif
 
+    func panes(in tabID: String?) -> [Pane] {
+        tabPanes[tabID ?? ""] ?? []
+    }
+
     func pane(_ id: String) -> Pane? {
         panes.first { $0.id == id }
     }
@@ -204,7 +210,7 @@ final class HostStore {
 
     /// The panes of the tab the user looks at, as `Seen` keys them.
     private var looking: Set<String> {
-        Set((tabPanes[lookingTabID ?? ""] ?? []).map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) })
+        Set(panes(in: lookingTabID).map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) })
     }
 
     private func showStates() {
@@ -221,7 +227,7 @@ final class HostStore {
     private func showStrongest() {
         for workspace in workspaces {
             for tab in workspace.tabs {
-                let tabAgents = (tabPanes[tab.id] ?? []).filter { $0.state != nil }
+                let tabAgents = panes(in: tab.id).filter { $0.state != nil }
                 let strongest = tabAgents.max { $0.state ?? .idle < $1.state ?? .idle }
                 // Observation skips an equal value, but not an identical object.
                 if tab.agent !== strongest {
@@ -362,11 +368,7 @@ extension HostStore {
     @discardableResult
     func write(_ action: (any Multiplexer) async throws -> Void) async -> Bool {
         guard let client else { return false }
-        // One at a time, in order: a quick second close or split waits for the first (both show at once).
-        if writing {
-            await withCheckedContinuation { queued.append($0) }
-        }
-        writing = true
+        await writes.enter()
         notice = nil
         var failure: Error?
         do {
@@ -374,12 +376,7 @@ extension HostStore {
         } catch {
             failure = error
         }
-        // The next write takes over.
-        if queued.isEmpty {
-            writing = false
-        } else {
-            queued.removeFirst().resume()
-        }
+        writes.leave()
         // After a failure too: part of it may have happened (Close Other Tabs).
         await client.refresh()
         if let failure {

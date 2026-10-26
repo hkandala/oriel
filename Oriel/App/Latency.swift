@@ -67,15 +67,20 @@
         /// snapshots applied and their own time: "main 812ms 120ms 34 210ms".
         private func recordMain() {
             // A turn still running counts up to now, so a main thread that never sleeps does not show as idle.
-            if let awake {
-                let now = ProcessInfo.processInfo.systemUptime
-                busy += now - awake
-                longest = max(longest, now - awake)
-                self.awake = now
-            }
+            endTurn(next: awake.map { _ in ProcessInfo.processInfo.systemUptime })
             let line = "main \(Int(busy * 1000))ms \(Int(longest * 1000))ms \(snapshots) \(Int(applying * 1000))ms"
             record(line)
             (busy, longest, snapshots, applying) = (0, 0, 0, 0)
+        }
+
+        /// The turn since `awake` ends now; `next` starts another.
+        private func endTurn(next: TimeInterval? = nil) {
+            if let awake {
+                let turn = ProcessInfo.processInfo.systemUptime - awake
+                busy += turn
+                longest = max(longest, turn)
+            }
+            awake = next
         }
 
         /// In `recorded`, and on stderr (unbuffered) for a run by hand: there no accessibility client's queries take
@@ -106,18 +111,13 @@
         }
 
         private func turned() {
-            if let awake {
-                let turn = ProcessInfo.processInfo.systemUptime - awake
-                busy += turn
-                longest = max(longest, turn)
-                self.awake = nil
-            }
+            endTurn()
             guard var pending else { return }
             let elapsed = ProcessInfo.processInfo.systemUptime - pending.time
             if state != pending.state {
                 self.pending = nil
                 let work = ProcessInfo.processInfo.systemUptime - pending.taken
-                recorded.append("\(pending.name) \(Int(elapsed * 1000))ms \(pending.turns) \(Int(work * 1000))ms")
+                record("\(pending.name) \(Int(elapsed * 1000))ms \(pending.turns) \(Int(work * 1000))ms")
             } else if elapsed > 3 {
                 self.pending = nil
             } else {
@@ -147,7 +147,7 @@
             Task {
                 try? await Task.sleep(for: .seconds(0.8))
                 let path = slide.map { "\($0.0):\(Int($0.1.rounded()))" }.joined(separator: ",")
-                recorded.append("swipe \(slide.last?.0 ?? 0)ms \(path) \(shownAt)")
+                record("swipe \(slide.last?.0 ?? 0)ms \(path) \(shownAt)")
                 lifted = nil
             }
         }
@@ -167,7 +167,7 @@
         /// A test's note in the record.
         func note(_ text: String) {
             if Self.isOn {
-                recorded.append(text)
+                record(text)
             }
         }
 

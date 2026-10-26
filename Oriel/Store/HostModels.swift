@@ -276,6 +276,11 @@ final class Gate {
         free = count
     }
 
+    /// Every place is held.
+    var busy: Bool {
+        free == 0
+    }
+
     func enter() async {
         if free > 0 {
             free -= 1

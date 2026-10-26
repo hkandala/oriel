@@ -176,7 +176,7 @@
         /// The tab's card that last had the keyboard, else the one before it (it closed), else herdr's focused pane.
         /// Observed, unlike the first responder.
         func keyboardCard(_ tabID: String?) -> HostStore.Pane? {
-            let panes = (store.tabPanes[tabID ?? ""] ?? []).filter { !floats($0) }
+            let panes = store.panes(in: tabID).filter { !floats($0) }
             let pane = usedTerminals.reversed().lazy.compactMap { id in panes.first { $0.terminalID == id } }.first
             return pane ?? panes.first(where: \.focused)
         }
@@ -212,7 +212,7 @@
             let gone = self.alive.subtracting(alive)
             self.alive = alive
             let closed = usedTerminals.last.map(gone.contains) ?? false
-            // A set, which skips an equal value; an in-place edit notified at each snapshot, redrawing the window.
+            // Assigned, not edited in place: Observation skips an equal value; removeAll notified at each snapshot.
             usedTerminals = usedTerminals.filter { !gone.contains($0) }
             if closed || selectedTab?.id != keyboardTabID {
                 focusKeyboardCard()
@@ -231,7 +231,7 @@
         /// Gives the keyboard to the selected tab's card: the one it last had, else herdr's focused pane.
         func focusKeyboardCard() {
             guard let tab = selectedTab else { return }
-            let tabPanes = (store.tabPanes[tab.id] ?? []).filter { $0.terminalID != nil && !floats($0) }
+            let tabPanes = store.panes(in: tab.id).filter { $0.terminalID != nil && !floats($0) }
             // A moved pane not in the tab yet: wait for the snapshot (`shown` asks again). Giving the keyboard to
             // another card meanwhile would record that card as the tab's keyboard card (`tookKeyboard`) for good.
             if let moved = movedTerminal, usedTerminals.last == moved {
@@ -303,7 +303,7 @@
         /// The only card of its tab, or gone.
         private func alone(_ paneID: String) -> Bool {
             let tab = store.pane(paneID)?.tabID
-            return (store.tabPanes[tab ?? ""] ?? []).count < 2
+            return store.panes(in: tab).count < 2
         }
 
         /// The closes being asked about (`close`).

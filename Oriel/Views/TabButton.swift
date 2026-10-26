@@ -188,7 +188,7 @@
         func title(_ tab: HostStore.Tab) -> (name: String, folder: String?) {
             guard tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
             // The stack's first, without the stack: the menus ask for every tab's title (phase 29).
-            let front = keyboardCard(tab.id) ?? store.tabPanes[tab.id]?.first
+            let front = keyboardCard(tab.id) ?? store.panes(in: tab.id).first
             guard let pane = front, let name = pane.programName else {
                 // A new tab (a stand-in, or a pane whose shell still starts): "New Tab", never a number. Else the
                 // number, for a pane whose program herdr cannot say.
@@ -203,7 +203,7 @@
         /// The tab's panes for its icon stack, at most 5: the keyboard card's first (herdr's focused pane until one
         /// had the keyboard), then herdr's order.
         func stack(_ tab: HostStore.Tab) -> [HostStore.Pane] {
-            let tabPanes = store.tabPanes[tab.id] ?? []
+            let tabPanes = store.panes(in: tab.id)
             let front = keyboardCard(tab.id)
             return Array(([front].compactMap(\.self) + tabPanes.filter { $0 !== front }).prefix(5))
         }

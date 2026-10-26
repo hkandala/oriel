@@ -235,8 +235,7 @@ struct StatusBadge: View {
     extension HostStore {
         /// The agent panes in herdr's order of workspaces, tabs and panes.
         var agentPanes: [Pane] {
-            // Not a filter of every pane for each tab: 180,000 steps at 300 tabs and 600 panes (phase 29).
-            workspaces.flatMap(\.tabs).flatMap { (tabPanes[$0.id] ?? []).filter { $0.state != nil } }
+            workspaces.flatMap(\.tabs).flatMap { panes(in: $0.id).filter { $0.state != nil } }
         }
     }
 
