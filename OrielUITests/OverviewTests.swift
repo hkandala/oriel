@@ -189,7 +189,7 @@ extension OrielUITests {
         print("overview cost: strip\n\(strip)\nopen\n\(open)\nscrolled\n\(scrolled)")
     }
 
-    /// The overview of 100 tabs over 4 workspaces, every fourth printing (phase 28; `scripts/overview-stress.py` makes
+    /// The overview of 100 tabs over 4 workspaces, every fourth printing (phase 28; `scripts/stress.py` makes
     /// more for a check by hand): however far it scrolls, at most 24 cards stream beside the strip's, the tiles that
     /// were live keep a snapshot, and the frames dropped while scrolling are counted. Footprint, CPU and frames are in
     /// the result bundle.
