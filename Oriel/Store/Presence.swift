@@ -7,12 +7,20 @@
     extension HostStore {
         /// The app quits: no pane is shown any more.
         private static var quitting = false
+        /// Every store's marks again every 10 s, each store once however many windows show it, apart from git's
+        /// pass, which can take longer (D67).
+        private static let refresh = Task { @MainActor in
+            while await (try? Task.sleep(for: .seconds(10))) != nil {
+                all.forEach { $0.markShown(refresh: true) }
+            }
+        }
 
         /// Marks its panes in view of a visible window, the shown tab of its page in view there and its floats, and
         /// clears the ones no longer so: the changes, or every one again (`refresh`; a mark lasts 30 s, so an app
         /// that crashed stops claiming its panes). One batch after the other, so a quick hide and show of a pane
         /// cannot land out of order.
         func markShown(refresh: Bool = false) {
+            _ = Self.refresh
             guard let client else { return }
             let shown = Self.quitting ? [] : Set(windows.filter(\.visible).flatMap { window in
                 window.withFloats.filter { $0.store === self }.flatMap { page in
@@ -55,16 +63,8 @@
     }
 
     extension WindowPages {
-        /// Every visible window's marks again every 10 s, apart from git's pass, which can take longer (D67).
-        private static let refresh = Task { @MainActor in
-            while await (try? Task.sleep(for: .seconds(10))) != nil {
-                windows.filter(\.visible).forEach { $0.markShown(refresh: true) }
-            }
-        }
-
-        func markShown(refresh: Bool = false) {
-            _ = Self.refresh
-            withFloats.forEach { $0.store.markShown(refresh: refresh) }
+        func markShown() {
+            withFloats.forEach { $0.store.markShown() }
         }
     }
 #endif
