@@ -247,16 +247,17 @@ struct StatusBadge: View {
         /// The folded groups, a line each, "‹machine› ‹session› ‹sort› ‹group›": per session and order, kept across
         /// relaunches (user, phase 27). ponytail: a closed workspace's line stays (and folds a new workspace that gets
         /// its id); prune them if that is ever seen.
-        @AppStorage("agentsFolded") private var folded = ""
+        @AppStorage(foldedKey) private var folded = ""
+        static let foldedKey = "agentsFolded"
         @State private var position = ScrollPosition(idType: String.self)
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
-            let folded = Set(folded.split(separator: "\n").map(String.init))
+            let folded = Self.keys(folded)
             ScrollView {
                 // Lazy: only the rows in view are built, of a hundred agents or more (phase 29).
                 LazyVStack(alignment: .leading, spacing: 4) {
-                    ForEach(Self.groups(page, filter: filter, sort: sort), id: \.id) { group in
+                    ForEach(Self.groups(page, filter: filter, sort: sort)) { group in
                         let open = !folded.contains(group.key)
                         label(group.label, group.rows.count, group.key, open: open, id: group.id)
                         if open {
@@ -280,7 +281,7 @@ struct StatusBadge: View {
             }
         }
 
-        struct Group {
+        struct Group: Identifiable {
             let label: String, key: String, id: String
             let rows: [HostStore.Pane]
         }
@@ -307,22 +308,28 @@ struct StatusBadge: View {
             return groups.filter { !$0.rows.isEmpty }
         }
 
-        /// Goes to the agent row above (-1) or below (1) the lit one, round the ends, as a click on it does; a folded
-        /// group's rows are skipped (a three-finger swipe, phase 31).
+        /// Goes to the agent row above (-1) or below (1) the lit one, round the ends, as a click on it does (a
+        /// three-finger swipe, phase 31). A folded group's rows are skipped, and floated panes: a click on one brings
+        /// its window forward, and the lit row would stay.
         static func step(_ offset: Int, _ page: Page, filter: String, sort: AgentSort) {
-            let folded = Set((UserDefaults.standard.string(forKey: "agentsFolded") ?? "").split(separator: "\n")
-                .map(String.init))
+            let folded = keys(UserDefaults.standard.string(forKey: foldedKey) ?? "")
             let rows = groups(page, filter: filter, sort: sort).filter { !folded.contains($0.key) }.flatMap(\.rows)
+                .filter { !page.floats($0) }
             guard !rows.isEmpty else { return }
-            let lit = rows.firstIndex { page.keyboardCard(page.selectedTab?.id) === $0 }
+            let card = page.keyboardCard(page.selectedTab?.id), lit = rows.firstIndex { $0 === card }
             page.go(to: rows[lit.map { ($0 + offset + rows.count) % rows.count } ?? (offset > 0 ? 0 : rows.count - 1)])
+        }
+
+        /// The folded groups' keys, from their lines.
+        private static func keys(_ lines: String) -> Set<String> {
+            Set(lines.split(separator: "\n").map(String.init))
         }
 
         /// A section label, as in a macOS sidebar: smaller than the title, with room above (user, phase 25). A click
         /// folds or unfolds its rows; a folded group keeps its label and count (user, phase 27).
         private func label(_ text: String, _ count: Int, _ key: String, open: Bool, id: String) -> some View {
             Button {
-                var keys = Set(folded.split(separator: "\n").map(String.init))
+                var keys = Self.keys(folded)
                 if keys.remove(key) == nil {
                     keys.insert(key)
                 }

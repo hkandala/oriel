@@ -3,10 +3,10 @@
     import SwiftUI
 
     /// The app's one scroll monitor (design D35). A gesture picks its axis once it moved 4 pt: a sideways one goes to
-    /// the sidebar's pages when over them, else to the scroll view under the pointer (the strip, over a card), so a
-    /// terminal never sees it; any other goes to the view under the pointer as usual. Its momentum follows, except to
-    /// pages that take the moves (the sidebar's, the strip's, the overview's). A wheel picks per event; Shift makes it
-    /// sideways. Three-finger swipes: see docs/ui/swiping.mdx.
+    /// the sidebar's pages when over them, else to the pages of the scroll view under the pointer (the strip's, over a
+    /// card), or that scroll view, so a terminal never sees it; any other goes to the view under the pointer as usual.
+    /// Pages take its moves and lift, not its momentum. A wheel picks per event; Shift makes it sideways. Three-finger
+    /// swipes: see docs/ui/swiping.mdx.
     @MainActor
     enum SwipeRouter {
         /// Once, at launch.
@@ -58,11 +58,11 @@
             }
         }
 
-        /// Every window's strip (for wheel clicks) and sidebar pages; each registers itself.
+        /// Every window's strip, overview and sidebar pages; each registers itself.
         fileprivate static let anchors = NSHashTable<ScrollAnchor.Anchor>.weakObjects()
         /// Where the current sideways gesture goes; nil while it goes the usual way.
         private weak static var target: NSScrollView?
-        /// The sidebar's pages, when the current sideways gesture goes to them, and whether it lifted.
+        /// The pages the current sideways gesture goes to, and whether it lifted.
         private weak static var pager: ScrollAnchor.Anchor?
         private static var lifted = false
         private static var picked = false
@@ -125,8 +125,7 @@
                     target = scrollView(event)
                     // The strip's and the overview's pages take it as the sidebar's do (phase 31).
                     if let paged = anchor(target), paged.drag != nil {
-                        pager = paged
-                        target = nil
+                        (pager, target) = (paged, nil)
                     }
                 }
                 pager?.drag?(sideways, true)
@@ -143,8 +142,9 @@
             }
         }
 
-        /// A sideways wheel step: over the sidebar's pages, or over the strip as a burst of line steps (a mouse, which
-        /// would only nudge a paged strip), it turns one page; else it goes to the scroll view under the pointer.
+        /// A sideways wheel step: over the sidebar's pages, or over the strip's or the overview's as a burst (they have
+        /// no paging of their own; a mouse's line steps would only nudge them), it turns one page; else it goes to the
+        /// scroll view under the pointer.
         private static func wheel(_ event: NSEvent) -> Bool {
             let deltaX = event.scrollingDeltaX, deltaY = event.scrollingDeltaY
             guard abs(deltaX) > abs(deltaY) else { return false }
@@ -153,7 +153,7 @@
                 return true
             }
             guard let scrollView = scrollView(event) else { return false }
-            if !event.hasPreciseScrollingDeltas, let step = anchor(scrollView)?.step {
+            if let step = anchor(scrollView)?.step {
                 turn(step, deltaX)
             } else {
                 scrollView.scrollWheel(with: event)
@@ -257,32 +257,29 @@
         /// The offset and the page width as last laid out (`laid`), or moved to.
         private var offset = 0.0, width = 1.0
 
-        /// The pages' offset and width (`onScrollGeometryChange`).
-        static func rect(_ geometry: ScrollGeometry) -> CGRect {
-            CGRect(origin: geometry.contentOffset, size: geometry.containerSize)
-        }
-
-        func laid(_ rect: CGRect) {
-            (offset, width) = (rect.minX, max(rect.width, 1))
+        /// From `onScrollGeometryChange`.
+        func laid(_ geometry: ScrollGeometry) {
+            (offset, width) = (geometry.contentOffset.x, max(geometry.containerSize.width, 1))
             Latency.shared.slid(offset, "page")
         }
 
-        /// The router's moves, in points toward later pages, within the first and last of the pages `ids`.
-        func drag(_ delta: Double, ids: [String], _ position: Binding<ScrollPosition>) {
-            offset = min(max(offset + delta, 0), Double(max(ids.count - 1, 0)) * width)
+        /// The router's moves, in points toward later pages, within the first and last of `count` pages.
+        func drag(_ delta: Double, count: Int, _ position: Binding<ScrollPosition>) {
+            offset = min(max(offset + delta, 0), Double(max(count - 1, 0)) * width)
             withTransaction(\.animation, nil) { position.wrappedValue.scrollTo(x: offset) }
         }
 
-        /// The router's lift: the pages slide to the page it lands on (at once when `still`), and `land` runs with its
-        /// id as they arrive, unless a key, a click or another swipe moved them meanwhile.
-        func lift(_ speed: Double, ids: [String], _ position: Binding<ScrollPosition>, still: Bool,
+        /// The router's lift: the pages slide to the page it lands on (at once under Reduce Motion), and `land` runs
+        /// with its id as they arrive, unless a key, a click or another swipe moved them meanwhile.
+        func lift(_ speed: Double, ids: [String], _ position: Binding<ScrollPosition>, reduceMotion: Bool,
                   land: @escaping (String) -> Void)
         {
             let page = offset / width, index = Swipe.landing(page, speed: speed, count: ids.count)
             guard ids.indices.contains(index) else { return }
             let id = ids[index]
             Latency.shared.lifted(offset, "page")
-            guard !still else {
+            // On the page already (a drag clamped at the last one): no animation, which might never end.
+            if reduceMotion && !Animation.forceMotion || abs(Double(index) - page) < 0.001 {
                 position.wrappedValue.scrollTo(id: id, anchor: .leading)
                 return land(id)
             }

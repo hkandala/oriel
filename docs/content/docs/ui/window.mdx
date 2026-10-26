@@ -125,9 +125,11 @@ One capsule per herdr tab of the selected workspace (D42).
   fade over 0.2 s.
 - **Selection.** One marker follows the strip as it scrolls, so it sits
   between two capsules while the strip is between their pages. It is 30 pt
-  tall and fully round, 2 pt inside the track, as in Rex. Only a scroll gesture
-  or a mouse's sideways wheel slides the strip, and the marker with it (Rex's
-  spring, stiffness 520, damping 46; Reduce Motion makes it jump). Any other
+  tall and fully round, 2 pt inside the track, as in Rex. Only a swipe or a
+  mouse's sideways wheel slides the strip, and the marker with it: a swipe
+  follows the fingers and slides on with the session spring
+  ([Swiping](/docs/ui/swiping)), a wheel turns a page with Rex's spring
+  (stiffness 520, damping 46); Reduce Motion makes both jump. Any other
   switch (a click, +, ⌘T, ⌘1…⌘9, ⇧⌘[ and ⇧⌘], the palette, a close) shows the
   tab's page at once. Glass draws the marker as a Liquid Glass capsule, Classic
   as a plain raised pill.

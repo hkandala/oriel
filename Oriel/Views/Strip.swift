@@ -2,9 +2,9 @@
     import HerdrKit
     import SwiftUI
 
-    /// One full-size page per tab of the workspace, paged sideways. The selection follows the page in view when the
-    /// scroll stops. A new selection (a click, a key, a new or closed tab) shows its page at once: only a scroll
-    /// gesture or a mouse's wheel slides (phase 24).
+    /// One full-size page per tab of the workspace, paged sideways by a swipe (`Paging`, which selects the tab it
+    /// lands on) or a wheel. A new selection (a click, a key, a new or closed tab) shows its page at once: only a swipe
+    /// or a mouse's wheel slides (phase 24).
     struct Strip: View {
         let workspace: HostStore.Workspace
         let page: Page
@@ -46,7 +46,7 @@
                     .background(ScrollAnchor(step: turn, drag: drag, lift: lift))
                 }
             }
-            .scrollTargetBehavior(.paging)
+            // No `.paging`: it snapped the swipe's first move to the next page (phase 31, CI).
             // A new strip (a workspace or session shown, the overview closed) is laid out on the selected tab's page
             // from its first frame: the scroll below finds a lazy page only once it is laid out, so the strip drew its
             // first page for a frame and then jumped (phase 29).
@@ -64,7 +64,7 @@
                     between += 1
                 }
             }
-            .onScrollGeometryChange(for: CGRect.self, of: Paging.rect) { paging.laid($1) }
+            .onScrollGeometryChange(for: ScrollGeometry.self, of: { $0 }, action: { paging.laid($1) })
             .testValue("strip.between", "Strip Between Pages", "\(between)", shown: Self.record)
             .onScrollPhaseChange { _, phase in
                 // Not a tab that closed meanwhile.
@@ -91,19 +91,20 @@
             return UnitPoint(x: workspace.tabs.count > 1 ? Double(index) / Double(workspace.tabs.count - 1) : 0, y: 0)
         }
 
-        /// A swipe's moves and lift (`Paging`); the tab it lands on is selected as its page arrives.
+        /// A swipe's moves and lift (`Paging`); the tab it lands on is selected as its page arrives, unless it closed.
         private func drag(_ delta: Double, _: Bool) {
-            paging.drag(delta, ids: workspace.tabs.map(\.id), $position)
+            paging.drag(delta, count: workspace.tabs.count, $position)
         }
 
         private func lift(_ speed: Double) {
-            let still = reduceMotion && !Animation.forceMotion
-            paging.lift(speed, ids: workspace.tabs.map(\.id), $position, still: still) {
-                page.selectedTabIDs[workspace.id] = $0
+            paging.lift(speed, ids: workspace.tabs.map(\.id), $position, reduceMotion: reduceMotion) { tab in
+                if page.store.workspace(of: tab) != nil {
+                    page.selectedTabIDs[workspace.id] = tab
+                }
             }
         }
 
-        /// A mouse's sideways wheel turns a page with Rex's spring, as a swipe would. The scroll is there before the
+        /// A mouse's sideways wheel turns a page with Rex's spring. The scroll is there before the
         /// selection's change runs, so that change does not scroll again.
         private func turn(_ offset: Int) {
             page.step(offset)

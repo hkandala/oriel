@@ -58,12 +58,12 @@
                         }
                     }
                     .scrollTargetLayout()
-                    .background(ScrollAnchor(drag: drag, lift: lift))
+                    .background(ScrollAnchor(step: step, drag: drag, lift: lift))
                 }
-                .scrollTargetBehavior(.paging)
+                // No `.paging`: it snapped a swipe's first move to the next page (phase 31, CI).
                 .scrollPosition($position)
                 .scrollIndicators(.never)
-                .onScrollGeometryChange(for: CGRect.self, of: Paging.rect) { paging.laid($1) }
+                .onScrollGeometryChange(for: ScrollGeometry.self, of: { $0 }, action: { paging.laid($1) })
                 .opacity(grown ? 0 : 1)
                 // Nothing under the zoom takes a click.
                 .allowsHitTesting(zoom == nil)
@@ -133,15 +133,24 @@
 
         static let space = "overview"
 
-        /// A swipe's moves and lift (`Paging`); the window shows the session it lands on as its page arrives.
+        /// A swipe's moves and lift (`Paging`), or a wheel's step; the window shows the session it lands on as its
+        /// page arrives. Not under a panel, which would then act on another page.
         private func drag(_ delta: Double, _: Bool) {
-            paging.drag(delta, ids: pages.list.map(\.id), $position)
+            if !pages.panelOpen {
+                paging.drag(delta, count: pages.list.count, $position)
+            }
         }
 
         private func lift(_ speed: Double) {
-            let still = reduceMotion && !Animation.forceMotion
-            paging.lift(speed, ids: pages.list.map(\.id), $position, still: still) { id in
+            guard !pages.panelOpen else { return }
+            paging.lift(speed, ids: pages.list.map(\.id), $position, reduceMotion: reduceMotion) { id in
                 pages.list.first { $0.id == id }.map(pages.show)
+            }
+        }
+
+        private func step(_ offset: Int) {
+            if !pages.panelOpen {
+                pages.step(offset)
             }
         }
 

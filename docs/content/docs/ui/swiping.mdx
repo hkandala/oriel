@@ -19,9 +19,11 @@ description: "Session pages in the sidebar and tab pages in the strip"
   left show the next session, as the system's own swipes. Up or down it moves
   what the sidebar shows: the workspace above or below, as ⌃⌘[ ] do, or in
   the Agents view the agent row above or below the lit one, going to its pane
-  as a click on the row does (a folded group's rows are skipped). Fingers up
-  go to the row above, down to the one below, whatever the scroll direction
-  (user, phase 31). One step a gesture, as the fingers move 20 pt (on the
+  as a click on the row does (a folded group's rows and floated panes are
+  skipped; the steps follow the list as it reorders, as clicks do). With the
+  sidebar hidden, or in the overview, up and down step the workspace.
+  Fingers up go to the row above, down to the one below, whatever the scroll
+  direction (user, phase 31). One step a gesture, as the fingers move 20 pt (on the
   trackpad) mostly one way, when the system's three-finger swipes are off
   (Trackpad settings: Swipe between full-screen apps, Mission Control and App
   Exposé on four fingers or off; no three-finger drag). macOS sends no scroll
@@ -59,9 +61,11 @@ description: "Session pages in the sidebar and tab pages in the strip"
   the pages move. A swipe during a slide takes the pages from where they are.
   The window shows the session, or selects the tab, once the slide looks
   done: shown at the lift, its first draw held the slide still (phase 27). A
-  mouse's sideways wheel over the sidebar or the strip turns one page. Under Reduce Motion they switch without motion. The keys,
-  a click on a tab and the palette show the tab's page at once, with no
-  slide.
+  wheel's sideways burst over the sidebar, the strip or the overview turns one
+  page: the strip and the overview have no paging of their own (SwiftUI's
+  snapped a swipe's first move to the next page). Under Reduce Motion they
+  switch without motion. The keys, a click on a tab and the palette show the
+  tab's page at once, with no slide.
 - First visit to a session page: the app shows herdr's focused workspace and
   its active tab. Later visits: the workspace and tab the user last picked
   there, in that window.
