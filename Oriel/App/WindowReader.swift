@@ -34,6 +34,10 @@
                 super.viewDidMoveToWindow()
                 guard let window else { return }
                 pages?.window = window
+                // The trackpad's touches, for the three-finger swipes (`SwipeRouter`): the view under the pointer or
+                // one it lies in must take them. Every view lies in the window's frame view; not SwiftUI's content
+                // view, which handles touches of its own.
+                window.contentView?.superview?.allowedTouchTypes.insert(.indirect)
                 let center = NotificationCenter.default
                 let close = NSWindow.willCloseNotification
                 observers.append(center.addObserver(forName: close, object: window, queue: .main) { [weak self] _ in

@@ -25,6 +25,8 @@ build:
 
 test:
 	swift test --package-path Packages/HerdrKit --scratch-path $(DERIVED_DATA)/HerdrKit
+	swiftc -parse-as-library Oriel/Views/ThreeFingers.swift scripts/three-fingers-check.swift -o $(DERIVED_DATA)/three-fingers
+	$(DERIVED_DATA)/three-fingers
 
 # Runs the UI tests against throwaway herdr sessions, removed even when tests fail.
 # ONLY=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB runs just those.

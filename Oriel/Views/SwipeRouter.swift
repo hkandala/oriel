@@ -7,13 +7,38 @@
     /// terminal never sees it; any other goes to the view under the pointer as usual. Its momentum follows, except to
     /// the sidebar's pages. A wheel picks per event; Shift makes it sideways. With ⌥ held, a gesture or a wheel
     /// anywhere in a window goes to its sessions (sideways: the sidebar's pages, else one step) or workspaces (one
-    /// step), never to a terminal.
+    /// step), never to a terminal; so does a three-finger swipe, when the system's three-finger swipes are off.
     @MainActor
     enum SwipeRouter {
         /// Once, at launch.
         static func install() {
             NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
                 MainActor.assumeIsolated { route(event) } ? nil : event
+            }
+            // The trackpad's touches, which a window gets once a view in it takes them (`WindowReader`).
+            NSEvent.addLocalMonitorForEvents(matching: .gesture) { event in
+                MainActor.assumeIsolated { touched(event) }
+                return event
+            }
+        }
+
+        private static var fingers = ThreeFingers()
+
+        private static func touched(_ event: NSEvent) {
+            let touches = event.allTouches()
+            let down = touches.filter { !$0.isResting && !$0.phase.isDisjoint(with: .touching) }
+            // New touches (a missed lift left the last ones).
+            if down.allSatisfy({ $0.phase == .began }) {
+                fingers = ThreeFingers()
+            }
+            let points = down.map { touch in
+                CGPoint(x: touch.normalizedPosition.x * touch.deviceSize.width,
+                        y: touch.normalizedPosition.y * touch.deviceSize.height)
+            }
+            switch fingers.feed(points, at: event.timestamp, cancelled: touches.contains { $0.phase == .cancelled }) {
+            case let .session(offset): step(event, sideways: true, offset)
+            case let .workspace(offset): step(event, sideways: false, offset)
+            case nil: break
             }
         }
 

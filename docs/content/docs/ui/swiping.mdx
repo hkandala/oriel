@@ -22,6 +22,20 @@ description: "Session pages in the sidebar and tab pages in the strip"
   of clicks with ⌥ steps once too. The terminal under the pointer never
   scrolls while ⌥ is held. ⌃ + scroll is the system's zoom and ⇧ + scroll
   scrolls sideways, so neither is used; ⌘ + scroll is free.
+- **Three fingers.** A three-finger swipe does the same as ⌥ + swipe, one
+  step as the fingers move 20 pt (on the trackpad) mostly one way, when the
+  system's three-finger swipes are off (Trackpad settings: Swipe between
+  full-screen apps, Mission Control and App Exposé on four fingers or off;
+  no three-finger drag). macOS sends no scroll for three fingers: the app
+  reads the trackpad's touches (`NSTouch`), which it gets once a view in the
+  window takes indirect touches (the window's frame view, not SwiftUI's
+  content view, which handles touches of its own). AppKit's `swipe(with:)`
+  would need Swipe between pages on three fingers, and no gesture
+  recognizer sees the trackpad. With the system's three-finger gestures on,
+  they win; touches the system cancels step nothing. Fingers
+  to the left show the next session and up the next workspace, as the
+  system's own swipes, whatever the scroll direction. The UI says nothing
+  about the setting.
 - **One target.** The app's scroll monitor locks a gesture to one axis (D35).
   It gives a sideways gesture over the sidebar (its pages, the dots and the
   filter) to the sidebar's pages, and elsewhere to the innermost scroll view
