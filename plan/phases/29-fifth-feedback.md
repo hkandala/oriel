@@ -445,3 +445,10 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   confirm on the user's case.
 - (Lane F) The floating placeholder gets two buttons: "Show Window" (brings the floating window forward)
   and "Bring Back Here" (detaches: closes the floating window and shows the pane in its card again).
+
+### Lane V (items 4–6)
+
+- Written with phase 28's lane V (`28-fourth-feedback.md`, "Lane V"): item 4's numbers (200 tabs, 272 panes,
+  16 live cards, footprint bounded by the cap, hitches against lane S's baseline), item 6 (0.18 s zoom, fade-in
+  on open, 3f48029); item 5 went to lane T.
+

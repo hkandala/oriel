@@ -129,46 +129,77 @@ the orchestrator says otherwise.
   red only in other lanes' areas: testEmptyPageOffersNewWorkspace and the swipe tests (lane E),
   testOrielURLFloat* (lane F).
 
-### Lane V (items 3, 4)
+### Lane V (items 3, 4; phase 29 items 4–6)
 
-- **Root cause, item 3.** The overview's pages, workspaces and tiles sat in lazy stacks (`LazyHStack`,
-  `LazyVStack`, `LazyVGrid`), and phase 27 (6f33fad) streamed only the tiles the grid laid out. A tile scrolled
-  into view was made then: its card's terminal view entered the window, libghostty builds a surface only in a
-  window (`AppTerminalView.viewDidMoveToWindow`), the stream opened, the new surface (clear) waited 100–400 ms
-  for herdr's frames to settle and its first reveal faded in over 0.12 s; a tile scrolled away freed its surface
-  again. Frame 11 of `scrawl zoom … --at 1:08` shows three empty tiles at the top while the user scrolls.
-- **Fix** (aa8a5e1). Nothing in the overview is lazy: an `HStack` of pages, a `VStack` of workspaces, rows of
-  `columns` tiles (`HStack`s with clear fillers, so a short last row keeps the tiles' width). Every terminal
-  view of every session in the window is in the window, and `showTerminals` streams every card of every page
-  while the overview is open, each made with its own page's client (no visits, as before; on leaving the
-  overview-only ones let go as in phase 27). The tile-tracking (`overviewTabs`, `laidOut`, `cardTerminals`) is
-  gone. The zoom leaves at once when the selected tile is out of view (its frame outside the canvas). Remote
-  machines are no longer left out: the rule came from the SSH session cap, which lane R2's relay (one SSH
-  session per host) removed.
-- **Item 4** (a2b2677, aa8a5e1). In the overview the title row is the traffic lights and one × at its end
-  (`overview.close`, "Close Overview ⌃⌘O"), which leaves by the zoom; the machine button, Agents, the overview
-  button, ⌘ and the hidden sidebar toggle and + are gone (`TitleBar.row` is the normal row). ⌘K and ⌘. still
-  work. Margins all round: 8 % of the width left and right (at least 48 pt), 40 pt above and below; the
-  columns (2–4 tiles of 340 pt) come from the width between them.
-- **Numbers** (CI 40246320315, 1x, `testOverviewCostsAndLetsGoAfter`, 17 cards of which 8 print): strip 85 MB,
-  1.5 % CPU, 4 herdr runs; overview open 205–208 MB, 14 %, 17 runs (every card at once; phase 27's lazy grid:
-  134 MB with 8 runs); scrolled to the end the same 17 runs; closed 108 MB, 0.7 %, 4 runs. On Retina expect
-  about 52 MB per full-window card while the overview is open (phase 27: 902 MB with all 17 laid out).
-- **Tests** (`OverviewTests.swift`). `testOverviewCostsAndLetsGoAfter`: on open every pane of the session
-  streams (`helpers ≥` herdr's pane count), the last tile below the window's edge already has a surface (its
-  terminal's grid value) before any scroll, and scrolling lets none go. `testOverviewShowsEveryTabLiveAndOpensOne`:
-  no title-row button but × (`titlebar.sidebar`, `.machine`, `.agents`, `.overview`, `.palette`, `.new-tab` gone),
-  the margins (left = 8 % / 48 pt, right = left, 40 pt above), × leaves. Each fails on the old code.
-- **Reviews.** Spec: no blockers; shoulds were stale doc lines (leaving by ⌘. and the Agents button, the remote
-  limit, the lazy cost) and the Findings. Ponytail: no blockers; stale comments, the cost bullet, a redundant
-  assert; `Grid` instead of the rows was offered as a nit and not taken (flexible `Grid` columns follow their
-  widest cell, so a one-tab workspace would get one wide column without fillers anyway). Fixed in 802e3c7.
-- **CI.** 40246320315 (the three overview tests, green on aa8a5e1). Full suite on 802e3c7, the lane's last
-  code commit: see below.
-- **For the user to check by hand:** ⌃⌘O in a busy session with many tabs, never opened ones too: scroll fast
-  down and up and swipe between sessions: no tile empty or fading; the title row (lights and × only) and the
-  margins against your reference; × and Esc leave with the zoom; `footprint` while open (about 52 MB per
-  full-window card on Retina) and back after it closes.
+- **Root cause, item 3.** The overview's pages, workspaces and tiles sat in lazy stacks, and phase 27 (6f33fad)
+  streamed only the tiles the grid laid out. A tile scrolled into view was made then: its card's terminal view
+  entered the window, libghostty builds a surface only in a window (`AppTerminalView.viewDidMoveToWindow`), the
+  stream opened, the new surface (clear) waited 100–400 ms for herdr's frames and its first reveal faded in over
+  0.12 s; a tile scrolled away freed its surface. Frame 11 of `scrawl zoom … --at 1:08` shows three empty tiles.
+- **First fix, replaced** (aa8a5e1): nothing lazy, every card of every session live while the overview is open.
+  The user's stress test (hundreds of agents on a remote server) made it very laggy and its memory followed the
+  session, so the orchestrator changed the rule: bounded live tiles plus cached snapshots.
+- **Design now** (53f8af6, bebc6b1, f775c07, c7a6b88, 60d831e, 4d3ae63, 2b1d93c, 63f685c). One `LazyVGrid` per
+  session page (fixed columns, a section per workspace, the title above it). A tile reports
+  `onScrollVisibilityChange`; 150 ms after the last tile came into view (a debounce, so a scroll makes no surface or
+  stream on the main thread), `showTerminals` streams the cards of the page in view's visible tiles, whole tabs,
+  the latest in first, up to 16 cards (6 on a remote machine, whose streams share the relay's one SSH session),
+  plus the selected tab's; tiles scrolled away let go then. Every terminal that stops drawing (strip or tile)
+  leaves a snapshot: an IOSurface at most 360 px wide (about 0.4 MB), the 256 latest kept, shown by every tile that
+  is not live. A tile turning live keeps its snapshot as the terminal's still over the new surface until that drew
+  (`dropPicture`, then `coverNewSurface` and `dropStill`), so it turns live in place; a reveal inside a miniature
+  never fades; a terminal never shown shows the card's fill. An overview-only terminal keeps no full picture when
+  it lets go (a full-size IOSurface each, 4.4 GB after a 200-tab scroll before 4d3ae63) and gets no terminal object
+  until it is live. Kept (visited) terminals are as lane A3 left them: they come back to the strip at once.
+- **Root causes on the way.** (1) Row ids repeated across workspaces in the lazy stack (`id: \.self` on each
+  workspace's row starts), so later workspaces' rows never showed (CI 40252351835, 40254270873). (2) A
+  `CGImage` snapshot was copied again by Core Animation (CoreImage 236 MB plus CoreAnimation 242 MB after one
+  scroll): IOSurfaces now, shown as layer contents. (3) `keepPicture`'s full copy for every overview-only terminal
+  leaving a tile (a 17–50 MB memcpy each, on the main thread): only kept terminals copy now. (4) A scroll-phase
+  gate stuck on; a debounce instead.
+- **Item 4** (a2b2677, aa8a5e1). In the overview the title row is the traffic lights and one × (`overview.close`,
+  "Close Overview ⌃⌘O"), which leaves by the zoom; ⌘K and ⌘. still work. Margins: 8 % of the width left and
+  right (at least 48 pt), 40 pt above and below; 2–4 columns of 340 pt tiles between them.
+- **Phase 29 item 6** (3f48029): the zoom takes 0.18 s (was 0.25), and the overview fades in over 0.18 s when it
+  opens (at once under Reduce Motion). **Item 5** (the flicker after zooming into a tab not shown) went to phase
+  29 lane T: a new strip's empty scroll position draws page 0 for one commit.
+- **Numbers, phase 29 item 4** (`testOverviewOfManyTabsStaysBounded`: `scripts/stress.py` 200 tabs, 8 workspaces,
+  272 panes, 50 agents; 20 trackpad swipes down, 4 back; this Mac, Retina):
+
+  | | Strip | Overview open | Scrolled through |
+  |---|---|---|---|
+  | Every card live (aa8a5e1, CI 1x, 17 cards) | 85 MB | 205 MB, 14 % | the same |
+  | 24 live, `CGImage` snapshots (Debug) | 229 MB | 1829 MB | 2412 MB |
+  | 16 live, IOSurface snapshots, no overview-only copies (Release) | 226 MB | 1190 MB, 14 % | 1.2–1.7 GB, 17 % |
+
+  At most 18 herdr runs at any time (the strip's 2 plus 16). Frames while scrolling (XCUITest attached, Release):
+  212 hitches in 3500 frames (6 %); lane S's baseline on this Mac with XCUITest attached reads 25–30 % (Debug),
+  without it 0.5 % (sidebar) to 2–4 % (tab bar); `sample` during the scroll found the main thread about 95 % idle.
+  CI's VM (no GPU) reads 40–50 % for any scroll, so the hitch rate is recorded (`app.latency`), not asserted. The
+  footprint is bounded by the cap (16 full-window cards are about 1.1 GB on Retina), not by the tab count.
+- **Tests** (`OverviewTests.swift`). `testOverviewOfManyTabsStaysBounded` (new): streams ≤ strip + 16 + 2 during
+  the swipes, snapshots kept, footprint < strip + 1.6 GB, plus `sample` and the frames. `testOverviewCostsAndLetsGoAfter`:
+  tiles in view stream, ≤ strip + 18 after the scroll, and scrolled back, a tile that was live shows its snapshot
+  or terminal at once (`overview.card.‹pane›` never "empty"). `testOverviewShowsEveryTabLiveAndOpensOne`: no
+  title-row button but ×, the margins (left = right = 8 % / 48 pt, 40 pt above), w2's row made live as it scrolls
+  in, × leaves. `testOverviewZoomIntoAnUnshownTabShowsItSteadily` (lane T took the flicker). The remote cap of 6 has
+  no test (CI's remote host has no overview scenario).
+- **Reviews.** Round 1 (first design): no blockers; doc and comment fixes (802e3c7). Round 2 (redesign), spec: no
+  blockers; fixed visible-first priority, the turn-live blink (snapshot as the still), the snapshot test, the
+  scroll-away bound, docs; took Lanczos out of the snapshot (bilinear: a few ms less on every tab switch). Not
+  done: a test assertion on frames (CI's VM cannot measure them), Retina-size snapshots (4× the memory; they are
+  soft until live, as the docs say). Ponytail: no blockers; removed my frame meter for lane S's `ScrollMeter`,
+  the row chunking for one `LazyVGrid`, the equality guard, the pane scan (`tabPanes`).
+- **CI.** 40246320315 (green on aa8a5e1), 40250079540 (zoom tests), 40255771813 (green on f775c07). Full suite
+  40263346919 on 63f685c, the lane's last code commit: all four UI test shards green (every overview, title-row,
+  reveal and usage test); lint-build red only in HerdrKit's timing test "a long line and the lines around it read
+  whole, and quickly" (2.7 s over 1 s, not this lane's area), rerun of that job below. Local Retina: the stress test
+  (Debug and Release) and the two layout tests green on 63f685c.
+- **For the user to check by hand:** a session with 100+ tabs: ⌃⌘O, scroll fast down and up: tiles show their
+  picture at once (soft for a moment), then turn sharp and live in place with no blink; tiles never shown show the
+  plain card until they draw; swipe to another session; × and Esc leave with the 0.18 s zoom; the fade-in on open;
+  `footprint Oriel` while scrolling (about 1.2–1.7 GB on Retina, not growing with the tab count); a remote
+  machine's overview (6 live cards).
 
 ### Lane F (items 5, 6, 7)
 
