@@ -257,6 +257,7 @@ struct AppCommands: Commands {
             }
             return keyed
         }
+        CommandGroup(replacing: .appInfo) { Button("About Oriel", action: About.show) }
         CommandGroup(replacing: .newItem) { items(list, .file) }
         // ⌘W closes the keyboard card, ⇧⌘W the tab, ⌃⌘W the workspace, ⌥⌘W detaches the session (design: keyboard).
         CommandGroup(replacing: .saveItem) { items(list, .close) }
@@ -320,5 +321,54 @@ struct CommandItems: View {
             .keyboardShortcut(command.key)
             .disabled(!command.enabled)
         }
+    }
+}
+
+/// The About panel: one short line per credit (name and license, the name links its home page) and a link to the full
+/// license texts, `Acknowledgements.txt` in the app (phase 33: a paragraph of credits read as a dump of text).
+@MainActor
+enum About {
+    // A group, then each credit: name, license, home page.
+    // swiftlint:disable:next large_tuple
+    private static let credits: [(group: String, lines: [(name: String, license: String, url: String?)])] = [
+        ("Terminal", [("Ghostty", "MIT", "https://ghostty.org"),
+                      ("libghostty-spm", "MIT", "https://github.com/Lakr233/libghostty-spm"),
+                      ("DisplayLink", "MIT", "https://github.com/Lakr233/DisplayLink")]),
+        ("Program Icons", [("Simple Icons", "CC0-1.0", "https://simpleicons.org"),
+                           ("Lobe Icons", "MIT", "https://github.com/lobehub/lobe-icons"),
+                           ("Phosphor Icons", "MIT", "https://phosphoricons.com"),
+                           ("Devicon", "MIT", "https://devicon.dev"),
+                           ("oh-my-pi", "MIT", "https://github.com/can1357/oh-my-pi"),
+                           ("aider", "Apache-2.0", "https://github.com/Aider-AI/aider"),
+                           ("jj", "Apache-2.0", "https://github.com/jj-vcs/jj"),
+                           ("Drawn for Oriel", "CC0-1.0", nil)]),
+    ]
+
+    static func show() {
+        let font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        let text = NSMutableAttributedString()
+        func add(_ string: String, _ attributes: [NSAttributedString.Key: Any] = [:]) {
+            text.append(NSAttributedString(
+                string: string,
+                attributes: [.font: font, .foregroundColor: NSColor.labelColor]
+                    .merging(attributes) { $1 },
+            ))
+        }
+        if let url = Bundle.main.url(forResource: "Acknowledgements", withExtension: "txt") {
+            add("License Texts", [.link: url])
+            add("\n")
+        }
+        for (group, lines) in credits {
+            add("\n\(group)\n", [.font: NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize)])
+            for line in lines {
+                add(line.name, line.url.flatMap(URL.init(string:)).map { [.link: $0] } ?? [:])
+                add(" · \(line.license)\n", [.foregroundColor: NSColor.secondaryLabelColor])
+            }
+        }
+        add("\nBrand marks belong to their owners.", [.foregroundColor: NSColor.secondaryLabelColor])
+        let centered = NSMutableParagraphStyle()
+        centered.alignment = .center
+        text.addAttribute(.paragraphStyle, value: centered, range: NSRange(location: 0, length: text.length))
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: text])
     }
 }
