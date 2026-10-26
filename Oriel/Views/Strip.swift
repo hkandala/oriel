@@ -10,6 +10,7 @@
         let page: Page
         /// The page in view, as the scroll view has it.
         @State private var position = ScrollPosition(idType: String.self)
+        @State private var paging = Paging()
         /// e2e (`-recordStrip YES`): the scroll updates that left the strip between two pages, that is, a slide.
         @State private var between = 0
         private static let record = UserDefaults.standard.bool(forKey: "recordStrip")
@@ -38,7 +39,7 @@
                     }
                 }
                 .scrollTargetLayout()
-                .background(ScrollAnchor(step: turn))
+                .background(ScrollAnchor(step: turn, drag: drag, lift: lift))
             }
             .scrollTargetBehavior(.paging)
             // A new strip (a workspace or session shown, the overview closed) is laid out on the selected tab's page
@@ -58,7 +59,7 @@
                     between += 1
                 }
             }
-            .onScrollGeometryChange(for: Double.self) { $0.contentOffset.x } action: { Latency.shared.slid($1, "page") }
+            .onScrollGeometryChange(for: CGRect.self, of: Paging.rect) { paging.laid($1) }
             .testValue("strip.between", "Strip Between Pages", "\(between)", shown: Self.record)
             .onScrollPhaseChange { _, phase in
                 // Not a tab that closed meanwhile.
@@ -84,6 +85,18 @@
         private var start: UnitPoint {
             let index = workspace.tabs.firstIndex { $0.id == page.selectedTabIDs[workspace.id] } ?? 0
             return UnitPoint(x: workspace.tabs.count > 1 ? Double(index) / Double(workspace.tabs.count - 1) : 0, y: 0)
+        }
+
+        /// A swipe's moves and lift (`Paging`); the tab it lands on is selected as its page arrives.
+        private func drag(_ delta: Double, _: Bool) {
+            paging.drag(delta, ids: workspace.tabs.map(\.id), $position)
+        }
+
+        private func lift(_ speed: Double) {
+            let still = reduceMotion && !Animation.forceMotion
+            paging.lift(speed, ids: workspace.tabs.map(\.id), $position, still: still) {
+                page.selectedTabIDs[workspace.id] = $0
+            }
         }
 
         /// A mouse's sideways wheel turns a page with Rex's spring, as a swipe would. The scroll is there before the

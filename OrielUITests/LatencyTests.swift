@@ -245,7 +245,6 @@ extension OrielUITests {
     /// fingers that stop before they lift go back. The system's paging took 0.55 s and sent the flick back. Prints the
     /// page's move by the lift and the ms from the lift to within 2 pt of the page.
     func testTabAndOverviewSwipesFollowTheFingersAndLandSoon() async throws {
-        continueAfterFailure = true // the old paging's numbers for every swipe; out with the new paging
         try launchRecordingLatency(["-forceMotion", "YES"])
         openPage(two)
         element("sidebar.dot.\(one)").click()

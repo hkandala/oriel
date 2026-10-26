@@ -5,8 +5,8 @@
     /// The app's one scroll monitor (design D35). A gesture picks its axis once it moved 4 pt: a sideways one goes to
     /// the sidebar's pages when over them, else to the scroll view under the pointer (the strip, over a card), so a
     /// terminal never sees it; any other goes to the view under the pointer as usual. Its momentum follows, except to
-    /// the sidebar's pages. A wheel picks per event; Shift makes it sideways. Three-finger swipes: see
-    /// docs/ui/swiping.mdx.
+    /// pages that take the moves (the sidebar's, the strip's, the overview's). A wheel picks per event; Shift makes it
+    /// sideways. Three-finger swipes: see docs/ui/swiping.mdx.
     @MainActor
     enum SwipeRouter {
         /// Once, at launch.
@@ -114,9 +114,6 @@
                 }
             }
             target?.scrollWheel(with: event)
-            if let target, event.phase == .ended {
-                Latency.shared.lifted(target.contentView.bounds.minX, "page")
-            }
             return target != nil || pager != nil
         }
 
@@ -124,10 +121,15 @@
         private static func pick(_ event: NSEvent) {
             if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) {
                 pager = anchors.allObjects.first { $0.contains(event) }
-                pager?.drag?(sideways, true)
                 if pager == nil {
                     target = scrollView(event)
+                    // The strip's and the overview's pages take it as the sidebar's do (phase 31).
+                    if let paged = anchor(target), paged.drag != nil {
+                        pager = paged
+                        target = nil
+                    }
                 }
+                pager?.drag?(sideways, true)
             }
         }
 
@@ -186,10 +188,10 @@
         }
     }
 
-    /// Marks a scroll view for the router: the strip with its page turn for wheels. With `drag`, it marks the sidebar's
-    /// pages instead, which take a sideways swipe's moves (the first one of a gesture marked) and lift (with the
-    /// fingers' speed) and a wheel's turn, within `area` (in the window, from its top left) and down to the window's
-    /// bottom (the dots and the filter too).
+    /// Marks a scroll view for the router: the strip with its page turn for wheels. With `drag`, its pages take a
+    /// sideways swipe's moves (the first one of a gesture marked) and lift (with the fingers' speed), not the scroll
+    /// view (`Paging`). With an `area` too, it marks the sidebar's pages, which take a swipe and a wheel's turn within
+    /// it (in the window, from its top left) and down to the window's bottom (the dots and the filter too).
     struct ScrollAnchor: NSViewRepresentable {
         var step: ((Int) -> Void)?
         var drag: ((Double, Bool) -> Void)?
@@ -247,6 +249,54 @@
         }
     }
 
+    /// A paged scroll view's pages that a swipe moves as the sidebar's (the strip's, the overview's; phase 31): they
+    /// follow the fingers one to one and slide on from the lift with the session spring. With the system's paging a
+    /// 140 pt flick at 625 pt/s slid back to its page over 0.55 s (CI).
+    @MainActor
+    final class Paging {
+        /// The offset and the page width as last laid out (`laid`), or moved to.
+        private var offset = 0.0, width = 1.0
+
+        /// The pages' offset and width (`onScrollGeometryChange`).
+        static func rect(_ geometry: ScrollGeometry) -> CGRect {
+            CGRect(origin: geometry.contentOffset, size: geometry.containerSize)
+        }
+
+        func laid(_ rect: CGRect) {
+            (offset, width) = (rect.minX, max(rect.width, 1))
+            Latency.shared.slid(offset, "page")
+        }
+
+        /// The router's moves, in points toward later pages, within the first and last of the pages `ids`.
+        func drag(_ delta: Double, ids: [String], _ position: Binding<ScrollPosition>) {
+            offset = min(max(offset + delta, 0), Double(max(ids.count - 1, 0)) * width)
+            withTransaction(\.animation, nil) { position.wrappedValue.scrollTo(x: offset) }
+        }
+
+        /// The router's lift: the pages slide to the page it lands on (at once when `still`), and `land` runs with its
+        /// id as they arrive, unless a key, a click or another swipe moved them meanwhile.
+        func lift(_ speed: Double, ids: [String], _ position: Binding<ScrollPosition>, still: Bool,
+                  land: @escaping (String) -> Void)
+        {
+            let page = offset / width, index = Swipe.landing(page, speed: speed, count: ids.count)
+            guard ids.indices.contains(index) else { return }
+            let id = ids[index]
+            Latency.shared.lifted(offset, "page")
+            guard !still else {
+                position.wrappedValue.scrollTo(id: id, anchor: .leading)
+                return land(id)
+            }
+            let animation = Animation.session(speed: speed / width, distance: Double(index) - page)
+            withAnimation(animation, completionCriteria: .logicallyComplete) {
+                position.wrappedValue.scrollTo(id: id, anchor: .leading)
+            } completion: {
+                if position.wrappedValue.viewID(type: String.self) == id {
+                    land(id)
+                }
+            }
+        }
+    }
+
     /// Where the sidebar's session pages are: `slide` is observed only by `Pager`, so a swipe's moves redraw nothing
     /// else; `moving` by the sidebar, which lays out the other pages only then.
     @MainActor @Observable
@@ -259,6 +309,13 @@
         var moving = false
         /// Counts the moves, so only the latest one's end sets the pages at rest.
         @ObservationIgnored var moves = 0
+
+        /// The page of `count` that a lift at `page` (from the first) lands on, from the fingers' `speed` in points a
+        /// second: the next one that way, or the nearest when slow.
+        static func landing(_ page: Double, speed: Double, count: Int) -> Int {
+            let near = abs(speed) < 100 ? page.rounded() : speed > 0 ? page.rounded(.up) : page.rounded(.down)
+            return min(max(Int(near), 0), count - 1)
+        }
     }
 
     /// The pages side by side, the one at `swipe.slide` in view.

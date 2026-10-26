@@ -335,8 +335,7 @@
         /// while the window showed the other session (phase 28).
         private func lift(_ speed: Double) {
             let width = max(width - gap, 1), page = swipe.slide
-            let near = abs(speed) < 100 ? page.rounded() : speed > 0 ? page.rounded(.up) : page.rounded(.down)
-            let index = min(max(Int(near), 0), pages.list.count - 1)
+            let index = Swipe.landing(page, speed: speed, count: pages.list.count)
             guard pages.list.indices.contains(index) else { return }
             let target = pages.list[index]
             Latency.shared.lifted(page * width)

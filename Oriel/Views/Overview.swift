@@ -11,6 +11,7 @@
         /// Where the strip starts when the overview closes: the sidebar's width, or 0.
         let leading: CGFloat
         @State private var position = ScrollPosition(idType: String.self)
+        @State private var paging = Paging()
         /// Each tile's miniature, in the overview: not observed, so a scroll redraws nothing.
         @State private var frames = Frames()
         /// The tab whose miniature grows to the page, from its tile's frame; `grown` once it moves.
@@ -57,13 +58,12 @@
                         }
                     }
                     .scrollTargetLayout()
+                    .background(ScrollAnchor(drag: drag, lift: lift))
                 }
                 .scrollTargetBehavior(.paging)
                 .scrollPosition($position)
                 .scrollIndicators(.never)
-                .onScrollGeometryChange(for: Double.self) { $0.contentOffset.x } action: {
-                    Latency.shared.slid($1, "page")
-                }
+                .onScrollGeometryChange(for: CGRect.self, of: Paging.rect) { paging.laid($1) }
                 .opacity(grown ? 0 : 1)
                 // Nothing under the zoom takes a click.
                 .allowsHitTesting(zoom == nil)
@@ -132,6 +132,18 @@
         }
 
         static let space = "overview"
+
+        /// A swipe's moves and lift (`Paging`); the window shows the session it lands on as its page arrives.
+        private func drag(_ delta: Double, _: Bool) {
+            paging.drag(delta, ids: pages.list.map(\.id), $position)
+        }
+
+        private func lift(_ speed: Double) {
+            let still = reduceMotion && !Animation.forceMotion
+            paging.lift(speed, ids: pages.list.map(\.id), $position, still: still) { id in
+                pages.list.first { $0.id == id }.map(pages.show)
+            }
+        }
 
         private func open(_ page: Page, _ workspace: HostStore.Workspace, _ tab: HostStore.Tab) {
             page.select(workspace, tab: tab.id)
