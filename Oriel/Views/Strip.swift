@@ -278,8 +278,8 @@ struct Parts {
     }
 }
 
-/// A split's 8 pt gap: a 16 pt hit area with the resize pointer, a grip on hover (gorex's 36 × 3 pt, muted at
-/// 0.6), a drag that moves the split live and sends on release, a double-click for 0.5, and an adjustable
+/// A split's 8 pt gap: a 16 pt hit area with the resize pointer, a grip on hover (gorex's 36 × 3 pt, in
+/// `Look.grip`), a drag that moves the split live and sends on release, a double-click for 0.5, and an adjustable
 /// accessibility element (5 % steps).
 private struct SplitDivider: View {
     let divider: Parts.Divider
