@@ -24,36 +24,36 @@ extension OrielUITests {
 
         let palette = element("palette.filter"), openSession = element("open-session.filter")
         let escape = XCUIKeyboardKey.escape.rawValue
-        key("k", .command) { palette.exists }
-        key(escape, []) { !palette.exists }
-        key("t", [.command, .option]) { openSession.exists }
-        key(escape, []) { !openSession.exists }
-        key("2", .command) { self.element("tab.w1:t2").isSelected }
-        key("1", .command) { self.element("tab.w1:t1").isSelected }
-        key("]", [.command, .control]) { self.element("workspace.w2").isSelected }
-        key("[", [.command, .control]) { self.element("workspace.w1").isSelected }
-        key("s", [.command, .control]) { !self.element("sidebar").exists }
-        key("s", [.command, .control]) { self.element("sidebar").exists }
-        key(".", .command) { self.element("agents.sort").exists }
+        quietKey("k", .command) { palette.exists }
+        quietKey(escape, []) { !palette.exists }
+        quietKey("t", [.command, .option]) { openSession.exists }
+        quietKey(escape, []) { !openSession.exists }
+        quietKey("2", .command) { self.element("tab.w1:t2").isSelected }
+        quietKey("1", .command) { self.element("tab.w1:t1").isSelected }
+        quietKey("]", [.command, .control]) { self.element("workspace.w2").isSelected }
+        quietKey("[", [.command, .control]) { self.element("workspace.w1").isSelected }
+        quietKey("s", [.command, .control]) { !self.element("sidebar").exists }
+        quietKey("s", [.command, .control]) { self.element("sidebar").exists }
+        quietKey(".", .command) { self.element("agents.sort").exists }
 
         // Frames while lists scroll: the Agents view's 100 rows, the sidebar's 30, the tab bar's 10 capsules.
         try await scroll(over: element("sidebar").frame, vertical: true)
-        key(".", .command) { !self.element("agents.sort").exists }
+        quietKey(".", .command) { !self.element("agents.sort").exists }
         try await scroll(over: element("sidebar").frame, vertical: true)
         try await scroll(over: element("tab.w1:t1").frame, vertical: false)
 
         try await newTabSplitAndCloses(in: eight)
 
         // A busy tab: an agent and a printing pane, in view.
-        key("1", .command) { self.element("tab.w1:t1").isSelected }
+        quietKey("1", .command) { self.element("tab.w1:t1").isSelected }
         _ = try await measure("busy tab", seconds: 5, session: eight)
         try await sample("busy tab", in: eight)
 
         // Another session's page and back (its own snapshots stop mattering while it is out of view).
         openPage(one)
-        key("[", [.command, .option]) { self.header == eight }
-        key("]", [.command, .option]) { self.header == self.one }
-        key("[", [.command, .option]) { self.header == eight }
+        quietKey("[", [.command, .option]) { self.header == eight }
+        quietKey("]", [.command, .option]) { self.header == self.one }
+        quietKey("[", [.command, .option]) { self.header == eight }
 
         let keys = recorded().filter { ["⌘", "⌃", "⇧", "⌥"].contains($0.name.first.map(String.init)) }
         print(keys.map { "\($0.name) \($0.time)ms \($0.turns)" }.joined(separator: "\n"))
@@ -68,18 +68,26 @@ extension OrielUITests {
         let before = try await tabIDs(in: eight)
         let selected = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'tab.' AND selected == true"))
             .firstMatch
-        key("t", .command) { selected.label == "New Tab" && !self.element("tab.w1:t1").isSelected }
+        quietKey("t", .command) { selected.label == "New Tab" && !self.element("tab.w1:t1").isSelected }
         let new = try await poll("the new tab") { try await self.tabIDs(in: eight).first { !before.contains($0) } }
-        XCTAssertTrue(element("tab.\(new)").has(\.isSelected, true, within: 5))
+        XCTAssertTrue(element("tab.\(new)").has(\.isSelected, true, within: 10))
         _ = try await measure("quiet tab, 100 agents elsewhere", seconds: 5, session: eight)
         try await sample("quiet tab", in: eight)
         let cards = element("page.\(new)").descendants(matching: .any)
             .matching(NSPredicate(format: "identifier MATCHES %@", #"pane\.[^.]+"#))
-        key("d", .command) { cards.count == 2 }
+        quietKey("d", .command) { cards.count == 2 }
         // The new pane's first program answer, so the close does not wait for herdr's.
         try await Task.sleep(for: .seconds(2.5))
-        key("w", .command) { cards.count == 1 }
-        key("w", [.command, .shift]) { !self.element("tab.\(new)").exists }
+        quietKey("w", .command) { cards.count == 1 }
+        quietKey("w", [.command, .shift]) { !self.element("tab.\(new)").exists }
+    }
+
+    /// The key, then 1.5 s with no accessibility query before its change is checked: XCUITest's queries take the main
+    /// thread, for seconds at this size, and would be counted as the key's time.
+    private func quietKey(_ key: String, _ flags: XCUIElement.KeyModifierFlags, until done: () -> Bool) {
+        app.typeKey(key, modifierFlags: flags)
+        Thread.sleep(forTimeInterval: 1.5)
+        XCTAssertTrue(until(5, done), "after \(key)")
     }
 
     /// A line in the result bundle and the log.

@@ -224,7 +224,7 @@ extension OrielUITests {
     }
 
     /// The key, then its change; a pause, so the next key's record starts clean.
-    func key(_ key: String, _ flags: XCUIElement.KeyModifierFlags, until done: () -> Bool) {
+    private func key(_ key: String, _ flags: XCUIElement.KeyModifierFlags, until done: () -> Bool) {
         app.typeKey(key, modifierFlags: flags)
         XCTAssertTrue(until(5, done), "after \(key)")
         Thread.sleep(forTimeInterval: 0.5)
