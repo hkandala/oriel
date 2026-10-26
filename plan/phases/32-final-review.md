@@ -298,3 +298,31 @@ swipe, the tab preview) is in them, and every accessibility identifier they set 
   one window lights every window's keycaps, and folded Agents groups of closed workspaces stay in the defaults
   (both `ponytail:` notes); a tab's folder and a card's show `~` only for this Mac's home (a remote home shows
   its last component; the remote home is not known to the app).
+
+### r-store
+
+Read every line of Ahead, Gate, HostModels, HostStore, Page, PaneWrites and WindowPages.
+
+- **Bugs fixed.**
+  - `PaneWrites.split`: when herdr made no pane, or the split it built on had failed (⌘D pressed fast and herdr
+    refused one), the stand-in card waited for two more snapshots, which an idle session may never send. It now
+    goes when the write ends (aa911d0). No test: a refused split cannot be made to happen on cue in e2e.
+  - `WindowPages.leave`: a key window that closed cleared the store's looked-at tab even when another key window
+    showing the store had set it first, so that tab's finishes counted as unseen until its tab changed. It now
+    follows the rule `look` already has (b44bac2). No test: the order of AppKit's close and key calls cannot be
+    forced.
+- **Code removed.** The second 0.1–0.9 clamp in `setRatio`; the divider's `hold` clamps before every send
+  (a-ponytail-app).
+- **Comments.** 4 deleted (restated code: `Gate.busy`, `Gate.leave`, `WindowPages.step`, `leaveAll`), 2 fixed
+  (the broken wrap of `Ahead.fresh`, `setRatio`'s doc). No dead code, flags or test hooks found: every declaration
+  has a caller; `-startTimeout` is FinishTests' hook.
+- **Big items for the user (not changed).**
+  1. Page.swift (398), WindowPages.swift (398) and HostStore.swift (396) sit at the 400-line limit, so any fix
+     there first moves code. Cost: one refactor commit (for example Page's keyboard history into its own file).
+     Recommendation: do it when the next change needs the room.
+  2. Close Other Tabs within a herdr round trip of ⌘T: if herdr's tab replaces the stand-in while the close asks
+     what runs, that tab stays open (Ahead forgets the stand-in → tab mapping after one snapshot). Cost: keep the
+     mapping until the close ends. Recommendation: leave; it takes two actions inside about 100 ms.
+  3. `Ahead.programs` asks 8 at a time on its own, beside `HostStore.asks` (8): a close during the first
+     snapshot's asks makes up to 16 herdr runs. Recommendation: leave.
+- **CI:** targeted run 40356384310 (splits, dividers, the latency closes, window hand-over).
