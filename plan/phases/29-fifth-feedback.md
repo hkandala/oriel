@@ -273,7 +273,7 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   40255296505 on f75d42e, the lane's last code commit: every lane K test green but the quick-split test's id order
   check (herdr's pane ids are not hex past 15; the check went, 2241a7c: the keyboard on the rightmost card covers it);
   the other reds are other lanes' (session swipes, the overview, the floating window's title row, the Agents view's
-  order, Open Session's window, the stress test). Local run (Retina, this Mac's herdr): both new pane tests green.
+  order, Open Session's window, the stress test). The test fix green in 40259028493. Local run (Retina, this Mac's herdr): both new pane tests green.
 - **For the user to check by hand:** ⌘D three or four times as fast as you can (also on a remote machine, where herdr
   answers slower): cards left to right, the last one lit and taking your typing, ⌘W stepping back; the arrows in your
   three-column layout (→ → to the top row; ← then → back to the row you came from) and how quick they feel now;
