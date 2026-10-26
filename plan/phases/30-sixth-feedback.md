@@ -280,3 +280,70 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   header menu, its right-click menu and ⌘K's Move Pane to Tab still list every tab. Tab and workspace keys in a big
   session feel a little quicker. `footprint Oriel`: about 0.8–1 GB with two full-screen Retina windows after many
   tabs visited (16 kept terminals at about 30 MB each), more only while the overview is open.
+
+### Lane V (items 2–5, 12)
+
+- **Item 2, root cause.** Two things. The tile showed the card's bare fill while nothing was drawn, with no sign it
+  was loading. And past the live cap (16 cards, 6 remote) a tile in view never got a turn: the cap took the latest
+  tiles in, so with 4-pane tabs only 4 local (1 remote) tiles in view ever drew; the rest stayed blank as long as
+  they were in view unless the strip had shown them. **Fix** (30f8074, 0c05525): a tile with a card that has no
+  picture shows one spinner (`overview.tab.<id>.loading`); `overviewCards` puts tabs whose cards have no picture
+  first, then the live ones, then the rest, so each tile in view gets a picture in turn (a tile that drew lets go if
+  another waits and keeps its snapshot); the tile's `onChange(of: loading)` settles again when one drew. A tab over
+  the cap alone still loads; a zoomed tab counts its zoomed card only.
+- **Item 3, root cause.** Snapshots were at most 360 px wide; a tile on Retina shows its card at about 2× that, so a
+  snapshot was upscaled (blurred) until the tile turned live. **Fix:** taken at the tile's pixel size
+  (`WindowPages.tileScale`, the tiles' scale of the strip's page at their last layout, per window, a third before),
+  capped at 100 MB by bytes (lane P), oldest out, and an evicted snapshot's waiting still goes with it. Review
+  blocker fixed on the way: a tile that let go before it drew snapshotted its own snapshot, shrinking each turn.
+- **Item 4, root cause.** The overview replaced the sidebar, the title row and the strip; the zoom's end made all
+  three in one turn (the sidebar's rows, the tab bar, the strip and its cards), so they popped in late, more so in a
+  big session. **Fix** (30f8074, a6dec94): the sidebar and the title row stay laid out under the overview, hidden,
+  disabled and out of the accessibility tree (`underOverview`), and fade in with the 0.18 s zoom; only the strip is
+  made at its end, showing the same picture as the zoom's last frame. The hidden sidebar's swipe anchor takes no
+  drag; a hover card closes when its trigger is disabled. Regression on the way (CI 40274997505, 17 tests):
+  `accessibilityHidden(false)` on the chrome overrode the hidden overlay image in the sidebar button, which then
+  carried `titlebar.sidebar` too; now `accessibilityElement(children: .contain / .ignore)`.
+- **Item 5, root cause** (Release, this Mac, Retina, 120 tabs / 140 panes / 40 agents, `scripts/stress.py`, posted
+  swipes, no XCUITest; a `sample` of 8 s): the main thread was 35–45 % busy while scrolling, with turns up to 390 ms.
+  (1) Every herdr snapshot (4 a second with agents) ran `showTerminals`, which chose the overview's live tiles again
+  from the tiles in view mid-scroll: surfaces freed (`ghostty_surface_free`), snapshots rendered and new surfaces
+  made on the main thread; and the 150 ms settle fired mid-momentum. (2) SwiftUI's hover hit tests over the tiles at
+  every frame (about a tenth). (3) Each live tile is a full-window libghostty surface drawn on the main thread
+  (`ghostty_surface_draw`, about 7 %) and kept a full-size swap chain (lane P: 16 live tiles, 1.5 GB). **Fixes**
+  (728c071, 0a9f140): a snapshot keeps the live set (`overviewStreams`); nothing turns live or lets go until the
+  scroll ends (`onScrollPhaseChange`); the tiles take no hit tests while scrolling; live tabs up to 400 MB of window
+  pixels × 3 (about 5 tabs on a full Retina window; the rest load in turn).
+
+  | Per 1.45 s swipe (16 swipes) | Before (c417cb9) | After (0a9f140) |
+  |---|---|---|
+  | Frames (120 Hz) | 112 (77 fps) | 139 (96 fps) |
+  | Hitches (> 25 ms) | 8.7 (6–12) | 5.1 (2–8) |
+  | Main thread's longest turn per 5 s while scrolling | 120–390 ms | 30–160 ms |
+  | Footprint, overview open / scrolled | 1227 / 1190 MB (16 live cards) | 519 / 311 MB |
+
+  Not done: the rest of the main thread is SwiftUI's lazy grid layout (about a fifth) and libghostty drawing the
+  live tiles on the main thread (its display link); fewer live tiles is the lever left. `xctrace`'s Animation
+  Hitches template crashed attaching to the app (segfault), so the numbers are the app's own scroll meter.
+- **Item 12, root cause.** An overview-only terminal keeps its small snapshot as its still (`dropPicture`); shown in
+  the strip later (its capsule, or the zoom before its tile drew), `coverNewSurface` put that still over the new
+  surface, stretched to the card: blurred until it drew. **Fix** (8184c69, 0c05525): out of a miniature a stretched
+  still narrower than the view's pixels is dropped (`dropSmallStill`, on a new superview and a new surface); the
+  card shows its fill and fades in. A full-size still (a card that grew while away) still shows. Lane W told.
+- **Tests.** `testOverviewLoadsEveryTileInTurn` (two never-shown 9-pane tabs side by side, past the 16 cards: a
+  loader, then every card drew); `testACardNeverShowsTheOverviewsSmallSnapshot` (`FrameProbe`'s new `s` code: a small
+  still shown in a card; by capsule and by zoom); `testOverviewShowsEveryTabLiveAndOpensOne` (the sidebar is not made
+  again after the zoom, `sidebar made` in `app.latency`); `testOverviewCostsAndLetsGoAfter` (a tile's snapshot is at
+  its pixel width: the card's value is `<state> <snapshot px>`). Overview card values now carry the static-text
+  trait: a group's value never reached XCUITest, so the old "empty" check had passed vacuously.
+- **Reviews.** Ponytail: one `pictured`, `small` returns Bool, comment reflows (taken). Spec: blocker (snapshot of a
+  snapshot) and 11 shoulds, all taken (eviction of the waiting still, per-window scale, the last turn, zoomed tabs,
+  key view loop and hover card under the overview, the ⌥ swipe, only a snapshot's still dropped, flaky loader check,
+  a size check that failed on the old code, docs); verify round clean.
+- **CI.** Ad-hoc 40274766574, 40276311322 (red: the duplicate id and the card values above). Full suite on 1691e6f:
+  see the report.
+- **For the user to check by hand:** a big remote session's overview: spinners in tiles that have nothing yet, and
+  each tile filling in turn; text sharp when scrolling back (no blur, then sharpen); after a click on a tile the
+  sidebar and tab bar fade in with the zoom; scroll the overview fast (smoother; tiles turn live once it stops);
+  after the overview, a tab shown in the strip never shows a blurred picture first; `footprint Oriel` with the
+  overview open (about 0.3–0.5 GB here, was 1.2–2 GB).
