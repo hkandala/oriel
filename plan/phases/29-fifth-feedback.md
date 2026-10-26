@@ -99,3 +99,6 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
     row). Lane V (overview) uses the same harness for the overview; lane S owns everything else.
     Targets: every interaction under one frame of main-thread work on top of herdr's own time, smooth
     scrolling, idle CPU a few percent, memory bounded by what is shown (phases 25 O and 27 A3).
+- (Lane R, 17:50) Picking a machine whose window is already open brings that window forward instead of
+  opening another. ⌘N opens a new window at a big default size (about 90% of the screen's visible frame,
+  centered); restored windows keep their frames.
