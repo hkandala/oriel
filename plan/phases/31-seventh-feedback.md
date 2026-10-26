@@ -74,8 +74,9 @@ the end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the 
 
   Before: runs 40290851145, 40291752480, 40292891260; after: 40294392725 and 40295293239 (420 pt, at rest by 253 ms).
   The overview had the same scroll view and paging; before, its posted swipe never turned a page in the test
-  (40292891260); after: not yet measured on CI (the runs above stopped at the strip's record filter, fixed in
-  13b62ec; 40299936835 was in flight at hand-over). A scroll view's geometry reports only some frames of an
+  (40292891260); after (40299936835, page 1024 pt): 420 of 420 pt by the lift, within 2 pt at 250 ms; a 140 pt
+  flick back 140 pt by the lift, on its page at 263 ms. The strip in the same run: 232 ms and 249 ms; fingers that
+  stop after 40 pt back on their page by 149 ms. A scroll view's geometry reports only some frames of an
   animated `scrollTo` (records jump 0 → 118 or 211 ms), but the screen recording of 40295293239 has a frame every
   33 ms through the slide: no stall.
 - **Tests.** `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` (LatencyTests): the strip and the overview, a long
@@ -102,5 +103,5 @@ the end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the 
   (no `.paging`, review fixes), 10370e7, 13b62ec (tests), and these Findings.
 - **CI.** Full suite 40295293239 on 10370e7 (has every code change): lint-build and shards 1–3 green; shard 0 red
   only in `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` (its record filter, a test bug, fixed in 13b62ec).
-  40299936835 (that test and `testSwitchingTabsShowsTheirPageAtOnce` on 13b62ec) was running at hand-over. Open: a
-  green run of the new test (the overview half has not run yet on the new code), then the full suite.
+  40299936835 (that test and `testSwitchingTabsShowsTheirPageAtOnce` on 13b62ec): green. Open: a full suite on the
+  last commit.
