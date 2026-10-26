@@ -23,12 +23,12 @@ extension OrielUITests {
         keepScreenshot("remote window", of: remote)
         // Its own machine in its menu: nothing opens.
         element("titlebar.machine", in: remote).click()
-        app.menuItems["Key Host"].click()
+        app.menuItems["Key Host"].firstMatch.click()
         XCTAssertFalse(app.windows.element(boundBy: 2).exists(within: 2))
         // Picked in the first window's menu, it brings the Key Host window forward (user, phase 29): no new one.
         raise(first)
         element("titlebar.machine", in: first).click()
-        app.menuItems["Key Host"].click()
+        app.menuItems["Key Host"].firstMatch.click()
         XCTAssertTrue(until(3) { app.windows.firstMatch.identifier == remote.identifier })
         XCTAssertFalse(app.windows.element(boundBy: 2).exists)
         XCTAssertEqual(machine(of: first), "This Mac")
