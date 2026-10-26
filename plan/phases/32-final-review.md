@@ -326,3 +326,23 @@ Read every line of Ahead, Gate, HostModels, HostStore, Page, PaneWrites and Wind
   3. `Ahead.programs` asks 8 at a time on its own, beside `HostStore.asks` (8): a close during the first
      snapshot's asks makes up to 16 herdr runs. Recommendation: leave.
 - **CI:** targeted run 40356384310 (splits, dividers, the latency closes, window hand-over).
+
+### r-app (Oriel/App)
+
+- **Bugs fixed.** `AppDelegate.application(_:open:)` took any URL whose path ends in "/" for a dropped folder, so
+  `oriel://float/?…` (or any `oriel://x/`) also opened a workspace with cwd "/"; now file URLs only (429a02c; the
+  same finding from a-security-a11y; an e2e check suggested to r-tests). The Dock menu's New Tab did nothing with no
+  window and left a minimized window in the Dock; now it brings the last key window forward, or opens one (ffee2d9; the
+  Dock menu cannot be driven from XCUITest, so no test).
+- **Code.** One `windowChrome(_:)` modifier (WindowReader.swift) for the title-row chrome the main and floating
+  windows repeated (FloatingWindow uses it since 5331f34); `-recordLights` read once. Every test
+  hook in the area is still used (lights, links, latency, frames, `forceMotion`); no dead code found.
+- **Comments.** The saved selection's doc names the floated panes; `CommandList.shown` says it keys the actions too;
+  two broken wraps rejoined (Move Tab, `Latency.shown`); AppCommands' "with no window" line moved to the line it
+  describes.
+- **Not done (small, reason):** one modifier table for `caps`, `modifierFlags` and `Latency.glyphs` (three 4-row
+  tables, one outside `#if os(macOS)`: merging adds more plumbing than it saves). Overlapping swipe records in
+  `Latency.lifted` (a second lift within 0.8 s cuts the first's record): test-only, tests pass, fixing it changes
+  what they count.
+- **For the user:** `OrielApp.swift` is at 391 of 400 lines (`file_length`); the next feature in it should move
+  `ContentView`'s restore into its own file first.
