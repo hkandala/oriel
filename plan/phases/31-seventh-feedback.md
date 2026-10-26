@@ -141,3 +141,55 @@ the end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the 
   only in `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` (its record filter, a test bug, fixed in 13b62ec).
   40299936835 (that test and `testSwitchingTabsShowsTheirPageAtOnce` on 13b62ec): green. Open: a full suite on the
   last commit.
+
+  40299936835 (that test and `testSwitchingTabsShowsTheirPageAtOnce` on 13b62ec) was running at hand-over. Open: a
+  green run of the new test (the overview half has not run yet on the new code), then the full suite.
+
+### Lane S (items 1, 2)
+
+- **Item 1, cause.** Nothing scrolled the lists: the workspace list and the Agents view had no scroll position, so a
+  selection made anywhere but a click on a row (the overview, ⌃⌘[ ], ⌃⌘1–9, a swipe, the palette, a notification)
+  could land below the fold. **Fix** (3727df4, 17124d3): a `ScrollPosition` on each list and
+  `scrollTo(id:)` with no anchor (just enough) when the selected workspace or the lit agent row changes, without
+  motion, and again one turn later for a row new in that update. The workspace row's scroll target is a clear
+  background 18 pt taller each way, so the row stops clear of the fade. The Agents view also scrolls when it opens and
+  on a sort change (its lazy stack is made anew).
+- **Item 2, cause** (capture E #2–#6; reproduced on CI, also on a plain workspace switch without the overview). On
+  a new strip's first layout, `containerRelativeFrame` sized the pages at the window's width, not the strip's (CI:
+  content 5 × 1024 pt in a 792 pt container). Phase 29's `defaultScrollAnchor` placed the first offset from that
+  (2164 pt for the middle of 5 tabs, page 2.732). Later passes corrected it to page 2, but `onScrollGeometryChange`
+  delivered its actions merged and out of order: the last one delivered was 2.732 (probe log on a throwaway tag:
+  `… g 1584 792 3960; g 2164 792 3960; g 1700 792 3960; a 2.0; a 2.732; g 1584 …`, stripPage 2.732). The capsule
+  reads `stripPage`, so it rested 0.73 of a tab past the shown one (floor…ceil lit both) until the next scroll. The
+  user's 2.39 is the same formula on their window (window / strip ≈ 1.16). **Fix** (eb98366): the pages take a
+  `GeometryReader`'s size, so the first layout already has the right width and offset, and no bogus geometry is
+  reported at all (an offscreen probe app: one pass at the page, where `containerRelativeFrame` gave three). The
+  same fix gives lane G's `Paging` the right start offset on a new strip's first swipe.
+- **Tests.** `testTheSelectedRowScrollsIntoView` (24 working workspaces: ⌃⌘[ round to the last row, which ends
+  near the list's end; ⌃⌘3 up to a middle row with the fade's room; ⌃⌘1; the Agents view's lit row after ⌃⌘[,
+  after the view reopens, after ⌃⌘3; the workspace list again). `testTheCapsuleRestsOnTheTabShownHoweverItShows`
+  (zoom into the middle of 5 tabs, the workspace again, ⌘4), and `expectShown` now asks that only the shown tab is
+  lit, which made `testStripShowsEachWorkspaceClickedBackAndForth` red on the old code (`tab.w3:t4`, `tab.w3:t5`
+  both "in view").
+- **Reviews.** Spec: the Agents view's first scroll and sort change (fixed, and tested), the fade room untested
+  (⌃⌘3 step), motion (no animation now), the duplicate session step (dropped), docs (fades are the workspace list's).
+  Left: `testWorkspaceKeepsItsSelectedTab` keeps its loose lit check; `stripPage` still takes whichever geometry
+  arrives last (no case left that shows it). Ponytail: no blocker or should; the string-keyed `onChange` stays
+  (Sidebar.swift is at 400 lines), the 18 stays three literals.
+- **Learned.** On a new `ScrollView`'s first layout, `containerRelativeFrame` can resolve to the window's size, and
+  `onScrollGeometryChange` may deliver a stale value last; size pages from a `GeometryReader` when the first offset
+  matters. A main push that is lint-red happens when `make lint build | grep` hides the exit code (3727df4, fixed in
+  27f4af2): check exit codes, not grep output.
+- **CI.** Probe runs on the deleted tag `probe-31s-capsule`: 40291207055, 40292335688 (old code: red, the logs
+  above). 40292369686 (`testTheSelectedRowScrollsIntoView`, green on 3727df4). 40293816257 (the capsule, strip,
+  flicker and tab-switch tests, green on 40dbb26). Full suite 40294678064 on 511c1bd (after 17124d3, the lane's last
+  code commit), with a rerun of the failed jobs: every lane S test green (both new ones, the strip, flicker, Agents
+  and sidebar tests); `testDoubleClickRenamesAndEscapeCancels` red once, green on the rerun (the recording: beta
+  selected, the list did not move; a double-click taken as one click). Red in other lanes' areas:
+  `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` (lane G, 126 vs 140 ± 10 pt, both attempts),
+  `testSwitchingTabsShowsTheirPageAtOnce` (both attempts: its last step, "a swipe does slide", counts no geometry
+  between pages; green on 40dbb26 with this lane's strip fix in 40293816257, so likely lane G's 13481fa, swipes without
+  SwiftUI's paging), `testOrielURLFloatsAPaneOfASessionWithNoPage` (rerun only, an XCUITest INFINITY point).
+- **For the user to check by hand:** zoom from the overview into a middle tab of `mira` (and a workspace switch to a
+  workspace on a middle tab): the capsule on that tab at once. In a session with many workspaces, ⌃⌘[ ] and the
+  overview to a row below the fold: the list scrolls just enough; the same in the Agents view.
