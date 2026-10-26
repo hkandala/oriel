@@ -65,8 +65,10 @@ struct FilterList: View {
     /// The rows' own height: the list is as tall as its rows, up to `maxHeight`, then scrolls.
     @State private var rowsHeight: CGFloat = 0
     #if os(macOS)
-        /// The pointer's last place on screen: only a move lights a row, not a row that scrolls under a pointer at
-        /// rest or the row under it as the panel opens.
+        /// Where the pointer was when the panel opened, or keys or the filter last moved the light: only a pointer
+        /// moved since lights a row, not a row that scrolls under a pointer at rest. Not the last hover's place: a
+        /// busy app runs a row's hover late, with the pointer already on the next row, which then saw no move (CI
+        /// 40309820769).
         @State private var pointer = NSEvent.mouseLocation
     #endif
     /// The pointer lit the row: no scroll to it, as in a menu.
@@ -140,6 +142,9 @@ struct FilterList: View {
         .onChange(of: filter) {
             pointed = false
             litID = nil
+            #if os(macOS)
+                pointer = NSEvent.mouseLocation
+            #endif
         }
         .onChange(of: items.isEmpty ? nil : items[index].id, initial: true) { lit?.wrappedValue = $1 }
     }
@@ -181,7 +186,6 @@ struct FilterList: View {
         // The light follows the pointer, as in a menu (user, phase 24).
         .onContinuousHover { phase in
             guard case .active = phase, NSEvent.mouseLocation != pointer else { return }
-            pointer = NSEvent.mouseLocation
             pointed = true
             litID = item.id
         }
@@ -195,6 +199,9 @@ struct FilterList: View {
     private func move(_ step: Int) -> KeyPress.Result {
         let items = items(filter)
         pointed = false
+        #if os(macOS)
+            pointer = NSEvent.mouseLocation
+        #endif
         if !items.isEmpty {
             litID = items[max(0, min(current(items) + step, items.count - 1))].id
         }
