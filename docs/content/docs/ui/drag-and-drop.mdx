@@ -11,15 +11,19 @@ calls (D69). What herdr 0.9.5 allows, tested on a throwaway session:
 | herdr call | Allowed | Refused |
 |---|---|---|
 | `pane.swap {source_pane_id, target_pane_id}` (or `{pane_id, direction}`) | two panes of the same tab | panes of different tabs (`changed:false`, `reason:"cross_tab"`) |
-| `pane.move {destination:{type:"tab", tab_id, split, target_pane_id?, ratio?}}` | into another tab of any workspace of the session, split right or down beside `target_pane_id` (or, when it is left out, the tab's focused pane), with an optional ratio | into its own tab (`reason:"same_tab"`) |
-| `pane.move {destination:{type:"new_tab", workspace_id?, label?}}` | a new tab in any workspace of the session | — |
+| `pane.move {destination:{type:"tab", tab_id, split, target_pane_id?, ratio?}}` | into another tab of any workspace of the session, split right or down beside `target_pane_id` (or, when it is left out, the tab's focused pane), with an optional ratio (the first side's share) | into its own tab (`reason:"same_tab"`) |
+| `pane.move {destination:{type:"new_tab", workspace_id?, label?}}` | a new tab in any workspace of the session, last there | — |
 | `pane.move {destination:{type:"new_workspace", label?, tab_label?}}` | a new workspace | — |
 | `tab.move {tab_id, insert_index}` | reorder inside its workspace | a move to another workspace |
 | `workspace.move {workspace_id, insert_index}`, `workspace.move_block` | reorder workspaces | — |
 
 - A pane moved to another workspace gets a new pane id. Its terminal id
   stays, so its card stays.
-- Moving the last pane of a tab closes that tab.
+- Moving the last pane of a tab closes that tab, and of a workspace's last
+  tab that workspace.
+- `layout.apply {tab_id, root}` with the tab's own pane ids does not
+  rearrange them: it makes a new tab with new terminals, so the programs in
+  them are gone. A tab moves pane by pane instead (below).
 - Nothing moves between sessions or machines: each session is its own herdr
   server.
 - herdr splits only right or down. A drop on a left or top edge is a move (or
@@ -90,11 +94,20 @@ still shows its drop zones.
 | Drag | Result | herdr call |
 |---|---|---|
 | a tab capsule along the tab track | reorder the workspace's tabs; the others slide apart over 0.22 s; held near either end of a bar that scrolls, the bar scrolls on (a dragged pane too) | `tab.move` |
-| a tab capsule onto a workspace row | not a target: herdr moves tabs only inside a workspace | — |
+| a tab capsule onto another workspace's row (its own row is not a target), or onto a workspace menu row (below) | the row highlighted; no spring-loading (that workspace's tab row would not take the tab); the tab moves there whole, last among its tabs: its terminals, split tree, ratios and label (herdr's number gives way to the new one). The page follows it, and its keyboard card keeps the keyboard | `pane.move {type:"new_tab", workspace_id, label}` for its first pane, then for each other pane, top down, `pane.move {type:"tab", tab_id, split, target_pane_id, ratio}` beside the first pane of the split's other side, with herdr's new pane ids |
 | a workspace row up or down its page | reorder the session's workspaces; the rows slide apart over 0.22 s; a repository's linked worktrees move with it; a worktree moves only among its repository's worktrees | `workspace.move_block {workspace_ids, before_workspace_id}`, as Move Up and Move Down |
 
 - A dragged capsule or row dims to 0.4 in place while the system drag image
-  follows the pointer.
+  (the capsule or the row) follows the pointer.
+- **Workspace menu.** While the sidebar is collapsed, a pane or a tab held
+  over the workspace button for 0.65 s opens the workspace menu, the button
+  highlighted as a target meanwhile. The rows of the page in view are then
+  targets, highlighted the same way: a pane goes to a new tab in that
+  workspace, a tab moves there as on a row. A drop on the button itself does
+  nothing; the menu closes when the drag ends.
+- **A tab move fails part way.** The panes moved so far stay in the new tab,
+  the rest in the old one, and the notice says "Moved part of the tab: herdr
+  refused the next step".
 - While the sidebar's filter hides rows, workspace rows do not reorder.
 
 How it works: [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls).

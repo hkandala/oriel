@@ -147,7 +147,7 @@ What herdr 0.9.5 allows (tested on a throwaway session, October 2026):
 | `pane.move {destination:{type:"tab", tab_id, split: right\|down, target_pane_id?, ratio?}}` | into **another tab** of any workspace of the session, beside `target_pane_id` (or, when omitted, the tab's focused pane), with an optional ratio | into its own tab (`reason:"same_tab"`) |
 | `pane.move {destination:{type:"new_tab", workspace_id?, label?}}` | a new tab in any workspace of the session | — |
 | `pane.move {destination:{type:"new_workspace", label?, tab_label?}}` | a new workspace | — |
-| `tab.move {tab_id, insert_index}` | reorder inside its workspace | moving a tab to another workspace |
+| `tab.move {tab_id, insert_index}` | reorder inside its workspace | moving a tab to another workspace (Oriel moves its panes one by one) |
 | `workspace.move {workspace_id, insert_index}` / `workspace.move_block` | reorder workspaces | — |
 
 Notes: a pane moved to another workspace gets a new pane id (its terminal id stays, so its card stays).
@@ -174,7 +174,7 @@ Tabs and workspaces:
 | Drag | Result | herdr call |
 |---|---|---|
 | a tab capsule along the tab track | reorder the workspace's tabs | `tab.move` |
-| a tab capsule onto a workspace row | not a target: herdr moves tabs only inside a workspace | — |
+| a tab capsule onto another workspace's row, or a collapsed sidebar's workspace menu row | move the tab there whole, with its layout and label (phase 29) | `pane.move` new tab for its first pane, then `pane.move` into that tab for each other one, with the split and ratio |
 | a workspace row up or down its page | reorder the session's workspaces (a worktree child moves with its parent group) | `workspace.move_block` with the row's group |
 | a worktree row among its repository's worktrees | reorder those worktrees only | `workspace.move_block` |
 
