@@ -155,3 +155,36 @@ per hold, at most 10 minutes, released with a trap).
   folder, trimmed stderr, image paste marked not built, helper doc wrap. Left: two quick drops may paste out of
   order (each copies on its own); `base64 -d` is missing on macOS 12 and older remotes, which the relay envelope
   already needs, so such a machine never connects.
+
+### Lane A
+
+- **What:** item 6. The About panel showed the credits as one paragraph, and it named only the icon sources.
+- **Cause:** `Oriel/Credits.rtf` (phase 12) was a single centered paragraph that pointed at `resources/icons/SOURCES.md`
+  in the repo for the license texts. The app shipped no license texts, and Ghostty, libghostty-spm, DisplayLink and
+  bash-preexec (Ghostty's bash integration) had no credit.
+- **Fix:** the system panel is gone. Oriel ▸ About Oriel opens Oriel's own window (`Oriel/Views/About.swift`, a
+  `Window` scene in `OrielApp.swift`): the icon, name and version, then two glass cards, Terminal and Program Icons,
+  one line per credit (the name links its home page, the license sits on the right), a "License Texts" glass button
+  and "Brand marks belong to their owners." The window background is the app's `WindowBackground` (Glass blur or
+  Classic opaque). It cannot be resized or minimized, is not restored, and ⌘W closes it. The button opens
+  `Oriel/Acknowledgements.txt` (bundled) in the default text editor: every license in full (Ghostty, libghostty-spm,
+  DisplayLink, bash-preexec, and the seven icon licenses from `resources/icons/licenses/`). `make test` fails when an
+  icon license file is missing from it. A first version kept the system panel with short lines
+  (`2-mid-panel-*.png`); the user asked for more padding and the app's glass, so it became the window.
+- **Commits:** 8e92766, f23a72f, 684d465, 9fcda42, d0a43b8, a912f74, ec3e737, 68be12b.
+- **Tests:** e2e `testAboutWindowListsTheCreditsAndOpensTheLicenseTexts` (AboutTests): opens About from the menu,
+  checks the link and license of five credits, ⌘W closes it, then where TextEdit opens .txt files and is not
+  running, the button opens a TextEdit window titled Acknowledgements (TextEdit quits in teardown). Run locally on a
+  Release build (`xcodebuild -configuration Release test`, under the GUI lock). Targeted CI runs 40415963020 and
+  40416668954 (the panel version), 40417516982 and 40418053483 (the window).
+- **Screenshots** (`/tmp/oriel-shots/33about/`, the About window only, Release build, throwaway e2e sessions):
+  `1-before-system-panel.png`, `2-mid-panel-lines-dark.png` / `-light.png`, `3-after-window-dark.png` /
+  `-light.png`.
+- **Docs:** program-icons (the About window, the license texts, where a new credit goes).
+- **Review:** l33-about-review, two rounds, no blockers. Applied: the bash-preexec credit, the TextEdit guard and
+  teardown, the license check, ⌘W, plainer docs, a light screenshot. Left: a grouped `Form` instead of the glass
+  cards (the user asked for the app's glass); no scroll view (the window is about 620 pt tall, CI's screen 674 pt:
+  add one with the next few credits).
+- **Debt:** libghostty links third-party C and Zig libraries (oniguruma and others) whose notices Ghostty's MIT text
+  does not cover; the old credits had the same gap. Check Ghostty's list of bundled libraries and add them to
+  `Acknowledgements.txt`.
