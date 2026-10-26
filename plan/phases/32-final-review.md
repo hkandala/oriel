@@ -270,3 +270,31 @@ and held up. 7 commits, +49 −38 lines.
   session), left from the dropped Fade Inactive Panes; the tests read only its `content` prefix and `, loading`.
   Cost: the value becomes "loading" or empty, and five UI test files change their checks (r-tests). Recommendation:
   do it with the next a11y pass.
+
+### r-chrome
+
+Read the ten files (TabBar, TabButton, TitleBar, Sidebar, WorkspaceRow, Agents, HoverCard, ProgramIcons, Style,
+Keycap; 2,585 lines) line by line. No leftover of the dropped features (Settings window, Fade Inactive Panes, ⌥ +
+swipe, the tab preview) is in them, and every accessibility identifier they set is read by a test. 4 commits.
+
+- **Bugs fixed:** (1) The tab bar was one view across the window's pages, and herdr's ids repeat across sessions
+  ("w1:t1"), so a tab's 3 s announcement ("claude needs you"), a rename in progress and the row's scroll carried
+  over to the other session's same-id tab. `TabBar` is made anew per page (`.id(page.id)`, as `Strip` is);
+  `testAnnouncementStaysInItsSession` failed before (seen locally) and passes. (2) A hover panel read the key
+  window for its "pointer in the panel" check and its Esc: with the panel open in a window that is not key, the
+  check used the wrong window's coordinates, and an Esc typed in the key window's terminal was swallowed. It keeps
+  the window it opened in. No test: it needs a hover in a window that is not key, which overlapping test windows
+  do not give. (3) a-security-a11y: the sidebar's width handle has a value and an adjustable action (VoiceOver and
+  keyboard could not resize it), and the Agents view's group labels are headers.
+- **Comments:** two what-comments removed (TabBar's fade, TabButton's "the strip scrolls"); `AgentState.word`'s
+  users fixed (a tab's announcement too).
+- **Code removed:** the stand-in tile's second 22 × 18 frame. Skipped: moving `thisMacIcon` to Machines.swift
+  (r-remote: a cross-owner move breaks main between pushes, for one block's location).
+- **For the user:** (a) `IconButton`'s VoiceOver label carries the shortcut glyphs ("New Tab ⌘T", read "command
+  T"), because macOS exposes no help tag and `testChromeButtonsNameTheirShortcuts` reads the label; a plain label
+  needs another way for that test (cost: small; recommendation: leave). (b) Always-on test values (`tabs.fades`,
+  `app.badge`, `window.look`) are VoiceOver elements in every window; gating them needs a launch flag in the tests
+  that read them (cost: small, r-tests; recommendation: with the next a11y pass). (c) Known limits, kept: ⌘ held in
+  one window lights every window's keycaps, and folded Agents groups of closed workspaces stay in the defaults
+  (both `ponytail:` notes); a tab's folder and a card's show `~` only for this Mac's home (a remote home shows
+  its last component; the remote home is not known to the app).
