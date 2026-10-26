@@ -178,6 +178,21 @@ private func snapshot(version: String) -> String {
     withExtendedLifetime(updates) {}
 }
 
+@Test func `events that keep coming read at most every spacing`() async throws {
+    let exec = FakeExec(readDelay: .milliseconds(10))
+    let client = client(exec)
+    let updates = await started(client, exec)
+    let start = ContinuousClock.now
+    while ContinuousClock.now - start < .seconds(1) {
+        exec.event()
+        try await Task.sleep(for: .milliseconds(10))
+    }
+    #expect(await eventually { exec[\.inFlight] == 0 })
+    // The first at once, then one each 250 ms: about 5, where back to back they were about 50.
+    #expect((3 ... 6).contains(exec[\.reads]), "\(exec[\.reads]) reads")
+    withExtendedLifetime(updates) {}
+}
+
 @Test func `events stream reopens on agent changes, errors and exit`() async {
     let exec = FakeExec()
     let client = client(exec)

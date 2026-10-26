@@ -162,26 +162,34 @@ public actor HerdrClient {
         }
         reading = true
         Task { [self] in
-            do {
-                let snapshot = try await snapshot()
-                lastRead = .now
-                out?.yield(.snapshot(snapshot))
-                let agentPanes = snapshot.agents.map(\.paneID).sorted()
-                if out != nil, agentPanes != subscribed {
-                    subscribe(agentPanes)
-                }
-            } catch {
-                // Too old too: the heartbeat finds herdr again once it is updated.
-                lastRead = nil
-                out?.yield(.error(error as? HerdrError ?? .failed("\(error)")))
-            }
-            reading = false
-            if readAgain {
+            repeat {
                 readAgain = false
-                refresh()
-            }
+                let started = ContinuousClock.now
+                do {
+                    let snapshot = try await snapshot()
+                    lastRead = .now
+                    out?.yield(.snapshot(snapshot))
+                    let agentPanes = snapshot.agents.map(\.paneID).sorted()
+                    if out != nil, agentPanes != subscribed {
+                        subscribe(agentPanes)
+                    }
+                } catch {
+                    // Too old too: the heartbeat finds herdr again once it is updated.
+                    lastRead = nil
+                    out?.yield(.error(error as? HerdrError ?? .failed("\(error)")))
+                }
+                // Events during the read: the next one starts `spacing` after this one did, so a hundred agents'
+                // titles and states (an event each) are not reads back to back, each a 400 KB snapshot (phase 29).
+                if readAgain {
+                    try? await Task.sleep(until: started + Self.spacing)
+                }
+            } while readAgain && out != nil
+            reading = false
         }
     }
+
+    /// The least time from one read's start to the next one's while events keep coming.
+    static let spacing = Duration.milliseconds(250)
 
     private func stop() {
         out = nil

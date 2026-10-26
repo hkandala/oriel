@@ -133,8 +133,11 @@ the work. A later server helper would sit behind the same two calls
 - **Snapshot pacing, per session:** at most one `session.snapshot` is in
   flight. An event, or the app's own write, starts a read at once if none is
   in flight; otherwise it sets "read again", and the read that ends with it
-  set starts one more. A read takes 20–130 ms, so it batches the events that
-  arrive during it.
+  set starts one more, 250 ms after the one before started at the earliest.
+  A read takes 20–130 ms, so it batches the events that arrive during it; the
+  250 ms keep a hundred agents' titles and states (an event each) from
+  becoming reads back to back, each a snapshot of every pane (phase 29: about
+  280 KB at 400 panes).
 - The stream is opened again, followed by a snapshot, when the set of agent
   panes changes, on `events_lost` (the reader fell behind herdr's 512-event
   buffer) and on `pane_not_found` (a listed pane closed first).
