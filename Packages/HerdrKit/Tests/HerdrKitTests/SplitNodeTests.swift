@@ -73,3 +73,19 @@ private func changes(_ list: [(path: [Bool], ratio: Double)]) -> [String: Double
     #expect(right(0.6, leaf("p1"), leaf("p2")).split("p1", .down, new: "n", before: false)
         == right(0.6, down(0.5, leaf("p1"), leaf("n")), leaf("p2")))
 }
+
+@Test func `the rebuild moves give the tree back from its first pane`() {
+    // (p1 / (p3 | p4)) | p2, as herdr would split p1 for each move.
+    let tree = right(0.3, down(0.6, leaf("p1"), right(0.4, leaf("p3"), leaf("p4"))), leaf("p2"))
+    func placing(_ node: SplitNode, _ step: SplitNode.Move) -> SplitNode {
+        switch node {
+        case let .leaf(id):
+            id == step.beside ? .split(step.direction, ratio: step.ratio, first: node, second: leaf(step.paneID)) : node
+        case let .split(direction, ratio, first, second):
+            .split(direction, ratio: ratio, first: placing(first, step), second: placing(second, step))
+        }
+    }
+    #expect(tree.rebuild.map(\.paneID) == ["p2", "p3", "p4"])
+    #expect(tree.rebuild.reduce(leaf("p1"), placing) == tree)
+    #expect(leaf("p1").rebuild.isEmpty)
+}

@@ -303,8 +303,10 @@ func `changes a layout in a throwaway herdr session`() async throws {
         #expect(try await client.pane("w1:p1").label == "named")
         try await client.rename(pane: "w1:p1", label: nil)
         #expect(try await client.pane("w1:p1").label == nil)
-        let moved = try await client.move(pane: third.id, to: .newTab(workspaceID: "w1"))
+        let moved = try await client.move(pane: third.id, to: .newTab(workspaceID: "w1", label: "named tab"))
         #expect(moved?.tabID != "w1:t1")
+        #expect(try await client.snapshot().tabs.first { $0.id == moved?.tabID }?.label
+            == "named tab")
         let away = try await client.move(pane: second.id, to: .newWorkspace)
         #expect(away?.id.hasPrefix("w2:") == true)
     }
@@ -317,13 +319,14 @@ func `moves beside a pane, swaps by id, and throws herdr's refusals`() async thr
         let second = try #require(try await client.split("w1:p1", .right))
         let other = try #require(try await client.move(pane: second.id, to: .newTab(workspaceID: "w1")))
         // Back beside p1, under it.
-        let back = try await client.move(pane: other.id, to: .tab("w1:t1", beside: "w1:p1", split: .down))
+        let back = try await client.move(pane: other.id, to: .tab("w1:t1", beside: "w1:p1", split: .down, ratio: 0.3))
         #expect(back?.tabID == "w1:t1")
-        guard case let .split(direction, _, _, _)? = try await client.snapshot().trees["w1:t1"] else {
+        guard case let .split(direction, ratio, _, _)? = try await client.snapshot().trees["w1:t1"] else {
             Issue.record("no split")
             return
         }
         #expect(direction == .down)
+        #expect(abs(ratio - 0.3) < 0.001)
         try await client.swap(second.id, with: "w1:p1")
         #expect(try await client.snapshot().trees["w1:t1"]?.paneIDs == [second.id, "w1:p1"])
         await #expect(throws: HerdrError.refused("same_tab")) {

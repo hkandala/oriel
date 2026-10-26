@@ -62,6 +62,21 @@ public extension SplitNode {
         }
     }
 
+    /// The moves that build the tree again in another tab once its first pane is there (herdr 0.9.5 moves no tab to
+    /// another workspace): each puts a pane beside one placed before, split that way at the split's ratio. Top down,
+    /// so the pane it goes beside holds the whole split's place then.
+    var rebuild: [Move] {
+        guard case let .split(direction, ratio, first, second) = self else { return [] }
+        return [Move(paneID: second.paneIDs[0], beside: first.paneIDs[0], direction: direction, ratio: ratio)]
+            + first.rebuild + second.rebuild
+    }
+
+    struct Move: Sendable {
+        public let paneID, beside: String
+        public let direction: Direction
+        public let ratio: Double
+    }
+
     /// The tree as herdr makes it when it splits the pane: the pane and the new one share its place (the new one
     /// second,
     /// or first when `before`), then the run holding the new one evened out, as `HostStore.split` asks.
