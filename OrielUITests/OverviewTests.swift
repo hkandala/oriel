@@ -20,28 +20,27 @@ extension OrielUITests {
         XCTAssertTrue(overview.exists(within: 2))
         XCTAssertTrue(element("sidebar").vanishes(within: 2))
         XCTAssertFalse(element("tab.w1:t1").exists)
-        // × on hover closes the tab, as on the tab bar (an idle shell: no question). First: its row pushed w2 below
-        // CI's window.
+        // × on hover closes the tab, as on the tab bar (an idle shell: no question).
         element("overview.tab.\(closing)").hover()
         element("overview.tab.\(closing).close").click()
         XCTAssertTrue(element("overview.tab.\(closing)").vanishes(within: 3))
         try await expect("herdr closed \(closing)") { try await !Self.ids("tab", in: one).contains(closing) }
-        for id in ["overview.workspace.w1", "overview.workspace.w2", "overview.tab.w1:t1", "overview.tab.w1:t2",
-                   "overview.tab.w2:t1"]
-        {
+        for id in ["overview.workspace.w1", "overview.workspace.w2", "overview.tab.w1:t1", "overview.tab.w1:t2"] {
             XCTAssertTrue(element(id).exists(within: 2), id)
         }
         // The session's title, then each workspace's name over its tiles, two a row.
         XCTAssertEqual(element("overview.title").stringValue, one)
-        XCTAssertLessThan(element("overview.workspace.w2").frame.maxY, element("overview.tab.w2:t1").frame.minY)
         let first = element("overview.tab.w1:t1").frame, second = element("overview.tab.w1:t2").frame
         XCTAssertEqual(first.minY, second.minY, accuracy: 1)
         XCTAssertEqual(second.minX - first.maxX, 16, accuracy: 1)
         expectOverviewChrome(first: first, second: second)
         XCTAssertEqual(element("overview.tab.w1:t1").stringValue, "selected")
         keepScreenshot("overview")
-        let tile = element("overview.tab.w2:t1"), dark = element("overview.tab.w1:t2")
-        XCTAssertTrue(until(3) { mean(tile) > mean(dark) + 30 }, "\(mean(tile)) \(mean(dark))")
+        // w2's row is below CI's window: the lazy rows make it as it scrolls in, and it turns live.
+        let tile = element("overview.tab.w2:t1")
+        scrollOverview(to: tile)
+        XCTAssertLessThan(element("overview.workspace.w2").frame.maxY, tile.frame.minY)
+        XCTAssertTrue(until(3) { mean(tile) > 60 }, "\(mean(tile))")
 
         tile.click()
         XCTAssertTrue(overview.vanishes(within: 2))
@@ -52,7 +51,8 @@ extension OrielUITests {
 
         element("titlebar.overview").click()
         XCTAssertTrue(overview.exists(within: 2))
-        XCTAssertEqual(element("overview.tab.w2:t1").stringValue, "selected")
+        scrollOverview(to: tile)
+        XCTAssertEqual(tile.stringValue, "selected")
         // The zoom grew its miniature frame by frame (a jump takes one or two sizes).
         XCTAssertGreaterThanOrEqual(Int(element("overview.motion").stringValue) ?? 0, 4)
         app.typeKey(.escape, modifierFlags: [])
@@ -217,15 +217,15 @@ extension OrielUITests {
         XCTAssertTrue(overview.exists(within: 2))
         let open = try await measure("overview, 100 tabs")
         let start = meter.stringValue
-        // Down to the last tile; the sign follows the natural scrolling setting.
-        var delta = -600.0
+        // Down to the last tile, counting the streams on the way.
+        let last = element("overview.tab.\(tabs[99])")
+        var most = 0, delta = -600.0
         overview.scroll(byDeltaX: 0, deltaY: delta)
+        // The sign follows the natural scrolling setting.
         if element("overview.title").isHittable {
             delta = -delta
         }
-        let last = element("overview.tab.\(tabs[99])")
-        var most = 0
-        for _ in 0 ..< 80 where !(last.exists && last.isHittable) {
+        for _ in 0 ..< 120 where !(last.exists && last.isHittable) {
             overview.scroll(byDeltaX: 0, deltaY: delta)
             most = try await max(most, streams(one).count)
         }
@@ -243,6 +243,16 @@ extension OrielUITests {
         add(attachment)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
+    }
+
+    /// Scrolls the overview until the element is hittable, `step` at a time; either way, as the sign follows the
+    /// natural scrolling setting.
+    func scrollOverview(to target: XCUIElement, step: Double = 300, steps: Int = 10) {
+        for delta in [-step, step, -step] {
+            for _ in 0 ..< steps where !(target.exists && target.isHittable) {
+                element("overview").scroll(byDeltaX: 0, deltaY: delta)
+            }
+        }
     }
 
     /// The mean brightness of an element's pixels.

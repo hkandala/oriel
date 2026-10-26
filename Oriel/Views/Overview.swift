@@ -194,7 +194,7 @@
             overview = false
             leaving = false
             overviewTabs = [:]
-            overviewScrolling = false
+            overviewSettling?.cancel()
             showTerminals()
             current?.focusKeyboardCard()
             afterOverview?()
@@ -272,14 +272,6 @@
                 .padding(.vertical, 40)
             }
             .scrollIndicators(.never)
-            // While it scrolls, no tile turns live (a new surface and stream each, on the main thread): they show their
-            // snapshots, and those in view turn live once it stops.
-            .onScrollPhaseChange { _, phase in
-                pages.overviewScrolling = phase != .idle
-                if phase == .idle {
-                    pages.showTerminals()
-                }
-            }
             .accessibilityIdentifier("overview.page.\(page.id)")
         }
     }
@@ -357,8 +349,14 @@
             if shown {
                 pages.overviewTabs[page.id, default: []].append(tab.id)
             }
-            if !pages.overviewScrolling {
-                pages.showTerminals()
+            // While tiles keep coming (a scroll), none turns live (a new surface and stream each, on the main thread):
+            // they show their snapshots, and those in view turn live 150 ms after the last came.
+            pages.overviewSettling?.cancel()
+            pages.overviewSettling = Task {
+                try? await Task.sleep(for: .milliseconds(150))
+                if !Task.isCancelled {
+                    pages.showTerminals()
+                }
             }
         }
     }
