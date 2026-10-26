@@ -306,10 +306,9 @@
             window.showPending()
         }
 
-        /// Streams the shown tab of the page in view (see the registry), and while the overview is open every card of
-        /// every page (no visits); drops the terminals of closed panes and pages. A snapshot hands the keyboard to a
-        /// card only while no text field has it: typing in the palette or a rename field must not go on in a shell
-        /// because a pane closed elsewhere.
+        /// Streams the shown tab of the page in view (see the registry), every card of every page while the overview
+        /// is open (no visits); drops closed panes' and pages' terminals. A snapshot hands the keyboard to a card only
+        /// while no text field has it: typing in the palette or a rename field must not go on because a pane closed.
         func showTerminals(snapshot: Bool = false) {
             guard let current else { return }
             // A find bar whose card is out of view closes: herdr's viewport is shared, it must not stay scrolled. A
