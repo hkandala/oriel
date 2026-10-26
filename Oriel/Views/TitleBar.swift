@@ -175,9 +175,9 @@
                         ForEach([AgentState.needsYou, .finishedUnseen], id: \.self) { state in
                             let group = agents.filter { $0.state == state }
                             if !group.isEmpty {
-                                GroupLabel(text: "\(state.capsule) \(group.count)")
-                                    .accessibilityElement(children: .ignore)
-                                    .accessibilityLabel("\(state.capsule) \(group.count)")
+                                // The Agents view's group label, without its fold.
+                                Text("\(state.capsule) \(group.count)")
+                                    .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
                                     .accessibilityIdentifier("agents.popover.group.\(state.capsule)")
                                     .padding(.horizontal, 8).padding(.top, 8)
                                 ForEach(group) { AgentButton(pane: $0, page: page, picked: close) }

@@ -161,8 +161,7 @@ struct StatusBadge: View {
 
 #if os(macOS)
     /// An agent pane in the Agents view and the Agents button's panel. A click selects its workspace and tab and gives
-    /// it
-    /// the keyboard. Lit like the selected workspace row while it is the shown tab's keyboard card (user, phase 25).
+    /// it the keyboard. Lit like the selected workspace row while it is the shown tab's keyboard card (user, phase 25).
     struct AgentButton: View {
         let pane: HostStore.Pane
         let page: Page
@@ -327,20 +326,18 @@ struct StatusBadge: View {
     }
 
     /// A group label's text and chevron: the chevron points right while folded, and shows down only under the
-    /// pointer while open, as in a macOS sidebar. No chevron for a group that does not fold (nil).
-    struct GroupLabel: View {
+    /// pointer while open, as in a macOS sidebar.
+    private struct GroupLabel: View {
         let text: String
-        var open: Bool?
+        let open: Bool
         @State private var hovering = false
 
         var body: some View {
             HStack(spacing: 4) {
                 Text(text).lineLimit(1)
                 Spacer(minLength: 0)
-                if let open {
-                    Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
-                        .opacity(open && !hovering ? 0 : 1)
-                }
+                Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
+                    .opacity(open && !hovering ? 0 : 1)
             }
             .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
             .contentShape(.rect)

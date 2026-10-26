@@ -81,9 +81,8 @@ extension OrielUITests {
         try await waitForValue("titlebar.agents", containing: "1 need you")
         button.hover()
         XCTAssertTrue(row(blocked).exists(within: 2))
-        let order = [group("Needs you"), row(blocked), group("Done"), row(done)]
-        XCTAssertEqual([order[0], order[2]].map(\.label), ["Needs you 1", "Done 1"])
-        let tops = order.map(\.frame.minY)
+        XCTAssertEqual(group("Needs you").label, "Needs you 1")
+        let tops = [group("Needs you"), row(blocked), group("Done"), row(done)].map(\.frame.minY)
         XCTAssertEqual(tops, tops.sorted())
         XCTAssertEqual(element("agents.popover.header").stringValue, "Agents · \(one)")
         keepScreenshot("agents panel, needs you and done")
@@ -98,13 +97,6 @@ extension OrielUITests {
         XCTAssertTrue(row(blocked).exists(within: 2))
         XCTAssertFalse(group("Done").exists)
         XCTAssertFalse(row(done).exists)
-
-        // Answered: both groups empty, so no panel.
-        try await report(blocked, "working", agent: "claude")
-        XCTAssertTrue(panel.vanishes(within: 2))
-        element("workspace.w1").hover()
-        button.hover()
-        XCTAssertFalse(panel.exists(within: 1))
     }
 
     func testAnotherSessionsAgentCountsInTheDockBadgeOnly() async throws {

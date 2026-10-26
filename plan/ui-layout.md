@@ -62,9 +62,9 @@ cards start. With the sidebar collapsed the items follow one another as before.
    highlight; phase 22, the user: the chat bubbles did not fit). An amber dot when an agent of the current
    session needs you. A click (or ⌘.) toggles the Agents view; with the sidebar collapsed, a click opens the
    sidebar in the Agents view. No tooltip (the hover panel takes its place).
-   - **Hover** (0.25 s): a panel under the button with a small header "Needs you · ‹page title›" (the machine's name for `default`) lists the
-     agents of the current session that need you (same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
-     does not change. With nobody waiting: no panel (phase 25). No footer text.
+   - **Hover** (0.25 s): a panel under the button with a small header "Agents · ‹page title›" (the machine's name for `default`) lists the
+     agents of the current session that need you, then those done (phase 30; same rows as the Agents view). A click on one goes straight to its workspace, tab and pane; the sidebar
+     does not change. With both groups empty: no panel (phase 25). No footer text.
 8. **⌘** (command palette, ⌘K; ⇧⌘P also opens it (Rex's key); its field says "Search") and **+** (new tab, ⌘T).
 
 The strip under the title row still pages sideways between the selected workspace's tabs (swipe, ⇧⌘[ ⇧⌘],
