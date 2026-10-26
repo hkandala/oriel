@@ -73,6 +73,28 @@ extension OrielUITests {
         try await expectIcons(tab) { $0 == ["terminal"] }
     }
 
+    /// A program without a logo shows its letter in the logos' square, so the names after them line up (phase 29).
+    func testLetterIconsTakeTheLogosBox() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, vim) = try await createWorkspace("letters")
+        let cat = try await split(vim)
+        // vim has a logo; cat is not in the catalog, so it shows "C".
+        try await send("vim\r", to: vim)
+        try await send("cat\r", to: cat)
+        for (pane, name) in [(vim, "vim"), (cat, "cat")] {
+            try await expect("\(name) to run") { try await foreground(pane).contains(name) }
+        }
+        // Shown after they run, so the cards ask herdr what runs as they show (as above).
+        element("workspace.\(workspace(of: tab))").click()
+        try await expectIcons(tab, within: 6) { Set($0) == ["vim", "placeholder"] }
+        let logo = element("pane.\(vim).icon"), letter = element("pane.\(cat).icon")
+        XCTAssertTrue(letter.has(\.label, "placeholder", within: 2))
+        keepScreenshot("logo and letter")
+        XCTAssertEqual(letter.frame.size, logo.frame.size)
+        XCTAssertEqual(letter.frame.minY - element("pane.\(cat)").frame.minY,
+                       logo.frame.minY - element("pane.\(vim)").frame.minY)
+    }
+
     /// Waits for the capsule's icon ids (front first) to pass `check`.
     private func expectIcons(_ tab: String, within seconds: Int = 3, _ check: ([String]) -> Bool) async throws {
         let capsule = element("tab.\(tab)")
