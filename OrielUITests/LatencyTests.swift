@@ -200,6 +200,44 @@ extension OrielUITests {
         XCTAssertLessThan(zip(steps, steps.dropFirst()).map { $1 - $0 }.max() ?? 1000, 100, "\(swipe)")
     }
 
+    /// A swipe into a session of 200 tabs (phase 30): the window draws its tab bar and strip as the pages arrive, not
+    /// 0.4–0.8 s after the sidebar. Each card's VoiceOver actions listed every tab (Move Pane to Tab), and with any
+    /// accessibility client (here XCUITest) SwiftUI builds them with the card: about 0.8 s per switch on CI, 0.3 s
+    /// without.
+    func testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar() async throws {
+        let eight = try env("ORIEL_SESSION8")
+        addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
+        // 20 workspaces of 10 tabs, w1's first split in two (one card here: the helper keeps 200 panes on a Mac).
+        try await Self.post("\(eight)/stress", Data("200 20 220 0".utf8))
+        relaunch(eight, ["-recordLatency", "YES", "-forceMotion", "YES"])
+        addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
+        XCTAssertTrue(element("pane.w1:p1").exists(within: 20))
+        openPage(one)
+        let sidebar = element("sidebar"), center = "\(sidebar.frame.midX) \(sidebar.frame.midY)"
+        // There, back, there again: which sign goes back follows natural scrolling.
+        var back = 10.0
+        for target in [eight, one, eight] {
+            for _ in 0 ..< 2 {
+                try await Self.post("\(one)/swipe", Data("\(center) \(back) 14".utf8))
+                // No accessibility query until the window drew it: XCUITest's take the main thread.
+                try await Task.sleep(for: .seconds(1.5))
+                if header == target {
+                    break
+                }
+                back = -back
+            }
+            XCTAssertEqual(header, target)
+            back = -back
+        }
+        // "session <ms> <turns> <ms>": from the show to the end of the turn that drew it, into eight's page.
+        let shows = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("session ") }
+            .compactMap { Int($0.split(separator: " ")[1].dropLast(2)) }
+        XCTAssertEqual(shows.count, 3, "\(shows)")
+        // The better of the two: CI's first show of a page after a launch is sometimes twice as slow.
+        let into = [shows.first, shows.last].compactMap(\.self).min() ?? 1000
+        XCTAssertLessThan(into, 600, "\(shows)")
+    }
+
     /// The "swipe" records in which the pages moved (a swipe back to the page in view makes one that did not), each
     /// with its offsets: [ms, pt], and the ms to the session's show (-1: none).
     private func swipes() -> [(String, [[Double]], Double)] { // swiftlint:disable:this large_tuple

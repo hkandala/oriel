@@ -161,10 +161,12 @@
             slide.append((Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000), offset))
         }
 
-        /// The swipe's session showed.
+        /// The swipe's session is about to show; its own record, as a key's, gives the time to the frame that drew it
+        /// ("session 40ms 0 40ms", phase 30).
         func shown() {
             if let lifted {
                 shownAt = Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000)
+                pending = Pending(name: "session", time: ProcessInfo.processInfo.systemUptime, state: state)
             }
         }
 
