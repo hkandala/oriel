@@ -180,7 +180,11 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   (6a92455): every lane R test green except testNewWindowFillsMostOfTheScreen (a screen-tall window is 677 pt in a
   674 pt visible frame; 7c8e059 allows 4 pt); red in other lanes' areas: testClosingAPageAndQuittingLeaveNoStreams
   (the sidebar header's context menu, already red before lane R's window change), the swipe, overview, split,
-  select-pane and stress tests. Full suite on the last code commit c25aa43: 40254897138.
+  select-pane and stress tests. 40254897138 (c25aa43): testOpenSessionListsOnlyItsWindowsMachine red (it kept a
+  query for the front window, not its id; 855796c). Full suite 40257184338 on 855796c, the lane's last code commit:
+  all 14 remote, window and Open Session tests green (none skipped); red only in other lanes' areas
+  (testFloatingWindowOpensLarge… at lane F's new placeholder buttons, the Agents view, file drop, quick splits,
+  session flick, the overview stress test).
 
 ### Lane F
 
