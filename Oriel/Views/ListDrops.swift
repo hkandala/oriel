@@ -81,17 +81,18 @@
         @State private var over = false
 
         func body(content: Content) -> some View {
-            if let drop {
+            // Only during a drag: a drop target on the row at other times cost it the pointer's light on CI (one run
+            // in two).
+            if let drop, drop.page.dragging != nil {
                 content
                     .overlay {
-                        if over, drop.page.dragging != nil {
+                        if over {
                             DropIndicator(radius: 8)
                         }
                     }
                     .onDrop(of: [.orielDrag], delegate: PaneDrop(page: drop.page,
                                                                  target: .move(.newTab(workspaceID: drop.workspaceID)),
                                                                  over: $over))
-                    .clearsDrop(drop.page) { over = false }
             } else {
                 content
             }
