@@ -88,12 +88,12 @@ line read. No dead code or leftover hooks found: every test value and identifier
   back (`OverviewPage.onDisappear`). (4) A float request (an `oriel://float` URL, herdr's metadata) put any
   session name into a herdr argv; it now needs `Session.isValidName` (a-security-a11y; a leading `-` still
   passes, sent to r-herdrkit). (5) VoiceOver said nothing when ↑↓ moved the lit row of a filter list
-  (a-security-a11y). Floating Close Pane is picked by its key, not its title (a-ponytail-app).
+  (a-security-a11y). Floating Close Pane is picked by its key, not its title; the floating window takes r-app's
+  `windowChrome` and r-strip's `PaneTitle` (a-ponytail-app).
 - **Comments.** 3 fixed: `Overview.frames` (frames, not miniatures), `FilterField` (stale caller list),
   `MiniCard` (a doc split in two).
 - **Not done (small, cross-area):** `reduceMotion && !Animation.forceMotion` repeats in 8 files of 5 areas (one
-  `Animation` helper would do); `Mini.fit` and `TerminalCard`'s `Host.fit` share a debounce; FloatingWindow
-  can use r-strip's `PaneTitle` and r-app's `windowChrome(look:)` once they land. No big items.
+  `Animation` helper would do); `Mini.fit` and `TerminalCard`'s `Host.fit` share a debounce. No big items.
 
 ### r-herdrkit
 
