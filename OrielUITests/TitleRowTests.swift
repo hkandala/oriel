@@ -193,8 +193,17 @@ extension OrielUITests {
         app.typeKey(.rightArrow, modifierFlags: [.command, .shift])
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(field.vanishes(within: 2))
+        // A move would go through herdr: give it time to land.
+        try await Task.sleep(for: .seconds(1))
         let order = try await tabsOf(workspace).map(\.id)
         XCTAssertEqual(order, tabs)
+        // From the palette too, while its field has the keyboard.
+        openPalette()
+        app.typeText("move tab right")
+        app.typeKey(.return, modifierFlags: [])
+        try await expect("moved from the palette") {
+            try await tabsOf(workspace).map(\.id) == [tabs[1], tabs[0], tabs[2]]
+        }
     }
 
     func testCloseOtherTabsAsksOnceAndLeavesOneTab() async throws {

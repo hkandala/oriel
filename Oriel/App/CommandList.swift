@@ -171,23 +171,6 @@
         private func window(_ page: Page?, _ pages: WindowPages?) -> [Command] {
             let tabs = page?.selectedWorkspace?.tabs ?? []
             let tab = page?.selectedTab
-            func moveTab(_ title: String, _ key: KeyEquivalent, _ symbol: String, _ offset: Int,
-                         enabled: Bool) -> Command
-            {
-                // ⇧⌘← ⇧⌘→, as iTerm2 (user, phase 29: most Mac keyboards have no Page Up or Down).
-                Command(section: .tabSteps, title: title, key: .init(key, modifiers: [.command, .shift]),
-                        symbol: symbol, enabled: enabled, action: {
-                            // The menu takes the key before a text field: there it still selects to the line's end.
-                            if let text = NSApp.keyWindow?.firstResponder as? NSTextView {
-                                text
-                                    .doCommand(by: offset < 0 ?
-                                        #selector(NSResponder.moveToBeginningOfLineAndModifySelection)
-                                        : #selector(NSResponder.moveToEndOfLineAndModifySelection))
-                            } else if let page, let tab = page.selectedTab {
-                                Task { await page.store.move(tab: tab.id, by: offset) }
-                            }
-                        })
-            }
             func step(_ title: String, _ symbol: String, _ offset: Int) -> Command {
                 Command(
                     section: .pages,
@@ -212,10 +195,10 @@
                         enabled: tabs.count > 1) { page?.step(-1) },
                 Command(section: .tabSteps, title: "Show Next Tab", key: .nextTab, symbol: "chevron.forward",
                         enabled: tabs.count > 1) { page?.step(1) },
-                moveTab("Move Tab Left", .leftArrow, "arrow.left.to.line", -1,
-                        enabled: tab != nil && tabs.first?.id != tab?.id),
-                moveTab("Move Tab Right", .rightArrow, "arrow.right.to.line", 1,
-                        enabled: tab != nil && tabs.last?.id != tab?.id),
+                Self.moveTab(page, -1,
+                             enabled: tab != nil && tabs.first?.id != tab?.id),
+                Self.moveTab(page, 1,
+                             enabled: tab != nil && tabs.last?.id != tab?.id),
                 stepWorkspace("Show Previous Workspace", "chevron.up", -1),
                 stepWorkspace("Show Next Workspace", "chevron.down", 1),
                 step("Previous Session", "chevron.left.2", -1),
@@ -225,6 +208,27 @@
     }
 
     extension CommandList {
+        /// ⇧⌘← ⇧⌘→, as iTerm2 (user, phase 29: most Mac keyboards have no Page Up or Down).
+        private static func moveTab(_ page: Page?, _ offset: Int, enabled: Bool) -> Command {
+            let side = offset < 0 ? "left" : "right"
+            return Command(section: .tabSteps, title: "Move Tab \(side.capitalized)",
+                           key: .init(offset < 0 ? .leftArrow : .rightArrow, modifiers: [.command, .shift]),
+                           symbol: "arrow.\(side).to.line", enabled: enabled, action: {
+                               // The menu takes the arrow before a text field: there it still selects to the line's
+                               // end. Not
+                               // from the palette or a click (the palette's field has the keyboard while it runs).
+                               let event = NSApp.currentEvent
+                               let arrow = event?.type == .keyDown && [123, 124].contains(event?.keyCode)
+                               let select = offset < 0 ? #selector(NSResponder.moveToBeginningOfLineAndModifySelection)
+                                   : #selector(NSResponder.moveToEndOfLineAndModifySelection)
+                               if arrow, let text = NSApp.keyWindow?.firstResponder as? NSTextView {
+                                   text.doCommand(by: select)
+                               } else if let page, let tab = page.selectedTab {
+                                   Task { await page.store.move(tab: tab.id, by: offset) }
+                               }
+                           })
+        }
+
         /// Keys that move the keyboard, the pane or a divider; and Focus Follows Mouse.
         private var paneKeys: [Command] {
             let enabled = pages?.current?.keyboardPane != nil, tab = pages?.current?.selectedTab
