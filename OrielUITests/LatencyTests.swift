@@ -207,8 +207,12 @@ extension OrielUITests {
     func testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar() async throws {
         let eight = try env("ORIEL_SESSION8")
         addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
-        // 20 workspaces of 10 tabs, w1's first split in two (one card here: the helper keeps 200 panes on a Mac).
-        try await Self.post("\(eight)/stress", Data("200 20 220 0".utf8))
+        // 20 workspaces of 10 tabs; w1's first tab in four cards or more (each made every tab's actions).
+        try await Self.post("\(eight)/stress", Data("200 20 200 0".utf8))
+        for _ in 0 ..< 3 {
+            try await Self.call(eight, "pane.split", ["target_pane_id": "w1:p1", "direction": "down", "cwd": "/tmp",
+                                                      "focus": false])
+        }
         relaunch(eight, ["-recordLatency", "YES", "-forceMotion", "YES"])
         addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
         XCTAssertTrue(element("pane.w1:p1").exists(within: 20))
