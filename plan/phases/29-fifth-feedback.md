@@ -381,6 +381,7 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
 - Written with phase 28's lane V (`28-fourth-feedback.md`, "Lane V"): item 4's numbers (200 tabs, 272 panes,
   16 live cards, footprint bounded by the cap, hitches against lane S's baseline), item 6 (0.18 s zoom, fade-in
   on open, 3f48029); item 5 went to lane T.
+
 ### Lane T (item 13, and lane V's item 5)
 
 - **Root cause.** A new strip lays out its first page for one frame, then jumps to the selected tab. `Detail` makes
