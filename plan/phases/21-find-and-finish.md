@@ -4,11 +4,6 @@ Goal: the last Rex features that work over herdr (find in a pane, opening links)
 states and notices, the "Controlled in another window" state, the Open Session failures, small launch
 and Dock touches, and a final pass over the whole UI against the Rex references and the mock-ups.
 
-Read first: `resources/research/clients/rex-internals.md` (§3.6 find bar, §3.8 notices; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md`, `resources/research/clients/rex-ui.md` (find
-bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/states.mdx`,
-`docs/content/docs/talking-to-herdr.mdx` (scrolling, queries and links; `pane.read`),
-`Oriel/App/OrielApp.swift` (`Detail`, notice).
-
 ## Build
 
 ### Find (⌘F)
@@ -74,7 +69,7 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
 
 ### Final pass
 
-10. Compare every screen with the Rex references and `resources/mockups/layout.html` side by side (title
+10. Compare every screen with the Rex references side by side (title
     row and tab bar, machine and workspace menus, sidebar pages, Agents popover and view, Open Session
     sheet, two windows, hover card, cards, palette, light and dark, Glass and Classic). Fix
     spacing, font weights, colors and timings until they match in spirit. List what you changed in the
@@ -86,51 +81,13 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
     `ui/window.mdx` (find bar, notice), the keyboard table (⌘F,
     ⌘G), `features.mdx` (final list), `inspirations.mdx` ("What we take" from Rex).
 
-
 - **Programs of panes never shown.** Phase 19 Findings: a pane in a tab that never showed reads
   "terminal" in the hover card, because the app asks herdr for a pane's program only when its card shows
   or when it is new (phase 13). Ask once per pane on the first snapshot too (same ask and counter).
 - **Restore without the system setting.** Window restore (phase 16) works only when macOS keeps windows
   on quit, which is off by default. Register `NSQuitAlwaysKeepsWindows = true` in the app's own defaults
   (`UserDefaults.standard.register`), so Oriel restores its windows and pages after a normal quit.
-## e2e
-
-- Print 200 numbered lines in a throwaway pane; ⌘F, type "line 42": the bar shows "1 of 1" and
-  herdr's scroll offset is not 0 (snapshot `scroll.offset_from_bottom`); ⎋ sets it back to 0.
-- ⌘-click on a printed `https://example.com` URL: the app asks the system to open it (test through a
-  launch argument that records opened URLs instead of opening them).
-- A failed write shows the notice capsule with its symbol.
-- With `ORIEL_SESSION5` open as a second page, stop its server through the helper: that page shows
-  the not running state with Start; Start brings its workspaces back; the first page is not touched.
-- A start that fails: the sheet stays open and the notice shows "Could not start" with Retry. It
-  needs a sixth session name: add it to `scripts/e2e.sh` and the helper. Make it fail with the
-  smallest hook that works (for example a launch argument that sets the start timeout to 0 s); if
-  none is small, check it by hand and record it.
-- The reconnecting state (the bridge fails while the server runs) is checked by hand.
-- Two windows on `ORIEL_SESSION`: the watching window's capsule has the notice look and Take
-  Back works.
-
-## Done when
-
-- The whole e2e suite is green locally and in CI.
-- A final set of screenshots in light and dark, Glass and Classic, next to the matching Rex
-  references, is in the phase report.
-
 ## Findings
-
-### Spike (herdr 0.9.5)
-
-- **`pane.copy_search` is not usable from the API.** It needs `{pane_id, query, direction, content_revision, cursor}`;
-  the content revision is the one in herdr's TUI client protocol (`ClientShell…` surface data), not the pane's
-  `revision` (0), so any call answers `stale_content`. The fallback is built: `pane.read recent` + `pane.scroll`.
-- **`pane.read {source: "recent", lines, format: "text"}`** gives the scrollback and the screen without the screen's
-  blank rows at the end, ending with a newline. `pane.scroll {pane_id, offset_from_bottom}` answers `pane_info` with
-  the new `scroll` (herdr clamps the offset to `max_offset_from_bottom`); `pane.read visible` then shows the
-  scrolled screen. zsh's `clear` also clears the scrollback.
-- **libghostty-spm's link delegates** (`TerminalSurfaceOpenURLDelegate`, `TerminalSurfaceHoverLinkDelegate`) are
-  called on the main thread; a host with the open-URL delegate is reported as handling the URL, so libghostty
-  spawns no `/usr/bin/open` of its own. Its `mouseDown` sends the pointer's position with the modifiers first, so a
-  ⌘-click needs no hover first.
 
 ### Deviations
 
@@ -139,7 +96,7 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   bar, notices, states). The docs site's mock-ups (`docs/components/design/`, `docs/public/overview/index.html`) are
   the next task once phase 22's look settles. The light/dark × Glass/Classic shots next to Rex are phase 22's
   `VisualTests` (`testScenesGlassDark` and the others) attachments in the full run, kept in
-  `/tmp/oriel-shots/21/final/`. The mock-ups task is listed under "Open tasks" in `plan/execution.md`.
+  `/tmp/oriel-shots/21/final/`.
 - **Find highlights are built** (user, mid-phase), not left out as the phase file had it: one overlay view per card
   draws rectangles from herdr's visible text after each scroll (`pane.read visible` plus `pane.get`'s
   `scroll.offset_from_bottom` to pick the selected match's row), and again 100 ms after frames come
@@ -207,31 +164,3 @@ bar, empty and loading states, notices, launch cover), `docs/content/docs/ui/sta
   `keep(_:)` helper (SwiftFormat turns `let _ = (a = b)` into `_ = …`, which a commands builder rejects), and the
   AppKit window check for a Dock drop (`WindowPages.windows` fills only once restored windows restored their pages, so
   a drop that starts the app with saved windows would open one more).
-
-### Assumptions
-
-- **herdr keeps a scrolled viewport anchored while output comes**; the highlights are placed again after each burst of
-  frames anyway.
-- **A text cut at 5000 lines, read while scrolled, is taken as a full screen** (no blank rows): herdr's input resets
-  the scroll, so only a bar opened while another client scrolled can hit it.
-
-### Learned
-
-- **herdr's visible text leaves out the screen's blank rows too** (spec review 2, by hand): `recent` and `visible` both
-  end at the last row with text, and `recent --lines N` drops the blank rows before it counts. The selected match's
-  row is counted from `viewport_rows`, and the blank rows come from `visible` at the bottom. Round 1's test had one
-  match on screen, so the wrong row could not show; the test now has two on a screen that is not full.
-
-- **A hung server shows Reconnecting only 30–40 s later** (E2E review, `kill -STOP`): the heartbeat reads 30 s after
-  the last read, then the 10 s timeout runs. A write that timed out still ran once the server went on (its workspace
-  appeared, not selected, after "herdr did not answer"). Left as is.
-- **The e2e reviewer found the cold Dock drop broken** (no window, no workspace) by running `open -n -a` by hand: the
-  test for it came only after.
-
-- **Never build into the DerivedData a running suite uses** (speed rule 17 again): one `make build` during a test run
-  replaced the app under it.
-- **A `await` between reading an index and using it crashes when the array changed meanwhile**: `Find.locate` read
-  `matches[current]` after two herdr calls while the query had changed (an `Array` subscript trap in the first run).
-  It takes what it needs before the calls now.
-- **The test recording shows the whole screen**, so a failed run's frames are the quickest look at an Oriel window's
-  state (`xcresulttool export attachments`, ffmpeg `-sseof`).

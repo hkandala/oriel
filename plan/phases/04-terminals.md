@@ -4,12 +4,6 @@ Goal: the selected tab's pane cards are live libghostty terminals attached throu
 `herdr terminal session control`, sized to their card, with typing, clicks, scrolling and
 Nerd Font glyphs working.
 
-Read first: [talking-to-herdr: terminal plane](../../docs/content/docs/talking-to-herdr.mdx),
-[platform: making the strip work](../../docs/content/docs/platform.mdx), the libghostty-spm
-README and `Example/GhosttyTerminalApp/`, herdr-web `server/terminal-stream.ts`,
-`src/lib/keys.ts`, `src/components/TerminalView.tsx` and its README sections on input,
-mouse and pane size.
-
 ## Build
 
 1. **Dependency**: `Lakr233/libghostty-spm`, product `GhosttyTerminal`, exact version pin
@@ -58,15 +52,6 @@ mouse and pane size.
       differs or a mouse app receives wheel events);
     - switching tabs releases the old tab's panes (a second `control` from the test can
       attach without takeover) and attaches the new one.
-
-## Done when
-
-- e2e green locally and in CI; orchestrator has typed in the app, run `htop`/`vim`,
-  resized, clicked, scrolled, and seen Nerd Font glyphs in screenshots.
-
-## Out of scope
-
-Zoom, chat, observe-only iOS mode, the 24-surface LRU (note a `ponytail:` ceiling).
 
 ## Findings
 

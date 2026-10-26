@@ -4,12 +4,6 @@ Goal: the app opens on the `default` session (or the `-session` launch argument)
 herdr's workspaces, tabs and split layouts live, with placeholder pane cards. Changes made
 in herdr show up within a second.
 
-Read first: [ui/window](../../docs/content/docs/ui/window.mdx),
-[layout](../../docs/content/docs/layout.mdx),
-[platform: tab bar and Liquid Glass](../../docs/content/docs/platform.mdx),
-[theme](../../docs/content/docs/ui/theme-and-accessibility.mdx),
-`resources/research/clients/gorex.md` (tab capsule behavior).
-
 ## Build
 
 1. **`HostStore`** (`@Observable`, main actor): owns one `HerdrClient`, applies each
@@ -59,16 +53,6 @@ Read first: [ui/window](../../docs/content/docs/ui/window.mdx),
      a closed one disappears;
    - the session picker lists the throwaway session; switching sessions works (use two
      throwaway sessions).
-
-## Done when
-
-- e2e green locally and in CI; screenshots of the window reviewed by the orchestrator.
-- Looks like herdr's layout for the same session (compare with `herdr` TUI or the
-  snapshot), dark, glass on chrome only.
-
-## Out of scope
-
-Terminals, trackpad paging, divider drag, splits/close/new-tab actions, zoom.
 
 ## Findings
 

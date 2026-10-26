@@ -4,12 +4,6 @@ Goal: the ⌘K palette becomes Oriel's command center, like Rex's: every command
 sub-pages for choices and names, settings as commands. The menu bar gets Rex's structure and the
 shortcuts in one table.
 
-Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in rex-ui.md, §5.2: palette panel, pages, list height; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md` (title row, sidebar pages, Open Session sheet),
-`resources/research/clients/rex-ui.md` (command palette, menu tree, default shortcuts),
-`resources/inspirations/rex-app/command-palette.jpg`, decision D48,
-`docs/content/docs/ui/theme-and-accessibility.mdx` (keyboard shortcuts), `Oriel/Views/Palette.swift`,
-`Oriel/App/OrielApp.swift` (`ActionCommands`, `TabCommands`).
-
 ## Build
 
 1. **One command list.** Phase 13 made the list and phases 14–19 appended to it. Add what the palette
@@ -71,24 +65,6 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
 8. **Docs.** D48 (commands, sub-pages, ⇧⌘P); the keyboard table in
    `ui/theme-and-accessibility.mdx` (all keys above; ⌥⌘← → now move between cards, keyboard focus order
    for the chrome follows Full Keyboard Access); `ui/window.mdx` palette section.
-
-## e2e
-
-- ⌘K, type "split r", Enter: the keyboard card splits right.
-- ⌘K, Rename Tab ›, type a name, Enter: herdr's label changes; ⌫ on an empty field goes back.
-- ⌘K, "dark", Appearance › Light highlighted 1 s: the window previews light; ⎋ restores dark.
-- ⇧⌘G, pick a folder in the open panel: the pane's shell is in that folder (`pane.read` shows the
-  `cd`, then `pwd` matches).
-- ⌃⌘I inserts a quoted path into the shell line (`pane.read`).
-- ⇧⌘P opens the palette.
-- ⌘K, "open session", Enter: the Open Session sheet opens. ⌘K, "new window", Enter: a second
-  window opens (on `ORIEL_SESSION`).
-- With `ORIEL_SESSION2` open as a second page, ⌘K, type its name, Enter: the sidebar shows its page.
-
-## Done when
-
-- Screenshots: root page, a filtered list, a rename page.
-- Every menu item has its shortcut from the one list; no shortcut is defined twice.
 
 ## Findings
 
@@ -159,22 +135,3 @@ Read first: `resources/research/clients/rex-internals.md` (§3.7, §3.10, §4 in
   text, keys}` (spike: `cd -- '/private/var'` + `["enter"]` ran; text alone stays on the line).
 - **Move into a tab** (menu and palette) goes through `Page.drop(_, on: .tab)`, the capsule drop's path: right of the
   tab's last card, equal splits, the page follows.
-
-### Assumptions
-
-- **SwiftUI's menu items carry the shortcut's key and modifiers as AppKit key equivalents** (`keyEquivalent` "]" with
-  ⇧⌘ for ⇧⌘]); the second-shortcut lookup compares those. `testSecondShortcuts` shows ⇧⌘P, ⌃⇥ and ⌃⇧⇥ work.
-
-### Learned
-
-- **⌫ is DEL (U+7F) in `onKeyPress`**, which `KeyEquivalent.delete` (U+8) does not match; the field takes both.
-- **Menu bar items collide with context-menu items in XCUITest.** `app.menuItems["Close Page"]` matched File ▸ Close
-  Page too once it existed; tests take context-menu items from `app.windows.firstMatch.menuItems`.
-- **A `ScrollViewReader.scrollTo` before the list has its height does nothing**: a sub-page scrolls to its lit
-  choice once the measured height turns non-zero (`testSecondShortcuts` opens Font Size › at 30 pt).
-- **The full `make e2e` took 18.5 min here** (83 tests, all green); `testGoToDirectoryAndInsertPath` alone is about
-  a minute locally (three Go to Folder entries) and 24 s on CI.
-- **A heading trait changes what XCUITest reads**: with `.isHeader` the palette's title was no longer the static
-  text's value; the test accepts the label or the value.
-- **The open panel's Go to Folder looks up every typed letter**: a 30-letter path took about 10 s in XCUITest, so the
-  panel test waits up to 10 s.

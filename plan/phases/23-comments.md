@@ -3,9 +3,6 @@
 Goal: every comment in the code says something the code cannot. The user asked for this pass after
 phases 21 and 22, before the final review. Comments only: no code, test or behavior change.
 
-Read first: `AGENTS.md`, `plan/standards.md`, the ponytail skill
-(`/Users/hkandala/code/pi-hkandala/extensions/pi-ponytail/skills/ponytail/SKILL.md`).
-
 ## Build
 
 1. Go through every source file: `Oriel/`, `OrielUITests/`, `Packages/HerdrKit/` (sources and tests),
@@ -21,21 +18,6 @@ Read first: `AGENTS.md`, `plan/standards.md`, the ponytail skill
    does not give.
 6. Small commits by area (app views, store, terminal, HerdrKit, UI tests, scripts and CI), each
    `docs(<area>): comments say why, not what` style, ≤ 72 characters.
-
-## Checks
-
-- `git diff <base>..HEAD` changes comments only: verify with a diff that ignores comment lines (for
-  Swift, strip `//` and `///` lines and trailing `// …` and compare), and `make lint build test` green.
-  No local GUI run is needed; one CI run on the last commit confirms nothing moved.
-
-## Review
-
-One reviewer (read only): samples the diff for deleted comments that carried a real why (put back), kept
-comments that only say what (delete), and any non-comment change (revert). One round.
-
-## Done when
-
-- Every file is done, the comment-only check passes, CI is green.
 
 ## Findings
 
@@ -79,7 +61,6 @@ scripts, Makefile, CI and `.swiftlint.yml`, reviewed every hunk and committed by
   in a shell script was caught.
 - **`file_length` is a hard 400 lines:** the restored `stepFontSize` doc first took PaneTerminal.swift to 401 and
   failed `make lint`; it is one line now.
-- **CI:** run 39895584046 on 98afc2c green (lint-build and four e2e shards).
 - **Review (one round, phase23-review):** 1 should, 4 nits, all taken: put back the `stepFontSize` why (with
   the phase 11 reason, not the stale one), move the "predicate expectations check once a second" why onto
   `poll`, drop a "repository root" doc and two more what-docs, and name the TabBar ponytail's trigger.

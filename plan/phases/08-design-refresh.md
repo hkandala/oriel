@@ -72,7 +72,7 @@ decisions get "Changed by Dxx", new ones get new numbers.
     only; per-device settings are app storage.
 12. **Overview HTML**: keep `docs/public/overview/index.html`, delete
     `resources/design.html`. Update the mock-ups to these decisions and to the look v0
-    actually has (see `resources/inspirations/ui-target/` and the current app: frosted pane
+    actually has (see the Rex reference shots and the current app: frosted pane
     cards, flat sidebar, title-bar pills, session button with the name only). Remove the
     floating-pane mock-ups; plugin cards are web-based.
 13. **Status and build order** (`status.mdx`, `build-order.mdx`): v0 is built (This Mac,
@@ -99,14 +99,3 @@ decisions get "Changed by Dxx", new ones get new numbers.
   read with `run`.
 - **The `Multiplexer` protocol is also in code** (item 2's scope): `HerdrKit` has the
   protocol, `HerdrClient` conforms, and the app talks to it.
-
-## How to ship
-
-No PRs: small atomic commits straight to `main` (one topic per commit), pushed when the docs
-build passes. Then reviewers (spec, ponytail, visual for the overview) check the pushed state.
-
-## Done when
-
-- Every decision above is reflected; nothing contradicts it anywhere in docs, overview,
-  plan or README.
-- The docs site builds; the overview renders without errors; links resolve.

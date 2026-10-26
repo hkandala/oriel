@@ -51,16 +51,3 @@ resources/research/
 - The two new reports come from `/tmp/hl-brainstorm/plugin-panes.md` and
   `/tmp/hl-brainstorm/remote-plugins.md`, with their text renamed too.
 - Fix every link to moved files (docs `reference/sources.mdx`, other docs, plan, README).
-
-## How to ship
-
-No PRs: small atomic commits straight to `main`, pushed when `make lint build test e2e` is
-green. Hooks must pass; never `--no-verify`.
-
-## Done when
-
-- `git grep -iE "herdlight|(^|[^a-z0-9])hl[-:_./]"` finds nothing (or only a documented false
-  positive), and no tracked path contains "herdlight".
-- `make lint build test e2e` green locally (GUI lock rule) and CI green on herdr 0.9.5.
-- The docs site builds; the Vercel project and repo homepage point at the new name.
-- No leftover launchd jobs, sessions or caches under the old names from your own runs.

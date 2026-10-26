@@ -4,13 +4,6 @@ Goal: pane cards look and act like Rex's (header, buttons, fade, context menu), 
 can be changed by hand: drag, double-click and keys on dividers, balance, focus and move panes with
 keys.
 
-Read first: `resources/research/clients/rex-internals.md` (§3.6, §5.3, §5.4: SuperSplit, fade values, divider debounce; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md` (drag and drop table: what herdr allows),
-`resources/research/clients/rex-ui.md` (panes, dividers, zoom, fade, pane actions),
-`resources/inspirations/rex-app/three-splits.jpg`, `zoomed-pane.jpg`, `docs/content/docs/layout.mdx`,
-`docs/content/docs/ui/window.mdx` (pane card, zoom), `docs/content/docs/talking-to-herdr.mdx` (writes
-table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`SplitLayout`, `PaneCard`),
-`Packages/HerdrKit/Sources/HerdrKit/SplitNode.swift`.
-
 ## Build
 
 ### Card
@@ -88,23 +81,6 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
     context menu), the keyboard table, `talking-to-herdr.mdx` writes table (split left/up, rename,
     move to new tab, keyboard move), `ui/settings.mdx` (the two View menu toggles), D42 (dividers), D64 (fade).
 
-## e2e
-
-- Drag a divider: herdr's split ratio changes (snapshot) to the dropped value ± 0.02.
-- Double-click a divider: ratio 0.5. ⌃⌘=: three panes in a row get 1/3 each.
-- Split Right twice from one pane: herdr's snapshot shows three panes at 1/3 each (± 0.02), not 50 / 25 / 25.
-- ⌥⌘→ moves the keyboard to the right card (`hasKeyboard`); ⌥⇧⌘→ swaps the panes in herdr.
-- Context menu: Move to New Tab makes a tab with that pane; Rename Pane sets herdr's label; Split Left
-  puts the new pane on the left.
-- Zoom is disabled in a one-pane tab; a zoomed card shows only Restore and Close.
-- The fade: a card without the keyboard reports a lower content opacity (expose it as part of the
-  card's accessibility value, for example "faded").
-
-## Done when
-
-- Screenshots: a three-pane tab with the grip showing, a context menu, a zoomed card, faded and
-  unfaded cards in a key and a non-key window.
-
 ## Findings
 
 ### Deviations
@@ -176,27 +152,3 @@ table), decisions D10, D11, D13, D41, D42, D64, `Oriel/Views/Strip.swift` (`Spli
 - **Rename** ends on Enter or Esc with the keyboard back on the card; a click elsewhere only closes the field.
 - **Files:** `PaneCard` moved to `Oriel/Views/PaneCard.swift` and the pane writes to `Oriel/Store/PaneWrites.swift`
   (SwiftLint's file length).
-
-### Assumptions
-
-- **A global hotkey takes ⌃⌘= on this Mac**, not macOS: CI's runner delivers it, but no test presses it.
-- **An open menu is `RunLoop.main.currentMode == .eventTracking`**: Focus Follows Mouse waits while it is so (hover
-  stays on while a context menu tracks, and main-actor tasks still run then; spec review).
-- **The rename field gets the keyboard** (`focusSoon`): if it never did (a window that is not key), a click elsewhere
-  would not close it; Enter, Esc or another Rename Pane… still do.
-- **herdr keeps exactly the ratio it is sent** (0.3333 came back 0.3333), so "herdr already has it" is a plain
-  compare.
-
-### Learned
-
-- **Spike (herdr 0.9.5):** `layout.set_split_ratio` paths are `false` = first child, `true` = second, `[]` the root;
-  a path that ends at a pane fails `split_not_found`; herdr clamps to 0.1–0.9 itself. `pane.resize {direction,
-  amount}` moves the nearest divider that way (right and down raise the ratio; `changed:false, reason:"unchanged"`
-  with none). `pane.neighbor` returns `neighbor_pane_id`, left out when there is none. `pane.swap {pane_id,
-  direction}` moves herdr's focus to the swapped pane's tab, `focus:false` or not (the snapshot's
-  `focused_workspace_id` followed a swap in w2); `pane.move` keeps it with `focus:false`; `pane.rename {label:
-  null}` clears a label. So Split Left / Up and Move Pane move herdr's focus, as drag swaps already did (accepted
-  in talking-to-herdr). The swapping tests swap w1:p1 and w1:p2 there and back in teardown, so the next launch
-  opens on w1:t1 again without a focus call: after one swap test, the next test's app opened on w2.
-- **The keyboard card stays after a re-activation** (the phase 12 lead): the fade test opens a second window,
-  closes it, and window 1's card is still the keyboard card at 100 %. Not reproduced otherwise.

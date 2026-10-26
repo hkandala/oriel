@@ -18,11 +18,6 @@ Goal: v0 is solid end to end and documented; CI green; nothing extra.
    `plan/README.md` with what was deferred.
 4. **CI**: all jobs green on `main`; e2e time reasonable (note it).
 
-## Done when
-
-- The orchestrator runs the full e2e suite, plays with the app against a throwaway session
-  (and looks at `default` read only), and finds nothing broken.
-
 ## Known issues carried in (fix or record)
 
 - **Window restored in full screen** loses the whole title row (no session button,

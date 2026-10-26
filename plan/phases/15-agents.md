@@ -1,17 +1,10 @@
 # Phase 15: agents, notifications and the Dock
 
-Goal: Rex's way of showing agent activity, on herdr's data, in the layout of `plan/ui-layout.md`:
+Goal: Rex's way of showing agent activity, on herdr's data, in the layout of the window design (`docs/content/docs/ui/window.mdx`):
 working dots and status badges in tabs, state icons on workspace rows, a "seen" state for finishes,
 the Agents button with its needs-you popover, the session-scoped Agents view, notifications, the Dock
 badge (no sounds) and a Dock menu. This replaces the design's status area and the Activity view of the
 earlier plan.
-
-Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.5, §5.1: status dots animation, activity; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md` (title row item 7, Agents view),
-`resources/mockups/layout.html` (scenes A, G, H), `resources/research/clients/rex-ui.md` (status indicator,
-badges, Activity, notification settings), `resources/inspirations/rex-app/` (tabs-with-status,
-sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx` (selection and
-"seen"), decisions D13, D14, D31, D42, D55, D61, `Packages/HerdrKit/Sources/HerdrKit/Models.swift`
-(`Agent`), `Oriel/Store/HostStore.swift`.
 
 ## Build
 
@@ -119,36 +112,6 @@ sidebar-activity), `docs/content/docs/status.mdx`, `docs/content/docs/layout.mdx
     workspace state icons), `features.mdx`, the glossary (Agents view, badge; drop "status area" and
     "Activity"), `ui/settings.mdx`, the keyboard table (⌘.).
 
-## e2e
-
-All status changes come from `pane.report_agent` through the e2e helper on a throwaway pane (source
-`oriel-e2e`, increasing `seq`). The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION`
-(launched) and `ORIEL_SESSION2` (opened as a second page through the Open Session sheet). A test that
-needs another name adds it to e2e.sh and the helper.
-
-- Report `working` on a pane of another tab: that tab's status slot shows working (accessibility
-  value "working"); the selected tab shows none; the workspace row's value says working.
-- Report `blocked`: the tab's value is "needs you", the workspace row shows needs you, and the Agents
-  button's value is "1 need you". Hover the button: the popover (id `agents.popover`) lists that
-  agent; a click on it selects the tab, gives its card the keyboard, and the sidebar still shows
-  workspaces.
-- Report `blocked` in `ORIEL_SESSION2` while `ORIEL_SESSION` is in view: the Agents button shows no
-  dot, and `app.badge` is 1; show `ORIEL_SESSION2`'s page: the dot shows.
-- ⌘.: the Agents view lists every agent of the session, idle ones too, grouped Needs you, Working,
-  Done, Idle; switch to Workspace order: herdr's order. ⌘. again: the Workspaces view.
-- Report `working` then `idle`: the row shows "Done"; a click on it selects the pane and the row shows
-  "Idle".
-- Relaunch with an agent already finished: no "finished" badge (first sighting is seen).
-- No agent needs you: the popover says "Nobody needs you".
-- Unit tests for the seen type: first sighting, a finish, a seen finish, a restart of herdr (counter
-  back to 0), a reconnect.
-
-## Done when
-
-- Screenshots: tabs with working dots, a needs-you badge and a finished badge; workspace rows with
-  each state icon; the needs-you popover; the Agents view in both sorts; a notification banner; the
-  Dock badge.
-
 ## Findings
 
 ### Deviations
@@ -212,27 +175,6 @@ needs another name adds it to e2e.sh and the helper.
   stays rendered.
 - **Notification ids** use the terminal id, and a click finds the pane by terminal id (a pane moved to another
   workspace keeps it).
-
-### Assumptions
-
-- **macOS pauses a `TimelineView(.animation)` in a hidden window**; Reduce Motion and off-screen sidebar pages pause it
-  outright. Tabs scrolled out of the title row's track still tick (at most 15 fps).
-- **The Agents button gives the keyboard back to the card** after a click (E2E review: the terminal cursor went
-  hollow); other title-row buttons were left as they are.
-
-### Learned
-
-- **Spike (herdr 0.9.5):** `pane.report_agent {pane_id, source, agent, state, seq}` takes idle, working, blocked,
-  unknown; a report with a `seq` not above the last one is dropped. `state_change_seq` is one counter per server;
-  `completion_seq` is set on working → idle and on blocked → idle, and null again at the next change; an idle → idle
-  report changes nothing. herdr reports `done` instead of `idle` for a pane no herdr client looks at.
-  `pane.release_agent {pane_id, source, agent}` drops only that source's report. `pane.report_metadata` needs a
-  `source` too. A restarted server keeps pane ids and gives new terminal ids, so a restart is a first sighting
-  (no flood); "different, not greater" still covers a pane without a terminal id.
-- **Screenshots** (final `make e2e`, 57 tests green): `/tmp/oriel-shots/15/final/` (working dots, needs-you badge,
-  finished badge, idle ring, the popover, the Agents view in both sorts). With a narrow sidebar the sort menu's
-  label gives way first ("W…"), so the session name stays readable.
-- **A static text's text is its value in XCUITest** (phase 14 again): "Nobody needs you" is read as `value`.
 
 ### Later
 

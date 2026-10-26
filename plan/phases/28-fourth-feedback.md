@@ -77,11 +77,6 @@ the orchestrator says otherwise.
      change. Follow that repo's own AGENTS.md and commit rules; keep the change small.
    - An issue or PR to herdr upstream is not part of this.
 
-## Checks
-
-- `make lint build test`; a UI test for each item a test can see; the full CI suite green on each
-  lane's last code commit; one review round per lane (spec and ponytail, read only).
-
 ## Findings
 
 ### Lane R (items 8–11)
@@ -117,17 +112,6 @@ the orchestrator says otherwise.
 - **Accepted (nits).** While a dialog shows, the window's menu commands (⌘W, ⌘T, ⌘K) still act on the page
   under it, and Tab can leave the dialog; a sheet blocked both. Two machine picks before the first new window
   restores give the second This Mac (`ponytail:` on `opening`). No test presses Esc on the dialog.
-- **Reviews (one round).** Ponytail: 12 items, no blocker; fixed 1–4, 9–11 (stale "sheet" wording, the
-  `keep` func inlined, shorter docs); 5–6 (move `dialog()`/`fieldCapsule()` to Style.swift) not done: Style.swift
-  is at the 400-line limit. Spec: 8 items, no blocker; fixed 1 (closed-connection text), 2 (no hand-off without
-  an opener), 5–6 (the machine of each window, ⌘N and the menu), 8 (docs); 3, 4, 7 above.
-- **CI.** Dispatch 40246511257 (f15de32): the key host test red (the new window lay over the first, so the
-  click hit its menu; fa83cc6 raises the first), the rest green. 40247028967 (fa83cc6): both remote tests
-  green. 40247752826 (f3626b4, after the reviews): the four remote and window tests green. Full
-  suite 40247826547 on 6a1946d (code as of 0914774, the lane's last code commit): every remote and window test
-  green (all six of RemoteTests, testWindowsOnDifferentSessionsEachControlTheirOwn, testMachineMenuListsThisMac);
-  red only in other lanes' areas: testEmptyPageOffersNewWorkspace and the swipe tests (lane E),
-  testOrielURLFloat* (lane F).
 
 ### Lane V (items 3, 4; phase 29 items 4–6)
 
@@ -185,22 +169,6 @@ the orchestrator says otherwise.
   in, × leaves. The stress test is on demand (`ON_DEMAND` in the Makefile, with lane S's): run it with
   `make e2e ONLY=…` or `only_testing`. `testOverviewZoomIntoAnUnshownTabShowsItSteadily` (lane T took the flicker). The remote cap of 6 has
   no test (CI's remote host has no overview scenario).
-- **Reviews.** Round 1 (first design): no blockers; doc and comment fixes (802e3c7). Round 2 (redesign), spec: no
-  blockers; fixed visible-first priority, the turn-live blink (snapshot as the still), the snapshot test, the
-  scroll-away bound, docs; took Lanczos out of the snapshot (bilinear: a few ms less on every tab switch). Not
-  done: a test assertion on frames (CI's VM cannot measure them), Retina-size snapshots (4× the memory; they are
-  soft until live, as the docs say). Ponytail: no blockers; removed my frame meter for lane S's `ScrollMeter`,
-  the row chunking for one `LazyVGrid`, the equality guard, the pane scan (`tabPanes`).
-- **CI.** 40246320315 (green on aa8a5e1), 40250079540 (zoom tests), 40255771813 (green on f775c07). Full suite
-  40263346919 on 63f685c, the lane's last code commit: all four UI test shards green (every overview, title-row,
-  reveal and usage test); lint-build red only in HerdrKit's timing test "a long line and the lines around it read
-  whole, and quickly" (2.7 s, then 1.3 s on the rerun, over 1 s; HerdrKit, not this lane's area). Local Retina: the stress test
-  (Debug and Release) and the two layout tests green on 63f685c.
-- **For the user to check by hand:** a session with 100+ tabs: ⌃⌘O, scroll fast down and up: tiles show their
-  picture at once (soft for a moment), then turn sharp and live in place with no blink; tiles never shown show the
-  plain card until they draw; swipe to another session; × and Esc leave with the 0.18 s zoom; the fade-in on open;
-  `footprint Oriel` while scrolling (about 1.2–1.7 GB on Retina, not growing with the tab count); a remote
-  machine's overview (6 live cards).
 
 ### Lane F (items 5, 6, 7)
 
@@ -223,42 +191,17 @@ the orchestrator says otherwise.
   lookups the floating window, the registry and `showTerminals` use go over `withFloats`; the overview's
   every-card streaming (lane V) stays on `list`. Unknown pane, session or machine: a warning notice in the front
   window. No window at all: one opens and floats it (`early`).
-- **Learned.** SwiftUI swallows a custom-scheme URL when every scene has `handlesExternalEvents(matching: [])`:
-  `application(_:open:)` never ran (CI 40246598046). The app installs its own `kAEGetURL` handler in
-  `applicationWillFinishLaunching` and hands the URL to `application(_:open:)`. `XCUIApplication.open(_:)` on a
-  running app left it "not foreground" for XCUITest after a second URL (CI 40247366831); the tests open the URL
-  with `open -g -a <app>` through the e2e helper (`open-url`), as pi-herd does. SwiftFormat's `andOperator`
-  turned `guard a ? b : c && d` into `guard a ? b : c, d`, which changes its meaning: the overview guard now
-  uses a `tiles` local.
 - **pi-herd** (pi-hkandala d7db340, 32de79e). `attach`: outside a popup, when the frontmost app is Oriel
   (`lsappinfo info -only bundleid "$(lsappinfo front)"` has `"dev.hkandala.oriel"`; macOS only, never with
   `SSH_CONNECTION`, asked at click time, about 40 ms), it runs `open -g "oriel://float?session=<socket's
   session>&pane=<pane>"`, for every agent: also one on the same server (Oriel shows neither herdr's popups nor
   its focus, D13) and from the `pi-herd` session itself. Else as before. `npm run check` green; `sessionOf` and
   `orielInFront` checked with node on this Mac.
-- **Reviews.** Ponytail: no blockers; `takeFloatOnly` inlined into `open`, one lookup (`floatPending` holds the
-  page), comments. Spec: shoulds fixed: a second pending URL dropped the first one's page, notifications for a
-  session whose first window has it only float-only, no window (opens one), unknown machine (notice), D50 and the
-  window page, tests for Open Session on a float-only session and for closing the main window, pi-herd's
-  `pi-herd`-session refusal before the Oriel check. Left: one `early` slot (a URL and a notification click at
-  launch: the later wins); a notice shows in every window on the current session.
 - **Tests.** `testFloatingWindowOpensLargeWithTheMainWindowsTitleRow` (75 %, the 17 pt gap of the line, the
   placeholder's text and its centered Show Pane), `testOrielURLFloatsAPaneOfASessionWithNoPage` (no page, keys
   reach two's pane, again = the same window, the no-pane and no-session notices, Detach ends two's runs, a page's
   pane in a workspace not in view), `testOrielURLFloatGoesWithItsWindowAndOpensOne` (closing the main window ends
   two's runs; a URL with no window opens one; Open Session keeps the float and the connection).
-- **CI.** 40245708850 (Show Pane under the taller float: fixed in c8a256e), 40246598046 (the URL never reached
-  the app), 40247366831 (`XCUIApplication.open`), 40248364247 (a Detach click under the main window),
-  40249713224 (both URL tests green on 3d1f6db). Full suite 40250012874 on 5980a94 (after 3d1f6db, the lane's
-  last code commit): every floating, URL, key and Dock-drop test green; the reds are other lanes' areas: the
-  session swipe tests (`testPanelsAndSwitchesReactAtOnce`, `testQuickSessionFlickLandsOnTheNextPageInStep`,
-  `testSwipesPageTheSidebarAndTheStripApart`, `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed`) and
-  `testGoToDirectoryAndInsertPath`.
-- **For the user to check by hand:** float a pane never floated before (a saved frame wins): taller, the line
-  between the pane and its place, the place quieter; the placeholder's line and Show Pane in a small split; in
-  pi, from Oriel, open a `pi-herd` agent from the dashboard or pi-footer (after `/reload`): it opens in Oriel's
-  floating window, not herdr's popup; again brings it forward; from the herdr TUI (another app in front) it
-  stays herdr's popup. `open -g "oriel://float?session=<s>&pane=<id>"` from a shell does the same.
 
 ### Lane E (items 1, 2)
 
@@ -294,15 +237,6 @@ the orchestrator says otherwise.
   which takes no room, so every page but the first showed blank at rest (the user saw it, and
   `testClosingAPageAndQuittingLeaveNoStreams`). 8c524dd also deleted `Latency.note`, which lane M had started to use:
   main did not build until ad8952c.
-- **Reviews.** Ponytail: stale comments, the one-caller `NewWorkspaceButton` inlined, small shrinks. Declined:
-  merging the flick test into the phase-27 swipe test (one test per case, each under 30 s); one path for Reduce
-  Motion through `withAnimation(nil)` (not sure its completion runs). Spec: a swipe mid-slide jumped (now from the
-  drawn offset), panels (the palette, Open Session) let a swipe page the sessions behind them (`drag` and `step`
-  check `panelOpen`), off-screen pages over the strip (now not laid out at rest; the strip swipe near the card's
-  left edge is tested), the session's show is timed in the record, a cancelled gesture turns no page, a touch
-  (`.mayBegin`) ends the last swipe's hold, Reduce Motion shows only another page, the empty view only while live.
-  Declined: a dot click mid-slide (the slide's end wins; rare), an e2e for a double flick and the wheel turn (the
-  swipe helper starts a Swift script per swipe, about a second each).
 - **Tests.** `testQuickSessionFlickLandsOnTheNextPageInStep` (3 moves of 20 pt then momentum: lands, rests on the
   shown session, no gap over 100 ms, shown within 80 ms of the pages within 2 pt), `testSessionSwipeFollowsTheFingers…`
   (the same show timing), `testSwipedSessionPagesShowTheirRows` (three sessions: the swiped-to page's rows on screen
@@ -310,11 +244,4 @@ the orchestrator says otherwise.
   two lay), `testEmptyPageOffersNewWorkspace` (one New Workspace button, "This session is empty" in the strip).
 - **Local, Retina, debug, motion on** (6d0acf9): a frame every 8 ms from the lift (140 pt) to the page, within 2 pt
   at about 150 ms, the session shown at 208 ms.
-- **CI.** 40246988130 (the flick test on the old code: red, see above), 40247167383 and 40248476276 (the router found
-  no pages), 40250751539 and 40251702377 (the 50 ms rule; `ev` notes), 40254344456 and 40254795175 (the wide
-  accessibility frame), 40255672733 (the 7 lane tests green on 6d0acf9, the lane's last code commit). Full suite:
-  40258143157 on 5328ab4.
-- **For the user to check by hand:** with three or more sessions, quick flicks and slow drags both ways, a second
-  flick during a slide, a drag that stops before the lift; the strip changes as the pages arrive; the rows of every
-  page show at rest; a mouse's sideways wheel over the sidebar turns one page; an empty session's strip.
 

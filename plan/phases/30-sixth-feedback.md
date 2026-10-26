@@ -106,11 +106,6 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
     the card's own menus (header and right-click, built when opened) and in the palette's Move Pane to Tab
     page. Measure the key latency at 300 tabs before and after (scripts/stress.py).
 
-## Checks
-
-- `make lint build test`; a UI test for each item a test can see; the full CI suite green on each lane's
-  last code commit; one review round per lane (spec and ponytail, read only).
-
 ## Findings
 
 ### Lane D
@@ -133,10 +128,6 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   ratios and label in a new workspace, selected, keyboard kept; then onto the sidebar's empty space: another new
   workspace, the first one closed. The header `+` with a tab is not driven (the same `PaneDrop` case as the menu row).
   Its setup is `movingTab()`, shared with phase 29's test.
-- **Review.** Spec: the doc table row had 4 cells (fixed); New Workspace below the menu's fold (pinned, above); nits
-  taken: the `+` comment, these Findings. Not taken: a `+` leg in the test, an `underRows()` helper (two uses).
-- **Commits.** 48bc723 (the drop, test, docs), 00f1c04 (New Workspace kept in view, review fixes).
-- **CI.** 40273349296 (the drag tests on 48bc723, green). Full suite 40274069052 on 127bf21 (has 00f1c04): green.
 - **Check by hand.** With many workspaces, collapse the sidebar, hold a tab over the workspace button and drop it on
   New Workspace; the menu's New Workspace and Open Session rows now stay under the list when it scrolls.
 
@@ -167,20 +158,6 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   `perform(withKeyModifiers:)`) changes it; with the sidebar hidden a ⌥ swipe steps the session.
   `scripts/swipe.swift` takes a 7th argument for ⌥. `scripts/three-fingers-check.swift` (in `make test`) checks
   the recognizer: no trackpad on CI, and XCUITest cannot post touches.
-- **Reviews.** Ponytail: one session step in `WindowPages` (was three copies), `take(Step)` instead of a Bool,
-  a shorter doc: fixed. Spec: a hidden-sidebar test and docs wording (swipe begun with ⌥; the unverified claim
-  about system gestures softened; D35 and platform.mdx): fixed. Not done: a 20 pt wait before a ⌥ step (a ⌥ gesture
-  steps at 4 pt, as any gesture picks its axis); a floating window's ⌥ swipe stepping its main window.
-- **CI.** 40273976883 (the ⌥ test and the two swipe tests on 86687aa, green). Full suite 40274997505 on d9f037d:
-  lane G's and every swipe test green (`testOptionSwipesMoveBetweenSessionsAndWorkspaces`,
-  `testSwipesPageTheSidebarAndTheStripApart`, `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed`); 19 red
-  in other lanes' areas: 17 on "titlebar.sidebar: multiple matching elements" (the title row kept laid out under
-  the overview since 30f8074, lane V), `testACardNeverShowsTheOverviewsSmallSnapshot` and
-  `testDroppingAFileFromFinderPastesItsPath`.
-- **For the user to check by hand:** ⌥ + two-finger swipe over a card, sideways (sessions, with the sidebar shown
-  and hidden) and up/down (workspaces), one step a gesture, the terminal not scrolling; ⌥ + mouse wheel; plain
-  two-finger scrolling in a terminal and on the strip still the same; a three-finger swipe sideways and up/down
-  (once each per gesture); a four-finger swipe still switches Spaces and steps nothing in Oriel.
 
 ### Lane R (item 7: Connect shows progress)
 
@@ -205,12 +182,6 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
 - **Also.** HostStore was at its 400-line limit: the session server start moved to HostModels.swift (8e66b4c).
 - **Review (one round, spec).** No blocker. Fixed: two quick Connects (1), comments (3, 4), the doubled "Canceled"
   (5), one Detail case (6), a test check (7), `mkdir -p` in ci-sshd.sh (8), docs (9). Kept: 2, see Accepted.
-- **Commits.** 8e66b4c, 27bfda4, 64b158f. **CI.** 40273281796 (27bfda4, the four remote tests): green.
-  Full suite 40273771915 (64b158f): green after `--failed` rerun on the same
-  commit. The first attempt had two red tests outside lane R, both green on the rerun:
-  testGoToDirectoryAndInsertPath, and HerdrKit's "relay carries runs over one process" (`exit().status == 9`), so
-  both look flaky. All 9 remote tests ran on CI's sshd and were green; testAPasswordHost… took 31.8 s (the 2 s
-  login shell, twice).
 
 ### Lane P (items 6 and 11)
 
@@ -274,23 +245,6 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   Workspace there, no tab. `testHundredsOfPanesStayQuick` keeps `heap`'s summary ("heap, busy tab", the helper's new
   `heap` action, 02eebea).
 - **Docs.** window.mdx (View ▸ Pane's Move Pane to Tab has New Tab and New Workspace only).
-- **CI.** 40274017771 (`testMoveToTabLandsBesideTheLastCard`, green), 40274683473 and 40276792304 (the stress test,
-  green; busy tab 15.9–16.6 %, footprint 217–222 MB as phase 29). Full suite 40280765449 on 381f34d (the lane's last
-  code commit), with a rerun of the failed jobs: lint-build (HerdrKit's flaky "relay carries runs over one process" on
-  the first try) and shards 0, 2, 3 green; shard 1 red both times in lane V's overview tests
-  (`testACardNeverShowsTheOverviewsSmallSnapshot`, `testOverviewCostsAndLetsGoAfter`), and on the rerun only in
-  `testDraggingATabOntoNewWorkspaceMovesItWithItsLayout` and `testQuickSplitsSplitTheNewestAndItKeepsTheKeyboard`:
-  none of them goes through this lane's code (the menu bar's command list). Passed to the orchestrator.
-- **Reviews.** Ponytail: one helper branch for `sample` and `heap` with the timeout caught, a stale comment in
-  `PaneActions`, `tabs: false` for the floating window's Close Pane, a redundant doc line; all taken but a one-line
-  `menuBarList` (semicolons). Spec: the same comment and floating call, the Window menu's jumps read every title of
-  the workspace before `prefix(9)` (now only 9 per level), the test closes the menu with one click and checks "alpha"
-  too, the doc's "There", these Findings; all taken (381f34d).
-- **Commits.** 127bf21 (item 11), 02eebea (the heap summary), 381f34d (review fixes), 2965cf6 and this (Findings).
-- **For the user to check by hand:** View ▸ Pane ▸ Move Pane to Tab shows New Tab and New Workspace only; a card's
-  header menu, its right-click menu and ⌘K's Move Pane to Tab still list every tab. Tab and workspace keys in a big
-  session feel a little quicker. `footprint Oriel`: about 0.8–1 GB with two full-screen Retina windows after many
-  tabs visited (16 kept terminals at about 30 MB each), more only while the overview is open.
 
 ### Lane V (items 2–5, 12)
 
@@ -347,25 +301,8 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   again after the zoom, `sidebar made` in `app.latency`); `testOverviewCostsAndLetsGoAfter` (a tile's snapshot is at
   its pixel width: the card's value is `<state> <snapshot px>`). Overview card values now carry the static-text
   trait: a group's value never reached XCUITest, so the old "empty" check had passed vacuously.
-- **Reviews.** Ponytail: one `pictured`, `small` returns Bool, comment reflows (taken). Spec: blocker (snapshot of a
-  snapshot) and 11 shoulds, all taken (eviction of the waiting still, per-window scale, the last turn, zoomed tabs,
-  key view loop and hover card under the overview, the ⌥ swipe, only a snapshot's still dropped, flaky loader check,
-  a size check that failed on the old code, docs); verify round clean.
-- **CI.** Ad-hoc 40274766574, 40276311322 (red: the duplicate id and the card values above), 40289080832 (red: the
-  load test's first layout halved one pane 8 times, cards too small to draw a row at 1x; now 3 × 3 grids),
-  40291217718 (green). Full suites: 40281024114 on 1691e6f (red: the load test over its 2 minutes, one query per card),
-  40285260661, 40289083877 (red: only the load test, see above), and 40291250564 on cb596bf, the lane's last code
-  commit: every lane V test green (all overview, flicker, title-row, sidebar and hover-card tests); red only in
-  other lanes' tests (`testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed`,
-  `testQuickSessionFlickLandsOnTheNextPageInStep`, `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` at its tab
-  swipe, `testAgentGroupsFoldAndStayFoldedAfterARelaunch`).
 - **Known limit.** A card too small to hold a row never draws, so its tile keeps its loader and, while in view, its
   turn (a tab of eight halvings at 1x); `ponytail`: count such a card as drawn if it shows up in real sessions.
-- **For the user to check by hand:** a big remote session's overview: spinners in tiles that have nothing yet, and
-  each tile filling in turn; text sharp when scrolling back (no blur, then sharpen); after a click on a tile the
-  sidebar and tab bar fade in with the zoom; scroll the overview fast (smoother; tiles turn live once it stops);
-  after the overview, a tab shown in the strip never shows a blurred picture first; `footprint Oriel` with the
-  overview open (about 0.3–0.5 GB here, was 1.2–2 GB).
 
 ### Lane N (item 13)
 
@@ -380,20 +317,10 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   row goes to its pane (`AgentButton`, as before); the tab in view counts its finish as seen (D14), which clears it.
   The panel's rows stay an eager `VStack`: done rows pile up until seen, so make it lazy only if `scripts/stress.py`
   shows a hitch when it opens.
-- **Learned.** A plain `Text` gives XCUITest its string as the value, and its label is "" (lane J of phase 25 found
-  the same). The test reads the group labels' `stringValue`.
 - **Test.** `testTheAgentsPanelListsDoneAgentsAfterNeedsYou`: a done agent alone opens the panel (the badge still
   says 0); needs you and done in that order, with labels and header; a click on the done row selects its tab, closes
   the panel and clears the finish; the next hover has no Done group. `testBlockedAgentNeedsYouAndThePopoverGoesToIt`
   still covers the empty panel.
-- **CI.** 40276253590 (9b6d5b6): the new test and the agents tests green;
-  `testAFinishShowsDoneUntilItsRowIsClicked` red on two `titlebar.sidebar` elements (lane V's 30f8074, fixed in
-  a6dec94). 40276544611 (65f14c9): the new test red on `.label` of a plain `Text` (fixed in 984e7ad).
-  40279636152 (984e7ad, agents tests) green. Full suite 40279661212 on 984e7ad: every agents test green; 2 reds in
-  lane V's overview area (`testACardNeverShowsTheOverviewsSmallSnapshot`, `testOverviewCostsAndLetsGoAfter`).
-- **For the user to check by hand:** let an agent finish in a tab you are not looking at, then hover the Agents
-  button: Done group under Needs you, the amber dot only for needs you; click the done row: its tab shows and the
-  Done goes away; with nothing waiting or done, no panel.
 
 ### Lane Q
 
@@ -417,28 +344,13 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   YES`. The page records the cards that came and went (`cards.<tab>`, "came went"): three quick ⌘D add 3 came and
   0 went, and two ⌘W then add 2 went. Red on the old code (5276707, run 40274307166: "6 2", that is two of herdr's
   panes came again and two stand-ins went). Green on ed38390 (40275176928).
-- **Reviews (one round).** Ponytail: `parked` became `private(set)` instead of an accessor; comments cut. Spec: the
-  record's state writes are guarded off outside e2e; this red run is recorded. Declined: pairing only when no more
-  panes come than stand-ins go (spec nit). The second burst had one stand-in go as two panes came, and the pairing
-  keeps the first card in place there. The case it would help is a pane from another client arriving in that same
-  snapshot, which is rare. Kept the before/after deltas in the test (ponytail nit): the page is lazy and can be
-  built before it is selected.
 - **Also seen** (lane K's area, not changed): in the second burst herdr's final order was A | C | B | D. One split
   went to the first card, not the newest, so the second ⌘D likely found `newest` cleared. It could not be traced
   without logs.
-- **CI.** Full suite 40277225989 on 02eebea (has ed38390, the lane's last code commit). Red in other lanes' areas:
-  - About 20 tests fail at "multiple `titlebar.sidebar`" (the button and its open-state image). That started with
-    30f8074, lane V's title row under `underOverview`; `testLayoutMotionAnimatesWithoutBlanking` hit it in
-    40275176928 too.
-  - HerdrKit's SSH relay test (`watching.exit().status == 9`).
-  - The overview, remote host, Agents panel and file drop tests.
 
   The quick-split test failed there once, at lane K's keyboard check: the newest card was lit, but the third card's
   terminal had the keyboard. My came/went check was not reached. The same test was green in 40275176928,
   40280973810 and 40280981576 on the same code. Flaky, cause not found.
-- **For the user to check by hand:** ⌘D three or four times as fast as you can, and ⇧⌘D, locally and on the remote
-  machine. Each new card slides in once and stays put when herdr's pane takes it (only its title changes).
-  ⌘W fast: each card fades with its own title.
 
 ### Lane W (item 1)
 
@@ -487,17 +399,4 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   record (`Latency.shown`: from the show to the end of the turn whose commit drew it) must be under 600 ms for the
   better of the two. Red on the old code (40280514408: 807 and 755 ms), green after (40280494023: 303 and 236 ms;
   40278329330 with two cards). Locally (Release) green.
-- **Reviews (one round).** Ponytail: comments cut to the why, the numbers kept in the docs, one `now`, the dead
-  optionals in the test. Spec: VO-Shift-M menu on the card (VoiceOver lost per-tab moves on the card), the test
-  waits for the page before the first swipe, quiet shells in its splits, the record's limits in its comment, and
-  this gap measured and written down. Not taken: an `.id` on the tab bar per page (spec nit: its scroll offset could
-  carry over between sessions that select the same tab id; nothing in the capture shows it).
 - **Docs.** theme-and-accessibility.mdx: the card's VoiceOver actions and VO-Shift-M.
-- **CI.** Full suite 40283556151 on d37d32c (the lane's last code commit): lint-build and shards 0, 1, 3 green (the
-  new test 47 s, every other swipe and flicker test green). Shard 2 red in `testOverviewLoadsEveryTileInTurn`
-  (lane V's) and `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed` at its bound (show 80 ms after the
-  settle, the bound < 80; this lane changed neither the slide nor its show). That test, the flick test and the new
-  one green in 40287100030 on the same code.
-- **For the user to check by hand:** swipe into swebench-autopilot and back a few times: the tab bar and strip now
-  follow the sidebar by about a tenth of a second instead of half a second. ⌘K ▸ Move Pane to Tab and the card's
-  right-click menu still list every tab. With VoiceOver, VO-Shift-M on a card opens that menu.

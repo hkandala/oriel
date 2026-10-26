@@ -34,12 +34,6 @@ unless the prototype proves a part wrong (then fix the page and say why).
   locally while the user works on this Mac.
 - herdr on the remote side: only throwaway `oriel-dev-26-*` / `oriel-e2e-*` sessions, deleted after.
 
-## Checks
-
-- `make lint build test`; UI tests on CI for: add host, no-prompt connect, password prompt, open a remote
-  session and type in it, reconnect after the master dies, no retry loop on a password host.
-- One review round (spec and ponytail). Findings at the end of this file.
-
 ## Findings
 
 ### What works (CI on localhost sshd, `scripts/ci-sshd.sh`)
@@ -101,32 +95,6 @@ unless the prototype proves a part wrong (then fix the page and say why).
   file drops and image paste to a remote machine, git's availability checked per machine.
 - No test sees Reconnecting (it needs sshd stopped and started by the helper); Connect has no busy state.
 - A security key touch prompt (`SSH_ASKPASS_PROMPT=none`) shows nothing.
-
-### Learned
-
-- ssh runs `SSH_ASKPASS` with ssh's own stdin and stderr, also with `-f` before it forks: the app needs no socket
-  or FIFO to talk to its helper.
-- With `-f` and ControlPersist the background master lets go of the start's pipes, so the start's exit status says
-  whether the master serves.
-- With a master, ssh never resolves the target, so `-F /dev/null` works with config aliases.
-- macOS sshd admits a new user only in `com.apple.access_ssh` (CI's first password login failed without it).
-- The argument domain does not keep a JSON array argument as a string: read `-machines` from argv.
-- XCUITest's `label` of a SwiftUI `Menu` with `.menuStyle(.button)` is empty even with `.accessibilityLabel`.
-
-### Reviews
-
-- Spec (round 1): 18 items, no blocker. Fixed 1–8 (channel wait limit, failed herdr lookup, answer once, execs by
-  target, the connecting window asks, start timeouts, close input on cancel, host key asked every run) and nits 10,
-  11, 12 (comment), 13, 14, 18. The rest are above.
-- Ponytail (round 1): 9 items, no blocker. Fixed 1–8; 9 (CI script's own login checks) kept: they print sshd's log
-  when CI's setup breaks.
-
-### CI
-
-- Remote tests (dispatch): 40184568520 and 40185560770 red (CI's sshd setup, the menu's label, `-machines`),
-  40186586493 and 40187439217 red ("Session open refused by peer": first too many channels, then a reused master
-  that held a killed app's sessions), 40189370959 green.
-- Full suite on 76bbf15, the last code commit: 40190929489 green (all 4 shards and lint-build).
 
 ## Round 2 (user, 2026-10-25 05:20)
 

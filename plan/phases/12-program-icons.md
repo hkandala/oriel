@@ -2,14 +2,8 @@
 
 Goal: every pane and tab shows the icon of the program that runs in it, like Rex: a colored rounded
 tile in tab capsules and Agents rows, a plain glyph in card headers, and overlapping tiles, one per
-pane, for a tab with several panes. The sidebar has no tab rows (`plan/ui-layout.md`), so it shows no
+pane, for a tab with several panes. The sidebar has no tab rows (the window design (`docs/content/docs/ui/window.mdx`)), so it shows no
 program icons.
-
-Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md` (title row, item 5), `resources/mockups/layout.html`
-(scene A, the tab bar), `resources/icons/` (`catalog.json`, `svg/`, `SOURCES.md`,
-`contact-sheet.png`), `resources/research/clients/rex-ui.md` (tab icon, icon stack, how Rex matches
-programs), `docs/content/docs/ui/window.mdx` (tab bar: "the icon of the pane last selected in that
-tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, `PaneProcesses`).
 
 ## Build
 
@@ -65,20 +59,6 @@ tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, 
 7. **Docs.** Make `docs/content/docs/ui/program-icons.mdx` (where icons show, the match order, when the
    app asks herdr, the catalog and its licenses) match what you built. Update `ui/window.mdx` (tab capsule, pane card header) and `reference/herdr-calls.mdx` (`pane.process_info`
    is now also used for icons).
-
-## e2e
-
-- In `ORIEL_SESSION`, in a new workspace closed after, start `vim` in one pane and `sleep 600` in another; the tab's capsule
-  accessibility value lists the icon ids (for example `icons: vim, sleep`), and the card headers show
-  the program names. Quit `vim`; the icon goes back to `terminal` within 2 s of Return.
-- A pane where the test reports an agent (`pane.report_agent` through the helper, agent `claude`)
-  shows the `claude` icon.
-- Unit tests for the matcher: agent, process name, argv0, script suffix, title prefix, shell, unknown.
-
-## Done when
-
-- Screenshot of a tab bar with at least six different programs, and a three-pane tab's overlapping
-  stack, next to the card headers of that tab.
 
 ## Findings
 
@@ -140,33 +120,3 @@ tab"), decision D60, `Packages/HerdrKit/Sources/HerdrKit/Models.swift` (`Pane`, 
 - **Catalog fixes from npm's `bin` fields:** claude's native binary is `claude.exe`; gemini's script is
   `@google/gemini-cli/bundle/gemini.js`; qwen's is `@qwen-code/qwen-code/cli-entry.js`. The old paths stay for
   older installs.
-
-### Assumptions
-
-
-- **A tab that never showed keeps the `terminal` icon** while a program without an agent or title match runs in
-  it (python3 on launch): the phase asks herdr only when a card shows (lazy neighbour pages count). One
-  `process_info` per pane on the first snapshot would fix it; not done, as the phase lists the triggers.
-- **The header shows the process's real name**: macOS's `nano` is `pico`, a Node CLI started by its package path
-  shows `cli.js`. The catalog's `title` ("Pager / man") reads worse than the process name, so it is not used.
-
-### Learned
-
-- **herdr sends `pane.updated` when the stripped title changes** (not on `cd`); it is now in the subscription.
-  Spinner frames send none (the spec reviewer: 80 frames, one event); a progress title sends one per change (100
-  changes in 2 s, 85 events), absorbed by the snapshot pacing. The program is asked again only when the title's
-  first word changes.
-- **herdr reports no foreground process for a setuid program** (`top`): `process_info` has no
-  `foreground_processes`. Decoding then fails, the icon stays `terminal`, and the close check asks ("A
-  program"), which is the safe side. The e2e test uses nano instead (macOS's `nano` is `pico`).
-- **A SwiftUI `.task` on a card in the strip's `LazyHStack` got cancelled** when a page was built and dropped
-  during a scroll; the cancelled `process_info` call failed and the pane was never asked again (the logs tab
-  stayed `terminal`). The card now starts an unstructured `Task` in `onAppear`, and a failed ask clears `asked`.
-- **An `XCTNSPredicateExpectation` checks about once a second**, so "within 2 s" failed at ~1.2 s real time. The
-  icon test polls every 100 ms with the suite's `poll`.
-- **The front tile once jumped to an unclicked card** (E2E reviewer, not reproduced): after the window was
-  re-activated, tab 1's stack showed nano in front. The stack follows the tab's keyboard card, which
-  `becomeFirstResponder` records; AppKit's key-view fallback when a page changes may move it. The keyboard logic
-  is older than this phase; a lead for phase 17.
-- **Return reaches `keyDown` with key code 36 (76 on the keypad)** for XCUITest's `typeKey(.return)`; plain Return
-  goes to libghostty, so the hook sits before the key routing.

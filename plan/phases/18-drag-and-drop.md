@@ -2,28 +2,10 @@
 
 Goal: drag a pane by its header to swap it, re-place it beside another card, or move it to another
 tab or workspace; drag tab capsules and workspace rows to reorder them. Every target and herdr call is
-in the tables of `plan/ui-layout.md` ("Moving panes, tabs and workspaces by drag and drop"); this
+in the tables of the window design (`docs/content/docs/ui/window.mdx`) ("Moving panes, tabs and workspaces by drag and drop"); this
 phase builds exactly those, with Rex's look and timings.
 
-Read first: `resources/research/clients/rex-internals.md` (§3.6, §5.4: AppKit pane drag and drop indicator view, spring-load delay; read before the step 0 spike; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md` (drag and drop: what herdr 0.9.5 allows, every
-target, tabs and workspaces), `resources/mockups/layout.html` (scene K), `resources/research/clients/rex-ui.md` (pane drag, drop indicator,
-spring-loading, tab reorder), `resources/research/herdr/herdr-core.md` (move calls),
-`docs/content/docs/ui/drag-and-drop.mdx`, `docs/content/docs/talking-to-herdr.mdx` (writes table:
-swap and move), `docs/content/docs/platform.mdx`, D13, D35, D69.
-
 ## Build
-
-### Spike first (half a day)
-
-0. The strip is a `LazyHStack` and shows one workspace; a workspace switch swaps all its pages. So
-   spring-loading to a far tab, or to another workspace's row, removes the drag's source card from the
-   view tree, and a plain SwiftUI `DragGesture` on the header is cancelled mid-drag. The drag must
-   survive that. Try an AppKit drag session (`NSView.beginDraggingSession` from the header, or SwiftUI
-   `.onDrag` / `.draggable`) with drop handling (`DropDelegate`) on the title row, strip and sidebar,
-   versus a window-level `NSEvent` local monitor for mouseDragged / mouseUp that draws the preview in a
-   window overlay. Prefer the system drag: it gives the preview, Esc and the forbidden cursor
-   (`DropProposal(operation: .forbidden)`) for free. Also check that a drag that starts on a title-row
-   capsule does not move the window, and that XCUITest drags still work. Record the choice.
 
 ### Pane drag
 
@@ -90,59 +72,7 @@ swap and move), `docs/content/docs/platform.mdx`, D13, D35, D69.
     `talking-to-herdr.mdx` (`pane.move` chains, `workspace.move_block`). Change D69 if the build
     differs.
 
-## e2e
-
-XCUITest drags on macOS: `click(forDuration:thenDragTo:)` (phase 14); `press(forDuration:thenDragTo:)` sends no mouse down.
-
-XCUITest can drag (`press(forDuration:thenDragTo:withVelocity:thenHoldForDuration:)`), but it holds only
-at the end of a drag. All in `ORIEL_SESSION`, in a new workspace that the test closes after.
-
-- Drag a card's header onto the center of its neighbor: herdr swaps them.
-- Drag a card onto the left edge of its neighbor in the same tab: the snapshot has the pane left of
-  that neighbor, in the same tab, and the tab count is unchanged.
-- Drag a card onto another tab's capsule and hold 1 s at the end (`thenHoldForDuration`): that tab is
-  selected and, after the drop, holds the pane split right. A drop on an edge of a card in another
-  tab after spring-loading is checked by hand.
-- Drag a card onto the empty end of the tab track: a new tab holds it.
-- Drag a card onto another workspace's row: a new tab in that workspace holds it.
-- Drag a card onto empty sidebar space: a new workspace holds it.
-- Drag the third capsule to the first place: herdr's tab order changes.
-- Drag a workspace row below the next one: herdr's workspace order changes; a parent with a worktree
-  child moves with the child right after it.
-
-## Done when
-
-- Screenshots: a drag over a center target, over an edge target, a spring-loaded tab, a tab reorder
-  in progress, a not-allowed target.
-
 ## Findings
-
-### Spike (herdr 0.9.5, step 0)
-
-- **`pane.swap {source_pane_id, target_pane_id}`** trades the two panes' places (sizes stay with the places) and
-  moves herdr's focus to the source pane and its tab, `focus:false` or not, also in another workspace; a swap
-  across tabs is `changed:false, reason:"cross_tab"` and a pane with itself `same_pane`. A directional swap at an
-  edge is `no_neighbor`, which the keys still ignore.
-- **`pane.move` with `focus:false` never moves herdr's focus**, whatever the destination. Into another tab it
-  splits beside `target_pane_id` at 0.5 of that pane; into its own tab it is `changed:false, reason:"same_tab"`
-  with the reply still naming the pane. In the same workspace the pane keeps its id (to a new tab, back again);
-  to another workspace it gets the next id there (`w1:p4` → `w2:p2`), its terminal stays. A tab left empty
-  closes; the other tabs' default labels renumber. `new_workspace` names the workspace after the cwd ("tmp").
-- **Without `target_pane_id`, `pane.move` into a tab splits the tab's focused pane**, not its whole layout (as
-  `plan/ui-layout.md` had it): a drop on a capsule names the tab's last card instead, so where it lands does not
-  hang on herdr's focus. The card menu's Move to Tab ▸ (phase 17) still omits it. ponytail: left as is; it lands
-  beside herdr's focused pane there.
-- **`pane.zoom` zooms only a tab with two panes or more** (`reason:"single_pane"` otherwise), and moves herdr's
-  focus to the pane; a move into or out of a zoomed tab is `zoomed_tab`.
-- **`tab.move`** reorders only inside the tab's workspace: a `workspace_id` of another workspace is ignored (the
-  tab moved inside its own). **`workspace.move`** inserts before the workspace now at the index.
-- **The drag: an AppKit dragging session**, started from the header's (capsule's, row's) SwiftUI `DragGesture`
-  through the window's content view (`beginDraggingSession`), with one `NSDraggingSource` object for the app,
-  and SwiftUI `DropDelegate`s as targets. The session belongs to the window, so a spring-load that drops the
-  source card from the `LazyHStack` cannot cancel it, and the source's `endedAt` clears the page's drag state
-  whatever view is left (SwiftUI's `onDrag` has no end callback, and macOS 26's `onDragSessionUpdated` lives
-  on the view that goes away). The system gives the preview, Esc and the pointer badges. A window-level
-  `NSEvent` monitor would have needed its own preview window, Esc and hit testing.
 
 ### Deviations
 
@@ -188,80 +118,6 @@ at the end of a drag. All in `ORIEL_SESSION`, in a new workspace that the test c
 - **Drags start only on a live session** (a stopped session's last rows stay, but a drop could not write).
 - **`HerdrError.refused(reason)`** for `changed:false` on `pane.move` and the id-based `pane.swap`; the
   directional swap keeps ignoring `no_neighbor` (the keys do nothing at an edge).
-
-### Assumptions
-
-- **macOS has no forbidden pointer for drags**: a `.forbidden` proposal shows the plain arrow, as a `.move` does
-  (no badge for either). Checked by hand once the GUI is back.
-- **A drag from a capsule or a header does not move the window**: `WindowDragGesture` sits behind the title row's
-  controls, and headers have none. Checked by hand once the GUI is back.
-
-### Learned
-
-- **CI's recording, for the rough screenshot:** with the GUI paused, the rough screenshot came from a failed CI
-  run's screen recording (`gh run download`, `xcresulttool export attachments`, ffmpeg frames). Recordings are
-  kept only for failed tests.
-- **The design had a herdr fact wrong**, found by the spring-load test failing on CI: `pane.move` into a tab
-  without `target_pane_id` splits the tab's focused pane, not its whole layout. Proving the spring-load took
-  three CI runs (no mid-drag checks; a lone pane does not zoom; then this).
-- **Screenshots come from CI.** The scheme keeps every test's screen recording (`systemAttachmentLifetime =
-  keepAlways`) and CI uploads the xcresult of green runs too, so a phase's drag-in-progress shots are frames of
-  its tests' recordings (`xcresulttool export attachments`, then ffmpeg). Before, only failed tests kept one,
-  and only failed runs uploaded the bundle.
-
-- **A `.forbidden` proposal falls through to the drop target behind** (seen in CI's recording): the track's
-  end, laid behind the whole track, lit its ghost capsule while a pane hovered its own capsule. The end target now
-  covers only the space after the tabs, and carries the row's `WindowDragGesture`, since it takes that space's
-  clicks.
-
-### To check by hand when the GUI is free
-
-1. Spring-load to another tab, then drop on a card's edge there: right and bottom split beside it; left and top
-   end left of or above it (move, then swap). A card's center there: no indicator, not taken. The capsule pulses
-   once (1.04).
-2. Spring-load a workspace row (hold 0.65 s): its tabs show; then drop on a capsule there and on a card's edge
-   there. A drop on the row itself: a new tab.
-3. Esc mid-drag, before and after a spring-load: no herdr write, the card back at full opacity, no indicator or
-   ghost left, and a second drag starts.
-4. The pointer on places that are not targets (own card, own tab's capsule, page dots, the Agents view, a
-   capsule over a workspace row, a row while the filter is on): whether macOS shows a forbidden pointer for a
-   `.forbidden` proposal at all. If it shows the plain arrow, the `.tab` case in `RowsDrop` can go.
-5. The window does not move when a drag starts on a header, a capsule or a row; the title row's empty space
-   still moves it, also right after the tabs (the track's end target). A click on a capsule selects it, a double-click renames; a header's double-click zooms.
-6. A drop outside the window or on a second Oriel window: nothing happens, the drag state clears.
-7. A re-place in the same tab: no flash of the passing new tab in the title row; the moved card has the keyboard.
-8. A full track (about 12 tabs): the `+` is highlighted. A sidebar with no empty space under its rows: is the
-   ghost "New Workspace" row reachable?
-9. The preview (the header's snapshot) in full screen and with the sidebar collapsed.
-
-### Hand checks (2026-10-22, herdr 0.9.5, real mouse via CGEvent, shots in `/tmp/oriel-shots/18/hand/`)
-
-| # | Result | Evidence |
-|---|---|---|
-| 1 | pass | Right and bottom split beside the card, left and top end left of / above it (herdr order checked after each). A card's center there: no indicator. The 0.2 s pulse is too short for still frames (not seen). `01*` |
-| 2 | pass | The row spring-loads and its tabs show; a drop on its capsule splits right of the last card, on a card's left edge lands left of it (new pane id, same terminal); a drop on the row: a new tab. `02*` |
-| 3 | pass | Esc before and after a spring-load: no herdr write, the card back at full opacity, no indicator, a second drag starts. The spring-loaded workspace stays selected. `03*` |
-| 4 | pass | macOS shows the plain arrow, no badge, for `.forbidden` (own card) as for `.move`: the `.tab` case in `RowsDrop` can go. `04b`, `04c` |
-| 5 | pass | Header, capsule and row drags leave the window in place; the title row's empty space and the space right after the tabs move it. A click selects a capsule, a double-click renames, a header's double-click zooms and unzooms. `05*` |
-| 6 | pass | A drop beside the window or on a second Oriel window (opened from the menu): no write, the source card back at full opacity, the next drag starts. `06*` |
-| 7 | fail | No flash of the passing tab (six title-row frames during the drop) and the moved card has the keyboard, but a stale drop indicator stays on the moved card (bug 1). `07*` |
-| 8 | half | A full track (13 tabs): the `+` is highlighted. A sidebar full of rows (31): the ghost "New Workspace" row is out of reach, as the list does not scroll while you drag; the last visible row spring-loads instead. `08*` |
-| 9 | pass | Full screen and a collapsed sidebar: the preview is the header under the pointer, the card dims. `09*` |
-
-- **Bug 1: a drop target's highlight stays after the drop.** Seen three ways: after a drop on a workspace row, the
-  row's indicator stays with no drag running, until a later drag leaves the sidebar (`02g`, `03a`); after a drop on
-  a capsule, that capsule lights up again during every later pane drag in that workspace (`TabBar.swift:62` hides
-  it between drags) (`03i`); after a drop on a card in the same tab (an edge re-place or a center swap), the moved
-  card, now under the pointer, keeps an indicator until a drag passes over it (`07z`, `07x`, `07b`). Not seen after
-  drops on cards in another tab (`01g`). Guess: `performDrop` clears the state (`Drag.swift:132`,
-  `ListDrops.swift:58`, `ListDrops.swift:145`), then a `dropUpdated` arrives before the session ends and sets it
-  again, and no `dropExited` follows. Fix: clear the views' drop state when `page.dragging` goes nil (`PaneCard`
-  `zone`, `Sidebar` `drop`, `TabBar` `over`), and gate the overlays at `PaneCard.swift:68` and
-  `Sidebar.swift:151,158` on `page.dragging != nil`, as `TabBar.swift:62` does.
-- **Keyboard after a move into another tab**: right and bottom give the moved card the keyboard; left and top
-  (move, then swap) leave it on the card that had it (`01g` vs `01m`). The phase asks for it only after a same-tab
-  re-place.
-- **A drag to the top screen edge opens Mission Control** (macOS); not a bug, but avoid it in hand runs.
 
 ### Follow-up (after the hand checks)
 

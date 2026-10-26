@@ -19,8 +19,8 @@ itself.
    window, Fade Inactive Panes, ⌥ + swipe, the tab preview, …): remove dead code, leftover flags and test
    hooks nothing uses, needless abstractions and duplication. Keep the code simple and easy to read.
 4. **Docs and markdown.** Organise the md files: remove stale and no-longer-true ones (plans, research
-   notes that no longer apply), make the spec (`docs/content/docs/`, `plan/ui-layout.md`, decisions) match
-   the app as built, fix broken links, keep `plan/workflow.md`, `plan/execution.md`, `plan/ci.md`, rules and
+   notes that no longer apply), make the spec (`docs/content/docs/`, the window design (`docs/content/docs/ui/window.mdx`), decisions) match
+   the app as built, fix broken links, keep the workflow, CI notes, rules and
    standards current.
 5. **No big changes without the user.** Reviewers make only minor cleanups that cannot break things. A
    large change (a redesign, a big refactor, a removal that changes behaviour) is not made: it goes on a
@@ -144,8 +144,6 @@ Perl too. No dead code, flags or test hooks found (`-machines` and `-session` ha
 - **For the user (small, not changed).** The sockets' folder and askpass are made once per launch
   (`static let`): a cache cleaner that deletes `~/Library/Caches/oriel` while Oriel runs breaks remote
   connects until a relaunch. Cost: make both per start (about 5 lines). Recommendation: leave it unless seen.
-- **CI.** 40356234915 (the 9 RemoteTests and `testShownPanesAreMarkedAndAFloatRequestFloats`): 10 green.
-  (40355358744 ran 0 tests: `only_testing` takes `OrielUITests/OrielUITests/<test>`, not the file's name.)
 
 ### r-tests
 
@@ -168,38 +166,6 @@ action and launch-argument hook has a user, and `scripts/test-times.tsv` matches
   `open-url` line and its one-request-at-a-time note) and 2 history notes removed (`pane.neighbor`, ⌃⇧Page Up).
 - **Big items for the user:** none.
 
-### d-plan
-
-Docs only: plan, resources, the root README and AGENTS.md. No code changed, so CI does not run on these
-commits (`paths-ignore`). The working docs went from 1,517 to 1,150 lines; 371 lines moved to
-`plan/archive/`.
-
-- **Archived, kept as history:** `plan/ui-polish.md` (the scope of phases 10–21), the v0 request and decisions
-  from the old `plan/README.md` (`plan/archive/v0-plan.md`), and the phases 10–23 run notes of
-  `plan/execution.md` (`plan/archive/execution-10-23.md`: parallel worktrees, the old final review, the user
-  checks of phases 10–22). Phase files keep their Findings. Their "Read first" lines point at the archive.
-- **Rewritten to the app as built:** `plan/README.md` is the plan's index (status, files, modules, all 32
-  phases). `plan/ui-layout.md` is a short map of the window that adds the overview button, the overview,
-  floating panes, three-finger swipes, remote machines and the empty session, and drops its copy of the drag
-  and drop tables (drag-and-drop.mdx has them). The design pages now win over it, also in `AGENTS.md`.
-  The root `README.md` had v0's feature list, "32 tests, 6.5 minutes" and limits that are built now (remote
-  machines, floating panes, drag and drop, trackpad tests).
-- **Kept current:** one GUI lock recipe in `plan/rules.md` (take it only if free, `trap` release, one run, at
-  most 10 minutes; no wait loop), which execution.md and workflow.md point at. `plan/ci.md` starts with the
-  layout today (five jobs, job 0's checks, shards by `scripts/test-times.tsv`, `ON_DEMAND`, ad-hoc and
-  on-demand dispatches, artifacts). `plan/execution.md` drops the verifier (workflow.md's numbers), the
-  local full `make e2e` (about 40 minutes for about 170 tests: CI runs it), and "4 jobs by name", and logs phases
-  24–32. `plan/workflow.md` adds feedback rounds in lanes and the per-area review of this phase.
-  `plan/standards.md`: Rex's fixed sizes, system materials, the three-finger check script. `AGENTS.md`:
-  `make lint build test` and the touched UI tests before a push (it asked for a full `make e2e`).
-- **Links:** no broken markdown link in plan, resources or the root files (a script checks every relative
-  link). The kero notes pointed at `ui-layout.md` sections that moved to the design pages.
-- **Sent to d-spec:** window.mdx says the card header has four buttons; PaneCard.swift has five (Float Pane
-  first). The phase 21 open task (the docs site's overview page and design mock-ups show the old look) is
-  still open.
-- **For the user:** `resources/mockups/layout.html` shows phase 10's plan, not the app, and
-  `docs/public/overview/index.html` dates from phase 9. Redrawing them is a day of work for little use now
-  that CI recordings show the app. Recommendation: leave them as history, or delete the overview page.
 ### d-spec
 
 `docs/content/docs/**`: every page read and checked against the code (39 pages; 31 changed, +217 −119 lines).
@@ -229,7 +195,6 @@ broken link. `pnpm build` in `docs/` is green.
   talking-to-herdr. A full rewrite touches every page (about a day); recommendation: rewrite a page when its feature
   next changes.
 
-
 ### r-terminal
 
 Read all nine files in `Oriel/Terminal/` (1,652 lines) line by line; the stream, settle, still and keyboard-claim
@@ -249,10 +214,6 @@ paths had been through phases 24–31 and held up: no race or stale-state bug fo
   since phase 4; `TerminalCard`'s `.id(ObjectIdentifier(terminal))` cannot see a reused address (SwiftUI holds the
   old terminal until the new one is in); `purgeable` detaching the view's own old layer is the path RevealTests'
   evicted cards take, and they show.
-- **For the user:** on a remote machine, a file drop, Insert Path… and Go to Directory… use This Mac's files and
-  paths (known `ponytail:` limits in FileDrop.swift). Cost: disabling them for remote stores is a few lines in
-  CommandList and the drop types (r-app, r-terminal); real support needs copying files over SSH. Recommendation:
-  disable them on remote machines now; add the copy with image paste.
 
 ### r-strip
 
@@ -293,14 +254,6 @@ swipe, the tab preview) is in them, and every accessibility identifier they set 
   users fixed (a tab's announcement too).
 - **Code removed:** the stand-in tile's second 22 × 18 frame. Skipped: moving `thisMacIcon` to Machines.swift
   (r-remote: a cross-owner move breaks main between pushes, for one block's location).
-- **For the user:** (a) `IconButton`'s VoiceOver label carries the shortcut glyphs ("New Tab ⌘T", read "command
-  T"), because macOS exposes no help tag and `testChromeButtonsNameTheirShortcuts` reads the label; a plain label
-  needs another way for that test (cost: small; recommendation: leave). (b) Always-on test values (`tabs.fades`,
-  `app.badge`, `window.look`) are VoiceOver elements in every window; gating them needs a launch flag in the tests
-  that read them (cost: small, r-tests; recommendation: with the next a11y pass). (c) Known limits, kept: ⌘ held in
-  one window lights every window's keycaps, and folded Agents groups of closed workspaces stay in the defaults
-  (both `ponytail:` notes); a tab's folder and a card's show `~` only for this Mac's home (a remote home shows
-  its last component; the remote home is not known to the app).
 
 ### r-store
 
@@ -328,7 +281,6 @@ Read every line of Ahead, Gate, HostModels, HostStore, Page, PaneWrites and Wind
      mapping until the close ends. Recommendation: leave; it takes two actions inside about 100 ms.
   3. `Ahead.programs` asks 8 at a time on its own, beside `HostStore.asks` (8): a close during the first
      snapshot's asks makes up to 16 herdr runs. Recommendation: leave.
-- **CI:** targeted run 40356384310 (splits, dividers, the latency closes, window hand-over).
 
 ### r-app (Oriel/App)
 
@@ -347,8 +299,6 @@ Read every line of Ahead, Gate, HostModels, HostStore, Page, PaneWrites and Wind
   tables, one outside `#if os(macOS)`: merging adds more plumbing than it saves). Overlapping swipe records in
   `Latency.lifted` (a second lift within 0.8 s cuts the first's record): test-only, tests pass, fixing it changes
   what they count.
-- **For the user:** `OrielApp.swift` is at 391 of 400 lines (`file_length`); the next feature in it should move
-  `ContentView`'s restore into its own file first.
 
 ### f-e2e
 

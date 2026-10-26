@@ -56,11 +56,6 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
 12. **Holding ⌘ shows the workspace keys too:** today holding ⌘ shows ⌘1–9 on the tabs, and only holding
     ⌃⌘ shows ⌃⌘1–9 on the workspace rows. Holding ⌘ shows both at once.
 
-## Checks
-
-- `make lint build test`; a UI test for each item a test can see; the full CI suite green on each lane's
-  last code commit; one review round per lane (spec and ponytail, read only).
-
 ## Findings
 
 ### Lane M
@@ -80,17 +75,6 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   `open-session ‹names›` note at `onAppear`; empty before the fix). `testMenuLightFollowsThePointer`: the palette's
   light follows the pointer too. The fade itself is not visible to a test (the trait flips in the same update either
   way): it needs the user's eye.
-- **Commits.** b62d0f8 (menu light), 780c6ab (Open Session), 40158b3 (review fixes), 0a7616a (docs).
-- **Reviews.** Spec: the note test read the first open's record (now the last), the palette check cannot see a fade
-  (said so), docs. Ponytail: inline `list()`, a shorter comment. Both applied.
-- **CI.** 40250277596 (the lane's tests on 780c6ab: all green but `testPanelsAndSwitchesReactAtOnce`'s swipe step,
-  lane E's). Full suite 40250869762 on f057423 (has 40158b3): every lane M test green; red in other lanes' areas:
-  `testPanelsAndSwitchesReactAtOnce` and `testQuickSessionFlickLandsOnTheNextPageInStep` (swipe),
-  `testClosingAPageAndQuittingLeaveNoStreams` (no "Detach Session" menu item),
-  `testAddingAKeyHostOpensItInANewWindowWithoutAsking` (two "Key Host" menu items).
-- **For the user to check by hand:** move the pointer quickly down the ⌘K palette, the collapsed sidebar's workspace
-  menu and Open Session: the light jumps row to row, no fade. Hovered buttons elsewhere (tabs, sidebar rows) still
-  fade their tint. Open Session several times: the list is there at once, with no rows pushing in.
 
 ### Lane D
 
@@ -118,11 +102,6 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   gone, the page and keyboard follow; then, sidebar collapsed, held over the workspace button and dropped on the
   menu's row it comes back the same. The two-leg drag is `scripts/drag.swift` (CGEvents, as `swipe.swift`;
   XCUITest drags to one point only), through the e2e helper's `drag` action.
-- **Reviews.** Spec (should): read the tree in the write's turn, D69 updated; nits taken: first pane as the fallback
-  (an ordered result), keyboard check after the menu drop, own-row check, every drag point inside the Oriel window.
-  Ponytail: one helper branch for both scripts, one own-workspace rule. Not taken: `drop(tab:on:)` back in Page.swift
-  (its 400-line limit; `follow` is internal for it), a labelled 4-tuple for `Move` (SwiftLint `large_tuple`), a
-  number-only label kept (herdr's number rule is `Page.title`'s), a stand-in tab refused silently (a sub-second case).
 - **Root cause, menu rows on this Mac (macOS 27.0.1).** Local runs (once the GUI was free) failed at the menu step
   while CI passed: no drop delegate in the menu was ever asked (`validateDrop` logged nothing), nor one on its list or
   the whole menu, nor the sidebar's rows when the spring opened the sidebar instead. macOS 27 finds no SwiftUI drop
@@ -180,20 +159,6 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
 - **Accepted.** An edit while another window edits or removes the same machine: the later Save of a removed one does
   nothing. A window still restoring misses an edit. The popover is the system's (glass on macOS 26 in both styles).
   Reorder is not built.
-- **Reviews (one round).** Spec: 5 shoulds fixed (a menu check that ran before the menu opened, the target edit
-  untested, the popover's Esc untested, a removed machine's restore, ui-layout.md), nits 6–9 fixed, 10–11 above.
-  Ponytail: no blocker; fixed 1–5 (ui-layout.md, the needless `.id`, `dialogField` over `fieldCapsule`, the label
-  helper, a what-comment); 6–7 kept (fixed columns, the loop's last look left open).
-- **CI.** 40251071910 (8752697): the four new and changed remote tests green; testAddingAKeyHost… red, its
-  `menuItems["Key Host"]` now also matched the Edit submenu's row (`firstMatch`, 6a92455). Full suite 40252301014
-  (6a92455): every lane R test green except testNewWindowFillsMostOfTheScreen (a screen-tall window is 677 pt in a
-  674 pt visible frame; 7c8e059 allows 4 pt); red in other lanes' areas: testClosingAPageAndQuittingLeaveNoStreams
-  (the sidebar header's context menu, already red before lane R's window change), the swipe, overview, split,
-  select-pane and stress tests. 40254897138 (c25aa43): testOpenSessionListsOnlyItsWindowsMachine red (it kept a
-  query for the front window, not its id; 855796c). Full suite 40257184338 on 855796c, the lane's last code commit:
-  all 14 remote, window and Open Session tests green (none skipped); red only in other lanes' areas
-  (testFloatingWindowOpensLarge… at lane F's new placeholder buttons, the Agents view, file drop, quick splits,
-  session flick, the overview stress test).
 
 ### Lane F
 
@@ -224,8 +189,6 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   > 1.1 (1.0 when nothing is selected).
 - **Decisions.** Always blue, not the accent color (`ponytail:` names the upgrade). Reverse-video cells still draw
   in the background color when selected (Ghostty's `cell-foreground` rule; not worse than before).
-- **Review.** Spec: approve; the should (bare sleeps) and the nits (ASCII input via printf, the card's color from
-  the bottom row's mode, wait for the end of output, reverse-video wording, contrast numbers) all taken.
 - **Check by hand.** Select text in a plain shell and in an agent TUI in dark and light: blue block, text in its own
   color. In a mouse app (where herdr forwards the drag), libghostty still draws the same highlight.
 - **Item 16, letter icons.** `ProgramMark` framed only the logo image (16 pt); the placeholder's letter took its
@@ -235,10 +198,6 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   header names start at the same x in their cards (`pane.<id>.title`). Review: the glyph stays hidden from
   VoiceOver (the first try exposed it for the test); by eye, the letter is still 10.4 pt in the 16 pt square
   (`size * 0.75` if it looks small next to a logo).
-- **CI.** Both tests green in dispatch run 40253793228 (selection contrast at 1x: text 7.58 dark, 14.08 light; the
-  selection over the card 1.34–1.47) and locally at Retina. Full run 40255105812 on main 9b36aba (with these
-  commits): both green, 219 passed; 8 failures in other lanes' tests (quick splits, select-pane keys, Agents view
-  order, floating window size, Open Session per machine, three session-swipe tests).
 
 ### Lane K
 
@@ -269,24 +228,6 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   left to the row used last; nothing past the edge), a unit test for `SplitNode.neighbor`,
   `testTabContextMenuRenamesAndMoves` (⇧⌘←, a rename field keeps it, the palette), `testHoldingCommandShowsKeycaps`
   (the workspace keycaps), the panel rows.
-- **Reviews (one round).** Ponytail: tie-break by tree order, the required `standIn`, a hoisted selector, doc wraps.
-  Spec: 2 blockers fixed (the palette forwarding; the window between a split's answer and its snapshot), shoulds
-  fixed (the lit card only in the shown tab, ⌘W on a lit stand-in, a tab switch ends the chain, a 1 s negative wait
-  in the rename check, the history pruning, a failed split's follower sends no stand-in id). Not taken: a header
-  split button on the old card in the ~100 ms before herdr answers splits the newest card too (rare); `splitPanes`
-  cleared on a snapshot with no pending split (with the stand-in lookup every chained split has its slot).
-  `Page.close` moved to Ahead.swift and `use`, `follow`, `asking`, `keyboardTabID`, `movedTerminal` lost `private`:
-  Page.swift's 400-line limit.
-- **CI.** Ad-hoc 40251134535 and 40252256832 (red: the burst typed "ddd", the width check missed the rows),
-  40252832245 (red: the 32-bit tie), 40255277497 on f75d42e (green: the arrows and quick splits). Full suite
-  40255296505 on f75d42e, the lane's last code commit: every lane K test green but the quick-split test's id order
-  check (herdr's pane ids are not hex past 15; the check went, 2241a7c: the keyboard on the rightmost card covers it);
-  the other reds are other lanes' (session swipes, the overview, the floating window's title row, the Agents view's
-  order, Open Session's window, the stress test). The test fix green in 40259028493. Local run (Retina, this Mac's herdr): both new pane tests green.
-- **For the user to check by hand:** ⌘D three or four times as fast as you can (also on a remote machine, where herdr
-  answers slower): cards left to right, the last one lit and taking your typing, ⌘W stepping back; the arrows in your
-  three-column layout (→ → to the top row; ← then → back to the row you came from) and how quick they feel now;
-  ⇧⌘← ⇧⌘→ on a tab and in a rename field; holding ⌘ over the sidebar.
 
 ### Lane S (item 14)
 
@@ -358,24 +299,11 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   The menu bar keeps every tab in Move Pane to Tab (the user's phase 25 ask). Declined review nits: a per-call helper
   timeout (lane V's stress call needs the 300 s too); the Agents view's workspace grouping stays rows × tabs (30,000
   steps at 100 agents).
-- **Learned.** Swift's Observation notifies on an in-place edit (`removeAll`) even when it changes nothing; assign
-  instead. A probe that wraps parts of a body in `withObservationTracking` names what redraws it. `sample` triples
-  the time of a key under it. XCUITest's accessibility snapshots took 3.5 s turns at this size, so key latency under
-  XCUITest measures XCUITest. Lane O's footprint of a visible card holds: memory follows the shown and kept cards,
-  not the pane count.
 - **Tests.** `testHundredsOfPanesStayQuick` (on demand: `make e2e ONLY=…` or CI's only_testing; the Makefile's
   `ON_DEMAND` keeps it out of the shards, where it pushed one past CI's 20 minutes; bounds: first card within 20 s, busy-tab CPU under 50 %, a snapshot's apply
   under 25 ms on average, every key in its turn or the next; each fails on the before build), the HerdrKit tests
   `events that keep coming read at most every spacing, writes at once` and `a long line and the lines around it read
   whole, and quickly` (both red on the old code).
-- **Reviews (one round).** Ponytail: `write` on `Gate`, `panes(in:)`, one `keep` for attachments, test helpers reused,
-  nits. Spec: stale and FIFO asks, writes not spaced, the test's bounds, 200 panes here, `--session` on the agents'
-  reports, nits; all fixed but the two declined above.
-- **CI.** Stress runs 40252712951 (before, red: no card in 30 s), 40254175696, 40258293654, 40261876163 (green);
-  full suite: see the report.
-- **For the user to check by hand:** with many agents working, switch tabs and workspaces and scroll the sidebar and
-  the tab bar (smooth now; a tab switch still takes about a tenth of a second); `top -pid $(pgrep -n Oriel)` with
-  agents working (about 10 %); launch on a big session (the first cards within seconds).
 
 ### Lane V (items 4–6)
 
@@ -425,36 +353,12 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
     first scroll found the page. They go through the same strip, so the fix covers them. A heavier session (more
     tabs, a slower first layout) is the likely case where the user saw it. **For the user to check.**
   - Fixed code: all steps 0, locally three times (Retina) and on CI (below).
-- **CI.** Probes on throwaway tags (deleted): 40251450749 (display-link probe, its own artifacts), 40253909855,
-  40254634790, 40255183666 and 40255204470 (with evictions and a forced fade: 0, but the queries held the main
-  thread), 40258371228 (the per-commit probe on the old code: red, above). Full suite, dispatched on 915ec06 (after
-  74f10d7, the lane's last code commit), 40262288574: `testATabComesIntoViewWithoutAFlicker` green (83 s), shards 1
-  and 3 green. Shard 2 red in other lanes' tests: `testQuickSessionFlickLandsOnTheNextPageInStep` on the first try
-  (the sidebar header 1.25 pt off its place), and `testDoubleClickRenamesAndEscapeCancels` and
-  `testTabContextMenuRenamesAndMoves` on the rerun (each passed in the other attempt). Shard 0 hit the job's
-  20-minute limit both times, before it printed any result.
 - **Faster fade-ins** (orchestrator, 598b912, 74f10d7). A terminal's first reveal (also a rebuilt, evicted card's,
   and the overview's tiles, which show the same views) goes from 0.12 s to 0.06 s. A new card's fade during a split
   goes from 0.13 s (with its slide) to 0.06 s (the slide stays 0.13 s). The zoom's fade of the other cards stays
   0.13 s, with the dividers. Under Reduce Motion, none of these fades run, as before. The hover card (0.13 s) and the
   overview's fade-in (0.18 s, lane V) are not pane fades and stay as they are. Docs: layout, states, window,
   talking-to-herdr.
-- **Reviews.** Spec: the zoom's fade had been halved too (fixed: only `entering` is in the scoped animation); the
-  probe compared the bottom-left origin, so a height change would count as a move (now the top left); a record could
-  land in the next step (a turn 1.6 s after each change ends it, a 2 s pause before the steps, one record a step);
-  nothing checked that a swipe landed (asserted); a middle page was not covered (third tab). Ponytail: one
-  `afterCommit` observer helper for Latency, the traffic lights and the probe; one `IOSurface.emptied`; the probe
-  reads `view.picture`; the test's key and click helpers.
-- **Learned.** A paged `LazyHStack` in a new `ScrollView` takes `defaultScrollAnchor(_:for: .initialOffset)` on its
-  first layout, but not an initial `ScrollPosition(id:)`. A screen recording in an xcresult has frames only when the
-  screen changed (variable frame rate, about 17 fps on average on CI): a one-frame jump shows up there only by luck.
-  Main's lint went red for one push (OrielApp.swift at 404 lines after a rebase, 92966e0): run `make lint` on the
-  rebased tree, not only `make build`.
-- **For the user to check by hand:** with Reduce Motion off, zoom from the overview into a tab that is not the
-  first one of its workspace, and into the one already shown: the tab appears in place, with no other tab's cards
-  for a frame. Move between sessions (dots, ⌥⌘[ ], a two-finger swipe) and workspaces whose shown tab is not their
-  first one, in your real sessions with many tabs. A split's new card and a first-time card: the fade is now half
-  as long (0.06 s). Say if it should go entirely.
 
 ## More from the user (2026-10-25 17:35)
 

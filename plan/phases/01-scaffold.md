@@ -53,19 +53,6 @@ throwaway herdr session.
 9. `.gitignore` additions for Xcode/SwiftPM (DerivedData, `.build/`, `xcuserdata`,
    `*.xcresult`).
 
-## Done when
-
-- `make lint build test e2e` pass locally; Xcode opens the project cleanly.
-- CI is green on `main`, all three jobs.
-- A commit with a formatting error is refused by the hook.
-- Screenshot of the running placeholder app.
-- This file records: how the project was created, how the throwaway session starts, and
-  whether the UI test runner can spawn processes.
-
-## Out of scope
-
-Any herdr calls from the app, libghostty, real UI.
-
 ## Findings
 
 - **Project.** Xcode has no command line way to run its project templates, and driving the

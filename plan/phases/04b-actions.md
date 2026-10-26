@@ -4,10 +4,6 @@ Goal: the placeholder controls from 3b work, plus the actions the user asked for
 testing. Everything is a herdr call followed by a snapshot read (never patch state by hand),
 creates pass `focus:false`, and closes ask first.
 
-Read first: `docs/content/docs/talking-to-herdr.mdx` ("Writes are herdr calls"),
-`docs/content/docs/ui/window.mdx` (zoom), `docs/content/docs/layout.mdx` (zoom is the
-app's own), decisions D11, D39, D41.
-
 ## Build
 
 1. **Close pane** (card header ×, ⌘W): `pane.close`. Ask first unless the pane's only
@@ -45,11 +41,6 @@ app's own), decisions D11, D39, D41.
    removes it; + makes a tab and selects it; + workspace appears and is selected; zoom
    fills the page and restores; new session appears in the picker and is selected (then
    deleted by the test); the palette filters and jumps to a tab; "Show stopped" toggles.
-
-## Done when
-
-- e2e green locally and in CI; screenshots of the confirmation dialogs, zoom, palette.
-- Decisions recorded (D39 amendment, palette shortcut).
 
 ## Findings
 

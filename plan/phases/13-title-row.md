@@ -1,15 +1,9 @@
 # Phase 13: title row, tab bar and menus
 
-Goal: the title row of `plan/ui-layout.md`, left to right: traffic lights, sidebar toggle, machine
+Goal: the title row of the window design (`docs/content/docs/ui/window.mdx`), left to right: traffic lights, sidebar toggle, machine
 button, workspace button (only while the sidebar is collapsed), the tab bar (always in the title row,
 with Rex's geometry), a spacer, then ⌘ and +. Phase 15 adds the Agents button before ⌘. The session
 picker stays where it is until phase 14 removes it.
-
-Read first: `resources/research/clients/rex-internals.md` (§3.1, §3.2, §3.4, §5.1: tab bar view, traffic lights, timings; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md` (title row; windows and machines),
-`resources/mockups/layout.html` (scenes A, C, D, E), `resources/research/clients/rex-ui.md` (tab bar, tab
-item, animation table), `resources/inspirations/rex-app/` (tabs-with-status, three-splits),
-`docs/content/docs/ui/window.mdx`, decisions D42, D45, D65, `Oriel/Views/TitleBar.swift`,
-`Oriel/Views/Sidebar.swift`, `Oriel/Views/SessionPicker.swift`.
 
 ## Build
 
@@ -127,29 +121,6 @@ The row stays 40 pt (no private API for a taller one). Its items are 8 pt apart.
     (`tab.rename`, `tab.move`, `tab.close`, `workspace.create {label}`), the keyboard table (⌃⌘S,
     keycap hints).
 
-## e2e
-
-All in a throwaway `oriel-e2e-*` session. Tests that create tabs or workspaces do it in a new
-workspace and close it after (as `newTab(closeAfter:)` does), so the w1/w2 fixture stays as `setUp`
-expects.
-
-- Sidebar open and collapsed: the tab capsules (`tab.<id>`) are in the title row both times; the
-  workspace button exists only while collapsed and its value is "‹session› | ‹workspace›".
-- ⌃⌘S toggles the sidebar; the toggle's accessibility value is "open" or "closed".
-- The machine button's menu lists "This Mac" with a checkmark and "Add Remote Host…".
-- Workspace menu: type a new name, Enter: herdr's snapshot has a workspace with that label, and it is
-  selected (the workspace button shows it). Pick another workspace: the tab bar shows its tabs.
-- Rename a tab from the capsule's context menu; herdr's snapshot has the new label.
-- Move Tab Right; herdr's tab order changes.
-- Close Other Tabs asks once and leaves one tab.
-- With 12 tabs, tabs are 64 pt or wider and the bar scrolls to the selected one.
-- The window title is "‹tab title› - ‹session›".
-
-## Done when
-
-- Screenshots: sidebar open and collapsed; tab bar with 1, 3 and 12 tabs; hover and × states;
-  the machine menu; the workspace menu; keycap hints showing; light and dark.
-
 ## Findings
 
 ### Deviations
@@ -215,29 +186,3 @@ expects.
 - **Tab title:** `HostStore.title(_:)`; a label made only of digits is herdr's default (herdr renumbers it as tabs
   move: a moved tab "1" became "2"). The window title and the ⌘1…⌘9 menu items use it too.
 - **Machine icon:** `IOPSCopyPowerSourcesList` once into a global `thisMacIcon`.
-
-### Assumptions
-
-- **herdr's `tab.move` index** is the position before the tab is removed: it inserts before the tab now at
-  `insert_index` (0…count; spike: `[t1,t2,t3]`, t1 to 2 gave `[t2,t1,t3]`). Move Right sends index + 2.
-- **A new pane's first ask waits 1 s**: asked at once, a new shell answered `sort` (a startup program of the zsh
-  config) and the tab kept the placeholder "S". The same heuristic as after Return.
-- **The machine menu's checkmark is not checkable in XCUITest** (`isSelected` is false on a checked item; phase
-  10 had the same); the machine menu screenshot shows it.
-
-### Learned
-
-- **A view that measures the space it gets must not take its measured width as its minimum.** The tab bar had a
-  fixed inner width from its last measurement inside a `maxWidth: .infinity` frame; that frame's minimum was the
-  inner width, so when the workspace button appeared the row overflowed and pushed ⌘ and + out of the window, and
-  the measurement kept the old value. `minWidth: 0` fixed it.
-- **`background(alignment:) { A; B }` centers B in A**: the builder is a ZStack with its own center alignment.
-  The marker sat on the middle tab until it got an explicit `ZStack(alignment: .leading)`.
-- **A TextField in a Button's label never takes the keyboard**, and an `accessibilityIdentifier` after an overlay
-  renames the overlay's field too: the rename field is an overlay after the capsule's own accessibility modifiers.
-- **A `Menu` label of two images gives two menu buttons** with the same identifier; one `Text` with both images
-  is one element.
-- **`ScrollViewReader.scrollTo(id)` picks the first view with that id**: with a divider and a capsule per tab it
-  scrolled to the divider; one `HStack` per tab fixed it.
-- **The window is wider than 1200 pt on this Mac** (restored frame), so 12 tabs fit at 64+ pt there; the 12-tab
-  test makes as many tabs as the row needs to scroll (12 on a 1200 pt window).

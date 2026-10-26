@@ -124,11 +124,6 @@ found none). If herdr has none, floating is Oriel's own.
 - A herdr-native floating pane, if herdr has one, opens the same window.
 - New window: send the orchestrator one rough CI screenshot before polishing.
 
-## Checks
-
-- `make lint build test` green; a UI test for each item a test can see; the full CI suite green on each
-  lane's last code push. One review round per lane (spec and ponytail, read only).
-
 ## Findings
 
 ### Lane L (item 15)
@@ -138,11 +133,6 @@ found none). If herdr has none, floating is Oriel's own.
   Nothing else eats ⌃⇧ letters: no menu item, monitor or SwiftUI shortcut binds one, and libghostty's
   `performKeyEquivalent` hands ⌃↩ to `keyDown`. ⌃⇧↩ already went as `ctrl+shift+enter` (CSI 13;6u). Fix: the
   chord keeps `shift+` (d7eb8f7); herdr encodes it per program, as its own TUI does for Ghostty's keys.
-- **Learned** (a dump program in a throwaway session, `pane send-keys`). Kitty flag 1: `ctrl+shift+s` →
-  CSI 115;6u; flag 7 adds the shifted key (115:83;6u). Legacy programs get the byte they got before for
-  letters and most digits (⌃⇧S → 0x13, ⌃⇧C → 0x03), so a shell's ⌃⇧C is still ^C. herdr's legacy encoding
-  of ⌃- ⌃= ⌃; ⌃' ⌃, ⌃. ⌃\` was CSI u before and stays so (now with 6). One regression: legacy ⌃⇧[ was ESC
-  and is now CSI 91;6u (herdr maps only `ctrl+[` to ESC); rare, left to herdr.
 - **Test.** `testControlShiftKeysReachAKittyProgram`: `printf '\033[>1u'; cat -v`, types ⌃⇧S B T O W ↩ and
   ⌃S, reads the tty's echo `^[[115;6u…^[[13;6u^[[115;5u` (the old code gave ;5u for the letters). CI
   40171964049 green.
@@ -151,7 +141,6 @@ found none). If herdr has none, floating is Oriel's own.
   follows the pointer, even over Finder's window), so nothing drops; the geometry was the same as in a green run.
   The test drags again, up to 3 times (1567204). Full suite green on it (40174324533), where shard 3 needed the
   second drag.
-- **For the user to check by hand:** the six pi extension keys in pi inside Oriel.
 
 ### Lane J (item 4)
 
@@ -166,11 +155,6 @@ found none). If herdr has none, floating is Oriel's own.
   source as the lit card (follows a zoom and a focused text field); also in the needs-you popover, whose rows
   are the Agents view's. The separator is a `Divider()` across the page, in the Agents view only (the item's
   scope); the workspaces header keeps its look.
-- **Learned.** `.accessibilityAddTraits(.isHeader)` on a SwiftUI `Text` empties its AX value on macOS (CI
-  40172219344), so the group labels stay plain. A `Text` exposes its string as the value with no
-  `.accessibilityValue`, so the header's hard-coded value went and the tests read the drawn text. Tests know the
-  Agents view is on from `agents.sort`, not the header. CI: 40171834621, 40172583567 (lane's tests green); full suite
-  40173000382 on 1f214bf: every agents and sidebar test green; the 5 failures are lanes K and C's areas.
 
 ### Lane H (items 1, 10, 11)
 
@@ -194,10 +178,6 @@ found none). If herdr has none, floating is Oriel's own.
 - **Test.** `testCardsLookAlikeWithAndWithoutTheKeyboard` (AppearanceTests): no Fade item in View; in Glass dark
   and light the keyboard card's median brightness leads the other's by 0 to 6 (red on the old fills, green on
   the new: 40172905682). `testSecondShortcuts` reads the three palette rows and opens Font Size › with Return.
-- **For the user to check by hand:** Glass dark and light over your own wallpaper, and over a bright one; the
-  keyboard card should read only a little brighter.
-- **CI.** Full suite green on 1567204, after the lane's last code commit 2d0abaa (40174324533). The full run on
-  7c74def (40173209132) failed only in lane K's dialog query and lane C's Finder drop, both fixed by their lanes.
 
 ### Lane I (items 2, 7)
 
@@ -218,9 +198,6 @@ found none). If herdr has none, floating is Oriel's own.
   and 18 rows); a window too short for it scrolls the panel (`ViewThatFits`). The panel takes the keyboard
   (`focusable`), so Esc reaches it; closing gives the keyboard back to the card. Help's "Oriel Help" item went
   (`CommandGroup(replacing: .help)`). Copy, Paste and Select All are AppKit's, not in the list, so not shown.
-- **Learned.** A `Text` with an identifier exposes its string as the value, not the label (the keycap); a row
-  made with `.accessibilityElement(children: .ignore)` needs `.isStaticText` for its `accessibilityValue` to
-  reach XCUITest (CI 40172090772).
 - **Tests.** `testHoldingCommandShowsKeycaps` (keycap right beside the ×; it was over the icon),
   `testWorkspaceAndSessionKeysStepAndJump`, `testKeyboardShortcutsPanelListsTheCommandsKeys` (groups, two
   columns, family and second-key rows, Esc, ⌘/, Help menu, palette, click outside, a light classic screenshot).
@@ -228,8 +205,6 @@ found none). If herdr has none, floating is Oriel's own.
   tests green; 4 reds in lanes K and C's areas (Open Session's Stop button shares the row's identifier, the long
   dialog text as a query, the Finder drag), fixed by them in 7c74def, ee3114e, 1567204. Full suite green on 1567204, which
   carries lane I's last code commit (40174324533).
-- **For the user to check by hand:** ⌥⌘1–9 and ⌃⌘1–9 on a non-US keyboard layout; the panel's look over a light
-  wallpaper in glass.
 
 ### Lane K (items 5, 6, 8, 9)
 
@@ -255,11 +230,6 @@ found none). If herdr has none, floating is Oriel's own.
   `Style.swift` got `RowButtonStyle` (the lint keeps `.white` there). The session tests moved to
   `SessionTests.swift`, because `SidebarTests` hit 400 lines. e2e.sh makes a seventh session for the Stop and
   Delete test.
-- **Learned.** An accessibility identifier put after an `.overlay` also names the overlay's button, so the
-  queries found several matches. Put the overlay after the row's accessibility modifiers. XCUITest refuses an
-  identifier query longer than 128 characters; match long texts with a predicate. A new tab's `process_info` can
-  list the shell's startup programs (1 in 5 for the user's zsh: `ls`, `sort`). Tests now wait for every pane's
-  prompt (`settle`) before a close that must not ask.
 - **Known limits.** ⌘T and then an immediate close can still ask "ls, sort and zsh are running" while a slow
   shell starts. A big workspace starts one `remote-api-bridge` per pane when it closes (for lane S). A double ⌥⌘W
   starts two asks.
@@ -270,8 +240,6 @@ found none). If herdr has none, floating is Oriel's own.
   `testOpenSessionStopsAndDeletesASession`. One HerdrKit integration test for stop and delete, including herdr's
   refusal. CI: 40172562917 (red: the overlay's ids and the 128-character query), then 40173230145 (green, the
   lane's 15 tests).
-- **For the user to check by hand:** ⌘W and ⌥⌘W on a tab where pi runs, and on one with only a shell. Stop on a
-  session open in another Oriel window (that page turns "not running", and Start brings it back).
 
 ### Lane P (items 18, 19, 20, 26)
 
@@ -298,8 +266,6 @@ found none). If herdr has none, floating is Oriel's own.
   (Stop red by pixels), `testHoverCardBlursTheTextBehindIt`. CI 40178592579 green. Full suite 40179423684 on bc8b3cc: every
   lane P test green; 5 reds outside lane P (lane I2's key moves: the latency test's ⇧⌘N, the shortcuts panel, ⌃⌘S
   in the windows test; lane K/S's tab close; the relaunch restore).
-- **For the user to check by hand:** the tab hover card, the Agents popover, the find bar and the palette over a busy
-  terminal, Glass dark and light: text behind should be only a soft blur, and the glass rim should still read.
 
 ### Lane I2 (items 17, 21, 22, 23, 24, 31)
 
@@ -330,19 +296,10 @@ found none). If herdr has none, floating is Oriel's own.
   session read the same and ⇧⌘W detached the first window's pane.
 - **Deviation.** The shortcuts panel scrolls only vertically: a scroll view on both axes filled the whole window. A
   window under about 870 pt wide clips its sides (ponytail note).
-- **Learned.** `NSMenu.performKeyEquivalent` matches a disabled item and swallows the key. A probe SwiftUI app with
-  `.prohibited` activation shows menu behavior without a window or focus.
 - **Tests.** `testSplitsGiveTheNewPaneTheKeyboardAndKeysFollowTheTree` (⌘D and the header button, ⌘[ ⌘] in tree order
   that differs from creation order, ⇧⌘↩ after a split), `testHoldingControlCommandShowsWorkspaceKeycaps`,
   `testEachFloatingWindowsKeysActOnItsOwnPane`, KeyTests' new close keys and panel rows (moved keys' old rows gone),
   AgentTests' dots on the selected tab; the key tests that used ⇧⌘N, ⌥⌘W, ⌃⌘I, ⌃⌘→ moved.
-- **CI.** 40179112045 (keys, split, zoom: green but the panel's click-outside, fixed), 40179379857 (keycaps),
-  40179953957 (floating windows' ⇧⌘W, latency ⌥⌘T). Full suites: 40180758405 red from herdr's focus left on w2 by
-  lane A2's Split Left (`pane.swap` focuses) in shards whose order my new tests shifted, and lane S's latency test (a
-  new pane now has the keyboard; lane S added the wait); 40182095486 on e4f0b84: only
-  `testRelaunchRestoresThePagesThatStillRun` (not this lane's). Final full run 40183380097 on 1412b96 (carries a9d2763, this lane's last code commit): every lane I2 test green; the one red, `testHoverCardPreviewsTheTabsCardsLive`, is the new hover-card preview (3da7622, caf0728), another lane's.
-- **For the user to check by hand:** ⇧⌘↩ right after ⌘D; the panel's keycaps over a light wallpaper; ⌃⌘ held over the
-  sidebar; ⌥⌘T/⌥⌘W on a non-US layout.
 
 ### Lane F2 (item 16)
 
@@ -361,19 +318,12 @@ found none). If herdr has none, floating is Oriel's own.
   card's insets are a pane card's (8, 10). Frame: AppKit's autosave per terminal. Stay on Top: `.floating` level and
   all Spaces. A floated pane is never the keyboard card; ⌘[ ⌘], Focus Follows Mouse and a move skip it; a move keeps
   the main window where it is.
-- **Learned.** A second `WindowGroup` brings back SwiftUI's default File items, Close on ⌘W among them, over the main
-  scene's `CommandGroup(replacing: .saveItem)`: ⌘W closed the main window (lane S, CI 40176463285).
-  `.commandsRemoved()` on the floating scene (a5761cc). It also took a folder dropped on the Dock icon and opened an
-  empty floating window (`testFoldersDroppedOnTheDockOpenWorkspaces`): `.handlesExternalEvents(matching: [])`. An unpinned floating window goes behind the main window when
-  that is clicked; a test reaches it again through Show.
 - **Tests** (`FloatTests.swift`): float, keys, ⌘] in the main window, Show, Detach; two windows (palette, header),
   ⌘K's own list, Stay on Top, ⌘Q and relaunch, herdr's close, ⇧⌘W; the close dialog in the floating window and the main
   window's close; the four looks and the red light. CI 40176106059 (rough), 40176761922 (a click under the main window,
   fixed with Show), 40177294645 (green, with the ⌘W tests), 40179306253 (Dock drop green). Full suite on fa64713 (after
   the last code commit 399b2d4, 40179575565): every floating test green; the 9 reds are other lanes' areas (close
   dialogs and stand-ins, ⌘N/⌃⌘S window keys, relaunch's page in view, Finder drop, latency).
-- **For the user to check by hand:** Stay on Top over another app in full screen and on another Space; a window's frame
-  when the same pane floats again; a floating window after quitting and opening Oriel.
 
 ### Lane S (items 13, 14, lane K's leftovers)
 
@@ -414,25 +364,10 @@ found none). If herdr has none, floating is Oriel's own.
   try again", so the buttons no longer disable during writes. Hidden panes keep their `Pane` objects and terminals
   until herdr closes them. herdr never reuses a closed id in a server's life (checked), so `closing` clears on absence.
 - **Deviations.** Moved `choosePath` to `FileDrop.swift` and the tab title to `TabButton.swift` (Page.swift's 400
-  lines). `plan/standards.md`'s "never patch local state" names `Ahead` as its one exception.
-- **Learned.** CI's Mac has Reduce Motion on, and an XCUITest scroll is one fast gesture: the recordings show no slide,
-  so the swipe is measured in the app (decelerating → idle) with `-forceMotion YES`. `sample` through the e2e helper
-  gave the palette's profile (removed after). swiftformat's `repeatedGuard` plus `unusedArguments` turned `guard let a,
-  !f(x)` into an unused-argument rename; split the condition.
+  lines). `plan/workflow.md`'s "never patch local state" names `Ahead` as its one exception.
 - **Tests.** `testPanelsAndSwitchesReactAtOnce` (every key drawn in its own turn, the names checked; the swipes
   recorded), `testNewTabSplitAndClosesShowAtOnce` ("New Tab", never a number; ⌘T ⌘D ⌘W ⇧⌘W in their turn; herdr closed
   it), `testQuickNewTabsAndAnEarlyClose` (two ⌘T select the second; ⌘T then ⇧⌘W closes herdr's tab, no dialog).
-- **Reviews.** Ponytail (one round: the diagnosis fields went, one ask closure). Spec, two rounds: quick repeated ⌘T,
-  ⌘D, ⌘W and ⇧⌘W raced the stand-ins and the one-ask guard; a closed stand-in lost the key; hidden panes lost their
-  objects and terminals; a stand-in was "arrived" by settle itself (found by the double-⌘T test on CI). Declined: hiding
-  a pane whose shell still starts (a program in it would come back after the startup wait; it waits 0.8 s instead).
-- **CI.** Close tests green with the startup wait (40180184450); lane tests green on 97e3db9 (40182990393). Full suite on
-  1412b96 (40183475845, after the last code commit 97e3db9): every lane S test green; two reds in other lanes' areas,
-  `testPaletteSplitsTheKeyboardCardRight` (XCUITest scrolls the strip to an unselected tab's terminal and the click
-  does not give it the keyboard; flaky since about fa64713) and `testHoverCardPreviewsTheTabsCardsLive` (preview at
-  −60 pt).
-- **For the user to check by hand:** a two-finger swipe between sessions (the spring's feel on a real trackpad); ⌘T,
-  ⌘D, ⌘W and ⌘K on this Mac; ⌘T then an immediate ⌘W in a slow-starting shell.
 
 ### Lane A2 (item 3)
 
@@ -461,12 +396,8 @@ found none). If herdr has none, floating is Oriel's own.
   text in a band of screen shots. The new card's slide has no per-frame hook (it moves, it does not resize): checked
   on the recordings. No red run on the old code: the first runs were red for Reduce Motion, not for the jump. Also
   `testPaletteSplitsTheKeyboardCardRight` now selects its tab before it clicks the terminal (flaky in 40183475845).
-- **Learned.** `XCUIScreen.main.screenshot().image.size` is in pixels (crop by `backingScaleFactor`); a tooltip or
-  hover card is a window, so `app.windows.firstMatch` can be one. Split Left swaps, and herdr 0.9.5 moves its focus.
 - **Known limits.** A divider send in flight when the tree changes under it targets its old path (as before). A swap
   now animates the two cards crossing. While a test loops on screen shots, CI's recording gets a frame every 0.3–0.6 s.
-- **For the user to check by hand:** ⌘D, ⇧⌘D, Split Left and Up from the menu, close, zoom and back, in tabs with 2–4
-  panes, with Reduce Motion off and on: the others resize and slide, the new card slides in, the text never blanks.
 
 ### Lane O (item 30)
 
@@ -523,33 +454,14 @@ found none). If herdr has none, floating is Oriel's own.
   (`ControlTerminal {target}` is accepted only on a connection still pending terminal mode, `headless.rs`). Several
   terminals per process would need herdr's private client protocol spoken on its socket. The bound above cuts the runs
   from 16 to 5 instead.
-- **Reviews.** Spec review: the still could drop at the key (the KVO went on the old layer before its rebuild) or
-  through a 0.5 s fallback before a slow agent's frames came, a rebuilt watcher revealed before its first frame was
-  parsed, a still evicted twice was replaced by an empty layer, the still was not sized with its view, and a settle from
-  before the rebuild could reveal the empty surface: all fixed in 04d5464. A plain `NSView` in a row button took its
-  clicks: `Dots.hitTest` returns nil. Ponytail review: one drop mechanism (KVO, no timer), the replicator layer, an iOS
-  stub instead of a second representable, fewer wrappers.
 - **Tests.** `testMemoryAndCPUOverManyTabs` (red on the old code: 16 runs over its bound of 5 and 7) and
   `testAnEvictedCardComesBackWithItsPicture` (red on the old code: w1:p1's stream never ends): five more tabs evict
   t1's three cards; back on t1, every screenshot has ink, herdr's text shows, its stream is back, and a `clear` is drawn
   (the still did not stay). Not covered by a test: a rebuilt watcher (D66's second window) and a card resized while
   evicted.
-- **CI.** Ad-hoc runs: 40183217191 (baseline), 40183818674 (dots), 40183996523 (surfaces; the first eviction test's
-  order flake), 40185259269 (eviction, usage, hover card, latency: green). Full suite green on 269e8d4, after lane O's
-  last code commit 2e4fb72 (40186890188). There an evicted card was drawn by the first check, 0.67 s after the key (an
-  upper bound: XCUITest's hittable wait and a screenshot come first).
 - **The user's Mac after the rebuild** (04:21 build, 6 minutes up, the user testing): 192–209 MB footprint, IOSurface
   66–89 MB (plus 44 MB purgeable), 4–5 herdr runs, 11–21 % CPU while in use (was 1.2 GB, 828 MB IOSurface, 18 runs,
   17–32 %). Idle CPU with agents working is still to read.
-- **Learned.** libghostty-spm frees a surface only through `controller = nil` (no public free). `footprint` leaves
-  volatile IOSurfaces out ("Reclaimable"). KVO on `CALayer.contents` fires for ghostty's `setContents:`. A dictionary's
-  order put t1's three terminals in `recent` in any order, so the eviction test needs one tab more than it seems (a CI
-  flake on the first version). Local screenshots of a Retina card take about 2 s, so the return time is read on CI.
-- **For the user to check by hand:** after `make install`, use Oriel for half an hour with agents working, then
-  `footprint $(pgrep -f Oriel.app/Contents/MacOS/Oriel)` (expect a few hundred MB, IOSurface about 52 MB per shown card
-  plus 4 more) and `top -l 2 -s 10 -pid …` (a few percent while you watch). Go back to a tab five or more tabs ago: its
-  old picture, then the new one, never an empty card. The working dots' look and their step across tabs. A click on a
-  working agent's icon in the Agents view and the hover card. Minimize the window while agents print: CPU should drop.
 
 ### Lane B2 (item 25)
 
@@ -559,20 +471,14 @@ found none). If herdr has none, floating is Oriel's own.
   workspace with fewer tabs laid out no page: an empty strip until the next switch to a workspace with more tabs. That
   is the user's repro (top to bottom, the one-tab workspaces after mira's 4th tab are empty; bottom to top fine; gone
   after a relaunch). Fix: `Strip(…).id("\(page.id) \(workspace.id)")`, a strip per workspace of each session (9be880e).
-- **Learned.** Any accessibility client hides the bug: SwiftUI then lays the pages out anyway. In a standalone
-  harness one second of an AX client's tree walk at launch took the blanks from 3–4 of 20 switches to 0. So no XCUITest
-  saw it (6 CI runs and 3 local runs of the old code passed, with pane renames, tab renames and re-selects). Phase 24
-  lane A's "empty panes" may have had the same blind spot. The app driven with no AX client showed it at once.
 - **Decisions.** `make strip-check` (`scripts/strip-check.sh`, `.swift`), run in CI shard 0 after e2e: the built app
   on a throwaway session, keys by `CGEvent.postToPid`, the window title to confirm each key, `screencapture -l` and the
   brightness spread under the title row. Old code: rounds 2–3 spread 0.000 (CI 40186393195; its capture is the user's
   screenshot); fix: 0.120 every round (40186370458). A last round closes the tabs around the shown one (spec review):
   the card stays. `testStripShowsEachWorkspaceClickedBackAndForth` guards the new strip landing on its tab, also after a
-  session hop. standards.md names the pixel exception.
+  session hop. `plan/workflow.md` names the pixel exception.
 - **Deviation.** The UI test cannot fail on the old code; the script check does. Old-code CI runs used throwaway tags
   (`b2-oldcode*`, deleted), not branches.
-- **For the user to check by hand:** the four workspaces clicked top to bottom and back, after reselecting a middle
-  tab or swiping to it; a workspace switch with VoiceOver off.
 
 ### Lane T (items 27, 28)
 
@@ -606,20 +512,6 @@ found none). If herdr has none, floating is Oriel's own.
   2 pt apart, then pictures that follow a white block and a clear while the card stays open),
   `testHoverCardPreviewCostsLittle`, `testGlassCardsHaveABrighterTopRim` (top − side ≥ 12, every card alike; the old
   uniform rim fails). `testHoverCardBlursTheTextBehindIt` measures the pane row now (the preview took its old rect).
-- **Learned.** `.offset` and an overflowing child both move a SwiftUI accessibility frame away from what is drawn;
-  place by padding and keep children inside. `Color.clear.shadow(.inner(...))` draws nothing; a black fill under
-  `plusLighter` turns the card's alpha opaque. `ImageRenderer` in a `swiftc` script measures a view's pixels without
-  running the app.
-- **CI.** 40182229269 (red: the 60 pt frame), 40184185155 (green: preview, Agents row, row, blocked card). Full
-  dispatch run 40186828504 on 6a590b4 (after the last code commit 5257ee2): every lane T and hover card test green; 2
-  reds outside lane T (`testARemotePageComesBackAfterItsConnectionDies`, `testGoToDirectoryAndInsertPath`). Rough
-  screenshots to the orchestrator: `/tmp/oriel-shots/25t-*.png`.
-- **Review.** Spec: the read loop now re-reads the tab's panes (a split or a blocked agent while open) and keeps a
-  failed read; docs fixed. Ponytail: `picture` returns the terminal, `scale` not threaded, the rim's dead
-  `allowsHitTesting`, `cpu` reuses lane O's `measure`.
-- **For the user to check by hand:** hover a tab with a working agent, the shown tab and another one, in Glass dark and
-  light over your wallpaper: picture and text cards should look alike and follow the agent. The card rim in Glass dark
-  next to Rex; in light it is faint (as Rex's).
 
 ## Wave 3 (user, 2026-10-25 01:20, after trying wave 1)
 

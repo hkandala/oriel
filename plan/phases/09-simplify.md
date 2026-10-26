@@ -87,9 +87,3 @@ feature stays. Only the way it works gets simpler. The user approved every item 
 - XDG fix in the launchd plist.
 - e2e tests keep passing; add or adjust tests where behavior changed (e.g. no leaked
   children after quit, recovery after a stopped session).
-
-## How to ship
-
-No PRs: small atomic commits straight to `main`; hooks; never `--no-verify`. Docs build and
-links pass; CI green; every check on the final commit green (GitHub check-runs and commit
-statuses, including Vercel). Then review loops (spec, ponytail, code, visual) until clean.

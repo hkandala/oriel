@@ -5,14 +5,6 @@ pages. Windows that show the same session share its live data, keep their own se
 one controller per session (D66): the window where the user last typed or clicked in a terminal
 controls; the other watches and offers Take Back. Windows come back after a relaunch.
 
-Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md` (windows and machines, sidebar: open pages and
-restore), `resources/mockups/layout.html` (scenes E, I, J), `docs/content/docs/talking-to-herdr.mdx`
-(terminal plane, one controller per pane, control between windows), `docs/content/docs/data.mdx`,
-`docs/content/docs/platform.mdx`, decisions D7, D8, D34, D46, D66, `Oriel/App/OrielApp.swift`,
-`Oriel/Store/HostStore.swift`, `Oriel/Terminal/PaneTerminal.swift` (`open(observe:takeover:)`),
-`Oriel/Terminal/PaneViewRegistry.swift`, `Oriel/Terminal/PaneSurfaceView.swift`, `Oriel/Views/Strip.swift`
-(`SwipeRouter`).
-
 Phase 14 already built the store registry (a dictionary by session name), the per-window page state
 (selection, zoom, keyboard card, `arriving`) and one `PaneViewRegistry` per window. This phase adds the
 `WindowGroup`, the window counts per store and control.
@@ -87,32 +79,6 @@ Phase 14 already built the store registry (a dictionary by session name), the pe
     windows, as D66 says), `ui/window.mdx` (New Window, ⌥-click, the watching capsule), the keyboard
     table (⌘N).
 
-## e2e
-
-The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched with `-session`) and
-`ORIEL_SESSION2`. A test that needs another name adds it to e2e.sh and the helper.
-
-- ⌘N: two windows (`app.windows.count == 2`), both on `ORIEL_SESSION`. Window 1 still controls: window 2 shows
-  "Controlled in another window" (id `notice.controlled`), window 1 does not.
-- Type `echo one` and Return in window 2: window 2 controls (no capsule there), window 1 shows the
-  capsule, and window 1's card shows the echoed text (observe works). herdr's PTY size equals window
-  2's card size (`expectPTYSize`).
-- Take Back in window 1: the capsule moves to window 2.
-- Select another tab in window 2: window 1's selected tab stays.
-- In window 2, open `ORIEL_SESSION2` through the Open Session sheet and close page `ORIEL_SESSION`: no
-  capsule in either window; both control their own session.
-- Close window 1 while both show `ORIEL_SESSION`: window 2 controls it (no capsule), and herdr's PTY
-  size equals window 2's card size (`expectPTYSize`).
-- With two windows open, the helper's `/children` shows the same count of `remote-api-bridge` runs as
-  with one window (the events bridge and request bridges look alike).
-
-## Done when
-
-- Screenshots: two windows on different sessions; two windows on one session, one watching with the
-  capsule.
-- Window restore after quit and relaunch checked by hand (XCUITest launches with
-  `-ApplePersistenceIgnoreState YES`).
-
 ## Findings
 
 ### Deviations
@@ -173,39 +139,3 @@ The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched wit
 - **⌥-click:** the This Mac toggle's setter reads `NSEvent.modifierFlags`; a plain click does nothing, as before.
 - **Files:** `WindowPages` moved to `Oriel/Store/WindowPages.swift` and `Detail` to `Oriel/Views/Detail.swift`, and
   `PaneTerminal`'s font statics to an extension: SwiftLint's file and type length limits.
-
-### Assumptions
-
-- **Restore needs "keep windows" on this Mac.** macOS's default ("Close windows when quitting an application") does not
-  restore after a normal quit; the hand check launched with `-NSQuitAlwaysKeepsWindows YES`. A crash or a logout
-  restores either way.
-- **Scene storage comes back after the window first shows**, about 20 ms after `applicationDidFinishLaunching` (logged
-  on this Mac; the restored windows' `.task` ran about 150 ms before launch ended, so the wait is live); a window waits for it while `AppDelegate.restoring` (set in `application(_:didDecodeRestorableState:)`,
-  cleared at launch end), at most 1 s. A restored window always saved its pages, so a non-empty `pages` is the signal.
-- **macOS restores full screen before the window's first page shows** (logged: `willEnterFullScreen` before launch
-  ends, the page after the scene storage), so full screen at the reader's first sight means a restore.
-
-### Learned
-
-- **A watching window's stream once opened `control`** (ponytail and spec review): `open` computed `observing` but
-  passed its `observe` argument to herdr, so a watched window's new stream was a plain `control` that only herdr's
-  refusal turned into watching; a pane the controller did not stream went to the watching window, at its size. The
-  window test now checks a tab only window 2 shows (p4): `observe` 1, `control` 0.
-- **"Window 1's card shows the echoed text"** is checked through herdr: the pane has the text and window 1 holds an
-  `observe` stream of it (the terminal's accessibility value is only its grid).
-
-- **Saved state lives in `$TMPDIR/dev.hkandala.oriel.savedState`** on macOS 27, not `~/Library/Saved Application
-  State`. The hand check deleted it after.
-- **An XCUITest launch without `-ApplePersistenceIgnoreState` showed no window at all**; the restore check attached
-  XCUITest to an app started with `open` instead (`XCUIApplication(bundleIdentifier:)`).
-- **`app.windows.firstMatch` follows the front window**: an element kept from it before a second window opens then
-  means the new window, so "window 1" checks passed on window 2 (seen in the final run's screenshots). Window tests
-  keep `app.windows[identifier]`.
-- **New windows overlap all but about 29 pt here, and fully on CI** (1024×768: both windows at `{0, 31, 1024, 674}`),
-  so a click meant for the window behind lands on the front one; on CI the close button closed window 2. The window
-  tests raise a window with Window ▸ Cycle Through Windows (⌘`) and wait until `app.windows.firstMatch` (the front
-  window) is it. The first CI run failed three window tests on this; local runs had passed.
-- **Hand check of restore:** two windows came back, window 2 with its sidebar hidden and tab t2 selected, window 1 with
-  its sidebar and t1; the window quit in full screen came back out of it (`/tmp/oriel-shots/16/restore/`).
-  After the spec review's change: ⌘N in a full-screen window opened window 3 in full screen and it stayed there; a
-  relaunch brought all three back, none in full screen.

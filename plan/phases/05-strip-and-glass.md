@@ -3,9 +3,6 @@
 Goal: a two-finger horizontal swipe anywhere in the strip pages between tabs, vertical
 scroll still reaches terminals, and the chrome is finished Liquid Glass.
 
-Read first: [platform: making the strip work, tab bar and Liquid Glass](../../docs/content/docs/platform.mdx),
-[ui/swiping](../../docs/content/docs/ui/swiping.mdx), `resources/research/clients/gorex.md`.
-
 ## Build
 
 1. **Scroll routing** (macOS): one `NSEvent` local monitor for `.scrollWheel` that locks the
@@ -29,7 +26,7 @@ Read first: [platform: making the strip work, tab bar and Liquid Glass](../../do
    the 2nd tab shows the 1st; clicking the 1st does nothing, then the 2nd works. Find the
    root cause (strip scroll position vs selection binding on workspace change) and add an
    e2e test that fails before the fix.
-8. **Pill spacing** like the references (`resources/inspirations/ui-target/02-*`): more
+8. **Pill spacing** like the references (the Rex reference shots): more
    leading padding (the icon tile is at the capsule edge now), consistent top/bottom
    space, consistent spacing between pills.
 9. **Chrome polish from the user's test:**
@@ -42,16 +39,6 @@ Read first: [platform: making the strip work, tab bar and Liquid Glass](../../do
    `CGEvent` scroll with phases) over a terminal card → the next tab becomes selected and
    its panes attach; a vertical scroll over the same card scrolls the terminal and does not
    page; ⌘2 selects the second tab; screenshots of each step.
-
-## Done when
-
-- e2e green locally and in CI. The orchestrator swiped with a real trackpad gesture (or a
-  synthesized one) and checked screenshots: the marker follows, nothing flickers, the
-  terminal under the pointer does not get the horizontal swipe.
-
-## Out of scope
-
-Sidebar machine pages, iOS gestures, drag and drop.
 
 ## Findings
 

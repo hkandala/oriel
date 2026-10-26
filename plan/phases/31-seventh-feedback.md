@@ -108,12 +108,6 @@ Tab paging is good now (G #1).
     Q (after a burst of ⌘D one split went to the first card: A | C | B | D). A full run must pass without a
     rerun, twice in a row.
 
-## Checks
-
-- `make lint build test`; a UI test for each item a test can see (three-finger swipes: the recognizer's
-  check script); the full CI suite green on each lane's last code commit; one review round per lane (spec
-  and ponytail, read only).
-
 ## Findings
 
 ### Lane G
@@ -165,24 +159,8 @@ Tab paging is good now (G #1).
   new direction. Item 6 has no UI test: XCUITest cannot post touches; the order is the view's own (`groups`).
   `Latency.lifted`/`slid` take a name (`swipe` for the sidebar, `page`), so a strip slide never lands in a sidebar
   record (it did in 40290851145).
-- **Reviews (one round).** Spec: a lift on its page never ended (fixed), a tab closed mid-slide selected (fixed),
-  floated agent rows stuck the step (fixed), the 300 ms bound too tight (400), window.mdx's strip text, stale
-  comments, the overview under a panel (fixed), docs. Not done: a mid-slide swipe test (spec nit 10). Ponytail: the
-  folded-keys parse once, `Group: Identifiable`, `ScrollGeometry` straight to `Paging.laid`, `drag(count:)`, the
-  test's swipe arguments, comments; kept the ⌥ scroll check (a removed feature's guard, 1 s).
 - **Docs.** swiping.mdx (three fingers, the pages' spring for all three, wheels), window.mdx (Agents view, the
   marker), theme-and-accessibility.mdx (keys table), decisions.mdx (D35), platform.mdx.
-- **For the user to check by hand:** two-finger swipes between tabs, slow and as a flick (the page under the fingers,
-  then on the next tab about 0.25 s after the lift); the same in the overview between sessions; stop the fingers
-  before lifting (back to the same page); a mouse wheel sideways over the strip and the overview (one page a burst);
-  three fingers up: the workspace above, down: below; in the Agents view, three fingers up and down move the lit row
-  and show its pane; ⌥ + two-finger swipe now just scrolls.
-- **Commits.** e5c5d4f, 273d8cc, c759eae (the measuring test), f467583 (items 3, 4, 6), b80e59f (item 5), 13481fa
-  (no `.paging`, review fixes), 10370e7, 13b62ec (tests), and these Findings.
-- **CI.** Full suite 40295293239 on 10370e7 (has every code change): lint-build and shards 1–3 green; shard 0 red
-  only in `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` (its record filter, a test bug, fixed in 13b62ec).
-  40299936835 (that test and `testSwitchingTabsShowsTheirPageAtOnce` on 13b62ec): green. Open: a full suite on the
-  last commit.
 
   40299936835 (that test and `testSwitchingTabsShowsTheirPageAtOnce` on 13b62ec) was running at hand-over. Open: a
   green run of the new test (the overview half has not run yet on the new code), then the full suite.
@@ -213,28 +191,6 @@ Tab paging is good now (G #1).
   (zoom into the middle of 5 tabs, the workspace again, ⌘4), and `expectShown` now asks that only the shown tab is
   lit, which made `testStripShowsEachWorkspaceClickedBackAndForth` red on the old code (`tab.w3:t4`, `tab.w3:t5`
   both "in view").
-- **Reviews.** Spec: the Agents view's first scroll and sort change (fixed, and tested), the fade room untested
-  (⌃⌘3 step), motion (no animation now), the duplicate session step (dropped), docs (fades are the workspace list's).
-  Left: `testWorkspaceKeepsItsSelectedTab` keeps its loose lit check; `stripPage` still takes whichever geometry
-  arrives last (no case left that shows it). Ponytail: no blocker or should; the string-keyed `onChange` stays
-  (Sidebar.swift is at 400 lines), the 18 stays three literals.
-- **Learned.** On a new `ScrollView`'s first layout, `containerRelativeFrame` can resolve to the window's size, and
-  `onScrollGeometryChange` may deliver a stale value last; size pages from a `GeometryReader` when the first offset
-  matters. A main push that is lint-red happens when `make lint build | grep` hides the exit code (3727df4, fixed in
-  27f4af2): check exit codes, not grep output.
-- **CI.** Probe runs on the deleted tag `probe-31s-capsule`: 40291207055, 40292335688 (old code: red, the logs
-  above). 40292369686 (`testTheSelectedRowScrollsIntoView`, green on 3727df4). 40293816257 (the capsule, strip,
-  flicker and tab-switch tests, green on 40dbb26). Full suite 40294678064 on 511c1bd (after 17124d3, the lane's last
-  code commit), with a rerun of the failed jobs: every lane S test green (both new ones, the strip, flicker, Agents
-  and sidebar tests); `testDoubleClickRenamesAndEscapeCancels` red once, green on the rerun (the recording: beta
-  selected, the list did not move; a double-click taken as one click). Red in other lanes' areas:
-  `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` (lane G, 126 vs 140 ± 10 pt, both attempts),
-  `testSwitchingTabsShowsTheirPageAtOnce` (both attempts: its last step, "a swipe does slide", counts no geometry
-  between pages; green on 40dbb26 with this lane's strip fix in 40293816257, so likely lane G's 13481fa, swipes without
-  SwiftUI's paging), `testOrielURLFloatsAPaneOfASessionWithNoPage` (rerun only, an XCUITest INFINITY point).
-- **For the user to check by hand:** zoom from the overview into a middle tab of `mira` (and a workspace switch to a
-  workspace on a middle tab): the capsule on that tab at once. In a session with many workspaces, ⌃⌘[ ] and the
-  overview to a row below the fold: the list scrolls just enough; the same in the Agents view.
 
 ### Lane F (item 7)
 
@@ -262,10 +218,6 @@ Tab paging is good now (G #1).
   refresh) and both float a request. A request while the events stream reopens (agent panes changed) is lost: the
   click does nothing. A click in herdr's own TUI on a pane Oriel also shows floats in Oriel. The hide path
   (`visible` false) has no test; leave, detach, out of view and quit do.
-- **Reviews.** Ponytail: lean; took dropping `Equatable`, a plain loop for the marks, docs trims, the D50 typos and
-  Rejected column. Spec: 4 shoulds fixed (the refresh apart from git, marks cleared at quit, a nonce set instead of
-  the last nonce, tests for the detach and quit clears); nits taken: the controller window, empty session or pane
-  rejected, docs for the reopen gap, moved panes and two Macs.
 - **pi-herd** (pi-hkandala 9aa02d5, 522e6ca). `orielShows(socket, pane)` and `orielFloat(...)` in herdr.ts replace
   `orielInFront` (lsappinfo) and `open -g oriel://float`; `attach` asks before the hidden-session refusal, so an
   agent in the `pi-herd` session that Oriel shows floats too. `npm run check` green; both checked with node against
@@ -274,14 +226,6 @@ Tab paging is good now (G #1).
   (through CI's sshd, over the relay) share `markAndFloat`: a new tab's pane is marked, its request floats two's
   w1:p1 (marked), Detach clears it, w1 clears the tab; the local one quits and finds w1:p1 cleared within 5 s. HerdrKit:
   one request per nonce, never again, malformed targets dropped.
-- **CI.** 40303049900 (first build, the three float tests green, remote 16.6 s), 40304579954 (after the reviews, the
-  four float and URL tests green on 279dd60). Full suite 40305646647 on ce4ba95 (after 0417eb0, the lane's last code
-  commit): every float, URL and remote test green; red: `testClosingAPaneAsksUnlessOnlyItsShellRuns` and
-  `testOpenSessionStopsAndDeletesASession`, both at Return in a dialog (integration item 8).
-- **For the user to check by hand:** after `/reload` in pi, from a pi shown in Oriel (This Mac, or a remote host's
-  session), open an agent from the dashboard or pi-footer: it floats in Oriel, no herdr popup. The same pi in the
-  herdr TUI with Oriel showing another tab: herdr's popup at once. Quit Oriel: `herdr pane get <pane>` shows no
-  `oriel-shown` right after.
 
 ### Lane M (items 11, 12)
 
@@ -330,27 +274,6 @@ Tab paging is good now (G #1).
   note after the zoom (`TabBar.marker` notes the pill shown at rest on a tab other than the selected one). Both red
   on the old code (CI 40308630278 on a throwaway tag: "shown at 16 ms, before the pages arrived … 0:420,185:783", and
   `["pill 0.0 2"]`; this Mac the same for the swipe), green on the new code on this Mac.
-- **Reviews (one round).** Spec: the model-value pill note fired at the overview's close on the stale `stripPage`
-  (would have been red) and the fade animated the pill's place; fixed at the source (`closeOverview` sets the page;
-  the animation covers the opacity only). The landing keyed to the page index, not a fixed offset; the immediate
-  landing within the same 1 pt; comments, docs. Ponytail: the Animatable `Marker` replaced by an `onChange` note,
-  `Latency.shown` keys on the record's name, one `Page.selectedIndex(in:)` (Page.step, Strip, TabBar).
-  Not done: a slide's landing is dropped when its view goes away within the 0.28 s (⌃⌘O, a three-finger step) —
-  the page the fingers chose is not selected then; and during the slide keys still act on the tab or session before
-  it (as the sidebar since phase 27).
-- **Learned.** `.logicallyComplete` completes at once for an animated `ScrollPosition.scrollTo`: time a scroll's end
-  from its geometry (or `.idle`, at full rest). A spring's look depends on the distance: a 0.2 s response over a
-  1500 pt page is a 15k pt/s lurch; to start from the fingers' speed and stay quick, a timing curve with a matched
-  first slope. Lane G's "geometry reports only some frames of an animated scroll" were frames not drawn.
-- **For the user to check by hand:** a quick two-finger flick between tabs and between sessions in the overview: the
-  page leaves at the fingers' speed and glides in, no jump, on the page about 0.28 s after the lift; a slow drag and
-  lift the same; choose a tab in the overview (one that is not the selected one): the tab bar comes back with no
-  pill, and the pill fades in on the chosen tab. Not changed: the sidebar's session swipe (the spring).
-- **Commits.** 475bc36 (paging), bab0811 (pill), 59d1fcd (docs), fac75fd, 5a38d2b (review fixes).
-- **CI.** Old code on a throwaway tag: 40308630278 (both tests red, above). Full suite 40311050579 on b9d6847 (has
-  5a38d2b, the lane's last code commit): shards 0–3 green, both lane M tests and `testSwitchingTabsShowsTheirPageAtOnce`
-  green; red only `testLayoutMotionAnimatesWithoutBlanking` (RevealTests, its `fill` step: a pane read timed out with
-  the text on the pane, not paging or the pill). The push runs on 5a38d2b were cancelled by later pushes.
 
 ### Lane K (item 13)
 
@@ -380,18 +303,6 @@ Tab paging is good now (G #1).
   code). `testCommandDSplitsInTheKeyWindowOnly` (two windows on two tabs, ⌘D after ⌘` four times each, the last two
   with no wait: only the key window's tab splits). The latter is a guard, not a repro: it is green on the old code too
   (XCUITest waits for idle between keys, so SwiftUI has updated the focused value by then).
-- **Reviews (one round).** Ponytail: shorter AppCommands wrapper and ⌘D test, docs trims (taken); a single ⌃⇥ round
-  (not taken: the user asked to repeat); two presses in the one-tab case (taken, then each way checked on its own:
-  a step and a step back cancel out with two panes). Spec: the missed-key fallback (fixed), the test as a guard (said
-  above), nothing behind a sheet (taken), docs.
-- **CI.** Ad-hoc 40310889574 on c345822 (the new and nearby key tests green). Full suite 40312185348 on 72f0e28, the
-  lane's last code commit: green. Local single runs: both new tests, `testSecondShortcuts`,
-  `testEachFloatingWindowsKeysActOnItsOwnPane`, `testTabContextMenuRenamesAndMoves`,
-  `testSplitsGiveTheNewPaneTheKeyboardAndKeysFollowTheTree`.
-- **For the user to check by hand:** ⌃⇥ / ⌃⇧⇥ in a workspace of one tab with splits (nothing moves) and in one of
-  several (tabs step, the keyboard stays on its card), also with the palette or a rename field open (nothing moves);
-  two windows: click one, ⌘D at once, then the other, a few times; a floating window key, click the main window and
-  ⌘D at once.
 
 ### Lane O (items 14, 15)
 
@@ -451,28 +362,9 @@ Tab paging is good now (G #1).
   its own modifier, so it was blind to the pill's `.opacity` (it was red on the old code only after rewriting that
   opacity into the recorder); the pill now has none to get wrong. `testTheCapsuleRestsOnTheTabShownHoweverItShows` keeps
   its astray-pill check.
-- **Reviews (one round).** Ponytail: the fade recorder (removed), the separate test (folded), formatting; kept the
-  overlay (an `allowsHitTesting` change re-ran Equatable tiles too: measured) and both Equatable views (the page's
-  stops the per-move rebuild, the tile's the per-scroll-phase one). Spec: a stuck slide when a panel opens mid-swipe
-  (fixed), a settle firing in the next swipe (fixed), the per-frame environment write (gone), the blind pill check
-  (gone), a click after the swipes (added), every page made (neighbors only now, and only the page in view reads the
-  live set), docs (window.mdx).
 - **Left.** A key, wheel or three-finger session change in the overview still slides with the `.session` spring with
   no hold on settles and the tiles taking the pointer; the router still lets a swipe's first event reach the grid
   under the pointer (harmless now, its scroll phase toggles the overlay only).
-- **Learned.** An `allowsHitTesting` change re-runs every body below it; block the pointer with an overlay. A
-  `@State` scroll position written at every move re-runs the body that owns it: make the children Equatable. Hidden
-  (opacity 0) views still lay out and animate every frame.
-- **For the user to check by hand:** in the overview, quick two-finger swipes back and forth between sessions (also a
-  big one): the page leaves with the fingers and glides in, no stall at the start or a jump mid-slide; a tile click
-  right after a swipe opens it. Click a tile: the sidebar, the tab bar and its pill fade in together, quickly, with the
-  zoom; no separate pill fade.
-- **Commits.** 5cd1ae9, e4982ce, 39915d5, 867a057, bb95dbc (docs) and these Findings.
-- **CI.** Ad-hoc 40330062174 on 39915d5 (the overview, swipe and capsule tests, then with the separate test): green;
-  the overview's slide on CI's VM a frame every 16–17 ms to the page (1024 pt in 284–304 ms). Push run 40332987968
-  on bb95dbc: cancelled by a later push, shard 0 red only in `testQuickSessionFlickLandsOnTheNextPageInStep` (the
-  sidebar's flick, 22 vs 20.5 ± 1 pt; integration's flake list). Full suite 40336170747 on 95663e5 (has 867a057, the
-  lane's last code commit): green, all five shards.
 
 ### Integration (items 8–10)
 
@@ -564,13 +456,3 @@ Tab paging is good now (G #1).
 - **Item 10, proof.** Two full runs in a row on 7c2f95c (my last code commit), each green on its first try: 40347859891
   and 40347875413. Before them every full run had found one or two rare flakes (the list above); each got a fix at its
   cause. Earlier single greens: 40300354731, 40312470304, 40317477966, 40328866622, 40342540801.
-- **Reviews (one round).** Spec: the time goal (above, not reachable with 5 runners: written down, not hidden), plain
-  `make e2e` ran the on-demand tests (now `-skip-testing`), `ON_DEMAND_ONLY` without a shard, a dispatch with both
-  inputs, an unknown on-demand name (shard.py stops), the docs (plan/ci.md, workflow.md, D41), a flicker check left
-  in every run, the floating window's Return, a late dialog check (`exists(within: 1)`), the session swipe's frame
-  pick; all taken. Ponytail: file-drag.swift reuses drag.swift (and its Oriel-only guard), one build-failure branch,
-  one SHARD step, one head default; all taken; `.defaultAction` stays (an alert needs it, tried).
-- **For the user to check by hand:** ⌘W on a pane running a program, then Return (closes) and Esc (stays); the same
-  for a tab, Close Other Tabs, a workspace, a floating pane and Open Session's Stop and Delete. ⌘D three or four
-  times fast: each new pane to the right of the newest, the keyboard on the last. A double-click on a workspace row
-  or a tab while the app is busy renames it.

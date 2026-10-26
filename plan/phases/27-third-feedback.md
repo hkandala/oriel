@@ -85,11 +85,6 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
       touches the surface registry.
     - New view: send the orchestrator one rough CI screenshot before polishing.
 
-## Checks
-
-- `make lint build test`; a UI test for each item a test can see; the full CI suite green on each lane's
-  last code commit; one review round per lane (spec and ponytail, read only).
-
 ## Findings
 
 ### Lane G3 (items 2–5)
@@ -121,17 +116,8 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   session one is shared by the run. `testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder`: "Workspace", the
   capsule's end on the rows' end, the header the rows' height, labels with counts, and it now waits for the rows'
   states (CI 40192968701 read the Done row while it still said Working). No test for item 3: it needs a session
-  named `default`, which is read only (rules.md), and the app has no unit target.
-- **CI.** 40192442654 (red: the new test hovered a workspace row the Agents view hides), 40192968701 (red: the
-  states race above), local runs of both tests green (Retina, glass), full suite 40194683589 on c662ac6, the lane's
-  last code commit: every agents and sidebar test green; 2 reds in other lanes' areas
-  (`testFloatingWindowOpensLargeWithTheMainWindowsTitleRow`, lane F3: 368 vs 370 pt;
-  `testPaletteEnterTakesTheMovedRowAndKeysFollow`). The fold test takes about 40 s on CI (a relaunch and the
-  teardown's two order switches).
+  named `default`, which is read only (`plan/workflow.md`), and the app has no unit target.
 - **Window title** (57dd4a6): the four window-title tests green on CI 40196247210.
-- **For the user to check by hand:** the header on This Mac's `default` (your Mac's name, bold, the rows' size) and
-  on a remote machine's `default`; the sort capsule under the pointer in all four looks; folding a group, then
-  relaunching.
 
 ### Lane V (items 15, 16)
 
@@ -180,18 +166,6 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   `testOverviewSwipesBetweenSessions` (a swipe lands on session two and makes it the window's page, a same-id
   never-shown tab of session two draws live, Esc without motion gives the keyboard back),
   `testOverviewCostsAndLetsGoAfter` (streams up while open, back to the strip's count after).
-- **CI.** 40192962147 (rough: Esc red), 40193514086, 40194287889 (green), 40196409137 (a layout check below CI's
-  fold; fixed in 1b881f4); full suite 40197782383 on 1b881f4 (one red: `testPaletteEnterTakesTheMovedRowAndKeysFollow`,
-  ↓ after "show" now lands on Show Overview, the View menu's order; fixed in fd0f177). Full suite 40199215983 on
-  fd0f177, the lane's last code commit, and its rerun of the failed shards: every overview, hover card and palette
-  test green; three reds in lane T3's area, red in both attempts: `testClosingATabAsksOnlyWhileAProgramRuns` (the
-  tab bar's × of w2:t4 not found), `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed` (4 steps, needs
-  more) and `testLayoutMotionAnimatesWithoutBlanking` (restore 153 ms over 150, then a pane read timeout); all
-  three green on 1b881f4, before T3's c83d6ea, 20d3b7f and 46f4514.
-- **For the user to check by hand:** ⌃⌘O in a busy session: tiles live and readable at Retina, the selected tab's
-  card in Glass and Classic, × on hover; a click's zoom with Reduce Motion off (smooth, ends where the strip's
-  page is, with the sidebar open and closed); a two-finger swipe between sessions inside the overview; memory
-  after scrolling through many tabs (`footprint`), and back after Esc.
 
 ### Lane F3 (items 10–14)
 
@@ -235,20 +209,6 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   was free). The card element is 18 pt wider than the button, not 16 (its border): 3 pt accuracy. Learned: a
   window element held across a click that brings that window forward was "no longer valid after interruption
   handling" once on CI: the last check finds the terminal without the window.
-- **Reviews.** Ponytail: no blockers; dropped the screen clamp (AppKit's constrain does it), fixed a wrong comment,
-  `PaneInfo` truncates as the card header does. Spec: full-screen toolbar on hover; the test did not see the pane
-  info (it read the button's own label): the label now comes from `PaneInfo`, with its own identifier in the title
-  row; all three lights checked; future-work wording.
-- **CI.** 40192618928 (8 floating and light tests, green on ed8e451). Full runs: 40196255503 on f81f40c: red in
-  this lane (the stale window, fixed in 9d6c8fe) and in others' areas: `testPaletteEnterTakesTheMovedRowAndKeysFollow`,
-  `testOverviewShowsEveryTabLiveAndOpensOne`, HerdrKit `relay carries runs over one process`
-  (`SSHExecTests.swift:49`).
-  Final full run 40198270835 on 9d6c8fe (this lane's last code commit): every floating, light and HerdrKit test
-  green; the one red is `testPaletteEnterTakesTheMovedRowAndKeysFollow`, red also on lane G3's run 40194683589 on
-  c662ac6, before this lane's code (not this lane's area).
-- **For the user to check by hand:** a new floating window's size and place over a large main window and over a
-  main window near a screen edge; the title row's lights and buttons against the main window's; a floating window
-  in full screen (toolbar on hover); the placeholder's hover fill and click.
 
 ### Lane A3 (item 1)
 
@@ -296,21 +256,8 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   `-spareTerminals 4`. `testMemoryAndCPUOverManyTabs` expects all 16 shown terminals' runs (13–17). The one-frame
   blank is too short for XCUITest's screenshots (about 0.15 s each); checked on recordings frame by frame instead
   (local, Retina, motion on: old picture, then the new screen, no blank frame).
-- **Reviews.** Spec: the copy fixes its items 1, 2, 7 (no volatile live picture any more); 3 measured (above); 4
-  wired by lane V (eab529b); 5 the loop starts at the key; 6 `pause` on a control move; 8–10 comments, docs, the
-  helper count range. 11 (a remote test) dropped: the remote rule is gone. Ponytail: `unvisited` is called by lane V
-  now; the `purgeable` branches merged; `make`'s parameter renamed.
 - **Known limits.** A minimized or covered window drops its swap chains too (libghostty), so it may show one blank
   frame when it comes back; not copied (Ghostty behaves the same). An evicted card still fades in once (past 16).
-- **CI.** 40192669231 (red: the new test read a hidden card), 40193748306 (green, without copies), 40196456202
-  (green on 4e4451c: the new, eviction, usage, every-path and resize tests); full suite 40197953846 on 3587863 (after
-  4e4451c, the lane's last code commit): every terminal, reveal, usage and latency test green; 4 reds outside lane A3:
-  `testFloatingWindowOpensLargeWithTheMainWindowsTitleRow` and `testPaletteEnterTakesTheMovedRowAndKeysFollow` (red
-  in lane G3's run too), `testDroppingAFileFromFinderPastesItsPath` and `testGoToDirectoryAndInsertPath` (both green
-  alone in 40199753823).
-- **For the user to check by hand:** after `make install`, visit 10–15 tabs with agents working, go back to the
-  first ones: the old picture, then the new one within a frame or two, no fade and no empty card. `footprint` after
-  half an hour (expect 300–650 MB with 16 hidden terminals) and `top` (a few percent).
 
 ### Lane T3 (items 6–9)
 
@@ -357,28 +304,8 @@ otherwise. UI tests run on CI (Reduce Motion is on there; `-forceMotion YES` tur
   Sidebar.swift: Style.swift is at its 400-line limit. Spec review nit 5 (a floating window's Close Pane while its
   pane is mid-close could close the main window's stand-in) is left: the fix needed a flag through
   `CommandList.pane`, past its body length limit, for a rare case.
-- **Learned.** Posting HID events works from the e2e helper (not from the sandboxed runner; events posted to the
-  app's pid arrive but do not scroll), on this Mac and on CI. A SwiftUI `.task` probe app with a scroll view, a local
-  scroll monitor and a CGEvent poster answers scroll questions in seconds. An NSView laid over SwiftUI rows (the
-  anchor, full size in the pages' background) takes accessibility's hit tests: XCUITest found no hit point for the
-  workspace rows; the anchor has no size now. XCUITest's accessibility queries during a slide stall it (240 ms): the
-  test reads nothing until the slide ends. An app launched with a bare argument (`./probe pass`) opens no window
-  (SwiftUI takes it for a document).
 - **Tests.** `testQuickNewTabsThenClosesStepBackOneTabEach` (three ⌘T, three ⌘W, each a step back by capsule place;
   herdr's tabs as before; red on the old code), `testClosingAPaneGivesTheKeyboardToThePaneUsedBefore` (four panes, two
   steps back past the neighbor; red on the old code), `testLayoutMotionAnimatesWithoutBlanking` (the span),
   `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed` (offset at the lift, the page, monotonic, settle
   150–400 ms, no gap over 100 ms, the first 60 ms at the fingers' speed; a slow lift stays on its page).
-- **Reviews.** Ponytail: one keyboard history instead of a dictionary and a list, one geometry modifier, one anchor
-  lookup, one event poster, comments. Spec: the speed of fingers that stop, a lift during a slide (only the latest
-  shows), not every starting pane hides, a slow-lift test (which found `scrollTo(id:)` back to the page in view does
-  nothing), the four-pane test, `.mayBegin` no longer swallowed after a lift, the poster only over an Oriel window,
-  docs.
-- **CI.** Ad-hoc 40198529378 on af183b3 (the lane's 8 tests, green; HID swipes work on CI). Full 40201584555 on
-  aefb022: red only in `testClosingATabAsksOnlyWhileAProgramRuns`, from this lane (the starting-pane hide, fixed in
-  82d8284). Final full run 40204582584 on 82d8284, this lane's last code commit: green. Main did not build for about
-  two minutes between 46f4514 and af183b3 (the overview used the spring this lane had made private).
-- **For the user to check by hand:** a two-finger swipe between sessions, quick and slow, and one that stops before
-  the fingers lift (Release build; the debug build under XCUITest drops no frame now, a Release one should not
-  either); ⌘T three times quickly then ⌘W three times, also in a slow-starting shell; closing the pane you used last
-  in a tab of three or four panes; split, close and zoom at 0.13 s.

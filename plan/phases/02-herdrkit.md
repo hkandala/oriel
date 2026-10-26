@@ -3,11 +3,6 @@
 Goal: HerdrKit can find herdr, list sessions, call methods, stream events, pace snapshot
 reads and rebuild split trees, tested against recorded JSON and a real throwaway session.
 
-Read first: [talking-to-herdr](../../docs/content/docs/talking-to-herdr.mdx),
-[layout](../../docs/content/docs/layout.mdx), [data](../../docs/content/docs/data.mdx),
-`resources/research/herdr/herdr-core.md`, herdr-web `server/herdr.ts` and
-`server/session-hub.ts`.
-
 ## Build
 
 1. **`Exec`** (the design's one protocol) and **`ProcessExec`** (macOS): run argv, give
@@ -51,16 +46,6 @@ Read first: [talking-to-herdr](../../docs/content/docs/talking-to-herdr.mdx),
    - Integration (skipped unless herdr is on PATH): start a throwaway session, `ping`,
      `snapshot`, create a tab with `focus:false`, see an event arrive and a new snapshot
      contain it; stop and delete the session.
-
-## Done when
-
-- `make test` passes locally and in CI (integration tests run in CI too, herdr is
-  installed there).
-- Reviewers approve. No app UI changes in this phase.
-
-## Out of scope
-
-Terminal streams (phase 4), SSH, iOS transport, writes beyond what tests need.
 
 ## Findings
 

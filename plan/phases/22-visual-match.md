@@ -5,13 +5,6 @@ Glass and Classic. The user found the tab bar, the pane cards (glass), the sideb
 lights "a bit off". This phase compares Rex and Oriel side by side and closes the gaps. It changes looks
 only: no new features, no new settings.
 
-Read first: `plan/ui-layout.md`, `resources/research/clients/rex-ui.md` (geometry, colors, timings),
-`resources/research/clients/rex-internals.md` (§3.1, §3.2, §3.6, §3.9, §5.1–§5.3), the Rex pictures in
-`resources/inspirations/rex-app/` (`light-mode.jpg`, `glass-untinted.jpg`, `classic-tinted.jpg`,
-`classic-untinted.jpg`, `three-splits.jpg`, `tabs-with-status.jpg`, `sidebar-tabs.jpg`,
-`sidebar-hidden-header-in-titlebar.jpg`, `crop-*.jpg`), `Oriel/Views/Style.swift` (the `Look` tokens), and
-the Findings of phases 10, 13, 14 and 17 (measured colors and the reasons for earlier deviations).
-
 ## Build
 
 1. **Reference set.** Use the Rex pictures in the repo. Rex screenshots of the user's own Rex windows
@@ -48,103 +41,10 @@ the Findings of phases 10, 13, 14 and 17 (measured colors and the reasons for ea
 6. **Re-take and compare again** until the table has no open row. Put the final side-by-side composites
    in `/tmp/oriel-shots/22/compare/` and list them in the report.
 7. **Docs.** Update `docs/content/docs/ui/theme-and-accessibility.mdx` (token table),
-   `docs/content/docs/ui/window.mdx` (sizes), `plan/ui-layout.md` (the title row height if it changes) and
+   `docs/content/docs/ui/window.mdx` (sizes), the window design (`docs/content/docs/ui/window.mdx`) (the title row height if it changes) and
    decisions D42 / D44 where values change.
 
-## e2e
-
-- Existing tests stay green (layout changes can move hit points: run the full suite once at the end).
-- One test per look takes the comparison scenes as attachments (keepAlways), so the screenshots can be
-  re-taken on CI. No pixel assertions.
-
-## Review
-
-The E2E reviewer is replaced by a **visual reviewer**: it reads the composites and the delta table,
-measures a sample of rows itself, and flags any element still visibly off. Spec and ponytail reviewers as
-usual.
-
-## Done when
-
-- The delta table has no open row (each row fixed or with a recorded reason).
-- Composites for every element in all four looks are in `/tmp/oriel-shots/22/compare/`.
-- `make lint build test` and the full e2e suite are green, locally or on CI.
-
 ## Findings
-
-### Delta table
-
-Rex: the repo pictures (2x, Display P3 converted to sRGB with `sips`). Oriel: `testScenes*` attachments at Rex's
-window size (1180 × 760 pt, 2x). Glass depends on the desktop (Rex's pictures: a gray desktop; the local runs: a dark
-terminal behind), so Glass colors are compared as steps from the window, not as absolute values. There is no Rex
-picture of Classic light: it is compared with Rex's System light material file and `light-mode.jpg` for sizes.
-
-| Element | Look | Rex | Oriel before | Change |
-|---|---|---|---|---|
-| Title row height | all | 46 pt | 40 pt (compact toolbar) | 46 pt |
-| Traffic lights | all | 14 pt, centers (23, 23), pitch 23 (AX 16 pt at 15/38/61, y 15) | centers (19, 20) | moved to Rex's (AX frames equal) |
-| Row items start | all | session picker at 85 pt; sidebar toggle centered 82 pt right of the red light (`sidebar-tabs.jpg`) | 78 pt | 91 pt (toggle centered at 105) |
-| Track | Glass, Classic light | 34 pt, y 6–40, primary 0.05 | same | — |
-| Track | Classic dark | none (flat `#1e1e1e`) | white 0.05 (`#282828`) | none |
-| Selected pill | Classic dark | flat `#292929`, no rim | `#393939` (white 0.08 on the track) + 0.8 pt rim | white 0.045, no rim: `#292929` |
-| Selected pill | Glass | Liquid Glass | Liquid Glass | — (system) |
-| Selected pill | Classic light | white, black 0.1 stroke, shadow (JSON) | same | — |
-| Tab width, gap, radius | all | (avail − (n−1))/n, 64–220, 1 pt, 16.5 | same | — |
-| Tab title | dark / light | selected ≈ white 0.9 / `#1b`; others ≈ white 0.65 (user's picture; 0.78 in `glass-untinted.jpg`) / black 0.65 | labelColor (222 / `#26`) for all | `Look.selected` white / black 0.9, `Look.chrome` white / black 0.65 |
-| Tab title size | all | ascender 20 px | 20 px | — |
-| Divider | dark / light | white ≈0.17 / black ≈0.14, 18 pt | separator (white 0.1 / black 0.1) | `Look.divider` |
-| Title row glyphs (sidebar, machine, Agents, ⌘, +) | dark / light | ≈ white 0.62 (user's picture) / ≈`#5a` | secondary (151 / `#80`) | `Look.chrome` |
-| Glyph size | all | + 11 pt, ⌘ 12 pt | same | — |
-| Icon tile, badge | all | 22 × 18, r 5; 7 pt dot | same | — |
-| × on hover | all | 22 pt, x = width − inset − 15 | 22 pt, 6 pt from the end | — (≤ 1 pt; hover only, not in the shots) |
-| Working dots | all | spec only (no Rex picture) | spec values | — |
-| Card top | all | y 46 | y 44 (40 + 4) → 50 with the 46 pt row | the strip's 4 pt room lies under the row: y 46 |
-| Card fill | Glass dark | others 6 steps darker than the window, keyboard 5 brighter | +9 and +20 | `cardFill` black 0.14 (Rex's pane backdrop); keyboard + white 0.05 |
-| Card outer stroke, keyboard | Glass dark | black 0.5, as the others | white 0.1 | black 0.5 |
-| Card outer stroke, keyboard | Glass light | ≈ black 0.10 | black 0.07 | 0.1 |
-| Card shadow | Glass light | black ≈0.1, blur 5, y 2, visible | ≈ invisible (× fill alpha) | on an opaque copy cut out under the card |
-| Card shadow | Classic light | none (System JSON) | black 0.06 (≈0.036 seen) | none |
-| Keyboard card | Classic dark | no visible difference (both `#222`) | `#1f`, 0.8 pt white 0.1 stroke | kept (orchestrator): the fade marks it, phase 10's choice |
-| Header title, card without the keyboard | all | faded with the content (173 vs 229) | not faded | header fades with the terminal |
-| Selected vs other tabs | Glass dark | capsule +27 over the track, rim `#7d`/`#75`; titles 235 vs 177 (user's picture) | +27, rim `#77`/`#7b`; 236 vs 178 | — (system Liquid Glass capsule; already equal) |
-| Pane drag image | all | (Rex: the card lifts, rex-ui §8.9) | the header's snapshot | a lifted card, rounded, 0.85, soft shadow (user; shape below) |
-| Agents button | all | (Rex: an eye) | chat bubbles | `list.bullet.rectangle`, filled while the Agents view is on (user) |
-| Machine button | all | (Rex's picker: icon and label) | icon and a chevron | icon only (user); the workspace button keeps its chevron: it is a text menu and looks balanced with it |
-| Pane drag image shape | all | (user) | the card's aspect, ≤ 280 pt | one 240 × 150 pt card, the card's top scaled to cover it |
-| Terminal palette | all | (user) | libghostty's Alabaster / Afterglow | — : a Terminal.app palette was built and then reverted by the user; libghostty's defaults stay |
-| Program tiles | all | quieter (user's picture: Claude `#e4683f`) | the catalog's full colors | saturation 0.82, brightness −0.04 in `ProgramTile`, all 106 |
-| Open Session | all | (user: like the palette) | a sheet with a title, Cancel and Open | a glass panel at the top like the palette; Enter acts, Esc or a click outside closes; leading symbols plus / stack / checkmark |
-| Workspace row with no agent | all | (Rex shows a tile there) | an empty 14 pt slot | a 4 pt tertiary dot, in the sidebar and the workspace menu |
-| Window edge glow | Glass dark | a soft inner light ≈6 pt deep (Rex's window inner shadow) | none | — : no public API for an inner window glow; left |
-| Header buttons | dark / light | ≈ white 0.33 / black 0.33; glyphs ≈ 11 pt regular (split 12.5 pt wide), 22 pt boxes, pitch 24 | secondary; 13 pt medium glyphs (split 15 pt wide) | `Look.paneButton` 0.33; 11 pt regular glyphs in 22 pt buttons |
-| Header glyph and title | all | glyph 21.5 pt, title 38.5 pt from the window edge | 16.5, 38.5 | leading 11, spacing 3 |
-| Restore (zoomed) | all | muted blue glyph (`#3966ab`) on a faint accent circle (≈ accent 0.06) | white on a solid accent circle | accent 0.6 glyph on an accent 0.07 circle (user: no saturated blue) |
-| Window tint | Glass light | Modern light: canvas at 0.7 | white 0.5 | white 0.7 |
-| Window | Classic | `#1e1e1e` / (JSON) `#f6f6f6` + white 0.5 | `#1e1e1e` / `#f6f6f6` | — (phase 10's light reason) |
-| Sidebar to cards | all | cards at x = 240 (sidebar width) | x = 256 (8 + 240 + 8) | cards at the width; the handle lies over the gap |
-| Sidebar rows | all | pill 10 pt from the window edge, 30 pt, pitch 32 | 16 pt, 30 pt, pitch 32 | 10 pt |
-| Page header | all | ≈12 pt semibold, secondary, 22 pt in | 11 pt regular, 24 pt in | 12 pt semibold, 22 pt in |
-| Sidebar row title | all | ascender 20 px | 19 px | — |
-| Sidebar footer | all | filter icon + buttons | filter field + Open Session (design) | — (layout's choice) |
-| Tabs over the cards | sidebar open | (user's request) | tabs after the machine button | leading area as wide as the sidebar |
-| Tab bar, user's picture (`rex-tabs-dark-2026-10-22.png`) | Glass dark | track 34 pt (y 6–40), capsule 30 pt 2 pt inside it top and bottom, full slot width, radius 15; tabs 220 pt; tile 11 pt in from the track, title 11 pt after the tile; divider 18 pt | capsule 34 pt filling the track; tile 8.5 pt in, title 9 pt after; divider 16 pt | capsule and hover 2 pt inside the track top and bottom (`ChromeStyle.inset`), tile 11 pt in, 10 pt spacing, divider 18 pt |
-| Tab title font | all | 13 pt regular (ascender 20 px) | 13 pt regular | — |
-| Row items gap, glyph weight | all | ≈ 8 pt; medium | 8 pt; medium | — |
-| Card radius, gap | all | 10 pt, 8 pt | 10 pt, 8 pt | — |
-| Card header | all | 36 pt, ~13 pt medium (ascender 20 px), title primary, folder secondary | 36 pt, 13 pt medium | — (glyph and buttons above) |
-| Card rim | Glass | 0.7 pt `plusLighter` white 0.1 (keyboard: 0.1) | same | — |
-| Content fade | all | 0.7 / 1.0 (0.5 / 0.8–0.85 in a window that is not key) | same | header fades with it (above) |
-| Window tint | Glass dark | `hudWindow` + `#1e1e1e` 0.5 + black 0.6 `overlay` | same | — (desktop-dependent: Rex `#2c` on gray, Oriel `#18` on a dark terminal) |
-| Secondary text | all | ≈ 0.7 of the primary (tab folder 185 vs 255) | `.secondary` of the surface's style | — |
-| Sidebar rows, two lines | all | 44 pt (Rex's activity rows ≈46 pitch) | 44 pt | — |
-| Sidebar selected row | Glass / Classic | the tab pill (glass / flat) | the look's `Pill` | — |
-| State icon, branch line | all | (Rex has none: workspace rows are herdr's) | 14 pt slot, 7 pt dots; branch 11 pt secondary | — (design D67) |
-| Worktree indent and guide | all | (Rex has none) | 14 pt, 1 pt separator line | — (design) |
-| Track ends | all | 1.5 pt past the first and last tab | at the tabs | — : the first capsule's slot lines up with the cards (5b) |
-| Card stroke, others | Classic dark | none (`#1e` to `#22` at the edge) | white 0.07, 0.7 pt | none |
-| Terminal text inset | all | 12 pt from the card's edge (round 2) | 9 pt | 10 pt padding (12 with Ghostty's own) |
-| Sidebar page header and first row | sidebar open | header 3 pt lower; first row 31.5 pt below the header's baseline (from the window edge) | 4 pt room; 29 pt | sidebar top room 7 pt; 3 pt under the header |
-| Sidebar toggle | all | centered 82 pt right of the red light | 75 pt | row starts 91 pt in |
-| Workspace button text | collapsed | (Rex's picker label: chrome, semibold) | session secondary on chrome (≈0.45), medium | session chrome, workspace `Look.selected`, divider rule, semibold |
 
 ### Deviations
 
@@ -185,33 +85,3 @@ picture of Classic light: it is compared with Rex's System light material file a
   translucent fill it was as faint as the fill (phase 10's note).
 - **Program icons moved to `ProgramIcons.swift`**: Style.swift passed SwiftLint's 400 lines; the tiles draw the
   catalog's colors, so `look_colors` excludes that file too.
-
-### Assumptions
-
-- **AppKit keeps the standard buttons' frames as set until its next layout**, and every layout posts a frame change.
-  The e2e test sees it on launch and after ⌥-zoom; resizes and leaving full screen were not checked by a test (the
-  probe window showed a resize); a macOS update could lay them out without one.
-- **Glass light at white 0.7** reads like Rex's on a light desktop; on the dark terminal behind the local runs it
-  measured `#dadada` (Rex `#f5f5f5` on its desktop).
-
-### Learned
-
-- **A `destinationOut` overlay did not cut the shadow's copy** (visual review): `fill.overlay(shape.blendMode(.destinationOut)).compositingGroup()`
-  darkened the whole Glass light card by about black 0.1; a `ZStack` of the two inside the group cuts (checked with
-  `ImageRenderer` in a script: 194 vs 218 at the card's center).
-- **A CI run between two commits failed `testSplitRightTwiceGivesThirds`** ("terminal fits its card"): its
-  expectation still had the old 8 pt terminal inset while the code had 11; fixed with the 10 pt inset (7f5c334).
-- **`testZoomFillsThePageAndRestores` failed on CI only** (three runs): the hidden neighbor's `stty size` came back one
-  column narrower than its grid before the zoom (17 36), at CI's 1x scale, since the terminal's inset went from 8
-  to 10 pt. Locally (2x) it always matched. The test now allows one column (speed rule 7: 1x rounds grid sizes).
-- **The closing-a-pane test failed once on CI** (`pane.w2:p3.close` not found after the hover) and passed locally
-  with this phase's code; taken as a hover flake.
-- **A button moved inside its own frame notification snaps back**: AppKit finishes its own `setFrame` after the
-  notification. Placing again on the next main-queue turn fixes the zoom button (a probe window reproduced it).
-- **XCUITest window screenshots are in the display's profile** ("Color LCD"): convert to sRGB (`sips -m`) before
-  reading pixels; Rex's JPEGs are Display P3.
-- **An accessibility container's frame is the union of its children**, not its own frame: the sidebar's width
-  test saw the pages plus the handle.
-- **A second ⌃⌘F during the full screen animation is lost on CI**: the test checks entering full screen only.
-- **A launch argument sets the window frame**: `-NSWindow Frame main-AppWindow-1 "x y w h …"` in the argument
-  domain beats a saved frame, so the scenes run at Rex's 1180 × 760.

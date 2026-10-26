@@ -62,12 +62,6 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
 12. **Menus with the sidebar collapsed.** In the New Session menu and the workspaces menu, the highlight
     must follow the mouse; now it stays on the default item (keys and clicks work).
 
-## Checks
-
-- `make lint build test` green; a UI test for each item a test can see (tab width and scrolling, no
-  scroll on click, context menu, file drop, empty text, menu highlight if reachable), run on CI.
-- One CI run green on each lane's last push. One review round: spec and ponytail, read only.
-
 ## Findings
 
 ### Lane A (items 1, 2)
@@ -93,12 +87,6 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   item 1. One mechanism for the first attach and every resize. Strip's `Motion` / `layoutMoving` went: the
   Host's wait covers layout motion.
 - **Deviation.** The cap is 0.4 s, not 1 s: an agent that redraws all the time stayed blank for a second.
-- **Learned.** herdr 0.9.5 answers every `terminal.resize`, even to the same size, with a full frame
-  (`"full":true`); all other frames are diffs on herdr's last screen, wrapped in `?2026h…?2026l`.
-  libghostty swaps the view's layer when it makes the surface, and the new layer ignores an alpha set earlier,
-  so the view's alpha is only set from the first frame on. ⌘+ steps now resize once per step, each with its
-  fade. `RevealTests` read terminal pixels (the share far from the median brightness): the one place an empty
-  card shows, a deliberate exception to "not through pixels".
 
 ### Lane B (items 4, 5, 6, 7)
 
@@ -121,10 +109,6 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   opened (the terminal icon until then). A pane id reused inside that window can end the wait early (rare).
 - **Known limit.** Dragging a tab along an overflowing row does not auto-scroll, so it cannot reach a slot out
   of view; drag it in steps, or add an edge auto-scroll if it matters.
-- **Learned.** Only 3 tabs fit on CI's 1024 pt window now: tests select tabs past the row's end with ⌘n, not
-  clicks (`ProgramIconTests`), and one test uses a split instead of a fourth tab (`AgentTests`). CI's shell is
-  bash; the startup test writes `.zshrc`, `.bashrc` and `.bash_profile` into a throwaway `HOME` passed through
-  `tab.create`'s `env`. CI: 40077507385 and 40077694680 green (the lane's tests and the tab tests).
 
 ### Lane C: right click and drops (items 8, 9)
 
@@ -148,12 +132,6 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   are not taken. Only `.fileURL`, `.tiff`, `.png` and the promise types are registered, so a pane drag
   (`orielDrag`) goes on to the card's drop zones. ponytail: only the first promise is received, each of its
   files pasted on its own; paths are This Mac's (no remote machines yet).
-- **Learned.** On macOS, `XCUICoordinate.press(forDuration:thenDragTo:)` moves nothing (it is the touch API);
-  `click(forDuration:thenDragTo:)` drags. A drag from Finder works in a UI test: the e2e helper makes the
-  file and `open -R`s it; Finder's window opens at 920 × 436 pt at the top on CI, so the drop goes on the
-  terminal below it.
-- **For the user to check by hand:** dragging an image from Safari, from Chrome and from a screenshot
-  thumbnail (no CI test drives those); a ⌥-right click in a mouse app (lazygit, vim with `mouse=a`).
 
 ### Lane D: window chrome and lists (items 3, 10, 11, 12)
 
@@ -184,8 +162,6 @@ list, item 10), in the main checkout `/Users/hkandala/code/oriel`.
   3 on the old code, 0 with the fix; the test checks that switches add none, since launch drew one such turn in 1
   of 4 CI runs), `testMenuLightFollowsThePointer`, the "All caught up" check in
   `testBlockedAgentNeedsYouAndThePopoverGoesToIt`; the agent rows are checked by the agents tests' screenshots.
-- **Learned.** A one-frame glitch shows in the xcresult's 60 fps screen recording: crop the region with ffmpeg
-  and diff frames. Only the exit-of-loop observer caught the commit that drew it; `beforeWaiting` alone saw 0.
 - **Zoom test.** `testTrafficLightsSitInTheTitleRow` failed when it ran alone or early in a shard: the window
   asked for its 1200 × 760 default on CI's 1024 pt screen; AppKit shrank it to fit, and a ⌥-click zoom gave the
   1200 pt frame back, at x = −88 with the zoom button off screen (frames read in run 40081403841). Later in a shard
@@ -242,7 +218,7 @@ Screenshots in the main checkout: `.build/fb/agents.png` (item 13), `.build/fb/n
   and a row icon share minX, and the sort text's end meets the times' end (a padded `Text`'s accessibility frame
   hugs the text, CI showed). `testBlockedAgentNeedsYouAndThePopoverGoesToIt` checks the header is gone when
   empty and shown with a row. CI 40116374403 green; the screenshot shows one edge.
-- **Docs.** `window.mdx` and `ui-layout.md` say the empty panel has no header and the header's edges.
+- **Docs.** `window.mdx` say the empty panel has no header and the header's edges.
 
 ### Lane F (item 19)
 
@@ -301,8 +277,3 @@ Screenshots in the main checkout: `.build/fb/agents.png` (item 13), `.build/fb/n
   switches is a one-frame change; the swipe spans many. `testClosingTheSelectedTabGoesToTheOneUsedBefore`,
   `testCloseTabsToTheRightKeepsTheTabsOnTheLeft` (menu and palette), `testHoldingADraggedTabAtTheRowsEndScrollsTheRow`
   (held 6 s 5 pt inside the end, the tab lands past the fourth; without a scroll it lands third).
-- **CI.** 40116980056 (first run: the two menu tests and the step scroll failed), 40117528541 (step scroll still
-  red), 40118101919 (the lane's tests green with the native scroll; the artifact upload failed, an infra error).
-  Full suite green on a3cc82c, the lane's last code commit (40118101618).
-- **For the user to check by hand:** the drag scroll's speed near each end of a long tab row (the system's
-  pace, slow at the edge zone's inner side); a mouse wheel's sideways page turn still slides.

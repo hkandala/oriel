@@ -3,11 +3,6 @@
 Goal: Rex's tab "peek": hover a tab to see what runs in it, and click a pane there to go to it. Plus
 native tooltips with the shortcut on the chrome buttons.
 
-Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, §5.4: hover card, tooltips; facts only, write your own code), `plan/archive/ui-polish.md`, `plan/ui-layout.md` (title row),
-`resources/research/clients/rex-ui.md` (hover card, pane minimap, tooltips),
-`docs/content/docs/ui/window.mdx`, `docs/content/docs/talking-to-herdr.mdx` (`pane.read`),
-`docs/content/docs/future-work.mdx` (thumbnails stay future work), decision D63.
-
 ## Build
 
 1. **When.** The pointer rests 0.25 s on a title-bar tab capsule or a row of the Agents view (not the
@@ -40,19 +35,6 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
    buttons. The Agents button has no `.help`: its hover shows the needs-you popover (phase 15).
 7. **Docs.** `ui/window.mdx`: a Hover card section. `future-work.mdx`: thumbnails stay, Rex has none
    either. Glossary: hover card.
-
-## e2e
-
-- Hover a capsule of a two-pane tab: the card shows (id `hovercard`) with two rows; click the second
-  row: that tab is selected and the second pane's card has the keyboard.
-- A blocked pane (helper `pane.report_agent`) shows its screen lines in the card.
-- Esc closes the card.
-- Hover a row of the Agents view: the card shows that row's tab.
-- The `+` button's tooltip (its `help` / `toolTip` attribute) is "New Tab ⌘T".
-
-## Done when
-
-- Screenshots: a hover card for a three-pane tab with a blocked agent; a tooltip.
 
 ## Findings
 
@@ -102,30 +84,6 @@ Read first: `resources/research/clients/rex-internals.md` (§3.4, §3.8, §5.1, 
   the phase asks for the program or agent name.
 - **`gap` is `nonisolated`**: the panel `Layout`'s methods are not main-actor isolated.
 - **Row VoiceOver label** is "name, folder"; the value carries the capsule word and the screen lines.
-
-### Assumptions
-
-- **Two panels open at once can only happen through VoiceOver** ("Show Panes" while another card is open): the
-  preference keeps the last one, both monitors stay until Esc or a click. Not worth shared state.
-- **A pane of a tab that never showed reads "terminal"**: the app asks herdr for its program only when its card
-  shows (phase 12), so the card has no program name for it yet.
-
-### Learned
-
-- **A view removed under the pointer sends no `onHover(false)`** (spec review): after a row click the panel's
-  `overPanel` stayed true, so the next card never closed when the pointer left, and clicks outside did nothing.
-  `show(false)` now clears it; the row test hovers the capsule again and leaves.
-- **XCUITest relaunches leave the pointer where the last test left it**, which opened a card under it at launch
-  (E2E review, seen in a recording). `tearDown` now moves the pointer to the lower part of the window, off the
-  title row.
-- **A drop on a capsule leaves the pointer resting there**, so its card opens 0.25 s after the drop (seen in the
-  drag test's recording). That is the rule ("the pointer rests"); kept.
-- **Scroll views clip overlays**: the tab track (a `ScrollView` with a mask) and the sidebar's pages would cut off
-  any card hung from a capsule or a row; `anchorPreference` + `overlayPreferenceValue` is SwiftUI's portal.
-- **Spike (herdr 0.9.5):** `pane.read {source: "visible", format: "text"}` answers
-  `{"read": {"text": "…\n", "truncated": false, …}}`; an unknown pane is the `pane_not_found` error.
-- **Screenshots:** `/tmp/oriel-shots/19/rough-hover-card.png` (three-pane tab, blocked claude, CI attachment),
-  `/tmp/oriel-shots/19/tooltip.png` ("New Tab ⌘T", CI recording frame), `/tmp/oriel-shots/19/agents-row-8.png`.
 
 ### Later
 

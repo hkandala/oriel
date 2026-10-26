@@ -4,11 +4,6 @@ Goal: the text size setting in the menu bar, applied live to every terminal, and
 `ui/settings.mdx`. No Settings window: the user dropped it during this phase; it comes after its
 mock-ups, once phases 10–21 are done (D62, future work).
 
-Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md`, `docs/content/docs/data.mdx` (per-device settings
-live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text size),
-`docs/content/docs/ui/settings.mdx`, decision D62, `Oriel/Terminal/PaneTerminal.swift`,
-`Oriel/Terminal/PaneSurfaceView.swift` (Option key mapping, `ponytail:` note).
-
 ## Build
 
 1. **Font size keys.** View ▸ Bigger (⌘+ and ⌘=), Smaller (⌘-), Actual Size (⌘0) change the font size
@@ -27,16 +22,6 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 5. **Docs.** `ui/settings.mdx` (what the menu bar covers, the fixed defaults, the window later),
    `theme-and-accessibility.mdx` (text size, keyboard table: ⌘+, ⌘-, ⌘0), D62, future work, and the
    later phase files: a setting they add goes in the menu bar only if they need a switch.
-
-## e2e
-
-- ⌘+ makes the grid of a shown card smaller (the `terminal.<pane_id>` accessibility value, "rows cols"),
-  herdr's PTY size follows (`expectPTYSize`), the stream is not opened again; ⌘0 restores the size, ⌘+
-  after ⌘0 is the same step, ⌘- goes back. ⌘= is checked by hand (not testable on CI, see Findings).
-
-## Done when
-
-- The terminal follows size changes without reopening streams.
 
 ## Findings
 
@@ -84,40 +69,3 @@ live in app storage), `docs/content/docs/ui/theme-and-accessibility.mdx` (text s
 - **The test writes the user's defaults and puts them back.** The UI tests share the app's defaults (same
   bundle id; the sandboxed runner cannot delete keys). A teardown block puts the size back with ⌘0; only a
   crash mid-test leaves a change behind, as in phase 10.
-
-### Assumptions
-
-- **A config reload resizes surfaces that never changed their own size.** Ours never do (`keybind = clear`
-  removed Ghostty's own ⌘+/⌘-), so the config's size always wins. The e2e test shows it.
-- **The key monitor covers every layout whose ⌘= gives the character "=".** Checked by hand on this Mac
-  (ABC); the menu's "+" handles ⌘+ (also on CI).
-
-### Learned
-
-- **A ⌘ key no menu item takes typed its character.** `keyDown` passed unclaimed keys to libghostty, which
-  (with `keybind = clear`) types digits and symbols even with ⌘ down: ⌘0 at the default size (Actual Size
-  disabled), ⌘- at 8, ⌘+ at 32 and ⌘9 without a ninth tab put "0", "-", "+", "9" in the shell. Found by
-  the round 2 E2E reviewer with System Events; `keyDown` now drops every ⌘ key `herdrKey` does not map
-  (⌘↑, ⌘↓ and fn-⌘⌫ too) with AppKit's beep, except while the IME composes. XCUITest's synthesized ⌘0 with
-  a disabled item never reached `keyDown` (a test of it passed before the fix), so it has no e2e test;
-  checked by hand with System Events (⌘0 and ⌘9 type nothing, ⌘= still steps).
-- **An async teardown that waits hung the runner.** A teardown block with `await expectPTYSize` after a
-  failed step exceeded the 2-minute allowance on CI and here; the teardown only presses ⌘0.
-- **The terminal follows without a new stream.** A size step changes `w1:p1`'s grid and its PTY
-  (`stty size`), and the pid of its `terminal session` run stays the same (`testFontSizeKeys`). One step is
-  one resize per surface through the existing 100 ms settle; no flood, so no extra debounce.
-- **Cursor shape.** herdr's frames carry a program's DECSCUSR: `printf '\e[4 q'` turned the block cursor
-  into an underline, `\e[0 q` brought back the block, and vim's insert-mode bar shows.
-- **SwiftUI keeps a keyboard shortcut's first action.** The invisible ⌘= button's action kept its first
-  `@AppStorage` copy: after another key changed the size, ⌘= added 1 to the size it last set itself
-  (13 → 17). `.id(fontSize)` on the button fixed it locally; reading `UserDefaults` in the action
-  (`stepFontSize`) fixed it for good; the monitor replaced the button anyway (above).
-- **A 1x display rounds cell sizes.** On CI a 1 pt step can leave the column count (14 and 15 pt: 48); a
-  grid test must accept one side staying.
-- **libghostty-spm drops selection-clipboard writes**, so Ghostty's `copy-on-select = true` copies nowhere;
-  a future switch needs `clipboard` (checked by hand: a drag then put the text on the pasteboard).
-- **Global hotkeys eat test keys.** On this Mac Raycast takes ⌥⇧B and a scratchpad takes ⌥.; synthesized
-  keys then land in another app. Make Oriel frontmost before any synthesized key in a manual check.
-- **The user may step in.** Mid-phase the user asked a reviewer to stop driving the Mac; the phase ran
-  e2e on CI only for a while (CI runs the whole suite on every push) until the user allowed local runs
-  again.

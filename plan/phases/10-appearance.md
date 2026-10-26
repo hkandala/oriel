@@ -4,11 +4,6 @@ Goal: Oriel draws in light or dark (or follows the system) and in two interface 
 frosted look) and Classic (an opaque window), with Rex's surface values. Every later phase draws with
 the tokens this phase makes.
 
-Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md`, `resources/research/clients/rex-ui.md`
-(interface styles and materials, pane fade), `docs/content/docs/ui/theme-and-accessibility.mdx`,
-decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Frosted`,
-`.preferredColorScheme`), `Oriel/Terminal/PaneTerminal.swift` (the static `TerminalController`).
-
 ## Build
 
 1. **Two settings in app storage** (`@AppStorage`, per device, design `data.mdx`):
@@ -22,7 +17,7 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
 3. **One token type** in `Style.swift`: a small `Look` value read from the environment
    (`@Environment(\.colorScheme)` plus the style setting). It holds only what views draw. No theme
    engine. Values (from Rex's Modern = Glass and System = Classic files; light values first measured,
-   then tuned by eye against `resources/inspirations/rex-app/light-mode.jpg` and the classic shots):
+   then tuned by eye against the Rex reference shots and the classic shots):
 
    | Token | Glass dark | Glass light | Classic dark | Classic light |
    |---|---|---|---|---|
@@ -59,22 +54,6 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
    tokens. `Color.tint`, `Color.card` and `Color.hairline` go away. `IconTile` stays as it is until
    phase 12.
 7. **Docs.** Make D44 and the theme section of `ui/theme-and-accessibility.mdx` match what you built.
-
-## e2e
-
-- A test switches View ▸ Appearance and View ▸ Interface Style through the menu bar and keeps a
-  screenshot of each of the four looks (attachments). Expose the current look on the window's root
-  element (`accessibilityValue` like `"glass dark"`, id `window.look`) and assert it.
-- One test launches in each of the four looks (launch arguments such as `-appearance light
-  -interfaceStyle classic`) and asserts `window.look` and that a card's terminal draws. No parsing code:
-  launch arguments land in UserDefaults' argument domain, which `@AppStorage` reads.
-
-## Done when
-
-- Four screenshots (Glass and Classic, light and dark) side by side with the Rex references, and the
-  orchestrator agrees they match in spirit: same contrast steps, same card edges, readable terminals.
-- No color literal left outside `Style.swift` (`grep -rn 'Color(red:\|Color.white\|Color.black' Oriel/`
-  finds only `Style.swift`).
 
 ## Findings
 
@@ -134,41 +113,3 @@ decisions D44, D45, `Oriel/Views/Style.swift`, `Oriel/App/OrielApp.swift` (`Fros
 - **Glass dark cards stay lighter than the window.** The table's white 0.04 is kept. In Rex's shot the
   cards without the keyboard are darker than the window, from Rex's per-pane backdrop; phase 17's fade
   brings that contrast.
-
-### Assumptions
-
-- **The window's `colorScheme` is the truth.** `window.look` and `Look` derive dark or light from the
-  environment's `colorScheme`, which follows `NSApp.appearance` and, in Auto, the system.
-- **No launch flash.** `NSApp.appearance` is set in the first `onChange(initial:)`, not in `App.init`. No
-  flash was seen launching light on this dark Mac; a light Mac launching dark was not tried.
-- **Glass colors depend on the desktop.** All Glass measurements are on one wallpaper; another
-  wallpaper (or the e2e runner's) gives other numbers. Compare Glass looks on the same desktop.
-
-### Learned
-
-- **Scroll views clip.** The strip and the title-bar tabs are scroll views. The 4 pt above the cards
-  now sits inside each page, and the tab row has 5 pt above and below the capsules (the pill shadow's
-  radius 3.5 plus its offset 1.5). Otherwise the top cards' outer stroke and the Classic pill's shadow are
-  cut.
-- **A full-size accessibility leaf hides everything under it.** At window size the `window.look` leaf
-  answered every accessibility hit test, so XCUITest found no hit point for the strip and half the suite
-  failed. Run the whole `make e2e` after an accessibility change, not only the new tests.
-- **Blend modes need something to blend with.** A layer drawn in its own compositing group (a masked
-  scroll view, a button background) blends `overlay` against transparency, not the window.
-- **Terminals follow without a reopen.** `AppTerminalView` updates its scheme in
-  `viewDidChangeEffectiveAppearance` and when it joins a window, so a terminal in a hidden tab shows the
-  new palette when it comes back, with no new stream. ANSI white (7, 15) nearly disappears on light cards
-  and black (0) on dark ones, as in most terminals.
-- **Measuring colors.** `screencapture` writes Display P3; read pixels converted to sRGB (an `NSBitmapImageRep`
-  helper). Classic dark: window `#282828`, card `#2d2d2d` in such a shot, the same pixels as Rex's
-  screenshot. SwiftUI's `.overlay` blend needs `BlendMode.overlay` spelled out next to `.overlay(_:)`.
-- **Settings persist across test runs.** The menu writes the app's persistent defaults, which the UI
-  tests share with the user's own Oriel (same bundle id; the sandboxed runner cannot read them back).
-  `testMenuSwitchesTheLook` starts on Glass, and a teardown block goes back to Glass Dark even after a
-  failure. Launch arguments pin a setting: the argument domain hides what the menu writes.
-- **e2e.** `testMenuSwitchesTheLook` picks the other appearance before Auto, so an Auto that does nothing
-  fails. The menu checkmarks were checked by hand (`AXMenuItemMarkChar`). `testLaunchesInEachLook`
-  relaunches in each look and checks that `stty size` matches the card's grid.
-- **Other stopped sessions break an old test.** Many stopped sessions on this Mac pushed the e2e stopped
-  session out of the session list's 320 pt scroll view, so its click landed outside the panel.
-  `testShowStoppedRevealsStoppedSessionsAndPickingOneStartsIt` now types its name into the filter first.

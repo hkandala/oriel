@@ -1,19 +1,10 @@
 # Phase 14: sidebar: session pages and workspace rows
 
-Goal: the sidebar of `plan/ui-layout.md`. It has one Arc-style page per herdr session open in the
+Goal: the sidebar of the window design (`docs/content/docs/ui/window.mdx`). It has one Arc-style page per herdr session open in the
 window, with page dots and a sideways swipe between pages. Each page lists the session's workspaces
 like herdr's Spaces panel: a state icon, the name, the git branch with ahead and behind counts, and
 linked worktrees indented under their repository. The footer has the filter and one Open Session
 button, which opens the Open Session sheet. Tabs are no longer sidebar rows.
-
-Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md` (sidebar, Open Session sheet),
-`resources/mockups/layout.html` (scenes A, B, F), `resources/research/clients/rex-ui.md` (sidebar),
-`resources/research/herdr/herdr-core.md` (workspace calls, worktrees),
-`docs/content/docs/ui/window.mdx`, `docs/content/docs/ui/swiping.mdx`, `docs/content/docs/layout.mdx`
-(selection), `docs/content/docs/data.mdx`, decisions D13, D35, D41, D43, D47, D67, D68,
-`Oriel/App/OrielApp.swift` (`ContentView`), `Oriel/Store/HostStore.swift`,
-`Oriel/Views/Sidebar.swift`, `Oriel/Views/SessionPicker.swift`, `Oriel/Views/Strip.swift` (`SwipeRouter`),
-`Oriel/Terminal/PaneViewRegistry.swift`, `Packages/HerdrKit/Sources/HerdrKit/Models.swift`.
 
 ## Build
 
@@ -114,7 +105,7 @@ Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md` (sidebar, Open Sess
 
 18. **Empty page.** A session with no workspace shows only a New Workspace button in the strip and on the
     page (today `OrielApp.swift` says "No workspaces. Create one in herdr:"). The user never needs herdr
-    (`plan/ui-layout.md`, "Never send the user to herdr"). Add a SwiftLint custom rule that fails on a
+    (the window design (`docs/content/docs/ui/window.mdx`), "Never send the user to herdr"). Add a SwiftLint custom rule that fails on a
     user-visible string literal telling the user to run herdr (for example `"herdr ` or `in herdr` inside
     `Text(`, `Label(`, `message(`, `Button(`), so it cannot come back.
 
@@ -153,46 +144,6 @@ Read first: `plan/archive/ui-polish.md`, `plan/ui-layout.md` (sidebar, Open Sess
     `workspace.move_block`, the writes table), `machines.mdx` (sessions open as pages). D43 (open
     pages), D67 (git status) and D68 (the sheet) are already recorded: change them if the build
     differs.
-
-## e2e
-
-The tests use the sessions `scripts/e2e.sh` makes: `ORIEL_SESSION` (launched), `ORIEL_SESSION2`
-(opened as a page), `ORIEL_SESSION3` (stopped: listed under "Stopped"), `ORIEL_SESSION4` (created
-through the sheet; e2e.sh removes it) and `ORIEL_SESSION5` (stopped and started by the test). Tests
-that need one session use only `ORIEL_SESSION`. A test that needs another name adds it to e2e.sh and
-the helper. Launch with `-ApplePersistenceIgnoreState YES`.
-
-- Close every workspace of a test session: the page and the strip show only a New Workspace button; a
-  click on it makes a workspace (snapshot) and its terminal draws.
-- At launch the sidebar has one page (`ORIEL_SESSION`), no page dots, and the app runs no bridge for
-  `ORIEL_SESSION2` (the helper's `/children`).
-- Open Session (footer button): the sheet lists `ORIEL_SESSION2` under "Running", `ORIEL_SESSION3`
-  under "Stopped" and `ORIEL_SESSION` under "Open in this window". Pick `ORIEL_SESSION2`: two pages,
-  two dots, the header shows it. Click the first dot: the header shows `ORIEL_SESSION`.
-- ⇧⌘N, type `ORIEL_SESSION4`'s name, Enter: `herdr session list` shows it running and a third page
-  shows it. This test replaces today's picker test that creates `ORIEL_SESSION4`
-  (`ActionTests.swift`), the only name a test can create.
-- Stop `ORIEL_SESSION5` through the helper's `/stop`; Open Session lists it under "Stopped"; Enter: it
-  runs again and its page shows.
-- Close Page on `ORIEL_SESSION2` (header context menu): the page and its dot go, and
-  `herdr session list` still shows it running. Close Page is disabled on the last page.
-- Workspace rows: build a git repository, its bare upstream, one local commit ahead and a linked
-  worktree by typing commands into a throwaway pane with `pane.send_input` through the helper (the
-  sandboxed runner cannot run git; or do it in `scripts/e2e.sh`). A workspace in the repository shows
-  its branch and "ahead 1" (accessibility value); a workspace in `/tmp` has one line (row height 30).
-  The worktree, opened as a workspace (with `worktree.open {path, focus:false}` if `workspace.create`
-  does not fill `workspace.worktree`), is indented with "worktree of ‹parent›". A new commit in the
-  repository shows within 11 s.
-- The page header `+` makes a workspace in that session. Rename and Close Workspace from the row's
-  context menu change herdr's snapshot; Move Down changes herdr's workspace order.
-- Drag the sidebar handle: the sidebar width (accessibility frame) changes, within 227–480 pt.
-- The filter hides rows that do not match.
-
-## Done when
-
-- Screenshots: two pages with dots, a page with git branches, ahead and behind, and an indented
-  worktree, the Open Session sheet with all four kinds of rows, light and dark.
-- Swiping between pages and the strip checked by hand (trackpad gestures are not in e2e).
 
 ## Findings
 
@@ -250,36 +201,3 @@ the helper. Launch with `-ApplePersistenceIgnoreState YES`.
 - **Lint rule `herdr_commands`:** a `Text(`, `Label(`, `message(` or `Button(` line whose string literal has
   `herdr --`, `herdr session|workspace|tab|pane|server|attach` or `in herdr` fails. "herdr update" (updating herdr
   itself) and "Restart herdr on This Mac" (a button) pass.
-
-### Spike (herdr 0.9.5)
-
-- **`workspace.create {cwd}` in a repository leaves `workspace.worktree` out.** `worktree.list`, `worktree.open` and
-  `worktree.create` fill it; `worktree.open` also fills the repository's open workspace, and needs a
-  `workspace_id` in the repository when the focused workspace is not in one (`not_git_worktree`). So rows of
-  workspaces the app made are not indented; the e2e test opens its worktree with `worktree.open`.
-- **`workspace.close` on a repository's workspace with linked-worktree workspaces** fails with
-  `workspace_group_close_required`; with `close_group: true` it closes all of them, also ones not next to it. The
-  git worktrees stay on disk. A worktree's own workspace closes alone.
-- **`workspace.move {insert_index}`** inserts before the workspace now at the index (like `tab.move`).
-  `workspace.move_block` without `before_workspace_id` moves the block last.
-
-- **Checked by hand** (E2E reviewer, round 1, mouse-only CGEvents): a sideways swipe over the sidebar pages
-  sessions and over the strip pages tabs, never both; each page keeps its selected tab; pages stay aligned after a
-  width drag. Screenshots: `/tmp/oriel-shots/14/final/` (light and dark: two pages, git rows with ↑1 ↓1 and a
-  worktree, the sheet with all four groups, the empty page).
-
-### Assumptions
-
-- **Terminal ids do not repeat across sessions** (`term_` and 14 hex digits that follow the clock); the window's
-  registry keys by terminal id alone (`ponytail:` note).
-- **`scenePhase` leaves `.active` when the window is minimized or the app hidden**, which pauses git runs.
-
-### Learned
-
-- **XCUITest drags on macOS with `click(forDuration:thenDragTo:)`.** `press(forDuration:thenDragTo:)` sent the app
-  no mouse down at all (an AppKit view logged none); about 20 minutes went into blaming the handle first.
-- **An open context menu carries its view's identifier**: right after a right-click, `workspace.w1` matched the row
-  and its menu; tests take `app.buttons[...]` and wait for the menu to go.
-- **A static text's text is its accessibility value** in XCUITest when it has an identifier, not its label.
-- **`worktree.create` puts worktrees in `~/.herdr/worktrees/<repo>/`**: tests must not use it (it writes outside
-  the throwaway folder).
