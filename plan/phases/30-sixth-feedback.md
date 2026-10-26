@@ -75,11 +75,12 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
     straight into their final layout: each new pane appears once, where it ends up, with no pane moving
     twice.
 
-## Waiting on the user
+## Lane P, also: Move Pane to Tab out of the menu bar (item 11)
 
-- Move Pane to Tab's tab list in the menu bar: lane S measured about 30 ms per key at 300 tabs (AppKit's
-  key-equivalent search over the menu bar). The orchestrator proposed dropping the list from the menu bar
-  only and keeping it in the card's own menu (built when opened) and the palette.
+11. The user agreed: drop Move Pane to Tab's tab list from the menu bar (View ▸ Pane), since AppKit's
+    key-equivalent search over it costs about 30 ms per key at 300 tabs (phase 29 lane S). Keep the list in
+    the card's own menus (header and right-click, built when opened) and in the palette's Move Pane to Tab
+    page. Measure the key latency at 300 tabs before and after (scripts/stress.py).
 
 ## Checks
 
