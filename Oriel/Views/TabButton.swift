@@ -187,14 +187,18 @@
         /// and folder instead (D65), "New Tab" until the program is known (a new pane's is asked a second late).
         func title(_ tab: HostStore.Tab) -> (name: String, folder: String?) {
             guard tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
-            guard let pane = stack(tab).first, let name = pane.programName else {
+            // The stack's first, without the stack: the menus ask for every tab's title (phase 29).
+            let front = keyboardCard(tab.id) ?? store.tabPanes[tab.id]?.first
+            guard let pane = front, let name = pane.programName else {
                 // A new tab (a stand-in, or a pane whose shell still starts): "New Tab", never a number. Else the
                 // number, for a pane whose program herdr cannot say.
-                return (stack(tab).first?.starting == false ? tab.label : "New Tab", nil)
+                return (front?.starting == false ? tab.label : "New Tab", nil)
             }
             // The folder's name ("pi oriel"), as in Rex: a tab is narrow.
-            return (name, pane.folder.map { $0 == "~" ? $0 : ($0 as NSString).lastPathComponent })
+            return (name, pane.cwd.map { $0 == Self.home ? "~" : ($0 as NSString).lastPathComponent })
         }
+
+        private static let home = NSHomeDirectory()
 
         /// The tab's panes for its icon stack, at most 5: the keyboard card's first (herdr's focused pane until one
         /// had the keyboard), then herdr's order.

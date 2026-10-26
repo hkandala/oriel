@@ -87,16 +87,7 @@
                         + (terminal.map { !$0.ready && !$0.state.isFailed } == true ? ", loading" : ""))
                     .accessibilityIdentifier("pane.\(id)")
                     // The buttons show on hover only and the context menu is on the header: VoiceOver acts on the card.
-                    .accessibilityActions {
-                        // Move Pane to Tab ▸ flattened: one action per place.
-                        let commands = CommandList.pane(page) { pane }.filter(\.enabled).flatMap { command in
-                            command.menu.isEmpty ? [(command.title, command.action)]
-                                : command.menu.map { ("\(command.title) \($0.title)", $0.action) }
-                        }
-                        ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
-                            Button(command.0, action: command.1)
-                        }
-                    }
+                    .accessibilityActions { PaneActions(page: page, pane: pane) }
             }
             .opacity(page.dragging == .pane(id) ? 0.4 : 1)
             .overlay(alignment: .topLeading) {
@@ -189,7 +180,7 @@
         }
 
         private func paneItems(_ pane: HostStore.Pane?) -> some View {
-            CommandItems(commands: CommandList.pane(page) { pane }, sections: [.pane, .paneMove, .close])
+            PaneItems(page: page, pane: pane)
         }
 
         private func buttons(zoomed: Bool) -> some View {
@@ -264,6 +255,34 @@
             }
             .padding(gap)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    /// The pane's menu items, with Move Pane to Tab's every tab of the session: their own view, so they are made when
+    /// the menu opens, not in each card's body (phase 29: 300 tab titles per card, at every change of one).
+    private struct PaneItems: View {
+        let page: Page
+        let pane: HostStore.Pane?
+
+        var body: some View {
+            CommandItems(commands: CommandList.pane(page) { pane }, sections: [.pane, .paneMove, .close])
+        }
+    }
+
+    /// VoiceOver's actions on the card, Move Pane to Tab ▸ flattened: one action per place. Their own view, as the
+    /// menu items are.
+    private struct PaneActions: View {
+        let page: Page
+        let pane: HostStore.Pane?
+
+        var body: some View {
+            let commands = CommandList.pane(page) { pane }.filter(\.enabled).flatMap { command in
+                command.menu.isEmpty ? [(command.title, command.action)]
+                    : command.menu.map { ("\(command.title) \($0.title)", $0.action) }
+            }
+            ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
+                Button(command.0, action: command.1)
+            }
         }
     }
 #endif
