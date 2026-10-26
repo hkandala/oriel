@@ -77,7 +77,9 @@ only at these times:
   each change of the stripped title, and the events stream subscribes to it.
 
 Each ask is its own herdr run, so asks can finish out of order; only the
-latest answer lands.
+latest answer lands. At most 8 run at once, the others wait in order: the
+first snapshot of a 400-pane session asked 400 at once, and the app showed no
+card for over 30 s (phase 29).
 
 There is no polling. The result stays on the pane in the `HostStore`, so the
 views only read it.
