@@ -256,6 +256,7 @@ extension OrielUITests {
         menu.menuItems["Open Session…"].click()
         let other = element("open-session.session.\(two)")
         XCTAssertTrue(other.exists(within: connect))
+        XCTAssertTrue(element("open-session.section.Running on Key Host").exists)
         keepScreenshot("remote open session")
         other.click()
         XCTAssertTrue(element("sidebar.header").has(\.stringValue, two, within: connect))
@@ -263,6 +264,34 @@ extension OrielUITests {
         _ = openSessionPanel()
         XCTAssertTrue(element("open-session.open.\(one)").exists(within: 2))
         XCTAssertTrue(element("open-session.open.\(two)").exists)
+        app.typeKey(.escape, modifierFlags: [])
+    }
+
+    /// Each window's Open Session lists its own machine's sessions only (user, phase 29): Password Host has no herdr,
+    /// so its window lists none of This Mac's, which the first window's panel just read.
+    func testOpenSessionListsOnlyItsWindowsMachine() async throws {
+        try await skipWithoutSSH()
+        try await Self.post("\(one)/ssh-drop", Data("oriel-pw".utf8))
+        try await Self.post("\(one)/ssh-forget", Data("oriel-pw".utf8))
+        relaunch(one, ["-machines", "[]"])
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        let first = app.windows.firstMatch
+        _ = openSessionPanel()
+        XCTAssertTrue(element("open-session.session.\(two)").exists(within: connect))
+        XCTAssertTrue(element("open-session.section.Running").exists)
+        app.typeKey(.escape, modifierFlags: [])
+        addHost("Password Host", "oriel-pw")
+        XCTAssertTrue(element("ask.text").exists(within: connect))
+        element("ask.ok").click()
+        try typePassword()
+        XCTAssertTrue(app.staticTexts["herdr is not installed on Password Host"].exists(within: connect))
+        XCTAssertNotEqual(app.windows.firstMatch.identifier, first.identifier)
+        let menu = element("titlebar.machine", in: app.windows.firstMatch)
+        menu.click()
+        menu.menuItems["Open Session…"].click()
+        XCTAssertTrue(element("open-session.open.\(one)").exists(within: 3))
+        XCTAssertFalse(until(2) { element("open-session.session.\(two)").exists })
+        keepScreenshot("password host open session")
         app.typeKey(.escape, modifierFlags: [])
     }
 

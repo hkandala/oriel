@@ -91,8 +91,12 @@
             let create = Session.isValidName(new) && !sessions.contains { $0.name == new } && !shown.contains(new)
                 ? [item("new", "Create session “\(new)”", "New", new) { start(new) }] : []
             let others = sessions.filter { !shown.contains($0.name) && $0.name.matches(filter) }
+            // A remote window's groups name the machine: the same names (`default`) run on both.
+            let place = pages.machine.isRemote ? " on \(pages.machine.name)" : ""
             let session = { (one: Session) in
-                var row = item("session", one.name, one.running ? "Running" : "Stopped", one.name) { start(one.name) }
+                var row = item("session", one.name, (one.running ? "Running" : "Stopped") + place, one.name) {
+                    start(one.name)
+                }
                 let verb = one.running ? "stop" : "delete"
                 row.buttonRole = .destructive
                 row.button = (verb.capitalized, {
