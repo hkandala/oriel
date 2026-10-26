@@ -32,6 +32,13 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
    Release build (when the GUI is free; Instruments Animation Hitches / Time Profiler) and remove the
    main-thread and commit costs per frame.
 
+12. (Lane V, 22:35) **No blurred pane in the normal view.** The user sees a pane show blurred for a moment and
+    then sharpen in the normal view too, not only in the overview: likely the overview's small snapshot
+    (or another downscaled picture) shown as a card's still. Rule: a card in the strip or a floating window
+    never shows a picture smaller than its own pixel size. A sharp full-size still (phase 27 lane A3) may
+    show; when only a small one exists, the card shows nothing and fades in (phase 29 lane T's 0.06 s) when
+    its terminal draws. In the overview, item 3's sharp snapshots apply.
+
 ## Lane P: memory and CPU in the user's real setup (item 6)
 
 6. B #5: the user has two windows open on a remote machine with many workspaces and tabs. Measure the
