@@ -37,9 +37,6 @@ public protocol Multiplexer: Sendable {
     /// Scrolls the pane's viewport, which every client of the pane shares; 0 is the bottom. The multiplexer clamps it.
     func scroll(_ paneID: String, offsetFromBottom offset: Int) async throws
 
-    /// The nearest pane that way, if any. Read only.
-    func neighbor(of paneID: String, _ heading: Heading) async throws -> String?
-
     /// Actions. None moves the multiplexer's focus, except `swap` (herdr 0.9.5).
     func split(_ paneID: String, _ direction: SplitNode.Direction) async throws -> Pane?
     /// Swaps the pane with its nearest neighbor that way, in the same tab. Moves herdr's focus to that tab (herdr
@@ -113,11 +110,6 @@ extension HerdrClient: Multiplexer {
 
     public nonisolated func scroll(_ paneID: String, offsetFromBottom offset: Int) async throws {
         let _: Created = try await call("pane.scroll", ["pane_id": paneID, "offset_from_bottom": offset])
-    }
-
-    public nonisolated func neighbor(of paneID: String, _ heading: Heading) async throws -> String? {
-        try await (call("pane.neighbor", ["pane_id": paneID, "direction": heading.rawValue]) as Neighbor).neighbor
-            .paneID
     }
 
     public nonisolated func split(_ paneID: String, _ direction: SplitNode.Direction) async throws -> Pane? {

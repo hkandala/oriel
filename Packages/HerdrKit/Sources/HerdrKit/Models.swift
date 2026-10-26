@@ -180,17 +180,6 @@ struct Read: Decodable {
     let read: Text
 }
 
-/// `pane.neighbor`: the nearest pane that way, if any.
-struct Neighbor: Decodable {
-    let neighbor: NeighborPane
-}
-
-struct NeighborPane: Decodable {
-    let paneID: String?
-
-    enum CodingKeys: String, CodingKey { case paneID = "neighbor_pane_id" }
-}
-
 /// `pane.process_info`: the pane's shell and its foreground processes.
 struct ProcessInfoResult: Decodable {
     let processInfo: PaneProcesses

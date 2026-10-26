@@ -126,14 +126,22 @@ In Glass the two are close: the keyboard card is only a little brighter.
 The keyboard card is the app's own (see below). Keys move it, and never call
 herdr's focus methods (D13):
 - ⌥⌘ and an arrow (View ▸ Pane ▸ Select Pane Left, Right, Up, Down): the
-  keyboard goes to the card that herdr's read-only
-  `pane.neighbor {pane_id, direction}` names. One call per key, so the app
-  has no geometry code of its own for this.
+  keyboard goes to a card next to it that way, picked from the tab's split
+  tree at once, with no herdr call (phase 29): of the cards along that edge,
+  the one used last, else the one that shares most of the edge, the top (or
+  left) one on a tie, as in Ghostty. So → then ← comes back to the same card.
+  herdr's `pane.neighbor` took a round trip per key and picked the card at
+  the middle of the edge.
 - ⌘[ and ⌘] (Select Previous Pane, Select Next Pane): the previous and next
   card in the tree's order (left before right, top before bottom, as in
   Ghostty), round the ends.
 - A split (the header buttons, the menus, the palette, ⌘D, ⇧⌘D) gives the
-  keyboard to the new pane once a snapshot shows it, as in Ghostty.
+  keyboard to the new pane once a snapshot shows it, as in Ghostty. Its card
+  is lit at once, empty while herdr makes it. ⌘D pressed again meanwhile
+  splits that newest card (herdr's pane once it is made), so three quick ⌘D
+  give four cards left to right with the keyboard on the last; the panes made
+  on the way join the keyboard history before it, so ⌘W steps back through
+  them (phase 29).
 - Moving the keyboard to a card that a zoom hides restores the zoom.
 - When the keyboard card closes, the keyboard goes to the card of its tab
   used before it (most recent first), as closing a tab goes to the tab used

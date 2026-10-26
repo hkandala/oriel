@@ -56,10 +56,10 @@ extension OrielUITests {
         String(tab.prefix { $0 != ":" })
     }
 
-    /// Splits the pane to the right in herdr; the new pane's id.
+    /// Splits the pane to the right (or `down`) in herdr; the new pane's id.
     @discardableResult
-    func split(_ pane: String) async throws -> String {
-        try await id(Self.call(one, "pane.split", ["target_pane_id": pane, "direction": "right", "cwd": "/tmp",
+    func split(_ pane: String, _ direction: String = "right") async throws -> String {
+        try await id(Self.call(one, "pane.split", ["target_pane_id": pane, "direction": direction, "cwd": "/tmp",
                                                    "focus": false]), "pane")
     }
 

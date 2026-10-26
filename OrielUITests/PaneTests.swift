@@ -145,6 +145,60 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(first)").exists(within: 2))
     }
 
+    /// ⌘D pressed fast three times splits the newest card each time, as Ghostty does, and the last one made keeps the
+    /// keyboard; ⌘W then steps back through them (phase 29: each split the old card, and the keyboard went to the pane
+    /// whose terminal settled last).
+    func testQuickSplitsSplitTheNewestAndItKeepsTheKeyboard() async throws {
+        let (tab, first) = try await newTab("quick-splits")
+        element("tab.\(tab)").click()
+        element("terminal.\(first)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        // One burst: the second and third ⌘D come before herdr made the first's pane.
+        XCUIElement.perform(withKeyModifiers: .command) { app.typeText("ddd") }
+        let panes = try await poll("four panes") { () async throws -> [String]? in
+            let panes = try await order(tab)
+            return panes.count == 4 ? panes : nil
+        }
+        // Left to right in the order they were made (herdr's ids count up): each split the one before.
+        XCTAssertEqual(panes.first, first)
+        XCTAssertEqual(panes.dropFirst().map { Int($0.split(separator: "p").last ?? "") ?? 0 },
+                       panes.dropFirst().map { Int($0.split(separator: "p").last ?? "") ?? 0 }.sorted())
+        XCTAssertTrue(hasKeyboard(element("terminal.\(panes[3])")))
+        try await typeAndRead(panes[3])
+        for (closed, next) in [(panes[3], panes[2]), (panes[2], panes[1])] {
+            app.typeKey("w", modifierFlags: .command)
+            XCTAssertTrue(element("pane.\(closed)").vanishes(within: 3))
+            XCTAssertTrue(hasKeyboard(element("terminal.\(next)")), "after closing \(closed)")
+        }
+    }
+
+    /// ⌥⌘ arrows pick from the layout, at once, as Ghostty does (phase 29, the user's layout): three columns, the third
+    /// in four rows. Of the cards along the edge, the one used last, else the one sharing most of it, the top one on a
+    /// tie (herdr's `pane.neighbor` gave the second row).
+    func testSelectPaneKeysPickTheLastUsedElseTheTopNeighbor() async throws {
+        let (tab, first) = try await newTab("arrows")
+        let second = try await split(first)
+        var rows = try await [split(second)]
+        for _ in 0 ..< 3 {
+            try await rows.append(split(rows[rows.count - 1], "down"))
+        }
+        element("tab.\(tab)").click()
+        pick("Pane", "Balance Splits")
+        try await expectWidths(tab, [first: 1 / 3, second: 1 / 3, rows[0]: 1 / 3])
+        element("terminal.\(first)").click()
+        XCTAssertTrue(hasKeyboard(element("terminal.\(first)")))
+        let steps: [(XCUIKeyboardKey, String)] = [
+            (.rightArrow, second), (.rightArrow, rows[0]), (.downArrow, rows[1]), (.downArrow, rows[2]),
+            // Back to the row used last, not the top one.
+            (.leftArrow, second), (.rightArrow, rows[2]),
+            (.leftArrow, second), (.leftArrow, first), (.leftArrow, first), (.upArrow, first),
+        ]
+        for (index, (key, pane)) in steps.enumerated() {
+            app.typeKey(key, modifierFlags: [.command, .option])
+            XCTAssertTrue(hasKeyboard(element("terminal.\(pane)")), "step \(index) to \(pane)")
+        }
+    }
+
     func testContextMenuSplitsLeftRenamesAndMovesToNewTab() async throws {
         let (tab, pane) = try await newTab("menu")
         restoreHerdrFocusAfter()

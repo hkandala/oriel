@@ -55,9 +55,12 @@
         /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
         var stripPage = 0.0
         /// The terminals that had the keyboard, the latest last: each tab's keyboard card is its latest, so a closed
-        /// one
-        /// gives way to the card of its tab used before it (phase 27). Observed: the tab's icon stack puts it in front.
+        /// one gives way to the card of its tab used before it (phase 27). Observed: the tab's icon stack puts it in
+        /// front.
         private var usedTerminals: [String] = []
+        /// The latest split's card (its stand-in, then herdr's pane) until its terminal has the keyboard, and the
+        /// terminal that had it before (phase 29). Observed: its card is lit.
+        var newest: (id: String, from: String?)?
         /// The tab whose terminal last got the keyboard from the app.
         @ObservationIgnored private var keyboardTabID: String?
         /// A moved pane's terminal, which takes the keyboard once a snapshot shows it in its tab: a write does not wait
@@ -150,6 +153,10 @@
             if let zoomed = zoomedPaneID.flatMap(store.pane), zoomed.tabID == selectedTab?.id {
                 return zoomed
             }
+            // A split's pane before its terminal takes the keyboard.
+            if let pane = newest.flatMap({ store.pane($0.id) }), pane.tabID == selectedTab?.id {
+                return pane
+            }
             // Not another tab's: its view keeps the keyboard until the shown tab's terminal takes it (after ⌘T, until
             // herdr's tab comes), and ⌘W closed that tab's pane.
             if let id = terminals.keyboardTerminalID, let pane = store.panes.first(where: { $0.terminalID == id }),
@@ -183,6 +190,10 @@
         }
 
         func tookKeyboard(_ terminalID: String) {
+            // The newest's terminal, or one the user chose; not the old one taking it back.
+            if terminalID != newest?.from {
+                newest = nil
+            }
             if let pane = store.panes.first(where: { $0.terminalID == terminalID }), !floats(pane) {
                 use(terminalID)
             }
@@ -200,7 +211,7 @@
         }
 
         /// The terminal is the latest to have the keyboard, so its tab's keyboard card.
-        private func use(_ terminalID: String) {
+        func use(_ terminalID: String) {
             usedTerminals.removeAll { $0 == terminalID }
             usedTerminals.append(terminalID)
         }
@@ -230,6 +241,7 @@
         func go(to pane: HostStore.Pane) {
             guard !floats(pane) else { return float(pane) }
             guard let workspace = store.workspace(of: pane.tabID) else { return }
+            newest = nil
             select(workspace, tab: pane.tabID)
             if zoomedPaneID != pane.id, store.pane(zoomedPaneID ?? "")?.tabID == pane.tabID {
                 zoomedPaneID = nil
@@ -282,43 +294,18 @@
             return store.panes.count { $0.tabID == tab } < 2
         }
 
-        /// Closes it, or asks first in this window (D41). One at a time: a second ⇧⌘W while herdr is asked would ask
-        /// again.
-        func close(_ close: HostStore.Close) {
-            // The same close again (a second ⇧⌘W while herdr is asked) would ask twice; another close goes on.
-            let key = String(describing: close)
-            guard !asking.contains(key) else { return }
-            let before = (selectedWorkspaceID, selectedTabIDs)
-            guard let asked = store.ask(close) else { return }
-            let hidden = (selectedWorkspaceID, selectedTabIDs)
-            asking.insert(key)
-            Task {
-                closing = await asked.value
-                // A close shown at once that asks after all comes back: so does the selection it moved, unless the
-                // user moved it since.
-                if closing != nil, selectedWorkspaceID == hidden.0, selectedTabIDs == hidden.1 {
-                    (selectedWorkspaceID, selectedTabIDs) = before
-                }
-                asking.remove(key)
-            }
-        }
-
-        @ObservationIgnored private var asking: Set<String> = []
+        /// The closes being asked about (`close`).
+        @ObservationIgnored var asking: Set<String> = []
     }
 
     extension Page {
-        /// A split restores a zoomed layout first, as tmux does: the new pane shows.
-        /// The new pane gets the keyboard, as in Ghostty (user, phase 25).
-        func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
-            zoomedPaneID = nil
-            let new = await store.split(paneID, direction, before: before)
-            follow(new, new?.terminalID, select: false)
-        }
-
-        /// The keyboard goes to the nearest card that way, as herdr's `pane.neighbor` finds it (read only).
-        func moveKeyboard(_ heading: Heading) async {
-            guard let from = keyboardPane, let client = store.client,
-                  let id = try? await client.neighbor(of: from.id, heading), let pane = store.pane(id) else { return }
+        /// The keyboard goes to the card next to it that way (`SplitNode.neighbor`): the one used last there, else the
+        /// one sharing most of its edge. From the tree, at once: herdr's `pane.neighbor` took a round trip and picked
+        /// another (phase 29).
+        func moveKeyboard(_ heading: Heading) {
+            let used = usedTerminals.compactMap { id in store.panes.first { $0.terminalID == id }?.id }
+            guard let from = keyboardPane, let id = selectedTab?.tree?.neighbor(of: from.id, heading, used: used),
+                  let pane = store.pane(id) else { return }
             go(to: pane)
         }
 

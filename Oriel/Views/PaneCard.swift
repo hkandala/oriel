@@ -25,7 +25,8 @@
             let zoomed = page.zoomedPaneID == id
             let terminal = pane.flatMap(page.terminal)
             // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
-            let lit = pane.map { page.keyboardCard($0.tabID) === $0 } ?? false
+            // A split's new card at once, its stand-in too (phase 29).
+            let lit = page.newest.map { $0.id == id } ?? pane.map { page.keyboardCard($0.tabID) === $0 } ?? false
             let floated = pane.map(page.floats) ?? false
             let follow = hovering && settings.followMouse && !away && active && !floated
             // The watching window's dim (D66), on the header and the terminal.

@@ -290,8 +290,6 @@ func `changes a layout in a throwaway herdr session`() async throws {
             try await client.setRatio(tab: "w1:t1", path: change.path, ratio: change.ratio)
         }
         #expect(try await client.snapshot().trees["w1:t1"]?.evened().isEmpty == true)
-        #expect(try await client.neighbor(of: "w1:p1", .right) == second.id)
-        #expect(try await client.neighbor(of: "w1:p1", .left) == nil)
         // Decodes herdr's reply; the prompt may not have drawn yet.
         _ = try await client.screen("w1:p1")
         _ = try await client.recent("w1:p1", lines: 100)

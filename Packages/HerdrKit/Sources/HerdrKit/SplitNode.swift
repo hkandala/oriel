@@ -1,3 +1,5 @@
+import CoreGraphics
+
 /// One tab's split tree, as herdr stores it.
 public indirect enum SplitNode: Equatable, Sendable {
     case leaf(paneID: String)
@@ -171,5 +173,51 @@ public extension SplitNode {
         guard let step = path.first else { return self }
         guard case let .split(_, _, first, second) = self else { return nil }
         return (step ? second : first).node(at: Array(path.dropFirst()))
+    }
+}
+
+/// ⌥⌘ arrows (phase 29): the neighbor from the tree itself, no herdr call.
+public extension SplitNode {
+    /// The pane next to this one that way, as Ghostty and kitty pick it: of the panes along that edge, the one used
+    /// last (`used`, latest last), else the one sharing most of the edge, the top or left one on a tie. Nil at the
+    /// tab's edge.
+    func neighbor(of paneID: String, _ heading: Heading, used: [String] = []) -> String? {
+        let rects = rects(in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        guard let from = rects.first(where: { $0.id == paneID })?.rect else { return nil }
+        let across = heading == .left || heading == .right
+        // Sums of ratios: an edge two splits share can differ in its last bits.
+        let near = 1e-9
+        func shared(_ rect: CGRect) -> CGFloat {
+            across ? min(rect.maxY, from.maxY) - max(rect.minY, from.minY)
+                : min(rect.maxX, from.maxX) - max(rect.minX, from.minX)
+        }
+        let along = rects.filter { _, rect in
+            let gap = switch heading {
+            case .left: rect.maxX - from.minX
+            case .right: rect.minX - from.maxX
+            case .up: rect.maxY - from.minY
+            case .down: rect.minY - from.maxY
+            }
+            return abs(gap) < near && shared(rect) > near
+        }
+        if let last = used.last(where: { id in along.contains { $0.id == id } }) {
+            return last
+        }
+        return along.max { first, second in
+            abs(shared(first.rect) - shared(second.rect)) < near
+                ? (across ? first.rect.minY > second.rect.minY : first.rect.minX > second.rect.minX)
+                : shared(first.rect) < shared(second.rect)
+        }?.id
+    }
+
+    /// Each pane's rectangle in this one, divided by the ratios.
+    private func rects(in rect: CGRect) -> [(id: String, rect: CGRect)] {
+        switch self {
+        case let .leaf(id): return [(id, rect)]
+        case let .split(direction, ratio, first, second):
+            let (one, two) = rect.divided(atDistance: direction == .right ? rect.width * ratio : rect.height * ratio,
+                                          from: direction == .right ? .minXEdge : .minYEdge)
+            return first.rects(in: one) + second.rects(in: two)
+        }
     }
 }

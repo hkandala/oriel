@@ -424,7 +424,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Find next or previous (⌘F) | `pane.scroll {pane_id, offset_from_bottom}` to the match; offset 0 when the bar closes |
 | Start an agent | [agent.start steps](/docs/plugins/terminal-and-agent#agent) |
 | Resize Pane (View ▸ Pane, the palette; no key) | `pane.resize {pane_id, direction, amount: 0.05}` on the keyboard card; herdr moves the nearest divider that way, or returns `changed:false` when there is none |
-| Move the keyboard (⌥⌘ + arrow; not a write) | `pane.neighbor {pane_id, direction}`, read only; the app gives the keyboard to the card it names |
+| Move the keyboard (⌥⌘ + arrow; not a write) | no herdr call: the app picks the card from the split tree ([Moving the keyboard](/docs/layout#moving-the-keyboard)) |
 | Git state of the workspace rows (not a write) | no herdr call: `git status` on the machine ([Git status](#git-status)) |
 
 - No close can be undone.

@@ -262,7 +262,7 @@
                                   })
             return [balance] +
                 each("Select Pane", [.command, .option], symbol: "") { page, _, heading in
-                    await page.moveKeyboard(heading)
+                    page.moveKeyboard(heading)
                 }
                 + [
                     Command(section: .paneKeys, title: "Select Previous Pane", key: .init("["), symbol: "chevron.left",

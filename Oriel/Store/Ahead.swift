@@ -10,6 +10,8 @@ struct Ahead {
     /// New tabs not in a snapshot yet, oldest first.
     var tabs: [NewTab] = []
     var split: NewSplit?
+    /// herdr's panes for split stand-ins, while one shows: a split of a stand-in (⌘D pressed fast) splits its pane.
+    var splitPanes: [String: String] = [:]
     /// herdr's tabs that took stand-ins' places in the last snapshot, by stand-in id: every page's selection and tab
     /// history follow them as they settle on that snapshot (phase 27).
     var arrived: [String: String] = [:]
@@ -97,6 +99,9 @@ struct Ahead {
                 trees[split.tabID] = split.tree.removing(closing)
                 self.split?.after = split.after.map { $0 + 1 }
             }
+        }
+        if split == nil {
+            splitPanes = [:]
         }
         // A tab whose last pane closes closes, and a workspace whose last tab closes.
         let emptied = Set(snapshot.trees.keys).subtracting(trees.keys)
@@ -311,6 +316,48 @@ extension HostStore {
         /// The selected tab while it is a new tab's stand-in.
         var standIn: String? {
             selectedTab.flatMap { Ahead.isStandIn($0.id) ? $0.id : nil }
+        }
+
+        /// Closes it, or asks first in this window (D41). One at a time: a second ⇧⌘W while herdr is asked would ask
+        /// again.
+        func close(_ close: HostStore.Close) {
+            // The same close again (a second ⇧⌘W while herdr is asked) would ask twice; another close goes on.
+            let key = String(describing: close)
+            guard !asking.contains(key) else { return }
+            let before = (selectedWorkspaceID, selectedTabIDs)
+            guard let asked = store.ask(close) else { return }
+            let hidden = (selectedWorkspaceID, selectedTabIDs)
+            asking.insert(key)
+            Task {
+                closing = await asked.value
+                // A close shown at once that asks after all comes back: so does the selection it moved, unless the
+                // user moved it since.
+                if closing != nil, selectedWorkspaceID == hidden.0, selectedTabIDs == hidden.1 {
+                    (selectedWorkspaceID, selectedTabIDs) = before
+                }
+                asking.remove(key)
+            }
+        }
+
+        /// A split restores a zoomed layout first, as tmux does: the new pane shows. The new pane gets the keyboard, as
+        /// in Ghostty (user, phase 25). Pressed again before herdr made it (⌘D, fast), the newest card is split, not
+        /// the
+        /// one that still holds the first responder, and only the newest split's pane takes the keyboard: the older
+        /// ones join the keyboard history before it (phase 29).
+        func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
+            zoomedPaneID = nil
+            let target = newest.flatMap { paneID == keyboardPane?.id ? $0.id : nil } ?? paneID
+            let standIn = Ahead.standIn()
+            newest = (standIn, newest?.from ?? terminals.keyboardTerminalID)
+            let new = await store.split(target, direction, before: before, standIn: standIn)
+            guard newest?.id == standIn else {
+                if let id = new?.terminalID {
+                    use(id)
+                }
+                return
+            }
+            newest = new.map { ($0.id, newest?.from) }
+            follow(new, new?.terminalID, select: false)
         }
 
         /// Close Pane: the pane, else the shown stand-in, which has no pane yet; ⌘W closes it too (phase 27).

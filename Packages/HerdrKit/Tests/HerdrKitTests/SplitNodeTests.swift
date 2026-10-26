@@ -89,3 +89,22 @@ private func changes(_ list: [(path: [Bool], ratio: Double)]) -> [String: Double
     #expect(tree.rebuild.reduce(leaf("p1"), placing) == tree)
     #expect(leaf("p1").rebuild.isEmpty)
 }
+
+@Test func `the neighbor that way is the one used last, else the one sharing most of the edge, else the top one`() {
+    // The user's layout (phase 29): three columns, the third in four rows.
+    let rows = down(0.25, leaf("r1"), down(1 / 3, leaf("r2"), down(0.5, leaf("r3"), leaf("r4"))))
+    let tree = right(1 / 3, leaf("a"), right(0.5, leaf("b"), rows))
+    #expect(tree.neighbor(of: "a", .right) == "b")
+    // Four rows share the edge equally: the top one (herdr's `pane.neighbor` gave the second).
+    #expect(tree.neighbor(of: "b", .right) == "r1")
+    #expect(tree.neighbor(of: "b", .right, used: ["r3", "a"]) == "r3")
+    #expect(tree.neighbor(of: "r3", .left) == "b")
+    #expect(tree.neighbor(of: "r3", .up) == "r2")
+    #expect(tree.neighbor(of: "r4", .down) == nil)
+    #expect(tree.neighbor(of: "a", .left) == nil)
+    // The one sharing most: the first column's top pane covers most of the second's edge.
+    let uneven = right(0.5, down(0.7, leaf("t"), leaf("u")), leaf("v"))
+    #expect(uneven.neighbor(of: "v", .left) == "t")
+    #expect(right(0.5, down(0.3, leaf("t"), leaf("u")), leaf("v")).neighbor(of: "v", .left) == "u")
+    #expect(uneven.neighbor(of: "u", .up) == "t")
+}
