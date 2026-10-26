@@ -26,6 +26,8 @@ enum InterfaceStyle: String {
 struct Look {
     let style: InterfaceStyle
     let dark: Bool
+    /// Increase Contrast: the dim colors below are stronger. The system's own colors follow it by themselves.
+    var contrast = false
 
     /// Glass: over the behind-window blur, blended `overlay` under `window`; it darkens the blur in dark.
     var backdrop: Color {
@@ -70,9 +72,9 @@ struct Look {
              keyboard ? (.black.opacity(0.18), 0.8) : (.black.opacity(0.12), 0.7))
     }
 
-    /// A divider's grip: gorex's muted icon color at 0.6.
+    /// A divider's grip: 3.3:1 or more on the window too (gorex's muted icon color was 2.1:1 in light; phase 33).
     var grip: Color {
-        Color.secondary.opacity(0.6)
+        paneButton
     }
 
     /// Glass light only, as in Rex (Classic light has none).
@@ -82,17 +84,17 @@ struct Look {
 
     /// The tab bar's track; none in Classic dark, as in Rex.
     var track: Color {
-        style == .classic && dark ? .clear : .primary.opacity(0.05)
+        style == .classic && dark ? .clear : .primary.opacity(contrast ? 0.1 : 0.05)
     }
 
     /// Text and glyphs of the title row and the sidebar, a step dimmer than primary text as in Rex.
     var chrome: Color {
-        (dark ? Color.white : .black).opacity(0.65)
+        (dark ? Color.white : .black).opacity(contrast ? 0.85 : 0.65)
     }
 
     /// A divider between tabs, as in Rex.
     var divider: Color {
-        dark ? .white.opacity(0.17) : .black.opacity(0.14)
+        dark ? .white.opacity(contrast ? 0.3 : 0.17) : .black.opacity(contrast ? 0.28 : 0.14)
     }
 
     /// The selected tab's and workspace row's title.
@@ -100,9 +102,9 @@ struct Look {
         (dark ? Color.white : .black).opacity(0.9)
     }
 
-    /// A card header's buttons, dimmer than the title row's.
+    /// A card header's buttons, dimmer than the title row's; 3.3:1 or more on the card (Rex's was 2.3:1 in light).
     var paneButton: Color {
-        (dark ? Color.white : .black).opacity(0.33)
+        (dark ? Color.white : .black).opacity(dark ? (contrast ? 0.6 : 0.42) : (contrast ? 0.65 : 0.45))
     }
 
     var working: Color {

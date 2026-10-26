@@ -135,10 +135,11 @@ struct FloatingWindow: View {
     @State private var palette = false
     private var settings = AppSettings()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.dismissWindow) private var dismissWindow
 
     private var look: Look {
-        Look(style: settings.style, dark: colorScheme == .dark)
+        Look(style: settings.style, dark: colorScheme == .dark, contrast: colorSchemeContrast == .increased)
     }
 
     var body: some View {

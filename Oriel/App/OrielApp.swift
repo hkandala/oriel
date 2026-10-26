@@ -218,11 +218,12 @@ private struct WindowContent: View {
     @State private var height: CGFloat = 0
     private var settings = AppSettings()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let style = settings.style, appearance = settings.appearance
-        let look = Look(style: style, dark: colorScheme == .dark)
+        let look = Look(style: style, dark: colorScheme == .dark, contrast: colorSchemeContrast == .increased)
         let commands = CommandList(pages: pages, palette: open(.palette), sidebar: $sidebar, agents: $agents,
                                    openSession: open(.openSession), shortcuts: open(.shortcuts),
                                    settings: settings)
