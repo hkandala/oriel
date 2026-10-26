@@ -143,13 +143,11 @@ extension OrielUITests {
         XCTAssertTrue(zip(offsets, offsets.dropFirst()).allSatisfy { $0 <= $1 }, "\(swipe)")
         // Within 2 pt of the page: 0.14 s from rest takes about 0.13 s; the 0.2 s spring from the fingers' speed 0.17
         // to 0.19 s here, the system's snap 0.33 s.
-        let settled = path.first { abs($0[1] - target) <= 2 }?[0] ?? 0
+        let settled = path.first { abs($0[1] - width + 8) <= 2 }?[0] ?? 0
         XCTAssertGreaterThan(settled, 150, "\(swipe)")
         XCTAssertLessThan(settled, 400, "\(swipe)")
-        // The window shows the session as the pages look arrived, not in the spring's tail (150–200 ms later, phase
-        // 28).
         XCTAssertGreaterThan(shown, 0, "\(swipe)")
-        XCTAssertLessThan(shown - settled, 80, "\(swipe)")
+        XCTAssertLessThan(beforeShow(path, shown) - settled, 80, "\(swipe)")
         // A step at least every 100 ms until then: no stall (a slide started at the scroll view's own end stood still
         // 100–350 ms, then jumped). A debug build under XCUITest still drops a few frames at the start (about 50 ms).
         let steps = times.filter { $0 <= settled }
@@ -195,7 +193,7 @@ extension OrielUITests {
         // A step at least every 100 ms until the page: no stall. The session shows with it.
         let settled = path.first { abs($0[1] - sidebar.frame.width + 8) <= 2 }?[0] ?? 1000
         XCTAssertLessThan(settled, 400, "\(swipe)")
-        XCTAssertLessThan(shown - settled, 80, "\(swipe)")
+        XCTAssertLessThan(beforeShow(path, shown) - settled, 80, "\(swipe)")
         let steps = path.map { $0[0] }.filter { $0 <= settled }
         XCTAssertLessThan(zip(steps, steps.dropFirst()).map { $1 - $0 }.max() ?? 1000, 100, "\(swipe)")
     }
@@ -317,6 +315,14 @@ extension OrielUITests {
                 ? words[2].split(separator: ",").map { $0.split(separator: ":").compactMap { Double($0) } } : []
             return (String(swipe), path, words.count > 3 ? Double(words[3]) ?? -1 : -1)
         }.filter { $0.1.count > (name == "page" ? 1 : 4) }
+    }
+
+    /// The ms of the slide's last frame before the show's. The window shows the session as the pages look arrived, not
+    /// in the spring's tail (150–200 ms after they are within 2 pt, phase 28): the show runs in the first frame after
+    /// the spring is logically complete, so the frame before it is still near the page. Not the show's own time: a late
+    /// frame delays it (CI's VM drew none for 60 ms there, the show 80 ms after the page in 40283556151).
+    private func beforeShow(_ path: [[Double]], _ shown: Double) -> Double {
+        path.filter { $0[0] <= shown }.dropLast().last?[0] ?? 0
     }
 
     private func launchRecordingLatency(_ args: [String] = []) throws {
