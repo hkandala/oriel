@@ -4,6 +4,20 @@
     import Observation
     import SwiftUI
 
+    /// Runs `body` on the main run loop after Core Animation's commit (order 2000000), which runs before waiting and on
+    /// a loop's exit: what the turn drew (before waiting alone missed a flicker). Also on the `extra` activities.
+    @discardableResult
+    func afterCommit(_ extra: CFRunLoopActivity = [], _ body: @escaping @MainActor (CFRunLoopActivity) -> Void)
+        -> CFRunLoopObserver
+    {
+        let activities = CFRunLoopActivity.beforeWaiting.rawValue | CFRunLoopActivity.exit.rawValue | extra.rawValue
+        let observer = CFRunLoopObserverCreateWithHandler(nil, activities, true, Int.max) { _, activity in
+            MainActor.assumeIsolated { body(activity) }
+        }
+        CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
+        return observer!
+    }
+
     /// e2e (`-recordLatency YES`): for each key or click, the time from the event to the end of the run loop turn whose
     /// Core Animation commit drew a change of the key window (its page, workspace, tab, tabs, cards, panel or dialog),
     /// and how many turns that took: "⌘T 12ms 0" (phase 25).
@@ -31,19 +45,13 @@
                 MainActor.assumeIsolated { self.meter.scrolled() }
                 return event
             }
-            // After Core Animation's commit (order 2000000), as `-recordLights` does.
-            let turn = CFRunLoopActivity.beforeWaiting.rawValue | CFRunLoopActivity.exit.rawValue
-                | CFRunLoopActivity.afterWaiting.rawValue
-            let observer = CFRunLoopObserverCreateWithHandler(nil, turn, true, Int.max) { _, activity in
-                MainActor.assumeIsolated {
-                    if activity == .afterWaiting {
-                        self.awake = ProcessInfo.processInfo.systemUptime
-                    } else {
-                        self.turned()
-                    }
+            afterCommit(.afterWaiting) { activity in
+                if activity == .afterWaiting {
+                    self.awake = ProcessInfo.processInfo.systemUptime
+                } else {
+                    self.turned()
                 }
             }
-            CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
             Task {
                 while true {
                     try? await Task.sleep(for: .seconds(5))

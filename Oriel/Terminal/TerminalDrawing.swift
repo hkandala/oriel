@@ -95,13 +95,11 @@
 
         func takeSnapshot() {
             guard let surface = view.picture as? IOSurface, surface.width > 0 else { return }
-            var state: UInt32 = 0
-            // 3 reads the state, 2 is emptied (`keepPicture`).
-            IOSurfaceSetPurgeable(surface, 3, &state)
             let small = CIImage(ioSurface: surface).applyingFilter("CILanczosScaleTransform", parameters: [
                 kCIInputScaleKey: min(1, 480 / CGFloat(surface.width)),
             ])
-            guard state != 2, let small = Self.context.createCGImage(small, from: small.extent.integral) else { return }
+            guard !surface.emptied,
+                  let small = Self.context.createCGImage(small, from: small.extent.integral) else { return }
             snapshot = small
             Self.snapshots.removeAll { $0 === self }
             Self.snapshots.append(self)
@@ -185,7 +183,7 @@
             guard controller == nil, let surface = still?.contents as? IOSurface else { return }
             var old: UInt32 = 0
             IOSurfaceSetPurgeable(surface, volatile ? 1 : 0, &old)
-            if !volatile, old == 2 {
+            if !volatile, old == IOSurfacePurgeabilityState.purgeableEmpty.rawValue {
                 still?.removeFromSuperlayer()
                 still = nil
                 // The next reveal fades in, as a first one.
@@ -199,11 +197,8 @@
         /// window again: a blank frame on every return (CI, phase 27), and lane O's evicted stills came back empty and
         /// faded in. About 2 ms and 17 MB for a full-window card on Retina.
         func keepPicture() {
-            guard still == nil, let layer, let surface = layer.contents as? IOSurface else { return }
-            var state: UInt32 = 0
-            // 3 reads the state, 2 is empty.
-            IOSurfaceSetPurgeable(surface, 3, &state)
-            guard state != 2, let copy = Self.copy(surface) else { return }
+            guard still == nil, let layer, let surface = layer.contents as? IOSurface, !surface.emptied,
+                  let copy = Self.copy(surface) else { return }
             let still = CALayer()
             still.contents = copy
             still.contentsGravity = layer.contentsGravity
@@ -238,6 +233,16 @@
             copy.unlock(options: [], seed: nil)
             surface.unlock(options: .readOnly, seed: nil)
             return copy
+        }
+    }
+
+    extension IOSurface {
+        /// libghostty freed it (`kIOSurfacePurgeableEmpty`), or the system took back a volatile one: its pixels are
+        /// gone.
+        var emptied: Bool {
+            var state = IOSurfacePurgeabilityState()
+            setPurgeable(.purgeableKeepCurrent, oldState: &state)
+            return state == .purgeableEmpty
         }
     }
 #endif

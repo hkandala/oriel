@@ -66,18 +66,11 @@
 
             /// e2e (`-recordLights YES`): counts the run loop turns that drew a traffic light off its place.
             private func recordLights() {
-                // After Core Animation's commit (order 2000000), which runs before waiting and on a loop's exit: what
-                // this turn drew. Before waiting alone missed the flicker.
-                let turn = CFRunLoopActivity.beforeWaiting.rawValue | CFRunLoopActivity.exit.rawValue
-                let observer = CFRunLoopObserverCreateWithHandler(nil, turn, true, Int.max) { [weak self] _, _ in
-                    MainActor.assumeIsolated {
-                        if let self, !self.moved().isEmpty {
-                            self.lightsOff()
-                        }
+                lightsObserver = afterCommit { [weak self] _ in
+                    if let self, !self.moved().isEmpty {
+                        lightsOff()
                     }
                 }
-                CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
-                lightsObserver = observer
             }
 
             override func stop() {
