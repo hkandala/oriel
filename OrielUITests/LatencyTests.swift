@@ -211,8 +211,8 @@ extension OrielUITests {
         }.filter { $0.1.count > 4 }
     }
 
-    func launchRecordingLatency(_ args: [String] = [], session: String? = nil) throws {
-        relaunch(session ?? one, ["-recordLatency", "YES"] + args)
+    private func launchRecordingLatency(_ args: [String] = []) throws {
+        relaunch(one, ["-recordLatency", "YES"] + args)
         XCTAssertTrue(element("pane.w1:p1").exists(within: connect))
         // Also after a failed step.
         addTeardownBlock { @MainActor in

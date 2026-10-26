@@ -12,7 +12,13 @@ extension OrielUITests {
         addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
         let made = try await String(decoding: Self.post("\(eight)/stress", Data("300 30 600 100".utf8)), as: UTF8.self)
         print(made)
-        try launchRecordingLatency(session: eight)
+        // From the launch to the first card drawn: before phase 29 it stayed blank past 30 s on CI.
+        let launched = Date.now
+        relaunch(eight, ["-recordLatency", "YES"])
+        // Also after a failed step.
+        addTeardownBlock { @MainActor in self.note(self.element("app.latency").stringValue) }
+        XCTAssertTrue(element("pane.w1:p1").exists(within: 120))
+        note("connect \(Int(Date.now.timeIntervalSince(launched) * 1000))ms")
         // The first snapshot's program asks (one per pane), and the agents' first states.
         try await Task.sleep(for: .seconds(10))
 
@@ -74,6 +80,15 @@ extension OrielUITests {
         try await Task.sleep(for: .seconds(2.5))
         key("w", .command) { cards.count == 1 }
         key("w", [.command, .shift]) { !self.element("tab.\(new)").exists }
+    }
+
+    /// A line in the result bundle and the log.
+    private func note(_ text: String) {
+        print(text)
+        let attachment = XCTAttachment(string: text)
+        attachment.name = "stress"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     /// herdr's tab ids of the session.
