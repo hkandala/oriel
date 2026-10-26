@@ -114,3 +114,30 @@ HerdrKit except SSHExec, Relay and StartServer, with its tests: every line read.
   closes in that first instant never calls `terminate` (harmless: the run already ended). A login shell slower
   than 3 s at launch finds no herdr until the next ask 30 s later; under a load of 200 a local integration test
   saw `.notFound` once (a rerun passed). No big items.
+
+### r-remote
+
+SSHExec, Relay, StartServer (and SSHExecTests), Machines, Presence, RemoteHost: every line read, the relay's
+Perl too. No dead code, flags or test hooks found (`-machines` and `-session` have readers in RemoteTests).
+
+- **Bugs fixed.** (1) A master gone while its pid lived on (reused) or its socket was deleted kept
+  `connection` set for good: every run failed with "Oriel needs Perl", and the ponytail note claimed it
+  cleared "until a run fails". A relay that does not start now asks `-O check` once; a master that answers
+  with another pid or not at all is dropped, so the next run starts a new one (`currentRelay`). (2) Quit ran
+  `ssh -O exit` per machine on the main thread and waited without limit: a stopped master hung the quit. No
+  wait now; the child outlives the app (a-security-a11y). (3) An ssh answer pasted with a newline sent its
+  second line to ssh's next question, as a password try; only the first line goes now (a-security-a11y).
+  (4) The remote host and question dialogs were not modal to VoiceOver, and a question appeared silently;
+  `isModal` and an announcement of ssh's text (a-security-a11y). No unit test: the master's life needs an
+  sshd, which only the UI tests have (RemoteTests on CI's sshd, run below).
+- **Simpler.** The 10 s mark refresh walks `HostStore.all` once, not every visible window's stores (a store in
+  two windows sent every mark twice); `WindowPages.markShown(refresh:)` lost its parameter. `unhex` lost a
+  redundant bound check.
+- **Comments.** 6 fixed: three broken doc wraps (SSHExec's login timeout, Relay's protocol and script docs),
+  `k` closes stdin after the kill (said before), askpass is written on the first asking connect (said "at
+  launch"), the Perl `k` comment's history ("as with a killed ssh before"), and the stale ponytail above.
+- **Skipped.** Moving `thisMacIcon` from TitleBar.swift into Machines.swift (a-ponytail-app): a move across
+  two owners' files breaks main between the two pushes, for one block's place.
+- **For the user (small, not changed).** The sockets' folder and askpass are made once per launch
+  (`static let`): a cache cleaner that deletes `~/Library/Caches/oriel` while Oriel runs breaks remote
+  connects until a relaunch. Cost: make both per start (about 5 lines). Recommendation: leave it unless seen.
