@@ -153,29 +153,29 @@ metadata tokens, so it works for an agent on any machine Oriel follows
 
 | Step | Who | What |
 |---|---|---|
-| Presence | Oriel | `pane.report_metadata` on each pane in view of a visible window (the shown tab of the page in view, and the floated panes): source `oriel`, token `oriel-shown` = `1`, `ttl_ms` 30000. Written when a pane comes into view, again every 10 s while it stays, and cleared (`null`) when it leaves view, its page closes or its window hides or closes. Over the relay for a remote machine |
+| Presence | Oriel | `pane.report_metadata` on each pane in view of a visible window (the shown tab of the page in view, and the floated panes): source `oriel`, token `oriel-shown` = `1`, `ttl_ms` 30000. Written when a pane comes into view, again every 10 s while it stays, and cleared (`null`) when it leaves view, its page closes, its window hides or closes, or the app quits (which waits up to 1 s for it). Over the relay for a remote machine |
 | Ask | the tool, at a click | `pane.get` of its own pane on its own herdr socket (a few ms, on the agent's machine). With `oriel-shown`: `pane.report_metadata` on its pane, source `pi-herd`, tokens `oriel-float` = `‹session›/‹pane id›` (a session on the same machine) and `oriel-float-id` = a nonce (a UUID), `ttl_ms` 1000; no popup. Without it: herdr's popup at once |
-| Float | Oriel | on the `pane.updated` event carrying `oriel-float` with a nonce it has not seen: floats the pane over a main window of the machine the event came from ([`oriel://float`](/docs/ui/window#floating-pane)'s path, a float-only page when the session has none) |
+| Float | Oriel | on the `pane.updated` event carrying `oriel-float` with a nonce it has not seen: floats the pane over the window where the user last typed or clicked in a card of the asking session ([`oriel://float`](/docs/ui/window#floating-pane)'s path, a float-only page when the session has none) |
 
 - herdr sends `pane.updated` with the whole pane, `tokens` included, on
-  each report and again when a token expires. The event arrives about
-  100 ms after the report (measured locally, herdr 0.9.5). `pane.get` and
+  each report and again when a token expires. `pane.get` and
   `session.snapshot` list the tokens as well.
 - The tokens are one map per pane, by name, whatever the source: a report
   changes only the tokens it names. Oriel's never touch pi's own metadata
   (agent, title, state labels, its tokens). Two Macs showing one pane share
-  `oriel-shown`: one's clear drops the other's mark until its next refresh.
-- Each token's `ttl_ms` is its own. An app that quit or crashed stops
-  claiming its panes within 30 s.
-- The float request is the only event payload Oriel reads. It acts on the
-  event, not on the snapshot after it. Every change of the asking pane
-  (Oriel's own mark too) sends the request again until it expires, so
-  Oriel floats once per nonce. It acts only on events: a request from
-  before its stream opened is never floated.
+  `oriel-shown`: one's clear drops the other's mark until its next refresh,
+  and both float a request.
+- Each token's `ttl_ms` is its own. An app that crashed stops claiming its
+  panes within 30 s. A pane herdr moves keeps its mark until then too (the
+  clear goes to its old pane id).
+- Every change of the asking pane (Oriel's own mark too) sends the request
+  again until it expires, so Oriel floats once per nonce. It acts only on
+  events: a request from before its stream opened, or while it reopens
+  (the agent panes changed), is lost, and the click does nothing.
 - A click in herdr's own TUI on a pane that Oriel also shows floats it in
   Oriel, not in herdr's popup: the mark says only that Oriel shows the pane.
-- Limits (herdr 0.9.5): names match `^[A-Za-z0-9_-]{1,32}$` (no dots), at
-  most 16 tokens per report and 32 per pane, values cut at 80 characters.
+- herdr 0.9.5: names match `^[A-Za-z0-9_-]{1,32}$` (no dots), 16 tokens per
+  report and 32 per pane at most, values cut at 80 characters.
 
 ## Reconcile
 
