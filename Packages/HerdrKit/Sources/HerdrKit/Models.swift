@@ -265,8 +265,9 @@ public struct Session: Decodable, Equatable, Sendable {
     public let running: Bool
 
     /// herdr's rule for session names: ASCII letters, digits, `.`, `_` and `-`, at most 64 bytes, not `.` or `..`.
+    /// Not a leading `-` either: names from outside (float requests) go into argv, where it reads as an option.
     public static func isValidName(_ name: String) -> Bool {
-        !name.isEmpty && name.utf8.count <= 64 && name != "." && name != ".."
+        !name.isEmpty && name.utf8.count <= 64 && name != "." && name != ".." && !name.hasPrefix("-")
             && name.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || "._-".contains($0)) }
     }
 }

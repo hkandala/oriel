@@ -124,7 +124,7 @@ private func snapshot() throws -> Snapshot {
 @Test func `session names follow herdr's rule`() {
     #expect(Session.isValidName("lunar-ridge.2_x"))
     #expect(Session.isValidName(String(repeating: "a", count: 64)))
-    for name in ["", ".", "..", "a b", "a/b", "ü", String(repeating: "a", count: 65)] {
+    for name in ["", ".", "..", "-x", "--help", "a b", "a/b", "ü", String(repeating: "a", count: 65)] {
         #expect(!Session.isValidName(name))
     }
 }
