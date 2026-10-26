@@ -16,6 +16,8 @@
         /// The tab whose miniature grows to the page, from its tile's frame; `grown` once it moves.
         @State private var zoom: Zoom?
         @State private var grown = false
+        /// Fades in once open (phase 29).
+        @State private var opened = false
         @State private var monitor: Any?
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -93,9 +95,11 @@
                 }
             }
             .coordinateSpace(.named(Self.space))
+            .opacity(opened ? 1 : 0)
             // The keyboard leaves the terminals, which take none while in a miniature (`PaneSurfaceView`). Esc by a
             // monitor: a SwiftUI focus did not take the keyboard from a terminal moving into a miniature (CI).
             .onAppear {
+                withAnimation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18)) { opened = true }
                 pages.window?.makeFirstResponder(nil)
                 monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                     guard event.keyCode == 53 else { return event }
@@ -132,7 +136,7 @@
             zoom = Zoom(page: page, tab: tab, from: from)
             // Next turn: a view inserted in the same update as the change starts at its end, with no motion.
             Task {
-                withAnimation(.easeOut(duration: 0.25)) { grown = true } completion: {
+                withAnimation(.easeOut(duration: 0.18)) { grown = true } completion: {
                     pages.closeOverview()
                 }
             }

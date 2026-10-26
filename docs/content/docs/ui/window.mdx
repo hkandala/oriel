@@ -544,7 +544,8 @@ once.
 - **What it hides.** The sidebar, the tab bar and every title-row button: the
   row keeps only the traffic lights and, at its end, one × (Close Overview,
   ⌃⌘O) that leaves the overview. ⌘K and ⌘. still work. The overview covers
-  the window below the title row.
+  the window below the title row and fades in over 0.18 s as it opens (ease
+  out; at once under Reduce Motion).
 - **Canvas.** One page per session of the window, side by side: a sideways
   swipe (or a wheel with Shift) moves to the next or previous session, as on
   the sidebar, and the page it lands on becomes the window's page in view.
@@ -569,7 +570,7 @@ once.
   shows × at its end (Close Tab, as the tab bar's ×: it asks only when a
   program runs).
 - **Click.** A click on a tile selects its workspace and tab and leaves the
-  overview: the tile's miniature grows to the strip's page over 0.25 s
+  overview: the tile's miniature grows to the strip's page over 0.18 s
   (ease out), its terminals scaling up live, then the strip shows. Esc, the title
   row's × and ⌃⌘O leave the same way, from the selected tab's tile (at once
   when that tile is scrolled away). Under Reduce Motion it leaves at once. ⌘.
