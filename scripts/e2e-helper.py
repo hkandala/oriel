@@ -13,6 +13,7 @@ terminal.
 POST /<session>/open-folder with the built app's path as the body makes a folder in /tmp and opens it with the
 app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>` (a running app ignores
 `--args`). The folder's path comes back.
+POST /<session>/open-url with the built app's path, a newline and an oriel:// URL opens the URL with that app (`open -g -a`).
 POST /<session>/file-drag with "x y tx ty" (screen points) as the body makes a file whose name needs shell escaping in
 a new folder in /tmp, shows its icon at x y in a window of scripts/file-drag.swift and drags it to tx ty
 (scripts/drag.swift: both points in an Oriel window). The file's path comes back once a drop took it.
@@ -189,8 +190,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 argv += ["--takeover"] if action == "takeover" else []
                 body = b""
             elif action == "children":
-                # The helper runs one request at a time, so none of these is its own. Anchored: the shell that
-                # wraps an `observe` run is not a run of its own.
+                # Tests ask while no other request of theirs runs, so none of these is the helper's own. Anchored:
+                # the shell that wraps an `observe` run is not a run of its own.
                 argv = ["pgrep", "-lf", f"^[^ ]*herdr --session {session} (terminal session|remote-api-bridge)"]
             elif action == "stop":
                 argv = ["herdr", "session", "stop", session]
@@ -212,8 +213,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pass
 
 
-# Not HTTPServer: its getfqdn() lookup raised the Local Network prompt on CI.
-server = socketserver.TCPServer(("127.0.0.1", 0), Handler)
+# Not HTTPServer: its getfqdn() lookup raised the Local Network prompt on CI. Threading: a test's `sample` runs while
+# its swipes do.
+server = socketserver.ThreadingTCPServer(("127.0.0.1", 0), Handler)
+server.daemon_threads = True
 threading.Thread(target=server.serve_forever, daemon=True).start()
 # xcodebuild passes TEST_RUNNER_* to the tests without the prefix.
 env = {**os.environ, "TEST_RUNNER_ORIEL_HELPER": f"http://127.0.0.1:{server.server_address[1]}",
