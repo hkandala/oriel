@@ -97,6 +97,7 @@ extension OrielUITests {
     /// never shown tabs of 9 panes each, side by side, more than the 16 live cards together. Before, the one past the
     /// cap stayed blank as long as it was in view.
     func testOverviewLoadsEveryTileInTurn() async throws {
+        relaunch(nil, ["-recordLatency", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (first, root) = try await createWorkspace("loads")
         let second = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: first), "cwd": "/tmp",
@@ -111,11 +112,13 @@ extension OrielUITests {
         app.typeKey("o", modifierFlags: [.command, .control])
         let tile = try element("overview.tab.\(id(second, "tab"))")
         scrollOverview(to: tile)
-        // One waits for the other's cards to draw, with a loader meanwhile.
-        let loaders = try [first, id(second, "tab")].map { element("overview.tab.\($0).loading") }
-        XCTAssertTrue(until(2) { loaders.contains { $0.exists } })
+        // One waits for the other's cards to draw, with a loader meanwhile (recorded: CI's queries are too slow to see
+        // it).
+        let tabs = try [first, id(second, "tab")], loaders = tabs.map { element("overview.tab.\($0).loading") }
         // Every card drew: no loader left (one query each, not one per card: CI's queries are slow).
         XCTAssertTrue(until(30) { !loaders.contains { $0.exists } })
+        let record = element("app.latency").stringValue
+        XCTAssertTrue(tabs.allSatisfy { record.contains("loader \($0)") }, record)
     }
 
     /// The title row has the traffic lights and one × only; the grid (its first row's two tiles) is centered with wide

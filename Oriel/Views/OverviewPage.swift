@@ -118,6 +118,8 @@
                 .overlay {
                     if loading {
                         Waiting().accessibilityIdentifier("overview.tab.\(tab.id).loading")
+                            // e2e (`-recordLatency`): it showed, however briefly.
+                            .onAppear { Latency.shared.note("loader \(tab.id)") }
                     }
                 }
                 // It drew: a tile waiting loads.
