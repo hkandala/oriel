@@ -40,18 +40,25 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 - A push cancels the push run in flight (`cancel-in-progress`). A dispatch never cancels a push run or
   another dispatch. So batch pushes while a full run matters, and use chosen-tests runs for single checks.
 - Docs-only pushes skip CI.
+- **Sign off** with a full run on your own last commit: another lane's push can cancel yours, so dispatch
+  one (`gh workflow run ci.yml --ref main`) if needed, and judge a run by which tests failed, not by its
+  color.
+- **Old code or work in progress on CI** (a remote probe while the GUI is busy, or to prove a test is red
+  on the old code): commit on a detached HEAD, push a tag, `gh workflow run ci.yml --ref <tag> -f
+  only_testing=…`, read the result, delete the tag.
 
 ## A test fails only on CI
 
-1. Read the result before guessing: `gh run download <id> -p 'e2e-xcresult-*'` (one per shard), then
+1. Check which commit the red run was on: often a later commit already fixed it.
+2. Read the result before guessing: `gh run download <id> -p 'e2e-xcresult-*'` (one per shard), then
    `xcrun xcresulttool get test-results tests|activities --path …` for the failing step and its values, and
    `xcresulttool export attachments` for the screen recording (`ffmpeg -ss <s> -frames:v 1` gets a frame).
-2. Think of CI's machine: a 1x display (grid and pixel checks must hold at 1x), a small window (windows
+3. Think of CI's machine: a 1x display (grid and pixel checks must hold at 1x), a small window (windows
    overlap: pick them by identifier, never by position), the US layout (Option sends Alt), Reduce Motion on
    (a test of motion launches with `-forceMotion YES`).
-3. Give it 20 minutes from the logs. Then simplify the test or the feature and write it down, or hand it on.
+4. Give it 20 minutes from the logs. Then simplify the test or the feature and write it down, or hand it on.
    No debug branches.
-4. Check a fix with `gh run rerun <id>` on the same commit too, not only one green run.
+5. Never rerun to green. A fix is proven by two full runs in a row green on the first try.
 
 ## Writing fast tests
 

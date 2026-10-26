@@ -45,10 +45,15 @@ The design in `docs/content/docs/` wins on any conflict about what the app does.
 ### Feedback rounds
 
 The user tries the app and sends a list, screenshots or a Scrawl capture (screen, voice and red marks). Read
-a capture fully, every frame, before acting. The orchestrator numbers the items, settles the open points
-itself, and groups them into lanes in one phase file. Items that come in during the round become new lanes
-in the same file. Each lane writes its Findings under its own heading and updates the design pages it
-changes.
+a capture fully, every frame, before acting. The orchestrator numbers the items, passes each lane the user's
+exact words and repro, settles the open points itself, and groups the items into lanes in one phase file.
+Items that come in during the round become new lanes in the same file. Each lane writes only under its own
+heading (on a merge conflict in the phase file, keep both sides) and updates the design pages it changes.
+Before reporting, the orchestrator checks that every item landed: the user should never have to ask twice.
+
+- Every fix of a user-reported bug gets a test that is red on the old code, and its root cause goes in
+  Findings, so later lanes and reviewers check it. Fixes came back broken when either was missing.
+- Decide once, then send one message. When the user asks "why", answer and change nothing.
 
 ## Mechanics
 
@@ -58,7 +63,9 @@ changes.
   and commit there. When done, `git worktree remove ../oriel-NN<lane>` and `git branch -D wt-NN<lane>`.
 - **Push straight to main.** No remote branches, no PRs: `git pull --rebase --autostash origin main`, then
   `make lint build test` on the rebased tree, then `git push origin HEAD:main`. After a rebase over another
-  lane's work, check your commits did not revert theirs.
+  lane's work, check your commits did not revert theirs, and that no file passed the 400-line limit.
+- **Code that moves between two owners' files** is one atomic commit by one agent. Lanes may agree on a
+  shared API directly with each other (`agent_send`); one owner writes it.
 - **Never `git stash`.** Worktrees share one stash list: a pop in one worktree can take another's stash.
   Commit first, or let `--autostash` do it.
 - **Own DerivedData per worktree:** `DERIVED_DATA=/tmp/oriel-dd-NN<lane>` (the Makefile honors it).
@@ -106,8 +113,9 @@ drives the GUI at a time:
 
 A push to main runs the full suite (10–14 minutes, 5 machines). Don't sit waiting on it between steps: push
 and keep working, check it at the end. While a full run matters, batch pushes (a push cancels the run in
-flight). For one or two tests, use a chosen-tests run instead of a full run or a local run. Details:
-[ci.md](ci.md).
+flight). For one or two tests, use a chosen-tests run instead of a full run or a local run. Every red test in a
+full run gets an owner: a lane reports its own tests green and lists the other reds; the orchestrator finds
+the commit that broke them and tells its lane. Details: [ci.md](ci.md).
 
 ### Agents
 
@@ -117,7 +125,9 @@ flight). For one or two tests, use a chosen-tests run instead of a full run or a
   orchestrator.
 - **Ask** with `needsReply: true` when you want an answer; you are woken when it replies or stops. FYIs go
   with `needsReply: false`. Never send acknowledgements.
-- **Wait** without polling: `agent_watch` with no timeout for an agent already working; no sleep loops.
+- **Wait** without polling: watch every agent you start (`agent_watch` with no timeout for one already
+  working); no sleep loops. Never end a turn on "waiting for run X": wait in a background command and
+  report the result.
 - **Stop** agents when their work is done, together in one `agent_stop`. Read a stuck one with
   `agent_read` (with `screen: true`).
 - An agent asks the orchestrator only when the design and these rules don't answer it; the orchestrator
@@ -141,14 +151,19 @@ CLI only from the repo root; in another folder `vercel pull --yes` creates and l
 4. Small commits, `make lint build test` green, push as you go.
 5. Run only the UI tests you add or change (one local run under the lock, or a chosen-tests CI run).
 6. Self-review the diff against the phase file and the ponytail rules.
-7. **Review round 1** in parallel: spec, ponytail, e2e (table below). Fix every blocker and should;
+7. Commit and push (Findings too) before starting reviewers, and name the SHA. Reviewers review that SHA
+   in a clean copy (`git worktree add /tmp/… <sha>`, their own DerivedData), never your working tree.
+   **Review round 1** in parallel: spec, ponytail, e2e (table below). Fix every blocker and should;
    answer each nit with a fix or a one-line reason. **Later rounds** only after fixes: the spec reviewer
-   alone, plus the e2e reviewer if its own blocker was fixed. Stop when a round is clean; at most 4 rounds.
+   alone, plus the e2e reviewer if its own blocker was fixed; their brief maps each finding to its fix
+   commit and asks what the fixes touched. Stop when a round is clean; at most 4 rounds.
    A small phase (a few files, no new view) gets round 1 only.
 8. Update the design pages you changed, in plain English.
 9. CI's full run green on the last code commit.
-10. Write the Findings and report: what was built, the commits, the tests and CI run ids, screenshot paths,
-    anything open. At 2 hours, report progress anyway.
+10. Done is a checklist: design pages match the final code; Findings with the root cause, numbers before and
+    after, and the red (old code) and green run ids; CI green on the last code commit. Report what was
+    built, the commits, the tests and run ids, screenshot paths, anything open. At 2 hours, report progress
+    anyway.
 
 ### The orchestrator's check after each phase or lane
 

@@ -12,13 +12,16 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
 - **Write tests for CI's machine:** a 1x display, a small window where windows overlap and only about three
   tabs fit, the US layout, Reduce Motion on. Pick windows by identifier, select far tabs by key, launch
   motion tests with `-forceMotion YES`. Each of these broke tests that were green locally.
-- **Prove a new test is red on the old code before you trust the fix.** Build the old code from a throwaway
-  tag. Several guards passed on the bug they were meant to catch.
+- **Make every assertion fail without the feature, and prove it on the old code** (a throwaway tag, put
+  both run ids in Findings). "Tests that cannot fail" was the reviewers' most repeated catch: an absence
+  checked before the menu opened, a wait already true, a check a fallback also satisfies.
 - **Before a click, wait for what is drawn, not for herdr's or the model's state.** Otherwise the click
   lands on the old frame (a sliding button, a moved card, a menu still loading).
-- **Accessibility identifiers go on leaf elements, before any `.overlay`.** A container's or overlay's
-  identifier leaks onto its children and gives duplicate matches. After any accessibility or overlay
-  change, run the whole suite: a view laid over content takes every hit test.
+- **The accessibility tree misleads.** A container's or overlay's identifier leaks onto its children (put
+  ids on leaf elements, before any `.overlay`); a hidden but kept view still has its ids (duplicates); a
+  window-sized element takes every hit test; a plain `Text` has an empty label (read its value); lazy
+  stacks build only visible rows. After a change to a shared surface (ids, keys, menu order, the chrome),
+  grep the UI tests for it and run the whole suite.
 - **Scope every query.** `app.windows.firstMatch` can be a tooltip, a hover card or a floating pane, and
   menu bar items share names with context menu items. Use `app.windows[id]` and the menu's own items.
 - **An accessibility client changes the app it watches.** It hides lazy-layout bugs and slows large UIs.
@@ -31,7 +34,10 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
   recording.
 - **Tests share defaults and saved windows with the user's Oriel (same bundle id).** Pin settings with
   launch arguments, reset them in teardown, launch with `-ApplePersistenceIgnoreState`.
-- **Tests undo the herdr state they change**, so the next test starts from the known layout.
+- **Each test restores what it changes** (defaults, herdr focus, the pointer, leftover sessions) and reads
+  fixture ids from herdr instead of assuming them. A test that passes alone fails in its shard.
+- **Never assert wall-clock time.** CI's VMs are slower and uneven; in unit tests compare against a ten
+  times larger input or count the work.
 
 ## CI
 
@@ -39,6 +45,8 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
   try. "Taken as a flake" came back every time.
 - **Run `make lint` on the rebased tree and check exit codes; never pipe a check through `grep`.** Main went
   red from a rebase that pushed a file over the length limit, and from a piped command that hid a failure.
+- **The 400-line file limit is a shared budget.** Several lanes add to the same big files: check `wc -l`
+  after each rebase and split a file that is close to the limit before adding to it.
 
 ## herdr
 
@@ -46,17 +54,43 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
   and defaults. `pane.swap` moves focus despite `focus:false`; `pane.move` without a target splits the
   focused pane; some calls write outside the throwaway session. The design pages were wrong about herdr
   more than once.
+- **herdr ids repeat:** tab ids (`w1:t1`) across sessions, session names across machines. Key state by
+  (machine, session, id).
+- **Remote machines get one multiplexed SSH connection each:** hosts with one-time passcodes or a low
+  `MaxSessions` refuse more. CI's sshd runs with `MaxSessions 2` to catch it.
+- **Validate outside input before it reaches argv or a shell:** `oriel://` URLs, herdr metadata, dropped
+  file names. Reject names that start with `-`.
+- **Machine-wide resources have a budget too:** ptys (`kern.tty.ptmx_max`), herdr sessions. A stress session
+  with hundreds of panes starved other agents and the user's terminals: make it inside a GUI-lock hold and
+  delete it in the same command.
 
 ## SwiftUI and AppKit
+
+- **Re-check state after every `await` and before every delayed effect.** The same races came back in
+  every phase: state read before an await, late drop or hover events after the action ended, an older
+  write winning over a newer one, a double click starting two connects. Use generation counters and
+  structured `.task`.
+- **Design for the user's scale from the start:** hundreds of panes and tabs, remote machines, several
+  windows. Anything built per tab costs at 300 tabs (build lists when a menu opens, no `@State` writes per
+  frame, test hooks read once into a `static let`). Keep-everything-live designs were redone twice.
+- **Never hide and fade to mask a flicker.** It caused blank panes. Keep the old frame shown until the new
+  one has drawn.
+- **View identity cuts both ways.** A view shared by all workspaces carries stale scroll and lazy state; an
+  `.id` per page makes a fresh view that flickers at offset 0.
+- **An overlay blocks every input path to the page below:** swipes, the wheel, menu shortcuts and clicks.
+  Check all of them when you add one.
 
 - **A new or lazy scroll view's first layout lies.** The first scroll position gets dropped,
   `containerRelativeFrame` resolves to the window, `.task` in a lazy stack is cancelled, and overlays get
   clipped. Use `defaultScrollAnchor(_:for: .initialOffset)`, a GeometryReader, or `onAppear` plus a Task.
-- **SwiftUI keeps the first closure, and a first responder set during an update is undone.** Read the
-  current state inside actions; take focus on the next run-loop turn.
-- **Measure what redraws before you optimize.** Observation notifies on in-place edits that change
-  nothing; `allowsHitTesting` and per-move `@State` re-run whole subtrees; hidden views still lay out. One
-  log line or a small probe answers in one run.
+- **SwiftUI lifecycle traps:** it keeps the first closure (read current state inside actions); a first
+  responder set during an update is undone (take focus on the next run-loop turn); a `@State` initializer
+  runs again on every parent rebuild (no side effects in it); the menu bar refreshes only when the focused
+  value changes.
+- **Measure before you optimize.** Observation notifies on in-place edits that change nothing;
+  `allowsHitTesting` and per-move `@State` re-run whole subtrees; hidden views still lay out. What worked:
+  one log line, an in-app frame probe, `sample` on the running app, xctrace Animation Hitches on a Release
+  build, a tiny probe app for one SwiftUI behavior, and the user's capture read frame by frame.
 - **Hover state is unreliable.** A view removed under the pointer gets no hover end, and a busy app runs
   hover late. Decide from the pointer's location when it matters.
 - **Every key has three possible owners: the menu, SwiftUI and libghostty.** libghostty takes every key it
