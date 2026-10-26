@@ -5,11 +5,11 @@ Usage: scripts/stress.py <oriel-dev-*|oriel-e2e-*> [tabs=300] [workspaces=30] [-
 Start the session first (scripts/herdr-session.sh up <name>); remove it after (… down <name>): hundreds of shells.
 Makes `tabs` tabs (herdr's own labels, so their titles come from their programs, as most tabs' do) over `workspaces`
 workspaces and `--panes` panes (default 400): the first tabs of each workspace split in two until the count is reached.
-macOS gives at most `kern.tty.ptmx_max` (511) terminals to all its programs together, so more needs
-`sudo sysctl -w kern.tty.ptmx_max=999` first (CI does). Every other pane prints a line a
-second. The first `--agents` panes (default 100, spread over the tabs) work like agents instead: a line every 0.2 s, a
-new terminal title every second (its first word stays, as an agent's does), and a new agent state (`pane report-agent`)
-every 5 s, mostly working, sometimes blocked or idle. Then open Oriel on the session (`-session <name>`).
+macOS gives at most `kern.tty.ptmx_max` (511) terminals to all its programs together (999 with `sudo sysctl`).
+Every other pane prints a line a second. The first `--agents` panes (default 100, spread over the tabs) work like
+agents instead: a line every 0.2 s, a new terminal title every second (its first word stays, as an agent's does), and a
+new agent state (`pane report-agent`) every 5 s, mostly working, sometimes blocked or idle.
+Then open Oriel on the session (`-session <name>`).
 """
 
 import argparse

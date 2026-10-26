@@ -1,16 +1,16 @@
 import XCTest
 
-/// The whole UI at scale (phase 29, item 14): a session of 30 workspaces, 300 tabs and 600 panes (400 on a Mac that is
-/// not CI's, whose terminals the user's programs share), 100 of them agents that print, retitle and change state, and
-/// half the others printing (`scripts/stress.py`). It records the main keys' time to their frame, the frames while the
-/// sidebar, the tab bar and the Agents view scroll, the app's CPU and memory, and the main thread's work every 5 s:
-/// all in the result bundle ("latency", "usage, …", "sample").
+/// The whole UI at scale (phase 29, item 14): a session of 30 workspaces, 300 tabs and 400 panes (600 took CI two
+/// minutes to make; a Mac gives all its programs 511 terminals), 100 of them agents that print, retitle and change
+/// state, and half the others printing (`scripts/stress.py`). It records the main keys' time to their frame, the
+/// frames while the sidebar, the tab bar and the Agents view scroll, the app's CPU and memory, and the main thread's
+/// work every 5 s: all in the result bundle ("stress", "usage, …", "sample").
 extension OrielUITests {
     func testHundredsOfPanesStayQuick() async throws {
         executionTimeAllowance = 600
         let eight = try env("ORIEL_SESSION8")
         addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
-        let made = try await String(decoding: Self.post("\(eight)/stress", Data("300 30 600 100".utf8)), as: UTF8.self)
+        let made = try await String(decoding: Self.post("\(eight)/stress", Data("300 30 400 100".utf8)), as: UTF8.self)
         print(made)
         // From the launch to the first card drawn: before phase 29 it stayed blank past 30 s on CI.
         let launched = Date.now
