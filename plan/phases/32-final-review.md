@@ -141,3 +141,24 @@ Perl too. No dead code, flags or test hooks found (`-machines` and `-session` ha
 - **For the user (small, not changed).** The sockets' folder and askpass are made once per launch
   (`static let`): a cache cleaner that deletes `~/Library/Caches/oriel` while Oriel runs breaks remote
   connects until a relaunch. Cost: make both per start (about 5 lines). Recommendation: leave it unless seen.
+
+### r-tests
+
+UI tests, scripts, Makefile, CI, lint config: every file read. 8 commits, +109 −150 lines. Every helper, e2e-helper
+action and launch-argument hook has a user, and `scripts/test-times.tsv` matches the tests one to one.
+
+- **Bug fixed: the e2e helper served one request at a time** (`scripts/e2e-helper.py`, a plain `TCPServer`).
+  `testOverviewOfManyTabsStaysBounded` takes "the main thread's profile while it scrolls back" with an `async let`
+  `sample` beside four swipes, but the swipes waited until the 3 s sample ended, so it profiled an idle app. Now a
+  `ThreadingTCPServer`. Checked with two 2 s `usage` calls at once: 4.2 s before, 2.4 s after.
+- **Tests added for other areas' fixes:** a floating window's ⌘K lights its first row (r-panels, 3f24e30); an
+  `oriel://float/?…` URL floats the pane and opens no workspace (r-app, 429a02c).
+- **Code removed:** checks of dropped features (the Fade Inactive Panes menu item, ⌥ + scroll); a ⌃⇥ check that
+  repeats `testControlTabStepsTabsNeverPanes`; `expectValue`, `expectRatio`'s unused path, `Entry.time`, `throws` on
+  helpers that throw nothing; a wait nested inside another wait. One `createTab` helper replaces nine copies of
+  `tab.create`, one `drawn` replaces three, one `sheetText` replaces three, `keep` replaces two hand-made attachments,
+  and one helper replaces two copies of the held drag through the workspace menu (a-ponytail-kit's findings, except
+  `sharpness` over `crop`: a risk at CI's 1x).
+- **Comments:** 7 fixed (two docs wrapped mid-sentence, a doc on the wrong function, `////`, the helper's missing
+  `open-url` line and its one-request-at-a-time note) and 2 history notes removed (`pane.neighbor`, ⌃⇧Page Up).
+- **Big items for the user:** none.
