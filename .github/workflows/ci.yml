@@ -7,11 +7,16 @@ on:
   pull_request:
     paths-ignore: *docs-only
   # Ad-hoc UI tests: gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,...
+  # The on-demand tests (Makefile's ON_DEMAND): gh workflow run ci.yml --ref main -f on_demand=true
   workflow_dispatch:
     inputs:
       only_testing:
         description: Comma-separated -only-testing ids; empty runs everything
         default: ''
+      on_demand:
+        description: Run only the on-demand tests (stress, costs, frame records, look scenes), on 4 machines
+        type: boolean
+        default: false
 
 env:
   HERDR_VERSION: 0.9.5
@@ -26,16 +31,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # One job: macOS runs at most 5 jobs at once, and the UI tests take 4. HerdrKit's integration tests need herdr.
-  lint-build:
-    if: ${{ !inputs.only_testing }}
+  # 5 parallel jobs, the account's macOS limit (plan/ci.md, Speed): shard 0 also runs lint, both builds and HerdrKit's
+  # tests (they need herdr), and gets fewer UI tests for it. An ad-hoc run of chosen tests takes one.
+  test:
     runs-on: xcode-27
-    timeout-minutes: 15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(inputs.only_testing && '[0]' || inputs.on_demand && '[0, 1, 2, 3]' || '[0, 1, 2, 3, 4]') }}
+    env:
+      CHECKS: ${{ matrix.shard == 0 && !inputs.only_testing && !inputs.on_demand }}
     steps:
       - uses: actions/checkout@v7
-      - run: brew update --quiet && brew bundle
-      - &install-herdr
-        name: install herdr
+      - if: env.CHECKS == 'true'
+        run: brew update --quiet && brew bundle
+      - if: env.CHECKS != 'true'
+        run: brew install xcbeautify
+      - name: install herdr
         run: |
           mkdir -p ~/.local/bin
           curl -fsSL -o ~/.local/bin/herdr "https://github.com/herdrdev/herdr/releases/download/v$HERDR_VERSION/herdr-macos-aarch64"
@@ -44,31 +57,25 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           # The app finds herdr through the login shell, like a user's rc file after install.
           echo 'export PATH="$HOME/.local/bin:$PATH"' | tee -a ~/.zshrc >> ~/.bash_profile
-      - run: make lint
-      - run: make build
-      - run: make test
-
-  # 4 parallel jobs (plan/ci.md, Speed); an ad-hoc run of chosen tests in one.
-  test-e2e:
-    runs-on: xcode-27
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ${{ fromJSON(inputs.only_testing && '[0]' || '[0, 1, 2, 3]') }}
-    steps:
-      - uses: actions/checkout@v7
-      - run: brew install xcbeautify
-      - *install-herdr
+      - if: env.CHECKS == 'true'
+        run: make lint
+      # Its macOS build is the UI tests' too: their build then adds only the test bundle.
+      - if: env.CHECKS == 'true'
+        run: make build
+      - if: env.CHECKS == 'true'
+        run: make test
       # The remote-host tests' machines (phase 26).
       - run: scripts/ci-sshd.sh
       - if: ${{ inputs.only_testing }}
         run: make e2e
         env:
           ONLY: ${{ inputs.only_testing }}
-      - if: ${{ !inputs.only_testing }}
-        run: make e2e SHARD=${{ matrix.shard }}/4
-      - if: ${{ !cancelled() && matrix.shard == 0 }}
+      - if: ${{ !inputs.only_testing && !inputs.on_demand }}
+        # SHARD_HEAD: shard 0's checks above and the strip check below, in seconds (scripts/shard.py).
+        run: make e2e SHARD=${{ matrix.shard }}/5 SHARD_HEAD=210
+      - if: ${{ inputs.on_demand }}
+        run: make e2e SHARD=${{ matrix.shard }}/4 ON_DEMAND_ONLY=1
+      - if: ${{ !cancelled() && env.CHECKS == 'true' }}
         run: make strip-check
       # What the remote-host tests' sshd saw, and the SSH runs left.
       - if: failure()

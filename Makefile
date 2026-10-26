@@ -34,13 +34,18 @@ test:
 
 # Runs the UI tests against throwaway herdr sessions, removed even when tests fail.
 # ONLY=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB runs just those.
-# SHARD=i/n runs every nth test by name from the ith (0-based), for CI's parallel jobs (by name: files hold
-# similar tests, so file order split them less evenly). Without the stress tests (ON_DEMAND): a few minutes each, they
-# pushed a shard past CI's 20-minute limit; run them with ONLY= (CI: only_testing).
-ON_DEMAND := testHundredsOfPanesStayQuick testOverviewOfManyTabsStaysBounded
+# SHARD=i/n runs shard i (0-based) of n, split by the tests' measured times (scripts/shard.py, scripts/test-times.tsv);
+# SHARD_HEAD=s: shard 0 spends s seconds on other work first. The ON_DEMAND tests are left out: the stress tests, the
+# cost and frame-record measurements and the look scenes (minutes in all, numbers and screenshots more than
+# behaviour; plan/ci.md). Run them with ON_DEMAND_ONLY=1 (CI: the on_demand input) or ONLY=.
+ON_DEMAND := testHundredsOfPanesStayQuick testOverviewOfManyTabsStaysBounded testMemoryAndCPUOverManyTabs \
+	testOverviewCostsAndLetsGoAfter testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar \
+	testATabComesIntoViewWithoutAFlicker testACardNeverShowsTheOverviewsSmallSnapshot \
+	testScenesGlassDark testScenesGlassLight testScenesClassicDark testScenesClassicLight
 ifdef SHARD
-ONLY := $(shell grep -ho 'func test[A-Za-z0-9_]*' OrielUITests/*.swift | sed 's|func |OrielUITests/OrielUITests/|' \
-	| grep -v $(addprefix -e ,$(ON_DEMAND)) | sort | awk -v i=$(word 1,$(subst /, ,$(SHARD))) -v n=$(word 2,$(subst /, ,$(SHARD))) 'NR % n == i' | paste -sd, -)
+ONLY := $(shell scripts/shard.py $(SHARD) $(if $(ON_DEMAND_ONLY),--on-demand) --head $(or $(SHARD_HEAD),0) $(ON_DEMAND))
+# An empty list would run every test.
+$(if $(ONLY),,$(error no tests for SHARD=$(SHARD)))
 endif
 e2e:
 	rm -rf $(DERIVED_DATA)/e2e.xcresult
