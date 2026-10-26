@@ -52,7 +52,8 @@
                 if activity == .afterWaiting {
                     self.awake = ProcessInfo.processInfo.systemUptime
                 } else {
-                    self.turned()
+                    // A nested run loop's exit (menu or scroll tracking) is no sleep: the turn goes on.
+                    self.turned(sleeps: activity == .beforeWaiting)
                 }
             }
             Task {
@@ -110,8 +111,10 @@
             pending = Pending(name: name, time: event.timestamp, state: state)
         }
 
-        private func turned() {
-            endTurn()
+        private func turned(sleeps: Bool) {
+            if sleeps {
+                endTurn()
+            }
             guard var pending else { return }
             let elapsed = ProcessInfo.processInfo.systemUptime - pending.time
             if state != pending.state {
