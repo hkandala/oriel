@@ -95,7 +95,7 @@ copy goes over the machine's one SSH connection (its relay) as base64 lines,
 into a new folder of its own in `oriel-drops-‹user id›` in the machine's
 temporary folder (`$TMPDIR`, else `/tmp`), so it keeps its name. Only the
 user can read that folder, and each copy deletes the folders in it that are
-more than a day old. A folder, or a file over 100 MB, is not copied: a notice
+more than a day old. A folder, or a file over 16 MB (herdr's limit too), is not copied: a notice
 says why, and nothing is pasted. A pane that runs `ssh` on This Mac still
 gets This Mac's paths, as in any terminal.
 
