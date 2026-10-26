@@ -47,11 +47,16 @@
             guard let window = windows.first(where: { $0.machine.id == machine }) else {
                 if windows.isEmpty {
                     early = { float(url) }
+                } else {
+                    windows.first?.cannotFloat(pane, of: session, "no window of machine \(machine).")
                 }
                 return
             }
-            window.floatPending = (session, pane)
-            window.loadForFloat(session)
+            // One still waiting gives way.
+            if let old = window.floatPending?.page, old.floating.isEmpty {
+                window.dropFloatOnly(old)
+            }
+            window.floatPending = (window.pageToFloat(session), pane)
             window.showFloatPending()
         }
 
@@ -60,19 +65,15 @@
             list + floatOnly
         }
 
-        /// A float-only page for a session the window has no page of, its store connecting.
-        private func loadForFloat(_ session: String) {
-            guard !withFloats.contains(where: { $0.id == session }) else { return }
+        /// The session's page, else a new float-only one, its store connecting.
+        private func pageToFloat(_ session: String) -> Page {
+            if let page = withFloats.first(where: { $0.id == session }) {
+                return page
+            }
             let store = HostStore.named(session, on: machine)
             store.windows.append(self)
-            floatOnly.append(Page(store: store, terminals: terminals))
-        }
-
-        /// The session's float-only page, out of `floatOnly` and settled, to become a page with its floats.
-        func takeFloatOnly(_ session: String) -> Page? {
-            guard let index = floatOnly.firstIndex(where: { $0.id == session }) else { return nil }
-            let page = floatOnly.remove(at: index)
-            page.settle()
+            let page = Page(store: store, terminals: terminals)
+            floatOnly.append(page)
             return page
         }
 
@@ -86,8 +87,7 @@
 
         /// The URL's pane floats once its session answered; a session or pane that is not there says so.
         func showFloatPending() {
-            guard let (session, paneID) = floatPending, let page = withFloats.first(where: { $0.id == session }),
-                  page.store.state != .connecting else { return }
+            guard let (page, paneID) = floatPending, page.store.state != .connecting else { return }
             floatPending = nil
             if let pane = page.store.panes.first(where: { $0.id == paneID && $0.terminalID != nil }) {
                 page.float(pane)
@@ -99,13 +99,17 @@
                 } else {
                     "no such pane."
                 }
-                let notice = Notice(text: "Can't float pane \(paneID) of \(session): \(why)", tone: .warning)
-                Task { await current?.store.show(notice) }
+                cannotFloat(paneID, of: page.id, why)
             }
-            // Nothing floats in it (or another window floats the pane).
+            // A float that failed, or went to another main window's floating window.
             if page.floating.isEmpty {
                 dropFloatOnly(page)
             }
+        }
+
+        private func cannotFloat(_ pane: String, of session: String, _ why: String) {
+            let notice = Notice(text: "Can't float pane \(pane) of \(session): \(why)", tone: .warning)
+            Task { await current?.store.show(notice) }
         }
     }
 
@@ -209,7 +213,7 @@
             return HStack(spacing: gap) {
                 if let pane {
                     PaneInfo(pane: pane).layoutPriority(1).accessibilityIdentifier("\(id).info")
-                    // The pane, then its place, a step quieter (user, phase 28).
+                    // User, phase 28.
                     Rectangle().fill(look.divider).frame(width: 1, height: 12)
                 }
                 // One line; the session's name gives way first, in its middle.

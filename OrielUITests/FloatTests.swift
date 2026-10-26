@@ -203,10 +203,7 @@ extension OrielUITests {
     func testOrielURLFloatsAPaneOfASessionWithNoPage() async throws {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         // Two's gamma; one has a w1:p1 too, so always within the floating window.
-        let pane = "w1:p1"
-        func url(_ query: String) -> URL {
-            URL(string: "oriel://float?\(query)")!
-        }
+        let pane = "w1:p1", url = floatURL
 
         app.open(url("session=\(two)&pane=\(pane)"))
         let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
@@ -251,6 +248,44 @@ extension OrielUITests {
         app.open(url("session=\(one)&pane=\(other)"))
         XCTAssertTrue(hasKeyboard(element("terminal.\(other)", in: app.windows.containing(.any, identifier:
             "float.\(other)").firstMatch)))
+
+        // Two's pane again, then Open Session on two: its page comes, the window stays, and after Detach the page
+        // keeps the connection.
+        app.open(url("session=\(two)&pane=\(pane)"))
+        XCTAssertTrue(window.exists(within: connect))
+        element("workspace.w1").click()
+        openSessionPanel()
+        app.typeText(two)
+        element("open-session.session.\(two)").click()
+        XCTAssertTrue(element("sidebar.dot.\(two)").exists(within: 3))
+        XCTAssertTrue(window.exists)
+        element("float.\(pane).detach", in: window).click()
+        XCTAssertTrue(window.vanishes(within: 3))
+        let left = try await runs(two)
+        XCTAssertFalse(left.isEmpty)
+    }
+
+    /// Closing the main window lets a URL float and its session go; a URL with no window opens one and floats there.
+    func testOrielURLFloatGoesWithItsWindowAndOpensOne() async throws {
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        let pane = "w1:p1"
+        app.open(floatURL("session=\(two)&pane=\(pane)"))
+        let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
+        XCTAssertTrue(window.exists(within: connect))
+        element("workspace.w1").click()
+        app.menuBars.menuBarItems["File"].click()
+        app.menuBars.menuItems["Close Window"].click()
+        XCTAssertTrue(window.vanishes(within: 5))
+        try await expect("two's herdr runs end") { try await runs(two).isEmpty }
+
+        app.open(floatURL("session=\(two)&pane=\(pane)"))
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        XCTAssertTrue(window.exists(within: connect))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
+    }
+
+    func floatURL(_ query: String) -> URL {
+        URL(string: "oriel://float?\(query)")!
     }
 
     /// The card's Float button; its window, once it shows.

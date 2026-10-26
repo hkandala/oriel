@@ -35,6 +35,17 @@
             center.delegate = self
             // macOS asks the user once; later calls answer at once. The Dock badge shows only with `.badge` allowed.
             center.requestAuthorization(options: [.alert, .badge]) { _, _ in }
+            // SwiftUI takes the `oriel://` URLs for its scenes, which take none (`handlesExternalEvents`): it dropped
+            // them (CI 40246598046).
+            NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(openURL(_:reply:)),
+                                                         forEventClass: AEEventClass(kInternetEventClass),
+                                                         andEventID: AEEventID(kAEGetURL))
+        }
+
+        @objc private func openURL(_ event: NSAppleEventDescriptor, reply _: NSAppleEventDescriptor) {
+            if let url = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue.flatMap(URL.init) {
+                application(NSApp, open: [url])
+            }
         }
 
         /// A row per pane that needs you or finished, each session once over every window, then New Tab.
@@ -61,16 +72,16 @@
             return menu
         }
 
-        /// `oriel://` URLs, and folders dropped on the Dock icon (WindowPages). With no window (a drop that starts the
-        /// app opens none:
-        /// `handlesExternalEvents(matching: [])`), a new one takes them once its page is live.
+        /// `oriel://` URLs, and folders dropped on the Dock icon (WindowPages). With no window (one that starts the app
+        /// opens none: `handlesExternalEvents(matching: [])`), a new one takes them once its page is live.
         func application(_: NSApplication, open urls: [URL]) {
             urls.filter { $0.scheme == "oriel" }.forEach(WindowPages.float)
             let folders = urls.filter(\.hasDirectoryPath)
-            guard !folders.isEmpty else { return }
-            WindowPages.open(folders: folders)
-            // Out of the Dock if minimized, so the new workspace shows.
-            WindowPages.windows.first?.window?.makeKeyAndOrderFront(nil)
+            if !folders.isEmpty {
+                WindowPages.open(folders: folders)
+                // Out of the Dock if minimized, so the new workspace shows.
+                WindowPages.windows.first?.window?.makeKeyAndOrderFront(nil)
+            }
             // AppKit's windows, not `WindowPages.windows`: a restored window joins those only once its pages restored.
             // Hidden (⌘H), no window is visible.
             if !NSApp.windows.contains(where: {

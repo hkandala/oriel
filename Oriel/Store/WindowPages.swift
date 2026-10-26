@@ -15,7 +15,7 @@
         /// float never gives their cards the keyboard). Each goes with its last float. ponytail: not saved.
         var floatOnly: [Page] = []
         /// An `oriel://float` URL's session and pane, until its store answers.
-        @ObservationIgnored var floatPending: (session: String, pane: String)?
+        @ObservationIgnored var floatPending: (page: Page, pane: String)?
         /// What ssh asks while this window connects a remote machine; the sheet answers it.
         var question: Question?
         /// The Add Remote Host sheet is open.
@@ -99,14 +99,12 @@
                 show(page)
                 return
             }
-            if let page = takeFloatOnly(session) {
-                list.append(page)
-                show(page)
-                return
-            }
-            let store = HostStore.named(session, on: machine, start: start)
-            store.windows.append(self)
-            let page = Page(store: store, terminals: terminals)
+            // A float-only page becomes a page, its floats kept.
+            let page = floatOnly.firstIndex { $0.id == session }.map { floatOnly.remove(at: $0) } ?? {
+                let store = HostStore.named(session, on: machine, start: start)
+                store.windows.append(self)
+                return Page(store: store, terminals: terminals)
+            }()
             page.settle()
             list.append(page)
             show(page)
@@ -392,7 +390,7 @@
             for window in windows {
                 window.snapshotted(self)
             }
-            if let page = windows.first?.page(self) {
+            if let page = windows.lazy.compactMap({ $0.page(self) }).first {
                 Notifications.post(changes, page)
             }
         }
