@@ -100,7 +100,7 @@
         @State private var drop = RowsDrop.State()
         /// A pane dragged over the header's `+`.
         @State private var plus = false
-        /// ⌃⌘ held for 0.7 s: keycaps on the first nine workspaces (their jump keys).
+        /// ⌘ or ⌃⌘ held for 0.7 s: keycaps on the first nine workspaces (their jump keys).
         @State private var hints = false
 
         var body: some View {
@@ -187,7 +187,7 @@
                         .padding(Sidebar.rowInsets)
                     }
                     .scrollIndicators(.never)
-                    .keycapHints([.command, .control], $hints)
+                    .keycapHints(.command, [.command, .control], shown: $hints)
                     .coordinateSpace(.named("rows"))
                     .onDrop(of: [.orielDrag], delegate: rowsDrop)
                     .clearsDrop(page) {

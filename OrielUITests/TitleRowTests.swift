@@ -261,7 +261,8 @@ extension OrielUITests {
         XCTAssertTrue(until(1) { element("tab.\(made)").frame.maxX <= rowEnd + 1 })
     }
 
-    /// The keycap sits at the capsule's end, beside the × (user, phase 25): never over the icon or the title.
+    /// The keycap sits at the capsule's end, beside the × (user, phase 25): never over the icon or the title. ⌘ shows
+    /// the workspace rows' keys too (user, phase 29).
     func testHoldingCommandShowsKeycaps() {
         let tab = element("tab.w1:t2"), keycap = element("tab.w1:t2.keycap")
         XCTAssertTrue(tab.exists(within: connect))
@@ -276,9 +277,8 @@ extension OrielUITests {
             let gap = close.frame.minX - keycap.frame.maxX
             XCTAssertTrue((-1 ... 10).contains(gap), "\(keycap.frame) \(close.frame)")
             XCTAssertEqual(element("tab.w1:t1.keycap").stringValue, "⌘1")
-            // Only the tabs: the sidebar shows none.
-            XCTAssertFalse(element("workspace.w1").label.contains("⌘"))
-            XCTAssertFalse(element("workspace.w1.keycap").exists)
+            XCTAssertEqual(element("workspace.w1.keycap").stringValue, "⌃⌘1")
+            XCTAssertEqual(element("workspace.w2.keycap").stringValue, "⌃⌘2")
             keepScreenshot("keycap hints")
         }
         XCTAssertTrue(keycap.vanishes(within: 2))

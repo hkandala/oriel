@@ -134,7 +134,7 @@
             .frame(height: Self.height + 10)
             .testValue("tabs.fades", "Tab Fades", [hidden.leading ? "leading" : nil, hidden.trailing ? "trailing" : nil]
                 .compactMap(\.self).joined(separator: ", "))
-            .keycapHints(.command, $hints)
+            .keycapHints(.command, shown: $hints)
             .onDisappear { spring?.cancel() }
         }
 

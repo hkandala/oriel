@@ -15,15 +15,16 @@
     }
 
     extension View {
-        /// `shown` turns on once `modifiers` alone are held 0.7 s with the window key, and off when they change; a key
-        /// pressed first (⌘T) cancels. ⌘ for the tabs' keycaps, ⌃⌘ for the workspace rows'.
-        func keycapHints(_ modifiers: NSEvent.ModifierFlags, _ shown: Binding<Bool>) -> some View {
+        /// `shown` turns on once one of `modifiers` alone is held 0.7 s with the window key, and off when they change;
+        /// a
+        /// key pressed first (⌘T) cancels. ⌘ for the tabs' keycaps, ⌘ or ⌃⌘ for the workspace rows' (user, phase 29).
+        func keycapHints(_ modifiers: NSEvent.ModifierFlags..., shown: Binding<Bool>) -> some View {
             modifier(KeycapHints(modifiers: modifiers, shown: shown))
         }
     }
 
     private struct KeycapHints: ViewModifier {
-        let modifiers: NSEvent.ModifierFlags
+        let modifiers: [NSEvent.ModifierFlags]
         @Binding var shown: Bool
         @State private var pending: Task<Void, Never>?
         @State private var monitor: Any?
@@ -53,7 +54,7 @@
         private func watch(_ event: NSEvent) -> NSEvent? {
             MainActor.assumeIsolated {
                 pending?.cancel()
-                let held = event.modifierFlags.intersection([.command, .shift, .option, .control]) == modifiers
+                let held = modifiers.contains(event.modifierFlags.intersection([.command, .shift, .option, .control]))
                 // ponytail: any key window of the app, so keys held in one window light every window's keycaps;
                 // compare event.window to this view's window to stop that.
                 if event.type == .flagsChanged, held, event.window?.isKeyWindow == true {
