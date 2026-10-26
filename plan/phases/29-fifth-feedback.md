@@ -195,6 +195,38 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   Tests: the ⌘W detaches in `testFloatingWindowsHaveTheirOwnCommandsAndComeBackAfterRelaunch` and
   `testEachFloatingWindowsKeysActOnItsOwnPane`, ⇧⌘W's ask in `testClosingAFloatedPaneAsksInItsWindow`.
 
+### Lane C
+
+- **Root cause.** libghostty draws the selection: herdr drops mouse events for a program without mouse mode, so a
+  drag selects locally (`PaneSurfaceView.mouseDown` feeds both). libghostty-spm's default theme sets only
+  `selection-background` (Afterglow `#303030`, Alabaster `#C9D0D9`); with no `selection-foreground`, Ghostty draws
+  selected text in the window background (`#212121`, `#F7F7F7`). The screenshot's pixels: text `#212121` on
+  `#303030` (1.2 to 1); light was 1.45. herdr's own `selection_bg` (the user's config `#2e2e2e`) is a coincidence.
+- **Fix** (c4f9e5d, 7085a91): `TerminalFont.controller` takes the default theme plus `selection-foreground =
+  cell-foreground` (pinned Ghostty 1.3.2-HEAD has it) and a blue background: `#B3D7FF` light (macOS's), `#1B3A58`
+  dark (system blue 0.25 over `#212121`; macOS's `#3F638B` gives 4.0). Default text: 7.6 dark, 14.1 light. Palette
+  untouched. The selection is opaque, so Glass and Classic draw it alike.
+- **Test** (cc03c0d, b5b52ab): `testSelectedTextIsReadable` fills the screen with full blocks, drags over the top
+  half in each of the four looks, and polls the pixels: text over the selection > 4.5, the selection over the card
+  > 1.1 (1.0 when nothing is selected).
+- **Decisions.** Always blue, not the accent color (`ponytail:` names the upgrade). Reverse-video cells still draw
+  in the background color when selected (Ghostty's `cell-foreground` rule; not worse than before).
+- **Review.** Spec: approve; the should (bare sleeps) and the nits (ASCII input via printf, the card's color from
+  the bottom row's mode, wait for the end of output, reverse-video wording, contrast numbers) all taken.
+- **Check by hand.** Select text in a plain shell and in an agent TUI in dark and light: blue block, text in its own
+  color. In a mouse app (where herdr forwards the drag), libghostty still draws the same highlight.
+- **Item 16, letter icons.** `ProgramMark` framed only the logo image (16 pt); the placeholder's letter took its
+  natural width (about 7 pt for "C"), so `ProgramGlyph` (card headers, hover card rows) pushed the name less far.
+  Both now take the same square (660a46c). Tiles (tab capsules, overview, Agents rows, palette and menus, floating
+  pane) already sat in a fixed 22 × 18 frame. Test `testLetterIconsTakeTheLogosBox` (vim and cat side by side): the
+  header names start at the same x in their cards (`pane.<id>.title`). Review: the glyph stays hidden from
+  VoiceOver (the first try exposed it for the test); by eye, the letter is still 10.4 pt in the 16 pt square
+  (`size * 0.75` if it looks small next to a logo).
+- **CI.** Both tests green in dispatch run 40253793228 (selection contrast at 1x: text 7.58 dark, 14.08 light; the
+  selection over the card 1.34–1.47) and locally at Retina. Full run 40255105812 on main 9b36aba (with these
+  commits): both green, 219 passed; 8 failures in other lanes' tests (quick splits, select-pane keys, Agents view
+  order, floating window size, Open Session per machine, three session-swipe tests).
+
 ## More from the user (2026-10-25 17:35)
 
 - (Lane R) The glass dialogs have poor contrast (`.build/fb/remote-glass.png`): grey text on grey glass, the
