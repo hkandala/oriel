@@ -86,20 +86,30 @@
         }
     }
 
-    /// The overview's snapshots (phase 28): a tile that is not live shows its terminal's last picture, 480 px wide at
-    /// most (about 0.6 MB), so one scrolled into view shows at once, with no fade, until it is live.
+    /// The overview's snapshots (phase 28): a tile that is not live shows its terminal's last picture, 360 px wide at
+    /// most (about 0.4 MB), so one scrolled into view shows at once, with no fade, until it is live. An IOSurface: Core
+    /// Animation shows it without a copy of its own (a `CGImage` doubled the memory, phase 28 on Retina).
     extension PaneTerminal {
-        /// ponytail: a count, not bytes; 256 at most is about 150 MB. Least recently taken first out.
+        /// ponytail: a count, not bytes; 256 at most is about 100 MB. Least recently taken first out.
         @MainActor static var snapshots: [PaneTerminal] = []
-        private static let context = CIContext()
+        private static let context = CIContext(options: [.cacheIntermediates: false])
 
         func takeSnapshot() {
             guard let surface = view.picture as? IOSurface, surface.width > 0 else { return }
-            let small = CIImage(ioSurface: surface).applyingFilter("CILanczosScaleTransform", parameters: [
-                kCIInputScaleKey: min(1, 480 / CGFloat(surface.width)),
+            let space = IOSurfaceCopyValue(surface, kIOSurfaceColorSpace)
+            let image = CIImage(ioSurface: surface).applyingFilter("CILanczosScaleTransform", parameters: [
+                kCIInputScaleKey: min(1, 360 / CGFloat(surface.width)),
             ])
-            guard !surface.emptied,
-                  let small = Self.context.createCGImage(small, from: small.extent.integral) else { return }
+            let size = image.extent.integral
+            guard !surface.emptied, let small = IOSurface(properties: [
+                .width: Int(size.width), .height: Int(size.height), .bytesPerElement: 4,
+                .pixelFormat: surface.pixelFormat,
+            ]) else { return }
+            if let space {
+                IOSurfaceSetValue(small, kIOSurfaceColorSpace, space)
+            }
+            Self.context.render(image, to: small, bounds: size,
+                                colorSpace: space.flatMap { CGColorSpace(propertyListPlist: $0) })
             snapshot = small
             Self.snapshots.removeAll { $0 === self }
             Self.snapshots.append(self)

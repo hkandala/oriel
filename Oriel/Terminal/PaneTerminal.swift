@@ -16,7 +16,7 @@
         /// screen reflowed at the new size) never shows: the card keeps its last picture meanwhile.
         var ready = false
         /// A small copy of its last picture for the overview's tiles that are not live (`takeSnapshot`).
-        var snapshot: CGImage?
+        var snapshot: IOSurface?
         /// Shown once: only the first reveal fades in, and its layer holds a picture of the pane (the hover card's).
         @ObservationIgnored var revealed = false
         @ObservationIgnored var settling: Task<Void, Never>?

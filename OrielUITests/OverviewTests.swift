@@ -190,7 +190,7 @@ extension OrielUITests {
     }
 
     /// The overview of 200 tabs over 8 workspaces, 272 panes, 50 of them agents and half the rest printing
-    /// (`scripts/stress.py`, phase 28): while trackpad scrolls go through it, at most 24 cards stream beside the
+    /// (`scripts/stress.py`, phase 28): while trackpad scrolls go through it, at most 16 cards stream beside the
     /// strip's,
     /// the tiles that were live keep a snapshot, and the footprint stays bounded. Footprint, CPU, the frames dropped
     /// while scrolling and the main thread's profile are in the result bundle.
@@ -231,8 +231,8 @@ extension OrielUITests {
         frames.name = "overview frames"
         frames.lifetime = .keepAlways
         add(frames)
-        // The strip's kept terminals, at most 24 cards, and a run or two ending.
-        XCTAssertLessThanOrEqual(most, helpers(strip) + 24 + 2, "\(most) runs")
+        // The strip's kept terminals, at most 16 cards, and a run or two ending.
+        XCTAssertLessThanOrEqual(most, helpers(strip) + 16 + 2, "\(most) runs")
         XCTAssertGreaterThan(Int(end.split(separator: " ").last ?? "") ?? 0, 8, end)
         XCTAssertLessThan(footprint(scrolled), footprint(open) + 300, scrolled)
         app.typeKey(.escape, modifierFlags: [])

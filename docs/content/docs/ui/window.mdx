@@ -609,7 +609,7 @@ once.
   one place (D35). The strip's cards take their views back when it closes.
 - Live tiles are bounded (phase 28): the overview is lazy by row, so only the
   tiles in or near view are made, and of those the most recently made stream
-  and draw, at most 24 cards (8 on a remote machine, whose streams share the
+  and draw, at most 16 cards (6 on a remote machine, whose streams share the
   relay's one SSH session, [SSH sessions](/docs/machines#ssh-sessions)), plus
   the selected tab's, which streams anyway. A tile scrolled away lets its
   cards go. Those are not visits: when the overview closes, a terminal shown
@@ -617,13 +617,13 @@ once.
   recently shown set is unchanged (D46).
 - Every other tile shows a snapshot: whenever a terminal stops drawing (it
   leaves the strip's view or a live tile), the app keeps a small copy of its
-  last picture, at most 480 px wide (about 0.6 MB), for the 256 terminals that
+  last picture, at most 360 px wide (about 0.4 MB, an IOSurface), for the 256 terminals that
   stopped last. A tile scrolled into view shows its snapshot at once, and the
   terminal in its place, with no fade, once it drew. A terminal never shown
   shows the card's fill until it drew.
 - Cost: bounded by the cap, not by the session's size. A live card keeps a
   surface at its full card size (about 52 MB for a full-window card on a
-  Retina screen); the snapshots add at most about 150 MB. Phase 27, lane O's
+  Retina screen); the snapshots add at most about 100 MB. Phase 27, lane O's
   scenario (17 cards, 8 printing; debug build, this Mac, Retina): 166 MB and
   1.4 % CPU with the strip; 902 MB and 16.7 % CPU with all 17 live; 224 MB,
   1.7 % and the strip's 4 herdr runs after it closed. libghostty-spm takes its

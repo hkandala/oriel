@@ -60,7 +60,7 @@
                         ZStack {
                             // Under a live one too, until it drew: a terminal's background may be clear.
                             if !drawn, let snapshot = view.snapshot {
-                                Image(decorative: snapshot, scale: 1).resizable()
+                                Snapshot(surface: snapshot)
                             }
                             if live.contains(id) {
                                 MiniTerminal(terminal: view, size: terminal, alpha: drawn ? 1 : 0)
@@ -71,6 +71,22 @@
                         .padding(.top, PaneCard.header * scale)
                     }
                 }
+        }
+    }
+
+    /// A terminal's snapshot, stretched to the tile's terminal (it keeps the terminal's proportions).
+    private struct Snapshot: NSViewRepresentable {
+        let surface: IOSurface
+
+        func makeNSView(context _: Context) -> NSView {
+            let view = NSView()
+            view.wantsLayer = true
+            view.layer?.contentsGravity = .resize
+            return view
+        }
+
+        func updateNSView(_ view: NSView, context _: Context) {
+            view.layer?.contents = surface
         }
     }
 

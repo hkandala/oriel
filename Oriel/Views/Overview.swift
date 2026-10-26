@@ -211,7 +211,7 @@
                 page.store.panes.filter { $0.tabID == tab && !page.floats($0) }
             }
             return Dictionary(cards.compactMap { pane in pane.terminalID.map { ($0, pane.id) } }
-                .prefix(machine.isRemote ? 8 : 24), uniquingKeysWith: { first, _ in first })
+                .prefix(machine.isRemote ? 6 : 16), uniquingKeysWith: { first, _ in first })
         }
     }
 
