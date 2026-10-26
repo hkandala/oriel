@@ -87,6 +87,11 @@ the Agents view and popover, the hover card, pills, notifications):
   terminal gives VoiceOver only its grid size.
 - ⌥⌘ and an arrow moves the keyboard between cards. Keyboard focus in the
   chrome follows Full Keyboard Access. A terminal keeps Tab for itself.
+- VoiceOver's actions on a card are its menu's items, with Move Pane to Tab's
+  New Tab and New Workspace only. With any accessibility client running
+  (BetterTouchTool, Raycast, a test), SwiftUI builds a card's actions with the
+  card: one per tab made a switch to a session of 300 tabs take 1.05 s on CI,
+  0.34 s without them (phase 30). The card's menu and the palette list the tabs.
 - Every card action can be reached from the keyboard, through the menu bar and
   the palette (D48). Every swipe has a keyboard path, a menu path and a
   button. Hover controls are also in context menus and the menu bar.
