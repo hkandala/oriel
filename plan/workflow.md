@@ -250,6 +250,11 @@ concurrency). The rest:
   unwraps outside tests. Decoding: hand-written lenient `Decodable` models with only the fields the app uses.
   Names follow the design's words (machine, session, page, window, workspace, tab, pane, card, strip). Comments
   say why, not what; no commented-out code.
+- **Design bar.** Every new or changed surface (window, panel, dialog, sheet, popover, About, a menu we
+  draw) looks modern and native to macOS 26: Liquid Glass through the app's shared glass style where it
+  fits, generous padding, the app's fonts and sizes. No stock-looking AppKit panels, no dumps of text. A UI
+  change is done only when you have looked at a screenshot of it next to the existing glass surfaces (Open
+  Session, the remote machine dialogs).
 - **Look.** Views draw only with the `Look` tokens in `Style.swift`, read from the environment; no color
   literal outside it. Glass is one behind-window `NSVisualEffectView` under a tint plus the system glass APIs;
   Classic is opaque; pane cards are never glass. No hardcoded sizes where layout can decide; the fixed sizes

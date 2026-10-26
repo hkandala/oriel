@@ -103,6 +103,9 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
 
 - **Show a rough screenshot of a new view before polishing it.** A whole Settings window was built, then
   dropped.
+- **Hold every surface to the design bar** (workflow, Code). The user had to ask again and again for the
+  About panel, the remote machine dialogs and glass contrast: stock panels and text dumps shipped because
+  nobody compared a screenshot with the glass surfaces.
 - **Automated rewrites change meaning.** Formatter rules and scripted replaces have flipped logic or
   matched nothing. Read the diff; make every scripted edit fail loudly when it matches nothing.
 - **Never `git checkout <file>` to drop debug lines in a dirty tree:** it reverts the phase's other work in
