@@ -381,6 +381,78 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
 - Written with phase 28's lane V (`28-fourth-feedback.md`, "Lane V"): item 4's numbers (200 tabs, 272 panes,
   16 live cards, footprint bounded by the cap, hitches against lane S's baseline), item 6 (0.18 s zoom, fade-in
   on open, 3f48029); item 5 went to lane T.
+### Lane T (item 13, and lane V's item 5)
+
+- **Root cause.** A new strip lays out its first page for one frame, then jumps to the selected tab. `Detail` makes
+  a new `Strip` on every workspace or session change (`.id("\(page.id) \(workspace.id)")`) and when the overview
+  closes (the overview replaces the sidebar and strip). The new strip's `ScrollPosition` starts empty, so its
+  `LazyHStack` lays out page 0. `onChange(initial:)` asks to scroll to the selected tab, but a lazy page that is not
+  laid out yet cannot be found. So the `Task { scrollTo }` retry moves the strip one run loop turn later, after the
+  first commit drew the first tab (or the window's fill around a page that was not laid out). Seen on this Mac in an
+  XCUITest recording (Retina, motion on): right after the overview's zoom into "second", the window shows the first
+  tab's three cards for one frame, then "second". The probe below shows the zoomed-into card 1496 pt to the right
+  (one page) for one commit, and 792 pt on CI.
+- **Fix** (a401401). `.defaultScrollAnchor(start, for: .initialOffset)` on the strip: the selected tab's page as a
+  unit point of the pages (index / (count − 1)), so the first layout is already on it. `.initialOffset` applies once,
+  so resizes, new tabs, closes and the sidebar behave as before. The `onChange` scroll and its `Task` retry stay for
+  a new tab's page and for herdr's tab taking its stand-in's place. They are no-ops on a new strip now.
+  `ScrollPosition(id:)` as the initial value was tried first and is not honored on the first layout: the strip stayed
+  on page 0 with the position saying the second tab, and nothing corrected it (a local run).
+- **What it was not.** The terminal reveal path (stills, `keepPicture`, the settle, the fade) showed no bad commit on
+  any path, on CI or locally, before or after. ghostty frees its swap chain when drawing pauses (`setVisible(false)`
+  → `releaseGpuResources`, ghostty c4e16970a), so a settle while shown could in theory show an emptied picture. The
+  probe checks for emptied surfaces and saw none on the paths that hold a grid on show (a tab shown after the
+  sidebar hid or showed). So no change there (ponytail: no fix without a failing case).
+- **Probe** (`FrameProbe`, `-recordFrames YES`). For 1.5 s after the window shows another tab, it records at every
+  run loop turn's Core Animation commit what each of the tab's cards draws: whether its terminal view is in a card's
+  host in the window, its picture's ink on a 48 × 32 grid read from the IOSurface (the still or the live one),
+  emptied or not, the reveal fade, and its top left in the window. A commit is bad when a card is gone, blank,
+  fading, shows a third picture or moved (codes `-`, `0`, `f`, `p`, `j`). A display link's frames missed the bad
+  commit: SwiftUI commits several times between two ticks. XCUITest's accessibility queries hold the app's main
+  thread for up to 240 ms, so the test makes none while a record runs.
+- **Test** (`testATabComesIntoViewWithoutAFlicker`). w1 gets a third tab, so the second tab is a middle page. Each
+  tab is shown once first, then the test records tab click and key, workspace and back, session dot and back, ⌥⌘]
+  and ⌥⌘[, a session swipe either way (natural scrolling decides which turns), the overview's zoom into another tab
+  and into the shown tab, and a tab shown after the sidebar hid and after it showed. Each step must give exactly one
+  record (none for a swipe that turned no page), and every record must have 0 bad commits.
+  - Old code, CI 40258371228 (1x): red, `overview zoom into another tab: w1:t2 1/4 j(792,0)` and the same for the
+    shown tab; every other step 0. Locally (Retina) on the old code: the zooms red in 3 of 3 runs (the shown tab in 2
+    of 3), the other steps 0. So the user's "only for a tab that was not shown" was the first-tab case: a zoom into
+    the first tab cannot show a jump.
+  - The workspace and session steps (a new strip on a middle or last tab) never jumped in these runs: there the
+    first scroll found the page. They go through the same strip, so the fix covers them. A heavier session (more
+    tabs, a slower first layout) is the likely case where the user saw it. **For the user to check.**
+  - Fixed code: all steps 0, locally three times (Retina) and on CI (below).
+- **CI.** Probes on throwaway tags (deleted): 40251450749 (display-link probe, its own artifacts), 40253909855,
+  40254634790, 40255183666 and 40255204470 (with evictions and a forced fade: 0, but the queries held the main
+  thread), 40258371228 (the per-commit probe on the old code: red, above). Full suite, dispatched on 915ec06 (after
+  74f10d7, the lane's last code commit), 40262288574: `testATabComesIntoViewWithoutAFlicker` green (83 s), shards 1
+  and 3 green. Shard 2 red in other lanes' tests: `testQuickSessionFlickLandsOnTheNextPageInStep` on the first try
+  (the sidebar header 1.25 pt off its place), and `testDoubleClickRenamesAndEscapeCancels` and
+  `testTabContextMenuRenamesAndMoves` on the rerun (each passed in the other attempt). Shard 0 hit the job's
+  20-minute limit both times, before it printed any result.
+- **Faster fade-ins** (orchestrator, 598b912, 74f10d7). A terminal's first reveal (also a rebuilt, evicted card's,
+  and the overview's tiles, which show the same views) goes from 0.12 s to 0.06 s. A new card's fade during a split
+  goes from 0.13 s (with its slide) to 0.06 s (the slide stays 0.13 s). The zoom's fade of the other cards stays
+  0.13 s, with the dividers. Under Reduce Motion, none of these fades run, as before. The hover card (0.13 s) and the
+  overview's fade-in (0.18 s, lane V) are not pane fades and stay as they are. Docs: layout, states, window,
+  talking-to-herdr.
+- **Reviews.** Spec: the zoom's fade had been halved too (fixed: only `entering` is in the scoped animation); the
+  probe compared the bottom-left origin, so a height change would count as a move (now the top left); a record could
+  land in the next step (a turn 1.6 s after each change ends it, a 2 s pause before the steps, one record a step);
+  nothing checked that a swipe landed (asserted); a middle page was not covered (third tab). Ponytail: one
+  `afterCommit` observer helper for Latency, the traffic lights and the probe; one `IOSurface.emptied`; the probe
+  reads `view.picture`; the test's key and click helpers.
+- **Learned.** A paged `LazyHStack` in a new `ScrollView` takes `defaultScrollAnchor(_:for: .initialOffset)` on its
+  first layout, but not an initial `ScrollPosition(id:)`. A screen recording in an xcresult has frames only when the
+  screen changed (variable frame rate, about 17 fps on average on CI): a one-frame jump shows up there only by luck.
+  Main's lint went red for one push (OrielApp.swift at 404 lines after a rebase, 92966e0): run `make lint` on the
+  rebased tree, not only `make build`.
+- **For the user to check by hand:** with Reduce Motion off, zoom from the overview into a tab that is not the
+  first one of its workspace, and into the one already shown: the tab appears in place, with no other tab's cards
+  for a frame. Move between sessions (dots, ⌥⌘[ ], a two-finger swipe) and workspaces whose shown tab is not their
+  first one, in your real sessions with many tabs. A split's new card and a first-time card: the fade is now half
+  as long (0.06 s). Say if it should go entirely.
 
 ## More from the user (2026-10-25 17:35)
 
