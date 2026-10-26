@@ -9,16 +9,20 @@
     struct OpenSession: View {
         let pages: WindowPages
         @Binding var open: Bool
-        /// herdr's session list, read once as the sheet opens.
-        @State private var sessions: [Session] = []
         /// A name no session has, picked once.
-        @State private var suggested = ""
+        @State private var suggested: String
         /// The session a start, stop or delete runs on.
         @State private var busy: String?
         /// The last start, stop or delete that failed: the notice, and the same again.
         @State private var failure: (text: String, retry: () -> Void)?
         /// The Stop or Delete waiting for the user's yes: `stop`, else `delete`, and its session.
         @State private var asking: (verb: String, session: String)?
+
+        init(pages: WindowPages, open: Binding<Bool>) {
+            self.pages = pages
+            _open = open
+            _suggested = State(initialValue: (pages.current?.store.sessions ?? []).newName)
+        }
 
         var body: some View {
             VStack(alignment: .leading, spacing: 8) {
@@ -37,9 +41,13 @@
             .floatingGlass(in: .rect(cornerRadius: 14))
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Open Session")
+            // e2e: what the first draw lists.
+            .onAppear { Latency.shared.note("open-session \(sessions.map(\.name).joined(separator: ","))") }
             .task {
                 await list()
-                suggested = sessions.newName
+                if sessions.contains(where: { $0.name == suggested }) {
+                    suggested = sessions.newName
+                }
             }
             // Both end what runs for good, on every device (D41's reason to ask).
             .confirmationDialog(
@@ -70,10 +78,15 @@
             }
         }
 
+        /// herdr's session list as the page last read it (as it connected): shown at once, then read again as the
+        /// panel opens, its rows changing in place. An empty list first drew only the open pages, then the sessions
+        /// pushed in above them (user, phase 29).
+        private var sessions: [Session] {
+            pages.current?.store.sessions ?? []
+        }
+
         private func list() async {
-            let client: any Multiplexer = await HerdrClient(session: pages.current?.id ?? "default",
-                                                            exec: pages.machine.exec())
-            sessions = await (try? client.sessions()) ?? sessions
+            await pages.current?.store.loadSessions()
         }
 
         /// New, then Running and Stopped sessions not open in this window, then the ones open in it.
