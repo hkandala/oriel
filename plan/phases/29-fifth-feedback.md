@@ -363,7 +363,8 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   the time of a key under it. XCUITest's accessibility snapshots took 3.5 s turns at this size, so key latency under
   XCUITest measures XCUITest. Lane O's footprint of a visible card holds: memory follows the shown and kept cards,
   not the pane count.
-- **Tests.** `testHundredsOfPanesStayQuick` (bounds: first card within 20 s, busy-tab CPU under 50 %, a snapshot's apply
+- **Tests.** `testHundredsOfPanesStayQuick` (on demand: `make e2e ONLY=…` or CI's only_testing; the Makefile's
+  `ON_DEMAND` keeps it out of the shards, where it pushed one past CI's 20 minutes; bounds: first card within 20 s, busy-tab CPU under 50 %, a snapshot's apply
   under 25 ms on average, every key in its turn or the next; each fails on the before build), the HerdrKit tests
   `events that keep coming read at most every spacing, writes at once` and `a long line and the lines around it read
   whole, and quickly` (both red on the old code).
