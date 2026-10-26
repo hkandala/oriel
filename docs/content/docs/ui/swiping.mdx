@@ -19,8 +19,10 @@ description: "Session pages in the sidebar and tab pages in the strip"
   as a swipe over them does; with the sidebar hidden, or in the overview, it
   steps one session, as ⌥⌘[ ] do. Up or down steps one workspace, as ⌃⌘[ ]
   do, in the scroll's direction. One step a gesture; a mouse wheel's burst
-  of clicks with ⌥ steps once too. The terminal under the pointer never
-  scrolls while ⌥ is held. ⌃ + scroll is the system's zoom and ⇧ + scroll
+  of clicks with ⌥ steps once too. A swipe begun with ⌥ held never scrolls
+  the terminal under the pointer, its momentum neither; ⌥ pressed mid-swipe
+  changes nothing. In a floating pane's window, a sheet or a panel a ⌥
+  swipe steps nothing. ⌃ + scroll is the system's zoom and ⇧ + scroll
   scrolls sideways, so neither is used; ⌘ + scroll is free.
 - **Three fingers.** A three-finger swipe does the same as ⌥ + swipe, one
   step as the fingers move 20 pt (on the trackpad) mostly one way, when the
@@ -32,7 +34,8 @@ description: "Session pages in the sidebar and tab pages in the strip"
   content view, which handles touches of its own). AppKit's `swipe(with:)`
   would need Swipe between pages on three fingers, and no gesture
   recognizer sees the trackpad. With the system's three-finger gestures on,
-  they win; touches the system cancels step nothing. Fingers
+  the system takes the swipe; touches it cancels before the app's 60 ms and
+  20 pt step nothing (not tried on a trackpad with them on). Fingers
   to the left show the next session and up the next workspace, as the
   system's own swipes, whatever the scroll direction. The UI says nothing
   about the setting.

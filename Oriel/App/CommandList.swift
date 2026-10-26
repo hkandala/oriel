@@ -190,11 +190,7 @@
                     key: .init(offset < 0 ? "[" : "]", modifiers: [.command, .option]),
                     symbol: symbol,
                     enabled: pages?.neighbor(offset) != nil,
-                    action: {
-                        if let pages, let page = pages.neighbor(offset) {
-                            pages.show(page)
-                        }
-                    },
+                    action: { pages?.step(offset) },
                 )
             }
             func stepWorkspace(_ title: String, _ symbol: String, _ offset: Int) -> Command {

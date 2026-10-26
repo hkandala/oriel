@@ -5,9 +5,8 @@
     /// The app's one scroll monitor (design D35). A gesture picks its axis once it moved 4 pt: a sideways one goes to
     /// the sidebar's pages when over them, else to the scroll view under the pointer (the strip, over a card), so a
     /// terminal never sees it; any other goes to the view under the pointer as usual. Its momentum follows, except to
-    /// the sidebar's pages. A wheel picks per event; Shift makes it sideways. With ⌥ held, a gesture or a wheel
-    /// anywhere in a window goes to its sessions (sideways: the sidebar's pages, else one step) or workspaces (one
-    /// step), never to a terminal; so does a three-finger swipe, when the system's three-finger swipes are off.
+    /// the sidebar's pages. A wheel picks per event; Shift makes it sideways. ⌥ + swipe and three-finger swipes: see
+    /// docs/ui/swiping.mdx.
     @MainActor
     enum SwipeRouter {
         /// Once, at launch.
@@ -27,7 +26,7 @@
         private static func touched(_ event: NSEvent) {
             let touches = event.allTouches()
             let down = touches.filter { !$0.isResting && !$0.phase.isDisjoint(with: .touching) }
-            // New touches (a missed lift left the last ones).
+            // A lift, or new touches (after a lift the app missed).
             if down.allSatisfy({ $0.phase == .began }) {
                 fingers = ThreeFingers()
             }
@@ -35,22 +34,21 @@
                 CGPoint(x: touch.normalizedPosition.x * touch.deviceSize.width,
                         y: touch.normalizedPosition.y * touch.deviceSize.height)
             }
-            switch fingers.feed(points, at: event.timestamp, cancelled: touches.contains { $0.phase == .cancelled }) {
-            case let .session(offset): step(event, sideways: true, offset)
-            case let .workspace(offset): step(event, sideways: false, offset)
-            case nil: break
+            if let step = fingers.feed(points, at: event.timestamp,
+                                       cancelled: touches.contains { $0.phase == .cancelled })
+            {
+                take(step, event)
             }
         }
 
-        /// The event's window shows its next (1) or previous (-1) session, sideways, or workspace, as ⌥⌘[ ] and ⌃⌘[ ];
-        /// not under a panel, as the sidebar's pages.
-        private static func step(_ event: NSEvent, sideways: Bool, _ offset: Int) {
+        /// The event's window shows its next (1) or previous (-1) session or workspace, as ⌥⌘[ ] and ⌃⌘[ ]; not under
+        /// a panel, as the sidebar's pages.
+        private static func take(_ step: ThreeFingers.Step, _ event: NSEvent) {
             guard let pages = WindowPages.windows.first(where: { $0.window === event.window }), !pages.panelOpen
             else { return }
-            if !sideways {
-                pages.current?.stepWorkspace(offset)
-            } else if let page = pages.neighbor(offset) {
-                pages.show(page)
+            switch step {
+            case let .session(offset): pages.step(offset)
+            case let .workspace(offset): pages.current?.stepWorkspace(offset)
             }
         }
 
@@ -125,12 +123,15 @@
                     anchor.contains(event) || option && anchor.drag != nil && anchor.window === event.window
                 }
                 pager?.drag?(sideways, true)
-                if option, pager == nil {
-                    step(event, sideways: true, sideways > 0 ? 1 : -1)
+                if pager == nil {
+                    if option {
+                        take(.session(sideways > 0 ? 1 : -1), event)
+                    } else {
+                        target = scrollView(event)
+                    }
                 }
-                target = pager == nil && !option ? scrollView(event) : nil
             } else if option {
-                step(event, sideways: false, event.scrollingDeltaY > 0 ? -1 : 1)
+                take(.workspace(event.scrollingDeltaY > 0 ? -1 : 1), event)
             }
         }
 
@@ -151,7 +152,7 @@
             let deltaX = event.scrollingDeltaX, deltaY = event.scrollingDeltaY
             if event.modifierFlags.contains(.option) {
                 let across = abs(deltaX) > abs(deltaY)
-                turn({ step(event, sideways: across, $0) }, across ? deltaX : deltaY)
+                turn({ take(across ? .session($0) : .workspace($0), event) }, across ? deltaX : deltaY)
                 return true
             }
             guard abs(deltaX) > abs(deltaY) else { return false }

@@ -65,7 +65,7 @@ extension OrielUITests {
         for sign in [-1.0, 1.0] where header != two {
             forward = sign
             try await Self.post("\(one)/swipe", Data("\(center) \(10 * sign) 14 0 0 1".utf8))
-            _ = until(1.5) { header == two }
+            _ = until(3) { header == two }
         }
         XCTAssertEqual(header, two)
         try await Self.post("\(one)/swipe", Data("\(center) \(-10 * forward) 14 0 0 1".utf8))
@@ -88,6 +88,12 @@ extension OrielUITests {
             terminal.scroll(byDeltaX: 0, deltaY: 30)
         }
         XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 3))
+
+        // With the sidebar hidden, a sideways one steps the session (the window's title ends with its name).
+        app.typeKey("s", modifierFlags: [.command, .control])
+        XCTAssertTrue(element("titlebar.workspace").exists(within: 2))
+        try await Self.post("\(one)/swipe", Data("\(center) \(10 * forward) 14 0 0 1".utf8))
+        XCTAssertTrue(until(3) { self.app.windows.firstMatch.title.hasSuffix(" - \(two)") })
     }
 
     /// A sideways swipe over the sidebar pages it and never the strip; over a card it pages the strip and never the

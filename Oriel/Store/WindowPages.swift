@@ -124,6 +124,13 @@
                 .flatMap { list.indices.contains($0) ? list[$0] : nil }
         }
 
+        /// Shows the neighbor, if any.
+        func step(_ offset: Int) {
+            if let page = neighbor(offset) {
+                show(page)
+            }
+        }
+
         func page(_ store: HostStore) -> Page? {
             list.first { $0.store === store }
         }

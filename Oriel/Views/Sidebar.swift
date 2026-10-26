@@ -307,8 +307,8 @@
 
         /// A mouse's sideways wheel: the next or previous page.
         private func step(_ offset: Int) {
-            if !pages.panelOpen, let page = pages.neighbor(offset) {
-                pages.show(page)
+            if !pages.panelOpen {
+                pages.step(offset)
             }
         }
 
