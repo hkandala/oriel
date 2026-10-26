@@ -392,3 +392,79 @@ Tab paging is good now (G #1).
   several (tabs step, the keyboard stays on its card), also with the palette or a rename field open (nothing moves);
   two windows: click one, ⌘D at once, then the other, a few times; a floating window key, click the main window and
   ⌘D at once.
+
+### Lane O (items 14, 15)
+
+- **Capture G, frame by frame** (the recording's own frame times, a column-profile shift per frame). At 0:13.3 the
+  fingers moved the page 28 and 96 px, then nothing for 58 and 67 ms, then 860 px in one frame, two more frames still,
+  then 696 and 392 px: the frames waited, then caught up. The same at 0:14.5, 0:15.3 and 0:16.6.
+- **Profile** (Release, this Mac at 120 Hz, a throwaway bundle id so nothing of the user's app was touched; stress
+  sessions of 4, 12 and 60 tabs with agents; `scripts/swipe.swift` swipes; a temporary probe logging each run loop
+  turn over 6 ms, each `laid` frame with the view bodies made since, and `sample`/`xctrace` Time Profiler). What each
+  frame waited on:
+  1. **Every tile in view remade at every move of the fingers.** `Paging.drag`'s `scrollTo(x:)` changes the overview's
+     `ScrollPosition` state, so the overview's body ran at each move and made each `OverviewPage`, and through them
+     every `Tile` (closures in their fields never compare equal): 7.6 tile bodies a frame on average, more in a big
+     session. Each tile's icons called `URL(filePath:)` on a bare program name, which reads the working folder
+     (`getcwd`, a syscall) — 5 % of the main thread while dragging.
+  2. **A swipe's start remade them all again**: the router lets the gesture's first event through to the grid under
+     the pointer before it picks the axis, so the page's grid began a scroll; its `scrolling` state changed
+     `allowsHitTesting`, and an `allowsHitTesting` change re-ran every tile's body below it (30–60 tiles, 20–40 ms),
+     Equatable or not. The zoom's start did the same (`allowsHitTesting(zoom == nil)`).
+  3. **SwiftUI's hover hit tests at each slide frame** (the content moves under a still pointer: about a tenth of the
+     main thread), and **the next session's page made in the swipe's first frame** by the lazy stack (36–56 ms), the
+     last one dropped after the landing.
+  4. **After the landing:** the sidebar under the overview (hidden, laid out) slid its session pages with the session
+     spring for 0.3 s, both pages laid out each frame: the landing's turn took 155–290 ms and the following ones
+     45–130 ms; a settle scheduled at the landing could fire in the next swipe (surfaces made and freed mid-drag).
+- **Fix** (e4982ce, 867a057; 5cd1ae9 for `getcwd`): `OverviewPage` and `Tile` are Equatable (all fields but the `open`
+  closure); no tile takes the pointer while the pages move, the grid scrolls or the zoom runs, by a clear overlay
+  (`shielded`) instead of `allowsHitTesting`; the page in view and its neighbors are made (an `HStack` with the others
+  as clear pages), so a swipe never makes a page; no settle or live change while a swipe holds or slides the pages
+  (`overviewSliding`, checked again when the 150 ms settle fires); the sidebar moves at once under the overview; only
+  the page in view's tiles read the live set. A panel opened mid-swipe sends the pages back and ends the slide.
+  Not changed: the slide's length and curve (lane M's `Paging.slide`).
+- **Numbers** (Release, this Mac; 6 swipes of 420 pt at 1875 pt/s; the `page` records until the landing; `main` = the
+  app's busy time and longest turn per 5 s. Rows 1 and 5: six sessions of 4–60 tabs, two runs each; rows 2–4: three
+  sessions, the probe build):
+
+  | | Before (a81c26d) | After |
+  |---|---|---|
+  | Slide frames over 12 ms (120 Hz) | 31–35 of 230 (p90 16–17 ms, max 23–33) | 4–5 of 267 (p90 9 ms, max 17–25) |
+  | Tile bodies per frame while dragging | 7.6 | 0.4 (a tile whose terminal drew) |
+  | First frame of a swipe | 36–56 ms | 11–22 ms |
+  | Turn of the landing, and after | 155–290 ms, then 45–130 ms turns | about 100 ms, then none over 50 |
+  | Main thread per 5 s of swipes, longest turn | 1.3–1.8 s, 172–193 ms | 0.7–1.0 s, 99–139 ms |
+
+  The landing's 100 ms (the new session's chrome and its live tiles, `showTerminals` 25–30 ms of it) comes after the
+  pages arrived. The Release build carries code coverage counters (`ENABLE_CODE_COVERAGE` defaults on); off, the same
+  bench showed no difference, so `make app` is unchanged.
+- **Item 15, cause.** The sidebar and the title row fade with `open = overview && !leaving` (the zoom's start), the pill
+  had its own fade on `overview`, which ends at `closeOverview` (the zoom's end): it faded in 0.18 s after the rest.
+  **Fix** (39915d5, 867a057): the pill has no opacity of its own (under the overview it already sits on the selected
+  tab), so it fades with its row; the chrome's fade is 0.12 s, from the zoom's start (the zoom stays 0.18 s).
+- **Tests.** `testTabAndOverviewSwipesFollowTheFingersAndLandSoon` (lane G's) now asks that the overview's swipes make
+  fewer than 6 tiles while the fingers move ("tiles <count>" at each lift, `Latency.tiles`) and that a tile click
+  leaves the overview after the swipes (the overlay went). Red on the old code with the counter: `[56, 52]`. A first
+  version had its own test on a 24-tab session (red on the old code at lane M's jump check, "a jump at 176 ms"); folded
+  into lane G's (reviews: CI time, item 9). Item 15 has no frame test: an environment-carried fade recorder only sees
+  its own modifier, so it was blind to the pill's `.opacity` (it was red on the old code only after rewriting that
+  opacity into the recorder); the pill now has none to get wrong. `testTheCapsuleRestsOnTheTabShownHoweverItShows` keeps
+  its astray-pill check.
+- **Reviews (one round).** Ponytail: the fade recorder (removed), the separate test (folded), formatting; kept the
+  overlay (an `allowsHitTesting` change re-ran Equatable tiles too: measured) and both Equatable views (the page's
+  stops the per-move rebuild, the tile's the per-scroll-phase one). Spec: a stuck slide when a panel opens mid-swipe
+  (fixed), a settle firing in the next swipe (fixed), the per-frame environment write (gone), the blind pill check
+  (gone), a click after the swipes (added), every page made (neighbors only now, and only the page in view reads the
+  live set), docs (window.mdx).
+- **Left.** A key, wheel or three-finger session change in the overview still slides with the `.session` spring with
+  no hold on settles and the tiles taking the pointer; the router still lets a swipe's first event reach the grid
+  under the pointer (harmless now, its scroll phase toggles the overlay only).
+- **Learned.** An `allowsHitTesting` change re-runs every body below it; block the pointer with an overlay. A
+  `@State` scroll position written at every move re-runs the body that owns it: make the children Equatable. Hidden
+  (opacity 0) views still lay out and animate every frame.
+- **For the user to check by hand:** in the overview, quick two-finger swipes back and forth between sessions (also a
+  big one): the page leaves with the fingers and glides in, no stall at the start or a jump mid-slide; a tile click
+  right after a swipe opens it. Click a tile: the sidebar, the tab bar and its pill fade in together, quickly, with the
+  zoom; no separate pill fade.
+- **Commits.** 5cd1ae9, e4982ce, 39915d5, 867a057, bb95dbc (docs) and these Findings.
