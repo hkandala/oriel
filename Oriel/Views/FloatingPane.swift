@@ -47,9 +47,9 @@
         }
 
         /// Also a float request on a session a store follows (talking-to-herdr#float-requests), from pi-herd on any
-        /// machine: over the store's machine.
-        static func float(session: String, pane: String, machine: String) {
-            guard let window = windows.first(where: { $0.machine.id == machine }) else {
+        /// machine: over the window the user last typed or clicked in a card of that store (`over`).
+        static func float(session: String, pane: String, machine: String, over: WindowPages? = nil) {
+            guard let window = over ?? windows.first(where: { $0.machine.id == machine }) else {
                 if windows.isEmpty {
                     early = { float(session: session, pane: pane, machine: machine) }
                 } else {

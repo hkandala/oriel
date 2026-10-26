@@ -22,6 +22,15 @@
                 .map(ObjectIdentifier.init))
         }
 
+        /// Oriel's marks on the panes it shows go first (talking-to-herdr#float-requests).
+        func applicationShouldTerminate(_ app: NSApplication) -> NSApplication.TerminateReply {
+            Task {
+                await HostStore.unmarkAll()
+                app.reply(toApplicationShouldTerminate: true)
+            }
+            return .terminateLater
+        }
+
         /// Each remote machine's master ends with the app (machines#macos).
         func applicationWillTerminate(_: Notification) {
             Machine.disconnectAll()

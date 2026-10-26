@@ -291,18 +291,23 @@ extension OrielUITests {
     }
 
     /// talking-to-herdr#float-requests: the panes in view carry `oriel-shown`; a float request on one, as pi-herd
-    /// sends it, floats the pane it names (of a session with no page), which is marked too; a pane out of view loses
-    /// its mark. The remote one: testARemoteMachinesPanesAreMarkedAndFloatThere.
+    /// sends it, floats the pane it names (of a session with no page), which is marked too; panes out of view, a
+    /// detached float's and, at quit, every pane lose their mark. The remote one:
+    /// testARemoteMachinesPanesAreMarkedAndFloatThere.
     func testShownPanesAreMarkedAndAFloatRequestFloats() async throws {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        let window = try await markAndFloat()
-        XCTAssertTrue(until(3) { element("float.w1:p1.place", in: window).stringValue.hasPrefix("\(two) › gamma › ") })
+        try await markAndFloat()
         XCTAssertFalse(element("sidebar.dot.\(two)").exists)
+        // Within the 1 s the quit waits, not the mark's 30 s.
+        try await expectShown(one, "w1:p1")
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
+        try await expectShown(one, "w1:p1", false)
     }
 
-    /// A new tab of one shows and is marked; its pane asks to float two's w1:p1, which floats and is marked; the tab
-    /// out of view loses its mark. The floating window.
-    func markAndFloat() async throws -> XCUIElement {
+    /// A new tab of one shows and is marked; its pane asks to float two's w1:p1, which floats and is marked until
+    /// its window detaches it; the tab loses its mark once w1 shows instead.
+    func markAndFloat() async throws {
         let (tab, pane) = try await newTab("float-request")
         element("tab.\(tab)").click()
         try await expectShown(one, pane)
@@ -312,10 +317,13 @@ extension OrielUITests {
         ])
         let window = app.windows.containing(.any, identifier: "float.w1:p1").firstMatch
         XCTAssertTrue(window.exists(within: connect))
+        XCTAssertTrue(until(3) { element("float.w1:p1.place", in: window).stringValue.hasPrefix("\(two) › gamma › ") })
         try await expectShown(two, "w1:p1")
+        element("float.w1:p1.detach", in: window).click()
+        XCTAssertTrue(window.vanishes(within: 3))
+        try await expectShown(two, "w1:p1", false)
         element("workspace.w1").click()
         try await expectShown(one, pane, false)
-        return window
     }
 
     /// The pane carries Oriel's mark, or not.

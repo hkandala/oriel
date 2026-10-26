@@ -176,7 +176,7 @@ extension OrielUITests {
         try await skipWithoutSSH()
         relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        _ = try await markAndFloat()
+        try await markAndFloat()
     }
 
     /// The dialog in the palette's glass in each look (screenshots), and its icon picker's search.

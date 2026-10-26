@@ -171,7 +171,8 @@ final class HostStore {
                         await loadSessions()
                     }
                 case let .float(request):
-                    WindowPages.float(session: request.session, pane: request.pane, machine: machine.id)
+                    WindowPages.float(session: request.session, pane: request.pane, machine: machine.id,
+                                      over: windows.first)
                 case let .error(error):
                     // Not while Connect runs, nor one that waited for its start: Connect's own read follows.
                     let connects = connects

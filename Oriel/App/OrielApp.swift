@@ -117,12 +117,12 @@ struct OrielApp: App {
             .onChange(of: pages.current?.id) { savedPage = $1 ?? "" }
             .onChange(of: pages.machine.id) { savedMachine = $1 }
             .onChange(of: selection) { savedSelection = $1 }
-            // Git status of the page in view of a visible window (D67), and its marks of shown panes: every 10 s.
+            // Git status for the page in view of a visible window: now and every 10 s (D67).
             .task(id: scenePhase == .active ? pages.current?.id : nil) {
                 pages.visible = scenePhase == .active
-                guard pages.visible, let store = pages.current?.store else { return pages.markShown() }
+                pages.markShown()
+                guard pages.visible, let store = pages.current?.store else { return }
                 repeat {
-                    pages.markShown(refresh: true)
                     await store.updateGit(all: true)
                 } while await (try? Task.sleep(for: .seconds(10))) != nil
             }

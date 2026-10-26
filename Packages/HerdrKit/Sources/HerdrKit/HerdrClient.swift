@@ -58,8 +58,8 @@ public actor HerdrClient {
     private var events: Task<Void, Never>?
     /// Agent panes of the open events stream; nil when no stream is open.
     private var subscribed: [String]?
-    /// The last float request's nonce.
-    private var floated: String?
+    /// The float requests' nonces (one per click).
+    private var floated: Set<String> = []
 
     /// `timeout` bounds each request.
     public init(session: String, exec: any Exec, timeout: Duration = .seconds(10)) {
@@ -242,8 +242,7 @@ public actor HerdrClient {
                         break
                     }
                     // Once: every change of the asking pane sends its tokens again until they expire.
-                    if let request = FloatRequest(message?.data?.pane?.tokens), request.nonce != floated {
-                        floated = request.nonce
+                    if let request = FloatRequest(message?.data?.pane?.tokens), floated.insert(request.nonce).inserted {
                         out?.yield(.float(request))
                     }
                     // Every other line, the first too (subscription_started: catch up on what came before it).
