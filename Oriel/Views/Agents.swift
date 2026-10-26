@@ -36,75 +36,66 @@ enum AgentSort: String {
     case priority, workspace
 }
 
-// Rex's three working dots: each fades 0.3 → 0.85 → 0.3 over 1.2 s, 0.2 s after the one before, from the wall
-// clock so every tab is in step. Core Animation runs them, at most 15 frames a second, so the app does no work per
-// frame (a TimelineView per dots made SwiftUI lay out the window at every tick: phase 25, lane O). Still under Reduce
-// Motion (but with `-forceMotion`) and on a sidebar page off to the side.
-#if os(macOS)
-    struct WorkingDots: NSViewRepresentable {
-        @Environment(\.look) private var look
-        @Environment(\.accessibilityReduceMotion) private var reduceMotion
-        @Environment(\.offscreen) private var offscreen
+/// Rex's three working dots: each fades 0.3 → 0.85 → 0.3 over 1.2 s, 0.2 s after the one before, from the wall
+/// clock so every tab is in step. Core Animation runs them, at most 15 frames a second, so the app does no work per
+/// frame (a TimelineView per dots made SwiftUI lay out the window at every tick: phase 25, lane O). Still under Reduce
+/// Motion (but with `-forceMotion`) and on a sidebar page off to the side.
+struct WorkingDots: NSViewRepresentable {
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.offscreen) private var offscreen
 
-        /// One dot, repeated 5.5 pt and 0.2 s apart: as an HStack of 3.5 pt squares 2 pt apart, centered in 14 pt.
-        func makeNSView(context _: Context) -> NSView {
-            let view = Dots(), dots = CAReplicatorLayer(), dot = CALayer()
-            view.wantsLayer = true
-            dot.frame = CGRect(x: -0.25, y: 5.25, width: 3.5, height: 3.5)
-            dot.cornerRadius = 1.75
-            dot.opacity = 0.6
-            dots.instanceCount = 3
-            dots.instanceTransform = CATransform3DMakeTranslation(5.5, 0, 0)
-            dots.instanceDelay = 0.2
-            dots.addSublayer(dot)
-            view.layer?.addSublayer(dots)
-            return view
-        }
+    /// One dot, repeated 5.5 pt and 0.2 s apart: as an HStack of 3.5 pt squares 2 pt apart, centered in 14 pt.
+    func makeNSView(context _: Context) -> NSView {
+        let view = Dots(), dots = CAReplicatorLayer(), dot = CALayer()
+        view.wantsLayer = true
+        dot.frame = CGRect(x: -0.25, y: 5.25, width: 3.5, height: 3.5)
+        dot.cornerRadius = 1.75
+        dot.opacity = 0.6
+        dots.instanceCount = 3
+        dots.instanceTransform = CATransform3DMakeTranslation(5.5, 0, 0)
+        dots.instanceDelay = 0.2
+        dots.addSublayer(dot)
+        view.layer?.addSublayer(dots)
+        return view
+    }
 
-        func updateNSView(_ view: NSView, context: Context) {
-            guard let dot = view.layer?.sublayers?.first?.sublayers?.first else { return }
-            dot.backgroundColor = look.working.resolve(in: context.environment).cgColor
-            if reduceMotion && !Animation.forceMotion || offscreen {
-                dot.removeAllAnimations()
-            } else if dot.animation(forKey: "working") == nil {
-                dot.add(Self.fade(in: dot), forKey: "working")
-            }
-        }
-
-        func sizeThatFits(_: ProposedViewSize, nsView _: NSView, context _: Context) -> CGSize? {
-            CGSize(width: 14, height: 14)
-        }
-
-        /// Clicks go through to the row's button.
-        final class Dots: NSView {
-            override func hitTest(_: NSPoint) -> NSView? {
-                nil
-            }
-        }
-
-        /// Key times 0, 0.25 and 0.5 of the cycle, eased in and out; rests at 0.3 for the second half. Its phase is
-        /// the wall clock's.
-        private static func fade(in layer: CALayer) -> CAAnimation {
-            let fade = CAKeyframeAnimation(keyPath: "opacity")
-            fade.values = [0.3, 0.85, 0.3, 0.3]
-            fade.keyTimes = [0, 0.25, 0.5, 1]
-            fade.timingFunctions = [.init(name: .easeInEaseOut), .init(name: .easeInEaseOut), .init(name: .linear)]
-            fade.duration = 1.2
-            fade.repeatCount = .infinity
-            fade.preferredFrameRateRange = CAFrameRateRange(minimum: 8, maximum: 15, preferred: 15)
-            let phase = Date.now.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.2)
-            fade.beginTime = layer.convertTime(CACurrentMediaTime(), from: nil) - phase
-            return fade
+    func updateNSView(_ view: NSView, context: Context) {
+        guard let dot = view.layer?.sublayers?.first?.sublayers?.first else { return }
+        dot.backgroundColor = look.working.resolve(in: context.environment).cgColor
+        if reduceMotion && !Animation.forceMotion || offscreen {
+            dot.removeAllAnimations()
+        } else if dot.animation(forKey: "working") == nil {
+            dot.add(Self.fade(in: dot), forKey: "working")
         }
     }
-#else
-    // ponytail: the iOS app draws no agent states yet; real dots when it does.
-    struct WorkingDots: View {
-        var body: some View {
-            Color.clear.frame(width: 14, height: 14)
+
+    func sizeThatFits(_: ProposedViewSize, nsView _: NSView, context _: Context) -> CGSize? {
+        CGSize(width: 14, height: 14)
+    }
+
+    /// Clicks go through to the row's button.
+    final class Dots: NSView {
+        override func hitTest(_: NSPoint) -> NSView? {
+            nil
         }
     }
-#endif
+
+    /// Key times 0, 0.25 and 0.5 of the cycle, eased in and out; rests at 0.3 for the second half. Its phase is
+    /// the wall clock's.
+    private static func fade(in layer: CALayer) -> CAAnimation {
+        let fade = CAKeyframeAnimation(keyPath: "opacity")
+        fade.values = [0.3, 0.85, 0.3, 0.3]
+        fade.keyTimes = [0, 0.25, 0.5, 1]
+        fade.timingFunctions = [.init(name: .easeInEaseOut), .init(name: .easeInEaseOut), .init(name: .linear)]
+        fade.duration = 1.2
+        fade.repeatCount = .infinity
+        fade.preferredFrameRateRange = CAFrameRateRange(minimum: 8, maximum: 15, preferred: 15)
+        let phase = Date.now.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.2)
+        fade.beginTime = layer.convertTime(CACurrentMediaTime(), from: nil) - phase
+        return fade
+    }
+}
 
 extension EnvironmentValues {
     /// A sidebar page off to the side: its dots stand still.
@@ -159,240 +150,238 @@ struct StatusBadge: View {
     }
 }
 
-#if os(macOS)
-    /// An agent pane in the Agents view and the Agents button's panel. A click selects its workspace and tab and gives
-    /// it the keyboard. Lit like the selected workspace row while it is the shown tab's keyboard card (user, phase 25).
-    struct AgentButton: View {
-        let pane: HostStore.Pane
-        let page: Page
-        /// Line 2; "‹workspace› · ‹tab›" when nil.
-        var place: String?
-        var picked: () -> Void = {}
-        @Environment(\.look) private var look
+/// An agent pane in the Agents view and the Agents button's panel. A click selects its workspace and tab and gives
+/// it the keyboard. Lit like the selected workspace row while it is the shown tab's keyboard card (user, phase 25).
+struct AgentButton: View {
+    let pane: HostStore.Pane
+    let page: Page
+    /// Line 2; "‹workspace› · ‹tab›" when nil.
+    var place: String?
+    var picked: () -> Void = {}
+    @Environment(\.look) private var look
 
-        var body: some View {
-            Button {
-                page.go(to: pane)
-                picked()
-            } label: {
-                label(pane.state ?? .idle)
-            }
-            .buttonStyle(ChromeStyle(selected: lit, radius: 10))
-            .accessibilityIdentifier("agent.\(pane.id)")
-            .accessibilityLabel("\(title), \(line2)")
-            .accessibilityValue(pane.state?.capsule ?? "")
-            .accessibilityAddTraits(lit ? .isSelected : [])
+    var body: some View {
+        Button {
+            page.go(to: pane)
+            picked()
+        } label: {
+            label(pane.state ?? .idle)
         }
-
-        /// The pane's name when it has one, else the agent's (user, phase 25).
-        private var title: String {
-            pane.label ?? pane.agentName ?? "agent"
-        }
-
-        private var line2: String {
-            place ?? page.place(pane)
-        }
-
-        private var lit: Bool {
-            page.keyboardCard(page.selectedTab?.id) === pane
-        }
-
-        private func label(_ state: AgentState) -> some View {
-            HStack(spacing: 8) {
-                ProgramTile(icon: pane.iconID, letter: pane.letter)
-                    .overlay(alignment: .topTrailing) { StatusBadge(state: state) }
-                    .compositingGroup()
-                // Line 1 the name, the capsule and the age on one centered line; line 2 the place (user, phase 24).
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(title).font(.system(size: 13)).lineLimit(1)
-                            .foregroundStyle(lit ? look.selected : look.chrome)
-                        Spacer(minLength: 0)
-                        StateCapsule(state: state)
-                        if let since = pane.since {
-                            TimelineView(.everyMinute) { context in Text(age(since, context.date)) }
-                                .font(.system(size: 11)).foregroundStyle(.secondary)
-                        }
-                    }
-                    Text(line2).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
-                }
-            }
-            .padding(.horizontal, 8)
-            .frame(height: 48)
-        }
-
-        private func age(_ since: Date, _ now: Date) -> String {
-            let minutes = Int(now.timeIntervalSince(since) / 60)
-            return switch minutes {
-            case ..<1: "now"
-            case ..<60: "\(minutes)m"
-            case ..<(24 * 60): "\(minutes / 60)h"
-            default: "\(minutes / (24 * 60))d"
-            }
-        }
+        .buttonStyle(ChromeStyle(selected: lit, radius: 10))
+        .accessibilityIdentifier("agent.\(pane.id)")
+        .accessibilityLabel("\(title), \(line2)")
+        .accessibilityValue(pane.state?.capsule ?? "")
+        .accessibilityAddTraits(lit ? .isSelected : [])
     }
 
-    extension HostStore {
-        /// The agent panes in herdr's order of workspaces, tabs and panes.
-        var agentPanes: [Pane] {
-            workspaces.flatMap(\.tabs).flatMap { panes(in: $0.id).filter { $0.state != nil } }
-        }
+    /// The pane's name when it has one, else the agent's (user, phase 25).
+    private var title: String {
+        pane.label ?? pane.agentName ?? "agent"
     }
 
-    /// A page's Agents view (D61): its session's agent panes, by priority or in workspace order, in groups that fold.
-    struct AgentsList: View {
-        let page: Page
-        let filter: String
-        let sort: AgentSort
-        /// The folded groups, a line each, "‹machine› ‹session› ‹sort› ‹group›": per session and order, kept across
-        /// relaunches (user, phase 27). ponytail: a closed workspace's line stays (and folds a new workspace that gets
-        /// its id); prune them if that is ever seen.
-        @AppStorage(foldedKey) private var folded = ""
-        static let foldedKey = "agentsFolded"
-        @State private var position = ScrollPosition(idType: String.self)
-        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var line2: String {
+        place ?? page.place(pane)
+    }
 
-        var body: some View {
-            let folded = Self.keys(folded)
-            ScrollView {
-                // Lazy: only the rows in view are built, of a hundred agents or more (phase 29).
-                LazyVStack(alignment: .leading, spacing: 4) {
-                    ForEach(Self.groups(page, filter: filter, sort: sort)) { group in
-                        let open = !folded.contains(group.key)
-                        label(group.label, group.rows.count, group.key, open: open, id: group.id)
-                        if open {
-                            ForEach(group.rows) { row($0) }
-                        }
+    private var lit: Bool {
+        page.keyboardCard(page.selectedTab?.id) === pane
+    }
+
+    private func label(_ state: AgentState) -> some View {
+        HStack(spacing: 8) {
+            ProgramTile(icon: pane.iconID, letter: pane.letter)
+                .overlay(alignment: .topTrailing) { StatusBadge(state: state) }
+                .compositingGroup()
+            // Line 1 the name, the capsule and the age on one centered line; line 2 the place (user, phase 24).
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(title).font(.system(size: 13)).lineLimit(1)
+                        .foregroundStyle(lit ? look.selected : look.chrome)
+                    Spacer(minLength: 0)
+                    StateCapsule(state: state)
+                    if let since = pane.since {
+                        TimelineView(.everyMinute) { context in Text(age(since, context.date)) }
+                            .font(.system(size: 11)).foregroundStyle(.secondary)
                     }
                 }
-                .padding(Sidebar.rowInsets)
-                // Built anew for the other order: the lazy stack kept the first order's rows (line 2 with the
-                // workspace) for the same panes.
-                .id(sort)
-            }
-            .scrollIndicators(.never)
-            .scrollPosition($position)
-            // The lit row into view, just enough, without motion, however its pane was shown, and in a stack made anew
-            // (the view opened, the other order); the lazy stack finds a row it has not built. Again once laid out: on
-            // the stack's first layout the scroll can miss (phase 31).
-            .onChange(of: [page.keyboardCard(page.selectedTab?.id)?.id ?? "", sort.rawValue], initial: true) {
-                let id = $1[0]
-                withTransaction(\.animation, nil) { position.scrollTo(id: id) }
-                Task { position.scrollTo(id: id) }
+                Text(line2).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             }
         }
+        .padding(.horizontal, 8)
+        .frame(height: 48)
+    }
 
-        struct Group: Identifiable {
-            let label: String, key: String, id: String
-            let rows: [HostStore.Pane]
+    private func age(_ since: Date, _ now: Date) -> String {
+        let minutes = Int(now.timeIntervalSince(since) / 60)
+        return switch minutes {
+        case ..<1: "now"
+        case ..<60: "\(minutes)m"
+        case ..<(24 * 60): "\(minutes / 60)h"
+        default: "\(minutes / (24 * 60))d"
         }
+    }
+}
 
-        /// The groups with rows, in order, of the agents that match the filter: by priority, or under each workspace's
-        /// name. `key` folds one: "‹machine› ‹session› ‹sort› ‹group›".
-        static func groups(_ page: Page, filter: String, sort: AgentSort) -> [Group] {
-            let rows = page.store.agentPanes.filter { pane in
-                [pane.label, pane.agentName, page.place(pane)].compactMap(\.self).contains { $0.matches(filter) }
-            }
-            let key = { (group: String) in "\(page.store.machine.id) \(page.id) \(sort.rawValue) \(group)" }
-            let groups = switch sort {
-            case .priority:
-                [AgentState.needsYou, .working, .finishedUnseen, .idle].map { state in
-                    Group(label: state.capsule, key: key("\(state)"), id: "agents.group.\(state.capsule)",
-                          rows: rows.filter { $0.state == state })
+extension HostStore {
+    /// The agent panes in herdr's order of workspaces, tabs and panes.
+    var agentPanes: [Pane] {
+        workspaces.flatMap(\.tabs).flatMap { panes(in: $0.id).filter { $0.state != nil } }
+    }
+}
+
+/// A page's Agents view (D61): its session's agent panes, by priority or in workspace order, in groups that fold.
+struct AgentsList: View {
+    let page: Page
+    let filter: String
+    let sort: AgentSort
+    /// The folded groups, a line each, "‹machine› ‹session› ‹sort› ‹group›": per session and order, kept across
+    /// relaunches (user, phase 27). ponytail: a closed workspace's line stays (and folds a new workspace that gets
+    /// its id); prune them if that is ever seen.
+    @AppStorage(foldedKey) private var folded = ""
+    static let foldedKey = "agentsFolded"
+    @State private var position = ScrollPosition(idType: String.self)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let folded = Self.keys(folded)
+        ScrollView {
+            // Lazy: only the rows in view are built, of a hundred agents or more (phase 29).
+            LazyVStack(alignment: .leading, spacing: 4) {
+                ForEach(Self.groups(page, filter: filter, sort: sort)) { group in
+                    let open = !folded.contains(group.key)
+                    label(group.label, group.rows.count, group.key, open: open, id: group.id)
+                    if open {
+                        ForEach(group.rows) { row($0) }
+                    }
                 }
-            case .workspace:
-                page.store.workspaces.map { workspace in
-                    Group(label: workspace.label, key: key(workspace.id), id: "agents.workspace.\(workspace.id)",
-                          rows: rows.filter { pane in workspace.tabs.contains { $0.id == pane.tabID } })
-                }
             }
-            return groups.filter { !$0.rows.isEmpty }
+            .padding(Sidebar.rowInsets)
+            // Built anew for the other order: the lazy stack kept the first order's rows (line 2 with the
+            // workspace) for the same panes.
+            .id(sort)
         }
-
-        /// Goes to the agent row above (-1) or below (1) the lit one, round the ends, as a click on it does (a
-        /// three-finger swipe, phase 31). A folded group's rows are skipped, and floated panes: a click on one brings
-        /// its window forward, and the lit row would stay.
-        static func step(_ offset: Int, _ page: Page, filter: String, sort: AgentSort) {
-            let folded = keys(UserDefaults.standard.string(forKey: foldedKey) ?? "")
-            let rows = groups(page, filter: filter, sort: sort).filter { !folded.contains($0.key) }.flatMap(\.rows)
-                .filter { !page.floats($0) }
-            guard !rows.isEmpty else { return }
-            let card = page.keyboardCard(page.selectedTab?.id), lit = rows.firstIndex { $0 === card }
-            page.go(to: rows[lit.map { ($0 + offset + rows.count) % rows.count } ?? (offset > 0 ? 0 : rows.count - 1)])
-        }
-
-        /// The folded groups' keys, from their lines.
-        private static func keys(_ lines: String) -> Set<String> {
-            Set(lines.split(separator: "\n").map(String.init))
-        }
-
-        /// A section label, as in a macOS sidebar: smaller than the title, with room above (user, phase 25). A click
-        /// folds or unfolds its rows; a folded group keeps its label and count (user, phase 27).
-        private func label(_ text: String, _ count: Int, _ key: String, open: Bool, id: String) -> some View {
-            Button {
-                var keys = Self.keys(folded)
-                if keys.remove(key) == nil {
-                    keys.insert(key)
-                }
-                withAnimation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.2)) {
-                    folded = keys.joined(separator: "\n")
-                }
-            } label: {
-                GroupLabel(text: "\(text) \(count)", open: open)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(text) \(count)")
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityValue(open ? "expanded" : "collapsed")
-            .accessibilityIdentifier(id)
-            .padding(.horizontal, 8).padding(.top, 12)
-        }
-
-        /// Under its workspace's name, line 2 holds only the tab (user, phase 25).
-        private func row(_ pane: HostStore.Pane) -> some View {
-            let tabs = sort == .workspace ? page.store.workspace(of: pane.tabID)?.tabs : nil
-            return AgentButton(pane: pane, page: page, place: tabs?.first { $0.id == pane.tabID }.map(page.titleText))
-                .hoverPanel(place: .beside) { close in HoverCard(tabID: pane.tabID, page: page, close: close) }
+        .scrollIndicators(.never)
+        .scrollPosition($position)
+        // The lit row into view, just enough, without motion, however its pane was shown, and in a stack made anew
+        // (the view opened, the other order); the lazy stack finds a row it has not built. Again once laid out: on
+        // the stack's first layout the scroll can miss (phase 31).
+        .onChange(of: [page.keyboardCard(page.selectedTab?.id)?.id ?? "", sort.rawValue], initial: true) {
+            let id = $1[0]
+            withTransaction(\.animation, nil) { position.scrollTo(id: id) }
+            Task { position.scrollTo(id: id) }
         }
     }
 
-    /// A group label's text and chevron: the chevron points right while folded, and shows down only under the
-    /// pointer while open, as in a macOS sidebar.
-    private struct GroupLabel: View {
-        let text: String
-        let open: Bool
-        @State private var hovering = false
+    struct Group: Identifiable {
+        let label: String, key: String, id: String
+        let rows: [HostStore.Pane]
+    }
 
-        var body: some View {
-            HStack(spacing: 4) {
-                Text(text).lineLimit(1)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
-                    .opacity(open && !hovering ? 0 : 1)
+    /// The groups with rows, in order, of the agents that match the filter: by priority, or under each workspace's
+    /// name. `key` folds one: "‹machine› ‹session› ‹sort› ‹group›".
+    static func groups(_ page: Page, filter: String, sort: AgentSort) -> [Group] {
+        let rows = page.store.agentPanes.filter { pane in
+            [pane.label, pane.agentName, page.place(pane)].compactMap(\.self).contains { $0.matches(filter) }
+        }
+        let key = { (group: String) in "\(page.store.machine.id) \(page.id) \(sort.rawValue) \(group)" }
+        let groups = switch sort {
+        case .priority:
+            [AgentState.needsYou, .working, .finishedUnseen, .idle].map { state in
+                Group(label: state.capsule, key: key("\(state)"), id: "agents.group.\(state.capsule)",
+                      rows: rows.filter { $0.state == state })
             }
-            .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
-            .contentShape(.rect)
-            .onHover { hovering = $0 }
+        case .workspace:
+            page.store.workspaces.map { workspace in
+                Group(label: workspace.label, key: key(workspace.id), id: "agents.workspace.\(workspace.id)",
+                      rows: rows.filter { pane in workspace.tabs.contains { $0.id == pane.tabID } })
+            }
         }
+        return groups.filter { !$0.rows.isEmpty }
     }
 
-    /// The Dock badge over every open page (also `app.badge`, for tests), and the tab the user looks at (D14).
-    struct AgentsWatch: ViewModifier {
-        let pages: WindowPages
-        let page: Page
-        @Environment(\.appearsActive) private var appearsActive
-
-        func body(content: Content) -> some View {
-            // Each session once over every window. This window's list is read too, so a page it opens or closes counts.
-            // ponytail: `HostStore.all` is not observed, so this window's `app.badge` may lag a store only another
-            // window shows until one of this window's own changes; the Dock tile is right (the last writer counts all).
-            let needsYou = pages.list.isEmpty ? 0 : HostStore.needsYou
-            content
-                .testValue("app.badge", "Dock Badge", "\(needsYou)")
-                .onChange(of: needsYou, initial: true) { HostStore.showBadge() }
-                .onChange(of: [page.id, page.selectedTab?.id ?? "", appearsActive ? "key" : ""], initial: true) {
-                    pages.look(key: appearsActive)
-                }
-        }
+    /// Goes to the agent row above (-1) or below (1) the lit one, round the ends, as a click on it does (a
+    /// three-finger swipe, phase 31). A folded group's rows are skipped, and floated panes: a click on one brings
+    /// its window forward, and the lit row would stay.
+    static func step(_ offset: Int, _ page: Page, filter: String, sort: AgentSort) {
+        let folded = keys(UserDefaults.standard.string(forKey: foldedKey) ?? "")
+        let rows = groups(page, filter: filter, sort: sort).filter { !folded.contains($0.key) }.flatMap(\.rows)
+            .filter { !page.floats($0) }
+        guard !rows.isEmpty else { return }
+        let card = page.keyboardCard(page.selectedTab?.id), lit = rows.firstIndex { $0 === card }
+        page.go(to: rows[lit.map { ($0 + offset + rows.count) % rows.count } ?? (offset > 0 ? 0 : rows.count - 1)])
     }
-#endif
+
+    /// The folded groups' keys, from their lines.
+    private static func keys(_ lines: String) -> Set<String> {
+        Set(lines.split(separator: "\n").map(String.init))
+    }
+
+    /// A section label, as in a macOS sidebar: smaller than the title, with room above (user, phase 25). A click
+    /// folds or unfolds its rows; a folded group keeps its label and count (user, phase 27).
+    private func label(_ text: String, _ count: Int, _ key: String, open: Bool, id: String) -> some View {
+        Button {
+            var keys = Self.keys(folded)
+            if keys.remove(key) == nil {
+                keys.insert(key)
+            }
+            withAnimation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.2)) {
+                folded = keys.joined(separator: "\n")
+            }
+        } label: {
+            GroupLabel(text: "\(text) \(count)", open: open)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(text) \(count)")
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityValue(open ? "expanded" : "collapsed")
+        .accessibilityIdentifier(id)
+        .padding(.horizontal, 8).padding(.top, 12)
+    }
+
+    /// Under its workspace's name, line 2 holds only the tab (user, phase 25).
+    private func row(_ pane: HostStore.Pane) -> some View {
+        let tabs = sort == .workspace ? page.store.workspace(of: pane.tabID)?.tabs : nil
+        return AgentButton(pane: pane, page: page, place: tabs?.first { $0.id == pane.tabID }.map(page.titleText))
+            .hoverPanel(place: .beside) { close in HoverCard(tabID: pane.tabID, page: page, close: close) }
+    }
+}
+
+/// A group label's text and chevron: the chevron points right while folded, and shows down only under the
+/// pointer while open, as in a macOS sidebar.
+private struct GroupLabel: View {
+    let text: String
+    let open: Bool
+    @State private var hovering = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(text).lineLimit(1)
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
+                .opacity(open && !hovering ? 0 : 1)
+        }
+        .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
+        .contentShape(.rect)
+        .onHover { hovering = $0 }
+    }
+}
+
+/// The Dock badge over every open page (also `app.badge`, for tests), and the tab the user looks at (D14).
+struct AgentsWatch: ViewModifier {
+    let pages: WindowPages
+    let page: Page
+    @Environment(\.appearsActive) private var appearsActive
+
+    func body(content: Content) -> some View {
+        // Each session once over every window. This window's list is read too, so a page it opens or closes counts.
+        // ponytail: `HostStore.all` is not observed, so this window's `app.badge` may lag a store only another
+        // window shows until one of this window's own changes; the Dock tile is right (the last writer counts all).
+        let needsYou = pages.list.isEmpty ? 0 : HostStore.needsYou
+        content
+            .testValue("app.badge", "Dock Badge", "\(needsYou)")
+            .onChange(of: needsYou, initial: true) { HostStore.showBadge() }
+            .onChange(of: [page.id, page.selectedTab?.id ?? "", appearsActive ? "key" : ""], initial: true) {
+                pages.look(key: appearsActive)
+            }
+    }
+}

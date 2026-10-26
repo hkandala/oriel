@@ -16,11 +16,9 @@ public protocol Multiplexer: Sendable {
     func updates() async -> AsyncStream<Update>
     /// Reads a snapshot now, or once more after the read in flight (after the app's own write).
     func refresh() async
-    #if os(macOS)
-        /// Starts this session's server and waits until it answers, at most `timeout`; false when it already ran.
-        @discardableResult
-        func startServer(within timeout: Duration) async throws -> Bool
-    #endif
+    /// Starts this session's server and waits until it answers, at most `timeout`; false when it already ran.
+    @discardableResult
+    func startServer(within timeout: Duration) async throws -> Bool
 
     /// One pane now: its cwd follows a `cd` that no event reports.
     func pane(_ paneID: String) async throws -> Pane

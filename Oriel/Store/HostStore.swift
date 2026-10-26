@@ -54,23 +54,21 @@ final class HostStore {
         }
     }
 
-    #if os(macOS)
-        /// The windows that have its page open, the controller first (D66): the window where the user last typed or
-        /// clicked in a card of the session. The others watch.
-        var windows: [WindowPages] = []
-        /// Its panes marked as shown (`markShown`), and the marks in flight.
-        @ObservationIgnored var marked: Set<String> = []
-        @ObservationIgnored var marking: Task<Void, Never>?
-        /// The session's page is in view in a visible window: git status runs only then (D67).
-        var showsGit: Bool {
-            windows.contains { $0.visible && $0.current?.store === self }
-        }
+    /// The windows that have its page open, the controller first (D66): the window where the user last typed or
+    /// clicked in a card of the session. The others watch.
+    var windows: [WindowPages] = []
+    /// Its panes marked as shown (`markShown`), and the marks in flight.
+    @ObservationIgnored var marked: Set<String> = []
+    @ObservationIgnored var marking: Task<Void, Never>?
+    /// The session's page is in view in a visible window: git status runs only then (D67).
+    var showsGit: Bool {
+        windows.contains { $0.visible && $0.current?.store === self }
+    }
 
-        /// `connect` runs, and how many began: an error from before it, whose session list waited for its start, does
-        /// not show.
-        @ObservationIgnored private var connecting = false
-        @ObservationIgnored private var connects = 0
-    #endif
+    /// `connect` runs, and how many began: an error from before it, whose session list waited for its start, does
+    /// not show.
+    @ObservationIgnored private var connecting = false
+    @ObservationIgnored private var connects = 0
     @ObservationIgnored private(set) var client: (any Multiplexer)?
     @ObservationIgnored private var task: Task<Void, Never>?
     /// Workspaces with a git run in flight: one at a time each.
@@ -96,96 +94,94 @@ final class HostStore {
         open.values.sorted { $0.session < $1.session }
     }
 
-    #if os(macOS)
-        /// The session's store, made and connected on first use; `start` starts its server first (stopped or new).
-        static func named(_ session: String, on machine: Machine, start: Bool = false) -> HostStore {
-            if let store = open[key(session, machine)] {
-                return store
-            }
-            let store = HostStore(session: session, machine: machine)
-            open[key(session, machine)] = store
-            store.task = Task { await store.run(start: start) }
+    /// The session's store, made and connected on first use; `start` starts its server first (stopped or new).
+    static func named(_ session: String, on machine: Machine, start: Bool = false) -> HostStore {
+        if let store = open[key(session, machine)] {
             return store
         }
+        let store = HostStore(session: session, machine: machine)
+        open[key(session, machine)] = store
+        store.task = Task { await store.run(start: start) }
+        return store
+    }
 
-        /// Its page closed: the events stream and every herdr run of it end; the session keeps running.
-        func disconnect() {
-            task?.cancel()
-            Self.open[Self.key(session, machine)] = nil
+    /// Its page closed: the events stream and every herdr run of it end; the session keeps running.
+    func disconnect() {
+        task?.cancel()
+        Self.open[Self.key(session, machine)] = nil
+    }
+
+    /// The Connect button and a new machine: connects to the remote machine, asking the user what ssh asks in the
+    /// window that connects (machines#health-check: only this may prompt). The page shows Connecting from the click
+    /// until the session answers (user, phase 30).
+    func connect(in pages: WindowPages) async {
+        // A second click joins the first.
+        guard machine.isRemote, !connecting else { return }
+        connecting = true
+        connects += 1
+        if case .failed = state {
+            state = .connecting
         }
+        var failure: Error?
+        do {
+            try await (machine.exec() as? SSHExec)?.connect { question in await pages.ask(question) }
+        } catch HerdrError.disconnected {
+            // The Disconnected page says it.
+        } catch {
+            failure = error
+        }
+        connecting = false
+        // The read's answer ends Connecting now; the notice's 4 s do not hold it.
+        await client?.refresh()
+        if let failure {
+            await show(Notice(text: failure.localizedDescription))
+        }
+    }
 
-        /// The Connect button and a new machine: connects to the remote machine, asking the user what ssh asks in the
-        /// window that connects (machines#health-check: only this may prompt). The page shows Connecting from the click
-        /// until the session answers (user, phase 30).
-        func connect(in pages: WindowPages) async {
-            // A second click joins the first.
-            guard machine.isRemote, !connecting else { return }
-            connecting = true
-            connects += 1
-            if case .failed = state {
-                state = .connecting
-            }
-            var failure: Error?
+    /// Follows the session until the task is cancelled. A failed start says why, then connects anyway: the page
+    /// shows "not running" with Start.
+    private func run(start: Bool) async {
+        if start {
             do {
-                try await (machine.exec() as? SSHExec)?.connect { question in await pages.ask(question) }
-            } catch HerdrError.disconnected {
-                // The Disconnected page says it.
+                try await Self.start(session, on: machine)
             } catch {
-                failure = error
-            }
-            connecting = false
-            // The read's answer ends Connecting now; the notice's 4 s do not hold it.
-            await client?.refresh()
-            if let failure {
-                await show(Notice(text: failure.localizedDescription))
+                // Kept until the session answers.
+                notice = Notice(text: error.localizedDescription)
             }
         }
-
-        /// Follows the session until the task is cancelled. A failed start says why, then connects anyway: the page
-        /// shows "not running" with Start.
-        private func run(start: Bool) async {
-            if start {
-                do {
-                    try await Self.start(session, on: machine)
-                } catch {
-                    // Kept until the session answers.
-                    notice = Notice(text: error.localizedDescription)
-                }
-            }
-            let client: any Multiplexer = await HerdrClient(session: session, exec: machine.exec())
-            self.client = client
-            defer { self.client = nil }
-            var loadedSessions = false
-            for await update in await client.updates() {
-                switch update {
-                case let .snapshot(snapshot):
-                    let start = ProcessInfo.processInfo.systemUptime
-                    let changes = apply(snapshot)
-                    state = .live
-                    snapshotted(changes)
-                    Latency.shared.applied(since: start)
-                    // After the first snapshot, so the session list never delays the layout.
-                    if !loadedSessions {
-                        loadedSessions = true
-                        notice = nil
-                        await loadSessions()
-                    }
-                case let .float(request):
-                    WindowPages.float(session: request.session, pane: request.pane, machine: machine.id,
-                                      over: windows.first)
-                case let .error(error):
-                    // Not while Connect runs, nor one that waited for its start: Connect's own read follows.
-                    let connects = connects
-                    guard !connecting else { continue }
-                    // First, to tell "not running" from other failures without a flash of the other text.
+        let client: any Multiplexer = await HerdrClient(session: session, exec: machine.exec())
+        self.client = client
+        defer { self.client = nil }
+        var loadedSessions = false
+        for await update in await client.updates() {
+            switch update {
+            case let .snapshot(snapshot):
+                let start = ProcessInfo.processInfo.systemUptime
+                let changes = apply(snapshot)
+                state = .live
+                snapshotted(changes)
+                Latency.shared.applied(since: start)
+                // After the first snapshot, so the session list never delays the layout.
+                if !loadedSessions {
+                    loadedSessions = true
+                    notice = nil
                     await loadSessions()
-                    guard connects == self.connects else { continue }
-                    state = .failed(error)
-                    snapshotted([])
                 }
+            case let .float(request):
+                WindowPages.float(session: request.session, pane: request.pane, machine: machine.id,
+                                  over: windows.first)
+            case let .error(error):
+                // Not while Connect runs, nor one that waited for its start: Connect's own read follows.
+                let connects = connects
+                guard !connecting else { continue }
+                // First, to tell "not running" from other failures without a flash of the other text.
+                await loadSessions()
+                guard connects == self.connects else { continue }
+                state = .failed(error)
+                snapshotted([])
             }
         }
-    #endif
+    }
 
     func panes(in tabID: String?) -> [Pane] {
         tabID.flatMap { tabPanes[$0] } ?? []
@@ -242,11 +238,9 @@ final class HostStore {
 
     /// The last snapshot drawn again, with what the app shows ahead of herdr.
     func redraw() {
-        #if os(macOS)
-            if let last {
-                snapshotted(apply(last))
-            }
-        #endif
+        if let last {
+            snapshotted(apply(last))
+        }
     }
 
     /// The snapshot onto the objects, as the app shows it (`ahead`); its agent changes.
@@ -300,32 +294,28 @@ final class HostStore {
     /// Each workspace's branch (D67): `all` for the 10 s refresh, else only a workspace that is new or whose root
     /// changed. Only while the page is in view.
     func updateGit(all: Bool) async {
-        #if os(macOS)
-            guard showsGit, await gitUsable.value else { return }
-            for workspace in workspaces {
-                // The page left view (or closed) during the runs before.
-                guard showsGit, !Task.isCancelled else { return }
-                let root = workspace.worktree?.checkoutPath
-                    ?? workspace.tabs.first.flatMap { panes(in: $0.id).first?.cwd }
-                // A root that changes during a run waits for the next tick.
-                guard let root, all || root != workspace.gitRoot, !gitRuns.contains(workspace.id) else { continue }
-                workspace.gitRoot = root
-                gitRuns.insert(workspace.id)
-                // One after another: 30 workspaces are not 30 git processes at once.
-                workspace.git = await GitStatus.of(root, exec: machine.exec())
-                gitRuns.remove(workspace.id)
-            }
-        #endif
+        guard showsGit, await gitUsable.value else { return }
+        for workspace in workspaces {
+            // The page left view (or closed) during the runs before.
+            guard showsGit, !Task.isCancelled else { return }
+            let root = workspace.worktree?.checkoutPath
+                ?? workspace.tabs.first.flatMap { panes(in: $0.id).first?.cwd }
+            // A root that changes during a run waits for the next tick.
+            guard let root, all || root != workspace.gitRoot, !gitRuns.contains(workspace.id) else { continue }
+            workspace.gitRoot = root
+            gitRuns.insert(workspace.id)
+            // One after another: 30 workspaces are not 30 git processes at once.
+            workspace.git = await GitStatus.of(root, exec: machine.exec())
+            gitRuns.remove(workspace.id)
+        }
     }
 }
 
-#if os(macOS)
-    /// This Mac's, for the app's life: it reads the login shell's environment once.
-    let localExec = Task { await ProcessExec() }
-    /// Checked once at launch, so the developer tools dialog never opens.
-    /// ponytail: This Mac's check, for remote machines' git too; ask each machine when one lacks git.
-    private let gitUsable = Task { await GitStatus.usable(exec: localExec.value) }
-#endif
+/// This Mac's, for the app's life: it reads the login shell's environment once.
+let localExec = Task { await ProcessExec() }
+/// Checked once at launch, so the developer tools dialog never opens.
+/// ponytail: This Mac's check, for remote machines' git too; ask each machine when one lacks git.
+private let gitUsable = Task { await GitStatus.usable(exec: localExec.value) }
 
 /// Writes: each is one multiplexer action, then a snapshot read.
 extension HostStore {

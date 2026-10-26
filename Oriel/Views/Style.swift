@@ -362,9 +362,7 @@ extension View {
         Color.clear.contentShape(.rect).onTapGesture { open.wrappedValue = false }
             .overlay(alignment: alignment) {
                 self
-                #if os(macOS)
                     .onExitCommand { open.wrappedValue = false }
-                #endif
             }
     }
 

@@ -24,11 +24,9 @@ struct FilterList: View {
         var button: (title: String, act: () -> Void)?
         /// The button's role: red when destructive.
         var buttonRole: ButtonRole?
-        #if os(macOS)
-            /// Where a drop on the row moves the page's dragged pane or tab: a workspace, or a new one (the workspace
-            /// menu).
-            var drop: MenuRowDrop.Target?
-        #endif
+        /// Where a drop on the row moves the page's dragged pane or tab: a workspace, or a new one (the workspace
+        /// menu).
+        var drop: MenuRowDrop.Target?
         let act: () -> Void
     }
 
@@ -64,13 +62,11 @@ struct FilterList: View {
     @State private var litID: String?
     /// The rows' own height: the list is as tall as its rows, up to `maxHeight`, then scrolls.
     @State private var rowsHeight: CGFloat = 0
-    #if os(macOS)
-        /// Where the pointer was when the panel opened, or keys or the filter last moved the light: only a pointer
-        /// moved since lights a row, not a row that scrolls under a pointer at rest. Not the last hover's place: a
-        /// busy app runs a row's hover late, with the pointer already on the next row, which then saw no move (CI
-        /// 40309820769).
-        @State private var pointer = NSEvent.mouseLocation
-    #endif
+    /// Where the pointer was when the panel opened, or keys or the filter last moved the light: only a pointer
+    /// moved since lights a row, not a row that scrolls under a pointer at rest. Not the last hover's place: a
+    /// busy app runs a row's hover late, with the pointer already on the next row, which then saw no move (CI
+    /// 40309820769).
+    @State private var pointer = NSEvent.mouseLocation
     /// The pointer lit the row: no scroll to it, as in a menu.
     @State private var pointed = false
 
@@ -142,9 +138,7 @@ struct FilterList: View {
         .onChange(of: filter) {
             pointed = false
             litID = nil
-            #if os(macOS)
-                pointer = NSEvent.mouseLocation
-            #endif
+            pointer = NSEvent.mouseLocation
         }
         .onChange(of: items.isEmpty ? nil : items[index].id, initial: true) { lit?.wrappedValue = $1 }
     }
@@ -181,7 +175,6 @@ struct FilterList: View {
                     .accessibilityIdentifier("\(name).\(item.id).\(button.title.lowercased())")
             }
         }
-        #if os(macOS)
         .modifier(MenuRowDrop(target: item.drop))
         // The light follows the pointer, as in a menu (user, phase 24).
         .onContinuousHover { phase in
@@ -189,7 +182,6 @@ struct FilterList: View {
             pointed = true
             litID = item.id
         }
-        #endif
     }
 
     private func current(_ items: [Item]) -> Int {
@@ -199,9 +191,7 @@ struct FilterList: View {
     private func move(_ step: Int) -> KeyPress.Result {
         let items = items(filter)
         pointed = false
-        #if os(macOS)
-            pointer = NSEvent.mouseLocation
-        #endif
+        pointer = NSEvent.mouseLocation
         if !items.isEmpty {
             let item = items[max(0, min(current(items) + step, items.count - 1))]
             litID = item.id
@@ -256,36 +246,34 @@ struct FilterField: View {
     }
 }
 
-#if os(macOS)
-    /// A rename field, focused as it appears with the old name: Enter commits, Esc ends, a click elsewhere blurs it.
-    struct RenameField: View {
-        let prompt: String
-        let initial: String
-        let commit: (String) -> Void
-        /// After a commit and on Esc.
-        let end: () -> Void
-        /// The field lost the keyboard: `end` unless given.
-        var blur: (() -> Void)?
-        @State private var draft = ""
-        @FocusState private var focused: Bool
+/// A rename field, focused as it appears with the old name: Enter commits, Esc ends, a click elsewhere blurs it.
+struct RenameField: View {
+    let prompt: String
+    let initial: String
+    let commit: (String) -> Void
+    /// After a commit and on Esc.
+    let end: () -> Void
+    /// The field lost the keyboard: `end` unless given.
+    var blur: (() -> Void)?
+    @State private var draft = ""
+    @FocusState private var focused: Bool
 
-        var body: some View {
-            TextField(prompt, text: $draft).textFieldStyle(.plain).focused($focused)
-                .onSubmit {
-                    commit(draft)
-                    end()
+    var body: some View {
+        TextField(prompt, text: $draft).textFieldStyle(.plain).focused($focused)
+            .onSubmit {
+                commit(draft)
+                end()
+            }
+            .onExitCommand(perform: end)
+            .onChange(of: focused) { _, now in
+                if !now {
+                    (blur ?? end)()
                 }
-                .onExitCommand(perform: end)
-                .onChange(of: focused) { _, now in
-                    if !now {
-                        (blur ?? end)()
-                    }
-                }
-                .onAppear { draft = initial }
-                .focusSoon($focused)
-        }
+            }
+            .onAppear { draft = initial }
+            .focusSoon($focused)
     }
-#endif
+}
 
 extension View {
     /// A text field in a soft capsule.

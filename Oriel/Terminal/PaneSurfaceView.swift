@@ -1,375 +1,373 @@
-#if os(macOS)
-    import AppKit
-    import GhosttyTerminal
-    import HerdrKit
-    import SwiftUI
+import AppKit
+import GhosttyTerminal
+import HerdrKit
+import SwiftUI
 
-    /// libghostty's view with herdr's input path. herdr's frames carry none of the app's input
-    /// modes (cursor keys, kitty keyboard, mouse), so libghostty would encode keys and clicks for
-    /// a plain terminal. Keys whose bytes depend on those modes go to herdr by name, clicks and the
-    /// wheel go as cells; herdr encodes them for the app (phase 4 findings).
-    final class PaneSurfaceView: AppTerminalView {
-        weak var terminal: PaneTerminal?
-        /// libghostty's grid and cell size, for cells under the pointer. The in-memory session's own
-        /// sizes carry no cell size.
-        private(set) var metrics: TerminalGridMetrics?
-        private var dragged: (column: Int, row: Int)?
-        /// The button went down with ⌘ (a link click): its drag and release stay local too.
-        private var commandClick = false
-        private var scrolled: CGFloat = 0
+/// libghostty's view with herdr's input path. herdr's frames carry none of the app's input
+/// modes (cursor keys, kitty keyboard, mouse), so libghostty would encode keys and clicks for
+/// a plain terminal. Keys whose bytes depend on those modes go to herdr by name, clicks and the
+/// wheel go as cells; herdr encodes them for the app (phase 4 findings).
+final class PaneSurfaceView: AppTerminalView {
+    weak var terminal: PaneTerminal?
+    /// libghostty's grid and cell size, for cells under the pointer. The in-memory session's own
+    /// sizes carry no cell size.
+    private(set) var metrics: TerminalGridMetrics?
+    private var dragged: (column: Int, row: Int)?
+    /// The button went down with ⌘ (a link click): its drag and release stay local too.
+    private var commandClick = false
+    private var scrolled: CGFloat = 0
 
-        /// Takes the keyboard once it is in a window (again).
-        var wantsKeyboard = false
-        var onKeyboard: (() -> Void)?
-        /// Return, with or without modifiers, not repeated.
-        var onReturn: (() -> Void)?
-        /// Its window's overview tiles' scale of the strip's page: its snapshot's (`takeSnapshot`).
-        var tileScale: () -> CGFloat = { 0.35 }
-        /// The surface's last picture while it has none (`free`), and over a new surface until that draws.
-        var still: CALayer?
-        var stillWatch: NSKeyValueObservation?
+    /// Takes the keyboard once it is in a window (again).
+    var wantsKeyboard = false
+    var onKeyboard: (() -> Void)?
+    /// Return, with or without modifiers, not repeated.
+    var onReturn: (() -> Void)?
+    /// Its window's overview tiles' scale of the strip's page: its snapshot's (`takeSnapshot`).
+    var tileScale: () -> CGFloat = { 0.35 }
+    /// The surface's last picture while it has none (`free`), and over a new surface until that draws.
+    var still: CALayer?
+    var stillWatch: NSKeyValueObservation?
 
-        override init(frame: NSRect) {
-            super.init(frame: frame)
-            delegate = self
-            setAccessibilityElement(true)
-            setAccessibilityRole(.group)
-            setAccessibilityLabel("Terminal")
-            registerForDraggedTypes(Self.dropTypes)
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        delegate = self
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel("Terminal")
+        registerForDraggedTypes(Self.dropTypes)
+    }
+
+    /// Gives this terminal the keyboard, now or once it is in a window.
+    func takeKeyboard() {
+        wantsKeyboard = window == nil
+        claimed = true
+        claimKeyboard()
+    }
+
+    /// This view holds its window's latest keyboard request: the registry drops the others' (`dropClaim`), so an
+    /// older one cannot steal the keyboard back. Per window: a claim in one window leaves another's alone.
+    private var claimed = false
+
+    /// Another terminal of the window asked for the keyboard.
+    func dropClaim() {
+        wantsKeyboard = false
+        claimed = false
+    }
+
+    /// After SwiftUI's update: a first responder set during one (a tab that just arrived) is undone.
+    private func claimKeyboard() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, claimed else { return }
+            // Out of the window for a moment (SwiftUI moves it to a new host when a split closes): claim it
+            // once it is in again, or the keyboard goes nowhere.
+            guard let window else {
+                wantsKeyboard = true
+                return
+            }
+            window.makeFirstResponder(self)
+            // Also when it already was the first responder (no becomeFirstResponder then).
+            terminal?.hasKeyboard = window.firstResponder === self
         }
+    }
 
-        /// Gives this terminal the keyboard, now or once it is in a window.
-        func takeKeyboard() {
-            wantsKeyboard = window == nil
-            claimed = true
+    /// SwiftUI moves the view to a new host when the layout changes (a split); leaving the
+    /// window drops the first responder, so it takes the keyboard back once it is in again. Not when another
+    /// terminal asked for it since (a drop gives the moved card the keyboard while the layout moves): that claim
+    /// dropped this one.
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil, claimed, window?.firstResponder === self {
+            wantsKeyboard = true
+        }
+        super.viewWillMove(toWindow: newWindow)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        purgeable(window == nil)
+        // A view that left the window leaves without resignFirstResponder; the flag must not stay on.
+        terminal?.hasKeyboard = window?.firstResponder === self
+        if wantsKeyboard, window != nil {
+            wantsKeyboard = false
             claimKeyboard()
         }
+    }
 
-        /// This view holds its window's latest keyboard request: the registry drops the others' (`dropClaim`), so an
-        /// older one cannot steal the keyboard back. Per window: a claim in one window leaves another's alone.
-        private var claimed = false
+    /// Not in an overview's miniature (D70): keys go to the overview, whatever claims the keyboard meanwhile.
+    override var acceptsFirstResponder: Bool {
+        !(superview is MiniTerminal.Mini) && super.acceptsFirstResponder
+    }
 
-        /// Another terminal of the window asked for the keyboard.
-        func dropClaim() {
-            wantsKeyboard = false
-            claimed = false
+    private var inMiniature = false
+
+    override func viewWillMove(toSuperview newSuperview: NSView?) {
+        inMiniature = superview is MiniTerminal.Mini
+        super.viewWillMove(toSuperview: newSuperview)
+    }
+
+    /// Back in its card from a miniature, which refused it: a claim made meanwhile (the overview closing) lands.
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        dropSmallStill()
+        if inMiniature, claimed, window != nil, window?.firstResponder !== self {
+            claimKeyboard()
         }
+    }
 
-        /// After SwiftUI's update: a first responder set during one (a tab that just arrived) is undone.
-        private func claimKeyboard() {
-            DispatchQueue.main.async { [weak self] in
-                guard let self, claimed else { return }
-                // Out of the window for a moment (SwiftUI moves it to a new host when a split closes): claim it
-                // once it is in again, or the keyboard goes nowhere.
-                guard let window else {
-                    wantsKeyboard = true
-                    return
-                }
-                window.makeFirstResponder(self)
-                // Also when it already was the first responder (no becomeFirstResponder then).
-                terminal?.hasKeyboard = window.firstResponder === self
-            }
+    override func becomeFirstResponder() -> Bool {
+        let became = super.becomeFirstResponder()
+        terminal?.hasKeyboard = became
+        if became {
+            // However it came (a click, the app), it holds the window's latest claim.
+            claimed = true
+            onKeyboard?()
         }
+        return became
+    }
 
-        /// SwiftUI moves the view to a new host when the layout changes (a split); leaving the
-        /// window drops the first responder, so it takes the keyboard back once it is in again. Not when another
-        /// terminal asked for it since (a drop gives the moved card the keyboard while the layout moves): that claim
-        /// dropped this one.
-        override func viewWillMove(toWindow newWindow: NSWindow?) {
-            if newWindow == nil, claimed, window?.firstResponder === self {
-                wantsKeyboard = true
-            }
-            super.viewWillMove(toWindow: newWindow)
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        if resigned {
+            terminal?.hasKeyboard = false
         }
+        return resigned
+    }
 
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            purgeable(window == nil)
-            // A view that left the window leaves without resignFirstResponder; the flag must not stay on.
-            terminal?.hasKeyboard = window?.firstResponder === self
-            if wantsKeyboard, window != nil {
-                wantsKeyboard = false
-                claimKeyboard()
-            }
+    override func keyDown(with event: NSEvent) {
+        // Return and the keypad's Enter; a held key asks once.
+        if [36, 76].contains(event.keyCode), !event.isARepeat, !hasMarkedText() {
+            onReturn?()
         }
-
-        /// Not in an overview's miniature (D70): keys go to the overview, whatever claims the keyboard meanwhile.
-        override var acceptsFirstResponder: Bool {
-            !(superview is MiniTerminal.Mini) && super.acceptsFirstResponder
-        }
-
-        private var inMiniature = false
-
-        override func viewWillMove(toSuperview newSuperview: NSView?) {
-            inMiniature = superview is MiniTerminal.Mini
-            super.viewWillMove(toSuperview: newSuperview)
-        }
-
-        /// Back in its card from a miniature, which refused it: a claim made meanwhile (the overview closing) lands.
-        override func viewDidMoveToSuperview() {
-            super.viewDidMoveToSuperview()
-            dropSmallStill()
-            if inMiniature, claimed, window != nil, window?.firstResponder !== self {
-                claimKeyboard()
-            }
-        }
-
-        override func becomeFirstResponder() -> Bool {
-            let became = super.becomeFirstResponder()
-            terminal?.hasKeyboard = became
-            if became {
-                // However it came (a click, the app), it holds the window's latest claim.
-                claimed = true
-                onKeyboard?()
-            }
-            return became
-        }
-
-        override func resignFirstResponder() -> Bool {
-            let resigned = super.resignFirstResponder()
-            if resigned {
-                terminal?.hasKeyboard = false
-            }
-            return resigned
-        }
-
-        override func keyDown(with event: NSEvent) {
-            // Return and the keypad's Enter; a held key asks once.
-            if [36, 76].contains(event.keyCode), !event.isARepeat, !hasMarkedText() {
-                onReturn?()
-            }
-            if !hasMarkedText(), let key = Self.herdrKey(event) {
-                terminal?.keys([key])
-            } else if event.modifierFlags.intersection([.command, .control, .option, .shift]) == [.command, .control],
-                      event.charactersIgnoringModifiers == "f"
-            {
-                // ⌃⌘F: AppKit's window toggles full screen only for keys no view takes; libghostty takes all.
-                window?.toggleFullScreen(nil)
-            } else if hasMarkedText() || !event.modifierFlags.contains(.command) {
-                super.keyDown(with: event)
-            } else if CommandList.keyWindow?.run({ $0.matches(event) }) != true {
-                // A ⌘ key no menu item took runs the key window's command for it: the menu bar may still hold another
-                // window's list (a floating window's has no ⌘D). Else (⌘0 at the default size, ⌘9 without a ninth
-                // tab) libghostty, with no key bindings, would type its character: AppKit's beep instead.
-                NSSound.beep()
-            }
-        }
-
-        // Clicks go to herdr and to libghostty, for local selection and Copy in a plain shell.
-        // ponytail: in a mouse app a drag also draws libghostty's highlight; select locally only on
-        // Shift+drag if that noise bothers users.
-        override func mouseDown(with event: NSEvent) {
-            super.mouseDown(with: event)
-            mouse(.down, .left, event)
-        }
-
-        override func mouseDragged(with event: NSEvent) {
-            super.mouseDragged(with: event)
-            mouse(.drag, .left, event)
-        }
-
-        override func mouseUp(with event: NSEvent) {
-            super.mouseUp(with: event)
-            mouse(.up, .left, event)
-        }
-
-        /// herdr's rule: a right click opens the pane's menu (the card's context menu, up the responder chain), also in
-        /// a mouse app. A ⌥-right click goes to the program with ⌥ stripped, as with herdr's
-        /// `right_click_passthrough_modifier = "alt"`. libghostty gets none: its Copy menu is in the card's menu.
-        private var rightToProgram = false
-
-        override func rightMouseDown(with event: NSEvent) {
-            // Only ⌥, as herdr matches the modifiers exactly: ⌥⇧ opens the menu.
-            rightToProgram = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .option
-            guard rightToProgram else {
-                nextResponder?.rightMouseDown(with: event)
-                return
-            }
-            window?.makeFirstResponder(self)
-            mouse(.down, .right, event)
-        }
-
-        override func rightMouseDragged(with event: NSEvent) {
-            if rightToProgram {
-                mouse(.drag, .right, event)
-            }
-        }
-
-        override func rightMouseUp(with event: NSEvent) {
-            if rightToProgram {
-                mouse(.up, .right, event)
-            }
-        }
-
-        /// Middle clicks skip libghostty, which could paste its selection as typed input.
-        override func otherMouseDown(with event: NSEvent) {
-            window?.makeFirstResponder(self)
-            mouse(.down, .middle, event)
-        }
-
-        override func otherMouseDragged(with event: NSEvent) {
-            mouse(.drag, .middle, event)
-        }
-
-        override func otherMouseUp(with event: NSEvent) {
-            mouse(.up, .middle, event)
-        }
-
-        override func scrollWheel(with event: NSEvent) {
-            // Sideways gestures never get here: the strip's scroll monitor takes them.
-            guard let cell = cell(event), let metrics else { return }
-            // Trackpads report points, wheels report lines.
-            scrolled += event.hasPreciseScrollingDeltas
-                ? event.scrollingDeltaY * scale / CGFloat(metrics.cellHeightPixels) : event.scrollingDeltaY
-            let lines = Int(scrolled)
-            scrolled -= CGFloat(lines)
-            if lines != 0 {
-                // A positive delta shows older lines: up.
-                terminal?.scroll(lines: -lines, column: cell.column, row: cell.row, modifiers: modifiers(event))
-            }
-        }
-
-        private func mouse(_ action: TerminalStream.MouseAction, _ button: TerminalStream.MouseButton,
-                           _ event: NSEvent)
+        if !hasMarkedText(), let key = Self.herdrKey(event) {
+            terminal?.keys([key])
+        } else if event.modifierFlags.intersection([.command, .control, .option, .shift]) == [.command, .control],
+                  event.charactersIgnoringModifiers == "f"
         {
-            // Back and forward buttons are other buttons too, not middle clicks.
-            guard button != .middle || event.buttonNumber == 2, let cell = cell(event) else { return }
-            // A ⌘-click opens a link (libghostty); none of it goes to herdr.
-            if action == .down {
-                commandClick = event.modifierFlags.contains(.command)
-            }
-            guard !commandClick else { return }
-            if action == .drag, let dragged, dragged == cell {
-                return
-            }
-            dragged = action == .up ? nil : cell
-            // A right click comes here only with ⌥, which herdr's pass-through strips.
-            terminal?.mouse(action, button, column: cell.column, row: cell.row,
-                            modifiers: modifiers(event) & ~(button == .right ? 4 : 0))
-        }
-
-        private var scale: CGFloat {
-            window?.backingScaleFactor ?? 2
-        }
-
-        /// The 0-based cell under the pointer. No padding (see `PaneTerminal.controller`).
-        private func cell(_ event: NSEvent) -> (column: Int, row: Int)? {
-            guard let metrics, metrics.cellWidthPixels > 0, metrics.cellHeightPixels > 0 else { return nil }
-            let point = convert(event.locationInWindow, from: nil)
-            let column = Int(point.x * scale) / Int(metrics.cellWidthPixels)
-            let row = Int((bounds.height - point.y) * scale) / Int(metrics.cellHeightPixels)
-            return (min(max(column, 0), Int(metrics.columns) - 1), min(max(row, 0), Int(metrics.rows) - 1))
-        }
-
-        /// crossterm bits: 1 shift, 2 ctrl, 4 alt.
-        private func modifiers(_ event: NSEvent) -> Int {
-            let flags = event.modifierFlags
-            return (flags.contains(.shift) ? 1 : 0) | (flags.contains(.control) ? 2 : 0)
-                | (flags.contains(.option) ? 4 : 0)
-        }
-
-        private static let names: [UInt16: String] = [
-            36: "enter", 76: "enter", 48: "tab", 51: "backspace", 53: "esc",
-            123: "left", 124: "right", 125: "down", 126: "up",
-            122: "f1", 120: "f2", 99: "f3", 118: "f4", 96: "f5", 97: "f6",
-            98: "f7", 100: "f8", 101: "f9", 109: "f10", 103: "f11", 111: "f12",
-        ]
-
-        /// The US character of each letter, digit and symbol key (kVK_ANSI_*), for Ctrl chords on
-        /// layouts whose letters are not Latin.
-        private static let ansi: [UInt16: String] = {
-            var keys = [UInt16: String](uniqueKeysWithValues: zip(
-                0...,
-                "asdfhgzxcv_bqweryt123465=97-80]ou[ip_lj'k;\\,/nm.",
-            )
-            .filter { $0.1 != "_" }
-            .map { (UInt16($0.0), String($0.1)) })
-            keys[49] = "space"
-            keys[50] = "`"
-            return keys
-        }()
-
-        /// herdr's name (`pane.send_keys`) for a key whose bytes depend on the app's input modes:
-        /// arrows, Esc, F-keys, any of them with modifiers, Ctrl chords; plus macOS line editing
-        /// (Cmd+←/→/⌫, Option+←/→), which `keybind = clear` took from libghostty. nil leaves the
-        /// key to libghostty: text, IME, dead keys, Option characters, other Cmd keys, and plain
-        /// Enter, Tab and Backspace, which are the same bytes in every mode and stay off the slower
-        /// bridge path. Home, End, Page Up/Down and Delete have no herdr names; libghostty sends
-        /// them as xterm does.
-        /// ponytail: Option types characters (`macos-option-as-alt = false`); add an option-as-alt setting when asked.
-        static func herdrKey(_ event: NSEvent) -> String? {
-            let flags = event.modifierFlags
-            let control = flags.contains(.control), option = flags.contains(.option), shift = flags.contains(.shift)
-            let named = names[event.keyCode]
-            if flags.contains(.command) {
-                guard !control, !option else { return nil }
-                return ["left": "ctrl+a", "right": "ctrl+e", "backspace": "ctrl+u"][named ?? ""]
-            }
-            if option, !control, !shift, let word = ["left": "alt+b", "right": "alt+f"][named ?? ""] {
-                return word
-            }
-            let prefix = (control ? "ctrl+" : "") + (option ? "alt+" : "")
-            if let named {
-                if !control, !option, !shift, ["enter", "tab", "backspace"].contains(named) {
-                    return nil
-                }
-                return prefix + (shift && named != "esc" ? "shift+" : "") + named
-            }
-            // The layout's letter (Dvorak, AZERTY), else the key's US character (Ctrl+С on a Russian
-            // layout is Ctrl+C). Shift stays: under the kitty keyboard protocol Ctrl+Shift+S is its own key (pi's
-            // extensions bind them); herdr sends Ctrl+S's byte to a program without it.
-            guard control else { return nil }
-            let chord = prefix + (shift ? "shift+" : "")
-            if let letter = event.charactersIgnoringModifiers?.lowercased(), letter.count == 1,
-               letter.first?.isASCII == true, letter.first?.isLetter == true
-            {
-                return chord + letter
-            }
-            return ansi[event.keyCode].map { chord + $0 }
+            // ⌃⌘F: AppKit's window toggles full screen only for keys no view takes; libghostty takes all.
+            window?.toggleFullScreen(nil)
+        } else if hasMarkedText() || !event.modifierFlags.contains(.command) {
+            super.keyDown(with: event)
+        } else if CommandList.keyWindow?.run({ $0.matches(event) }) != true {
+            // A ⌘ key no menu item took runs the key window's command for it: the menu bar may still hold another
+            // window's list (a floating window's has no ⌘D). Else (⌘0 at the default size, ⌘9 without a ninth
+            // tab) libghostty, with no key bindings, would type its character: AppKit's beep instead.
+            NSSound.beep()
         }
     }
 
-    extension PaneSurfaceView {
-        override func accessibilityIdentifier() -> String {
-            terminal.map { "terminal.\($0.paneID)" } ?? ""
-        }
+    // Clicks go to herdr and to libghostty, for local selection and Copy in a plain shell.
+    // ponytail: in a mouse app a drag also draws libghostty's highlight; select locally only on
+    // Shift+drag if that noise bothers users.
+    override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
+        mouse(.down, .left, event)
+    }
 
-        /// The grid as `stty size` prints it (rows, columns), for e2e tests.
-        /// ponytail: grid size until VoiceOver gets the screen text (design: accessibility).
-        override func accessibilityValue() -> Any? {
-            metrics.map { "\($0.rows) \($0.columns)" }
+    override func mouseDragged(with event: NSEvent) {
+        super.mouseDragged(with: event)
+        mouse(.drag, .left, event)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        super.mouseUp(with: event)
+        mouse(.up, .left, event)
+    }
+
+    /// herdr's rule: a right click opens the pane's menu (the card's context menu, up the responder chain), also in
+    /// a mouse app. A ⌥-right click goes to the program with ⌥ stripped, as with herdr's
+    /// `right_click_passthrough_modifier = "alt"`. libghostty gets none: its Copy menu is in the card's menu.
+    private var rightToProgram = false
+
+    override func rightMouseDown(with event: NSEvent) {
+        // Only ⌥, as herdr matches the modifiers exactly: ⌥⇧ opens the menu.
+        rightToProgram = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .option
+        guard rightToProgram else {
+            nextResponder?.rightMouseDown(with: event)
+            return
+        }
+        window?.makeFirstResponder(self)
+        mouse(.down, .right, event)
+    }
+
+    override func rightMouseDragged(with event: NSEvent) {
+        if rightToProgram {
+            mouse(.drag, .right, event)
         }
     }
 
-    extension PaneSurfaceView: TerminalSurfaceGridResizeDelegate, TerminalSurfaceLifecycleDelegate {
-        func terminalDidResize(_ size: TerminalGridMetrics) {
-            if let metrics, metrics.columns != size.columns || metrics.rows != size.rows {
-                terminal?.hold()
+    override func rightMouseUp(with event: NSEvent) {
+        if rightToProgram {
+            mouse(.up, .right, event)
+        }
+    }
+
+    /// Middle clicks skip libghostty, which could paste its selection as typed input.
+    override func otherMouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        mouse(.down, .middle, event)
+    }
+
+    override func otherMouseDragged(with event: NSEvent) {
+        mouse(.drag, .middle, event)
+    }
+
+    override func otherMouseUp(with event: NSEvent) {
+        mouse(.up, .middle, event)
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        // Sideways gestures never get here: the strip's scroll monitor takes them.
+        guard let cell = cell(event), let metrics else { return }
+        // Trackpads report points, wheels report lines.
+        scrolled += event.hasPreciseScrollingDeltas
+            ? event.scrollingDeltaY * scale / CGFloat(metrics.cellHeightPixels) : event.scrollingDeltaY
+        let lines = Int(scrolled)
+        scrolled -= CGFloat(lines)
+        if lines != 0 {
+            // A positive delta shows older lines: up.
+            terminal?.scroll(lines: -lines, column: cell.column, row: cell.row, modifiers: modifiers(event))
+        }
+    }
+
+    private func mouse(_ action: TerminalStream.MouseAction, _ button: TerminalStream.MouseButton,
+                       _ event: NSEvent)
+    {
+        // Back and forward buttons are other buttons too, not middle clicks.
+        guard button != .middle || event.buttonNumber == 2, let cell = cell(event) else { return }
+        // A ⌘-click opens a link (libghostty); none of it goes to herdr.
+        if action == .down {
+            commandClick = event.modifierFlags.contains(.command)
+        }
+        guard !commandClick else { return }
+        if action == .drag, let dragged, dragged == cell {
+            return
+        }
+        dragged = action == .up ? nil : cell
+        // A right click comes here only with ⌥, which herdr's pass-through strips.
+        terminal?.mouse(action, button, column: cell.column, row: cell.row,
+                        modifiers: modifiers(event) & ~(button == .right ? 4 : 0))
+    }
+
+    private var scale: CGFloat {
+        window?.backingScaleFactor ?? 2
+    }
+
+    /// The 0-based cell under the pointer. No padding (see `PaneTerminal.controller`).
+    private func cell(_ event: NSEvent) -> (column: Int, row: Int)? {
+        guard let metrics, metrics.cellWidthPixels > 0, metrics.cellHeightPixels > 0 else { return nil }
+        let point = convert(event.locationInWindow, from: nil)
+        let column = Int(point.x * scale) / Int(metrics.cellWidthPixels)
+        let row = Int((bounds.height - point.y) * scale) / Int(metrics.cellHeightPixels)
+        return (min(max(column, 0), Int(metrics.columns) - 1), min(max(row, 0), Int(metrics.rows) - 1))
+    }
+
+    /// crossterm bits: 1 shift, 2 ctrl, 4 alt.
+    private func modifiers(_ event: NSEvent) -> Int {
+        let flags = event.modifierFlags
+        return (flags.contains(.shift) ? 1 : 0) | (flags.contains(.control) ? 2 : 0)
+            | (flags.contains(.option) ? 4 : 0)
+    }
+
+    private static let names: [UInt16: String] = [
+        36: "enter", 76: "enter", 48: "tab", 51: "backspace", 53: "esc",
+        123: "left", 124: "right", 125: "down", 126: "up",
+        122: "f1", 120: "f2", 99: "f3", 118: "f4", 96: "f5", 97: "f6",
+        98: "f7", 100: "f8", 101: "f9", 109: "f10", 103: "f11", 111: "f12",
+    ]
+
+    /// The US character of each letter, digit and symbol key (kVK_ANSI_*), for Ctrl chords on
+    /// layouts whose letters are not Latin.
+    private static let ansi: [UInt16: String] = {
+        var keys = [UInt16: String](uniqueKeysWithValues: zip(
+            0...,
+            "asdfhgzxcv_bqweryt123465=97-80]ou[ip_lj'k;\\,/nm.",
+        )
+        .filter { $0.1 != "_" }
+        .map { (UInt16($0.0), String($0.1)) })
+        keys[49] = "space"
+        keys[50] = "`"
+        return keys
+    }()
+
+    /// herdr's name (`pane.send_keys`) for a key whose bytes depend on the app's input modes:
+    /// arrows, Esc, F-keys, any of them with modifiers, Ctrl chords; plus macOS line editing
+    /// (Cmd+←/→/⌫, Option+←/→), which `keybind = clear` took from libghostty. nil leaves the
+    /// key to libghostty: text, IME, dead keys, Option characters, other Cmd keys, and plain
+    /// Enter, Tab and Backspace, which are the same bytes in every mode and stay off the slower
+    /// bridge path. Home, End, Page Up/Down and Delete have no herdr names; libghostty sends
+    /// them as xterm does.
+    /// ponytail: Option types characters (`macos-option-as-alt = false`); add an option-as-alt setting when asked.
+    static func herdrKey(_ event: NSEvent) -> String? {
+        let flags = event.modifierFlags
+        let control = flags.contains(.control), option = flags.contains(.option), shift = flags.contains(.shift)
+        let named = names[event.keyCode]
+        if flags.contains(.command) {
+            guard !control, !option else { return nil }
+            return ["left": "ctrl+a", "right": "ctrl+e", "backspace": "ctrl+u"][named ?? ""]
+        }
+        if option, !control, !shift, let word = ["left": "alt+b", "right": "alt+f"][named ?? ""] {
+            return word
+        }
+        let prefix = (control ? "ctrl+" : "") + (option ? "alt+" : "")
+        if let named {
+            if !control, !option, !shift, ["enter", "tab", "backspace"].contains(named) {
+                return nil
             }
-            metrics = size
+            return prefix + (shift && named != "esc" ? "shift+" : "") + named
         }
-
-        /// A new surface starts focused (a filled cursor) until it first loses the keyboard, and
-        /// libghostty-spm has no public way to set a surface's focus; resigning is the one that
-        /// tells the surface it is not focused.
-        func terminalDidAttachSurface(_: TerminalSurface) {
-            if window?.firstResponder !== self {
-                _ = resignFirstResponder()
-            }
-            coverNewSurface()
+        // The layout's letter (Dvorak, AZERTY), else the key's US character (Ctrl+С on a Russian
+        // layout is Ctrl+C). Shift stays: under the kitty keyboard protocol Ctrl+Shift+S is its own key (pi's
+        // extensions bind them); herdr sends Ctrl+S's byte to a program without it.
+        guard control else { return nil }
+        let chord = prefix + (shift ? "shift+" : "")
+        if let letter = event.charactersIgnoringModifiers?.lowercased(), letter.count == 1,
+           letter.first?.isASCII == true, letter.first?.isLetter == true
+        {
+            return chord + letter
         }
+        return ansi[event.keyCode].map { chord + $0 }
+    }
+}
 
-        func terminalDidDetachSurface() {}
+extension PaneSurfaceView {
+    override func accessibilityIdentifier() -> String {
+        terminal.map { "terminal.\($0.paneID)" } ?? ""
     }
 
-    extension PaneSurfaceView: TerminalSurfaceOpenURLDelegate, TerminalSurfaceHoverLinkDelegate {
-        func terminalDidRequestOpenURL(_ url: String, kind _: TerminalOpenURLKind) {
-            Links.shared.open(url)
-        }
-
-        /// A pointing hand while ⌘ is down over a link.
-        func terminalDidUpdateHoverLink(_ url: String?) {
-            (url == nil ? NSCursor.arrow : .pointingHand).set()
-        }
+    /// The grid as `stty size` prints it (rows, columns), for e2e tests.
+    /// ponytail: grid size until VoiceOver gets the screen text (design: accessibility).
+    override func accessibilityValue() -> Any? {
+        metrics.map { "\($0.rows) \($0.columns)" }
     }
-#endif
+}
+
+extension PaneSurfaceView: TerminalSurfaceGridResizeDelegate, TerminalSurfaceLifecycleDelegate {
+    func terminalDidResize(_ size: TerminalGridMetrics) {
+        if let metrics, metrics.columns != size.columns || metrics.rows != size.rows {
+            terminal?.hold()
+        }
+        metrics = size
+    }
+
+    /// A new surface starts focused (a filled cursor) until it first loses the keyboard, and
+    /// libghostty-spm has no public way to set a surface's focus; resigning is the one that
+    /// tells the surface it is not focused.
+    func terminalDidAttachSurface(_: TerminalSurface) {
+        if window?.firstResponder !== self {
+            _ = resignFirstResponder()
+        }
+        coverNewSurface()
+    }
+
+    func terminalDidDetachSurface() {}
+}
+
+extension PaneSurfaceView: TerminalSurfaceOpenURLDelegate, TerminalSurfaceHoverLinkDelegate {
+    func terminalDidRequestOpenURL(_ url: String, kind _: TerminalOpenURLKind) {
+        Links.shared.open(url)
+    }
+
+    /// A pointing hand while ⌘ is down over a link.
+    func terminalDidUpdateHoverLink(_ url: String?) {
+        (url == nil ? NSCursor.arrow : .pointingHand).set()
+    }
+}

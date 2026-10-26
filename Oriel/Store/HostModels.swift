@@ -136,14 +136,12 @@ extension HostStore {
         session == "default" ? machine.name : "\(machine.name) · \(session)"
     }
 
-    #if os(macOS)
-        /// The sidebar's title: the machine's name for its `default` session, This Mac's own name for This Mac's;
-        /// else the session's (user, phase 27).
-        var title: String {
-            guard session == "default" else { return session }
-            return machine.isRemote ? machine.name : Machine.computerName
-        }
-    #endif
+    /// The sidebar's title: the machine's name for its `default` session, This Mac's own name for This Mac's;
+    /// else the session's (user, phase 27).
+    var title: String {
+        guard session == "default" else { return session }
+        return machine.isRemote ? machine.name : Machine.computerName
+    }
 
     /// The session in a notification or a Dock row: a remote one with its machine.
     var label: String {
@@ -180,44 +178,42 @@ extension HostStore {
     }
 }
 
-#if os(macOS)
-    extension HostStore {
-        /// Starts the session's server when it is not running (a launchd job, D47); a server started here gets
-        /// its first workspace in home, as a new one has none.
-        /// A second start of a session (a double click on Start, Open Session) joins the one in flight: on its own it
-        /// would find the booting server silent and boot it out.
-        static func start(_ session: String, on machine: Machine) async throws {
-            let key = key(session, machine)
-            let start = starting[key] ?? Task {
-                // herdr is the only multiplexer (design D49).
-                let client: any Multiplexer = await HerdrClient(session: session, exec: machine.exec())
-                // `-startTimeout 0` makes every start fail, for e2e.
-                let timeout = UserDefaults.standard.double(forKey: "startTimeout")
-                if try await client.startServer(within: .seconds(timeout)),
-                   try await client.snapshot().workspaces.isEmpty
-                {
-                    _ = try await client.newWorkspace(label: nil, cwd: "~")
-                }
+extension HostStore {
+    /// Starts the session's server when it is not running (a launchd job, D47); a server started here gets
+    /// its first workspace in home, as a new one has none.
+    /// A second start of a session (a double click on Start, Open Session) joins the one in flight: on its own it
+    /// would find the booting server silent and boot it out.
+    static func start(_ session: String, on machine: Machine) async throws {
+        let key = key(session, machine)
+        let start = starting[key] ?? Task {
+            // herdr is the only multiplexer (design D49).
+            let client: any Multiplexer = await HerdrClient(session: session, exec: machine.exec())
+            // `-startTimeout 0` makes every start fail, for e2e.
+            let timeout = UserDefaults.standard.double(forKey: "startTimeout")
+            if try await client.startServer(within: .seconds(timeout)),
+               try await client.snapshot().workspaces.isEmpty
+            {
+                _ = try await client.newWorkspace(label: nil, cwd: "~")
             }
-            starting[key] = start
-            // Not a newer start that began as this one ended.
-            defer { starting[key] = starting[key] == start ? nil : starting[key] }
-            try await start.value
         }
+        starting[key] = start
+        // Not a newer start that began as this one ended.
+        defer { starting[key] = starting[key] == start ? nil : starting[key] }
+        try await start.value
+    }
 
-        private static var starting: [String: Task<Void, Error>] = [:]
+    private static var starting: [String: Task<Void, Error>] = [:]
 
-        /// The Start button of a session that stopped: the running store finds it again.
-        func start() async {
-            do {
-                try await Self.start(session, on: machine)
-                await client?.refresh()
-            } catch {
-                await show(Notice(text: error.localizedDescription))
-            }
+    /// The Start button of a session that stopped: the running store finds it again.
+    func start() async {
+        do {
+            try await Self.start(session, on: machine)
+            await client?.refresh()
+        } catch {
+            await show(Notice(text: error.localizedDescription))
         }
     }
-#endif
+}
 
 extension HostStore {
     /// One `pane.process_info`; the icon follows. Only the latest ask lands; a failed first one is made again.
