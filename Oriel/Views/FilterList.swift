@@ -216,8 +216,8 @@ struct FilterList: View {
     }
 }
 
-/// The filter field of the sidebar and `FilterList`. Until clicked (or with `autofocus`) it is plain text,
-/// so the window has no text field to hand the keyboard to at launch; keys belong to the panes.
+/// A filter field. Until clicked (or with `autofocus`) it is plain text, so the window has no text field to hand the
+/// keyboard to at launch; keys belong to the panes.
 struct FilterField: View {
     let prompt: String
     @Binding var text: String
