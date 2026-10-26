@@ -58,6 +58,13 @@ struct OrielApp: App {
         .commandsRemoved()
         // Nor does it take a folder dropped on the Dock icon: it opened an empty floating window.
         .handlesExternalEvents(matching: [])
+        // Oriel ▸ About Oriel. No Window menu item of its own, no restore, no Dock-icon drops.
+        Window("About Oriel", id: "about") { About() }
+            .windowStyle(.hiddenTitleBar)
+            .windowResizability(.contentSize)
+            .restorationBehavior(.disabled)
+            .commandsRemoved()
+            .handlesExternalEvents(matching: [])
     }
 }
 
