@@ -170,8 +170,15 @@ extension OrielUITests {
             let panes = try await order(tab)
             return panes.count == 4 ? panes : nil
         }
-        // The newest is the rightmost (the old code split the first card each time: the newest came right of it).
+        // The newest is the rightmost (the old code split the first card each time: the newest came right of it), and
+        // herdr's tree is P | (Q | (R | S)): each ⌘D split the newest. A split of an older card nests apart (phase 31:
+        // A | C | B | D, the second ⌘D split the first card).
         XCTAssertEqual(panes.first, first)
+        var node = try await root(tab)
+        for pane in panes.dropLast() {
+            XCTAssertEqual((node["first"] as? [String: Any])?["pane_id"] as? String, pane, "herdr's tree: \(node)")
+            node = node["second"] as? [String: Any] ?? [:]
+        }
         XCTAssertTrue(hasKeyboard(element("terminal.\(panes[3])")))
         // herdr's cards shown: three came, none went.
         XCTAssertTrue(cards.has(\.stringValue, counts(came: 3, went: 0), within: 2), "came went: \(cards.stringValue)")

@@ -344,11 +344,19 @@ extension HostStore {
         /// older ones join the keyboard history before it (phase 29).
         func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
             zoomedPaneID = nil
-            let target = newest.flatMap { paneID == keyboardPane?.id ? $0.id : nil } ?? paneID
-            if newest != nil {
-                // The split before's pane, if made, takes the keyboard no more (`follow`): this one's does.
+            // Also the old card asked for: ⌘D read the keyboard card before a snapshot made the split before's pane it
+            // (phase 31: the second ⌘D split the first card, A | C | B | D).
+            let target = newest.flatMap { newest in
+                paneID == keyboardPane?.id || store.pane(paneID)?.terminalID == newest.from ? newest.id : nil
+            } ?? paneID
+            if let newest {
+                // The split before's pane, if made, takes the keyboard no more (`follow`): this one's does. Nor does a
+                // claim it made already: landing now, it would end this split's turn (`tookKeyboard`, phase 31).
                 movedTerminal = nil
                 keyboardTabID = selectedTab?.id
+                if let from = newest.from {
+                    terminals.focus(from)
+                }
             }
             let standIn = Ahead.standIn()
             newest = (standIn, newest?.from ?? terminals.keyboardTerminalID)
