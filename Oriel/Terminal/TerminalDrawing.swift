@@ -194,6 +194,7 @@
         /// herdr's frames settle, as a first stream's, or soon from what a live stream sent meanwhile. Not the first
         /// surface (no grid yet): that one waits for its first stream's frames anyway.
         func coverNewSurface() {
+            dropSmallStill()
             if let still, let layer, still !== layer {
                 // Sized with the view, as it was as its layer; its gravity keeps the picture in place.
                 still.frame = layer.bounds
@@ -210,6 +211,18 @@
             if terminal.state != .idle {
                 terminal.settle()
             }
+        }
+
+        /// Out of a miniature, no still smaller than the view's pixels (the overview's snapshot, `dropPicture`) shows
+        /// (phase 30: a card showed blurred, then sharp): the card shows its fill, and its terminal fades in when it
+        /// draws, as a first one.
+        func dropSmallStill() {
+            guard !(superview is MiniTerminal.Mini), let still, still !== layer, still.small(in: self) == true
+            else { return }
+            still.removeFromSuperlayer()
+            self.still = nil
+            stillWatch = nil
+            terminal?.revealed = false
         }
 
         /// An evicted card's: volatile while the view is in no window; back in one, a picture the system took is gone
@@ -271,6 +284,14 @@
             copy.unlock(options: [], seed: nil)
             surface.unlock(options: .readOnly, seed: nil)
             return copy
+        }
+    }
+
+    extension CALayer {
+        /// Its picture is narrower than the view's pixels; nil out of a window.
+        func small(in view: NSView) -> Bool? {
+            guard let scale = view.window?.backingScaleFactor, let surface = contents as? IOSurface else { return nil }
+            return CGFloat(surface.width) < view.bounds.width * scale - 1
         }
     }
 

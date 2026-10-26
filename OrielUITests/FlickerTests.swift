@@ -28,6 +28,40 @@ extension OrielUITests {
         try await expectNoFlicker()
     }
 
+    /// A card never shows a picture smaller than its pixels (phase 30 item 12): a tab only the overview showed keeps
+    /// the overview's small snapshot, and shown in the strip afterwards (by its capsule, or by the zoom right after its
+    /// tile turned live again), it showed that blurred until it drew. Now it shows its fill and fades in.
+    func testACardNeverShowsTheOverviewsSmallSnapshot() async throws {
+        relaunch(one, ["-recordFrames", "YES", "-forceMotion", "YES"])
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        var records: [String] = []
+        for (name, zooms) in [("capsule after the overview", false), ("zoom after the overview", true)] {
+            let (tab, pane) = try await newTab(name, in: "w1")
+            try await fill(pane)
+            // Its tile turns live and draws; Esc: it lets go and keeps its snapshot.
+            app.typeKey("o", modifierFlags: [.command, .control])
+            let card = element("overview.card.\(pane)"), tile = element("overview.tab.\(tab)")
+            XCTAssertTrue(card.has(\.stringValue, "live", within: 5), card.stringValue)
+            app.typeKey(.escape, modifierFlags: [])
+            XCTAssertTrue(element("overview").vanishes(within: 2))
+            try await Task.sleep(for: .seconds(2))
+            try await records.append(frames(name) {
+                if zooms {
+                    self.app.typeKey("o", modifierFlags: [.command, .control])
+                    XCTAssertTrue(tile.has(\.isHittable, true, within: 3))
+                    tile.click()
+                } else {
+                    self.element("tab.\(tab)").click()
+                }
+            })
+            element("tab.w1:t1").click()
+        }
+        keep(records.joined(separator: "\n"), as: "frames")
+        // The codes of bad commits come last: `s`, a small still.
+        let blurred = records.filter { $0.split(separator: " ").last?.contains("s") == true }
+        XCTAssertTrue(blurred.isEmpty, "\(blurred) of \(records)")
+    }
+
     /// Each way to show another tab, recorded (`frames`): none may flicker.
     private func expectNoFlicker() async throws {
         var records: [String] = []

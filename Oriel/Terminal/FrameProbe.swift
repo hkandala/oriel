@@ -9,8 +9,8 @@
     /// as a flicker when a card shows neither its first picture nor its last one: no terminal view in the window, no
     /// picture or an emptied one, a fade, a third picture, or its terminal moved (a held grid keeps its top left, so a
     /// size change is no move). Phase 29, lane T. `recorded`: "tab bad/states codes" per change, each card's states
-    /// as they changed, the codes of bad ones (`-` gone, `0` no picture, `f` fading, `p` another picture, `j` moved,
-    /// with the first move in points).
+    /// as they changed, the codes of bad ones (`-` gone, `0` no picture, `s` a small still, `f` fading, `p` another
+    /// picture, `j` moved, with the first move in points).
     /// Not seen: commits off the main thread or from a flush within a turn, and a card's own SwiftUI opacity (only the
     /// terminal layer's fade). libghostty sets a new picture on the main thread, so each is a turn's commit.
     @MainActor @Observable
@@ -31,6 +31,8 @@
             /// Ink per cell of a coarse grid; nil without a picture.
             let ink: [Bool]?
             let fading: Bool
+            /// A still narrower than the card's pixels shows (the overview's snapshot): blurred (phase 30).
+            let small: Bool
             /// In the window (bottom-left based): a held view keeps its top left while its card's size changes.
             let topLeft: CGPoint
         }
@@ -81,7 +83,9 @@
                 inks[key] = ink
                 return ink
             }
+            let still = view.still.flatMap { $0 !== view.layer && $0.superlayer != nil ? $0 : nil }
             return Sample(ink: ink, fading: view.layer?.animation(forKey: "reveal") != nil,
+                          small: still?.small(in: view) == true,
                           topLeft: view.convert(view.bounds, to: nil).integral.topLeft)
         }
 
@@ -99,7 +103,7 @@
                         continue
                     }
                     let blank = sample.ink.map { !$0.contains(true) && last.ink?.contains(true) == true } ?? true
-                    let code = blank ? "0" : sample.fading ? "f"
+                    let code = blank ? "0" : sample.small ? "s" : sample.fading ? "f"
                         : !Self.same(sample.ink, first?.ink) && !Self.same(sample.ink, last.ink) ? "p"
                         : sample.topLeft != last.topLeft ? "j" : ""
                     if !code.isEmpty {

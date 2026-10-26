@@ -106,6 +106,7 @@
         /// Back in its card from a miniature, which refused it: a claim made meanwhile (the overview closing) lands.
         override func viewDidMoveToSuperview() {
             super.viewDidMoveToSuperview()
+            dropSmallStill()
             if inMiniature, claimed, window != nil, window?.firstResponder !== self {
                 claimKeyboard()
             }
