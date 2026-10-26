@@ -31,6 +31,11 @@
             Button {
                 clicked()
                 page.select(workspace, tab: tab.id)
+                // Anywhere on the capsule. AppKit's double-click, counted from the events' times: SwiftUI's
+                // TapGesture(count: 2) missed one while the app drew the first click (phase 31, as a workspace row).
+                if let event = NSApp.currentEvent, event.type == .leftMouseUp, event.clickCount == 2 {
+                    renaming = true
+                }
             } label: {
                 HStack(spacing: 10) {
                     IconStack(panes: stack, badge: agent?.state)
@@ -57,9 +62,6 @@
             // The selection is the tab bar's marker.
             .buttonStyle(ChromeStyle(radius: TabBar.radius, inset: TabBar.inset))
             .dragSource(.tab(tab.id), page: page)
-            // Anywhere on the capsule, beside the click that selects (a tap gesture in the label missed clicks past a
-            // short title).
-            .simultaneousGesture(TapGesture(count: 2).onEnded { renaming = true })
             // On the capsule alone: the rename field and the × over it have their own.
             .accessibilityIdentifier("tab.\(tab.id)")
             .accessibilityAddTraits(selected ? .isSelected : [])
