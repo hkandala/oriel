@@ -11,6 +11,7 @@
         @Binding var fullScreen: Bool
         /// e2e: the run loop turns that drew a traffic light off its place.
         @Binding var lightsOff: Int
+        static let recordLights = UserDefaults.standard.bool(forKey: "recordLights")
 
         func makeNSView(context _: Context) -> Reader {
             let reader = Reader()
@@ -54,7 +55,7 @@
                         MainActor.assumeIsolated { self?.changed(value) }
                     })
                 }
-                if UserDefaults.standard.bool(forKey: "recordLights") {
+                if WindowReader.recordLights {
                     recordLights()
                 }
                 // After SwiftUI's update, which may not change state.
@@ -82,6 +83,20 @@
                 lightsObserver.map(CFRunLoopObserverInvalidate)
                 lightsObserver = nil
             }
+        }
+    }
+
+    extension View {
+        /// The title row takes the hidden title bar's line, over an empty compact toolbar (the traffic lights' row), in
+        /// the main window and the floating ones.
+        func windowChrome(_ look: Look) -> some View {
+            ignoresSafeArea(edges: .top)
+                .containerBackground(for: .window) { WindowBackground(look: look) }
+                .toolbar { ToolbarSpacer(.flexible) }
+                .toolbar(removing: .title)
+                .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+                // In full screen the empty toolbar would cover the title row; it shows on hover only.
+                .windowToolbarFullScreenVisibility(.onHover)
         }
     }
 

@@ -322,17 +322,10 @@ struct OrielApp: App {
                 Latency.shared.panel = $1
             }
             .modifier(AgentsWatch(pages: pages, page: page))
-            // The title bar row takes the hidden title bar's line.
-            .ignoresSafeArea(edges: .top)
-            .containerBackground(for: .window) { WindowBackground(look: look) }
-            .toolbar { ToolbarSpacer(.flexible) }
-            .toolbar(removing: .title)
-            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-            // In full screen the empty toolbar would cover the title row; it shows on hover only.
-            .windowToolbarFullScreenVisibility(.onHover)
+            .windowChrome(look)
             .background(WindowReader(pages: pages, fullScreen: $fullScreen, lightsOff: $lightsOff))
             .testValue("window.lights", "Traffic Lights Off", "\(lightsOff)",
-                       shown: UserDefaults.standard.bool(forKey: "recordLights"))
+                       shown: WindowReader.recordLights)
             .navigationTitle(page.selectedTab.map { "\(page.titleText($0)) - \(page.store.title)" } ?? page.store.name)
             // Every window, sheet and menu, and the terminals' palettes, follow the app's appearance.
             .onChange(of: appearance, initial: true) {
