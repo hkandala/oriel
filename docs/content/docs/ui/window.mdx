@@ -672,6 +672,15 @@ clients see it there.
 - The terminal streams the whole time it floats, whichever tab or session the
   main window shows. Another window on the same session shows the pane as a
   normal card.
+- **From other tools:** `oriel://float?session=‹herdr session›&pane=‹pane id›`
+  (and `&machine=‹machine id›` for a remote machine; This Mac otherwise)
+  floats that pane over the machine's front main window, also when its
+  session is not open there: then the session gets no page, no sidebar row
+  and no strip page, and it disconnects when its last float goes (such a
+  float does not come back after a relaunch). Open again for the same pane,
+  it brings the window forward. A session or pane that is not there shows a
+  notice and no window. pi-herd opens its agents this way when Oriel is the
+  frontmost app, as herdr's own popups do not show in Oriel.
 
 ## Notice
 
