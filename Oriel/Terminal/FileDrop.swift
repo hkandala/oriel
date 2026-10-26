@@ -41,9 +41,13 @@
             return true
         }
 
-        /// Ghostty's `Shell.escape` (libghostty-spm's copy is internal).
+        /// Ghostty's `Shell.escape` (libghostty-spm's copy is internal). A path with a line break is quoted instead: a
+        /// shell without bracketed paste would run the line after it.
         private static func escaped(_ path: String) -> String {
-            path.unicodeScalars.reduce(into: "") { text, scalar in
+            if path.contains(where: \.isNewline) {
+                return "'" + path.replacing("'", with: #"'\''"#) + "'"
+            }
+            return path.unicodeScalars.reduce(into: "") { text, scalar in
                 if "\\ ()[]{}<>\"'`!#$&;|*?\t".unicodeScalars.contains(scalar) {
                     text += "\\"
                 }
@@ -61,8 +65,7 @@
         }
 
         /// A new folder in the user's temporary folder (`$TMPDIR`, only the user reads it), so a promised file keeps
-        /// its
-        /// name; the system's cleanup of temporary files removes it.
+        /// its name; the system's cleanup of temporary files removes it.
         private static func newFolder() -> URL? {
             let folder = URL.temporaryDirectory.appending(path: "oriel-\(UUID().uuidString)")
             return (try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true))
