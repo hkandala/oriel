@@ -101,10 +101,11 @@ extension OrielUITests {
         let (first, root) = try await createWorkspace("loads")
         let second = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: first), "cwd": "/tmp",
                                                              "focus": false])
+        // A 3 × 3 grid each: halving one pane eight times left cards too small to draw a row at CI's 1x.
         for pane in try [root, id(second, "root_pane")] {
-            var last = pane
-            for index in 0 ..< 8 {
-                last = try await split(last, index.isMultiple(of: 2) ? "right" : "down")
+            let middle = try await split(pane), right = try await split(middle)
+            for column in [pane, middle, right] {
+                _ = try await split(split(column, "down"), "down")
             }
         }
         app.typeKey("o", modifierFlags: [.command, .control])
