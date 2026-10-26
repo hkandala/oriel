@@ -157,14 +157,17 @@ public actor HerdrClient {
         return stream
     }
 
-    /// Design T4. A write's: its result is read at once after the read in flight, never spaced.
+    /// A write's read (design T4): right after the read in flight, never spaced.
     public func refresh() {
         hurry = true
+        pause?.cancel()
         read()
     }
 
     /// Set by a write's refresh: the next read is not spaced.
     private var hurry = false
+    /// The wait before a spaced read, which a write's refresh cuts short.
+    private var pause: Task<Void, Never>?
 
     private func read() {
         guard out != nil else { return }
@@ -195,7 +198,9 @@ public actor HerdrClient {
                 // titles and states (an event each) are not reads back to back, each a 280 KB snapshot at 400 panes
                 // (phase 29).
                 if readAgain, !hurry {
-                    try? await Task.sleep(until: started + Self.spacing)
+                    let pause = Task { _ = try? await Task.sleep(until: started + Self.spacing) }
+                    self.pause = pause
+                    await pause.value
                 }
             } while readAgain && out != nil
             reading = false

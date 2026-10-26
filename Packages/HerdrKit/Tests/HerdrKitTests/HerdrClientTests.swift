@@ -202,6 +202,27 @@ private func snapshot(version: String) -> String {
     withExtendedLifetime(updates) {}
 }
 
+@Test func `a write while events keep coming is read at once, not spaced`() async throws {
+    let exec = FakeExec(readDelay: .milliseconds(10))
+    let client = client(exec)
+    let updates = await started(client, exec)
+    let events = Task {
+        while !Task.isCancelled {
+            exec.event()
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+    defer { events.cancel() }
+    // Most refreshes land in the 250 ms wait between spaced reads; one spaced read in time for all five is unlikely.
+    for _ in 0 ..< 5 {
+        try await Task.sleep(for: .milliseconds(130))
+        let reads = exec[\.reads]
+        await client.refresh()
+        #expect(await eventually(within: .milliseconds(120)) { exec[\.reads] > reads })
+    }
+    withExtendedLifetime(updates) {}
+}
+
 @Test func `events stream reopens on agent changes, errors and exit`() async {
     let exec = FakeExec()
     let client = client(exec)
