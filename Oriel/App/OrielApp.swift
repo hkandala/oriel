@@ -10,6 +10,7 @@ struct OrielApp: App {
         init() {
             SwipeRouter.install()
             Latency.shared.install()
+            FrameProbe.shared.install()
             // Windows, not window tabs: no tab bar or tab menu items of AppKit's own.
             NSWindow.allowsAutomaticWindowTabbing = false
             // Before any surface exists, so none starts at libghostty's default size.
@@ -309,6 +310,12 @@ struct OrielApp: App {
             .testValue("app.links", "Links", Links.shared.recorded.joined(separator: " "),
                        shown: UserDefaults.standard.bool(forKey: "recordLinks"))
             .testValue("app.latency", "Latency", Latency.shared.recorded.joined(separator: "; "), shown: Latency.isOn)
+            .testValue(
+                "app.frames",
+                "Frames",
+                FrameProbe.shared.recorded.joined(separator: "; "),
+                shown: FrameProbe.isOn,
+            )
             .testValue(
                 "overview.motion",
                 "Overview Motion",

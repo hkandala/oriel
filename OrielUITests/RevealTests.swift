@@ -274,14 +274,14 @@ extension OrielUITests {
     }
 
     /// Lines of text in the pane, so an empty card is plain to see.
-    private func fill(_ pane: String) async throws {
+    func fill(_ pane: String) async throws {
         try await waitForPrompt(pane)
         try await send("clear; for i in $(seq 1 60); do echo oriel-reveal-$i-oriel-reveal; done\r", to: pane)
         try await waitFor(pane) { $0.contains("oriel-reveal-60-oriel-reveal") }
     }
 
     /// Each card is done loading and its terminal shows text: some of its pixels differ from its background.
-    private func expectText(_ panes: [String], _ step: String) async throws {
+    func expectText(_ panes: [String], _ step: String) async throws {
         keepScreenshot(step)
         for pane in panes {
             let card = element("pane.\(pane)"), terminal = element("terminal.\(pane)")
