@@ -58,6 +58,9 @@ final class HostStore {
     @ObservationIgnored private var task: Task<Void, Never>?
     /// Workspaces with a git run in flight: one at a time each.
     @ObservationIgnored private var gitRuns: Set<String> = []
+    /// Program asks in flight, 8 at most: a 600-pane session's first snapshot started 600 herdr runs at once
+    /// (phase 29).
+    @ObservationIgnored let asks = Gate(8)
     @ObservationIgnored private var seen = Seen()
 
     private init(session: String, machine: Machine) {
@@ -239,13 +242,15 @@ final class HostStore {
             parked[pane.id] = pane
         }
         let make = { self.parked.removeValue(forKey: $0) ?? Pane(id: $0) }
+        // Once, not a new set for each pane: O(panes × tabs) per snapshot (phase 29).
+        let focused = snapshot.focusedPaneIDs
         reuse(self, \.panes, shown.panes, make) { pane, new in
             watchProgram(pane, new)
             pane.agent = new.agent
             pane.terminalTitle = new.title
             pane.label = new.label
             pane.cwd = new.cwd
-            pane.focused = snapshot.focusedPaneIDs.contains(new.id)
+            pane.focused = focused.contains(new.id)
             pane.tabID = new.tabID
             pane.terminalID = new.terminalID
         }

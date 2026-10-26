@@ -186,6 +186,8 @@ extension HostStore {
         pane.asked = true
         pane.asks += 1
         let ask = pane.asks
+        await asks.enter()
+        defer { asks.leave() }
         do {
             let program = try await client.program(paneID)
             if ask == pane.asks {
@@ -260,5 +262,33 @@ func reuse<Owner: AnyObject, Object: Identifiable<String>, Item: Identifiable<St
     }
     if new.map(\.id) != owner[keyPath: list].map(\.id) {
         owner[keyPath: list] = new
+    }
+}
+
+/// At most `count` holders at once; the others wait in order.
+@MainActor
+final class Gate {
+    private var free: Int
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    init(_ count: Int) {
+        free = count
+    }
+
+    func enter() async {
+        if free > 0 {
+            free -= 1
+        } else {
+            await withCheckedContinuation { waiting.append($0) }
+        }
+    }
+
+    /// The place goes to the first waiting, if any.
+    func leave() {
+        if waiting.isEmpty {
+            free += 1
+        } else {
+            waiting.removeFirst().resume()
+        }
     }
 }
