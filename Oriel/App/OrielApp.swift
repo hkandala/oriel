@@ -156,10 +156,9 @@ struct OrielApp: App {
             var floating: [String: Bool]?
         }
 
-        /// The machine a new window was opened for (`opening`), else the restored window's (`-machine <id>` on the
-        /// command line wins over that), then `-session` if given, else the restored window's pages that still run,
-        /// else `default` (`-defaultSession` names another, for tests); This Mac's first page is started when it is
-        /// stopped. Never another session by itself.
+        /// The machine: `opening`, else `-machine <id>`, else the saved one. Pages: `-session`, else the saved ones
+        /// that still run, else `default` (`-defaultSession` for tests); This Mac's first page starts when stopped.
+        /// Never another session by itself.
         private func restore(_ opening: Machine?) async {
             guard pages.list.isEmpty else { return }
             // A window macOS restores gets its scene storage a moment after it first shows; a restored window always

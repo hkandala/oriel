@@ -120,8 +120,8 @@
     }
 
     extension View {
-        /// In the middle of the window, in the palette's glass (Add Remote Host, ssh's questions). The window behind
-        /// takes no clicks: only the dialog's buttons close it, and Esc is Cancel.
+        /// In the middle of the window, in the palette's glass. The window behind takes no clicks: only the dialog's
+        /// buttons close it, and Esc is Cancel (not `floatingPanel`: its Esc and outside click close).
         func dialog() -> some View {
             Color.clear.contentShape(.rect).onTapGesture {}
                 .overlay {

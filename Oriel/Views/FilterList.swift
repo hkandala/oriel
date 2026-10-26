@@ -257,7 +257,7 @@ struct FilterField: View {
 #endif
 
 extension View {
-    /// A text field in a soft capsule: the palette's filter, Add Remote Host, ssh's questions.
+    /// A text field in a soft capsule.
     func fieldCapsule() -> some View {
         textFieldStyle(.plain).padding(.horizontal, 8).padding(.vertical, 5)
             .background(.primary.opacity(0.07), in: .capsule)

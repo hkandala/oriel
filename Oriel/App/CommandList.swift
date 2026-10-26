@@ -24,7 +24,6 @@
             let page = pages?.current, pages = pages, workspace = page?.selectedWorkspace, tab = page?.selectedTab
             let live = page?.store.state == .live
             let file = [
-                // On the window's machine (D34).
                 Command(section: .file, title: "New Window", key: .init("n"), symbol: "macwindow.badge.plus") {
                     WindowPages.open(machine: pages?.machine ?? .thisMac)
                 },

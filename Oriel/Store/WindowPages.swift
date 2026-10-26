@@ -16,9 +16,9 @@
         var floatOnly: [Page] = []
         /// An `oriel://float` URL's session and pane, until its store answers.
         @ObservationIgnored var floatPending: (page: Page, pane: String)?
-        /// What ssh asks while this window connects a remote machine; the sheet answers it.
+        /// What ssh asks while this window connects a remote machine; its dialog answers it.
         var question: Question?
-        /// The Add Remote Host sheet is open.
+        /// The Add Remote Host dialog is open.
         var addingHost = false
         /// The page in view; nil until the first page opens, and after the window closed.
         private(set) var current: Page?
@@ -49,7 +49,7 @@
         static var early: (() -> Void)?
         /// Folders dropped on the Dock icon, waiting for a live page (a drop can start the app).
         private static var folders: [URL] = []
-        /// SwiftUI's window opener, from the menu bar's commands, for the app delegate.
+        /// SwiftUI's window opener, from the menu bar's commands (they exist with no window).
         static var openWindow: OpenWindowAction?
 
         init() {
@@ -200,7 +200,7 @@
             openWindow?(id: "main")
         }
 
-        /// What `open(machine:)` asked for, taken by the new window as it restores.
+        /// `open(machine:)`'s, for the new window. ponytail: one; a queue if two quick opens ever clash.
         static var opening: (machine: Machine, connect: Bool)?
 
         /// Every page leaves and every terminal closes.
@@ -218,7 +218,7 @@
             current = nil
         }
 
-        /// One question of ssh's, as a sheet in this window; nil when the user cancels. A newer question cancels one
+        /// One question of ssh's, as a dialog in this window; nil when the user cancels. A newer question cancels one
         /// still open.
         func ask(_ text: String) async -> String? {
             question?.answer(nil)
