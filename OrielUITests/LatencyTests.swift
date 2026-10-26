@@ -306,7 +306,8 @@ extension OrielUITests {
 
     /// The "swipe" records (the sidebar's; "page": the strip's or the overview's) in which the pages moved (a swipe
     /// back to the page in view makes one that did not), each with its offsets: [ms, pt], and the ms to the session's
-    /// show (-1: none).
+    /// show (-1: none). A scroll view's geometry reports only some frames of an animated scroll (the screen recording
+    /// has them all), so a "page" record that moved can have two.
     private func swipes(_ name: String = "swipe")
         -> [(String, [[Double]], Double)] // swiftlint:disable:this large_tuple
     {
@@ -315,7 +316,7 @@ extension OrielUITests {
             let path = words.count > 2
                 ? words[2].split(separator: ",").map { $0.split(separator: ":").compactMap { Double($0) } } : []
             return (String(swipe), path, words.count > 3 ? Double(words[3]) ?? -1 : -1)
-        }.filter { $0.1.count > 4 }
+        }.filter { $0.1.count > (name == "page" ? 1 : 4) }
     }
 
     private func launchRecordingLatency(_ args: [String] = []) throws {
