@@ -161,8 +161,9 @@
             slide.append((Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000), offset))
         }
 
-        /// The swipe's session is about to show; its own record, as a key's, gives the time to the frame that drew it
-        /// ("session 40ms 0 40ms", phase 30).
+        /// The swipe's session is about to show; its own record, as a key's, gives the time to the turn whose commit
+        /// drew it ("session 40ms 0 40ms", phase 30). One record waits at a time: a key during the switch takes its
+        /// place.
         func shown() {
             if let lifted {
                 let now = ProcessInfo.processInfo.systemUptime
