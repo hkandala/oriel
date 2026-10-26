@@ -361,8 +361,9 @@ workspace menu's "Open Session…" and File ▸ Open Session… (⌥⌘T) open i
   or the workspace menu, and opening one of those closes it.
 - A text field, "Name a new session, or find one", empty and with the
   keyboard at first.
-- The list, filtered by the field. The app reads the sessions once, when the
-  panel opens. Groups with the headers "New", "Running", "Stopped" and "Open
+- The list, filtered by the field. It shows at once the sessions the page
+  last read (as it connected, or as the panel last opened), then reads them
+  again; a change updates its rows in place. Groups with the headers "New", "Running", "Stopped" and "Open
   in this window":
   - **New:** "Create session “‹typed name›”" when the text is a valid herdr
     session name that no session has. With an empty field: "Create session
@@ -373,8 +374,9 @@ workspace menu's "Open Session…" and File ▸ Open Session… (⌥⌘T) open i
   - The rows carry no hint text: the group headers say what a pick does. A
     small symbol leads each row: a plus to create, a stack for a running or
     stopped session, a checkmark for an open one.
-- The arrows or the pointer move the highlight (a row scrolled under a still
-  pointer does not take it). Enter or a click acts on a row.
+- The arrows or the pointer move the highlight, in the same frame and with no
+  fade, as in a menu (a row scrolled under a still pointer does not take it).
+  Enter or a click acts on a row.
   - A new name, a running session and a stopped session take one path. The
     app starts the server if it is not running (a launchd job on This Mac,
     D47); a server the app started gets its first workspace in `$HOME`. Then
