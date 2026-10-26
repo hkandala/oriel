@@ -227,3 +227,62 @@ the orchestrator says otherwise.
   pi, from Oriel, open a `pi-herd` agent from the dashboard or pi-footer (after `/reload`): it opens in Oriel's
   floating window, not herdr's popup; again brings it forward; from the herdr TUI (another app in front) it
   stays herdr's popup. `open -g "oriel://float?session=<s>&pane=<id>"` from a shell does the same.
+
+### Lane E (items 1, 2)
+
+- **Root cause, item 1.** `Detail` drew the same `NewWorkspaceButton` as the sidebar page for a session with no
+  workspace. Now the strip shows `ContentUnavailableView` "This session is empty" with an icon (`square.dashed`),
+  only while the session is live (not while it reconnects before its first snapshot); the sidebar page keeps its
+  New Workspace button and the header's `+`.
+- **Root cause, item 2 (from the recording).** Frame by frame at 60 fps (`scrawl frames … --fps 60`, 0:36.4–0:40.4):
+  a quick flick (the fingers on the pad about 40 ms, then momentum) moved the pages about 45 pt in one frame, then
+  they stood still for 0.65–0.7 s. Then the window showed the next session while the pages snapped back to the old
+  one, and about 0.45 s later the old session came back (0:37.7–0:38.9 and 0:39.5–0:40.3). That is phase 27's
+  0.6 s fallback: the slide asked of SwiftUI's scroll view (`ScrollPosition.scrollTo(id:)` while the router held
+  back the gesture's end) did not run. Then the fallback handed the end to the scroll view (its snap goes to the
+  nearest page) and showed the target session; at idle the scroll position showed the first again. The slides that
+  ran still showed their session 150–200 ms after the pages looked arrived: it waited for the spring's tail to
+  come within 0.5 pt. CI did not reproduce the stall: its slow VM posts a flick's moves about 50 ms apart, so the
+  old code took the flick for stopped fingers (`ev` notes in run 40251702377).
+- **Fix.** The sidebar's session pages are no longer a scroll view: an `HStack` offset by `Swipe.slide` (in pages,
+  `@Observable`, read only by `Pager`), through `Slid` (Animatable, so the e2e record reads every frame). The router
+  finds them by their frame in the window (`ScrollAnchor.area`, from SwiftUI's `.global`) and gives them every move
+  (`drag`), the lift with the fingers' speed (`lift`), drops the momentum, and turns one page per sideways wheel
+  burst. The lift slides with the session spring and shows the session at `.logicallyComplete`, not after the tail.
+  At rest only the page in view is laid out (a laid-out page past the clip widened the sidebar's accessibility frame
+  to every page, so XCUITest's center fell on a page edge). The others come in, one update before an animated
+  slide (in the same one the offset from rest would slide too). A swipe mid-slide starts from the drawn offset
+  (`Swipe.drawn`). Removed: `SwipeRouter.finish`, the held end, the 0.6 s fallback, `ScrollPosition` and the scroll
+  phase handling in the sidebar.
+- **Deviations.** Fingers count as stopped after 0.1 s without a move, not 50 ms (CI). XCUITest's `scroll` over the
+  sidebar is a phase-less wheel: it now turns a page and leaves no swipe record, so `testPanelsAndSwitchesReactAtOnce`
+  no longer counts swipe records. `Swipe`, `Pager` and `Slid` live in SwipeRouter.swift (Sidebar.swift's 400 lines).
+- **Regressions on the way (fixed).** 945a762–94cf490: no swipe reached the pages (the sidebar's accessibility frame
+  covered both pages, the test's center fell on the edge). 8c524dd–643e336: a page not laid out was an empty `Group`,
+  which takes no room, so every page but the first showed blank at rest (the user saw it, and
+  `testClosingAPageAndQuittingLeaveNoStreams`). 8c524dd also deleted `Latency.note`, which lane M had started to use:
+  main did not build until ad8952c.
+- **Reviews.** Ponytail: stale comments, the one-caller `NewWorkspaceButton` inlined, small shrinks. Declined:
+  merging the flick test into the phase-27 swipe test (one test per case, each under 30 s); one path for Reduce
+  Motion through `withAnimation(nil)` (not sure its completion runs). Spec: a swipe mid-slide jumped (now from the
+  drawn offset), panels (the palette, Open Session) let a swipe page the sessions behind them (`drag` and `step`
+  check `panelOpen`), off-screen pages over the strip (now not laid out at rest; the strip swipe near the card's
+  left edge is tested), the session's show is timed in the record, a cancelled gesture turns no page, a touch
+  (`.mayBegin`) ends the last swipe's hold, Reduce Motion shows only another page, the empty view only while live.
+  Declined: a dot click mid-slide (the slide's end wins; rare), an e2e for a double flick and the wheel turn (the
+  swipe helper starts a Swift script per swipe, about a second each).
+- **Tests.** `testQuickSessionFlickLandsOnTheNextPageInStep` (3 moves of 20 pt then momentum: lands, rests on the
+  shown session, no gap over 100 ms, shown within 80 ms of the pages within 2 pt), `testSessionSwipeFollowsTheFingers…`
+  (the same show timing), `testSwipedSessionPagesShowTheirRows` (three sessions: the swiped-to page's rows on screen
+  and hittable at rest), `testSwipesPageTheSidebarAndTheStripApart` (a strip swipe 30 pt into the card, where page
+  two lay), `testEmptyPageOffersNewWorkspace` (one New Workspace button, "This session is empty" in the strip).
+- **Local, Retina, debug, motion on** (6d0acf9): a frame every 8 ms from the lift (140 pt) to the page, within 2 pt
+  at about 150 ms, the session shown at 208 ms.
+- **CI.** 40246988130 (the flick test on the old code: red, see above), 40247167383 and 40248476276 (the router found
+  no pages), 40250751539 and 40251702377 (the 50 ms rule; `ev` notes), 40254344456 and 40254795175 (the wide
+  accessibility frame), 40255672733 (the 7 lane tests green on 6d0acf9, the lane's last code commit). Full suite:
+  40258143157 on 5328ab4.
+- **For the user to check by hand:** with three or more sessions, quick flicks and slow drags both ways, a second
+  flick during a slide, a drag that stops before the lift; the strip changes as the pages arrive; the rows of every
+  page show at rest; a mouse's sideways wheel over the sidebar turns one page; an empty session's strip.
+

@@ -28,6 +28,8 @@ description: "Session pages in the sidebar and tab pages in the strip"
   stop before they lift. At the first and last page the pages stop. The
   session pages are the app's own, not a scroll view's: the app's scroll
   monitor gives them the gesture's moves and its lift and drops the momentum.
+  At rest only the page in view is laid out; the others come in while the
+  pages move. A swipe during a slide takes the pages from where they are.
   A scroll view's own snap took about 0.4 s, and a slide asked of it on a
   quick flick stood still, then snapped back (phase 28). The window shows
   the session once the slide looks done: shown at the lift, its first draw
