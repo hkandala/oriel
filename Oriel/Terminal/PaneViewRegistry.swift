@@ -73,11 +73,10 @@
             for terminal in terminals.values {
                 let was = terminal.inView
                 terminal.inView = streaming.contains { $0 === terminal }
-                // Shown by the overview alone: back to how it was, with no picture (only its snapshot): a first show
-                // fades in.
+                // Shown by the overview alone: back to how it was, with no picture (only its snapshot).
                 if was, !terminal.inView, !Self.recent.contains(where: { $0 === terminal }) {
                     terminal.hide()
-                    terminal.revealed = false
+                    terminal.view.dropPicture()
                 }
             }
             Self.recent = Self.recent.filter { terminal in !visited.contains { $0 === terminal } } + visited

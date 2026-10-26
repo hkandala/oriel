@@ -137,6 +137,17 @@
             purgeable(window == nil)
         }
 
+        /// The overview alone showed it: no picture stays (a full-size IOSurface each; the tile has its snapshot), and
+        /// its first show fades in again.
+        func dropPicture() {
+            if still !== layer {
+                still?.removeFromSuperlayer()
+            }
+            still = nil
+            layer?.contents = nil
+            terminal?.revealed = false
+        }
+
         /// A new surface once the view is in a window, with the old picture over it (`terminalDidAttachSurface`).
         func rebuild() {
             guard controller == nil else { return }
