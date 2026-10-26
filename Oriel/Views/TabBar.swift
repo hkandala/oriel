@@ -100,7 +100,6 @@
                 } action: {
                     visible = $1
                 }
-                // Tabs cut off at an edge fade out there instead of ending sharp.
                 .fadeEdges(.horizontal, start: hidden.leading ? 24 : 0, end: hidden.trailing ? 24 : 0)
                 .frame(width: max(min(content, space), 0))
                 // minWidth 0: the row's free space, not the tabs' width; else the bar never shrinks (a workspace

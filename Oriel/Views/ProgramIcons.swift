@@ -81,7 +81,7 @@ struct IconStack: View {
         ZStack(alignment: .leading) {
             // A new tab before herdr has it (`Ahead`).
             if panes.isEmpty {
-                ProgramTile(icon: "terminal", letter: nil).frame(width: 22, height: 18)
+                ProgramTile(icon: "terminal")
             }
             ForEach(Array(panes.enumerated()).reversed(), id: \.element.id) { index, pane in
                 ZStack {

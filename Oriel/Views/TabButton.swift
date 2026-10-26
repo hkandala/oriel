@@ -27,7 +27,6 @@
             let selected = workspace.id == page.selectedWorkspaceID && tab.id == page.selectedTabIDs[workspace.id]
             let stack = page.stack(tab)
             let agent = tab.agent, working = tab.working
-            // The strip scrolls to the new selection and the marker follows, as during a swipe.
             Button {
                 clicked()
                 page.select(workspace, tab: tab.id)

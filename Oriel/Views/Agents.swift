@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 extension AgentState {
-    /// For notifications, the Dock menu and VoiceOver.
+    /// For notifications, the Dock menu, a tab's announcement and VoiceOver.
     var word: String {
         switch self {
         case .needsYou: "needs you"
