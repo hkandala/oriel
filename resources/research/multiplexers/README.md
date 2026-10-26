@@ -1,7 +1,5 @@
 # Does Oriel's model fit other multiplexers?
 
-Research date: 2026-10-23. Research only: no app code changed.
-
 ## Answer
 
 Oriel's model fits all three multiplexers that we looked at, each with an adapter. No multiplexer
@@ -85,13 +83,12 @@ The costs:
 ### Rex: fits with an adapter
 
 Rex's model is the closest in shape: server, session, window, block, and a binary tiled layout with
-ratios and stable ids. The existing design in `docs/content/docs/rex-backend.mdx` still holds for the
-handshakes, the snapshot framing, input and events.
+ratios and stable ids.
 
 Two things cannot work. A block never leaves its Rex session, so the drop targets "another workspace"
 and "new workspace" must not show for Rex. Rex also has no shared scroll offset.
 
-New facts that the design page misses (13 in total, listed in [rex.md](rex.md) section 6):
+Things an adapter must handle ([rex.md](rex.md)):
 
 - One Rex client can open only one data stream per block. Two Oriel windows on one block need a
   shared stream or two Rex clients.
@@ -126,13 +123,13 @@ Where the code assumes herdr today:
 | `Packages/HerdrKit/Sources/HerdrKit/Exec.swift` | `Exec.herdr()` finds herdr's path. `Channel` gives stdout as UTF-8 lines, not bytes. |
 | `Packages/HerdrKit/Sources/HerdrKit/HerdrClient.swift` | `HerdrError` is the error type of `Update.error`. Its messages name herdr. |
 | `Packages/HerdrKit/Sources/HerdrKit/Seen.swift` | Finish detection uses `completionSeq`. |
-| `Oriel/Store/HostStore.swift` | `State.failed(HerdrError)` (line 12). Makes `HerdrClient` (lines 90, 128). |
-| `Oriel/App/OrielApp.swift` line 140, `Oriel/Views/OpenSession.swift` line 39 | Make `HerdrClient` directly. |
-| `Oriel/Store/PaneWrites.swift` lines 71-86 | Throws `HerdrError` with herdr's name in the text. |
+| `Oriel/Store/HostStore.swift` | `State.failed(HerdrError)`. Makes `HerdrClient`. |
+| `Oriel/App/OrielApp.swift`, `Oriel/Views/OpenSession.swift` | Make `HerdrClient` directly. |
+| `Oriel/Store/PaneWrites.swift` | Throws `HerdrError` with herdr's name in the text. |
 | `Oriel/Terminal/PaneTerminal.swift` | Draws herdr's frames. The observe and takeover rules follow herdr's `control`/`observe`. |
 | `Oriel/Views/FindBar.swift` | Uses the shared scroll offset (`pane.scroll`). |
-| `Oriel/Store/HostModels.swift` lines 135-145, `Oriel/Views/WorkspaceRow.swift` | Worktree groups from herdr's `worktree`. |
-| `Oriel/Views/Sidebar.swift` line 136, `Oriel/Views/ListDrops.swift` line 146, `Oriel/App/CommandList.swift` line 295 | Offer "move to a new workspace" without a check. Rex cannot do it. |
+| `Oriel/Store/HostModels.swift`, `Oriel/Views/WorkspaceRow.swift` | Worktree groups from herdr's `worktree`. |
+| `Oriel/Views/Sidebar.swift`, `Oriel/Views/ListDrops.swift`, `Oriel/App/CommandList.swift` | Offer "move to a new workspace" without a check. Rex cannot do it. |
 
 ### Option 1: keep herdr only (recommended now)
 
@@ -154,16 +151,15 @@ backend. The work, in order:
    bridge are binary.
 4. A neutral error in place of `HerdrError` (`HerdrClient.swift`, `HostStore.swift`,
    `PaneWrites.swift`).
-5. One factory for the backend per machine, in place of the three `HerdrClient(...)` calls
-   (`HostStore.swift`, `OrielApp.swift`, `OpenSession.swift`).
+5. One factory for the backend per machine, in place of the `HerdrClient(...)` calls
+   (`HostStore`, `HostModels`, `OrielApp`, `OpenSession`).
 6. A capability value that the views read: cross-workspace move (Rex: no), workspace reorder (tuios:
    no, Oriel stores it), many sessions per machine (Rex: no, so the Open Session panel hides), worktree
    groups, tab limit (tuios: 9).
 7. A neutral finish marker in place of `completionSeq` (`Seen.swift`): a counter or a timestamp that
    the backend gives.
 
-Steps 1 to 5 match the "Changes to HerdrKit" list in `rex-backend.mdx`, so that page already plans
-them. Guess: steps 1 to 7 take about one week. Each backend adapter then costs more: tuios the least,
+Guess: steps 1 to 7 take about one week. Each backend adapter then costs more: tuios the least,
 then Rex, then tmux (layout conversion, control clients per workspace, agent status).
 
 ### Option 3: a smaller common model (session > tab > pane) with herdr-only extras
@@ -180,13 +176,12 @@ recommended.
 | Backend | For | Against |
 |---|---|---|
 | tmux | The most users, on every server. A stable protocol. Raw bytes. Every move works. | The largest adapter. No agent status without hooks. Size per window. |
-| Rex | Already designed in `rex-backend.mdx`. The closest model shape. Owner per block. | Panes cannot move to another workspace. One server per user. A closed, commercial product. Status only from OSC 7501 programs. |
+| Rex | The closest model shape. Owner per block. | Panes cannot move to another workspace. One server per user. A closed, commercial product. Status only from OSC 7501 programs. |
 | tuios | The lowest cost: it speaks herdr's API, and its bridge sends trees and raw bytes. | Young and fast-changing. The bridge is hidden with no stability promise. 9 tabs by default. |
 
-## Decision: stay herdr only, and bundle herdr
+## Decision: stay herdr only
 
-The user chose to stay herdr only (2026-10-23). The open worry was the extra install, so these facts
-matter:
+Oriel stays herdr only. These facts settled it:
 
 - **Agent status is part of Oriel's model.** Each pane in the snapshot carries an agent with a status and a
   finish counter (`completion_seq`). The agents list, dots, notifications and the Dock badge come from it.
@@ -198,8 +193,8 @@ matter:
   itself.
 - **No backend removes the install.** macOS does not ship tmux (Homebrew puts it in `/opt/homebrew/bin`).
   Rex is a separate app, and tuios a separate binary.
-- **Bundling herdr removes it.** herdr is Apache-2.0 (ship its license and NOTICE) and is one 22 MB arm64
-  binary with no other dependencies (0.9.5). The plan, not yet built:
+- **Bundling herdr would remove it** (in [Future work](../../../docs/content/docs/future-work.mdx)). herdr
+  is Apache-2.0 (ship its license and NOTICE) and is one 22 MB arm64 binary with no other dependencies:
   - Oriel uses a herdr found on the PATH, else the copy inside `Oriel.app`. The setup screen with the
     install command goes away for this Mac.
   - On first connect to an SSH machine without herdr, Oriel copies a herdr build to `~/.local/bin` there,
@@ -209,7 +204,7 @@ matter:
 
 ## Assumptions
 
-- "Fits" means that Oriel's current UI (`plan/ui-layout.md`) works with the tool, with any missing
+- "Fits" means that Oriel's current UI (`docs/content/docs/ui/window.mdx`) works with the tool, with any missing
   data kept by the adapter or by Oriel. It does not mean that every herdr call has a twin.
 - The cost guesses assume one developer who knows the Oriel code.
 - The tmux facts are for tmux 3.8. Older servers on remote machines lack JSON layouts and floating

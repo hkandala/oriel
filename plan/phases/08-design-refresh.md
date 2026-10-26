@@ -29,7 +29,7 @@ decisions get "Changed by Dxx", new ones get new numbers.
    pane's machine (permissions as today). It works on iOS from day one. The built-in
    git history, diff and Markdown plugins are rebuilt on this model. The TypeScript + React
    kit drawn as native SwiftUI (today's plugin UI, API, packages pages) moves to Future work
-   as option (a), kept briefly with a link to `resources/research/plugins/plugin-system-v2.md`.
+   as option (a), kept briefly with a link to `resources/research/plugins/plugin-ui-options.md`.
 4. **Placeholder panes stay, created with `layout.apply` + `pane.move`.** A pane node
    `{label, cwd, command:[argv]}` creates the pane with its inert placeholder command and
    label in one call (in a temporary tab), then `pane.move` puts it in place; the temporary

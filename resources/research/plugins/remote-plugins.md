@@ -1,7 +1,5 @@
 # Remote content for plugins: how plugins show what lives on a remote machine
 
-Date: 2026-10-21. Scope: research only. No repo changes.
-
 ## The short answer
 
 - **Our design already has the right shape.** Plugins run *in the app*. Their
@@ -460,10 +458,8 @@ Our repo:
 - `docs/content/docs/plugins/packages.mdx:49-56`
 - `docs/content/docs/machines.mdx:30-55,67-87,96-113`
 - `docs/content/docs/talking-to-herdr.mdx:6-45`
-- `resources/research/plugins/plugin-architecture.md:360-370` (remote host data row)
 
-herdr 0.9.5 (local CLI) and github.com/herdrdev/herdr (cloned to
-`/tmp/oriel-brainstorm/repos/herdr`):
+herdr 0.9.5 (local CLI) and github.com/herdrdev/herdr:
 - `herdr --help`, `herdr machine --help`, `herdr plugin --help`,
   `herdr api schema --json` (protocol 22; `pane.process_info` with `tty` and
   `shell_pid`; `pane.output_matched` with `OutputMatch` regex; `worktree.list`)
@@ -471,7 +467,7 @@ herdr 0.9.5 (local CLI) and github.com/herdrdev/herdr (cloned to
 - `docs/next/website/src/content/docs/connecting-machines.mdx:14-16,32-56,114`
 - `src/remote/attach.rs:56,3632`
 
-cmux (github.com/manaflow-ai/cmux, cloned to `/tmp/oriel-brainstorm/repos/cmux`):
+cmux (github.com/manaflow-ai/cmux):
 - https://cmux.com/docs/ssh, https://cmux.com/blog/cmux-ssh
 - `daemon/remote/README.md:1-70`
 - `Packages/macOS/CmuxCore/Sources/CmuxCore/Remote/RemoteLoopbackProxyAlias.swift:1-30`

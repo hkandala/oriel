@@ -1,7 +1,5 @@
 # tuios as a backend for Oriel
 
-Research date: 2026-10-23. Author: an Oriel research agent. No Oriel code was changed.
-
 ## Short answer
 
 tuios fits Oriel with an adapter. It is the closest match to herdr of the multiplexers we looked at.
@@ -20,21 +18,13 @@ serve herdr's terminal protocol (`terminal.attach`). Tree edits (swap, resize, r
 tuios client. A tuios session has at most 9 tabs by default. Sessions (Oriel workspaces) cannot be
 reordered. The "current workspace" (Oriel's selected tab) is shared session state.
 
-## Sources and method
+## Sources
 
-- Repository: <https://github.com/Gaurav-Gosain/tuios> (confirmed: README, MIT license, author
-  Gaurav Gosain). Cloned to `/tmp/oriel-research/tuios` at commit
-  `5a2e8221b66471048f788bfd3f4d0b26d9645356` (2026-10-24). `git describe` gives `v0.10.1-746-g5a2e8221`:
-  the project moves fast (746 commits in one week after v0.10.1).
-- Docs: `docs/protocol.md` (the JSON verb protocol, 7222 lines), `docs/AGENT_STATE.md` (agents and the
-  herdr compatibility layer), `docs/SESSIONS.md`, `docs/LAYOUT_MODES.md`, `docs/CLI_REFERENCE.md`,
+- Repository: <https://github.com/Gaurav-Gosain/tuios> (MIT). Young and fast-changing.
+- Docs: `docs/protocol.md` (the JSON verb protocol), `docs/AGENT_STATE.md` (agents and the herdr
+  compatibility layer), `docs/SESSIONS.md`, `docs/LAYOUT_MODES.md`, `docs/CLI_REFERENCE.md`,
   `docs/ghostty-vt.md`, `vt/README.md`. Hosted copy: <https://tuios.dev>.
-- Tests I ran: the v0.10.1 release binary for macOS arm64 (`tuios version 0.10.1 [pure-Go backend]`,
-  commit `f8b7820a`). I started the daemon inside `tmux -L oriel-research-tuios`, with `HOME`,
-  `XDG_RUNTIME_DIR`, `XDG_STATE_HOME` and `XDG_CONFIG_HOME` under `/tmp/oriel-research`. I talked to
-  its sockets with small Python scripts (`h.py`, `sp.py`, `gb.py` in `/tmp/oriel-research`). After the
-  tests I ran `tuios kill-server` and `tmux -L oriel-research-tuios kill-server`. No GUI was started.
-- File references below are relative to the clone, at the commit above.
+- File references below are relative to the repository.
 
 ## 1. The hierarchy and its names
 

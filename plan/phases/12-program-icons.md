@@ -76,7 +76,7 @@ program icons.
   `argv[1]` (`node /opt/homebrew/bin/gemini`), not the package path (checked with a symlinked script), so the
   `scriptSuffix` values only catch launches by the package path.
 - **No `display_agent`.** herdr's `display_agent` is a human label set through `pane.report_metadata`, not an
-  agent kind (`resources/research/herdr/herdr-core.md`), so it would rarely match `match.agent`; only `agent` is decoded.
+  agent kind (`resources/research/multiplexers/herdr.md`), so it would rarely match `match.agent`; only `agent` is decoded.
   Phase 15 reads it from `snapshot.agents[]` if it needs it.
 - **The asset catalog is generated.** `tools/build.mjs` also writes `Oriel/Assets.xcassets/program.<id>.imageset`
   (the SVG, template, vector data kept), so a fix goes into the tool, not the asset catalog. The build is

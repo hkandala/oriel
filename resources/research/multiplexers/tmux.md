@@ -1,24 +1,10 @@
 # tmux as a backend for Oriel
 
-Research only. No app code changed. Date: 2026-10-23.
-
 ## Answer first
 
 tmux fits Oriel with an adapter. tmux has all four structural levels that Oriel needs below the machine (server, session, window, pane). Its control mode (`tmux -C`) is a usable text API with commands, notifications and a live output stream. The adapter must store or fake these things: the workspace order, pane labels, agent status, linked-worktree groups, git state, the "who controls this pane" hand-off, the shared scroll offset, and the binary split tree with ratios. tmux has no agent model and no notification model. Its layout is an n-ary tree of cell sizes, not a binary tree of ratios.
 
 The terminal stream is better than herdr's for a libghostty view. `%output` carries the raw bytes that the pane's program wrote to its PTY. It is not a re-rendering by tmux. The seed on attach is the weak part: `capture-pane` returns tmux's re-rendering of its own grid, plus mode flags read from format variables.
-
-## Method and versions
-
-- tmux version: `tmux -V` printed `tmux 3.8` (Homebrew bottle, `brew info tmux`: "stable 3.8").
-- Man page: `man tmux` of 3.8, saved to `/tmp/tmux-man.txt` during the research. Line numbers below are from that file.
-- tmux source: tag `3.8` from `https://raw.githubusercontent.com/tmux/tmux/3.8/` (`control.c`, `control-notify.c`, `window.c`, `server-client.c`). The `control.c` header is `$OpenBSD: control.c,v 1.68 2026/09/09`.
-- iTerm2 source: `https://github.com/gnachman/iTerm2`, branch `master`, commit `7f4ff739721f95d0b93003d8701c4523a7edf261`, folder `sources/tmux/`.
-- iTerm2 docs: https://iterm2.com/documentation-tmux-integration.html
-- Experiments: only throwaway servers `tmux -L oriel-research-74317`, `-L oriel-research-98667` and `-L oriel-research-231`, each started with `-f /dev/null` and `/bin/sh`. Each server was killed with `kill-server`, and its stale socket file was removed. `tmux -L oriel-research-74317 ls` then printed `error connecting to /private/tmp/tmux-501/oriel-research-74317 (No such file or directory)`. The default tmux server and other sockets were not touched.
-- Control mode ran headless. A shell block wrote one command every 0.4 to 0.5 s into `tmux -L <name> -C attach -t <session>`, and stdout went to a file.
-
-Note: tmux 3.8 is new. It adds floating panes, JSON layout strings, monitor hooks, `wait-for -E` and OSC 133 events (`/opt/homebrew/Cellar/tmux/3.8/CHANGES`, section "CHANGES FROM 3.7c TO 3.8"). Older servers on remote machines lack these. The adapter must read `#{version}` and not use 3.8 features on older servers.
 
 ## 1. The hierarchy and its names
 
@@ -107,7 +93,7 @@ list-windows -a -F '#{session_id}\t#{window_id}\t#{window_index}\t#{window_name}
 list-panes -a -F '#{session_id}\t#{window_id}\t#{pane_id}\t#{pane_active}\t#{pane_current_path}\t#{pane_current_command}\t#{pane_title}\t#{pane_pid}\t#{pane_tty}\t#{@oriel_label}\t#{@oriel_status}'
 ```
 
-Real output: `main @0 0 bash %0 0 100x30 cmd=bash path=/private/tmp/tmuxr title=hkandala-mbp pid=74323`.
+Real output: `main @0 0 bash %0 0 100x30 cmd=bash path=/private/tmp/tmuxr title=mbp pid=74323`.
 
 Useful pane formats (man lines 3780-3900): `pane_current_path`, `pane_current_command`, `pane_title`, `pane_pid`, `pane_tty`, `pane_width`, `pane_height`, `pane_left`, `pane_top`, `pane_at_left` and the other edges, `pane_dead`, `pane_dead_status`, `pane_last_output_time`, `pane_floating_flag`, `pane_zoomed_flag`, `cursor_x`, `cursor_y`, `alternate_on`, `history_size`, `pane_private_modes`, `pane_key_mode`, `bracket_paste_flag`, the `mouse_*_flag` set, and from 3.8 `pane_command_running`, `pane_command_status`, `pane_pb_state` (OSC 9;4 progress: hidden, normal, error, indeterminate, paused).
 
@@ -369,4 +355,4 @@ iTerm2 is proof that a native app with its own emulator can run on control mode 
 
 - Mapping A (workspace = tmux session) is the default in this report. Mapping B is the alternative.
 - Oriel would require tmux 3.4 or later for `refresh-client -C @N:WxH`. Some features (`new-layouts`, OSC 133 hooks, monitor hooks, `wait-for -E`) need 3.8. I did not test older servers.
-- I did not test mouse injection, `move-window` reordering, very large output with `pause-after`, or several control clients over SSH.
+- Untested: mouse injection, `move-window` reordering, very large output with `pause-after`, or several control clients over SSH.

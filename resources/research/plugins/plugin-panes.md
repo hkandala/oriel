@@ -1,7 +1,6 @@
 # Plugin panes: keep the placeholder pane, or show plugin UI only in the app?
 
-Date: 2026-10-21. Research only. No repo changes. Tested on herdr 0.9.5 (protocol 22) in a
-throwaway session `oriel-dev-pp`, which I deleted at the end.
+Tested on herdr 0.9.5 (protocol 22).
 
 Words used below:
 - **Placeholder pane**: a real herdr pane that holds a place in herdr's layout. The app draws the
@@ -25,7 +24,7 @@ Words used below:
    only option that keeps zero app state, keeps every device and the herdr TUI in the same layout,
    and reuses the app's existing layout code (splits, ratios, drag, float, zoom) without changes.
 2. **Change how the app creates them.** herdr 0.9.5 can start a pane with a command and a label in
-   one call: `layout.apply` with `{type:"pane", label, cwd, command:[argv]}`. I tested it. This
+   one call: `layout.apply` with `{type:"pane", label, cwd, command:[argv]}`. This
    removes the typed placeholder, the `pane.process_info` gate, the race with shell startup, the
    line in shell history, and the separate rename. The app then never types into a shell at all.
 3. **The cost is small.** One idle placeholder costs about 110 KB in the herdr server and one `cat`
@@ -46,7 +45,7 @@ Words used below:
 
 ---
 
-## 2. What I tested in herdr 0.9.5
+## 2. What herdr 0.9.5 does
 
 | Question | Result |
 |---|---|
@@ -125,7 +124,7 @@ to store where it is:
 `$HOME/.local/state/oriel/<session>/surfaces.json`.
 - Zero app state stays true: every device that reaches the machine reads the same file. The design
   already does this for instance state (D22), so no new mechanism.
-- Anchors I tested:
+- Anchors tested:
   - `workspace_id` and `tab_id`: stable across cold restarts, never reused, and a tab never changes
     workspace. **Good anchors for "a plugin attached to a tab".**
   - `pane_id`: changes on a cross-workspace move. `terminal_id`: changes on every cold restart.
@@ -323,14 +322,10 @@ now.
 
 ## Sources
 
-- Repo design: `docs/content/docs/plugins/{index,labels,state,web-page,plugin-ui,api,security}.mdx`,
-  `data.mdx`, `layout.mdx`, `floating-panes.mdx`, `decisions.mdx` (D1, D10, D18-D28, D41),
-  `talking-to-herdr.mdx`, `index.mdx`.
-- Earlier reports: `/tmp/oriel-brainstorm/positioning.md` (cut the plugin runtime),
-  [`remote-plugins.md`](remote-plugins.md) (run/dial).
+- [`remote-plugins.md`](remote-plugins.md) (run/dial).
 - herdr 0.9.5: `herdr api schema --json` (`PaneSplitParams`, `TabCreateParams`, `LayoutNode`,
-  `PluginPaneOpenParams`, `PaneReportAgentParams.resume_argv`); tests in `oriel-dev-pp` (section 2).
-- herdr source (`/tmp/oriel-brainstorm/repos/herdr`, commit 143bf5fd): `src/persist/restore.rs:540,690-694`
+  `PluginPaneOpenParams`, `PaneReportAgentParams.resume_argv`).
+- herdr source: `src/persist/restore.rs:540,690-694`
   (launch_argv only respawned after a live handoff), `src/persist/snapshot.rs:352,390` (launch_argv
   saved); docs `plugins.mdx:31-33,300-335`, `cli-reference.mdx:515-536`, `session-state.mdx:29-35,73-115`,
   `add-herdr-support.mdx:53-95`.

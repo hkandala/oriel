@@ -1,21 +1,6 @@
-# gorex (egoist/gorex) and MyGo: research report
+# gorex (egoist/gorex) and MyGo
 
-Cloned on 2026-10-08 with `git clone --depth 1`:
-
-- `/tmp/herdr-research/gorex`: `egoist/gorex` at `b206e67` (2026-10-08). The Rex-like app. 5.6k lines of Go.
-- `/tmp/herdr-research/mygo`: `egoist/mygo` at `fa9e8e0` (2026-10-09). The framework gorex is built on (`go.mod` pins `github.com/egoist/mygo v0.3.5-…`).
-
-Paths below are relative to those two roots. gorex points to no other example app; its screenshot is `gorex/docs/screenshot.png`.
-
-## 0. The short version
-
-- **The premise is wrong. gorex uses no SwiftUI, no AppKit controls and no Apple Liquid Glass.**
-  - MyGo calls the Objective-C runtime from Go through `purego`. It makes no cgo calls and has no Swift code: `find . -name '*.swift'` returns nothing.
-  - It makes one `NSWindow` and puts in one layer-backed `NSView` (`MyGoSurfaceView`). It then draws every tab, card, button and popover itself, on the GPU, through its own Metal renderer.
-- **gorex itself does not use glass at all.** The Rex look comes from semi-transparent white or dark fills over a gradient that the app paints itself. MyGo has a `glass` plugin, but gorex does not import it. That plugin is a *shader that copies* Liquid Glass. It does not call Apple's API.
-- **gorex has no sidebar.** It has a title bar (host chip, tab track, ⌘ and + buttons) over a split-pane area. MyGo's own `ui.Sidebar` widget and its `examples/vibrancy` sidebar are drawn by MyGo too, over an `NSVisualEffectView`.
-- **The terminal is libghostty-vt** (Ghostty's VT parser only, loaded with `dlopen`). MyGo draws the cells. It is not the full libghostty with its Metal renderer.
-- So gorex gives us **no Swift glass API code to copy.** It does give us good, measured **UI decisions and numbers**: tab capsule sizes, card styling, the gap used as the divider, status-dot rules, attention rules, tab icons stacked from the pane icons, text that fades out instead of ending in "…", and header controls that show on hover. MyGo's glass docs also list measurements of `NSGlassEffectView`. These help us make the HTML mocks look like the real thing.
+`egoist/gorex` is a Rex-like app (5.6k lines of Go) built on `egoist/mygo`, its framework. Paths below are relative to those two repos. gorex points to no other example app; its screenshot is `gorex/docs/screenshot.png`.
 
 ## 1. What gorex and MyGo are, and how Go drives the Mac
 
@@ -163,49 +148,3 @@ card.Transition(ui.ElementTransition{Colors: true, Duration: 160 * time.Millisec
 - MyGo's panes "do not merge into each other when close, as AppKit's `NSGlassEffectContainerView` does". This confirms that merging and morphing come only from the real container (`GlassEffectContainer` / `glassEffectID`), and a hand-made copy loses them.
 
 **None of these APIs appears in gorex:** `glassEffect`, `GlassEffectContainer`, `glassEffectID`, `NSGlassEffectView`, toolbar placement, version gating above macOS 13. For those we still rely on Apple's docs and our spike S2.
-
-## 9. Our design compared with gorex
-
-### Confirms our plan
-
-| Our design | gorex evidence |
-|---|---|
-| Tab = capsule; label with the folder part dimmed (`ui/window.mdx`) | Same: name in weight 500 and folder at weight 400 in a fainter colour, capsule radius = height/2 (`tabs.go:63–68`) |
-| Hover shows × on a tab | Same, and the × replaces the status dot in the same slot (`tabs.go:115`) |
-| Tab icon from the pane last selected | Same idea: the focused pane's tile is in front (`tabs.go:249`) |
-| Pane cards follow the split tree with a fixed gap; drag a divider; 8 pt hit area (`layout.mdx`) | Same: 8 pt gap that *is* the divider, resize cursor, ratio from the drag delta / (container − gap) (`view.go:181–200`) |
-| Thin card header: icon, title, zoom, close; controls on hover on macOS | Same, 33 pt; shows when focused **or** hovered (`view.go:274`) |
-| Cards without focus slightly dimmed | Same effect, done by giving the focused card more opacity, a border and a shadow (`style.go:40–44, 96–101`) |
-| A status glyph per tab, aggregated over its panes | Same: attention takes priority over busy (`tabs.go:117–123`) |
-| "Seen" is the app's own, cleared by viewing the pane (`layout.mdx`) | Same: attention clears when the terminal is focused (`view.go:258`); set only when not focused or the window is inactive (`state.go:258`) |
-| Dark styling with near-black, opaque terminal backgrounds | Dark cards are `#24242a` at 94% and the terminal background is `#1e1e22`; nothing in gorex needs glass behind panes |
-| libghostty for terminals | Ghostty's VT core here too. The terminal is never a web view |
-
-### Differs from our plan (not wrong; different choices)
-
-- **Glass:** gorex has none. Its "glassy" look is translucent fills over a pastel or plum gradient that the app paints, so wallpaper never shows through. This supports our "glass only on chrome" rule more than it challenges it: Rex's look needs no glass under content. Our theme (`ui/theme.mdx`) uses an opaque `#0e0f12` window, which is flatter than gorex's dark gradient (`#2c2131 → #231e27 → #221f22 → #2a2619` plus a pink tint on the right, `style.go:130`). *Possible choice:* a very subtle dark gradient behind the cards.
-- **No strip, no paging, no moving marker:** a gorex tab click swaps the content at once, and the active capsule changes with a 160 ms colour fade. Our strip with the scroll-linked marker and lit-tab maths (`platform.mdx`) is our own idea. gorex gives no evidence for or against it.
-- **Overflow:** gorex shrinks tabs to 64 pt and fades the labels. It never scrolls the tab bar. Ours uses a horizontal `ScrollView`.
-- **The tab bar is a custom row inside the title bar, not a toolbar item.** This is the same as our fallback (spike S2: hidden title bar + `WindowDragGesture`). gorex keeps ≥56 pt free to drag the window and pads for the traffic lights by measuring them.
-- **Statuses:** gorex has 2 dots (busy, attention). We have 3 glyphs (◔ working, ✓ finished-unseen, ▲ needs you). gorex's "busy = printed in the last 1.5 s" is a heuristic. herdr gives us real agent status, so we do not need it.
-- **Ratio clamp:** gorex allows 0.08–0.92 when dragging. herdr allows 0.1–0.9, so keep ours.
-- **No sidebar** in gorex. Our floating glass sidebar is not touched by this research.
-
-### Worth copying (proposals; none is in our docs yet)
-
-1. **Double-click a divider → ratio 0.5** (send `layout.set_split_ratio` 0.5). Also show a **36×3 pt grip pill only on hover or drag**, and leave the gap empty otherwise.
-2. **Keyboard divider moves and equalize:** ⌃⌘ arrows step the nearest matching split by 0.05; ⌃⌘= sets each split's ratio from the leaf counts on each side (`state.go:507`). Each one is a `layout.set_split_ratio` call.
-3. **Double-click a card header → zoom; header controls show when focused or hovered** (not hover only), so the focused card always shows them.
-4. **Fade long tab labels** over the last ~30 pt (in SwiftUI: a `.mask(LinearGradient)` on the label) instead of truncating with "…". Tab width ranges from 120 to 214 pt.
-5. **One right-hand slot per tab, in priority order:** hover × → ▲ → ✓ → ◔. Write this order into `ui/window.mdx`.
-6. **Do not animate the working glyph:** use a static ◔, with no repeating animation. That avoids a constant redraw in the tab bar, the sidebar and the pills. gorex states this cost explicitly (`view.go:358`).
-7. **Stacked tab icons** (focused pane in front, up to 2 behind, 5 pt offset) as an option for multi-pane tabs. It shows at a glance what a tab holds.
-8. **Hairline separators between inactive tabs**, hidden next to the active tab.
-9. **The window title follows the active tab** (Mission Control and the Window menu).
-10. **A notification when a long command finishes while the app is inactive** (gorex: more than 8 s since the last input). For us, use herdr's finished status in place of a timer.
-11. **Mock fidelity:** in `design.css`, `.marker` (an inset top highlight and a 1 px white border, no drop shadow) already looks like the hairline rim with no shadow that §8 describes. Keep it that way. In dark mode, glass maps lightness into the 15–51% band.
-
-### Gaps that remain (gorex cannot answer them)
-
-- How `GlassEffectContainer` + `glassEffectID` behave inside a toolbar item with `sharedBackgroundVisibility(.hidden)`, and whether the toolbar squeezes a wide item: this is still **spike S2**.
-- `NSGlassEffectView` in AppKit-hosted parts, or glass on iOS: no evidence here.

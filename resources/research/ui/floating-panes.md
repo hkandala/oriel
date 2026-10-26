@@ -7,15 +7,7 @@ for it as well". It covers two things:
 2. Floating panes that the user makes in the app: a scratch terminal, an agent,
    or a plugin pane that floats above the tabs.
 
-- Date: 2026-10-08. herdr **0.9.3** (source `/tmp/herdr-research/herdr`,
-  commit `4dc23bb`, `Cargo.toml` version 0.9.3), schema
-  `/tmp/herdr-research/herdr-api-0.9.3.schema.json`, binary
-  `~/.local/bin/herdr` 0.9.3.
-- Live tests ran on a throwaway server: `XDG_CONFIG_HOME=/tmp/hnfloat-cfg
-  herdr --session hnfloat server`, with a throwaway linked plugin. That server
-  had its own config folder, so the user's plugin registry and sessions were
-  not touched. It was stopped and deleted afterwards. No focus method was
-  called. The `pi-herd` server was only read (`plugin list`).
+- herdr 0.9.3, its source, schema and a throwaway server.
 - Labels: **fact** = read in code or docs, or seen in the live test.
   **guess** = not checked.
 
