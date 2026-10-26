@@ -111,8 +111,10 @@ views only read it.
 - No icon art comes from Rex. The About panel (Oriel ▸ About Oriel) lists
   each icon source and each library on one short line: its name, which
   links to its home page, and its license. Its "License Texts" link opens
-  `Acknowledgements.txt` in the app, with every license in full. A new icon
-  source or library gets a line in `About.credits` (`Commands.swift`) and
-  its license in `Oriel/Acknowledgements.txt`.
+  `Acknowledgements.txt`, a file shipped inside the app, in the default text
+  editor (TextEdit), with every license in full. A new icon source or
+  library gets a line in `About.credits` (`Commands.swift`) and its license
+  in `Oriel/Acknowledgements.txt`; `make test` fails when an icon license
+  is missing there.
 
 How it works: [herdr calls](/docs/reference/herdr-calls).
