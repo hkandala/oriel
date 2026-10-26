@@ -204,14 +204,10 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         // Two's gamma; one has a w1:p1 too, so always within the floating window.
         let pane = "w1:p1"
-
-        try await openFloatURL("session=\(two)&pane=\(pane)")
-        let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
-        XCTAssertTrue(window.exists(within: connect))
+        let window = try await floatByURL(two, pane)
         XCTAssertTrue(until(3) { element("float.\(pane).place", in: window).stringValue.hasPrefix("\(two) › gamma › ")
         })
         XCTAssertFalse(element("sidebar.dot.\(two)").exists)
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
         app.typeText("echo url-$((6*7))")
         app.typeKey(.return, modifierFlags: [])
         try await expect("the keys in two's pane") {
@@ -221,8 +217,7 @@ extension OrielUITests {
 
         // Again, with the main window in front: the same window comes forward.
         element("workspace.w1").click()
-        try await openFloatURL("session=\(two)&pane=\(pane)")
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
+        _ = try await floatByURL(two, pane)
         XCTAssertEqual(app.windows.containing(.any, identifier: "float.\(pane)").count, 1)
 
         // Not there: a notice in the main window, no window.
@@ -236,7 +231,9 @@ extension OrielUITests {
         XCTAssertTrue(notice.staticTexts.matching(none).firstMatch.exists(within: connect))
         XCTAssertFalse(element("sidebar.dot.oriel-e2e-none").exists)
 
-        // Detach: the window goes, and so does two's connection.
+        // Detach: the window goes, and so does two's connection. The URL brings the window forward first: a click on a
+        // window behind the main one lands in the main one.
+        _ = try await floatByURL(two, pane)
         element("float.\(pane).detach", in: window).click()
         XCTAssertTrue(window.vanishes(within: 3))
         try await expect("two's herdr runs end") { try await runs(two).isEmpty }
@@ -245,47 +242,49 @@ extension OrielUITests {
         let (tab, other) = try await newTab("float-url")
         element("workspace.w1").click()
         XCTAssertTrue(element("tab.\(tab)").vanishes(within: 3))
-        try await openFloatURL("session=\(one)&pane=\(other)")
-        XCTAssertTrue(hasKeyboard(element("terminal.\(other)", in: app.windows.containing(.any, identifier:
-            "float.\(other)").firstMatch)))
-
-        // Two's pane again, then Open Session on two: its page comes, the window stays, and after Detach the page
-        // keeps the connection.
-        try await openFloatURL("session=\(two)&pane=\(pane)")
-        XCTAssertTrue(window.exists(within: connect))
-        element("workspace.w1").click()
-        openSessionPanel()
-        app.typeText(two)
-        element("open-session.session.\(two)").click()
-        XCTAssertTrue(element("sidebar.dot.\(two)").exists(within: 3))
-        XCTAssertTrue(window.exists)
-        element("float.\(pane).detach", in: window).click()
-        XCTAssertTrue(window.vanishes(within: 3))
-        let left = try await runs(two)
-        XCTAssertFalse(left.isEmpty)
+        _ = try await floatByURL(one, other)
     }
 
     /// Closing the main window lets a URL float and its session go; a URL with no window opens one and floats there.
+    /// Open Session on the float's session makes it a page: the window stays, and after Detach the page keeps the
+    /// connection.
     func testOrielURLFloatGoesWithItsWindowAndOpensOne() async throws {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let pane = "w1:p1"
-        try await openFloatURL("session=\(two)&pane=\(pane)")
-        let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
-        XCTAssertTrue(window.exists(within: connect))
+        let window = try await floatByURL(two, pane)
         element("workspace.w1").click()
         app.menuBars.menuBarItems["File"].click()
         app.menuBars.menuItems["Close Window"].click()
         XCTAssertTrue(window.vanishes(within: 5))
         try await expect("two's herdr runs end") { try await runs(two).isEmpty }
 
-        try await openFloatURL("session=\(two)&pane=\(pane)")
+        _ = try await floatByURL(two, pane)
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        XCTAssertTrue(window.exists(within: connect))
-        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
+
+        element("workspace.w1").click()
+        openSessionPanel()
+        app.typeText(two)
+        element("open-session.session.\(two)").click()
+        XCTAssertTrue(element("sidebar.dot.\(two)").exists(within: 3))
+        XCTAssertTrue(window.exists)
+        _ = try await floatByURL(two, pane)
+        element("float.\(pane).detach", in: window).click()
+        XCTAssertTrue(window.vanishes(within: 3))
+        let left = try await runs(two)
+        XCTAssertFalse(left.isEmpty)
     }
 
-    /// `open -g` of `oriel://float?‹query›` with the app under test, through the helper, as pi-herd opens it.
-    /// XCUIApplication.open(_:) left the app not foreground for XCUITest after its second URL (CI 40247366831).
+    /// `open -g` of the pane's `oriel://float` URL with the app under test, through the helper, as pi-herd opens it
+    /// (XCUIApplication.open(_:) left the app not foreground for XCUITest, CI 40247366831); its floating window, once
+    /// its terminal has the keyboard.
+    func floatByURL(_ session: String, _ pane: String) async throws -> XCUIElement {
+        try await openFloatURL("session=\(session)&pane=\(pane)")
+        let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
+        XCTAssertTrue(window.exists(within: connect))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(pane)", in: window)))
+        return window
+    }
+
     func openFloatURL(_ query: String) async throws {
         let oriel = Bundle.main.bundleURL.deletingLastPathComponent().appending(path: "Oriel.app").path
         _ = try await Self.post("\(one)/open-url", Data("\(oriel)\noriel://float?\(query)".utf8))
