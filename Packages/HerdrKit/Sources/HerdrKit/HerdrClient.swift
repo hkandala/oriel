@@ -153,8 +153,16 @@ public actor HerdrClient {
         return stream
     }
 
-    /// Design T4.
+    /// Design T4. A write's: its result is read at once after the read in flight, never spaced.
     public func refresh() {
+        hurry = true
+        read()
+    }
+
+    /// Set by a write's refresh: the next read is not spaced.
+    private var hurry = false
+
+    private func read() {
         guard out != nil else { return }
         if reading {
             readAgain = true
@@ -164,6 +172,7 @@ public actor HerdrClient {
         Task { [self] in
             repeat {
                 readAgain = false
+                hurry = false
                 let started = ContinuousClock.now
                 do {
                     let snapshot = try await snapshot()
@@ -179,8 +188,9 @@ public actor HerdrClient {
                     out?.yield(.error(error as? HerdrError ?? .failed("\(error)")))
                 }
                 // Events during the read: the next one starts `spacing` after this one did, so a hundred agents'
-                // titles and states (an event each) are not reads back to back, each a 400 KB snapshot (phase 29).
-                if readAgain {
+                // titles and states (an event each) are not reads back to back, each a 280 KB snapshot at 400 panes
+                // (phase 29).
+                if readAgain, !hurry {
                     try? await Task.sleep(until: started + Self.spacing)
                 }
             } while readAgain && out != nil
@@ -227,7 +237,7 @@ public actor HerdrClient {
                         break
                     }
                     // Every other line, the first too (subscription_started: catch up on what came before it).
-                    refresh()
+                    read()
                 }
                 channel.terminate()
             } catch {}
@@ -235,7 +245,7 @@ public actor HerdrClient {
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
             subscribed = nil
-            refresh()
+            read()
         }
     }
 
@@ -245,7 +255,7 @@ public actor HerdrClient {
         repeat {
             // A 2 s tick, so a read that fails mid-wait (the session stopped) is retried soon.
             if lastRead.map({ ContinuousClock.now - $0 >= .seconds(30) }) ?? true {
-                refresh()
+                read()
             }
         } while await (try? Task.sleep(for: .seconds(2))) != nil
     }

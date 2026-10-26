@@ -153,7 +153,7 @@ public struct Channel: Sendable {
             return Task {
                 var buffer = Data()
                 for await data in output {
-                    // Only the new bytes: a scan from the start for each chunk made a 400 KB snapshot line cost
+                    // Only the new bytes: a scan from the start for each chunk made a 280 KB snapshot line cost
                     // O(n²), the app's top function in a stress profile (phase 29).
                     var from = buffer.endIndex
                     buffer.append(data)

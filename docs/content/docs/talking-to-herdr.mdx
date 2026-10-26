@@ -133,7 +133,8 @@ the work. A later server helper would sit behind the same two calls
 - **Snapshot pacing, per session:** at most one `session.snapshot` is in
   flight. An event, or the app's own write, starts a read at once if none is
   in flight; otherwise it sets "read again", and the read that ends with it
-  set starts one more, 250 ms after the one before started at the earliest.
+  set starts one more, 250 ms after the one before started at the earliest
+  unless the app's own write asked for it (its result is read at once).
   A read takes 20–130 ms, so it batches the events that arrive during it; the
   250 ms keep a hundred agents' titles and states (an event each) from
   becoming reads back to back, each a snapshot of every pane (phase 29: about
