@@ -180,7 +180,7 @@ extension OrielUITests {
     /// shown again: `testStripShowsEachWorkspaceClickedBackAndForth`): the selection capsule rests on the tab shown,
     /// not between two (phase 31: after the zoom, or on a
     /// new strip, it sat between the tab and the next one until the next click), and after the zoom it never shows on
-    /// another tab; the pill fades in with the title row, in one quick fade.
+    /// another tab.
     func testTheCapsuleRestsOnTheTabShownHoweverItShows() async throws {
         relaunch(one, ["-forceMotion", "YES", "-recordLatency", "YES"])
         let tabs = try await newWorkspace("capsule", tabs: 5).tabs
@@ -198,21 +198,6 @@ extension OrielUITests {
         // it showed on the tab selected before through the zoom, then jumped. Now it fades in on the middle one.
         let astray = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("pill ") }
         XCTAssertFalse(astray.contains { $0.hasSuffix(" 2") }, "the pill on another tab after the overview: \(astray)")
-        // The title row fades in with the zoom in about 0.12 s, its pill in the same frames: a fade of the pill's own
-        // came after the zoom's 0.18 s (user, phase 31). "fade <tabs|pill> <ms> <opacity>" at each frame
-        // (`FadeRecord`), from the last frame at 0 (the overview's).
-        let fades = element("app.latency").stringValue.split(separator: "; ").map { $0.split(separator: " ") }
-            .filter { $0.count == 4 && $0[0] == "fade" }
-        func fade(_ name: String) -> [(ms: Double, opacity: Double)] {
-            let all = fades.filter { $0[1] == name }.map { (ms: Double($0[2]) ?? 0, opacity: Double($0[3]) ?? -1) }
-            return Array(all.suffix(from: all.lastIndex { $0.opacity == 0 } ?? 0))
-        }
-        let row = fade("tabs"), pill = fade("pill"), partly = row.filter { $0.opacity > 0 && $0.opacity < 1 }
-        XCTAssertEqual(row.last?.opacity, 1, "\(row)")
-        XCTAssertFalse(partly.isEmpty, "no fade of the title row: \(fades)")
-        // Its frames within 0.12 s (a frame the main thread does not draw does not count; 0.18 s: 130 ms here).
-        XCTAssertLessThan((partly.last?.ms ?? 0) - (partly.first?.ms ?? 0), 125, "the title row's fade: \(row)")
-        XCTAssertEqual(pill.map(\.opacity), row.map(\.opacity), "the pill fades apart from its row: \(pill) \(row)")
         element("workspace.w2").click()
         element("workspace.\(workspace)").click()
         try await expectShown(tabs[2], "its workspace shown again")

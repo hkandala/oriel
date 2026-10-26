@@ -87,9 +87,6 @@
                         ZStack(alignment: .leading) {
                             Capsule().fill(look.track).opacity(tabs.count > 1 ? 1 : 0)
                             marker(place, count: tabs.count)
-                            if Latency.isOn {
-                                FadeRecord(name: "tabs")
-                            }
                         }
                     }
                     // Room for the Classic pill's shadow (radius 3.5, y 1.5): the scroll view clips.
@@ -176,11 +173,6 @@
             let astray = rest && Int(place) != selected ? "pill \(place) \(selected)" : ""
             return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
                 .frame(width: Self.width, height: Self.height - 2 * Self.inset)
-                .overlay {
-                    if Latency.isOn {
-                        FadeRecord(name: "pill")
-                    }
-                }
                 .offset(x: place * (Self.width + 1))
                 .allowsHitTesting(false)
                 // e2e (`-recordLatency YES`): "pill <place> <selected>" when it shows at rest on another tab.

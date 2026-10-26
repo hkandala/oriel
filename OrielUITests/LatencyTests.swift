@@ -241,7 +241,8 @@ extension OrielUITests {
     /// A two-finger swipe between tabs, and between sessions in the overview (phase 31): the page moves with the
     /// fingers, one to one, and from their lift lands on the next page within 400 ms with no jump between frames; a
     /// short flick does too, and fingers that stop before they lift go back. The system's paging took 0.55 s and sent
-    /// the flick back. Prints the page's move by the lift and the ms from the lift to within 2 pt of the page.
+    /// the flick back. Prints the page's move by the lift and the ms from the lift to within 2 pt of the page. The
+    /// overview's swipes remake no tile.
     func testTabAndOverviewSwipesFollowTheFingersAndLandSoon() async throws {
         try launchRecordingLatency(["-forceMotion", "YES"])
         openPage(two)
@@ -267,38 +268,16 @@ extension OrielUITests {
         try await swipeLands(over: frame, -10 * forward, pages: (rested, 0)) {
             window.title.hasSuffix(" - \(self.one)")
         }
-    }
-
-    /// A swipe between two sessions of many tabs in the overview (phase 31): each frame of the fingers' moves made the
-    /// overview's tiles in view again (20–40 ms a frame on this Mac in Release, dropped frames), and the slide's frames
-    /// waited on the pointer's hit tests. Now no tile is made while the fingers move ("tiles <count>" at the lift), and
-    /// the slide lands without a jump (`swipeLands`). Prints the page's frames from the lift.
-    func testOverviewSessionSwipeRemakesNoTile() async throws {
-        let eight = try env("ORIEL_SESSION8")
-        addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
-        // 4 workspaces of 6 tabs: three rows of tiles in view; no agents, whose snapshots would make some again.
-        try await Self.post("\(eight)/stress", Data("24 4 24 0".utf8))
-        relaunch(eight, ["-recordLatency", "YES", "-forceMotion", "YES"])
-        addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
-        XCTAssertTrue(element("pane.w1:p1").exists(within: 20))
-        openPage(one)
-        app.typeKey("o", modifierFlags: [.command, .control])
-        let overview = element("overview.page.\(one)"), window = app.windows.firstMatch
-        XCTAssertTrue(overview.exists(within: 2))
-        XCTAssertTrue(element("overview.tab.w1:t1").exists(within: 5))
-        let frame = overview.frame
-        // From one, the last page, to eight and back.
-        let (forward, rested) = try await swipeLands(over: frame, -30, pages: (frame.width, 0)) {
-            window.title.hasSuffix(" - \(eight)")
-        }
-        try await swipeLands(over: frame, 30 * forward, pages: (rested, frame.width)) {
-            window.title.hasSuffix(" - \(self.one)")
-        }
+        // No tile made while the fingers move ("tiles <count>" at each lift): each move made every tile in view again
+        // (phase 31, 20–40 ms a frame in a session of many tabs), and a swipe's start all of them.
         let tiles = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("tiles ") }
             .compactMap { Int($0.split(separator: " ")[1]) }
         XCTAssertFalse(tiles.isEmpty)
-        // A few at most (a tile whose terminal drew meanwhile); the old code made each tile in view at every move.
+        // A few at most: a tile whose terminal drew meanwhile.
         XCTAssertTrue(tiles.allSatisfy { $0 < 6 }, "tiles made while the fingers moved, per swipe: \(tiles)")
+        // The tiles take clicks again once the pages rest (none does while they move).
+        element("overview.tab.w1:t1").click()
+        XCTAssertTrue(element("overview").vanishes(within: 2))
     }
 
     /// `step` pt over the frame `steps.count` times, 16 ms apart, then momentum (with a `pause`, the fingers stop that

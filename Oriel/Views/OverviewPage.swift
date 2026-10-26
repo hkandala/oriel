@@ -71,17 +71,16 @@
 
         /// All but `open`, a closure made anew with the overview's body.
         nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
-            lhs.pages === rhs.pages && lhs.page === rhs.page && lhs.frames === rhs.frames && lhs.size == rhs.size && lhs
-                .side == rhs.side
-                && lhs.columns == rhs.columns && lhs.zooming == rhs.zooming
+            lhs.pages === rhs.pages && lhs.page === rhs.page && lhs.frames === rhs.frames && lhs.size == rhs.size
+                && lhs.side == rhs.side && lhs.columns == rhs.columns && lhs.zooming == rhs.zooming
         }
     }
 
     extension View {
         /// No hover or hit test reaches the views under it while `shielding` (a scroll, a slide, the zoom): SwiftUI
-        /// looked for
-        /// the tile under the pointer at every frame (a tenth of the main thread, phase 30). Not `allowsHitTesting`,
-        /// whose change made every tile's body again (phase 31: 30–60 tiles, 20–40 ms at a swipe's start).
+        /// looked for the tile under the pointer at every frame (a tenth of the main thread, phase 30). Not
+        /// `allowsHitTesting`, whose change made every tile's body again, equatable or not (phase 31: 30–60 tiles,
+        /// 20–40 ms at a swipe's start).
         func shielded(_ shielding: Bool) -> some View {
             overlay {
                 if shielding {
@@ -110,7 +109,7 @@
         var body: some View {
             // e2e: counted (`Latency.tiles`). A bare `_ =` would be a view in the builder.
             // swiftformat:disable:next redundantLet
-            let _ = Latency.shared.tiles += 1 // swiftlint:disable:this redundant_discardable_let
+            let _ = Latency.isOn ? (Latency.shared.tiles += 1) : () // swiftlint:disable:this redundant_discardable_let
             let selected = page.selectedTabIDs[workspace.id] == tab.id
             let state = tab.agent?.state
             let loading = !zooming && !pages.pictured(page, pages.tileCards(page, tab.id))
@@ -136,7 +135,9 @@
                     if zooming {
                         Color.clear
                     } else {
-                        Miniature(tab: tab, page: page, size: size, live: pages.overviewLive)
+                        // Only the page in view's tiles are live, and only they redraw when the live set changes.
+                        Miniature(tab: tab, page: page, size: size,
+                                  live: page === pages.current ? pages.overviewLive : [])
                     }
                 }
                 // A card with no picture yet (never drawn, or its snapshot gone): it loads in turn (`overviewCards`).

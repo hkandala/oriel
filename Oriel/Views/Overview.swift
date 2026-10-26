@@ -41,23 +41,31 @@
                                    height: max(proxy.size.height - 4 - gap, 1))
                 // Wide margins round the grid, as in the user's reference.
                 let side = max(48, proxy.size.width * 0.08)
+                let shown = pages.list.firstIndex { $0 === pages.current } ?? 0
                 ScrollView(.horizontal) {
-                    // Not lazy: the next session's page was made in the swipe's first frame (40–60 ms in a few tabs)
-                    // and the last one's dropped after it landed (phase 31). Each page's grid is lazy itself.
+                    // The page in view and its neighbors, made before a swipe reaches them: a lazy stack made the next
+                    // session's page in the swipe's first frame (40–60 ms with a few tabs, phase 31). Each grid is
+                    // lazy itself.
                     HStack(spacing: 0) {
                         ForEach(pages.list) { page in
-                            OverviewPage(
-                                pages: pages,
-                                page: page,
-                                size: strip.size,
-                                frames: frames,
-                                side: side,
-                                columns: min(4, max(2, Int((proxy.size.width - 2 * side + 16) / 356))),
-                                zooming: page === zoom?.page ? zoom?.tab.id : nil,
-                            ) {
-                                open(page, $0, $1)
+                            Group {
+                                if abs((pages.list.firstIndex { $0 === page } ?? 0) - shown) <= 1 {
+                                    OverviewPage(
+                                        pages: pages,
+                                        page: page,
+                                        size: strip.size,
+                                        frames: frames,
+                                        side: side,
+                                        columns: min(4, max(2, Int((proxy.size.width - 2 * side + 16) / 356))),
+                                        zooming: page === zoom?.page ? zoom?.tab.id : nil,
+                                    ) {
+                                        open(page, $0, $1)
+                                    }
+                                    .equatable()
+                                } else {
+                                    Color.clear
+                                }
                             }
-                            .equatable()
                             .containerRelativeFrame([.horizontal, .vertical])
                             .accessibilityHidden(page !== pages.current)
                         }
@@ -148,14 +156,21 @@
             guard !pages.panelOpen else { return }
             if !sliding {
                 sliding = true
-                pages.overviewScrolling = true
+                pages.overviewSliding = true
+                pages.overviewSettling?.cancel()
                 Latency.shared.tiles = 0
             }
             paging.drag(delta, count: pages.list.count, $position)
         }
 
         private func lift(_ speed: Double) {
-            guard !pages.panelOpen else { return }
+            // A panel opened mid-swipe: back to the page shown.
+            guard !pages.panelOpen else {
+                if let id = pages.current?.id {
+                    position.scrollTo(id: id)
+                }
+                return rested()
+            }
             Latency.shared.note("tiles \(Latency.shared.tiles)")
             paging.lift(speed, ids: pages.list.map(\.id), $position, reduceMotion: reduceMotion) { id in
                 pages.list.first { $0.id == id }.map(pages.show)
@@ -167,7 +182,7 @@
         private func rested() {
             guard sliding else { return }
             sliding = false
-            pages.overviewScrolling = false
+            pages.overviewSliding = false
             pages.settleOverview()
         }
 
@@ -214,7 +229,7 @@
 
         func body(content: Content) -> some View {
             let open = pages.overview && !pages.leaving
-            content.modifier(Fade(opacity: open == own ? 1 : 0))
+            content.opacity(open == own ? 1 : 0)
                 // One quick fade with the zoom's start, the tab bar's pill in it (user, phase 31: 0.18 s looked slow).
                 .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.12), value: open)
                 .allowsHitTesting(open == own)
@@ -223,39 +238,6 @@
                 .accessibilityElement(children: open == own ? .contain : .ignore)
                 // Out of the key view loop too: Tab would reach a hidden field.
                 .disabled(open != own)
-        }
-    }
-
-    /// An opacity that also gives its views the product of the fades above them (`fade`), at each frame: e2e records
-    /// it where the tab bar and its pill draw (`FadeRecord`).
-    private struct Fade: ViewModifier, Animatable {
-        var opacity: Double
-        @Environment(\.fade) private var outer
-
-        var animatableData: Double {
-            get { opacity }
-            set { opacity = newValue }
-        }
-
-        func body(content: Content) -> some View {
-            content.opacity(opacity).environment(\.fade, outer * opacity)
-        }
-    }
-
-    extension EnvironmentValues {
-        @Entry var fade = 1.0
-    }
-
-    /// e2e (`-recordLatency YES`): "fade <name> <ms> <opacity>" at each frame of a fade over it.
-    struct FadeRecord: View {
-        let name: String
-        @Environment(\.fade) private var fade
-
-        var body: some View {
-            Color.clear.onChange(of: fade, initial: true) {
-                let now = Int(ProcessInfo.processInfo.systemUptime * 1000)
-                Latency.shared.note("fade \(name) \(now) \(String(format: "%.2f", $1))")
-            }
         }
     }
 
@@ -312,6 +294,7 @@
             leaving = false
             overviewTabs = [:]
             overviewScrolling = false
+            overviewSliding = false
             overviewSettling?.cancel()
             showTerminals()
             current?.focusKeyboardCard()
@@ -378,12 +361,12 @@
         func settleOverview() {
             guard overview, !leaving else { return }
             overviewSettling?.cancel()
-            // Not while the grid scrolls: its end settles (phase 30, a surface made or freed mid-scroll dropped
-            // frames).
-            guard !overviewScrolling else { return }
+            // Not while the grid scrolls or a swipe moves the pages: their end settles (phase 30, a surface made or
+            // freed mid-scroll dropped frames). A sideways swipe's first event also starts and ends the grid's scroll.
+            guard !overviewScrolling, !overviewSliding else { return }
             overviewSettling = Task {
                 try? await Task.sleep(for: .milliseconds(150))
-                if !Task.isCancelled {
+                if !Task.isCancelled, !overviewScrolling, !overviewSliding {
                     showTerminals()
                 }
             }
