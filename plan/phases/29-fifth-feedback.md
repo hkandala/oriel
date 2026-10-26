@@ -63,6 +63,40 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
 
 ## Findings
 
+### Lane D
+
+- **Root cause.** No drop target took a tab outside its tab track: `RowsDrop` refused `.tab` on purpose (phase 18,
+  "herdr moves tabs only inside a workspace"), and the collapsed sidebar's workspace menu took no drops at all (a
+  panel that a drag could not even open). herdr 0.9.5's `tab.move` has only `insert_index`.
+- **Build.** `HostStore.move(tab:to:)` (PaneWrites.swift) reads herdr's tree in its write's turn, moves the first pane
+  with `pane.move {new_tab, workspace_id, label}` (the label unless herdr's number), then each other pane top down
+  with `pane.move {tab, split, target_pane_id, ratio}` beside the first pane of its split's other side
+  (`SplitNode.rebuild`, unit-tested: replaying it gives the tree back), each with the new pane id herdr's reply names.
+  `Destination` gained `label` and `ratio` (null when absent; herdr takes null). `RowsDrop` takes a tab over another
+  workspace's row; `PaneDrop` takes a tab over a new tab in another workspace (the menu rows); `SpringDrop` opens the
+  workspace menu after 0.65 s over the collapsed sidebar's workspace button; `MenuRowDrop` (via
+  `FilterList.Item.drop`) makes the page in view's menu rows targets. The page follows the tab with its keyboard card.
+- **Decisions.** No spring-load for a tab over a row (the other workspace's tab row would not take it); no tab to a new
+  workspace (not asked); the tab's drag image stays its capsule (the row and the button highlight as the pane drag's
+  targets do); the menu closes when the drag ends; a partial failure says "Moved part of the tab: herdr refused the
+  next step".
+- **Learned (spike).** `layout.apply {tab_id, root}` with the tab's own pane ids does not rearrange them: it makes a
+  new tab with new terminals (the programs are gone), so it is no way to move a tab. A ratio passed to `pane.move` is
+  the first side's share. herdr closes the source workspace with its last tab. A move out of a herdr-zoomed tab is
+  `zoomed_tab`, so nothing moves.
+- **Test.** `testDraggingATabOntoAWorkspaceRowOrMenuRowMovesItWithItsLayout`: a 3-pane tab at 0.3 / 0.7 with a label;
+  its own row moves nothing; onto beta's row the same tree by terminal id, ratios and label are in beta, the old tab is
+  gone, the page and keyboard follow; then, sidebar collapsed, held over the workspace button and dropped on the
+  menu's row it comes back the same. The two-leg drag is `scripts/drag.swift` (CGEvents, as `swipe.swift`;
+  XCUITest drags to one point only), through the e2e helper's `drag` action.
+- **Reviews.** Spec (should): read the tree in the write's turn, D69 updated; nits taken: first pane as the fallback
+  (an ordered result), keyboard check after the menu drop, own-row check, every drag point inside the Oriel window.
+  Ponytail: one helper branch for both scripts, one own-workspace rule. Not taken: `drop(tab:on:)` back in Page.swift
+  (its 400-line limit; `follow` is internal for it), a labelled 4-tuple for `Move` (SwiftLint `large_tuple`), a
+  number-only label kept (herdr's number rule is `Page.title`'s), a stand-in tab refused silently (a sub-second case).
+- **Known limit (check by hand).** Once a drag springs the menu open, the panel's full-window backdrop sits over the
+  strip, so the drag can end only on a menu row (or nowhere) until it ends; the menu closes then.
+
 ## More from the user (2026-10-25 17:35)
 
 - (Lane R) The glass dialogs have poor contrast (`.build/fb/remote-glass.png`): grey text on grey glass, the
