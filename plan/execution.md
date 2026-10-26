@@ -13,7 +13,7 @@ for a small phase. The lock itself is in [rules.md](rules.md#building-and-runnin
 | Who | GUI allowed | Not allowed |
 |---|---|---|
 | Phase agent, while building | single XCUITest runs of the tests it writes or changes (`make e2e ONLY=…`), about 2 min each | full `make e2e`; manual app driving |
-| Phase agent, at the end | the full suite on CI on the last code push; one local screenshot run when the phase changes how things look (XCTAttachments in that run are enough) | a local full `make e2e` (about 40 minutes of GUI for 171 tests) unless the orchestrator asks |
+| Phase agent, at the end | the full suite on CI on the last code push; one local screenshot run when the phase changes how things look (XCTAttachments in that run are enough) | a local full `make e2e` (about 40 minutes of GUI for about 170 tests) unless the orchestrator asks |
 | E2E reviewer | round 1 only, at most 15 min of lock: drive the new UI through XCUITest and read the tests | later rounds, unless its own blocker was fixed (then single tests only) |
 | Spec and ponytail reviewers | none: read the code, the tests, the phase agent's runs and CI | any GUI run |
 
@@ -38,7 +38,7 @@ for a small phase. The lock itself is in [rules.md](rules.md#building-and-runnin
 - The screenshots a phase file lists are `XCTAttachment`s (keepAlways) in the phase's e2e tests. Green CI
   runs keep their screen recordings, and frames from them are screenshots too.
 
-## Speed rules (lessons from phases 10 and 11)
+## Speed rules (lessons from phases 10–20)
 
 Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time went, and the rule:
 

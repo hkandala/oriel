@@ -162,3 +162,36 @@ action and launch-argument hook has a user, and `scripts/test-times.tsv` matches
 - **Comments:** 7 fixed (two docs wrapped mid-sentence, a doc on the wrong function, `////`, the helper's missing
   `open-url` line and its one-request-at-a-time note) and 2 history notes removed (`pane.neighbor`, ⌃⇧Page Up).
 - **Big items for the user:** none.
+
+### d-plan
+
+Docs only: plan, resources, the root README and AGENTS.md. No code changed, so CI does not run on these
+commits (`paths-ignore`). The working docs went from 1,517 to 1,150 lines; 371 lines moved to
+`plan/archive/`.
+
+- **Archived, kept as history:** `plan/ui-polish.md` (the scope of phases 10–21), the v0 request and decisions
+  from the old `plan/README.md` (`plan/archive/v0-plan.md`), and the phases 10–23 run notes of
+  `plan/execution.md` (`plan/archive/execution-10-23.md`: parallel worktrees, the old final review, the user
+  checks of phases 10–22). Phase files keep their Findings. Their "Read first" lines point at the archive.
+- **Rewritten to the app as built:** `plan/README.md` is the plan's index (status, files, modules, all 32
+  phases). `plan/ui-layout.md` is a short map of the window that adds the overview button, the overview,
+  floating panes, three-finger swipes, remote machines and the empty session, and drops its copy of the drag
+  and drop tables (drag-and-drop.mdx has them). The design pages now win over it, also in `AGENTS.md`.
+  The root `README.md` had v0's feature list, "32 tests, 6.5 minutes" and limits that are built now (remote
+  machines, floating panes, drag and drop, trackpad tests).
+- **Kept current:** one GUI lock recipe in `plan/rules.md` (take it only if free, `trap` release, one run, at
+  most 10 minutes; no wait loop), which execution.md and workflow.md point at. `plan/ci.md` starts with the
+  layout today (five jobs, job 0's checks, shards by `scripts/test-times.tsv`, `ON_DEMAND`, ad-hoc and
+  on-demand dispatches, artifacts). `plan/execution.md` drops the verifier (workflow.md's numbers), the
+  local full `make e2e` (about 40 minutes for about 170 tests: CI runs it), and "4 jobs by name", and logs phases
+  24–32. `plan/workflow.md` adds feedback rounds in lanes and the per-area review of this phase.
+  `plan/standards.md`: Rex's fixed sizes, system materials, the three-finger check script. `AGENTS.md`:
+  `make lint build test` and the touched UI tests before a push (it asked for a full `make e2e`).
+- **Links:** no broken markdown link in plan, resources or the root files (a script checks every relative
+  link). The kero notes pointed at `ui-layout.md` sections that moved to the design pages.
+- **Sent to d-spec:** window.mdx says the card header has four buttons; PaneCard.swift has five (Float Pane
+  first). The phase 21 open task (the docs site's overview page and design mock-ups show the old look) is
+  still open.
+- **For the user:** `resources/mockups/layout.html` shows phase 10's plan, not the app, and
+  `docs/public/overview/index.html` dates from phase 9. Redrawing them is a day of work for little use now
+  that CI recordings show the app. Recommendation: leave them as history, or delete the overview page.
