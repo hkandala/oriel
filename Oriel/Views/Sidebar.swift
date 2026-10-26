@@ -48,6 +48,9 @@
                                         .allowsHitTesting(page === pages.current)
                                         .environment(\.offscreen, page !== pages.current)
                                         .transition(.identity)
+                                } else {
+                                    // Its room: an empty group takes none, and the pages after it moved over.
+                                    Color.clear
                                 }
                             }
                             .frame(width: width - gap)
