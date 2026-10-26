@@ -302,6 +302,45 @@ extension OrielUITests {
         drag(start - 480)
     }
 
+    /// In a long list the selected workspace's row scrolls into view, however it was selected; in the Agents view the
+    /// lit agent's row does (phase 31).
+    func testTheSelectedRowScrollsIntoView() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        var made: [(workspace: String, pane: String)] = []
+        for index in 0 ..< 24 {
+            let (tab, pane) = try await createWorkspace("long\(index)")
+            try await report(pane, "working")
+            made.append((workspace(of: tab), pane))
+        }
+        let header = element("sidebar.header"), filter = element("sidebar.filter")
+        let last = element("workspace.\(made[23].workspace)"), first = element("workspace.w1")
+        let inView = { (row: XCUIElement) in
+            row.exists && row.frame.minY >= header.frame.maxY && row.frame.maxY <= filter.frame.minY
+        }
+        XCTAssertTrue(last.exists(within: 5))
+        XCTAssertFalse(inView(last), "\(last.frame) under \(header.frame), over \(filter.frame)")
+        // Round the end to the last row, then back to the first.
+        app.typeKey("[", modifierFlags: [.command, .control])
+        XCTAssertTrue(until(2) { last.isSelected && inView(last) }, "\(last.frame), filter \(filter.frame)")
+        // Just enough: it sits at the list's end, the first row scrolled away.
+        XCTAssertGreaterThan(last.frame.maxY, filter.frame.minY - 60, "\(last.frame), filter \(filter.frame)")
+        XCTAssertFalse(inView(first))
+        app.typeKey("]", modifierFlags: [.command, .control])
+        XCTAssertTrue(until(2) { first.isSelected && inView(first) }, "\(first.frame)")
+
+        app.typeKey(".", modifierFlags: .command)
+        let agents = made.map { element("agent.\($0.pane)") }
+        XCTAssertTrue(agents[0].exists(within: 2))
+        app.typeKey("[", modifierFlags: [.command, .control])
+        XCTAssertTrue(until(2) { agents[23].isSelected && inView(agents[23]) }, "\(agents[23].frame)")
+        XCTAssertFalse(inView(agents[0]))
+        // ⌃⌘3: the first of them (after alpha and beta).
+        app.typeKey("3", modifierFlags: [.command, .control])
+        XCTAssertTrue(until(2) { agents[0].isSelected && inView(agents[0]) }, "\(agents[0].frame)")
+        app.typeKey(".", modifierFlags: .command)
+        XCTAssertTrue(first.exists(within: 2))
+    }
+
     func workspaceIDs() async throws -> [String] {
         try await Self.ids("workspace", in: one)
     }

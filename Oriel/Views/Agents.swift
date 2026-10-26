@@ -248,6 +248,7 @@ struct StatusBadge: View {
         /// relaunches (user, phase 27). ponytail: a closed workspace's line stays (and folds a new workspace that gets
         /// its id); prune them if that is ever seen.
         @AppStorage("agentsFolded") private var folded = ""
+        @State private var position = ScrollPosition(idType: String.self)
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
@@ -269,6 +270,14 @@ struct StatusBadge: View {
                 .id(sort)
             }
             .scrollIndicators(.never)
+            .scrollPosition($position)
+            // The lit row into view, just enough, however its pane was shown (phase 31). The lazy stack finds a row it
+            // has not built.
+            .onChange(of: page.keyboardCard(page.selectedTab?.id)?.id, initial: true) { _, id in
+                if let id {
+                    position.scrollTo(id: id)
+                }
+            }
         }
 
         struct Group {

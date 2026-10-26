@@ -110,6 +110,7 @@
         @State private var plus = false
         /// ⌘ or ⌃⌘ held for 0.7 s: keycaps on the first nine workspaces (their jump keys).
         @State private var hints = false
+        @State private var position = ScrollPosition(idType: String.self)
 
         var body: some View {
             let store = page.store
@@ -182,6 +183,8 @@
                                     }
                                     .opacity(page.dragging == .workspace(id) ? 0.4 : 1)
                                     .offset(y: rowsDrop.shift(id))
+                                    // What a scroll to the row shows: it and the fade's room round it.
+                                    .background { Color.clear.id("into view \(id)").padding(.vertical, -18) }
                             }
                             if drop.ghost, page.dragging != nil {
                                 Text("New Workspace").foregroundStyle(.secondary).padding(.horizontal, 8)
@@ -195,6 +198,13 @@
                         .padding(Sidebar.rowInsets)
                     }
                     .scrollIndicators(.never)
+                    .scrollPosition($position)
+                    // The selected row into view, just enough, however it was selected (phase 31); again once laid
+                    // out, for a row new in this update (a new page or workspace).
+                    .onChange(of: "into view \(page.selectedWorkspaceID ?? "")", initial: true) { _, id in
+                        position.scrollTo(id: id)
+                        Task { position.scrollTo(id: id) }
+                    }
                     .keycapHints(.command, [.command, .control], shown: $hints)
                     .coordinateSpace(.named("rows"))
                     .onDrop(of: [.orielDrag], delegate: rowsDrop)
