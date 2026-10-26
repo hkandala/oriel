@@ -142,6 +142,14 @@ public struct TerminalStream: Sendable {
     }
 }
 
+extension TerminalStream {
+    /// observe ignores stdin's end, so this wrapper ends it then (design T6). The watcher lets go of stdout and
+    /// stderr, so a run that exits by itself (a failed handshake) ends the stream with its status and reason; fd 3
+    /// because a background job's stdin is /dev/null. The watcher goes too, so it never kills a reused pid.
+    static let observeWrapper = #"exec 3<&0; "$@" & c=$!; { cat <&3 >/dev/null; kill $c; } >/dev/null 2>&1 & w=$!; "#
+        + "wait $c 2>/dev/null; s=$?; kill $w 2>/dev/null; exit $s"
+}
+
 public extension HerdrClient {
     /// Opens a pane's terminal by its `terminal_id`, so the stream survives the pane moving.
     /// `--session` wins over `HERDR_SOCKET_PATH` and `HERDR_SESSION` (phase 2 findings).
@@ -155,12 +163,7 @@ public extension HerdrClient {
         var argv = try await [herdr(), "--session", session, "terminal", "session", observe ? "observe" : "control",
                               terminalID, "--cols", "\(cols)", "--rows", "\(rows)"]
         if observe {
-            // observe ignores stdin's end, so a wrapper ends it then (design T6). The watcher lets go of stdout and
-            // stderr, so a run that exits by itself (a failed handshake) ends the stream with its status and reason;
-            // fd 3 because a background job's stdin is /dev/null. The watcher goes too, so it never kills a reused pid.
-            let wrapper = #"exec 3<&0; "$@" & c=$!; { cat <&3 >/dev/null; kill $c; } >/dev/null 2>&1 & w=$!; "#
-                + "wait $c 2>/dev/null; s=$?; kill $w 2>/dev/null; exit $s"
-            argv = ["sh", "-c", wrapper, "sh"] + argv
+            argv = ["sh", "-c", TerminalStream.observeWrapper, "sh"] + argv
         } else if takeover {
             argv.append("--takeover")
         }
