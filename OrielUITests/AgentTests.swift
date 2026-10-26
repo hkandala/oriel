@@ -71,7 +71,7 @@ extension OrielUITests {
         let row = { (pane: String) in panel.descendants(matching: .any)["agent.\(pane)"] }
         let group = { (name: String) in panel.descendants(matching: .any)["agents.popover.group.\(name)"] }
         XCTAssertTrue(row(done).exists(within: 2))
-        XCTAssertEqual(group("Done").label, "Done 1")
+        XCTAssertEqual(group("Done").stringValue, "Done 1")
         XCTAssertFalse(group("Needs you").exists)
         element("workspace.w1").hover()
         XCTAssertTrue(panel.vanishes(within: 2))
@@ -81,7 +81,7 @@ extension OrielUITests {
         try await waitForValue("titlebar.agents", containing: "1 need you")
         button.hover()
         XCTAssertTrue(row(blocked).exists(within: 2))
-        XCTAssertEqual(group("Needs you").label, "Needs you 1")
+        XCTAssertEqual(group("Needs you").stringValue, "Needs you 1")
         let tops = [group("Needs you"), row(blocked), group("Done"), row(done)].map(\.frame.minY)
         XCTAssertEqual(tops, tops.sorted())
         XCTAssertEqual(element("agents.popover.header").stringValue, "Agents · \(one)")
