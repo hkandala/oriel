@@ -66,6 +66,30 @@ extension OrielUITests {
         XCTAssertTrue(element("titlebar.overview").exists(within: 2))
     }
 
+    /// A zoom into a tab the strip never showed (phase 29 item 5), then into the shown one: once the zoom ends, its
+    /// card shows at once and never goes back to loading (the user saw it flicker).
+    func testOverviewZoomIntoAnUnshownTabShowsItSteadily() async throws {
+        relaunch(nil, ["-forceMotion", "YES", "-recordMotion", "YES"])
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, pane) = try await newTab("unshown", in: "w1")
+        try await send("seq 1 40\r", to: pane)
+        for round in ["unshown", "shown"] {
+            app.typeKey("o", modifierFlags: [.command, .control])
+            let overview = element("overview"), tile = element("overview.tab.\(tab)")
+            XCTAssertTrue(tile.has(\.isHittable, true, within: 3))
+            tile.click()
+            XCTAssertTrue(overview.vanishes(within: 2))
+            let card = element("pane.\(pane)")
+            var values: [String] = []
+            let end = Date.now + 1.5
+            while Date.now < end {
+                values.append(card.stringValue)
+            }
+            print("zoom, \(round): \(values) host \(element("host.\(pane)").label)")
+            XCTAssertFalse(values.contains { $0.contains("loading") }, "\(round): \(values)")
+        }
+    }
+
     /// The title row has the traffic lights and one × only; the grid (its first row's two tiles) is centered with wide
     /// margins all round: 8 % of the width, at least 48 pt, and 40 pt above.
     private func expectOverviewChrome(first: CGRect, second: CGRect) {
