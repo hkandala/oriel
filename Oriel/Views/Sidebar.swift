@@ -95,7 +95,7 @@
         /// Each row's frame in the list's visible space, for drops; measured while nothing is dragged.
         @State private var frames: [String: CGRect] = [:]
         @State private var drop = RowsDrop.State()
-        /// A pane dragged over the header's `+`.
+        /// A pane or a tab dragged over the header's `+`.
         @State private var plus = false
         /// ⌘ or ⌃⌘ held for 0.7 s: keycaps on the first nine workspaces (their jump keys).
         @State private var hints = false

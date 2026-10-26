@@ -50,6 +50,9 @@ struct FilterList: View {
     /// ⌫ on an empty field, or Esc: back a page. Without it Esc goes on to close the panel.
     var back: (() -> Void)?
     var rowHeight: CGFloat = 26
+    /// The last rows sit under the scrolled ones, always in view: the workspace menu's New Workspace is a drop target
+    /// only in view as a drag starts (macOS 27, `MenuRowDrop`).
+    var pinned = 0
     /// Off for the workspace menu a drag holds open: the drag's keyboard card keeps the keys.
     var autofocus = true
     /// After a row acted or the field's text was submitted.
@@ -108,45 +111,8 @@ struct FilterList: View {
                     ScrollView {
                         // Lazy: the palette's 100 rows took 230 ms to build and lay out on CI as it opened (phase 25).
                         LazyVStack(alignment: .leading, spacing: 2) {
-                            ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
-                                if item.section != (offset > 0 ? items[offset - 1].section : nil) {
-                                    if let section = item.section, !section.isEmpty {
-                                        Text(section).font(.system(size: 11, weight: .medium))
-                                            .foregroundStyle(.secondary)
-                                            .padding(.horizontal, 8).padding(.top, offset > 0 ? 6 : 0)
-                                            .accessibilityIdentifier("\(name).section.\(section)")
-                                            .accessibilityAddTraits(.isHeader)
-                                    } else {
-                                        Divider().padding(4)
-                                    }
-                                }
-                                Button { act(item) } label: {
-                                    MenuRow(item: item, selected: offset == index, height: rowHeight)
-                                }
-                                .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
-                                .accessibilityIdentifier("\(name).\(item.id)")
-                                .accessibilityValue(item.state??.word ?? "")
-                                .accessibilityAddTraits(offset == index ? .isSelected : [])
-                                // After the row's accessibility, which would name this button too.
-                                .overlay(alignment: .trailing) {
-                                    // Not while its spinner shows.
-                                    if let button = item.button, offset == index, !item.busy {
-                                        Button(button.title, role: item.buttonRole, action: button.act)
-                                            .buttonStyle(RowButtonStyle())
-                                            .padding(.trailing, 4)
-                                            .accessibilityIdentifier("\(name).\(item.id).\(button.title.lowercased())")
-                                    }
-                                }
-                                #if os(macOS)
-                                .modifier(MenuRowDrop(target: item.drop))
-                                // The light follows the pointer, as in a menu (user, phase 24).
-                                .onContinuousHover { phase in
-                                    guard case .active = phase, NSEvent.mouseLocation != pointer else { return }
-                                    pointer = NSEvent.mouseLocation
-                                    pointed = true
-                                    litID = item.id
-                                }
-                                #endif
+                            ForEach(Array(items.enumerated().dropLast(pinned)), id: \.element.id) { offset, _ in
+                                row(items, offset, index)
                             }
                             if items.isEmpty {
                                 Text("No matches").foregroundStyle(.secondary).padding(8)
@@ -164,6 +130,9 @@ struct FilterList: View {
                         }
                     }
                 }
+                ForEach(Array(items.enumerated().suffix(pinned)), id: \.element.id) { offset, _ in
+                    row(items, offset, index)
+                }
             }
         }
         .onAppear { filter = text }
@@ -173,6 +142,50 @@ struct FilterList: View {
             litID = nil
         }
         .onChange(of: items.isEmpty ? nil : items[index].id, initial: true) { lit?.wrappedValue = $1 }
+    }
+
+    /// A row, with a header or a divider above it where its section changes.
+    @ViewBuilder
+    private func row(_ items: [Item], _ offset: Int, _ index: Int) -> some View {
+        let item = items[offset]
+        if item.section != (offset > 0 ? items[offset - 1].section : nil) {
+            if let section = item.section, !section.isEmpty {
+                Text(section).font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8).padding(.top, offset > 0 ? 6 : 0)
+                    .accessibilityIdentifier("\(name).section.\(section)")
+                    .accessibilityAddTraits(.isHeader)
+            } else {
+                Divider().padding(4)
+            }
+        }
+        Button { act(item) } label: {
+            MenuRow(item: item, selected: offset == index, height: rowHeight)
+        }
+        .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
+        .accessibilityIdentifier("\(name).\(item.id)")
+        .accessibilityValue(item.state??.word ?? "")
+        .accessibilityAddTraits(offset == index ? .isSelected : [])
+        // After the row's accessibility, which would name this button too.
+        .overlay(alignment: .trailing) {
+            // Not while its spinner shows.
+            if let button = item.button, offset == index, !item.busy {
+                Button(button.title, role: item.buttonRole, action: button.act)
+                    .buttonStyle(RowButtonStyle())
+                    .padding(.trailing, 4)
+                    .accessibilityIdentifier("\(name).\(item.id).\(button.title.lowercased())")
+            }
+        }
+        #if os(macOS)
+        .modifier(MenuRowDrop(target: item.drop))
+        // The light follows the pointer, as in a menu (user, phase 24).
+        .onContinuousHover { phase in
+            guard case .active = phase, NSEvent.mouseLocation != pointer else { return }
+            pointer = NSEvent.mouseLocation
+            pointed = true
+            litID = item.id
+        }
+        #endif
     }
 
     private func current(_ items: [Item]) -> Int {
