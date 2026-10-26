@@ -141,8 +141,7 @@
                             .clearsDrop(page) { plus = false }
                     }
                 }
-                // Agents view: the name starts where the group labels and row icons do (the rows' insets and their
-                // 8 pt padding).
+                // Agents view: the name starts where the group labels and row icons do (rows' insets, 8 pt padding).
                 .padding(.leading, agents == nil ? 22 : Sidebar.rowInsets.leading + 8)
                 // The `+` and the sort capsule end where the rows do: the sort label's text where the times end.
                 .padding(.trailing, Sidebar.rowInsets.trailing)
@@ -183,7 +182,6 @@
                                     }
                                     .opacity(page.dragging == .workspace(id) ? 0.4 : 1)
                                     .offset(y: rowsDrop.shift(id))
-                                    // What a scroll to the row shows: it and the fade's room round it.
                                     .background { Color.clear.id("into view \(id)").padding(.vertical, -18) }
                             }
                             if drop.ghost, page.dragging != nil {
@@ -199,8 +197,8 @@
                     }
                     .scrollIndicators(.never)
                     .scrollPosition($position)
-                    // The selected row into view, just enough, however it was selected (phase 31); again once laid
-                    // out, for a row new in this update (a new page or workspace).
+                    // The selected row and the fade's room round it (its background) into view, just enough, however
+                    // it was selected (phase 31); again once laid out, for a row new in this update (a new page).
                     .onChange(of: "into view \(page.selectedWorkspaceID ?? "")", initial: true) { _, id in
                         position.scrollTo(id: id)
                         Task { position.scrollTo(id: id) }
@@ -376,8 +374,7 @@
                 }
             }
             guard swipe.moving else {
-                // The other pages first, in an update of their own: in the slide's, the pages' offset from rest (0)
-                // would slide too.
+                // The other pages first, in an update of their own: in the slide's, their offset from rest would too.
                 swipe.moving = true
                 Task {
                     if swipe.moves == move {
