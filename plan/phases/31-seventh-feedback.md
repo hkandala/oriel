@@ -41,9 +41,12 @@ the end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the 
      float request token it opens that pane in its floating window (phase 28's `oriel://` path inside, on
      the machine the event came from, loading a float-only page when the session has no page), then
      answers on the same pane with an ack token carrying the nonce.
-   - **pi-herd:** after the request it waits briefly (about 300–500 ms) for the ack (event or `pane.get`);
-     with an ack it stops; without one (no Oriel attached, or herdr's own TUI only) it opens herdr's popup
-     as before. The `lsappinfo` check goes.
+   - **No ack wait (user, 02:45):** waiting for an ack would slow herdr's own popup when Oriel is not
+     attached and be flaky over slow links. Instead Oriel marks the panes it shows with a presence token
+     (source `oriel`, for example `oriel.shown`, `ttl_ms` about 30 s, refreshed about every 10 s while
+     shown, cleared when the pane leaves view or the window closes). At click time pi-herd reads its own
+     pane's metadata from the herdr socket on its own host (`pane.get`, a few ms): with a fresh presence
+     token it sends the float request and opens no popup; without one it opens herdr's popup at once.
    - Spike first: which event a metadata change sends (`metadata_updated`, `pane.updated`?), whether tokens
      reach every client, how `ttl_ms` clears them, and the token limits (16 tokens, name pattern).
    - Both repos: Oriel here, and pi-herd in `/Users/hkandala/code/pi-hkandala` (its own AGENTS.md and
