@@ -237,7 +237,11 @@ extension OrielUITests {
     /// quoted, without Return.
     func testGoToDirectoryAndInsertPath() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let (_, pane) = try await newTab("paths")
+        // Shown first: a click on the card of a tab not in view scrolled the strip to it, and the strip went back to
+        // the shown tab before the click landed (CI 40276544611).
+        let (tab, pane) = try await newTab("paths")
+        element("tab.\(tab)").click()
+        XCTAssertTrue(element("terminal.\(pane)").has(\.isHittable, true, within: 3))
         let folder = "/private/tmp/oriel-e2e-go-\(Int.random(in: 1000 ... 9999))"
         try await waitForPrompt(pane)
         try await send("mkdir -p \(folder) && touch '\(folder)/a b'; clear\r", to: pane)
