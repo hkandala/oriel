@@ -118,3 +118,40 @@ per hold, at most 10 minutes, released with a trap).
   lane D (l33-docs) as a list.
 - **Review:** l33-ios-review: no blockers or shoulds. Two nits: `SUPPORTED_PLATFORMS` (fixed) and the branding
   README line (sent to lane D).
+
+### Lane R
+
+- **What:** a file or image dropped on a remote machine's card now pastes a path on that machine (item 7). Each
+  file is copied there first, over the machine's one SSH connection (the relay), and the copies' paths are pasted,
+  shell-escaped as local drops are, in one paste once all are copied. Insert Path on a remote machine does the same
+  with the file it picks (a few lines in `choosePath`); its panel shows only files there, not This Mac's folders, and
+  no longer opens at the remote cwd. Go to Directory on a remote machine stays as it was (it would need a remote
+  picker).
+- **Cause:** drops pasted This Mac's paths everywhere (`FileDrop.swift` had a `ponytail:` note for it).
+- **How herdr does it** (source `ogulcancelik/herdr`, `src/server/clipboard_image.rs`,
+  `src/client/clipboard_images.rs`): its remote client sends a dropped image's bytes over its private protocol;
+  the server writes them to `$TMPDIR/herdr-clipboard-images-<uid>/client-<id>-clipboard-<ns>-<n>.<ext>` (folder
+  0700, file 0600), pastes the bare path, removes the files when the client leaves and any older than 24 h on each
+  new one. Images only (png, jpg, gif, webp, bmp), at most 16 MB. The protocol is private, so Oriel does the same
+  itself.
+- **Fix:** `Exec.upload` (HerdrKit, `Exec.swift`): one run per file of a small `sh` script that makes
+  `${TMPDIR:-/tmp}/oriel-drops-<uid>` (0700, refused if it is a link or not the user's own), deletes the folders in
+  it older than a day, makes a new `mktemp -d` folder so the file keeps its name, and decodes the base64 lines it
+  is sent (`base64 -d`, which the relay envelope needs anyway). Whole 3-byte groups per line, so no padding mid
+  stream. Any file type; a folder or a file over 16 MB (herdr's limit; the whole file is queued on the relay ahead
+  of the panes' streams) shows a notice and pastes nothing. `FileDrop.drop` picks the remote path through the
+  card's page store (`PaneSurfaceView.store`, set by the registry). Skipped: herdr's delete-on-disconnect (a path an
+  agent has not read yet would break); the day-old cleanup covers it.
+- **Commits:** 2adc428 (feature, tests, docs), 0916f13 (review fixes: 16 MB cap, link check, trimmed error text,
+  docs).
+- **Tests:** unit `upload copies a file whole` (SSHExecTests: 100 001 binary bytes, a `'` and a newline in the name,
+  through a real relay process; a folder is refused). e2e `testAFileDroppedOnARemoteCardPastesItsCopysPath`
+  (RemoteTests, CI's sshd): types `cat `, drops a file on Key Host's card, checks the pasted path is under
+  `oriel-drops-` and not the dropped file's own, then Return and `cat` prints its content. The helper's file-drag
+  file now holds one line. Targeted CI runs 40415387083 (2adc428) and 40415922180 (0916f13): both drop tests pass.
+- **Docs:** drag-and-drop (Files and images), machines (dropped files; not built yet list), window (Insert Path),
+  terminal-and-agent (image paste reuses the copy; marked not built).
+- **Review:** l33-drop-review: no blockers. Applied: 16 MB cap (was 100 MB), symlink/owner check on the shared
+  folder, trimmed stderr, image paste marked not built, helper doc wrap. Left: two quick drops may paste out of
+  order (each copies on its own); `base64 -d` is missing on macOS 12 and older remotes, which the relay envelope
+  already needs, so such a machine never connects.
