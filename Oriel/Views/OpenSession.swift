@@ -140,7 +140,7 @@
             run(session, "start") {
                 try await HostStore.start(session, on: machine)
                 // Not on a machine the window switched to meanwhile.
-                if pages.machine == machine {
+                if pages.machine.id == machine.id {
                     pages.open(session)
                 }
                 open = false

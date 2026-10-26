@@ -169,7 +169,7 @@
         return battery ? "laptopcomputer" : "desktopcomputer"
     }()
 
-    /// The machine's icon; its menu lists the machines, Open Session, Add Remote Host and Edit Remote Host.
+    /// The machine's icon and its menu.
     private struct MachineButton: View {
         let pages: WindowPages
         @Binding var openSession: Bool

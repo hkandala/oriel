@@ -173,14 +173,16 @@ struct OrielApp: App {
             // A run against a throwaway session must open only it.
             let arguments = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
             let argument = arguments["session"] as? String
-            if let machine = opening
-                ?? MachineList.shared.machine(arguments["machine"] as? String ?? savedMachine)
-            {
+            let id = arguments["machine"] as? String ?? savedMachine
+            let machine = opening ?? MachineList.shared.machine(id)
+            if let machine {
                 pages.machine = machine
             }
+            // A removed machine's window opens This Mac's `default`: its saved pages were the remote's sessions.
+            let removed = machine == nil && !id.isEmpty
             // A test run (`-defaultSession`) shares the developer's saved windows: it restores only throwaway sessions.
             let test = UserDefaults.standard.string(forKey: "defaultSession")
-            let saved = argument == nil ? savedPages.split(separator: " ").map(String.init)
+            let saved = argument == nil && !removed ? savedPages.split(separator: " ").map(String.init)
                 .filter { test == nil || $0.hasPrefix("oriel-e2e-") } : []
             if !saved.isEmpty {
                 let client: any Multiplexer = await HerdrClient(session: saved[0], exec: pages.machine.exec())
@@ -289,7 +291,7 @@ struct OrielApp: App {
             .modifier(CloseDialog(page: page))
             .overlay {
                 if let machine = pages.hostDialog {
-                    HostDialog(pages: pages, machine: machine).id(machine.id).dialog()
+                    HostDialog(pages: pages, machine: machine).dialog()
                 }
                 // A new question gets a new field.
                 if let question = pages.question {

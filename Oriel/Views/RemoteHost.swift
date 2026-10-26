@@ -24,17 +24,17 @@
                     .font(.system(size: 13, weight: .semibold))
                 Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
                     GridRow {
-                        label("Name")
+                        Text("Name").gridColumnAlignment(.trailing)
                         TextField("", text: $draft.name).focused($focused).focusSoon($focused).dialogField()
                             .accessibilityLabel("Name").accessibilityIdentifier("host.name")
                     }
                     GridRow {
-                        label("SSH Target")
+                        Text("SSH Target")
                         TextField("", text: $draft.target).dialogField()
                             .accessibilityLabel("SSH Target").accessibilityIdentifier("host.target")
                     }
                     GridRow {
-                        label("Icon")
+                        Text("Icon")
                         IconPicker(icon: $draft.icon)
                     }
                 }
@@ -59,10 +59,6 @@
                         .accessibilityIdentifier("host.save")
                 }
             }
-        }
-
-        private func label(_ text: String) -> some View {
-            Text(text).gridColumnAlignment(.trailing)
         }
 
         private func save(_ target: String) {
@@ -96,7 +92,7 @@
             .accessibilityValue(icon)
             .accessibilityIdentifier("host.icon")
             .popover(isPresented: $open, arrowEdge: .bottom) {
-                let shown = Self.icons.filter { $0.replacing(".", with: " ").matches(filter) }
+                let shown = Self.icons.filter { $0.replacing(".", with: " ").matches(filter.replacing(".", with: " ")) }
                 VStack(spacing: 8) {
                     FilterField(prompt: "Search", text: $filter, identifier: "host.icon.search",
                                 symbol: "magnifyingglass", autofocus: true)
@@ -202,8 +198,7 @@
         /// A dialog's field: filled and outlined, so it reads on the glass over light and dark content (the palette's
         /// soft capsule nearly vanished there, user, phase 29).
         func dialogField() -> some View {
-            textFieldStyle(.plain).padding(.horizontal, 8).padding(.vertical, 6)
-                .background(.background.opacity(0.6), in: .capsule)
+            fieldCapsule().background(.background.opacity(0.6), in: .capsule)
                 .overlay(Capsule().strokeBorder(.primary.opacity(0.2)))
         }
 
