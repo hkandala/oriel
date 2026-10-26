@@ -17,29 +17,34 @@
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
-            ScrollView(.horizontal) {
-                LazyHStack(spacing: 0) {
-                    ForEach(workspace.tabs) { tab in
-                        Group {
-                            if let tree = tab.tree {
-                                // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
-                                // Layout motion (0.13 s): a split, a close, a swap, a zoom. The terminals keep their
-                                // size until it ends (`TerminalHost`).
-                                let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
-                                SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
-                                    .padding([.horizontal, .bottom], gap)
-                                    .padding(.top, 4)
-                            } else {
-                                Text("No layout for this tab").foregroundStyle(.secondary)
+            // Pages the reader's size, not `containerRelativeFrame`'s: on a new strip's first layout that took the
+            // window's width, so the first offset (`defaultScrollAnchor`) was off by a fraction of a page, and the
+            // scroll geometry reported last could be that one: the tab capsule rested between two tabs (phase 31).
+            GeometryReader { proxy in
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(workspace.tabs) { tab in
+                            Group {
+                                if let tree = tab.tree {
+                                    // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
+                                    // Layout motion (0.13 s): a split, a close, a swap, a zoom. The terminals keep
+                                    // their size until it ends (`TerminalHost`).
+                                    let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
+                                    SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
+                                        .padding([.horizontal, .bottom], gap)
+                                        .padding(.top, 4)
+                                } else {
+                                    Text("No layout for this tab").foregroundStyle(.secondary)
+                                }
                             }
+                            .frame(width: proxy.size.width, height: proxy.size.height)
+                            .accessibilityElement(children: .contain)
+                            .accessibilityIdentifier("page.\(tab.id)")
                         }
-                        .containerRelativeFrame([.horizontal, .vertical])
-                        .accessibilityElement(children: .contain)
-                        .accessibilityIdentifier("page.\(tab.id)")
                     }
+                    .scrollTargetLayout()
+                    .background(ScrollAnchor(step: turn, drag: drag, lift: lift))
                 }
-                .scrollTargetLayout()
-                .background(ScrollAnchor(step: turn, drag: drag, lift: lift))
             }
             .scrollTargetBehavior(.paging)
             // A new strip (a workspace or session shown, the overview closed) is laid out on the selected tab's page
@@ -75,8 +80,7 @@
                       position.viewID(type: String.self) != target else { return }
                 withTransaction(\.animation, nil) { position.scrollTo(id: target, anchor: .leading) }
                 // A page that lays out in this same update (a new tab's, or herdr's tab taking its stand-in's place)
-                // can
-                // miss the scroll: again once it has.
+                // can miss the scroll: again once it has.
                 Task { position.scrollTo(id: target, anchor: .leading) }
             }
         }

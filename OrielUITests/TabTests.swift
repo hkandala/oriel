@@ -169,15 +169,46 @@ extension OrielUITests {
         try await expectShown(shown[0].tab, "back from the other session")
     }
 
-    /// The tab's page is in view: its card takes clicks and its capsule is lit.
+    /// A zoom from the overview into a middle tab of a workspace of many, a workspace shown again, ⌘4 and a session
+    /// shown again: the selection capsule rests on the tab shown, not between two (phase 31: after the zoom, or on a
+    /// new strip, it sat between the tab and the next one until the next click).
+    func testTheCapsuleRestsOnTheTabShownHoweverItShows() async throws {
+        relaunch(one, ["-forceMotion", "YES"])
+        let tabs = try await newWorkspace("capsule", tabs: 5).tabs
+        let workspace = workspace(of: tabs[0])
+        app.typeKey("o", modifierFlags: [.command, .control])
+        XCTAssertTrue(element("overview").exists(within: 2))
+        // The workspace's row is below CI's window: the lazy rows make it as it scrolls in.
+        let tile = element("overview.tab.\(tabs[2])")
+        scrollOverview(to: tile)
+        XCTAssertTrue(tile.has(\.isHittable, true, within: 2))
+        tile.click()
+        XCTAssertTrue(element("overview").vanishes(within: 2))
+        try await expectShown(tabs[2], "zoomed into the middle tab")
+        element("workspace.w2").click()
+        element("workspace.\(workspace)").click()
+        try await expectShown(tabs[2], "its workspace shown again")
+        app.typeKey("4", modifierFlags: .command)
+        try await expectShown(tabs[3], "⌘4")
+        openSessionPanel()
+        element("open-session.session.\(two)").click()
+        XCTAssertTrue(element("pane.w1:p1").has(\.isHittable, true, within: connect), "the other session")
+        element("sidebar.dot.\(one)").click()
+        try await expectShown(tabs[3], "its session shown again")
+    }
+
+    /// The tab's page is in view: its card takes clicks and its capsule alone is lit.
     private func expectShown(_ tab: String, _ step: String) async throws {
         let pane = try await pane(of: tab)
+        let inView = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH 'tab.' AND value BEGINSWITH 'in view'"))
+        var lit: [String] = []
         let shown = until(3) {
-            element("pane.\(pane)").exists && element("pane.\(pane)").isHittable
-                && element("tab.\(tab)").stringValue.hasPrefix("in view")
+            lit = inView.allElementsBoundByIndex.map(\.identifier)
+            return element("pane.\(pane)").exists && element("pane.\(pane)").isHittable && lit == ["tab.\(tab)"]
         }
         keepScreenshot(step)
-        XCTAssertTrue(shown, "\(step): \(tab)'s page is not in view")
+        XCTAssertTrue(shown, "\(step): \(tab)'s page is not in view, lit: \(lit)")
     }
 
     /// The dialog's text, in its label or its value.
