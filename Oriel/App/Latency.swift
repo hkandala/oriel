@@ -65,16 +65,18 @@
         }
 
         /// The sidebar's pages after a swipe's lift: their offset at each frame for 0.8 s, in ms from the lift; first
-        /// the ms to the last change: "swipe 230ms 0:145,8:152,…" (phase 27).
+        /// the ms to the last change, last the ms to the session's show (-1: none): "swipe 230ms 0:145,8:152,… 190"
+        /// (phases 27, 28).
         func lifted(_ offset: Double) {
             guard Self.isOn else { return }
             lifted = ProcessInfo.processInfo.systemUptime
             slide = []
+            shownAt = -1
             slid(offset)
             Task {
                 try? await Task.sleep(for: .seconds(0.8))
                 let path = slide.map { "\($0.0):\(Int($0.1.rounded()))" }.joined(separator: ",")
-                recorded.append("swipe \(slide.last?.0 ?? 0)ms \(path)")
+                recorded.append("swipe \(slide.last?.0 ?? 0)ms \(path) \(shownAt)")
                 lifted = nil
             }
         }
@@ -84,6 +86,20 @@
             slide.append((Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000), offset))
         }
 
+        /// The swipe's session showed.
+        func shown() {
+            if let lifted {
+                shownAt = Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000)
+            }
+        }
+
+        func note(_ text: String) {
+            if Self.isOn {
+                recorded.append(text)
+            }
+        }
+
+        @ObservationIgnored private var shownAt = -1
         @ObservationIgnored private var lifted: TimeInterval?
         @ObservationIgnored private var slide: [(Int, Double)] = []
 

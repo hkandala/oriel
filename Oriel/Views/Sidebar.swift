@@ -18,6 +18,8 @@
         @State private var filter = ""
         /// Where the pages are: observed only by `Pager`, so a swipe's moves redraw nothing else.
         @State private var swipe = Swipe()
+        /// The pages' frame in the window, for the router.
+        @State private var area = CGRect.zero
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.look) private var look
 
@@ -48,13 +50,11 @@
                         }
                     }
                 }
-                .background(alignment: .topLeading) {
-                    ScrollAnchor(step: step, drag: drag, lift: lift, width: width - gap)
-                }
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { area = $0 }
+                .background(ScrollAnchor(step: step, drag: drag, lift: lift, area: area))
                 // A dot, a key, a new page or the sheet: slide there with the session spring. A swipe is there already.
                 .onChange(of: pages.list.map(\.id) + [pages.current?.id ?? ""], initial: true) { old, new in
-                    guard let index = pages.list.firstIndex(where: { $0 === pages.current }),
-                          swipe.slide != Double(index) else { return }
+                    guard let index = pages.list.firstIndex(where: { $0 === pages.current }) else { return }
                     let slides = old.last != new.last && !(reduceMotion && !Animation.forceMotion)
                     withAnimation(slides ? .session() : nil) { swipe.slide = Double(index) }
                 }
@@ -140,7 +140,9 @@
                 if let agents {
                     AgentsList(page: page, filter: filter, sort: agents.wrappedValue)
                 } else if store.state == .live, store.workspaces.isEmpty {
-                    NewWorkspaceButton(page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Button("New Workspace", systemImage: "plus") { Task { await page.newWorkspace() } }
+                        .accessibilityIdentifier("new-workspace")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 2) {
@@ -235,16 +237,6 @@
         }
     }
 
-    /// A session with no workspace, in its page: the button that makes one.
-    private struct NewWorkspaceButton: View {
-        let page: Page
-
-        var body: some View {
-            Button("New Workspace", systemImage: "plus") { Task { await page.newWorkspace() } }
-                .accessibilityIdentifier("new-workspace")
-        }
-    }
-
     private struct PageDots: View {
         let pages: WindowPages
 
@@ -294,6 +286,8 @@
     private final class Swipe {
         /// In pages from the first: where the fingers hold them, else where they slide to or rest.
         var slide = 0.0
+        /// In points, as last drawn: mid-slide, where a new swipe takes the pages from.
+        @ObservationIgnored var drawn = 0.0
     }
 
     /// The pages side by side, the one at `swipe.slide` in view.
@@ -303,7 +297,7 @@
         @ViewBuilder let content: Content
 
         var body: some View {
-            content.modifier(Slid(offset: swipe.slide * width))
+            content.modifier(Slid(offset: swipe.slide * width, swipe: swipe))
                 .frame(width: width, alignment: .leading)
                 .frame(maxHeight: .infinity)
                 .clipped()
@@ -313,28 +307,32 @@
     /// The pages' offset, animatable, so a test can read it at each frame of a slide.
     private struct Slid: ViewModifier, Animatable {
         var offset: Double
+        let swipe: Swipe
         var animatableData: Double {
             get { offset }
             set { offset = newValue }
         }
 
         func body(content: Content) -> some View {
+            swipe.drawn = offset
             Latency.shared.slid(offset)
             return content.offset(x: -offset)
         }
     }
 
     extension Sidebar {
-        /// The router's moves of a sideways swipe (in points, toward later pages): the pages follow the fingers, and
-        /// stop at the first and last page.
-        private func drag(_ delta: Double) {
-            let last = Double(max(pages.list.count - 1, 0))
-            swipe.slide = min(max(swipe.slide + delta / max(width - gap, 1), 0), last)
+        /// The router's moves of a sideways swipe (in points, toward later pages): the pages follow the fingers from
+        /// where they are drawn (a slide stops), and stop at the first and last page. Not under a panel (the palette,
+        /// Open Session), which would then act on another page.
+        private func drag(_ delta: Double, first: Bool) {
+            guard !pages.panelOpen else { return }
+            let width = max(width - gap, 1), last = Double(max(pages.list.count - 1, 0))
+            swipe.slide = min(max((first ? swipe.drawn / width : swipe.slide) + delta / width, 0), last)
         }
 
         /// A mouse's sideways wheel: the next or previous page.
         private func step(_ offset: Int) {
-            if let page = pages.neighbor(offset) {
+            if !pages.panelOpen, let page = pages.neighbor(offset) {
                 pages.show(page)
             }
         }
@@ -345,7 +343,7 @@
         /// 0.4 s (phase 25), and a slide asked of it on a quick flick stood still until a timeout, then snapped back
         /// while the window showed the other session (phase 28).
         private func lift(_ speed: Double) {
-            let width = max(Double(width - gap), 1), page = swipe.slide
+            let width = max(width - gap, 1), page = swipe.slide
             let near = abs(speed) < 100 ? page.rounded() : speed > 0 ? page.rounded(.up) : page.rounded(.down)
             let index = min(max(Int(near), 0), pages.list.count - 1)
             guard pages.list.indices.contains(index) else { return }
@@ -353,7 +351,9 @@
             Latency.shared.lifted(page * width)
             guard !reduceMotion || Animation.forceMotion else {
                 swipe.slide = Double(index)
-                pages.show(target)
+                if target !== pages.current {
+                    pages.show(target)
+                }
                 return
             }
             // Shown once the slide looks done, not in its long tail; first drawn at the lift, the session held the
@@ -363,6 +363,7 @@
                 swipe.slide = Double(index)
             } completion: {
                 if swipe.slide == Double(index), target !== pages.current {
+                    Latency.shared.shown()
                     pages.show(target)
                 }
             }

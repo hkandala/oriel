@@ -54,7 +54,16 @@ extension OrielUITests {
         try await swipe(sidebar, until: header, \.stringValue, one)
         // Page one's strip has two tabs: a swipe that reached it would have left t2 selected.
         XCTAssertTrue(element("tab.w1:t1").isSelected)
-        try await swipe(element("terminal.w1:p1"), until: element("tab.w1:t2"), \.isSelected, true)
+        // Near the card's left edge, where page two of the sidebar lies, off to the side (phase 28).
+        let edge = element("terminal.w1:p1").coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
+            .withOffset(CGVector(dx: 30, dy: 0))
+        var delta = -Double(element("terminal.w1:p1").frame.width)
+        XCTAssertTrue(until(6) {
+            edge.hover()
+            edge.scroll(byDeltaX: delta, deltaY: 0)
+            delta = -delta
+            return self.element("tab.w1:t2").has(\.isSelected, true, within: 0.7)
+        })
         XCTAssertEqual(header.stringValue, one)
 
         app.typeKey(".", modifierFlags: .command)
@@ -98,8 +107,8 @@ extension OrielUITests {
         relaunch(five)
         // The page shows the button; the strip, no button, only that the session is empty (user, phase 28).
         let button = element("new-workspace")
-        XCTAssertTrue(element("detail.empty").exists(within: connect))
-        XCTAssertTrue(element("detail.empty").label.contains("This session is empty"))
+        XCTAssertTrue(element("detail.empty").firstMatch.exists(within: connect))
+        XCTAssertTrue(app.staticTexts["This session is empty"].exists)
         XCTAssertEqual(app.buttons.matching(identifier: "new-workspace").count, 1)
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workspace.'")).firstMatch
             .exists)

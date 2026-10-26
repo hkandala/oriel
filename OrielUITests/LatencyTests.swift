@@ -129,7 +129,7 @@ extension OrielUITests {
             }
         }
         XCTAssertEqual(header, two)
-        let (swipe, path) = try XCTUnwrap(swipes().last, "no swipe moved")
+        let (swipe, path, shown) = try XCTUnwrap(swipes().last, "no swipe moved")
         let speed = 10 / 0.016
         let times = path.map { $0[0] }, offsets = path.map { $0[1] }
         // The page went 140 pt with the fingers, give or take the system's own pace.
@@ -143,6 +143,10 @@ extension OrielUITests {
         let settled = path.first { abs($0[1] - target) <= 2 }?[0] ?? 0
         XCTAssertGreaterThan(settled, 150, "\(swipe)")
         XCTAssertLessThan(settled, 400, "\(swipe)")
+        // The window shows the session as the pages look arrived, not in the spring's tail (150–200 ms later, phase
+        // 28).
+        XCTAssertGreaterThan(shown, 0, "\(swipe)")
+        XCTAssertLessThan(shown - settled, 80, "\(swipe)")
         // A step at least every 100 ms until then: no stall (a slide started at the scroll view's own end stood still
         // 100–350 ms, then jumped). A debug build under XCUITest still drops a few frames at the start (about 50 ms).
         let steps = times.filter { $0 <= settled }
@@ -152,7 +156,7 @@ extension OrielUITests {
         XCTAssertGreaterThan((early[1] - offsets[0]) / max(early[0], 1) * 1000, speed / 2, "\(swipe)")
         XCTAssertLessThan((early[1] - offsets[0]) / max(early[0], 1) * 1000, speed * 3, "\(swipe)")
 
-        // 40 pt back, then the fingers stop 0.2 s before they lift: back to the same page (the scroll view's own snap),
+        // 40 pt back, then the fingers stop 0.2 s before they lift: back to the same page (the session spring),
         // no session change.
         let name = element("sidebar.header"), place = name.frame.minX
         try await Self.post("\(one)/swipe", Data("\(center) \(-10 * forward) 4 200".utf8))
@@ -183,23 +187,24 @@ extension OrielUITests {
         XCTAssertEqual(header, two)
         // The pages rest on the session the window shows.
         XCTAssertEqual(name.frame.minX, place, accuracy: 1)
-        let (swipe, path) = try XCTUnwrap(swipes().last, "no swipe moved")
+        let (swipe, path, shown) = try XCTUnwrap(swipes().last, "no swipe moved")
         XCTAssertEqual(path.last?[1] ?? 0, sidebar.frame.width - 8, accuracy: 2, "\(swipe)")
-        // A step at least every 100 ms until the page: no stall.
+        // A step at least every 100 ms until the page: no stall. The session shows with it.
         let settled = path.first { abs($0[1] - sidebar.frame.width + 8) <= 2 }?[0] ?? 1000
         XCTAssertLessThan(settled, 400, "\(swipe)")
+        XCTAssertLessThan(shown - settled, 80, "\(swipe)")
         let steps = path.map { $0[0] }.filter { $0 <= settled }
         XCTAssertLessThan(zip(steps, steps.dropFirst()).map { $1 - $0 }.max() ?? 1000, 100, "\(swipe)")
     }
 
-    /// The "swipe" records in which the pages moved (the gesture's end given to the scroll view at its page makes one
-    /// that did not), each with its offsets: [ms, pt].
-    private func swipes() -> [(String, [[Double]])] {
+    /// The "swipe" records in which the pages moved (a swipe back to the page in view makes one that did not), each
+    /// with its offsets: [ms, pt], and the ms to the session's show (-1: none).
+    private func swipes() -> [(String, [[Double]], Double)] { // swiftlint:disable:this large_tuple
         element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("swipe") }.map { swipe in
             let words = swipe.split(separator: " ")
             let path = words.count > 2
                 ? words[2].split(separator: ",").map { $0.split(separator: ":").compactMap { Double($0) } } : []
-            return (String(swipe), path)
+            return (String(swipe), path, words.count > 3 ? Double(words[3]) ?? -1 : -1)
         }.filter { $0.1.count > 4 }
     }
 

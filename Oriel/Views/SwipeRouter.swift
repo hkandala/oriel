@@ -4,8 +4,8 @@
 
     /// The app's one scroll monitor (design D35). A gesture picks its axis once it moved 4 pt: a sideways one goes to
     /// the sidebar's pages when over them, else to the scroll view under the pointer (the strip, over a card), so a
-    /// terminal never sees it; any other goes to the view under the pointer as usual. Its momentum follows. A wheel
-    /// picks per event; Shift makes it sideways.
+    /// terminal never sees it; any other goes to the view under the pointer as usual. Its momentum follows, except to
+    /// the sidebar's pages. A wheel picks per event; Shift makes it sideways.
     @MainActor
     enum SwipeRouter {
         /// Once, at launch.
@@ -43,6 +43,10 @@
                 sideways = 0
                 speed = 0
             }
+            // The next touch, which may end with no move (`.cancelled`): not the last swipe's.
+            if event.phase == .mayBegin {
+                pager = nil
+            }
             // A scroll moves the content against the fingers' delta; half the last speed smooths a jittery step.
             if event.phase == .changed, event.timestamp > last {
                 speed = speed / 2 - deltaX / (event.timestamp - last) / 2
@@ -54,12 +58,7 @@
             last = event.timestamp
             // The pages take the moves and the lift; the momentum goes nowhere.
             if let pager {
-                if event.phase == .changed {
-                    pager.drag?(-deltaX)
-                } else if event.phase == .ended || event.phase == .cancelled, !lifted {
-                    lifted = true
-                    pager.lift?(speed)
-                }
+                give(event, to: pager)
                 return true
             }
             if !picked {
@@ -69,13 +68,25 @@
                     picked = true
                     if abs(deltaX) > abs(deltaY) {
                         pager = anchors.allObjects.first { $0.contains(event) }
-                        pager?.drag?(sideways)
+                        Latency.shared.note("pick \(pager != nil) \(anchors.allObjects.map { "\($0.area)" }) "
+                            + "\(event.locationInWindow) \(event.window?.contentView?.bounds.height ?? -1)")
+                        pager?.drag?(sideways, true)
                         target = pager == nil ? scrollView(event) : nil
                     }
                 }
             }
             target?.scrollWheel(with: event)
             return target != nil || pager != nil
+        }
+
+        private static func give(_ event: NSEvent, to pager: ScrollAnchor.Anchor) {
+            if event.phase == .changed {
+                pager.drag?(-event.scrollingDeltaX, false)
+            } else if event.phase == .ended || event.phase == .cancelled, !lifted {
+                lifted = true
+                // A gesture the system took (Mission Control) turns no page.
+                pager.lift?(event.phase == .cancelled ? 0 : speed)
+            }
         }
 
         /// A sideways wheel step: over the sidebar's pages, or over the strip as a burst of line steps (a mouse, which
@@ -107,8 +118,8 @@
         }
 
         /// The innermost scroll view under the pointer that can scroll sideways (its document is wider than its clip
-        /// view): over a sidebar page's list, the sidebar's pages; over a card, the strip.
-        /// None can (a one-tab strip, one sidebar page): the innermost still takes it, so a terminal never does.
+        /// view): over a card, the strip. None can (a one-tab strip): the innermost still takes it, so a terminal never
+        /// does.
         private static func scrollView(_ event: NSEvent) -> NSScrollView? {
             let innermost = event.window?.contentView?.hitTest(event.locationInWindow)?.enclosingScrollView
             var view = innermost
@@ -122,14 +133,14 @@
     }
 
     /// Marks a scroll view for the router: the strip with its page turn for wheels. With `drag`, it marks the sidebar's
-    /// pages instead, which take a sideways swipe's moves and lift (with the fingers' speed) and a wheel's turn: from
-    /// its place, at their top leading corner, `width` wide and down to the window's bottom (the dots and the filter
-    /// too).
+    /// pages instead, which take a sideways swipe's moves (the first one of a gesture marked) and lift (with the
+    /// fingers' speed) and a wheel's turn, within `area` (in the window, from its top left) and down to the window's
+    /// bottom (the dots and the filter too).
     struct ScrollAnchor: NSViewRepresentable {
         var step: ((Int) -> Void)?
-        var drag: ((Double) -> Void)?
+        var drag: ((Double, Bool) -> Void)?
         var lift: ((Double) -> Void)?
-        var width = 0.0
+        var area = CGRect.zero
 
         func makeNSView(context: Context) -> Anchor {
             let view = Anchor()
@@ -141,7 +152,7 @@
             view.step = step
             view.drag = drag
             view.lift = lift
-            view.width = width
+            view.area = area
         }
 
         /// No size: over the sidebar's rows, a view the size of the pages took accessibility's hit tests, and XCUITest
@@ -152,15 +163,17 @@
 
         final class Anchor: NSView {
             var step: ((Int) -> Void)?
-            var drag: ((Double) -> Void)?
+            var drag: ((Double, Bool) -> Void)?
             var lift: ((Double) -> Void)?
-            var width = 0.0
+            var area = CGRect.zero
 
-            /// Under the event, for the sidebar's pages.
+            /// Under the event, for the sidebar's pages. The window's content view is its whole SwiftUI host, the
+            /// window's full size; its points count from the bottom.
             func contains(_ event: NSEvent) -> Bool {
-                guard drag != nil, event.window === window, !isHiddenOrHasHiddenAncestor else { return false }
-                let corner = convert(NSPoint.zero, to: nil), point = event.locationInWindow
-                return point.x >= corner.x && point.x < corner.x + width && point.y <= corner.y
+                guard drag != nil, let window, event.window === window,
+                      let height = window.contentView?.bounds.height else { return false }
+                let point = event.locationInWindow
+                return point.x >= area.minX && point.x < area.maxX && height - point.y >= area.minY
             }
 
             override func viewDidMoveToWindow() {

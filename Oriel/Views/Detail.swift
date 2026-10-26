@@ -105,9 +105,9 @@ struct Notice {
                     // empty (phase 25, `make strip-check`).
                     Strip(workspace: workspace, page: page).id("\(page.id) \(workspace.id)")
                 }
-            } else {
+            } else if page.store.state == .live {
+                // Not while it reconnects before its first snapshot.
                 ContentUnavailableView("This session is empty", systemImage: "square.dashed")
-                    .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("detail.empty")
             }
         }
