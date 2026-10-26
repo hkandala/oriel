@@ -92,12 +92,14 @@ extension OrielUITests {
         let terminal = element("terminal.w1:p1")
         XCTAssertTrue(terminal.exists(within: connect))
         try await waitForPrompt("w1:p1")
-        // Every row full: full blocks (3 cells in 10) draw the cell's text color edge to edge.
+        // Every row full: full blocks (3 cells in 10) draw the cell's text color edge to edge. printf makes their
+        // bytes, so the line editor gets ASCII in any locale.
         try await send(
-            "clear; for i in $(seq 600); do printf '\u{2588}\u{2588}\u{2588} oriel '; done; echo\r",
+            "clear; for i in $(seq 600); do printf '\\342\\226\\210\\342\\226\\210\\342\\226\\210 oriel '; done; "
+                + "echo; echo oriel-$((6*7))\r",
             to: "w1:p1",
         )
-        try await waitFor("w1:p1") { $0.components(separatedBy: "oriel").count > 100 }
+        try await waitFor("w1:p1") { $0.contains("\noriel-42") }
         addTeardownBlock { @MainActor [self] in
             pick("Interface Style", "Glass")
             pick("Appearance", "Dark")
@@ -105,26 +107,32 @@ extension OrielUITests {
         for (style, appearance) in [("Glass", "Dark"), ("Glass", "Light"), ("Classic", "Light"), ("Classic", "Dark")] {
             pick("Interface Style", style)
             pick("Appearance", appearance)
-            try await Task.sleep(for: .milliseconds(300))
+            let look = "\(style) \(appearance)".lowercased()
+            expectLook(look)
             // The top half of the rows, every one full width.
             terminal.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.01))
                 .click(
                     forDuration: 0.2,
                     thenDragTo: terminal.coordinate(withNormalizedOffset: CGVector(dx: 0.99, dy: 0.5)),
                 )
-            try await Task.sleep(for: .milliseconds(200))
-            let look = "\(style) \(appearance)".lowercased(),
-                (text, selection) = Self.contrast(terminal.screenshot().image)
-            keepScreenshot("\(look) selection: text \(text), selection over the card \(selection)")
-            // WCAG's 4.5 for text; the old default drew 1.2 in dark, 1.4 in light. The selection shows on the card.
-            XCTAssertGreaterThan(text, 4.5, look)
-            XCTAssertGreaterThan(selection, 1.1, look)
+            // WCAG's 4.5 for text; the old default drew 1.2 in dark, 1.4 in light. The selection shows on the card
+            // (about 1.0 when no selection was drawn). The terminal takes the look a frame or two after the window.
+            var last = (text: 0.0, selection: 0.0)
+            do {
+                try await expect("\(look): readable selected text", times: 20) {
+                    last = Self.contrast(terminal.screenshot().image)
+                    return last.text > 4.5 && last.selection > 1.1
+                }
+            } catch is Waited {
+                throw Waited(description: "\(look): text \(last.text), selection over the card \(last.selection)")
+            }
+            keepScreenshot("\(look) selection: text \(last.text), selection over the card \(last.selection)")
         }
     }
 
     /// In the image's top third (selected), the contrast of its text color with the selection's: the most common
     /// color there, and a pixel at the 85th percentile of contrast with it (full blocks fill 30 %). And the
-    /// selection's contrast with the bottom row of pixels (the card under the unselected rows).
+    /// selection's contrast with the most common color of the bottom pixel row (the card under the unselected rows).
     private static func contrast(_ image: NSImage) -> (text: Double, selection: Double) {
         let pixels = pixels(image)
         guard let width = image.cgImage(forProposedRect: nil, context: nil, hints: nil)?.width, width > 0,
@@ -140,12 +148,15 @@ extension OrielUITests {
         func ratio(_ one: Double, _ other: Double) -> Double {
             (max(one, other) + 0.05) / (min(one, other) + 0.05)
         }
+        // The offset of a pixel of the most common color.
+        func common(_ offsets: [Int]) -> Int {
+            let colors = Dictionary(grouping: offsets) { pixels[$0 ..< $0 + 3].reduce(0) { $0 << 8 | Int($1) } }
+            return colors.max { $0.value.count < $1.value.count }?.value.first ?? 0
+        }
         let top = (0 ..< rows / 3 * width).map { $0 * 4 }
-        let colors = Dictionary(grouping: top) { pixels[$0 ..< $0 + 3].reduce(0) { $0 << 8 | Int($1) } }
-        guard let selection = colors.max(by: { $0.value.count < $1.value.count })?.value.first else { return (0, 0) }
-        let background = luminance(selection)
+        let background = luminance(common(top))
         let text = top.map { ratio(luminance($0), background) }.sorted()[top.count * 85 / 100]
-        let card = luminance(((rows - 1) * width + width / 2) * 4)
+        let card = luminance(common(((rows - 1) * width ..< rows * width).map { $0 * 4 }))
         return (text, ratio(background, card))
     }
 
