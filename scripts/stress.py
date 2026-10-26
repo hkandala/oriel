@@ -81,7 +81,8 @@ agents = set(panes[::step][:args.agents])
 agent = ("i=$((RANDOM % 25)); s=working; while :; do i=$((i + 1)); echo \"$s $i $RANDOM $RANDOM $RANDOM\"; "
          "[ $((i % 5)) = 0 ] && printf '\\033]2;task %s %d\\007' $s $i; "
          "[ $((i % 25)) = 0 ] && s=$(echo working working blocked idle | cut -d' ' -f$((RANDOM % 4 + 1))) && "
-         "herdr pane report-agent \"$HERDR_PANE_ID\" --source oriel-stress --agent claude --state $s --seq $i "
+         f"herdr --session {args.session} pane report-agent \"$HERDR_PANE_ID\" "
+         "--source oriel-stress --agent claude --state $s --seq $i "
          ">/dev/null; sleep 0.2; done\r")
 printing = "while :; do echo output $RANDOM $RANDOM $RANDOM; sleep 1; done\r"
 for index, pane in enumerate(panes):

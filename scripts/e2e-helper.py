@@ -98,6 +98,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 run = subprocess.run(["scripts/herdr-session.sh", "up", session], capture_output=True)
             if run.returncode == 0 and body:
                 tabs, workspaces, panes, agents = body.decode().split()
+                # This Mac's 511 terminals are shared with the user's own herdr sessions and programs.
+                panes = panes if os.environ.get("CI") == "true" else str(min(int(panes), 200))
                 try:
                     run = subprocess.run(["python3", "scripts/stress.py", session, tabs, workspaces, "--panes",
                                           panes, "--agents", agents], capture_output=True, timeout=280)
