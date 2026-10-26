@@ -4,9 +4,9 @@ Oriel: a native SwiftUI client for herdr (macOS now, iOS later).
 
 ## Read first
 
-- `plan/README.md` (scope, modules, phases), `plan/standards.md`, `plan/rules.md`.
-- The design in `docs/content/docs/` wins on any conflict, except `plan/ui-layout.md`, which wins for
-  phases 10–21 until the pages match it.
+- `plan/README.md` (status, modules, phases), `plan/standards.md`, `plan/rules.md`.
+- The design in `docs/content/docs/` wins on any conflict. `plan/ui-layout.md` is a short map of the
+  main window.
 
 ## Large changes
 
@@ -16,7 +16,9 @@ Oriel: a native SwiftUI client for herdr (macOS now, iOS later).
 ## Rules
 
 - Ponytail: the simplest code that works; no speculative abstractions or "for later" code.
-- `make lint build test e2e` before you push. Never `git commit --no-verify`.
+- `make lint build test` before you push, and the UI tests your change touches (`make e2e ONLY=…` under
+  the GUI lock, or an ad-hoc CI run: `plan/ci.md`). CI runs the full suite on every push. Never
+  `git commit --no-verify`.
 - Small atomic commits.
 - e2e tests (XCUITest against a real herdr) over unit tests. Unit tests only for logic
   with branches.
