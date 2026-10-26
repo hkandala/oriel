@@ -66,6 +66,10 @@
                     pages.settleOverview()
                 }
             }
+            // Two pages away it is not made: its tiles report no leaving, and would stay live out of view.
+            .onDisappear {
+                pages.overviewTabs[page.id] = nil
+            }
             .accessibilityIdentifier("overview.page.\(page.id)")
         }
 
