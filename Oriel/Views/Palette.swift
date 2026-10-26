@@ -50,9 +50,9 @@
                 fieldSymbol: command?.name == nil ? "magnifyingglass" : "pencil",
                 name: "palette",
                 items: command.map(subItems) ?? { rootItems($0, list) },
-                // The root lights the selected tab: ↩ on a fresh palette stays put.
-                start: command.map(start) ?? page.selectedWorkspace?.tabs.firstIndex { $0.id == page.selectedTab?.id }
-                    ?? 0,
+                // The root lights the selected tab: ↩ on a fresh palette stays put. A floating window's lists no tabs.
+                start: command.map(start) ?? (commands.floating != nil ? 0
+                    : page.selectedWorkspace?.tabs.firstIndex { $0.id == page.selectedTab?.id } ?? 0),
                 maxHeight: min(460, max(84, height - 154)),
                 // Only a preview page reads it: on the others each new light drew the whole palette again.
                 lit: command?.previews == true ? $lit : nil,
