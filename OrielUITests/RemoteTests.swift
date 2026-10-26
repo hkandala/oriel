@@ -16,16 +16,27 @@ extension OrielUITests {
         addHost("Key Host", "oriel-key")
         // A new window on it (user, phase 28), with session one from herdr over SSH; this one keeps its page.
         let remote = try otherWindow(than: identifier)
+        XCTAssertEqual(machine(of: remote), "Key Host")
+        XCTAssertEqual(machine(of: first), "This Mac")
         XCTAssertTrue(element("terminal.w1:p1", in: first).exists)
         XCTAssertFalse(element("ask.text").exists)
         keepScreenshot("remote window", of: remote)
-        // Picking it in the machine menu opens another window on it. The new window lies over the first.
+        // Its own machine in its menu: nothing opens.
+        element("titlebar.machine", in: remote).click()
+        app.menuItems["Key Host"].click()
+        XCTAssertFalse(app.windows.element(boundBy: 2).exists(within: 2))
+        // Picked in the first window's menu, it opens another window on it (the new one lies over the first).
         raise(first)
         element("titlebar.machine", in: first).click()
         app.menuItems["Key Host"].click()
         XCTAssertTrue(app.windows.element(boundBy: 2).exists(within: 3))
-        XCTAssertEqual(app.windows.count, 3)
-        XCTAssertTrue(element("terminal.w1:p1", in: first).exists)
+        XCTAssertTrue(until(3) { machine(of: app.windows.firstMatch) == "Key Host" })
+        XCTAssertEqual(machine(of: first), "This Mac")
+        // ⌘N in a Key Host window stays on Key Host.
+        app.typeKey("n", modifierFlags: .command)
+        XCTAssertTrue(app.windows.element(boundBy: 3).exists(within: 3))
+        XCTAssertTrue(until(3) { machine(of: app.windows.firstMatch) == "Key Host" })
+        XCTAssertEqual(app.windows.count, 4)
         // It went through the host's ControlMaster.
         let dropped = try await Self.post("\(one)/ssh-drop", Data("oriel-key".utf8))
         XCTAssertFalse(dropped.isEmpty)
@@ -172,6 +183,11 @@ extension OrielUITests {
         app.typeText(password)
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(answer.vanishes(within: 3))
+    }
+
+    /// The window's machine, by name.
+    private func machine(of window: XCUIElement) -> String {
+        element("window.machine", in: window).value as? String ?? ""
     }
 
     /// How many connections CI's sshd has seen.
