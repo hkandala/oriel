@@ -30,6 +30,8 @@
         var overview = false
         var leaving = false
         @ObservationIgnored var overviewTabs: [String: [String]] = [:]
+        /// A page of it scrolls: its tiles turn live when it stops.
+        @ObservationIgnored var overviewScrolling = false
         private(set) var overviewLive: Set<String> = []
         /// What to do once the overview's zoom ends (`afterOverview`).
         @ObservationIgnored var afterOverview: (() -> Void)?
