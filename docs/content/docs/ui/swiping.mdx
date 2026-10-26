@@ -51,12 +51,11 @@ description: "Session pages in the sidebar and tab pages in the strip"
   100 pt a second) or stop before they lift. The sidebar's pages slide with a
   spring of response 0.2 s and no bounce (between Rex's tab spring's 0.28 s
   and phase 25's 0.14 s, which felt too quick). The strip and the overview
-  ease in and out over at most 0.28 s, speeding up only as much as that time
-  needs, and only slow down when the fingers' speed covers the rest: from a
-  slow lift the spring went from about 1.6k to 15k–21k pt a second in two
-  frames, most of a page, and looked cut (phase 31). At the first and last
-  page the pages stop. The app's
-  scroll monitor gives the pages the gesture's moves and its lift and drops
+  start at the fingers' speed, speed up only as much as at most 0.28 s needs,
+  and ease out; when the fingers' speed covers the rest in that time they only
+  slow down. From a slow lift the spring went from about 1.6k to 15k–21k pt a
+  second in two frames, most of a page, and looked cut (phase 31). At the
+  first and last page the pages stop. The app's scroll monitor gives the pages the gesture's moves and its lift and drops
   the momentum. The session pages are the app's own, not a scroll view's; the
   strip and the overview stay scroll views that the app scrolls. A scroll
   view's own paging snap took about 0.4 s, and a slide asked of it on a quick

@@ -194,9 +194,8 @@ extension OrielUITests {
         tile.click()
         XCTAssertTrue(element("overview").vanishes(within: 2))
         try await expectShown(tabs[2], "zoomed into the middle tab")
-        // The pill's frames on another tab while the middle one is selected (`TabBar.marker`, "pill <tab> <selected>"):
-        // it
-        // showed on the tab selected before through the zoom, then jumped. Now it fades in on the middle one.
+        // The pill shown on another tab while the middle one is selected (`TabBar.marker`, "pill <tab> <selected>"):
+        // it showed on the tab selected before through the zoom, then jumped. Now it fades in on the middle one.
         let astray = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("pill ") }
         XCTAssertFalse(astray.contains { $0.hasSuffix(" 2") }, "the pill on another tab after the overview: \(astray)")
         element("workspace.w2").click()

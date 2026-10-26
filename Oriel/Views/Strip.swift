@@ -65,9 +65,6 @@
                 }
             }
             .onScrollGeometryChange(for: ScrollGeometry.self, of: { $0 }, action: { paging.laid($1) })
-            // The tab bar's pill is on the selected tab from the strip's first frame, not where the last strip left it
-            // (a tab chosen in the overview); its geometry comes after (phase 31).
-            .onAppear { page.stripPage = Double(page.selectedIndex(in: workspace)) }
             .testValue("strip.between", "Strip Between Pages", "\(between)", shown: Self.record)
             .onScrollPhaseChange { _, phase in
                 // Not a tab that closed meanwhile.

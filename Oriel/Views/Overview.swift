@@ -247,6 +247,11 @@
 
         /// The strip shows again, and the keyboard goes back to the tab's card.
         func closeOverview() {
+            // The tab bar's pill fades in on the selected tab, not where the strip before the overview left it (a tab
+            // chosen in the overview); the new strip's geometry comes a turn later (phase 31).
+            if let current, let workspace = current.selectedWorkspace {
+                current.stripPage = Double(current.selectedIndex(in: workspace))
+            }
             overview = false
             leaving = false
             overviewTabs = [:]

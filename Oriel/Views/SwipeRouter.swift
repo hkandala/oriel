@@ -256,14 +256,15 @@
     final class Paging {
         /// The offset and the page width as last laid out (`laid`), or moved to.
         private var offset = 0.0, width = 1.0
-        /// The slide's end offset, and what runs once the pages are within a point of it.
-        private var landing: (offset: Double, land: () -> Void)?
+        /// The slide's page, and what runs once the pages are within a point of it (at its offset as laid out now: a
+        /// resize mid-slide moves it).
+        private var landing: (index: Int, land: () -> Void)?
 
         /// From `onScrollGeometryChange`, at each frame of a slide.
         func laid(_ geometry: ScrollGeometry) {
             (offset, width) = (geometry.contentOffset.x, max(geometry.containerSize.width, 1))
             Latency.shared.slid(offset, "page")
-            if let landing, abs(offset - landing.offset) < 1 {
+            if let landing, abs(offset - Double(landing.index) * width) < 1 {
                 self.landing = nil
                 Latency.shared.shown()
                 landing.land()
@@ -279,7 +280,7 @@
 
         /// The router's lift: the pages slide to the page it lands on (at once under Reduce Motion), and `land` runs
         /// with its id as they arrive, unless a key, a click or another swipe moved them meanwhile. Not at the
-        /// animation's `.logicallyComplete`: for a scroll that fires at once, and the tab's terminals or the session
+        /// animation's `.logicallyComplete`, which for a scroll fires at once: the tab's terminals or the session
         /// shown in the slide's first frame held it for 50–150 ms (CI), so it jumped most of a page (phase 31).
         func lift(_ speed: Double, ids: [String], _ position: Binding<ScrollPosition>, reduceMotion: Bool,
                   land: @escaping (String) -> Void)
@@ -289,11 +290,11 @@
             let id = ids[index]
             Latency.shared.lifted(offset, "page")
             // On the page already (a drag clamped at the last one): no animation, which might never end.
-            if reduceMotion && !Animation.forceMotion || abs(Double(index) - page) < 0.001 {
+            if reduceMotion && !Animation.forceMotion || abs(Double(index) * width - offset) < 1 {
                 position.wrappedValue.scrollTo(id: id, anchor: .leading)
                 return land(id)
             }
-            landing = (Double(index) * width, {
+            landing = (index, {
                 if position.wrappedValue.viewID(type: String.self) == id {
                     land(id)
                 }

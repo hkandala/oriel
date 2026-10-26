@@ -174,8 +174,8 @@
             return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
                 .frame(width: Self.width, height: Self.height - 2 * Self.inset)
                 .opacity(overview ? 0 : 1)
-                .offset(x: place * (Self.width + 1))
                 .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18), value: overview)
+                .offset(x: place * (Self.width + 1))
                 .allowsHitTesting(false)
                 // e2e (`-recordLatency YES`): "pill <place> <selected>" when it shows at rest on another tab.
                 .onChange(of: astray) {
