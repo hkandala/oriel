@@ -92,7 +92,8 @@ private func changes(_ list: [(path: [Bool], ratio: Double)]) -> [String: Double
 
 @Test func `the neighbor that way is the one used last, else the one sharing most of the edge, else the top one`() {
     // The user's layout (phase 29): three columns, the third in four rows.
-    let rows = down(0.25, leaf("r1"), down(1 / 3, leaf("r2"), down(0.5, leaf("r3"), leaf("r4"))))
+    // Even rows as herdr gives them back: its ratios are 32-bit floats.
+    let rows = down(0.25, leaf("r1"), down(Double(Float(1.0 / 3)), leaf("r2"), down(0.5, leaf("r3"), leaf("r4"))))
     let tree = right(1 / 3, leaf("a"), right(0.5, leaf("b"), rows))
     #expect(tree.neighbor(of: "a", .right) == "b")
     // Four rows share the edge equally: the top one (herdr's `pane.neighbor` gave the second).

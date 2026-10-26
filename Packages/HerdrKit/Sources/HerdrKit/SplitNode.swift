@@ -185,8 +185,8 @@ public extension SplitNode {
         let rects = rects(in: CGRect(x: 0, y: 0, width: 1, height: 1))
         guard let from = rects.first(where: { $0.id == paneID })?.rect else { return nil }
         let across = heading == .left || heading == .right
-        // Sums of ratios: an edge two splits share can differ in its last bits.
-        let near = 1e-9
+        // herdr keeps ratios as 32-bit floats (1/3 comes back as 0.33333334): even rows differ past the 8th digit.
+        let near = 1e-3
         func shared(_ rect: CGRect) -> CGFloat {
             across ? min(rect.maxY, from.maxY) - max(rect.minY, from.minY)
                 : min(rect.maxX, from.maxX) - max(rect.minX, from.minX)
