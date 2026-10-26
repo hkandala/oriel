@@ -68,9 +68,9 @@ extension HostStore {
         }
     }
 
-    /// One divider's ratio, kept in herdr's 0.1–0.9. Whether herdr took it.
+    /// One divider's ratio (the divider keeps it in herdr's 0.1–0.9). Whether herdr took it.
     func setRatio(tab tabID: String, path: [Bool], ratio: Double) async -> Bool {
-        await write { try await $0.setRatio(tab: tabID, path: path, ratio: min(max(ratio, 0.1), 0.9)) }
+        await write { try await $0.setRatio(tab: tabID, path: path, ratio: ratio) }
     }
 
     /// The keyboard card's nearest divider that way, 5 %.
