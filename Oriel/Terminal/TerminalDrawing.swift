@@ -46,9 +46,9 @@
             }
         }
 
-        /// Leaving view, a kept one's picture is kept first (`keepPicture`, a full copy); every one's small copy for
-        /// the
-        /// overview. One the overview alone showed lets go of its surface next: its snapshot is all it needs.
+        /// Leaving view, a kept one's picture is kept first (`keepPicture`, a full copy), and every one's small copy
+        /// for the overview. One the overview alone showed lets go of its picture next (`dropPicture`): its snapshot
+        /// is all it needs.
         func inViewChanged() {
             if !inView {
                 if PaneViewRegistry.recent.contains(where: { $0 === self }) {
@@ -99,13 +99,12 @@
         private static let context = CIContext(options: [.cacheIntermediates: false])
 
         func takeSnapshot() {
-            guard let surface = view.picture as? IOSurface, surface.width > 0 else { return }
-            let space = IOSurfaceCopyValue(surface, kIOSurfaceColorSpace)
-            let image = CIImage(ioSurface: surface).applyingFilter("CILanczosScaleTransform", parameters: [
-                kCIInputScaleKey: min(1, 360 / CGFloat(surface.width)),
-            ])
+            guard let surface = view.picture as? IOSurface, !surface.emptied else { return }
+            let space = IOSurfaceCopyValue(surface, kIOSurfaceColorSpace), scale = min(1, 360 / CGFloat(surface.width))
+            // Bilinear: Lanczos cost a few ms more on every tab switch, for a picture shown a moment.
+            let image = CIImage(ioSurface: surface).transformed(by: CGAffineTransform(scaleX: scale, y: scale))
             let size = image.extent.integral
-            guard !surface.emptied, let small = IOSurface(properties: [
+            guard let small = IOSurface(properties: [
                 .width: Int(size.width), .height: Int(size.height), .bytesPerElement: 4,
                 .pixelFormat: surface.pixelFormat,
             ]) else { return }
@@ -137,15 +136,21 @@
             purgeable(window == nil)
         }
 
-        /// The overview alone showed it: no picture stays (a full-size IOSurface each; the tile has its snapshot), and
-        /// its first show fades in again.
+        /// The overview alone showed it: no full picture stays (a full-size IOSurface each). Its snapshot is its
+        /// picture instead, over its next surface until that drew (`coverNewSurface`, `dropStill`), so a tile turns
+        /// live in place; with none, its first show fades in again.
         func dropPicture() {
             if still !== layer {
                 still?.removeFromSuperlayer()
             }
-            still = nil
+            still = terminal?.snapshot.map { snapshot in
+                let layer = CALayer()
+                layer.contents = snapshot
+                layer.contentsGravity = .resize
+                return layer
+            }
             layer?.contents = nil
-            terminal?.revealed = false
+            terminal?.revealed = still != nil
         }
 
         /// A new surface once the view is in a window, with the old picture over it (`terminalDidAttachSurface`).
@@ -205,7 +210,9 @@
         /// (it takes them within seconds), and the next reveal fades in as a first one. A kept card's stays, so it
         /// comes back as it was.
         func purgeable(_ volatile: Bool) {
-            guard controller == nil, let surface = still?.contents as? IOSurface else { return }
+            // Not a snapshot standing in (`dropPicture`): the overview's tiles show it too.
+            guard controller == nil, let surface = still?.contents as? IOSurface, surface !== terminal?.snapshot
+            else { return }
             var old: UInt32 = 0
             IOSurfaceSetPurgeable(surface, volatile ? 1 : 0, &old)
             if !volatile, old == IOSurfacePurgeabilityState.purgeableEmpty.rawValue {

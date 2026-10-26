@@ -332,10 +332,7 @@
                 }
             }
             let unvisited = overview ? overviewCards(current) : [:]
-            let live = overview ? Set(unvisited.keys).union(current.shownTerminals.keys) : []
-            if live != overviewLive {
-                overviewLive = live
-            }
+            overviewLive = overview ? Set(unvisited.keys).union(current.shownTerminals.keys) : []
             // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
             let kept = alive.union(withFloats.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
             terminals.show(shown, unvisited: unvisited, alive: kept, client: current.store.client)

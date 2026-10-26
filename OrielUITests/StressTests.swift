@@ -88,7 +88,7 @@ extension OrielUITests {
     }
 
     /// A line in the result bundle and the log.
-    private func note(_ text: String) {
+    func note(_ text: String) {
         print(text)
         keep(text, as: "stress")
     }

@@ -179,6 +179,14 @@ extension OrielUITests {
         XCTAssertTrue(last.isHittable)
         keepScreenshot("overview of 6 tabs")
         let scrolled = try await measure("overview, scrolled")
+        // The strip's kept terminals, at most 16 cards, and a run or two ending.
+        XCTAssertLessThanOrEqual(helpers(scrolled), helpers(strip) + 16 + 2, scrolled)
+        // Back up: the second tab's card, live on the way down, shows its snapshot or its terminal at once, never the
+        // bare fill.
+        let card = element("overview.card.\(panes[1])")
+        scrollOverview(to: element("overview.tab.\(tabs[1])"), step: 3000, steps: 1)
+        XCTAssertTrue(card.exists)
+        XCTAssertNotEqual(card.stringValue, "empty")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
         try await poll("the overview's streams to end") { () async throws -> Int? in
@@ -191,24 +199,25 @@ extension OrielUITests {
 
     /// The overview of 200 tabs over 8 workspaces, 272 panes, 50 of them agents and half the rest printing
     /// (`scripts/stress.py`, phase 28): while trackpad scrolls go through it, at most 16 cards stream beside the
-    /// strip's,
-    /// the tiles that were live keep a snapshot, and the footprint stays bounded. Footprint, CPU, the frames dropped
-    /// while scrolling and the main thread's profile are in the result bundle.
+    /// strip's, the tiles that were live keep a snapshot, and the footprint stays bounded. Footprint, CPU, the frames
+    /// dropped while scrolling (`app.latency`) and the main thread's profile are in the result bundle.
     func testOverviewOfManyTabsStaysBounded() async throws {
         executionTimeAllowance = 600
         let eight = try env("ORIEL_SESSION8")
         addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
         _ = try await Self.post("\(eight)/stress", Data("200 8 272 50".utf8))
-        relaunch(eight, ["-recordMotion", "YES"])
+        relaunch(eight, ["-recordMotion", "YES", "-recordLatency", "YES"])
+        addTeardownBlock { @MainActor in self.note(self.element("app.latency").stringValue) }
         XCTAssertTrue(element("pane.w1:p1").exists(within: 120))
         try await Task.sleep(for: .seconds(5))
         let strip = try await measure("strip, 200 tabs", seconds: 5, session: eight)
         app.typeKey("o", modifierFlags: [.command, .control])
-        let overview = element("overview"), meter = element("overview.frames")
+        let overview = element("overview")
         XCTAssertTrue(overview.exists(within: 5))
         _ = try await measure("overview, 200 tabs", seconds: 5, session: eight)
-        let start = meter.stringValue, frame = overview.frame
-        // Down, the sign following the natural scrolling setting: 20 swipes of 600 pt and their momentum.
+        let frame = overview.frame
+        // Down, the sign following the natural scrolling setting: 20 swipes of 600 pt and their momentum, each a
+        // "scroll ‹frames› ‹hitches›" record in `app.latency`.
         var sign = -1.0, most = 0
         for index in 0 ..< 20 {
             try await Self.post("\(one)/swipe", Data("\(frame.midX) \(frame.midY) \(30 * sign) 20 0 1".utf8))
@@ -217,7 +226,7 @@ extension OrielUITests {
             }
             most = try await max(most, streams(eight).count)
         }
-        let end = meter.stringValue
+        // The main thread's profile while it scrolls back.
         async let profile = Self.post("\(eight)/sample", Data("3".utf8))
         for _ in 0 ..< 4 {
             try await Self.post("\(one)/swipe", Data("\(frame.midX) \(frame.midY) \(-30 * sign) 20 0 1".utf8))
@@ -227,13 +236,12 @@ extension OrielUITests {
         sampled.lifetime = .keepAlways
         add(sampled)
         let scrolled = try await measure("overview, 200 tabs, scrolled", seconds: 5, session: eight)
-        let frames = XCTAttachment(string: "frames hitches snapshots: from \(start) to \(end); most runs \(most)")
-        frames.name = "overview frames"
-        frames.lifetime = .keepAlways
-        add(frames)
+        // "‹live cards› ‹snapshots›".
+        let snapshots = element("overview.snapshots").stringValue
+        note("overview: most runs \(most), live and snapshots \(snapshots)")
         // The strip's kept terminals, at most 16 cards, and a run or two ending.
         XCTAssertLessThanOrEqual(most, helpers(strip) + 16 + 2, "\(most) runs")
-        XCTAssertGreaterThan(Int(end.split(separator: " ").last ?? "") ?? 0, 8, end)
+        XCTAssertGreaterThan(Int(snapshots.split(separator: " ").last ?? "") ?? 0, 8, snapshots)
         // Bounded by the live cap, whatever the tab count: 16 full-window cards are about 1.1 GB on Retina.
         XCTAssertLessThan(footprint(scrolled), footprint(strip) + 1600, scrolled)
         app.typeKey(.escape, modifierFlags: [])

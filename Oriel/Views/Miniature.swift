@@ -4,7 +4,7 @@
     import SwiftUI
 
     /// A tab's page at the size it is given: its cards in herdr's layout (or its zoomed card), each with its terminal
-    /// live at its place in the card, scaled from the strip's page (`size`).
+    /// at its place in the card, live or its snapshot (`live`), scaled from the strip's page (`size`).
     struct Miniature: View {
         let tab: HostStore.Tab
         let page: Page
@@ -32,7 +32,8 @@
     }
 
     /// A card at `scale`: its fill and edge, and its terminal where the page's card has it (under the header, 10 pt
-    /// in, 8 pt up from the bottom): live, or its snapshot until it drew (none for a terminal never shown: the fill).
+    /// in, 8 pt up from the bottom): live (its snapshot until it drew), or its snapshot, or for a terminal never shown
+    /// the fill.
     /// A floated pane's shows the float icon.
     private struct MiniCard: View {
         let id: String
@@ -55,20 +56,22 @@
                     if let pane, page.floats(pane) {
                         Image(systemName: "pip").foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if let pane, let id = pane.terminalID, let view = live.contains(id) ? page.terminal(pane)
+                    } else if let pane, let id = pane.terminalID {
+                        let isLive = live.contains(id)
                         // Not made for a tile that is not live (a view and a session each, while it scrolls).
-                        : page.terminals.terminals([id]).first
-                    {
-                        let drawn = live.contains(id) && view.ready
+                        let view = isLive ? page.terminal(pane) : page.terminals.terminals([id]).first
                         ZStack {
-                            // Under a live one too, until it drew: a terminal's background may be clear.
-                            if !drawn, let snapshot = view.snapshot {
+                            Color.clear
+                            if isLive, let view {
+                                // Its snapshot is its picture until it drew (`dropPicture`).
+                                MiniTerminal(terminal: view, size: terminal)
+                            } else if let snapshot = view?.snapshot {
                                 Snapshot(surface: snapshot)
                             }
-                            if live.contains(id) {
-                                MiniTerminal(terminal: view, size: terminal, alpha: drawn ? 1 : 0)
-                            }
                         }
+                        .accessibilityElement()
+                        .accessibilityIdentifier("overview.card.\(pane.id)")
+                        .accessibilityValue(isLive ? "live" : view?.snapshot == nil ? "empty" : "snapshot")
                         .frame(width: terminal.width * scale, height: terminal.height * scale)
                         .padding(.leading, PaneCard.inset * scale)
                         .padding(.top, PaneCard.header * scale)
@@ -99,8 +102,6 @@
     struct MiniTerminal: NSViewRepresentable {
         let terminal: PaneTerminal
         let size: CGSize
-        /// 0 until it drew: its snapshot shows meanwhile. On the view, as `TerminalHost`'s dim.
-        let alpha: CGFloat
 
         func makeNSView(context _: Context) -> Mini {
             let mini = Mini()
@@ -112,7 +113,6 @@
         }
 
         func updateNSView(_ mini: Mini, context _: Context) {
-            mini.alphaValue = alpha
             mini.size = size
             mini.fit()
         }
@@ -168,42 +168,6 @@
                 // Before libghostty hears of the size, as the card's host does.
                 view.terminal?.hold()
                 view.frame = CGRect(origin: .zero, size: size)
-            }
-        }
-    }
-
-    /// e2e (`-recordMotion YES`): the overview's frames, as "‹frames› ‹hitches› ‹snapshots›": a hitch is a display
-    /// frame the main
-    /// thread delivered over 25 ms after the one before (a dropped frame at 60 Hz), so a scroll's hitch rate shows.
-    struct FrameMeter: NSViewRepresentable {
-        func makeNSView(context _: Context) -> Meter {
-            Meter()
-        }
-
-        func updateNSView(_: Meter, context _: Context) {}
-
-        final class Meter: NSView {
-            private var link: CADisplayLink?
-            private var last: CFTimeInterval = 0
-            private var frames = 0, hitches = 0
-
-            override func viewDidMoveToWindow() {
-                super.viewDidMoveToWindow()
-                link?.invalidate()
-                link = window == nil ? nil : displayLink(target: self, selector: #selector(tick))
-                link?.add(to: .main, forMode: .common)
-                setAccessibilityElement(true)
-                setAccessibilityRole(.staticText)
-                setAccessibilityIdentifier("overview.frames")
-            }
-
-            @objc private func tick(_ link: CADisplayLink) {
-                if last > 0 {
-                    frames += 1
-                    hitches += link.timestamp - last > 0.025 ? 1 : 0
-                }
-                last = link.timestamp
-                setAccessibilityValue("\(frames) \(hitches) \(PaneTerminal.snapshots.count)")
             }
         }
     }
