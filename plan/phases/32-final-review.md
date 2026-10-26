@@ -39,6 +39,34 @@ itself.
 - An e2e/CI agent at the end: full suite twice, local checks, flakes.
 - Any other reviewer that adds value (for example accessibility or security of the SSH path).
 
+## Areas (files do not overlap; baseline 9995aa6)
+
+Baseline: app 12,596 lines (Oriel/), HerdrKit 4,276 (sources and tests), UI tests 7,215, scripts 929, docs
+pages 4,871 (mdx), plan and resources md 22,622; 1,390 commits.
+
+| Agent | Files it owns |
+|---|---|
+| r-herdrkit | Packages/HerdrKit except SSHExec, Relay, StartServer and their tests |
+| r-remote | HerdrKit SSHExec.swift, Relay.swift, StartServer.swift (+ their tests); Oriel/Store/Machines.swift, Presence.swift; Oriel/Views/RemoteHost.swift |
+| r-store | Oriel/Store: Ahead, Gate, HostModels, HostStore, Page, PaneWrites, WindowPages |
+| r-terminal | Oriel/Terminal/* |
+| r-app | Oriel/App/* |
+| r-strip | Oriel/Views: Strip, SwipeRouter, ThreeFingers, PaneCard, Detail, Drag, ListDrops, CloseDialog |
+| r-chrome | Oriel/Views: TabBar, TabButton, TitleBar, Sidebar, WorkspaceRow, Agents, HoverCard, ProgramIcons, Style, Keycap |
+| r-panels | Oriel/Views: Overview, OverviewPage, Miniature, FloatingPane, FindBar, FilterList, Palette, OpenSession, Shortcuts |
+| r-tests | OrielUITests/*, scripts/*, Makefile, .github/workflows/*, .swiftlint.yml, .swiftformat |
+| d-spec | docs/content/docs/**, docs app config only if links break |
+| d-plan | plan/**, resources/**, README.md, AGENTS.md, other root md |
+
+Read-only auditors (send findings to the owning agent by name, never edit): a-ponytail-app (Oriel/),
+a-ponytail-kit (HerdrKit, tests, scripts), a-security-a11y (the SSH path, secrets, sandbox and entitlements,
+VoiceOver labels and keyboard access).
+
+Rules for writers: only your files; a fix that needs another area's file goes to that owner by message.
+Small commits by area; no behaviour changes beyond bug fixes; anything big goes to the orchestrator's list.
+Targeted CI runs only; the final e2e agent (f-e2e) runs the full suite twice, refreshes
+scripts/test-times.tsv, and checks locally under the GUI budget.
+
 ## Final report to the user
 
 - The list of big items the reviewers found but did not change: what, why, cost, recommendation.
