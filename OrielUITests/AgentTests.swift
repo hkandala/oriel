@@ -191,13 +191,15 @@ extension OrielUITests {
     /// Only in workspace order and on a priority group for a moment: other tests read this session's priority groups.
     func testAgentGroupsFoldAndStayFoldedAfterARelaunch() async throws {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        // A failure on the way must not leave a fold for the next tests: the folds outlive the app.
-        addTeardownBlock { @MainActor [self] in unfold() }
         let first = try await newTab("review", in: "w1").pane
         try await report(first, "working")
         let second = try await split(first)
         try await report(second, "idle", agent: "pi")
         let other = try await newTab("deploy").pane
+        // A failure on the way must not leave a fold for the next tests: the folds outlive the app. Added after the
+        // tabs' teardown blocks, so it runs before them: while the app took in their closes, the open sort menu
+        // closed by itself before its click (CI 40291250564).
+        addTeardownBlock { @MainActor [self] in unfold() }
         try await report(other, "blocked", agent: "claude")
         app.typeKey(".", modifierFlags: .command)
         let sort = element("agents.sort"), rows = [first, second, other].map { element("agent.\($0)") }
