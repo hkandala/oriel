@@ -104,6 +104,8 @@
         @State private var panelFrame = CGRect.null
         @State private var pending: Task<Void, Never>?
         @State private var monitor: Any?
+        /// The window it opened in, under the pointer: not the key one, whose Esc and pointer are not the panel's.
+        @State private var window: NSWindow?
         /// Off under the overview, which hides its trigger (`underOverview`).
         @Environment(\.isEnabled) private var isEnabled
 
@@ -159,8 +161,7 @@
         /// Over the open panel by its frame: a busy app runs the panel's hover late, after the trigger's grace or a
         /// click in it, which then closed it and went to the view under it (CI 40319783362).
         private var pointerInPanel: Bool {
-            guard open, let window = NSApp.keyWindow,
-                  let height = window.contentView?.bounds.height else { return false }
+            guard open, let window, let height = window.contentView?.bounds.height else { return false }
             let point = window.mouseLocationOutsideOfEventStream
             return panelFrame.contains(CGPoint(x: point.x, y: height - point.y))
         }
@@ -169,16 +170,18 @@
             pending?.cancel()
             open = value
             if value, monitor == nil {
+                let under = NSWindow.windowNumber(at: NSEvent.mouseLocation, belowWindowWithWindowNumber: 0)
+                window = NSApp.window(withWindowNumber: under) ?? NSApp.keyWindow
                 let events: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .scrollWheel, .keyDown]
                 monitor = NSEvent.addLocalMonitorForEvents(matching: events) { event in
-                    guard event.type != .keyDown || event.keyCode == 53 else { return event }
+                    guard event.type != .keyDown || event.keyCode == 53 && event.window === window else { return event }
                     let escape = event.type == .keyDown
                     let swallow = MainActor.assumeIsolated {
                         if escape || !overPanel && !pointerInPanel {
                             show(false)
                         }
                         // A text field that edits (a rename, a filter) still gets its Esc.
-                        return escape && !(NSApp.keyWindow?.firstResponder is NSText)
+                        return escape && !(window?.firstResponder is NSText)
                     }
                     return swallow ? nil : event
                 }
