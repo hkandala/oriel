@@ -54,7 +54,6 @@ extension SplitNode: Decodable {
     }
 }
 
-/// Equal splits (like Rex): in a run of same-direction splits, n panes get 1/n each.
 public extension SplitNode {
     /// The leaves, first to last (herdr's `panes[]` order).
     var paneIDs: [String] {
@@ -80,8 +79,7 @@ public extension SplitNode {
     }
 
     /// The tree as herdr makes it when it splits the pane: the pane and the new one share its place (the new one
-    /// second,
-    /// or first when `before`), then the run holding the new one evened out, as `HostStore.split` asks.
+    /// second, or first when `before`), then the run holding the new one evened out, as `HostStore.split` asks.
     func split(_ paneID: String, _ direction: Direction, new newID: String, before: Bool) -> SplitNode {
         let pair: (SplitNode, SplitNode) = before ? (.leaf(paneID: newID), .leaf(paneID: paneID))
             : (.leaf(paneID: paneID), .leaf(paneID: newID))
@@ -120,7 +118,8 @@ public extension SplitNode {
         }
     }
 
-    /// The ratio changes that even out the run of same-direction splits holding the pane (all runs when nil):
+    /// Equal splits, like Rex: the ratio changes that even out the run of same-direction splits holding the pane (all
+    /// runs when nil), so its n panes get 1/n each:
     /// each split gets the units on its first side over the units under it, where a child split in the other
     /// direction counts as one unit. Paths as `layout.set_split_ratio` takes them (`false` = first child).
     func evened(around paneID: String? = nil) -> [(path: [Bool], ratio: Double)] {

@@ -121,7 +121,6 @@ extension HerdrClient: Multiplexer {
     }
 
     public nonisolated func swap(_ paneID: String, _ heading: Heading) async throws {
-        // herdr 0.9.5 focuses the swapped pane's tab whatever `focus` says.
         // A swap with no card that way (`no_neighbor`) is no error: the keys do nothing at an edge.
         let _: Created = try await call("pane.swap", ["pane_id": paneID, "direction": heading.rawValue,
                                                       "focus": false])
