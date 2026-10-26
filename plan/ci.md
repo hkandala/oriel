@@ -1,9 +1,42 @@
 # CI
 
-Findings from the `ci` runs of 2026-10-21 and 22 (40 runs: 17 green, 12 red, 11 cancelled), read from
-`gh run view --log-failed` and the `e2e-xcresult` artifacts.
+How CI runs today, then the findings that shaped it: the red runs of 2026-10-21 and 22, the speed work, and
+the flakes.
 
-## Causes
+## Layout
+
+- **Workflows.** `.github/workflows/ci.yml` runs the app's checks on every push to main and on pull
+  requests, except docs-only changes (`plan/**`, `docs/**`, `resources/**`, `**/*.md`).
+  `.github/workflows/docs-deploy.yml` builds the docs site and deploys it to Vercel when `docs/` changes.
+- **Machines.** `runs-on: xcode-27`, a 1x display (a 1024 × 674 pt window), US keyboard layout, Reduce
+  Motion on. The account has 5 macOS runners. herdr 0.9.5 is downloaded and checked by its SHA-256.
+- **Five jobs** (`test (0)` to `test (4)`), each a shard of the UI tests. `test (0)` also runs `make lint`,
+  `make build` (macOS and iOS), `make test` (HerdrKit and the three-finger check) and, after its UI tests,
+  `make strip-check`. Every job starts CI's sshd on localhost for the remote-host tests
+  (`scripts/ci-sshd.sh`).
+- **Shards by time.** `make e2e SHARD=i/5 SHARD_HEAD=180` runs the tests that `scripts/shard.py` gives
+  shard i: the slowest test first, each to the shard with the least time so far, from
+  `scripts/test-times.tsv` (a test not listed counts 15 s). Shard 0 starts with 180 s for its checks.
+  [Refresh the file](#phase-31-five-shards-by-measured-time-on-demand-tests-2026-10-26) when tests are added
+  or get slower.
+- **On-demand tests.** The Makefile's `ON_DEMAND` list (the stress tests, the cost and memory measurements,
+  the frame-record tests and the four look scenes) is left out of `make e2e` and of push runs. Run them with
+  `make e2e ON_DEMAND_ONLY=1`, or on CI with `gh workflow run ci.yml --ref main -f on_demand=true` (4 jobs),
+  before a release and after a change to what they measure.
+- **Ad-hoc runs.** `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,…`
+  runs those tests on one machine, with no lint, build or HerdrKit tests. A dispatch never cancels a push
+  run or another dispatch. A push cancels the push run in flight (`cancel-in-progress`).
+- **Results.** Each job uploads `e2e-xcresult-<shard>` (the xcresult, with screen recordings, also of green
+  runs) and, on job 0, the strip check's captures.
+- **Time.** A full run takes 10–14 minutes: about 2 minutes of setup and build per job plus a fifth of
+  about 2300 s of UI tests ([Speed](#speed)).
+
+## Red runs of 2026-10-21 and 22
+
+From 40 runs (17 green, 12 red, 11 cancelled), read from `gh run view --log-failed` and the
+`e2e-xcresult` artifacts.
+
+### Causes
 
 - **Cancelled runs are fine.** All 11 were pushes to main that the next push superseded within minutes
   (`concurrency: cancel-in-progress`). Docs-only pushes do not run CI (`paths-ignore`); the docs pushes that
