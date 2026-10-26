@@ -85,14 +85,19 @@
         /// opens none: `handlesExternalEvents(matching: [])`), a new one takes them once its page is live.
         func application(_: NSApplication, open urls: [URL]) {
             urls.filter { $0.scheme == "oriel" }.forEach(WindowPages.float)
-            let folders = urls.filter(\.hasDirectoryPath)
+            // Files only: `oriel://float/?…` has a directory path too ("/").
+            let folders = urls.filter { $0.isFileURL && $0.hasDirectoryPath }
             if !folders.isEmpty {
                 WindowPages.open(folders: folders)
                 // Out of the Dock if minimized, so the new workspace shows.
                 WindowPages.windows.first?.window?.makeKeyAndOrderFront(nil)
             }
-            // AppKit's windows, not `WindowPages.windows`: a restored window joins those only once its pages restored.
-            // Hidden (⌘H), no window is visible.
+            openWindowIfNone()
+        }
+
+        /// AppKit's windows, not `WindowPages.windows`: a restored window joins those only once its pages restored.
+        /// Hidden (⌘H), no window is visible.
+        private func openWindowIfNone() {
             if !NSApp.windows.contains(where: {
                 $0.canBecomeMain && ($0.isVisible || $0.isMiniaturized || NSApp.isHidden)
             }) {
