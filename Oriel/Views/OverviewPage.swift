@@ -16,6 +16,7 @@
         /// The tab whose miniature zooms: its tile leaves the terminals to it.
         let zooming: String?
         let open: (HostStore.Workspace, HostStore.Tab) -> Void
+        @State private var scrolling = false
 
         var body: some View {
             ScrollView(.vertical) {
@@ -53,9 +54,13 @@
                 }
                 .padding(.horizontal, side)
                 .padding(.vertical, 40)
+                // No hover or hit tests in the tiles while it scrolls: SwiftUI looked for the tile under the pointer
+                // at every frame (a tenth of the main thread, phase 30).
+                .allowsHitTesting(!scrolling)
             }
             .scrollIndicators(.never)
             .onScrollPhaseChange { _, phase in
+                scrolling = phase.isScrolling
                 pages.overviewScrolling = phase != .idle
                 if phase == .idle {
                     pages.settleOverview()

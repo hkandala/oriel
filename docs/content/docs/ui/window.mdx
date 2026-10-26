@@ -621,14 +621,18 @@ once.
   one place (D35). The strip's cards take their views back when it closes.
 - Live tiles are bounded (phase 28): the overview is lazy by row, and only
   the page in view's tiles in view stream and draw, whole tabs, the latest to
-  come into view first, at most 16 cards (6 on a remote machine, whose streams
-  share the relay's one SSH session,
-  [SSH sessions](/docs/machines#ssh-sessions)), plus the selected tab's, which
-  streams anyway. Tiles whose cards have no picture yet go first, so past the
-  cap each tile in view gets one in turn: once its cards drew, a tile lets go
-  (keeping its snapshot) if another waits. While tiles keep coming into view (a scroll) none turns live
-  (each would make a surface and a stream on the main thread): 150 ms after the
-  last one came, those in view turn live and those scrolled away let go.
+  come into view first, plus the selected tab's, which streams anyway. At most
+  16 cards (6 on a remote machine, whose streams share the relay's one SSH
+  session, [SSH sessions](/docs/machines#ssh-sessions)) and 400 MB of tabs: a
+  live card keeps a swap chain at its card's full size, three times its pixels,
+  about 69 MB a tab on a full Retina window, so about 5 tabs there (phase 30).
+  Tiles whose cards have no picture yet go first, so past the caps each tile in
+  view gets one in turn: once its cards drew, a tile lets go (keeping its
+  snapshot) if another waits. Nothing turns live or lets go while the grid
+  scrolls (each would make or free a surface and a stream on the main thread),
+  and a herdr snapshot keeps the live set (phase 30: choosing there freed and
+  made surfaces mid-scroll); 150 ms after the scroll ends, or after the last
+  tile came into view, those in view turn live and those scrolled away let go.
   During a swipe the next session's page shows snapshots until it lands. Those
   are not visits: when the overview closes, a terminal shown only by it goes
   back to where it was (its surface and stream let go, and it keeps no full

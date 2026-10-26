@@ -236,9 +236,10 @@
     }
 
     extension WindowPages {
-        /// The cards of the overview's tiles in view, whole tabs, the latest in first, up to a cap: each live one
-        /// costs a surface at its card's size (about 52 MB at full window on Retina), so the cost follows the cap, not
-        /// the session. A remote machine's cards share the relay's one SSH session: 6. The other tiles show their
+        /// The cards of the overview's tiles in view, whole tabs, the latest in first, up to a cap: each live card
+        /// keeps a swap chain at its card's size, so a live tab costs about its page's pixels three times over (69 MB
+        /// for a full window on Retina): at most 400 MB of tabs (phase 30, lane P: 16 tabs took 1.5 GB), and 16 cards
+        /// (streams). A remote machine's cards share the relay's one SSH session: 6. The other tiles show their
         /// snapshot.
         func overviewCards(_ page: Page) -> [String: String] {
             let tabs = (overviewTabs[page.id] ?? []).reversed().map { tileCards(page, $0) }
@@ -247,12 +248,17 @@
             // the last turn does not start another.
             let drawn = { (tab: [(String, String)]) in self.pictured(page, tab) }
             let live = { (tab: [(String, String)]) in tab.allSatisfy { self.overviewLive.contains($0.0) } }
-            var cards: [String: String] = [:]
+            let size = window.map { $0.contentLayoutRect.size.applying(.init(scaleX: $0.backingScaleFactor,
+                                                                             y: $0.backingScaleFactor)) }
+            let most = size.map { Int(400e6 / max($0.width * $0.height * 12, 1)) } ?? 16
+            var cards: [String: String] = [:], taken = 0
             let waiting = tabs.filter { !drawn($0) }, shown = tabs.filter { drawn($0) && live($0) }
             for tabCards in waiting + shown + tabs.filter({ drawn($0) && !live($0) }) {
-                // A tab over the cap alone still loads.
-                guard cards.isEmpty || cards.count + tabCards.count <= (machine.isRemote ? 6 : 16) else { continue }
+                // A tab over the caps alone still loads.
+                guard cards.isEmpty || cards.count + tabCards.count <= (machine.isRemote ? 6 : 16) && taken < most
+                else { continue }
                 cards.merge(tabCards) { first, _ in first }
+                taken += 1
             }
             return cards
         }
