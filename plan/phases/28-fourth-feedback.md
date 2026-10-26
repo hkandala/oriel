@@ -182,7 +182,8 @@ the orchestrator says otherwise.
   tiles in view stream, ≤ strip + 18 after the scroll, and scrolled back, a tile that was live shows its snapshot
   or terminal at once (`overview.card.‹pane›` never "empty"). `testOverviewShowsEveryTabLiveAndOpensOne`: no
   title-row button but ×, the margins (left = right = 8 % / 48 pt, 40 pt above), w2's row made live as it scrolls
-  in, × leaves. `testOverviewZoomIntoAnUnshownTabShowsItSteadily` (lane T took the flicker). The remote cap of 6 has
+  in, × leaves. The stress test is on demand (`ON_DEMAND` in the Makefile, with lane S's): run it with
+  `make e2e ONLY=…` or `only_testing`. `testOverviewZoomIntoAnUnshownTabShowsItSteadily` (lane T took the flicker). The remote cap of 6 has
   no test (CI's remote host has no overview scenario).
 - **Reviews.** Round 1 (first design): no blockers; doc and comment fixes (802e3c7). Round 2 (redesign), spec: no
   blockers; fixed visible-first priority, the turn-live blink (snapshot as the still), the snapshot test, the
