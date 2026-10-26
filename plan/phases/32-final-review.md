@@ -223,3 +223,28 @@ broken link. `pnpm build` in `docs/` is green.
   (2) The pages follow plain English only in part: long sentences with semicolons remain in window, swiping and
   talking-to-herdr. A full rewrite touches every page (about a day); recommendation: rewrite a page when its feature
   next changes.
+
+
+### r-terminal
+
+Read all nine files in `Oriel/Terminal/` (1,652 lines) line by line; the stream, settle, still and keyboard-claim
+paths had been through phases 24–31 and held up: no race or stale-state bug found that a change could show.
+
+- **Bug fixed:** `FileDrop.escaped` backslash-escaped Ghostty's set but not a line break, so a dropped file whose
+  name has one pasted as two lines, and a shell without bracketed paste ran the second (a-security-a11y). Such a
+  path is single-quoted now, as `choosePath` does. No test: the e2e drag helper (r-tests') makes one fixed name, and
+  the function needs AppKit, so it cannot join `make test`'s standalone checks.
+- **Comments fixed:** `PaneTerminal.revealed` still named the hover card's picture (the tab preview was dropped);
+  `PaneSurfaceView.wantsKeyboard` said "before it was in a window" (also set when it leaves one); `newFolder`'s
+  broken wrap.
+- **Code removed:** the registry's two claim-dropping loops are one `dropClaims(but:)`; `Links` reads
+  `-recordLinks` once (`Links.record`; r-app switches OrielApp to it); a redundant `@MainActor` and a redundant
+  `window != nil`. Skipped a-ponytail-app's optional `cancelSettle()` (two 3-line sites read fine).
+- **Checked, not changed:** a failed card retries on every `show` pass of the registry (each snapshot), by design
+  since phase 4; `TerminalCard`'s `.id(ObjectIdentifier(terminal))` cannot see a reused address (SwiftUI holds the
+  old terminal until the new one is in); `purgeable` detaching the view's own old layer is the path RevealTests'
+  evicted cards take, and they show.
+- **For the user:** on a remote machine, a file drop, Insert Path… and Go to Directory… use This Mac's files and
+  paths (known `ponytail:` limits in FileDrop.swift). Cost: disabling them for remote stores is a few lines in
+  CommandList and the drop types (r-app, r-terminal); real support needs copying files over SSH. Recommendation:
+  disable them on remote machines now; add the copy with image paste.
