@@ -15,7 +15,8 @@
     final class FrameProbe {
         static let shared = FrameProbe()
         static let isOn = UserDefaults.standard.bool(forKey: "recordFrames")
-        private(set) var recorded: [String] = []
+        /// The changes' records, "; " between them.
+        private(set) var recorded = ""
         @ObservationIgnored private var shown = ""
         @ObservationIgnored private var start = 0.0
         /// Each card's states of the change being recorded.
@@ -108,7 +109,8 @@
                     }
                 }
             }
-            recorded.append("\(shown.split(separator: " ").last ?? "") \(bad)/\(frames) \(codes)")
+            let tab = shown.split(separator: " ").last ?? ""
+            recorded += (recorded.isEmpty ? "" : "; ") + "\(tab) \(bad)/\(frames) \(codes)"
             samples = [:]
             inks = [:]
         }

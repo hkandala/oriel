@@ -310,12 +310,7 @@ struct OrielApp: App {
             .testValue("app.links", "Links", Links.shared.recorded.joined(separator: " "),
                        shown: UserDefaults.standard.bool(forKey: "recordLinks"))
             .testValue("app.latency", "Latency", Latency.shared.recorded.joined(separator: "; "), shown: Latency.isOn)
-            .testValue(
-                "app.frames",
-                "Frames",
-                FrameProbe.shared.recorded.joined(separator: "; "),
-                shown: FrameProbe.isOn,
-            )
+            .testValue("app.frames", "Frames", FrameProbe.shared.recorded, shown: FrameProbe.isOn)
             .testValue(
                 "overview.motion",
                 "Overview Motion",
