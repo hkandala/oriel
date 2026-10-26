@@ -9,9 +9,9 @@ description: "Run and dial, requests, events, reconcile, the terminal plane, con
 protocol Exec {
     /// Run argv on the machine. Returns stdout as a byte stream and a stdin writer.
     func run(_ argv: [String]) async throws -> Channel
-    /// Open a TCP stream to host:port, as seen from the machine.
+    /// Open a TCP stream to host:port, as seen from the machine (not built yet).
     func dial(host: String, port: Int) async throws -> Channel
-    func herdr() async -> String?   // from the login shell
+    func herdr() async throws -> String?   // from the login shell
 }
 ```
 
@@ -20,7 +20,7 @@ Every pane kind and plugin reaches its machine through these two calls
 the work. A later server helper would sit behind the same two calls
 ([Future work](/docs/future-work)).
 
-- **`dial`:** on This Mac, a plain TCP connection. On a remote machine from
+- **`dial`** (not built yet: web pages and plugins need it): on This Mac, a plain TCP connection. On a remote machine from
   macOS, `ssh -S <ctl> -W <host>:<port> <target>` on the host's ControlMaster
   (one process, one stream on its stdio). From iOS, a Citadel `direct-tcpip`
   channel. A web card needs a local port, not a stream; see
@@ -30,11 +30,13 @@ the work. A later server helper would sit behind the same two calls
   variable and herdr's path once with `$SHELL -lic` (stdin from `/dev/null`,
   3 s timeout, output parsed after a unique marker). `HERDR_*` variables are removed from
   child processes.
-- **A remote machine on macOS:** the same `Process` with this prefix
-  ([macOS](/docs/machines#macos)):
+- **A remote machine on macOS:** every run goes through the relay, one SSH
+  session on the host's ControlMaster ([macOS](/docs/machines#macos)). The
+  app starts it with a `Process` like this, the relay's script in the
+  envelope:
   ```sh
   /usr/bin/ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes \
-      -o ProxyCommand=/usr/bin/false -S <ctl> <target> --
+      -o ProxyCommand=/usr/bin/false -S <ctl> -- <target> <envelope>
   ```
 - **iOS:** one Citadel connection per host. Each run is an exec channel.
 - **The remote command envelope.** ssh and Citadel hand one string to the
@@ -459,7 +461,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Go to Directory (⇧⌘G) | `pane.send_input` of `cd -- '‹path›'` and Return, only when the pane runs only its shell |
 | Insert Path (⇧⌘I) | `pane.send_input` of the shell-quoted path, no Return |
 | Find next or previous (⌘F) | `pane.scroll {pane_id, offset_from_bottom}` to the match; offset 0 when the bar closes |
-| Start an agent | [agent.start steps](/docs/plugins/terminal-and-agent#agent) |
+| Start an agent (not built yet) | [agent.start steps](/docs/plugins/terminal-and-agent#agent) |
 | Resize Pane (View ▸ Pane, the palette; no key) | `pane.resize {pane_id, direction, amount: 0.05}` on the keyboard card; herdr moves the nearest divider that way, or returns `changed:false` when there is none |
 | Move the keyboard (⌥⌘ + arrow; not a write) | no herdr call: the app picks the card from the split tree ([Moving the keyboard](/docs/layout#moving-the-keyboard)) |
 | A pane comes into view or leaves it | `pane.report_metadata {pane_id, source:"oriel", tokens:{"oriel-shown": "1" or null}, ttl_ms:30000}` ([Float requests](#float-requests)) |

@@ -5,8 +5,8 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 
 ## What a machine is
 
-- A **machine** is a host: a computer that runs herdr (D43). This Mac now,
-  SSH hosts later. Each machine has its own icon, because the title row's
+- A **machine** is a host: a computer that runs herdr (D43), This Mac or a
+  host the app reaches with `ssh`. Each machine has its own icon, because the title row's
   machine button shows only the icon ([Machine button](/docs/ui/window#machine-button)).
 - A machine runs several herdr **sessions** (`default`, `pi-herd`, …), each
   one herdr server. The sessions of one machine share one SSH connection
@@ -21,7 +21,7 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 
 - **The app keeps its own list of remote machines**, on macOS and iOS alike
   (D54): name, SSH target, icon and id, in `UserDefaults`. One code path on
-  both platforms. Remote machines come after This Mac.
+  both platforms. The machine menu lists This Mac first, then the list.
   - The list is JSON under the `machines` key. A run launched with
     `-session` (the e2e tests, a run against a throwaway session) never reads
     or writes it: it takes `-machines <json>` or no machines, so a test never
@@ -33,8 +33,8 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   machine. The Open Session panel lists them
   ([Open Session](/docs/ui/window#open-session)). herdr on the Mac is needed
   only for This Mac's sessions, not for remote machines.
-- **herdr's machines (macOS):** when herdr is on the Mac, the Add Remote Host
-  dialog lists the targets of the enabled entries of `herdr machine list --json`
+- **herdr's machines (macOS, not built yet):** when herdr is on the Mac, the
+  Add Remote Host dialog lists the targets of the enabled entries of `herdr machine list --json`
   (`{id, label, target, session, enabled}`) that are not in the app's list,
   each with a checkbox. While the app's list is empty, they start checked.
   The app never writes herdr's list.
@@ -59,9 +59,10 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
     hosts") are INFO, so they never show on the Disconnected page. So is
     "Connection closed by …": a start that ends with no text says "The
     connection to ‹target› closed".
-  - Later runs use `-F /dev/null -o ControlMaster=no -o BatchMode=yes
+  - The relay's session (below), which carries every later run, uses
+    `-F /dev/null -o ControlMaster=no -o BatchMode=yes
     -o ProxyCommand=/usr/bin/false -S ~/Library/Caches/oriel/<h8>`. Without a
-    master they fail at once instead of opening their own connection and
+    master it fails at once instead of opening their own connection and
     prompting again. They send none of the user's configured forwards to the
     master. With a master, ssh never reads the target's config, so an alias
     works with `-F /dev/null` (checked on OpenSSH 10.3).
@@ -107,9 +108,10 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   - When its stdin ends (the app quit, the connection dropped) it exits, and
     every run's stdin closes with it, so every run ends as before.
   - Perl is on nearly every Unix (Debian's `perl-base` is essential, macOS has
-    it). The relay greets with `oriel-relay 1` within 10 s; a machine where it
-    does not shows "Oriel needs Perl on ‹machine›", and the next run tries
-    again.
+    it). The relay greets with `oriel-relay 1` within 10 s. On a machine where
+    it does not, every run fails with "Oriel needs Perl on ‹machine›: its relay
+    did not start", and the next run tries again. The page shows only
+    Reconnecting: it does not show that text yet.
   - herdr's own transports do not fit: `herdr --remote` runs one
     `remote-client-bridge` session, but it speaks herdr's internal binary
     client protocol; `herdr --machine` opens one session per request, as
@@ -152,17 +154,20 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   shows "herdr is not installed on ‹machine›" with the install command.
 - **New tabs and workspaces** pass `cwd` `~`, which herdr reads as the
   machine's home, so the app never sends This Mac's home to a remote machine.
-- **What the prototype leaves for later:** Local Network privacy (below),
+- **Not built yet:** Local Network privacy (below),
   herdr's machine list in the dialog, reorder of the machines, a
   remote home shown as `~` in card headers, `dial`, and file drops and image
   paste to a remote machine.
-- **Local Network privacy (macOS 15+):** an `ssh` started by the app counts as
-  the app. The app declares `NSLocalNetworkUsageDescription`, resolves the
+- **Local Network privacy (macOS 15+, not built yet):** an `ssh` started by
+  the app counts as the app, so a LAN target fails with "No route to host"
+  today. The plan: The app declares `NSLocalNetworkUsageDescription`, resolves the
   target with `ssh -G`, and opens an `NWConnection` to a LAN address before
   the first SSH, so the system asks once. Tailscale addresses are not
   affected.
 
 ## iOS
+
+Not built yet: the iOS target builds and shows an empty state.
 
 - One Citadel SSH connection per host, with exec channels on it.
 - The key is a Secure Enclave P-256 key (`ecdsa-sha2-nistp256`). It cannot
@@ -173,7 +178,8 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 - The phone reaches the Mac like any SSH machine: turn on System Settings ›
   General › Sharing › Remote Login, then add the Mac by its Tailscale or LAN
   name.
-- Reachability is the user's network (LAN or Tailscale). There is no relay.
+- Reachability is the user's network (LAN or Tailscale), with no server in
+  between.
   Jump hosts come later (Citadel has `jump(to:)`).
 - Citadel has no keepalive; the [health check](#health-check) finds dead
   links.
@@ -189,7 +195,7 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
 - A session is open while it has a page in at least one window. Each open
   session has one `HostStore`, shared by every window that shows it
   ([Architecture](/docs/architecture#pieces)). The app keeps one registry of
-  them, by session name; a page takes its session's store from it, made on
+  them, by machine and session name; a page takes its session's store from it, made on
   first use. Detach Session disconnects the store.
 - An open session keeps its control plane open (one event stream plus short
   calls), so notifications, the Dock and pills cover every open session in

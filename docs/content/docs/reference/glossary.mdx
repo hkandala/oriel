@@ -7,13 +7,13 @@ description: "The words these docs use"
 |---|---|
 | multiplexer | a program that keeps terminals alive in panes, tabs and workspaces, such as herdr or tmux. The app talks to one through the `Multiplexer` interface |
 | herdr TUI | herdr's own text interface, run in a terminal app |
-| machine / host | a computer that runs herdr: This Mac now, SSH hosts later. Each machine has its own icon and one entry in the machine list. Its sessions share one SSH connection |
+| machine / host | a computer that runs herdr: This Mac or an SSH host. Each machine has its own icon and one entry in the machine list. Its sessions share one SSH connection |
 | This Mac | the Mac the app runs on |
 | session | one herdr server on a machine (`default`, `pi-herd`, …) |
-| page | one session's page in the sidebar. A window shows only the sessions the user opened in it; pages swipe sideways |
+| page | one session's page in the sidebar. A window shows only the sessions the user opened in it; pages swipe sideways. Its title is the session's name, or the machine's name for `default` |
 | window | an Oriel window. It shows one machine and keeps its own selection; the user can open several |
 | `HostStore` | the app's live model of one open session, shared by every window that has its page |
-| machine button / workspace button | the title-row button with the machine's icon / the title-row button "‹session› \| ‹workspace›", shown while the sidebar is collapsed |
+| machine button / workspace button | the title-row button with the machine's icon / the title-row button "‹page title› \| ‹workspace›", shown while the sidebar is collapsed |
 | Open Session | the panel that adds a session to the window as a page: it creates a session, starts a stopped one or opens a running one (⌥⌘T) |
 | strip / tab page | the main area that pages sideways / one tab's page in it |
 | tab capsule | one tab in the tab bar |
@@ -22,6 +22,10 @@ description: "The words these docs use"
 | keyboard card | the card that gets typed keys, one per tab; the app's own choice, never herdr's focus |
 | program icon | the icon of the program that runs in a pane, from Oriel's own catalog; a tab shows a stack of them |
 | hover card | the panel that shows a tab's panes when the pointer rests on a title-bar tab or an Agents row |
+| overview | every tab of the session as a live miniature, grouped by workspace (⌃⌘O) |
+| floating pane | a pane shown in a small window of its own; herdr keeps it in its tab |
+| float request | a tool in a pane asks Oriel to float a pane, through herdr's pane metadata tokens |
+| notice | the short capsule at the bottom of the strip after a failed action |
 | Glass / Classic | the two interface styles: a window with a behind-window blur / an opaque window |
 | Appearance | Auto, Light or Dark |
 | pill / pill card / peek | the floating status capsule on the Mac screen edge / the small window for one agent next to it / a pill card that slides out by itself without taking the keyboard |
@@ -42,6 +46,7 @@ description: "The words these docs use"
 | split tree | herdr's layout: each split cuts a rectangle in two by a ratio |
 | split id | `split_<n>_<path>`: n = place in `splits[]`; path = `root` or one digit per step (0 = first child, 1 = second) |
 | ControlMaster | one shared SSH connection that later `ssh` commands reuse |
+| relay | a small Perl script, sent with each SSH connection and never installed, that carries every run of a remote machine over one SSH session |
 | run / dial | the two calls the app makes on a machine: run a command and use its stdio / open a TCP stream to a host and port as seen from the machine |
 | envelope | the base64 wrapper every remote command travels in |
 | `terminal_id` / `pane_id` | herdr's id of a terminal process / of a pane slot; the pane id changes on a move to another workspace, the terminal id on a cold restart |
@@ -54,7 +59,7 @@ description: "The words these docs use"
 | plugin / core plugin | a pane kind beyond terminal, agent and web page: a small web page / one that ships with the app (git history, diff, Markdown) |
 | placeholder | the quiet command a web or plugin pane runs in herdr; cosmetic, the label is the truth |
 | iid | the instance id of a web or plugin pane, kept in its label; it names the pane's state file |
-| approval / safe list | a web origin this device opened once on a machine, so it loads without asking there / origins that load without asking: the machine's own `localhost` and `127.0.0.1`, and a built-in list; both are editable in Settings |
+| approval / safe list | a web origin this device opened once on a machine, so it loads without asking there / origins that load without asking: the machine's own `localhost` and `127.0.0.1`, and a built-in list; both will be editable in the Settings window (not built yet) |
 | Refresh | the card header button that reads the snapshot and builds the card again from its label and state file |
 | health check | the loop, one per open session, that reads `session.snapshot` every 30 s, every 2 s while it fails |
 | askpass | a small program `ssh` runs to ask for a password |
