@@ -49,6 +49,23 @@ the end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the 
    - Both repos: Oriel here, and pi-herd in `/Users/hkandala/code/pi-hkandala` (its own AGENTS.md and
      commit rules). Keep `oriel://float` for other tools.
 
+## Integration (items 8–10)
+
+8. **Return confirms the close dialog:** when closing a pane or tab asks first, Return does nothing and the
+   user has to click. The confirm button is the default button (Return), Esc cancels, in every close
+   dialog (pane, tab, other tabs, tabs to the right, workspace, Stop and Delete in Open Session, floating
+   pane).
+9. **CI back to about 7–8 minutes:** the full suite went from about 6 to 13–16 minutes (171 tests, about
+   40 minutes of test time; the 12 slowest take 30–80 s each), more with reruns. Move the heavy measurement
+   tests to ON_DEMAND (a perf job run on request or before a release), balance the shards by measured
+   time instead of by name, and keep `make e2e` covering the behaviour those tests guard with cheaper
+   checks where needed.
+10. **No flaky tests:** fix the known flakes at their cause (Go to Directory / Insert Path, double-click
+    rename, HerdrKit's relay "carries runs over one process" exit 9, the quick-split keyboard check,
+    the session swipe bound at 80 ms, lane G's posted-swipe distance), and the open bug from phase 30 lane
+    Q (after a burst of ⌘D one split went to the first card: A | C | B | D). A full run must pass without a
+    rerun, twice in a row.
+
 ## Checks
 
 - `make lint build test`; a UI test for each item a test can see (three-finger swipes: the recognizer's
