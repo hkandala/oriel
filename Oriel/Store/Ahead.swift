@@ -347,7 +347,8 @@ extension HostStore {
             // Also the old card asked for: ⌘D read the keyboard card before a snapshot made the split before's pane it
             // (phase 31: the second ⌘D split the first card, A | C | B | D).
             let target = newest.flatMap { newest in
-                paneID == keyboardPane?.id || store.pane(paneID)?.terminalID == newest.from ? newest.id : nil
+                let old = store.pane(paneID)?.terminalID.map { $0 == newest.from } == true
+                return paneID == keyboardPane?.id || old ? newest.id : nil
             } ?? paneID
             if let newest {
                 // The split before's pane, if made, takes the keyboard no more (`follow`): this one's does. Nor does a
