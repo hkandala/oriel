@@ -81,6 +81,34 @@ extension OrielUITests {
         try await swipe(sidebar, until: header, \.stringValue, two)
     }
 
+    /// With three sessions, the page a swipe lands on shows its rows, in the sidebar, at rest: from 8c524dd a page not
+    /// laid out took no room, so every page but the first showed blank once a swipe settled (phase 28).
+    func testSwipedSessionPagesShowTheirRows() async throws {
+        let five = try env("ORIEL_SESSION5")
+        try await running(five)
+        openPage(two)
+        openPage(five)
+        element("sidebar.dot.\(one)").click()
+        let sidebar = element("sidebar"), header = element("sidebar.header")
+        XCTAssertTrue(header.has(\.stringValue, one, within: 3))
+        let rows = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'workspace.'"))
+        // The first page goes nowhere the other way: then the next swipe goes forward.
+        var delta = -Double(sidebar.frame.width)
+        for session in [two, five] {
+            sidebar.hover()
+            sidebar.scroll(byDeltaX: delta, deltaY: 0)
+            if !header.has(\.stringValue, session, within: 1.5) {
+                delta = -delta
+                sidebar.scroll(byDeltaX: delta, deltaY: 0)
+            }
+            XCTAssertTrue(header.has(\.stringValue, session, within: 1.5))
+            try await Task.sleep(for: .seconds(0.5))
+            XCTAssertTrue(rows.firstMatch.exists(within: 3), session)
+            XCTAssertTrue(sidebar.frame.contains(rows.firstMatch.frame), "\(rows.firstMatch.frame) \(sidebar.frame)")
+            XCTAssertTrue(rows.firstMatch.isHittable, session)
+        }
+    }
+
     /// ⌘Q and a relaunch bring back the window's pages that still run, the page in view and each page's workspace.
     func testRelaunchRestoresThePagesThatStillRun() async throws {
         let five = try env("ORIEL_SESSION5")
