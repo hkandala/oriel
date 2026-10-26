@@ -30,6 +30,25 @@ the end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the 
    row (and shows that agent's pane, as a click does), instead of switching workspaces. In the workspaces
    view it switches workspaces. A vertical three-finger swipe always moves what the sidebar shows.
 
+## Lane F: pi-herd floats through herdr, local and remote (item 7)
+
+7. pi-herd's `open oriel://float?…` (phase 28 lane F) works only for agents on this Mac: an agent on a
+   remote machine cannot open a URL on the Mac. Replace it with a request that travels through herdr, so
+   it works wherever the agent runs and needs no frontmost-app check:
+   - **Request:** pi-herd sets metadata tokens on its own pane (`pane.report_metadata`, a short `ttl_ms`):
+     the target (session and pane id, for example `oriel.float = pi-herd/<pane id>`) and a nonce.
+   - **Oriel:** it already follows every shown session's events, over the relay for remote machines. On a
+     float request token it opens that pane in its floating window (phase 28's `oriel://` path inside, on
+     the machine the event came from, loading a float-only page when the session has no page), then
+     answers on the same pane with an ack token carrying the nonce.
+   - **pi-herd:** after the request it waits briefly (about 300–500 ms) for the ack (event or `pane.get`);
+     with an ack it stops; without one (no Oriel attached, or herdr's own TUI only) it opens herdr's popup
+     as before. The `lsappinfo` check goes.
+   - Spike first: which event a metadata change sends (`metadata_updated`, `pane.updated`?), whether tokens
+     reach every client, how `ttl_ms` clears them, and the token limits (16 tokens, name pattern).
+   - Both repos: Oriel here, and pi-herd in `/Users/hkandala/code/pi-hkandala` (its own AGENTS.md and
+     commit rules). Keep `oriel://float` for other tools.
+
 ## Checks
 
 - `make lint build test`; a UI test for each item a test can see (three-finger swipes: the recognizer's
