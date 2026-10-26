@@ -52,6 +52,20 @@ the end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the 
    - Both repos: Oriel here, and pi-herd in `/Users/hkandala/code/pi-hkandala` (its own AGENTS.md and
      commit rules). Keep `oriel://float` for other tools.
 
+## Lane M: smooth paging and the pill after the overview (items 11, 12)
+
+Capture F: `/Users/hkandala/Library/Application Support/scrawl/captures/scrawl-1793008806798-6f5d-12.scrawl`.
+
+11. **Paging animation cuts** (F #1 0:15–#3 0:39): since lane G's faster paging, a two-finger swipe between
+    tabs, and much more a quick swipe between sessions in the overview, looks cut or jagged ("previously it
+    was much better, just slow"). Look frame by frame (`scrawl zoom … --at 0:40 --span 6 --frames 60
+    --full`), find the cut (a jump at the lift between the fingers' offset and the spring's start, the
+    selection at logicallyComplete moving the page, a second scrollTo, frames dropped while the next page
+    builds) and make it smooth while staying quick.
+12. **Pill jump after the overview** (F #4 1:13–#6 1:42): choosing a tab in the overview shows the tab bar's
+    pill on the previous selection for a moment, then it jumps to the new tab. The user's idea: when the tab
+    bar comes back from the overview, it has no pill, and the pill fades in on the selected tab.
+
 ## Integration (items 8–10)
 
 8. **Return confirms the close dialog:** when closing a pane or tab asks first, Return does nothing and the
