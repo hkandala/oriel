@@ -65,6 +65,16 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
    `pane.move {new_workspace}`, then the others as phase 29 lane D's `move(tab:to:)` does. Same in the
    collapsed sidebar's workspace menu.
 
+## Lane Q: quick ⌘D rearranges the panes (item 10)
+
+10. Capture C: `/Users/hkandala/Library/Application Support/scrawl/captures/scrawl-1792991374332-6f5d-8.scrawl`.
+    In a new tab the user presses ⌘D three times fast (events at 8.7, 9.0 and 9.2 s, again at 22.7 s, and
+    ⌘W three times at 19.1–19.5 s): the panes rearrange with an odd animation, "that kind of flicker". Find
+    why (likely phase 29 lane K's stand-ins placed in one order and herdr's real panes arriving in another,
+    or phase 27's slide-in animating a pane from the wrong place) and make quick splits and closes settle
+    straight into their final layout: each new pane appears once, where it ends up, with no pane moving
+    twice.
+
 ## Waiting on the user
 
 - Move Pane to Tab's tab list in the menu bar: lane S measured about 30 ms per key at 300 tabs (AppKit's
