@@ -55,6 +55,13 @@
         /// The main thread's work in the last 5 s (phase 29): run loop turns from wake to sleep, the longest, the
         /// snapshots applied and their own time: "main 812ms 120ms 34 210ms".
         private func recordMain() {
+            // A turn still running counts up to now, so a main thread that never sleeps does not show as idle.
+            if let awake {
+                let now = ProcessInfo.processInfo.systemUptime
+                busy += now - awake
+                longest = max(longest, now - awake)
+                self.awake = now
+            }
             recorded
                 .append("main \(Int(busy * 1000))ms \(Int(longest * 1000))ms \(snapshots) \(Int(applying * 1000))ms")
             (busy, longest, snapshots, applying) = (0, 0, 0, 0)
