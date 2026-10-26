@@ -16,8 +16,7 @@ struct Ahead {
     /// history follow them as they settle on that snapshot (phase 27).
     var arrived: [String: String] = [:]
     /// herdr's tabs that took a stand-in's place, while they last: a close of one whose shell still starts shows at
-    /// once
-    /// (quick ⌘W after quick ⌘T, phase 27). Not every starting pane: a program run in a pane split a second ago
+    /// once (quick ⌘W after quick ⌘T, phase 27). Not every starting pane: a program run in a pane split a second ago
     /// would hide, then come back with the question.
     var fresh: Set<String> = []
     /// herdr's tabs for stand-ins closed before they came: the store closes them.

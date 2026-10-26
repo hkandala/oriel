@@ -10,7 +10,6 @@ final class Gate {
         free = count
     }
 
-    /// Every place is held.
     var busy: Bool {
         free == 0
     }
@@ -24,7 +23,6 @@ final class Gate {
         }
     }
 
-    /// The place goes to the first waiting, if any.
     func leave() {
         if waiting.isEmpty {
             free += 1

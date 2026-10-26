@@ -128,7 +128,6 @@
                 .flatMap { list.indices.contains($0) ? list[$0] : nil }
         }
 
-        /// Shows the neighbor, if any.
         func step(_ offset: Int) {
             if let page = neighbor(offset) {
                 show(page)
@@ -211,7 +210,6 @@
         /// `open(machine:)`'s, for the new window. ponytail: one; a queue if two quick opens ever clash.
         static var opening: (machine: Machine, connect: Bool)?
 
-        /// Every page leaves and every terminal closes.
         private func leaveAll() {
             let pages = withFloats
             floatOnly = []
