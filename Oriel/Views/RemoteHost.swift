@@ -184,6 +184,7 @@
                         .accessibilityIdentifier("ask.ok")
                 }
             }
+            .onAppear { AccessibilityNotification.Announcement(question.text).post() }
         }
 
         /// A host key question's facts: without ssh's last line, which Connect says, and with the fingerprint on a line
@@ -209,6 +210,7 @@
                 .overlay {
                     padding(20).frame(width: 440).floatingGlass(in: .rect(cornerRadius: 14))
                         .accessibilityElement(children: .contain)
+                        .accessibilityAddTraits(.isModal)
                 }
         }
     }
