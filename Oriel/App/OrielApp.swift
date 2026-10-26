@@ -77,7 +77,7 @@ struct OrielApp: App {
         @SceneStorage("page") private var savedPage = ""
         /// The window's machine's id (D43).
         @SceneStorage("machine") private var savedMachine = ""
-        /// Each page's selected workspace and tabs, as JSON.
+        /// Each page's selected workspace and tabs and its floated panes, as JSON.
         @SceneStorage("selection") private var savedSelection = ""
         @SceneStorage("sidebar") private var sidebar = true
         @SceneStorage("sidebarWidth") private var sidebarWidth = 240.0

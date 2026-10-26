@@ -14,7 +14,7 @@
         let settings: AppSettings
         /// A floating window's list (D50): only what applies to it.
         var floating: Floating?
-        /// What the menu bar shows of `all`, when it was made (`menuBar`).
+        /// What the menu bar shows and acts on, when it was made (`menuBar`).
         var shown: [String] = []
 
         private var tabs = true
@@ -202,10 +202,8 @@
                         enabled: tabs.count > 1) { page?.step(-1) },
                 Command(section: .tabSteps, title: "Show Next Tab", key: .nextTab, symbol: "chevron.forward",
                         enabled: tabs.count > 1) { page?.step(1) },
-                Self.moveTab(page, -1,
-                             enabled: tab != nil && tabs.first?.id != tab?.id),
-                Self.moveTab(page, 1,
-                             enabled: tab != nil && tabs.last?.id != tab?.id),
+                Self.moveTab(page, -1, enabled: tab != nil && tabs.first?.id != tab?.id),
+                Self.moveTab(page, 1, enabled: tab != nil && tabs.last?.id != tab?.id),
                 stepWorkspace("Show Previous Workspace", "chevron.up", -1),
                 stepWorkspace("Show Next Workspace", "chevron.down", 1),
                 step("Previous Session", "chevron.left.2", -1),
@@ -222,8 +220,7 @@
                            key: .init(offset < 0 ? .leftArrow : .rightArrow, modifiers: [.command, .shift]),
                            symbol: "arrow.\(side).to.line", enabled: enabled, action: {
                                // The menu takes the arrow before a text field: there it still selects to the line's
-                               // end. Not
-                               // from the palette or a click (the palette's field has the keyboard while it runs).
+                               // end. Not from the palette or a click (the palette's field has the keyboard then).
                                let event = NSApp.currentEvent
                                let arrow = event?.type == .keyDown && [123, 124].contains(event?.keyCode)
                                let select = offset < 0 ? #selector(NSResponder.moveToBeginningOfLineAndModifySelection)

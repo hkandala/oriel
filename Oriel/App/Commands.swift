@@ -241,12 +241,11 @@ extension KeyboardShortcut {
         private var settings = AppSettings()
 
         var body: some Commands {
-            // With no window: New Window and the settings.
             // Every main window opens through it. `_ =` is no statement in a builder.
             // swiftlint:disable:next redundant_discardable_let
             let _ = (WindowPages.openWindow = openWindow)
             // A key runs the key window's command for it, whichever window's list the menu bar holds; behind a sheet,
-            // none.
+            // none. With no window: New Window and the settings.
             let list = (commands ?? CommandList(settings: settings)).menuBarList.map { command in
                 var keyed = command
                 if let key = command.key {
