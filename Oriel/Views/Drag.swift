@@ -194,6 +194,8 @@
         let page: Page
         let target: DropTarget
         @Binding var over: Bool
+        /// Off: a hidden workspace menu's row.
+        var enabled = true
 
         func validateDrop(info _: DropInfo) -> Bool {
             takes
@@ -228,7 +230,8 @@
         }
 
         private var takes: Bool {
-            switch (page.dragging, target) {
+            guard enabled else { return false }
+            return switch (page.dragging, target) {
             case (.pane, _): true
             case let (.tab(id), .move(.newTab(workspaceID, _))): page.store.workspace(of: id)?.id != workspaceID
             default: false

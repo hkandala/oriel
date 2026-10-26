@@ -275,11 +275,12 @@ struct OrielApp: App {
             .hoverPanelHost()
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
             .overlay {
-                if panel == .workspaces {
+                if panel == .workspaces || !sidebar && page.dragging != nil {
                     WorkspaceMenu(pages: pages, page: page, open: open(.workspaces)) { panel = .openSession }
                         .padding(.leading, workspaceButtonX)
                         .padding(.top, TitleBar.height)
                         .floatingPanel(open: open(.workspaces), alignment: .topLeading)
+                        .opacity(panel == .workspaces ? 1 : 0).allowsHitTesting(panel == .workspaces)
                 }
                 if panel == .openSession {
                     OpenSession(pages: pages, open: open(.openSession))

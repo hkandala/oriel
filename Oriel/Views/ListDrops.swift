@@ -77,22 +77,31 @@
     /// A workspace menu row (the collapsed sidebar's): a pane or a tab of the page dropped on it goes to a new tab in
     /// that workspace, as on a sidebar row, highlighted the same; no spring-load in a menu.
     struct MenuRowDrop: ViewModifier {
-        let drop: (page: Page, workspaceID: String)?
+        struct Target {
+            let page: Page
+            let workspaceID: String
+            /// The menu is open. It is there, hidden, through the whole drag: macOS 27 finds no drop target added
+            /// after the drag entered the window.
+            let shown: Bool
+        }
+
+        let target: Target?
         @State private var over = false
 
         func body(content: Content) -> some View {
             // Only during a drag: a drop target on the row at other times cost it the pointer's light on CI (one run
             // in two).
-            if let drop, drop.page.dragging != nil {
+            if let target, target.page.dragging != nil {
                 content
                     .overlay {
                         if over {
                             DropIndicator(radius: 8)
                         }
                     }
-                    .onDrop(of: [.orielDrag], delegate: PaneDrop(page: drop.page,
-                                                                 target: .move(.newTab(workspaceID: drop.workspaceID)),
-                                                                 over: $over))
+                    .onDrop(of: [.orielDrag], delegate: PaneDrop(
+                        page: target.page, target: .move(.newTab(workspaceID: target.workspaceID)), over: $over,
+                        enabled: target.shown,
+                    ))
             } else {
                 content
             }

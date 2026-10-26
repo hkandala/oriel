@@ -26,7 +26,7 @@ struct FilterList: View {
         var buttonRole: ButtonRole?
         #if os(macOS)
             /// A workspace of the page whose dragged pane or tab a drop on the row moves there (the workspace menu).
-            var drop: (page: Page, workspaceID: String)?
+            var drop: MenuRowDrop.Target?
         #endif
         let act: () -> Void
     }
@@ -49,6 +49,8 @@ struct FilterList: View {
     /// ⌫ on an empty field, or Esc: back a page. Without it Esc goes on to close the panel.
     var back: (() -> Void)?
     var rowHeight: CGFloat = 26
+    /// Off for the workspace menu a drag holds open: the drag's keyboard card keeps the keys.
+    var autofocus = true
     /// After a row acted or the field's text was submitted.
     let done: () -> Void
     @State private var filter = ""
@@ -71,7 +73,7 @@ struct FilterList: View {
         let index = current(items)
         VStack(alignment: .leading, spacing: 2) {
             FilterField(prompt: prompt, text: $filter, identifier: "\(name).filter", symbol: fieldSymbol,
-                        autofocus: true)
+                        autofocus: autofocus)
                 // Here, not onSubmit: a field's submit action is not refreshed when only the index changes, so ↓
                 // Enter took the first row. Each handler reads the rows and the index as they are now.
                 .onKeyPress(.return) {
@@ -135,7 +137,7 @@ struct FilterList: View {
                                     }
                                 }
                                 #if os(macOS)
-                                .modifier(MenuRowDrop(drop: item.drop))
+                                .modifier(MenuRowDrop(target: item.drop))
                                 // The light follows the pointer, as in a menu (user, phase 24).
                                 .onContinuousHover { phase in
                                     guard case .active = phase, NSEvent.mouseLocation != pointer else { return }

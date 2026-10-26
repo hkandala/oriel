@@ -281,7 +281,9 @@
     }
 
     /// The workspace button's menu: every workspace of every page of the window under its session's header, with
-    /// its branch; a typed name that matches none to make in the page in view, New Workspace and Open Session.
+    /// its branch; a typed name that matches none to make in the page in view, New Workspace and Open Session. With the
+    /// sidebar collapsed it is there, hidden, through every drag of the page in view, until a hold over the button
+    /// opens it: macOS 27 finds no drop target added after the drag entered the window (the rows take drops).
     struct WorkspaceMenu: View {
         let pages: WindowPages
         let page: Page
@@ -292,11 +294,11 @@
             let rows = pages.list.flatMap { page in page.store.workspaces.map { (page, $0) } }
             FilterList(prompt: "Filter or create…", name: "workspaces", items: items,
                        start: rows.firstIndex { $0.0 === page && $0.1.id == page.selectedWorkspaceID } ?? 0,
-                       maxHeight: 340) { open = false }
+                       maxHeight: 340, autofocus: page.dragging == nil) { open = false }
                 .padding(8)
                 .frame(width: 300)
                 .floatingGlass(in: .rect(cornerRadius: 12))
-                // Opened by a drag held over the button: it closes with the drag.
+                // It closes with the drag.
                 .clearsDrop(page) { open = false }
         }
 
@@ -309,7 +311,8 @@
                                     title: workspace.label,
                                     detail: workspace.git?.branch ?? "", section: page.id,
                                     // The page in view's drag: a pane or a tab goes there.
-                                    drop: page === self.page ? (page, workspace.id) : nil, act: {
+                                    drop: page === self.page ? MenuRowDrop.Target(page: page, workspaceID: workspace.id,
+                                                                                  shown: open) : nil, act: {
                                         pages.show(page)
                                         page.select(workspace)
                                     })
