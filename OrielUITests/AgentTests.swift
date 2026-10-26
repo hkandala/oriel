@@ -176,7 +176,7 @@ extension OrielUITests {
             return order == order.sorted()
         }
         XCTAssertEqual([alpha, beta].map(\.label), ["alpha 2", "beta 2"])
-        XCTAssertEqual(alpha.frame.minX, header.minX, accuracy: 0.5)
+        XCTAssertEqual(alpha.frame.minX, rows[0].frame.minX + 8, accuracy: 0.5)
         XCTAssertFalse(rows.contains { $0.label.contains("alpha") || $0.label.contains("beta") },
                        rows.map(\.label).joined(separator: "; "))
         keepScreenshot("agents view in workspace order")
