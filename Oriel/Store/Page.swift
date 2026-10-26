@@ -268,8 +268,7 @@
         func step(_ offset: Int) {
             guard let workspace = selectedWorkspace, !workspace.tabs.isEmpty else { return }
             let tabs = workspace.tabs
-            let index = tabs.firstIndex { $0.id == selectedTabIDs[workspace.id] } ?? 0
-            selectedTabIDs[workspace.id] = tabs[(index + offset + tabs.count) % tabs.count].id
+            selectedTabIDs[workspace.id] = tabs[(selectedIndex(in: workspace) + offset + tabs.count) % tabs.count].id
         }
 
         /// The sidebar's order: each workspace, its worktrees right after it.

@@ -43,7 +43,7 @@
             let hidden = (leading: visible.lowerBound > 0.5, trailing: visible.upperBound < content - 0.5)
             // Pages floor(x/w) through ceil((x+w)/w) − 1, that is floor(page)...ceil(page). With no strip under the
             // overview, the selected tab's.
-            let place = overview ? Double(selected) : page.stripPage
+            let place = overview ? Double(page.selectedIndex(in: workspace)) : page.stripPage
             let lit = Int(place.rounded(.down)) ... Int(place.rounded(.up))
             ScrollViewReader { proxy in
                 ScrollView(.horizontal) {
@@ -163,40 +163,33 @@
             }
         }
 
-        private var selected: Int {
-            workspace.tabs.firstIndex { $0.id == page.selectedTabIDs[workspace.id] } ?? 0
-        }
-
         /// The look's pill on the page in view, between two tabs while the strip is between their pages: it slides
         /// with a swipe or a wheel turn and jumps on any other switch, as the strip does. None under the overview: it
         /// fades in on the tab shown once the strip is back; it showed on the tab selected before for the zoom's
         /// 0.18 s, then jumped (user, phase 31).
         private func marker(_ place: Double, count: Int) -> some View {
-            Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
+            let place = min(max(place, 0), Double(max(count - 1, 0))), selected = page.selectedIndex(in: workspace)
+            let rest = !overview && place == place.rounded()
+            let astray = rest && Int(place) != selected ? "pill \(place) \(selected)" : ""
+            return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
                 .frame(width: Self.width, height: Self.height - 2 * Self.inset)
-                .modifier(Marker(shown: overview ? 0 : 1, place: min(max(place, 0), Double(max(count - 1, 0))),
-                                 selected: selected))
+                .opacity(overview ? 0 : 1)
+                .offset(x: place * (Self.width + 1))
                 .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18), value: overview)
                 .allowsHitTesting(false)
+                // e2e (`-recordLatency YES`): "pill <place> <selected>" when it shows at rest on another tab.
+                .onChange(of: astray) {
+                    if !$1.isEmpty {
+                        Latency.shared.note($1)
+                    }
+                }
         }
     }
 
-    /// The pill's opacity and place (in tabs), animatable: e2e (`-recordLatency YES`) notes each frame it shows on a
-    /// tab at rest that is not the selected one ("pill <place> <selected>").
-    private struct Marker: ViewModifier, Animatable {
-        var shown: Double
-        var place: Double
-        let selected: Int
-        var animatableData: AnimatablePair<Double, Double> {
-            get { AnimatablePair(shown, place) }
-            set { (shown, place) = (newValue.first, newValue.second) }
-        }
-
-        func body(content: Content) -> some View {
-            if Latency.isOn, shown > 0, place == place.rounded(), Int(place) != selected {
-                Task { @MainActor [place, selected] in Latency.shared.note("pill \(place) \(selected)") }
-            }
-            return content.opacity(shown).offset(x: place * (TabBar.width + 1))
+    extension Page {
+        /// The workspace's selected tab's index, 0 when none.
+        func selectedIndex(in workspace: HostStore.Workspace) -> Int {
+            workspace.tabs.firstIndex { $0.id == selectedTabIDs[workspace.id] } ?? 0
         }
     }
 #endif

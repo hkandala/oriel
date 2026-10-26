@@ -265,7 +265,7 @@
             Latency.shared.slid(offset, "page")
             if let landing, abs(offset - landing.offset) < 1 {
                 self.landing = nil
-                Latency.shared.shown(session: false)
+                Latency.shared.shown()
                 landing.land()
             }
         }
@@ -310,7 +310,7 @@
         /// to 15k pt/s in two frames after a slow lift, a page in four (capture F, phase 31): it looked cut.
         private static func slide(_ speed: Double, _ distance: Double) -> Animation {
             let toward = max(distance < 0 ? -speed : speed, 0), length = max(abs(distance), 1)
-            let duration = toward > 0 ? min(0.28, 2 * length / toward) : 0.28
+            let duration = min(0.28, 2 * length / toward)
             return .timingCurve(1 / 3, toward * duration / length / 3, 2 / 3, 1, duration: duration)
         }
     }

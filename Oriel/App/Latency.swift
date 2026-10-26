@@ -164,12 +164,12 @@
         /// The swipe's session is about to show; its own record, as a key's, gives the time to the turn whose commit
         /// drew it ("session 40ms 0 40ms", phase 30). One record waits at a time: a key during the switch takes its
         /// place.
-        /// `session` false: a strip's or the overview's landing (`Paging`), only its time in the slide's record.
-        func shown(session: Bool = true) {
-            if let (lifted, _) = lifted {
+        /// A strip's or the overview's landing ("page", `Paging`) has only its time in the slide's record.
+        func shown() {
+            if let (lifted, name) = lifted {
                 let now = ProcessInfo.processInfo.systemUptime
                 shownAt = Int((now - lifted) * 1000)
-                if session {
+                if name == "swipe" {
                     pending = Pending(name: "session", time: now, state: state)
                 }
             }
