@@ -28,7 +28,7 @@ extension OrielUITests {
         key("[", [.command, .control]) { self.element("workspace.w1").isSelected }
         key("]", [.command, .option]) { self.header == self.two }
         key("[", [.command, .option]) { self.header == self.one }
-        // Half a page: the slide does the rest ("swipe 230ms …", from the fingers' lift to its last step).
+        // Half a page: XCUITest's scroll is a sideways wheel's, which turns a page.
         let sidebar = element("sidebar"), name = element("sidebar.header")
         try await swipe(sidebar, by: sidebar.frame.width / 2, until: name, \.stringValue, two)
         try await Task.sleep(for: .seconds(1))
@@ -40,8 +40,6 @@ extension OrielUITests {
         for entry in keys {
             XCTAssertEqual(entry.turns, 0, entry.name)
         }
-        // From the lift to rest; its time is for the record (CI's runners differ by 2x): the system's snap took 217 ms.
-        XCTAssertGreaterThanOrEqual(recorded().count { $0.name == "swipe" }, 2)
     }
 
     /// ⌘T, ⌘D, ⌘W and ⇧⌘W show their change in the key's turn or the next: herdr catches up after (`Ahead`).

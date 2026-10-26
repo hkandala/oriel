@@ -34,6 +34,8 @@
             if event.phase.isEmpty, event.momentumPhase.isEmpty {
                 return wheel(event, sideways: abs(deltaX) > abs(deltaY) ? deltaX : 0)
             }
+            Latency.shared.note("ev \(event.phase.rawValue)/\(event.momentumPhase.rawValue) "
+                + "\(Int(event.timestamp * 1000) % 100_000) \(deltaX) \(Int(speed))")
             if event.phase == .began {
                 picked = false
                 target = nil
