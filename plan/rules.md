@@ -1,33 +1,8 @@
 # Working rules
 
-## Roles
-
-For phases 10–21, `plan/execution.md` replaces Roles and Phase loop below.
-
-- **Orchestrator** (the main agent): writes the plan, starts implementers and reviewers,
-  relays review comments, checks the GUI, decides when a phase is done. Does not write app
-  code.
-- **Implementer** (one per phase, one at a time): writes code, tests and commits. Answers
-  every review comment with a fix or a one-line reason.
-- **Reviewers** (2–3 per round, read only): never edit files or commit. They report findings
-  as a numbered list with file:line, severity (blocker / should / nit) and a concrete fix.
-
-## Phase loop
-
-1. Implementer reads `plan/README.md`, `plan/standards.md`, this file, the phase file and
-   the design pages the phase links. Then builds the phase, commits as it goes, and reports
-   what it did, how it tested, and screenshots of the GUI (paths).
-2. Reviewers check in parallel:
-   - **Spec**: does the code match the phase file and the design? Bugs, races, leaks,
-     error paths, herdr safety rules.
-   - **Ponytail**: what can be deleted or simplified? Unneeded types, files, abstractions,
-     dependencies. Uses the ponytail-review skill
-     (`/Users/hkandala/code/pi-hkandala/extensions/pi-ponytail/skills/ponytail-review/SKILL.md`).
-   - **E2E / GUI** (from phase 3): builds and runs the app against a throwaway session,
-     drives it, takes screenshots, tries to break it. Runs the e2e suite.
-3. Orchestrator merges the findings and sends them to the implementer.
-4. Repeat until no blockers and no "should" items remain. Then the implementer pushes and
-   CI must be green.
+Roles and the phase loop are in [workflow.md](workflow.md) and [execution.md](execution.md). Reviewers are
+read only: they never edit files or commit, and report a numbered list with file:line, severity (blocker /
+should / nit) and a concrete fix.
 
 ## Commits
 
@@ -44,13 +19,19 @@ For phases 10–21, `plan/execution.md` replaces Roles and Phase loop below.
   `make e2e`, `make run`). If you need a new command, add a target.
 - Concurrent agents must not share DerivedData: pass `DERIVED_DATA=/tmp/oriel-dd-<agent-name>`
   (the Makefile honors it).
-- Only one agent drives the GUI at a time (XCUITest and manual runs take over the real
-  mouse and keyboard). Take the GUI lock before any GUI driving (running the app and
-  clicking, screenshots that need the app frontmost, `make e2e`), and release it right
-  after: `until mkdir /tmp/oriel-gui.lock 2>/dev/null; do sleep 20; done; echo "$NAME" >
-  /tmp/oriel-gui.lock/owner` … `rm -rf /tmp/oriel-gui.lock`. Hold it for minutes, not hours.
-  If a lock is older than 30 minutes, ask the orchestrator before removing it. For phases 10–21 the GUI
-  budget in `plan/execution.md` says who may run what, and how often. Never send keys with `osascript`.
+- Only one agent drives the GUI at a time (XCUITest and manual runs take over the real mouse and keyboard).
+  Take the GUI lock before any GUI driving (running the app and clicking, screenshots that need the app
+  frontmost, `make e2e`, `make strip-check`) and release it in the same command, also on failure:
+
+  ```sh
+  ( mkdir /tmp/oriel-gui.lock || exit 1; trap 'rm -rf /tmp/oriel-gui.lock' EXIT
+    echo "$NAME $(date +%H:%M)" > /tmp/oriel-gui.lock/owner; make e2e ONLY=… )
+  ```
+
+  If the lock is there, do not wait in a loop: work on, and try again later. Hold it for one run, at most
+  10 minutes. Never remove another agent's lock or the user's (owner "user"). The GUI budget in
+  [execution.md](execution.md#gui-budget-the-user-works-on-this-mac) says who may run what, and how often.
+  Never send keys with `osascript`.
 - Screenshots: `screencapture -x -l <windowid> <file>` for the app window, or the
   attachments in the `.xcresult`. Put the ones you report in `/tmp/oriel-shots/`.
 
@@ -63,7 +44,13 @@ For phases 10–21, `plan/execution.md` replaces Roles and Phase loop below.
   (`herdr session stop`, `herdr session delete`). `scripts/` has helpers.
 - When running the app by hand against a real session, launch it with the throwaway session
   selected (`-session oriel-dev-<agent>` launch argument), never `default`.
-- Vercel: the docs deploy only through `.github/workflows/docs-deploy.yml` and the `oriel`
-  project. Vercel's own git deploys are off (`docs/vercel.json`): with them on, every
-  push to main deployed (81 a day) and hit the free plan's 100 deploys a day. Run the `vercel` CLI only from the repo root (linked to `oriel`): in another folder,
-  `vercel pull --yes` silently creates and links a new project.
+- Remote machines: tests use CI's sshd on localhost (`scripts/ci-sshd.sh`). Never connect to the user's
+  remote hosts.
+
+## Docs site
+
+- The docs deploy only through `.github/workflows/docs-deploy.yml` and the Vercel project `oriel`.
+  Vercel's own git deploys are off (`docs/vercel.json`): with them on, every push to main deployed (81 a
+  day) and hit the free plan's 100 deploys a day.
+- Run the `vercel` CLI only from the repo root (linked to `oriel`). In another folder, `vercel pull --yes`
+  creates and links a new project without asking.

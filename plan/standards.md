@@ -45,12 +45,12 @@ before writing code. In short:
 - Glass: the window background is one behind-window `NSVisualEffectView` under a tint (the
   only blur bridge to AppKit). Classic: an opaque window background, no blur. Pane cards are
   never glass.
-- Use the system glass APIs (`glassEffect`, `glassEffectID`, `GlassEffectContainer`). No
-  other custom blur.
+- Use the system glass APIs (`glassEffect`, `glassEffectID`, `GlassEffectContainer`) and system
+  materials (floating panels put the glass over `.regularMaterial`). No other custom blur.
 - Every control and region an e2e test touches has an `accessibilityIdentifier`
   (`titlebar.machine`, `tab.<tab_id>`, `pane.<pane_id>`, ...).
-- No hardcoded sizes where layout can decide; the 8 pt gap between cards is the one fixed
-  number (design: Layout and sizing).
+- No hardcoded sizes where layout can decide. The fixed sizes are Rex's measured ones (the 46 pt title
+  row, 220 pt tabs, the 8 pt gap between cards), written down in the design pages.
 
 ## herdr
 
@@ -68,7 +68,8 @@ before writing code. In short:
   `session.snapshot`), not through pixels. Exception: the empty strip shows only with no
   accessibility client, so `make strip-check` drives the app by key events and reads a window capture.
 - Unit tests (`swift test` in `Packages/HerdrKit`) only for logic with branches: decoding,
-  split-tree rebuild, pacing, envelope/argv building, frame parsing. Recorded herdr JSON
-  fixtures live next to the tests.
+  split-tree rebuild, pacing, envelope/argv building, frame parsing, git status, SSH argv. Recorded herdr
+  JSON fixtures live next to the tests. App logic that no UI test can drive gets a small check script
+  that `make test` runs (`scripts/three-fingers-check.swift`).
 - No mocks of herdr where the real one is cheap to run. One `Exec` fake is fine for pacing
   tests.
