@@ -100,21 +100,20 @@ extension OrielUITests {
         relaunch(nil, ["-recordLatency", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (first, root) = try await createWorkspace("loads")
-        let second = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: first), "cwd": "/tmp",
-                                                             "focus": false])
+        let second = try await createTab(in: workspace(of: first))
         // A 3 × 3 grid each: halving one pane eight times left cards too small to draw a row at CI's 1x.
-        for pane in try [root, id(second, "root_pane")] {
+        for pane in [root, second.pane] {
             let middle = try await split(pane), right = try await split(middle)
             for column in [pane, middle, right] {
                 _ = try await split(split(column, "down"), "down")
             }
         }
         app.typeKey("o", modifierFlags: [.command, .control])
-        let tile = try element("overview.tab.\(id(second, "tab"))")
+        let tile = element("overview.tab.\(second.tab)")
         scrollOverview(to: tile)
         // One waits for the other's cards to draw, with a loader meanwhile (recorded: CI's queries are too slow to see
         // it).
-        let tabs = try [first, id(second, "tab")], loaders = tabs.map { element("overview.tab.\($0).loading") }
+        let tabs = [first, second.tab], loaders = tabs.map { element("overview.tab.\($0).loading") }
         // Every card drew: no loader left (one query each, not one per card: CI's queries are slow).
         XCTAssertTrue(until(30) { !loaders.contains { $0.exists } })
         let record = element("app.latency").stringValue
@@ -151,8 +150,7 @@ extension OrielUITests {
         app.typeKey("[", modifierFlags: [.command, .option])
         XCTAssertTrue(until(3) { header == one })
         // A tab of session two no card showed, with the id of one of session one's (w1:t2): it draws live there.
-        let created = try await Self.call(two, "tab.create", ["workspace_id": "w1", "cwd": "/tmp", "focus": false])
-        let tab = try id(created, "tab"), pane = try id(created, "root_pane")
+        let (tab, pane) = try await createTab(in: "w1", session: two)
         addTeardownBlock { [two] in _ = try? await Self.call(two, "tab.close", ["tab_id": tab]) }
         let block = "clear; for i in 1 2 3 4 5 6 7 8 9 10; do printf '\\033[107m%300s\\033[0m\\n' ''; done"
         try await Self.call(two, "pane.send_text", ["pane_id": pane, "text": "\(block)\r"])

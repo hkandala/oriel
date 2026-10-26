@@ -49,8 +49,7 @@ extension OrielUITests {
     /// Every card of the tab drew herdr's frames.
     private func drawn(_ panes: [String]) {
         for pane in panes {
-            let card = element("pane.\(pane)")
-            XCTAssertTrue(until(5) { card.exists && !card.stringValue.contains("loading") }, "\(pane) drew")
+            XCTAssertTrue(drawn(pane), "\(pane) drew")
         }
     }
 

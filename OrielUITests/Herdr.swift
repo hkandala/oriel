@@ -63,6 +63,16 @@ extension OrielUITests {
                                                    "focus": false]), "pane")
     }
 
+    /// A tab in herdr (in /tmp, labelled when `label` is given): its id and its pane's.
+    func createTab(in workspace: String, label: String? = nil,
+                   session: String? = nil) async throws -> (tab: String, pane: String)
+    {
+        var params: [String: Any] = ["workspace_id": workspace, "cwd": "/tmp", "focus": false]
+        params["label"] = label
+        let created = try await Self.call(session ?? one, "tab.create", params)
+        return try (id(created, "tab"), id(created, "root_pane"))
+    }
+
     /// A workspace of its own, closed after the test: its tab's id and its pane's.
     func createWorkspace(_ label: String, cwd: String = "/tmp") async throws -> (tab: String, pane: String) {
         let created = try await Self.call(one, "workspace.create", ["label": label, "cwd": cwd, "focus": false])

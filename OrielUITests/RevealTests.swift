@@ -195,8 +195,7 @@ extension OrielUITests {
     /// Creates `count` tabs in w1 and shows each, so the cards shown before are out of view.
     private func showNewTabs(_ count: Int) async throws {
         for index in 0 ..< count {
-            let created = try await Self.call(one, "tab.create", ["workspace_id": "w1", "cwd": "/tmp", "focus": false])
-            let tab = try id(created, "tab"), pane = try id(created, "root_pane")
+            let (tab, pane) = try await createTab(in: "w1")
             closeAfter("tab", tab)
             XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
             app.typeKey("\(index + 3)", modifierFlags: .command)
@@ -248,9 +247,9 @@ extension OrielUITests {
 
     /// The card drew at its size (", loading" until then): one that still attaches resizes the pane after a fill's
     /// lines, and bash redraws its prompt over the last one (CI 40319705774: 59, then the prompt).
-    private func drawn(_ pane: String) -> Bool {
+    func drawn(_ pane: String, within timeout: TimeInterval = 5) -> Bool {
         let card = element("pane.\(pane)")
-        return until(5) { card.exists && !card.stringValue.hasSuffix(", loading") }
+        return until(timeout) { card.exists && !card.stringValue.hasSuffix(", loading") }
     }
 
     /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with

@@ -231,9 +231,7 @@ extension OrielUITests {
     /// A new tab (closed after the test), its workspace selected so its capsule shows: its id and
     /// its pane's. By default in w2, another workspace than the one selected at launch.
     func newTab(_ label: String, in workspace: String = "w2") async throws -> (tab: String, pane: String) {
-        let created = try await Self.call(one, "tab.create", ["workspace_id": workspace, "label": label,
-                                                              "cwd": "/tmp", "focus": false])
-        let tab = try id(created, "tab"), pane = try id(created, "root_pane")
+        let (tab, pane) = try await createTab(in: workspace, label: label)
         closeAfter("tab", tab)
         let row = element("workspace.\(workspace)")
         if !row.isSelected {
@@ -258,8 +256,7 @@ extension OrielUITests {
         let workspace = workspace(of: tab)
         var tabs = [tab]
         for _ in 1 ..< count {
-            try await tabs.append(id(Self.call(one, "tab.create", ["workspace_id": workspace, "cwd": "/tmp",
-                                                                   "focus": false]), "tab"))
+            try await tabs.append(createTab(in: workspace).tab)
         }
         let row = element("workspace.\(workspace)")
         XCTAssertTrue(row.exists(within: 3))

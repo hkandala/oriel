@@ -35,9 +35,7 @@ extension OrielUITests {
         let (tabs, first) = try await newWorkspace("spring")
         let tab = tabs[0]
         let second = try await split(first)
-        let created = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: tab), "label": "other",
-                                                              "cwd": "/tmp", "focus": false])
-        let other = try id(created, "tab"), third = try id(created, "root_pane")
+        let (other, third) = try await createTab(in: workspace(of: tab), label: "other")
         let capsule = element("tab.\(other)")
         XCTAssertTrue(capsule.exists(within: 3))
         XCTAssertTrue(element("pane.\(second)").exists(within: 3))
@@ -301,8 +299,7 @@ extension OrielUITests {
     private func movingTab() async throws -> (tab: String, terminal: String) {
         let (tabs, first) = try await newWorkspace("tabs", tabs: 2)
         let tab = tabs[0], second = try await split(first)
-        _ = try await Self.call(one, "pane.split", ["target_pane_id": second, "direction": "down", "cwd": "/tmp",
-                                                    "focus": false])
+        try await split(second, "down")
         try await Self.call(one, "layout.set_split_ratio", ["tab_id": tab, "path": [Bool](), "ratio": 0.3])
         try await Self.call(one, "layout.set_split_ratio", ["tab_id": tab, "path": [true], "ratio": 0.7])
         try await Self.call(one, "tab.rename", ["tab_id": tab, "label": "moving"])

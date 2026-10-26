@@ -10,9 +10,7 @@ extension OrielUITests {
         let sleep = try await split(vim), nano = try await split(sleep)
         var tabs: [(tab: String, pane: String)] = []
         for label in ["pager", "logs", "agent"] {
-            let tab = try await Self.call(one, "tab.create", ["workspace_id": workspace, "label": label,
-                                                              "cwd": "/tmp", "focus": false])
-            try tabs.append((id(tab, "tab"), id(tab, "root_pane")))
+            try await tabs.append(createTab(in: workspace, label: label))
         }
         // Not top: it is setuid root, and herdr then sees no foreground process. macOS's nano is pico.
         let commands = [(vim, "vim", ["vim"]), (sleep, "sleep 600", ["sleep"]), (nano, "nano", ["nano", "pico"]),

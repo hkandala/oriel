@@ -33,8 +33,7 @@ extension OrielUITests {
         XCTAssertTrue(terminal.exists(within: 10))
         try await expect("one stream again") { try await streams(five).count == 1 }
         // Live updates are back: a tab made in herdr shows up.
-        let tab = try await id(Self.call(five, "tab.create", ["workspace_id": workspace, "label": "back",
-                                                              "cwd": "/tmp", "focus": false]), "tab")
+        let tab = try await createTab(in: workspace, label: "back", session: five).tab
         XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
     }
 

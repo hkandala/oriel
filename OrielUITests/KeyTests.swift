@@ -110,9 +110,7 @@ extension OrielUITests {
         let (first, second) = try newWindow()
         var tabs: [String] = []
         for (window, label) in [(first, "key-first"), (second, "key-second")] {
-            let created = try await Self.call(one, "tab.create", ["workspace_id": "w2", "label": label, "cwd": "/tmp",
-                                                                  "focus": false])
-            let tab = try id(created, "tab")
+            let tab = try await createTab(in: "w2", label: label).tab
             closeAfter("tab", tab)
             raise(window)
             element("workspace.w2", in: window).click()

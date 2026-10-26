@@ -245,8 +245,6 @@ extension OrielUITests {
 
     /// herdr's viewport of the pane, in lines from the bottom.
     private func scrollOffset(_ pane: String) async throws -> Int {
-        let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
-        let scroll = panes.first { $0["pane_id"] as? String == pane }?["scroll"] as? [String: Any]
-        return try field(scroll?["offset_from_bottom"], "\(pane)'s scroll offset")
+        try await field((self.pane(pane)["scroll"] as? [String: Any])?["offset_from_bottom"], "\(pane)'s scroll offset")
     }
 }
