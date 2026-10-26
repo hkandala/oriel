@@ -336,3 +336,44 @@ Capture F: `/Users/hkandala/Library/Application Support/scrawl/captures/scrawl-1
   5a38d2b, the lane's last code commit): shards 0–3 green, both lane M tests and `testSwitchingTabsShowsTheirPageAtOnce`
   green; red only `testLayoutMotionAnimatesWithoutBlanking` (RevealTests, its `fill` step: a pane read timed out with
   the text on the pane, not paging or the pill). The push runs on 5a38d2b were cancelled by later pushes.
+
+### Lane K (item 13)
+
+- **Root cause, ⌃⇥ steps panes.** The key monitor ran a second key (⌃⇥ ⌃⇧⇥ ⇧⌘P ⌘=) through the NSMenu item of its
+  first and let the key go on when that item was disabled (Show Next Tab in a workspace of one tab, or a menu bar not
+  yet updated after a change) or a text field had the keyboard. AppKit then moved the first responder to the next
+  terminal (its key view loop): the keyboard stepped the panes. Reproduced locally (one tab, two panes: ⌃⇥ moved the
+  keyboard). Now a matched second key in an Oriel window is always taken: its first's command runs when enabled, on
+  the key window's own list; in a text field ⌃⇥ does nothing. The NSMenu walk went.
+- **Root cause, a key acts on another window.** The menu bar's actions are closures of the focused value's
+  `CommandList`, which can be another window's (SwiftUI updates it after a switch; an equal value keeps the old one and
+  its closures). Every keyed menu item now runs the key window's command for that key, made when the key is pressed
+  (`CommandList.keyWindow`: a holder view per window, put in by `menuBar`, so main and floating windows alike). A key
+  the menu bar missed (a floating window's list has no ⌘D; ⌘4 when the other window had three tabs) runs the key
+  window's command from `PaneSurfaceView.keyDown`'s ⌘ branch before it beeps. No window: the menu's own action (⌘N);
+  behind a sheet: nothing.
+- **Every path, checked.** Menu key equivalents (now to the key window's list), the second-key monitor (key window's
+  list, always taken), the terminal's ⌘ fallback (key window's list), `herdrKey` (⌃⇥ no longer reaches it in an Oriel
+  window), floating windows (their own list; ⌃⇥ there does nothing instead of going to the program), panels and the
+  palette (overlays in the window: its list), the overview's and hover card's Esc monitors (unchanged). Nothing acts
+  twice: the monitor swallows what it runs, and the terminal's fallback runs only for keys no menu item took.
+- **Left.** A stale menu item that is disabled while the key window's command is enabled still swallows the key for
+  that moment (AppKit matches the disabled item; nothing runs, never on the wrong window). Fixing it would take every
+  Oriel key into the monitor and AppKit's layout-aware matching with it.
+- **Tests.** `testControlTabStepsTabsNeverPanes` (three rounds of ⌃⇥ / ⌃⇧⇥ in t1's three panes, the keyboard stays on
+  its card; a workspace of one tab and two panes, each way on its own: the keyboard does not move; red on the old
+  code). `testCommandDSplitsInTheKeyWindowOnly` (two windows on two tabs, ⌘D after ⌘` four times each, the last two
+  with no wait: only the key window's tab splits). The latter is a guard, not a repro: it is green on the old code too
+  (XCUITest waits for idle between keys, so SwiftUI has updated the focused value by then).
+- **Reviews (one round).** Ponytail: shorter AppCommands wrapper and ⌘D test, docs trims (taken); a single ⌃⇥ round
+  (not taken: the user asked to repeat); two presses in the one-tab case (taken, then each way checked on its own:
+  a step and a step back cancel out with two panes). Spec: the missed-key fallback (fixed), the test as a guard (said
+  above), nothing behind a sheet (taken), docs.
+- **CI.** Ad-hoc 40310889574 on c345822 (the new and nearby key tests green). Full suite 40312185348 on 72f0e28, the
+  lane's last code commit: green. Local single runs: both new tests, `testSecondShortcuts`,
+  `testEachFloatingWindowsKeysActOnItsOwnPane`, `testTabContextMenuRenamesAndMoves`,
+  `testSplitsGiveTheNewPaneTheKeyboardAndKeysFollowTheTree`.
+- **For the user to check by hand:** ⌃⇥ / ⌃⇧⇥ in a workspace of one tab with splits (nothing moves) and in one of
+  several (tabs step, the keyboard stays on its card), also with the palette or a rename field open (nothing moves);
+  two windows: click one, ⌘D at once, then the other, a few times; a floating window key, click the main window and
+  ⌘D at once.
