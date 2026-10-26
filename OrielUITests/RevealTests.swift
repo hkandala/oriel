@@ -110,6 +110,7 @@ extension OrielUITests {
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             try await expectJump(tab, pane)
         }
+        XCTAssertTrue(drawn(pane))
         try await fill(pane)
         try await expectText([pane], "filled")
         let steps: [(String, () async throws -> Void)] = [
@@ -248,6 +249,13 @@ extension OrielUITests {
 
     /// Under Reduce Motion (CI's Mac) the card jumps to its new size in one step; then the app launches again with
     /// motion forced on.
+    /// The card drew at its size (", loading" until then): one that still attaches resizes the pane after a fill's
+    /// lines, and bash redraws its prompt over the last one (CI 40319705774: 59, then the prompt).
+    private func drawn(_ pane: String) -> Bool {
+        let card = element("pane.\(pane)")
+        return until(5) { card.exists && !card.stringValue.hasSuffix(", loading") }
+    }
+
     private func expectJump(_ tab: String, _ pane: String) async throws {
         let host = element("host.\(pane)")
         XCTAssertTrue(host.exists(within: 3))
@@ -275,12 +283,6 @@ extension OrielUITests {
 
     /// Lines of text in the pane, so an empty card is plain to see.
     func fill(_ pane: String) async throws {
-        // A shown card that still attaches resizes the pane after the lines, and bash redraws its prompt over the last
-        // one (CI 40319705774: 59, then the prompt). Its value says ", loading" until herdr drew at its size.
-        let card = element("pane.\(pane)")
-        if card.exists(within: 1) {
-            XCTAssertTrue(until(5) { !card.stringValue.hasSuffix(", loading") }, card.stringValue)
-        }
         try await waitForPrompt(pane)
         try await send("clear; for i in $(seq 1 60); do echo oriel-reveal-$i-oriel-reveal; done\r", to: pane)
         try await waitFor(pane) { $0.contains("oriel-reveal-60-oriel-reveal") }
