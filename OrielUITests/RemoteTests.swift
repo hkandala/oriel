@@ -98,6 +98,7 @@ extension OrielUITests {
         XCTAssertTrue(element("detail.connect").vanishes(within: 1))
         XCTAssertTrue(element("ask.answer").exists(within: connect))
         XCTAssertFalse(element("detail.connecting").exists)
+        XCTAssertFalse(element("detail.connect").exists)
         try typePassword()
         XCTAssertTrue(element("detail.connecting").exists(within: 2))
         XCTAssertFalse(element("detail.connect").exists)

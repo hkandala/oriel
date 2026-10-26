@@ -59,6 +59,11 @@ final class HostStore {
         var showsGit: Bool {
             windows.contains { $0.visible && $0.current?.store === self }
         }
+
+        /// `connect` runs, and how many began: an error from before it, whose session list waited for its start, does
+        /// not show.
+        @ObservationIgnored private var connecting = false
+        @ObservationIgnored private var connects = 0
     #endif
     @ObservationIgnored private(set) var client: (any Multiplexer)?
     @ObservationIgnored private var task: Task<Void, Never>?
@@ -107,7 +112,8 @@ final class HostStore {
         /// window that connects (machines#health-check: only this may prompt). The page shows Connecting from the click
         /// until the session answers (user, phase 30).
         func connect(in pages: WindowPages) async {
-            guard let ssh = await machine.exec() as? SSHExec else { return }
+            // A second click joins the first.
+            guard machine.isRemote, !connecting else { return }
             connecting = true
             connects += 1
             if case .failed = state {
@@ -115,22 +121,19 @@ final class HostStore {
             }
             var failure: Error?
             do {
-                try await ssh.connect { question in await pages.ask(question) }
+                try await (machine.exec() as? SSHExec)?.connect { question in await pages.ask(question) }
+            } catch HerdrError.disconnected {
+                // The Disconnected page says it.
             } catch {
                 failure = error
             }
             connecting = false
-            // Its answer ends Connecting; the notice's 4 s do not hold it.
+            // The read's answer ends Connecting now; the notice's 4 s do not hold it.
             await client?.refresh()
             if let failure {
                 await show(Notice(text: failure.localizedDescription))
             }
         }
-
-        /// `connect` runs, and how many began: runs that wait for its start fail with the old "Disconnected", which
-        /// does not show.
-        @ObservationIgnored private var connecting = false
-        @ObservationIgnored private var connects = 0
 
         /// Follows the session until the task is cancelled. A failed start says why, then connects anyway: the page
         /// shows "not running" with Start.

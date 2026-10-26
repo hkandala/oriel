@@ -55,13 +55,12 @@ struct Notice {
             let store = page.store
             let machine = store.name
             switch store.state {
-            // ssh's question replaces it while it is up.
-            case .connecting where pages.question == nil:
-                // After 0.3 s, so a fast connect shows nothing.
-                Waiting(text: "Connecting to \(machine)", delay: .milliseconds(300))
-                    .accessibilityIdentifier("detail.connecting")
             case .connecting:
-                EmptyView()
+                // After 0.3 s, so a fast connect shows nothing; ssh's question replaces it while it is up.
+                if pages.question == nil {
+                    Waiting(text: "Connecting to \(machine)", delay: .milliseconds(300))
+                        .accessibilityIdentifier("detail.connecting")
+                }
             case .failed(.notFound):
                 message(store.machine.isRemote ? "herdr is not installed on \(store.machine.name)"
                     : "herdr is not installed", "Install it in a terminal:",

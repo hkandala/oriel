@@ -138,8 +138,10 @@ description: "What a machine is, its sessions, macOS and iOS connections, the he
   - Every answer is hidden: a password, a passphrase, a one-time passcode or
     any other code. Only the host key question has no field.
   - The page shows Connecting from the click until the session answers,
-    except while a question is up ([States](/docs/ui/states)).
-  - Cancel ends the start; the page goes back to Disconnected.
+    except while a question is up ([States](/docs/ui/states)). A start that
+    asks has no time limit (a 2FA push may wait a minute after its answer),
+    so a login that hangs without asking shows Connecting until ssh gives up.
+  - Cancel ends the start; the page shows Disconnected.
   - A `none` question (a security key's touch) gets no dialog.
   - Why not the `osascript` dialog the design had: the app's dialog belongs to
     the window that asked, follows the app's look, and an e2e test can answer

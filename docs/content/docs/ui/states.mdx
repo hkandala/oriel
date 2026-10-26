@@ -11,7 +11,7 @@ is empty.
 | State | What the user sees |
 |---|---|
 | herdr not installed on This Mac (macOS) | how to install herdr, in a window on This Mac; remote machines work without it |
-| Connecting | "Connecting to ‹machine›" with a spinner, after 0.3 s, so a fast connect shows nothing. Also from a click on **Connect** (or Add Remote Host) until the session answers; ssh's question replaces it while it is up |
+| Connecting | "Connecting to ‹machine›" with a spinner, after 0.3 s, so a fast connect shows nothing. Also from a click on **Connect** (or Add Remote Host) until the session answers; ssh's question replaces it while it is up, and it shows again 0.3 s after the answer |
 | herdr missing on a remote machine | "herdr is not installed on ‹machine›" and the install command |
 | herdr older than 0.9.3 | "herdr is too old" over "herdr ‹version› is too old; 0.9.3 or newer needed." The app asks herdr again every 2 s, so the page clears by itself after an update. Before 0.9.1 (no `remote-api-bridge`) the first call fails: "‹session› is not running" with **Start**, or Reconnecting |
 | A card's terminal stream failed (for example herdr updated but not restarted: the API works, terminal streams fail) | herdr's error text and **Retry** in the card |
