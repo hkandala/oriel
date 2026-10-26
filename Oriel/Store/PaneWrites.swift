@@ -11,15 +11,17 @@ extension HostStore {
     /// earlier split's stand-in (phase 29): its write, before this one, made herdr's. Returns the new pane, nil when
     /// herdr made none.
     func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false,
-               standIn: String = Ahead.standIn()) async -> HerdrKit.Pane?
+               standIn: String) async -> HerdrKit.Pane?
     {
-        let tab = workspaces.flatMap(\.tabs).first { $0.tree?.paneIDs.contains(paneID) == true }
+        // herdr's pane may still show as its stand-in, until the snapshot after its split.
+        let shown = ahead.splitPanes.first { $0.value == paneID }?.key ?? paneID
+        let tab = workspaces.flatMap(\.tabs).first { $0.tree?.paneIDs.contains(shown) == true }
         if let tab, let tree = tab.tree {
             let known = Set(tree.paneIDs + (last?.trees[tab.id]?.paneIDs ?? []))
             ahead.split = Ahead.NewSplit(
                 tabID: tab.id,
                 standIn: standIn,
-                tree: tree.split(paneID, direction, new: standIn, before: before),
+                tree: tree.split(shown, direction, new: standIn, before: before),
                 known: known,
             )
             redraw()
@@ -27,7 +29,8 @@ extension HostStore {
         var made: HerdrKit.Pane?
         let done = await write { client in
             let paneID = ahead.splitPanes[paneID] ?? paneID
-            guard let new = try await client.split(paneID, direction) else { return }
+            // The split before failed: its notice says so.
+            guard !Ahead.isStandIn(paneID), let new = try await client.split(paneID, direction) else { return }
             made = new
             // Here, not after `write`: the next write may start first.
             ahead.splitPanes[standIn] = new.id

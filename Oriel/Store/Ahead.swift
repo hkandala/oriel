@@ -318,8 +318,7 @@ extension HostStore {
             selectedTab.flatMap { Ahead.isStandIn($0.id) ? $0.id : nil }
         }
 
-        /// Closes it, or asks first in this window (D41). One at a time: a second ⇧⌘W while herdr is asked would ask
-        /// again.
+        /// Closes it, or asks first in this window (D41).
         func close(_ close: HostStore.Close) {
             // The same close again (a second ⇧⌘W while herdr is asked) would ask twice; another close goes on.
             let key = String(describing: close)
@@ -341,12 +340,16 @@ extension HostStore {
 
         /// A split restores a zoomed layout first, as tmux does: the new pane shows. The new pane gets the keyboard, as
         /// in Ghostty (user, phase 25). Pressed again before herdr made it (⌘D, fast), the newest card is split, not
-        /// the
-        /// one that still holds the first responder, and only the newest split's pane takes the keyboard: the older
-        /// ones join the keyboard history before it (phase 29).
+        /// the old one that still has the first responder, and only the newest split's pane takes the keyboard; the
+        /// older ones join the keyboard history before it (phase 29).
         func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
             zoomedPaneID = nil
             let target = newest.flatMap { paneID == keyboardPane?.id ? $0.id : nil } ?? paneID
+            if newest != nil {
+                // The split before's pane, if made, takes the keyboard no more (`follow`): this one's does.
+                movedTerminal = nil
+                keyboardTabID = selectedTab?.id
+            }
             let standIn = Ahead.standIn()
             newest = (standIn, newest?.from ?? terminals.keyboardTerminalID)
             let new = await store.split(target, direction, before: before, standIn: standIn)
@@ -360,8 +363,12 @@ extension HostStore {
             follow(new, new?.terminalID, select: false)
         }
 
-        /// Close Pane: the pane, else the shown stand-in, which has no pane yet; ⌘W closes it too (phase 27).
+        /// Close Pane: the pane, else the shown stand-in, which has no pane yet; ⌘W closes it too (phase 27). Not the
+        /// old keyboard card while a split's lit stand-in waits for herdr's pane (phase 29).
         func closePane(_ pane: HostStore.Pane?) {
+            if let newest, store.pane(newest.id) == nil, pane?.id == keyboardPane?.id {
+                return
+            }
             if let id = pane?.id ?? standIn {
                 close(.pane(id))
             }

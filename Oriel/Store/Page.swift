@@ -10,11 +10,16 @@
         let store: HostStore
         let terminals: PaneViewRegistry
         /// The app's own selection, never herdr's focus (D13).
-        var selectedWorkspaceID: String?
+        var selectedWorkspaceID: String? {
+            didSet { newest = selectedWorkspaceID == oldValue ? newest : nil }
+        }
+
         /// Each workspace's selected tab. Starts at herdr's active tab.
         var selectedTabIDs: [String: String] = [:] {
             didSet {
                 for (workspace, tab) in oldValue where selectedTabIDs[workspace] != tab {
+                    // A split's newest card is no ⌘D target in another tab.
+                    newest = nil
                     usedTabIDs[workspace, default: []].removeAll { $0 == tab }
                     usedTabIDs[workspace, default: []].append(tab)
                 }
@@ -62,10 +67,10 @@
         /// terminal that had it before (phase 29). Observed: its card is lit.
         var newest: (id: String, from: String?)?
         /// The tab whose terminal last got the keyboard from the app.
-        @ObservationIgnored private var keyboardTabID: String?
+        @ObservationIgnored var keyboardTabID: String?
         /// A moved pane's terminal, which takes the keyboard once a snapshot shows it in its tab: a write does not wait
         /// for its snapshot.
-        @ObservationIgnored private var movedTerminal: String?
+        @ObservationIgnored var movedTerminal: String?
         /// A tab this page just moved a pane to or a workspace it made, selected once a snapshot shows it.
         @ObservationIgnored private var arriving: String?
 
@@ -203,12 +208,18 @@
         /// card it had; herdr's focused pane only picks it the first time a tab is shown. Later snapshots leave it
         /// alone, unless the card with the keyboard closed: then the tab's next card takes it.
         func shown(alive: Set<String>) {
-            let closed = usedTerminals.last.map { !alive.contains($0) } ?? false
-            usedTerminals.removeAll { !alive.contains($0) }
+            // Only what was alive before: a split's new terminal joins the history before a snapshot has it (phase 29).
+            let gone = self.alive.subtracting(alive)
+            self.alive = alive
+            let closed = usedTerminals.last.map(gone.contains) ?? false
+            usedTerminals.removeAll(where: gone.contains)
             if closed || selectedTab?.id != keyboardTabID {
                 focusKeyboardCard()
             }
         }
+
+        /// The terminals alive at the last `shown`.
+        @ObservationIgnored private var alive: Set<String> = []
 
         /// The terminal is the latest to have the keyboard, so its tab's keyboard card.
         func use(_ terminalID: String) {

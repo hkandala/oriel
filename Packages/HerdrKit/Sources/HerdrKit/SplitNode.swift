@@ -203,11 +203,8 @@ public extension SplitNode {
         if let last = used.last(where: { id in along.contains { $0.id == id } }) {
             return last
         }
-        return along.max { first, second in
-            abs(shared(first.rect) - shared(second.rect)) < near
-                ? (across ? first.rect.minY > second.rect.minY : first.rect.minX > second.rect.minX)
-                : shared(first.rect) < shared(second.rect)
-        }?.id
+        // Ties: the first in tree order (`max` keeps the first), which along one edge is the top or left one.
+        return along.max { shared($0.rect) + near < shared($1.rect) }?.id
     }
 
     /// Each pane's rectangle in this one, divided by the ratios.

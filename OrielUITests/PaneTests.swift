@@ -161,8 +161,8 @@ extension OrielUITests {
         }
         // Left to right in the order they were made (herdr's ids count up): each split the one before.
         XCTAssertEqual(panes.first, first)
-        XCTAssertEqual(panes.dropFirst().map { Int($0.split(separator: "p").last ?? "") ?? 0 },
-                       panes.dropFirst().map { Int($0.split(separator: "p").last ?? "") ?? 0 }.sorted())
+        let made = panes.dropFirst().compactMap { Int($0.split(separator: "p").last ?? "") }
+        XCTAssertEqual(made, made.sorted())
         XCTAssertTrue(hasKeyboard(element("terminal.\(panes[3])")))
         try await typeAndRead(panes[3])
         for (closed, next) in [(panes[3], panes[2]), (panes[2], panes[1])] {
