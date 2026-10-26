@@ -77,9 +77,9 @@ code; fix wrong ones. A script proves the diff is comments only. One reviewer, o
 design pages; docs vs code; e2e gaps; slop tests). No separate verifier.
 
 For a large repo, review and fix by area instead (phase 32): one agent per code area reads every file in
-it and fixes bugs, comments and needless code with small, safe changes; read-only auditors (ponytail,
-security and accessibility) send findings to the area owners; two docs agents (the design pages; plan and
-resources); one e2e agent runs the full suite at the end. Anything big (a redesign, a large refactor, a
+it and fixes bugs, comments and needless code with small, safe changes. Read-only auditors (ponytail,
+security and accessibility) send findings to the area owners. Two docs agents take the design pages, and
+plan and resources. One e2e agent runs the full suite at the end. Anything big (a redesign, a large refactor, a
 removal that changes behavior) goes on a list for the user, with the reason, the cost and a
 recommendation.
 

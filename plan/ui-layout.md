@@ -46,14 +46,14 @@ While the sidebar is open, the traffic lights, the sidebar toggle and the machin
 area as wide as the sidebar, so the first tab capsule starts where the cards start. From left to right:
 
 1. Traffic lights.
-2. **Sidebar toggle** (⌃⌘S). The icon changes with the sidebar's state; there is no highlight.
+2. **Sidebar toggle** (⌃⌘S). The icon changes with the sidebar's state, with no highlight.
 3. **Machine button** (above).
 4. **Workspace button**, only while the sidebar is collapsed: a folder icon, "‹page title› | ‹workspace›"
    (the machine's name for `default`) and a chevron. Its menu: a filter field ("Filter or create…"), every
    workspace of every session open in this window, grouped under a session header, then New Workspace and
    "Open Session…" (⌥⌘T).
-5. **Tab bar**: the selected workspace's tabs, always in the title row. Tabs are 220 pt and never shrink;
-   the bar scrolls sideways when they do not fit. A tab with several panes shows its panes' program icons
+5. **Tab bar**: the selected workspace's tabs, always in the title row. Tabs are 220 pt and never shrink.
+   The bar scrolls sideways when they do not fit. A tab with several panes shows its panes' program icons
    overlapping (up to 5, the keyboard card's in front).
 6. Spacer.
 7. **Agents button** (`list.bullet.rectangle`, filled while the Agents view is on). An amber dot when an
@@ -68,7 +68,7 @@ While the overview is open, the row shows only the traffic lights and one × tha
 
 - One page per tab of the selected workspace, each with its pane cards in herdr's split tree, 8 pt apart.
   A two-finger swipe, ⇧⌘[ ⇧⌘] or ⌃⇥ pages between tabs.
-- A three-finger swipe sideways moves between sessions; up or down moves to the workspace above or below,
+- A three-finger swipe sideways moves between sessions. Up or down moves to the workspace above or below,
   or in the Agents view to the agent row above or below
   ([Swiping](../docs/content/docs/ui/swiping.mdx)).
 - Card headers carry Float Pane, Split Right, Split Down, Zoom and Close. ⌘F opens the find bar on the
@@ -85,7 +85,7 @@ While the overview is open, the row shows only the traffic lights and one × tha
   opens with `default` only.
 - A sideways swipe on the sidebar moves to the next or previous open page. Page dots at the bottom show
   where you are, and a click on a dot switches. Swiping the sidebar never pages the strip, and the reverse.
-- **Page header**: the page's title (the session's name; the machine's name for `default`) and a `+` that
+- **Page header**: the page's title (the session's name, or the machine's name for `default`) and a `+` that
   makes a new workspace in that session.
 - **Workspaces view** (default): one row per herdr workspace, in herdr's order. Line 1: the rolled-up state
   icon and the name. Line 2, only for a git repository: the branch, ↑ahead and ↓behind. A linked git
@@ -124,7 +124,7 @@ A pane moves by dragging its card header: onto another card (swap, or an edge to
 capsule (spring-loads after 0.65 s), onto the end of the tab track or `+` (a new tab), onto a workspace row
 (a new tab there), or onto the empty end of the sidebar page (a new workspace). Tab capsules reorder along
 the track and move whole to another workspace or a new one. Workspace rows reorder. Every move is built
-from herdr's own calls, with `focus:false`; nothing moves between sessions or machines
+from herdr's own calls, with `focus:false`. Nothing moves between sessions or machines
 ([Drag and drop](../docs/content/docs/ui/drag-and-drop.mdx)).
 
 ## Not in the app

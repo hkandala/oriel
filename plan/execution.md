@@ -2,7 +2,7 @@
 
 How one phase runs: the GUI budget, the speed rules, the phase loop, the review briefs, metrics and the
 progress log. [workflow.md](workflow.md) is the whole run around it (roles, plan, final review, report).
-Written for the UI polish (phases 10–23); phases 24–32 ran the same way in parallel lanes, each lane a
+Written for the UI polish (phases 10–23). Phases 24–32 ran the same way in parallel lanes, each lane a
 phase agent with its own files.
 
 ## GUI budget (the user works on this Mac)
@@ -33,8 +33,8 @@ for a small phase. The lock itself is in [rules.md](rules.md#building-and-runnin
 - Never send keys with `osascript` / System Events or similar: when Oriel loses focus, the keys land in the
   user's apps (phase 11 typed into the user's browser). Keys go through XCUITest only.
 - A small phase (a few files, no new view) gets one review round unless a blocker comes up.
-- A failure only on CI is investigated from CI logs, not with more local runs. The user may step in for a
-  moment; then wait and go on.
+- A failure only on CI is investigated from CI logs, not with more local runs. If the user steps in for a
+  moment, wait and go on.
 - The screenshots a phase file lists are `XCTAttachment`s (keepAlways) in the phase's e2e tests. Green CI
   runs keep their screen recordings, and frames from them are screenshots too.
 
