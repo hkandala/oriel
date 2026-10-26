@@ -52,6 +52,8 @@ extension OrielUITests {
         let cpu = busy.split(separator: "\n")[0].split(separator: " ")
         XCTAssertLessThan(Double(cpu[1].dropLast()) ?? 100, 50, busy)
         try await sample("busy tab", in: eight)
+        // The malloc heap, which follows the session's size (phase 30: 126 MB of 219 MB on CI at 400 panes).
+        try await keep(String(decoding: Self.post("\(eight)/heap"), as: UTF8.self), as: "heap, busy tab")
 
         // Another session's page and back (its own snapshots stop mattering while it is out of view).
         openPage(one)

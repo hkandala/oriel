@@ -28,6 +28,7 @@ POST /<session>/stress with "tabs workspaces panes agents" as the body starts th
 scripts/stress.py; its summary comes back. With an empty body it removes the session, so the next tests do not run
 beside its shells.
 POST /<session>/sample with a number of seconds as the body gives back `sample`'s profile of the app over that time.
+POST /<session>/heap gives back `heap`'s summary of the app's malloc heap, the largest classes first.
 POST /<session>/ssh-connections gives back how many connections the CI sshd (scripts/ci-sshd.sh) has seen.
 Any session not named on the command line is refused.
 """
@@ -81,7 +82,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder", "open-url",
                             "reveal-file", "usage", "ssh-drop", "ssh-forget", "ssh-connections", "swipe", "drag",
-                            "stress", "sample"):
+                            "stress", "sample", "heap"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
@@ -115,6 +116,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 status, reply = (200, run.stdout) if run.returncode == 0 else (500, run.stderr)
             except subprocess.TimeoutExpired:
                 status, reply = 500, b"sample took over 60 s"
+        elif action == "heap":
+            pid = subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
+            run = subprocess.run(["heap", "-s", "-H", "-q", pid], capture_output=True, timeout=120)
+            status, reply = (200, run.stdout) if run.returncode == 0 else (500, run.stderr)
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
         elif action in ("swipe", "drag"):
