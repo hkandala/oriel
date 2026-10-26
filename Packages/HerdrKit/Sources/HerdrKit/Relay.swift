@@ -184,8 +184,9 @@
                 $select->add($out, $errors);
             } elsif ($op eq 'w') { if ($input{$id}) { $pending{$id} .= "$arg\n"; flush($id) } }
             elsif ($op eq 'c') { if ($input{$id}) { $closing{$id} = 1; flush($id) } }
-            # Its stdin too: a wrapper's background child ends with it (T6), as with a killed ssh before.
-            elsif ($op eq 'k') { close_input($id); kill 9, $pid{$id} if $pid{$id} }
+            # Its stdin too: a wrapper's background child ends with it (T6), as with a killed ssh before. The kill
+            # first: a wrapper that saw its stdin close first could exit by itself (143, not 9).
+            elsif ($op eq 'k') { kill 9, $pid{$id} if $pid{$id}; close_input($id) }
         }
         put("oriel-relay 1\n");
         while (1) {
