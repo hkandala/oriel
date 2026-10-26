@@ -39,10 +39,11 @@ extension HostStore {
             }
             try await even(client, tab: new.tabID, around: new.id)
         }
-        // Not a later split's stand-in, which took the slot.
+        // Not a later split's stand-in, which took the slot. No pane comes (herdr made none, or the split before
+        // failed): the stand-in goes now, not after two more snapshots, which an idle session may never send.
         if ahead.split?.standIn == standIn {
             ahead.split?.after = 0
-            if !done {
+            if !done || made == nil {
                 ahead.split = nil
                 redraw()
             }
