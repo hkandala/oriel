@@ -7,7 +7,7 @@ Makes `tabs` tabs over `workspaces` workspaces and `--panes` panes (default 400)
 split in two until the count is reached. macOS gives at most `kern.tty.ptmx_max` (511) terminals to all its programs
 together, so more needs `sudo sysctl -w kern.tty.ptmx_max=1024` first (CI does). Every other pane prints a line every
 0.2 s. The first `--agents` panes (default 100, spread over the tabs) work like agents
-instead: a line every 0.1 s, a new terminal title every second, and a new agent state (`pane report-agent`) every
+instead: a line every 0.1 s, a new terminal title every second (its first word stays, as an agent's does), and a new agent state (`pane report-agent`) every
 5 s, mostly working, sometimes blocked or idle. Then open Oriel on the session (`-session <name>`).
 """
 
@@ -76,7 +76,7 @@ with concurrent.futures.ThreadPoolExecutor(8) as pool:
 step = max(len(panes) // max(args.agents, 1), 1)
 agents = set(panes[::step][:args.agents])
 agent = ("i=$((RANDOM % 50)); s=working; while :; do i=$((i + 1)); echo \"$s $i $RANDOM $RANDOM $RANDOM\"; "
-         "[ $((i % 10)) = 0 ] && printf '\\033]2;%s step %d\\007' $s $i; "
+         "[ $((i % 10)) = 0 ] && printf '\\033]2;task %s %d\\007' $s $i; "
          "[ $((i % 50)) = 0 ] && s=$(echo working working blocked idle | cut -d' ' -f$((RANDOM % 4 + 1))) && "
          "herdr pane report-agent \"$HERDR_PANE_ID\" --source oriel-stress --agent claude --state $s --seq $i "
          ">/dev/null; sleep 0.1; done\r")
