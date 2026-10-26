@@ -599,11 +599,12 @@ once.
 - **Click.** A click on a tile selects its workspace and tab and leaves the
   overview: the tile's miniature grows to the strip's page over 0.18 s
   (ease out), its terminals scaling up live, then the strip shows. The sidebar
-  and the title row stay laid out under the overview, hidden, and fade in over
-  the same 0.18 s (made only once the zoom ended, they came a moment late in a
-  big session, phase 30). The tab bar comes back with no marker: it fades in
-  on the selected tab over 0.18 s once the strip shows (it showed on the tab
-  selected before through the zoom, then jumped; user, phase 31). Esc, the title
+  and the title row stay laid out under the overview, hidden, and fade in
+  together over 0.12 s from the zoom's start (made only once the zoom ended,
+  they came a moment late in a big session, phase 30). The tab bar's marker
+  sits on the selected tab under the overview and fades in with the title row,
+  with no fade of its own (it faded in on its own after the zoom; user, phase
+  31). Esc, the title
   row's × and ⌃⌘O leave the same way, from the selected tab's tile (at once
   when that tile is scrolled away). Under Reduce Motion it leaves at once. ⌘.
   (Show Agents in the menu or palette) leaves it first and opens the Agents
@@ -643,7 +644,11 @@ once.
   and a herdr snapshot keeps the live set (phase 30: choosing there freed and
   made surfaces mid-scroll); 150 ms after the scroll ends, or after the last
   tile came into view, those in view turn live and those scrolled away let go.
-  During a swipe the next session's page shows snapshots until it lands. Those
+  During a swipe the next session's page shows snapshots until it lands: no
+  tile turns live or takes the pointer while the fingers hold the pages or
+  they slide. The page in view and its neighbors are laid out while the
+  overview is open (each grid stays lazy), so a swipe never makes a page
+  (phase 31). Those
   are not visits: when the overview closes, a terminal shown only by it goes
   back to where it was (its surface and stream let go, and it keeps no full
   picture) and the recently shown set is unchanged (D46).
