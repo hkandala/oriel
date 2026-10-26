@@ -90,6 +90,15 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
     straight into their final layout: each new pane appears once, where it ends up, with no pane moving
     twice.
 
+## Lane N: the Agents button's panel shows finished agents (item 13)
+
+13. Hovering the Agents button shows only agents that need the user (blocked). It also lists agents that
+    finished (the "done" state that stays until its row is clicked, phase 15), so the user can look at what
+    happened: two groups, needs-you first, then done, each with the group labels the Agents view uses; a
+    click goes to the pane and clears its done state as today. The panel still shows nothing when both
+    groups are empty. The button's badge and the Dock badge keep counting only needs-you, unless they
+    already count done.
+
 ## Lane P, also: Move Pane to Tab out of the menu bar (item 11)
 
 11. The user agreed: drop Move Pane to Tab's tab list from the menu bar (View ▸ Pane), since AppKit's
