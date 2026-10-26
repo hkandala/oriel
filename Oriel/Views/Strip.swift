@@ -27,8 +27,6 @@
                             Group {
                                 if let tree = tab.tree {
                                     // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
-                                    // Layout motion (0.13 s): a split, a close, a swap, a zoom. The terminals keep
-                                    // their size until it ends (`TerminalHost`).
                                     let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
                                     SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
                                         .padding([.horizontal, .bottom], gap)
@@ -74,7 +72,6 @@
                     page.selectedTabIDs[workspace.id] = shown
                 }
             }
-            // The tab marker follows the scroll.
             .onChange(of: page.selectedTabIDs[workspace.id], initial: true) {
                 guard let target = page.selectedTabIDs[workspace.id],
                       position.viewID(type: String.self) != target else { return }
@@ -138,7 +135,8 @@
         @State private var cards = (came: 0, went: 0)
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-        /// A third shorter than phase 25's 0.2 s, which the user found slow (phase 27).
+        /// A split, a close, a swap or a zoom; the terminals keep their size until it ends (`TerminalHost`). A third
+        /// shorter than phase 25's 0.2 s, which the user found slow (phase 27).
         private var motion: Animation? {
             reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.13)
         }
@@ -177,7 +175,6 @@
                             }
                     }
                     ForEach(parts.dividers, id: \.id) { divider in
-                        // The panes beside the divider.
                         let names = divider.beside.map { $0.flatMap(page.store.pane)?.cardTitle ?? "terminal" }
                         SplitDivider(divider: divider, held: $held[divider.path], page: page, tabID: tabID,
                                      label: "Divider between \(names[0]) and \(names[1])")

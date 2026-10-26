@@ -64,7 +64,6 @@
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                // Under the header, 8 pt in from the card's edge.
                 .overlay(alignment: .topTrailing) {
                     if !floated, let find = page.find, find.paneID == id {
                         FindBar(find: find, page: page).padding(gap)
