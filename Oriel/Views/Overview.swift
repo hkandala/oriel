@@ -237,33 +237,32 @@
                 // Lazy by row: only the tiles in or near view are made, whatever the session's size. Fixed columns:
                 // a short last row keeps their width.
                 let grid = Array(repeating: GridItem(.flexible(), spacing: 16), count: columns)
-                LazyVGrid(columns: grid, alignment: .leading, spacing: 16) {
-                    Section {} header: {
-                        Text(page.store.title).font(.system(size: 13, weight: .semibold))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityIdentifier("overview.title")
-                    }
-                    ForEach(page.sidebarWorkspaces) { workspace in
-                        Section {
-                            ForEach(workspace.tabs) { tab in
-                                Tile(
-                                    pages: pages,
-                                    page: page,
-                                    workspace: workspace,
-                                    tab: tab,
-                                    size: size,
-                                    frames: frames,
-                                    zooming: zooming == tab.id,
-                                ) { open(workspace, tab) }
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(page.store.title).font(.system(size: 13, weight: .semibold))
+                        .accessibilityIdentifier("overview.title")
+                    LazyVGrid(columns: grid, alignment: .leading, spacing: 16) {
+                        ForEach(page.sidebarWorkspaces) { workspace in
+                            Section {
+                                ForEach(workspace.tabs) { tab in
+                                    Tile(
+                                        pages: pages,
+                                        page: page,
+                                        workspace: workspace,
+                                        tab: tab,
+                                        size: size,
+                                        frames: frames,
+                                        zooming: zooming == tab.id,
+                                    ) { open(workspace, tab) }
+                                }
+                            } header: {
+                                // 32 pt below the rows above, 12 pt above its own.
+                                Text(workspace.label).font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.top, 16)
+                                    .padding(.bottom, -4)
+                                    .accessibilityIdentifier("overview.workspace.\(workspace.id)")
                             }
-                        } header: {
-                            // 32 pt below the rows above, 12 pt above its own.
-                            Text(workspace.label).font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.top, 16)
-                                .padding(.bottom, -4)
-                                .accessibilityIdentifier("overview.workspace.\(workspace.id)")
                         }
                     }
                 }

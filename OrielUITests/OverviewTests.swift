@@ -99,8 +99,13 @@ extension OrielUITests {
             XCTAssertFalse(element(id).exists, id)
         }
         let canvas = element("overview").frame, title = element("overview.title").frame
-        XCTAssertEqual(first.minX - canvas.minX, max(48, canvas.width * 0.08), accuracy: 1)
-        XCTAssertEqual(canvas.maxX - second.maxX, first.minX - canvas.minX, accuracy: 1)
+        let side = max(48, canvas.width * 0.08), columns = CGFloat(min(
+            4,
+            max(2, Int((canvas.width - 2 * side + 16) / 356)),
+        ))
+        XCTAssertEqual(first.minX - canvas.minX, side, accuracy: 1)
+        // The grid's right edge: as many tiles as fit a row, full or not.
+        XCTAssertEqual(canvas.maxX - (first.minX + columns * second.width + (columns - 1) * 16), side, accuracy: 2)
         XCTAssertEqual(title.minY - canvas.minY, 40, accuracy: 2)
     }
 
