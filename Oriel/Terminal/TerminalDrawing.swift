@@ -96,7 +96,7 @@
     /// own (a `CGImage` doubled the memory, phase 28 on Retina).
     extension PaneTerminal {
         /// Least recently taken first out, past 100 MB (lane P): a full-window card's is about 1.3–1.7 MB on Retina.
-        @MainActor static var snapshots: [PaneTerminal] = []
+        static var snapshots: [PaneTerminal] = []
         private static let context = CIContext(options: [.cacheIntermediates: false])
 
         /// It has a picture for a tile: a snapshot, or it is live and drew (or failed, and shows why in its card).

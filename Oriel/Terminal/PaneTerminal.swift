@@ -17,7 +17,7 @@
         var ready = false
         /// A small copy of its last picture for the overview's tiles that are not live (`takeSnapshot`).
         var snapshot: IOSurface?
-        /// Shown once: only the first reveal fades in, and its layer holds a picture of the pane (the hover card's).
+        /// It shows a picture (drawn, or a still): only a reveal with none fades in.
         @ObservationIgnored var revealed = false
         @ObservationIgnored var settling: Task<Void, Never>?
         /// Shows the content at the latest 0.4 s after drawing paused, whatever the frames do.

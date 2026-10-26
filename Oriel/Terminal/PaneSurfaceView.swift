@@ -18,7 +18,7 @@
         private var commandClick = false
         private var scrolled: CGFloat = 0
 
-        /// Asked for the keyboard before it was in a window.
+        /// Takes the keyboard once it is in a window (again).
         var wantsKeyboard = false
         var onKeyboard: (() -> Void)?
         /// Return, with or without modifiers, not repeated.
@@ -86,7 +86,7 @@
             super.viewDidMoveToWindow()
             purgeable(window == nil)
             // A view that left the window leaves without resignFirstResponder; the flag must not stay on.
-            terminal?.hasKeyboard = window != nil && window?.firstResponder === self
+            terminal?.hasKeyboard = window?.firstResponder === self
             if wantsKeyboard, window != nil {
                 wantsKeyboard = false
                 claimKeyboard()
