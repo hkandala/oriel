@@ -314,11 +314,13 @@ extension OrielUITests {
         // logicallyComplete, at once for a scroll), it held the slide's first frame for 54–149 ms. And no frame is
         // faster than the slide needs: the fingers' speed, or what lands in 0.3 s (an ease in and out's top speed is
         // 1.5 times its mean), with room for CI's frames; the session spring went up to 7.5k pt/s after a 625 pt/s
-        // flick. Both by the slide's own frames and times, so a frame CI's VM skips does not count.
+        // flick. Both by the slide's own frames and times, so a frame CI's VM skips does not count, and over two
+        // frames: CI's VM reported one frame's offset late, then the next caught up (40335707458: 50 pt in 28 ms, 111
+        // pt in 21 ms, 3.3k pt/s over both, under a 4.9k bound); the spring's jump held over several frames.
         let landed = path.last { $0[0] <= shown }?[1] ?? path[0][1]
         XCTAssertEqual(landed, rest, accuracy: 2, "shown at \(Int(shown)) ms, before the pages arrived: \(swipe)")
         let speed = steps.pause > 0 ? 0 : abs(step) / 0.016, top = 1.5 * max(speed, 1.5 * abs(rest - path[0][1]) / 0.3)
-        for (one, two) in zip(path, path.dropFirst()) {
+        for (one, two) in zip(path, path.dropFirst(min(2, path.count - 1))) {
             XCTAssertLessThanOrEqual(abs(two[1] - one[1]), top * max(two[0] - one[0], 17) / 1000 + 2,
                                      "a jump at \(Int(two[0])) ms: \(swipe)")
         }
