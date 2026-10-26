@@ -35,7 +35,8 @@ extension OrielUITests {
         hoverHeader(first)
         element("pane.\(first).close").click()
         XCTAssertTrue(element("pane.\(first)").vanishes(within: 3))
-        XCTAssertFalse(confirm.exists)
+        // It asks herdr what runs after the card went: a wrong answer would ask late.
+        XCTAssertFalse(confirm.exists(within: 1))
     }
 
     func testClosingTheKeyboardCardHandsKeysToItsNeighbor() async throws {
@@ -75,10 +76,12 @@ extension OrielUITests {
         // Only the shells: it closes at once.
         try await Self.call(one, "pane.send_keys", ["pane_id": second, "keys": ["ctrl+c"]])
         try await expect("the shell to be back") { try await !foreground(second).contains("sleep") }
+        // Off and back on: the pointer stayed on the capsule under the dialog, which saw no hover end, so no new start.
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.9)).hover()
         row.hover()
         element("tab.\(tab).close").click()
         XCTAssertTrue(row.vanishes(within: 3))
-        XCTAssertFalse(confirm.exists)
+        XCTAssertFalse(confirm.exists(within: 1))
         let tabs = try await tabIDs()
         XCTAssertFalse(tabs.contains(tab))
     }

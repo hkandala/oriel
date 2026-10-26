@@ -172,7 +172,8 @@ extension OrielUITests {
         element("float.\(second).close").click()
         let confirm = window.sheets.buttons["Close Pane"]
         XCTAssertTrue(confirm.exists(within: 5))
-        confirm.click()
+        // Return confirms in the floating window too (phase 31, item 8).
+        app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(window.vanishes(within: 5))
         try await expect("the pane closed in herdr") { try await order(tab) == [first] }
 

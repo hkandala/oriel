@@ -28,6 +28,24 @@ extension OrielUITests {
         try await expectNoFlicker()
     }
 
+    /// The flicker test's share in every run (it runs on demand, the Makefile's ON_DEMAND): a tab shown by its capsule
+    /// and back, recorded.
+    func testATabClickComesIntoViewWithoutAFlicker() async throws {
+        relaunch(one, ["-recordFrames", "YES", "-forceMotion", "YES"])
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        for pane in ["w1:p1", "w1:p2", "w1:p3", "w1:p4"] {
+            try await fill(pane)
+        }
+        // Each tab shown once first: a new card's first reveal fades in on purpose.
+        element("tab.w1:t2").click()
+        try await expectText(["w1:p4"], "warm-up")
+        element("tab.w1:t1").click()
+        try await expectText(["w1:p1", "w1:p2", "w1:p3"], "warm-up")
+        try await Task.sleep(for: .seconds(2))
+        let records = try await [frames("tab click", click("tab.w1:t2")), frames("tab click back", click("tab.w1:t1"))]
+        XCTAssertTrue(records.allSatisfy { !$0.contains(#/ [1-9][0-9]*\//#) }, "\(records)")
+    }
+
     /// A card never shows a picture smaller than its pixels (phase 30 item 12): a tab only the overview showed keeps
     /// the overview's small snapshot, and shown in the strip afterwards (by its capsule, or by the zoom right after its
     /// tile turned live again), it showed that blurred until it drew. Now it shows its fill and fades in.

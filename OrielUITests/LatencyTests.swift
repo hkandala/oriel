@@ -333,7 +333,7 @@ extension OrielUITests {
     /// the spring is logically complete, so the frame before it is still near the page. Not the show's own time: a late
     /// frame delays it (CI's VM drew none for 60 ms there, the show 80 ms after the page in 40283556151).
     private func beforeShow(_ path: [[Double]], _ shown: Double) -> Double {
-        path.filter { $0[0] <= shown }.dropLast().last?[0] ?? 0
+        path.last { $0[0] < shown }?[0] ?? 0
     }
 
     private func launchRecordingLatency(_ args: [String] = []) throws {
