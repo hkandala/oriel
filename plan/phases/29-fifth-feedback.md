@@ -104,3 +104,14 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   centered); restored windows keep their frames.
 - (Lane T, 17:58) Every pane fade-in about twice as fast (first reveal, rebuilt card, split's new pane),
   or a straight swap where it looks fine; the no-blank rule stays.
+
+## Lane C: selection colors (2026-10-25 18:00)
+
+15. Selected text in a terminal is unreadable (`.build/fb/selection.png`): a grey block with the text
+    drawn in a dark grey close to the block. Find who draws the selection (libghostty's own selection, or
+    herdr's selection sent in its frames) and its colors (Oriel's libghostty config, the Alabaster /
+    Afterglow defaults, herdr's theme). Make selections readable in light and dark, Glass and Classic: keep
+    each cell's own text color over a selection background with enough contrast (for example Ghostty's
+    `selection-foreground = cell-foreground` with a translucent accent or system selection color
+    background), matching macOS's selection feel. Keep libghostty's palette otherwise (the user rejected
+    other palettes).
