@@ -1,13 +1,13 @@
-// A file dragged from a small window of its own to a point on the screen, for the file drop test: a drag from Finder
-// now and then started nothing on CI (phase 31). Shows the file's icon at x y (screen points, top left), presses there
-// and drags to tx ty as scripts/drag.swift does; exits 0 when a drop took the file, 1 when the drop was refused.
-// Usage: file-drag <path> <x> <y> <tx> <ty>
+// A file's icon in a small window of its own, for the file drop test: a drag from Finder now and then started nothing
+// on CI (phase 31). Shows the icon at x y (screen points, top left); a drag from it (scripts/drag.swift, posted by the
+// e2e helper) carries the file. Exits 0 when a drop took the file, 1 when the drop was refused, 2 when no drag ended
+// within 10 s.
+// Usage: file-drag <path> <x> <y>
 import AppKit
 
 let args = CommandLine.arguments.dropFirst(2).compactMap { Double($0) }
-guard CommandLine.arguments.count == 6, args.count == 4 else { fatalError("usage: file-drag <path> <x> <y> <tx> <ty>") }
+guard args.count == 2 else { fatalError("usage: file-drag <path> <x> <y>") }
 let url = URL(filePath: CommandLine.arguments[1])
-let (start, target) = (CGPoint(x: args[0], y: args[1]), CGPoint(x: args[2], y: args[3]))
 
 final class Source: NSView, NSDraggingSource {
     private var dragging = false
@@ -33,17 +33,12 @@ final class Source: NSView, NSDraggingSource {
     }
 }
 
-func post(_ type: CGEventType, _ point: CGPoint) {
-    CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?
-        .post(tap: .cghidEventTap)
-}
-
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 let height = NSScreen.screens[0].frame.height, size = 64.0
-// Non-activating: the app under test stays the active one.
+// Non-activating: the app under test stays the active one. Floating: drag.swift still finds Oriel's window under it.
 let panel = NSPanel(
-    contentRect: NSRect(x: start.x - size / 2, y: height - start.y - size / 2, width: size, height: size),
+    contentRect: NSRect(x: args[0] - size / 2, y: height - args[1] - size / 2, width: size, height: size),
     styleMask: [.borderless, .nonactivatingPanel],
     backing: .buffered,
     defer: false,
@@ -54,23 +49,9 @@ source.wantsLayer = true
 source.layer?.contents = NSWorkspace.shared.icon(forFile: url.path)
 panel.contentView = source
 panel.orderFrontRegardless()
-
-// Off the main thread, which runs the drag.
-Thread {
-    Thread.sleep(forTimeInterval: 0.5)
-    CGWarpMouseCursorPosition(start)
-    post(.leftMouseDown, start)
-    Thread.sleep(forTimeInterval: 0.3)
-    for step in 1 ... 20 {
-        let part = Double(step) / 20
-        post(.leftMouseDragged, CGPoint(x: start.x + (target.x - start.x) * part,
-                                        y: start.y + (target.y - start.y) * part))
-        Thread.sleep(forTimeInterval: 0.015)
-    }
-    Thread.sleep(forTimeInterval: 0.5)
-    post(.leftMouseUp, target)
-    Thread.sleep(forTimeInterval: 5)
+DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
     fputs("no drag ended: the press did not start one\n", stderr)
     exit(2)
-}.start()
+}
+
 app.run()

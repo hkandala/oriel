@@ -14,8 +14,8 @@ POST /<session>/open-folder with the built app's path as the body makes a folder
 app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>` (a running app ignores
 `--args`). The folder's path comes back.
 POST /<session>/file-drag with "x y tx ty" (screen points) as the body makes a file whose name needs shell escaping in
-a new folder in /tmp, shows its icon at x y in a window of scripts/file-drag.swift and drags it to tx ty. The file's
-path comes back once a drop took it.
+a new folder in /tmp, shows its icon at x y in a window of scripts/file-drag.swift and drags it to tx ty
+(scripts/drag.swift: both points in an Oriel window). The file's path comes back once a drop took it.
 POST /<session>/usage with a number of seconds as the body measures the app (the one process named Oriel, on CI) over
 that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory.
 POST /<session>/ssh-drop with an SSH target as the body kills the app's ControlMaster to it (SIGKILL, as a crash
@@ -125,13 +125,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 status, reply = 500, f"{action} took over 60 s".encode()
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
+        elif action == "file-drag" and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}", body):
+            status, reply = 400, b"the body must be x y tx ty"
+        elif action in builds and any([build.wait() for build in builds.values()]):
+            status, reply = 500, b"".join(open(f"{tools}/{name}.log", "rb").read() for name in builds)
         elif action in ("swipe", "drag"):
-            if builds[action].wait() != 0:
-                with open(f"{tools}/{action}.log", "rb") as log:
-                    status, reply = 500, log.read()
-            else:
-                run = subprocess.run([f"{tools}/{action}"] + body.decode().split(), capture_output=True, timeout=120)
-                status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
+            run = subprocess.run([f"{tools}/{action}"] + body.decode().split(), capture_output=True, timeout=120)
+            status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "ssh-drop":
             pattern = f"ssh -M -N -f .* {body.decode()}$"
             pids = subprocess.run(["pgrep", "-f", pattern], capture_output=True).stdout
@@ -163,18 +163,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             app, url = body.decode().split("\n")
             run = subprocess.run(["open", "-g", "-a", app, url], capture_output=True, timeout=10)
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
-        elif action == "file-drag" and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}", body):
-            status, reply = 400, b"the body must be x y tx ty"
-        elif action == "file-drag" and builds[action].wait() != 0:
-            with open(f"{tools}/{action}.log", "rb") as log:
-                status, reply = 500, log.read()
         elif action == "file-drag":
             folder = tempfile.mkdtemp(prefix="oriel-e2e-file-", dir="/tmp")
             folders.append(folder)
             path = os.path.join(folder, "drop me's (1).txt")
             open(path, "w").close()
-            run = subprocess.run([f"{tools}/{action}", path] + body.decode().split(), capture_output=True, timeout=30)
-            status, reply = (200, path.encode()) if run.returncode == 0 else (500, run.stderr or b"the drop was refused")
+            x, y, tx, ty = body.decode().split()
+            source = subprocess.Popen([f"{tools}/file-drag", path, x, y], stderr=subprocess.PIPE)
+            time.sleep(0.5)  # its window up
+            drag = subprocess.run([f"{tools}/drag", x, y, tx, ty, "0.5"], capture_output=True, timeout=30)
+            _, error = source.communicate(timeout=30)
+            status, reply = (200, path.encode()) if source.returncode == 0 else (
+                500, drag.stderr + error or b"the drop was refused")
         elif action == "usage":
             status, reply = 200, usage(session, float(body or b"10"))
         elif action == "start":
