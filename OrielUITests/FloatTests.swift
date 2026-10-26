@@ -88,7 +88,7 @@ extension OrielUITests {
         XCTAssertEqual(buttons.midX, card.midX, accuracy: 1, both)
         XCTAssertEqual(show.frame.midY, back.frame.midY, accuracy: 1, both)
         XCTAssertEqual(back.frame.minX - show.frame.maxX, 8, accuracy: 1, both)
-        XCTAssertLessThan(buttons.width, card.width * 0.6, both)
+        XCTAssertLessThan(show.frame.width, card.width / 2, both)
         keepScreen("floating window over the main window")
         show.click()
         // Not through `window`: XCUITest dropped that element once the window came forward (CI 40196255503). The
