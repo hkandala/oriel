@@ -38,12 +38,11 @@
                                    height: max(proxy.size.height - 4 - gap, 1))
                 // Wide margins round the grid, as in the user's reference.
                 let side = max(48, proxy.size.width * 0.08)
-                // Not lazy, nor its pages: every tile's terminal is in the window, so it streams and draws while the
-                // overview is open and a tile scrolled into view shows at once (phase 28).
                 ScrollView(.horizontal) {
-                    HStack(spacing: 0) {
+                    LazyHStack(spacing: 0) {
                         ForEach(pages.list) { page in
                             OverviewPage(
+                                pages: pages,
                                 page: page,
                                 size: strip.size,
                                 frames: frames,
@@ -84,7 +83,7 @@
                 }
                 .overlay(alignment: .topLeading) {
                     if let zoom {
-                        Miniature(tab: zoom.tab, page: zoom.page, size: strip.size)
+                        Miniature(tab: zoom.tab, page: zoom.page, size: strip.size, live: pages.overviewLive)
                             .modifier(Grow(progress: grown ? 1 : 0, from: zoom.from, page: strip))
                     }
                 }
@@ -96,6 +95,11 @@
             }
             .coordinateSpace(.named(Self.space))
             .opacity(opened ? 1 : 0)
+            .background {
+                if TerminalHost.Host.record {
+                    FrameMeter().frame(width: 1, height: 1)
+                }
+            }
             // The keyboard leaves the terminals, which take none while in a miniature (`PaneSurfaceView`). Esc by a
             // monitor: a SwiftUI focus did not take the keyboard from a terminal moving into a miniature (CI).
             .onAppear {
@@ -189,6 +193,7 @@
         func closeOverview() {
             overview = false
             leaving = false
+            overviewTabs = [:]
             showTerminals()
             current?.focusKeyboardCard()
             afterOverview?()
@@ -196,8 +201,22 @@
         }
     }
 
+    extension WindowPages {
+        /// The cards of the overview's tiles laid out, the latest first, up to a cap: each live one costs a surface at
+        /// its card's size (about 52 MB at full window on Retina), so the cost follows the cap, not the session. A
+        /// remote machine's share the relay's one SSH session. The other tiles show their snapshot.
+        func overviewCards(_ page: Page) -> [String: String] {
+            let cards = (overviewTabs[page.id] ?? []).reversed().flatMap { tab in
+                page.store.panes.filter { $0.tabID == tab && !page.floats($0) }
+            }
+            return Dictionary(cards.compactMap { pane in pane.terminalID.map { ($0, pane.id) } }
+                .prefix(machine.isRemote ? 8 : 24), uniquingKeysWith: { first, _ in first })
+        }
+    }
+
     /// One session: its workspaces in the sidebar's order, each its name over a grid of its tabs.
     private struct OverviewPage: View {
+        let pages: WindowPages
         let page: Page
         /// The strip's page.
         let size: CGSize
@@ -212,38 +231,40 @@
 
         var body: some View {
             ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 32) {
+                // Lazy by row: only the tiles in or near view are made (and may be live), whatever the session's size.
+                LazyVStack(alignment: .leading, spacing: 16) {
                     Text(page.store.title).font(.system(size: 13, weight: .semibold))
                         .accessibilityIdentifier("overview.title")
                     ForEach(page.sidebarWorkspaces) { workspace in
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(workspace.label).font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.secondary)
-                                .accessibilityIdentifier("overview.workspace.\(workspace.id)")
+                        Section {
                             // Rows of `columns` equal tiles; a short last row keeps their width.
                             let tabs = workspace.tabs
-                            VStack(spacing: 16) {
-                                ForEach(Array(stride(from: 0, to: tabs.count, by: columns)), id: \.self) { start in
-                                    HStack(spacing: 16) {
-                                        ForEach(tabs[start ..< min(start + columns, tabs.count)]) { tab in
-                                            Tile(
-                                                page: page,
-                                                workspace: workspace,
-                                                tab: tab,
-                                                size: size,
-                                                frames: frames,
-                                                zooming: zooming == tab.id,
-                                            ) { open(workspace, tab) }
-                                        }
-                                        ForEach(tabs.count ..< max(start + columns, tabs.count), id: \.self) { _ in
-                                            Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
-                                        }
+                            ForEach(Array(stride(from: 0, to: tabs.count, by: columns)), id: \.self) { start in
+                                HStack(spacing: 16) {
+                                    ForEach(tabs[start ..< min(start + columns, tabs.count)]) { tab in
+                                        Tile(
+                                            pages: pages,
+                                            page: page,
+                                            workspace: workspace,
+                                            tab: tab,
+                                            size: size,
+                                            frames: frames,
+                                            zooming: zooming == tab.id,
+                                        ) { open(workspace, tab) }
+                                    }
+                                    ForEach(tabs.count ..< max(start + columns, tabs.count), id: \.self) { _ in
+                                        Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
                                     }
                                 }
                             }
+                        } header: {
+                            // 32 pt below the rows above, 12 pt above its own.
+                            Text(workspace.label).font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 16)
+                                .padding(.bottom, -4)
+                                .accessibilityIdentifier("overview.workspace.\(workspace.id)")
                         }
-                        .accessibilityElement(children: .contain)
-                        .accessibilityLabel(workspace.label)
                     }
                 }
                 .padding(.horizontal, side)
@@ -257,6 +278,7 @@
     /// A tab as one card: its title row (icon stack, title, status; × on hover) over the miniature of its page. The
     /// selected tab of its workspace has the keyboard card's look.
     private struct Tile: View {
+        let pages: WindowPages
         let page: Page
         let workspace: HostStore.Workspace
         let tab: HostStore.Tab
@@ -293,7 +315,7 @@
                     if zooming {
                         Color.clear
                     } else {
-                        Miniature(tab: tab, page: page, size: size)
+                        Miniature(tab: tab, page: page, size: size, live: pages.overviewLive)
                     }
                 }
                 .aspectRatio(size, contentMode: .fit)
@@ -304,6 +326,9 @@
             }
             .frame(maxWidth: .infinity)
             .background(CardSurface(keyboard: selected))
+            // The tiles the lazy stack makes may be live (`showTerminals`); the others show their snapshot.
+            .onAppear { laidOut(true) }
+            .onDisappear { laidOut(false) }
             .contentShape(.rect)
             .onTapGesture(perform: open)
             .onHover { hovering = $0 }
@@ -313,6 +338,17 @@
             .accessibilityValue(selected ? "selected" : "")
             .accessibilityIdentifier("overview.tab.\(tab.id)")
             .accessibilityAction(.default, open)
+        }
+
+        private func laidOut(_ shown: Bool) {
+            // Closing: `closeOverview` let them all go at once.
+            guard pages.overview else { return }
+            // The latest last: they go live first.
+            pages.overviewTabs[page.id, default: []].removeAll { $0 == tab.id }
+            if shown {
+                pages.overviewTabs[page.id, default: []].append(tab.id)
+            }
+            pages.showTerminals()
         }
     }
 #endif

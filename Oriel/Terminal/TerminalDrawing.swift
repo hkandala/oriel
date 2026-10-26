@@ -1,5 +1,6 @@
 #if os(macOS)
     import AppKit
+    import CoreImage
     import GhosttyTerminal
     import IOSurface
 
@@ -45,10 +46,11 @@
             }
         }
 
-        /// Leaving view, its picture is kept first (`keepPicture`).
+        /// Leaving view, its picture is kept first (`keepPicture`), and a small copy for the overview.
         func inViewChanged() {
             if !inView {
                 view.keepPicture()
+                takeSnapshot()
             }
             if ready {
                 draw()
@@ -72,11 +74,39 @@
             draw()
             let first = !revealed
             revealed = true
-            if first, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            // Not in an overview tile: its snapshot or fill shows until it drew, then the terminal at once.
+            if first, !(view.superview is MiniTerminal.Mini),
+               !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            {
                 let fade = CABasicAnimation(keyPath: "opacity")
                 fade.fromValue = 0
                 fade.duration = 0.12
                 view.layer?.add(fade, forKey: "reveal")
+            }
+        }
+    }
+
+    /// The overview's snapshots (phase 28): a tile that is not live shows its terminal's last picture, 480 px wide at
+    /// most (about 0.6 MB), so one scrolled into view shows at once, with no fade, until it is live.
+    extension PaneTerminal {
+        /// ponytail: a count, not bytes; 256 at most is about 150 MB. Least recently taken first out.
+        @MainActor static var snapshots: [PaneTerminal] = []
+        private static let context = CIContext()
+
+        func takeSnapshot() {
+            guard let surface = view.picture as? IOSurface, surface.width > 0 else { return }
+            var state: UInt32 = 0
+            // 3 reads the state, 2 is emptied (`keepPicture`).
+            IOSurfaceSetPurgeable(surface, 3, &state)
+            let small = CIImage(ioSurface: surface).applyingFilter("CILanczosScaleTransform", parameters: [
+                kCIInputScaleKey: min(1, 480 / CGFloat(surface.width)),
+            ])
+            guard state != 2, let small = Self.context.createCGImage(small, from: small.extent.integral) else { return }
+            snapshot = small
+            Self.snapshots.removeAll { $0 === self }
+            Self.snapshots.append(self)
+            while Self.snapshots.count > 256 {
+                Self.snapshots.removeFirst().snapshot = nil
             }
         }
     }

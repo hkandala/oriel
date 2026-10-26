@@ -9,6 +9,8 @@
         let tab: HostStore.Tab
         let page: Page
         let size: CGSize
+        /// The terminals that stream and draw here; the others show their snapshot.
+        let live: Set<String>
 
         var body: some View {
             GeometryReader { proxy in
@@ -19,7 +21,7 @@
                     ZStack(alignment: .topLeading) {
                         ForEach(cards, id: \.id) { card in
                             let rect = zoomed == nil ? card.rect : area
-                            MiniCard(id: card.id, page: page, size: rect.size, scale: scale)
+                            MiniCard(id: card.id, page: page, size: rect.size, scale: scale, live: live)
                                 .frame(width: rect.width * scale, height: rect.height * scale)
                                 .position(x: rect.midX * scale, y: rect.midY * scale)
                         }
@@ -30,13 +32,15 @@
     }
 
     /// A card at `scale`: its fill and edge, and its terminal where the page's card has it (under the header, 10 pt
-    /// in, 8 pt up from the bottom). A floated pane's shows the float icon.
+    /// in, 8 pt up from the bottom): live, or its snapshot until it drew (none for a terminal never shown: the fill).
+    /// A floated pane's shows the float icon.
     private struct MiniCard: View {
         let id: String
         let page: Page
         /// The card in the strip's page.
         let size: CGSize
         let scale: CGFloat
+        let live: Set<String>
         @Environment(\.look) private var look
 
         var body: some View {
@@ -51,11 +55,20 @@
                     if let pane, page.floats(pane) {
                         Image(systemName: "pip").foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if let view = pane.flatMap(page.terminal) {
-                        MiniTerminal(terminal: view, size: terminal)
-                            .frame(width: terminal.width * scale, height: terminal.height * scale)
-                            .padding(.leading, PaneCard.inset * scale)
-                            .padding(.top, PaneCard.header * scale)
+                    } else if let pane, let id = pane.terminalID, let view = page.terminal(pane) {
+                        let drawn = live.contains(id) && view.ready
+                        ZStack {
+                            // Under a live one too, until it drew: a terminal's background may be clear.
+                            if !drawn, let snapshot = view.snapshot {
+                                Image(decorative: snapshot, scale: 1).resizable()
+                            }
+                            if live.contains(id) {
+                                MiniTerminal(terminal: view, size: terminal, alpha: drawn ? 1 : 0)
+                            }
+                        }
+                        .frame(width: terminal.width * scale, height: terminal.height * scale)
+                        .padding(.leading, PaneCard.inset * scale)
+                        .padding(.top, PaneCard.header * scale)
                     }
                 }
         }
@@ -67,6 +80,8 @@
     struct MiniTerminal: NSViewRepresentable {
         let terminal: PaneTerminal
         let size: CGSize
+        /// 0 until it drew: its snapshot shows meanwhile. On the view, as `TerminalHost`'s dim.
+        let alpha: CGFloat
 
         func makeNSView(context _: Context) -> Mini {
             let mini = Mini()
@@ -78,6 +93,7 @@
         }
 
         func updateNSView(_ mini: Mini, context _: Context) {
+            mini.alphaValue = alpha
             mini.size = size
             mini.fit()
         }
@@ -133,6 +149,42 @@
                 // Before libghostty hears of the size, as the card's host does.
                 view.terminal?.hold()
                 view.frame = CGRect(origin: .zero, size: size)
+            }
+        }
+    }
+
+    /// e2e (`-recordMotion YES`): the overview's frames, as "‹frames› ‹hitches› ‹snapshots›": a hitch is a display
+    /// frame the main
+    /// thread delivered over 25 ms after the one before (a dropped frame at 60 Hz), so a scroll's hitch rate shows.
+    struct FrameMeter: NSViewRepresentable {
+        func makeNSView(context _: Context) -> Meter {
+            Meter()
+        }
+
+        func updateNSView(_: Meter, context _: Context) {}
+
+        final class Meter: NSView {
+            private var link: CADisplayLink?
+            private var last: CFTimeInterval = 0
+            private var frames = 0, hitches = 0
+
+            override func viewDidMoveToWindow() {
+                super.viewDidMoveToWindow()
+                link?.invalidate()
+                link = window == nil ? nil : displayLink(target: self, selector: #selector(tick))
+                link?.add(to: .main, forMode: .common)
+                setAccessibilityElement(true)
+                setAccessibilityRole(.staticText)
+                setAccessibilityIdentifier("overview.frames")
+            }
+
+            @objc private func tick(_ link: CADisplayLink) {
+                if last > 0 {
+                    frames += 1
+                    hitches += link.timestamp - last > 0.025 ? 1 : 0
+                }
+                last = link.timestamp
+                setAccessibilityValue("\(frames) \(hitches) \(PaneTerminal.snapshots.count)")
             }
         }
     }

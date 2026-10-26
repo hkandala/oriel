@@ -61,6 +61,7 @@
                 terminal.close()
                 terminals[terminalID] = nil
                 Self.recent.removeAll { $0 === terminal }
+                PaneTerminal.snapshots.removeAll { $0 === terminal }
             }
             // Without a client (the page in view connecting), the terminals there go on: another page's floated ones.
             let make = { (ids: [String: String]) in

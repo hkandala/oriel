@@ -143,9 +143,8 @@ extension OrielUITests {
     }
 
     /// What the overview costs (phase 27): lane O's workspace of 6 tabs and 12 panes, 8 of them printing, only its
-    /// first tab shown. Open, every tile's cards stream and draw, also those scrolled out of view, so scrolling shows
-    /// them at once (phase 28); closed, the ones only it showed let go (no visits, D46). Footprint and CPU of each step
-    /// are in the result bundle.
+    /// first tab shown. Open, the cards of the tiles it lays out stream and draw; closed, the ones only it showed let
+    /// go (no visits, D46). Footprint and CPU of each step are in the result bundle.
     func testOverviewCostsAndLetsGoAfter() async throws {
         let (tabs, _) = try await newWorkspace("usage", tabs: 6)
         var panes: [String] = []
@@ -164,19 +163,15 @@ extension OrielUITests {
         let strip = try await measure("strip")
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(element("overview").exists(within: 2))
-        // Every card of the session streams, the tiles below the window's edge too.
-        let cards = try await Self.ids("pane", in: one).count
-        try await poll("every card to stream") { () async throws -> Int? in
+        // The tiles laid out (in or near view: the grid is lazy) stream their cards too.
+        try await poll("the tiles' cards to stream") { () async throws -> Int? in
             let count = try await helpers(measure("overview", seconds: 1))
-            return count >= cards ? count : nil
+            return count > helpers(strip) ? count : nil
         }
         let open = try await measure("overview")
-        // The last tile, below the window's edge, already has its terminal drawing (a grid comes with its surface).
-        let last = element("overview.tab.\(tabs[5])"), terminal = element("terminal.\(panes[panes.count - 1])")
-        XCTAssertFalse(last.isHittable)
-        XCTAssertTrue(until(3) { !terminal.stringValue.isEmpty }, "no surface below the edge")
-        // Down to the new workspace's tiles: none lets go.
-        // Either way: the sign follows the natural scrolling setting.
+        // Down to the new workspace's tiles: those in view stream, the ones scrolled away let go. Either way: the
+        // sign follows the natural scrolling setting.
+        let last = element("overview.tab.\(tabs[5])")
         for delta in [-3000.0, 3000, -3000] where !(last.exists && last.isHittable) {
             element("overview").scroll(byDeltaX: 0, deltaY: delta)
             _ = last.has(\.isHittable, true, within: 1)
@@ -184,7 +179,6 @@ extension OrielUITests {
         XCTAssertTrue(last.isHittable)
         keepScreenshot("overview of 6 tabs")
         let scrolled = try await measure("overview, scrolled")
-        XCTAssertGreaterThanOrEqual(helpers(scrolled), cards, scrolled)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
         try await poll("the overview's streams to end") { () async throws -> Int? in
@@ -193,6 +187,62 @@ extension OrielUITests {
         }
         _ = try await measure("after the overview")
         print("overview cost: strip\n\(strip)\nopen\n\(open)\nscrolled\n\(scrolled)")
+    }
+
+    /// The overview of 100 tabs over 4 workspaces, every fourth printing (phase 28; `scripts/overview-stress.py` makes
+    /// more for a check by hand): however far it scrolls, at most 24 cards stream beside the strip's, the tiles that
+    /// were live keep a snapshot, and the frames dropped while scrolling are counted. Footprint, CPU and frames are in
+    /// the result bundle.
+    func testOverviewOfManyTabsStaysBounded() async throws {
+        executionTimeAllowance = 400
+        relaunch(nil, ["-recordMotion", "YES"])
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        var tabs: [String] = []
+        for index in 1 ... 4 {
+            let (tab, pane) = try await createWorkspace("many \(index)")
+            tabs.append(tab)
+            try await send("while :; do echo $RANDOM $RANDOM; sleep 0.5; done\r", to: pane)
+            for count in 1 ..< 25 {
+                let created = try await Self.call(one, "tab.create", ["workspace_id": workspace(of: tab), "cwd": "/tmp",
+                                                                      "focus": false])
+                try tabs.append(id(created, "tab"))
+                if count % 4 == 0 {
+                    try await send("while :; do echo $RANDOM $RANDOM; sleep 0.5; done\r", to: id(created, "root_pane"))
+                }
+            }
+        }
+        let strip = try await measure("strip, 100 tabs")
+        app.typeKey("o", modifierFlags: [.command, .control])
+        let overview = element("overview"), meter = element("overview.frames")
+        XCTAssertTrue(overview.exists(within: 2))
+        let open = try await measure("overview, 100 tabs")
+        let start = meter.stringValue
+        // Down to the last tile; the sign follows the natural scrolling setting.
+        var delta = -600.0
+        overview.scroll(byDeltaX: 0, deltaY: delta)
+        if element("overview.title").isHittable {
+            delta = -delta
+        }
+        let last = element("overview.tab.\(tabs[99])")
+        var most = 0
+        for _ in 0 ..< 80 where !(last.exists && last.isHittable) {
+            overview.scroll(byDeltaX: 0, deltaY: delta)
+            most = try await max(most, streams(one).count)
+        }
+        XCTAssertTrue(last.isHittable)
+        let end = meter.stringValue
+        let scrolled = try await measure("overview, 100 tabs, scrolled")
+        // The strip's kept terminals, at most 24 cards, and a run or two ending.
+        XCTAssertLessThanOrEqual(most, helpers(strip) + 24 + 2, "\(most) runs")
+        let snapshots = Int(end.split(separator: " ").last ?? "") ?? 0
+        XCTAssertGreaterThan(snapshots, 8, end)
+        print("overview of 100 tabs: frames from \(start) to \(end)\nstrip\n\(strip)\nopen\n\(open)\n\(scrolled)")
+        let attachment = XCTAttachment(string: "frames hitches snapshots: from \(start) to \(end); most runs \(most)")
+        attachment.name = "overview frames"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(overview.vanishes(within: 2))
     }
 
     /// The mean brightness of an element's pixels.
