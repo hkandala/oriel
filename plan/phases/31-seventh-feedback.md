@@ -66,6 +66,16 @@ Capture F: `/Users/hkandala/Library/Application Support/scrawl/captures/scrawl-1
     pill on the previous selection for a moment, then it jumps to the new tab. The user's idea: when the tab
     bar comes back from the overview, it has no pill, and the pill fades in on the selected tab.
 
+## Lane K: keys reach the right place (item 13)
+
+13. **⌃⇥ sometimes steps panes instead of tabs**, quite regularly, and **with several windows a key (⌘D and
+    others) sometimes acts on another window** than the one the user is in. Go through how every key is
+    triggered (menu bar commands and their focused values, the app's key monitor and second keys, the
+    terminal view's performKeyEquivalent and keyDown, floating windows, panels, the palette) and make each
+    key act once, on the key window's current page and keyboard card, in every case: several main
+    windows, floating windows, panels open, a window just made key, focus in a field. Tests for ⌃⇥ / ⌃⇧⇥
+    in a tab with several panes, and for ⌘D with two windows after switching between them.
+
 ## Integration (items 8–10)
 
 8. **Return confirms the close dialog:** when closing a pane or tab asks first, Return does nothing and the
