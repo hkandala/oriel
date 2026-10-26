@@ -90,6 +90,9 @@ line read. No dead code or leftover hooks found: every test value and identifier
   passes, sent to r-herdrkit). (5) VoiceOver said nothing when ↑↓ moved the lit row of a filter list
   (a-security-a11y). Floating Close Pane is picked by its key, not its title; the floating window takes r-app's
   `windowChrome` and r-strip's `PaneTitle` (a-ponytail-app).
+- **Warning.** `Overview.space` is `nonisolated` (a Swift 6 warning in a tile's geometry closure, from r-tests).
+- **CI (targeted).** 40355954486 (9 overview, float, palette and menu tests) and 40357197256 (2 float tests,
+  after `PaneTitle`): green.
 - **Comments.** 3 fixed: `Overview.frames` (frames, not miniatures), `FilterField` (stale caller list),
   `MiniCard` (a doc split in two).
 - **Not done (small, cross-area):** `reduceMotion && !Animation.forceMotion` repeats in 8 files of 5 areas (one
