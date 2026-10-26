@@ -231,7 +231,9 @@ struct ChromeStyle: ButtonStyle {
                         if !style.selected {
                             // The same in both styles, and they follow the appearance by themselves (D44).
                             let strength = configuration.isPressed ? 0.08 : hovering && enabled ? 0.05 : 0
-                            shape.fill(.primary.opacity(strength))
+                            // On the tint alone: on the whole label it also faded a menu's light from row to row
+                            // (FilterList lights the hovered row; user, phase 29).
+                            shape.fill(.primary.opacity(strength)).animation(.easeOut(duration: 0.14), value: hovering)
                         } else if let tint = style.tint {
                             shape.fill(tint)
                         } else {
@@ -241,7 +243,6 @@ struct ChromeStyle: ButtonStyle {
                     .padding(.vertical, style.inset)
                 }
                 .opacity(enabled ? 1 : 0.4)
-                .animation(.easeOut(duration: 0.14), value: hovering)
                 .onHover { hovering = $0 }
         }
     }

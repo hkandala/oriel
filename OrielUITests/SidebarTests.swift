@@ -21,8 +21,8 @@ extension OrielUITests {
         XCTAssertTrue(filter.vanishes(within: 2))
     }
 
-    /// With the sidebar collapsed, the light of the workspace menu and of Open Session follows the pointer (user,
-    /// phase 24).
+    /// With the sidebar collapsed, the light of the workspace menu, of Open Session and of the palette follows the
+    /// pointer (user, phases 24 and 29).
     func testMenuLightFollowsThePointer() {
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         app.typeKey("s", modifierFlags: [.command, .control])
@@ -40,6 +40,15 @@ extension OrielUITests {
         open.hover()
         XCTAssertTrue(open.has(\.isSelected, true, within: 2))
         keepScreenshot("open session lit by the pointer")
+        app.typeKey(.escape, modifierFlags: [])
+        app.typeKey("k", modifierFlags: .command)
+        let tab = element("palette.tab.w1:t1"), workspace = element("palette.workspace.\(one).w2")
+        XCTAssertTrue(workspace.exists(within: 2))
+        workspace.hover()
+        XCTAssertTrue(workspace.has(\.isSelected, true, within: 2))
+        tab.hover()
+        XCTAssertTrue(tab.has(\.isSelected, true, within: 2))
+        XCTAssertFalse(workspace.isSelected)
     }
 
     /// A sideways swipe over the sidebar pages it and never the strip; over a card it pages the strip and never the

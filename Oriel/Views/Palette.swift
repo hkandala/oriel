@@ -54,7 +54,8 @@
                 start: command.map(start) ?? page.selectedWorkspace?.tabs.firstIndex { $0.id == page.selectedTab?.id }
                     ?? 0,
                 maxHeight: min(460, max(84, height - 154)),
-                lit: $lit,
+                // Only a preview page reads it: on the others each new light drew the whole palette again.
+                lit: command?.previews == true ? $lit : nil,
                 text: command?.name?.current ?? "",
                 submit: command?.name.map { name in { text in Task { await name.save(text) } } },
                 back: sub == nil ? nil : { back() },
