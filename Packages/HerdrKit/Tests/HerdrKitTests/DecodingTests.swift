@@ -12,10 +12,6 @@ private func snapshot() throws -> Snapshot {
     try fixture("snapshot", SnapshotResult.self).snapshot
 }
 
-private func leaf(_ id: String) -> SplitNode {
-    .leaf(paneID: id)
-}
-
 @Test func `snapshot decodes workspaces, tabs, panes and agents`() throws {
     let snapshot = try snapshot()
     #expect(snapshot.focusedWorkspaceID == "w1")

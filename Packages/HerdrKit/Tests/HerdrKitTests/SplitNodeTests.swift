@@ -1,7 +1,7 @@
 @testable import HerdrKit
 import Testing
 
-private func leaf(_ id: String) -> SplitNode {
+func leaf(_ id: String) -> SplitNode {
     .leaf(paneID: id)
 }
 
