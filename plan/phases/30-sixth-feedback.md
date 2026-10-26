@@ -181,3 +181,33 @@ until the orchestrator says otherwise. Read-only probes of the user's running Or
   and hidden) and up/down (workspaces), one step a gesture, the terminal not scrolling; ⌥ + mouse wheel; plain
   two-finger scrolling in a terminal and on the strip still the same; a three-finger swipe sideways and up/down
   (once each per gesture); a four-finger swipe still switches Spaces and steps nothing in Oriel.
+
+### Lane R (item 7: Connect shows progress)
+
+- **Root cause.** A click on Connect ran `HostStore.connect(in:)` (the asking ssh start, then a refresh) but changed
+  nothing the page reads: the state stayed `.failed(.disconnected)`, so the Disconnected page and its button stayed
+  until the first snapshot. On Add Remote Host the run loop's BatchMode start failed first ("Host key verification
+  failed"), so the new window showed Disconnected behind the question too. A failed connect also awaited the
+  notice's 4 s before its refresh.
+- **Fix.** `connect` sets the state to `.connecting` (only from a failed state, never from live) and a
+  `connecting` flag. Errors from the client are dropped while it runs, and also when they came before the click and
+  their session list waited for the start (`connects`, a count). The refresh comes right after the start, so its
+  read ends Connecting: live, not installed, not running, or Disconnected again after a Cancel or failed passwords.
+  Detail hides the loader while `pages.question` is up, and shows it again 0.3 s after the answer (the usual delay).
+  A second click joins the first. A failed start that blocks (`.disconnected`) shows no notice: the page says it.
+- **Accepted.** A start that asks has no time limit (a 2FA push can wait a minute after its answer), so a login
+  that hangs without asking shows Connecting until ssh gives up (machines.mdx). On CI the question comes within
+  0.3 s, so the loader before the question never shows there; the test checks that Disconnected goes at the click.
+- **Test.** `testAPasswordHostAsksAndNeverRetriesByItself`: no loader while the host key and password questions are
+  up; Connecting after the password, on Add and on Connect; Disconnected gone from the click. `scripts/ci-sshd.sh`
+  gives oriel-pw a `.zshrc` that sleeps 2 s (only `-lic`, the herdr lookup, reads it), like a slow dev machine's
+  login shell, so the loader after the answer lasts long enough to see.
+- **Also.** HostStore was at its 400-line limit: the session server start moved to HostModels.swift (8e66b4c).
+- **Review (one round, spec).** No blocker. Fixed: two quick Connects (1), comments (3, 4), the doubled "Canceled"
+  (5), one Detail case (6), a test check (7), `mkdir -p` in ci-sshd.sh (8), docs (9). Kept: 2, see Accepted.
+- **Commits.** 8e66b4c, 27bfda4, 64b158f. **CI.** 40273281796 (27bfda4, the four remote tests): green.
+  Full suite 40273771915 (64b158f): green after `--failed` rerun on the same
+  commit. The first attempt had two red tests outside lane R, both green on the rerun:
+  testGoToDirectoryAndInsertPath, and HerdrKit's "relay carries runs over one process" (`exit().status == 9`), so
+  both look flaky. All 9 remote tests ran on CI's sshd and were green; testAPasswordHost… took 31.8 s (the 2 s
+  login shell, twice).
