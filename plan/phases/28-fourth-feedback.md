@@ -128,3 +128,44 @@ the orchestrator says otherwise.
   green (all six of RemoteTests, testWindowsOnDifferentSessionsEachControlTheirOwn, testMachineMenuListsThisMac);
   red only in other lanes' areas: testEmptyPageOffersNewWorkspace and the swipe tests (lane E),
   testOrielURLFloat* (lane F).
+
+### Lane V (items 3, 4)
+
+- **Root cause, item 3.** The overview's pages, workspaces and tiles sat in lazy stacks (`LazyHStack`,
+  `LazyVStack`, `LazyVGrid`), and phase 27 (6f33fad) streamed only the tiles the grid laid out. A tile scrolled
+  into view was made then: its card's terminal view entered the window, libghostty builds a surface only in a
+  window (`AppTerminalView.viewDidMoveToWindow`), the stream opened, the new surface (clear) waited 100–400 ms
+  for herdr's frames to settle and its first reveal faded in over 0.12 s; a tile scrolled away freed its surface
+  again. Frame 11 of `scrawl zoom … --at 1:08` shows three empty tiles at the top while the user scrolls.
+- **Fix** (aa8a5e1). Nothing in the overview is lazy: an `HStack` of pages, a `VStack` of workspaces, rows of
+  `columns` tiles (`HStack`s with clear fillers, so a short last row keeps the tiles' width). Every terminal
+  view of every session in the window is in the window, and `showTerminals` streams every card of every page
+  while the overview is open, each made with its own page's client (no visits, as before; on leaving the
+  overview-only ones let go as in phase 27). The tile-tracking (`overviewTabs`, `laidOut`, `cardTerminals`) is
+  gone. The zoom leaves at once when the selected tile is out of view (its frame outside the canvas). Remote
+  machines are no longer left out: the rule came from the SSH session cap, which lane R2's relay (one SSH
+  session per host) removed.
+- **Item 4** (a2b2677, aa8a5e1). In the overview the title row is the traffic lights and one × at its end
+  (`overview.close`, "Close Overview ⌃⌘O"), which leaves by the zoom; the machine button, Agents, the overview
+  button, ⌘ and the hidden sidebar toggle and + are gone (`TitleBar.row` is the normal row). ⌘K and ⌘. still
+  work. Margins all round: 8 % of the width left and right (at least 48 pt), 40 pt above and below; the
+  columns (2–4 tiles of 340 pt) come from the width between them.
+- **Numbers** (CI 40246320315, 1x, `testOverviewCostsAndLetsGoAfter`, 17 cards of which 8 print): strip 85 MB,
+  1.5 % CPU, 4 herdr runs; overview open 205–208 MB, 14 %, 17 runs (every card at once; phase 27's lazy grid:
+  134 MB with 8 runs); scrolled to the end the same 17 runs; closed 108 MB, 0.7 %, 4 runs. On Retina expect
+  about 52 MB per full-window card while the overview is open (phase 27: 902 MB with all 17 laid out).
+- **Tests** (`OverviewTests.swift`). `testOverviewCostsAndLetsGoAfter`: on open every pane of the session
+  streams (`helpers ≥` herdr's pane count), the last tile below the window's edge already has a surface (its
+  terminal's grid value) before any scroll, and scrolling lets none go. `testOverviewShowsEveryTabLiveAndOpensOne`:
+  no title-row button but × (`titlebar.sidebar`, `.machine`, `.agents`, `.overview`, `.palette`, `.new-tab` gone),
+  the margins (left = 8 % / 48 pt, right = left, 40 pt above), × leaves. Each fails on the old code.
+- **Reviews.** Spec: no blockers; shoulds were stale doc lines (leaving by ⌘. and the Agents button, the remote
+  limit, the lazy cost) and the Findings. Ponytail: no blockers; stale comments, the cost bullet, a redundant
+  assert; `Grid` instead of the rows was offered as a nit and not taken (flexible `Grid` columns follow their
+  widest cell, so a one-tab workspace would get one wide column without fillers anyway). Fixed in 802e3c7.
+- **CI.** 40246320315 (the three overview tests, green on aa8a5e1). Full suite on 802e3c7, the lane's last
+  code commit: see below.
+- **For the user to check by hand:** ⌃⌘O in a busy session with many tabs, never opened ones too: scroll fast
+  down and up and swipe between sessions: no tile empty or fading; the title row (lights and × only) and the
+  margins against your reference; × and Esc leave with the zoom; `footprint` while open (about 52 MB per
+  full-window card on Retina) and back after it closes.
