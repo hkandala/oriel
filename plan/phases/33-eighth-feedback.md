@@ -188,3 +188,62 @@ per hold, at most 10 minutes, released with a trap).
 - **Debt:** libghostty links third-party C and Zig libraries (oniguruma and others) whose notices Ghostty's MIT text
   does not cover; the old credits had the same gap. Check Ghostty's list of bundled libraries and add them to
   `Acknowledgements.txt`.
+
+### Lane C
+
+- **Item 2, the sidebar header moved** (G #1 0:14, #2 0:23). Frames from the recording before and after the switch:
+  in the Agents view the name sat about 3 pt higher and 4 pt further left. **Cause:** two old choices, not a phase
+  32 commit (phase 32 changed only comments in that code; `git log -L` on the header). The Agents view placed the name
+  18 pt in, on the group labels' edge (91f201f, 2026-10-24), against 22 pt in the workspaces view. And its row aligned
+  the name on the first text baseline of the 22 pt sort capsule (8c831e7, then 27f6ca4), where the workspaces view
+  centers it on the 28 pt `+`. **Fix** (cac708b): the name is 22 pt in in both views, and its text has the `+`'s
+  28 pt height, so the name and the sort label still share one baseline and the name does not move. The name no
+  longer lines up with the group labels (4 pt to their right): the user asked for one position.
+  **Test:** `testSwipesPageTheSidebarAndTheStripApart` compares the header's origin before and after ⌘. (it fails
+  if either half is undone); `testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder` drops the assertion the
+  user overruled.
+- **Item 3, the pill slid after the overview** (G #3 0:43 to #5 1:05). Frame by frame at 1:05 (30 fps), the tab bar
+  shows at 64.60 s and the pill crosses from "cli" to "swebench autopilot" in about 0.1 s while it fades in.
+  **Cause:** `Overview.open` selects the tab in the same update as `leaving = true`, and the chrome's fade,
+  `.animation(.easeOut(0.12), value: open)` on the whole title row and sidebar, animated everything that changed in
+  that update: the pill's offset too (and the sidebar's page and rows). This came with 39915d5 (phase 31, the pill
+  under the overview sits on the selected tab, so its place changes in that update), not with phase 32's
+  `.id(page.id)` (the user picked a tab in the same session). The item 12 test missed it because the pill's note
+  read the model value, which was right; only the drawing slid. **Fix:** the fade animates the opacity alone
+  (e6d4768, `.animation(_:body:)`), and the pill never animates its place (40cee39, `.animation(nil, value: place)`:
+  it follows the strip frame by frame and jumps on any other switch). **Guard:** the pill's offset is drawn by an
+  `Animatable` modifier (`Slide`) that notes "pill slides <drawn> <place>" under `-recordLatency` at any frame
+  drawn short of its place; `testTheCapsuleRestsOnTheTabShownHoweverItShows` asserts there are none, after the
+  overview, a workspace round trip and ⌘4. Red on the unfixed code on this Mac (8 notes, "pill slides 0.26 2.0" to
+  "1.74 2.0"), green with the fix.
+- **Item 4, contrast.** Measured from the four look scenes on CI (1x): the backgrounds sampled from the screenshots,
+  the token color composited over them, checked against the darkest drawn glyph pixel (they agree within 0.02).
+  Script and screenshots: `/tmp/oriel-shots/l33c/` (`contrast.py`, `before/`, `after/`).
+
+  | Look | Card buttons before | after | Grip before | after |
+  |---|---|---|---|---|
+  | Glass dark | 2.99:1 | 3.93:1 | 3.0:1 | 4.1:1 |
+  | Glass light | 2.31:1 | 3.35:1 | 2.1:1 | 3.3:1 |
+  | Classic dark | 3.00:1 | 4.00:1 | 3.0:1 | 4.0:1 |
+  | Classic light | 2.31:1 | 3.35:1 | 2.1:1 | 3.3:1 |
+
+  **Fix** (36a093a, ecb0896): `Look.paneButton` white 0.42 / black 0.45 (from 0.33); the grip takes the same color
+  (was `secondary` at 0.6). `Look.contrast` (from `colorSchemeContrast`, set where both windows build their `Look`)
+  makes the app's own dim colors stronger under Increase Contrast: title row and sidebar text 0.65 → 0.85, the
+  selected title 0.9 → 1, tab dividers 0.17/0.14 → 0.3/0.28, the track 0.05 → 0.1, card buttons and grip → 0.6/0.65
+  (about 6.6:1). The system's colors follow it by themselves. In Glass the ratios depend on the desktop behind the
+  window (these are CI's). No test: a token switch with no logic, and Increase Contrast is a system setting a UI test
+  cannot turn on.
+- **Docs:** window (Agents view header, card header buttons, the overview's fade), theme-and-accessibility (token
+  table, Increase Contrast, the 3:1 note).
+- **CI:** 40416165976 (36a093a: the four look scenes, the pill and swipe tests green; the Agents view test red on a
+  second overruled check, the workspace labels on the header's edge) and 40417149176 (ecb0896: the pill test, four
+  overview tests, the flicker test and the swipe test green; the same Agents check red), fixed in 57790a1 (the labels
+  on the rows' icon edge). 40418115375 (57790a1, the same eight tests): all eight pass.
+  Learned: `gh run watch --exit-status` exited 0 on a failed run; read `gh run view --json conclusion`.
+- **Review** (l33-c-review): one should, applied: scope the chrome's fade to its opacity (the root cause; other
+  changes of the same update slid too). Nits applied: the slide check after the later switches, the selected title
+  under Increase Contrast, docs wording, "on CI's desktop". Kept `Look.grip` as a name (it reads better at its use).
+- **For the user to check by hand:** with Increase Contrast on (System Settings ▸ Accessibility ▸ Display), the title
+  row, tab dividers and card buttons look stronger; the card buttons in light read clearly; a tab picked in the
+  overview (also in another session or workspace) shows its pill there with no slide.
