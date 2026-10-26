@@ -132,8 +132,11 @@
                         let rect = zoomed == card.id ? area : entering ? card.start : card.rect
                         PaneCard(id: card.id, page: page, away: away)
                             .place(rect)
-                            // Under the zoomed card, which covers it, so its terminal views get no clicks.
-                            .opacity(away || entering ? 0 : 1)
+                            // Under the zoomed card, which covers it, so its terminal views get no clicks. The fade
+                            // takes half the slide: a longer one made the panes feel slow (user, phase 29).
+                            .animation(motion.map { _ in .easeOut(duration: 0.06) }) {
+                                $0.opacity(away || entering ? 0 : 1)
+                            }
                             .zIndex(away ? 0 : 1)
                             .allowsHitTesting(!away)
                             // A closed card fades as the others grow. A new one fades in with its slide (`entering`).

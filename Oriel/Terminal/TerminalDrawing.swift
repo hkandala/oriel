@@ -80,7 +80,7 @@
             {
                 let fade = CABasicAnimation(keyPath: "opacity")
                 fade.fromValue = 0
-                fade.duration = 0.12
+                fade.duration = 0.06
                 view.layer?.add(fade, forKey: "reveal")
             }
         }
