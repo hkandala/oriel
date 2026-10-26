@@ -75,7 +75,7 @@
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             // As the card shows: what runs in it now, for its icon (the snapshot's ask was when the pane was new). Not
             // the view's task: a lazy page that leaves at once would cancel it.
-            .onAppear { Task { await store.askProgram(id) } }
+            .onAppear { Task { await store.askProgram(id, soon: true) } }
             .clipShape(CardSurface.shape)
             // The card's element is its background: a container would merge into a one-pane page's.
             .background {

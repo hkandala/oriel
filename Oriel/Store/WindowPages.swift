@@ -70,7 +70,7 @@
             }
             Task {
                 try? await Task.sleep(for: .seconds(1))
-                await store.askProgram(pane.id)
+                await store.askProgram(pane.id, soon: true)
             }
         }
 

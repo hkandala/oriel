@@ -182,13 +182,16 @@ extension HostStore {
 
 extension HostStore {
     /// One `pane.process_info`; the icon follows. Only the latest ask lands; a failed first one is made again.
-    func askProgram(_ paneID: String) async {
+    /// `soon`: the user waits on it (a card shows, Return in it): ahead of the first snapshot's asks.
+    func askProgram(_ paneID: String, soon: Bool = false) async {
         guard let client, let pane = pane(paneID), !pane.starting else { return }
         pane.asked = true
         pane.asks += 1
         let ask = pane.asks
-        await asks.enter()
+        await asks.enter(first: soon)
         defer { asks.leave() }
+        // A newer ask, a closed pane or a closed page while it waited: no herdr run.
+        guard ask == pane.asks, self.client != nil, self.pane(paneID) === pane else { return }
         do {
             let program = try await client.program(paneID)
             if ask == pane.asks {
@@ -263,38 +266,5 @@ func reuse<Owner: AnyObject, Object: Identifiable<String>, Item: Identifiable<St
     }
     if new.map(\.id) != owner[keyPath: list].map(\.id) {
         owner[keyPath: list] = new
-    }
-}
-
-/// At most `count` holders at once; the others wait in order.
-@MainActor
-final class Gate {
-    private var free: Int
-    private var waiting: [CheckedContinuation<Void, Never>] = []
-
-    init(_ count: Int) {
-        free = count
-    }
-
-    /// Every place is held.
-    var busy: Bool {
-        free == 0
-    }
-
-    func enter() async {
-        if free > 0 {
-            free -= 1
-        } else {
-            await withCheckedContinuation { waiting.append($0) }
-        }
-    }
-
-    /// The place goes to the first waiting, if any.
-    func leave() {
-        if waiting.isEmpty {
-            free += 1
-        } else {
-            waiting.removeFirst().resume()
-        }
     }
 }

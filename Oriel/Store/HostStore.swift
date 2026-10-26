@@ -190,7 +190,7 @@ final class HostStore {
     #endif
 
     func panes(in tabID: String?) -> [Pane] {
-        tabPanes[tabID ?? ""] ?? []
+        tabID.flatMap { tabPanes[$0] } ?? []
     }
 
     func pane(_ id: String) -> Pane? {
@@ -306,7 +306,7 @@ final class HostStore {
                 // The page left view (or closed) during the runs before.
                 guard showsGit, !Task.isCancelled else { return }
                 let root = workspace.worktree?.checkoutPath
-                    ?? workspace.tabs.first.flatMap { tab in panes.first { $0.tabID == tab.id }?.cwd }
+                    ?? workspace.tabs.first.flatMap { panes(in: $0.id).first?.cwd }
                 // A root that changes during a run waits for the next tick.
                 guard let root, all || root != workspace.gitRoot, !gitRuns.contains(workspace.id) else { continue }
                 workspace.gitRoot = root
