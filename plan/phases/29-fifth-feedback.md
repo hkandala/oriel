@@ -75,3 +75,12 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   bounded cache) so it appears at once and turns live in place; never-seen tiles show herdr's text drawn
   small or a quiet placeholder, never a fade. A stress harness with 100–200 panes measures scroll frame
   rate, CPU and memory. Target: 60 fps scrolling at 200 tabs, memory bounded regardless of tab count.
+
+## Lane T: a tab flickers when it is shown (2026-10-25 17:40)
+
+13. The flicker after zooming into a tab from the overview (item 5) also happens when moving between
+    sessions: it is a common flicker when a tab becomes shown, in whatever way. Find the one cause (for
+    example a still picture removed before the live surface drew, a terminal view moving between hosts, a
+    reveal or fade on a kept terminal, a strip page rebuilt) and fix it there, for every path: session
+    swipe and dots, ⌥⌘[ ], the overview's zoom, tab clicks and keys, workspace switches. Lane T owns this;
+    lanes V (overview) and E (session swipe, phase 28) leave the flicker to it.
