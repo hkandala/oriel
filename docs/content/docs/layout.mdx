@@ -43,8 +43,6 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
 
 ## Drawing and resizing
 
-<SplitDemo />
-
 - A tab page is the size of the strip. Each split divides its rectangle by the
   ratio, with a fixed 8 pt gap between cards. The gap is the divider. herdr's
   cell rectangles are not used for drawing.
@@ -77,7 +75,7 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
   - Closing a pane does not rebalance.
 - **Balance** (⌥⌘=, View ▸ Pane ▸ Balance Splits) applies the same rule to
   every split of the selected tab; an even tab sends nothing.
-- **Resize Pane** (View ▸ Pane and the palette; no key since phase 25) sends
+- **Resize Pane** (View ▸ Pane and the palette; no key) sends
   `pane.resize {pane_id, direction, amount: 0.05}` for the keyboard card.
   herdr moves the nearest divider that way: right and down raise its ratio,
   left and up lower it. With no divider that way, herdr returns
@@ -106,7 +104,7 @@ In Glass the two are close: the keyboard card is only a little brighter.
 
 - When the tree changes (a split, a close, a move, a ratio from herdr) or a
   card zooms or restores, card frames animate over 0.13 s, ease-out (0.2 s
-  in phase 25 felt slow). A new card slides in from its side and fades in
+  felt slow). A new card slides in from its side and fades in
   over half the slide (0.06 s) as the others make room, its edge on theirs; a
   closed card fades away as the others grow (a scale would leave its terminal
   view at full size); a zoomed card grows to the full page and back while the
@@ -128,7 +126,7 @@ The keyboard card is the app's own (see below). Keys move it, and never call
 herdr's focus methods (D13):
 - ⌥⌘ and an arrow (View ▸ Pane ▸ Select Pane Left, Right, Up, Down): the
   keyboard goes to a card next to it that way, picked from the tab's split
-  tree at once, with no herdr call (phase 29): of the cards along that edge,
+  tree at once, with no herdr call: of the cards along that edge,
   the one used last, else the one that shares most of the edge, the top (or
   left) one on a tie, as in Ghostty. So → then ← comes back to the same card.
   herdr's `pane.neighbor` took a round trip per key and picked the card at
@@ -142,11 +140,11 @@ herdr's focus methods (D13):
   splits that newest card (herdr's pane once it is made), so three quick ⌘D
   give four cards left to right with the keyboard on the last; the panes made
   on the way join the keyboard history before it, so ⌘W steps back through
-  them (phase 29).
+  them.
 - Moving the keyboard to a card that a zoom hides restores the zoom.
 - When the keyboard card closes, the keyboard goes to the card of its tab
   used before it (most recent first), as closing a tab goes to the tab used
-  before it; else to herdr's focused pane of the tab (phase 27).
+  before it; else to herdr's focused pane of the tab.
 - ⌥⇧⌘ and an arrow (Move Pane): swaps the keyboard card with its neighbor
   that way, with `pane.swap {pane_id, direction, focus:false}`. The keyboard
   stays with the pane.

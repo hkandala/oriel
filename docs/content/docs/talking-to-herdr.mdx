@@ -1,36 +1,27 @@
 ---
 title: "Talking to herdr"
-description: "Run and dial, requests, events, reconcile, the terminal plane, control between windows, git status and writes"
+description: "Running commands, requests, events, reconcile, the terminal plane, control between windows, git status and writes"
 ---
 
-## Run and dial
+## Running commands
 
 ```swift
 protocol Exec {
     /// Run argv on the machine. Returns stdout as a byte stream and a stdin writer.
     func run(_ argv: [String]) async throws -> Channel
-    /// Open a TCP stream to host:port, as seen from the machine (not built yet).
-    func dial(host: String, port: Int) async throws -> Channel
     func herdr() async throws -> String?   // from the login shell
 }
 ```
 
-Every pane kind and plugin reaches its machine through these two calls
-(D2). Nothing of ours runs on the machine: `sshd`, POSIX tools and herdr do
-the work. A later server helper would sit behind the same two calls
-([Future work](/docs/future-work)).
+The app reaches each machine through `run` (D2). Nothing of ours is
+installed on the machine: `sshd`, POSIX tools and herdr do the work.
 
-- **`dial`** (not built yet: web pages and plugins need it): on This Mac, a plain TCP connection. On a remote machine from
-  macOS, `ssh -S <ctl> -W <host>:<port> <target>` on the host's ControlMaster
-  (one process, one stream on its stdio). From iOS, a Citadel `direct-tcpip`
-  channel. A web card needs a local port, not a stream; see
-  [Remote localhost](/docs/plugins/web-page#remote-localhost).
 - **This Mac:** `Process`. A GUI app does not get the shell's environment. So
   at launch the app reads `PATH`, `HOME`, `SSH_AUTH_SOCK`, every `XDG_*`
   variable and herdr's path once with `$SHELL -lic` (stdin from `/dev/null`,
   3 s timeout, output parsed after a unique marker). `HERDR_*` variables are removed from
   child processes.
-- **A remote machine on macOS:** every run goes through the relay, one SSH
+- **A remote machine:** every run goes through the relay, one SSH
   session on the host's ControlMaster ([macOS](/docs/machines#the-ssh-connection)). The
   app starts it with a `Process` like this, the relay's script in the
   envelope:
@@ -38,8 +29,7 @@ the work. A later server helper would sit behind the same two calls
   /usr/bin/ssh -F /dev/null -o ControlMaster=no -o BatchMode=yes \
       -o ProxyCommand=/usr/bin/false -S <ctl> -- <target> <envelope>
   ```
-- **iOS:** one Citadel connection per host. Each run is an exec channel.
-- **The remote command envelope.** ssh and Citadel hand one string to the
+- **The remote command envelope.** ssh hands one string to the
   machine's login shell, which may be bash, zsh or fish. Their quoting rules
   differ. So the app never builds a shell string from data. It sends:
   ```sh
@@ -73,7 +63,7 @@ the work. A later server helper would sit behind the same two calls
   absolute path (an rc file may print first). Every herdr call on that machine
   runs that path; `PATH` stays the login shell's own. On This Mac the same
   shell run reads the environment, at launch
-  ([Run and dial](#run-and-dial)). On a remote machine it is one run over SSH
+  ([Running commands](#running-commands)). On a remote machine it is one run over SSH
   on connect, and the path goes inside the envelope.
 - No path (herdr missing, or the shell failed or took over 3 s): the app shows
   the install command and asks the shell again, at most every 30 s while
@@ -99,10 +89,10 @@ the work. A later server helper would sit behind the same two calls
   one line `{"id":"1","method":"…","params":{…}}`, read one reply line, then
   close stdin. herdr answers one request per connection.
 - **Timeout:** every `call()` times out after 10 s. On a timeout the app kills
-  the bridge process (macOS) or closes the channel (iOS). A write that times
+  the bridge process. A write that times
   out shows the notice "herdr did not answer", with no Retry. A read that
   times out shows Reconnecting.
-- Long-lived streams (events, terminals, chat tails) have no timeout. The
+- Long-lived streams (events, terminals) have no timeout. The
   health check covers them.
 - Cost: 18 ms median and 130 ms at p95 per call (measured locally), plus the
   network round trip. Text typing never takes this path (special keys do:
@@ -139,7 +129,7 @@ the work. A later server helper would sit behind the same two calls
   unless the app's own write asked for it (its result is read at once).
   A read takes 20–130 ms, so it batches the events that arrive during it; the
   250 ms keep a hundred agents' titles and states (an event each) from
-  becoming reads back to back, each a snapshot of every pane (phase 29: about
+  becoming reads back to back, each a snapshot of every pane (about
   280 KB at 400 panes).
 - The stream is opened again, followed by a snapshot, when the set of agent
   panes changes, on `events_lost` (the reader fell behind herdr's 512-event
@@ -181,8 +171,6 @@ metadata tokens, so it works for an agent on any machine Oriel follows
 
 ## Reconcile
 
-<Flow steps={[['herdr event', 'any line on the stream'], ['pacing', 'one read in flight, then read again if needed'], ['session.snapshot', 'workspaces, tabs, panes, agents, layouts'], ['reconcile', 'stable objects, changed fields only'], ['views update', 'one row, not the window']]} />
-
 - One snapshot holds every workspace, tab, pane, agent and layout.
 - The session's HostStore applies it to stable `@Observable` objects (`Workspace`,
   `Tab`, `Pane`) keyed by id, and sets only the fields that changed. A status
@@ -190,9 +178,7 @@ metadata tokens, so it works for an agent on any machine Oriel follows
 - Ids are scoped by session (two sessions can both have `w1:p1`). Every
   card is keyed by `(machine, session, terminal_id)`, which survives every
   move. A
-  herdr cold restart gives new terminal ids, so cards are built again, which
-  reads their state from the machine. A web or plugin pane's instance id only
-  names its state file ([Labels and instance ids](/docs/plugins/labels)).
+  herdr cold restart gives new terminal ids, so cards are built again.
 - Hand-written, lenient Codable models cover only the fields the app uses.
 
 ## Terminal plane
@@ -265,7 +251,7 @@ One path is [Future work](/docs/future-work).
   no CPU. Many terminals per run would need herdr's private client protocol
   on its socket.
 - During a swipe the neighbor tab shows each card's last image, or its fill
-  for a card never shown (a `pane.read visible` preview is not built yet).
+  for a card never shown.
   Its streams start when the swipe stops.
 - Streams are opened by `terminal_id`, so they survive the pane moving, even
   to another workspace.
@@ -298,22 +284,18 @@ One path is [Future work](/docs/future-work).
 
 `control` can type and resize. `observe` only watches.
 
-<Ownership />
-
-1. **Mac:** open as `control` without `--takeover`. If herdr refuses (another
+1. Open as `control` without `--takeover`. If herdr refuses (another
    device holds the pane), open as `observe` and show "In use elsewhere ·
    Take Back".
-2. **iPhone and iPad:** open as `observe`. Looking never resizes the PTY.
-3. On any device, the first key press, paste, or click or tap inside a
+2. On any device, the first key press, paste, or click or tap inside a
    watching card, or **Take Back**, opens the stream again with
    `--takeover`. Keys typed before the new stream's first frame are queued
    and sent in order.
-4. Nothing else takes control. A watcher stays a watcher until its user acts,
+3. Nothing else takes control. A watcher stays a watcher until its user acts,
    even after the other device lets go.
-5. A device closes a stream (closes its stdin) when it stops showing the
+4. A device closes a stream (closes its stdin) when it stops showing the
    card ([What streams](#what-streams)). herdr frees the pane at once.
-6. **Background:** a Mac app that becomes inactive keeps its streams. An iOS
-   app closes its streams when it goes to the background.
+5. An app that becomes inactive keeps its streams.
 
 ### Control between windows
 
@@ -342,14 +324,6 @@ Two windows on the Mac can show the same session. Control is per session
 7. Another device can still hold a single pane. That card shows "In use
    elsewhere · Take Back", as in [One controller per pane](#one-controller-per-pane).
 
-### Watching on a narrow screen
-
-- herdr does not report a pane's PTY columns, and `observe` clips or pads to
-  the watcher's size.
-- An iPhone watches at a fixed 160×50, with the font scaled to fit and pinch
-  to zoom. An iPad watches at its card size.
-- Observe cannot resize, so a size change restarts the stream.
-
 ### How a stream ends
 
 After a `terminal.closed` line the CLI exits 0. If it cannot connect, or the
@@ -368,12 +342,13 @@ handshake fails, it exits 1 with the reason on stderr.
 
 - **Scrolling:** `terminal.scroll` goes to the program when it uses the mouse
   or alternate scroll (most agent TUIs). Otherwise it scrolls herdr's shared
-  viewport. The app keeps no scrollback. Agent history is in the chat view.
-- **Terminal queries:** herdr already answers them, so libghostty must not
-  answer again. A stock libghostty would send its answers as key input. The
-  app uses a pinned libghostty-spm build with uHerdr's response-suppression
-  patch (`suppressesTerminalResponses`). [Spike S1](/docs/build-order#s1-strip)
-  checks it.
+  viewport. The app keeps no scrollback.
+- **Terminal queries:** herdr already answers them for the pane.
+- **Copy from a remote program** (vim's `"+y`, OSC 52) does not reach the
+  Mac's clipboard: herdr's stream keeps those requests. Select text in the
+  card instead.
+- **A herdr TUI on the same tab** shares the split ratios, and the app's
+  control stream pins the PTY size. Accepted.
 - **Find** (⌘F) reads the pane's recent text with
   `pane.read {source:"recent", lines: 5000, format:"text"}` when the bar
   opens (again at the next step after Return in the pane), and searches it on
@@ -452,7 +427,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Open Session: a new name, a running or a stopped session | starts `herdr --session S server` when it is not running (a launchd job on This Mac, D47; `nohup` on a remote machine) and waits for `session.snapshot`; a server the app started with no workspace gets `workspace.create {cwd: "~"}`; then the page opens and its `HostStore` connects ([Checks on connect](/docs/machines#checks-on-connect)) |
 | Open Session: Stop, Delete | `herdr --session S session stop S` (the server ends, and every program in it) or `session delete S` (a stopped session only); both ask first; then the list is read again. A failure shows herdr's reason with Retry |
 | Detach Session | no herdr call; the page's store disconnects when no window shows it, and the session keeps running |
-| Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`); web and plugin panes close at once (known by their label), and the app removes their [state file](/docs/plugins/state#the-instance-state-file) |
+| Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`) |
 | Close a tab | `tab.close`; asks first only when a pane of it runs more than its shell (`pane.process_info` of each pane, at once), naming what runs, with the pane count |
 | Close a workspace | `workspace.close {workspace_id, close_group}`; asks as for a tab, with the tab and pane count. `close_group: true` for a repository's workspace with linked worktree workspaces: herdr refuses the close without it (`workspace_group_close_required`), and with it closes all of them, also ones not next to it. The git worktrees stay on disk. A worktree's own workspace closes alone |
 | Close Other Tabs, Close Tabs to the Right | one `tab.close` per tab, all at once; asks once as for a tab, with the total pane count |
@@ -461,7 +436,6 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Go to Directory (⇧⌘G) | `pane.send_input` of `cd -- '‹path›'` and Return, only when the pane runs only its shell |
 | Insert Path (⇧⌘I) | `pane.send_input` of the shell-quoted path, no Return |
 | Find next or previous (⌘F) | `pane.scroll {pane_id, offset_from_bottom}` to the match; offset 0 when the bar closes |
-| Start an agent (not built yet) | [agent.start steps](/docs/plugins/terminal-and-agent#agent) |
 | Resize Pane (View ▸ Pane, the palette; no key) | `pane.resize {pane_id, direction, amount: 0.05}` on the keyboard card; herdr moves the nearest divider that way, or returns `changed:false` when there is none |
 | Move the keyboard (⌥⌘ + arrow; not a write) | no herdr call: the app picks the card from the split tree ([Moving the keyboard](/docs/layout#moving-the-keyboard)) |
 | A pane comes into view or leaves it | `pane.report_metadata {pane_id, source:"oriel", tokens:{"oriel-shown": "1" or null}, ttl_ms:30000}` ([Float requests](#float-requests)) |
@@ -482,7 +456,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
   under a stand-in id, a closing pane, tab or workspace left out. The
   snapshots after the write confirm it (herdr's tab or pane takes the
   stand-in's place; the closed one is gone) or take it back (a failed write).
-  Otherwise the app never changes its own state by hand (phase 25).
+  Otherwise the app never changes its own state by hand.
 - Writes of a session run one at a time, in order: a write asked while
   another runs waits for it.
 - A close reads `pane.process_info` of its panes, at most 8 at a time. When
@@ -493,8 +467,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
   startup programs (`ls`, `sort`): it is asked again every 200 ms, up to
   0.8 s, until only its shell runs. In a tab made from a stand-in (⌘T), a
   close of it still shows at once, so quick ⌘W after quick ⌘T step back one
-  tab each; a program found after the wait brings it back with the question
-  (phase 27).
+  tab each; a program found after the wait brings it back with the question.
 - A tab closed before herdr made it (⌘T, then ⌘W or a close at once) goes at
   once; herdr's tab is closed as it comes. When herdr's tab takes the
   stand-in's place, the window's selection and tab history follow it, so a
@@ -510,5 +483,4 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
   `split_not_found`. herdr clamps the ratio to 0.1–0.9 itself.
 
 What it looks like: [Main window](/docs/ui/window),
-[Drag and drop](/docs/ui/drag-and-drop),
-[iPhone and iPad](/docs/ui/iphone-and-ipad).
+[Drag and drop](/docs/ui/drag-and-drop).

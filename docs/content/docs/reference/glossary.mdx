@@ -28,7 +28,6 @@ description: "The words these docs use"
 | notice | the short capsule at the bottom of the strip after a failed action |
 | Glass / Classic | the two interface styles: a window with a behind-window blur / an opaque window |
 | Appearance | Auto, Light or Dark |
-| pill / pill card / peek | the floating status capsule on the Mac screen edge / the small window for one agent next to it / a pill card that slides out by itself without taking the keyboard |
 | Agents button | the title-row button with a list of statuses; resting on it lists the agents of the page in view that need you, then those done |
 | Agents view | the sidebar page's list of every agent pane of its session, turned on with the Agents button, ⌘. or View ▸ Show Agents |
 | Take Back | the button that moves control of a session to this window, or of a pane to this device |
@@ -47,22 +46,12 @@ description: "The words these docs use"
 | split id | `split_<n>_<path>`: n = place in `splits[]`; path = `root` or one digit per step (0 = first child, 1 = second) |
 | ControlMaster | one shared SSH connection that later `ssh` commands reuse |
 | relay | a small Perl script, sent with each SSH connection and never installed, that carries every run of a remote machine over one SSH session |
-| run / dial | the two calls the app makes on a machine: run a command and use its stdio / open a TCP stream to a host and port as seen from the machine |
+| run | the call the app makes on a machine: run a command and use its stdio |
 | envelope | the base64 wrapper every remote command travels in |
 | `terminal_id` / `pane_id` | herdr's id of a terminal process / of a pane slot; the pane id changes on a move to another workspace, the terminal id on a cold restart |
 | cold restart / live update | the herdr server stops, its terminals end, and it starts again / a new herdr server takes over the running terminals, which keep running |
 | `completion_seq` | the number of an agent's last finish (working or blocked → idle), from one counter per herdr server. herdr sets it back to null at the agent's next status change. It restarts at 0 when herdr restarts |
-| blocked panel | the bottom of an agent's screen and key buttons, shown in chat when it needs you |
-| key guard | the check that the prompt is unchanged before a key button sends |
-| screen-text chat | a chat view that shows the pane's visible text |
-| chat tail | the long-lived `tail -F` that reads a transcript |
-| plugin / core plugin | a pane kind beyond terminal, agent and web page: a small web page / one that ships with the app (git history, diff, Markdown) |
-| placeholder | the quiet command a web or plugin pane runs in herdr; cosmetic, the label is the truth |
-| iid | the instance id of a web or plugin pane, kept in its label; it names the pane's state file |
-| approval / safe list | a web origin this device opened once on a machine, so it loads without asking there / origins that load without asking: the machine's own `localhost` and `127.0.0.1`, and a built-in list; both will be editable in the Settings window (not built yet) |
-| Refresh | the card header button that reads the snapshot and builds the card again from its label and state file |
 | health check | the loop, one per open session, that reads `session.snapshot` every 30 s, every 2 s while it fails |
 | askpass | a small program `ssh` runs to ask for a password |
 | `MaxSessions` | OpenSSH's limit of sessions on one connection (10 by default) |
-| spike | a small test build that answers one risky question first |
 | Simpler choice | a shortcut taken on purpose, with when to revisit it |

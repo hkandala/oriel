@@ -78,8 +78,8 @@ only at these times:
 
 Each ask is its own herdr run, so asks can finish out of order; only the
 latest answer lands. At most 8 run at once, the others wait in order, a
-card's ask and Return's first: the first snapshot of a 400-pane session asked
-400 at once, and the app showed no card for over 30 s (phase 29). An ask that
+card's ask and Return's first: without the limit, the first snapshot of a
+400-pane session showed no card for over 30 s. An ask that
 a newer one replaced while it waited makes no herdr run.
 
 There is no polling. The result stays on the pane in the `HostStore`, so the

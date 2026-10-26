@@ -1,15 +1,9 @@
 ---
-title: "Main window (Mac and iPad)"
+title: "Main window"
 description: "Windows, the title row, tab bar, Agents button, sidebar pages, Agents view, Open Session, hover card, strip, pane cards, zoom, overview, floating panes, find bar, notices and the palette"
 ---
 
-![Main window with the sidebar open](/mockups/A.jpg)
-
-All scenes: the [main window mock-ups](/mockups/layout.html).
-
 ## Windows
-
-![Two windows on the same session: one controls, one watches](/mockups/J.jpg)
 
 - Each window shows one machine
   ([What a machine is](/docs/machines#what-a-machine-is)). File ▸ New Window
@@ -69,8 +63,6 @@ Window menu and Mission Control show it.
 
 ## Machine button
 
-![The machine menu](/mockups/E.jpg)
-
 - The machine's icon alone: no chevron and no name. This Mac is a
   laptop when it has an internal battery, else a desktop.
 - The menu lists the machines, each with its icon and name, and a checkmark
@@ -85,8 +77,6 @@ Window menu and Mission Control show it.
 - macOS 27 draws no images in these menu rows, so there only the names show.
 
 ## Workspace button
-
-![Sidebar collapsed, workspace menu open](/mockups/D.jpg)
 
 Shown only while the sidebar is collapsed, after the machine button.
 - An outline folder icon, then "‹page title› | ‹workspace›" (the sidebar page header's title, so the
@@ -176,8 +166,6 @@ One capsule per herdr tab of the selected workspace (D42).
 
 ## Agents button
 
-![Hover on the Agents button: who needs you](/mockups/G.jpg)
-
 - A list of statuses (`list.bullet.rectangle`), after the tab bar. While the
   [Agents view](#agents-view) is on, it is filled
   (`list.bullet.rectangle.fill`); the button has no highlight and no tooltip.
@@ -252,10 +240,10 @@ session open in this window (D43).
   bottom of the workspace list when content is under them. When the selected workspace
   changes, however it changes (a click, the overview, ⌃⌘[ ], ⌃⌘1–9, a
   three-finger swipe, the palette, a notification), the list scrolls just
-  enough to show its row, clear of the fade, without motion (phase 31).
+  enough to show its row, clear of the fade, without motion.
 - **Empty session.** A session with no workspace shows a New Workspace
   button on its page. The strip shows no button, only an icon and "This
-  session is empty" (the user's words, phase 28).
+  session is empty".
 - **Footer.** The filter field and one button, **Open Session** (⌥⌘T), which
   opens the [Open Session](#open-session) panel. The filter keeps the rows
   whose name or branch matches. A matching worktree also keeps its
@@ -318,8 +306,6 @@ Spaces panel.
 
 ## Agents view
 
-![The Agents view of one session](/mockups/H.jpg)
-
 The Agents button turns the sidebar page into a list of the agents of that
 session only (D61). A sideways swipe or a page dot shows the next open
 session's agents; a three-finger swipe up or down goes to the agent row above
@@ -355,7 +341,7 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   order, where the group names the workspace.
 - The row of the shown tab's keyboard card is lit like the selected
   workspace row. When another row lights, and when the view opens or changes
-  order, the list scrolls just enough to show it, without motion (phase 31).
+  order, the list scrolls just enough to show it, without motion.
 - Idle agents show. With no agents the list is empty, with no text.
 - The footer filter keeps the rows whose pane, agent, workspace or tab name
   matches.
@@ -367,10 +353,8 @@ How it works: [Agents and notifications](/docs/status#agents-and-notifications).
 
 ## Open Session
 
-![The Open Session panel](/mockups/F.jpg)
-
 The one place to create or open a session, as a page of this window (D68).
-It replaces the old session picker. The footer's Open Session button, the
+The footer's Open Session button, the
 workspace menu's and the machine menu's "Open Session…" and File ▸ Open Session… (⌥⌘T) open it.
 - A glass panel like the command palette, 420 pt wide, near the top of the
   window, with no title and no buttons: Enter acts, Esc or a click outside
@@ -421,8 +405,8 @@ How it works: [Checks on connect](/docs/machines#checks-on-connect).
 
 ## Hover card
 
-A peek at what runs in a tab (D63). Its live tab preview (phase 25) went in
-phase 27: the [overview](#overview) shows live tabs instead.
+A peek at what runs in a tab (D63). The [overview](#overview) shows live
+tabs.
 - **When.** The pointer rests 0.25 s on a title-bar capsule or an Agents
   row. The card stays while the pointer moves into it (0.15 s
   grace). It goes when the pointer leaves, on a click elsewhere, on a scroll,
@@ -476,12 +460,7 @@ How it works: [Layout and sizing](/docs/layout).
   0.42 or black 0.45, at least 3:1 on the card). Zoom is disabled when the tab has one pane.
 - **Terminal.** 10 pt in from the card's sides and 8 pt above its bottom; its
   text starts 12 pt in, as in Rex.
-- On macOS the buttons show on the keyboard card and on a hovered card. On iOS
-  they always show.
-- Not built yet: agent and terminal cards also get a chat|term view switch,
-  plugin panes a plugin|term switch. Plugin and web cards also get **Refresh**, which loads
-  the card again from the machine
-  ([When a card reads its state](/docs/plugins/state#when-a-card-reads-its-state)).
+- The buttons show on the keyboard card and on a hovered card.
 - **Context menu** on the header, and on the terminal, where it starts with
   Copy, Paste and Select All. As in herdr, a right click in the terminal opens
   the menu even when the program reads the mouse. ⌥-right click sends the
@@ -542,15 +521,6 @@ its field.
 
 How it works: [Scrolling, queries and links](/docs/talking-to-herdr#scrolling-queries-and-links).
 
-## Pane card in chat view
-
-Not built yet.
-
-<ChatCard caption="If claude needs you, the blocked panel shows the bottom of the screen and key buttons. The reply box sits below it." />
-
-How the messages, the reply box and the key buttons work:
-[Chat view](/docs/chat-view).
-
 ## Zoom
 
 - The zoom button, a double-click on the header, or ⇧⌘↩ zooms a card. It
@@ -603,13 +573,10 @@ once.
   overview: the tile's miniature grows to the strip's page over 0.18 s
   (ease out), its terminals scaling up live, then the strip shows. The sidebar
   and the title row stay laid out under the overview, hidden, and fade in
-  together over 0.12 s from the zoom's start (made only once the zoom ended,
-  they came a moment late in a big session, phase 30). The tab bar's marker
+  together over 0.12 s from the zoom's start. The tab bar's marker
   sits on the selected tab under the overview and fades in with the title row,
-  with no fade of its own (it faded in on its own after the zoom; user, phase
-  31). Only the fade is animated: the marker, the rows and the page title take
-  their new places at once (the marker slid from the tab selected before,
-  phase 33). Esc, the title
+  with no fade of its own. Only the fade is animated: the marker, the rows and
+  the page title take their new places at once. Esc, the title
   row's × and ⌃⌘O leave the same way, from the selected tab's tile (at once
   when that tile is scrolled away). Under Reduce Motion it leaves at once. ⌘.
   (Show Agents in the menu or palette) leaves it first and opens the Agents
@@ -635,33 +602,30 @@ once.
   would). A window resize refits them 150 ms after it stops, as the cards do. No second surface, stream or copy;
   while the overview shows, the strip does not, so a terminal view is still in
   one place (D35). The strip's cards take their views back when it closes.
-- Live tiles are bounded (phase 28): the overview is lazy by row, and only
+- Live tiles are bounded: the overview is lazy by row, and only
   the page in view's tiles in view stream and draw, whole tabs, the latest to
   come into view first, plus the selected tab's, which streams anyway. At most
   16 cards (6 on a remote machine, whose streams share the relay's one SSH
   session, [SSH sessions](/docs/machines#ssh-sessions)) and 400 MB of tabs: a
   live card keeps a swap chain at its card's full size, three times its pixels,
-  about 69 MB a tab on a full Retina window, so about 5 tabs there (phase 30).
+  about 69 MB a tab on a full Retina window, so about 5 tabs there.
   Tiles whose cards have no picture yet go first, so past the caps each tile in
   view gets one in turn: once its cards drew, a tile lets go (keeping its
   snapshot) if another waits. Nothing turns live or lets go while the grid
   scrolls (each would make or free a surface and a stream on the main thread),
-  and a herdr snapshot keeps the live set (phase 30: choosing there freed and
-  made surfaces mid-scroll); 150 ms after the scroll ends, or after the last
+  and a herdr snapshot keeps the live set; 150 ms after the scroll ends, or after the last
   tile came into view, those in view turn live and those scrolled away let go.
   During a swipe the next session's page shows snapshots until it lands: no
   tile turns live or takes the pointer while the fingers hold the pages or
   they slide. The page in view and its neighbors are laid out while the
-  overview is open (each grid stays lazy), so a swipe never makes a page
-  (phase 31). Those
+  overview is open (each grid stays lazy), so a swipe never makes a page. Those
   are not visits: when the overview closes, a terminal shown only by it goes
   back to where it was (its surface and stream let go, and it keeps no full
   picture) and the recently shown set is unchanged (D46).
 - Every other tile shows a snapshot: whenever a terminal stops drawing (it
   leaves the strip's view or a live tile), the app keeps a small copy of its
-  last picture, an IOSurface at the size its tile shows it, in pixels (phase
-  30: a full-window card's is about 1.3–1.7 MB on Retina; at most 360 px wide
-  before, it blurred, then sharpened as the tile turned live), the latest kept
+  last picture, an IOSurface at the size its tile shows it, in pixels (about
+  1.3–1.7 MB for a full-window card on Retina), the latest kept
   up to 100 MB. A tile scrolled into view shows its snapshot at once; turning
   live, the snapshot stays over the terminal's new surface until that drew, so
   it turns live in place, with no fade. A tile with a card that has no picture
@@ -673,7 +637,7 @@ once.
   away) still shows, unscaled.
 - Cost: bounded by the cap, not by the session's size. A live card keeps a
   surface at its full card size (about 52 MB for a full-window card on a
-  Retina screen); the snapshots add at most 100 MB. Phase 28, 200 tabs
+  Retina screen); the snapshots add at most 100 MB. At 200 tabs
   and 272 panes (`scripts/stress.py`, `testOverviewOfManyTabsStaysBounded`;
   this Mac, Retina, Release): 226 MB with the strip, about 1.2 GB with the
   overview open and 1.2–1.7 GB scrolled through (by which tabs are live), 14–17
@@ -685,8 +649,7 @@ Options weighed: a second, small, observe-only surface per pane at a small
 font (a herdr run, a renderer and a font atlas per pane, and observe cannot
 resize, so the grid would not fit the tile); pictures read from the live
 surfaces on a timer (only the shown tab's draw; each other card would need a
-surface anyway); screen text (`pane.read`, no colors: phase 25's hover card
-preview, removed with it); SwiftUI's `scaleEffect` on the strip's page
+surface anyway); screen text (`pane.read`, no colors); SwiftUI's `scaleEffect` on the strip's page
 (SwiftUI does not scale an AppKit view: the terminal stays at full size).
 
 ## Floating pane

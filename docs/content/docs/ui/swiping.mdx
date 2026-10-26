@@ -3,9 +3,7 @@ title: "Swiping"
 description: "Session pages in the sidebar and tab pages in the strip"
 ---
 
-![The sidebar after a swipe to the next open session](/mockups/B.jpg)
-
-- Two-finger swipe on a trackpad, one finger on iOS. Pages snap.
+- Two-finger swipe on a trackpad. Pages snap.
 - **Sidebar.** A sideways swipe on the sidebar moves to the next or previous
   session page open in the window ([Sidebar](/docs/ui/window#sidebar)). The
   page dots show where you are, and a click on a dot switches. At the first
@@ -23,7 +21,7 @@ description: "Session pages in the sidebar and tab pages in the strip"
   skipped; the steps follow the list as it reorders, as clicks do). With the
   sidebar hidden, or in the overview, up and down step the workspace.
   Fingers up go to the row above, down to the one below, whatever the scroll
-  direction (user, phase 31). One step a gesture, as the fingers move 20 pt (on the
+  direction. One step a gesture, as the fingers move 20 pt (on the
   trackpad) mostly one way, when the system's three-finger swipes are off
   (Trackpad settings: Swipe between full-screen apps, Mission Control and App
   Exposé on four fingers or off; no three-finger drag). macOS sends no scroll
@@ -35,8 +33,8 @@ description: "Session pages in the sidebar and tab pages in the strip"
   gestures on, the system takes the swipe; touches it cancels before the
   app's 60 ms and 20 pt step nothing (not tried on a trackpad with them on).
   Under a panel, in a floating pane's window or a sheet a three-finger swipe
-  steps nothing. The UI says nothing about the setting. ⌥ + swipe (phase 30)
-  is gone (user, phase 31): with ⌥ held a swipe scrolls as without it.
+  steps nothing. The UI says nothing about the setting. With ⌥ held a swipe scrolls as
+  without it.
 - **One target.** The app's scroll monitor locks a gesture to one axis (D35).
   It gives a sideways gesture over the sidebar (its pages, the dots and the
   filter) to the sidebar's pages, and elsewhere to the innermost scroll view
@@ -49,23 +47,21 @@ description: "Session pages in the sidebar and tab pages in the strip"
   lift it slides on to the page it lands on, starting at the fingers' speed:
   the next page that way, or the nearest page when they move slowly (under
   100 pt a second) or stop before they lift. The sidebar's pages slide with a
-  spring of response 0.2 s and no bounce (between Rex's tab spring's 0.28 s
-  and phase 25's 0.14 s, which felt too quick). The strip and the overview
+  spring of response 0.2 s and no bounce (0.14 s felt too quick). The strip and the overview
   start at the fingers' speed, speed up only as much as at most 0.28 s needs,
   and ease out; when the fingers' speed covers the rest in that time they only
-  slow down. From a slow lift the spring went from about 1.6k to 15k–21k pt a
-  second in two frames, most of a page, and looked cut (phase 31). At the
+  slow down. A spring from a slow lift jumped most of a page in two frames and
+  looked cut. At the
   first and last page the pages stop. The app's scroll monitor gives the pages the gesture's moves and its lift and drops
   the momentum. The session pages are the app's own, not a scroll view's; the
   strip and the overview stay scroll views that the app scrolls. A scroll
-  view's own paging snap took about 0.4 s, and a slide asked of it on a quick
-  flick stood still, then snapped back (phase 28); on the strip and the
-  overview it sent a 140 pt flick back to its page over 0.55 s (phase 31). At
+  view's own paging snap is too slow (about 0.4 s) and sends a quick flick
+  back to its page. At
   rest only the sidebar's page in view is laid out; the others come in while
   the pages move. A swipe during a slide takes the pages from where they are.
   The window shows the session, or selects the tab, once the slide looks
-  done: shown at the lift, its first draw held the slide still (phase 27; the
-  strip and the overview: once within a point of the page, phase 31). A
+  done (the strip and the overview: once within a point of the page); shown at
+  the lift, its first draw would hold the slide still. A
   wheel's sideways burst over the sidebar, the strip or the overview turns one
   page: the strip and the overview have no paging of their own (SwiftUI's
   snapped a swipe's first move to the next page). Under Reduce Motion they

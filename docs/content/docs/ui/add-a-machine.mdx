@@ -1,13 +1,13 @@
 ---
 title: "Add a machine"
-description: "The Add Remote Host dialog on macOS and iOS"
+description: "The Add Remote Host dialog"
 ---
 
 The machine button's "Add Remote Host…" opens the dialog: a glass panel in the
 middle of the window, like the palette, that only its buttons close (Esc is
 Cancel). Its labels and text are in the primary color, and its fields are
 filled and outlined, so they read over light and dark content in every look.
-The same dialog works on macOS and iOS (D54):
+The dialog (D54):
 - **Name:** how the machine menu lists the machine; the target when empty.
 - **SSH target:** what `ssh` connects to, for example `user@devbox` or a
   host alias from `~/.ssh/config`. Add stays off while it is empty, starts
@@ -23,20 +23,15 @@ Then:
   session; the window the user added it from keeps its pages. The new window
   connects and runs the
   [checks on connect](/docs/machines#checks-on-connect).
-- On macOS, ssh's questions (an unknown host key, a password, a code) show in
-  the same kind of dialog in the new window ([macOS](/docs/machines#the-ssh-connection)).
-  Later, when herdr is on the Mac, the dialog also lists herdr's machines that
-  are not yet added, checked while the app's list is empty
-  ([The machine list](/docs/machines#the-machine-list)).
-- On iOS, the dialog shows the device's public key to copy into
-  `authorized_keys`.
+- ssh's questions (an unknown host key, a password, a code) show in the same
+  kind of dialog in the new window ([The SSH connection](/docs/machines#the-ssh-connection)).
 - The machine menu's "Edit Remote Host ▸ ‹machine›" opens the same dialog
   with the machine's name, target and icon, and Save and Remove. Save keeps the
   edit; the machine's open windows show the new name and icon at once, and
   their next windows and pages use the new target (open sessions stay on the
   connection they have). Remove takes the machine off the list; its open
   windows stay until closed (restored after a relaunch, they open This Mac's
-  `default`). Reorder is not built yet.
+  `default`).
 - The machine menu lists This Mac first, then the machine list.
 
 Removing a machine never touches herdr on that machine.

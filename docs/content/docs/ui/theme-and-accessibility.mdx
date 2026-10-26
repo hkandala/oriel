@@ -48,13 +48,12 @@ follow the appearance. A change updates every terminal without opening its
 stream again. Selected text keeps its own color over a blue like macOS's
 (`#B3D7FF` in light, `#1B3A58` in dark), except reverse-video text; the
 defaults drew it in the terminal's background color, close to their grey
-selection. Web pages are
-told the current `prefers-color-scheme`. There are no other themes.
+selection. There are no other themes.
 
 ## Status
 
 The status words and colors are the same everywhere (tabs, workspace rows,
-the Agents view and popover, the hover card, pills, notifications):
+the Agents view and popover, the hover card, notifications):
 
 | Shown as | Word | Dark | Light | herdr status |
 |---|---|---|---|---|
@@ -81,31 +80,27 @@ the Agents view and popover, the hover card, pills, notifications):
 - Status is never color alone. Every dot and badge carries its word, and
   VoiceOver reads, for example, "codex, needs you" on a tab. A workspace
   row adds the word to its value.
-- Not built yet: a terminal card gives VoiceOver its screen text, read with
-  `pane.read {source:"visible", format:"text"}` when VoiceOver asks for it,
-  and announces new output politely (it does not interrupt speech). Today the
-  terminal gives VoiceOver only its grid size.
+- A terminal card gives VoiceOver only its grid size, not its text.
 - ⌥⌘ and an arrow moves the keyboard between cards. Keyboard focus in the
   chrome follows Full Keyboard Access. A terminal keeps Tab for itself.
 - VoiceOver's actions on a card are its menu's items, with Move Pane to Tab's
   New Tab and New Workspace only. With any accessibility client running
   (BetterTouchTool, Raycast, a test), SwiftUI builds a card's actions with the
-  card: one per tab made a switch to a session of 300 tabs take 1.05 s on CI,
-  0.34 s without them (phase 30). VO-Shift-M on a card opens its menu, with
+  card: with one per tab, a switch to a session of 300 tabs took three times
+  as long. VO-Shift-M on a card opens its menu, with
   every tab; the palette lists them too.
 - Every card action can be reached from the keyboard, through the menu bar and
   the palette (D48). Every swipe has a keyboard path, a menu path and a
   button. Hover controls are also in context menus and the menu bar.
 - Each divider is an adjustable element: "Divider between ‹a› and ‹b›", with
   the ratio as a percent ([Dividers](/docs/layout#dividers)).
-- On iOS, the app's chrome and the chat view follow Dynamic Type.
 - The terminal font size is the app's text size: 13 pt by default, 8 to 32,
   with View ▸ Increase Font Size (⌘+ or ⌘=), Decrease Font Size (⌘-) and Reset
   Font Size (⌘0)
   ([Settings](/docs/ui/settings)).
 - Reduce Motion stops the working dots (three still dots at 0.6), makes the
   tab selection and the strip jump, and turns off the icon bounce, the layout
-  motion, the pill's slide, the reorder slides, the spring-load pulse and the
+  motion, the reorder slides, the spring-load pulse and the
   panels' scale-in.
 - Reduce Transparency is handled by the system glass. Classic is an opaque
   window for users who want no blur at all.
@@ -114,8 +109,7 @@ the Agents view and popover, the hover card, pills, notifications):
   the grip). The system's colors follow it by themselves.
 - The card header buttons and the divider grip have a contrast of at least
   3:1 against what is behind them, in both styles and both appearances
-  (measured 3.3:1 to 4.1:1 on CI's desktop; in Glass it depends on the desktop;
-  Rex's 0.33 was 2.3:1 in light, phase 33).
+  (measured 3.3:1 to 4.1:1 on CI's desktop; in Glass it depends on the desktop).
 
 ## Keyboard shortcuts
 
@@ -207,8 +201,6 @@ Rex shortcuts not taken, and why:
 - Find Previous has no shortcut: ⇧⌘G is Go to Directory.
 - ⇧⌘← and ⇧⌘↑ (Split Left, Split Up) would steal select-to-line-start from
   text fields.
-
-Plugins cannot claim these keys.
 
 How it works: [Platform and code](/docs/platform),
 [Agents and notifications](/docs/status#agents-and-notifications).
