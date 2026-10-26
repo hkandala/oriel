@@ -186,6 +186,8 @@ extension OrielUITests {
         during(capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
                to: element("workspace.\(home)").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
         XCTAssertFalse(element("detail.notice").exists(within: 1))
+        let stayed = try await place(of: terminal)?.tab
+        XCTAssertEqual(stayed, tab)
         during(capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
                to: element("workspace.w2").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
         let moved = try await movedTab(of: terminal, in: "w2", layout, "moving")
@@ -193,8 +195,8 @@ extension OrielUITests {
         XCTAssertFalse(after.contains(tab))
         XCTAssertTrue(element("tab.\(moved)").has(\.isSelected, true, within: 3))
         XCTAssertTrue(element("workspace.w2").isSelected)
-        let place = try await place(of: terminal)
-        let keyboard = try XCTUnwrap(place).pane
+        let inBeta = try await place(of: terminal)
+        let keyboard = try XCTUnwrap(inBeta).pane
         XCTAssertTrue(hasKeyboard(element("terminal.\(keyboard)")))
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
 
@@ -214,6 +216,8 @@ extension OrielUITests {
         let back = try await movedTab(of: terminal, in: home, layout, "moving")
         XCTAssertTrue(row.vanishes(within: 2))
         XCTAssertTrue(element("tab.\(back)").has(\.isSelected, true, within: 3))
+        let arrived = try await place(of: terminal)
+        XCTAssertTrue(try hasKeyboard(element("terminal.\(XCTUnwrap(arrived).pane)")))
         XCTAssertTrue(element("drop.indicator").vanishes(within: 2))
         element("titlebar.sidebar").click()
     }

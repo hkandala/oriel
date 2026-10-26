@@ -9,6 +9,7 @@ import Foundation
 let args = CommandLine.arguments.dropFirst().compactMap { Double($0) }
 guard args.count >= 5, (args.count - 2) % 3 == 0 else { fatalError("usage: drag.swift <x> <y> (<x> <y> <hold>)...") }
 let start = CGPoint(x: args[0], y: args[1])
+let points = [start] + stride(from: 2, to: args.count, by: 3).map { CGPoint(x: args[$0], y: args[$0 + 1]) }
 let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
 let front = windows.first { window in
     let bounds = (window[kCGWindowBounds as String] as? NSDictionary)
@@ -16,7 +17,11 @@ let front = windows.first { window in
     return window[kCGWindowLayer as String] as? Int == 0 && bounds?.contains(start) == true
 }
 
-guard front?[kCGWindowOwnerName as String] as? String == "Oriel" else { fatalError("no Oriel window at \(start)") }
+let frame = (front?[kCGWindowBounds as String] as? NSDictionary)
+    .flatMap { CGRect(dictionaryRepresentation: $0 as CFDictionary) } ?? .null
+
+guard front?[kCGWindowOwnerName as String] as? String == "Oriel", points.allSatisfy({ frame.contains($0) })
+else { fatalError("not all of \(points) in the Oriel window at \(start)") }
 
 func post(_ type: CGEventType, _ point: CGPoint) {
     CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?
@@ -24,7 +29,7 @@ func post(_ type: CGEventType, _ point: CGPoint) {
 }
 
 CGWarpMouseCursorPosition(start)
-Thread.sleep(forTimeInterval: 0.2)
+Thread.sleep(forTimeInterval: 0.3)
 post(.leftMouseDown, start)
 Thread.sleep(forTimeInterval: 0.3)
 var point = start

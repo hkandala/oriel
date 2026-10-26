@@ -105,7 +105,7 @@
     /// its repository's worktrees.
     struct RowsDrop: DropDelegate {
         struct State {
-            /// The row a pane is over.
+            /// The row a pane or a tab is over.
             var over: String?
             /// A pane under the last row.
             var ghost = false
@@ -247,7 +247,7 @@
         func drop(tab tabID: String, on workspaceID: String) async {
             let keyboard = keyboardCard(tabID)
             let moved = await store.move(tab: tabID, to: workspaceID)
-            let pane = keyboard.flatMap { moved[$0.id] } ?? moved.values.first
+            let pane = moved.first { $0.old == keyboard?.id }?.new ?? moved.first?.new
             follow(pane, pane?.terminalID)
         }
     }
