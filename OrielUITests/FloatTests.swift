@@ -28,15 +28,19 @@ extension OrielUITests {
         app.typeKey(.return, modifierFlags: [])
         try await waitFor(second) { $0.contains("\nfloat-42") }
 
-        element("float.\(second).detach").click()
+        // Bring Back Here, in the main window once it is in front: the window goes, the card shows the terminal with
+        // the keyboard. The floating window's Detach: testOrielURLFloatsAPaneOfASessionWithNoPage.
+        element("tab.\(tab)").click()
+        element("pane.\(second).back").click()
         XCTAssertTrue(window.vanishes(within: 3))
         XCTAssertTrue(element("pane.\(second).show").vanishes(within: 3))
-        XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
+        XCTAssertTrue(hasKeyboard(element("terminal.\(second)")))
     }
 
     /// A new floating window: 60 % of the main window's width and 75 % of its height (at least 720 × 460 pt) centered
     /// over it, the main window's title row and traffic lights, title-row buttons, a separator between the pane's info
-    /// and its place (phases 27, 28); the card in the tab says where the pane is and offers Show Pane (phase 28).
+    /// and its place (phases 27, 28); the card in the tab says where the pane is and offers Show Window and Bring Back
+    /// Here (phases 28, 29).
     func testFloatingWindowOpensLargeWithTheMainWindowsTitleRow() async throws {
         let (tab, first) = try await newTab("float-frame")
         let second = try await split(first)
@@ -71,14 +75,20 @@ extension OrielUITests {
         let place = element("float.\(second).place", in: window).frame
         XCTAssertEqual(place.minX - info.frame.maxX, 2 * 8 + 1, accuracy: 1, "\(place) after \(info.frame)")
 
-        // In the tab, under the card's header: a line that says where the pane is, and Show Pane in the middle.
+        // In the tab, under the card's header: a line that says where the pane is, then Show Window and Bring Back
+        // Here side by side in the middle.
         element("tab.\(tab)").click()
-        let show = element("pane.\(second).show"), card = element("pane.\(second)").frame
+        let show = element("pane.\(second).show"), back = element("pane.\(second).back")
+        let card = element("pane.\(second)").frame
         XCTAssertTrue(show.exists(within: 3))
-        XCTAssertEqual(show.label, "Show Pane")
+        XCTAssertEqual(show.label, "Show Window")
+        XCTAssertEqual(back.label, "Bring Back Here")
         XCTAssertEqual(element("pane.\(second).floating").stringValue, "This pane is open in a floating window.")
-        XCTAssertEqual(show.frame.midX, card.midX, accuracy: 1, "\(show.frame) in \(card)")
-        XCTAssertLessThan(show.frame.width, card.width / 2, "\(show.frame) in \(card)")
+        let buttons = show.frame.union(back.frame), both = "\(show.frame), \(back.frame) in \(card)"
+        XCTAssertEqual(buttons.midX, card.midX, accuracy: 1, both)
+        XCTAssertEqual(show.frame.midY, back.frame.midY, accuracy: 1, both)
+        XCTAssertEqual(back.frame.minX - show.frame.maxX, 8, accuracy: 1, both)
+        XCTAssertLessThan(buttons.width, card.width * 0.6, both)
         keepScreen("floating window over the main window")
         show.click()
         // Not through `window`: XCUITest dropped that element once the window came forward (CI 40196255503). The
@@ -137,7 +147,7 @@ extension OrielUITests {
         try await Self.call(one, "pane.close", ["pane_id": second])
         XCTAssertTrue(back.vanishes(within: 5))
         XCTAssertTrue(element("float.\(third)").exists)
-        // ⇧⌘W in a floating window detaches. Show Pane is under the floating window until the main one is in front.
+        // ⇧⌘W in a floating window detaches. Show Window is under the floating window until the main one is in front.
         element("tab.\(tab)").click()
         element("pane.\(third).show").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(third)", in: app.windows.containing(.any, identifier:

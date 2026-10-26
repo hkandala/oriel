@@ -60,7 +60,7 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         let firstWindow = try float(first)
         let secondWindow = try float(second)
-        // Show Pane sits in the card's middle, under the floating windows: the main window comes forward first.
+        // Show Window sits in the card's middle, under the floating windows: the main window comes forward first.
         element("tab.\(tab)").click()
         element("pane.\(second).show").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: secondWindow)))

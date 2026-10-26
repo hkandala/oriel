@@ -337,25 +337,6 @@
         }
     }
 
-    /// A floated pane's card in its tab, under its header: a line that says where the pane is, and Show Pane, which
-    /// brings its window to the front (user, phase 28).
-    struct FloatedPlaceholder: View {
-        let page: Page
-        let pane: HostStore.Pane
-
-        var body: some View {
-            VStack(spacing: 12) {
-                Text("This pane is open in a floating window.").foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .accessibilityIdentifier("pane.\(pane.id).floating")
-                Button("Show Pane") { page.float(pane) }.buttonStyle(.glass)
-                    .accessibilityIdentifier("pane.\(pane.id).show")
-            }
-            .padding(gap)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-
     extension CommandList {
         /// The floating window's commands (D50): only what applies to it.
         func floatingCommands(_ floating: Floating) -> [Command] {

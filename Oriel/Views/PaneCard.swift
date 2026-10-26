@@ -236,4 +236,34 @@
             }
         }
     }
+
+    /// A floated pane's card in its tab, under its header: a line that says where the pane is, Show Window, which
+    /// brings its window to the front, and Bring Back Here, which detaches it into this card with the keyboard (user,
+    /// phases 28 and 29).
+    private struct FloatedPlaceholder: View {
+        let page: Page
+        let pane: HostStore.Pane
+
+        var body: some View {
+            VStack(spacing: 12) {
+                Text("This pane is open in a floating window.").foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("pane.\(pane.id).floating")
+                HStack(spacing: gap) {
+                    Button("Show Window") { page.float(pane) }
+                        .accessibilityIdentifier("pane.\(pane.id).show")
+                    Button("Bring Back Here") {
+                        if let terminalID = pane.terminalID {
+                            page.floating[terminalID] = nil
+                        }
+                        page.go(to: pane)
+                    }
+                    .accessibilityIdentifier("pane.\(pane.id).back")
+                }
+                .buttonStyle(.glass)
+            }
+            .padding(gap)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
 #endif

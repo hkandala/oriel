@@ -182,6 +182,14 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   (the sidebar header's context menu, already red before lane R's window change), the swipe, overview, split,
   select-pane and stress tests. Full suite on the last code commit c25aa43: 40254897138.
 
+### Lane F
+
+- **Placeholder buttons (18:30).** The floated card's placeholder keeps its line and shows **Show Window** (was Show
+  Pane: `Page.float`, the window comes forward) and **Bring Back Here** (`pane.<id>.back`: clears the float, as
+  Detach, then `Page.go(to:)`, so the card has the keyboard) side by side, 8 pt apart, centered. Tests:
+  `testFloatingAPaneOpensItsWindowAndDetachPutsItBack` brings it back from the placeholder,
+  `testFloatingWindowOpensLargeWithTheMainWindowsTitleRow` checks both labels and the layout.
+
 ## More from the user (2026-10-25 17:35)
 
 - (Lane R) The glass dialogs have poor contrast (`.build/fb/remote-glass.png`): grey text on grey glass, the
