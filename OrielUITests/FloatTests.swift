@@ -147,12 +147,12 @@ extension OrielUITests {
         try await Self.call(one, "pane.close", ["pane_id": second])
         XCTAssertTrue(back.vanishes(within: 5))
         XCTAssertTrue(element("float.\(third)").exists)
-        // ⇧⌘W in a floating window detaches. Show Window is under the floating window until the main one is in front.
+        // ⌘W in a floating window detaches. Show Window is under the floating window until the main one is in front.
         element("tab.\(tab)").click()
         element("pane.\(third).show").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(third)", in: app.windows.containing(.any, identifier:
             "float.\(third)").firstMatch)))
-        app.typeKey("w", modifierFlags: [.command, .shift])
+        app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(element("float.\(third)").vanishes(within: 3))
         XCTAssertTrue(element("pane.\(third).show").vanishes(within: 3))
     }
@@ -163,6 +163,12 @@ extension OrielUITests {
         try await runSleep(second)
         element("tab.\(tab)").click()
         let window = try float(second)
+        // ⇧⌘W is Close Pane there, and asks too (⌘W detaches).
+        XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: window)))
+        app.typeKey("w", modifierFlags: [.command, .shift])
+        XCTAssertTrue(window.sheets.buttons["Close Pane"].exists(within: 5))
+        window.sheets.buttons["Cancel"].click()
+        XCTAssertTrue(window.sheets.buttons["Close Pane"].vanishes(within: 3))
         element("float.\(second).close").click()
         let confirm = window.sheets.buttons["Close Pane"]
         XCTAssertTrue(confirm.exists(within: 5))

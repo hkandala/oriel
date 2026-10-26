@@ -233,13 +233,13 @@
                 }
                 .accessibilityValue(pinned ? "on" : "off")
                 .accessibilityIdentifier("\(id).pin")
-                IconButton(symbol: "xmark", help: "Close Pane", key: .closePane) {
+                IconButton(symbol: "xmark", help: "Close Pane", key: .closeTab) {
                     if let pane {
                         page.close(.pane(pane.id))
                     }
                 }
                 .accessibilityIdentifier("\(id).close")
-                IconButton(symbol: "pip.exit", help: "Detach Pane", key: .closeTab) {
+                IconButton(symbol: "pip.exit", help: "Detach Pane", key: .closePane) {
                     page.floating[floating.terminalID] = nil
                 }
                 .accessibilityIdentifier("\(id).detach")
@@ -355,7 +355,7 @@
                 }
             }
             return [
-                Command(section: .close, title: "Detach Pane", key: .closeTab, symbol: "pip.exit") {
+                Command(section: .close, title: "Detach Pane", key: .closePane, symbol: "pip.exit") {
                     page.floating[terminalID] = nil
                 },
                 Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",
@@ -371,7 +371,12 @@
                 },
                 edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
                 edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
-            ] + Self.pane(page) { pane }.filter { $0.title == "Close Pane" } + sizes
+            ] + Self.pane(page) { pane }.filter { $0.title == "Close Pane" }.map { close in
+                // ⌘W detaches, as the red light (user, phase 29).
+                var close = close
+                close.key = .closeTab
+                return close
+            } + sizes
         }
     }
 #endif

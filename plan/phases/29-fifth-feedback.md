@@ -189,6 +189,11 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   Detach, then `Page.go(to:)`, so the card has the keyboard) side by side, 8 pt apart, centered. Tests:
   `testFloatingAPaneOpensItsWindowAndDetachPutsItBack` brings it back from the placeholder,
   `testFloatingWindowOpensLargeWithTheMainWindowsTitleRow` checks both labels and the layout.
+- **⌘W detaches (user).** In a floating window ⌘W is Detach Pane, as the red light, and ⇧⌘W Close Pane (still asks
+  when a program runs): the menu bar, ⌘K and the title row's tooltips (`floatingCommands`, `FloatingWindow.header`). The Shortcuts panel
+  shows only in a main window, so it lists none of these.
+  Tests: the ⌘W detaches in `testFloatingWindowsHaveTheirOwnCommandsAndComeBackAfterRelaunch` and
+  `testEachFloatingWindowsKeysActOnItsOwnPane`, ⇧⌘W's ask in `testClosingAFloatedPaneAsksInItsWindow`.
 
 ## More from the user (2026-10-25 17:35)
 

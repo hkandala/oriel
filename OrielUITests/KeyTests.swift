@@ -52,7 +52,7 @@ extension OrielUITests {
         XCTAssertTrue(element("sidebar.dot.\(two)").vanishes(within: 2))
     }
 
-    /// The menu bar acts on the key window: two floating windows of one session each detach their own pane with ⇧⌘W
+    /// The menu bar acts on the key window: two floating windows of one session each detach their own pane with ⌘W
     /// (spec review: a command list that read the same kept the first window's actions).
     func testEachFloatingWindowsKeysActOnItsOwnPane() async throws {
         let (tab, first) = try await newTab("float-keys")
@@ -64,13 +64,13 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         element("pane.\(second).show").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(second)", in: secondWindow)))
-        app.typeKey("w", modifierFlags: [.command, .shift])
+        app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(secondWindow.vanishes(within: 3))
         XCTAssertTrue(firstWindow.exists)
         element("tab.\(tab)").click()
         element("pane.\(first).show").click()
         XCTAssertTrue(hasKeyboard(element("terminal.\(first)", in: firstWindow)))
-        app.typeKey("w", modifierFlags: [.command, .shift])
+        app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(firstWindow.vanishes(within: 3))
     }
 
