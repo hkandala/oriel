@@ -5,11 +5,11 @@
     /// One remote process that carries every run of a host over one SSH session (phase 26, round 2): a server may
     /// allow only a few sessions per connection (`MaxSessions`), and a second connection would ask for a second
     /// passcode. Runs are lines both ways, as herdr's bridge, events and terminal streams are. The app sends
-    /// `o <id> <command hex>` (open), `w <id> <line>`, `c <id>` (close stdin) and `k <id>` (close stdin and SIGKILL by
-    /// pid); the relay
-    /// answers `l <id> <line>` and, once the run's output ended and it was reaped, `x <id> <status> <stderr hex>`.
-    /// ponytail: Perl, which nearly every Unix has (Debian's perl-base is essential); a machine without it shows "Oriel
-    /// needs Perl". A relay in another language when one is missed.
+    /// `o <id> <command hex>` (open), `w <id> <line>`, `c <id>` (close stdin) and `k <id>` (SIGKILL by pid, then close
+    /// stdin); the relay answers `l <id> <line>` and, once the run's output ended and it was reaped,
+    /// `x <id> <status> <stderr hex>`.
+    /// ponytail: Perl, which nearly every Unix has (Debian's perl-base is essential); a machine without it shows
+    /// "Oriel needs Perl". A relay in another language when one is missed.
     final class Relay: Sendable {
         private struct Run {
             let lines: AsyncStream<String>.Continuation
@@ -113,7 +113,7 @@
         private static func unhex(_ hex: Substring) -> String {
             var bytes: [UInt8] = []
             var index = hex.startIndex
-            while let end = hex.index(index, offsetBy: 2, limitedBy: hex.endIndex), index < hex.endIndex {
+            while let end = hex.index(index, offsetBy: 2, limitedBy: hex.endIndex) {
                 bytes.append(UInt8(hex[index ..< end], radix: 16) ?? 0)
                 index = end
             }
@@ -122,9 +122,8 @@
 
         /// The relay: `select` over its stdin and every run's stdout and stderr; a run's lines go out whole, so frames
         /// of two runs never mix; writes to a run's stdin wait in its own buffer, so a run that reads nothing never
-        /// holds
-        /// up the others. When its stdin ends (the app quit, the connection dropped) it exits, and every run's stdin
-        /// closes with it.
+        /// holds up the others. When its stdin ends (the app quit, the connection dropped) it exits, and every run's
+        /// stdin closes with it.
         static let script = #"""
         use strict; use warnings; use IO::Handle; use IO::Select; use POSIX (); use Fcntl;
         $SIG{PIPE} = 'IGNORE';
@@ -184,8 +183,8 @@
                 $select->add($out, $errors);
             } elsif ($op eq 'w') { if ($input{$id}) { $pending{$id} .= "$arg\n"; flush($id) } }
             elsif ($op eq 'c') { if ($input{$id}) { $closing{$id} = 1; flush($id) } }
-            # Its stdin too: a wrapper's background child ends with it (T6), as with a killed ssh before. The kill
-            # first: a wrapper that saw its stdin close first could exit by itself (143, not 9).
+            # Its stdin too: a wrapper's background child ends with it (T6). The kill first: a wrapper that saw its
+            # stdin close first could exit by itself (143, not 9).
             elsif ($op eq 'k') { kill 9, $pid{$id} if $pid{$id}; close_input($id) }
         }
         put("oriel-relay 1\n");

@@ -178,8 +178,7 @@
             }
             let channel = try ProcessExec.spawn(argv + ["-S", socket, "--", target], environment)
             // ConnectTimeout covers only the TCP connect and the banner: a login that hangs (a jump host, a security
-            // key
-            // under BatchMode) must not hold every run. One that asks has no limit: the user answers.
+            // key under BatchMode) must not hold every run. One that asks has no limit: the user answers.
             let began = ContinuousClock.now
             let limit = ask == nil ? Task {
                 try await Task.sleep(for: .seconds(30))
@@ -289,8 +288,8 @@
             return path
         }()
 
-        /// The askpass helper, written at launch beside the sockets. A `none` prompt (a security key's touch) only
-        /// informs: it gets no question.
+        /// The askpass helper, written beside the sockets on the first connect that may ask. A `none` prompt (a
+        /// security key's touch) only informs: it gets no question.
         static let askpass: String = {
             let path = folder + "/askpass"
             let script = """
