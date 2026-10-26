@@ -43,10 +43,15 @@
                 items.first { $0.name == name }?.value
             }
             guard url.host() == "float", let session = value("session"), let pane = value("pane") else { return }
-            let machine = value("machine") ?? Machine.thisMac.id
+            float(session: session, pane: pane, machine: value("machine") ?? Machine.thisMac.id)
+        }
+
+        /// Also a float request on a session a store follows (talking-to-herdr#float-requests), from pi-herd on any
+        /// machine: over the store's machine.
+        static func float(session: String, pane: String, machine: String) {
             guard let window = windows.first(where: { $0.machine.id == machine }) else {
                 if windows.isEmpty {
-                    early = { float(url) }
+                    early = { float(session: session, pane: pane, machine: machine) }
                 } else {
                     windows.first?.cannotFloat(pane, of: session, "no window of machine \(machine).")
                 }
@@ -58,6 +63,11 @@
             }
             window.floatPending = (window.pageToFloat(session), pane)
             window.showFloatPending()
+        }
+
+        /// The terminal shows in a floating window (D50).
+        func floats(_ terminalID: String) -> Bool {
+            withFloats.contains { $0.floating[terminalID] != nil }
         }
 
         /// The pages and the float-only ones.

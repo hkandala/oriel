@@ -221,6 +221,30 @@ private func snapshot(version: String) -> String {
     withExtendedLifetime(updates) {}
 }
 
+@Test func `a pane's float tokens deliver one request per nonce`() async {
+    let exec = FakeExec()
+    let client = client(exec)
+    let updates = await started(client, exec)
+    let pane = { (target: String, nonce: String) in
+        #"{"event":"pane_updated","data":{"type":"pane_updated","pane":{"pane_id":"w1:p2","tokens":"#
+            + #"{"oriel-float":"\#(target)","oriel-float-id":"\#(nonce)"}}}}"#
+    }
+    exec.event(pane("pi-herd/w3:p1", "n1"))
+    exec.event(pane("pi-herd/w3:p1", "n1"))
+    exec.event(pane("pi-herd", "n2"))
+    exec.event(pane("pi-herd/w3:p2", "n3"))
+    var requests: [FloatRequest] = []
+    for await update in updates {
+        guard case let .float(request) = update else { continue }
+        requests.append(request)
+        if requests.count == 2 {
+            break
+        }
+    }
+    #expect(requests.map(\.nonce) == ["n1", "n3"])
+    #expect(requests.map(\.session) == ["pi-herd", "pi-herd"] && requests.map(\.pane) == ["w3:p1", "w3:p2"])
+}
+
 @Test func `updates deliver snapshots and read errors`() async {
     var updates = await client(FakeExec()).updates().makeAsyncIterator()
     guard case .snapshot = await updates.next() else {

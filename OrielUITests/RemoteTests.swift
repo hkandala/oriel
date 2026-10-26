@@ -170,6 +170,15 @@ extension OrielUITests {
         try await waitFor(panes[5]) { $0.contains("\noriel-45") }
     }
 
+    /// Marks and float requests go over the relay: Key Host's panes in view are marked, and a request on one floats
+    /// Key Host's pane (a float on This Mac, which has no window here, would be a notice).
+    func testARemoteMachinesPanesAreMarkedAndFloatThere() async throws {
+        try await skipWithoutSSH()
+        relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        _ = try await markAndFloat()
+    }
+
     /// The dialog in the palette's glass in each look (screenshots), and its icon picker's search.
     func testTheRemoteHostDialogInEveryLook() {
         for (appearance, style) in [("dark", "glass"), ("light", "glass"), ("dark", "classic"), ("light", "classic")] {

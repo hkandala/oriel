@@ -24,6 +24,8 @@ public protocol Multiplexer: Sendable {
 
     /// One pane now: its cwd follows a `cd` that no event reports.
     func pane(_ paneID: String) async throws -> Pane
+    /// Marks the pane as shown to the user, for 30 s, or clears the mark (talking-to-herdr#float-requests).
+    func mark(_ paneID: String, shown: Bool) async throws
     /// What the pane runs besides its shell, else the shell (`isShell`, design D41).
     func program(_ paneID: String) async throws -> Program?
     /// A pane's terminal by its terminal id: control it, or only watch it.
@@ -155,6 +157,12 @@ extension HerdrClient: Multiplexer {
                                                    "focus": false]) as Moved).moveResult
         try result.check()
         return result.pane
+    }
+
+    public nonisolated func mark(_ paneID: String, shown: Bool) async throws {
+        let tokens: [String: any Sendable] = ["oriel-shown": shown ? "1" : NSNull()]
+        let _: Created = try await call("pane.report_metadata", ["pane_id": paneID, "source": "oriel",
+                                                                 "tokens": tokens, "ttl_ms": 30000])
     }
 
     public nonisolated func rename(pane paneID: String, label: String?) async throws {

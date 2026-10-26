@@ -58,6 +58,9 @@ final class HostStore {
         /// The windows that have its page open, the controller first (D66): the window where the user last typed or
         /// clicked in a card of the session. The others watch.
         var windows: [WindowPages] = []
+        /// Its panes marked as shown (`markShown`), and the marks in flight.
+        @ObservationIgnored var marked: Set<String> = []
+        @ObservationIgnored var marking: Task<Void, Never>?
         /// The session's page is in view in a visible window: git status runs only then (D67).
         var showsGit: Bool {
             windows.contains { $0.visible && $0.current?.store === self }
@@ -167,6 +170,8 @@ final class HostStore {
                         notice = nil
                         await loadSessions()
                     }
+                case let .float(request):
+                    WindowPages.float(session: request.session, pane: request.pane, machine: machine.id)
                 case let .error(error):
                     // Not while Connect runs, nor one that waited for its start: Connect's own read follows.
                     let connects = connects

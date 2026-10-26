@@ -290,6 +290,42 @@ extension OrielUITests {
         XCTAssertFalse(left.isEmpty)
     }
 
+    /// talking-to-herdr#float-requests: the panes in view carry `oriel-shown`; a float request on one, as pi-herd
+    /// sends it, floats the pane it names (of a session with no page), which is marked too; a pane out of view loses
+    /// its mark. The remote one: testARemoteMachinesPanesAreMarkedAndFloatThere.
+    func testShownPanesAreMarkedAndAFloatRequestFloats() async throws {
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        let window = try await markAndFloat()
+        XCTAssertTrue(until(3) { element("float.w1:p1.place", in: window).stringValue.hasPrefix("\(two) › gamma › ") })
+        XCTAssertFalse(element("sidebar.dot.\(two)").exists)
+    }
+
+    /// A new tab of one shows and is marked; its pane asks to float two's w1:p1, which floats and is marked; the tab
+    /// out of view loses its mark. The floating window.
+    func markAndFloat() async throws -> XCUIElement {
+        let (tab, pane) = try await newTab("float-request")
+        element("tab.\(tab)").click()
+        try await expectShown(one, pane)
+        try await Self.call(one, "pane.report_metadata", [
+            "pane_id": pane, "source": "e2e", "ttl_ms": 1000,
+            "tokens": ["oriel-float": "\(two)/w1:p1", "oriel-float-id": UUID().uuidString],
+        ])
+        let window = app.windows.containing(.any, identifier: "float.w1:p1").firstMatch
+        XCTAssertTrue(window.exists(within: connect))
+        try await expectShown(two, "w1:p1")
+        element("workspace.w1").click()
+        try await expectShown(one, pane, false)
+        return window
+    }
+
+    /// The pane carries Oriel's mark, or not.
+    func expectShown(_ session: String, _ pane: String, _ shown: Bool = true) async throws {
+        try await expect("\(session)'s \(pane) \(shown ? "" : "not ")marked shown") {
+            let info = try await Self.call(session, "pane.get", ["pane_id": pane])["pane"] as? [String: Any]
+            return ((info?["tokens"] as? [String: String])?["oriel-shown"] != nil) == shown
+        }
+    }
+
     /// `open -g` of the pane's `oriel://float` URL with the app under test, through the helper, as pi-herd opens it
     /// (XCUIApplication.open(_:) left the app not foreground for XCUITest, CI 40247366831); its floating window, once
     /// its terminal has the keyboard.

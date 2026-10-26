@@ -141,11 +141,6 @@
             withFloats.first { $0.store.panes.contains { $0.terminalID == terminalID } }
         }
 
-        /// The terminal shows in a floating window (D50).
-        func floats(_ terminalID: String) -> Bool {
-            withFloats.contains { $0.floating[terminalID] != nil }
-        }
-
         /// After each snapshot of a store this window shows.
         func snapshotted(_ store: HostStore) {
             page(store)?.settle()
@@ -254,6 +249,7 @@
         func leave(_ store: HostStore) {
             let controlled = store.windows.first === self
             store.windows.removeAll { $0 === self }
+            store.markShown()
             // A key window that goes no longer looks at its tabs (D14).
             if key {
                 store.lookingTabID = nil
@@ -347,6 +343,7 @@
             if !overview, !snapshot || !(window?.firstResponder is NSText) {
                 current.shown(alive: alive)
             }
+            markShown()
         }
     }
 

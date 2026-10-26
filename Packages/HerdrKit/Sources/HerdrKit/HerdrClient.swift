@@ -38,6 +38,8 @@ extension HerdrError: LocalizedError {
 public enum Update: Sendable {
     case snapshot(Snapshot)
     case error(HerdrError)
+    /// Read off the event itself, not the next snapshot: one read sooner.
+    case float(FloatRequest)
 }
 
 /// Talks to one herdr session: requests over `remote-api-bridge`, one events stream, paced snapshots. herdr runs
@@ -56,6 +58,8 @@ public actor HerdrClient {
     private var events: Task<Void, Never>?
     /// Agent panes of the open events stream; nil when no stream is open.
     private var subscribed: [String]?
+    /// The last float request's nonce.
+    private var floated: String?
 
     /// `timeout` bounds each request.
     public init(session: String, exec: any Exec, timeout: Duration = .seconds(10)) {
@@ -207,7 +211,8 @@ public actor HerdrClient {
         events?.cancel()
     }
 
-    /// (Re)opens the one events stream. Every line on it means "read the snapshot again".
+    /// (Re)opens the one events stream. Every line on it means "read the snapshot again"; a pane's float request is
+    /// the one payload read.
     private func subscribe(_ agentPanes: [String]) {
         events?.cancel()
         subscribed = agentPanes
@@ -235,6 +240,11 @@ public actor HerdrClient {
                     // events_lost, pane_not_found: start over.
                     if message?.error != nil {
                         break
+                    }
+                    // Once: every change of the asking pane sends its tokens again until they expire.
+                    if let request = FloatRequest(message?.data?.pane?.tokens), request.nonce != floated {
+                        floated = request.nonce
+                        out?.yield(.float(request))
                     }
                     // Every other line, the first too (subscription_started: catch up on what came before it).
                     read()
@@ -285,7 +295,16 @@ struct ReplyError: Decodable {
 }
 
 private struct EventLine: Decodable {
+    struct Payload: Decodable {
+        let pane: EventPane?
+    }
+
     let error: ReplyError?
+    let data: Payload?
+}
+
+private struct EventPane: Decodable {
+    let tokens: [String: String]?
 }
 
 private struct SessionList: Decodable {

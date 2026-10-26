@@ -99,6 +99,23 @@ public struct PaneScroll: Decodable, Sendable {
     }
 }
 
+/// A float request on a pane (talking-to-herdr#float-requests): its token `oriel-float` names the pane to float as
+/// `‹session›/‹pane id›`, `oriel-float-id` is a nonce.
+public struct FloatRequest: Sendable, Equatable {
+    public let session: String
+    public let pane: String
+    public let nonce: String
+
+    init?(_ tokens: [String: String]?) {
+        guard let target = tokens?["oriel-float"], let nonce = tokens?["oriel-float-id"],
+              let slash = target.firstIndex(of: "/")
+        else { return nil }
+        session = String(target[..<slash])
+        pane = String(target[target.index(after: slash)...])
+        self.nonce = nonce
+    }
+}
+
 /// An agent pane. Only the pane id is required, so one odd entry cannot fail the snapshot.
 public struct Agent: Decodable, Sendable {
     public let paneID: String
