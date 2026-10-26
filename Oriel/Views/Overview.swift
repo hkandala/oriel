@@ -14,7 +14,7 @@
         @State private var paging = Paging()
         /// A swipe holds or slides the pages: no tile takes the pointer or turns live meanwhile (phase 31).
         @State private var sliding = false
-        /// Each tile's miniature, in the overview: not observed, so a scroll redraws nothing.
+        /// Each tile's miniature's frame in the overview, by page and tab: not observed, so a scroll redraws nothing.
         @State private var frames = Frames()
         /// The tab whose miniature grows to the page, from its tile's frame; `grown` once it moves.
         @State private var zoom: Zoom?

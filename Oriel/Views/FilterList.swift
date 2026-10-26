@@ -203,7 +203,10 @@ struct FilterList: View {
             pointer = NSEvent.mouseLocation
         #endif
         if !items.isEmpty {
-            litID = items[max(0, min(current(items) + step, items.count - 1))].id
+            let item = items[max(0, min(current(items) + step, items.count - 1))]
+            litID = item.id
+            // The keyboard stays in the field, so VoiceOver would not say the new row.
+            AccessibilityNotification.Announcement(item.title).post()
         }
         return .handled
     }

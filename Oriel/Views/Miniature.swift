@@ -33,8 +33,7 @@
 
     /// A card at `scale`: its fill and edge, and its terminal where the page's card has it (under the header, 10 pt
     /// in, 8 pt up from the bottom): live (its snapshot until it drew), or its snapshot, or for a terminal never shown
-    /// the fill.
-    /// A floated pane's shows the float icon.
+    /// the fill. A floated pane's shows the float icon.
     private struct MiniCard: View {
         let id: String
         let page: Page
