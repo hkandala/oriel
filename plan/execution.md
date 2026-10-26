@@ -1,54 +1,42 @@
-# Execution plan: UI polish phases 10–21
+# Execution: inside a phase
 
-How the UI polish is built, phase by phase, by agents. The orchestrator (the main agent) follows this file.
-It does not write app code. It starts one phase agent at a time, checks its result, and only then starts the
-next phase.
-
-## Roles
-
-| Role | Who | Does | Never |
-|---|---|---|---|
-| Orchestrator | the main agent | starts each phase agent with the brief below, answers its questions from the design, runs the sanity check, starts the next phase, keeps the progress log at the end of this file | writes app code; skips the sanity check |
-| Phase agent | one per phase | reads the plan, builds the phase with small commits, self-reviews, starts the reviewers and the verifier, fixes every finding, pushes, reports | starts the next phase; pushes red builds; writes slop tests |
-| Reviewers | 3 in round 1, started by the phase agent, read only; later rounds only the ones still needed | spec review, ponytail review, e2e and GUI review (see below) | edit files or commit |
-| Verifier | once, after a clean round, started by the phase agent, read only | checks every Build item and every e2e item of the phase file is done and works, item by item, with evidence | edit files or commit |
+How one phase runs: the GUI budget, the speed rules, the phase loop, the review briefs, metrics and the
+progress log. [workflow.md](workflow.md) is the whole run around it (roles, plan, final review, report).
+Written for the UI polish (phases 10–23); phases 24–32 ran the same way in parallel lanes, each lane a
+phase agent with its own files.
 
 ## GUI budget (the user works on this Mac)
 
 GUI runs are slow and take over the user's mouse and keyboard. Phase 11 used about 80 minutes of GUI lock
-for a small phase. The budget per phase:
+for a small phase. The lock itself is in [rules.md](rules.md#building-and-running). The budget per phase:
 
 | Who | GUI allowed | Not allowed |
 |---|---|---|
-| Phase agent, while building | single XCUITest runs of the tests it writes or changes (`-only-testing:`), about 2 min each | full `make e2e`; manual app driving |
-| Phase agent, at the end | ONE full `make e2e` after the last code change; one screenshot run when the phase changes how things look (XCTAttachments in that run are enough) | a second full run unless the first failed |
-| E2E reviewer | round 1 only, at most 15 min of lock: drive the new UI through XCUITest (or by hand with screenshots) and read the tests; no full `make e2e` | later rounds, unless its own blocker was fixed (then single tests only) |
-| Spec and ponytail reviewers, verifier | none: read the code, the tests, the phase agent's final run and CI | any GUI run |
+| Phase agent, while building | single XCUITest runs of the tests it writes or changes (`make e2e ONLY=…`), about 2 min each | full `make e2e`; manual app driving |
+| Phase agent, at the end | the full suite on CI on the last code push; one local screenshot run when the phase changes how things look (XCTAttachments in that run are enough) | a local full `make e2e` (about 40 minutes of GUI for 171 tests) unless the orchestrator asks |
+| E2E reviewer | round 1 only, at most 15 min of lock: drive the new UI through XCUITest and read the tests | later rounds, unless its own blocker was fixed (then single tests only) |
+| Spec and ponytail reviewers | none: read the code, the tests, the phase agent's runs and CI | any GUI run |
 
-- **Now:** the user lets agents use the GUI (2026-10-25 03:20); local GUI runs are allowed under the GUI
-  budget. CI ad-hoc runs stay available.
-- **Ad-hoc UI tests on CI** (when the GUI is paused; about 2.5 min for two tests). Push the commit to main
-  (`[skip ci]` in the subject for a WIP step), then:
+- **Who may use the GUI** changes with the user's work. The phase brief says it. When the user holds the
+  lock (owner "user"), nobody removes or works around it: agents build, test without GUI and push, and the
+  UI tests run on CI.
+- **Ad-hoc UI tests on CI** (about 2.5 min for two tests). Push the commit to main, then
   `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB`,
-  `gh run list --workflow ci.yml --event workflow_dispatch --limit 1` for the id, `gh run watch <id>`. Such a run
-  skips lint, build and HerdrKit tests, and never cancels a push run or another dispatch. On failure:
-  `gh run download <id> -n e2e-xcresult-0`, then `xcrun xcresulttool` and ffmpeg on the recording (plan/ci.md).
-  Locally the same is `make e2e ONLY=…`. The full suite still runs on the phase's last code push.
+  `gh run list --workflow ci.yml --event workflow_dispatch --limit 1` for the id, and poll it at most once a
+  minute. Such a run uses one machine, skips lint, build and HerdrKit tests, and never cancels a push run or
+  another dispatch. On failure: `gh run download <id> -n e2e-xcresult-0`, then `xcrun xcresulttool` and ffmpeg
+  on the recording ([ci.md](ci.md)). The on-demand tests run with `-f on_demand=true`.
 - **Hold the lock for one run only** (several agents share it): take it for one XCUITest run or one launch
   for screenshots and release it in the same shell command, also on failure (`trap`). Never hold it while
-  reading results, editing, building or waiting for CI or reviewers. At most 10 minutes per hold; the one
-  final full `make e2e` is the only exception. The owner file says `<agent> <time>`. Waited more than 20
-  minutes: tell the orchestrator. Never remove someone else's lock.
-- When the user pauses GUI work, the orchestrator holds `/tmp/oriel-gui.lock` with owner "user". Nobody
-  removes or works around it; agents keep building, testing without GUI and pushing (CI runs e2e).
+  reading results, editing, building or waiting for CI or reviewers. At most 10 minutes per hold. If you
+  wait more than 20 minutes for it, tell the orchestrator. Never remove someone else's lock.
 - Never send keys with `osascript` / System Events or similar: when Oriel loses focus, the keys land in the
   user's apps (phase 11 typed into the user's browser). Keys go through XCUITest only.
 - A small phase (a few files, no new view) gets one review round unless a blocker comes up.
-- CI runs the full suite on every push; a failure only on CI is investigated from CI logs, not with more
-  local runs. The user may step in for a moment; then wait and go on.
-- The screenshots a phase file lists are `XCTAttachment`s (keepAlways) in the phase's e2e tests, taken in
-  the final full run: no separate screenshot sessions. Items "checked by hand" fit in the E2E reviewer's
-  15 minutes.
+- A failure only on CI is investigated from CI logs, not with more local runs. The user may step in for a
+  moment; then wait and go on.
+- The screenshots a phase file lists are `XCTAttachment`s (keepAlways) in the phase's e2e tests. Green CI
+  runs keep their screen recordings, and frames from them are screenshots too.
 
 ## Speed rules (lessons from phases 10 and 11)
 
@@ -60,7 +48,7 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    debug branches or draft PRs.
 2. **Too many GUI runs.** ~80 minutes of GUI lock in phase 11, two full suites by reviewers and one more
    by the agent. Rule: the GUI budget above.
-3. **Waiting for CI.** A CI run takes ~6 minutes. Rule: never sit waiting on CI between steps; push and
+3. **Waiting for CI.** A full CI run takes 10–14 minutes ([ci.md](ci.md)). Rule: never sit waiting on CI between steps; push and
    keep working. Check CI once at the end; one red run on a late commit is fixed, not re-run.
 4. **Too many review rounds for a small phase.** Rule: a small phase (a few files, no new view) gets one
    round; later rounds only for the reviewer whose blocker or should was fixed. A round's nits are fixed
@@ -107,31 +95,32 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    what they saw (put the pane's text in the error). Settle ranking and ordering rules at the rough
    screenshot, before tests exist. Run the tests a layout change can move before pushing it.
 18. **A helper agent may write the docs** from a list of facts while the phase agent runs tests.
-19. **No branches or PRs.** Phases run one at a time: commit and push straight to `main` (pull --rebase
-   first). CI runs on every push to main; docs-only pushes already skip it (`paths-ignore`).
+19. **No branches or PRs.** Commit and push straight to `main` (`git pull --rebase --autostash` first; parallel
+   lanes rebase often). CI runs on every push to main; docs-only pushes skip it (`paths-ignore`).
 20. **Fast tests** (e2e-speed): wait with `exists(within:)`, `vanishes(within:)`, `has(_:_:within:)`, `until`
    or `poll`; XCTest's own waits take over a second even when the condition holds (lint rejects them). Fail
    async helpers with a throw, not XCTFail, and keep tearDown sync (else a failure hangs for 2 minutes). Relaunch the app only when the
-   launch is under test (~2.5 s each). Keep a test under ~30 s; CI splits the suite by name into 4 jobs.
+   launch is under test (~2.5 s each). Keep a test under ~30 s; CI splits the suite by measured time into 5 jobs ([ci.md](ci.md)).
 
 ## The phase loop (inside each phase agent)
 
 1. Pull `origin/main`. Read `AGENTS.md`, `plan/README.md`, `plan/rules.md`, `plan/standards.md`,
-   `plan/ui-polish.md`, `plan/ui-layout.md`, the phase file and every page it lists under "Read first",
+   `plan/ui-layout.md`, the phase file and every page it lists under "Read first",
    then the ponytail skill (`/Users/hkandala/code/pi-hkandala/extensions/pi-ponytail/skills/ponytail/SKILL.md`).
 2. Build the phase in small steps. Each step: code + its tests, `make lint build test` green, a commit with a
    conventional subject (≤ 72 characters), and a push when it builds. Several commits per phase, never one
    big commit at the end.
-3. Run only the e2e tests the phase adds or changes (single tests, GUI lock). The one full `make e2e`
-   comes at the end, by the phase agent (see "GUI budget"). Keep screenshots in `/tmp/oriel-shots/<phase>/`.
+3. Run only the e2e tests the phase adds or changes (single local tests under the GUI lock, or ad-hoc CI
+   runs). The full suite runs on CI on the last code push (see "GUI budget"). Keep screenshots in
+   `/tmp/oriel-shots/<phase>/`.
 4. Self-review the diff against the phase file and the ponytail rules; fix what you find.
 5. Start the three reviewers in parallel (briefs below). Merge their findings. Fix every
    blocker and should; answer each nit with a fix or a one-line reason.
-6. Later rounds (fresh agents) re-run only the reviewers whose last round had a blocker or a should, plus
-   the E2E reviewer when code changed. The verifier runs once, after a round with no blocker and no should
-   (phase 10: four verifier runs found nothing; ponytail after round 1 found only nits). Done when that
-   round is clean and the verifier passes every item. At most 4 rounds; if it does not converge, report
-   to the orchestrator what is stuck.
+6. Later rounds (fresh agents) re-run only the spec reviewer, plus the E2E reviewer when its own blocker
+   was fixed ([workflow.md](workflow.md#reviews-who-and-when)). The last spec round also checks every Build
+   and e2e item of the phase file, item by item: there is no separate verifier (phase 10: four verifier runs
+   found nothing). Done when a round is clean. At most 4 rounds; if it does not converge, report to the
+   orchestrator what is stuck.
 7. Write the implementation notes in the phase file's `## Findings` section, as phases 01–09 did (see
    `plan/phases/05-strip-and-glass.md`): short bullets with a bold lead, saying why, not only what. Cover:
    - **Deviations**: where the code differs from the phase file, `plan/ui-layout.md` or a design page, and why.
@@ -144,7 +133,7 @@ Phase 10 took 2h12m and phase 11 over 3 hours for a few files. Where the time we
    what was built, the commits, how it was tested, screenshot paths, the review rounds and their final
    verdicts, how valuable each reviewer was, anything left open.
 
-## Metrics (for the dashboard after phase 21)
+## Metrics
 
 The user wants to learn which reviews are a must and which add little, and how long each part takes. Each
 phase agent records, in `plan/metrics/NN.json`:
@@ -173,12 +162,13 @@ phase agent records, in `plan/metrics/NN.json`:
 - `value`: 1 (nothing new) to 5 (caught a real bug nothing else caught). Be honest; low scores are useful.
 - Times come from when you started each agent and when it replied.
 
-After phase 21 the orchestrator builds a dashboard from these files (time per phase, changes, review
-agents, rounds, time and value per reviewer role).
+`python3 resources/metrics/build.py` builds the dashboard from these files, git and CI (time per phase,
+changes, review agents, rounds, time and value per reviewer role). Phases 24–31 wrote no metrics files:
+their lanes' Findings carry the numbers.
 
 ## Briefs the phase agent sends
 
-All reviewers and the verifier are read only: they never edit files, commit, push, or run writes against
+All reviewers are read only: they never edit files, commit, push, or run writes against
 herdr sessions other than throwaway `oriel-e2e-*` / `oriel-dev-*` ones.
 
 **Spec reviewer.** "Review phase NN of Oriel (`/Users/hkandala/code/oriel`) against `plan/phases/NN-*.md`,
@@ -197,17 +187,12 @@ instead of why. Report a numbered list: file:line, severity, the smaller version
 budget in `plan/execution.md`). Build and run Oriel against a throwaway session
 (`scripts/herdr-session.sh up oriel-dev-<name>`, `make run SESSION=…`), drive the new UI of phase NN through
 XCUITest only (a scripted mouse click landed in the user's Ghostty in phase 15), try to break it, take screenshots (`screencapture -x -l <window id>`), release the
-lock, delete the session. Never send keys with osascript / System Events. No full `make e2e` (the phase
-agent runs it once at the end; CI runs it on every push). Then read the phase's tests. Flag slop tests:
+lock, delete the session. Never send keys with osascript / System Events. No full `make e2e` (CI runs the full
+suite on every code push). Then read the phase's tests. Flag slop tests:
 tests that assert nothing real, assert only that an element exists when the phase promises behavior, sleep
 instead of waiting for a condition, duplicate another test, mock herdr where the real one is cheap, or
 check pixels where herdr or an accessibility value can say it. Report a numbered list with severity and the
 fix."
-
-**Verifier.** "Verify phase NN is complete. No GUI runs. For every numbered Build item and every e2e item
-in `plan/phases/NN-*.md`, say done / partly / missing, with evidence: the file:line that implements it and
-the test that shows it works, citing the phase agent's final `make e2e` run and CI. Run `make lint build
-test`. Pass only when every item is done and every check is green."
 
 ## The orchestrator's sanity check (after each phase)
 
@@ -231,88 +216,17 @@ test`. Pass only when every item is done and every check is green."
 
 > You are the phase agent for phase NN (‹name›) of Oriel (`/Users/hkandala/code/oriel`). `git pull --rebase`
 > first. Follow `plan/execution.md` exactly: "GUI budget", "Speed rules", "The phase loop", "Briefs the
-> phase agent sends" and "Metrics". Build everything in `plan/phases/NN-*.md`; `plan/ui-layout.md` is the
-> layout source of truth and `resources/mockups/layout.html` shows it. Read the Findings of the phases
+> phase agent sends" and "Metrics". Build everything in `plan/phases/NN-*.md`; the design pages in
+> `docs/content/docs/` are the source of truth and `plan/ui-layout.md` maps the window. Read the Findings of the phases
 > before yours. Small commits, pushed straight to `main` as you go (no branches or PRs). Use
 > `DERIVED_DATA=/tmp/oriel-dd-phaseNN`, the GUI lock for any GUI run, and only throwaway `oriel-dev-*` /
 > `oriel-e2e-*` herdr sessions (delete them after). Never touch existing herdr sessions or the user's Rex
 > app. Start the reviewers (phaseNN-spec-review, phaseNN-ponytail-review, phaseNN-e2e-review; -2, -3 for
-> later rounds) and the verifier (phaseNN-verifier) yourself and stop them when done. No slop: no tests that
+> later rounds) yourself and stop them when done. No slop: no tests that
 > assert nothing real, no code for later phases, no settings or abstractions the phase does not ask for.
 > Do not ask the user anything; ask the orchestrator only when the design does not answer a question, and
 > report to it at 2 hours. When done, reply with the step 9 report, including which reviewers were a must
 > and which added little, and your top 3 lessons for speed.
-
-## Parallel work in worktrees (user, 2026-10-22)
-
-Independent work runs in parallel, each agent in its own git worktree (`/Users/hkandala/code/oriel-<name>`),
-pushing straight to `main` after `git pull --rebase`. Phase 22 runs next to phase 20 and then phase 21:
-phase 22 owns the `Look` token values and the sizes of the title row, tab bar, cards and sidebar; phases 20
-and 21 own their own views (palette; find bar, notices, empty states) and use the tokens. The GUI lock and
-the 5 CI macOS runners are shared. Phase 23 (comment pass) starts when 21 and 22 are both done; the final review after it.
-
-## After phase 23: final review and report (user's request)
-
-1. **Final whole-repo review**, read only, in parallel: a ponytail reviewer (unneeded complexity,
-   duplication, dead code, abstractions, over-long files), a bugs and edge cases reviewer (races, leaks,
-   error paths, herdr safety rules, multi-window and restore cases), and a spec reviewer (the app against
-   `plan/ui-layout.md`, `plan/ui-polish.md` and the design pages; docs against the code). Each reports a
-   numbered list with file:line, severity and the fix.
-2. **Fix** every blocker and should with one fixer agent (small commits, CI green), nits fixed or
-   answered; a second short round only for the reviewers whose blockers or shoulds were fixed.
-3. **Metrics dashboard** from `plan/metrics/*.json` and git/CI data: time per phase, commits and lines,
-   review agents and rounds, minutes and value per reviewer role, GUI-lock minutes, CI runs; one HTML page
-   (`resources/metrics/dashboard.html`, no external assets) plus a short summary of which reviews were a
-   must. Then report to the user with the "For the user to check at the end" list.
-
-## Decisions without the user
-
-The user is not asked during phases 10–21. The orchestrator decides open questions from the design and the
-ponytail rules, records each choice in the design pages, keeps going until phase 21 is done, and lists
-here what the user should check at the end.
-
-### Hand checks waiting for the GUI
-
-- Phase 18: the 9 checks in `plan/phases/18-drag-and-drop.md` Findings, "To check by hand when the GUI is
-  free" (Esc, forbidden pointer, window not moving, spring-load to an edge in another tab, full track or
-  sidebar). The orchestrator runs them (or a short agent) when the user frees the GUI.
-
-### Open tasks
-
-- Phase 21 Build 11: update the docs site's mock-ups to the new look (`docs/components/design/` split demo and chat
-  card, `docs/public/overview/index.html`) once phase 22's look settles. Then bring back the "Interactive
-  overview" nav link in `docs/lib/layout.shared.tsx` (dropped in the final review: it showed the old sidebar).
-
-### For the user to check at the end
-
-- Phase 10: the four looks next to Rex (`/tmp/oriel-shots/10/final-*.png`). Known gaps kept on purpose:
-  the Classic dark pill is a little brighter than Rex (`#303030` vs `#292929`); Glass dark cards are
-  lighter than the window until phase 17's fade.
-- Phase 11: the Settings window is dropped for now (comes back after its mock-ups). ⌘= (second Bigger key)
-  has no CI test; try it by hand. Phase 11's osascript keys may have landed in your browser or Raycast.
-- Phase 13: the machine menu has no icons (macOS 27 draws no item images in app menus). A tab renamed
-  to only digits shows the program title (herdr's default labels are digits). Tab status glyphs come back
-  in phase 15.
-- Phase 14: the Open Session sheet lists every herdr session on the Mac (your `default` and `pi-herd`
-  too). Workspaces the app creates in a repo are not indented as worktrees (herdr fills the worktree
-  fields only for `worktree.*` calls). The "herdr is too old" page still says to update herdr.
-- Phase 15: notifications and the Dock badge need a signed build: the ad-hoc dev build gets no
-  notification permission, so neither showed on this Mac. One reviewer's scripted mouse click landed in
-  your Ghostty window (no keys sent).
-- Phase 16: the app stays open with no window, as WindowGroup apps do. Window restore after quit is
-  made independent of the macOS "close windows when quitting" setting in phase 21.
-- Phase 17: herdr 0.9.5's `pane.swap` moves herdr's focus even with `focus:false`, so Split Left / Up
-  and swaps change the focused pane a herdr TUI on the same session sees. ⌃⌘= (Balance Splits) is taken
-  by a global hotkey on your Mac (BetterTouchTool or Raycast); the menu item works.
-- Phase 21: find highlights shift on wide characters; a find bar dropped while reconnecting or at quit
-  leaves herdr scrolled; a new session that timed out and was retried gets no first workspace; a hung
-  server shows Reconnecting only after 30–40 s.
-- Phase 22: composites of every element against Rex in `/tmp/oriel-shots/22/compare/`. Kept gaps: Rex's
-  tab track runs 1.5 pt past the first and last tab (ours lines up with the cards); Rex's Glass window
-  inner edge glow has no public API. Traffic lights are moved with public frame changes (re-applied after
-  layout and full screen).
-- The UI tests share the app's defaults with your own Oriel (same bundle id): an e2e run leaves the look
-  at Glass Dark.
 
 ## Progress log
 
@@ -333,3 +247,12 @@ here what the user should check at the end.
 | 22 | phase22-visual-match | done | 34 commits, 4 rounds, ~4h (incl. user additions); parallel worktree |
 | 23 | phase23-comments | done | 7 commits, comments only (checked), 39 deleted, 29 fixed |
 | Final review | 3 reviewers + 3 fixers | done | 61 commits, 1h27m, CI green on a707a44 |
+| 24 | lanes A–G | done | the user's first hands-on list; UI tests on CI only |
+| 25 | lanes H–L, S, A2, F2, P, I2, O, B2, T | done | floating panes, Ahead (changes before herdr answers), memory and CPU |
+| 26 | phase26-remote-hosts | done | remote hosts over SSH, CI's localhost sshd |
+| 27 | lanes A3, G3, T3, F3, V | done | live surfaces stay; the overview replaces the tab preview |
+| 28 | lanes E, V, F, R | done | empty sessions, a bounded overview, float requests, remote hosts |
+| 29 | lanes D, R, V, M, K, F, C, S, T | done | tab drags to a workspace, the UI at scale, selection colors |
+| 30 | lanes W, V, P, R, G, D, Q, N | done | many tabs in two windows, three-finger swipes |
+| 31 | lanes S, G, F, M, K, O, integration | done | selection in view, CI in 5 shards by time, on-demand tests |
+| 32 | final review: 11 area agents, 3 auditors, f-e2e | running | [32-final-review.md](phases/32-final-review.md) |
