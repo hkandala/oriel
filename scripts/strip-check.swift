@@ -76,7 +76,7 @@ func spread(_ path: String, frame: CGRect) -> Double {
     return (values.map { ($0 - mean) * ($0 - mean) }.reduce(0, +) / Double(max(values.count, 1))).squareRoot()
 }
 
-//// Captures the window into `name`.png and fails when the strip there is empty.
+/// Captures the window into `name`.png and fails when the strip there is empty.
 func expectCard(_ name: String) {
     guard let window = window() else { fail("the window went") }
     let path = "\(out)/\(name).png"
