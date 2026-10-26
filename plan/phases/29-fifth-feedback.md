@@ -279,6 +279,94 @@ end. `/tmp/oriel-gui.lock` is held for "user"; UI tests run on CI until the orch
   three-column layout (→ → to the top row; ← then → back to the row you came from) and how quick they feel now;
   ⇧⌘← ⇧⌘→ on a tab and in a rename field; holding ⌘ over the sidebar.
 
+### Lane S (item 14)
+
+- **Harness.** `scripts/stress.py <session> [tabs=300] [workspaces=30] [--panes 400] [--agents 100]` fills a running
+  throwaway session over its socket (400 panes in about 8 s here): shells without rc files, herdr's own tab labels,
+  every other pane printing a line a second, 100 agent panes printing every 0.2 s, a new terminal title every second
+  and a new state (`herdr --session … pane report-agent`) every 5 s. It replaced lane V's `overview-stress.py` (lane V
+  uses it). macOS gives all programs 511 terminals together (`kern.tty.ptmx_max`), so 600 panes fail with an
+  `openpty` error; the helper's `stress` action (session eight, made afresh, removed by the test's teardown) asks
+  400 on CI and at most 200 here. `testHundredsOfPanesStayQuick` records the time to the first card, the main keys,
+  three scrolls (`scroll <frames> <hitches> <ms>`, a display link from a scroll event to 0.3 s after the last), the app's
+  CPU and memory (`usage`) on a quiet and a busy tab, `sample` profiles, and every 5 s the main thread's busy time,
+  its longest turn, the snapshots applied and their own time (`main …`). `-recordLatency` now also writes these lines
+  to stderr and gives each key the app's own time from taking the event to the frame ("⌘T 12ms 0 9ms"): an
+  accessibility client (XCUITest) holds events back for seconds at this size, so the honest numbers are a Release
+  build launched by hand (`open -n`) with keys and swipes posted to its window (Quartz events, only while it is the
+  front window), no XCUITest attached.
+- **What scaled badly** (profiles of the before build, `s29-before` = 8f68945 plus the harness):
+  1. The first snapshot asked `pane.process_info` of every pane at once: 400 `remote-api-bridge` runs together; on CI
+     the window stayed blank past 30 s and the run's teardown timed out.
+  2. Snapshot reads came back to back while events kept coming (a hundred agents' titles and states, an event each),
+     and each 280 KB reply line was split by scanning the buffer from its start at each pipe chunk: O(n²), the top
+     function of the profile; together about 100 % of a core.
+  3. `apply` made the set of every tab's focused pane again for each pane (O(panes × tabs)): 75 ms per snapshot on CI.
+  4. Views scanned every pane: each tab capsule, sidebar row, the Agents button and the Dock badge read every pane's
+     state (`strongest`), so any agent's change redrew all of them; the Agents view filtered every pane for each tab
+     (180,000 steps) and built every row.
+  5. Each card's body built Move Pane to Tab with every tab's title (300) for its context menu, header menu and
+     VoiceOver actions, and `Page.title` built a 5-pane stack and abbreviated a path per tab.
+  6. `Page.shown` edited `usedTerminals` in place on every snapshot: Observation notified though nothing changed, so
+     every snapshot redrew the window's content and made the menu bar's whole command list again.
+- **Changes.** (1) Program asks go through a `Gate` of 8 (FIFO; a card's ask and Return's go first; an ask a newer one
+  replaced while it waited makes no run) (f929c04, c8f2621). (2) A snapshot read again starts 250 ms after the one
+  before started while events keep coming, never after the app's own write (ce2e873, ac09391; D5 and
+  talking-to-herdr.mdx); the line splitter scans only new bytes (9726394). (3) The focus set once per snapshot
+  (f929c04). (4) `tab.agent`, `tab.working`, `workspace.state` and `store.waiting`, kept by the store (4e2ba24);
+  `store.tabPanes` / `panes(in:)`, each tab's panes, set only when it changes (8a0e686); the Agents view groups once,
+  is lazy, and rebuilds its rows for the other order (4b92cc4, d21b611). (5) `PaneItems` / `PaneActions` views, so the
+  list is made when a menu opens (da15eb8); a cheaper `title` (same commit). (6) `usedTerminals` assigned, not edited
+  (97e613b). Also `HostStore.write` uses the same `Gate` (one at a time, 2e69e74).
+- **Numbers.** Release, this Mac (Retina, 120 Hz), 300 tabs / 400 panes / 100 agents working, no XCUITest; before =
+  `s29-before`, after = d5224a0:
+
+  | | Before | After |
+  |---|---|---|
+  | CPU, quiet tab | 117 % | 9–11 % |
+  | Footprint | 246–253 MB | 155–184 MB |
+  | Main thread busy per 5 s (no input) | 3.3–5.9 s, turns up to 5.8 s | 0.14–0.3 s, longest turn 6–20 ms |
+  | Snapshots applied | 2 a second (the pipeline's own limit), 6.5 ms each | 4.4 a second (the spacing), 1.8 ms each |
+  | Sidebar scroll (1.6 s swipe) | 5 frames in 13 s, frozen | 136–159 frames, 0–2 hitches |
+  | Tab bar scroll | frozen | 125–135 frames, 2–8 hitches |
+  | ⌘1 / ⌘2 | 17.5 s and 23.6 s | 120–140 ms (first 500 ms) |
+  | ⌃⌘] / ⌃⌘[ | not reached | 190–210 ms |
+  | ⌘K, ⌃⌘S, ⌘. | not reached | 150 ms, 70 ms, 60–100 ms |
+  | Same keys, 20 tabs / 26 panes (after) | | 85–95, 110–170, 100–120, 50, 40–60 ms |
+
+  CI (Debug, 1x VM, XCUITest attached): first card > 30 s (failed, 40252712951) → 7–8 s; CPU on a busy tab not
+  measurable before (the window never drew), 103–114 % after the first two fixes (40254175696), 67–70 % (40258293654)
+  → 15 % (40261876163); a snapshot's apply 75 ms → 6 ms; footprint 244–254 MB. Keys there take 0.1–1.2 s of the app's
+  own time, much of it XCUITest's accessibility queries served in the same turns.
+- **Not done, and why.** A tab switch costs about 90 ms of main thread in Release even at 26 panes, so the target of
+  one frame per interaction is not met at any size; at 400 panes it is 120–140 ms. Its profile: SwiftUI's layout of
+  the window, the leaving cards' picture copies (lane A3's `keepPicture`), and AppKit's key equivalent search, which
+  makes SwiftUI rebuild the menu bar's items on each key (View ▸ Pane ▸ Move Pane to Tab lists every tab: without
+  that list, 100 ms instead of 130 ms at 300 tabs). Snapshot reads still cost most of the 10 % idle CPU (a herdr run
+  and a 280 KB decode, 4 a second while agents work).
+- **Decisions.** 250 ms spacing (an agent's state shows up to a quarter second later in a busy session; a write is
+  read at once). 400 panes on CI (600 took CI two minutes to make and timed the helper out in a full run), 200 here.
+  The menu bar keeps every tab in Move Pane to Tab (the user's phase 25 ask). Declined review nits: a per-call helper
+  timeout (lane V's stress call needs the 300 s too); the Agents view's workspace grouping stays rows × tabs (30,000
+  steps at 100 agents).
+- **Learned.** Swift's Observation notifies on an in-place edit (`removeAll`) even when it changes nothing; assign
+  instead. A probe that wraps parts of a body in `withObservationTracking` names what redraws it. `sample` triples
+  the time of a key under it. XCUITest's accessibility snapshots took 3.5 s turns at this size, so key latency under
+  XCUITest measures XCUITest. Lane O's footprint of a visible card holds: memory follows the shown and kept cards,
+  not the pane count.
+- **Tests.** `testHundredsOfPanesStayQuick` (bounds: first card within 20 s, busy-tab CPU under 50 %, a snapshot's apply
+  under 25 ms on average, every key in its turn or the next; each fails on the before build), the HerdrKit tests
+  `events that keep coming read at most every spacing, writes at once` and `a long line and the lines around it read
+  whole, and quickly` (both red on the old code).
+- **Reviews (one round).** Ponytail: `write` on `Gate`, `panes(in:)`, one `keep` for attachments, test helpers reused,
+  nits. Spec: stale and FIFO asks, writes not spaced, the test's bounds, 200 panes here, `--session` on the agents'
+  reports, nits; all fixed but the two declined above.
+- **CI.** Stress runs 40252712951 (before, red: no card in 30 s), 40254175696, 40258293654, 40261876163 (green);
+  full suite: see the report.
+- **For the user to check by hand:** with many agents working, switch tabs and workspaces and scroll the sidebar and
+  the tab bar (smooth now; a tab switch still takes about a tenth of a second); `top -pid $(pgrep -n Oriel)` with
+  agents working (about 10 %); launch on a big session (the first cards within seconds).
+
 ## More from the user (2026-10-25 17:35)
 
 - (Lane R) The glass dialogs have poor contrast (`.build/fb/remote-glass.png`): grey text on grey glass, the
