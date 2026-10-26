@@ -165,8 +165,9 @@
         /// ("session 40ms 0 40ms", phase 30).
         func shown() {
             if let lifted {
-                shownAt = Int((ProcessInfo.processInfo.systemUptime - lifted) * 1000)
-                pending = Pending(name: "session", time: ProcessInfo.processInfo.systemUptime, state: state)
+                let now = ProcessInfo.processInfo.systemUptime
+                shownAt = Int((now - lifted) * 1000)
+                pending = Pending(name: "session", time: now, state: state)
             }
         }
 

@@ -87,8 +87,10 @@
                     .accessibilityValue("content \(Int((content * 100).rounded()))%"
                         + (terminal.map { !$0.ready && !$0.state.isFailed } == true ? ", loading" : ""))
                     .accessibilityIdentifier("pane.\(id)")
-                    // The buttons show on hover only and the context menu is on the header: VoiceOver acts on the card.
+                    // The buttons show on hover only and the context menu is on the header: VoiceOver acts on the card,
+                    // and VO-Shift-M opens its menu, which has every tab (made only when it opens).
                     .accessibilityActions { PaneActions(page: page, pane: pane) }
+                    .contextMenu { PaneItems(page: page, pane: pane) }
             }
             .opacity(page.dragging == .pane(id) ? 0.4 : 1)
             .overlay(alignment: .topLeading) {
@@ -266,10 +268,9 @@
         }
     }
 
-    /// VoiceOver's actions on the card, Move Pane to Tab ▸ flattened to New Tab and New Workspace: with any
-    /// accessibility client (BetterTouchTool, Raycast, XCUITest) SwiftUI builds them with the card: one per tab made
-    /// a switch to a session of 300 tabs take 1.05 s on CI, 0.34 s without (phase 30). The card's menu and the palette
-    /// list every tab. Their own view, as the menu items are.
+    /// VoiceOver's actions on the card, Move Pane to Tab ▸ flattened to New Tab and New Workspace: any accessibility
+    /// client makes SwiftUI build them with the card, and one per tab made a switch to a big session 3 times slower
+    /// (phase 30). Their own view, as the menu items are.
     private struct PaneActions: View {
         let page: Page
         let pane: HostStore.Pane?
