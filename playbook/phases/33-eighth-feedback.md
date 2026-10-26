@@ -291,3 +291,83 @@ per hold, at most 10 minutes, released with a trap).
 - **Also:** `SplitDivider`'s doc comment now says the grip is drawn in `Look.grip` (lane C's request).
 - **Check by hand:** if it happens again, note the swipe's direction (the last page has no next), the number of
   fingers, and whether the page in view was the last.
+
+### Lane D
+
+- **What capture H asked** (watched every frame, 0:00–8:59, at 2 s steps plus the keyframes): docs minimal and
+  current with no mock-ups; drop `plan/archive/` and `plan/metrics/`; keep the phases but make them concise; one
+  reusable way of working (phases or not, reviews, review agents, cleanups) that `AGENTS.md` points at; lessons
+  in one file; `ci.md` current only; `ui-layout.md` short or gone; a better name than `plan/`; resources with
+  no dates (the user highlighted "Similarity screening — 26 October 2026" at 5:34); inspirations out of the repo;
+  drop metrics, mock-ups and their scripts, visual-compare; research as a few flat folders of md files, one file
+  per client, no spikes or scripts; `scripts/` stays (8:49).
+- **Cause:** 33 phases of notes piled up next to each other: four rule files that repeated each other, run logs,
+  metrics, mock-ups that stopped matching the app at phase 22, design pages for parts never built (plugins, chat,
+  pills, iOS), and research written as dated agent reports.
+- **playbook/** (renamed from `plan/`, the user's pick, 67e1fad, last commit, every link fixed, also in
+  `ci.yml`, `Makefile`, `.swiftlint.yml`, a UI test comment and `scripts/test-times.tsv`):
+  - `workflow.md` (274 lines) replaces `workflow.md`, `execution.md`, `rules.md`, `standards.md` (550): when to
+    use phases, roles, the whole run, feedback rounds, the mechanics the user listed (worktrees `../oriel-NN<lane>`
+    and `wt-NN<lane>`, push to main after a rebase and a build, no stash, own DerivedData, the GUI lock with the
+    `user` owner, throwaway herdr sessions, starting, naming, watching and stopping agents, chosen-tests vs full
+    CI runs), the phase loop, the orchestrator's check, reviews, the phase template, briefs, the coding rules and
+    the design bar for every UI surface (user, mid-round).
+  - `lessons.md` (114 lines): only problems that came back, each with its rule; lane L's 46 lessons folded in
+    after cutting one-offs (process ones went into `workflow.md` and `ci.md`).
+  - `ci.md` (93 lines, from 230): layout, chosen-tests runs, sign-off runs, CI-only failures, fast tests, the
+    test-times refresh, and why XCUITest needs another session (from the deleted GUI-testing research).
+  - `README.md`: the index and the phase table. Deleted: `archive/` (its one unique part, the Rex features left
+    out, is now "Left out on purpose" in Future work), `metrics/`, `execution.md`, `rules.md`, `standards.md`,
+    `ui-layout.md` (its one rule not in the docs, "never send the user to herdr", is now a principle on the
+    docs' index page).
+  - Phases 1–32 trimmed by a script (1731 lines): "Read first" lists (mostly dead links), Done when, Out of
+    scope, e2e lists, Checks, How to ship, Learned, Assumptions, Spike, CI and Reviews parts, hand-check lists.
+    Kept: goal, Build, Deviations, Decisions, root causes, numbers. Remaining dead links rewritten.
+- **docs/:** deleted the overview, `public/mockups`, `public/inspirations`, `components/design` (diagrams
+  became one sentence or nothing), and 19 pages for parts that are not built (inspirations, build-order, risks,
+  rex-backend, chat-view, the ten plugins pages, pills, iphone-and-ipad, sources). `future-work` is one short
+  page; `index` rewritten. Every other page lost its iOS, plugin, chat, pill and `dial` lines and its "phase NN"
+  history; D-rows for unbuilt parts and the Superseded table went. One false claim fixed: libghostty-spm is a plain
+  exact pin, not a patched build. The unused `cnfast` dependency went. Internal links and anchors checked by a
+  script (0 broken); `pnpm build` green.
+- **resources/:** inspirations moved to `~/Downloads/oriel-inspirations/` (124 MB, with the git-ignored videos
+  from the main checkout); metrics, mock-ups and visual-compare deleted. Research: `clients/` has one file per
+  client (29 plus an index; the web, macOS, mobile and primary-repos reports split, web-clients-notes merged,
+  Rex.app in `clients/rex.md`), `multiplexers/` gained `herdr.md` (the old herdr-core, 379 → 150 lines) and Rex
+  Server's protocol merged into `multiplexers/rex.md`, `plugins/` has `plugin-ui-options.md` (two reports and the
+  spike's numbers), `ui/` has `floating-panes.md` and `pill-panel.md`. No spikes, scripts, images, BRIEF, `dev/`
+  or `herdr/` folders; dates, clone paths and the user's machine and session names cut. Branding: no dated
+  screening, no iOS line; `Oriel.icns` (used by nothing) and its export code in `scripts/app-icon.py` deleted
+  (`make icons` checked). icons/ kept as is (tools/ is the only way to rebuild the catalog).
+- **README.md** rewritten short (user, mid-round): what it is, what it does, requirements (Perl on remote
+  machines), build and install, use, future work, links. **AGENTS.md** points every agent at `playbook/workflow.md`,
+  `lessons.md` and the phases.
+
+  | Folder | Before (files, text lines) | After |
+  |---|---|---|
+  | docs | 96, 8207 | 47, 3572 |
+  | plan → playbook | 60, 10910 | 39, 7059 |
+  | resources | 278, 22853 | 164, 11973 |
+  | AGENTS.md, README.md | 28, 109 | 23, 56 |
+
+  ```
+  before                                   after
+  docs/components/design/  (6)             docs/content/docs/ (12, ui 9, reference 3)
+  docs/content/docs/ (16, ui 10,           playbook/README.md ci.md workflow.md lessons.md
+    plugins 10, reference 3)               playbook/phases/ (35)
+  docs/public/{mockups,overview,           resources/branding/ (3)
+    inspirations}/ (23)                    resources/icons/ (svg, licenses, tools)
+  plan/README ci execution rules           resources/research/clients/ (30)
+    standards ui-layout workflow           resources/research/multiplexers/ (5)
+  plan/archive/ (3), plan/metrics/ (15)    resources/research/plugins/ (3)
+  plan/phases/ (35)                        resources/research/ui/ (2)
+  resources/branding/ (4), icons/
+  resources/inspirations/ (60), metrics/ (4), mockups/ (4), visual-compare/ (50)
+  resources/research/BRIEF.md, clients/ (10 + web-clients-notes/ 4), dev/ (1),
+    herdr/ (1), multiplexers/ (4), plugins/ (4 + spike/ 7), ui/ (3)
+  ```
+
+- **Tests:** docs only, plus comment and link edits in code: `make lint build test` green on each rebased push;
+  `pnpm build` of the docs green. CI: the rename commit 67e1fad runs the full suite (40422038011).
+- **For the user to check:** the README and `playbook/workflow.md` read the way you want; `~/Downloads/oriel-inspirations/`
+  has everything (the main checkout no longer has the ignored video folders).
