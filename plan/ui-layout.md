@@ -31,10 +31,9 @@ the install command (`curl -fsSL https://herdr.dev/install.sh | sh`), because th
   (`observe`), dims its cards a little, and shows a bottom capsule "Controlled in another window" with
   **Take Back**. Two windows on different sessions each control their own session.
 - **Machine button** (title row, after the sidebar toggle): the machine's icon only: no chevron (phase 22, the
-  user), no name. Its menu lists the machines with icon and name, a checkmark on the current one, then "Add
-  Remote Host…" (a placeholder until remote machines are built). Picking a machine replaces the window's
-  sessions with that machine's. ⌥-click on a machine opens it in a new window; the menu does not show this as
-  an item.
+  user), no name. Its menu lists the machines with icon and name, a checkmark on the current one, then "Open
+  Session…", "Add Remote Host…" and "Edit Remote Host ▸" (phase 29). Picking another machine opens it in a new
+  window (phase 28); this window keeps its sessions.
 - Adding a remote host (later) asks for a name, the SSH target and an icon (laptop, desktop, server, cloud,
   chip, house, flask, game controller), because the button shows only the icon.
 
