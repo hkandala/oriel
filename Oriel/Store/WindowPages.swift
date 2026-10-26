@@ -252,8 +252,9 @@
             let controlled = store.windows.first === self
             store.windows.removeAll { $0 === self }
             store.markShown()
-            // A key window that goes no longer looks at its tabs (D14).
-            if key {
+            // A key window that goes no longer looks at its tabs (D14), unless another key window that shows the store
+            // set them first (as in `look`).
+            if key, !store.windows.contains(where: \.key) {
                 store.lookingTabID = nil
             }
             if store.windows.isEmpty {
