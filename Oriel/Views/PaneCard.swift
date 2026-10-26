@@ -266,14 +266,16 @@
         }
     }
 
-    /// VoiceOver's actions on the card, Move Pane to Tab ▸ flattened: one action per place. Their own view, as the
-    /// menu items are.
+    /// VoiceOver's actions on the card, Move Pane to Tab ▸ flattened to New Tab and New Workspace: with any
+    /// accessibility client (BetterTouchTool, Raycast, XCUITest) SwiftUI builds them with the card: one per tab made
+    /// a switch to a session of 300 tabs take 1.05 s on CI, 0.34 s without (phase 30). The menu bar and the palette
+    /// list every tab. Their own view, as the menu items are.
     private struct PaneActions: View {
         let page: Page
         let pane: HostStore.Pane?
 
         var body: some View {
-            let commands = CommandList.pane(page) { pane }.filter(\.enabled).flatMap { command in
+            let commands = CommandList.pane(page, tabs: false) { pane }.filter(\.enabled).flatMap { command in
                 command.menu.isEmpty ? [(command.title, command.action)]
                     : command.menu.map { ("\(command.title) \($0.title)", $0.action) }
             }
