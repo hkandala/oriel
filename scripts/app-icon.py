@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-"""Export Oriel's approved artwork to its macOS asset catalog and an ICNS."""
+"""Export Oriel's artwork to its macOS asset catalog."""
 
-import io
 import json
-import struct
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter
@@ -11,13 +9,7 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = Path(__file__).resolve().parents[1]
 BRAND = ROOT / "resources/branding"
 CATALOG = ROOT / "Oriel/Assets.xcassets/AppIcon.appiconset"
-SLOTS = (
-    (16, 1, b"icp4"), (16, 2, b"ic11"),
-    (32, 1, b"icp5"), (32, 2, b"ic12"),
-    (128, 1, b"ic07"), (128, 2, b"ic13"),
-    (256, 1, b"ic08"), (256, 2, b"ic14"),
-    (512, 1, b"ic09"), (512, 2, b"ic10"),
-)
+SLOTS = ((16, 1), (16, 2), (32, 1), (32, 2), (128, 1), (128, 2), (256, 1), (256, 2), (512, 1), (512, 2))
 
 
 def main():
@@ -47,22 +39,16 @@ def main():
 
     contents = json.loads((CATALOG / "Contents.json").read_text())
     entries = {(e["size"], e["scale"]): e for e in contents["images"] if e["idiom"] == "mac"}
-    icns = bytearray()
-    for points, scale, kind in SLOTS:
+    for points, scale in SLOTS:
         pixels = points * scale
         suffix = "@2x" if scale == 2 else ""
         name = f"icon_{points}x{points}{suffix}.png"
         icon = master.resize((pixels, pixels), Image.Resampling.LANCZOS)
         icon.save(CATALOG / name, optimize=True)
         entries[(f"{points}x{points}", f"{scale}x")]["filename"] = name
-        with io.BytesIO() as stream:
-            icon.save(stream, "PNG", optimize=True)
-            data = stream.getvalue()
-        icns.extend(kind + struct.pack(">I", len(data) + 8) + data)
 
     (CATALOG / "Contents.json").write_text(json.dumps(contents, indent=2) + "\n")
-    (BRAND / "Oriel.icns").write_bytes(b"icns" + struct.pack(">I", len(icns) + 8) + icns)
-    print("Exported 10 macOS PNG slots (16–1024 px), the master and Oriel.icns")
+    print("Exported 10 macOS PNG slots (16–1024 px) and the master")
 
 
 if __name__ == "__main__":
