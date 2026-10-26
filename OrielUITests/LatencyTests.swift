@@ -215,12 +215,7 @@ extension OrielUITests {
         relaunch(one, ["-recordLatency", "YES"] + args)
         XCTAssertTrue(element("pane.w1:p1").exists(within: connect))
         // Also after a failed step.
-        addTeardownBlock { @MainActor in
-            let attachment = XCTAttachment(string: self.element("app.latency").stringValue)
-            attachment.name = "latency"
-            attachment.lifetime = .keepAlways
-            self.add(attachment)
-        }
+        addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
     }
 
     /// The key, then its change; a pause, so the next key's record starts clean.
@@ -230,7 +225,7 @@ extension OrielUITests {
         Thread.sleep(forTimeInterval: 0.5)
     }
 
-    /// "⌘T 12ms 0": the key, the time to its frame, the turns; "swipe 230ms 0:145,8:152,…".
+    /// "⌘T 12ms 0 9ms": the key, the time to its frame, the turns, the app's own time; "swipe 230ms 0:145,8:152,…".
     struct Entry {
         let name: String, time: Int, turns: Int
     }

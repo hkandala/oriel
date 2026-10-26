@@ -55,8 +55,7 @@ extension OrielUITests {
         quietKey("]", [.command, .option]) { self.header == self.one }
         quietKey("[", [.command, .option]) { self.header == eight }
 
-        let keys = recorded().filter { ["⌘", "⌃", "⇧", "⌥"].contains($0.name.first.map(String.init)) }
-        print(keys.map { "\($0.name) \($0.time)ms \($0.turns)" }.joined(separator: "\n"))
+        let keys = recorded().filter { $0.name.first.map("⌘⌃⇧⌥".contains) == true }
         // Every key drew its change in its own turn, or the next for herdr's writes (lane S of phase 25).
         for entry in keys {
             XCTAssertLessThanOrEqual(entry.turns, 1, entry.name)
@@ -67,7 +66,7 @@ extension OrielUITests {
     private func newTabSplitAndCloses(in eight: String) async throws {
         let before = try await tabIDs(in: eight)
         quietKey("t", .command) { !self.element("tab.w1:t1").isSelected }
-        let new = try await poll("the new tab") { try await self.tabIDs(in: eight).first { !before.contains($0) } }
+        let new = try await newTabID(after: before, in: eight)
         XCTAssertTrue(element("tab.\(new)").has(\.isSelected, true, within: 10))
         _ = try await measure("quiet tab, 100 agents elsewhere", seconds: 5, session: eight)
         try await sample("quiet tab", in: eight)
@@ -91,15 +90,7 @@ extension OrielUITests {
     /// A line in the result bundle and the log.
     private func note(_ text: String) {
         print(text)
-        let attachment = XCTAttachment(string: text)
-        attachment.name = "stress"
-        attachment.lifetime = .keepAlways
-        add(attachment)
-    }
-
-    /// herdr's tab ids of the session.
-    private func tabIDs(in session: String) async throws -> [String] {
-        try await (Self.snapshot(session)["tabs"] as? [[String: Any]] ?? []).compactMap { $0["tab_id"] as? String }
+        keep(text, as: "stress")
     }
 
     /// A trackpad scroll of 30 steps of 20 pt there and the momentum after, then back: one "scroll" record each.
@@ -114,9 +105,6 @@ extension OrielUITests {
     /// `sample`'s profile of the app for 3 s, kept in the result bundle.
     private func sample(_ name: String, in session: String) async throws {
         let profile = try await Self.post("\(session)/sample", Data("3".utf8))
-        let attachment = XCTAttachment(string: String(decoding: profile, as: UTF8.self))
-        attachment.name = "sample, \(name)"
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        keep(String(decoding: profile, as: UTF8.self), as: "sample, \(name)")
     }
 }

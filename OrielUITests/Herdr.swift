@@ -135,8 +135,8 @@ extension OrielUITests {
                     field(panes.first { $0["tab_id"] as? String == tab }?["pane_id"], "pane of \(tab)"))
     }
 
-    func tabIDs() async throws -> [String] {
-        try await Self.ids("tab", in: one)
+    func tabIDs(in session: String? = nil) async throws -> [String] {
+        try await Self.ids("tab", in: session ?? one)
     }
 
     /// The session's `tab` or `workspace` ids. Off the main actor for async teardown blocks: after a failure, one on
@@ -146,10 +146,18 @@ extension OrielUITests {
     }
 
     /// The tab herdr has now and did not have `before`.
-    func newTabID(after before: [String]) async throws -> String {
+    func newTabID(after before: [String], in session: String? = nil) async throws -> String {
         try await poll("a new tab in herdr") { () async throws -> String? in
-            try await tabIDs().first { !before.contains($0) }
+            try await tabIDs(in: session).first { !before.contains($0) }
         }
+    }
+
+    /// The text in the result bundle, kept also when the test passes.
+    func keep(_ text: String, as name: String) {
+        let attachment = XCTAttachment(string: text)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     /// The session's herdr runs (`terminal session` and `remote-api-bridge`), any client's, as `pid argv` lines.

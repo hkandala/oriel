@@ -65,10 +65,7 @@ extension OrielUITests {
         let usage = try await String(decoding: Self.post("\(session ?? one)/usage", Data("\(seconds)".utf8)),
                                      as: UTF8.self)
         print("usage, \(name):\n\(usage)")
-        let attachment = XCTAttachment(string: usage)
-        attachment.name = "usage, \(name)"
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        keep(usage, as: "usage, \(name)")
         return usage
     }
 }

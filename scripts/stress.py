@@ -52,14 +52,16 @@ def call(method, **params):
     return reply["result"]
 
 
+def share(n, w):
+    """Workspace `w`'s share of `n`."""
+    return n // args.workspaces + (w < n % args.workspaces)
+
+
 def fill(w):
     """Workspace `w`'s tabs and panes, in order."""
-    count = args.tabs // args.workspaces + (1 if w < args.tabs % args.workspaces else 0)
     created = call("workspace.create", label=f"stress {w + 1}", focus=False, **shell)
-    workspace, panes = created["workspace"]["workspace_id"], []
-    # This workspace's share of the second panes.
-    splits = (args.panes - args.tabs) // args.workspaces + (1 if w < (args.panes - args.tabs) % args.workspaces else 0)
-    for t in range(count):
+    workspace, panes, splits = created["workspace"]["workspace_id"], [], share(args.panes - args.tabs, w)
+    for t in range(share(args.tabs, w)):
         pane = created["root_pane"]["pane_id"] if t == 0 else call(
             "tab.create", workspace_id=workspace, focus=False, **shell
         )["root_pane"]["pane_id"]

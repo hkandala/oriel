@@ -21,7 +21,7 @@ POST /<session>/ssh-drop with an SSH target as the body kills the app's ControlM
 would), and gives back the pids it killed, one per line.
 POST /<session>/ssh-forget with an SSH target as the body removes its host key from ~/.ssh/known_hosts, on CI only, so
 ssh asks for it again.
-POST /<session>/swipe with "x y step steps [pause]" as the body posts a two-finger trackpad swipe there (scripts/swipe.swift).
+POST /<session>/swipe with "x y step steps [pause [vertical]]" as the body posts a two-finger trackpad swipe there (scripts/swipe.swift).
 POST /<session>/drag with "x y (x y hold)..." as the body drags the mouse from the first point through the others,
 holding at each (scripts/drag.swift).
 POST /<session>/stress with "tabs workspaces panes agents" as the body starts the session afresh and fills it with
@@ -108,8 +108,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, reply = 400, b"the body must be seconds"
         elif action == "sample":
             pid = subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
-            run = subprocess.run(["sample", pid, body.decode()], capture_output=True, timeout=60)
-            status, reply = (200, run.stdout) if run.returncode == 0 else (500, run.stderr)
+            try:
+                run = subprocess.run(["sample", pid, body.decode()], capture_output=True, timeout=60)
+                status, reply = (200, run.stdout) if run.returncode == 0 else (500, run.stderr)
+            except subprocess.TimeoutExpired:
+                status, reply = 500, b"sample took over 60 s"
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
         elif action in ("swipe", "drag"):
