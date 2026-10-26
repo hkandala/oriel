@@ -171,7 +171,9 @@
                 // The zoom's time.
                 .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18), value: open)
                 .allowsHitTesting(open == own)
-                .accessibilityHidden(open != own)
+                // Not `accessibilityHidden(false)`, which overrides the hidden ones inside (a button's overlay image
+                // took its identifier too).
+                .accessibilityElement(children: open == own ? .contain : .ignore)
                 // Out of the key view loop too: Tab would reach a hidden field.
                 .disabled(open != own)
         }
