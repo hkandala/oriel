@@ -124,6 +124,8 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard("terminal.\(second)", in: pinned))
         openPalette()
         XCTAssertTrue(element("palette.command.Detach Pane", in: pinned).exists(within: 2))
+        // Its first row is lit, not the row at the main window's selected tab's index (3f24e30).
+        XCTAssertTrue(element("palette.command.Detach Pane", in: pinned).has(\.isSelected, true, within: 2))
         XCTAssertFalse(element("palette.command.New Tab", in: pinned).exists)
         XCTAssertFalse(element("palette.tab.\(tab)", in: pinned).exists)
         app.typeText("stay on top")
