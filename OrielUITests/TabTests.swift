@@ -197,6 +197,9 @@ extension OrielUITests {
         // it showed on the tab selected before through the zoom, then jumped. Now it fades in on the middle one.
         let astray = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("pill ") }
         XCTAssertFalse(astray.contains { $0.hasSuffix(" 2") }, "the pill on another tab after the overview: \(astray)")
+        // Nor drawn on its way there from the tab selected before ("pill slides <drawn> <place>"): the title row's
+        // fade slid it in under the zoom (phase 33).
+        XCTAssertFalse(astray.contains { $0.hasPrefix("pill slides") }, "the pill slid after the overview: \(astray)")
         element("workspace.w2").click()
         element("workspace.\(workspace)").click()
         try await expectShown(tabs[2], "its workspace shown again")

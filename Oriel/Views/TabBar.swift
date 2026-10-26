@@ -171,12 +171,36 @@ struct TabBar: View {
         let astray = rest && Int(place) != selected ? "pill \(place) \(selected)" : ""
         return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
             .frame(width: Self.width, height: Self.height - 2 * Self.inset)
-            .offset(x: place * (Self.width + 1))
+            .modifier(Slide(drawn: place, place: place))
+            // Not in another change's animation: the title row's fade after the overview slid it there (phase 33).
+            .animation(nil, value: place)
             .allowsHitTesting(false)
             // e2e (`-recordLatency YES`): "pill <place> <selected>" when it shows at rest on another tab.
             .onChange(of: astray) {
                 if !$1.isEmpty {
                     Latency.shared.note($1)
+                }
+            }
+    }
+}
+
+/// The pill's offset, drawn at each frame. e2e (`-recordLatency YES`): "pill slides <drawn> <place>" at a frame drawn
+/// short of its place: it follows the strip frame by frame and never animates (phase 33: an animation of the same
+/// update, the title row's fade after the overview, slid it from the tab selected before).
+private struct Slide: ViewModifier, Animatable {
+    var drawn: Double
+    let place: Double
+
+    var animatableData: Double {
+        get { drawn }
+        set { drawn = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        content.offset(x: drawn * (TabBar.width + 1))
+            .onChange(of: drawn) {
+                if Latency.isOn, $1 != place {
+                    Latency.shared.note("pill slides \(String(format: "%.2f", $1)) \(place)")
                 }
             }
     }
