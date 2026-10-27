@@ -85,12 +85,13 @@ drives the GUI at a time:
 
 ```sh
 ( mkdir /tmp/oriel-gui.lock || exit 1; trap 'rm -rf /tmp/oriel-gui.lock' EXIT
-  echo "$NAME $(date +%H:%M)" > /tmp/oriel-gui.lock/owner; make e2e ONLY=… )
+  echo "<your agent name> $(date +%H:%M)" > /tmp/oriel-gui.lock/owner; make e2e ONLY=… )
 ```
 
 - Take it only if it is free; if it is not, work on and try later (no waiting loop). One run per hold, at
   most 10 minutes, released by the trap, also on failure. Never hold it while you read results, edit,
-  build or wait for CI. Never remove someone else's lock.
+  build or wait for CI. Never remove someone else's lock. A lock older than 10 minutes whose owner is not
+  `user` and whose agent is gone (`agent_list`) is stale: the orchestrator removes it.
 - When the user tests on the Mac, the orchestrator holds the lock with owner `user`. Then everyone runs
   UI tests on CI only ([chosen-tests runs](ci.md#running-part-of-it)), and the CI recordings are the
   visual check.
@@ -144,20 +145,17 @@ CLI only from the repo root; in another folder `vercel pull --yes` creates and l
 1. Pull. Read `AGENTS.md`, this file, [lessons.md](lessons.md), the phase file, the Findings of earlier
    phases it touches, the design pages it names, and the ponytail skill.
 2. Spike herdr (and any API) for five minutes in a throwaway session: the exact calls the code will send,
-   their results and side effects (focus, defaults).
+   their results and side effects ([lessons.md](lessons.md#herdr)).
 3. Build the parts that cannot change first (menus, keys, herdr calls), then the look. A new window, panel
    or screen: send the orchestrator one rough screenshot before polishing, and settle order and wording
    then.
 4. Small commits, `make lint build test` green, push as you go.
 5. Run only the UI tests you add or change (one local run under the lock, or a chosen-tests CI run).
 6. Self-review the diff against the phase file and the ponytail rules.
-7. Commit and push (Findings too) before starting reviewers, and name the SHA. Reviewers review that SHA
-   in a clean copy (`git worktree add /tmp/… <sha>`, their own DerivedData), never your working tree.
-   **Review round 1** in parallel: spec, ponytail, e2e (table below). Fix every blocker and should;
-   answer each nit with a fix or a one-line reason. **Later rounds** only after fixes: the spec reviewer
-   alone, plus the e2e reviewer if its own blocker was fixed; their brief maps each finding to its fix
-   commit and asks what the fixes touched. Stop when a round is clean; at most 4 rounds.
-   A small phase (a few files, no new view) gets round 1 only.
+7. Commit and push (Findings too) and name the SHA. Reviewers review that SHA in a clean copy
+   (`git worktree add /tmp/… <sha>`, their own DerivedData), never your working tree. Run the rounds as in
+   [Reviews](#reviews-who-and-when). Fix every blocker and should; answer each nit with a fix or a one-line
+   reason.
 8. Update the design pages you changed, in plain English.
 9. CI's full run green on the last code commit.
 10. Done is a checklist: design pages match the final code; Findings with the root cause, numbers before and
@@ -182,7 +180,11 @@ files. Anything wrong goes back to the same agent as a numbered list.
 | Ponytail | yes | no | cheap, most findings stick, little after round 1 |
 | Verifier | no | no | adds little; the last spec round checks every Build and e2e item instead |
 
-GUI budget: the e2e reviewer gets at most 15 minutes of lock in round 1; spec and ponytail reviewers get
+Later rounds come only after fixes; their brief maps each finding to its fix commit and asks what the fixes
+touched. Stop when a round is clean, at most 4 rounds. A small phase (a few files, no new view) gets round 1
+only.
+
+GUI budget: the e2e reviewer gets at most 15 minutes of lock in round 1, in holds of one run each; spec and ponytail reviewers get
 none. A phase agent runs single tests while building; the full suite runs on CI, not locally (a local full
 `make e2e` is about 40 minutes of the user's screen).
 
@@ -226,7 +228,7 @@ decide or check by hand."
 **Reviewer.** "Read-only ‹focus› review of ‹phase/lane› (`git diff <base>..HEAD`), against the phase file,
 the design pages and `playbook/workflow.md`. ‹Spec: missing or wrong behavior, bugs, races, leaks, error paths,
 herdr safety, accessibility identifiers. Ponytail: follow the ponytail-review skill; what can be deleted
-or made simpler. E2E: drive the new UI through XCUITest under the lock (at most 15 minutes, a throwaway
+or made simpler. E2E: drive the new UI through XCUITest under the lock (at most 15 minutes in all, one run per hold, a throwaway
 session), then read the tests and flag slop: asserting nothing real, only that an element exists, sleeping,
 duplicates, mocks where herdr is cheap, pixels where herdr or an accessibility value can say it.› Report a
 numbered list: file:line, severity, the concrete fix. Say what is clean. End with a verdict."

@@ -5,8 +5,6 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
 
 ## Testing the UI
 
-- **Wait on conditions with 100 ms polls; never sleep or use XCTest's waits.** XCTest's waits poll about
-  once a second and were a third of the suite's time; sleeps flake.
 - **Read the failing step and its screen recording before you rerun or guess.** Guessing at one CI-only
   failure cost two hours and ten runs; the recording showed most causes in one look.
 - **Write tests for CI's machine:** a 1x display, a small window where windows overlap and only about three
@@ -29,9 +27,6 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
 - **Know XCUITest's input gaps on macOS.** Drags need `click(forDuration:thenDragTo:)`; scroll is a wheel
   with no phases; a ⌘ key whose menu item is disabled is never delivered. Real trackpad gestures go
   through the e2e helper as HID events.
-- **Keep tearDown safe:** synchronous, async helpers fail by throwing, the pointer moved off the chrome,
-  state restored before the tabs it lives in close. A bad teardown hangs two minutes and loses the
-  recording.
 - **Tests share defaults and saved windows with the user's Oriel (same bundle id).** Pin settings with
   launch arguments, reset them in teardown, launch with `-ApplePersistenceIgnoreState`.
 - **Each test restores what it changes** (defaults, herdr focus, the pointer, leftover sessions) and reads
@@ -41,12 +36,11 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
 
 ## CI
 
-- **A flake is a bug.** Fix it at its cause and prove it with two full runs in a row green on the first
-  try. "Taken as a flake" came back every time.
-- **Run `make lint` on the rebased tree and check exit codes; never pipe a check through `grep`.** Main went
-  red from a rebase that pushed a file over the length limit, and from a piped command that hid a failure.
-- **The 400-line file limit is a shared budget.** Several lanes add to the same big files: check `wc -l`
-  after each rebase and split a file that is close to the limit before adding to it.
+- **A flake is a bug.** Fix it at its cause ([ci.md](ci.md#a-test-fails-only-on-ci)). "Taken as a flake"
+  came back every time.
+- **Check exit codes; never pipe a check through `grep`.** A piped command hid a failure and main went red.
+- **The 400-line file limit is a shared budget.** Several lanes add to the same big files and a rebase pushed
+  one over: split a file that is close to the limit before adding to it.
 
 ## herdr
 
@@ -79,7 +73,6 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
   `.id` per page makes a fresh view that flickers at offset 0.
 - **An overlay blocks every input path to the page below:** swipes, the wheel, menu shortcuts and clicks.
   Check all of them when you add one.
-
 - **A new or lazy scroll view's first layout lies.** The first scroll position gets dropped,
   `containerRelativeFrame` resolves to the window, `.task` in a lazy stack is cancelled, and overlays get
   clipped. Use `defaultScrollAnchor(_:for: .initialOffset)`, a GeometryReader, or `onAppear` plus a Task.
@@ -101,11 +94,9 @@ How we work is in [workflow.md](workflow.md); this file is what to watch out for
 
 ## Working with agents
 
-- **Show a rough screenshot of a new view before polishing it.** A whole Settings window was built, then
-  dropped.
-- **Hold every surface to the design bar** (workflow, Code). The user had to ask again and again for the
-  About panel, the remote machine dialogs and glass contrast: stock panels and text dumps shipped because
-  nobody compared a screenshot with the glass surfaces.
+- **The rough screenshot and the design bar** ([workflow.md](workflow.md)) exist because a whole Settings
+  window was built and dropped, and the user had to ask again and again for the About panel, the remote
+  dialogs and glass contrast: stock panels and text dumps shipped when nobody compared a screenshot.
 - **Automated rewrites change meaning.** Formatter rules and scripted replaces have flipped logic or
   matched nothing. Read the diff; make every scripted edit fail loudly when it matches nothing.
 - **Never `git checkout <file>` to drop debug lines in a dirty tree:** it reverts the phase's other work in

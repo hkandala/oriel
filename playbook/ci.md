@@ -11,7 +11,7 @@ How CI runs, how to run part of it, and how to keep it green and fast.
   and Reduce Motion on. The account has 5 macOS runners. herdr is downloaded and checked by its SHA-256
   (`HERDR_VERSION` in `ci.yml`).
 - **Five jobs** (`test (0)` to `test (4)`), each a shard of the UI tests. `test (0)` also runs `make lint`,
-  `make build`, `make test` (HerdrKit and the three-finger check) and, after its UI tests,
+  `make build`, `make test` (HerdrKit, the three-finger check, the acknowledgements check) and, after its UI tests,
   `make strip-check`. Every job starts CI's sshd on localhost for the remote-host tests
   (`scripts/ci-sshd.sh`).
 - **Shards by time.** `make e2e SHARD=i/5 SHARD_HEAD=180` runs the tests that `scripts/shard.py` gives
@@ -31,7 +31,7 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 | What | Command | Machines |
 |---|---|---|
 | Full run | push to main | 5 |
-| Chosen UI tests | `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/<Class>/testA,…` | 1, no lint or build |
+| Chosen UI tests | `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,…` | 1, no lint or build |
 | On-demand tests | `gh workflow run ci.yml --ref main -f on_demand=true` | 4 |
 | Same locally | `make e2e ONLY=…`, `make e2e ON_DEMAND_ONLY=1` (under the GUI lock) | this Mac |
 
@@ -40,7 +40,6 @@ How CI runs, how to run part of it, and how to keep it green and fast.
   exited 0 on a failed run. A chosen-tests run takes about 2.5 minutes for two tests.
 - A push cancels the push run in flight (`cancel-in-progress`). A dispatch never cancels a push run or
   another dispatch. So batch pushes while a full run matters, and use chosen-tests runs for single checks.
-- Docs-only pushes skip CI.
 - **Sign off** with a full run on your own last commit: another lane's push can cancel yours, so dispatch
   one (`gh workflow run ci.yml --ref main`) if needed, and judge a run by which tests failed, not by its
   color.
@@ -54,9 +53,8 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 2. Read the result before guessing: `gh run download <id> -p 'e2e-xcresult-*'` (one per shard), then
    `xcrun xcresulttool get test-results tests|activities --path …` for the failing step and its values, and
    `xcresulttool export attachments` for the screen recording (`ffmpeg -ss <s> -frames:v 1` gets a frame).
-3. Think of CI's machine: a 1x display (grid and pixel checks must hold at 1x), a small window (windows
-   overlap: pick them by identifier, never by position), the US layout (Option sends Alt), Reduce Motion on
-   (a test of motion launches with `-forceMotion YES`).
+3. Think of CI's machine ([lessons.md](lessons.md#testing-the-ui)): a 1x display, a small window, the US
+   layout (Option sends Alt), Reduce Motion on.
 4. Give it 20 minutes from the logs. Then simplify the test or the feature and write it down, or hand it on.
    No debug branches.
 5. Never rerun to green. A fix is proven by two full runs in a row green on the first try.
@@ -67,7 +65,8 @@ How CI runs, how to run part of it, and how to keep it green and fast.
   XCTest's own waits take over a second even when the condition already holds; lint (`fast_waits`) rejects
   them.
 - Fail an async helper with a thrown error, never `XCTFail`, and keep tearDown sync: a failure that waits
-  for the main actor in teardown hangs until the 120 s allowance and loses its recording.
+  for the main actor in teardown hangs until the 120 s allowance and loses its recording. In tearDown, move
+  the pointer off the chrome and restore state before the tabs it lives in close.
 - A launch costs about 2.5 s: relaunch only when the launch is what the test checks.
 - An element query takes 0.1–0.2 s and a click about 1 s: check the outcome through one herdr call or one
   accessibility value, not a walk over many elements.
@@ -86,8 +85,5 @@ xcrun xcresulttool get test-results tests --path <e2e.xcresult> | jq -r '.. | ob
 
 ## UI tests without the user's screen
 
-XCUITest posts real mouse and key events into the login session, so a local run moves the user's pointer,
-takes focus and can type into other apps. No trick on the host isolates it (a virtual display shares the
-same pointer). Only another session does: CI (what we use), a macOS VM on this Mac (Tart with a Cirrus
-image; Apple allows two macOS VMs at a time), or a second Mac. That is why agents prefer chosen-tests CI
-runs and take the GUI lock for local runs.
+XCUITest drives the real pointer and keyboard of the login session; only another session isolates it (CI,
+a macOS VM, a second Mac). So prefer chosen-tests runs, and take the GUI lock for local runs.
