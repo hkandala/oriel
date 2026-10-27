@@ -1,6 +1,6 @@
 # herdr-web-ui (devswha): browser and phone PWA, chat view, remote PCs over SSH, web push
 
-The most complete herdr client of the four, and the only one with a real chat view. The design notes in its
+The most complete herdr web client we read, and the only one with a real chat view. The design notes in its
 `AGENTS.md`, `server/AGENTS.md` and `src/AGENTS.md` record many hard-won, live-verified herdr facts (quoted below).
 
 ## Architecture

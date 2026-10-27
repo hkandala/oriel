@@ -1,6 +1,6 @@
 # Heeler (ZingerLittleBee/Heeler): iOS, libghostty, SSH, push
 
-The most complete design here. ADRs in `docs/adr/` explain each choice.
+The most complete mobile design we read. ADRs in `docs/adr/` explain each choice.
 
 ## Transport (ADR 0011 `libssh2-direct-streamlocal-transport.md`)
 - They replaced Citadel + NIOSSH + `exec socat` with an in-repo `Packages/HeelerSSH` (libssh2 1.11.1 + OpenSSL

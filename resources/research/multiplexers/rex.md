@@ -33,7 +33,7 @@ Rex's agent guide maps the user's words the same way: "Session, workspace" = ses
 | Oriel | Rex | Fit |
 |---|---|---|
 | machine | host (one machine and account) | Good. Rex's host list even has a label and an icon. Oriel can keep its own machine list and ignore Rex's. |
-| session (a herdr server: `default`, `pi-herd`) | the server | Weak. Rex runs one server per account. A second server needs its own `--listen` socket and `--state-dir`, and Rex.app does not see it. So `sessions()` returns one entry. The Open Session panel has nothing to list. |
+| session (a herdr server: `default`, `work`) | the server | Weak. Rex runs one server per account. A second server needs its own `--listen` socket and `--state-dir`, and Rex.app does not see it. So `sessions()` returns one entry. The Open Session panel has nothing to list. |
 | workspace | session | Good: ordered, labeled, created and destroyed by the API. No git or worktree data. |
 | tab | window | Good: ordered, labeled, active window per session. |
 | pane | block | Good: a stable id that survives moves between windows. `Pane.id == Pane.terminalID`. |
@@ -60,7 +60,7 @@ What Oriel has that Rex does not:
 
 - No level between machine and workspace. Oriel's "session" page becomes "the one server".
 - No git or worktree data, and no linked-worktree groups.
-- No cross-session move. A block can move only inside its session (tested, see section 3).
+- No cross-session move. A block can move only inside its session (tested, see §3).
 - No agent detection. Status comes only from programs that report OSC 7501.
 - No absolute scroll position on a shared viewport (herdr's `pane.scroll`).
 
@@ -204,7 +204,7 @@ workspace.
   - session: a generated two-word name (`crisp-forest`, `quiet-meadow`)
   - window: `Window 89abcdef` (the last 8 hex digits)
   - new block: the short name of its flavor (`shell`), or `Block 89abcdef` after a reset
-  - client: at most 64 bytes, for example `hkandala-mbp` (the name of the Mac).
+  - client: at most 64 bytes, for example `my-mac` (the name of the Mac).
 - Focus is shared server state, as in herdr. Each session has an active window, and each window has a
   `focused_block_id` and an optional `zoomed_block_id`. Rex.app follows it.
 - Revision: each session has a `revision`. It goes up by one for every change that shows in
@@ -266,7 +266,7 @@ The full view shape is the render tree that a client draws:
     default.
   - `rex server logs --follow` tails the log. The app runs the server (pid 82856 at the time).
   - `--websocket-origin-pattern` lets the hosted web client (`https://rex.superlogical.com`, the app's
-    "Open Session on Web…") open browser WebSockets from another origin (§12).
+    "Open Session on Web…") open browser WebSockets from another origin (the hosted web client, `../clients/rex.md`).
 - Listeners (`--listen` / `--extra-listen`):
   - `unix://…` (Unix socket)
   - `http` / `:7297`, which needs `--allow-anonymous`: no auth, full access
@@ -337,7 +337,7 @@ The full shapes, from the server's manual:
 ```json
 → {"type":"hello","api_revision":4,"api_min_revision":0,
    "client":{"kind":"app|cli|agent|other","platform":"macos|ios|linux|windows|web|other",
-             "name":"Rex Beta","version":"0.1.0 (1327)","label":"hkandala-mbp"},
+             "name":"Rex Beta","version":"0.1.0 (1327)","label":"my-mac"},
    "reconnect_token":"<from last welcome, optional>"}
 ← {"type":"welcome","protocol":"rex.control.v1","limits":{"max_message_bytes":1048576},
    "client":{"id":"client:01a16009-…","reconnect_token":"o886HaVLgm59a5w2ZHRYNA","resumed":false},
@@ -366,7 +366,7 @@ The server translates older revisions. The packages for the revision history are
 `r0002_status_revisions`, `r0003_terminal_modes` and `r0004_server_stop`.
 
 The real Rex.app identifies itself as
-`{"kind":"app","platform":"macos","name":"Rex Beta","version":"0.1.0 (1327)","label":"hkandala-mbp"}`. It
+`{"kind":"app","platform":"macos","name":"Rex Beta","version":"0.1.0 (1327)","label":"my-mac"}`. It
 also keeps a second connection with no client info. Its request ids look like `rex-app-<n>` (app string
 `{"type":"request","id":"rex-app-…","method":"block.event","payload":`).
 
@@ -808,7 +808,7 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
     (`showsIdleProgramsInActivity`). The activity UI is in [../clients/rex.md](../clients/rex.md).
 - Other activity sources: `bell`, `desktop_notification` (OSC 9/777), `progress_report` (OSC 9;4) and
   `child_exited`.
-- Agents: `rex skill setup` installs a skill plus a session-start hook (§11). The server has
+- Agents: `rex skill setup` installs a skill plus a session-start hook (Other CLI surface). The server has
   `internal/agentharness`, with the strings `claude`, `codex`, `SubagentStart` and `hooks`. Rex.app has the
   toggles "Let agents name sessions" and "Agent integration".
 
@@ -823,7 +823,7 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
   - `rex new` does not attach (tmux does). The new shell's cwd is the caller's cwd.
 - Other commands: `rex focus`, `zoom --on/--off`, `move`, `swap`, `kill`, `rex session|window|block
   ls|inspect|rename|close …`, `rex client ls|inspect`, `rex events [-s] [--all] [--json]` and `rex whoami`.
-  `rex whoami` prints `you: uid 501 over unix, acting as hkandala`, plus the endpoint, pid, instance, host,
+  `rex whoami` prints `you: uid 501 over unix, acting as <user>`, plus the endpoint, pid, instance, host,
   version, `exit-empty`, sessions and Tailscale.
 - Not implemented (they print "is not implemented"): `rex resize`, `rex block new`, `rex block stream`,
   `rex block attach`.
@@ -860,7 +860,7 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
   lets the server select (§6). The app's `GhosttyVT.SnapshotDecoder` and the `mouse` / `wheel` call sites
   can settle it.
 - The app's exact default keymap request (the `defaults` layer in its `client.keymap` call). It is not
-  visible from the server. The table in §10 is partly inferred.
+  visible from the server. The keymap table in `../clients/rex.md` is partly inferred.
 - The URL format behind `session.open_on_web`, and how the hosted web client reaches a local server:
   through Tailscale HTTPS, or through the app ("Pair Device with QR Code…"). The URL needs a decompile of
   the action handler or one observation of the opened URL.

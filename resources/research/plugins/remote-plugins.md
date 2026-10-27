@@ -37,27 +37,6 @@ Jargon used below:
 
 ---
 
-## 1. What our design says today
-
-| Topic | What it says | Where |
-|---|---|---|
-| One primitive | "run a command and use its stdio" per machine; a daemon, relay or bridge of our own on the machine is *rejected* | `decisions.mdx:14` (D2), `talking-to-herdr.mdx:6-45` |
-| Plugin data | `exec(argv)` runs on the card's machine only, through the base64 envelope; 30 s timeout, 4 MiB per stream, 2 at a time per machine | `plugins/api.mdx:19-23,61` |
-| Plugins live where | in the app, not on machines; installed once per device | `decisions.mdx:77` (D20), `plugins/packages.mdx:49-56` |
-| Core plugins | git-history, diff, markdown use only `exec` (`git diff`, `git log`, `git show`, `cat`) | `plugins/api.mdx:77-87` |
-| Web page remote localhost | macOS: `ssh -S <ctl> -O forward -L 127.0.0.1:<L>:localhost:<P>` with L ≠ P; a navigation decider adds forwards for other loopback ports; content rule blocks other loopback; iOS "later" | `plugins/web-page.mdx:63-82`, `decisions.mdx:84` (D27) |
-| Why not SOCKS | "WebKit never proxies loopback" | `decisions.mdx:84` |
-| SSH on macOS | system `ssh`, one ControlMaster per host, forwarding off but `-O forward` still works | `machines.mdx:30-55` (D15) |
-| SSH on iOS | Citadel, exec channels, Secure Enclave key | `machines.mdx:67-87` (D17) |
-| Channel budget | `MaxSessions` 10 per connection; terminals, chat tails and plugin `exec` share it | `machines.mdx:96-113` |
-| State | plugin instance state is a JSON file on the pane's machine | `plugins/state.mdx:25-48` (D22) |
-
-So today the design is option A below, plus option D1 for the browser on the
-Mac. The gaps are: browser on iOS, port discovery, file watching, and what to
-do when the channel budget or latency hurts.
-
----
-
 ## 2. How others solve remote content
 
 | Tool | What runs on the server | How the UI gets data | Browser / ports | Source |
@@ -176,7 +155,6 @@ channel per call, and parses the output.
   already the one honest permission (D25).
 - **Offline/reconnect:** stateless. Each call fails or succeeds on its own;
   after reconnect the next call just works.
-- **iOS:** Citadel exec channels; Spike S7 already covers it.
 - **Effort:** done in the design. Port scan about 100 lines.
 - **Weak spots:** about one extra round trip per call plus a local `ssh`
   process on macOS (fine for diff refresh, slow for a file tree on a 150 ms
@@ -403,8 +381,7 @@ protocol Exec {                       // exists today
    D27's L ≠ P rule). List active forwards in the web card menu with Stop.
 3. **Web page on iOS: D1 through `dial`.** An in-app `NWListener` on
    `127.0.0.1:P` whose accepted connections each open a `direct-tcpip`
-   channel. This closes the "iOS later" gap in `web-page.mdx:81-82`. Add it
-   to Spike S7 (test Citadel's `DirectTCPIP` next to its exec channels). Note
+   channel. Test Citadel's `DirectTCPIP` next to its exec channels first. Note
    the iOS background rule: listeners stop with the app, like terminal streams.
 4. **Port discovery, cheap:** `pane.output_matched` on the selected tab's
    terminal panes for `localhost:\d+` URLs → an "Open :3000" chip that creates a
@@ -433,7 +410,7 @@ Because `Exec` hides the transport, the switch is an implementation change in
 the same. Keep the agent small by refusing what herdr already does (PTYs,
 sessions, persistence); that is what made cmux's daemon 15,000 lines.
 
-### Open questions for spikes
+### Open questions
 
 - Citadel's `DirectTCPIP` API and throughput on iOS 26 (cmux uses raw
   swift-nio-ssh: `SSHConnection.swift:214-220`).
@@ -448,16 +425,6 @@ sessions, persistence); that is what made cmux's daemon 15,000 lines.
 ---
 
 ## Sources
-
-Our repo:
-- `docs/content/docs/decisions.mdx:14,16,29,31,77,81,82,84`
-- `docs/content/docs/plugins/api.mdx:19-23,61,73-87`
-- `docs/content/docs/plugins/web-page.mdx:63-82`
-- `docs/content/docs/plugins/security.mdx:6-13`
-- `docs/content/docs/plugins/state.mdx:25-48`
-- `docs/content/docs/plugins/packages.mdx:49-56`
-- `docs/content/docs/machines.mdx:30-55,67-87,96-113`
-- `docs/content/docs/talking-to-herdr.mdx:6-45`
 
 herdr 0.9.5 (local CLI) and github.com/herdrdev/herdr:
 - `herdr --help`, `herdr machine --help`, `herdr plugin --help`,

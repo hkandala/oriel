@@ -150,7 +150,7 @@ Fact: `%output` carries the pane's own PTY bytes. tmux does not re-render them.
 - `control_append_data` takes the bytes from that same buffer with `window_pane_get_new_data` (`window.c` lines 2563-2570). It writes bytes below 0x20 and `\` as octal `\ooo` and other bytes as they are (`control.c` lines 826-840). UTF-8 bytes pass through unchanged.
 - Test: the pane ran `printf "abc\rX\n\033[31mred\033[0m\n"`. `%output` carried `abc\015X\015\012\033[31mred\033[0m\015\012`, which is the exact bytes. `capture-pane -p -e` of the same screen returned `Xbc` and `^[[31mred` then `^[[39m`, which is tmux's re-rendering.
 
-So the brief's first guess ("tmux's re-rendering") was wrong for the live stream. It is right for the seed. Comparison:
+So the first guess ("tmux's re-rendering") was wrong for the live stream. It is right for the seed. Comparison:
 
 | Backend | Live stream | Seed on attach |
 |---|---|---|

@@ -7,7 +7,7 @@ main window at that pane.
 
 - Target: macOS 26.
 - Labels: **fact** = read in code, docs or SDK headers, or seen on this Mac.
-  **guess** = not verified; each one is in the spike list (§11).
+  **guess** = not verified.
 
 ---
 
@@ -41,7 +41,7 @@ main window at that pane.
 6. **No double alerts.** While the pill panel is on screen, status changes
    show as pills, not as banners. Banners still post when pills are off or
    VoiceOver is running.
-7. **Spike result on this Mac (fact).** The panel showed at CG layer 3
+7. **Measured on a Mac (fact).** The panel showed at CG layer 3
    (`.floating`) with glass capsules. It did not become key, the app stayed
    inactive, and Ghostty stayed frontmost. The collection-behavior set raised
    no exception.
@@ -86,7 +86,7 @@ app stays inactive.
 | `hidesOnDeactivate` | `false` | The NSPanel default is `true` ([Apple](https://developer.apple.com/documentation/appkit/nswindow/hidesondeactivate)), so the panel would vanish exactly when the user leaves the app. |
 | `canHide` | `false` | The default is `true`: ⌘H on the app would hide the pills too, yet "app hidden" is a main reason to show them (CodexBar sets it; [Apple](https://developer.apple.com/documentation/appkit/nswindow/canhide)). |
 | `canBecomeKey` | `takesKeyboard` (true only while expanded) | Collapsed pills can never take keystrokes from the user's terminal (Unwait's rule). ApolloShell uses the same flag. |
-| `becomesKeyOnlyIfNeeded` | `true` | "If the panel is a non-activating panel, then it becomes key only if the hit view returns true from `needsPanelToBecomeKey`" ([Apple](https://developer.apple.com/documentation/appkit/nspanel/becomeskeyonlyifneeded)). Clicking the key buttons on a blocked card then does not take the keyboard; clicking the reply field does. **Guess:** SwiftUI's `TextField` hit view returns `true`. If the spike shows the field cannot get focus, set this to `false`. The flag above still guards collapsed pills. |
+| `becomesKeyOnlyIfNeeded` | `true` | "If the panel is a non-activating panel, then it becomes key only if the hit view returns true from `needsPanelToBecomeKey`" ([Apple](https://developer.apple.com/documentation/appkit/nspanel/becomeskeyonlyifneeded)). Clicking the key buttons on a blocked card then does not take the keyboard; clicking the reply field does. **Guess:** SwiftUI's `TextField` hit view returns `true`. If a test shows the field cannot get focus, set this to `false`. The flag above still guards collapsed pills. |
 | `canBecomeMain` | `false` | The panel is never a document window. |
 | `isOpaque` / `backgroundColor` | `false` / `.clear` | Needed for glass and for click-through. |
 | `hasShadow` | `false` | ApolloShell: the window shadow is computed from the window shape, and with glass it drew a second, almost square edge. Glass brings its own edge and depth. |
@@ -123,7 +123,7 @@ does not apply. The design keeps one *terminal* window.
     Otherwise the keyboard returns when the user clicks their other window.
 - **⌘V, ⌘C, ⌘A in the field.** **Guess:** these work through the app's main
   menu (SwiftUI apps have the standard Edit menu) even while the app is
-  inactive, because the panel is key. Maccy pastes this way. Spike item.
+  inactive, because the panel is key. Maccy pastes this way.
 - **Known bug:** the I-beam cursor does not show over a text field in a
   non-activating panel while the app is inactive. Spotlight and 1Password work
   around it in some way ([PitNikola/NonActivatingPanelIssue](https://github.com/PitNikola/NonActivatingPanelIssue)).
@@ -152,7 +152,7 @@ does not apply. The design keeps one *terminal* window.
   eingebettetes AppKit-Glas folgt SwiftUIs Übergängen nicht sicher" ("embedded
   AppKit glass does not reliably follow SwiftUI transitions",
   [ToastGlass.swift](https://github.com/Silvertree2010/ApolloShell/blob/3c88b90/Sources/ApolloShell/ToastGlass.swift)).
-  Fact: our spike drew glass capsules over the desktop (screenshot).
+  Fact: a test build drew glass capsules over the desktop.
 - **`NSGlassEffectView`** (macOS 26; `cornerRadius`, `tintColor`, `style`
   `.regular`/`.clear`, `contentView`; SDK `NSGlassEffectView.h`) suits a
   whole-window glass background (Maccy, ApolloShell edge panels). Pills do not
@@ -162,7 +162,7 @@ does not apply. The design keeps one *terminal* window.
   [SidebarScreen.swift L37-40](https://github.com/Silvertree2010/ApolloShell/blob/3c88b90/Sources/ApolloShell/SidebarScreen.swift#L37-L40);
   [Reddit post by its author](https://www.reddit.com/r/SwiftUI/comments/1whyoc0/hosting_swiftui_views_inside_nsglasseffectview/)).
 - Shadows: `hasShadow = false` on the window. The glass has its own edge. Add
-  no SwiftUI `.shadow` unless the spike shows pills lack contrast on a light
+  no SwiftUI `.shadow` unless pills lack contrast on a light
   wallpaper.
 - **Pitfall:** glass may look flatter, "a simple blur", while the app is not
   focused ([HWS forum, open question, Sep 2025 – Mar 2026](https://www.hackingwithswift.com/forums/swiftui/glasseffect-in-floating-window-panel/30067)).
@@ -188,7 +188,7 @@ does not apply. The design keeps one *terminal* window.
   pills, and the area above them, pass clicks to the app below.
 - `ignoresMouseEvents = true` is only for overlays with no interaction at all
   (CodexBar confetti and alerts).
-- Not tested here by clicking (the spike posts no synthetic events). Spike item.
+- Not tested here by clicking (no synthetic events were posted).
 
 ## 7. Showing, placing and leaving
 
@@ -196,7 +196,7 @@ does not apply. The design keeps one *terminal* window.
 `!NSApp.isActive && !(mainWindow?.occlusionState.contains(.visible) ?? false)`.
 - `occlusionState` is not `.visible` when the window is minimised, hidden
   (⌘H), on another Space, or fully covered.
-  - **Guess:** a window on another Space reports "not visible". Spike item.
+  - **Guess:** a window on another Space reports "not visible".
 - Inputs: `NSApplication.didBecomeActive` and `didResignActive`,
   `NSWindow.didChangeOcclusionState` (ignore the panel's own),
   `NSApplication.didChangeScreenParameters`. There is no polling.
@@ -242,7 +242,7 @@ events" ([Apple](https://developer.apple.com/documentation/appkit/nsscreen/main)
   works after the user closed the window.
 - `activate()` "doesn't guarantee app activation" under cooperative activation
   ([Apple](https://developer.apple.com/documentation/appkit/nsapplication/activate())).
-  - **Guess:** a click in our own panel counts as user intent. If the spike
+  - **Guess:** a click in our own panel counts as user intent. If a test
     shows a refusal, fall back to the deprecated `activate(ignoringOtherApps: true)`.
 - Activation fires `didBecomeActive`, and the panel orders out by itself.
 - It never calls herdr focus methods (D12).
@@ -323,7 +323,7 @@ counterpart would be a Live Activity, which is out of scope.
   a macro, so it failed with "plugin for module 'SwiftUIMacros' not found".
   The checked copy (`Pills_clt.swift`) spells `@State` out as a `State<…>`
   property. Xcode has the plugin, so use the version below there.
-- Run result (`main.swift` in the spike folder): `layer 3`, `visible true`,
+- Run result of the skeleton: `layer 3`, `visible true`,
   `key false`, `appActive false`, frontmost app stayed `Ghostty`.
 
 ```swift
@@ -522,56 +522,3 @@ pills.mainWindow = mainWindow                                // from the Window 
 14. With Dock auto-hide, `visibleFrame` includes the Dock strip. The Dock covers the pills while shown.
 15. The card must reuse the chat view. A terminal surface in the card would break D7 (one control rule) and the PTY size rule (§9.5).
 16. Do not post a banner and show a pill for the same event (§8).
-
-## 11. Spike list (S-pill, half a day)
-
-Pass criteria, all on macOS 26:
-1. Type in Ghostty while the pills appear and update. No character is lost,
-   and Ghostty's title bar stays active (Unwait's test).
-2. Click a pill, then a key button on a blocked card. The app stays inactive
-   and the menu bar stays Ghostty's.
-3. Click the reply field. Typing works, as do ⌘V and ⌘A. Enter sends
-   `agent.prompt`. Esc collapses the card. Check whether
-   `orderOut` + `orderFrontRegardless` gives the keyboard back.
-4. Test `becomesKeyOnlyIfNeeded = true` with a SwiftUI `TextField`: does the
-   field get focus? If not, set it to `false`.
-5. Clicks in the transparent 380 × 560 area reach the window below.
-6. Pills show over a full-screen app, on every Space, in Mission Control and
-   with Stage Manager on, and while our app is hidden (⌘H).
-7. `occlusionState` is not `.visible` for a main window on another Space, and
-   for a minimised one.
-8. Two displays: the pills follow the pointer's screen on each show.
-9. "Open": the app activates, the window comes forward at the pane, and the
-   pills hide.
-10. VoiceOver reads "codex, blocked, infra" and offers the Open action.
-    Reduce Motion stops the morph.
-11. Activity Monitor: no wakeups from the app while pills are idle.
-
----
-
-## Lessons for our app
-
-**Copy:**
-- `NSPanel` with `[.borderless, .nonactivatingPanel]` set in `init`;
-  `[.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary, .canJoinAllApplications]`;
-  `hidesOnDeactivate = false`; `canHide = false`.
-  Seen in boring.notch, CodexBar, BrightIntosh and Unwait.
-- A `canBecomeKey` flag that is true only while expanded (ApolloShell).
-- One fixed-size transparent panel for all pills, with click-through left at
-  its default (DynamicNotchKit).
-- SwiftUI `.glassEffect` + `glassEffectID` in one `GlassEffectContainer` for
-  the morph; `hasShadow = false`; `sizingOptions = []` (ApolloShell).
-- Reuse what exists: the status-area list for pills, the chat view for the
-  card, the status-row action for "Open". The new code is about 170 lines.
-
-**Avoid:**
-- SwiftUI `UtilityWindow` (it hides when the app is inactive).
-- `Window` + `.windowLevel(.floating)` (it activates the app).
-- A plain `NSWindow` (NotchDrop).
-- Setting `ignoresMouseEvents = false`.
-- Toggling the style mask after `init`.
-- Autofocusing the reply field.
-- Terminal streams in the card.
-- Animated "working" dots.
-- A banner and a pill for the same event.
-- Notch placement, dragging and per-workspace pills until someone asks.

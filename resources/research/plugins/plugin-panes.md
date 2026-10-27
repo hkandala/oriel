@@ -200,10 +200,10 @@ What exists or is asked for:
 - Issue #244 asked for virtual panes (a pane id with no terminal). The maintainer said it is "too
   large and too specific for herdr core", because pane identity, focus, read, send, waits and
   rollups all assume a terminal. He added: "I do expect to add a more general custom rows/surfaces
-  feature soon" (May 2026). Nothing shipped yet.
-- Discussions #4445 (native right sidebar surfaces for plugins, Sep 2026) and #5421 (sidebar widgets
-  for plugins, Oct 2026): no answer yet.
-- Discussion #1367 (Jul 2026, open): plugin panes "don't survive server restarts"; they "come back in
+  feature soon". Nothing shipped yet.
+- Discussions #4445 (native right sidebar surfaces for plugins) and #5421 (sidebar widgets
+  for plugins): no answer yet.
+- Discussion #1367 (open): plugin panes "don't survive server restarts"; they "come back in
   place but as a plain shell". Two more plugin authors confirmed it on 0.9.3. **This is exactly our
   cold-restart problem**, and herdr's own plugin authors want it fixed.
 - Issues are for bugs only; feature requests go to discussions.
@@ -242,40 +242,6 @@ So:
 
 ---
 
-## 5. Details for A′ (what changes in the design)
-
-Create, in place of steps 2-5 in `plugins/labels.mdx` and steps 2-4 in `plugins/web-page.mdx`:
-
-```text
-layout.apply {workspace_id, focus:false,
-              root:{type:"pane", cwd, label:"oriel:<plugin>#<iid> <arg>",
-                    command:["sh","-c", <placeholder script>, "sh", <title>, <arg>]}}
-  → new tab with the pane (or tab_label:"oriel:float" for a floating pane)
-pane.move {pane_id, destination:{type:"tab", tab_id, split, target_pane_id}, focus:false}
-  → only for a split; the temporary tab closes itself
-```
-
-- Pass the title and argument as argv after the script (`"$1"`, `"$2"`), so no quoting of untrusted
-  text and no base64. herdr runs argv directly, so the user's login shell (fish or not) is not
-  involved.
-- Do both calls before reading the snapshot, so this device never shows the temporary tab. Other
-  devices and a TUI may see it for one snapshot (≤ 500 ms). Accepted.
-- Never pass `tab_id` to `layout.apply`: it replaces the tab and kills its panes.
-- Remove: the `pane.process_info` check, `send_input` of the placeholder, the envelope for it, the
-  `oriel_rev` token after creation (`pane_created` carries the label), and **Restore placeholder**
-  (it was the only time the app typed into a shell).
-- Keep: `oriel_rev` after `setArg` and state writes; labels as the truth; the click-to-approve rule.
-- Close a plugin or web pane without the "only a shell" question; it is known by its label.
-- Placeholder script: print the title, the URL or argument (OSC 8 link for URLs), the
-  `oriel:<plugin>#<iid>` marker and "shown by Oriel", then `stty raw -echo; exec cat >/dev/null`.
-
-After a cold restart the pane is a shell with its label. The card draws anyway. A TUI user sees a
-shell in a labeled pane. If that bothers users before herdr fixes #1367, the app could re-create the
-pane (A′ next to it, then close the old one), but that halves the neighbor's split. Do not build it
-now.
-
----
-
 ## 6. Rejected tricks
 
 - **`resume_argv` self-report.** The placeholder reports itself as an agent with a resume command.
@@ -288,35 +254,6 @@ now.
   a herdr plugin installed on every machine. That reverses D20 ("no setup on any machine").
 - **JSON in a tab label (B3).** It persists, but the TUI shows it as the tab title and a rename
   deletes it.
-
----
-
-## 7. Recommendation
-
-1. **Keep placeholder panes as the one model** for any plugin or web content that has a place in a
-   layout. The user's two reasons hold up under testing: it is the only way to keep zero app state
-   for a fresh install or a second device, and the only way to keep herdr's layout and the app's
-   layout the same. It also saves the app from building a second layout system.
-2. **Switch creation to `layout.apply` (+ `pane.move` for splits)**. This removes the typed-command
-   race, shell history lines, quoting, the `process_info` gate and the "Restore placeholder" path.
-   Update D21, `plugins/labels.mdx`, `plugins/web-page.mdx`, `floating-panes.mdx` (floating create)
-   and `reference/herdr-calls.mdx` (add `layout.apply`, with "never with `tab_id`").
-3. **Keep the placeholder inert.** Make its text useful (title, clickable URL or argument). No TUI
-   fallback programs in v1.
-4. **Accept the cold-restart shell.** The label is the truth and the card works. Post a concrete
-   proposal on herdr discussion #1367: "restore `launch_argv` panes on cold restart, opt-in".
-5. **App-only UI only for transient or selection-driven views** (chips, popovers, pill cards, a
-   later inspector that derives everything from the selection). If a persistent app-only slot is
-   ever needed, store it in a machine file keyed by `tab_id`, never in iCloud.
-6. **Multi-multiplexer:** "a pane with a label that runs an inert command" is the common shape of
-   herdr, tmux (`split-window -d '<cmd>'`, pane user options like `@oriel`) and Rex (blocks with labels
-   and stable ids). Keep it behind the existing HerdrKit seam; no adapter now.
-
-**What v1 should do:**
-- If v1 follows the positioning report and cuts the JS plugin runtime: v1 has one placeholder kind,
-  the web page, created with A′. That is about two calls and one short script.
-- If JS plugins stay: the same A′ path for `oriel:` panes. Nothing else changes in the plugin design.
-- Either way: no app-only plugin surfaces, no iCloud, no TUI fallback, no restart workaround in v1.
 
 ---
 

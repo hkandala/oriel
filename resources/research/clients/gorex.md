@@ -138,7 +138,7 @@ card.Transition(ui.ElementTransition{Colors: true, Duration: 160 * time.Millisec
 
 ## 8. Liquid Glass: MyGo's copy, and what it says about Apple's
 
-`mygo/plugins/glass` (`glass.metal`, `glass.go`, `docs/plugins/glass.md`) is a shader that copies Liquid Glass. It does not call `NSGlassEffectView`. Its docs record measurements of Apple's look. They are useful for our mocks (`docs/components/design/design.css`), and they are a second source for spike behaviour. These are MyGo's claims; I did not check them.
+`mygo/plugins/glass` (`glass.metal`, `glass.go`, `docs/plugins/glass.md`) is a shader that copies Liquid Glass. It does not call `NSGlassEffectView`. Its docs record measurements of Apple's look. They are a second source for spike behaviour. These are MyGo's claims; I did not check them.
 
 - **No shadow:** "Neither `NSGlassEffectView` nor a button of the glass bezel casts one: the pane's edge is its rim alone." The rim is a hairline: lit where it faces up or down, shaded on the sides.
 - **Bezel:** flat in the middle, curving down to the edges along a squircle over the last 36 pt (at most half the pane), with refraction at index 1.5.
