@@ -54,3 +54,26 @@ heading at the end.
   herdr command (no tooltip, no installer). Mock-up components became text. Build order, inspirations and
   sources stayed out.
 - **For the user:** read the Future work section on the docs site.
+
+### Lane C
+
+- **Cause:** herdr 0.9.5 parses a pane's OSC 52 write but hands it (`ServerMessage::Clipboard`) only to its
+  foreground TUI client, and `terminal session control` prints only frames and the close, so no clipboard
+  write ever reaches Oriel. On this Mac pi and the agents copy with `pbcopy`, which hid it; on a remote
+  machine pi falls back to OSC 52 (it does when `SSH_CONNECTION` is set, and the servers Oriel starts there
+  have it). Spiked: a `printf '\e]52;c;…\a'` in a throwaway pane gives three frames and no OSC 52 or event.
+- **Fix:** libghostty's `copy-on-select = clipboard`: the card's own selection goes to the Mac's clipboard
+  when the mouse button comes up (and on Select All), locally and on remote machines, also in mouse apps,
+  where the drag also reaches the program. OSC 52 reads stay denied (libghostty asks the host, which has no
+  handler; herdr sends none anyway).
+- **Decisions:** copy on select is on with no setting (a fixed default). In a mouse app it copies the text
+  as drawn, borders too, unlike herdr's TUI, which gives that drag only to the program. The brief's OSC 52
+  e2e cannot pass on herdr 0.9.5; the tests drag over a row in a mouse app (local, and Key Host on CI's
+  sshd) and check `NSPasteboard`. What herdr needs is on the Future work page (Waiting on herdr): a
+  `terminal.clipboard` event on the control stream; Oriel then writes it to the clipboard in a few lines.
+- **Runs:** red on the old code (both tests: clipboard nil) 40474163618; green on the fix: push run
+  40474416375.
+- **For the user:** pi's copy key (the editor's contents) and vim's `"+y` still do not reach the Mac from a
+  remote machine until herdr forwards OSC 52: select the text in the card instead (only what is on screen).
+  A drag in Claude Code or pi now replaces the clipboard with what is drawn; locally the agent's own copy
+  lands after it and wins.

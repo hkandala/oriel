@@ -157,8 +157,8 @@ final class PaneSurfaceView: AppTerminalView {
     }
 
     // Clicks go to herdr and to libghostty, for local selection and Copy in a plain shell.
-    // ponytail: in a mouse app a drag also draws libghostty's highlight; select locally only on
-    // Shift+drag if that noise bothers users.
+    // ponytail: in a mouse app a drag also draws libghostty's highlight and replaces the clipboard (copy on
+    // select); select locally only on Shift+drag if that bothers users.
     override func mouseDown(with event: NSEvent) {
         super.mouseDown(with: event)
         mouse(.down, .left, event)

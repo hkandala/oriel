@@ -29,6 +29,14 @@ extension OrielUITests {
         try await send("clear; printf 'oriel-copy-%s\\n\\033[?1000h\\033[?1006h' $((6*7)); cat -v\r", to: pane)
         try await waitFor(pane) { $0.contains("oriel-copy-42") }
         try await expect("cat to run") { try await foreground(pane).contains("cat") }
+        // The user's clipboard, back after the test.
+        let saved = NSPasteboard.general.string(forType: .string)
+        addTeardownBlock {
+            NSPasteboard.general.clearContents()
+            if let saved {
+                NSPasteboard.general.setString(saved, forType: .string)
+            }
+        }
         NSPasteboard.general.clearContents()
         let corner = terminal.coordinate(withNormalizedOffset: .zero)
         corner.withOffset(CGVector(dx: 2, dy: 6)).click(
