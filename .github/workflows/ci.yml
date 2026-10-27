@@ -64,14 +64,14 @@ jobs:
         run: make build
       - if: env.CHECKS == 'true'
         run: make test
-      # The remote-host tests' machines (phase 26).
+      # The remote-host tests' machines.
       - run: scripts/ci-sshd.sh
       - if: ${{ inputs.only_testing }}
         run: make e2e
         env:
           ONLY: ${{ inputs.only_testing }}
       # SHARD_HEAD (scripts/shard.py): shard 0's checks above and the strip check below take 190–230 s, less the
-      # 60–80 s its UI test build saves on the app built by make build (40309820769, 40317477966).
+      # 60–80 s its UI test build saves on the app built by make build.
       - if: ${{ !inputs.only_testing }}
         run: >-
           make e2e SHARD=${{ matrix.shard }}/${{ strategy.job-total }}
