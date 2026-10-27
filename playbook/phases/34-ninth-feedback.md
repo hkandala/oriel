@@ -211,3 +211,24 @@ heading at the end.
 - **For the user:** try pi's copy key and an agent's copy on select on a remote machine. While a herdr TUI attached
   to the same session is the one last used, it gets the writes instead (in Ghostty on this Mac they still land);
   when it detaches, Oriel gets them again.
+
+### Lane C3
+
+- **Cause:** the user wants only pi-hkandala's copies to reach the Mac; lane C2's clipboard client (a herdr shell
+  client in front) moved herdr's front from a TUI, laid out unshown tabs at 120 × 40, refilled an emptied session and
+  needed workarounds. All of it is reverted (`1b465c0`); the OSC 52 facts stay in herdr research 2.3.
+- **Fix:** copy requests, like float requests. Oriel's `oriel-shown` mark now says `remote` on an SSH machine's panes
+  (`1` on This Mac). When a pane's mark is `remote`, pi-hkandala's `herdr/oriel-copy.ts` writes the text to
+  `/tmp/oriel-copy-<uuid>` and reports the uuid as the pane token `oriel-copy`. Oriel reads it off `pane.updated` in
+  any open session, reads and deletes the file with one run (over the relay when remote) and sets `NSPasteboard` once
+  per id. pi-prompt-clipboard's key, pi-content-layout's ●
+  and its selection copy call it first and fall back to pi's `copyToClipboard`.
+- **Decisions:** a file, not chunks: herdr cuts a token value at 80 characters (16 tokens per report, 32 per pane), so
+  a long prompt does not fit. The token holds only the id and Oriel builds the path, so no token names another file;
+  `/tmp`, as macOS's `$TMPDIR` path would pass 80. The mark's value, not SSH variables, says remote: a remote Mac's
+  server started without ssh has none, and its `pbcopy` would copy onto that Mac. The helper is one shared file in
+  `herdr/`, so those two extensions now load from the repo, not alone from npm.
+- **Runs:** red on the old code 40492087778; green: RUNS_GREEN.
+- **For the user:** pull pi-hkandala on the remote machine too, `/reload` pi there, then press `ctrl+shift+s` in pi
+  in an Oriel card of that machine: the prompt lands on the Mac's clipboard. Other programs' OSC 52 copies (vim,
+  Claude Code) still need ⌘C on a selection.
