@@ -126,36 +126,6 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
     #expect(snapshot.trees[tab.id] == SplitNode.leaf(paneID: pane.id))
 }
 
-@Test(.enabled("herdr is not on PATH", herdrInstalled))
-func `a program's OSC 52 write comes out as an update`() async throws {
-    try await withSession(localExec) { client in
-        let pane = try await (client.call("workspace.create", ["cwd": "/tmp", "focus": false]) as NewWorkspace)
-            .root_pane
-        let updates = await client.updates()
-        // Over 250 bytes of base64, so its length takes bincode's three-byte form; the typed line says %s, so only
-        // the program's output is the text.
-        let text = String(repeating: "oriel-osc52-42 ", count: 20)
-        let command = "printf '\\033]52;c;%s\\a' $(printf '\(text.replacingOccurrences(of: "42", with: "%s"))' "
-            + "\(Array(repeating: "$((6*7))", count: 20).joined(separator: " ")) | base64)\r"
-        struct Sent: Decodable {}
-        // Sent each second: a write before the clipboard client's hello goes to no client.
-        let sender = Task {
-            while !Task.isCancelled {
-                let _: Sent? = try? await client.call("pane.send_text", ["pane_id": pane.pane_id, "text": command])
-                try? await Task.sleep(for: .seconds(1))
-            }
-        }
-        defer { sender.cancel() }
-        let copied = try await withTimeout(.seconds(10), onTimeout: {}, { () -> String? in
-            for await case let .clipboard(copied) in updates {
-                return copied
-            }
-            return nil
-        })
-        #expect(copied == text)
-    }
-}
-
 @Test func `output of fast commands always ends`() async throws {
     let exec = localExec
     try await withThrowingTaskGroup(of: [String].self) { group in

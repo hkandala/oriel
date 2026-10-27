@@ -84,7 +84,7 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
     starts a new one. The app runs no `-O exit` of its own on a failed check.
   - On quit the app runs `ssh -S <ctl> -O exit <target>` for each master.
 - **The relay:** every run of a remote machine (calls, the events stream,
-  the clipboard client, every terminal stream) goes through one SSH session. A server may allow
+  every terminal stream) goes through one SSH session. A server may allow
   only a few sessions per connection (`MaxSessions`; a server with one-time passcodes refused
   the third), and a second connection would ask for a second passcode. The
   first run on a new master starts that session; it runs a Perl script
@@ -162,8 +162,8 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
   ([Architecture](/docs/architecture#pieces)). The app keeps one registry of
   them, by machine and session name; a page takes its session's store from it, made on
   first use. Detach Session disconnects the store.
-- An open session keeps its control plane open (one event stream, the
-  [clipboard client](/docs/talking-to-herdr#clipboard) and short calls), so notifications and the Dock cover every open session in
+- An open session keeps its control plane open (one event stream plus short
+  calls), so notifications and the Dock cover every open session in
   every window. The Agents button covers the page in view.
 - A session with no page has no store, no snapshot reads and no event stream.
   A machine with many sessions costs nothing until the user opens them.

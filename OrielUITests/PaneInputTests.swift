@@ -1,48 +1,7 @@
 import XCTest
 
-/// Right clicks, drops and a program's copy in a terminal.
+/// Right clicks and drops in a terminal.
 extension OrielUITests {
-    func testAProgramsCopyReachesTheClipboard() async throws {
-        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
-        try await expectCopy(from: "w1:p1")
-    }
-
-    /// herdr gives a remote program's OSC 52 only to a client of its own, never to a terminal stream.
-    func testAProgramsCopyOnARemoteMachineReachesTheClipboard() async throws {
-        try await skipWithoutSSH()
-        relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
-        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
-        try await expectCopy(from: "w1:p1")
-    }
-
-    /// An OSC 52 write in the pane (what vim's "+y, pi's copy key and an agent's copy on select send) lands on the
-    /// Mac's clipboard. It is sent again each second: the app's client of herdr may still be connecting.
-    private func expectCopy(from pane: String) async throws {
-        try await waitForPrompt(pane)
-        // The user's clipboard, every type of it, back after the test.
-        let saved = (NSPasteboard.general.pasteboardItems ?? []).map { item in
-            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
-        }
-        addTeardownBlock {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.writeObjects(saved.map { types in
-                let item = NSPasteboardItem()
-                for (type, data) in types {
-                    item.setData(data, forType: type)
-                }
-                return item
-            })
-        }
-        NSPasteboard.general.clearContents()
-        for _ in 0 ..< 10 where NSPasteboard.general.string(forType: .string) != "oriel-osc52-42" {
-            try await send("printf '\\033]52;c;%s\\a' $(printf oriel-osc52-$((6*7)) | base64)\r", to: pane)
-            try? await expect("the copy on the clipboard", times: 10) {
-                NSPasteboard.general.string(forType: .string) == "oriel-osc52-42"
-            }
-        }
-        XCTAssertEqual(NSPasteboard.general.string(forType: .string), "oriel-osc52-42")
-    }
-
     /// A right click opens the card's menu, also in a mouse app, as herdr opens its pane menu; ⌥ sends it to the app.
     func testRightClickInATerminalOpensThePaneMenu() async throws {
         let (tab, first) = try await newTab("menu")

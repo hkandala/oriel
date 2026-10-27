@@ -348,8 +348,15 @@ handshake fails, it exits 1 with the reason on stderr.
   or alternate scroll (most agent TUIs). Otherwise it scrolls herdr's shared
   viewport. The app keeps no scrollback.
 - **Terminal queries:** herdr already answers them for the pane.
-- **Copy from a program** (OSC 52) reaches the Mac's clipboard through
-  another client ([Clipboard](#clipboard)).
+- **Copy from a program** does not reach the Mac's clipboard when the
+  program copies with OSC 52, the escape sequence that sets the clipboard
+  (vim's `"+y`, pi's copy, an agent's copy on select). herdr gives that
+  write only to its own terminal app (TUI) in front, and `terminal session
+  control` prints no event for it. Most programs on this Mac copy with
+  `pbcopy`, so this mostly hits programs on another machine, also through
+  `ssh` in a local card. Select the text in the card and press ⌘C instead.
+  herdr sends the app no
+  clipboard read either; if one came, the app would refuse it.
 - **A herdr TUI on the same tab** shares the split ratios, and the app's
   control stream pins the PTY size. Accepted.
 - **Find** (⌘F) reads the pane's recent text with
@@ -369,57 +376,6 @@ handshake fails, it exits 1 with the reason on stderr.
   from herdr's TUI client protocol and otherwise answers `stale_content`.
 - **Links** in terminal output open on this device with ⌘-click, and only
   `http` or `https`.
-
-## Clipboard
-
-- A program copies with OSC 52, an escape sequence that carries the text:
-  pi's copy key and its copy on remote machines, an agent's copy on select,
-  vim or Neovim over SSH. herdr reads it from the pane and sends it only to
-  the shell client in front: usually the herdr TUI (herdr's own terminal
-  app) that was used last. A `terminal session control` stream never gets
-  it. The TUI copies the text: through its terminal when it runs over
-  `ssh` (Ghostty then writes the Mac's clipboard), else with `pbcopy`. That
-  is how herdr in Ghostty copies from remote machines.
-- So each open session runs one more child, the clipboard client: a small
-  Perl script sent in the command, as the relay is (nothing is installed),
-  on This Mac too (the first `perl` on the login shell's `PATH`; macOS has
-  `/usr/bin/perl`). It runs `herdr --session S session list --json` for the
-  session's socket, connects to its client socket (the same path with
-  `-client` before `.sock`), says hello as a shell client in front, and
-  prints each clipboard write as base64 on a line. The app puts the text on
-  the Mac's clipboard. The hello is herdr's endpoint generation 1, which
-  herdr keeps for every later version.
-- It starts after a good snapshot read that has a workspace, and ends with
-  the session's page. When it ends by itself (herdr restarted, or refused it),
-  the next good read starts it again, at most every 30 s.
-- Writes come from any pane of the session, shown or not, also while the
-  app is in the background: herdr does not say which pane wrote. Ghostty
-  and herdr's TUI allow the same by default.
-- **Reads:** herdr answers a program's OSC 52 read itself and never sends a
-  client the clipboard, so the app reads nothing.
-- What it changes in herdr:
-  - It is in front until a herdr TUI on the session attaches, or gets a
-    key or a resize. That TUI then gets the writes: in Ghostty on this Mac,
-    they still reach the clipboard. When the TUI leaves, the clipboard
-    client is in front again.
-  - While it is in front, a herdr TUI on the session gets no sounds,
-    toasts, bells or window title, and herdr answers programs' color
-    queries with its own defaults.
-  - As herdr's only shell client, it lays out every tab at its size, 120 ×
-    40 (herdr's default size with no client), and herdr sizes each pane
-    that no terminal stream holds from that layout: a split in a tab not
-    shown halves it, and a pane whose stream ends (its tab left the 16 kept
-    streams, or its page closed) goes back to its share. With no shell
-    client, such a pane kept its last size. A herdr TUI does the same.
-  - herdr keeps a workspace in a session with a shell client: when the last
-    one closes (or its last shell exits), herdr opens a new one in the home
-    folder, as its TUI does. So the empty page shows only for a session that
-    was empty when it opened; the client starts once it has a workspace.
-  - While a shell client is attached, herdr refreshes git status for its
-    own sidebar, about every 1.5 s.
-  - herdr sends it the cells of herdr's focused tab. It drops them on the
-    machine, so they never cross SSH.
-  - It sends no input, focus or resize.
 
 ## Git status
 

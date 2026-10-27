@@ -103,12 +103,12 @@ never calls herdr's focus methods. A design gets decision numbers on the
   Web and plugin panes work anyway, because the label is the truth
   ([Labels and instance ids](/docs/future-work/plugins/labels)).
 - **Clipboard writes on the terminal stream.** herdr 0.9.5 gives a pane's
-  OSC 52 write (`ServerMessage::Clipboard`) only to its shell client in
-  front, so the app runs a [clipboard client](/docs/talking-to-herdr#clipboard)
-  of its own, which also sets the size of panes no stream holds. The ask: a
-  `{"type":"terminal.clipboard","data":"<base64>"}` line on each `terminal
-  session control` stream of the terminal that wrote it. Then the app drops
-  the clipboard client and copies only from panes it streams.
+  OSC 52 write (`ServerMessage::Clipboard`) only to its foreground TUI
+  client, and `terminal session control` prints only frames and the close.
+  The ask: a `terminal.clipboard` event on the control stream, sent to the
+  client that streams the pane. Then the app puts it on the clipboard, and
+  pi's copy key and vim's `"+y` work from a remote machine
+  ([Scrolling, queries and links](/docs/talking-to-herdr#scrolling-queries-and-links)).
 - **Named keys on the terminal stream.** The ask: herdr accepts named keys on
   `terminal.input` (`{"type":"terminal.input","keys":["up"]}`), encoded as
   `pane.send_keys` does. Then all input takes one path, with no bridge call
