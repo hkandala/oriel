@@ -49,3 +49,4 @@ run and test it is in the root `README.md`.
 | 31 | Seventh feedback: selection in view, gestures, float requests, CI | [31-seventh-feedback.md](phases/31-seventh-feedback.md) |
 | 32 | Final review of the whole repository and cleanup | [32-final-review.md](phases/32-final-review.md) |
 | 33 | Eighth feedback: iOS removed, chrome, About panel, remote drops, this playbook | [33-eighth-feedback.md](phases/33-eighth-feedback.md) |
+| 34 | Ninth feedback: future work designs in the docs, clipboard from remote machines | [34-ninth-feedback.md](phases/34-ninth-feedback.md) |
