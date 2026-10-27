@@ -32,23 +32,25 @@ heading at the end.
 
 ### Lane W
 
-- **Cause:** phase 33 lane D cut the design pages of unbuilt parts while it made the docs describe the app
-  as built; only a short list stayed in `future-work.mdx`.
-- **Fix:** a Future work section in the sidebar. `future-work/index.mdx` lists the six design pages, then
-  the smaller items with their details (Settings window, herdr's machines in Add Remote Host, Local Network
-  privacy, VoiceOver screen text, tmux, a bigger server helper), waiting on herdr and left out. Sub pages:
-  Pane kinds and plugins (index with the picker and run and dial, agent panes and image paste, plugin UI,
-  packages, labels, state, API, security), Web page, Chat view, Floating pills (look and how they work in
-  one page), iPhone and iPad (layout, watching, connections, notifications, plugins on iOS, platform), Rex
-  as a second multiplexer. Restored from `ba4f85d^` and the sections `17cba5a` cut; each says "Not built".
-- **Decisions:** the dropped decision rows (D17, D18, D20–D22, D24–D27, D29, D30, D32, D36,
-  D37, D51–D53, D56, D58, D59) stay off the Decisions page;
-  each page ends with a short Choices list that keeps their why and rejected options, and gets numbers when
-  built. Mock-up components (`<Flow>`, `<PillsDemo>`, `<Phones>`, `<PanePicker>`) became text. The deleted
-  plugin research stayed deleted: `resources/research/plugins/plugins.md` already holds its facts and
-  measurements, and the pages link there.
-- **Fix:** updated to the app as it is: the relay (dial and forwards are channels, not sessions; the
-  server helper's `MaxSessions` reason is gone, and Citadel would need a relay too), floating panes as
-  windows, no iOS target, cards keyed by session too, image paste through `Exec.upload` (16 MB), no
-  `suppressesTerminalResponses` today, and no chat tooltip that sends the user to a herdr command. Build order, risks, inspirations and sources stayed out.
+- **Cause:** phase 33 lane D cut the design pages of unbuilt parts, and research files with design facts,
+  while it made the docs describe the app as built; only a short list stayed in `future-work.mdx`.
+- **Fix:** a Future work section in the sidebar. Its index lists the design pages, then the smaller items
+  with their details, waiting on herdr and left out. Sub pages: Pane kinds and plugins (picker, run and dial,
+  where it lives, agent panes and image paste, plugin UI, packages, labels, state, API, security), Web page,
+  Chat view, Changes panel (new, from Kero's research), Floating pills, iPhone and iPad, Rex as a second
+  multiplexer. Each says "Not built"; pills, plugin UI and iPhone have "Checks before building", web page and
+  plugin UI a risks table.
+- **Fix:** brought up to date: the relay (dial and forwards are channels, not sessions; Citadel runs the same
+  relay), floating panes as windows, no iOS target, cards keyed by session too, image paste through
+  `Exec.upload` (16 MB), light and dark pages, and the 13 Rex corrections (revision 5, no cross-session move,
+  one data stream per block per client, stale owners, binary bytes over the relay, an isolated test server).
+- **Fix:** the deletion audit's research losses went back into `resources/research`: Rex's actions, Lua,
+  config and hosted web client (`multiplexers/rex.md`), Rex.app's Settings window and themes
+  (`clients/rex.md`), a client comparison table and patterns (`clients/README.md`), and the plugin evidence,
+  JavaScriptCore limits, remote survey and placeholder facts (`plugins/plugins.md`).
+- **Decisions:** the dropped decision rows (D17, D18, D20–D22, D24–D27, D29, D30, D32, D36, D37, D51–D53,
+  D56, D58, D59) stay off the Decisions page; each page ends with Choices that keep their why and rejected
+  options. Plugin pages allow WebAssembly (`'wasm-unsafe-eval'`). Chat shows no text that sends the user to a
+  herdr command (no tooltip, no installer). Mock-up components became text. Build order, inspirations and
+  sources stayed out.
 - **For the user:** read the Future work section on the docs site.
