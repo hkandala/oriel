@@ -186,7 +186,9 @@ extension OrielUITests {
         relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("drop")
-        element("tab.\(tab)").click()
+        // By key: a click on the capsule just in over the relay hit the track's end beside it (CI 40424246396).
+        app.typeKey("2", modifierFlags: .command)
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
         let terminal = element("terminal.\(pane)")
         XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
         try await waitForPrompt(pane)
