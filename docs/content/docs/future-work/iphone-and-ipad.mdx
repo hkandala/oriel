@@ -1,0 +1,126 @@
+---
+title: "iPhone and iPad"
+description: "One pane per page on iPhone, the Mac layout on iPad, over the same machines"
+---
+
+Not built. The project has no iOS target today: Oriel is a macOS app. This
+page is the design of an iPhone and iPad app that reaches the same machines
+over SSH.
+
+## Layout
+
+- iPhone shows one pane per page, in reading order through each tab's split
+  tree. This is a drawing choice. Nothing changes in herdr.
+- A row of chips over the page has one chip per pane, with the tabs split by
+  `|`. A tap on a chip goes to that pane.
+- iPad in regular width uses the Mac layout. In compact width (Slide Over,
+  narrow Split View) it uses the iPhone layout. iPad keeps one scene.
+- iPhone uses its own `NavigationStack` layout instead of a collapsed split
+  view.
+- Agent panes open in chat on iPhone
+  ([Chat view](/docs/future-work/chat-view)). Chat needs no terminal stream,
+  so the Mac keeps control of the terminal.
+- Terminals get a key bar over the keyboard (libghostty-spm's
+  `inputAccessoryItems`), for terminals only.
+- Card buttons always show; there is no hover.
+- Tapping the title opens the machine, session and workspace switcher. The agents that
+  need you are a bar under the navigation bar.
+- The app's chrome and the chat view follow Dynamic Type.
+- Drag and drop has no touch path: Move Pane to Tab in the card's menu is
+  the way to move a pane.
+
+## Watching and control
+
+- iPhone and iPad open a terminal as `observe`, a watcher
+  ([One controller per pane](/docs/talking-to-herdr#one-controller-per-pane)).
+  Looking never resizes the PTY.
+- The first key press, paste or tap in the card, or **Take Back**, takes
+  control (`--takeover`). A watcher stays a watcher until its user acts.
+- herdr does not report a pane's PTY columns, and `observe` clips or pads to
+  the watcher's size. An iPhone watches at a fixed 160×50, with the font
+  scaled to fit and pinch to zoom. An iPad watches at its card size.
+- `observe` cannot resize, so a size change restarts the stream.
+
+## Background
+
+- When the app goes to the background, it closes its terminal streams. iOS
+  then gives about 30 s. The app holds its other connections with
+  `beginBackgroundTask`, closes them when that time ends, and reconnects and
+  reads the snapshot again on return.
+- Cards still in memory keep their state; only cards the system discarded
+  are built again
+  ([When a card reads its state](/docs/future-work/plugins/state#when-a-card-reads-its-state)).
+
+## Connections
+
+- One Citadel SSH connection per host, with exec channels on it.
+  [Citadel](https://github.com/orlandos-nl/Citadel) is a pure Swift SSH
+  client, pinned exactly (0.12.1 was checked); it depends on a swift-nio-ssh
+  fork, so updates are reviewed. The iOS `Exec` is `CitadelExec`.
+- The machine list is the same as on the Mac: name, SSH target, icon and id
+  in `UserDefaults` ([The machine list](/docs/machines#the-machine-list)).
+- The key is a Secure Enclave P-256 key (`ecdsa-sha2-nistp256`). It cannot
+  leave the device. The Add Remote Host dialog shows its public line to copy
+  into `authorized_keys`.
+- The first connect shows the host key's SHA256 fingerprint and asks. After
+  that the key is pinned, and a changed key blocks the connection.
+- The phone reaches a Mac like any SSH machine: turn on System Settings ›
+  General › Sharing › Remote Login, then add the Mac by its Tailscale or LAN
+  name.
+- Reachability is the user's network (LAN or Tailscale), with no server in
+  between. Jump hosts come later (Citadel has `jump(to:)`).
+- Citadel has no keepalive; the [health check](/docs/machines#health-check)
+  finds dead links. A failed check runs over a new Citadel connection.
+- The Mac's relay carries all runs on one SSH session
+  ([The SSH connection](/docs/machines#the-ssh-connection)). Citadel opens
+  one exec channel per run, so a busy tab can hit the server's `MaxSessions`.
+  Then the card shows its last image and **Retry**. A relay over Citadel
+  removes the limit; build it first if the limit shows up.
+- Before the iOS work starts, a small test build checks Citadel's exec
+  channels with herdr's bridge and terminal streams.
+
+## Notifications
+
+- The same notifications as on the Mac, while the app is open or within its
+  ~30 s background time ([Notifications](/docs/status#notifications)).
+- No push at first: the phone shows status while the app is open. Alerts
+  while the app is closed need a small stateless relay that forwards
+  encrypted payloads to Apple's push service.
+
+## Plugins
+
+- Plugins are web pages, and WebKit is on iOS, so the same plugin runs on the
+  iPhone and iPad ([Plugin UI](/docs/future-work/plugins/plugin-ui)). It
+  draws on the device; its `run` and `dial` go to the pane's machine, as on
+  the Mac.
+- The first version ships only the built-in pane kinds and the core plugins
+  (Terminal, Agent, Web page, Git history, Diff, Markdown), inside the app.
+  Downloaded code is an App Store review risk, so your own plugins on iOS
+  come later.
+- A label for any other plugin shows the missing-plugin card with **Show
+  placeholder** (switch the card to the pane's terminal)
+  ([State and restore](/docs/future-work/plugins/state)).
+- At most 2 live web views on iPhone, and 6 on iPad.
+- A web page reaches a remote `localhost` through an in-app listener
+  ([Remote localhost](/docs/future-work/web-page#remote-localhost)).
+
+## Platform
+
+- One multiplatform SwiftUI app target (macOS, iPadOS, iOS 26) and the same
+  `HerdrKit` package. One minimum OS means no fallbacks.
+- iOS only: `CitadelExec`, the UIKit terminal subclass (it yields its pan
+  gesture when the motion is mostly horizontal, so the strip pages), the
+  compact layout. macOS only: `ProcessExec`, `SSHExec` and its relay, the
+  askpass script, the pill panel, the Dock badge, scroll routing with
+  `NSEvent`, the `WindowGroup` scene.
+- The iOS app ships on the App Store. Citadel is linked for iOS only.
+
+## Choices
+
+- **Citadel with a Secure Enclave key; the Mac through Remote Login.** Pure
+  Swift; the key cannot leave the device; no new mechanism. Rejected:
+  libssh2 and OpenSSL; a relay server of our own between phone and machine.
+- **One pane per page on iPhone, agents in chat.** Splits do not fit, and
+  chat needs no PTY. Rejected: shrinking splits onto a phone.
+- **Core plugins only on iOS at first**, because downloaded code is an App
+  Store review risk.

@@ -1,0 +1,75 @@
+---
+title: "Plugin security"
+description: "Machine binding, what run means, consent, the page's limits and caps"
+---
+
+Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+
+- **One web page per card, bound to its pane's machine.** `run` and `dial` go
+  only to that machine; the bridge functions take no machine or pane id,
+  because the card is bound when it is built. Cards share no memory or
+  storage. The app gives plugins no network from the device.
+- **The page loads only its own files.** A content rule blocks every load that
+  is not the plugin's `oriel-plugin://<id>/` scheme. The bridge and a
+  confirmed link (below) are the only ways out of the page.
+- **No script from content.** Every page gets a Content Security Policy whose
+  `script-src` allows only the plugin's own files: no inline script, no
+  `eval`. Inline styles are allowed (`style-src 'self' 'unsafe-inline'`), so
+  authors can use style attributes. So HTML that a plugin builds from repository text by mistake cannot
+  run script. Plugins should still insert repository text as text, not HTML.
+  The core Markdown plugin renders with raw HTML turned off.
+- **What `run` means:** a plugin with `run` can do anything you can do on
+  that machine, including network tools and processes that keep running after
+  the card closes. `dial` adds nothing beyond that. The app does not pretend
+  otherwise; the consent sheet says so.
+- **Plugin JavaScript runs only while a card is alive.** Off screen, its
+  calls pause.
+- **Open and copy need a user action, and WebKit enforces it.**
+  - Opening: a `target="_blank"` click or a `window.open` from a click or key
+    press reaches the app's `WKUIDelegate` (or `decidePolicyFor` with no
+    target frame). The app creates no window: it shows a confirm sheet with
+    the full URL, then opens `http`/`https` in the browser.
+    `javaScriptCanOpenWindowsAutomatically` stays off, so `window.open`
+    without a user action never reaches the app.
+  - Copy: `navigator.clipboard.writeText` (the page is a secure context).
+    WebKit allows it only during a click or key press.
+  - **The app never pushes into a plugin page** with `evaluateJavaScript` or
+    `callAsyncJavaScript`: WebKit runs those with a forced user action, even
+    in a separate content world, which would let the page copy and open
+    freely. App-to-page messages travel only as replies to the page's own
+    bridge calls (`WKScriptMessageHandlerWithReply`); for example, `oriel.on`
+    waits on a pending call for the next snapshot read.
+- **No permissions to pick.** Every plugin can `run` and `dial`; install
+  consent is the gate. Finer rules ("only `git`") would not hold
+  (`git -c alias.x='!sh'` runs anything), so none are offered.
+- **Consent at install**, per device, keyed by plugin id and source.
+  - The sheet is headed by the plugin id and source URL. A plugin chooses its
+    own title, so the title alone could imitate another.
+  - Then it shows the commit and, in plain words: "‹Title› can run any
+    command as you on the machine of every ‹Title› pane you open, including
+    ones another device or person created. It can use the network from there,
+    leave programs running, type into panes and prompt agents. On This Mac
+    that includes your files, SSH keys and the app's connections to your
+    other machines."
+  - Text from a machine is shown with control and direction-override
+    characters removed.
+- **This Mac gets one more confirm**, on a plugin's first `run` or `dial`
+  there, remembered per plugin id and source, and revocable.
+- Core plugins ask nothing. The Settings window lists every plugin with its source,
+  commit and answers, with Disable and Remove.
+- The argument and machine content are untrusted: they reach a machine only
+  as argv inside the envelope. `run` has no shell option.
+- **A machine can write labels**, so it can open any *installed* plugin on
+  itself. That gives it only what the plugin does on that same machine.
+- **Caps:** `run` output 4 MiB per stream, state 256 KiB, argument 1024
+  characters.
+- **A hung page** freezes only its own card: WebKit runs each page in its own
+  process. The card shows "‹title› is not responding" and **Refresh**.
+
+## Choices
+
+- **Say plainly what a plugin can do.** The user sees exactly what they
+  grant, and the app adds no reach beyond `run` and `dial` on the pane's
+  machine. Rejected: a permissions field (there is one capability); finer
+  permissions that do not hold; a user-action tracker in Swift; claiming a
+  sandbox that `run` cannot give.

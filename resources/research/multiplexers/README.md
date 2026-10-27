@@ -194,7 +194,7 @@ Oriel stays herdr only. These facts settled it:
   itself.
 - **No backend removes the install.** macOS does not ship tmux (Homebrew puts it in `/opt/homebrew/bin`).
   Rex is a separate app, and tuios a separate binary.
-- **Bundling herdr would remove it** (in [Future work](../../../docs/content/docs/future-work.mdx)). herdr
+- **Bundling herdr would remove it** (in [Future work](../../../docs/content/docs/future-work/index.mdx)). herdr
   is Apache-2.0 (ship its license and NOTICE) and is one 22 MB arm64 binary with no other dependencies:
   - Oriel uses a herdr found on the PATH, else the copy inside `Oriel.app`. The setup screen with the
     install command goes away for this Mac.

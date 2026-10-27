@@ -1,0 +1,77 @@
+---
+title: "Plugin API"
+description: "The whole plugin API and how the core plugins use it"
+---
+
+Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+
+The app injects `window.oriel` into every plugin page before it runs.
+
+```ts
+interface Oriel {
+  pane: {
+    machine: { id: string; label: string }; // run and dial go only here
+    paneId: string;                          // changes on a cross-workspace move; do not store it
+    cwd: string;
+    arg: string;
+    iid: string;
+    plugin: { id: string; version: string; pane: string };
+    device: "macos" | "ios";
+    apiVersion: number;
+    isDevelopment: boolean;
+  };
+
+  run(
+    argv: string[],
+    opts?: { cwd?: string; stdin?: string; timeoutMs?: number },
+  ): Promise<{ code: number; stdout: string; stderr: string; truncated: boolean }>;
+  dial(host: string, port: number): Promise<{
+    send(data: string | Uint8Array): void;
+    onmessage: ((data: Uint8Array) => void) | null;
+    onclose: (() => void) | null;
+    close(): void;
+  }>;
+
+  setArg(arg: string): Promise<void>;
+  state: { get<T>(): Promise<T | undefined>; set<T>(value: T): void };
+  preferences: Record<string, string | boolean>;
+
+  // "snapshot": after each snapshot read
+  on(event: "snapshot", fn: () => void): void;
+}
+```
+
+| API | Why | How |
+|---|---|---|
+| `run` | every data need is on the pane's machine: `git`, `cat`, `gh`, `rg`, and the herdr CLI (read panes, prompt an agent) | runs on **that card's machine only**, through the envelope; `argv[0] === "herdr"` runs herdr's path with `--session`; default cwd is the pane's cwd; 30 s timeout, 4 MiB per stream; one queue per machine, 2 at a time; paused while the card is off screen |
+| `dial` | a service on the machine, such as a dev server's API or a database | a TCP stream as seen from **that card's machine only** ([Run and dial](/docs/talking-to-herdr#running-commands)); closed when the card closes |
+| `pane` | the machine, argument and cwd | injected when the card is built; an open card does not follow a rename from elsewhere ([When a card reads its state](/docs/future-work/plugins/state#when-a-card-reads-its-state)) |
+| `setArg` | what this pane shows, kept by herdr | renames its own pane only, keeping `oriel:<plugin>[/<pane>]#<iid>`; updates `pane.arg` |
+| `state` | view state (where the user was looking), kept across devices and restarts | the state file, read when the card is built or on **Refresh** ([When a card reads its state](/docs/future-work/plugins/state#when-a-card-reads-its-state)) |
+| `on("snapshot")` | refresh when an agent finishes | fires after each snapshot read (events and the 30 s health check), only while the card is visible; carries no data, so herdr's schema stays behind the [Multiplexer interface](/docs/architecture#the-multiplexer-interface); a plugin that needs herdr data runs `herdr` with `run` |
+| `preferences` | per-device settings | read only |
+| links (web standard) | links in commits, PR pages | `<a target="_blank">` or `window.open` ([Plugin security](/docs/future-work/plugins/security)) |
+| copy (web standard) | "Copy SHA" | `navigator.clipboard.writeText` ([Plugin security](/docs/future-work/plugins/security)) |
+
+Errors and progress are drawn by the page itself.
+
+Not in v1: network from the device (`fetch` reaches only the plugin's own
+files), clipboard read, file pickers, plugins outside panes (sidebar, status
+area, pills), one plugin opening another.
+
+How the core plugins use it:
+- **Diff:** argument `base=main`. `run(["git","diff","--no-color",base])`
+  again on each `snapshot` event, drawn per file. A "Send comment to agent"
+  form calls `run(["herdr","agent","prompt",…])`.
+- **Markdown:** argument = a file path; `run(["cat",path])`, rendered with
+  raw HTML turned off; the reading position in `state`.
+- **Git history:** `run(["git","log",…])` for a list of commits with a detail
+  pane from `git show`; `setArg(ref)` from a ref menu; the selected commit in
+  `state`.
+
+## Choices
+
+- **This API and no more.** It covers diff, git history and Markdown, and
+  herdr's schema stays behind the `Multiplexer` seam. Rejected: network from
+  the device, a herdr call API and plugins outside panes in v1; the
+  snapshot's data in the signal; bridge calls for toasts, `open` and copy.

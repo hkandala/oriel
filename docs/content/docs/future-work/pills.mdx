@@ -1,0 +1,121 @@
+---
+title: "Floating pills"
+description: "Agent status on the Mac screen edge, its list, its pill card and how it works"
+---
+
+Not built. This page is the design of the floating pills: agent status on the
+Mac screen edge while you work in another app.
+
+## Pill
+
+- A black notch-shaped tab on the right screen edge, vertically centered,
+  away from the top-right banners and the Dock.
+- One status glyph per agent across all open sessions (working, needs you,
+  finished, in the status colors), in a stable order: machine, then session,
+  then workspace. Idle agents get no glyph. With nothing running it shows one
+  gray dot.
+- If more than 10 agents are not idle, the pill shows 9 glyphs and a tenth
+  that reads "+n". n is the number of agents that are not shown.
+- One pill with a glyph per agent, not a pill per agent: ten agents would be
+  ten capsules down the screen edge.
+
+## List
+
+Click the pill. Agents are grouped by machine, session and workspace, with
+program icon, name, workspace, glyph and status word. Rows never reorder.
+
+## Pill card
+
+Click a glyph or a row. The pill card is the compact
+[chat view](/docs/future-work/chat-view) for that agent:
+
+- the last messages (or screen text), live while the agent works;
+- for a blocked agent, its prompt and the blocked panel's key buttons;
+- a reply box, **Mark seen**, **Open in app** and **✕**. **Open in app**
+  selects the pane and brings its window forward. It opens a window on that
+  machine again if none shows it.
+
+## Peek
+
+A peek is a pill card that slides out by itself. When an agent becomes
+blocked or finishes while you are in another app, its pill card slides out
+without taking the keyboard. If the pointer does not enter it, it shrinks back
+after 8 s. A "Peek" switch in the pill's context menu (secondary click) turns
+this off.
+
+## Keys
+
+The first click on a pill card that is not active only activates it, so a
+click meant for something else never answers a prompt. Then Esc closes the
+card and ⌘↩ opens the app.
+
+## Look
+
+Opaque near-black. No glass, because glass renders flat in an inactive app,
+and the pill only shows while the app is inactive.
+
+## How it works
+
+- **When:** the pill shows whenever the app is not active, and hides when it
+  becomes active. Two notifications drive it, plus screen changes for
+  placement. Nothing polls. The only timer is the peek's 8 s shrink. It
+  appears on the screen under the pointer. A switch turns the pill off
+  (in the pill's context menu until the Settings window exists).
+- **One AppKit `NSPanel` hosting SwiftUI.** No SwiftUI scene can do this:
+  `UtilityWindow` hides when the app is inactive, and a floating `Window`
+  activates the app when clicked. The panel is not a floating pane's window
+  ([Floating pane](/docs/ui/window#floating-pane)) and opens no terminal
+  stream.
+- One fixed-size transparent panel on the right edge holds the pill, list and
+  pill card, so it never resizes. Transparent parts let clicks through.
+- **Panel settings:**
+  ```swift
+  // in init
+  styleMask = [.borderless, .nonactivatingPanel]
+  level = .floating
+  collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle,
+                        .fullScreenAuxiliary, .canJoinAllApplications]
+  hidesOnDeactivate = false
+  canHide = false
+  becomesKeyOnlyIfNeeded = false
+  hasShadow = false
+  backgroundColor = .clear
+  // ignoresMouseEvents is never set: transparent pixels pass clicks through
+  ```
+- **Keyboard:** a borderless panel cannot become key by default. So
+  `PillPanel` overrides `canBecomeKey` to return true only while a pill card
+  is open and has been clicked.
+- **First click:** `PillPanel.sendEvent` catches a mouse-down inside a pill
+  card that is not key, makes the panel key, and swallows the event. A pill, a
+  list or a peek never takes a keystroke from the app the user is typing in.
+- After the pill card closes or a reply is sent, the panel orders out and
+  back in, which hands the keyboard back.
+- An `NSTrackingArea` with `.activeAlways` tells the peek that the pointer is
+  over it (SwiftUI hover is unreliable in an inactive app).
+- **Same data and rules:** glyphs and pill cards read each open session's
+  `HostStore` snapshot ([Agents and notifications](/docs/status#agents-and-notifications)).
+  The pill card is the chat view, so it never opens a terminal stream. Its key
+  buttons use the key guard
+  ([Sending and answering](/docs/future-work/chat-view#sending-and-answering)).
+  Peeking or opening a pill card does not mark an agent seen. **Mark seen**,
+  a reply or **Open in app** does.
+- **Notifications:** while the pill is on screen, notifications are posted
+  as `.passive` (Notification Center, no banner). The exception is when
+  VoiceOver or Switch Control is on, because those users cannot reach the
+  pill ([Notifications](/docs/status#notifications)).
+- **Accessibility:** each glyph and row has a label ("codex, needs you,
+  infra") and an Open action. The pill is never the only path. The Agents
+  view, notifications and the Dock badge remain.
+- Simpler choices: no dragging, no notch placement, no global hotkey, no
+  per-workspace pills. Revisit each one when users ask for it.
+
+## Choices
+
+One non-activating `NSPanel`, one pill with a glyph per agent, a pill card
+that is the compact chat view, peeks that never take the keyboard, opaque.
+The One app proved the shape; the pill never steals a keystroke;
+glass renders flat in an inactive app. Rejected: a pill per agent; a SwiftUI
+window; glass pills.
+
+Research:
+[`pill-panel.md`](https://github.com/hkandala/oriel/blob/main/resources/research/ui/pill-panel.md).

@@ -1,6 +1,6 @@
 # Plugins: what a future plugin system could use
 
-Oriel has no plugins (see `docs/content/docs/future-work.mdx`). These are the facts and options found for
+Oriel has no plugins (see `docs/content/docs/future-work/index.mdx`). These are the facts and options found for
 one, so a later design starts from evidence.
 
 ## What herdr offers

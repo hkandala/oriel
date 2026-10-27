@@ -1,0 +1,63 @@
+---
+title: "Plugin UI"
+description: "A plugin is a small web page drawn in a native web view in its card"
+---
+
+Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+
+A plugin is a small web page: HTML, CSS and JavaScript. Each plugin card is a
+native web view (a `WKWebView` with a `WKUIDelegate`, wrapped for SwiftUI)
+that loads the plugin's own files. A bridge gives the page `run(argv)` and `dial(host, port)` on the
+pane's machine, plus a few app calls ([Plugin API](/docs/future-work/plugins/api)).
+
+## How it works
+
+How a plugin card loads:
+
+1. The plugin's own files (`index.html` and the rest) are served from the app
+   through a URL scheme, `oriel-plugin://<id>/`.
+2. Each card gets its own `WKWebView`. The app injects `window.oriel` before
+   the page runs.
+3. The web view is drawn in the card, in the strip.
+
+How the page reaches its machine:
+
+1. The page calls `oriel.run` or `oriel.dial`.
+2. The bridge (Swift) checks the card's machine.
+3. `Exec` runs the command or opens the stream on that machine, over the
+   relay for a remote machine
+   ([Run and dial](/docs/future-work/plugins#run-and-dial)).
+4. The result comes back as a promise in the page.
+
+- The app serves the plugin's files from a custom URL scheme,
+  `oriel-plugin://<id>/`. Nothing loads from the network.
+- Before the page runs, the app injects `window.oriel` (the API) and a small
+  stylesheet with the app's colors and fonts as CSS variables, so plugins can
+  match the cards around them. Pages are told `prefers-color-scheme: dark`.
+- Any JavaScript works: plain DOM, React, Svelte or anything else, bundled by
+  the author. The app runs no build step.
+- Web page cards use the same web view type. SwiftUI's own `WebPage` is not
+  used: it has no new-window hook, so it drops `window.open` silently
+  ([Plugin security](/docs/future-work/plugins/security)).
+- WebKit is built into macOS and iOS, so the same plugin can run on an
+  [iPhone and iPad app](/docs/future-work/iphone-and-ipad#plugins) too.
+- A web view costs about 50 MB empty and 120–200 MB in use. The app keeps at
+  most 6 live web views on the Mac, web pages and plugin
+  cards together, least recently used first out. An evicted card keeps an
+  image of its last frame.
+- The card header has **Refresh**
+  ([When a card reads its state](/docs/future-work/plugins/state#when-a-card-reads-its-state)).
+
+## Options we compared
+
+| Option | Pros | Cons |
+|---|---|---|
+| **A web page in a native web view** (chosen) | any web library; custom drawing (SVG, canvas) is free; Safari Web Inspector; one engine on macOS and iOS; little app code | 120–200 MB per live card; looks like the app only if the author uses its CSS variables; HTML built from repository text needs care ([Plugin security](/docs/future-work/plugins/security)) |
+| TypeScript + React drawn as native SwiftUI: React against our own component kit (`List`, `Detail`, `Diff`, `Form`), one JavaScriptCore VM per card (Raycast 1.x's model) | truly native; ~3 MB per card | our own component kit, reconciler and build tool to keep; plugins get only our components. Measured in [`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#how-to-draw-plugin-ui); revisit when web plugins look or feel wrong next to native cards |
+| React Native embedded | React to native | two forks to keep in step, a large dependency |
+| Native Swift plugins | fully native | impossible on iOS; runs inside our process with our SSH connections |
+| Apple ExtensionKit | sandboxed native views | iOS hosts only extensions inside our own app |
+
+- Plugins cannot claim the app's shortcuts
+  ([Keyboard shortcuts](/docs/ui/theme-and-accessibility#keyboard-shortcuts)):
+  keys go to the main menu first.

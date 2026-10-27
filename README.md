@@ -48,8 +48,8 @@ keyboard shortcuts ([all of them](https://oriel-docs.vercel.app/docs/ui/theme-an
 ## Future work
 
 Bundling herdr in the app, an iPhone and iPad app, a chat view for agents, image paste, plugins and other
-pane kinds, floating status pills, a Settings window. The list is in
-[Future work](docs/content/docs/future-work.mdx).
+pane kinds, floating status pills, a Settings window. Their designs are in
+[Future work](docs/content/docs/future-work/index.mdx).
 
 ## Links
 

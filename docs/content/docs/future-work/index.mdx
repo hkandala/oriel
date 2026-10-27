@@ -1,0 +1,113 @@
+---
+title: "Future work"
+description: "Designs for parts the app does not have yet, and what it leaves out on purpose"
+---
+
+None of this is built. The pages in this section keep the designs for parts
+that are not built yet, so the work starts from them when it is picked up.
+Each page says "Not built" at the top. Smaller deferrals are marked "Simpler
+choice" on their own pages.
+
+The designs follow the rules of the app as it is built: herdr is the source of
+truth, the app reaches each machine through `run` over the relay
+([Running commands](/docs/talking-to-herdr#running-commands)), and the app
+never calls herdr's focus methods. A design gets decision numbers on the
+[Decisions](/docs/decisions) page when it is built.
+
+<Cards>
+  <Card title="Pane kinds and plugins" href="/docs/future-work/plugins" description="The pane picker, agent panes, image paste and plugins as small web pages" />
+  <Card title="Web page" href="/docs/future-work/web-page" description="A native web view in a placeholder herdr pane, with remote localhost" />
+  <Card title="Chat view" href="/docs/future-work/chat-view" description="An agent's transcript drawn as messages, with a reply box" />
+  <Card title="Floating pills" href="/docs/future-work/pills" description="Agent status on the Mac screen edge while you work in another app" />
+  <Card title="iPhone and iPad" href="/docs/future-work/iphone-and-ipad" description="One pane per page on iPhone, the Mac layout on iPad" />
+  <Card title="Rex as a second multiplexer" href="/docs/future-work/rex-backend" description="How Rex fits behind the Multiplexer interface" />
+</Cards>
+
+## Smaller items
+
+- **A Settings window** (⌘,), designed with mock-ups first. It holds the
+  settings that have no menu item today: the terminal font, the cursor style
+  and blink, Option as Alt, copy on select, and the notification switches
+  ([Settings](/docs/ui/settings)). It must meet the design bar. A first stock
+  tabbed form was too plain and was removed.
+- **herdr's machines in Add Remote Host.** When herdr is on the Mac, the
+  dialog lists the targets of the enabled entries of
+  `herdr machine list --json` (`{id, label, target, session, enabled}`) that
+  are not in the app's list, each with a checkbox. While the app's list is
+  empty, they start checked. The app never writes herdr's list
+  ([The machine list](/docs/machines#the-machine-list)).
+- **Reorder the machines** in the machine menu.
+- **Bundling herdr** with the app, so a Mac without herdr can still show its
+  own sessions.
+- **Local Network privacy** (macOS 15 and later). An `ssh` that the app starts
+  counts as the app, so a target on the local network fails with "No route to
+  host" today. The plan: the app declares `NSLocalNetworkUsageDescription`,
+  resolves the target with `ssh -G`, and opens an `NWConnection` to a local
+  address before the first SSH connection, so the system asks once. If the
+  user says no, the page shows "Allow Local Network access for Oriel in System
+  Settings › Privacy & Security". Tailscale addresses are not affected.
+- **VoiceOver reads the terminal.** A terminal card gives VoiceOver its screen
+  text, read with `pane.read {source:"visible", format:"text"}` when
+  VoiceOver asks for it, and announces new output politely (it does not
+  interrupt speech). Today the card gives only its grid size.
+- **tmux** as one more implementation of the
+  [`Multiplexer` interface](/docs/architecture#the-multiplexer-interface),
+  after Rex. Research:
+  [`tmux.md`](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/tmux.md).
+- **A remote home shown as `~`** in card headers, and Go to Directory on a
+  remote machine.
+- **A bigger server helper.** The relay already carries every run of a remote
+  machine on one SSH session
+  ([The SSH connection](/docs/machines#the-ssh-connection)). A helper of our
+  own with more to do (a file watcher, a port forwarder) would sit behind the
+  same `run` call. Build it only when one of these is real:
+  1. **Latency:** a plugin needs many small calls (a file tree, search), and
+     users on slow links feel it.
+  2. **File watching:** a plugin needs pushed file changes, not reads again
+     on each snapshot.
+  3. **`AllowTcpForwarding no`:** a server refuses the port forwards that
+     [web pages](/docs/future-work/web-page#remote-localhost) and `dial` use.
+  4. **Windows servers:** herdr supports them; the `sh` envelope does not.
+
+  Plugins, labels and state files stay the same when it comes. Research:
+  [`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#how-plugins-reach-a-remote-machine).
+
+## Waiting on herdr
+
+- **herdr's popup in a floating window.** On herdr 0.9.5, `plugin.pane.open`
+  with `placement: "popup"` answers only `ok`. The popup's terminal runs in
+  the server, but it has no pane or terminal id in the reply, the snapshot or
+  `pane.list`, and opening or closing it (`popup.close`) sends no event. The
+  `plugin_pane_opened` reply comes only for the other placements, which are
+  normal panes. The ask: the popup (its terminal id and size) in
+  `session.snapshot`, events when it opens and closes, and a close by id
+  (`popup.close` takes no parameters). Oriel then streams it by that id in a
+  [floating window](/docs/ui/window#floating-pane), as it does a floated pane.
+- **Panes started with a command after a cold restart** come back as plain
+  shells, with their label. The ask: restore them with their `launch_argv`,
+  opt-in ([discussion #1367](https://github.com/herdrdev/herdr/discussions/1367)).
+  Web and plugin panes work anyway, because the label is the truth
+  ([Labels and instance ids](/docs/future-work/plugins/labels)).
+- **Named keys on the terminal stream.** The ask: herdr accepts named keys on
+  `terminal.input` (`{"type":"terminal.input","keys":["up"]}`), encoded as
+  `pane.send_keys` does. Then all input takes one path, with no bridge call
+  per key burst, which matters over SSH
+  ([Terminal plane](/docs/talking-to-herdr#terminal-plane)).
+- **OSC 7501**, the Program Status Protocol: a terminal escape sequence that a
+  program sends to report its status
+  ([spec](https://www.superlogical.com/rex/docs/build/program-status)). herdr
+  does not support it yet. Draft PR
+  [#5172](https://github.com/herdrdev/herdr/pull/5172) adds `program_status`
+  to `pane.get` and `pane.list`, and a change to it alone sends no event. Once
+  herdr ships it, the app shows its `message` on needs-you and finished rows
+  and in notifications, and says "failed" for `error`. Another multiplexer may
+  report it through its own API ([Rex](/docs/future-work/rex-backend#agent-status)).
+
+## Left out on purpose
+
+- Tearing a tab off into a new window.
+- Key sequences and custom shortcuts.
+- Traffic lights inside the tab bar (needs private API).
+- Jump to prompt (needs OSC 133 marks from the shell).
+- A font size per pane, paste confirmation, an installer for agent integrations.
+- Many themes, a theme editor, a compact density.
