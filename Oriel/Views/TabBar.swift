@@ -74,6 +74,9 @@ struct TabBar: View {
                         }
                     }
                 }
+                // A container of its own: without it, a row of one tab that grew to two kept the first capsule's
+                // accessibility element with the whole row's frame (a click there landed between the capsules).
+                .accessibilityElement(children: .contain)
                 // In the content's space: the capsule under the pointer, wherever the track scrolled.
                 .onDrop(of: [.orielDrag], delegate: TrackDrop(tabs: tabs, page: page, slot: width + 1,
                                                               over: $over, spring: $spring, springLoad: springLoad))
