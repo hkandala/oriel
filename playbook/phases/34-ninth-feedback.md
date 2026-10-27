@@ -29,3 +29,26 @@ heading at the end.
    a pane, locally and on CI's sshd (RemoteTests), and check `NSPasteboard`.
 
 ## Findings
+
+### Lane W
+
+- **Cause:** phase 33 lane D cut the design pages of unbuilt parts while it made the docs describe the app
+  as built; only a short list stayed in `future-work.mdx`.
+- **Fix:** a Future work section in the sidebar. `future-work/index.mdx` lists the six design pages, then
+  the smaller items with their details (Settings window, herdr's machines in Add Remote Host, Local Network
+  privacy, VoiceOver screen text, tmux, a bigger server helper), waiting on herdr and left out. Sub pages:
+  Pane kinds and plugins (index with the picker and run and dial, agent panes and image paste, plugin UI,
+  packages, labels, state, API, security), Web page, Chat view, Floating pills (look and how they work in
+  one page), iPhone and iPad (layout, watching, connections, notifications, plugins on iOS, platform), Rex
+  as a second multiplexer. Restored from `ba4f85d^` and the sections `17cba5a` cut; each says "Not built".
+- **Decisions:** the dropped decision rows (D17–D37, D51–D59 for these parts) stay off the Decisions page;
+  each page ends with a short Choices list that keeps their why and rejected options, and gets numbers when
+  built. Mock-up components (`<Flow>`, `<PillsDemo>`, `<Phones>`, `<PanePicker>`) became text. The deleted
+  plugin research stayed deleted: `resources/research/plugins/plugins.md` already holds its facts and
+  measurements, and the pages link there.
+- **Fix:** updated to the app as it is: the relay (dial and forwards are channels, not sessions; the
+  server helper's `MaxSessions` reason is gone, and Citadel would need a relay too), floating panes as
+  windows, no iOS target, cards keyed by session too, image paste through `Exec.upload` (16 MB), no
+  `suppressesTerminalResponses` today, and an Install integration button in chat instead of a tooltip that
+  sends the user to herdr. Build order, risks, inspirations and sources stayed out.
+- **For the user:** read the Future work section on the docs site.
