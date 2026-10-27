@@ -62,6 +62,14 @@ never calls herdr's focus methods. A design gets decision numbers on the
   [`tmux.md`](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/tmux.md).
 - **A swipe preview** for a card never shown, from
   `pane.read {source:"visible"}`, instead of an empty card.
+- **Jump to the next agent that needs you** with one key, in the Agents
+  view's priority order. It selects workspace, tab and card in the app and
+  never calls herdr's focus methods.
+- **Faster git state:** stat `HEAD`, `index` and the branch ref each second,
+  and run `git status` only on a change or an agent status change
+  ([Git status](/docs/talking-to-herdr#git-status)). On a remote machine each
+  stat is a round trip, so batch them in one `stat` run, or keep today's poll
+  there.
 - **A remote home shown as `~`** in card headers, and Go to Directory on a
   remote machine.
 - **A bigger server helper.** The relay already carries every run of a remote
