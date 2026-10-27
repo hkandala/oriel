@@ -475,10 +475,10 @@ How it works: [Layout and sizing](/docs/layout).
     tab of the session but the pane's own, grouped by workspace: each
     workspace's name as a section header, in the sidebar's order), Rename
     Pane…, Reset Pane Name.
-  - Close Pane (⌘W).
+  - Replace Pane (⌘R), Close Pane (⌘W).
 - The same items are in View ▸ Pane in the menu bar, for the keyboard card
-  (the zoomed card of the selected tab, when there is one). Close Pane stays
-  in the File menu. In View ▸ Pane, Move Pane to Tab ▸ has New Tab and New
+  (the zoomed card of the selected tab, when there is one). Replace Pane and
+  Close Pane stay in the File menu. In View ▸ Pane, Move Pane to Tab ▸ has New Tab and New
   Workspace only: AppKit searches the whole menu bar for a shortcut at every
   key (about 30 ms at 300 tabs). The card's menu and the palette list the
   tabs.
@@ -489,8 +489,15 @@ How it works: [Layout and sizing](/docs/layout).
   **Reset Pane Name** (enabled once the pane has a name, also in the palette)
   clears herdr's label, so the header shows the program again.
 - Drag the header to move the pane ([Drag and drop](/docs/ui/drag-and-drop)).
-- Close asks first unless the pane runs only its shell (Return confirms, Esc
-  cancels).
+- **Replace Pane** (⌘R, also in the palette) puts a fresh shell in the pane's
+  place, for example after a change to the shell's setup. The new pane has
+  the old one's place and size, starts in its folder, and gets the keyboard.
+  The old card stays until herdr has closed the old pane; then the new card
+  shows in its place. A zoomed pane's new pane stays zoomed, and a floated
+  pane's new pane floats in a window at the same place.
+- Close and Replace Pane ask first unless the pane runs only its shell
+  (Return confirms, Esc cancels). Replace Pane's dialog says "Replace
+  “‹name›”?" and has a Replace Pane button.
 - ⌘-click on a link in a terminal opens it in the default browser, `http` and
   `https` only.
 
@@ -646,7 +653,7 @@ clients see it there.
   and Focus Follows Mouse skip it.
 - **Keys and ⌘K.** In the floating window the menu bar and the palette offer
   only what applies to it: Detach Pane (⌘W, as the red light: a window's
-  close puts the pane back, nothing stops), Close Pane (⇧⌘W), Stay on Top,
+  close puts the pane back, nothing stops), Replace Pane (⌘R), Close Pane (⇧⌘W), Stay on Top,
   Find, Find Next and Find Previous, the font size items, Copy and Paste. The
   palette lists no tabs, workspaces or sessions.
 - **Saved.** The floating panes and their Stay on Top are kept with the main

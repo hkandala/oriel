@@ -12,14 +12,14 @@ description: "Every herdr call and command the app uses, and the ones it never u
 | `workspace.create` \| `close` \| `rename` | sidebar actions: new (page header `+`, workspace menu), close, rename in place; folders dropped on the Dock icon | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `workspace.move_block` | Move Up and Down, drag to reorder (always with the row's group: the workspace and its linked worktrees) | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `tab.create` \| `close` \| `rename` \| `move` | tab bar and sidebar actions: new (also from a workspace row), close, Close Other Tabs and Close Tabs to the Right, rename, Move Tab Left and Right, drag to reorder | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
-| `pane.split` \| `close` \| `move` | split (left and up add a swap), close, Move Pane to Tab ▸ (a tab, New Tab, New Workspace), drag (an edge of a card in the same tab is two moves and a swap; a tab dropped on another workspace or New Workspace moves pane by pane) | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
+| `pane.split` \| `close` \| `move` | split (left and up add a swap), close, Replace Pane (a split, then a close of the old pane), Move Pane to Tab ▸ (a tab, New Tab, New Workspace), drag (an edge of a card in the same tab is two moves and a swap; a tab dropped on another workspace or New Workspace moves pane by pane) | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.swap` | drag onto a card in the same tab; the last step of a drop on a left or top edge; split left and up; with `direction`, ⌥⇧⌘ and an arrow | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.resize` | Resize Pane (View ▸ Pane, the palette), 5 % each | [Dividers](/docs/layout#dividers) |
 | `pane.rename` | Rename Pane, Reset Pane Name | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.send_input` | Go to Directory and Insert Path | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.send_keys` | special keys and Ctrl chords typed in a terminal card | [Terminal plane](/docs/talking-to-herdr#terminal-plane) |
 | `pane.read` | `visible`: the hover card's lines for a pane that needs you; `recent`: find in a pane; `visible` again after a find scroll, for the highlights | [Find bar](/docs/ui/window#find-bar) |
-| `pane.process_info` | close check, Go to Directory's shell check, program icons | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr) |
+| `pane.process_info` | close and Replace Pane check, Go to Directory's shell check, program icons | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr) |
 | `pane.get` | the keyboard card's fresh folder for New Tab, Go to Directory and Insert Path; the viewport's offset after a find scroll | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.report_metadata` | the `oriel-shown` mark on each pane in view, for float requests | [Float requests](/docs/talking-to-herdr#float-requests) |
 | `pane.scroll` | find in a pane: scroll herdr's viewport to a match, and back to the bottom | [Find bar](/docs/ui/window#find-bar) |

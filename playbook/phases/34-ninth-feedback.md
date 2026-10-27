@@ -261,3 +261,21 @@ heading at the end.
   reaches XCUITest; checked on Release screenshots, before (left) and after (right) in each look:
   `/tmp/oriel-shots/34pill/compare.png` (full windows `before-*.png`, `after-*.png` there).
 - **For the user:** hover a tab with a long title: it fades out before the ×.
+
+### Lane P
+
+- **Fix:** Replace Pane (⌘R; card menu and File menu next to Close Pane, palette, Shortcuts panel, floating window).
+  herdr 0.9.5 has no respawn, so it is `pane.split` (right, `focus:false`) then `pane.close` of the old pane: in
+  herdr's tree the new pane takes exactly the old one's slot and size, and herdr starts it in the old pane's live
+  folder (spiked: a `cd` before the split is kept). Works the same over SSH.
+- **Decisions:** no stand-in card. The new pane hides (`Ahead.replacing`: any new pane in that tab while the old one
+  is still in the snapshot) and the old card stays until herdr has closed it, so one snapshot swaps them in place: no
+  split showing first, no empty card. The new pane's terminal is handed the keyboard at herdr's answer (as a move
+  does), the zoom moves to it (`Ahead.replaced`), and a floated pane's new pane floats in a window with the old
+  window's frame. The question is Close Pane's (only when more than the shell runs), titled "Replace “‹name›”?" with
+  a Replace Pane button; Return confirms.
+- **Runs:** three new tests (shell pane: no dialog, same slot and size to the point, same folder, old id gone, keys
+  reach it; program pane: Esc keeps it, the palette's Replace Pane asks again, Return replaces; zoom and floating
+  window). Red on the old code locally (⌘R did nothing: "waited for a new pane", no dialog), green locally.
+- **For the user:** in a pane, change your `.zshrc`, press ⌘R: a fresh shell in the same place and folder. Try it
+  with `vim` open (it asks), zoomed (⇧⌘↩), and in a floating window.

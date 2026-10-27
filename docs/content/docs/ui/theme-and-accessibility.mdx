@@ -154,6 +154,7 @@ one row with one keycap for the keys: "Select Pane ⌥ ⌘ ←→↑↓", "Show 
 | ⌃⌘T | new workspace | File |
 | ⌥⌘T | Open Session (the panel) | File |
 | ⇧⌘G | Go to Directory (in a card that runs only its shell) | File |
+| ⌘R | Replace Pane: a fresh shell in the pane's place, size and folder, with the keyboard (asks first unless the pane runs only its shell) | File |
 | ⌘W | close the pane (asks first unless the pane runs only its shell) | File |
 | ⇧⌘W | close the tab (asks first when a program runs in it) | File |
 | ⌃⌘W | close the workspace (asks first when a program runs in it) | File |
@@ -198,7 +199,7 @@ Rex shortcuts not taken, and why:
 - ⌘K stays the palette (D48), so Change Session (⌘K in Rex) is not taken;
   sessions open with Open Session (⌥⌘T). ⇧⌘P also opens it (Rex's key).
 - ⌘/ (sidebar) is Keyboard Shortcuts instead: ⌃⌘S is the macOS sidebar key.
-- ⌘R (refresh) is not needed: the snapshot is live.
+- ⌘R (refresh) is Replace Pane: the snapshot is live, so no refresh is needed.
 - Find Previous has no shortcut: ⇧⌘G is Go to Directory.
 - ⇧⌘← and ⇧⌘↑ (Split Left, Split Up) would steal select-to-line-start from
   text fields.
