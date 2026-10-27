@@ -4,12 +4,10 @@ Oriel: a native SwiftUI client for herdr on macOS.
 
 ## Read first, every time
 
-- `playbook/workflow.md`: how we work. When a task needs phases and when not, worktrees and pushing, the GUI
-  lock, herdr safety, how to start and brief agents, the phase loop, reviews and the coding rules. Follow
-  it without being told.
-- `playbook/lessons.md`: problems that came back, and the rule for each.
-- `playbook/phases/`: one file per phase, with its Findings. Read the ones your change touches; a new phase is
-  a new file there.
+- `playbook/workflow.md`: how we work. Follow it without being told.
+- `playbook/lessons.md`: problems that came back.
+- `playbook/phases/`: one file per phase; read the ones your change touches. A new phase is a new file there
+  and a row in `playbook/README.md`.
 - The design in `docs/content/docs/` wins on any conflict about what the app does.
 
 ## The rules that never bend

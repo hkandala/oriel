@@ -5,10 +5,10 @@ run and test it is in the root `README.md`.
 
 | File | What it holds |
 |---|---|
-| [workflow.md](workflow.md) | How we work: when to use phases, roles, worktrees, the GUI lock, herdr safety, agents, the phase loop, reviews, briefs, coding rules |
-| [lessons.md](lessons.md) | Problems that came back across phases, and the rule that stops each |
-| [ci.md](ci.md) | The CI layout, chosen-tests runs, CI-only failures, fast tests |
-| [phases/](phases/) | One file per phase: what was asked and its Findings |
+| [workflow.md](workflow.md) | How we work |
+| [lessons.md](lessons.md) | Problems that came back, and the rule for each |
+| [ci.md](ci.md) | How CI runs, and how to run, watch and read it |
+| [phases/](phases/) | One file per phase: what was asked and its Findings; a new phase adds a row below |
 
 ## Phases
 
@@ -49,6 +49,3 @@ run and test it is in the root `README.md`.
 | 31 | Seventh feedback: selection in view, gestures, float requests, CI | [31-seventh-feedback.md](phases/31-seventh-feedback.md) |
 | 32 | Final review of the whole repository and cleanup | [32-final-review.md](phases/32-final-review.md) |
 | 33 | Eighth feedback: iOS removed, chrome, About panel, remote drops, this playbook | [33-eighth-feedback.md](phases/33-eighth-feedback.md) |
-
-Phases 1–6 built v0 (This Mac only), 7–9 renamed and simplified the design, 10–23 were the UI polish, and
-24 onward came from the user's rounds of feedback, each in parallel lanes.

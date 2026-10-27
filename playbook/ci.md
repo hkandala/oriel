@@ -5,9 +5,12 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 ## Layout
 
 - **Workflows.** `.github/workflows/ci.yml` runs the app's checks on every push to main and on pull
-  requests, except docs-only changes (`playbook/**`, `docs/**`, `resources/**`, `**/*.md`).
-  `.github/workflows/docs-deploy.yml` builds the docs site and deploys it to Vercel when `docs/` changes.
-- **Machines.** `runs-on: xcode-27`: a VM with a 1x display (a 1024 × 674 pt window), the US keyboard layout
+  requests, except docs-only changes (`playbook/**`, `docs/**`, `resources/**`, `**/*.md`): those start
+  no run, so they cancel nothing.
+- **Docs site.** `.github/workflows/docs-deploy.yml` builds the docs and deploys them to the Vercel project
+  `oriel` when `docs/` changes; Vercel's own git deploys are off. Run the `vercel` CLI only from the repo
+  root: in another folder `vercel pull --yes` creates and links a new project.
+- **Machines.** `runs-on: xcode-27`: a VM with a 1x display (a 1024 × 674 pt screen), the US keyboard layout
   and Reduce Motion on. The account has 5 macOS runners. herdr is downloaded and checked by its SHA-256
   (`HERDR_VERSION` in `ci.yml`).
 - **Five jobs** (`test (0)` to `test (4)`), each a shard of the UI tests. `test (0)` also runs `make lint`,
@@ -23,23 +26,24 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 - **Results.** Each job uploads `e2e-xcresult-<shard>`: the xcresult with screen recordings, also of green
   runs. Job 0 also uploads the strip check's captures.
 - **Time.** A full run takes 10–14 minutes: about 2 minutes of setup and build per job plus a fifth of about
-  2300 s of UI tests. Each runner more would save about a minute; shorter tests would not (the slowest ones
-  click through many steps, and each test pays 3–4 s to launch the app).
+  2300 s of UI tests.
 
 ## Running part of it
 
 | What | Command | Machines |
 |---|---|---|
 | Full run | push to main | 5 |
-| Chosen UI tests | `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,…` | 1, no lint or build |
+| Chosen UI tests | `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB` | 1, no lint or build |
 | On-demand tests | `gh workflow run ci.yml --ref main -f on_demand=true` | 4 |
 | Same locally | `make e2e ONLY=…`, `make e2e ON_DEMAND_ONLY=1` (under the GUI lock) | this Mac |
 
-- Get the id with `gh run list --workflow ci.yml --event workflow_dispatch --limit 1` and check it at most
-  once a minute. Read the result with `gh run view <id> --json conclusion`: `gh run watch --exit-status` has
-  exited 0 on a failed run. A chosen-tests run takes about 2.5 minutes for two tests.
+- **Find your run:** `gh run list --workflow ci.yml --limit 5 --json databaseId,headSha,event,createdAt`,
+  the one on your commit (or created after your dispatch).
+- **Watch it** in a background command, not a polling loop: `gh run watch <id> >/dev/null; gh run view <id>
+  --json conclusion,jobs`. Trust the `conclusion`: `gh run watch --exit-status` has exited 0 on a failed
+  run. A chosen-tests run takes about 2.5 minutes for two tests.
 - A push cancels the push run in flight (`cancel-in-progress`). A dispatch never cancels a push run or
-  another dispatch. So batch pushes while a full run matters, and use chosen-tests runs for single checks.
+  another dispatch. Batch dispatches; use chosen-tests runs for single checks.
 - **Sign off** with a full run on your own last commit: another lane's push can cancel yours, so dispatch
   one (`gh workflow run ci.yml --ref main`) if needed, and judge a run by which tests failed, not by its
   color.
@@ -83,7 +87,4 @@ xcrun xcresulttool get test-results tests --path <e2e.xcresult> | jq -r '.. | ob
   select(.nodeType == "Test Case" and .result == "Passed") | "\(.durationInSeconds)\t\(.name | rtrimstr("()"))"'
 ```
 
-## UI tests without the user's screen
-
-XCUITest drives the real pointer and keyboard of the login session; only another session isolates it (CI,
-a macOS VM, a second Mac). So prefer chosen-tests runs, and take the GUI lock for local runs.
+Round the means to whole seconds: `scripts/shard.py` reads integers.
