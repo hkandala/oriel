@@ -29,8 +29,8 @@ full suite at the end.
   dialogs were not modal to VoiceOver.
 - **r-tests.** The e2e helper served one request at a time, so a profile taken beside swipes measured an idle
   app; now threaded.
-- **d-spec.** Pages still said "This Mac only" and had pre-relay plans; unbuilt parts are now marked (now the
-  docs' Future work section).
+- **d-spec.** Pages still said "This Mac only" and had pre-relay plans; unbuilt parts are marked (the docs'
+  Future work section).
 - **r-terminal.** A dropped file name with a line break pasted as two lines; such paths are single-quoted.
 - **r-strip.** A duplicate pane id in herdr's tree crashed the app (`Dictionary(uniqueKeysWithValues:)`); the
   missing-Perl reason now shows under Reconnecting; notices are announced to VoiceOver.
@@ -43,10 +43,11 @@ full suite at the end.
 - **f-e2e.** A card's VoiceOver value still read "content 100%" from the dropped fade; a teardown that hovered a
   closing floating window failed a test after its body passed (it now warps the pointer). Two full runs in a
   row green on the last code commit, the on-demand suite once.
-- **For the user (not changed).** Three store files sit at the 400-line limit (split when the next change needs
-  room); Close Other Tabs within a round trip of ⌘T can leave the new tab open.
 
 ### Left (seen, not changed)
+
+- **For the user.** Three store files sit at the 400-line limit (split when the next change needs room);
+  Close Other Tabs within a round trip of ⌘T can leave the new tab open.
 
 - **r-remote.** The sockets folder and askpass under `~/Library/Caches/oriel` are made once per launch
   (`static let`): a cache cleaner that deletes them while Oriel runs breaks remote connects until a relaunch

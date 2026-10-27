@@ -235,8 +235,9 @@ One path is [Future work](/docs/future-work).
   is back in a window, until the surface's first new frame (about 0.1 s).
   libghostty also stops drawing in a minimized, hidden or covered window.
   The app decides which cards draw (`inView`), not libghostty: libghostty
-  marks a view visible again whenever it moves out of its window (`viewDidMoveToWindow` calls
-  `setWindowVisible(true)`), so hidden cards kept drawing every output.
+  marks a view visible again whenever it moves to or from a window
+  (`viewDidMoveToWindow` calls `setWindowVisible(true)`), so left to it,
+  hidden cards would draw every output.
 - A terminal past those 16 lets go of its stream (its herdr run ends) and of
   its surface. Its copy stays as a still, purgeable while no window shows it,
   so it costs no memory then (the system takes such pictures back within

@@ -41,10 +41,8 @@ never calls herdr's focus methods. A design gets decision numbers on the
 - **Reorder the machines** in the machine menu.
 - **Bundling herdr** with the app, so a Mac without herdr can still show its
   own sessions.
-- **A notarized Developer ID download.** The app is signed ad hoc today
-  ([Platform](/docs/platform)). It ships outside the App Store because it
-  runs the `herdr` CLI and `ssh`. A real signing identity also turns on
-  notifications.
+- **A notarized Developer ID download** outside the App Store (signed ad hoc
+  now: [Platform](/docs/platform)).
 - **Local Network privacy** (macOS 15 and later). An `ssh` that the app starts
   counts as the app, so a target on the local network fails with "No route to
   host" today. The plan: the app declares `NSLocalNetworkUsageDescription`,
@@ -138,8 +136,8 @@ never calls herdr's focus methods. A design gets decision numbers on the
   (small; on request), an installer for agent integrations (herdr's own
   installer writes the agents' config files; it belongs with the Settings
   window).
-- Many themes, a theme editor, a compact density: the user wants only light,
-  dark, Glass and Classic.
+- Many themes and a theme editor: the user wants only light, dark, Glass and
+  Classic. A compact density: the user dropped it.
 - A menu bar status item: the floating pills would cover it.
 - Sparkle updates and a diagnostics window: not interface work.
 - Decorations with a GPU cost (Rex's melt transition, selection pulse).

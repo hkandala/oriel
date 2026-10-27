@@ -84,18 +84,13 @@ Problems that came back across phases, and the rule that stops each. How we work
   responder set during an update is undone (take focus on the next run-loop turn); a `@State` initializer
   runs again on every parent rebuild (no side effects in it); the menu bar refreshes only when the focused
   value changes.
-- **SwiftUI layout traps:** `background(alignment:) { A; B }` centers B in A (use an explicit `ZStack`); a
-  `TextField` inside a `Button`'s label never takes the keyboard; a `Menu` label of two `Image`s is two
-  accessibility elements with one id (one `Text` with both images is one); `ScrollViewReader.scrollTo(id)`
-  picks the first view with that id; a `Menu` with `.menuStyle(.button)` has an empty XCUITest label.
 - **Measure before you optimize.** Observation notifies on in-place edits that change nothing;
   `allowsHitTesting` and per-move `@State` re-run whole subtrees; hidden views still lay out. Tools: one log
   line, an in-app frame probe or scroll meter, `sample` on the running app, a tiny probe app, the user's
   capture read frame by frame; memory and CPU with `footprint <pid>` (it leaves purgeable IOSurfaces out) and
-  `top -l 2 -s 10 -pid <pid>`. xctrace's Animation Hitches crashed on attach to Oriel. Measure keys and
-  speed on a Release build launched by hand (`open -n`), with Quartz events: `sample` triples a key's time
-  and XCUITest's accessibility snapshots dominate at scale. A Release build keeps code coverage counters on
-  (`ENABLE_CODE_COVERAGE`); they made no difference in a bench.
+  `top -l 2 -s 10 -pid <pid>`; xctrace's Animation Hitches crashes on attach. Measure keys and speed on a
+  Release build launched by hand (`open -n`), with Quartz events: `sample` triples a key's time and
+  XCUITest's accessibility snapshots dominate at scale.
 - **Hover state is unreliable.** A view removed under the pointer gets no hover end, and a busy app runs
   hover late. Decide from the pointer's location when it matters.
 - **Every key has three possible owners: the menu, SwiftUI and libghostty.** libghostty takes every key it

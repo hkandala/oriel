@@ -72,6 +72,8 @@ dialogs, and a CI that is fast and never flaky.
   landing.
 - **Fix.** Equatable pages and tiles, a clear overlay instead of `allowsHitTesting`, neighbor pages built
   ahead, no live changes during a slide. Slide frames over 12 ms went from about 33 to 5 of 250.
+  A Release build keeps code coverage counters on (`ENABLE_CODE_COVERAGE`); off, the bench showed no
+  difference, so `make app` keeps them.
 - **Fix, item 15.** The pill has no fade of its own; the chrome fades in 0.12 s from the zoom's start.
 
 ### Integration (items 8–10)

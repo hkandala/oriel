@@ -136,9 +136,8 @@ Stage A (stream level, against throwaway sessions; no GUI yet).
   (talking-to-herdr) and "How the miniatures draw" (window). libghostty-spm frees a surface only through
   `controller = nil`. A config reload resizes only surfaces that never changed their own size; ours never
   do (`keybind = clear` removed Ghostty's ⌘+ and ⌘-), so the config's font size always wins.
-  libghostty-spm runs on macOS 13+, iOS 15+, Mac Catalyst and visionOS, ships weekly from Ghostty main as
-  `<major.minor>.<YYYYMMDD><NN>` (pinned exactly), and builds locally with `./build.sh --platforms
-  macos,ios` (zig 0.16) and `Package.local.swift`.
+  libghostty-spm ships weekly from Ghostty main as `<major.minor>.<YYYYMMDD><NN>` (pinned exactly). A local
+  build: `./build.sh --platforms macos,ios` (zig 0.16), used through `Package.local.swift`.
 - **e2e.** Each card's terminal view is an accessibility element `terminal.<pane_id>` whose
   value is its grid as `stty size` prints it, so tests compare it with the PTY. The helper's
   `POST /<session>/control` opens a second `control` (released at once) to tell a held pane

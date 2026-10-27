@@ -106,10 +106,9 @@ Round the means to whole seconds: `scripts/shard.py` reads integers.
 Local UI runs take the GUI lock because XCUITest drives the real pointer. Nothing on the host isolates it:
 the runner asks `testmanagerd` to post HID events into the login session, so the pointer moves on every
 display, virtual ones (`CGVirtualDisplay`, BetterDisplay, DeskPad) too. A second macOS user has no display
-and no known XCUITest support. AX-only drivers and background computer-use tools (cua-driver, Codex,
-Claude) do not run XCUITest. Only another session isolates it: a VM or another Mac.
+and no known XCUITest support. Only another session isolates it: a VM or another Mac.
 
-If one slot is not enough, run each extra slot in a headless Tart VM:
+If one slot is not enough, run each extra slot in a headless Tart VM. Set it up once:
 
 ```sh
 brew install openai/tools/tart
@@ -117,17 +116,22 @@ tart clone ghcr.io/cirruslabs/macos-golden-gate-base:latest oriel-vm   # 34 GB d
 tart set oriel-vm --cpu 4 --memory 8192 --display 1024x768             # CI's 1x screen
 tart run oriel-vm --no-graphics --no-audio --no-clipboard              # a background command
 VM=$(tart ip oriel-vm)                                                 # user and password: admin
-ssh-copy-id -i ~/.ssh/oriel_vm admin@$VM
+ssh-keygen -t ed25519 -N '' -f ~/.ssh/oriel_vm && ssh-copy-id -i ~/.ssh/oriel_vm admin@$VM
+# ~/.ssh/config: Host 192.168.64.*  User admin  IdentityFile ~/.ssh/oriel_vm  StrictHostKeyChecking no
 rsync -a /Applications/Xcode.app admin@$VM:/Applications/
 ssh admin@$VM 'sudo xcode-select -s /Applications/Xcode.app && sudo xcodebuild -license accept &&
   sudo xcodebuild -runFirstLaunch && automationmodetool'   # must say "DOES NOT REQUIRE user authentication"
-scp ~/.local/bin/herdr admin@$VM:.local/bin/herdr      # CI's herdr version, on the guest's PATH
-tart stop oriel-vm && tart clone oriel-vm oriel-vm-clean  # an APFS copy to reset from
+ssh admin@$VM 'mkdir -p .local/bin && echo "export PATH=\$HOME/.local/bin:\$PATH" >> ~/.zshrc'
+scp ~/.local/bin/herdr admin@$VM:.local/bin/herdr      # CI's herdr version
 ```
+
+Then do one run (below): if a privacy (TCC) prompt shows, allow it over VNC (`open vnc://$VM`). Save the
+guest to reset from: `tart stop oriel-vm && tart clone oriel-vm oriel-vm-clean`, and `tart run` it again.
 
 One run: build on the host, test in the guest.
 
 ```sh
+NAME=<agent>; DD=/tmp/oriel-dd-$NAME
 xcodebuild -scheme Oriel -derivedDataPath $DD -destination platform=macOS build-for-testing
 rsync -a --delete $DD/Build/Products/ admin@$VM:runs/$NAME/Products/
 rsync -a --delete scripts/ admin@$VM:runs/$NAME/scripts/
@@ -143,10 +147,8 @@ rsync -a admin@$VM:runs/$NAME/e2e.xcresult /tmp/oriel-e2e-$NAME.xcresult
 - **Limits.** Apple allows 2 macOS VMs per host. After a few start and stop cycles the limit error can stay
   until the host reboots (Tart #1217), so keep VMs running. Two 8 GB guests plus host builds make a laptop
   swap: run one. The guest's macOS must not be newer than the host's.
-- **Risks.** The first UI run can show a privacy (TCC) prompt: allow it once over VNC (`open vnc://$VM`),
-  then clone. `screencapture` over ssh asks again every 30 days. The guest's GPU reports an old Metal
-  family: it renders, but timing is slower, as on CI. Some host and guest pairs draw no windows: check the
-  first screenshot. The guest's password is `admin` on the private `192.168.64.x` network: use its own key.
-- **Cost of more.** A Mac mini on the network (about $800–1,000) with the same setup adds two slots
-  (`ssh -J`). Rented: Scaleway M4 €149 a month, EC2 Mac $0.65–1.23 an hour with a 24-hour minimum, Cirrus
-  Runners $150 a month. Docker-OSX and Apple's `container` run no macOS guests.
+- **Risks.** `screencapture` over ssh asks again every 30 days. The guest's GPU reports an old Metal family:
+  it renders, but timing is slower, as on CI. Some host and guest pairs draw no windows: check the first
+  screenshot. The guest's password is `admin`, on the host's private network only.
+- **More slots.** A Mac mini on the network (about $800–1,000) with the same setup adds two (`ssh -J`);
+  rented Macs (Scaleway, EC2 Mac) cost more over time.

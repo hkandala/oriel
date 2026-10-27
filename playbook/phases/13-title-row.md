@@ -148,6 +148,11 @@ The row stays 40 pt (no private API for a taller one). Its items are 8 pt apart.
   and folder too. herdr's own default labels are renumbered on a move, so there is no better test.
 - **Double-click anywhere on a capsule renames** (a simultaneous gesture on the button), not only on the title
   text: a tap gesture on a short title missed most double-clicks.
+- **SwiftUI traps met here.** `background(alignment:) { A; B }` centers B in A (an explicit `ZStack` instead);
+  a `TextField` inside a `Button`'s label never takes the keyboard (the rename field is an overlay); a `Menu`
+  label of two `Image`s is two elements with one id (one `Text` with both images is one);
+  `ScrollViewReader.scrollTo(id)` picks the first view with that id (one `HStack` per tab); a `Menu` with
+  `.menuStyle(.button)` has an empty XCUITest label.
 
 ### Decisions
 

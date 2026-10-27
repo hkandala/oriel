@@ -10,7 +10,6 @@ uses are in `docs/content/docs/reference/herdr-calls.mdx`, and how Oriel uses th
 - Unix domain socket (named pipe on Windows), mode `0600` (`src/api/server.rs: SOCKET_PERMISSION_MODE = 0o600`). There is no auth beyond filesystem permissions.
 - Path resolution order: `--session <name>` → `HERDR_SOCKET_PATH` → `HERDR_SESSION=<name>` (`~/.config/herdr/sessions/<name>/herdr.sock`) → default `~/.config/herdr/herdr.sock`.
 - **Newline-delimited JSON. It is not JSON-RPC 2.0**, although it looks similar: request `{"id":"…","method":"…","params":{…}}`, success `{"id","result":{"type":"…",…}}`, error `{"id","error":{"code","message"}}`.
-- **Cost:** the direct socket answers `ping` in 0.47 ms and `session.snapshot` in 0.89 ms (median); a `herdr` process per call costs about 18 ms.
 - **One request per connection.** `handle_connection_with_stop` reads one initial line (max 1 MiB, 5 s timeout), answers, and closes. Long-lived connections exist only for `events.subscribe` (stream), and for `events.wait`, `agent.wait`, `agent.prompt` (with wait), and `pane.wait_for_output` (one delayed response). A second `events.subscribe` on an open subscription is ignored (herdr-web-ui notes the same).
 - Server-side app dispatch timeout is 5 s (`APP_RESPONSE_TIMEOUT`). Stream write timeout is 5 s.
 - Subscriptions are **server-polled every 100 ms** (`CONNECTION_POLL_INTERVAL`) from a shared in-memory ring of **512 events** (`event_hub.rs MAX_EVENTS`). A slow reader gets `error.code:"events_lost"` and the server closes that connection. To recover: resubscribe, wait for `subscription_started`, call `session.snapshot` on another connection, and treat events as invalidation signals.
@@ -128,11 +127,11 @@ What the bytes are (important):
   server. It is not a pane: no `pane_id`, not in `session.snapshot`, no events, not saved, no agent
   detection. Its `terminal_id` shows only on the private client socket. The public API can only open it
   (`plugin.pane.open placement:"popup"`, plugin entrypoints only) and close it (`popup.close`, no
-  parameters). To probe popups again, run a throwaway server with its own config folder
+  parameters). "Overlay" and "zoomed" placements are normal split panes in a tab with its `zoomed` flag set.
+- **Probing popups again:** run a throwaway server with its own config folder
   (`XDG_CONFIG_HOME=/tmp/hx herdr --session oriel-dev-x server`, so the user's `plugins.json` stays
-  untouched), link a throwaway plugin with `placement = "popup"` and subscribe to every event type: in 0.9.5
-  the server log shows `pane.spawn`, but no event fires and only the private client socket
-  (`ClientShellPopupSurface`) sees the popup. "Overlay" and "zoomed" placements are normal split panes in a tab with its `zoomed` flag set.
+  untouched), link a throwaway plugin with `placement = "popup"`, and subscribe to every event type. The
+  server log shows `pane.spawn` for the popup.
 - **Agent state hooks:** `herdr integration install <agent>` writes agent-side hooks or plugins that call `pane.report_agent` / `pane.report_agent_session` (Claude: SessionStart → session id only, state from screen manifest; Codex `--no-daemon`: session + turn state; Pi/OpenCode/Kimi/Kilo/OMP: full state). Third-party agents can call these methods themselves (`docs/add-herdr-support.mdx`), including `resume_argv` so herdr re-runs them after a restart. `agent.view.set` lets a caller customize the TUI's agent list ordering and filtering.
 
 ---
@@ -158,7 +157,6 @@ What the bytes are (important):
 - `session stop` is synchronous; the next start restores workspaces and layout. `session delete` refuses a
   running session (`session_delete_failed`) and succeeds for a missing one. CLI errors are JSON on stderr.
 - `worktree.create` writes to `~/.herdr/worktrees/<repo>/`. `worktree.open` needs a `workspace_id` in the
-  repository when the focused workspace is not in one (`not_git_worktree`). A workspace's `worktree` field
-  fills only after a `worktree.*` call.
+  repository when the focused workspace is not in one (`not_git_worktree`).
 - `agent.start` does no install check and returns at once; `integration.list` lists what is installed.
 - `pane.focus` moves every attached TUI to that tab and marks the tab seen. Never call it from a GUI.
