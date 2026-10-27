@@ -40,6 +40,8 @@ public enum Update: Sendable {
     case error(HerdrError)
     /// Read off the event itself, not the next snapshot: one read sooner.
     case float(FloatRequest)
+    /// A copy request's text (talking-to-herdr#copy-requests).
+    case copy(String)
 }
 
 /// Talks to one herdr session: requests over `remote-api-bridge`, one events stream, paced snapshots. herdr runs
@@ -64,6 +66,8 @@ public actor HerdrClient {
     private var subscribed: [String]?
     /// The float requests' nonces (one per click).
     private var floated: Set<String> = []
+    /// The copy requests' ids (one per copy).
+    private var copied: Set<String> = []
 
     /// `timeout` bounds each request.
     public init(session: String, exec: any Exec, timeout: Duration = .seconds(10)) {
@@ -214,8 +218,8 @@ public actor HerdrClient {
         events?.cancel()
     }
 
-    /// (Re)opens the one events stream. Every line on it means "read the snapshot again"; a pane's float request is
-    /// the one payload read.
+    /// (Re)opens the one events stream. Every line on it means "read the snapshot again"; a pane's float and copy
+    /// requests are the only payloads read.
     private func subscribe(_ agentPanes: [String]) {
         events?.cancel()
         subscribed = agentPanes
@@ -248,6 +252,9 @@ public actor HerdrClient {
                     if let request = FloatRequest(message?.data?.pane?.tokens), floated.insert(request.nonce).inserted {
                         out?.yield(.float(request))
                     }
+                    if let id = message?.data?.pane?.tokens?["oriel-copy"], copied.insert(id).inserted {
+                        copy(id)
+                    }
                     // Every other line, the first too (subscription_started: catch up on what came before it).
                     read()
                 }
@@ -258,6 +265,21 @@ public actor HerdrClient {
             guard !Task.isCancelled else { return }
             subscribed = nil
             read()
+        }
+    }
+
+    /// Reads a copy request's text from `/tmp/oriel-copy-<id>` on the session's machine, as base64 (Linux's wraps
+    /// lines), and deletes the file. Nothing comes for a missing file: a second Mac showing the pane read it first.
+    private func copy(_ id: String) {
+        // A UUID's characters only: the id goes into the path.
+        guard !id.isEmpty, id.count <= 36, id.allSatisfy({ $0.isHexDigit || $0 == "-" }) else { return }
+        Task {
+            let script = #"f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f""#
+            if let text = try? await exec.output(["sh", "-c", script, "sh", id]), !text.isEmpty,
+               let data = Data(base64Encoded: text, options: .ignoreUnknownCharacters)
+            {
+                out?.yield(.copy(String(decoding: data, as: UTF8.self)))
+            }
         }
     }
 

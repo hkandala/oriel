@@ -270,6 +270,21 @@ private func snapshot(version: String) -> String {
     #expect(requests.map(\.pane) == ["w3:p1", "w3:p2", "w3:p3"])
 }
 
+@Test func `a pane's copy token reads its file once per id, and only a UUID's`() async {
+    let exec = FakeExec()
+    let client = client(exec)
+    let updates = await started(client, exec)
+    let pane = { (id: String) in
+        #"{"event":"pane_updated","data":{"pane":{"pane_id":"w1:p2","tokens":{"oriel-copy":"\#(id)"}}}}"#
+    }
+    for id in ["0a-1", "0a-1", "../x", "0a-1;rm", "", "0a-2"] {
+        exec.event(pane(id))
+    }
+    let reads = { exec[\.argv].filter { $0.first == "sh" }.map(\.last) }
+    #expect(await eventually { reads() == ["0a-1", "0a-2"] })
+    withExtendedLifetime(updates) {}
+}
+
 @Test func `updates deliver snapshots and read errors`() async {
     var updates = await client(FakeExec()).updates().makeAsyncIterator()
     guard case .snapshot = await updates.next() else {

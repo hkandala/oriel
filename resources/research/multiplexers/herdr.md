@@ -106,8 +106,9 @@ How a program's copy reaches a client (herdr 0.9.5, spiked in throwaway sessions
   `clipboard-write` is `allow` by default, `clipboard-read` is `ask`); a local TUI attached to a remote
   machine (`remote-client-bridge`) gets the `Clipboard` message and runs `pbcopy`. Spiked: a TUI over a local
   sshd printed `ESC]52;c;dmlhLXNzaC10dWk=` for a pane's printf.
-- pi copies with OSC 52 when `SSH_CONNECTION`, `SSH_CLIENT`, `MOSH_CONNECTION` or `PI_CLIPBOARD_OSC52` is set,
-  else with `pbcopy`. A remote server started over SSH has `SSH_CONNECTION`, so remote pi sends OSC 52.
+- pi's `copyToClipboard` sets the native clipboard (`pbcopy` on macOS, `wl-copy`, `xclip` or `xsel` on Linux) and
+  also sends OSC 52 when `SSH_CONNECTION`, `SSH_CLIENT`, `MOSH_CONNECTION` or `PI_CLIPBOARD_OSC52` is set, or on a
+  headless Linux. A remote server started over SSH has `SSH_CONNECTION`, so remote pi sends OSC 52.
 
 Every way a GUI on `terminal session control` could get the writes:
 
@@ -120,6 +121,7 @@ Every way a GUI on `terminal session control` could get the writes:
 | (d) herdr API, events, config, `pane.read` with escapes | none | no event carries the write; `pane.read` gives the parsed screen; config has only the copy toast's position |
 | (e) local programs | pi and most tools use `pbcopy` on This Mac, so local copy works; an OSC-52-only program (a `printf`, ssh from a local card) fails locally too | (b) covers both |
 | (f) upstream: a `terminal.clipboard` line on control streams | the clean fix | below |
+| (g) the program asks the GUI through pane metadata, as pi-herd's float request: a token names a file with the text | **chosen** for pi-hkandala's extensions (phase 34 lane C3) | only programs that know it; a token value holds 80 characters after trimming, without control characters (`MAX_METADATA_TOKEN_VALUE_LEN`, `src/app/api_helpers.rs`), 16 tokens per report and 32 per pane, so the text goes in `/tmp/oriel-copy-<uuid>` on the program's machine and the GUI reads and deletes it with one run |
 | direct terminal attach (uherdr, herdr-world) or `observe` | none | herdr sends `Clipboard` only to shell clients |
 
 The upstream ask (f): carry the terminal id in `AppEvent::ClipboardWrite`, send `ServerMessage::Clipboard` also

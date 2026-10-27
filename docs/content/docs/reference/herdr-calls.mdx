@@ -52,6 +52,7 @@ launchctl bootstrap gui/<uid> <plist>
 sh -c 'command -v git'                              # once at launch: is git usable
 xcode-select -p                                     # only when git is the /usr/bin/git stub
 git --no-optional-locks -C <root> status --porcelain=v2 --branch --untracked-files=no   # git state of a workspace row (D67)
+sh -c 'f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f"' sh <id>   # each machine: a copy request (talking-to-herdr#copy-requests)
 ```
 
 ## Tests only

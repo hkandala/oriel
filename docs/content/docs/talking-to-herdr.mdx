@@ -121,7 +121,8 @@ installed on the machine: `sshd`, POSIX tools and herdr do the work.
   - No `*.focused` events. They fire on every herdr TUI navigation, and the
     app ignores herdr's focus.
 - **Any event line means "read `session.snapshot` again".** Event payloads
-  are never decoded, except a [float request](#float-requests).
+  are never decoded, except a [float request](#float-requests) and a
+  [copy request](#copy-requests).
 - **Snapshot pacing, per session:** at most one `session.snapshot` is in
   flight. An event, or the app's own write, starts a read at once if none is
   in flight; otherwise it sets "read again", and the read that ends with it
@@ -168,6 +169,30 @@ metadata tokens, so it works for an agent on any machine Oriel follows
   Oriel, not in herdr's popup: the mark says only that Oriel shows the pane.
 - herdr 0.9.5: names match `^[A-Za-z0-9_-]{1,32}$` (no dots), 16 tokens per
   report and 32 per pane at most, values cut at 80 characters.
+
+## Copy requests
+
+pi's extensions in pi-hkandala ask Oriel to put text on the Mac's clipboard
+the same way, so a copy from pi on another machine lands on this Mac. herdr
+gives a pane's own clipboard write (OSC 52) only to its TUI, never to the
+app's streams ([Scrolling, queries and links](#scrolling-queries-and-links)).
+
+| Step | Who | What |
+|---|---|---|
+| Ask | the extension, at a copy | when pi is not on this Mac (`SSH_CONNECTION`, `SSH_CLIENT` or `MOSH_CONNECTION` set, or not macOS) and its pane carries `oriel-shown` (`pane.get` on its own herdr socket): writes the text to `/tmp/oriel-copy-‹id›` on its machine (mode 0600, `‹id›` a new UUID), then `pane.report_metadata` on its pane, source `pi-copy`, token `oriel-copy` = `‹id›`, `ttl_ms` 1000. Otherwise pi's own copy (`pbcopy` here, OSC 52 elsewhere) |
+| Copy | Oriel | on the `pane.updated` event carrying an `oriel-copy` it has not seen, in any open session: one run on that machine (over the relay for a remote one), `sh -c 'f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f"' sh ‹id›`, and the text goes on `NSPasteboard` |
+
+- A token value holds at most 80 characters (herdr cuts it, and drops
+  control characters), 16 tokens per report and 32 per pane: a long prompt
+  does not fit, so the token carries only the id and the text goes in a
+  file. Oriel builds the path itself and takes only a UUID's characters,
+  so a token can never name another file.
+- Once per id, as for a float. The app never reads the Mac's clipboard.
+- A request is lost when no Oriel stream sees it within its 1 s (the stream
+  reopening, Oriel gone). The extension deletes the file after 30 s if
+  Oriel did not.
+- Two Macs showing the pane both try; the first one's run deletes the file,
+  and the second copies nothing.
 
 ## Reconcile
 
@@ -350,11 +375,12 @@ handshake fails, it exits 1 with the reason on stderr.
 - **Terminal queries:** herdr already answers them for the pane.
 - **Copy from a program** does not reach the Mac's clipboard when the
   program copies with OSC 52, the escape sequence that sets the clipboard
-  (vim's `"+y`, pi's copy, an agent's copy on select). herdr gives that
-  write only to its own terminal app (TUI) in front, and `terminal session
-  control` prints no event for it. Most programs on this Mac copy with
-  `pbcopy`, so this mostly hits programs on another machine, also through
-  `ssh` in a local card. Select the text in the card and press ⌘C instead.
+  (vim's `"+y`, an agent's copy on select). herdr gives that write only to
+  its own terminal app (TUI) in front, and `terminal session control`
+  prints no event for it. Most programs on this Mac copy with `pbcopy`, so
+  this mostly hits programs on another machine, also through `ssh` in a
+  local card. Select the text in the card and press ⌘C
+  instead. pi-hkandala's extensions send a [copy request](#copy-requests).
   herdr sends the app no
   clipboard read either; if one came, the app would refuse it.
 - **A herdr TUI on the same tab** shares the split ratios, and the app's

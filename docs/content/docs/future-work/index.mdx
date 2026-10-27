@@ -107,7 +107,8 @@ never calls herdr's focus methods. A design gets decision numbers on the
   client, and `terminal session control` prints only frames and the close.
   The ask: a `terminal.clipboard` event on the control stream, sent to the
   client that streams the pane. Then the app puts it on the clipboard, and
-  pi's copy key and vim's `"+y` work from a remote machine
+  vim's `"+y` and an agent's copy on select work from a remote machine
+  without pi-hkandala's [copy requests](/docs/talking-to-herdr#copy-requests)
   ([Scrolling, queries and links](/docs/talking-to-herdr#scrolling-queries-and-links)).
 - **Named keys on the terminal stream.** The ask: herdr accepts named keys on
   `terminal.input` (`{"type":"terminal.input","keys":["up"]}`), encoded as
