@@ -1,7 +1,7 @@
 // A file's icon in a small window of its own, for the file drop test: a drag from Finder now and then started nothing
 // on CI. Shows the icon at x y (screen points, top left); a drag from it (scripts/drag.swift, posted by the
 // e2e helper) carries the file. Exits 0 when a drop took the file, 1 when the drop was refused, 2 when no drag ended
-// within 10 s.
+// within 10 s. Prints "up" once its window is up.
 // Usage: file-drag <path> <x> <y>
 import AppKit
 
@@ -49,6 +49,12 @@ source.wantsLayer = true
 source.layer?.contents = NSWorkspace.shared.icon(forFile: url.path)
 panel.contentView = source
 panel.orderFrontRegardless()
+// The helper drags once this line comes, not after a fixed wait: a press before the window is up starts no drag.
+DispatchQueue.main.async {
+    print("up")
+    fflush(stdout)
+}
+
 DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
     fputs("no drag ended: the press did not start one\n", stderr)
     exit(2)

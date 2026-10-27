@@ -171,8 +171,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(path, "w") as file:
                 file.write("oriel-e2e-dropped\n")
             x, y, tx, ty = body.decode().split()
-            source = subprocess.Popen([f"{tools}/file-drag", path, x, y], stderr=subprocess.PIPE)
-            time.sleep(0.5)  # its window up
+            source = subprocess.Popen([f"{tools}/file-drag", path, x, y], stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE)
+            source.stdout.readline()  # "up": its window is up
             drag = subprocess.run([f"{tools}/drag", x, y, tx, ty, "0.5"], capture_output=True, timeout=30)
             _, error = source.communicate(timeout=30)
             status, reply = (200, path.encode()) if source.returncode == 0 else (
