@@ -116,7 +116,11 @@ final class WindowPages {
         show(page)
     }
 
+    /// A page shown again gives its keyboard card the keyboard back (`shown`): another page's card took it since.
     func show(_ page: Page) {
+        if page !== current {
+            page.keyboardTabID = nil
+        }
         current = page
         showTerminals()
     }

@@ -183,6 +183,33 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
     }
 
+    /// Keys go to the page shown by Open Session and ⌥⌘[ ] (a three-finger swipe's and the sidebar paging's path,
+    /// `WindowPages.step`), not to the page shown before: a page shown again gave its card the keyboard only when
+    /// its tab had changed.
+    func testKeysGoToTheSessionShown() async throws {
+        let mine = try await shown(Self.snapshot(one)).pane, theirs = try await shown(Self.snapshot(two)).pane
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        openPage(two)
+        try await type("opened", into: theirs, of: two)
+        app.typeKey("[", modifierFlags: [.command, .option])
+        XCTAssertTrue(until(3) { header == one })
+        try await type("back", into: mine, of: one)
+        app.typeKey("]", modifierFlags: [.command, .option])
+        XCTAssertTrue(until(3) { header == two })
+        try await type("next", into: theirs, of: two)
+        let old = try await read(mine)
+        XCTAssertFalse(old.contains("next"), "keys in the page shown before:\n\(old)")
+    }
+
+    /// Runs an echo by typing it; the session's pane prints its output.
+    private func type(_ word: String, into pane: String, of session: String) async throws {
+        app.typeText("echo \(word)-$((6*7))")
+        app.typeKey(.return, modifierFlags: [])
+        try await expect("\(word)-42 in \(session)'s \(pane)") {
+            try await read(pane, in: session).contains("\n\(word)-42")
+        }
+    }
+
     /// The panel's row sits in this group: below its header, above the next one.
     private func expectRow(_ row: String, under section: String, above next: String?) {
         let frame = element(row).frame

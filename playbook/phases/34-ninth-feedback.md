@@ -78,6 +78,23 @@ heading at the end.
 
 ## Findings
 
+### Lane K
+
+- **Cause:** a page gave its keyboard card the keyboard (`Page.shown`) only when its selected tab differed from
+  the tab it last gave the keyboard to (`keyboardTabID`). Showing another page changes no tab, so a page shown
+  again kept its old `keyboardTabID` and never claimed the keyboard; the other page's terminal kept it (or, once
+  out of the window, nothing had it: the bell). A tab step changes the tab, so tabs worked. The first visit to a
+  page worked too (no `keyboardTabID` yet).
+- **Fix:** `WindowPages.show`, which every way a page comes into view ends in (three-finger swipe and sidebar
+  paging through `WindowPages.step`, the same call as ⌥⌘[ ]; sidebar dots, Open Session, the palette, the
+  overview, a notification), clears the page's `keyboardTabID` when the page changes, so `shown` gives its
+  keyboard card the keyboard. Inside the overview `shown` waits, and closing the overview gives it.
+- **Runs:** `testKeysGoToTheSessionShown` (Open Session, ⌥⌘[ then ⌥⌘], typing an echo each time and reading
+  it in that session's pane through herdr, and not in the old one): red on the old code ("waited for back-42"
+  after ⌥⌘[), green with the fix, both local under the GUI lock.
+- **For the user:** swipe between two sessions with three fingers and type at once: the keys reach the shown
+  pane with no click.
+
 ### Lane W
 
 - **Cause:** phase 33 lane D cut the design pages of unbuilt parts, and research files with design facts,

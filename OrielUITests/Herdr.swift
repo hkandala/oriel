@@ -2,8 +2,8 @@ import XCTest
 
 /// The tests' herdr side: calls through the e2e helper, ids from its replies, cleanups after a test.
 extension OrielUITests {
-    func read(_ pane: String) async throws -> String {
-        let read = try await Self.call(one, "pane.read", ["pane_id": pane, "source": "visible"])["read"]
+    func read(_ pane: String, in session: String? = nil) async throws -> String {
+        let read = try await Self.call(session ?? one, "pane.read", ["pane_id": pane, "source": "visible"])["read"]
         return try field((read as? [String: Any])?["text"], "pane.read's text")
     }
 
