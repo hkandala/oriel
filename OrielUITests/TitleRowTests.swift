@@ -187,8 +187,7 @@ extension OrielUITests {
         // ⇧⌘← moves it back; in a rename field it selects to the line's start instead.
         app.typeKey(.leftArrow, modifierFlags: [.command, .shift])
         try await expect("the order back") { try await tabsOf(workspace).map(\.id) == tabs }
-        // Drawn there too: a right click read the capsule's place from before the snapshot drew, and hit the next tab
-        // (40262288574).
+        // Drawn there too: a right click read the capsule's place from before the snapshot drew, and hit the next tab.
         let next = element("tab.\(tabs[1])")
         XCTAssertTrue(until(2) { moved.frame.maxX <= next.frame.minX }, "\(moved.frame), \(next.frame)")
         moved.rightClick()

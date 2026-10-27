@@ -158,7 +158,7 @@ private struct HoverPanel<Panel: View>: ViewModifier {
     }
 
     /// Over the open panel by its frame: a busy app runs the panel's hover late, after the trigger's grace or a
-    /// click in it, which then closed it and went to the view under it (CI 40319783362).
+    /// click in it, which then closed it and went to the view under it (on CI).
     private var pointerInPanel: Bool {
         guard open, let window, let height = window.contentView?.bounds.height else { return false }
         let point = window.mouseLocationOutsideOfEventStream

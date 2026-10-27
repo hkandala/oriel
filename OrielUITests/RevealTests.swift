@@ -246,7 +246,7 @@ extension OrielUITests {
     }
 
     /// The card drew at its size ("loading" until then): one that still attaches resizes the pane after a fill's
-    /// lines, and bash redraws its prompt over the last one (CI 40319705774: 59, then the prompt).
+    /// lines, and bash redraws its prompt over the last one (CI: 59, then the prompt).
     func drawn(_ pane: String, within timeout: TimeInterval = 5) -> Bool {
         let card = element("pane.\(pane)")
         return until(timeout) { card.exists && card.stringValue != "loading" }

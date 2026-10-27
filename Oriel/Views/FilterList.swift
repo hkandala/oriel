@@ -64,8 +64,7 @@ struct FilterList: View {
     @State private var rowsHeight: CGFloat = 0
     /// Where the pointer was when the panel opened, or keys or the filter last moved the light: only a pointer
     /// moved since lights a row, not a row that scrolls under a pointer at rest. Not the last hover's place: a
-    /// busy app runs a row's hover late, with the pointer already on the next row, which then saw no move (CI
-    /// 40309820769).
+    /// busy app runs a row's hover late, with the pointer already on the next row, which then saw no move.
     @State private var pointer = NSEvent.mouseLocation
     /// The pointer lit the row: no scroll to it, as in a menu.
     @State private var pointed = false

@@ -262,8 +262,7 @@ public actor HerdrClient {
     }
 
     /// The one health check (machines, Health check): a snapshot read now and every 30 s, every 2 s while reads fail.
-    /// It also
-    /// catches events the stream missed, and finds a stopped session again once it answers.
+    /// It also catches events the stream missed, and finds a stopped session again once it answers.
     private func beat() async {
         repeat {
             // A 2 s tick, so a read that fails mid-wait (the session stopped) is retried soon.

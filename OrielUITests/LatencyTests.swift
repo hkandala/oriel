@@ -314,7 +314,7 @@ extension OrielUITests {
         // faster than the slide needs: the fingers' speed, or what lands in 0.3 s (an ease in and out's top speed is
         // 1.5 times its mean), with room for CI's frames; the session spring went up to 7.5k pt/s after a 625 pt/s
         // flick. Both by the slide's own frames and times, so a frame CI's VM skips does not count, and over two
-        // frames: CI's VM reported one frame's offset late, then the next caught up (40335707458: 50 pt in 28 ms, 111
+        // frames: CI's VM reported one frame's offset late, then the next caught up (50 pt in 28 ms, 111
         // pt in 21 ms, 3.3k pt/s over both, under a 4.9k bound); the spring's jump held over several frames.
         let landed = path.last { $0[0] <= shown }?[1] ?? path[0][1]
         XCTAssertEqual(landed, rest, accuracy: 2, "shown at \(Int(shown)) ms, before the pages arrived: \(swipe)")
@@ -343,7 +343,7 @@ extension OrielUITests {
     /// The ms of the slide's last frame before the show's. The window shows the session as the pages look arrived, not
     /// in the spring's tail (150–200 ms after they are within 2 pt): the show runs in the first frame after
     /// the spring is logically complete, so the frame before it is still near the page. Not the show's own time: a late
-    /// frame delays it (CI's VM drew none for 60 ms there, the show 80 ms after the page in 40283556151).
+    /// frame delays it (CI's VM drew none for 60 ms there, the show 80 ms after the page).
     private func beforeShow(_ path: [[Double]], _ shown: Double) -> Double {
         path.last { $0[0] < shown }?[0] ?? 0
     }

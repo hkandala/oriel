@@ -91,7 +91,7 @@ extension OrielUITests {
         XCTAssertLessThan(show.frame.width, card.width / 2, both)
         keepScreen("floating window over the main window")
         show.click()
-        // Not through `window`: XCUITest dropped that element once the window came forward (CI 40196255503). The
+        // Not through `window`: XCUITest dropped that element once the window came forward (on CI). The
         // card in the tab has no terminal, so this one is the floating window's.
         XCTAssertTrue(hasKeyboard("terminal.\(second)"))
     }
@@ -346,7 +346,7 @@ extension OrielUITests {
     }
 
     /// `open -g` of the pane's `oriel://float` URL with the app under test, through the helper, as pi-herd opens it
-    /// (XCUIApplication.open(_:) left the app not foreground for XCUITest, CI 40247366831); its floating window, once
+    /// (XCUIApplication.open(_:) left the app not foreground for XCUITest, on CI); its floating window, once
     /// its terminal has the keyboard.
     func floatByURL(_ session: String, _ pane: String) async throws -> XCUIElement {
         try await openFloatURL("session=\(session)&pane=\(pane)")

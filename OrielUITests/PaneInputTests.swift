@@ -51,7 +51,7 @@ extension OrielUITests {
     }
 
     /// A dragged file pastes its shell-escaped path, as a drop on Ghostty (herdr's usual terminal) does. The drag comes
-    /// from a window of the helper's: from Finder, now and then no drag started on CI (40304584542).
+    /// from a window of the helper's: from Finder, now and then no drag started on CI.
     func testDroppingAFilePastesItsPath() async throws {
         let (tab, pane) = try await newTab("drop")
         element("tab.\(tab)").click()

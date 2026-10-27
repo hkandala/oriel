@@ -234,7 +234,7 @@ extension OrielUITests {
     func testGoToDirectoryAndInsertPath() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         // Shown first: a click on the card of a tab not in view scrolled the strip to it, and the strip went back to
-        // the shown tab before the click landed (CI 40276544611).
+        // the shown tab before the click landed (on CI).
         let (tab, pane) = try await newTab("paths")
         element("tab.\(tab)").click()
         XCTAssertTrue(element("terminal.\(pane)").has(\.isHittable, true, within: 3))
@@ -308,7 +308,7 @@ extension OrielUITests {
         entry.menuItems["target"].click()
         try await expect("the pane right of the last card") { try await order(target) == [first, last, pane] }
         // Drawn there too before the click: herdr's order comes first, and a click on the card's earlier frame went to
-        // the last card (CI 40330239513).
+        // the last card (on CI).
         let (card, lastCard) = (element("pane.\(pane)"), element("pane.\(last)"))
         XCTAssertTrue(until(3) { card.frame.minX > lastCard.frame.maxX })
 

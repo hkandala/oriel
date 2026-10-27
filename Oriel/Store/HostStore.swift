@@ -217,8 +217,7 @@ final class HostStore {
     }
 
     /// Each tab's strongest agent, each workspace's state and the panes that need you or are done, kept here: views
-    /// that read every pane's state for them drew again on any agent's change, every capsule and sidebar row (phase
-    /// 29).
+    /// that read every pane's state for them drew again on any agent's change, every capsule and sidebar row.
     private func showStrongest() {
         for workspace in workspaces {
             for tab in workspace.tabs {

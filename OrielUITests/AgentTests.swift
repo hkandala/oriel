@@ -197,7 +197,7 @@ extension OrielUITests {
         let other = try await newTab("deploy").pane
         // A failure on the way must not leave a fold for the next tests: the folds outlive the app. Added after the
         // tabs' teardown blocks, so it runs before them: while the app took in their closes, the open sort menu
-        // closed by itself before its click (CI 40291250564).
+        // closed by itself before its click (on CI).
         addTeardownBlock { @MainActor [self] in unfold() }
         try await report(other, "blocked", agent: "claude")
         app.typeKey(".", modifierFlags: .command)

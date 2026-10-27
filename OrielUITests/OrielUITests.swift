@@ -39,8 +39,8 @@ final class OrielUITests: XCTestCase {
     /// Not async: a failure stops an async test inside the main actor's job, and an async tearDown then waits for
     /// the main actor until the 2-minute allowance runs out.
     /// The main window: the first match can be a floating window that a teardown block's close is closing, with no
-    /// frame (an INFINITY point, CI 40294678064). A warp, not XCUITest's hover: that first looks for a window over the
-    /// point, and a floating window gone meanwhile failed the test (CI 40358914225).
+    /// frame (an INFINITY point, on CI). A warp, not XCUITest's hover: that first looks for a window over the
+    /// point, and a floating window gone meanwhile failed the test (on CI).
     override func tearDown() {
         let main = app.windows.matching(NSPredicate(format: "identifier BEGINSWITH 'main-'")).firstMatch
         if main.exists {
@@ -240,7 +240,7 @@ extension OrielUITests {
             row.click()
         }
         // Hittable and at rest, not only there: the capsule slides in, and the bar lays out again after a workspace
-        // change; a click on an earlier frame went beside it (CI 40319705774).
+        // change; a click on an earlier frame went beside it (on CI).
         let capsule = element("tab.\(tab)")
         XCTAssertTrue(capsule.has(\.isHittable, true, within: 2))
         var frame = CGRect.null
@@ -297,7 +297,7 @@ extension OrielUITests {
 
     /// Waits for the element to take the keyboard; focus lands a moment after it appears.
     /// By one query a try: `exists` and then a focus read found a terminal gone between the two as its floating window
-    /// came forward, which XCUITest fails the test for (CI 40335691646, 40342555702).
+    /// came forward, which XCUITest fails the test for (on CI).
     func hasKeyboard(_ identifier: String, in window: XCUIElement? = nil) -> Bool {
         let focused = NSPredicate(format: "identifier == %@ AND hasKeyboardFocus == true", identifier)
         return until(2) { (window ?? app).descendants(matching: .any).matching(focused).firstMatch.exists }

@@ -44,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         // macOS asks the user once; later calls answer at once. The Dock badge shows only with `.badge` allowed.
         center.requestAuthorization(options: [.alert, .badge]) { _, _ in }
         // SwiftUI takes the `oriel://` URLs for its scenes, which take none (`handlesExternalEvents`): it dropped
-        // them (CI 40246598046).
+        // them (on CI).
         NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(openURL(_:reply:)),
                                                      forEventClass: AEEventClass(kInternetEventClass),
                                                      andEventID: AEEventID(kAEGetURL))

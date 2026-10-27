@@ -344,7 +344,7 @@ extension OrielUITests {
     /// The machine menu's Edit Remote Host ▸ ‹name›.
     private func editHost(_ name: String, menu: () -> Void = {}) {
         // The remote page connected and drawn first: opened while its cards loaded, the menu closed under XCUITest's
-        // click into its submenu (CI 40335691646, the recording).
+        // click into its submenu (the CI recording).
         XCTAssertTrue(drawn("w1:p1", within: 10), element("pane.w1:p1").stringValue)
         element("titlebar.machine").click()
         let edit = app.menuItems["Edit Remote Host"]
