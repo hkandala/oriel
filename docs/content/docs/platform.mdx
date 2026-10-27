@@ -15,8 +15,9 @@ description: "The codebase, dependencies, the strip, the tab bar and tests"
   between them per session, so two windows never fight over a pane (D66).
   The other windows are the floating panes' (D50), each owned by a main
   window.
-- Signing: App Sandbox off and Hardened Runtime on, shipped as a notarized
-  Developer ID download (it runs the `herdr` CLI and `ssh`).
+- Signing: ad hoc (`make app`), with App Sandbox off and Hardened Runtime on,
+  because it runs the `herdr` CLI and `ssh`. Notifications need a real signing
+  identity.
 
 ## Dependencies
 

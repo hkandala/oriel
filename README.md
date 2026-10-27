@@ -29,7 +29,7 @@ Liquid Glass window and lets you drive them with the mouse, the trackpad and the
 make setup      # Homebrew tools and the git hooks
 make install    # Release build copied to ~/Applications (make app: the app only; make dmg: a disk image)
 make run        # build and open the app on the default session
-make lint build test   # checks, the build, HerdrKit's tests
+make lint build test   # checks, the build, the unit checks
 make e2e        # the UI tests against throwaway herdr sessions (ONLY=… for some)
 ```
 
