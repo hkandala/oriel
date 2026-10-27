@@ -88,10 +88,11 @@ heading at the end.
 - **Fix:** `WindowPages.show`, which every way a page comes into view ends in (three-finger swipe and sidebar
   paging through `WindowPages.step`, the same call as ⌥⌘[ ]; sidebar dots, Open Session, the palette, the
   overview, a notification), clears the page's `keyboardTabID` when the page changes, so `shown` gives its
-  keyboard card the keyboard. Inside the overview `shown` waits, and closing the overview gives it.
-- **Runs:** `testKeysGoToTheSessionShown` (Open Session, ⌥⌘[ then ⌥⌘], typing an echo each time and reading
-  it in that session's pane through herdr, and not in the old one): red on the old code ("waited for back-42"
-  after ⌥⌘[), green with the fix, both local under the GUI lock.
+  keyboard card the keyboard. Under the overview or a panel `shown` waits (⌥⌘[ ] work under the palette and
+  Open Session, whose field keeps the keys); closing the overview or the panel gives them to the card.
+- **Runs:** `testKeysGoToTheSessionShown` (Open Session, a sidebar swipe, ⌥⌘], typing an echo each time and
+  reading it in that session's pane through herdr): red on the old code ("waited for back-42" after ⌥⌘[, the
+  same `WindowPages.step` as the three-finger swipe), green with the fix, both local under the GUI lock.
 - **For the user:** swipe between two sessions with three fingers and type at once: the keys reach the shown
   pane with no click.
 

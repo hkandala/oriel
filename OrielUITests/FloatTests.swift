@@ -230,10 +230,7 @@ extension OrielUITests {
         XCTAssertFalse(element("sidebar.dot.\(two)").exists)
         app.typeText("echo url-$((6*7))")
         app.typeKey(.return, modifierFlags: [])
-        try await expect("the keys in two's pane") {
-            let read = try await Self.call(two, "pane.read", ["pane_id": pane, "source": "visible"])["read"]
-            return ((read as? [String: Any])?["text"] as? String)?.contains("\nurl-42") == true
-        }
+        try await expect("the keys in two's pane") { try await read(pane, in: two).contains("\nurl-42") }
 
         // Again, with the main window in front, as `oriel://float/?…`: the same window comes forward. That path ("/")
         // once opened a workspace too, as a dropped folder (429a02c): checked after the next steps.

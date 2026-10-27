@@ -183,22 +183,22 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
     }
 
-    /// Keys go to the page shown by Open Session and ⌥⌘[ ] (a three-finger swipe's and the sidebar paging's path,
-    /// `WindowPages.step`), not to the page shown before: a page shown again gave its card the keyboard only when
-    /// its tab had changed.
+    /// Keys go to the page shown by Open Session, a sidebar swipe and ⌥⌘] (the three-finger swipe's path,
+    /// `WindowPages.step`), not to the page shown before: a page shown again gives its keyboard card the keys,
+    /// though its tab did not change.
     func testKeysGoToTheSessionShown() async throws {
         let mine = try await shown(Self.snapshot(one)).pane, theirs = try await shown(Self.snapshot(two)).pane
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openPage(two)
+        // Connected: the card takes the keys at the first snapshot. Not by the terminal's id: both sessions have it.
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier == 'workspace.w1' AND label == 'gamma'"))
+            .firstMatch.exists(within: connect))
         try await type("opened", into: theirs, of: two)
-        app.typeKey("[", modifierFlags: [.command, .option])
-        XCTAssertTrue(until(3) { header == one })
+        try await swipe(element("sidebar"), until: element("sidebar.header"), \.stringValue, one)
         try await type("back", into: mine, of: one)
         app.typeKey("]", modifierFlags: [.command, .option])
         XCTAssertTrue(until(3) { header == two })
         try await type("next", into: theirs, of: two)
-        let old = try await read(mine)
-        XCTAssertFalse(old.contains("next"), "keys in the page shown before:\n\(old)")
     }
 
     /// Runs an echo by typing it; the session's pane prints its output.

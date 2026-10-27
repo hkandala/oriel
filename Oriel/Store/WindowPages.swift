@@ -343,8 +343,8 @@ final class WindowPages {
         // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
         let kept = alive.union(withFloats.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
         terminals.show(shown, unvisited: unvisited, alive: kept, client: current.store.client)
-        // Not while the overview has the keyboard.
-        if !overview, !snapshot || !(window?.firstResponder is NSText) {
+        // Not while the overview or a panel (the palette, Open Session: ⌥⌘[ ] work under it) has the keyboard.
+        if !overview, !panelOpen, !snapshot || !(window?.firstResponder is NSText) {
             current.shown(alive: alive)
         }
         markShown()
