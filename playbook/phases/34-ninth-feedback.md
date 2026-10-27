@@ -63,7 +63,11 @@ heading at the end.
   options. Plugin pages allow WebAssembly (`'wasm-unsafe-eval'`). Chat shows no text that sends the user to a
   herdr command (no tooltip, no installer). Mock-up components became text. Build order, inspirations and
   sources stayed out.
-- **For the user:** read the Future work section on the docs site.
+- **For the user:** read the Future work section on the docs site. Two choices are yours: (1) for an agent
+  without herdr's integration, chat falls back to screen text silently; the other way is an **Install
+  integration** button (principle 3), which would drop "an installer for agent integrations" from Left out on
+  purpose. (2) The Changes panel and its git chip on cards are a proposal from Kero's research, marked
+  "proposed" until you agree.
 
 ### Lane C
 
