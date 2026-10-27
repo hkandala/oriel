@@ -229,7 +229,7 @@ heading at the end.
   `/tmp`, as macOS's `$TMPDIR` path would pass 80. The mark's value, not SSH variables, says remote: a remote Mac's
   server started without ssh has none, and its `pbcopy` would copy onto that Mac. The helper is one shared file in
   `herdr/`, so those two extensions now load from the repo, not alone from npm.
-- **Runs:** red on the old code 40492087778; green: RUNS_GREEN.
+- **Runs:** red on the old code 40492087778; green: push run 40494465206 (full run, on ab62903), chosen tests 40494518693.
 - **For the user:** pull pi-hkandala on the remote machine too, `/reload` pi there, then press `ctrl+shift+s` in pi
   in an Oriel card of that machine: the prompt lands on the Mac's clipboard. Other programs' OSC 52 copies (vim,
   Claude Code) still need ⌘C on a selection.
