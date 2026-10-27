@@ -241,3 +241,14 @@ heading at the end.
 - **For the user:** pull pi-hkandala on the remote machine too, `/reload` pi there, then press `ctrl+shift+s` in pi
   in an Oriel card of that machine: the prompt lands on the Mac's clipboard. Other programs' OSC 52 copies (vim,
   Claude Code) still need ⌘C on a selection.
+
+### Lane T
+
+- **Cause:** the title's 16 pt fade ended 12 pt from the capsule's end, under the × (whose 22 pt circle ends
+  28 pt from it), so the title showed at full strength up to the × glyph and ran into it.
+- **Fix:** while the × shows, the title's room ends 28 pt from the capsule's end, so it fades out before the
+  ×; otherwise it keeps its 12 pt and its normal fade. The same in Glass and Classic, light and dark.
+- **Runs:** no UI test: the title is part of the tab button's accessibility element, so no frame of it
+  reaches XCUITest; checked on Release screenshots, before (left) and after (right) in each look:
+  `/tmp/oriel-shots/34pill/compare.png` (full windows `before-*.png`, `after-*.png` there).
+- **For the user:** hover a tab with a long title: it fades out before the ×.

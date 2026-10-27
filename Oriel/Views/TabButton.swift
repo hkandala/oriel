@@ -53,8 +53,8 @@ struct TabButton: View {
                 }
             }
             .padding(.leading, 11)
-            // The title's fade ends under the ×'s 28 pt.
-            .padding(.trailing, keycap == nil ? 12 : keycapInset)
+            // The title fades out before the × (its 22 pt circle ends 28 pt from the end), else at 12 pt.
+            .padding(.trailing, keycap != nil ? keycapInset : hovering && !renaming ? 28 : 12)
             .frame(width: TabBar.width, height: TabBar.height, alignment: .leading)
         }
         // The selection is the tab bar's marker.
@@ -101,7 +101,7 @@ struct TabButton: View {
             }
         }
         .overlay(alignment: .trailing) {
-            // Over the title's fade, so it never changes the tab's width.
+            // Over the capsule, so it never changes the tab's width.
             if hovering, !renaming {
                 Button { page.close(.tab(tab.id)) } label: {
                     Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
