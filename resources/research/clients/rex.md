@@ -612,7 +612,7 @@ Hold the modifier for 700 ms and keycaps appear on the tabs. They fade in over 0
 |---|---|
 | Rex Server | "Running for 51m ⓘ", button "Stop Server..." |
 | Tailscale | "Sign in to Tailscale", "Access Rex securely from your other devices.", button "Sign In". After sign-in (inferred): "Serve over Tailscale", "Limit access to your Tailscale account", "Preferred Hostname". |
-| Client Info | Label (text field, value `hkandala-mbp`). "Remote Control: Let Rex and other clients perform actions in this app." (switch) |
+| Client Info | Label (text field, the Mac's name). "Remote Control: Let Rex and other clients perform actions in this app." (switch) |
 
 ### 11.3 Interface (inferred)
 
@@ -646,7 +646,7 @@ Settings with no page of their own: `Workspace.bouncesTabIcons`, `Workspace.hidd
 
 | Setting | What it does | Key |
 |---|---|---|
-| Dark theme, Light theme | A carousel picker per appearance | `Workspace.darkThemeID`, `Workspace.lightThemeID` (user: `merino-dark`, `merino-light`) |
+| Dark theme, Light theme | A carousel picker per appearance | `Workspace.darkThemeID`, `Workspace.lightThemeID` |
 | Use extended theme palette | "Disable this option to use a standard set of extended colors." | `Workspace.darkUsesExtendedThemePalette`, `Workspace.lightUsesExtendedThemePalette` |
 | New Dark Theme, New Light Theme, Edit Theme, Duplicate Theme, Delete Theme | Opens the theme customizer | `Workspace.customThemes` |
 | Import Theme | "Import a Ghostty or iTerm theme file". "Themes are matched to an appearance based on their background color." | |

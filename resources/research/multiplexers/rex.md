@@ -910,42 +910,22 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
 
 ### 12. The hosted web client (`rex.superlogical.com`)
 
-- We cannot get its JavaScript. Every path on `https://rex.superlogical.com` (including `/robots.txt`,
-  `/_next/static/` and `/favicon.ico`) redirects with 302 to Vercel SSO and then to the Superlogical Okta
-  (`superlogical.okta.com`, Vercel team `superlogical`). It is an internal deployment for the team only.
-  The Wayback Machine has no snapshots of it. We did not log in.
-- Public status: the privacy page (`/rex/docs/reference/privacy`) lists Rex for Mac, Rex for iOS and the
-  server, but no web client. The announcement says "Sessions can be accessed through the web and native
-  macOS/iOS applications". So the web client exists but is not public yet.
-- Rex.app references it:
-  - `https://rex.superlogical.com` is the default allowed origin.
-  - Developer settings → Web Client Origins: "Browser origins allowed to open Rex WebSocket streams. The
-    hosted Rex client is always allowed. Wildcards match subdomains, e.g. https://*.vercel.app. Changes
-    apply after Rex restarts." UserDefaults key: `rex.server.web-client-origin-patterns`. Swift type:
-    `RexMacOS.WebClientOriginsSettings`.
-  - Command palette action `session.open_on_web`, title "Open Session on Web…". The URL format is not
-    recovered.
-- How it uses the protocol. The browser speaks the same protocol as Rex.app: the control WebSocket and one
-  data WebSocket per terminal, with input as `client.key` / `block.event`. It uses only the two
-  WebSockets, because the HTTP endpoints send no CORS headers (§2 above). Inference: the API schema is compiled
-  into the bundle, and the client decodes `GHOSTSNP` with libghostty-vt compiled to WASM (upstream ships
-  WASM examples).
-- How a browser reaches a server. A local Mac server listens only on a Unix socket, which a browser cannot
-  reach. The privacy page says "The app starts it without any network listeners or Tailscale." So the
-  hosted client needs a TCP listener. Inference: it connects to `wss://rex.<tailnet>.ts.net/api/control`
-  with `Origin: https://rex.superlogical.com`. Tailscale gives that host real TLS, so `wss://` works from
-  an https page, and Tailscale identifies the user, so the same-principal rule for data tickets holds. A
-  `ws://localhost:7297` target also works from an https page, because browsers trust localhost. That case
-  needs `--extra-listen :7297 --allow-anonymous`.
-- Pairing (Rex.app `client.pair_device`, "Pair Device with QR Code") requires Tailscale. Strings: "Enable
-  Tailscale and wait for HTTPS to be ready in Rex", "Your device must be connected to the same Tailscale
-  network". Inference: the QR code holds the tailnet HTTPS URL, with no token or secret, because identity
-  comes from Tailscale.
-- Release feed: the appcast (`https://blob.superlogical.com/public/rex-app/preview/appcast.xml`) lists 15
-  preview builds, from 387 (2026-09-09) to 1347 (2026-10-21). Every entry is version 0.1.0, minimum macOS
-  15.0, with no feature notes. The posts of 2026-07-29 and 2026-10-05 say: Mac only for now. Servers exist
-  for Linux and Windows. iOS, Linux and Windows clients are "at varying stages". Rex is free and needs no
-  account.
+- It is an internal deployment: every path redirects to Vercel SSO and the Superlogical Okta, so its code was
+  not read. The announcement says "Sessions can be accessed through the web and native macOS/iOS
+  applications"; the privacy page lists only Rex for Mac, Rex for iOS and the server.
+- Rex.app allows it by default. Developer settings → Web Client Origins adds more ("Wildcards match
+  subdomains, e.g. https://*.vercel.app"; key `rex.server.web-client-origin-patterns`). The palette has
+  "Open Session on Web…" (`session.open_on_web`); its URL format is unknown.
+- It speaks the same protocol as Rex.app over the two WebSockets only, because the HTTP endpoints send no
+  CORS headers (§2). Inference: it decodes `GHOSTSNP` with libghostty-vt compiled to WASM.
+- A local server listens only on its Unix socket, so a browser needs a TCP listener. Inference: it connects to
+  `wss://rex.<tailnet>.ts.net/api/control` (Tailscale gives real TLS and the user's identity). A
+  `ws://localhost:7297` target also works from an https page, with `--extra-listen :7297 --allow-anonymous`.
+- Pairing ("Pair Device with QR Code", `client.pair_device`) requires Tailscale. Inference: the QR code holds
+  the tailnet HTTPS URL with no secret, because identity comes from Tailscale.
+- Clients: Mac only in public preview (version 0.1.0, minimum macOS 15.0, from
+  `https://blob.superlogical.com/public/rex-app/preview/appcast.xml`). Servers exist for Linux and Windows;
+  iOS, Linux and Windows clients are in progress. Rex is free and needs no account.
 
 ### Open questions
 

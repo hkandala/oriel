@@ -23,9 +23,9 @@ over SSH.
   so the Mac keeps control of the terminal.
 - Terminals get a key bar over the keyboard (libghostty-spm's
   `inputAccessoryItems`), for terminals only: Esc, Tab, Shift-Tab, a Ctrl
-  latch, arrows and Enter, as in every iOS herdr client. Heeler moved its row
-  out of `inputAccessoryView` into the normal layout, because keyboard mode
-  switches tore it down; check this first.
+  latch, arrows and Enter, as in every iOS herdr client. Check first that
+  keyboard mode switches do not tear it down, as they did in Heeler
+  ([patterns across clients](https://github.com/hkandala/oriel/blob/main/resources/research/clients/README.md#patterns-across-clients)).
 - Card buttons always show; there is no hover.
 - Tapping the title opens the machine, session and workspace switcher. The agents that
   need you are a bar under the navigation bar.
@@ -68,10 +68,9 @@ over SSH.
   into `authorized_keys`.
 - The first connect shows the host key's SHA256 fingerprint and asks. After
   that the key is pinned, and a changed key blocks the connection.
-- Pairing could follow the common pattern of iOS herdr clients: a QR code
-  printed on the machine with its addresses, the host key fingerprint and a
-  one-time `restrict,command=` bootstrap key that enrolls the device's own
-  public key.
+- Pairing can follow the common pattern of iOS herdr clients: a QR code on
+  the machine with a one-time bootstrap key that enrolls the device's key
+  ([patterns across clients](https://github.com/hkandala/oriel/blob/main/resources/research/clients/README.md#patterns-across-clients)).
 - The phone reaches a Mac like any SSH machine: turn on System Settings ›
   General › Sharing › Remote Login, then add the Mac by its Tailscale or LAN
   name.
@@ -110,10 +109,10 @@ A small test build checks Citadel's exec channels before any iOS work:
   while the app is closed need a push relay: a small stateless server that
   forwards encrypted payloads to Apple's push service. It must exist because
   Apple's push service needs the developer's `.p8` key, which cannot ship in
-  the app. Heeler's design is the best found: a stateless Worker as the relay,
-  a herdr plugin `[[events]]` hook on the machine as the trigger (no daemon),
-  and end-to-end encryption with a key the app writes to the machine over
-  SSH.
+  the app. Follow Heeler's design: a stateless Worker as the relay, a herdr
+  plugin `[[events]]` hook on the machine as the trigger, and end-to-end
+  encryption with a key the app writes to the machine over SSH
+  ([patterns across clients](https://github.com/hkandala/oriel/blob/main/resources/research/clients/README.md#patterns-across-clients)).
 - Faking the `audio` or `voip` background modes to stay connected risks App
   Store rejection, so the app does not.
 
