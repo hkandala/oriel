@@ -16,17 +16,22 @@ extension OrielUITests {
     }
 
     /// An OSC 52 write in the pane (what vim's "+y, pi's copy key and an agent's copy on select send) lands on the
-    /// Mac's
-    /// clipboard. It is sent again each second: the app's client of herdr may still be connecting.
+    /// Mac's clipboard. It is sent again each second: the app's client of herdr may still be connecting.
     private func expectCopy(from pane: String) async throws {
         try await waitForPrompt(pane)
-        // The user's clipboard, back after the test.
-        let saved = NSPasteboard.general.string(forType: .string)
+        // The user's clipboard, every type of it, back after the test.
+        let saved = (NSPasteboard.general.pasteboardItems ?? []).map { item in
+            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+        }
         addTeardownBlock {
             NSPasteboard.general.clearContents()
-            if let saved {
-                NSPasteboard.general.setString(saved, forType: .string)
-            }
+            NSPasteboard.general.writeObjects(saved.map { types in
+                let item = NSPasteboardItem()
+                for (type, data) in types {
+                    item.setData(data, forType: type)
+                }
+                return item
+            })
         }
         NSPasteboard.general.clearContents()
         for _ in 0 ..< 10 where NSPasteboard.general.string(forType: .string) != "oriel-osc52-42" {

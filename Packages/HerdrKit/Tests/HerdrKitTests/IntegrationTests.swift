@@ -138,17 +138,17 @@ func `a program's OSC 52 write comes out as an update`() async throws {
         let command = "printf '\\033]52;c;%s\\a' $(printf '\(text.replacingOccurrences(of: "42", with: "%s"))' "
             + "\(Array(repeating: "$((6*7))", count: 20).joined(separator: " ")) | base64)\r"
         struct Sent: Decodable {}
+        // Sent each second: a write before the clipboard client's hello goes to no client.
+        let sender = Task {
+            while !Task.isCancelled {
+                let _: Sent? = try? await client.call("pane.send_text", ["pane_id": pane.pane_id, "text": command])
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+        defer { sender.cancel() }
         let copied = try await withTimeout(.seconds(10), onTimeout: {}, { () -> String? in
-            var sent = false
-            for await update in updates {
-                if case .snapshot = update, !sent {
-                    sent = true
-                    // The watcher's hello may still be on its way: a write before it goes to no client.
-                    try await Task.sleep(for: .milliseconds(500))
-                    let _: Sent = try await client.call("pane.send_text", ["pane_id": pane.pane_id, "text": command])
-                } else if case let .clipboard(copied) = update {
-                    return copied
-                }
+            for await case let .clipboard(copied) in updates {
+                return copied
             }
             return nil
         })
