@@ -12,7 +12,9 @@ How CI runs, how to run part of it, and how to keep it green and fast.
   root: in another folder `vercel pull --yes` creates and links a new project.
 - **Machines.** `runs-on: xcode-27`: a VM with a 1x display (a 1024 × 674 pt screen), the US keyboard layout
   and Reduce Motion on. The account has 5 macOS runners. herdr is downloaded and checked by its SHA-256
-  (`HERDR_VERSION` in `ci.yml`).
+  (`HERDR_VERSION` in `ci.yml`). At 1x, cell sizes round: `stty size` can be one column narrower than the
+  card's grid, and a 1 pt font step can leave the column count the same, so grid tests allow one column. A
+  second ⌃⌘F during the full-screen animation is lost.
 - **Five jobs** (`test (0)` to `test (4)`), each a shard of the UI tests. `test (0)` also runs `make lint`,
   `make build`, `make test` (HerdrKit, the three-finger check, the acknowledgements check) and, after its UI tests,
   `make strip-check`. Every job starts CI's sshd on localhost for the remote-host tests
@@ -57,6 +59,8 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 2. Read the result before guessing: `gh run download <id> -p 'e2e-xcresult-*'` (one per shard), then
    `xcrun xcresulttool get test-results tests|activities --path …` for the failing step and its values, and
    `xcresulttool export attachments` for the screen recording (`ffmpeg -ss <s> -frames:v 1` gets a frame).
+   A recording gets a frame only when the screen changes (about 17 fps on CI, one every 0.3–0.6 s while a
+   test takes screenshots in a loop), so a one-frame jump shows only by luck: use `FrameProbe` for that.
 3. Think of CI's machine ([Layout](#layout)); Option sends Alt there.
 4. Give it 20 minutes from the logs. Then simplify the test or the feature and write it down, or hand it on.
    No debug branches.
@@ -87,3 +91,62 @@ xcrun xcresulttool get test-results tests --path <e2e.xcresult> | jq -r '.. | ob
 ```
 
 Round the means to whole seconds: `scripts/shard.py` reads integers.
+
+## Tried and dropped
+
+- `-parallel-testing-enabled`: it runs copies of the app on one Mac, and UI tests cannot share one mouse
+  and one bundle id.
+- Merging tests to share a launch: setUp is about 2.5 s of each test, so it saves little and costs
+  isolation.
+- Caching Swift packages: libghostty's 190 MB xcframework restored in 2 s, but build and setup stayed
+  65–105 s per job.
+
+## More GUI slots (not set up)
+
+Local UI runs take the GUI lock because XCUITest drives the real pointer. Nothing on the host isolates it:
+the runner asks `testmanagerd` to post HID events into the login session, so the pointer moves on every
+display, virtual ones (`CGVirtualDisplay`, BetterDisplay, DeskPad) too. A second macOS user has no display
+and no known XCUITest support. AX-only drivers and background computer-use tools (cua-driver, Codex,
+Claude) do not run XCUITest. Only another session isolates it: a VM or another Mac.
+
+If one slot is not enough, run each extra slot in a headless Tart VM:
+
+```sh
+brew install openai/tools/tart
+tart clone ghcr.io/cirruslabs/macos-golden-gate-base:latest oriel-vm   # 34 GB download, ~41 GB on disk
+tart set oriel-vm --cpu 4 --memory 8192 --display 1024x768             # CI's 1x screen
+tart run oriel-vm --no-graphics --no-audio --no-clipboard              # a background command
+VM=$(tart ip oriel-vm)                                                 # user and password: admin
+ssh-copy-id -i ~/.ssh/oriel_vm admin@$VM
+rsync -a /Applications/Xcode.app admin@$VM:/Applications/
+ssh admin@$VM 'sudo xcode-select -s /Applications/Xcode.app && sudo xcodebuild -license accept &&
+  sudo xcodebuild -runFirstLaunch && automationmodetool'   # must say "DOES NOT REQUIRE user authentication"
+scp ~/.local/bin/herdr admin@$VM:.local/bin/herdr      # CI's herdr version, on the guest's PATH
+tart stop oriel-vm && tart clone oriel-vm oriel-vm-clean  # an APFS copy to reset from
+```
+
+One run: build on the host, test in the guest.
+
+```sh
+xcodebuild -scheme Oriel -derivedDataPath $DD -destination platform=macOS build-for-testing
+rsync -a --delete $DD/Build/Products/ admin@$VM:runs/$NAME/Products/
+rsync -a --delete scripts/ admin@$VM:runs/$NAME/scripts/
+ssh admin@$VM "cd runs/$NAME && scripts/e2e.sh xcodebuild test-without-building \
+  -xctestrun Products/Oriel_*.xctestrun -destination platform=macOS -only-testing:… \
+  -resultBundlePath e2e.xcresult"
+rsync -a admin@$VM:runs/$NAME/e2e.xcresult /tmp/oriel-e2e-$NAME.xcresult
+```
+
+- **Rules.** One lock per VM (`/tmp/oriel-vm-1.lock`, `-2`), as the GUI lock. The guest runs its own herdr,
+  so the user's sessions are out of reach, and `osascript` is safe there. Reset a dirty guest from
+  `oriel-vm-clean`.
+- **Limits.** Apple allows 2 macOS VMs per host. After a few start and stop cycles the limit error can stay
+  until the host reboots (Tart #1217), so keep VMs running. Two 8 GB guests plus host builds make a laptop
+  swap: run one. The guest's macOS must not be newer than the host's.
+- **Risks.** The first UI run can show a privacy (TCC) prompt: allow it once over VNC (`open vnc://$VM`),
+  then clone. `screencapture` over ssh asks again every 30 days. The guest's GPU reports an old Metal
+  family: it renders, but timing is slower, as on CI. Some host and guest pairs draw no windows: check the
+  first screenshot. The guest's password is `admin` on the private `192.168.64.x` network: use its own key.
+- **Cost of more.** A Mac mini on the network (about $800–1,000) with the same setup adds two slots
+  (`ssh -J`). Rented: Scaleway M4 €149 a month, EC2 Mac $0.65–1.23 an hour with a 24-hour minimum, Cirrus
+  Runners $150 a month. Docker-OSX and Apple's `container` run no macOS guests.

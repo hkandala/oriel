@@ -2,8 +2,8 @@
 
 Goal: the design in `docs/content/docs/` and the interactive overview
 (`docs/public/overview/index.html`) describe Oriel with the decisions below. Docs and
-mock-ups only, except where marked. Evidence: `resources/research/plugins/plugin-panes.md`
-and `resources/research/plugins/remote-plugins.md`.
+mock-ups only, except where marked. Evidence: now in
+`resources/research/plugins/plugins.md`.
 
 Follow the ponytail skill for every change: change what the decisions require, delete what
 they remove, no new pages unless listed. Write in plain English (short sentences, define
@@ -29,7 +29,8 @@ decisions get "Changed by Dxx", new ones get new numbers.
    pane's machine (permissions as today). It works on iOS from day one. The built-in
    git history, diff and Markdown plugins are rebuilt on this model. The TypeScript + React
    kit drawn as native SwiftUI (today's plugin UI, API, packages pages) moves to Future work
-   as option (a), kept briefly with a link to `resources/research/plugins/plugin-ui-options.md`.
+   as option (a), kept briefly with a link to the research (now
+   `resources/research/plugins/plugins.md`).
 4. **Placeholder panes stay, created with `layout.apply` + `pane.move`.** A pane node
    `{label, cwd, command:[argv]}` creates the pane with its inert placeholder command and
    label in one call (in a temporary tab), then `pane.move` puts it in place; the temporary

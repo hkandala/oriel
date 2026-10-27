@@ -16,7 +16,8 @@ only: no new features, no new settings.
    with a blocked and a working agent, three splits, sidebar open and collapsed, zoomed card, light and
    dark, Glass and Classic. Take them from e2e attachments (keepAlways) so they can be re-taken on CI.
 3. **Compare.** For each element, put Rex and Oriel side by side (one composite image per element and
-   look, cropped to the element) and measure in points, with the same pixel tool phase 10 used (sRGB):
+   look, cropped to the element) and measure in points, in sRGB (see [lessons.md](../lessons.md),
+   "Convert a screenshot to sRGB"):
    - title row: height, traffic light position (inset from the left and the top), item gaps, button
      glyph size and weight;
    - tab bar: track height and radius, capsule height, radius and inset, tab width rules, dividers, icon

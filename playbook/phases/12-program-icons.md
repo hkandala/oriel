@@ -100,8 +100,7 @@ program icons.
   `ProgramIcon` decodes only `id`, `tile` and `match`.
 - **The app bundles `catalog.json` by a file reference** in the project (not a copy, not a Swift table): one
   source, read once into a global `programIcons`.
-- **Credits:** `Oriel/Credits.rtf` (the About panel reads it). RTF, not HTML: HTML import sets black text, which
-  vanishes in a dark About panel.
+- **Credits:** `Oriel/Acknowledgements.txt` (About opens it): every icon source with its license.
 - **Capsule accessibility value:** `"in view; icons: vim, sleep, nano"` (front first); `"icons: …"` when not in
   view. Two older tests now check the `in view` prefix.
 - **Stack layers:** each tile in front cuts a 1 pt ring (`destinationOut` in a compositing group) out of the

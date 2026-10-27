@@ -16,19 +16,29 @@ Problems that came back across phases, and the rule that stops each. How we work
 - **The accessibility tree misleads.** A container's or overlay's identifier leaks onto its children (put
   ids on leaf elements, before any `.overlay`); a hidden but kept view still has its ids; a window-sized
   element takes every hit test; a plain `Text` has an empty label (read its value); lazy stacks build only
-  visible rows. After a change to a shared surface (ids, keys, menu order, the chrome), grep the UI tests
-  for it and run the whole suite.
+  visible rows; a container's frame is the union of its children, and `.offset` or an overflowing child moves
+  a frame away from what is drawn (place with padding); `.accessibilityElement(children: .ignore)` needs
+  `.isStaticText` for its value to reach XCUITest. After a change to a shared surface (ids, keys, menu order,
+  the chrome), grep the UI tests for it and run the whole suite.
 - **Scope every query.** `app.windows.firstMatch` can be a tooltip, a hover card or a floating pane, and
   menu bar items share names with context menu items. Use `app.windows[id]` and the menu's own items.
 - **An accessibility client changes the app it watches**: it hides lazy-layout bugs and slows large UIs.
   Check rendering once with no client (`make strip-check`) and speed on a Release build.
 - **Know XCUITest's input gaps on macOS.** Drags need `click(forDuration:thenDragTo:)`; scroll is a wheel
   with no phases; a ⌘ key whose menu item is disabled is never delivered. Real trackpad gestures go
-  through the e2e helper as HID events.
+  through the e2e helper as HID events. It cannot read a menu checkmark (`isSelected` is false), hear an
+  announcement or drive the Dock menu: check those by hand (`AXMenuItemMarkChar`, a screenshot).
 - **Tests share defaults and saved windows with the user's Oriel (same bundle id).** Pin settings with
-  launch arguments, reset them in teardown, launch with `-ApplePersistenceIgnoreState`.
+  launch arguments, reset them in teardown, launch with `-ApplePersistenceIgnoreState`. Saved windows live in
+  `$TMPDIR/dev.hkandala.oriel.savedState` (not `~/Library/Saved Application State`): a restore check starts
+  the app with `open`, attaches with `XCUIApplication(bundleIdentifier:)`, and deletes that folder after.
 - **Each test restores what it changes** (defaults, herdr focus, the pointer, leftover sessions) and reads
   fixture ids from herdr instead of assuming them; otherwise it passes alone and fails in its shard.
+- **Convert a screenshot to sRGB before you read its pixels.** Screenshots come in the display's profile
+  (Display P3, "Color LCD"):
+  `sips -m "/System/Library/ColorSync/Profiles/sRGB Profile.icc" in.png --out out.png`. A screenshot's size is
+  in pixels (divide by `backingScaleFactor`). Glass colors depend on the wallpaper: compare Glass looks on one
+  desktop. `ImageRenderer` in a `swiftc` script measures a view's pixels without the app.
 - **Never assert wall-clock time.** In unit tests compare against a ten times larger input or count the
   work.
 
@@ -45,7 +55,8 @@ Problems that came back across phases, and the rule that stops each. How we work
 
 - **Spike each herdr call in the exact shape the code sends, and check its side effects** on focus, folders
   and defaults: `pane.swap` moves focus despite `focus:false`; `pane.move` without a target splits the
-  focused pane; some calls write outside the throwaway session. Trust the spike over the design pages.
+  focused pane; some calls write outside the throwaway session (`worktree.create` writes to
+  `~/.herdr/worktrees/`, so tests never call it). Trust the spike over the design pages.
 - **herdr ids repeat:** tab ids (`w1:t1`) across sessions, session names across machines. Key state by
   (machine, session, id).
 - **Validate outside input before it reaches argv or a shell:** `oriel://` URLs, herdr metadata, dropped
@@ -73,10 +84,18 @@ Problems that came back across phases, and the rule that stops each. How we work
   responder set during an update is undone (take focus on the next run-loop turn); a `@State` initializer
   runs again on every parent rebuild (no side effects in it); the menu bar refreshes only when the focused
   value changes.
+- **SwiftUI layout traps:** `background(alignment:) { A; B }` centers B in A (use an explicit `ZStack`); a
+  `TextField` inside a `Button`'s label never takes the keyboard; a `Menu` label of two `Image`s is two
+  accessibility elements with one id (one `Text` with both images is one); `ScrollViewReader.scrollTo(id)`
+  picks the first view with that id; a `Menu` with `.menuStyle(.button)` has an empty XCUITest label.
 - **Measure before you optimize.** Observation notifies on in-place edits that change nothing;
   `allowsHitTesting` and per-move `@State` re-run whole subtrees; hidden views still lay out. Tools: one log
-  line, an in-app frame probe, `sample` on the running app, xctrace Animation Hitches on a Release build, a
-  tiny probe app, the user's capture read frame by frame.
+  line, an in-app frame probe or scroll meter, `sample` on the running app, a tiny probe app, the user's
+  capture read frame by frame; memory and CPU with `footprint <pid>` (it leaves purgeable IOSurfaces out) and
+  `top -l 2 -s 10 -pid <pid>`. xctrace's Animation Hitches crashed on attach to Oriel. Measure keys and
+  speed on a Release build launched by hand (`open -n`), with Quartz events: `sample` triples a key's time
+  and XCUITest's accessibility snapshots dominate at scale. A Release build keeps code coverage counters on
+  (`ENABLE_CODE_COVERAGE`); they made no difference in a bench.
 - **Hover state is unreliable.** A view removed under the pointer gets no hover end, and a busy app runs
   hover late. Decide from the pointer's location when it matters.
 - **Every key has three possible owners: the menu, SwiftUI and libghostty.** libghostty takes every key it

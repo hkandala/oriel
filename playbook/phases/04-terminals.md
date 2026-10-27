@@ -75,7 +75,9 @@ Stage A (stream level, against throwaway sessions; no GUI yet).
   - Ctrl chords, named by the layout's letter (Dvorak, AZERTY), or by the key's US character
     when the layout's letters are not Latin (Ctrl+С on a Russian layout is Ctrl+C). Shift
     stays (phase 25): an app with the kitty keyboard gets Ctrl+Shift+C as its own key, and herdr
-    sends Ctrl+C's byte to a legacy app;
+    sends Ctrl+C's byte to a legacy app (with kitty flag 1, ⌃⇧S is `CSI 115;6u`; flag 7 adds the
+    shifted key, `115:83;6u`). Left to herdr: a legacy app's ⌃⇧[ is `CSI 91;6u`, not ESC (herdr maps
+    only `ctrl+[`);
   - macOS line editing that `keybind = clear` took from libghostty: Cmd+←/→/⌫ → Ctrl+A/E/U,
     Option+←/→ → Alt+B/F.
 
@@ -130,6 +132,13 @@ Stage A (stream level, against throwaway sessions; no GUI yet).
   it is in a window again: after a split the keys stay on the card that was split (herdr's
   `focus:false`). A new surface starts focused in libghostty (a filled cursor); the view
   resigns it at once unless it has the keyboard. Font: 13 pt.
+- **libghostty.** Why hidden cards drew and why tiles get no smaller surfaces: the docs' "What streams"
+  (talking-to-herdr) and "How the miniatures draw" (window). libghostty-spm frees a surface only through
+  `controller = nil`. A config reload resizes only surfaces that never changed their own size; ours never
+  do (`keybind = clear` removed Ghostty's ⌘+ and ⌘-), so the config's font size always wins.
+  libghostty-spm runs on macOS 13+, iOS 15+, Mac Catalyst and visionOS, ships weekly from Ghostty main as
+  `<major.minor>.<YYYYMMDD><NN>` (pinned exactly), and builds locally with `./build.sh --platforms
+  macos,ios` (zig 0.16) and `Package.local.swift`.
 - **e2e.** Each card's terminal view is an accessibility element `terminal.<pane_id>` whose
   value is its grid as `stty size` prints it, so tests compare it with the PTY. The helper's
   `POST /<session>/control` opens a second `control` (released at once) to tell a held pane

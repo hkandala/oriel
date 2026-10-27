@@ -86,3 +86,18 @@ dialogs, and a CI that is fast and never flaky.
   hovered a closing window, Finder drags replaced by the app's own drag source, a busy app running hover late
   (decide from the pointer's location), the relay closing stdin before its kill, and the quick-split bug
   (A | C | B | D) from reading the keyboard pane twice. Two full runs in a row green on the first try.
+
+### Left (seen, not changed)
+
+- **Lane K.** A stale disabled menu item still swallows its key while the key window's command is enabled;
+  the fix would take every key into the monitor and lose AppKit's layout-aware matching.
+  `testCommandDSplitsInTheKeyWindowOnly` is a guard only: green on the old code too (XCUITest waits for idle
+  between keys).
+- **Lane M.** A slide's landing is dropped if its view goes away within the 0.28 s (⌃⌘O, a three-finger
+  step); during a slide, keys still act on the previous tab or session.
+- **Lane O.** A key, wheel or three-finger session change in the overview still uses the `.session` spring,
+  with no hold on settles.
+- **Lane S.** `stripPage` takes whichever geometry arrives last.
+- **Integration.** After Esc on a close dialog, a pointer still on a capsule shows no × until it leaves and
+  comes back (AppKit's tracking). **For the user:** the machine menu, opened while a remote page's cards
+  still load, closes under the click (the first second after a remote launch).

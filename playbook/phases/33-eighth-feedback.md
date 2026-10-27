@@ -58,13 +58,27 @@ per hold, at most 10 minutes, released with a trap).
 
 ## Lane D: docs, plan and resources cleanup (capture H)
 
-8. **One dedicated agent** cleans up `docs/`, `plan/`, `resources/`, `README.md` and `AGENTS.md` (capture
-   H #1–#12): docs minimal and matching the app as built, no mock-ups; the phases kept but concise; one way
-   of working (phases or not, reviews, review agents, lanes, cleanups) that `AGENTS.md` points at; the
-   lessons in one file; `plan/archive/`, `plan/metrics/` and `ui-layout.md` gone; `ci.md` current only;
-   resources with no dates, inspirations moved to `~/Downloads/oriel-inspirations/`, metrics, mock-ups
-   and visual-compare deleted, research as a few flat folders of md files (one file per client); `plan/`
-   renamed (the user picked `playbook/`), last, with every link fixed.
+8. **One dedicated agent** cleans up `docs/`, `plan/`, `resources/`, `README.md` and `AGENTS.md`
+   (capture H #1–#12):
+   - **docs/:** minimal and matching the app as built. Remove every UI mock-up (the overview page,
+     `docs/public/mockups`, `docs/components/design`) and old or deprecated content.
+   - **plan/:** keep the phases (they track the whole build); make them concise and well structured.
+     Remove `plan/archive/` (fold anything still useful into the phases or the files below) and
+     `plan/metrics/`. Merge `workflow.md`, `execution.md`, `rules.md`, `standards.md` and the other small
+     files into one standard way of working: when a task needs phases (a complex project) and when not (a
+     small bug), the plan, review cycles, review agents, lanes, cleanups and the final pass. Move the
+     lessons from all phases into one lessons file. `ci.md`: current setup only. `ui-layout.md`: short, or
+     folded into the design pages. `AGENTS.md` points every new agent at the way-of-working file and the
+     phases, so the user never has to repeat it.
+   - **resources/:** current information only (no dates, no history). Keep `branding/`, `icons/` and
+     `sources/` (review them). Move `inspirations/` out of the repo to `~/Downloads/oriel-inspirations/`.
+     Delete `metrics/`, `mockups/` (and the scripts that build them) and `visual-compare/`.
+     `research/`: a few flat folders of md files only, no scripts, no spikes, no nested folders, no
+     repeated content. One `clients/` folder (web client notes merged in, one file per client), keep
+     `multiplexers/` (deduplicated), and move the `dev/` (GUI testing) and `herdr/` notes to where they
+     belong instead of their own folders.
+   - **The folder name `plan/`** does not fit; the user picks a new name (orchestrator's suggestions).
+     Rename it last, in one commit, and fix every link.
 
 ## Lane L: lessons from the sessions (feeds lane D)
 
@@ -132,9 +146,10 @@ per hold, at most 10 minutes, released with a trap).
   dated agent reports, and code comments naming phases.
 - **Fix.** `playbook/` (renamed from `plan/`): one `workflow.md` (the mechanics the user listed, the design
   bar), `lessons.md` (repeated problems only, lane L folded in), `ci.md` (current only), phases cut to items,
-  causes and decisions. Docs: mock-ups, 19 unbuilt pages and all history gone; one short Future work page.
-  Research: flat folders, one file per client, one plugins file. A comment pass replaced phase history in code
-  comments with the why. docs 96 → 47 files, plan 60 → 39, resources 278 → 164.
+  causes and decisions. Docs: mock-ups and all history gone. The 19 pages of unbuilt parts went too, cut to
+  one short Future work page; phase 34 put their designs back in `docs/content/docs/future-work/`. Research:
+  flat folders, one file per client, one plugins file. A comment pass replaced phase history in code comments
+  with the why. docs 96 → 47 files, plan 60 → 39, resources 278 → 164.
 - **Runs.** The comment-only commits end at 36b7c65; lane F proves the last code commit green.
 - **Reviews.** Three reviews of 4791e5f (workflow, lean, accuracy: 3 blockers, 42 shoulds) and a re-review
   (rv33-recheck: every item fixed but nits). Skipped nits: `clients/rex.md`'s section numbers keep their gaps

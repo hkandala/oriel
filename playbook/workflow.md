@@ -81,7 +81,7 @@ have to ask twice. Decide once, then send one message; when the user asks "why",
 ### The GUI lock
 
 XCUITest and manual runs take over the real mouse and keyboard of the Mac the user works on. One agent
-drives the GUI at a time:
+drives the GUI at a time ([more slots in VMs](ci.md#more-gui-slots-not-set-up)):
 
 ```sh
 ( mkdir /tmp/oriel-gui.lock || exit 1; trap 'rm -rf /tmp/oriel-gui.lock' EXIT

@@ -41,9 +41,9 @@ mock-ups, once phases 10–21 are done (D62, future work).
   (`.AppleSystemUIFontMonospaced`), which CoreText (and so libghostty) resolves to SF Mono. Every grid got
   a little narrower than before phase 11.
 - **⌘= is an `NSEvent` local key monitor, not the phase's invisible button.** The button's shortcut kept its
-  first action (see Learned); the monitor (in `OrielApp.init`) takes ⌘ (Shift allowed) plus "=" below 32 and
-  calls `stepFontSize(1)` before any view sees the key; at 32 the key goes on and beeps like the disabled
-  Bigger. **⌘= is not tested on CI; checked by hand** (this Mac, and the round 3 E2E reviewer: key 24 steps,
+  first action ([lessons.md](../lessons.md), SwiftUI lifecycle traps); the monitor (in `OrielApp.init`) takes
+  ⌘ (Shift allowed) plus "=" below 32 and calls `stepFontSize(1)` before any view sees the key; at 32 the key
+  goes on and beeps like the disabled Bigger. **⌘= is not tested on CI; checked by hand** (this Mac, and the round 3 E2E reviewer: key 24 steps,
   Caps Lock and keypad too). On CI, `testFontSizeKeys` failed at the ⌘= step in every run: CI's display is 1x,
   where 14 and 15 pt have the same cell width (48 columns), so the test's "both sides shrink" never held.
   Several fixes chased the wrong cause first (a stale button, a German layout, ⌘+ arriving as ⇧⌘=; a debug PR
@@ -63,7 +63,7 @@ mock-ups, once phases 10–21 are done (D62, future work).
   the Option-as-Alt idea for the Settings window (herdr takes `alt+<any ASCII character>`, tested).
 - **Menu: View ▸ Bigger (⌘+), Smaller (⌘-), Actual Size (⌘0)** after the appearance pickers, each disabled
   at its end of 8–32 (Actual Size at 13). Bigger and Smaller go through `PaneTerminal.stepFontSize`, which
-  reads the stored value and clamps (see Learned).
+  reads the stored value and clamps (SwiftUI keeps a shortcut's first action).
 - **`Commands.swift`.** `OrielApp.swift` passed SwiftLint's 400-line limit during the phase, so the menu
   commands and their focused values moved to their own file (a pure move, its own commit).
 - **The test writes the user's defaults and puts them back.** The UI tests share the app's defaults (same

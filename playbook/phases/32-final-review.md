@@ -29,8 +29,8 @@ full suite at the end.
   dialogs were not modal to VoiceOver.
 - **r-tests.** The e2e helper served one request at a time, so a profile taken beside swipes measured an idle
   app; now threaded.
-- **d-spec.** Pages still said "This Mac only" and had pre-relay plans; unbuilt parts are now marked (later
-  removed from the docs in phase 33).
+- **d-spec.** Pages still said "This Mac only" and had pre-relay plans; unbuilt parts are now marked (now the
+  docs' Future work section).
 - **r-terminal.** A dropped file name with a line break pasted as two lines; such paths are single-quoted.
 - **r-strip.** A duplicate pane id in herdr's tree crashed the app (`Dictionary(uniqueKeysWithValues:)`); the
   missing-Perl reason now shows under Reconnecting; notices are announced to VoiceOver.
@@ -45,3 +45,19 @@ full suite at the end.
   row green on the last code commit, the on-demand suite once.
 - **For the user (not changed).** Three store files sit at the 400-line limit (split when the next change needs
   room); Close Other Tabs within a round trip of ⌘T can leave the new tab open.
+
+### Left (seen, not changed)
+
+- **r-remote.** The sockets folder and askpass under `~/Library/Caches/oriel` are made once per launch
+  (`static let`): a cache cleaner that deletes them while Oriel runs breaks remote connects until a relaunch
+  (about 5 lines to make both per start). While a `dialog()` shows, the window's menu keys (⌘W, ⌘T, ⌘K)
+  still act on the page under it, and Tab can leave the dialog.
+- **r-herdrkit.** `TerminalStream.init` sets `onTermination` after its reader starts, so a stream that
+  closes in that instant never calls `terminate` (harmless). A login shell slower than 3 s at launch finds
+  no herdr until the next ask, 30 s later.
+- **r-store.** `Ahead.programs` asks 8 at a time beside `HostStore.asks` (8 too): a close during the first
+  snapshot's asks can make up to 16 herdr runs.
+- **r-chrome.** The always-on test values (`tabs.fades`, `app.badge`, `window.look`) are VoiceOver elements
+  in every window; hiding them needs a launch flag in the tests that read them. The IconButton label carries
+  its shortcut glyphs because `testChromeButtonsNameTheirShortcuts` reads it. Folded Agents groups of closed
+  workspaces stay in the defaults.

@@ -28,6 +28,16 @@ heading at the end.
    clipboard (OSC 52 read) stays off or asks, as Ghostty does by default. e2e: `printf` an OSC 52 write in
    a pane, locally and on CI's sshd (RemoteTests), and check `NSPasteboard`.
 
+## Lane X: restore lost knowledge (item 3)
+
+3. **Phase 33 cut too much; nothing essential may be lost, and the playbook stays lean.** From an audit of
+   55e4665 against main, put back as short current facts: parallel GUI testing (why XCUITest cannot be
+   isolated on the host, the Tart VM setup and run, the 2-VM limit, risks, cost); herdr API facts from the
+   phase spikes (and fix the `tab.move` "Refused" row); libghostty root causes; test and measuring how-tos;
+   CI ideas tried and dropped; the open known limits of phases 31 and 32; phase 33's item 8 word for word;
+   the branding similarity screen, the Developer ID plan, the reasons for left-out features, and stale
+   links in phases 08, 11, 12 and 22. Generic, repeated lessons only; no history or dated text.
+
 ## Findings
 
 ### Lane W
@@ -77,3 +87,20 @@ heading at the end.
   remote machine until herdr forwards OSC 52: select the text in the card instead (only what is on screen).
   A drag in Claude Code or pi now replaces the clipboard with what is drawn; locally the agent's own copy
   lands after it and wins.
+
+### Lane X
+
+- **Cause:** phase 33 cut whole research files and phase sections to make the playbook lean, and with them
+  facts no other file held.
+- **Fix:** each fact went to the one page that owns its topic, shortened and current: GUI slots in VMs and
+  CI ideas tried and dropped in `ci.md`; screenshot pixels, accessibility frames, XCUITest gaps, saved
+  state, measuring and SwiftUI layout traps in `lessons.md`; herdr's spike facts in `multiplexers/herdr.md`,
+  `drag-and-drop.mdx` (the `tab.move` row: another workspace is ignored, not refused), `herdr-calls.mdx`,
+  `status.mdx` and `talking-to-herdr.mdx`; libghostty causes in `talking-to-herdr.mdx`, `window.mdx` and
+  phase 04; open limits as "Left" lists in phases 31 and 32; reasons for left-out features and the
+  Developer ID plan in `future-work/index.mdx`; similar marks in `resources/branding/README.md`.
+- **Fix:** phase 33's item 8 is back word for word, and lane D's Findings say the future-work designs
+  returned. Stale links in phases 08, 11, 12 and 22 point at the files that hold the facts now.
+- **Decisions:** facts already on a page were linked, not repeated (the cursor shape in `settings.mdx`,
+  the direct-socket cost in `talking-to-herdr.mdx`); copy on select is lane C's. Left out as history or
+  noise: price tables beyond one line per option, run ids, per-phase metrics.
