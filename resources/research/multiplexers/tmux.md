@@ -244,29 +244,6 @@ The adapter must make agent status itself. Two ways, which can work together:
 1. Agents report: an agent hook runs `tmux set -p -t "$TMUX_PANE" @oriel_status working`. The adapter subscribes with `refresh-client -B 'st:%*:#{@oriel_status}'`. Latency is up to 1 s. herdr reports faster.
 2. The adapter detects, as herdr does: it polls `pane_current_command`, `pane_title` and `capture-pane` text for known agents.
 
-## 4. Mapping table
-
-| Oriel level or feature | tmux concept | API | Notes |
-|---|---|---|---|
-| machine | host | `ssh host tmux ...` | Same transport as herdr. |
-| session | server (`-L name`) | `ls $TMUX_TMPDIR/tmux-UID/`, `tmux -L name list-sessions` | A socket with no server is "not running". `start-server` exits at once unless a session exists or `exit-empty` is off. |
-| workspace | tmux session `$N` | `list-sessions -F`, `new-session -d -s -c`, `rename-session`, `kill-session` | No order. The adapter stores it in `set -s @oriel_order`. Names cannot repeat. |
-| workspace git info | none | `#{session_path}`, `#{pane_current_path}`, then `git` run by Oriel | Oriel already reads git itself. Linked-worktree groups go in a session option such as `@oriel_repo`. |
-| tab | window `@N` | `list-windows -a -F`, `new-window -d`, `rename-window`, `kill-window`, `move-window` | Index gives order. Indexes can have gaps. |
-| pane | pane `%N` | `list-panes -a -F`, `split-window`, `kill-pane` | Id survives moves across windows and sessions (tested). |
-| split tree with ratios | layout cells: n-ary rows and columns, sizes in cells | `#{window_layout}`, `%layout-change`, `resize-pane`, `select-layout` | The adapter turns an n-ary row into a chain of binary splits. Ratio = first child's cells / (parent's cells - 1). Old strings need tmux's 16-bit checksum. JSON strings (3.8, `new-layouts`) do not, and they include floating panes. |
-| agent status | none | `@oriel_status` pane option plus `refresh-client -B`, or detection by polling | Adapter-made. Up to 1 s per subscription. |
-| notifications | bell and activity flags, OSC 133 events, raw OSC 9/777 in `%output` | hooks, `window_bell_flag`, `%output` | No "done" or "blocked" model. |
-| drag and drop: move pane to another tab | `move-pane`/`join-pane -h|-v [-b]` | `join-pane -d -s %A -t %B -h` | Left and top drops work directly with `-b`. herdr needs a move plus a swap for those. |
-| drag and drop: move pane to another workspace | same commands across sessions | `join-pane` or `break-pane -t <session>:` | Id stays. herdr gives a new id. |
-| move pane to a new workspace | none in one step | `new-session -d`, `join-pane` or `break-pane` into it, then kill the placeholder pane | Two or three commands. |
-| rename | session and window names, pane title | `rename-session`, `rename-window`, `@oriel_label` pane option | A program can overwrite `pane_title`, so labels go in a user option. |
-| terminal byte stream | `%output` | control client per tmux session | Raw PTY bytes. Seed with `capture-pane -peqJN -S -n` and the state formats. |
-| multi-client control hand-off | no owner. Window size by `window-size` policy | client flags `read-only`, `ignore-size`, `refresh-client -C @N:WxH`, `list-clients` | Adapter-made. tmux cannot refuse a second writer. |
-| find / read pane text | grid capture | `capture-pane -p -J [-S -n] [-E n]`, `find-window` (visible text only) | Find in Oriel can also search libghostty's own scrollback. |
-| hover card text | grid capture | `capture-pane -p -J -S -<lines>` | |
-| scroll offset shared by clients | copy mode (per pane, separate from `%output`) | none needed | Oriel scrolls locally. |
-
 ## 5. Verdict
 
 tmux fits with an adapter. It does not fit as-is, and nothing in Oriel's design is impossible on it.

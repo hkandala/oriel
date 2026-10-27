@@ -23,17 +23,18 @@ wants one more backend, take tmux for reach, or tuios for the lowest cost. See
 
 ## The reports
 
-| File | Tool | Verdict | Method |
-|---|---|---|---|
-| [tmux.md](tmux.md) | tmux 3.8 | Fits with an adapter | Source at tag 3.8, man page, iTerm2 source, tests on throwaway `-L oriel-research-*` servers (killed) |
-| [rex.md](rex.md) | Rex 0.0.1792607779, API revision 5 | Fits with an adapter | Rex CLI help and docs, earlier research, tests on an isolated server with its own socket and state folder (stopped, deleted). The user's server was not touched. |
-| [tuios.md](tuios.md) | tuios at commit `5a2e8221` (v0.10.1 binary for tests) | Fits with an adapter | Source and docs, tests in a throwaway `tmux -L oriel-research-tuios` (killed) |
-| [../clients/kero.md](../clients/kero.md) | kero at commit `7e109f6` | Question B: ideas to take | Source only, not run |
+| File | Tool | Verdict |
+|---|---|---|
+| [herdr.md](herdr.md) | herdr 0.9.x | The backend Oriel uses: the baseline |
+| [tmux.md](tmux.md) | tmux 3.8 | Fits with an adapter |
+| [rex.md](rex.md) | Rex, API revision 5 | Fits with an adapter |
+| [tuios.md](tuios.md) | tuios 0.10 | Fits with an adapter |
+| [../clients/kero.md](../clients/kero.md) | kero | Ideas to take |
 
 ## Mapping table
 
 Each cell names the concept in that tool and how well it fits. "Adapter" means Oriel's adapter must
-fake or store it. Details and sources are in each report's mapping table.
+fake or store it. Each report has the sources and the gaps.
 
 | Oriel level or feature | herdr | tmux | Rex | tuios |
 |---|---|---|---|---|

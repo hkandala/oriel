@@ -262,26 +262,6 @@ This is a strong area of tuios (`docs/AGENT_STATE.md`, 5344 lines):
   lists approvals, questions, errors and finished turns, with `respond` and `reply-approval` to answer
   from a client.
 
-## 4. Mapping table
-
-| Oriel feature | tuios concept | API call | Notes |
-|---|---|---|---|
-| machine | a host where `tuios` runs | Oriel's ssh `Exec.run` | One daemon per user, or named servers. |
-| session | daemon (default or `--server NAME`) | list `servers/*/tuios.sock`; `tuios --server N daemon` | Guess: no verb lists named servers; the adapter lists the folder. |
-| workspace | tuios session | `list-sessions`; herdr `workspace.*` | No reorder. Close = `kill-session`. |
-| workspace git info | session folder's checkout | herdr workspace `worktree`; bridge `repo`/`branch` | Oriel keeps running `git status` itself for ahead/behind. |
-| tab | tuios workspace | `list-workspaces`; herdr `tab.*` | 9 slots by default. Selecting a tab in tuios is shared focus. |
-| pane | window | `list-windows`; herdr `pane.*` | Stable window id and PTY id. |
-| split tree with ratios | BSP tree per workspace | gui-bridge `state.trees`; `layout` ops `set-ratio`, `swap`, `move` | Not on the herdr or verb socket. Only for the `bsp` layout, and only for workspaces a client laid out. |
-| agent status | agent state | `agent-state` event; `list-windows`; herdr `agent_status` | Richer than herdr (errored, Inbox, approvals). |
-| notifications | `notification`, `bell`, `attention` | `subscribe` | OSC 9, 777, 99. |
-| drag/drop pane to another tab | `move-window` to a workspace | `move-window`; herdr `pane.move`; bridge `move` beside a pane | Placement beside a target only through the bridge. |
-| drag/drop pane to another workspace | `move-window` with `to_session` | `move-window`; herdr `pane.move` | Program keeps running; herdr pane id changes, `terminal_id` stays. New workspace: two steps. |
-| rename | names on window, workspace, session | `set-window`, `set-workspace-name`, `set-session-name` | All supported. |
-| terminal byte stream | PTY output ring + daemon emulator | `stream-pane` (`S`, `O`, `R`); bridge `SNAP`/`OUTPUT` | Raw program bytes after a VT snapshot. herdr's `terminal.attach` is not served. |
-| multi-client control hand-off | `window_size` policy + leases | `stream-pane` with or without `L`; `latest` policy | No exclusive owner. "Control follows the last input" is tuios's own default rule. |
-| find / read pane text | daemon emulator and history | `capture-pane`, `search-panes`; herdr `pane.read` | Also local search in the libghostty surface, which now holds real scrollback. |
-
 ## 5. Verdict
 
 Fits with an adapter. Two adapter designs are possible. I recommend design B.

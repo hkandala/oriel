@@ -93,27 +93,6 @@ Focus side effects (manual notes, not all tested): `swap_blocks` and `move_block
 and active window when the block had focus. Rex.app follows that shared focus. Oriel cannot avoid it for
 those two calls, the same as herdr's `pane.swap`.
 
-## 4. Mapping table
-
-| Oriel level or feature | Rex concept | API call | Notes |
-|---|---|---|---|
-| machine | host (server on a machine and account) | `server.status`, `hosts.list` | Socket path per machine from `rex server status --json` |
-| session | the one server | `server.status` | One entry. More servers need their own socket and state dir |
-| workspace | session | `session.list`, `session.create`, `session.destroy`, `session.move` | Ordered; labeled |
-| workspace git info | none | none | Oriel runs git itself, root = `process.foreground.cwd` of the first block. No worktree groups |
-| tab | window | `session.new_window`, `session.close_window`, `session.move_window` | Send `focus: false` |
-| pane | block | `session.new_split`, `block.close`, `session.describe_block` | `Pane.id == terminalID == block_id` |
-| split tree with ratios | tiled layer `layout` | `session.view`, `session.resize_pane` | Floating and detached blocks are outside the tree |
-| agent status | program status records | `terminal.program_status`, `program_status_changed`, `program_status_removed` | Only for programs that send OSC 7501. `error` has no Oriel status |
-| notifications | status changes, plus OSC 9/777 | the events above, `desktop_notification`, `bell` | No `completion_seq`. Use `updated_at` of a `done` record |
-| drag and drop: pane to another tab | move between windows | `session.move_block`, `session.swap_blocks` | Same session only. A move into its own tab is allowed (herdr refuses) |
-| drag and drop: pane to a new tab | none direct | `new_window` (placeholder), `move_block`, `block.close` | A placeholder shell starts for a moment |
-| drag and drop: pane to another workspace or a new workspace | none | none | Cannot be done: blocks never leave their session |
-| rename | labels | `set_label`, `set_window_label`, `set_block_label` | A block label cannot be empty |
-| terminal byte stream | data connection | `data.connect`, `/api/data` | GHOSTSNP snapshot, then raw bytes and Rex APCs. One stream per block per client |
-| multi-client control hand-off | block owner | `session.own_block`, `session.disown_block`, `block_owner_changed` | Per block, per client. Stale owners after `session.create` |
-| find in pane, read pane text | server emulator text, or the local surface | `terminal.format {format: "text"}` | Screen and scrollback together. The local surface has the real scrollback too |
-
 ## 5. Verdict
 
 Rex fits with an adapter. The adapter does these things on its own:
@@ -266,7 +245,7 @@ The full view shape is the render tree that a client draws:
     default.
   - `rex server logs --follow` tails the log. The app runs the server (pid 82856 at the time).
   - `--websocket-origin-pattern` lets the hosted web client (`https://rex.superlogical.com`, the app's
-    "Open Session on Web…") open browser WebSockets from another origin (the hosted web client, `../clients/rex.md`).
+    "Open Session on Web…") open browser WebSockets from another origin (Rex's hosted web client).
 - Listeners (`--listen` / `--extra-listen`):
   - `unix://…` (Unix socket)
   - `http` / `:7297`, which needs `--allow-anonymous`: no auth, full access

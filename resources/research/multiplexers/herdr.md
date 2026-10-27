@@ -123,6 +123,11 @@ What the bytes are (important):
 
 - **Plugins** (`docs/plugins.mdx`, `herdr-plugin.toml`): `[[actions]]`, `[[events]]` (hooks on event names; env `HERDR_PLUGIN_EVENT_JSON`), `[[startup]]`, `[[panes]]` (terminal-only entrypoints; placement `overlay|popup|split|tab|zoomed`), `[[link_handlers]]` (Ctrl-click URL regex → action, gets `HERDR_PLUGIN_CLICKED_URL`), `[[build]]`. The registry is `plugins.json` beside `session.json`. Linking a local folder (e.g. this user's `~/code/pi-hkandala/herdr/plugin`) works the same as `local-plugins/`. "The entire Herdr CLI is the plugin API." **"Native non-terminal plugin UI is not part of plugin v1."** Popups have no pane id.
 - **Browser panes:** herdr has **no** browser pane. `ogulcancelik/herdr-browser` is **deprecated**. It streamed Chromium frames through `pane.graphics.stream`, which was **removed** in 0.9 (`pane.graphics.{info,set,clear,stream}` now return unknown-method; "no replacement socket image API"; apps should emit Kitty graphics in their own output). The successor is zenbu-labs/terminal-browser (Kitty graphics in a terminal pane). ⇒ Our WKWebView-over-placeholder approach does not compete with any herdr feature.
+- **Popups:** herdr's one floating object. A terminal drawn as a centred box over the tab, at most one per
+  server. It is not a pane: no `pane_id`, not in `session.snapshot`, no events, not saved, no agent
+  detection. Its `terminal_id` shows only on the private client socket. The public API can only open it
+  (`plugin.pane.open placement:"popup"`, plugin entrypoints only) and close it (`popup.close`, no
+  parameters). "Overlay" and "zoomed" placements are normal split panes in a tab with its `zoomed` flag set.
 - **Agent state hooks:** `herdr integration install <agent>` writes agent-side hooks or plugins that call `pane.report_agent` / `pane.report_agent_session` (Claude: SessionStart → session id only, state from screen manifest; Codex `--no-daemon`: session + turn state; Pi/OpenCode/Kimi/Kilo/OMP: full state). Third-party agents can call these methods themselves (`docs/add-herdr-support.mdx`), including `resume_argv` so herdr re-runs them after a restart. `agent.view.set` lets a caller customize the TUI's agent list ordering and filtering.
 
 ---
