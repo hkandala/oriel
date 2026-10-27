@@ -40,7 +40,9 @@ herdr --session S session stop|delete S --json      # Open Session's Stop and De
 herdr --session S server        # remote: nohup, on request; This Mac: a launchd job (D47)
 ```
 
-Not herdr (a remote machine's commands, the SSH master, the relay, its login shell and the file drop upload, are in [The SSH connection](/docs/machines#the-ssh-connection)):
+Not herdr. A remote machine's commands (the SSH master, the relay and its login shell) are in
+[The SSH connection](/docs/machines#the-ssh-connection), and the file drop upload in
+[Drag and drop](/docs/ui/drag-and-drop#files-and-images). This Mac's:
 
 ```sh
 $SHELL -lic '…; /usr/bin/env; …; command -v herdr'  # This Mac, at launch and at most every 30 s while herdr is not found: the login shell's environment and herdr's path
