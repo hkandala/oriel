@@ -1,22 +1,22 @@
 # Seconds per UI test on CI, for scripts/shard.py: the mean of full runs 40422248643 and 40424246396 (passed tries).
-# The on-demand tests (Makefile ON_DEMAND) from green full runs.
+# The on-demand tests (Makefile ON_DEMAND) from on-demand run 40429001424.
 # Refresh: playbook/ci.md, Refresh the test times.
-310	testHundredsOfPanesStayQuick
-300	testOverviewOfManyTabsStaysBounded
-89	testATabComesIntoViewWithoutAFlicker
-65	testOverviewCostsAndLetsGoAfter
-55	testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar
+279	testHundredsOfPanesStayQuick
+173	testOverviewOfManyTabsStaysBounded
+81	testATabComesIntoViewWithoutAFlicker
+74	testOverviewCostsAndLetsGoAfter
+47	testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar
 41	testSelectedTextIsReadable
+39	testMemoryAndCPUOverManyTabs
 39	testTabAndOverviewSwipesFollowTheFingersAndLandSoon
-38	testMemoryAndCPUOverManyTabs
 36	testAPasswordHostAsksAndNeverRetriesByItself
 32	testLayoutMotionAnimatesWithoutBlanking
 30	testFloatingWindowInEachLook
 29	testTheRemoteHostDialogInEveryLook
 28	testCardsShowTheirTextOnEveryPath
 28	testMenuSwitchesTheLook
+27	testACardNeverShowsTheOverviewsSmallSnapshot
 26	testHoverCardBlursTheTextBehindIt
-25	testACardNeverShowsTheOverviewsSmallSnapshot
 25	testAddingAKeyHostOpensItInANewWindowWithoutAsking
 25	testAgentGroupsFoldAndStayFoldedAfterARelaunch
 25	testGoToDirectoryAndInsertPath
@@ -31,25 +31,25 @@
 20	testCommandDSplitsInTheKeyWindowOnly
 20	testContextMenuSplitsLeftRenamesAndMovesToNewTab
 20	testDraggingATabOntoAWorkspaceRowOrMenuRowMovesItWithItsLayout
-20	testScenesGlassLight
 19	testTabContextMenuRenamesAndMoves
 19	testTheCapsuleRestsOnTheTabShownHoweverItShows
 18	testDraggingATabOntoNewWorkspaceMovesItWithItsLayout
 18	testHeaderPlusAndRowMenuChangeHerdr
+18	testScenesClassicDark
+18	testScenesClassicLight
+18	testScenesGlassDark
+18	testScenesGlassLight
 17	testATabClickComesIntoViewWithoutAFlicker
 17	testAnEvictedCardComesBackWithItsPicture
 17	testCardsLookAlikeWithAndWithoutTheKeyboard
 17	testClosingAPageAndQuittingLeaveNoStreams
 17	testDropOnACardsCenterSwapsAndOnItsEdgePlacesBeside
 17	testOverviewLoadsEveryTileInTurn
-17	testScenesClassicDark
-17	testScenesClassicLight
 17	testSecondShortcuts
 16	testGlassCardsHaveABrighterTopRim
 16	testHoldingOverACapsuleSpringLoadsItsTabAndADropSplitsRight
 16	testKeyboardShortcutsPanelListsTheCommandsKeys
 16	testMoveToTabLandsBesideTheLastCard
-16	testScenesGlassDark
 16	testSwitchingTabsShowsTheirPageAtOnce
 15	testAboutWindowOpensTheAcknowledgements
 15	testClosingAFloatedPaneAsksInItsWindow
