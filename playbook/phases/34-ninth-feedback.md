@@ -76,6 +76,14 @@ heading at the end.
    works. Fix every way a session changes (three-finger swipe, sidebar paging, ⌥⌘[ ], Open Session, the
    overview), so the shown page's keyboard card takes the keys.
 
+## Lane T: the tab title fades under the close button (item 7)
+
+7. **"In the tab pill, the text overlaps with the close button. Add better shadowing on the text where the
+   close button is, so it doesn't look cut abruptly or overlapping"** (screenshot
+   `/tmp/oriel-shots/34pill/user.png`: "swebench autopilot setup" runs into the ×). When the × shows, the
+   title fades out before it (a gradient mask), in both looks and schemes; when the × is hidden, the title
+   keeps its full width.
+
 ## Findings
 
 ### Lane K
