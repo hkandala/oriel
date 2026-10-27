@@ -142,3 +142,34 @@ per hold, at most 10 minutes, released with a trap).
   first file an agent reads); the README keeps a short future-work list (the user asked for one).
 - **For the user.** Read README.md and `playbook/workflow.md`; `~/Downloads/oriel-inspirations/` has the
   inspirations, with the git-ignored video folders.
+
+### Lane F
+
+- **Cause, the remote drop test's tab click** (40424246396). After a one-tab row grew to two while shown, the
+  first capsule's accessibility element took the whole row's frame (240–681), so XCUITest's hit point for the
+  second capsule landed on its one uncovered pixel, the track's end. The drawing was right. Fix 42ed075: the
+  tabs' `HStack` is its own container (`.accessibilityElement(children: .contain)`). Test
+  `testCapsulesKeepTheirFramesWhenARowOfOneGrows`: red on the old code (40433850553, "(240, 37, 441, 34)"),
+  green with the fix. The drop test and `markAndFloat` select the new tab with ⌘2 (the tests are about the drop
+  and the float, not the click). Probed and clean: sidebar rows and strip pages that grow from one (40435022142).
+- **Cause, `testEachTabKeepsItsKeyboardCard`** (red in all three runs on 36b7c65). It counted `oriel-43` in the
+  shared pane w1:p2, and the new shard balance put an earlier remote test there that printed the same text. Each
+  now prints its own word (`relay-4x`, `tab-keys-43`).
+- **Cause, the file drag** (40436157187: "the press did not start one"). The helper slept 0.5 s for the icon
+  window before pressing on it. `file-drag` now prints "up" and the helper waits for that line (1ff3fcd).
+- **Deviation, a second window's height.** On CI's 674 pt screen, ⌘N's window came out 677 or 679 pt tall,
+  its bottom under the Dock's top edge. The first window comes out at 674. `window.mdx` says "at most the
+  screen". After 20 minutes without a root cause, the test allows −2…+8 pt (2c39408). Unproven guesses:
+  SwiftUI sizes the content before the compact toolbar settles, or the content's minimum height.
+- **Test times.** From full runs 40422248643 and 40424246396: the predicted shards are 461–464 s (the
+  measured ones had been 268–568 s). On-demand times come from 40429001424. `SHARD_HEAD=180` stays (shard 0's
+  checks took 140–241 s, less the 65–70 s its UI-test build saves).
+- **Runs on 1ff3fcd, the last code commit.** Push run 40440111719 green (11 min); dispatch 40440120461 green;
+  dispatch 40440111524 red only because Xcode's DTServiceHub crashed (SIGSEGV in a dyld callback) in the
+  teardown of `testCommandClickOnALinkOpensIt`, after its checks passed. On-demand 40429001424 green (on
+  a96e25f; later commits changed only tests and comments).
+- **Release smoke check** (`make app`, `oriel-dev-33final-smoke`; a Release XCUITest run for About, the
+  overview and the pill): all fine. `/tmp/oriel-shots/33final/`.
+- **Review.** l33-final-review, three rounds, all applied. Left as nits: `RevealTests`' WINCH trap stays in w1:p1;
+  `RemoteTests.swift` and `Sidebar.swift` are at 400 lines (split them before adding); `ci.md`'s "2300 s"
+  is now about 2130 s.
