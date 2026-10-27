@@ -59,7 +59,7 @@ Gaps and quirks:
 - Framing: **u32 little-endian length prefix + bincode-encoded Rust enums** (`src/protocol/wire.rs`; `MAX_FRAME_SIZE` 2 MiB, 32 MiB with graphics). `PROTOCOL_VERSION = 22`.
 - `ClientMessage` variants (order frozen for endpoint gen 1): `TerminalHello`, `Input{data}`, `ClipboardImage`, `Resize`, `Detach`, `AttachTerminal{terminal_id,takeover}`, `AttachScroll`, `ObserveTerminal{target}`, `ControlTerminal{target,takeover}`, …, `ClientShellHello{surface_size,…}`, `ClientShellResize`, `ClientShellPaneInput{pane_id,events}`, `ClientShellEndpointRequest{boot_id,request}` (JSON API tunnelled over this socket), …, `EndpointControl{kind,data}`.
 - `ServerMessage`: `Welcome{encoding: SemanticFrame|TerminalAnsi}`, `Terminal(TerminalFrame{seq,width,height,full,bytes})`, `Graphics`, `ServerShutdown{reason}`, `Notify`, `Clipboard` (OSC 52), `ClientShellSnapshot`, **`PaneSurface`** ("active-tab pane content rendered at a client-requested size"), `PaneSurfacePatch`, `SemanticNotification{kind: NeedsAttention|Finished|UpdateInstalled|Custom,…}`, `ClientShellEndpointResponseChunk`, `EndpointControl{kind,data}`.
-- Since 0.9, the TUI is a "client-owned shell" (`src/protocol/endpoint.rs`): the client draws the sidebar and tabs. The server sends a JSON snapshot (`shell.snapshot.v1`) and cell surfaces (`shell.surface.v1`) for **the client's one active tab**. The hello/welcome negotiate codecs, advertised `methods` and `capabilities` (`surface_interest`, `health_check`, `agent_view_projection`, `agent_completions`). A third party *could* implement this in Swift (bincode of Rust enums, cell grids), but it is a private, Rust-shaped protocol tied to one active tab per connection. **Not recommended.**
+- Since 0.9, the TUI is a "client-owned shell" (`src/protocol/endpoint.rs`): the client draws the sidebar and tabs. The server sends a JSON snapshot (`shell.snapshot.v1`) and cell surfaces (`shell.surface.v1`) for **the client's one active tab**. The hello/welcome negotiate codecs, advertised `methods` and `capabilities` (`surface_interest`, `health_check`, `agent_view_projection`, `agent_completions`). A third party *could* implement this in Swift (bincode of Rust enums, cell grids), but it is a private, Rust-shaped protocol tied to one active tab per connection. **Not recommended** for terminals; Oriel uses it only for the clipboard client's hello (2.3).
 
 ### 2.2 Documented bridge: `herdr terminal session observe|control`
 This is the supported way for third-party GUIs to get live pane content (`src/client/terminal_sessions.rs`). It is a CLI that speaks the binary protocol (handshake with `RenderEncoding::TerminalAnsi`, then `ObserveTerminal`/`ControlTerminal`) and converts it to NDJSON on stdout/stdin. Unix only (no Windows direct attach).
@@ -88,6 +88,44 @@ What the bytes are (important):
 - Only one controller per terminal. A second controller gets `ServerShutdown "already has an attached client; retry with --takeover"`, and with `--takeover` the old one gets `"terminal attach taken over"`. The full-screen sibling is `herdr terminal attach <terminal_id>` / `herdr agent attach <target>` (for humans; detach with `ctrl+b q`).
 - Observers that make no write progress for 30 s are dropped.
 
+
+### 2.3 Clipboard (OSC 52)
+
+How a program's copy reaches a client (herdr 0.9.5, spiked in throwaway sessions and over a local sshd):
+- The pane's ghostty-vt parses OSC 52 and keeps only writes (`take_clipboard_writes`; reads are answered with
+  nothing and clears ignored, `crates/ghostty-vt`). `src/pane.rs` sends `AppEvent::ClipboardWrite {content}`
+  (no pane id); `src/server/headless/notifications.rs:334` forwards it as `ServerMessage::Clipboard {data: base64}`
+  (tag 5) to `send_to_foreground_client` only. The JSON API maps it to nothing (`src/app/api.rs:112`), and
+  `terminal session control|observe` print only frames and the close.
+- **The client in front** (`foreground_client_id`) is a shell client with `surface_active`: set at its hello and
+  at every input, resize or surface activation (`promote_client_to_foreground`); when it leaves, the most recently
+  active shell client (`latest_shell_client`). Direct terminal clients never are.
+- **herdr's TUI** writes the text with `write_osc52_bytes` (`src/selection.rs`): with `SSH_CONNECTION`,
+  `SSH_TTY`, VS Code or WSL it prints OSC 52 to its terminal, else it uses the platform tool (`pbcopy`). So in
+  Ghostty a TUI run over `ssh` prints OSC 52 into ssh, and Ghostty writes the Mac's clipboard (its
+  `clipboard-write` is `allow` by default, `clipboard-read` is `ask`); a local TUI attached to a remote
+  machine (`remote-client-bridge`) gets the `Clipboard` message and runs `pbcopy`. Spiked: a TUI over a local
+  sshd printed `ESC]52;c;dmlhLXNzaC10dWk=` for a pane's printf.
+- pi copies with OSC 52 when `SSH_CONNECTION`, `SSH_CLIENT`, `MOSH_CONNECTION` or `PI_CLIPBOARD_OSC52` is set,
+  else with `pbcopy`. A remote server started over SSH has `SSH_CONNECTION`, so remote pi sends OSC 52.
+
+Every way a GUI on `terminal session control` could get the writes:
+
+| Option | Result | Cost and risk |
+|---|---|---|
+| (a) herdr's TUI in a hidden pty per session, with `SSH_CONNECTION` set so it prints OSC 52, read from its output | works (spiked) | needs a pty (`script` differs per OS), draws a whole TUI, plays the user's herdr sounds and desktop notifications on that machine, starts a stopped server; same front and size effects as (b) |
+| (b) a shell client of our own on the client socket: endpoint hello, read only tag 5 | **chosen**: works locally and over SSH (spiked, then built) | about 30 lines of Perl sent per run; endpoint generation 1 is kept for every later version (`src/protocol/endpoint.rs`). It is in front until a TUI is used, and as the only shell client it lays out every pane no stream holds at its size (120 × 40, herdr's no-client size); a pane's PTY goes there when its stream ends. Gets the focused tab's cells, dropped on the machine. No input, focus events (checked with `?1004h`), sounds or toasts |
+| (b') the same through `remote-client-bridge` | works | the bridge starts a stopped server and registers the SSH agent socket with it: avoided by connecting to the socket directly |
+| (c) shim `pbcopy`, `xclip`, `wl-copy`, `xsel` on the server's `PATH`, sending the text back over the relay | partial | only programs that call those tools (vim's `"+y`), only servers the app starts, and pi needs `SSH_CONNECTION` removed; misses every program that sends OSC 52 itself (agents, `printf`, Neovim, nested ssh). A second return path |
+| (d) herdr API, events, config, `pane.read` with escapes | none | no event carries the write; `pane.read` gives the parsed screen; config has only the copy toast's position |
+| (e) local programs | pi and most tools use `pbcopy` on This Mac, so local copy worked; an OSC-52-only program (a `printf`, ssh from a local card) failed locally too | (b) covers both |
+| (f) upstream: a `terminal.clipboard` line on control streams | the clean fix | below |
+| direct terminal attach (uherdr, herdr-world) or `observe` | none | herdr sends `Clipboard` only to shell clients |
+
+The upstream ask (f): carry the terminal id in `AppEvent::ClipboardWrite`, send `ServerMessage::Clipboard` also
+to the direct clients of that terminal (`terminal_stream_client_ids`), and have `terminal session control` print
+`{"type":"terminal.clipboard","data":"<base64>"}`. A GUI on control streams then gets each write from the pane it
+streams, with no shell client that moves the front or sizes panes. Then the clipboard client goes.
 
 ## 3. Data model
 

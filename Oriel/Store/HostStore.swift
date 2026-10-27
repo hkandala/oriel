@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import HerdrKit
 import Observation
 
@@ -167,6 +167,10 @@ final class HostStore {
                     notice = nil
                     await loadSessions()
                 }
+            case let .clipboard(text):
+                // As Ghostty does by default: a program may write the clipboard, never read it (herdr sends no read).
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
             case let .float(request):
                 WindowPages.float(session: request.session, pane: request.pane, machine: machine.id,
                                   over: windows.first)

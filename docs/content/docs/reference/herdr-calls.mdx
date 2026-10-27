@@ -38,6 +38,7 @@ herdr --session S terminal session control|observe <terminal_id> \
 herdr --session S session list --json               # each machine: the Open Session panel, restore, "not running"
 herdr --session S session stop|delete S --json      # Open Session's Stop and Delete; errors as JSON on stderr
 herdr --session S server        # remote: nohup, on request; This Mac: a launchd job (D47)
+perl -e <script> herdr S        # the clipboard client: a shell client on herdr's client socket
 ```
 
 Not herdr. A remote machine's commands (the SSH master, the relay and its login shell) are in
@@ -63,5 +64,5 @@ The UI tests call these on throwaway panes; the app never does:
 ## Never used
 
 `pane.focus`, `tab.focus`, `workspace.focus`, `agent.focus`, `pane.zoom`,
-herdr popups, herdr plugin panes (`plugin.pane.open`), herdr's private client
-socket.
+herdr popups, herdr plugin panes (`plugin.pane.open`). herdr's client socket
+only for the clipboard client's hello, never for terminals or input.

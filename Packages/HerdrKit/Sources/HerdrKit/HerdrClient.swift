@@ -40,6 +40,8 @@ public enum Update: Sendable {
     case error(HerdrError)
     /// Read off the event itself, not the next snapshot: one read sooner.
     case float(FloatRequest)
+    /// A program in the session copied this text with OSC 52.
+    case clipboard(String)
 }
 
 /// Talks to one herdr session: requests over `remote-api-bridge`, one events stream, paced snapshots. herdr runs
@@ -64,6 +66,9 @@ public actor HerdrClient {
     private var subscribed: [String]?
     /// The float requests' nonces (one per click).
     private var floated: Set<String> = []
+    /// The clipboard watcher (`watchClipboard`) and when it last started.
+    private var copying: Task<Void, Never>?
+    private var copyStarted: ContinuousClock.Instant?
 
     /// `timeout` bounds each request.
     public init(session: String, exec: any Exec, timeout: Duration = .seconds(10)) {
@@ -184,6 +189,7 @@ public actor HerdrClient {
                     let snapshot = try await snapshot()
                     lastRead = .now
                     out?.yield(.snapshot(snapshot))
+                    copy()
                     let agentPanes = snapshot.agents.map(\.paneID).sorted()
                     if out != nil, agentPanes != subscribed {
                         subscribe(agentPanes)
@@ -212,6 +218,22 @@ public actor HerdrClient {
         out = nil
         heartbeat?.cancel()
         events?.cancel()
+        copying?.cancel()
+    }
+
+    /// Opens the clipboard watcher after a good read, so a stopped session gets no run per beat; one that ended (herdr
+    /// restarted, or refused it) opens again at most every 30 s.
+    private func copy() {
+        guard out != nil, copying == nil, copyStarted.map({ .now - $0 >= .seconds(30) }) ?? true else { return }
+        copyStarted = .now
+        copying = Task { [self] in
+            if let writes = try? await watchClipboard() {
+                for await text in writes {
+                    out?.yield(.clipboard(text))
+                }
+            }
+            copying = nil
+        }
     }
 
     /// (Re)opens the one events stream. Every line on it means "read the snapshot again"; a pane's float request is
