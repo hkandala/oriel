@@ -554,11 +554,10 @@ once.
   the session's workspaces in the sidebar's order, 32 pt apart: each
   workspace's name (13 pt semibold, secondary), then its tabs as tiles in a
   grid, 2 to 4 a row (as many 340 pt tiles as fit), 16 pt apart. Wide
-  margins all round, as in the user's reference: 8 % of the window's width
+  margins all round: 8 % of the window's width
   left and right (at least 48 pt), 40 pt above and below, so the grid sits
   centered.
-- **Tile.** One card per tab (the card's fill, rim and edge), as in the
-  user's reference: at its top a 36 pt title row like a card header (the
+- **Tile.** One card per tab (the card's fill, rim and edge): at its top a 36 pt title row like a card header (the
   tab's icon stack, its title with the folder dimmed, and its status
   capsule), and under it, 8 pt in, a miniature of the page: the tab's cards in
   herdr's layout, at the page's real proportions (the strip's page as it
@@ -593,64 +592,15 @@ once.
 
 ### How the miniatures draw
 
-- They are the terminals themselves: each tile hosts the pane's own
-  libghostty view (the one its card shows) inside an AppKit view whose bounds
-  are the card's terminal size and whose frame is the tile's. AppKit draws
-  the view scaled (a layer transform), so libghostty keeps its size, grid and
-  pixels, and herdr's PTY keeps the card's size, never the tile's (a terminal
-  that streams for the first time opens at its card's size, as a visit
-  would). A window resize refits them 150 ms after it stops, as the cards do. No second surface, stream or copy;
-  while the overview shows, the strip does not, so a terminal view is still in
-  one place (D35). The strip's cards take their views back when it closes.
-- Live tiles are bounded: the overview is lazy by row, and only
-  the page in view's tiles in view stream and draw, whole tabs, the latest to
-  come into view first, plus the selected tab's, which streams anyway. At most
-  16 cards (6 on a remote machine, whose streams share the relay's one SSH
-  session, [SSH sessions](/docs/machines#ssh-sessions)) and 400 MB of tabs: a
-  live card keeps a swap chain at its card's full size, three times its pixels,
-  about 69 MB a tab on a full Retina window, so about 5 tabs there.
-  Tiles whose cards have no picture yet go first, so past the caps each tile in
-  view gets one in turn: once its cards drew, a tile lets go (keeping its
-  snapshot) if another waits. Nothing turns live or lets go while the grid
-  scrolls (each would make or free a surface and a stream on the main thread),
-  and a herdr snapshot keeps the live set; 150 ms after the scroll ends, or after the last
-  tile came into view, those in view turn live and those scrolled away let go.
-  During a swipe the next session's page shows snapshots until it lands: no
-  tile turns live or takes the pointer while the fingers hold the pages or
-  they slide. The page in view and its neighbors are laid out while the
-  overview is open (each grid stays lazy), so a swipe never makes a page. Those
-  are not visits: when the overview closes, a terminal shown only by it goes
-  back to where it was (its surface and stream let go, and it keeps no full
-  picture) and the recently shown set is unchanged (D46).
-- Every other tile shows a snapshot: whenever a terminal stops drawing (it
-  leaves the strip's view or a live tile), the app keeps a small copy of its
-  last picture, an IOSurface at the size its tile shows it, in pixels (about
-  1.3–1.7 MB for a full-window card on Retina), the latest kept
-  up to 100 MB. A tile scrolled into view shows its snapshot at once; turning
-  live, the snapshot stays over the terminal's new surface until that drew, so
-  it turns live in place, with no fade. A tile with a card that has no picture
-  yet (never shown, or its snapshot dropped) shows one spinner until its cards
-  drew. Until a window's overview laid out its tiles, snapshots are taken at a
-  third of the card. Out of the overview a card never shows a snapshot (smaller
-  than the card's pixels, it would show blurred): the card shows its fill and
-  fades in when its terminal draws. A full-size still (a card that grew while
-  away) still shows, unscaled.
-- Cost: bounded by the cap, not by the session's size. A live card keeps a
-  surface at its full card size (about 52 MB for a full-window card on a
-  Retina screen); the snapshots add at most 100 MB. At 200 tabs
-  and 272 panes (`scripts/stress.py`, `testOverviewOfManyTabsStaysBounded`;
-  this Mac, Retina, Release): 226 MB with the strip, about 1.2 GB with the
-  overview open and 1.2–1.7 GB scrolled through (by which tabs are live), 14–17
-  % CPU, at most 18 herdr runs. libghostty-spm takes its content scale only
-  from the window, so smaller surfaces for the miniatures would need a change
-  there.
-
-Options weighed: a second, small, observe-only surface per pane at a small
-font (a herdr run, a renderer and a font atlas per pane, and observe cannot
-resize, so the grid would not fit the tile); pictures read from the live
-surfaces on a timer (only the shown tab's draw; each other card would need a
-surface anyway); screen text (`pane.read`, no colors); SwiftUI's `scaleEffect` on the strip's page
-(SwiftUI does not scale an AppKit view: the terminal stays at full size).
+- Each tile hosts the pane's own terminal view, scaled by AppKit (a layer transform): libghostty keeps its
+  size and grid, and herdr's PTY keeps the card's size. No second surface, stream or copy; the strip's
+  cards take their views back when the overview closes.
+- Only the page in view's tiles in view stream and draw, once a scroll ends: at most 16 cards (6 on a
+  remote machine) and 400 MB of surfaces. Nothing turns live or lets go while the grid scrolls or a swipe
+  moves the pages. These are not visits (D46).
+- Every other tile shows a snapshot of its terminal's last picture at the tile's pixel size, the latest
+  kept up to 100 MB; a tile with no picture yet shows a spinner and goes live first.
+- A tile turning live keeps its snapshot over the new surface until it drew, so there is no fade.
 
 ## Floating pane
 

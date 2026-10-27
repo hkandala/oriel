@@ -20,15 +20,19 @@ Liquid Glass window and lets you drive them with the mouse, the trackpad and the
 - herdr 0.9.3 or later on each machine, found by `command -v herdr` in the login shell. The Mac needs it only
   for its own sessions.
 - Perl on remote machines (the SSH relay is a small Perl script; nearly every Unix has it).
+- Dependencies: libghostty-spm (a Swift package at an exact pin, which brings DisplayLink) and the system
+  `ssh`; nothing else ships in the app.
 - To build: Xcode 27 and Homebrew (`make setup` installs SwiftFormat, SwiftLint and xcbeautify from the
-  `Brewfile`).
+  `Brewfile`). The docs site needs Node 22 and pnpm 10.
 
 ## Build and install
 
 ```sh
 make setup      # Homebrew tools and the git hooks
-make install    # Release build copied to ~/Applications (make app: the app only; make dmg: a disk image)
-make run        # build and open the app on the default session
+make install    # a Release build copied to ~/Applications
+make app        # the Release app only
+make dmg        # a disk image of it
+make run        # build and open the app (SESSION=<name> for one session; agents: oriel-dev-* only)
 make lint build test   # checks, the build, the unit checks
 make e2e        # the UI tests against throwaway herdr sessions (ONLY=… for some)
 ```
@@ -39,7 +43,7 @@ Pass `DERIVED_DATA=/tmp/oriel-dd-<name>` when several checkouts build at once.
 
 Install herdr, open Oriel, and it shows This Mac's `default` session (starting it if needed). Open more
 sessions with Open Session (⌥⌘T), add a remote machine from the machine button, and press ⌘/ for the
-keyboard shortcuts ([all of them](docs/content/docs/ui/theme-and-accessibility.mdx#keyboard-shortcuts)).
+keyboard shortcuts ([all of them](https://oriel-docs.vercel.app/docs/ui/theme-and-accessibility#keyboard-shortcuts)).
 
 ## Future work
 

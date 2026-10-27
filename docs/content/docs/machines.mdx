@@ -92,7 +92,7 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
   It spawns each run as `sh -c <command>` and carries every run's stdin,
   stdout, exit status and stderr over its own stdin and stdout, as lines:
   - the app sends `o <id> <command hex>`, `w <id> <line>`, `c <id>` (close
-    stdin) and `k <id>` (close stdin, then SIGKILL by pid);
+    stdin) and `k <id>` (SIGKILL by pid, then close stdin);
   - each run's writes wait in its own buffer, so a run that reads nothing
     never holds up the others; its `sh` runs the command with `exec`;
   - the relay sends `l <id> <line>`, and `x <id> <status> <stderr hex>` once a
@@ -103,7 +103,7 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
     every run's stdin closes with it, so every run ends as before.
   - Perl is on nearly every Unix (Debian's `perl-base` is essential, macOS has
     it). The relay greets with `oriel-relay 1` within 10 s. On a machine where
-    it does not, every run fails with "Oriel needs Perl on ‹machine›: its relay
+    it does not, every run fails with "Oriel needs Perl on ‹target›: its relay
     did not start", and the next run tries again. The page shows Reconnecting
     with that text under it.
   - herdr's own transports do not fit: `herdr --remote` runs one
@@ -181,7 +181,7 @@ One loop per open session checks that it answers.
   cards gray out.
 - On a remote machine a failed check runs over a new connection when the old
   one is gone: the next run starts a new ControlMaster (ssh's keepalive ends
-  a dead one, [macOS](#the-ssh-connection)).
+  a dead one, [The SSH connection](#the-ssh-connection)).
 - **Automatic retries never prompt.** They run with `BatchMode=yes`. A host that needs a password, an OTP or a key prompt shows
   **Disconnected** with **Connect** and stops retrying; only that button may
   prompt.
@@ -192,7 +192,7 @@ One loop per open session checks that it answers.
 ## SSH sessions
 
 - A remote machine uses one SSH session, the relay's
-  ([macOS](#the-ssh-connection)), whatever it streams. This Mac uses no SSH.
+  ([The SSH connection](#the-ssh-connection)), whatever it streams. This Mac uses no SSH.
 
 ## Checks on connect
 

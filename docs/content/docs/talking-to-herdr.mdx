@@ -22,7 +22,7 @@ installed on the machine: `sshd`, POSIX tools and herdr do the work.
   3 s timeout, output parsed after a unique marker). `HERDR_*` variables are removed from
   child processes.
 - **A remote machine:** every run goes through the relay, one SSH
-  session on the host's ControlMaster ([macOS](/docs/machines#the-ssh-connection)). The
+  session on the host's ControlMaster ([The SSH connection](/docs/machines#the-ssh-connection)). The
   app starts it with a `Process` like this, the relay's script in the
   envelope:
   ```sh

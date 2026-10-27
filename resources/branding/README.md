@@ -9,9 +9,6 @@ rectangles, stepping down to the right from charcoal to gray to pearl white.
 | `oriel-macos-1024.png` | Flattened macOS master, 1024 × 1024 RGBA, rounded tile and transparent margin |
 | `../../Oriel/Assets.xcassets/AppIcon.appiconset/` | The app's shipping icon PNGs and catalog manifest |
 
-The catalog path above is relative to this directory. Xcode selects `AppIcon`
-in Debug and Release.
-
 ## Regenerate
 
 From the repository root, using Python 3 with Pillow installed:
@@ -40,5 +37,3 @@ These are static raster asset-catalog icons, not a layered Liquid Glass
 original square image when creating Icon Composer layers, where the system
 supplies the mask. See Apple's [asset catalog guide](https://developer.apple.com/documentation/xcode/configuring-your-app-icon)
 and [Icon Composer](https://developer.apple.com/icon-composer/).
-
-Similar stacked-card marks exist (FeedSquad, Interleave); none matches this one.

@@ -19,8 +19,8 @@ is empty.
 | herdr server not running on a remote machine | "‹session› is not running" and **Start ‹session›**, which starts it with nohup over SSH |
 | SSH auth failed | Disconnected, with ssh's message and **Connect** |
 | Host key changed | Disconnected: ssh's warning with the new fingerprint, and **Connect**, which fails the same way until the user fixes `known_hosts` |
-| Connection lost (Reconnecting) | "Reconnecting to ‹machine›" with a spinner over the cards, dimmed to 0.5, and herdr's or ssh's reason under it when the failure gives one (for example "Oriel needs Perl on ‹machine›"); the app retries every 2 s without prompts (a remote machine's SSH connection backs off from 2 s to 30 s), then reads a fresh snapshot ([Health check](/docs/machines#health-check)). Also when a page's first connect fails while its server runs |
-| Reconnecting needs a password, a code or a host key answer | "Disconnected from ‹machine›" over ssh's text, and **Connect**; the app stops retrying, and only this button may prompt ([macOS](/docs/machines#the-ssh-connection)) |
+| Connection lost (Reconnecting) | "Reconnecting to ‹machine›" with a spinner over the cards, dimmed to 0.5, and herdr's or ssh's reason under it when the failure gives one (for example "Oriel needs Perl on ‹target›"); the app retries every 2 s without prompts (a remote machine's SSH connection backs off from 2 s to 30 s), then reads a fresh snapshot ([Health check](/docs/machines#health-check)). Also when a page's first connect fails while its server runs |
+| Reconnecting needs a password, a code or a host key answer | "Disconnected from ‹machine›" over ssh's text, and **Connect**; the app stops retrying, and only this button may prompt ([The SSH connection](/docs/machines#the-ssh-connection)) |
 | Request timed out (10 s) | A write shows the notice "herdr did not answer", with no Retry. A read shows Reconnecting |
 | Pane in use on another device | the content (watching) and "In use elsewhere · Take Back" |
 | Session controlled in another window | cards dim a little; a bottom capsule "Controlled in another window" with **Take Back** ([Control capsule](/docs/ui/window#control-capsule)) |
