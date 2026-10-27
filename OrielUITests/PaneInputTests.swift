@@ -1,54 +1,7 @@
 import XCTest
 
-/// Right clicks, selections and drops in a terminal.
+/// Right clicks and drops in a terminal.
 extension OrielUITests {
-    func testSelectingTextCopiesIt() async throws {
-        let (tab, pane) = try await newTab("copy")
-        element("tab.\(tab)").click()
-        try await expectCopyOnSelect(pane)
-    }
-
-    /// herdr keeps a remote program's OSC 52, so a selection is the one copy that reaches this Mac.
-    func testSelectingTextOnARemoteMachineCopiesIt() async throws {
-        try await skipWithoutSSH()
-        relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let (tab, pane) = try await newTab("copy")
-        app.typeKey("2", modifierFlags: .command)
-        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
-        try await expectCopyOnSelect(pane)
-    }
-
-    /// A drag over the first row puts its text on the clipboard when the button comes up, as herdr copies, also in a
-    /// program that reads clicks (SGR mouse mode), which gets the press and release too.
-    private func expectCopyOnSelect(_ pane: String) async throws {
-        let terminal = element("terminal.\(pane)")
-        XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))
-        try await waitForPrompt(pane)
-        // The typed line says %s, so only the output matches.
-        try await send("clear; printf 'oriel-copy-%s\\n\\033[?1000h\\033[?1006h' $((6*7)); cat -v\r", to: pane)
-        try await waitFor(pane) { $0.contains("oriel-copy-42") }
-        try await expect("cat to run") { try await foreground(pane).contains("cat") }
-        // The user's clipboard, back after the test.
-        let saved = NSPasteboard.general.string(forType: .string)
-        addTeardownBlock {
-            NSPasteboard.general.clearContents()
-            if let saved {
-                NSPasteboard.general.setString(saved, forType: .string)
-            }
-        }
-        NSPasteboard.general.clearContents()
-        let corner = terminal.coordinate(withNormalizedOffset: .zero)
-        corner.withOffset(CGVector(dx: 2, dy: 6)).click(
-            forDuration: 0.2, thenDragTo: corner.withOffset(CGVector(dx: terminal.frame.width - 2, dy: 6)),
-        )
-        try? await expect("the row on the clipboard", times: 20) {
-            NSPasteboard.general.string(forType: .string) == "oriel-copy-42"
-        }
-        XCTAssertEqual(NSPasteboard.general.string(forType: .string), "oriel-copy-42")
-        try await waitFor(pane) { $0.contains("[<0;") }
-    }
-
     /// A right click opens the card's menu, also in a mouse app, as herdr opens its pane menu; ⌥ sends it to the app.
     func testRightClickInATerminalOpensThePaneMenu() async throws {
         let (tab, first) = try await newTab("menu")
