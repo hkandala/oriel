@@ -4,8 +4,9 @@ Rex is a terminal multiplexer for macOS and Linux servers by Superlogical. This 
 can Oriel's UI (machine > session > workspace > tab > pane) run on Rex, and at what cost? The second half
 is Rex Server's protocol, as a reference for an adapter. The Rex app itself is in `../clients/rex.md`.
 
-Verdict in one line: Rex fits with an adapter. Two Oriel features have no Rex equivalent: moving a pane to
-another workspace, and moving a pane to a new workspace. Everything else maps to one or a few Rex calls.
+Verdict in one line: Rex fits with an adapter. Moving a pane to another workspace or a new one, deleting a
+session, marking a pane shown and scrolling to an offset have no Rex equivalent. Everything else maps to one
+or a few Rex calls.
 
 ## 1. Rex's hierarchy and its names
 
@@ -121,7 +122,7 @@ Rex fits with an adapter. The adapter does these things on its own:
 | Method (`Multiplexer.swift`) | Rex | Status |
 |---|---|---|
 | `sessions()` | `server.status` | Adapter: one entry |
-| `stopSession()` | `rex server stop` | Yes. It ends every Rex session on the machine |
+| `stopSession()` | `server.stop` (local socket only) | Yes. It ends every Rex session on the machine |
 | `deleteSession()` | none | No. A Rex server keeps no saved session to delete |
 | `snapshot()` | `session.view` per session, plus `title`, `process`, `program_status` per block | Yes |
 | `updates()` | control events; read the view when `revision` is higher | Yes |
@@ -245,7 +246,7 @@ The full view shape is the render tree that a client draws:
   ```
   - `rex server start` is the idempotent detached form. The CLI starts a missing local server by itself by
     default.
-  - `rex server logs --follow` tails the log. The app runs the server (pid 82856 at the time).
+  - `rex server logs --follow` tails the log. Rex.app runs the server.
   - `--websocket-origin-pattern` lets the hosted web client (`https://rex.superlogical.com`, the app's
     "Open Session on Web…") open browser WebSockets from another origin (Rex's hosted web client).
 - Listeners (`--listen` / `--extra-listen`):
