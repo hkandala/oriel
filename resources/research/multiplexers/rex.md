@@ -99,8 +99,8 @@ Rex fits with an adapter. The adapter does these things on its own:
 
 1. It shows one Oriel session per machine (the server) and names it, for example "Rex".
 2. It treats the block labels `shell` and `Block xxxxxxxx` as "no label".
-3. It computes the neighbor of a pane from the view's `rect` fractions. Rex has no read-only neighbor
-   call (`session.focus_direction` moves focus).
+3. It needs no neighbor call: the app finds a pane's neighbor in the split tree it builds from the view
+   (Rex's `session.focus_direction` would move focus).
 4. It finds the split for `resize(heading, amount)` and `setRatio(path)` in the view tree, and sends
    `resize_pane` with one block from each side and the new absolute ratio.
 5. It makes "move to a new tab" from three calls with a placeholder shell.
@@ -121,19 +121,21 @@ Rex fits with an adapter. The adapter does these things on its own:
 | Method (`Multiplexer.swift`) | Rex | Status |
 |---|---|---|
 | `sessions()` | `server.status` | Adapter: one entry |
+| `stopSession()` | `rex server stop` | Yes. It ends every Rex session on the machine |
+| `deleteSession()` | none | No. A Rex server keeps no saved session to delete |
 | `snapshot()` | `session.view` per session, plus `title`, `process`, `program_status` per block | Yes |
 | `updates()` | control events; read the view when `revision` is higher | Yes |
 | `refresh()` | `session.view` | Yes |
 | `startServer(within:)` | `rex server start`, then wait for `server.status` | Yes |
 | `pane(_:)` | `describe_block`, `process`, `title` | Yes. `scroll` stays nil |
+| `mark(_:shown:)` | none found | No. Float requests (Oriel's D50) need another signal under Rex |
 | `program(_:)` | `process.foreground` | Yes. `script` given; no argv |
 | `terminal(_:cols:rows:observe:takeover:)` | `data.connect`, `own_block`, `terminal.resize` | Yes, but `TerminalStream` is herdr NDJSON frames today. It needs a new shape |
 | `screen(_:)` | `format text`, last `rows` lines | Adapter: no visible-only option |
 | `recent(_:lines:)` | `format text`, last N lines | Yes, up to 1 MiB |
 | `scroll(_:offsetFromBottom:)` | none | No. Scroll the local surface instead |
-| `neighbor(of:_:)` | rects from the view | Adapter |
 | `split(_:_:)` | `new_split {focus: false}` | Yes |
-| `swap(_:_:)` heading | neighbor from rects, then `swap_blocks` | Adapter |
+| `swap(_:_:)` heading | the neighbor from the split tree (`SplitNode`, built from the view), then `swap_blocks` | Yes |
 | `swap(_:with:)` | `swap_blocks` | Yes, also across tabs |
 | `resize(_:_:amount:)` | split from the tree, then `resize_pane` | Adapter |
 | `setRatio(tab:path:ratio:)` | split at the path, then `resize_pane` | Adapter |
@@ -153,8 +155,8 @@ Rex fits with an adapter. The adapter does these things on its own:
 | `sendKeys(_:pane:)` | `client.key`, one per key | Adapter: key name table |
 | `sendInput(_:keys:pane:)` | `client.action terminal.write`, then `client.key` | Yes, in order |
 
-Count: 32 rows for 30 members (`move(pane:to:)` has three rows). 22 work directly, 8 need adapter code,
-and 2 cannot work (`scroll`, `.newWorkspace`). `.tab` and `.newTab` also fail when the target is another
+Count: 34 rows for the 32 members of `Multiplexer.swift` (`move(pane:to:)` has three rows). 24 work directly,
+6 need adapter code, and 4 cannot work (`deleteSession`, `mark`, `scroll`, `.newWorkspace`). `.tab` and `.newTab` also fail when the target is another
 workspace.
 
 ## Rex Server protocol
@@ -837,23 +839,10 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
   - Client actions. Each client provides its own, and `client.inspect` / `rex -C <client> actions` lists
     them. Rex.app has 83, for example `session.select {session_id, window_id?}`, `pane.split {direction}`,
     `pane.resize {direction, amount?}`, `pane.send_key {key}`, `client.tab.goto {index}`,
-    `client.mode.enter {name, once?}`, `client.font.*`, `client.theme.change`, `client.palette.toggle`.
+    `client.mode.enter {name, once?}`, `client.font.*`, `client.theme.change`, `client.palette.toggle`. A web
+    client is expected to mirror them.
   - `init.lua` actions (`rex.action{name,title,run,args,category,keywords,repeats}`).
   - Block actions and methods (`com.superlogical.terminal.clear` / `reset` are actions with fixed args).
-- The action IDs in Rex.app (from its string table). A web client is expected to mirror them:
-  ```
-  client.window.new/.close/.fullscreen.toggle  client.close  client.palette.toggle  client.settings
-  client.diagnostics  client.version.copy  client.debug.copy  client.pair_device  client.update.accept
-  client.notice.dismiss  client.shortcuts.edit  client.agents.setup  client.appearance.switch_mode
-  client.config.copy_path  client.config.reload  client.find.open/.next/.previous  client.font.increase/.decrease/.reset
-  client.host.add/.switch/.remove  client.key.forward  client.mode.enter/.exit/.exit_all  client.prompt.next/.previous
-  client.sidebar.toggle  client.sidebar.activity.toggle  client.tab_style.toggle  client.theme.change/.import
-  client.tab.new/.close/.rename/.next/.previous/.goto/.move.backward/.move.forward/.move_to_new_window
-  session.new/.switch/.select/.next/.previous/.rename/.close/.refresh/.open_on_web
-  pane.split(.left/.right/.up/.down/.auto)  pane.focus(.left/.right/.up/.down)  pane.focus_next/.focus_previous
-  pane.move(.left/.right/.up/.down)  pane.move_to_new_tab  pane.move_to_tab  pane.zoom  pane.close  pane.balance
-  pane.resize  pane.send_key  pane.go_to_directory  pane.insert_path
-  ```
 - API:
   - `client.action {action, args?, session_id?, block_id?, origin?, servers?, server?}` runs a config or
     block action as this client.
@@ -866,8 +855,6 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
     `--fail-fast`, `--json`.
   - A script with `rex.on` handlers keeps running until `rex.stop(code)`, `--for`, or the destruction of the
     last session it listens to.
-  - Tested: `rex do -e 'local v=rex.session.view{}; return {rev=v.revision,n=#v.windows}' -s oriel-dev-a --json`
-    → `{"n":1,"rev":13}`.
 - Lua 5.1 (gopher-lua) API:
   - Keys and modes: `rex.bind`, `rex.unbind`, `rex.mode`, `rex.bindings`, `rex.modes`.
   - Actions: `rex.action`, `rex.invoke`, `rex.client.queue`.
@@ -880,7 +867,8 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
     `rex.args`, `rex.session_id`, `rex.block_id`.
   - Lua event names: `block_closed`, `com.superlogical.terminal.bell`,
     `terminal.program_status_changed`, ….
-  - The public docs have the full table of where each function works (`llms-full.txt` lines 2643–3109).
+  - The public docs (`GET /llms.txt` on the socket, or the website) have the full table of where each
+    function works.
 - Per-client scripts (`client.set_script`) bind keys for one client. Keys bound to Lua functions come back
   from `client.keymap` as `client.key.forward` bindings.
 
@@ -932,7 +920,7 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
 - Mapping choice: server = Oriel session, Rex session = workspace. The other choice (Rex session = Oriel
   session page) removes the workspace level, which Oriel's sidebar needs. Both lose cross-workspace moves,
   because blocks never leave a Rex session.
-- Guess: Rex sessions do not survive a server restart. The Linux docs say "A package upgrade restarts the
+- Rex sessions do not survive a package upgrade, and likely no server restart. The Linux docs say "A package upgrade restarts the
   service, which automatically ends every session on it" (`linux/server-modes.md`). herdr keeps its layout
   across restarts.
 - Rex.app claiming the blocks it shows is inferred, not observed.

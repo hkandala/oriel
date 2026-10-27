@@ -65,7 +65,6 @@ How the page reaches its machine:
 
 | Risk | Effect | Plan |
 |---|---|---|
-| A hung plugin page | its card stops responding | WebKit runs each page in its own process; the card offers **Refresh** |
 | Plugin HTML built from repository text | a script in a repository file runs in the plugin page | the Content Security Policy allows only the plugin's own scripts; core plugins insert text, not HTML |
 | A malicious plugin the user installed | anything the user can do on machines where its panes open | the consent sheet in plain words, the This Mac confirm, the source shown and pinned to a commit ([Plugin security](/docs/future-work/plugins/security)) |
 | Web view memory (120–200 MB each) | memory growth | at most 6 live web views, web pages and plugin cards together; evict on memory pressure |

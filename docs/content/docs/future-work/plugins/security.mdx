@@ -15,8 +15,8 @@ Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/p
 - **No script from content.** Every page gets a Content Security Policy whose
   `script-src` allows only the plugin's own files: no inline script, no
   `eval`. WebAssembly is allowed (`'wasm-unsafe-eval'`), so a plugin can
-  bundle a fast diff engine or syntax highlighter; it compiles only modules
-  from the plugin's own files and allows no JavaScript `eval`. Inline styles
+  bundle a fast diff engine or syntax highlighter. WebAssembly runs only
+  through the plugin's own scripts, and JavaScript `eval` stays blocked. Inline styles
   are allowed (`style-src 'self' 'unsafe-inline'`), so authors can use style
   attributes. So HTML that a plugin builds from repository text by mistake
   cannot run script. Plugins must still insert repository text as text, not

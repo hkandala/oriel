@@ -127,6 +127,14 @@ Rules:
   apart.
 - Pages are told the current `prefers-color-scheme`, which follows the
   app's appearance (D44).
+- The web view's user agent ends with `Version/18.0 Safari/605.1.15`
+  (`applicationNameForUserAgent`), so sites that sniff for Safari work.
+- When the page's process ends (`webViewWebContentProcessDidTerminate`),
+  the card loads the page again.
+- ⌘L focuses the address in the header; ⌘F finds in the page with
+  `WKWebView`'s find.
+- When the command palette's query is an address, its top row is "Open in
+  Browser": a web pane beside the keyboard card.
 - Page dialogs show as a sheet on the card, labeled with the origin.
 - Plain `http` needs `NSAllowsArbitraryLoadsInWebContent` and
   `NSAllowsLocalNetworking`.
@@ -143,7 +151,7 @@ Rules:
 | DNS rebinding against loopback forwards | a page reaches a forwarded dev server by another name | the per-machine loopback rules; accepted residual risk |
 | A local forward port is open to other accounts on the Mac | another account can reach the dev server | accepted for a single-user Mac |
 | A server with `AllowTcpForwarding no` | remote `localhost` pages cannot load | the card says so; Tailscale or LAN addresses still load; a bigger server helper later |
-| Web view memory (120–200 MB each) | memory growth | the cap of 6 live web views, shared with plugin cards; evict on memory pressure |
+| Web view memory | memory growth | the shared cap of live web views ([Plugin UI](/docs/future-work/plugins/plugin-ui#risks)) |
 
 ## Choices
 

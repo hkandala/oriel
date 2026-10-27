@@ -610,7 +610,7 @@ Hold the modifier for 700 ms and keycaps appear on the tabs. They fade in over 0
 
 | Card | Content |
 |---|---|
-| Rex Server | "Running for 51m ⓘ", button "Stop Server..." |
+| Rex Server | "Running for ‹time› ⓘ", button "Stop Server..." |
 | Tailscale | "Sign in to Tailscale", "Access Rex securely from your other devices.", button "Sign In". After sign-in (inferred): "Serve over Tailscale", "Limit access to your Tailscale account", "Preferred Hostname". |
 | Client Info | Label (text field, the Mac's name). "Remote Control: Let Rex and other clients perform actions in this app." (switch) |
 

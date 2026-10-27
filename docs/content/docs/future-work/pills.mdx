@@ -127,14 +127,12 @@ A small test build (half a day) passes all of these on macOS 26 first:
    window below.
 6. Pills show over a full-screen app, on every Space, in Mission Control,
    with Stage Manager on, and while the app is hidden (⌘H).
-7. `occlusionState` is not `.visible` for a main window on another Space or
-   a minimized one.
-8. With two displays, the pills follow the pointer's screen on each show.
-9. **Open in app** activates the app, brings the window forward at the
+7. With two displays, the pills follow the pointer's screen on each show.
+8. **Open in app** activates the app, brings the window forward at the
    pane, and hides the pills.
-10. VoiceOver reads "codex, needs you, infra" and offers the Open action.
+9. VoiceOver reads "codex, needs you, infra" and offers the Open action.
     Reduce Motion stops the slide.
-11. `.passive` notifications land quietly, and Activity Monitor shows no
+10. `.passive` notifications land quietly, and Activity Monitor shows no
     wake-ups from the app while the pills are idle.
 
 Avoid: autofocusing the reply field, a terminal stream in the card, animated

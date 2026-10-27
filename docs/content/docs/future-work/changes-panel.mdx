@@ -3,9 +3,10 @@ title: "Changes panel"
 description: "What the agents changed: a drawer with git diffs, a git chip on cards, and the last turn"
 ---
 
-Not built. This page is the design of a changes panel: a drawer beside the
-strip that shows what changed in the keyboard card's worktree, against three
-bases. The idea and its git commands come from Kero
+Not built, and proposed: the user has not agreed to it yet. This page is the
+design of a changes panel: a drawer beside the strip that shows what changed
+in the keyboard card's worktree, against one of three bases (the state the
+diff compares with). The idea and its git commands come from Kero
 ([research](https://github.com/hkandala/oriel/blob/main/resources/research/clients/kero.md#the-changes-panel-diff-viewer)).
 
 ## The drawer
@@ -14,8 +15,9 @@ bases. The idea and its git commands come from Kero
   right of the strip, outside herdr's split tree. It is not a card and not a
   herdr pane, like the Agents view. Dropping a card on it does nothing.
 - **What it shows:** the worktree of the keyboard card: the pane's cwd from
-  the snapshot, else the workspace's root. herdr gives no foreground process
-  cwd, so an agent that changes folder without a shell `cd` is not followed.
+  the snapshot, else the workspace's root. herdr's process info seems to
+  carry no cwd, so an agent that changes folder without a shell `cd` is not
+  followed.
 - **Bases:** Uncommitted (`HEAD` against now, untracked files included),
   Branch
   (`git merge-base HEAD refs/remotes/origin/<default>` against now) and Last
@@ -38,14 +40,16 @@ bases. The idea and its git commands come from Kero
   Expanding hidden context lines needs the whole file, so it is left out at
   first.
 - **Read only first.** No writes to the working tree in the first version.
-- Each device runs its own git calls on the machine. Nothing syncs.
+- Each device runs its own git calls on the machine. Nothing syncs. On an
+  iPhone the panel is a sheet opened from the card's git chip; on an iPad,
+  the same drawer.
 
 ## Git chip
 
 A small chip in the card header shows the branch and `+N −M` from
 `git diff --numstat -z HEAD`, one run per worktree root. A click opens the
 drawer. Workspace rows still show no changed-file count (D67); the chip is
-on cards.
+on cards. The chip needs the user's agreement before it is built.
 
 ## Last turn
 
@@ -79,13 +83,6 @@ on cards.
   since it was shown.
 - **Comments to the agent** on lines, sent with `pane.send_input`, kept in
   memory per window until sent.
-- **Faster git refresh:** stat `HEAD`, `index` and the branch ref each second
-  and run `git status` only on a change or an agent status change. On a
-  remote machine each stat is a round trip, so batch them in one `stat` run,
-  or keep today's poll there.
-- **Jump to the next agent that needs you** with one key, in the Agents
-  view's priority order. It selects workspace, tab and card in the app and
-  never calls herdr's focus methods.
 
 ## Order
 

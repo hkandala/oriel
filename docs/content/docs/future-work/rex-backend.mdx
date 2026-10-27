@@ -20,9 +20,9 @@ multiplexer for macOS and Linux servers by Superlogical. It has two parts:
   account and machine. It listens on a Unix socket (mode 0600): on macOS
   `~/Library/Application Support/rex/server.sock`, on a Linux server it can
   be `/run/rex/server.sock`. It keeps the shells alive and runs one
-  libghostty-vt emulator per terminal. Rex sessions do not survive a server
-  restart: a package upgrade on Linux ends every session (herdr keeps its
-  layout across restarts).
+  libghostty-vt emulator per terminal. Rex sessions do not survive a package
+  upgrade on Linux, and likely no server restart (herdr keeps its layout
+  across restarts).
 - **Rex.app:** a SwiftUI and AppKit client with its own libghostty-vt and
   Metal renderer.
 
@@ -85,7 +85,7 @@ The control socket opens with a `hello` (`api_revision: 4`,
 so Oriel needs no pacing beyond the event rules below.
 
 One client cannot open two data streams for one block: a second HELLO gets
-REJECT (`82 02`) or a close with 1008. Two Oriel windows on one session
+REJECT (`82 02`) and then a close with 1008. Two Oriel windows on one session
 ([Control between windows](/docs/talking-to-herdr#control-between-windows))
 share one stream per block, fanned out to both windows, or open one Rex
 client per window.
@@ -115,32 +115,13 @@ events to one reader.
 
 Every `Multiplexer` member, with its Rex call, is in the research's
 [method-by-method table](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/rex.md#multiplexerswift-method-by-method):
-22 members work directly, 8 need adapter code, and 2 cannot work. The
-adapter does these things on its own:
-
-1. It shows one Oriel session per machine (the server) and names it, for
-   example "Rex".
-2. It treats the block labels `shell` and `Block xxxxxxxx` as "no label". A
-   block always has a label; Rex cannot clear one.
-3. It computes the neighbor of a pane from the view's `rect` fractions. Rex
-   has no read-only neighbor call (`session.focus_direction` moves focus).
-4. It finds the split for a divider drag in the view tree, and sends
-   `session.resize_pane` with one block from each side and the new absolute
-   ratio.
-5. It makes "move to a new tab" from three calls: `new_window` with a
-   placeholder shell, `move_block` beside it, `block.close` the placeholder.
-6. It refuses moves to another workspace and to a new workspace. The UI does
-   not offer those drop targets for Rex.
-7. It keeps a "seen" marker per block, record id and `updated_at`, because
-   Rex has no `completion_seq`.
-8. It reads title, process and program status per block at snapshot time,
-   and keeps them up to date from block events.
-9. It translates logical keys (`ctrl+c`, `enter`) into Rex key objects (W3C
-   code in snake_case, `mods`). The CLI does this in `rex send-key`, but the
-   API takes only key objects.
-10. It handles stale owners ([Ownership](#ownership)).
-11. It fans one data stream out to every Oriel window that shows the block,
-    or opens one Rex client per window.
+of its 32 members, 24 map directly, 6 need adapter code (one session per
+server, default labels read as "no label", divider drags and moves to a new
+tab built from several calls, key names turned into key objects), and 4
+cannot work (`deleteSession`, `mark`, `scroll`, a move to a new workspace).
+The adapter's own work is listed there too
+([Verdict](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/rex.md#5-verdict)).
+Stale owners and stream fan-out are below ([Ownership](#ownership)).
 
 Rex has no absolute viewport offset (the find bar scrolls the local surface
 instead) and no visible-only text: the hover card's lines come from

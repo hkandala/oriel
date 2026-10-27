@@ -71,7 +71,8 @@ func dial(host: String, port: Int) async throws -> Channel
   `MaxSessions` (its limit on sessions per connection) does not count it. It
   needs `AllowTcpForwarding yes` on the server (the default). Check first that
   `-W` and `-O forward` work on a master started with
-  `ClearAllForwardings=yes` ([The SSH connection](/docs/machines#the-ssh-connection)).
+  `ClearAllForwardings=yes` ([The SSH connection](/docs/machines#the-ssh-connection);
+  [evidence](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#how-plugins-reach-a-remote-machine)).
 - `dial` needs a `Channel` that carries bytes; today a `Channel` gives lines.
 - A web card needs a local port, not a stream:
   [Remote localhost](/docs/future-work/web-page#remote-localhost).

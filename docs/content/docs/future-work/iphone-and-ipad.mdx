@@ -87,19 +87,21 @@ over SSH.
 
 ## Checks before building
 
-A small test build checks Citadel's exec channels before any iOS work:
+A small test build checks Citadel with the relay before any iOS work:
 
-- A call writes stdin and then closes it while the channel stays open for
-  the reply (herdrup writes stdin only inside `withExec`, and Heeler dropped
-  Citadel).
-- A long-lived channel streams stdin and stdout (`terminal session control`
-  and the event stream).
-- Closing a channel ends the remote command, and the server frees the
-  session.
-- A Secure Enclave P-256 key authenticates, and 8 parallel channels work.
+- One long-lived Citadel exec channel runs the relay: lines both ways, with
+  stdin open for the life of the connection, and binary data as base64
+  lines.
+- Every run of the app (calls, the event stream, `terminal session control`)
+  goes through that channel, and closing a run's stdin ends that run alone.
+- Closing the channel ends the relay and every run on the machine, and the
+  server frees the session.
+- A Secure Enclave P-256 key authenticates.
 - A `direct-tcpip` channel carries a web page: an in-app listener on
   `127.0.0.1:<P>` pipes each connection into its own channel, and a dev
   server loads in a web view at full speed.
+- After the background time ends, the app reconnects and reads a fresh
+  snapshot.
 
 ## Notifications
 
@@ -126,16 +128,9 @@ A small test build checks Citadel's exec channels before any iOS work:
   (Terminal, Agent, Web page, Git history, Diff, Markdown), inside the app.
   Downloaded code is an App Store review risk, so your own plugins on iOS
   come later.
-- The App Store rules that apply: guideline 2.5.2 forbids downloaded code
-  that "introduces or changes features". Guideline 4.7 allows HTML5 and
-  JavaScript mini apps and plug-ins: no native APIs without permission
-  (4.7.2), user consent (4.7.3), an index with universal links of the
-  software offered (4.7.4, which does not apply without a catalog) and age
-  gating (4.7.5). The Developer Program License Agreement §3.3.1(B) allows
-  downloaded interpreted code that does not change the app's primary purpose,
-  bypass OS security, or create a store. Apple has enforced 2.5.2 against
-  apps that build apps (Anything, Replit, Vibecode in early 2026); Obsidian
-  ships community JavaScript plugins on iOS.
+- The App Store rules (guidelines 2.5.2 and 4.7, the license agreement's
+  §3.3.1(B)) allow plugins as web pages under conditions; the evidence is in
+  [`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#plugins-on-ios).
 - The later path: a setting "Load plugins from my Mac", off by default. The
   phone reads `~/Library/Application Support/Oriel/plugins/` from the Mac
   over the SSH connection it already has, with one `tar` run and a safe tar
@@ -150,8 +145,7 @@ A small test build checks Citadel's exec channels before any iOS work:
 
 ## Platform
 
-- libghostty-spm supports iOS 15 and later, and can be built from source
-  (`./build.sh --platforms macos,ios`, with zig 0.16).
+- libghostty-spm supports iOS 15 and later.
 - One multiplatform SwiftUI app target (macOS 26, iPadOS 26 and iOS 26) and the same
   `HerdrKit` package. One minimum OS means no fallbacks.
 - iOS only: `CitadelExec`, the UIKit terminal subclass (it yields its pan

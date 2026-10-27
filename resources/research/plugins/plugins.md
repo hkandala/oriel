@@ -83,6 +83,17 @@ One context made an 8.6 MB process on a 2.0 MB base; 10 contexts made 31.7 MB. T
 react-reconciler 0.34.0, the system `jsc` with and without `--useJIT=false`, and a Swift memory probe) is in git
 at `55e4665:resources/research/plugins/plugin-system-v2-spike/`.
 
+## Plugins on iOS
+
+- App Store guideline 2.5.2 forbids downloaded code that "introduces or changes features".
+- Guideline 4.7 allows HTML5 and JavaScript mini apps and plug-ins: no native APIs without permission (4.7.2),
+  user consent (4.7.3), an index with universal links of the software offered (4.7.4; it does not apply
+  without a catalog) and age gating (4.7.5).
+- The Developer Program License Agreement §3.3.1(B) allows downloaded interpreted code that does not change
+  the app's primary purpose, bypass OS security, or create a store.
+- Enforcement: Apple pulled Anything and blocked Replit and Vibecode updates under 2.5.2 (early 2026). The
+  other way: Obsidian ships community JavaScript plugins on iOS.
+
 ## How plugins reach a remote machine
 
 | Option | Verdict |

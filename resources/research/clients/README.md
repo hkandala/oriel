@@ -77,7 +77,7 @@ the client reaches a herdr on another machine. Details and sources are in each c
 | roamgate | Bun + React PWA | client socket cell surfaces, xterm.js | API + client socket | `ssh -L` both sockets | transcripts (read only) | Web Push | no |
 | herdr-world | roamgate fork + pixi | as roamgate | as roamgate | as roamgate | as roamgate | as roamgate | no |
 | herdr-webui (alecuba16) | Rust Axum + JS | direct attach frames, wterm/Ghostty | API + client socket | none | jcode store only | browser only | no |
-| termote | Go + React PWA | `terminal session observe/control`, xterm.js | API socket + CLI | none | claude/codex JSONL | Web Push | tab URLs in localStorage |
+| termote | Go + React PWA | `terminal session observe/control`, xterm.js | API socket + CLI | none | claude/codex JSONL | Web Push | no |
 | herdr-remote | Python relay + PWA + SwiftUI | `pane read --format ansi` every ~3 s | CLI only | SSH per call (ControlMaster) | claude/pi/kimi JSONL | Web Push, Telegram, Live Activity | no |
 
 ## Patterns across clients
