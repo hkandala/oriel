@@ -68,6 +68,14 @@ heading at the end.
    token, send the text to Oriel through herdr metadata; Oriel reads the request from `pane.updated` and puts
    the text on the Mac clipboard. Works for local and remote machines. Both repos.
 
+## Lane K: keyboard follows a session swipe (item 6)
+
+6. **"When a session swipe happens, text input doesn't get active on the new active pane."** Two sessions,
+   one pane each; typing in session A, a three-finger swipe to session B shows B's pane, but typing gives the
+   error bell until a click on the pane: the keyboard stayed on session A's terminal. Swiping between tabs
+   works. Fix every way a session changes (three-finger swipe, sidebar paging, ⌥⌘[ ], Open Session, the
+   overview), so the shown page's keyboard card takes the keys.
+
 ## Findings
 
 ### Lane W
