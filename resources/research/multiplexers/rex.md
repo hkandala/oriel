@@ -764,7 +764,8 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
 
 - Feature query: `OSC 7501;? ST`. The server's reply was observed:
   `ESC]7501;?:states=idle,working,done,blocked,error:kinds=permission,question,auth ESC\`. The same literal
-  reply string is in Rex.app. The terminfo capability `Pst` advertises support.
+  reply string is in Rex.app. Spec revision 0.4 removed the terminfo capability (`Pst`); the query is the
+  only way to detect support.
 - Limits: 4096 B per sequence, `msg` ≤ 2048 B decoded, `title` ≤ 192 B, 256 records per terminal. The
   server's event text says 64 records (`evicted`).
 - Records: each report replaces its record. `working` and `blocked` are dropped when the program exits or a
@@ -830,8 +831,131 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
   - Dependencies: coder/websocket, gopher-lua, cobra, tailscale.com v1.102.3,
     `go.mitchellh.com/libghostty` 2026-10-14.
 
+### 10. Actions, `rex do` and Lua
+
+- Three kinds of action:
+  - Client actions. Each client provides its own, and `client.inspect` / `rex -C <client> actions` lists
+    them. Rex.app has 83, for example `session.select {session_id, window_id?}`, `pane.split {direction}`,
+    `pane.resize {direction, amount?}`, `pane.send_key {key}`, `client.tab.goto {index}`,
+    `client.mode.enter {name, once?}`, `client.font.*`, `client.theme.change`, `client.palette.toggle`.
+  - `init.lua` actions (`rex.action{name,title,run,args,category,keywords,repeats}`).
+  - Block actions and methods (`com.superlogical.terminal.clear` / `reset` are actions with fixed args).
+- The action IDs in Rex.app (from its string table). A web client is expected to mirror them:
+  ```
+  client.window.new/.close/.fullscreen.toggle  client.close  client.palette.toggle  client.settings
+  client.diagnostics  client.version.copy  client.debug.copy  client.pair_device  client.update.accept
+  client.notice.dismiss  client.shortcuts.edit  client.agents.setup  client.appearance.switch_mode
+  client.config.copy_path  client.config.reload  client.find.open/.next/.previous  client.font.increase/.decrease/.reset
+  client.host.add/.switch/.remove  client.key.forward  client.mode.enter/.exit/.exit_all  client.prompt.next/.previous
+  client.sidebar.toggle  client.sidebar.activity.toggle  client.tab_style.toggle  client.theme.change/.import
+  client.tab.new/.close/.rename/.next/.previous/.goto/.move.backward/.move.forward/.move_to_new_window
+  session.new/.switch/.select/.next/.previous/.rename/.close/.refresh/.open_on_web
+  pane.split(.left/.right/.up/.down/.auto)  pane.focus(.left/.right/.up/.down)  pane.focus_next/.focus_previous
+  pane.move(.left/.right/.up/.down)  pane.move_to_new_tab  pane.move_to_tab  pane.zoom  pane.close  pane.balance
+  pane.resize  pane.send_key  pane.go_to_directory  pane.insert_path
+  ```
+- API:
+  - `client.action {action, args?, session_id?, block_id?, origin?, servers?, server?}` runs a config or
+    block action as this client.
+  - `client.perform {client_id, action, args, timeout_ms}` asks *another* client, such as Rex.app, to run
+    one of its actions. It needs "Remote Control" on in the app. The other client answers through
+    `client_perform_requested` → `client.reply`.
+- `rex do`: `rex do NAME k=v…`, `rex do script.lua`, `rex do -e 'return rex.call("session.list")'`, or `-`
+  for stdin.
+  - Options: `--args JSON`, `-s`, `-b`, `--origin key|palette|api|cli`, `--action NAME`, `--all`, `--for D`,
+    `--fail-fast`, `--json`.
+  - A script with `rex.on` handlers keeps running until `rex.stop(code)`, `--for`, or the destruction of the
+    last session it listens to.
+  - Tested: `rex do -e 'local v=rex.session.view{}; return {rev=v.revision,n=#v.windows}' -s oriel-dev-a --json`
+    → `{"n":1,"rev":13}`.
+- Lua 5.1 (gopher-lua) API:
+  - Keys and modes: `rex.bind`, `rex.unbind`, `rex.mode`, `rex.bindings`, `rex.modes`.
+  - Actions: `rex.action`, `rex.invoke`, `rex.client.queue`.
+  - API calls: `rex.session.<method>{}`, `rex.call(method,args)`, `rex.block.call(creator,method,args)`.
+  - Layout builders: `rex.layout.block{flavor,options}`, `rex.layout.horizontal(r,a,b)`,
+    `rex.layout.vertical(r,a,b)`.
+  - Events and waiting: `rex.on`, `rex.wait`, `rex.sleep`, `rex.stop`, `rex.after`, `rex.every`.
+  - Commands: `rex.exec`, `rex.exec.start` (`io.popen` and `os.execute` are disabled).
+  - Other: `rex.json.encode/decode`, `rex.log`, `rex.host{}`, `rex.servers()`, `rex.server(label)`, and
+    `rex.args`, `rex.session_id`, `rex.block_id`.
+  - Lua event names: `block_closed`, `com.superlogical.terminal.bell`,
+    `terminal.program_status_changed`, ….
+  - The public docs have the full table of where each function works (`llms-full.txt` lines 2643–3109).
+- Per-client scripts (`client.set_script`) bind keys for one client. Keys bound to Lua functions come back
+  from `client.keymap` as `client.key.forward` bindings.
+
+### 11. Configuration (`rex config`) and keymap
+
+- File: `init.lua` at `$XDG_CONFIG_HOME/rex/init.lua` or `~/.config/rex/init.lua`. `REX_CONFIG` in the
+  *server's* environment overrides the path. `require` loads files next to it. `rex config check` reports whether it exists and
+  how many bindings it has.
+  - The server reads the file.
+  - `rex config reload` (local socket only) sends `keymap_changed {generation, hash}`.
+  - The server does not watch the file.
+- What the configuration covers: key bindings, sequences (`ctrl+b>c`), modes (`resize/left`,
+  `rex.mode(name, {exclusive})`), custom actions (`rex.action{name,title,description,category,keywords,run}`,
+  with `ctx.origin key|palette|cli|api|script`) and hosts (`rex.host{label, endpoints, id, icon}`).
+  `init.lua` has no visual settings. Theme, fonts and density are client preferences
+  (`defaults read com.superlogical.rex`).
+- Key syntax:
+  - Modifiers: `cmd`/`super`/`meta`/`win`, `ctrl`/`control`, `alt`/`opt`/`option`, `shift`.
+  - Keys follow the keyboard layout. `[KeyA]` names a physical key. Write keys unshifted (`cmd+shift+=`).
+  - Sequences use `>`. Escape cancels a sequence.
+- Precedence, from bottom to top: the client's `defaults` layer, then `init.lua`, then the client's
+  scripts, then the client's `overrides` (shortcuts set in the app). `client.keymap {defaults:[layers],
+  overrides:[layers], actions, server_actions}` returns the merged stack with diagnostics, `config.hash` and
+  `instance_id`.
+- The default keymap ships inside the client, not the server: `rex keymap` prints an empty table. The
+  defaults, rebuilt from Rex.app's menus, are in `../clients/rex.md` §13.2.
+
+### 12. The hosted web client (`rex.superlogical.com`)
+
+- We cannot get its JavaScript. Every path on `https://rex.superlogical.com` (including `/robots.txt`,
+  `/_next/static/` and `/favicon.ico`) redirects with 302 to Vercel SSO and then to the Superlogical Okta
+  (`superlogical.okta.com`, Vercel team `superlogical`). It is an internal deployment for the team only.
+  The Wayback Machine has no snapshots of it. We did not log in.
+- Public status: the privacy page (`/rex/docs/reference/privacy`) lists Rex for Mac, Rex for iOS and the
+  server, but no web client. The announcement says "Sessions can be accessed through the web and native
+  macOS/iOS applications". So the web client exists but is not public yet.
+- Rex.app references it:
+  - `https://rex.superlogical.com` is the default allowed origin.
+  - Developer settings → Web Client Origins: "Browser origins allowed to open Rex WebSocket streams. The
+    hosted Rex client is always allowed. Wildcards match subdomains, e.g. https://*.vercel.app. Changes
+    apply after Rex restarts." UserDefaults key: `rex.server.web-client-origin-patterns`. Swift type:
+    `RexMacOS.WebClientOriginsSettings`.
+  - Command palette action `session.open_on_web`, title "Open Session on Web…". The URL format is not
+    recovered.
+- How it uses the protocol. The browser speaks the same protocol as Rex.app: the control WebSocket and one
+  data WebSocket per terminal, with input as `client.key` / `block.event`. It uses only the two
+  WebSockets, because the HTTP endpoints send no CORS headers (§2 above). Inference: the API schema is compiled
+  into the bundle, and the client decodes `GHOSTSNP` with libghostty-vt compiled to WASM (upstream ships
+  WASM examples).
+- How a browser reaches a server. A local Mac server listens only on a Unix socket, which a browser cannot
+  reach. The privacy page says "The app starts it without any network listeners or Tailscale." So the
+  hosted client needs a TCP listener. Inference: it connects to `wss://rex.<tailnet>.ts.net/api/control`
+  with `Origin: https://rex.superlogical.com`. Tailscale gives that host real TLS, so `wss://` works from
+  an https page, and Tailscale identifies the user, so the same-principal rule for data tickets holds. A
+  `ws://localhost:7297` target also works from an https page, because browsers trust localhost. That case
+  needs `--extra-listen :7297 --allow-anonymous`.
+- Pairing (Rex.app `client.pair_device`, "Pair Device with QR Code") requires Tailscale. Strings: "Enable
+  Tailscale and wait for HTTPS to be ready in Rex", "Your device must be connected to the same Tailscale
+  network". Inference: the QR code holds the tailnet HTTPS URL, with no token or secret, because identity
+  comes from Tailscale.
+- Release feed: the appcast (`https://blob.superlogical.com/public/rex-app/preview/appcast.xml`) lists 15
+  preview builds, from 387 (2026-09-09) to 1347 (2026-10-21). Every entry is version 0.1.0, minimum macOS
+  15.0, with no feature notes. The posts of 2026-07-29 and 2026-10-05 say: Mac only for now. Servers exist
+  for Linux and Windows. iOS, Linux and Windows clients are "at varying stages". Rex is free and needs no
+  account.
+
 ### Open questions
 
+- Mapping choice: server = Oriel session, Rex session = workspace. The other choice (Rex session = Oriel
+  session page) removes the workspace level, which Oriel's sidebar needs. Both lose cross-workspace moves,
+  because blocks never leave a Rex session.
+- Guess: Rex sessions do not survive a server restart. The Linux docs say "A package upgrade restarts the
+  service, which automatically ends every session on it" (`linux/server-modes.md`). herdr keeps its layout
+  across restarts.
+- Rex.app claiming the blocks it shows is inferred, not observed.
 - The exact pixel → cell mapping for `mouse.pixel` (40,40 at 9×18 px cells gave column 3, row 2).
 - The exact mouse field names beyond `x`, `y`, `pixel`, `button`, `buttons` and `action`. The server
   ignores unknown fields, so the accepted payloads do not prove that it honors `mods`.

@@ -11,6 +11,13 @@ Rex uses other names for the herdr concepts:
 | block | pane |
 | Rex Server | the multiplexer server (one per user) |
 
+Each fact carries one of two tags:
+
+| Tag | Meaning |
+|---|---|
+| observed | Seen in the running app, read from an accessibility (AX) frame, or measured from a 2x screenshot (1 pt = 2 px). Values with "~" are visual estimates (about ±1 pt). |
+| inferred | Read from the app bundle or binary (strings, JSON files, constants), but not seen on screen. Where the meaning of a name is a guess, the text says "unconfirmed". |
+
 ## 2. Window anatomy
 
 The default layout puts tabs in a bar at the top of the window ("Above"). The window has no standard title bar. The tab bar is the title bar.
@@ -581,6 +588,126 @@ Hold the modifier for 700 ms and keycaps appear on the tabs. They fade in over 0
 | Animation | expand `.spring(response: 0.3, dampingFraction: 1.0)`. Row insertion `easeOut` 0.2 s after 0.08 s. Removal `easeOut` 0.1 s. |
 | Setting | `Workspace.showsKeySequenceHints` |
 
+## 11. Settings window
+
+### 11.1 Structure
+
+| Item | Value | Source |
+|---|---|---|
+| Size | 740×572 pt | observed |
+| Sidebar | 215 pt wide, with a "Search Settings" capsule field at the top | observed |
+| Status card | at the top of the sidebar: the gradient Rex icon, "Server", "Running" | observed |
+| Groups | Interface, Themes / Terminal, Shortcuts, Notifications, Integrations, Remote Hosts / Developer | observed |
+| Sidebar entry | a colored rounded-square icon (~20 pt) and a ~15 pt label | observed |
+| Toolbar | a back and forward capsule, then the page title | observed |
+| Content | grouped cards, ~12 pt radius, #1A1D21 on #0D1013 | observed |
+| Search | full-text search over settings. The matched row gets a spotlight highlight. | inferred |
+| Theme | the window takes the terminal theme background | inferred |
+| Section animation | `easeInOut` 0.24 s | inferred |
+| URL | `rex://settings/<section>`, for example `rex://settings/interface` | inferred |
+
+### 11.2 Server (observed)
+
+| Card | Content |
+|---|---|
+| Rex Server | "Running for 51m ⓘ", button "Stop Server..." |
+| Tailscale | "Sign in to Tailscale", "Access Rex securely from your other devices.", button "Sign In". After sign-in (inferred): "Serve over Tailscale", "Limit access to your Tailscale account", "Preferred Hostname". |
+| Client Info | Label (text field, value `hkandala-mbp`). "Remote Control: Let Rex and other clients perform actions in this app." (switch) |
+
+### 11.3 Interface (inferred)
+
+| Section | Setting | Values | What it does | Key |
+|---|---|---|---|---|
+| Window | Color scheme | Auto, Light, Dark (live material previews) | Sets the appearance | `Workspace.appearance` (`system`, `light`, `dark`) |
+| Window | Interface style | Glass, Classic (picture cards) | Picks the material family, see §12 | `Workspace.interfaceStyle` |
+| Window | Tint with theme | on, off | "Apply the selected theme's colors to interface surfaces" | part of `interfaceStyle` |
+| Window | Use glass for panes | on, off (Glass only) | Draws panes with Liquid Glass. "Pane background colors ignore the theme when Glass is active." | `Workspace.usesPaneGlass` |
+| Tabs | Tab style | Above, Left Side, Right Side | Tab bar or sidebar | `Workspace.tabStyle`, `Workspace.sidebarPosition` |
+| Tabs | Fill available space | on, off (horizontal only) | Expands tabs equally to fill the bar, with backgrounds only for two or more tabs | `Workspace.tabsFillAvailableSpace` |
+| Tabs | Show tab icons | count: 0 to 3 vertical, up to 5 horizontal | "Show up to five pane icons in horizontal tabs." "Show up to three pane icons in vertical tabs." | `Workspace.tabIconCount` |
+| Tabs | Use color for tab icons | Always, For active panes, For active tabs, Never | Which icons keep their color | `Workspace.tabIconColorMode` |
+| Tabs | Tab icon tint | Default, Use theme accent, Use theme | Tints icons | `Workspace.tabIconTintMode` (`off`, `accent`, `terminal`) |
+| Tabs | Shell icon theme | default, themed, themed alt | The shell tile style | `Workspace.shellIconTheme` |
+| Tabs | Preserve width when resizing sidebar | on, off | "Keeps the window width unchanged when showing or hiding the sidebar. Full-screen and maximized windows always keep their width." | `Workspace.preservesWindowWidthOnSidebarToggle` |
+| Panes | Pane style | Comfortable, Compact | Separate cards with gaps, or one sheet with hairline dividers | `Workspace.paneDensity` |
+| Panes | Show pane headers | on, off | "Pane headers are always shown when the vertical sidebar is hidden or positioned on the right." | `Workspace.showsPaneHeaders` |
+| Panes | Match program backgrounds | on, off | "Colors a pane and its header with the background a full-screen program such as an editor paints. Works when the terminal padding color extends." | `Workspace.tintsPanesWithProgramBackground` |
+| Panes | Fade inactive panes | None, Surface, Content, Surface & Content | See §8.7 | `Workspace.inactivePaneFadeMode` (`none`, `styling`, `text`, `both`) |
+| Panes | Fade panes for inactive windows | on, off | See §8.7 | `Workspace.usesStandardInactiveWindowPaneStyles` |
+| Panes | Autobalance splits | on, off | "Evenly resizes a tab's panes whenever a pane is created or closed." | `Workspace.balancesSplitsOnCreation` |
+| Panes | Focus follows mouse | on, off | "Focuses a pane when you move the pointer over it, without clicking." | `Workspace.focusFollowsMouse` |
+| App icon | App icon | Default (Dynamic), Bright, Twilight | The Dock icon | `Workspace.appIcon` (`default`, `light`, `dark`) |
+| App icon | Show app icon | Dock and menu bar, Dock only, menu bar only | Where the app shows | `Workspace.appIconVisibility` |
+| Launch | Show window on launch | on, off | Opens a window at launch | `Workspace.showsWindowOnLaunch` |
+
+Settings with no page of their own: `Workspace.bouncesTabIcons`, `Workspace.hiddenChromeButtons`, `Workspace.hiddenPaneButtons`, `Workspace.sidebarWidth`, `Workspace.sidebarShowsActivity`. (inferred)
+
+### 11.4 Themes (inferred)
+
+| Setting | What it does | Key |
+|---|---|---|
+| Dark theme, Light theme | A carousel picker per appearance | `Workspace.darkThemeID`, `Workspace.lightThemeID` (user: `merino-dark`, `merino-light`) |
+| Use extended theme palette | "Disable this option to use a standard set of extended colors." | `Workspace.darkUsesExtendedThemePalette`, `Workspace.lightUsesExtendedThemePalette` |
+| New Dark Theme, New Light Theme, Edit Theme, Duplicate Theme, Delete Theme | Opens the theme customizer | `Workspace.customThemes` |
+| Import Theme | "Import a Ghostty or iTerm theme file". "Themes are matched to an appearance based on their background color." | |
+
+The theme customizer has color wells for Background, Foreground, Cursor, Cursor Text, Selection, Selected Text, ANSI Standard and ANSI Bright. You can drag a swatch onto another to swap them. The color picker is an OKLCH hue and chroma plane with a Display P3 gamut mask, plus a Lightness slider. The extended palette shows the Color Cube and the Grayscale Ramp, with Regenerate, Reset Overrides and "Automatically regenerate palette". A Preview switch updates the sheet as you edit. Buttons: Revert Changes, Cancel, Save & Apply.
+
+### 11.5 Terminal (inferred)
+
+| Section | Setting | Values or description | Key |
+|---|---|---|---|
+| Typography | Font, Style | installed fonts, fallback `Menlo` | `Workspace.terminalFontName`, `terminalFontStyle`, `terminalFallbackFontNames` |
+| Typography | Font size | default 12 pt, clamped to 8 to 64 | `Workspace.terminalFontPointSize` |
+| Typography | Weight | | `Workspace.terminalFontWeight` |
+| Typography | Line height | adjustment in percent | `Workspace.terminalCellHeightPercent` |
+| Typography | Ligatures | on, off | `Workspace.terminalAllowsLigatures` |
+| Typography | Font smoothing | | `Workspace.terminalFontSmoothing` |
+| Colors | Improve text contrast | "Adjust unreadable text against its background." | `Workspace.terminalImproveTextContrast` |
+| Colors | Force theme palette for text | "Map text colors to the nearest theme color." | `Workspace.terminalUseThemePalette` |
+| Colors | Use Display P3 color space | "Read theme and program colors as wide-gamut Display P3." | `Workspace.terminalUsesDisplayP3` |
+| Cursor | Cursor style | Block, Bar, Underline | `Workspace.terminalCursorStyle` |
+| Cursor | Force style | "Ignore application requests to change cursor shape." | `Workspace.terminalCursorStyleForced` |
+| Cursor | Blink speed | Off, Slow, Normal, Fast, Custom (interval in milliseconds) | `Workspace.terminalCursorBlinkIntervalMilliseconds`, `terminalCursorBlinkUsesCustomInterval` |
+| Keyboard | Option key | automatic, composes text, acts as Alt, left acts as Alt, right acts as Alt. "Automatic sends Alt on U.S. layouts and types special keys elsewhere. Applies to all terminals on this Mac, including remote hosts." | `Workspace.terminalOptionKeyBehavior` |
+| Padding | Padding color | Background, Extend, Extend Always. "Background uses the pane background. Extend carries edge-cell backgrounds into the padding when appropriate. Extend Always extends them without those checks." | `Workspace.terminalPaddingColor` |
+| Selection | Foreground, Background | Theme, Cell Foreground, Cell Background | `Workspace.terminalSelectionForeground`, `terminalSelectionBackground` |
+| Selection | Rounded corners | on, off | `Workspace.terminalSelectionRoundedCorners` |
+| Selection | Copy on selection | on, off | `Workspace.terminalCopyOnSelect` |
+| Selection | Play animation on copy | "Shine across the selection to confirm each copy" | `Workspace.terminalCopyAnimation` |
+| Links | Custom scheme links | ask, open, block. A list of trusted handlers per scheme. | `Workspace.terminalCustomSchemeLinks`, `terminalTrustedLinkHandlers` |
+| Integrated Path Browser | Show recently used paths | "Insert Path types the path of a file or folder at the cursor. Recently used paths are shared by every session on the same host." | `Workspace.insertPathShowsRecentPaths` |
+| Titles | Prefer generated titles | "Show the running program and its directory instead of titles that shells set. Titles that programs set for themselves, and names you give tabs, still appear." | `Workspace.prefersGeneratedTitles` |
+| Shell | Startup command | placeholder "Default login shell". Applies to new terminals on this Mac. New tabs and splits use the working directory of the source terminal. | `Workspace.terminalStartupCommand` |
+
+### 11.6 Shortcuts (inferred)
+
+A searchable list of actions with a shortcut recorder per row and "Reset to Default". "Copy Shortcuts as Lua" exports your overrides. The recorder refuses some chords, for example: "Hold ⌘, ⌃, or ⌥ with the key. Shift on its own types a character." Reserved chords: ⌘Tab, ⌘Space, ⌘Q, ⌘H, ⌥⌘H, ⌘M, ⌘,. Rows animate with `.spring(response: 0.3, dampingFraction: 0.8)`.
+
+### 11.7 Notifications (inferred)
+
+| Section | Setting | What it does | Key |
+|---|---|---|---|
+| In-App Notifications | Notification position | Six positions on a window diagram | `Workspace.notificationPosition` |
+| Program Activity ("How status from processes and agents is handled") | Show activity in tabs | Status dots and messages in tabs | `Workspace.showsProgramStatusInTabs` |
+| Program Activity | Show system notifications | macOS notifications while Rex is in the background | `Workspace.showsProgramActivityNotifications` |
+| Program Activity | Badge Dock icon | Dock badge count | `Workspace.showsProgramActivityDockBadge` |
+| Program Activity | Play sounds | Sounds per status | `Workspace.playsProgramActivitySounds` |
+| Program Activity | Include idle processes in activity | Lists idle programs in Activity | `Workspace.showsIdleProgramsInActivity` |
+| Program Activity | Per-status rows: Working, Waiting for you, Errors, Finished | Each row opens a page with: Enable status, Show activity in tabs, Show system notifications, Badge Dock icon, Play sound, Sound | `Workspace.programActivityStatusPreferences` |
+| System Notifications | Terminal notifications | "Programs can send notifications with OSC 9 or OSC 777" | `Workspace.allowsTerminalNotifications` |
+| System Notifications | Tailscale sign-in, Tailscale device approval, Tailscale failures | Notification switches | |
+
+Status descriptions: Working "Shown when a program is busy or reports progress". Waiting for you "needs you to respond". Errors "reports that something went wrong". Finished "finishes a task". Sounds: `attention`, `warning`, `error`, `success`, `ready`, `loading`, `tap`.
+
+### 11.8 Integrations, Remote Hosts, Developer (inferred)
+
+| Page | Content |
+|---|---|
+| Integrations | Coding Agents: "Teach agents in Rex terminals to use Rex" (installs a Rex skill and a session hook into Claude Code, Codex, OpenCode and Pi). Agent Behavior: "Let agents name sessions" ("Agents label the session after the task they're working on"). "Changes apply to new agent sessions." |
+| Remote Hosts | A list of hosts. Empty state: "No Remote Hosts", "Add a Rex HTTP or HTTPS address to use its sessions in every window." Button "Add Remote Host…". Warning: "Rex does not provide transport authentication. Use a trusted tunnel such as Tailscale." |
+| Developer | App Version, Developer Mode ("Expose settings for development and debugging."), Update Channel (Preview, Bleeding Edge), Rex Installation (bundled, source checkout, Nix), Local API, web-client origins, diagnostics |
+
 ## 12. Interface styles and materials (comfortable density)
 
 ### 12.1 Styles
@@ -811,6 +938,91 @@ All values are inferred unless the row says otherwise.
 | Fallback-font list | `.spring(response: 0.28, dampingFraction: 1.0)` |
 
 The environment variable `REX_SLOW_ANIMATIONS` slows the animations down.
+
+## 17. Themes
+
+### 17.1 Summary (inferred)
+
+| Item | Value |
+|---|---|
+| Built-in themes | 41: 27 dark, 14 light |
+| Named pairs | only Merino (Light, Dark) and Silver Point (Light, Dark) |
+| Defaults | `merino-dark` and `merino-light` |
+| Roles per theme | 73 |
+| Theme source fields | background, foreground, cursor, cursor text, selection background and foreground, 16 ANSI colors |
+| 256-color palette | generated: 0 to 15 = ANSI, 16 = background, 231 = foreground, 232 to 255 = a gray ramp. This matches Ghostty's `palette-generate = true` with `palette-harmonious = true`. |
+| Custom themes | from a Ghostty configuration file, a Ghostty theme file, an iTerm color file, or made by hand. The app derives the roles at run time in OKLab and OKLCH. |
+| UI font | the system font. SF Mono for digits and keys. No custom UI font. |
+| Bundled font | `SymbolsNerdFont-Regular.ttf`, as a Nerd Font glyph fallback in the terminal |
+
+### 17.2 Roles
+
+| Group | Roles |
+|---|---|
+| Surfaces | `canvas`, `surfaceSubtle`, `surface`, `surfaceRaised`, `terminalBackground` |
+| Lines | `strokeSubtle`, `stroke`, `scrollbarHover` |
+| Controls (foreground at low alpha) | `control`, `controlHover`, `controlPressed`, `controlOnOverlay` (opaque) |
+| Text | `content`, `contentSecondary`, `contentTertiary` |
+| Accent | `accent`, `accentSolid`, `accentOnSolid`, `accentContainer`, `accentOnContainer`, `accentBorder`, `accentRgb`, `accentDim`, `accentDimSubtle`, `accentLine`, `accentRingOuter`, `selection`, `selectionForeground` |
+| Status (×4: `danger`, `success`, `warning`, `info`) | base, `Solid`, `OnSolid`, `Container`, `OnContainer`, `Border`, plus `dangerBg` |
+| Terminal | `terminalForeground`, `terminalCursor`, `terminalSelection`, `terminalSelectionForeground`, `terminalAnsi0` to `terminalAnsi15` |
+
+### 17.3 How roles derive from the source colors
+
+These rules come from a fit over all 41 themes, not from code. (inferred)
+
+| Role | Rule |
+|---|---|
+| `canvas` | about the background |
+| `content` | the foreground |
+| `accent` | about the cursor color, moved in OKLab lightness until it reaches about 5.0:1 contrast against `canvas`. A neutral cursor gets a replacement accent. |
+| `danger`, `success`, `warning`, `info` | about ANSI 1, 2, 3, 4, moved to about 5.0:1 contrast |
+| `*Solid` | about 4.0 to 4.3:1 contrast |
+| `*OnSolid` | the background, or `#ffffff` / `#000000` when the contrast is too low |
+| `*Container` | OKLab mix of `canvas` and the color: t = 0.160 for dark themes, about 0.075 for light themes |
+| `terminal*` | exact copies of the source |
+
+Surface and text roles keep the canvas hue and chroma and shift OKLab lightness by a fixed amount:
+
+| Role | Dark ΔL | Light ΔL |
+|---|---|---|
+| `surface` | +0.018 | +0.004 |
+| `surfaceSubtle` | +0.030 | −0.032 |
+| `surfaceRaised` | +0.070 | +0.009 |
+| `controlOnOverlay` | +0.085 | −0.004 |
+| `strokeSubtle` | +0.136 | −0.047 |
+| `stroke` | +0.212 | −0.115 |
+| `scrollbarHover` | +0.262 | −0.255 |
+| `contentTertiary` | +0.345 | −0.348 |
+| `contentSecondary` | +0.444 | −0.446 |
+
+Alpha roles pick the alpha that shifts lightness over `canvas` by a target amount:
+
+| Role | Dark ΔL | Light ΔL |
+|---|---|---|
+| `control` | +0.017 | −0.012 |
+| `controlHover` | +0.036 | −0.027 |
+| `controlPressed` | +0.063 | −0.051 |
+| `accentDimSubtle` | +0.036 | −0.027 |
+| `accentDim` | +0.069 | −0.057 |
+| `accentRingOuter` | +0.096 | −0.085 |
+
+### 17.4 Default theme values (inferred)
+
+| Role | merino-dark | merino-light |
+|---|---|---|
+| source background / foreground | #0d1117 / #e6edf3 | #ffffff / #1f2328 |
+| canvas | #0c0e11 | #f6f7f9 |
+| surfaceSubtle | #131519 | #eceef2 |
+| surface | #0f1319 | #f8f9fb |
+| surfaceRaised | #1e2023 | #fafbfc |
+| strokeSubtle / stroke | #2e3135 / #424549 | #e7e9eb / #d1d2d5 |
+| content / secondary / tertiary | #e6edf3 / #82878c / #666a6f | #1f2328 / #696d71 / #878a8e |
+| control / hover / pressed | #e6edf3 at 2% / 4.3% / 7.5% | #1f2328 at 2% / 3.9% / 7.8% |
+| accent / accentSolid | #3485fa / #2f81f7 | #0667d8 / #0969da |
+| danger / success / warning / info | #ff7b72 / #3fb950 / #d29922 / #58a6ff | #cf222e / #116329 / #9d5c00 / #0667d8 |
+
+Status art in Settings uses these approximate colors: blocked #FBB54A, done #99CE76, error #FE8464, progress #4597F8. (inferred)
 
 ## 19. Modules and packages
 
