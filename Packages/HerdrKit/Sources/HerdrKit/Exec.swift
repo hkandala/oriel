@@ -16,7 +16,7 @@ extension Exec {
         let channel = try await run(argv)
         channel.closeInput()
         return try await withTimeout(timeout, onTimeout: channel.terminate) {
-            await channel.lines.reduce("") { $0 + $1 + "\n" }
+            await channel.lines.reduce(into: "") { $0 += $1 + "\n" }
         }.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

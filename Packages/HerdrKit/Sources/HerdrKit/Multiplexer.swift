@@ -157,7 +157,8 @@ extension HerdrClient: Multiplexer {
     }
 
     public nonisolated func mark(_ paneID: String, shown: Bool) async throws {
-        let tokens: [String: any Sendable] = ["oriel-shown": shown ? "1" : NSNull()]
+        // "remote": the pane is on another machine than this Mac, so its programs' own copy (pbcopy) misses this Mac.
+        let tokens: [String: any Sendable] = ["oriel-shown": shown ? (exec is SSHExec ? "remote" : "1") : NSNull()]
         let _: Created = try await call("pane.report_metadata", ["pane_id": paneID, "source": "oriel",
                                                                  "tokens": tokens, "ttl_ms": 30000])
     }

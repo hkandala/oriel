@@ -270,18 +270,19 @@ private func snapshot(version: String) -> String {
     #expect(requests.map(\.pane) == ["w3:p1", "w3:p2", "w3:p3"])
 }
 
-@Test func `a pane's copy token reads its file once per id, and only a UUID's`() async {
+@Test func `a pane's copy token reads its file once per id, and only a UUID`() async {
     let exec = FakeExec()
     let client = client(exec)
     let updates = await started(client, exec)
     let pane = { (id: String) in
         #"{"event":"pane_updated","data":{"pane":{"pane_id":"w1:p2","tokens":{"oriel-copy":"\#(id)"}}}}"#
     }
-    for id in ["0a-1", "0a-1", "../x", "0a-1;rm", "", "0a-2"] {
+    let (first, second) = ("0a6e2b1c-4f1d-4c2e-9b7a-1d2e3f4a5b6c", "1b6e2b1c-4f1d-4c2e-9b7a-1d2e3f4a5b6c")
+    for id in [first, first, "../x", "\(first);rm", "", "0a-1", second] {
         exec.event(pane(id))
     }
     let reads = { exec[\.argv].filter { $0.first == "sh" }.map(\.last) }
-    #expect(await eventually { reads() == ["0a-1", "0a-2"] })
+    #expect(await eventually { reads() == [first, second] })
     withExtendedLifetime(updates) {}
 }
 

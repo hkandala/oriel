@@ -271,8 +271,8 @@ public actor HerdrClient {
     /// Reads a copy request's text from `/tmp/oriel-copy-<id>` on the session's machine, as base64 (Linux's wraps
     /// lines), and deletes the file. Nothing comes for a missing file: a second Mac showing the pane read it first.
     private func copy(_ id: String) {
-        // A UUID's characters only: the id goes into the path.
-        guard !id.isEmpty, id.count <= 36, id.allSatisfy({ $0.isHexDigit || $0 == "-" }) else { return }
+        // A UUID only: the id goes into the path.
+        guard UUID(uuidString: id) != nil else { return }
         Task {
             let script = #"f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f""#
             if let text = try? await exec.output(["sh", "-c", script, "sh", id]), !text.isEmpty,

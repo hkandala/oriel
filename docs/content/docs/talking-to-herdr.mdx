@@ -146,7 +146,7 @@ metadata tokens, so it works for an agent on any machine Oriel follows
 
 | Step | Who | What |
 |---|---|---|
-| Presence | Oriel | `pane.report_metadata` on each pane in view of a visible window (the shown tab of the page in view, and the floated panes): source `oriel`, token `oriel-shown` = `1`, `ttl_ms` 30000. Written when a pane comes into view, again every 10 s while it stays, and cleared (`null`) when it leaves view, its page closes, its window hides or closes, or the app quits (which waits up to 1 s for it). Over the relay for a remote machine |
+| Presence | Oriel | `pane.report_metadata` on each pane in view of a visible window (the shown tab of the page in view, and the floated panes): source `oriel`, token `oriel-shown` = `1` on This Mac, `remote` on another machine (for [copy requests](#copy-requests)), `ttl_ms` 30000. Written when a pane comes into view, again every 10 s while it stays, and cleared (`null`) when it leaves view, its page closes, its window hides or closes, or the app quits (which waits up to 1 s for it). Over the relay for a remote machine |
 | Ask | the tool, at a click | `pane.get` of its own pane on its own herdr socket (a few ms, on the agent's machine). With `oriel-shown`: `pane.report_metadata` on its pane, source `pi-herd`, tokens `oriel-float` = `‹session›/‹pane id›` (a session on the same machine) and `oriel-float-id` = a nonce (a UUID), `ttl_ms` 1000; no popup. Without it: herdr's popup at once |
 | Float | Oriel | on the `pane.updated` event carrying `oriel-float` with a nonce it has not seen: floats the pane over the window where the user last typed or clicked in a card of the asking session ([`oriel://float`](/docs/ui/window#floating-pane)'s path, a float-only page when the session has none) |
 
@@ -179,7 +179,7 @@ app's streams ([Scrolling, queries and links](#scrolling-queries-and-links)).
 
 | Step | Who | What |
 |---|---|---|
-| Ask | the extension, at a copy | when pi is not on this Mac (`SSH_CONNECTION`, `SSH_CLIENT` or `MOSH_CONNECTION` set, or not macOS) and its pane carries `oriel-shown` (`pane.get` on its own herdr socket): writes the text to `/tmp/oriel-copy-‹id›` on its machine (mode 0600, `‹id›` a new UUID), then `pane.report_metadata` on its pane, source `pi-copy`, token `oriel-copy` = `‹id›`, `ttl_ms` 1000. Otherwise pi's own copy (`pbcopy` here, OSC 52 elsewhere) |
+| Ask | the extension, at a copy | when its pane carries `oriel-shown` = `remote` (`pane.get` on its own herdr socket), so pi is not on Oriel's Mac: writes the text to `/tmp/oriel-copy-‹id›` on its machine (mode 0600, `‹id›` a new UUID), then `pane.report_metadata` on its pane, source `pi-copy`, token `oriel-copy` = `‹id›`, `ttl_ms` 1000. Otherwise pi's own copy (`pbcopy` on Oriel's Mac) |
 | Copy | Oriel | on the `pane.updated` event carrying an `oriel-copy` it has not seen, in any open session: one run on that machine (over the relay for a remote one), `sh -c 'f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f"' sh ‹id›`, and the text goes on `NSPasteboard` |
 
 - A token value holds at most 80 characters (herdr cuts it, and drops
@@ -189,10 +189,11 @@ app's streams ([Scrolling, queries and links](#scrolling-queries-and-links)).
   so a token can never name another file.
 - Once per id, as for a float. The app never reads the Mac's clipboard.
 - A request is lost when no Oriel stream sees it within its 1 s (the stream
-  reopening, Oriel gone). The extension deletes the file after 30 s if
-  Oriel did not.
+  reopening, Oriel gone). While pi runs, it deletes a file Oriel missed
+  after 30 s.
 - Two Macs showing the pane both try; the first one's run deletes the file,
-  and the second copies nothing.
+  and the second copies nothing. They also share the mark: the last one to
+  write it says whether the pane is remote.
 
 ## Reconcile
 
@@ -379,10 +380,10 @@ handshake fails, it exits 1 with the reason on stderr.
   its own terminal app (TUI) in front, and `terminal session control`
   prints no event for it. Most programs on this Mac copy with `pbcopy`, so
   this mostly hits programs on another machine, also through `ssh` in a
-  local card. Select the text in the card and press ⌘C
-  instead. pi-hkandala's extensions send a [copy request](#copy-requests).
-  herdr sends the app no
-  clipboard read either; if one came, the app would refuse it.
+  local card. Select the text in the card and press ⌘C instead.
+  pi-hkandala's extensions send a [copy request](#copy-requests). herdr
+  sends the app no clipboard read either; if one came, the app would refuse
+  it.
 - **A herdr TUI on the same tab** shares the split ratios, and the app's
   control stream pins the PTY size. Accepted.
 - **Find** (⌘F) reads the pane's recent text with
@@ -474,7 +475,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Find next or previous (⌘F) | `pane.scroll {pane_id, offset_from_bottom}` to the match; offset 0 when the bar closes |
 | Resize Pane (View ▸ Pane, the palette; no key) | `pane.resize {pane_id, direction, amount: 0.05}` on the keyboard card; herdr moves the nearest divider that way, or returns `changed:false` when there is none |
 | Move the keyboard (⌥⌘ + arrow; not a write) | no herdr call: the app picks the card from the split tree ([Moving the keyboard](/docs/layout#moving-the-keyboard)) |
-| A pane comes into view or leaves it | `pane.report_metadata {pane_id, source:"oriel", tokens:{"oriel-shown": "1" or null}, ttl_ms:30000}` ([Float requests](#float-requests)) |
+| A pane comes into view or leaves it | `pane.report_metadata {pane_id, source:"oriel", tokens:{"oriel-shown": "1", "remote" or null}, ttl_ms:30000}` ([Float requests](#float-requests)) |
 | Git state of the workspace rows (not a write) | no herdr call: `git status` on the machine ([Git status](#git-status)) |
 
 - No close can be undone.
