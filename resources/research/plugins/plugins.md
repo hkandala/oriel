@@ -21,9 +21,9 @@ one, so a later design starts from evidence.
 | A small web page in a `WKWebView` per card | Simplest; any web library; looks native only with care (`system-ui`, `ui-monospace`, `color-scheme`, CSS variables). A WebContent process costs 120–200 MB. |
 | React in JavaScriptCore, a JSON tree drawn as SwiftUI (Raycast 1.x's model) | Fully native look; needs our own component kit, a reconciler and a build tool. Measured below. |
 | A hybrid of the two (native kit with a web view escape hatch) | Both costs. |
-| React Native embedded | A large dependency, two forks (iOS, macOS), still needs a kit. |
-| Native Swift plugins loaded at runtime | Needs the library-validation entitlement; runs in-process; App Store rules forbid it on iOS. |
-| ExtensionKit | macOS needs a sandboxed extension in a notarized container app and user approval; iOS hosts only its own extensions. |
+| React Native embedded | A large dependency (react-native-macos), still needs a kit. |
+| Native Swift plugins loaded at runtime | Needs the library-validation entitlement; runs in-process. |
+| ExtensionKit | Needs a sandboxed extension in a notarized container app and user approval. |
 | WASM components (Zed's model) | No UI; a capability model worth copying for finer permissions. |
 | herdr's own TUI plugin panes | Work today as terminals; no native UI. |
 
@@ -39,7 +39,7 @@ per JavaScriptCore context. The host config is about 60 lines; the only polyfill
 |---|---|
 | Run plain CLIs over the existing SSH connection (the relay) | Enough for git history, diffs, file views and port lists; nothing installed on the server. |
 | A web page reaching the machine's `localhost` through an SSH port forward | Works without an agent; needs `AllowTcpForwarding`. |
-| Our own small agent over SSH stdio (cmux, Zed, VS Code style) | Only when SSH session limits, latency, file watching or a server without forwarding make it necessary. |
+| A bigger agent of our own over SSH stdio (cmux, Zed, VS Code style), beyond the relay | Only when latency, file watching or a server without forwarding make it necessary. |
 | Plugin backends on the server, UI local | An install per machine; no gain over the agent. |
 | herdr as the transport | herdr has no generic file or port API. |
 | An overlay network (Tailscale) | The user's choice, not ours to require. |

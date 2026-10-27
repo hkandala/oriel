@@ -57,8 +57,7 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 2. Read the result before guessing: `gh run download <id> -p 'e2e-xcresult-*'` (one per shard), then
    `xcrun xcresulttool get test-results tests|activities --path …` for the failing step and its values, and
    `xcresulttool export attachments` for the screen recording (`ffmpeg -ss <s> -frames:v 1` gets a frame).
-3. Think of CI's machine ([lessons.md](lessons.md#testing-the-ui)): a 1x display, a small window, the US
-   layout (Option sends Alt), Reduce Motion on.
+3. Think of CI's machine ([Layout](#layout)); Option sends Alt there.
 4. Give it 20 minutes from the logs. Then simplify the test or the feature and write it down, or hand it on.
    No debug branches.
 5. Never rerun to green. A fix is proven by two full runs in a row green on the first try.

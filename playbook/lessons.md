@@ -34,7 +34,7 @@ Problems that came back across phases, and the rule that stops each. How we work
 
 ## CI and git
 
-- **A flake is a bug.** Fix it at its cause, never rerun to green.
+- **A flake is a bug** ([ci.md](ci.md#a-test-fails-only-on-ci)).
 - **Check exit codes; never pipe a check through `grep`.**
 - **The 400-line file limit is a shared budget.** Several lanes add to the same big files: split a file that
   is close to the limit before adding to it, and check it after each rebase.
