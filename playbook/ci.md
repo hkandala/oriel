@@ -51,7 +51,8 @@ How CI runs, how to run part of it, and how to keep it green and fast.
   color.
 - **Old code or work in progress on CI** (a remote probe while the GUI is busy, or to prove a test is red
   on the old code): commit on a detached HEAD, push a tag, `gh workflow run ci.yml --ref <tag> -f
-  only_testing=…`, read the result, delete the tag.
+  only_testing=…`, read the result, delete the tag. The hooks still run on that commit (no `--no-verify`):
+  the old code builds, so revert only the fix and keep the new test.
 
 ## A test fails only on CI
 
