@@ -229,6 +229,21 @@ extension OrielUITests {
 
     /// A tab's "claude needs you" stays on its session's tab: session two's w1:t1 has the same id, and its capsule
     /// showed the other session's announcement.
+    /// A row of one tab that grows to two while shown: each capsule's accessibility frame is its own, not the row's.
+    func testCapsulesKeepTheirFramesWhenARowOfOneGrows() async throws {
+        let row = element("workspace.w2")
+        XCTAssertTrue(row.exists(within: connect))
+        row.click()
+        let first = element("tab.w2:t1")
+        XCTAssertTrue(first.has(\.isHittable, true, within: 3))
+        let (tab, _) = try await createTab(in: "w2", label: "grown")
+        closeAfter("tab", tab)
+        let second = element("tab.\(tab)")
+        XCTAssertTrue(second.has(\.isHittable, true, within: 3))
+        XCTAssertTrue(until(2) { first.frame.width == second.frame.width }, "\(first.frame) \(second.frame)")
+        XCTAssertEqual(first.frame.maxX + 1, second.frame.minX, "\(first.frame) \(second.frame)")
+    }
+
     func testAnnouncementStaysInItsSession() async throws {
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         let created = try await Self.call(two, "tab.create", ["workspace_id": "w1", "label": "delta", "cwd": "/tmp",

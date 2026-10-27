@@ -318,7 +318,9 @@ extension OrielUITests {
     /// its window detaches it; the tab loses its mark once w1 shows instead.
     func markAndFloat() async throws {
         let (tab, pane) = try await newTab("float-request")
-        element("tab.\(tab)").click()
+        // By key, as the drop test: on Key Host the capsule may come in over the relay while w2 shows.
+        app.typeKey("2", modifierFlags: .command)
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
         try await expectShown(one, pane)
         try await Self.call(one, "pane.report_metadata", [
             "pane_id": pane, "source": "e2e", "ttl_ms": 1000,

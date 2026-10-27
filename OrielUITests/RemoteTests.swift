@@ -113,18 +113,18 @@ extension OrielUITests {
         try await waitForPrompt("w1:p2")
         terminal.click()
         XCTAssertTrue(hasKeyboard(terminal))
-        app.typeText("echo oriel-$((40+2))")
+        app.typeText("echo relay-$((40+2))")
         app.typeKey(.return, modifierFlags: [])
-        try await waitFor("w1:p2") { $0.contains("\noriel-42") }
+        try await waitFor("w1:p2") { $0.contains("\nrelay-42") }
 
         let first = try await Self.post("\(one)/ssh-drop", Data("oriel-key".utf8))
         XCTAssertFalse(first.isEmpty)
         // A new master without a prompt; the card streams again and takes keys.
         try await poll("typing to reach the pane again", times: 20) { () async throws -> Bool? in
-            app.typeText("echo oriel-$((40+3))")
+            app.typeText("echo relay-$((40+3))")
             app.typeKey(.return, modifierFlags: [])
             try await Task.sleep(for: .seconds(1))
-            return try await read("w1:p2").contains("\noriel-43") ? true : nil
+            return try await read("w1:p2").contains("\nrelay-43") ? true : nil
         }
         XCTAssertFalse(element("ask.text").exists)
         XCTAssertFalse(element("detail.reconnecting").exists)
@@ -186,7 +186,7 @@ extension OrielUITests {
         relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("drop")
-        // By key: a click on the capsule just in over the relay hit the track's end beside it (CI 40424246396).
+        // By key: the test is about the drop, not about a click on a capsule just in over the relay.
         app.typeKey("2", modifierFlags: .command)
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
         let terminal = element("terminal.\(pane)")
