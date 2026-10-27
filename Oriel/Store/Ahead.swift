@@ -2,7 +2,8 @@ import Foundation
 import HerdrKit
 
 /// What the app shows before herdr has it: a close, a new tab and a split draw at once, and the snapshots
-/// after them confirm it. A closing pane, tab or workspace is left out until a snapshot no longer has it; a new tab or
+/// after them confirm it; a replaced pane's new pane hides until the old one is gone. A closing pane, tab or workspace
+/// is left out until a snapshot no longer has it; a new tab or
 /// a split shows an empty card under a stand-in id until a snapshot has what herdr made. A failed write takes it back.
 struct Ahead {
     /// Panes, tabs and workspaces being closed. herdr never gives a closed id to a new one while its server runs.
@@ -21,11 +22,11 @@ struct Ahead {
     var fresh: Set<String> = []
     /// herdr's tabs for stand-ins closed before they came: the store closes them.
     var toClose: [String] = []
-    /// Replace Pane's old panes, each with its tab and the tab's panes when it was asked. A new pane in that tab hides
-    /// while the old one is there, so it shows in the old one's place in one snapshot, never beside it first.
-    var replacing: [String: (tabID: String, known: Set<String>)] = [:]
-    /// The panes that took replaced ones' places in the last snapshot, by old id: every page's zoom follows them.
-    var replaced: [String: String] = [:]
+    /// Replace Pane's old panes, by id. Every new pane of the old one's tab hides while the old one is there, so the
+    /// new pane shows in the old one's place in one snapshot, never beside it first.
+    var replacing: [String: Replacing] = [:]
+    /// The replacements done in the last snapshot, by old pane id: every page's zoom and floating window follow them.
+    var replaced: [String: Replacing] = [:]
 
     struct NewTab {
         let id: String, workspaceID: String
@@ -79,12 +80,11 @@ struct Ahead {
         closing.formIntersection(ids)
         fresh.formIntersection(ids)
         arrived = [:]
-        let new = replacing.compactMapValues { old in
-            snapshot.panes.first { $0.tabID == old.tabID && !old.known.contains($0.id) }?.id
-        }
-        replaced = new.filter { !ids.contains($0.key) }
+        replaced = replacing.filter { !ids.contains($0.key) }
         replacing = replacing.filter { ids.contains($0.key) }
-        let hidden = closing.union(new.filter { ids.contains($0.key) }.values)
+        let hidden = closing.union(replacing.values.flatMap { old in
+            snapshot.panes.filter { $0.tabID == old.tabID && !old.known.contains($0.id) }.map(\.id)
+        })
         // herdr's tab for each stand-in: the first new one of its workspace.
         tabs.removeAll { standIn in !snapshot.workspaces.contains { $0.id == standIn.workspaceID } }
         for id in tabs.map(\.id) {
@@ -331,7 +331,8 @@ extension Page {
     func close(_ close: HostStore.Close) {
         // The same close again (a second ⇧⌘W while herdr is asked) would ask twice; another close goes on.
         let key = String(describing: close)
-        guard !asking.contains(key) else { return }
+        // The old pane of a replace that runs: herdr closes it already.
+        guard !asking.contains(key), close.paneID.flatMap({ store.ahead.replacing[$0] }) == nil else { return }
         let before = (selectedWorkspaceID, selectedTabIDs)
         guard let asked = store.ask(close) else { return }
         let hidden = (selectedWorkspaceID, selectedTabIDs)

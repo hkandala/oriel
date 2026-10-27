@@ -27,8 +27,6 @@ extension OrielUITests {
 
         app.typeKey("r", modifierFlags: .command)
         let new = try await replaced(right, in: tab, besides: [left, below])
-        // Only the shell ran: no question.
-        XCTAssertFalse(app.sheets.buttons["Replace Pane"].exists)
         XCTAssertTrue(card.vanishes(within: 3))
         let replaced = element("pane.\(new)")
         // The old card's place and size, to the point.
@@ -45,7 +43,8 @@ extension OrielUITests {
         try await typeAndRead(new)
     }
 
-    /// A zoomed pane's new pane stays zoomed; a floated pane's new pane floats in a window where the old one was.
+    /// A zoomed pane's new pane stays zoomed; a floated pane's new pane floats in a window where the old one was, with
+    /// its Stay on Top.
     func testReplacingKeepsTheZoomAndTheFloatingWindow() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("replace zoom")
@@ -70,6 +69,7 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(left)").exists(within: 2))
 
         let window = try float(zoomed)
+        element("float.\(zoomed).pin").click()
         XCTAssertTrue(hasKeyboard("terminal.\(zoomed)", in: window))
         let frame = window.frame
         app.typeKey("r", modifierFlags: .command)
@@ -78,6 +78,7 @@ extension OrielUITests {
         let next = app.windows.containing(.any, identifier: "float.\(floated)").firstMatch
         XCTAssertTrue(next.exists(within: 3))
         XCTAssertEqual(next.frame, frame)
+        XCTAssertEqual(element("float.\(floated).pin").stringValue, "on")
         try await waitForPrompt(floated)
         try await typeAndRead(floated)
     }

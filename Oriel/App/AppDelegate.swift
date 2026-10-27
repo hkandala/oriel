@@ -177,3 +177,14 @@ enum Notifications {
         "\(store.machine.id)|\(store.session)|\(pane.terminalID ?? pane.id)"
     }
 }
+
+extension HostStore {
+    /// Agents that need you over every open session, each once.
+    static var needsYou: Int {
+        all.reduce(0) { $0 + $1.waiting }
+    }
+
+    static func showBadge() {
+        NSApp.dockTile.badgeLabel = needsYou > 0 ? "\(needsYou)" : nil
+    }
+}

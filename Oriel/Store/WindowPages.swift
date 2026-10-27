@@ -379,18 +379,11 @@ extension WindowPages {
 }
 
 extension HostStore {
-    /// Agents that need you over every open session, each once.
-    static var needsYou: Int {
-        all.reduce(0) { $0 + $1.waiting }
-    }
-
-    static func showBadge() {
-        NSApp.dockTile.badgeLabel = needsYou > 0 ? "\(needsYou)" : nil
-    }
-
     /// Each window settles its page's selection on the snapshot; its notifications go once per session.
     func snapshotted(_ changes: [Seen.Change]) {
         for window in windows {
+            // Before its float windows close: a replaced floated pane's new pane floats.
+            window.withFloats.first { $0.store === self }?.floatReplaced()
             window.snapshotted(self)
         }
         if let page = windows.lazy.compactMap({ $0.page(self) }).first {
