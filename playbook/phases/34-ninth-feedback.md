@@ -38,6 +38,26 @@ heading at the end.
    the branding similarity screen, the Developer ID plan, the reasons for left-out features, and stale
    links in phases 08, 11, 12 and 22. Generic, repeated lessons only; no history or dated text.
 
+## Lane C2: copy what OSC 52 sends, on remote machines (item 3)
+
+3. **"I don't want regular terminal copy, we should be able to copy what OSC 52 sends to us."** Undo lane C's
+   `copy-on-select = clipboard`. "When I use herdr in Ghostty, this copy works as expected even on remote
+   machines": find how (herdr's TUI client, `herdr --remote`, the server's `ServerMessage::Clipboard`, how
+   Ghostty takes the OSC 52) and every way Oriel can get the same writes on remote machines (local already
+   works). Go deep: a herdr client Oriel runs or speaks to, the relay, the remote server's environment and
+   clipboard tools, herdr's API and config, an upstream change. Pick the simplest one that works, build it,
+   and e2e it on CI's sshd.
+
+## Lane V: chat view research (item 4)
+
+4. **Research how [orca](https://github.com/stablyai/orca), [paseo](https://github.com/getpaseo/paseo) and
+   [paradev](https://github.com/paradevai/paradev) offer both a terminal and a chat view for agents** (one
+   agent per repo), and propose the best and simplest way for Oriel: switching back and forth between
+   terminal and chat without ending the running process if possible (orca may restart the agent in chat
+   mode; that is acceptable if nothing better exists), streaming the agent's transcript file as a naive
+   option, and it must work on remote machines. Write the findings in `resources/research/` and update
+   `docs/content/docs/future-work/chat-view.mdx`.
+
 ## Findings
 
 ### Lane W
