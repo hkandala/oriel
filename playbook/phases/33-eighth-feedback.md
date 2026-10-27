@@ -368,6 +368,13 @@ per hold, at most 10 minutes, released with a trap).
   ```
 
 - **Tests:** docs only, plus comment and link edits in code: `make lint build test` green on each rebased push;
-  `pnpm build` of the docs green. CI: the rename commit 67e1fad runs the full suite (40422038011).
+  `pnpm build` of the docs green. CI: the full run on 9380352 (it carries the rename 67e1fad and every lane D
+  code-comment edit; 67e1fad's own run 40422038011 was cancelled by that push) is green: 40422248643.
+- **Review** (l33-docs-review, one round, no blockers): fixed the shoulds: the docs claimed a notarized
+  Developer ID build (it is ad-hoc signed), two "phase NN" leftovers, a paragraph broken by the cuts in
+  architecture, the GUI lock's 10-minute hold against the e2e reviewer's 15 minutes, a stale-lock rule, the
+  chosen-tests id (`OrielUITests/OrielUITests/testX`), rules written in both `lessons.md` and `ci.md` or
+  `workflow.md`, and research leftovers (spike lists, edit steps for deleted pages, the user's Mac name).
+  Kept on purpose: the README's short future-work list (the user asked for one).
 - **For the user to check:** the README and `playbook/workflow.md` read the way you want; `~/Downloads/oriel-inspirations/`
   has everything (the main checkout no longer has the ignored video folders).
