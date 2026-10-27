@@ -31,6 +31,10 @@ extension PaneTerminal {
         $0.withCustom("scrollback-limit", "0")
         // Option types characters on every layout (on CI's, libghostty sent Alt by default).
         $0.withCustom("macos-option-as-alt", "false")
+        // A selection goes to the clipboard when the button comes up, as in herdr. It is the one copy that reaches the
+        // Mac from a remote program: herdr hands a pane's OSC 52 only to a TUI client, never to a terminal stream.
+        // A program's own OSC 52 read stays denied: libghostty asks the host, and the app has no handler.
+        $0.withCustom("copy-on-select", "clipboard")
     }
 
     /// Reads the stored size, not a caller's copy: SwiftUI keeps a shortcut's first action.

@@ -344,9 +344,12 @@ handshake fails, it exits 1 with the reason on stderr.
   or alternate scroll (most agent TUIs). Otherwise it scrolls herdr's shared
   viewport. The app keeps no scrollback.
 - **Terminal queries:** herdr already answers them for the pane.
-- **Copy from a remote program** (vim's `"+y`, OSC 52) does not reach the
-  Mac's clipboard: herdr's stream keeps those requests. Select text in the
-  card instead.
+- **Copy from a program** (OSC 52: vim's `"+y`, pi's copy, an agent's copy
+  on select) does not reach the Mac's clipboard. herdr gives a pane's OSC 52
+  write only to its foreground TUI client, and `terminal session control`
+  prints no event for it. On this Mac, programs copy with `pbcopy`, so this
+  shows only on a remote machine. Selecting text in the card copies it there
+  too: the app's copy on select. A program's OSC 52 read is denied.
 - **A herdr TUI on the same tab** shares the split ratios, and the app's
   control stream pins the PTY size. Accepted.
 - **Find** (⌘F) reads the pane's recent text with

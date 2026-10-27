@@ -5,7 +5,7 @@ import XCTest
 /// skip where no such sshd runs.
 extension OrielUITests {
     /// Key Host, for a launch that starts on it (`-machine e2e-key`).
-    private static let keyHost = #"[{"id":"e2e-key","name":"Key Host","target":"oriel-key","icon":"server.rack"}]"#
+    static let keyHost = #"[{"id":"e2e-key","name":"Key Host","target":"oriel-key","icon":"server.rack"}]"#
 
     func testAddingAKeyHostOpensItInANewWindowWithoutAsking() async throws {
         try await skipWithoutSSH()
@@ -392,7 +392,7 @@ extension OrielUITests {
         try await field(Int(String(decoding: Self.post("\(one)/ssh-connections"), as: UTF8.self)), "sshd connections")
     }
 
-    private func skipWithoutSSH() async throws {
+    func skipWithoutSSH() async throws {
         if await (try? Self.post("\(one)/ssh-connections")) == nil {
             throw XCTSkip("no sshd on 127.0.0.1:2222 (scripts/ci-sshd.sh, CI only)")
         }
