@@ -84,6 +84,15 @@ heading at the end.
    title fades out before it (a gradient mask), in both looks and schemes; when the × is hidden, the title
    keeps its full width.
 
+## Lane P: Replace Pane, ⌘R (item 8)
+
+8. **"⌘R replaces the current active pane with an empty pane, with a confirmation when needed, like closing a
+   pane. It's in the ⌘K menu too. Mostly for when I change my shell setup and need to restart the shell:
+   instead of opening a new pane and closing the current one."** The new pane takes the old one's place and
+   size in the layout, starts in the old pane's folder, and gets the keyboard. The confirmation follows Close
+   Pane's rule (ask only when something other than the shell runs). Also in the card menu and the Shortcuts
+   panel, local and remote.
+
 ## Findings
 
 ### Lane K
