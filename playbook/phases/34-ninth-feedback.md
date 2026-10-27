@@ -107,6 +107,7 @@ heading at the end.
   `terminal.clipboard` event on the control stream; Oriel then writes it to the clipboard in a few lines.
 - **Runs:** red on the old code (both tests: clipboard nil) 40474163618; green on the fix: push run
   40474416375.
+- **Replaced by lane C2:** copy on select is reverted; OSC 52 writes reach the clipboard through a clipboard client.
 - **For the user:** pi's copy key (the editor's contents) and vim's `"+y` still do not reach the Mac from a
   remote machine until herdr forwards OSC 52: select the text in the card instead (only what is on screen).
   A drag in Claude Code or pi now replaces the clipboard with what is drawn; locally the agent's own copy
@@ -150,3 +151,28 @@ heading at the end.
   Claude hook sends.
 - **For the user:** the first slice is proposed in the research file (pi and Claude Code transcripts, the switch,
   the reply box, screen text for the rest, local and remote).
+
+### Lane C2
+
+- **Cause:** herdr 0.9.5 sends a pane's OSC 52 write (`ServerMessage::Clipboard`) only to its shell client in
+  front, the kind its TUI is; a `terminal session control` stream never gets it. In Ghostty the TUI gets the
+  write and prints OSC 52 into its terminal (through `ssh` when it runs remotely; a local TUI uses `pbcopy`), and
+  Ghostty sets the clipboard. Locally Oriel only seemed to work because pi and most tools use `pbcopy` on the Mac;
+  an OSC-52-only program failed locally too.
+- **Fix:** each open session runs a clipboard client: a Perl script sent in the command (as the relay is), local
+  and over the relay, that says herdr's endpoint generation 1 hello on the client socket as a shell client in
+  front and prints each write as base64; the app sets `NSPasteboard`. Lane C's copy on select and its tests are
+  reverted. The option table (TUI in a hidden pty, own client, PATH shims, API, upstream) is in
+  `resources/research/multiplexers/herdr.md` 2.3.
+- **Decisions:** the own client over herdr's TUI in a pty (no pty, no drawing, no sounds or toasts, no server
+  start); the socket directly, not `remote-client-bridge` (which starts a stopped server and registers an SSH agent
+  socket). Accepted costs, those of an attached herdr TUI: it holds the front until a TUI is used (taking its sounds,
+  toasts and title meanwhile); herdr lays out every tab at its 120 × 40 and sizes unheld panes from it (the hover
+  card test now ends its line with `cat`, as a narrow pane's prompt wraps); herdr refreshes git every 1.5 s; and
+  herdr refills a session whose last workspace closes, so the client starts only once a session has a workspace
+  (the empty page stays for a session opened empty).
+  The upstream ask (a `terminal.clipboard` line on control streams) is on the Future work page.
+- **Runs:** red on the old code (tests without the feature): 40484619881 (both: clipboard nil); green: push run GREEN_RUN.
+- **For the user:** try pi's copy key and an agent's copy on select on a remote machine. While a herdr TUI attached
+  to the same session is the one last used, it gets the writes instead (in Ghostty on this Mac they still land);
+  when it detaches, Oriel gets them again.
