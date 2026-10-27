@@ -58,6 +58,16 @@ heading at the end.
    option, and it must work on remote machines. Write the findings in `resources/research/` and update
    `docs/content/docs/future-work/chat-view.mdx`.
 
+## Lane C3: pi extensions copy through herdr metadata (item 5)
+
+5. **"I don't like the approach for the copy: we are changing way too many things just for copy. I'm okay
+   copying regular text with ⌘C. My only concern is the pi-hkandala extensions that copy to the clipboard.
+   pi-herd already asks Oriel to open floating panes; do the same for copying: simpler in pi-hkandala, and the
+   app listens and copies."** Revert lane C2's clipboard client (and its side-effect workarounds). Then, like
+   the float request (phase 31 lane F): the pi extensions that copy, when their pane carries Oriel's presence
+   token, send the text to Oriel through herdr metadata; Oriel reads the request from `pane.updated` and puts
+   the text on the Mac clipboard. Works for local and remote machines. Both repos.
+
 ## Findings
 
 ### Lane W
