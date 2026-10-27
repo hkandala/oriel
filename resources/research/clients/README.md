@@ -1,6 +1,6 @@
 # herdr clients
 
-One file per client of herdr (and two near relatives), with how it talks to herdr, draws terminals, lays out
+One file per client of herdr (and a few near relatives), with how it talks to herdr, draws terminals, lays out
 panes and handles remote machines. How herdr itself works is in [../multiplexers/herdr.md](../multiplexers/herdr.md);
 the client files say only what each one uses.
 
@@ -48,6 +48,16 @@ the client files say only what each one uses.
 | [herdr-browser.md](herdr-browser.md) | a Chromium view inside a herdr pane (plugin; deprecated) |
 | [agentaps.md](agentaps.md) | GPUI and WASM over iroh; runs its own agents over ACP, not herdr |
 
+## Agent apps with a terminal and a chat view (not herdr clients)
+
+Read for the chat view; the options for Oriel are compared in [../ui/chat-view.md](../ui/chat-view.md).
+
+| File | What it is |
+|---|---|
+| [orca.md](orca.md) | Electron IDE: a transcript chat over the running TUI, or a structured chat that forks to switch |
+| [paseo.md](paseo.md) | a daemon that runs agents headless (Agent SDK, app-server, pi RPC, ACP); terminals apart |
+| [paradev.md](paradev.md) | ACP chats journaled in a host daemon; terminals apart, no live switch |
+
 ## Compared
 
 One row per client that talks to herdr. "Terminal" is how live pane output reaches the screen; "Remote" is how
@@ -89,6 +99,8 @@ the client reaches a herdr on another machine. Details and sources are in each c
   `pane.process_info` pid and cwd) and read by byte offset. Prompts and approvals come from the screen.
   Sending is `agent.prompt` (or paste + Enter), answers are `agent.send_keys`. No client builds chat from herdr
   alone.
+- **Apps that own their agents run chat as a structured child** (Paseo and Paradev only that; Orca beside a
+  transcript chat). None shows one process both as a terminal and as a structured chat.
 - **Five ways to reach a machine:** SSH with a streamlocal channel to the API socket (nothing installed; LAN,
   Tailscale or a jump host); SSH exec of the herdr CLI (simplest, but polls and has no events); a daemon on
   the machine over LAN HTTPS (needs a pinned self-signed certificate); an outbound relay with WebRTC (works

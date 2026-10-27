@@ -114,6 +114,11 @@ never calls herdr's focus methods. A design gets decision numbers on the
   `pane.send_keys` does. Then all input takes one path, with no bridge call
   per key burst, which matters over SSH
   ([Terminal plane](/docs/talking-to-herdr#terminal-plane)).
+- **Claude Code's transcript path.** herdr's Claude hook sends
+  `transcript_path`, but herdr 0.9.5 keeps a path in `agent_session` only for
+  pi and omp. The ask: keep it for Claude Code. Then the
+  [chat view](/docs/future-work/chat-view) opens the file herdr names, with no
+  search under `~/.claude/projects`, and a custom `CLAUDE_CONFIG_DIR` works.
 - **OSC 7501**, the Program Status Protocol: a terminal escape sequence that a
   program sends to report its status
   ([spec](https://www.superlogical.com/rex/docs/build/program-status)). herdr

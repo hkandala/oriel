@@ -131,3 +131,22 @@ heading at the end.
   C's. The libghostty visibility mechanism went to the docs' "What streams", not a `TerminalDrawing.swift`
   comment: this lane is docs only while lane C changes Terminal code. Left out as history or noise: price
   tables, run ids, per-phase metrics.
+
+### Lane V
+
+- **Cause:** a chat view that switches without ending the agent needs the agent's own record of the conversation.
+  Orca, Paseo and Paradev run a structured chat as a second, headless process (Claude Agent SDK over stream-json,
+  `codex app-server`, `pi --mode rpc`, ACP) on a copy or a resume of the conversation; none shows one process as
+  both. Only Orca's transcript chat switches in place, which is Oriel's design. Chat code: Orca 150–170k lines,
+  Paseo about 88k, Paradev about 30k.
+- **Fix:** the design keeps the transcript chat and now prefers a path from `agent_session`, shows a "Working"
+  row, and sends a Codex on its shared daemon to screen text; the rejected structured mode and the later Codex
+  attach are under Choices; Claude Code's transcript path is under Waiting on herdr. Research:
+  [chat-view.md](../../resources/research/ui/chat-view.md).
+- **Decisions:** no structured mode or ACP: they end the agent, need a fork back, cost a large adapter per agent,
+  and die with the SSH link. Spiked: codex 0.163's app-server streams a thread's turns to every client that resumed
+  it, so a later chat could join a Codex on the daemon (the upstream default since 0.157), once a pane maps to its
+  thread. Without the daemon the TUI holds its rollout open (`lsof` works). herdr drops the `transcript_path` its
+  Claude hook sends.
+- **For the user:** the first slice is proposed in the research file (pi and Claude Code transcripts, the switch,
+  the reply box, screen text for the rest, local and remote).

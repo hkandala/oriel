@@ -4,12 +4,14 @@ description: "Transcripts, screen-text chat, sending, answering and switching vi
 ---
 
 Not built. This page is the design of the chat view: an agent or terminal
-pane drawn as messages with a reply box, instead of its terminal.
+pane drawn as messages with a reply box, instead of its terminal. The agent
+keeps running in its herdr pane; the chat is a second way to look at the same
+process, so switching ends nothing, and it works the same on remote machines.
 
 ## Where messages come from
 
-1. Find the transcript from the pane's `agent_session`: a path for pi, an id
-   for Claude Code and Codex.
+1. Find the transcript from the pane's `agent_session`: a path when herdr
+   gives one (pi), else an id (Claude Code, Codex).
 2. Find the file on the machine: `ls`, or `lsof` for Codex.
 3. Tail it with `tail -c +N -F`: new lines arrive as the agent writes them.
 4. Parse each line into user text, assistant text, thinking and tool calls.
@@ -26,10 +28,13 @@ transcript: `agent_session` on the pane.
 
 ### Codex and missing integrations
 
-- Codex's hook runs in a shared daemon, so herdr's id can point at
-  another pane's thread. The app checks the pane's foreground processes for an
-  open rollout file (`lsof -p <pid> -Fn`, or `/proc/<pid>/fd` on Linux). If
-  none is found, the pane uses the screen-text chat.
+- Codex starts a shared app-server daemon by default and its TUI attaches to
+  it. The daemon then runs the hooks and writes the rollouts, so herdr's id can
+  point at another pane's thread. The app checks the pane's foreground
+  processes for an open rollout file (`lsof -p <pid> -Fn`, or `/proc/<pid>/fd`
+  on Linux). A Codex started with `--no-daemon` (herdr's advice for its
+  integration) holds its rollout open; a Codex on the daemon does not, and its
+  pane uses the screen-text chat.
 - Claude Code and Codex report `agent_session` only when herdr's
   integration is installed. If it is missing, the pane uses the screen-text
   chat. The app shows no text that tells the user to run a herdr command
@@ -55,8 +60,14 @@ transcript: `agent_session` on the pane.
   while a chat view is open the app re-checks `agent_session` on each
   snapshot and after each send, and restarts the tail when it changes.
 - **More parsers** come later, one per agent that writes a transcript.
+- **Working row:** agents write a message to the transcript when it is done,
+  not word by word. While `agent_status` is `working`, the last row says
+  "Working".
 - **Known limits:** pi transcripts are trees and are read in file order.
-  Custom `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are not followed in v1.
+  A custom `CLAUDE_CONFIG_DIR` is not followed in v1, until herdr reports
+  Claude Code's path too
+  ([Waiting on herdr](/docs/future-work#waiting-on-herdr)). Codex needs no
+  folder: `lsof` gives the full path.
 
 ## Screen-text chat
 
@@ -98,7 +109,9 @@ transcript: `agent_session` on the pane.
   swipe, because sideways swipes belong to the strip.
 - The choice is kept in memory per pane. The Mac and the phone can show the
   same pane differently.
-- While the chat view is shown, that pane's terminal stream is closed.
+- The switch changes only what the card draws: the agent, its turn and its
+  pane go on. While the chat view is shown, that pane's terminal stream is
+  closed; switching back opens it again.
 
 ## What it looks like
 
@@ -114,8 +127,19 @@ transcript: `agent_session` on the pane.
 
 - **The agent's transcript, tailed on the machine, plus `agent.prompt`**;
   parsers for pi, Claude Code and Codex; a screen-text chat for every other
-  agent or terminal pane. It is what every working chat view does, and any
-  agent or terminal pane can switch. Rejected: per-agent prompt parsers;
+  agent or terminal pane. Any agent or terminal pane can switch, and nothing
+  ends. Rejected: per-agent prompt parsers;
   parsing the screen into fake messages.
 - **The key guard.** The prompt may have changed on another device. Rejected:
   sending without a check.
+- **No structured mode.** Rejected: restarting the agent in a structured mode
+  (Claude Code's stream-json, `codex app-server`, `pi --mode rpc`) or through
+  ACP. It ends the agent to switch, needs a fork to come back (two processes
+  must not write one session), takes a large adapter per agent, and on a
+  remote machine the process would die with the SSH link, where a herdr pane
+  lives on.
+- **Later, Codex only:** codex's app-server sends a thread's events to every
+  client that resumed it, so a chat could join the running thread of a Codex
+  on the daemon, with live text. Revisit when users ask for it; it needs a
+  reliable way from a pane to its thread and a line adapter on the relay (the
+  socket speaks WebSocket).
