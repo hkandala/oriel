@@ -601,6 +601,9 @@ once.
 - Every other tile shows a snapshot of its terminal's last picture at the tile's pixel size, the latest
   kept up to 100 MB; a tile with no picture yet shows a spinner and goes live first.
 - A tile turning live keeps its snapshot over the new surface until it drew, so there is no fade.
+- Cost: a live card keeps its surface at full card size (about 52 MB for a full-window card on a Retina
+  screen), which is why the cap is in megabytes. Smaller surfaces for the tiles are not possible today:
+  libghostty-spm takes its content scale only from the window.
 
 ## Floating pane
 

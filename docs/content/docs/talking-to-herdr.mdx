@@ -234,6 +234,9 @@ One path is [Future work](/docs/future-work).
   just before it stops drawing; the copy shows over the surface when the card
   is back in a window, until the surface's first new frame (about 0.1 s).
   libghostty also stops drawing in a minimized, hidden or covered window.
+  The app decides which cards draw (`inView`), not libghostty: libghostty
+  marks a view visible again whenever it moves out of its window (`viewDidMoveToWindow` calls
+  `setWindowVisible(true)`), so hidden cards kept drawing every output.
 - A terminal past those 16 lets go of its stream (its herdr run ends) and of
   its surface. Its copy stays as a still, purgeable while no window shows it,
   so it costs no memory then (the system takes such pictures back within
@@ -462,6 +465,8 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
   under a stand-in id, a closing pane, tab or workspace left out. The
   snapshots after the write confirm it (herdr's tab or pane takes the
   stand-in's place; the closed one is gone) or take it back (a failed write).
+  A closing item clears when its id is absent: herdr never gives a closed
+  id to a new pane, tab or workspace while its server runs.
   Otherwise the app never changes its own state by hand.
 - Writes of a session run one at a time, in order: a write asked while
   another runs waits for it.

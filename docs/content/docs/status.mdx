@@ -14,7 +14,9 @@ description: "The Agents button and view, notifications and the Dock"
   null and differs from the value this device recorded as seen. How "seen"
   works: [Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own).
 - Each agent pane is needs you (herdr's `blocked`), working, finished (not
-  seen) or idle. herdr's `done` is not used. A tab and a workspace show the
+  seen) or idle. herdr's `done` is not used: herdr reports it instead of
+  `idle` for a pane no herdr client looks at, so it says nothing about this
+  device. A tab and a workspace show the
   strongest state of their panes: needs you, then finished, then working,
   then idle.
 - Looking at a pane means its tab is selected on the page in view and the

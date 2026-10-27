@@ -41,6 +41,10 @@ never calls herdr's focus methods. A design gets decision numbers on the
 - **Reorder the machines** in the machine menu.
 - **Bundling herdr** with the app, so a Mac without herdr can still show its
   own sessions.
+- **A notarized Developer ID download.** The app is signed ad hoc today
+  ([Platform](/docs/platform)). It ships outside the App Store because it
+  runs the `herdr` CLI and `ssh`. A real signing identity also turns on
+  notifications.
 - **Local Network privacy** (macOS 15 and later). An `ssh` that the app starts
   counts as the app, so a target on the local network fails with "No route to
   host" today. The plan: the app declares `NSLocalNetworkUsageDescription`,
@@ -116,9 +120,19 @@ never calls herdr's focus methods. A design gets decision numbers on the
 
 ## Left out on purpose
 
-- Tearing a tab off into a new window.
-- Key sequences and custom shortcuts.
-- Traffic lights inside the tab bar (needs private API).
-- Jump to prompt (needs OSC 133 marks from the shell).
-- A font size per pane, paste confirmation, an installer for agent integrations.
-- Many themes, a theme editor, a compact density.
+- Tearing a tab off into a new window: a tab belongs to its herdr workspace,
+  and a window shows pages, not single tabs.
+- Key sequences and custom shortcuts: macOS menus hold the shortcuts.
+- Traffic lights inside the tab bar: needs private API
+  (`setCustomTitlebarHeight:`).
+- Jump to prompt: needs OSC 133 marks, and herdr's frames carry none.
+- A font size per pane (one text size for the app), paste confirmation
+  (small; on request), an installer for agent integrations (herdr's writes
+  agent config files; with the Settings window).
+- Many themes, a theme editor, a compact density: the user wants only light,
+  dark, Glass and Classic.
+- A menu bar status item: the floating pills would cover it.
+- Sparkle updates and a diagnostics window: not interface work.
+- Decorations with a GPU cost (Rex's melt transition, selection pulse).
+- Rex's theme, material or decompiled files in the repo: Oriel copies looks
+  by measuring, never Rex's files or icon art.

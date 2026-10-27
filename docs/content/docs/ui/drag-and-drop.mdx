@@ -14,11 +14,16 @@ calls (D69). What herdr 0.9.5 allows, tested on a throwaway session:
 | `pane.move {destination:{type:"tab", tab_id, split, target_pane_id?, ratio?}}` | into another tab of any workspace of the session, split right or down beside `target_pane_id` (or, when it is left out, the tab's focused pane), with an optional ratio (the first side's share) | into its own tab (`reason:"same_tab"`) |
 | `pane.move {destination:{type:"new_tab", workspace_id?, label?}}` | a new tab in any workspace of the session, last there | — |
 | `pane.move {destination:{type:"new_workspace", label?, tab_label?}}` | a new workspace | — |
-| `tab.move {tab_id, insert_index}` | reorder inside its workspace | a move to another workspace |
+| `tab.move {tab_id, insert_index}` | reorder inside its workspace | — (another workspace's `workspace_id` is ignored: the tab moves inside its own) |
 | `workspace.move {workspace_id, insert_index}`, `workspace.move_block` | reorder workspaces | — |
 
-- A pane moved to another workspace gets a new pane id. Its terminal id
-  stays, so its card stays.
+- A pane moved to another workspace gets the next free pane id there
+  (`w1:p4` → `w2:p2`). Its terminal id stays, so its card stays. Inside its
+  workspace a pane keeps its id.
+- `pane.swap` of a pane with itself is `same_pane`. A move into or out of a
+  tab a herdr TUI zoomed is `zoomed_tab` ([Layout](/docs/layout)).
+- `new_workspace` gets no label from the app, so herdr names the workspace
+  after the pane's folder.
 - Moving the last pane of a tab closes that tab, and of a workspace's last
   tab that workspace.
 - `layout.apply {tab_id, root}` with the tab's own pane ids does not

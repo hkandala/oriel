@@ -10,6 +10,7 @@ uses are in `docs/content/docs/reference/herdr-calls.mdx`, and how Oriel uses th
 - Unix domain socket (named pipe on Windows), mode `0600` (`src/api/server.rs: SOCKET_PERMISSION_MODE = 0o600`). There is no auth beyond filesystem permissions.
 - Path resolution order: `--session <name>` → `HERDR_SOCKET_PATH` → `HERDR_SESSION=<name>` (`~/.config/herdr/sessions/<name>/herdr.sock`) → default `~/.config/herdr/herdr.sock`.
 - **Newline-delimited JSON. It is not JSON-RPC 2.0**, although it looks similar: request `{"id":"…","method":"…","params":{…}}`, success `{"id","result":{"type":"…",…}}`, error `{"id","error":{"code","message"}}`.
+- **Cost:** the direct socket answers `ping` in 0.47 ms and `session.snapshot` in 0.89 ms (median); a `herdr` process per call costs about 18 ms.
 - **One request per connection.** `handle_connection_with_stop` reads one initial line (max 1 MiB, 5 s timeout), answers, and closes. Long-lived connections exist only for `events.subscribe` (stream), and for `events.wait`, `agent.wait`, `agent.prompt` (with wait), and `pane.wait_for_output` (one delayed response). A second `events.subscribe` on an open subscription is ignored (herdr-web-ui notes the same).
 - Server-side app dispatch timeout is 5 s (`APP_RESPONSE_TIMEOUT`). Stream write timeout is 5 s.
 - Subscriptions are **server-polled every 100 ms** (`CONNECTION_POLL_INTERVAL`) from a shared in-memory ring of **512 events** (`event_hub.rs MAX_EVENTS`). A slow reader gets `error.code:"events_lost"` and the server closes that connection. To recover: resubscribe, wait for `subscription_started`, call `session.snapshot` on another connection, and treat events as invalidation signals.
@@ -91,10 +92,10 @@ What the bytes are (important):
 
 ## 3. Data model
 
-- **IDs** (per server and session; two machines can both have `w1:p1`): workspace `w7`, `wA` (base-36-ish counter); tab `w7:t1`; pane `w7:p1`; terminal `term_65d4963eec1341` (stable for the terminal process, survives `pane.move`). Tab and pane numbers are public counters per workspace (`session.json: public_pane_numbers`, `next_public_pane_number`). **A cross-workspace `pane.move` assigns a new public `pane_id`** but keeps the terminal. Key caches by `terminal_id` when you need continuity.
+- **IDs** (per server and session; two machines can both have `w1:p1`): workspace `w7`, `wA` (base-36-ish counter); tab `w7:t1`; pane `w7:p1`; terminal `term_65d4963eec1341` (stable for the terminal process, survives `pane.move`). Tab and pane numbers are public counters per workspace (`session.json: public_pane_numbers`, `next_public_pane_number`). **A cross-workspace `pane.move` assigns the next free `pane_id` there** (`w1:p4` → `w2:p2`) but keeps the terminal; inside a workspace a moved pane keeps its id. Ids are never given again while the server runs and are kept across a cold restart; a restarted server gives new terminal ids. Key caches by `terminal_id` when you need continuity.
 - **Layout:** a BSP tree per tab, `direction: right|down`, `ratio: f32`, persisted (`persist/snapshot.rs LayoutSnapshot::Split{direction,ratio,first,second}`). It is exposed and settable: `layout.export`/`layout.set_split_ratio`/`pane.resize`/`layout.apply` (creates a new tab from a tree; does not keep live PTYs). `pane.split` takes `ratio`.
-- **Zoom:** per tab (`zoomed` in the layout). `pane.zoom on|off|toggle` also focuses the pane inside the tab. Moves into or out of a zoomed tab fail with `reason:"zoomed_tab"`.
-- **Move:** `pane.swap` (same tab, keeps ratios), `pane.move` to an existing tab (`split` + `target_pane_id?` + `ratio?`), `new_tab`, or `new_workspace`. It emits `pane.moved` (no fake close/create). Tabs: `tab.move {insert_index}`. Workspaces: `workspace.move`/`move_block`.
+- **Zoom:** per tab (`zoomed` in the layout). `pane.zoom on|off|toggle` also focuses the pane inside the tab and moves herdr's focus; a tab with one pane refuses (`single_pane`). Moves into or out of a zoomed tab fail with `reason:"zoomed_tab"`.
+- **Move:** `pane.swap` (same tab, keeps ratios), `pane.move` to an existing tab (`split` + `target_pane_id?` + `ratio?`), `new_tab`, or `new_workspace`. It emits `pane.moved` (no fake close/create). Refusals are `changed:false` with a `reason`: `same_pane`, `same_tab`, `cross_tab`, `no_neighbor`, `zoomed_tab`. `new_workspace` without a label is named after the pane's cwd. Tabs: `tab.move {insert_index}`; another workspace's `workspace_id` is ignored (the tab moves inside its own). Workspaces: `workspace.move`/`move_block`.
 - **Labels and metadata:**
   - `workspace.label`, `tab.label` (rename methods; events `workspace.renamed`/`tab.renamed`).
   - `pane.label` (`pane.rename`): trimmed, **no length cap** (`terminal/state.rs set_manual_label`), **persisted** in `session.json` (`PaneSnapshot.label`), restored after a cold restart, **no change event**. A 127-char URL label round-tripped intact.
@@ -103,7 +104,7 @@ What the bytes are (important):
   - `launch_argv` (from `layout.apply` commands or plugin panes) is persisted, but on cold restore it is re-run **only for live handoff** (`persist/restore.rs:692 if was_imported`). After a normal restart the pane comes back as a shell.
   - ⇒ **The only durable free-form field on a pane is `label`.** Re-read after a rename: no event fires.
 - **cwd and process:** `cwd` (pane/workspace cwd), `foreground_cwd` (live foreground process), `pane.process_info` (pids, argv, cwd per foreground process).
-- **Agents:** `agent` (label like `pi`, `claude`, `codex`), `agent_status` (`idle|working|blocked|done|unknown`; `done` = idle and not yet seen by the server), `terminal_title(_stripped)` from OSC 0/2, `display_agent`/`title`/`state_labels` from metadata, and `agent_session`. Rollups: workspace and tab `agent_status`. AgentInfo also has `state_change_seq`, `completion_seq`, `screen_detection_skipped`. Detection uses foreground process + screen manifests (`~/.config/herdr/agent-detection/*.toml` overrides) + integration hooks (`pane.report_agent`). `agent.explain` shows why.
+- **Agents:** `agent` (label like `pi`, `claude`, `codex`), `agent_status` (`idle|working|blocked|done|unknown`; `done` = idle in a pane no herdr client looks at), `terminal_title(_stripped)` from OSC 0/2, `display_agent`/`title`/`state_labels` from metadata, and `agent_session`. Rollups: workspace and tab `agent_status`. AgentInfo also has `state_change_seq`, `completion_seq`, `screen_detection_skipped`. `pane.report_agent {pane_id, source, agent, state, seq}` takes idle, working, blocked, unknown and drops a report whose `seq` is not above the last; `state_change_seq` is one counter per server; `completion_seq` is set on working → idle and blocked → idle and is null again at the next change (idle → idle changes nothing); `pane.release_agent` drops only that source's report. Detection uses foreground process + screen manifests (`~/.config/herdr/agent-detection/*.toml` overrides) + integration hooks (`pane.report_agent`). `agent.explain` shows why.
 - **Notifications:** the JSON API has `notification.show` (outbound, shows a toast in the TUI). Agent finished/needs-attention notifications go to client shells only, as private `SemanticNotification` messages. **Our app must derive notifications itself** from `pane.agent_status_changed` (working→done or blocked). The per-client "seen" state is client-local, as in the TUI.
 
 ---
@@ -127,7 +128,11 @@ What the bytes are (important):
   server. It is not a pane: no `pane_id`, not in `session.snapshot`, no events, not saved, no agent
   detection. Its `terminal_id` shows only on the private client socket. The public API can only open it
   (`plugin.pane.open placement:"popup"`, plugin entrypoints only) and close it (`popup.close`, no
-  parameters). "Overlay" and "zoomed" placements are normal split panes in a tab with its `zoomed` flag set.
+  parameters). To probe popups again, run a throwaway server with its own config folder
+  (`XDG_CONFIG_HOME=/tmp/hx herdr --session oriel-dev-x server`, so the user's `plugins.json` stays
+  untouched), link a throwaway plugin with `placement = "popup"` and subscribe to every event type: in 0.9.5
+  the server log shows `pane.spawn`, but no event fires and only the private client socket
+  (`ClientShellPopupSurface`) sees the popup. "Overlay" and "zoomed" placements are normal split panes in a tab with its `zoomed` flag set.
 - **Agent state hooks:** `herdr integration install <agent>` writes agent-side hooks or plugins that call `pane.report_agent` / `pane.report_agent_session` (Claude: SessionStart → session id only, state from screen manifest; Codex `--no-daemon`: session + turn state; Pi/OpenCode/Kimi/Kilo/OMP: full state). Third-party agents can call these methods themselves (`docs/add-herdr-support.mdx`), including `resume_argv` so herdr re-runs them after a restart. `agent.view.set` lets a caller customize the TUI's agent list ordering and filtering.
 
 ---
@@ -150,5 +155,10 @@ What the bytes are (important):
 - Several controllers can hold different panes of one tab. A control stream survives `pane.move`: it is bound to the terminal.
 - A layout rect is not the PTY size: use the viewport's rows.
 - A subscribe through `remote-api-bridge` needs its stdin kept open.
+- `session stop` is synchronous; the next start restores workspaces and layout. `session delete` refuses a
+  running session (`session_delete_failed`) and succeeds for a missing one. CLI errors are JSON on stderr.
+- `worktree.create` writes to `~/.herdr/worktrees/<repo>/`. `worktree.open` needs a `workspace_id` in the
+  repository when the focused workspace is not in one (`not_git_worktree`). A workspace's `worktree` field
+  fills only after a `worktree.*` call.
 - `agent.start` does no install check and returns at once; `integration.list` lists what is installed.
 - `pane.focus` moves every attached TUI to that tab and marks the tab seen. Never call it from a GUI.

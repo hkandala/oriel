@@ -37,3 +37,14 @@ These are static raster asset-catalog icons, not a layered Liquid Glass
 original square image when creating Icon Composer layers, where the system
 supplies the mask. See Apple's [asset catalog guide](https://developer.apple.com/documentation/xcode/configuring-your-app-icon)
 and [Icon Composer](https://developer.apple.com/icon-composer/).
+
+## Similar marks
+
+Google Lens found no exact match for the original artwork. A keyword image search found related motifs:
+
+- [FeedSquad](https://feedsquad.com/brand-kit): three rounded square cards offset down to the left, with
+  blue accents. Oriel's panes are wider, offset down to the right, in neutral tones with dark gutters.
+- [Interleave](https://interleave.app/): three blue upright panes in perspective. Oriel's panes face front,
+  with other proportions, spacing, direction and colors.
+
+This is a limited visual screen, not a trademark clearance.
