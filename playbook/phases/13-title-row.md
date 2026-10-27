@@ -1,6 +1,6 @@
 # Phase 13: title row, tab bar and menus
 
-Goal: the title row of the window design (`docs/content/docs/ui/window.mdx`), left to right: traffic lights, sidebar toggle, machine
+Goal: the title row of `ui/window.mdx`, left to right: traffic lights, sidebar toggle, machine
 button, workspace button (only while the sidebar is collapsed), the tab bar (always in the title row,
 with Rex's geometry), a spacer, then ⌘ and +. Phase 15 adds the Agents button before ⌘. The session
 picker stays where it is until phase 14 removes it.

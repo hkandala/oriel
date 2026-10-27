@@ -130,14 +130,6 @@ Stage A (stream level, against throwaway sessions; no GUI yet).
   it is in a window again: after a split the keys stay on the card that was split (herdr's
   `focus:false`). A new surface starts focused in libghostty (a filled cursor); the view
   resigns it at once unless it has the keyboard. Font: 13 pt.
-- **Checked in the app** (oriel-dev-term, synthetic CGEvents): typing, Enter, Backspace, Ctrl+C,
-  Up for history, Tab completion, arrows in `less` and `vim`, Shift+Enter / Esc / Option+←
-  under kitty flags (`^[[13;2u`, `^[[27u`, `^[[98;3u`), paste in a shell and in `cat -v`,
-  clicks moving the keyboard between cards, a click in `vim` with `mouse=a` landing on the
-  right line, the wheel in long output (herdr's viewport moved) and in `vim`, window resize
-  (`stty size` 27 73 → 33 102 and back), Nerd Font icons and box drawing, `top`, tab switch
-  release, a split button making a live card, take over by another client then Take Back by
-  typing. htop is not installed on this Mac; `top` stood in.
 - **e2e.** Each card's terminal view is an accessibility element `terminal.<pane_id>` whose
   value is its grid as `stty size` prints it, so tests compare it with the PTY. The helper's
   `POST /<session>/control` opens a second `control` (released at once) to tell a held pane
@@ -148,49 +140,14 @@ Stage A (stream level, against throwaway sessions; no GUI yet).
   (hover first); which sign is up follows the Mac's natural scrolling setting (it differs
   between this Mac and CI), so the test tries both.
 
-## User feedback round (after Stage B hand test)
+## User feedback round (after the hand test)
 
-Fix on the `terminals` branch before merge:
-
-1. **Flicker when a tab becomes active**, worst for full-screen agent TUIs and only while a
-   herdr TUI client is also attached. Cause to confirm: on leaving a tab the app releases,
-   the herdr TUI lays the panes out at its own size, and on return the app resizes them
-   back (two SIGWINCH redraws), possibly plus a first frame at a stale size. Fix:
-   - keep control streams of recently shown tabs (herdr-web keeps the last 8 tabs mounted):
-     an LRU of tabs, bounded by the design's ~24 live surfaces; off-screen surfaces stop
-     drawing (`isSurfaceVisible = false`) but keep reading their stream; release on LRU
-     eviction, session switch, pane close, quit;
-   - open each stream with the card's exact cols × rows so the first frame is already at
-     our size (no resize right after attach);
-   - verify with a herdr TUI attached to a throwaway session showing the same tab.
-   Update `docs/content/docs/talking-to-herdr.mdx` "What streams" and add a decision.
-2. **Remember the active pane per tab.** The keyboard card is the app's own selection per
-   tab: coming back to a tab restores the card the user last clicked there. herdr's focused
-   pane is used only the first time a tab is shown (layout.mdx rule).
-3. **Hover must not look active.** Hovering an unfocused card lightens it a little, clearly
-   less than the keyboard card.
-4. The held GUI checks: dead key, IME, htop.
-
-### Done (feedback round)
-
-1. **Flicker.** Confirmed at the stream level with a herdr TUI client on a pty (120×40) next
-   to the app: `control` at 60×20 gets its first frame at 60×20 already (no stale size), but
-   after `terminal.release` the TUI lays the pane out at its own size again (37 rows), so
-   each return to a tab resized the PTY twice. Now `PaneViewRegistry` keeps the streams of
-   the 24 most recently shown terminals; the others let go, least recently shown first.
-   Hidden surfaces get `setSurfaceVisible(false)` and keep reading. Checked in the app with
-   the TUI attached: a `WINCH` trap in a pane logged nothing over three t1 → t2 → t1 round
-   trips (one line at attach). The e2e test now checks that the last tab stays attached at
-   its size. Design: talking-to-herdr "What streams", D46.
-2. **Keyboard per tab.** `HostStore` keeps the last keyboard card per tab (from the
-   registry's `keyboardPaneID`); coming back to a tab gives it the keyboard again. herdr's
-   focused pane only picks it on a tab's first show (layout.mdx). Checked: click p2, go to
-   t2 and type there, come back, typing lands in p2.
-3. **Hover.** A hovered card without the keyboard gets a lighter dim (8 % instead of 15 %).
-   Measured on screenshots: 23.7 → 25.8 mean luminance on hover, the keyboard card 28.4.
-4. **Held checks.** Dead key (Option+E, E) typed `é`. The Character Viewer (Ctrl+Cmd+Space,
-   "rocket", Return) put 🚀 in the shell, through the same `insertText` path an IME commits
-   through; a Japanese input source was not switched on (it would change the user's input
-   sources), so marked text was not exercised. htop (installed with brew) renders in color
-   and moves its selection with arrows.
-
+1. **Flicker when a tab becomes active** (with a herdr TUI also attached). After `terminal.release` the TUI
+   laid the pane out at its own size, so each return resized the PTY twice. Now the registry keeps the
+   streams of the most recently shown terminals; hidden surfaces stop drawing and keep reading (D46).
+2. **Keyboard per tab.** Coming back to a tab gives the keyboard to the card last used there; herdr's focused
+   pane picks it only on a tab's first show.
+3. **Hover.** A hovered card without the keyboard dims less (8 % instead of 15 %), still darker than the
+   keyboard card.
+4. **Held checks.** A dead key types `é`; the Character Viewer inserts through the IME path; marked text was
+   not exercised.

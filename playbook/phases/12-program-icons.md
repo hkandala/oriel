@@ -2,7 +2,7 @@
 
 Goal: every pane and tab shows the icon of the program that runs in it, like Rex: a colored rounded
 tile in tab capsules and Agents rows, a plain glyph in card headers, and overlapping tiles, one per
-pane, for a tab with several panes. The sidebar has no tab rows (the window design (`docs/content/docs/ui/window.mdx`)), so it shows no
+pane, for a tab with several panes. The sidebar has no tab rows (`ui/window.mdx`), so it shows no
 program icons.
 
 ## Build

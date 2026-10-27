@@ -1,6 +1,6 @@
 # Phase 14: sidebar: session pages and workspace rows
 
-Goal: the sidebar of the window design (`docs/content/docs/ui/window.mdx`). It has one Arc-style page per herdr session open in the
+Goal: the sidebar of `ui/window.mdx`. It has one Arc-style page per herdr session open in the
 window, with page dots and a sideways swipe between pages. Each page lists the session's workspaces
 like herdr's Spaces panel: a state icon, the name, the git branch with ahead and behind counts, and
 linked worktrees indented under their repository. The footer has the filter and one Open Session
@@ -105,7 +105,7 @@ button, which opens the Open Session sheet. Tabs are no longer sidebar rows.
 
 18. **Empty page.** A session with no workspace shows only a New Workspace button in the strip and on the
     page (today `OrielApp.swift` says "No workspaces. Create one in herdr:"). The user never needs herdr
-    (the window design (`docs/content/docs/ui/window.mdx`), "Never send the user to herdr"). Add a SwiftLint custom rule that fails on a
+    ("Never send the user to herdr", now on the docs' index page). Add a SwiftLint custom rule that fails on a
     user-visible string literal telling the user to run herdr (for example `"herdr ` or `in herdr` inside
     `Text(`, `Label(`, `message(`, `Button(`), so it cannot come back.
 

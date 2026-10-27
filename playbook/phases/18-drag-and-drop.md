@@ -2,7 +2,7 @@
 
 Goal: drag a pane by its header to swap it, re-place it beside another card, or move it to another
 tab or workspace; drag tab capsules and workspace rows to reorder them. Every target and herdr call is
-in the tables of the window design (`docs/content/docs/ui/window.mdx`) ("Moving panes, tabs and workspaces by drag and drop"); this
+in the tables of `ui/window.mdx` ("Moving panes, tabs and workspaces by drag and drop"); this
 phase builds exactly those, with Rex's look and timings.
 
 ## Build

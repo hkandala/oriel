@@ -41,7 +41,7 @@ only: no new features, no new settings.
 6. **Re-take and compare again** until the table has no open row. Put the final side-by-side composites
    in `/tmp/oriel-shots/22/compare/` and list them in the report.
 7. **Docs.** Update `docs/content/docs/ui/theme-and-accessibility.mdx` (token table),
-   `docs/content/docs/ui/window.mdx` (sizes), the window design (`docs/content/docs/ui/window.mdx`) (the title row height if it changes) and
+   `docs/content/docs/ui/window.mdx` (sizes and the title row height) and
    decisions D42 / D44 where values change.
 
 ## Findings

@@ -1,6 +1,6 @@
 # Phase 15: agents, notifications and the Dock
 
-Goal: Rex's way of showing agent activity, on herdr's data, in the layout of the window design (`docs/content/docs/ui/window.mdx`):
+Goal: Rex's way of showing agent activity, on herdr's data, in the layout of `ui/window.mdx`:
 working dots and status badges in tabs, state icons on workspace rows, a "seen" state for finishes,
 the Agents button with its needs-you popover, the session-scoped Agents view, notifications, the Dock
 badge (no sounds) and a Dock menu. This replaces the design's status area and the Activity view of the
