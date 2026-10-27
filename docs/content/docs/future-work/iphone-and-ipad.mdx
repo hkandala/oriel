@@ -9,6 +9,7 @@ over SSH.
 
 ## Layout
 
+- The strip pages with a one-finger swipe.
 - iPhone shows one pane per page, in reading order through each tab's split
   tree. This is a drawing choice. Nothing changes in herdr.
 - A row of chips over the page has one chip per pane, with the tabs split by
@@ -21,7 +22,10 @@ over SSH.
   ([Chat view](/docs/future-work/chat-view)). Chat needs no terminal stream,
   so the Mac keeps control of the terminal.
 - Terminals get a key bar over the keyboard (libghostty-spm's
-  `inputAccessoryItems`), for terminals only.
+  `inputAccessoryItems`), for terminals only: Esc, Tab, Shift-Tab, a Ctrl
+  latch, arrows and Enter, as in every iOS herdr client. Heeler moved its row
+  out of `inputAccessoryView` into the normal layout, because keyboard mode
+  switches tore it down; check this first.
 - Card buttons always show; there is no hover.
 - Tapping the title opens the machine, session and workspace switcher. The agents that
   need you are a bar under the navigation bar.
@@ -64,6 +68,10 @@ over SSH.
   into `authorized_keys`.
 - The first connect shows the host key's SHA256 fingerprint and asks. After
   that the key is pinned, and a changed key blocks the connection.
+- Pairing could follow the common pattern of iOS herdr clients: a QR code
+  printed on the machine with its addresses, the host key fingerprint and a
+  one-time `restrict,command=` bootstrap key that enrolls the device's own
+  public key.
 - The phone reaches a Mac like any SSH machine: turn on System Settings ›
   General › Sharing › Remote Login, then add the Mac by its Tailscale or LAN
   name.
@@ -71,21 +79,43 @@ over SSH.
   between. Jump hosts come later (Citadel has `jump(to:)`).
 - Citadel has no keepalive; the [health check](/docs/machines#health-check)
   finds dead links. A failed check runs over a new Citadel connection.
-- The Mac's relay carries all runs on one SSH session
-  ([The SSH connection](/docs/machines#the-ssh-connection)). Citadel opens
-  one exec channel per run, so a busy tab can hit the server's `MaxSessions`.
-  Then the card shows its last image and **Retry**. A relay over Citadel
-  removes the limit; build it first if the limit shows up.
-- Before the iOS work starts, a small test build checks Citadel's exec
-  channels with herdr's bridge and terminal streams.
+- Runs go through the same relay as on the Mac, on one Citadel exec channel
+  ([The SSH connection](/docs/machines#the-ssh-connection)), so a busy tab
+  never reaches the server's `MaxSessions` (its limit on sessions per
+  connection). A call that times out closes its run.
+- `dial` is a Citadel `direct-tcpip` channel
+  ([Run and dial](/docs/future-work/plugins#run-and-dial)).
+
+## Checks before building
+
+A small test build checks Citadel's exec channels before any iOS work:
+
+- A call writes stdin and then closes it while the channel stays open for
+  the reply (herdrup writes stdin only inside `withExec`, and Heeler dropped
+  Citadel).
+- A long-lived channel streams stdin and stdout (`terminal session control`
+  and the event stream).
+- Closing a channel ends the remote command, and the server frees the
+  session.
+- A Secure Enclave P-256 key authenticates, and 8 parallel channels work.
+- A `direct-tcpip` channel carries a web page: an in-app listener on
+  `127.0.0.1:<P>` pipes each connection into its own channel, and a dev
+  server loads in a web view at full speed.
 
 ## Notifications
 
 - The same notifications as on the Mac, while the app is open or within its
   ~30 s background time ([Notifications](/docs/status#notifications)).
 - No push at first: the phone shows status while the app is open. Alerts
-  while the app is closed need a small stateless relay that forwards
-  encrypted payloads to Apple's push service.
+  while the app is closed need a push relay: a small stateless server that
+  forwards encrypted payloads to Apple's push service. It must exist because
+  Apple's push service needs the developer's `.p8` key, which cannot ship in
+  the app. Heeler's design is the best found: a stateless Worker as the relay,
+  a herdr plugin `[[events]]` hook on the machine as the trigger (no daemon),
+  and end-to-end encryption with a key the app writes to the machine over
+  SSH.
+- Faking the `audio` or `voip` background modes to stay connected risks App
+  Store rejection, so the app does not.
 
 ## Plugins
 
@@ -97,6 +127,21 @@ over SSH.
   (Terminal, Agent, Web page, Git history, Diff, Markdown), inside the app.
   Downloaded code is an App Store review risk, so your own plugins on iOS
   come later.
+- The App Store rules that apply: guideline 2.5.2 forbids downloaded code
+  that "introduces or changes features". Guideline 4.7 allows HTML5 and
+  JavaScript mini apps and plug-ins: no native APIs without permission
+  (4.7.2), user consent (4.7.3), an index with universal links of the
+  software offered (4.7.4, which does not apply without a catalog) and age
+  gating (4.7.5). The Developer Program License Agreement §3.3.1(B) allows
+  downloaded interpreted code that does not change the app's primary purpose,
+  bypass OS security, or create a store. Apple has enforced 2.5.2 against
+  apps that build apps (Anything, Replit, Vibecode in early 2026); Obsidian
+  ships community JavaScript plugins on iOS.
+- The later path: a setting "Load plugins from my Mac", off by default. The
+  phone reads `~/Library/Application Support/Oriel/plugins/` from the Mac
+  over the SSH connection it already has, with one `tar` run and a safe tar
+  reader (no `..`, no links, a size cap), and asks for consent again. There is
+  never an in-app plugin catalog on iOS.
 - A label for any other plugin shows the missing-plugin card with **Show
   placeholder** (switch the card to the pane's terminal)
   ([State and restore](/docs/future-work/plugins/state)).
@@ -106,11 +151,13 @@ over SSH.
 
 ## Platform
 
-- One multiplatform SwiftUI app target (macOS, iPadOS, iOS 26) and the same
+- libghostty-spm supports iOS 15 and later, and can be built from source
+  (`./build.sh --platforms macos,ios`, with zig 0.16).
+- One multiplatform SwiftUI app target (macOS 26, iPadOS 26 and iOS 26) and the same
   `HerdrKit` package. One minimum OS means no fallbacks.
 - iOS only: `CitadelExec`, the UIKit terminal subclass (it yields its pan
   gesture when the motion is mostly horizontal, so the strip pages), the
-  compact layout. macOS only: `ProcessExec`, `SSHExec` and its relay, the
+  compact layout. macOS only: `ProcessExec`, `SSHExec`, the
   askpass script, the pill panel, the Dock badge, scroll routing with
   `NSEvent`, the `WindowGroup` scene.
 - The iOS app ships on the App Store. Citadel is linked for iOS only.
@@ -119,7 +166,7 @@ over SSH.
 
 - **Citadel with a Secure Enclave key; the Mac through Remote Login.** Pure
   Swift; the key cannot leave the device; no new mechanism. Rejected:
-  libssh2 and OpenSSL; a relay server of our own between phone and machine.
+  libssh2 and OpenSSL; a server of our own between phone and machine.
 - **One pane per page on iPhone, agents in chat.** Splits do not fit, and
   chat needs no PTY. Rejected: shrinking splits onto a phone.
 - **Core plugins only on iOS at first**, because downloaded code is an App

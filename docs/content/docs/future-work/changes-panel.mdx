@@ -1,0 +1,109 @@
+---
+title: "Changes panel"
+description: "What the agents changed: a drawer with git diffs, a git chip on cards, and the last turn"
+---
+
+Not built. This page is the design of a changes panel: a drawer beside the
+strip that shows what changed in the keyboard card's worktree, against three
+bases. The idea and its git commands come from Kero
+([research](https://github.com/hkandala/oriel/blob/main/resources/research/clients/kero.md#the-changes-panel-diff-viewer)).
+
+## The drawer
+
+- **Where it lives:** in the app only, as window chrome: a drawer at the
+  right of the strip, outside herdr's split tree. It is not a card and not a
+  herdr pane, like the Agents view. Dropping a card on it does nothing.
+- **What it shows:** the worktree of the keyboard card: the pane's cwd from
+  the snapshot, else the workspace's root. herdr gives no foreground process
+  cwd, so an agent that changes folder without a shell `cd` is not followed.
+- **Bases:** Uncommitted (`HEAD` against now, untracked files included),
+  Branch
+  (`git merge-base HEAD refs/remotes/origin/<default>` against now) and Last
+  turn (below).
+- **Saved:** open or closed and its width per window, in `@SceneStorage` next
+  to `sidebarWidth`. The base and the folded files live in memory. Nothing is
+  in herdr.
+- **Data:** git runs on the machine through `Exec`, as the git state of
+  workspace rows does ([Git status](/docs/talking-to-herdr#git-status)), with
+  `--no-optional-locks --no-ext-diff --no-textconv`. The result is cached by
+  worktree root in the session's `HostStore`, so two windows on one session
+  share it. Changed files come from `git diff -M -z --name-status <rev>
+  <now-tree>`, then `--numstat`. "Now" is a snapshot tree too, so untracked
+  files show in every base.
+- **Drawing:** from git's patch (`git diff -M <base>`), not from two whole
+  texts: a short parser of unified diff hunks, and git does the diff
+  algorithm. Lines draw in the terminal font in a lazy stack (or one text view
+  per file for long files), with the green, red and yellow of the terminal
+  palette. Word highlights can come later from `git diff --word-diff=porcelain`.
+  Expanding hidden context lines needs the whole file, so it is left out at
+  first.
+- **Read only first.** No writes to the working tree in the first version.
+- Each device runs its own git calls on the machine. Nothing syncs.
+
+## Git chip
+
+A small chip in the card header shows the branch and `+N −M` from
+`git diff --numstat -z HEAD`, one run per worktree root. A click opens the
+drawer. Workspace rows still show no changed-file count (D67); the chip is
+on cards.
+
+## Last turn
+
+- **Trigger:** when an agent's status goes from idle or done to working, the
+  app writes a git tree of the working tree on the machine without touching
+  the user's index:
+  ```sh
+  cp .git/index $tmp/index
+  GIT_INDEX_FILE=$tmp/index git add --all -- .
+  GIT_INDEX_FILE=$tmp/index git write-tree
+  ```
+  The base "Last turn" is that tree against now.
+- **Where the tree id lives:** in the machine's state folder,
+  `$HOME/.local/state/oriel/<session>/`, keyed by the pane's `terminal_id`, as
+  plugin state is ([State and restore](/docs/future-work/plugins/state)). Every
+  device and window sees the same turn, and it survives an app restart.
+- **Gap:** the app sees a turn only while a window has that session open. A
+  turn that starts with no Oriel running has no snapshot, and the drawer then
+  offers only Uncommitted and Branch. A real fix needs herdr to take the
+  snapshot or send a hook on a status change (an upstream ask).
+- **Two devices** both see the change and both write; the trees hold the same
+  content, and the last writer wins.
+- **Side effect:** the snapshot writes loose, unreferenced objects into the
+  repository's `.git/objects` (`git gc` prunes them later). The Settings
+  window says so and has an off switch.
+
+## Later
+
+- **Revert a hunk:** writes files on the machine through `Exec`. It refuses
+  while an agent in that worktree works, and when the file's hash changed
+  since it was shown.
+- **Comments to the agent** on lines, sent with `pane.send_input`, kept in
+  memory per window until sent.
+- **Faster git refresh:** stat `HEAD`, `index` and the branch ref each second
+  and run `git status` only on a change or an agent status change. On a
+  remote machine each stat is a round trip, so batch them in one `stat` run,
+  or keep today's poll there.
+- **Jump to the next agent that needs you** with one key, in the Agents
+  view's priority order. It selects workspace, tab and card in the app and
+  never calls herdr's focus methods.
+
+## Order
+
+Build the drawer, the git chip and the last turn as one feature, in that
+order. A Diff plugin card ([Pane kinds and plugins](/docs/future-work/plugins))
+stays for a diff the user wants to pin in the strip; the drawer covers the
+common case with no placeholder pane.
+
+## Not copied from Kero
+
+- A diff card as the first diff surface: it needs a placeholder pane, a
+  label, a state file and a card on every device. The drawer needs none and
+  follows the keyboard card.
+- Agent control of web pages: it opens a path from any process on the
+  machine into the user's logged-in web views.
+- A second, screen-based status detector: herdr's `agents[]` is the one
+  source (D55).
+- A daemon of Oriel's own that holds panes, layout or scrollback: herdr owns
+  them (D1, D57).
+- Writes in the first version, silent snapshots, and whole-text diffs with a
+  diff algorithm of our own.

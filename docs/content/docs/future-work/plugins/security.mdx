@@ -14,10 +14,19 @@ Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/p
   confirmed link (below) are the only ways out of the page.
 - **No script from content.** Every page gets a Content Security Policy whose
   `script-src` allows only the plugin's own files: no inline script, no
-  `eval`. Inline styles are allowed (`style-src 'self' 'unsafe-inline'`), so
-  authors can use style attributes. So HTML that a plugin builds from repository text by mistake cannot
-  run script. Plugins should still insert repository text as text, not HTML.
-  The core Markdown plugin renders with raw HTML turned off.
+  `eval`. WebAssembly is allowed (`'wasm-unsafe-eval'`), so a plugin can
+  bundle a fast diff engine or syntax highlighter; it compiles only modules
+  from the plugin's own files and allows no JavaScript `eval`. Inline styles
+  are allowed (`style-src 'self' 'unsafe-inline'`), so authors can use style
+  attributes. So HTML that a plugin builds from repository text by mistake
+  cannot run script. Plugins must still insert repository text as text, not
+  HTML. The core Markdown plugin renders with raw HTML turned off. The scheme
+  handler sends:
+  ```text
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval';
+    style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:;
+    connect-src 'self'; frame-src 'none'; form-action 'none'; base-uri 'none'
+  ```
 - **What `run` means:** a plugin with `run` can do anything you can do on
   that machine, including network tools and processes that keep running after
   the card closes. `dial` adds nothing beyond that. The app does not pretend

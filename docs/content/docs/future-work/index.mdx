@@ -9,7 +9,8 @@ Each page says "Not built" at the top. Smaller deferrals are marked "Simpler
 choice" on their own pages.
 
 The designs follow the rules of the app as it is built: herdr is the source of
-truth, the app reaches each machine through `run` over the relay
+truth, the app reaches each machine through `run` (over the relay on a remote
+machine)
 ([Running commands](/docs/talking-to-herdr#running-commands)), and the app
 never calls herdr's focus methods. A design gets decision numbers on the
 [Decisions](/docs/decisions) page when it is built.
@@ -18,6 +19,7 @@ never calls herdr's focus methods. A design gets decision numbers on the
   <Card title="Pane kinds and plugins" href="/docs/future-work/plugins" description="The pane picker, agent panes, image paste and plugins as small web pages" />
   <Card title="Web page" href="/docs/future-work/web-page" description="A native web view in a placeholder herdr pane, with remote localhost" />
   <Card title="Chat view" href="/docs/future-work/chat-view" description="An agent's transcript drawn as messages, with a reply box" />
+  <Card title="Changes panel" href="/docs/future-work/changes-panel" description="What the agents changed: git diffs in a drawer, a git chip, the last turn" />
   <Card title="Floating pills" href="/docs/future-work/pills" description="Agent status on the Mac screen edge while you work in another app" />
   <Card title="iPhone and iPad" href="/docs/future-work/iphone-and-ipad" description="One pane per page on iPhone, the Mac layout on iPad" />
   <Card title="Rex as a second multiplexer" href="/docs/future-work/rex-backend" description="How Rex fits behind the Multiplexer interface" />
@@ -28,8 +30,8 @@ never calls herdr's focus methods. A design gets decision numbers on the
 - **A Settings window** (⌘,), designed with mock-ups first. It holds the
   settings that have no menu item today: the terminal font, the cursor style
   and blink, Option as Alt, copy on select, and the notification switches
-  ([Settings](/docs/ui/settings)). It must meet the design bar. A first stock
-  tabbed form was too plain and was removed.
+  ([Settings](/docs/ui/settings)). It must meet the design bar; a stock tabbed
+  form is too plain (D62).
 - **herdr's machines in Add Remote Host.** When herdr is on the Mac, the
   dialog lists the targets of the enabled entries of
   `herdr machine list --json` (`{id, label, target, session, enabled}`) that
@@ -54,13 +56,15 @@ never calls herdr's focus methods. A design gets decision numbers on the
   [`Multiplexer` interface](/docs/architecture#the-multiplexer-interface),
   after Rex. Research:
   [`tmux.md`](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/tmux.md).
+- **A swipe preview** for a card never shown, from
+  `pane.read {source:"visible"}`, instead of an empty card.
 - **A remote home shown as `~`** in card headers, and Go to Directory on a
   remote machine.
 - **A bigger server helper.** The relay already carries every run of a remote
   machine on one SSH session
   ([The SSH connection](/docs/machines#the-ssh-connection)). A helper of our
   own with more to do (a file watcher, a port forwarder) would sit behind the
-  same `run` call. Build it only when one of these is real:
+  same `run` and `dial` calls. Build it only when one of these is real:
   1. **Latency:** a plugin needs many small calls (a file tree, search), and
      users on slow links feel it.
   2. **File watching:** a plugin needs pushed file changes, not reads again

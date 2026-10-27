@@ -51,7 +51,8 @@ card and ⌘↩ opens the app.
 
 ## Look
 
-Opaque near-black. No glass, because glass renders flat in an inactive app,
+Opaque near-black, with the same status words and colors as everywhere
+else. Reduce Motion turns off the slide. No glass, because glass renders flat in an inactive app,
 and the pill only shows while the app is inactive.
 
 ## How it works
@@ -59,8 +60,8 @@ and the pill only shows while the app is inactive.
 - **When:** the pill shows whenever the app is not active, and hides when it
   becomes active. Two notifications drive it, plus screen changes for
   placement. Nothing polls. The only timer is the peek's 8 s shrink. It
-  appears on the screen under the pointer. A switch turns the pill off
-  (in the pill's context menu until the Settings window exists).
+  appears on the screen under the pointer. A setting in the Settings window turns the pill off
+  ([Future work](/docs/future-work#smaller-items)).
 - **One AppKit `NSPanel` hosting SwiftUI.** No SwiftUI scene can do this:
   `UtilityWindow` hides when the app is inactive, and a floating `Window`
   activates the app when clicked. The panel is not a floating pane's window
@@ -109,11 +110,42 @@ and the pill only shows while the app is inactive.
 - Simpler choices: no dragging, no notch placement, no global hotkey, no
   per-workspace pills. Revisit each one when users ask for it.
 
+## Checks before building
+
+A small test build (half a day) passes all of these on macOS 26 first:
+
+1. Type in another app (Ghostty) while the pills appear and update. No
+   character is lost, and that app's title bar stays active.
+2. Click a pill, then a key button on a blocked card. The app stays inactive
+   and the menu bar stays the other app's.
+3. Click the reply field. Typing, ⌘V and ⌘A work. Enter sends
+   `agent.prompt`. Esc closes the card. `orderOut` then
+   `orderFrontRegardless` gives the keyboard back.
+4. With `becomesKeyOnlyIfNeeded = true`, find out whether a SwiftUI
+   `TextField` gets focus. If not, keep it `false` (as above).
+5. Clicks in the panel's transparent area (about 380 × 560 pt) reach the
+   window below.
+6. Pills show over a full-screen app, on every Space, in Mission Control,
+   with Stage Manager on, and while the app is hidden (⌘H).
+7. `occlusionState` is not `.visible` for a main window on another Space or
+   a minimized one.
+8. With two displays, the pills follow the pointer's screen on each show.
+9. **Open in app** activates the app, brings the window forward at the
+   pane, and hides the pills.
+10. VoiceOver reads "codex, needs you, infra" and offers the Open action.
+    Reduce Motion stops the slide.
+11. `.passive` notifications land quietly, and Activity Monitor shows no
+    wake-ups from the app while the pills are idle.
+
+Avoid: autofocusing the reply field, a terminal stream in the card, animated
+"working" glyphs, a banner and a pill for the same event, and changing the
+style mask after `init`.
+
 ## Choices
 
 One non-activating `NSPanel`, one pill with a glyph per agent, a pill card
 that is the compact chat view, peeks that never take the keyboard, opaque.
-The One app proved the shape; the pill never steals a keystroke;
+One, a macOS agent app with a status pill, proved the shape; the pill never steals a keystroke;
 glass renders flat in an inactive app. Rejected: a pill per agent; a SwiftUI
 window; glass pills.
 

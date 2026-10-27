@@ -36,7 +36,7 @@ for example `claude`, `codex`, `pi`).
     lines.
 - **Icon:** the agent's program icon, as today
   ([Program icons](/docs/ui/program-icons)).
-- **View:** terminal by default on the Mac, chat on iPhone. The chat|term
+- **View:** terminal by default on the Mac and iPad, chat on iPhone. The chat|term
   switch changes it ([Chat view](/docs/future-work/chat-view)).
 
 Why `integration.list`: one call, herdr checks the `PATH`, and a newly
@@ -48,7 +48,7 @@ installed agent shows at once. Rejected: probing every agent with
 Paste an image into a terminal or agent card, or into the chat reply box, and
 the agent gets it as a file on its own machine.
 
-1. ⌘V with an image and no text on the clipboard. The app encodes it as PNG.
+1. ⌘V (or Paste on iOS) with an image and no text on the clipboard. The app encodes it as PNG.
 2. It copies the image to the pane's machine as a dropped file is copied
    (`Exec.upload`, [Drag and drop](/docs/ui/drag-and-drop#files-and-images)):
    a new folder of its own in the machine's temporary folder, at most 16 MB,

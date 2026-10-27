@@ -31,13 +31,15 @@ built into the app. Every other pane kind is a plugin: a small web page
 
 ## The picker
 
-`+` in the tab bar and a split open the picker.
+`+` in the tab bar and a split open the picker. Its header names the
+machine ("New pane on devbox").
 
 - The fixed rows come first: Terminal, Agent ▸ (one row per available agent,
   [Agent](/docs/future-work/plugins/agent#agent)) and Web page (an address
   field and the machine's listening ports,
   [Finding ports](/docs/future-work/web-page#finding-ports)).
-- Then one row per plugin pane kind from the manifests: core plugins first,
+- Then a "Plugins" header and one row per plugin pane kind from the
+  manifests: core plugins first,
   then linked and installed ones. A plugin whose pane needs an argument asks
   for it before the pane is made
   ([Manifest](/docs/future-work/plugins/packages#manifest)).
@@ -48,7 +50,8 @@ built into the app. Every other pane kind is a plugin: a small web page
 
 Web pages and plugins reach their pane's machine through two calls on its
 `Exec`. The app has the first one today
-([Running commands](/docs/talking-to-herdr#running-commands)):
+([Running commands](/docs/talking-to-herdr#running-commands)); the second
+is new:
 
 ```swift
 /// Run argv on the machine; stdin, stdout and the exit status come back.
@@ -57,19 +60,40 @@ func run(_ argv: [String]) async throws -> Channel
 func dial(host: String, port: Int) async throws -> Channel
 ```
 
-- **`run`** goes through the relay on a remote machine: one SSH session
-  carries every run. Closing a run's stdin ends it.
+- **`run`** is a `Process` on This Mac. On a remote machine it goes through
+  the relay: one SSH session carries every run. Closing a run's stdin ends
+  it.
 - **`dial`** on This Mac is a plain TCP connection. On a remote machine it is
-  `ssh -S <ctl> -W <host>:<port> <target>` on the host's ControlMaster: one
-  process, one stream on its stdio. It opens a forwarding channel, not an SSH
-  session, so the server's `MaxSessions` does not count it. It needs
-  `AllowTcpForwarding yes` on the server (the default). The `Channel` it gives
-  carries bytes, not lines.
+  `ssh -S <ctl> -W <host>:<port> <target>` on the host's ControlMaster, with
+  the same `-F /dev/null -o ControlMaster=no -o BatchMode=yes` options as a
+  run, so a missing master never prompts: one process, one stream on its
+  stdio. It opens a forwarding channel, not an SSH session, so the server's
+  `MaxSessions` (its limit on sessions per connection) does not count it. It
+  needs `AllowTcpForwarding yes` on the server (the default). Check first that
+  `-W` and `-O forward` work on a master started with
+  `ClearAllForwardings=yes` ([The SSH connection](/docs/machines#the-ssh-connection)).
+- `dial` needs a `Channel` that carries bytes; today a `Channel` gives lines.
 - A web card needs a local port, not a stream:
   [Remote localhost](/docs/future-work/web-page#remote-localhost).
 - Nothing of ours is installed on the machine: `sshd`, POSIX tools and herdr
-  do the work. A bigger helper would sit behind the same two calls
+  do the work. A bigger helper would sit behind the same `run` and `dial` calls
   ([Future work](/docs/future-work#smaller-items)).
+
+## Where it lives
+
+- `PluginRegistry`: core, linked and installed plugins, their manifests and
+  consent.
+- `PluginHost`: one web page per plugin card, and the bridge
+  (`window.oriel`) to `run`, `dial` and the API; every call checks the card's
+  machine in Swift.
+- `HerdrKit` gets the label parser, the state-file write command and the
+  transcript parsers, each with unit tests. `SSHExec` gets `dial`.
+- The `PaneViewRegistry` owns web and plugin cards as it owns terminal views,
+  so scrolling never destroys them.
+- App storage (`UserDefaults`): consent and This Mac answers per plugin id
+  and source, plugin preferences (passwords in the Keychain), and approved
+  web origins per machine with the safe list. Plugin code and its source
+  record live in `~/Library/Application Support/Oriel/plugins/`.
 
 ## Choices
 

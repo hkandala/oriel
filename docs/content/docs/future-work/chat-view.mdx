@@ -32,15 +32,17 @@ transcript: `agent_session` on the pane.
   none is found, the pane uses the screen-text chat.
 - Claude Code and Codex report `agent_session` only when herdr's
   integration is installed. If it is missing, the pane uses the screen-text
-  chat, and the chat shows an **Install integration** button. The button runs
-  `herdr integration install <agent>` on that machine, so the user never has
-  to run it by hand.
+  chat. The app shows no text that tells the user to run a herdr command
+  (an installer for agent integrations is left out on purpose,
+  [Future work](/docs/future-work#left-out-on-purpose)).
 
 ### Read and parse
 
 - **Read:** the app finds the file once. Then it runs one long-lived
   `tail -c +<offset> -F <file>` on the machine (the chat tail), wrapped so a
-  closed channel ends it. New lines arrive as the agent writes them.
+  closed channel ends it. New lines arrive as the agent writes them. A chat
+  tail has no timeout, like the other long-lived streams; the
+  [health check](/docs/machines#health-check) finds a dead one.
 - On open it reads the last 256 KiB and drops the first partial line. Simpler
   choice: no older history in v1. Revisit when users ask for history older
   than the last 256 KiB.
@@ -52,6 +54,7 @@ transcript: `agent_session` on the pane.
 - **Session changes** (`/new`, `/resume`) do not always send an event, so
   while a chat view is open the app re-checks `agent_session` on each
   snapshot and after each send, and restarts the tail when it changes.
+- **More parsers** come later, one per agent that writes a transcript.
 - **Known limits:** pi transcripts are trees and are read in file order.
   Custom `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are not followed in v1.
 

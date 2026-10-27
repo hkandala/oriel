@@ -17,15 +17,20 @@ Rex ([superlogical.com](https://www.superlogical.com)) is a terminal
 multiplexer for macOS and Linux servers by Superlogical. It has two parts:
 
 - **Rex Server:** a Go program, also the `rex` CLI. One server runs per user
-  account and machine. It listens on a Unix socket at
-  `~/Library/Application Support/rex/server.sock` (mode 0600). It keeps the
-  shells alive and runs one libghostty-vt emulator per terminal.
+  account and machine. It listens on a Unix socket (mode 0600): on macOS
+  `~/Library/Application Support/rex/server.sock`, on a Linux server it can
+  be `/run/rex/server.sock`. It keeps the shells alive and runs one
+  libghostty-vt emulator per terminal. Rex sessions do not survive a server
+  restart: a package upgrade on Linux ends every session (herdr keeps its
+  layout across restarts).
 - **Rex.app:** a SwiftUI and AppKit client with its own libghostty-vt and
   Metal renderer.
 
 The server speaks HTTP/1.1 on the socket. `GET /llms.txt` returns the whole
 protocol as Markdown, and `GET /api/help` returns it as JSON with JSON
-Schemas. The research used `rex 0.0.1792519967-gd05acf`, API revision 4.
+Schemas. The research used `rex 0.0.1792607779-g171246`, API revision 5.
+Revision 5 adds only `server.apple.privacy_status`, so a `hello` with
+`api_revision: 4` still works.
 
 ## How the models map
 
@@ -35,12 +40,16 @@ Schemas. The research used `rex 0.0.1792519967-gd05acf`, API revision 4.
 | session | workspace | ordered; generated label such as `crisp-forest` |
 | window | tab | ordered; each session has an `active_window_id` |
 | layer `tiled` | the tab's split tree | `split.direction` `horizontal` is `.right`, `vertical` is `.down`; `ratio` is the first child's share |
-| layer `floating` | none | skipped (Oriel floats a pane in its own window, D50) |
+| layer `floating` | none yet | a block that a Rex.app user floats would vanish from Oriel if skipped; show it as a floating pane ([Floating pane](/docs/ui/window#floating-pane)) or as a card at the end of its tab. Detached blocks, blocks from other hosts (`host_id`) and blocks no terminal made need the same choice |
 | block | pane and terminal | one stable id, `block:<uuidv7>`, so `Pane.id == Pane.terminalID` |
 | client | one Oriel app on one machine | survives a dropped connection for 60 s |
 
 A block keeps its id when it moves between windows. Rex has no separate
-terminal id, and none is needed.
+terminal id, and none is needed. A block never leaves its Rex session, so
+with this mapping a pane cannot move to another workspace or a new one.
+Rex gives no git state and no worktree groups for a workspace; the app's own
+`git status` run ([Git status](/docs/talking-to-herdr#git-status)) still works
+from the pane's cwd.
 
 ## Transport
 
@@ -50,12 +59,17 @@ socket through `nc -U`, which the research tested.
 
 - Oriel runs `nc -U <socket>` through `Exec.run`. On This Mac this is a local
   `Process`. On a remote machine it is the same argv inside the
-  [remote command envelope](/docs/talking-to-herdr#running-commands) over SSH.
+  [remote command envelope](/docs/talking-to-herdr#running-commands), over
+  the relay. The relay carries only lines today, and the WebSocket frames are
+  binary, so the relay must also carry bytes (base64 lines, as `Exec.upload`
+  already sends them). The other way: a stream-local forward on the
+  ControlMaster (`ssh -S <ctl> -O forward -L <local.sock>:<socket>`), with no
+  `nc`.
 - The channel carries plain bytes. Oriel speaks WebSocket (RFC 6455) on it with
   a small client of its own: about 150 lines, client masking, text and binary
   frames, ping and pong. `URLSessionWebSocketTask` cannot open a Unix socket.
 - `rex server status --json` gives the socket path (`endpoint`) on each
-  machine. `rex server start` starts the server. It is idempotent.
+  machine; the path differs between macOS and Linux. `rex server start` starts the server. It is idempotent.
 - If `nc` is missing, `socat` or `python3` can carry the same bytes.
 
 Each machine has two kinds of WebSocket:
@@ -63,12 +77,18 @@ Each machine has two kinds of WebSocket:
 | Socket | Path and subprotocol | Count | Carries |
 |---|---|---|---|
 | control | `/api/control`, `rex.control.v1` | one per machine | JSON `hello`, `welcome`, `request`, `response`, `event` |
-| data | `/api/data`, `rex.data.terminal.v1` | one per shown terminal | binary: handshake, snapshot, then raw PTY bytes |
+| data | `/api/data`, `rex.data.terminal.v1` | at most one per block per client | binary: handshake, snapshot, then raw PTY bytes |
 
 The control socket opens with a `hello` (`api_revision: 4`,
 `client.kind: "app"`, `client.name: "Oriel"`). The `welcome` returns a
 `client.id` and a `reconnect_token`. A request is about 0.3 ms on the server,
 so Oriel needs no pacing beyond the event rules below.
+
+One client cannot open two data streams for one block: a second HELLO gets
+REJECT (`82 02`) or a close with 1008. Two Oriel windows on one session
+([Control between windows](/docs/talking-to-herdr#control-between-windows))
+share one stream per block, fanned out to both windows, or open one Rex
+client per window.
 
 ## RexClient
 
@@ -76,31 +96,56 @@ so Oriel needs no pacing beyond the event rules below.
 socket. It sends requests by id and gets responses out of order. It gives
 events to one reader.
 
-| `Multiplexer` member | Rex calls | Notes |
-|---|---|---|
-| connect (in `HostStore`) | control socket, `hello`, then `session.bootstrap {event_scope: "all"}` and `session.attach` for every session | require `api_revision >= 4` |
-| `sessions()` | `server.status` | one `Session` per server; `running` means the socket answers |
-| `startServer()` | `rex server start` through `Exec.run` | then wait until `server.status` answers |
-| `snapshot()` | `session.view {session_id}` per session, in parallel; `com.superlogical.terminal.program_status` per block | the view has every window, the tiled layout with ratios, and each window's `focused_block_id` |
-| `updates()` | events on the control socket | see [Events](#events) |
-| `refresh()` | `session.view` for each session | revisions make it safe to repeat |
-| `pane(id)` | `session.describe_block` and `com.superlogical.terminal.process` | `process.foreground.cwd` is the real cwd, with no OSC 7 needed |
-| `program(id)` | `com.superlogical.terminal.process` | nil if the foreground is a shell (its `argv0` starts with `-`) |
-| `terminal(...)` | `data.connect`, the data socket, `session.own_block`, `com.superlogical.terminal.resize` | see [RexTerminalStream](#rexterminalstream) |
-| `split(pane, dir)` | `session.new_split {anchor_id, direction, side: "after", layout, focus: false}` | `.right` is `horizontal`, `.down` is `vertical` |
-| `newTab(workspace, cwd)` | `session.new_window {session_id, layout: {block: {flavor, options: {cwd}}}, focus: false}` | returns `window_id`. `focus` defaults to true, so always send false |
-| `newWorkspace(cwd)` | `session.create {initial_windows: [...]}`, then `session.attach` | returns the first `window_id`. `create` does not attach |
-| `close(pane:)` | `block.close {session_id, block_id}` | closes the window too if it was the last block |
-| `close(tab:)` | `session.close_window {session_id, window_id}` | |
-| `sendKeys(keys, pane)` | `client.key {session_id, block_id, key}`, one per key | ordered with other input; see [Input](#input) |
+- **Connect** (in `HostStore`): the control socket, `hello`, then
+  `session.bootstrap {event_scope: "all"}` and `session.attach` for every
+  session. Require `api_revision >= 4`.
+- **Snapshot:** `session.view {session_id}` per session, in parallel. The
+  view has every window, the tiled layout with ratios, and each window's
+  `focused_block_id`. Titles, the process (cwd, program) and program status
+  are not in the view: they cost one call per block at snapshot time
+  (`com.superlogical.terminal.title`, `process`, `program_status`), then
+  block events keep them up to date. `process.foreground.cwd` is the real
+  cwd, with no OSC 7 needed.
+- **Create calls** send `focus: false` (`session.new_window` defaults to
+  true). A new tab is
+  `session.new_window {session_id, layout: {block: {flavor, options: {cwd}}}, focus: false}`;
+  a new workspace is
+  `session.create {initial_windows: [...]}`, then `session.attach` (`create`
+  does not attach).
 
-The designed actions that are not in the interface yet also map one to one:
-rename (`session.set_label`, `set_window_label`, `set_block_label`), divider
-drag (`session.resize_pane`, named by the two blocks on its sides), swap
-(`session.swap_blocks`), move (`session.move_block`, `move_window`,
-`session.move`), close workspace (`session.destroy`), and read pane text
-(`com.superlogical.terminal.format {format: "text", trim: true, unwrap: true}`,
-with scrollback).
+Every `Multiplexer` member, with its Rex call, is in the research's
+[method-by-method table](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/rex.md#multiplexerswift-method-by-method):
+22 members work directly, 8 need adapter code, and 2 cannot work. The
+adapter does these things on its own:
+
+1. It shows one Oriel session per machine (the server) and names it, for
+   example "Rex".
+2. It treats the block labels `shell` and `Block xxxxxxxx` as "no label". A
+   block always has a label; Rex cannot clear one.
+3. It computes the neighbor of a pane from the view's `rect` fractions. Rex
+   has no read-only neighbor call (`session.focus_direction` moves focus).
+4. It finds the split for a divider drag in the view tree, and sends
+   `session.resize_pane` with one block from each side and the new absolute
+   ratio.
+5. It makes "move to a new tab" from three calls: `new_window` with a
+   placeholder shell, `move_block` beside it, `block.close` the placeholder.
+6. It refuses moves to another workspace and to a new workspace. The UI does
+   not offer those drop targets for Rex.
+7. It keeps a "seen" marker per block, record id and `updated_at`, because
+   Rex has no `completion_seq`.
+8. It reads title, process and program status per block at snapshot time,
+   and keeps them up to date from block events.
+9. It translates logical keys (`ctrl+c`, `enter`) into Rex key objects (W3C
+   code in snake_case, `mods`). The CLI does this in `rex send-key`, but the
+   API takes only key objects.
+10. It handles stale owners ([Ownership](#ownership)).
+11. It fans one data stream out to every Oriel window that shows the block,
+    or opens one Rex client per window.
+
+Rex has no absolute viewport offset (the find bar scrolls the local surface
+instead) and no visible-only text: the hover card's lines come from
+`com.superlogical.terminal.format {format: "text", trim: true, unwrap: true}`
+(with scrollback, up to 1 MiB), last `rows` lines.
 
 The flavor for a new shell is `com.superlogical.terminal.shell`.
 
@@ -250,24 +295,29 @@ every device agrees.
 
 A Rex block has at most one owner client. The owner sets the PTY size and
 theme. Anyone attached can stream it, type into it and close it. This is close
-to herdr's control and observe, and D8 maps onto it:
+to herdr's control and observe, and Oriel's control rule (D8) maps onto it:
 
-| D8 step | Rex |
+| Oriel's control rule (D8) | Rex |
 |---|---|
-| Mac opens without takeover | `session.own_block {block_ids, mode: "request"}` |
+| open without takeover | `session.own_block {block_ids, mode: "request"}`; if the owner is not in `client.list`, `mode: "take"` |
 | refused: watch, show Take Back | the result's `owner` is not Oriel's client id |
 | first key, paste or click, or Take Back | `session.own_block {mode: "take"}` |
 | "taken over" | `block_owner_changed {previous: <me>, reason: "take"}` |
-| iPhone and iPad watch | no `own_block` call; stream only |
+| iPhone and iPad, if built: watch only ([iPhone and iPad](/docs/future-work/iphone-and-ipad#watching-and-control)) | no `own_block` call; stream only |
 | card no longer shown | close the data socket, then `session.disown_block` |
+
+A block that `session.create` made from a short-lived client keeps its dead
+creator as owner, so `request` never succeeds for it. So the app compares
+the result's `owner` with `client.list` and takes the block when the owner is
+not a live client.
 
 Two differences matter:
 
 - A watcher can still type in Rex. Oriel keeps its own rule: a key press in a
   watching card takes control first, so the PTY size follows the device that
   types.
-- When the owner leaves, Rex hands the block to the next claimant in line.
-  herdr does not. Oriel shows the new state from the `block_owner_changed`
+- When the owner leaves, Rex hands the block to the next claimant in line and
+  resizes it to that client's last desired size. herdr does not. Oriel shows the new state from the `block_owner_changed`
   event and does not take back by itself.
 
 Rex.app claims the blocks that it shows. If Rex.app and Oriel show the same
@@ -294,7 +344,8 @@ Today a second backend cannot build the app's model types from outside
 `HerdrKit`. These changes come first, each as small as it can be:
 
 1. Public memberwise inits for `Snapshot`, `Workspace`, `Tab`, `Pane`,
-   `Agent` and `SplitNode`. They have only decoding inits now, and
+   `Agent` and `SplitNode`. They have only decoding inits now (`Tab` also has one for the stand-in
+   tab), and
    `Snapshot.trees` has an internal setter.
 2. `TerminalStream` as a struct of closures (`events`, `input`, `resize`,
    `scroll`, `mouse`, `close`). Today it parses herdr's NDJSON from a
@@ -318,11 +369,16 @@ mode.
 ## Testing
 
 Tests never touch the user's Rex server. Each e2e run starts an isolated
-server on its own socket, and the app connects to that socket:
+server on its own socket, with its own state folder and an empty config
+file (an empty `init.lua`), and the app connects to that socket:
 
 ```sh
-rex server run --listen unix:///tmp/oriel-e2e.sock
+rex server run --listen unix:///tmp/oriel-e2e.sock \
+  --state-dir /tmp/oriel-e2e-rex --config /tmp/oriel-e2e-rex/init.lua
 ```
+
+Every other `rex` command in the tests passes `--autostart=false`, or the CLI
+can start the user's server.
 
 The run creates sessions named `oriel-e2e-*` and stops the server at the end.
 The same rules as for herdr apply: existing sessions are read only, and
