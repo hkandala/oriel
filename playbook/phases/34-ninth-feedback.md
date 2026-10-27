@@ -172,7 +172,7 @@ heading at the end.
   herdr refills a session whose last workspace closes, so the client starts only once a session has a workspace
   (the empty page stays for a session opened empty).
   The upstream ask (a `terminal.clipboard` line on control streams) is on the Future work page.
-- **Runs:** red on the old code (tests without the feature): 40484619881 (both: clipboard nil); green: push run GREEN_RUN.
+- **Runs:** red on the old code (tests without the feature): 40484619881 (both: clipboard nil); green: push run 40487141179 (full run, on 5ccd878).
 - **For the user:** try pi's copy key and an agent's copy on select on a remote machine. While a herdr TUI attached
   to the same session is the one last used, it gets the writes instead (in Ghostty on this Mac they still land);
   when it detaches, Oriel gets them again.
