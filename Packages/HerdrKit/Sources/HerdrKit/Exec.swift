@@ -66,7 +66,7 @@ public struct Channel: Sendable {
     public let lines: AsyncStream<String>
     /// Writes one line to stdin, in order, without blocking the caller.
     public let write: @Sendable (String) -> Void
-    /// Every long-running command the app starts exits when its stdin closes (design T6).
+    /// Every long-running command the app starts exits when its stdin closes (talking-to-herdr, Running commands).
     public let closeInput: @Sendable () -> Void
     /// Stops reading now and kills the command if it still runs.
     public let terminate: @Sendable () -> Void
@@ -197,7 +197,7 @@ public final class ProcessExec: Exec {
             var buffer = Data()
             for await data in output {
                 // Only the new bytes: a scan from the start for each chunk made a 280 KB snapshot line cost
-                // O(n²), the app's top function in a stress profile (phase 29).
+                // O(n²), the app's top function in a stress profile.
                 var from = buffer.endIndex
                 buffer.append(data)
                 while let newline = buffer[from...].firstIndex(of: UInt8(ascii: "\n")) {

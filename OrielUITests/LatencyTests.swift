@@ -1,6 +1,6 @@
 import XCTest
 
-/// The main interactions react at once (phase 25, item 14): `-recordLatency YES` gives, for each key, the time from
+/// The main interactions react at once: `-recordLatency YES` gives, for each key, the time from
 /// the key to the first frame that drew its change and how many run loop turns that took ("⌘T 12ms 0 …").
 extension OrielUITests {
     func testPanelsAndSwitchesReactAtOnce() async throws {
@@ -16,8 +16,7 @@ extension OrielUITests {
         key("k", .command) { palette.exists }
         key(escape, []) { !palette.exists }
         key("t", [.command, .option]) { openSession.exists }
-        // Its first draw lists the sessions the page read as it connected, not an empty list that fills a moment later
-        // (user, phase 29).
+        // Its first draw lists the sessions the page read as it connected, not an empty list that fills a moment later.
         let first = element("app.latency").stringValue.split(separator: "; ").last { $0.hasPrefix("open-session") }
         XCTAssertTrue(first?.split(separator: " ").last?.split(separator: ",").contains { $0 == two } == true,
                       "\(first ?? "none")")
@@ -47,7 +46,7 @@ extension OrielUITests {
         try launchRecordingLatency()
         let before = try await tabIDs()
         closeNew("tab", besides: before)
-        // A new tab is "New Tab" until its program is known, never herdr's number (item 13).
+        // A new tab is "New Tab" until its program is known,, never herdr's number.
         let selected = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'tab.' AND selected == true"))
             .firstMatch
         key("t", .command) { selected.label == "New Tab" && !self.element("tab.w1:t1").isSelected }
@@ -108,9 +107,9 @@ extension OrielUITests {
         XCTAssertFalse(app.sheets.firstMatch.exists)
     }
 
-    /// A two-finger swipe between sessions (phase 27): the page follows the fingers, and from their lift slides on
+    /// A two-finger swipe between sessions: the page follows the fingers, and from their lift slides on
     /// to the next page with the session spring, from their speed: no jump or stall at the lift, no bounce, calmer
-    /// than phase 25's 0.14 s spring. A trackpad's events at a known speed (`scripts/swipe.swift`): XCUITest's scroll
+    /// than a 0.14 s spring. A trackpad's events at a known speed (`scripts/swipe.swift`): XCUITest's scroll
     /// is one flick, at the page before the fingers lift.
     func testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed() async throws {
         try launchRecordingLatency(["-forceMotion", "YES"])
@@ -166,7 +165,7 @@ extension OrielUITests {
         XCTAssertEqual(name.frame.minX, place, accuracy: 1)
     }
 
-    /// A quick flick between sessions (phase 28): the fingers on the pad for 48 ms, then momentum. The pages slide on
+    /// A quick flick between sessions: the fingers on the pad for 48 ms, then momentum. The pages slide on
     /// to the next page and rest there with the window on its session. A slide asked of the scroll view on such a
     /// flick stood still until a 0.6 s timeout; then the pages snapped back while the window showed the next session,
     /// and then the first again.
@@ -198,7 +197,7 @@ extension OrielUITests {
         XCTAssertLessThan(zip(steps, steps.dropFirst()).map { $1 - $0 }.max() ?? 1000, 100, "\(swipe)")
     }
 
-    /// A swipe into a session of 200 tabs (phase 30): the window draws its tab bar and strip as the pages arrive, not
+    /// A swipe into a session of 200 tabs: the window draws its tab bar and strip as the pages arrive, not
     /// 0.4–0.8 s after the sidebar.
     func testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar() async throws {
         let eight = try env("ORIEL_SESSION8")
@@ -238,7 +237,7 @@ extension OrielUITests {
         XCTAssertLessThan(min(shows[0], shows[2]), 600, "\(shows)")
     }
 
-    /// A two-finger swipe between tabs, and between sessions in the overview (phase 31): the page moves with the
+    /// A two-finger swipe between tabs, and between sessions in the overview: the page moves with the
     /// fingers, one to one, and from their lift lands on the next page within 400 ms with no jump between frames; a
     /// short flick does too, and fingers that stop before they lift go back. The system's paging took 0.55 s and sent
     /// the flick back. Prints the page's move by the lift and the ms from the lift to within 2 pt of the page. The
@@ -269,7 +268,7 @@ extension OrielUITests {
             window.title.hasSuffix(" - \(self.one)")
         }
         // No tile made while the fingers move ("tiles <count>" at each lift): each move made every tile in view again
-        // (phase 31, 20–40 ms a frame in a session of many tabs), and a swipe's start all of them.
+        // (20–40 ms a frame in a session of many tabs), and a swipe's start all of them.
         let tiles = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("tiles ") }
             .compactMap { Int($0.split(separator: " ")[1]) }
         XCTAssertFalse(tiles.isEmpty)
@@ -310,7 +309,7 @@ extension OrielUITests {
         XCTAssertGreaterThan(settled, 0, swipe)
         // The slide takes at most 280 ms from the fingers' speed (`Paging`).
         XCTAssertLessThan(settled, 400, swipe)
-        // Smooth (phase 31). The tab or session is shown once the pages arrived: shown at the lift (the animation's
+        // Smooth. The tab or session is shown once the pages arrived: shown at the lift (the animation's
         // logicallyComplete, at once for a scroll), it held the slide's first frame for 54–149 ms. And no frame is
         // faster than the slide needs: the fingers' speed, or what lands in 0.3 s (an ease in and out's top speed is
         // 1.5 times its mean), with room for CI's frames; the session spring went up to 7.5k pt/s after a 625 pt/s
@@ -342,7 +341,7 @@ extension OrielUITests {
     }
 
     /// The ms of the slide's last frame before the show's. The window shows the session as the pages look arrived, not
-    /// in the spring's tail (150–200 ms after they are within 2 pt, phase 28): the show runs in the first frame after
+    /// in the spring's tail (150–200 ms after they are within 2 pt): the show runs in the first frame after
     /// the spring is logically complete, so the frame before it is still near the page. Not the show's own time: a late
     /// frame delays it (CI's VM drew none for 60 ms there, the show 80 ms after the page in 40283556151).
     private func beforeShow(_ path: [[Double]], _ shown: Double) -> Double {

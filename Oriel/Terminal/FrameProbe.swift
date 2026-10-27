@@ -7,7 +7,7 @@ import Observation
 /// commit, each drawn (a display link's frames missed a commit of a strip at its first page). A commit counts
 /// as a flicker when a card shows neither its first picture nor its last one: no terminal view in the window, no
 /// picture or an emptied one, a fade, a third picture, or its terminal moved (a held grid keeps its top left, so a
-/// size change is no move). Phase 29, lane T. `recorded`: "tab bad/states codes" per change, each card's states
+/// size change is no move). `recorded`: "tab bad/states codes" per change, each card's states
 /// as they changed, the codes of bad ones (`-` gone, `0` no picture, `s` a small still, `f` fading, `p` another
 /// picture, `j` moved, with the first move in points).
 /// Not seen: commits off the main thread or from a flush within a turn, and a card's own SwiftUI opacity (only the
@@ -30,7 +30,7 @@ final class FrameProbe {
         /// Ink per cell of a coarse grid; nil without a picture.
         let ink: [Bool]?
         let fading: Bool
-        /// A still narrower than the card's pixels shows (the overview's snapshot): blurred (phase 30).
+        /// A still narrower than the card's pixels shows (the overview's snapshot): blurred.
         let small: Bool
         /// In the window (bottom-left based): a held view keeps its top left while its card's size changes.
         let topLeft: CGPoint

@@ -36,7 +36,7 @@ struct ThreeFingers {
         guard time - start.time >= 0.06, long >= 20, long >= 2 * short else { return nil }
         done = true
         // Fingers to the left show the next session, as the system's swipes; up the row above in the sidebar, down
-        // the one below (user, phase 31).
+        // the one below.
         return abs(deltaX) > abs(deltaY) ? .session(deltaX < 0 ? 1 : -1) : .row(deltaY > 0 ? -1 : 1)
     }
 }

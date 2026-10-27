@@ -1,6 +1,6 @@
 import XCTest
 
-/// Actions (phase 4b): close, zoom, new tab and workspace, the palette. Session one's t1 is
+/// Actions: close, zoom, new tab and workspace, the palette. Session one's t1 is
 /// p1 | (p2 / p3), t2 "second" holds p4; w2 is "beta".
 extension OrielUITests {
     func testClosingAPaneAsksUnlessOnlyItsShellRuns() async throws {
@@ -21,7 +21,7 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(confirm.vanishes(within: 2))
         XCTAssertTrue(element("pane.\(second)").exists)
-        // Return is the dialog's default button: it closes the pane (phase 31, item 8).
+        // Return is the dialog's default button: it closes the pane.
         hoverHeader(second)
         element("pane.\(second).close").click()
         XCTAssertTrue(confirm.exists(within: 2))

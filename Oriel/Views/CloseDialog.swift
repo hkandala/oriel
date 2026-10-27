@@ -16,7 +16,7 @@ struct CloseDialog: ViewModifier {
             return floated == id ? closing : nil
         }
         let dialog = dialog(closing)
-        // An alert: a confirmation dialog ignored its .defaultAction button's Return (phase 31, item 8).
+        // An alert: a confirmation dialog ignored its .defaultAction button's Return.
         content.alert(dialog?.title ?? "", isPresented: Binding { closing != nil } set: {
             if !$0 {
                 page.closing = nil

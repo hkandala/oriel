@@ -38,7 +38,7 @@ enum AgentSort: String {
 
 /// Rex's three working dots: each fades 0.3 → 0.85 → 0.3 over 1.2 s, 0.2 s after the one before, from the wall
 /// clock so every tab is in step. Core Animation runs them, at most 15 frames a second, so the app does no work per
-/// frame (a TimelineView per dots made SwiftUI lay out the window at every tick: phase 25, lane O). Still under Reduce
+/// frame (a TimelineView per dots made SwiftUI lay out the window at every tick). Still under Reduce
 /// Motion (but with `-forceMotion`) and on a sidebar page off to the side.
 struct WorkingDots: NSViewRepresentable {
     @Environment(\.look) private var look
@@ -151,7 +151,7 @@ struct StatusBadge: View {
 }
 
 /// An agent pane in the Agents view and the Agents button's panel. A click selects its workspace and tab and gives
-/// it the keyboard. Lit like the selected workspace row while it is the shown tab's keyboard card (user, phase 25).
+/// it the keyboard. Lit like the selected workspace row while it is the shown tab's keyboard card.
 struct AgentButton: View {
     let pane: HostStore.Pane
     let page: Page
@@ -174,7 +174,7 @@ struct AgentButton: View {
         .accessibilityAddTraits(lit ? .isSelected : [])
     }
 
-    /// The pane's name when it has one, else the agent's (user, phase 25).
+    /// The pane's name when it has one, else the agent's.
     private var title: String {
         pane.label ?? pane.agentName ?? "agent"
     }
@@ -192,7 +192,7 @@ struct AgentButton: View {
             ProgramTile(icon: pane.iconID, letter: pane.letter)
                 .overlay(alignment: .topTrailing) { StatusBadge(state: state) }
                 .compositingGroup()
-            // Line 1 the name, the capsule and the age on one centered line; line 2 the place (user, phase 24).
+            // Line 1 the name, the capsule and the age on one centered line; line 2 the place.
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(title).font(.system(size: 13)).lineLimit(1)
@@ -235,7 +235,7 @@ struct AgentsList: View {
     let filter: String
     let sort: AgentSort
     /// The folded groups, a line each, "‹machine› ‹session› ‹sort› ‹group›": per session and order, kept across
-    /// relaunches (user, phase 27). ponytail: a closed workspace's line stays (and folds a new workspace that gets
+    /// relaunches. ponytail: a closed workspace's line stays (and folds a new workspace that gets
     /// its id); prune them if that is ever seen.
     @AppStorage(foldedKey) private var folded = ""
     static let foldedKey = "agentsFolded"
@@ -245,7 +245,7 @@ struct AgentsList: View {
     var body: some View {
         let folded = Self.keys(folded)
         ScrollView {
-            // Lazy: only the rows in view are built, of a hundred agents or more (phase 29).
+            // Lazy: only the rows in view are built, of a hundred agents or more.
             LazyVStack(alignment: .leading, spacing: 4) {
                 ForEach(Self.groups(page, filter: filter, sort: sort)) { group in
                     let open = !folded.contains(group.key)
@@ -264,7 +264,7 @@ struct AgentsList: View {
         .scrollPosition($position)
         // The lit row into view, just enough, without motion, however its pane was shown, and in a stack made anew
         // (the view opened, the other order); the lazy stack finds a row it has not built. Again once laid out: on
-        // the stack's first layout the scroll can miss (phase 31).
+        // the stack's first layout the scroll can miss.
         .onChange(of: [page.keyboardCard(page.selectedTab?.id)?.id ?? "", sort.rawValue], initial: true) {
             let id = $1[0]
             withTransaction(\.animation, nil) { position.scrollTo(id: id) }
@@ -300,7 +300,7 @@ struct AgentsList: View {
     }
 
     /// Goes to the agent row above (-1) or below (1) the lit one, round the ends, as a click on it does (a
-    /// three-finger swipe, phase 31). A folded group's rows are skipped, and floated panes: a click on one brings
+    /// three-finger swipe). A folded group's rows are skipped, and floated panes: a click on one brings
     /// its window forward, and the lit row would stay.
     static func step(_ offset: Int, _ page: Page, filter: String, sort: AgentSort) {
         let folded = keys(UserDefaults.standard.string(forKey: foldedKey) ?? "")
@@ -316,8 +316,8 @@ struct AgentsList: View {
         Set(lines.split(separator: "\n").map(String.init))
     }
 
-    /// A section label, as in a macOS sidebar: smaller than the title, with room above (user, phase 25). A click
-    /// folds or unfolds its rows; a folded group keeps its label and count (user, phase 27).
+    /// A section label, as in a macOS sidebar: smaller than the title, with room above. A click
+    /// folds or unfolds its rows; a folded group keeps its label and count.
     private func label(_ text: String, _ count: Int, _ key: String, open: Bool, id: String) -> some View {
         Button {
             var keys = Self.keys(folded)
@@ -338,7 +338,7 @@ struct AgentsList: View {
         .padding(.horizontal, 8).padding(.top, 12)
     }
 
-    /// Under its workspace's name, line 2 holds only the tab (user, phase 25).
+    /// Under its workspace's name, line 2 holds only the tab.
     private func row(_ pane: HostStore.Pane) -> some View {
         let tabs = sort == .workspace ? page.store.workspace(of: pane.tabID)?.tabs : nil
         return AgentButton(pane: pane, page: page, place: tabs?.first { $0.id == pane.tabID }.map(page.titleText))

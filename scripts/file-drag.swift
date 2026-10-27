@@ -1,5 +1,5 @@
 // A file's icon in a small window of its own, for the file drop test: a drag from Finder now and then started nothing
-// on CI (phase 31). Shows the icon at x y (screen points, top left); a drag from it (scripts/drag.swift, posted by the
+// on CI. Shows the icon at x y (screen points, top left); a drag from it (scripts/drag.swift, posted by the
 // e2e helper) carries the file. Exits 0 when a drop took the file, 1 when the drop was refused, 2 when no drag ended
 // within 10 s.
 // Usage: file-drag <path> <x> <y>

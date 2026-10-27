@@ -1,6 +1,6 @@
 import XCTest
 
-/// Tab switches, closes and drags from the user's second round (phase 24, items 14, 16, 17, 18).
+/// Tab switches, closes and drags the user asked for.
 extension OrielUITests {
     /// A click, +, ⌘T, ⌘1…⌘9, ⇧⌘], the palette and a close show the tab's page at once; only a swipe slides.
     func testSwitchingTabsShowsTheirPageAtOnce() async throws {
@@ -80,7 +80,7 @@ extension OrielUITests {
     }
 
     /// Quick ⌘T three times, then quick ⌘W: each closes the shown tab and goes to the one used before it, one step
-    /// back each time, while the new tabs are still stand-ins or their shells start (phase 27). The old code lost a
+    /// back each time, while the new tabs are still stand-ins or their shells start. The old code lost a
     /// stand-in from the history once herdr's tab took its place, and waited for a starting shell, so it jumped back
     /// to the first tab.
     func testQuickNewTabsThenClosesStepBackOneTabEach() async throws {
@@ -153,7 +153,7 @@ extension OrielUITests {
         }
     }
 
-    /// A workspace of 5 tabs on its 4th and one of 1, clicked back and forth (phase 25, item 25), then a session
+    /// A workspace of 5 tabs on its 4th and one of 1, clicked back and forth, then a session
     /// shown and left: each strip, made new for its workspace, shows its selected tab. The old empty strip does not
     /// show under XCUITest: `make strip-check` checks it.
     func testStripShowsEachWorkspaceClickedBackAndForth() async throws {
@@ -178,7 +178,7 @@ extension OrielUITests {
 
     /// A zoom from the overview into a middle tab of a workspace of many, the workspace shown again and ⌘4 (a session
     /// shown again: `testStripShowsEachWorkspaceClickedBackAndForth`): the selection capsule rests on the tab shown,
-    /// not between two (phase 31: after the zoom, or on a new strip, it sat between the tab and the next one until the
+    /// not between two (after the zoom, or on a new strip, it sat between the tab and the next one until the
     /// next click), and after the zoom it never shows on another tab.
     func testTheCapsuleRestsOnTheTabShownHoweverItShows() async throws {
         relaunch(one, ["-forceMotion", "YES", "-recordLatency", "YES"])
@@ -203,7 +203,7 @@ extension OrielUITests {
         app.typeKey("4", modifierFlags: .command)
         try await expectShown(tabs[3], "⌘4")
         // Never drawn on its way from one tab to another ("pill slides <drawn> <place>"): the title row's fade slid it
-        // from the tab selected before, under the zoom (phase 33).
+        // from the tab selected before, under the zoom.
         let slides = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("pill slides") }
         XCTAssertEqual(slides, [], "the pill slid")
     }
@@ -228,7 +228,7 @@ extension OrielUITests {
     }
 
     /// A tab's "claude needs you" stays on its session's tab: session two's w1:t1 has the same id, and its capsule
-    /// showed the other session's announcement (phase 32).
+    /// showed the other session's announcement.
     func testAnnouncementStaysInItsSession() async throws {
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         let created = try await Self.call(two, "tab.create", ["workspace_id": "w1", "label": "delta", "cwd": "/tmp",

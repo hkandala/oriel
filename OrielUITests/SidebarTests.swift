@@ -1,6 +1,6 @@
 import XCTest
 
-/// The sidebar (phase 14): one page per session open in the window, page dots, workspace rows with git data, the
+/// The sidebar: one page per session open in the window, page dots, workspace rows with git data, the
 /// footer and the Open Session panel. Session one: w1 "alpha", w2 "beta"; session two: w1 "gamma"; three is
 /// stopped; four is made by a test; five is stopped and started by tests; seven is stopped and deleted by a test.
 extension OrielUITests {
@@ -22,7 +22,7 @@ extension OrielUITests {
     }
 
     /// With the sidebar collapsed, the light of the workspace menu, of Open Session and of the palette follows the
-    /// pointer (user, phases 24 and 29).
+    /// pointer.
     func testMenuLightFollowsThePointer() {
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         app.typeKey("s", modifierFlags: [.command, .control])
@@ -41,7 +41,7 @@ extension OrielUITests {
         XCTAssertTrue(open.has(\.isSelected, true, within: 2))
         keepScreenshot("open session lit by the pointer")
         app.typeKey(.escape, modifierFlags: [])
-        // The light moves in the hover's own update with or without a fade: the fade itself (phase 29) needs an eye.
+        // The light moves in the hover's own update with or without a fade: the fade itself needs an eye.
         app.typeKey("k", modifierFlags: .command)
         let tab = element("palette.tab.w1:t1"), workspace = element("palette.workspace.\(one).w2")
         XCTAssertTrue(workspace.exists(within: 2))
@@ -64,7 +64,7 @@ extension OrielUITests {
         try await swipe(sidebar, until: header, \.stringValue, one)
         // Page one's strip has two tabs: a swipe that reached it would have left t2 selected.
         XCTAssertTrue(element("tab.w1:t1").isSelected)
-        // Near the card's left edge, where page two of the sidebar lies, off to the side (phase 28).
+        // Near the card's left edge, where page two of the sidebar lies, off to the side.
         let edge = element("terminal.w1:p1").coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
             .withOffset(CGVector(dx: 30, dy: 0))
         var delta = -Double(element("terminal.w1:p1").frame.width)
@@ -79,13 +79,13 @@ extension OrielUITests {
         let place = header.frame.origin
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(element("agents.sort").exists(within: 2))
-        // The name stays where the workspaces view has it (it moved up and left, phase 33).
+        // The name stays where the workspaces view has it (it moved up and left).
         XCTAssertEqual(header.frame.origin, place)
         try await swipe(sidebar, until: header, \.stringValue, two)
     }
 
     /// With three sessions, the page a swipe lands on shows its rows, in the sidebar, at rest: from 8c524dd a page not
-    /// laid out took no room, so every page but the first showed blank once a swipe settled (phase 28).
+    /// laid out took no room, so every page but the first showed blank once a swipe settled.
     func testSwipedSessionPagesShowTheirRows() async throws {
         let five = try env("ORIEL_SESSION5")
         try await running(five)
@@ -146,7 +146,7 @@ extension OrielUITests {
             try await Self.call(five, "workspace.close", ["workspace_id": workspace["workspace_id"] ?? ""])
         }
         relaunch(five)
-        // The page shows the button; the strip, no button, only that the session is empty (user, phase 28).
+        // The page shows the button; the strip, no button, only that the session is empty.
         let button = element("new-workspace")
         XCTAssertTrue(element("detail.empty").firstMatch.exists(within: connect))
         XCTAssertTrue(app.staticTexts["This session is empty"].exists)
@@ -299,7 +299,7 @@ extension OrielUITests {
     }
 
     /// In a long list the selected workspace's row scrolls into view, just enough and clear of the fade, however it
-    /// was selected; in the Agents view the lit agent's row does, also when the view opens (phase 31).
+    /// was selected; in the Agents view the lit agent's row does, also when the view opens.
     func testTheSelectedRowScrollsIntoView() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         var rows: [String] = [], panes: [String] = []

@@ -1,6 +1,6 @@
 import XCTest
 
-/// The title row (phase 13): sidebar toggle, machine and workspace buttons, the tab bar and its menus. Session
+/// The title row: sidebar toggle, machine and workspace buttons, the tab bar and its menus. Session
 /// one's w1 "alpha" has t1 (three panes) and t2 "second"; w2 "beta" has one tab.
 extension OrielUITests {
     /// With the sidebar open, the first capsule starts where the cards do, also while the sidebar is resized.
@@ -48,7 +48,7 @@ extension OrielUITests {
         element("titlebar.machine").click()
         let thisMac = app.menuItems["This Mac"]
         XCTAssertTrue(thisMac.exists(within: 2))
-        // Its checkmark is not in XCUITest's view of a menu item (phase 10); the screenshot shows it.
+        // Its checkmark is not in XCUITest's view of a menu item; the screenshot shows it.
         XCTAssertTrue(app.menuItems["Add Remote Host…"].exists)
         keepScreenshot("machine menu")
         // The current machine: nothing changes.
@@ -274,8 +274,8 @@ extension OrielUITests {
         XCTAssertTrue(until(1) { element("tab.\(made)").frame.maxX <= rowEnd + 1 })
     }
 
-    /// The keycap sits at the capsule's end, beside the × (user, phase 25): never over the icon or the title. ⌘ shows
-    /// the workspace rows' keys too (user, phase 29).
+    /// The keycap sits at the capsule's end, beside the ×: never over the icon or the title. ⌘ shows
+    /// the workspace rows' keys too.
     func testHoldingCommandShowsKeycaps() {
         let tab = element("tab.w1:t2"), keycap = element("tab.w1:t2.keycap")
         XCTAssertTrue(tab.exists(within: connect))

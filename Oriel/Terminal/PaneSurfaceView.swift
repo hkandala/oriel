@@ -6,7 +6,7 @@ import SwiftUI
 /// libghostty's view with herdr's input path. herdr's frames carry none of the app's input
 /// modes (cursor keys, kitty keyboard, mouse), so libghostty would encode keys and clicks for
 /// a plain terminal. Keys whose bytes depend on those modes go to herdr by name, clicks and the
-/// wheel go as cells; herdr encodes them for the app (phase 4 findings).
+/// wheel go as cells; herdr encodes them for the app.
 final class PaneSurfaceView: AppTerminalView {
     weak var terminal: PaneTerminal?
     /// libghostty's grid and cell size, for cells under the pointer. The in-memory session's own

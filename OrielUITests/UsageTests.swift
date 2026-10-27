@@ -1,6 +1,6 @@
 import XCTest
 
-/// Memory and CPU (phase 25, item 30): a workspace of 6 tabs and 12 panes, some printing as a working agent does, plus
+/// Memory and CPU: a workspace of 6 tabs and 12 panes, some printing as a working agent does, plus
 /// session one's other 5, each shown once; then the app's footprint, CPU and herdr runs while a quiet tab shows and
 /// while a busy one does (the e2e helper's `usage`, kept in the result bundle and printed).
 extension OrielUITests {
@@ -37,7 +37,7 @@ extension OrielUITests {
         app.typeKey("1", modifierFlags: .command)
         drawn(panes[0])
         // Every card shown keeps its herdr run, up to 16 out of view (D46): the 12 here, t1's 3 and w2's 1
-        // (one more while a run ends, a few less is still past lane O's 4).
+        // (one more while a run ends, a few less is still past the old 4).
         let quiet = try await measure("quiet tab")
         XCTAssertTrue((13 ... 17).contains(helpers(quiet)), quiet)
         app.typeKey("6", modifierFlags: .command)

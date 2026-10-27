@@ -137,7 +137,7 @@ extension HostStore {
     }
 
     /// The sidebar's title: the machine's name for its `default` session, This Mac's own name for This Mac's;
-    /// else the session's (user, phase 27).
+    /// else the session's.
     var title: String {
         guard session == "default" else { return session }
         return machine.isRemote ? machine.name : Machine.computerName
@@ -270,7 +270,7 @@ extension HostStore {
                         try? await Task.sleep(for: .milliseconds(500))
                         program = try? await client?.program(pane.id)
                     }
-                    // Its last answer, before it stops starting: a tab title shows "New Tab" until then (phase 25).
+                    // Its last answer, before it stops starting: a tab title shows "New Tab" until then.
                     pane.program = program ?? pane.program
                     pane.starting = false
                     if program != nil {

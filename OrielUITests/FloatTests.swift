@@ -1,6 +1,6 @@
 import XCTest
 
-/// Floating panes (phase 25, D50): a pane floats in its own window, its card in the tab is a placeholder.
+/// Floating panes (D50): a pane floats in its own window, its card in the tab is a placeholder.
 extension OrielUITests {
     func testFloatingAPaneOpensItsWindowAndDetachPutsItBack() async throws {
         let (tab, first) = try await newTab("float")
@@ -39,8 +39,8 @@ extension OrielUITests {
 
     /// A new floating window: 60 % of the main window's width and 75 % of its height (at least 720 × 460 pt) centered
     /// over it, the main window's title row and traffic lights, title-row buttons, a separator between the pane's info
-    /// and its place (phases 27, 28); the card in the tab says where the pane is and offers Show Window and Bring Back
-    /// Here (phases 28, 29).
+    /// and its place; the card in the tab says where the pane is and offers Show Window and Bring Back
+    /// Here.
     func testFloatingWindowOpensLargeWithTheMainWindowsTitleRow() async throws {
         let (tab, first) = try await newTab("float-frame")
         let second = try await split(first)
@@ -174,7 +174,7 @@ extension OrielUITests {
         element("float.\(second).close").click()
         let confirm = window.sheets.buttons["Close Pane"]
         XCTAssertTrue(confirm.exists(within: 5))
-        // Return confirms in the floating window too (phase 31, item 8).
+        // Return confirms in the floating window too.
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(window.vanishes(within: 5))
         try await expect("the pane closed in herdr") { try await order(tab) == [first] }
@@ -216,7 +216,8 @@ extension OrielUITests {
         XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
     }
 
-    /// `oriel://float` (phase 28, pi-herd's agents): a pane of a session with no page here floats, and no page comes;
+    /// `oriel://float` (for agents of a session open elsewhere): a pane of a session with no page here floats, and no
+    /// page comes;
     /// again brings the same window forward; a pane or session that is not there says so; Detach lets the session go.
     /// A page's pane in a tab not in view floats too.
     func testOrielURLFloatsAPaneOfASessionWithNoPage() async throws {

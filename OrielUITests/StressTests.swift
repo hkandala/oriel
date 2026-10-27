@@ -1,6 +1,6 @@
 import XCTest
 
-/// The whole UI at scale (phase 29, item 14): a session of 30 workspaces, 300 tabs and 400 panes (600 took CI two
+/// The whole UI at scale: a session of 30 workspaces, 300 tabs and 400 panes (600 took CI two
 /// minutes to make; a Mac gives all its programs 511 terminals), 100 of them agents that print, retitle and change
 /// state, and half the others printing (`scripts/stress.py`). It records the main keys' time to their frame, the
 /// frames while the sidebar, the tab bar and the Agents view scroll, the app's CPU and memory, and the main thread's
@@ -12,8 +12,8 @@ extension OrielUITests {
         addTeardownBlock { _ = try? await Self.post("\(eight)/stress") }
         let made = try await String(decoding: Self.post("\(eight)/stress", Data("300 30 400 100".utf8)), as: UTF8.self)
         print(made)
-        // From the launch to the first card drawn: 7–8 s on CI; before phase 29 it stayed blank past 30 s (400 program
-        // asks at once).
+        // From the launch to the first card drawn: 7–8 s on CI; unbounded program asks (400 at once) once kept it blank
+        // past 30 s.
         let launched = Date.now
         relaunch(eight, ["-recordLatency", "YES"])
         // Also after a failed step.
@@ -48,11 +48,11 @@ extension OrielUITests {
         // A busy tab: an agent and a printing pane, in view.
         quietKey("1", .command) { self.element("tab.w1:t1").isSelected }
         let busy = try await measure("busy tab", seconds: 5, session: eight)
-        // 15 % on CI; over 100 % before phase 29 (snapshot reads back to back, an O(n²) line split).
+        // 15 % on CI; snapshot reads back to back and an O(n²) line split once took over 100 %.
         let cpu = busy.split(separator: "\n")[0].split(separator: " ")
         XCTAssertLessThan(Double(cpu[1].dropLast()) ?? 100, 50, busy)
         try await sample("busy tab", in: eight)
-        // The malloc heap, which follows the session's size (phase 30: 126 MB of 219 MB on CI at 400 panes).
+        // The malloc heap, which follows the session's size (126 MB of 219 MB on CI at 400 panes).
         try await keep(String(decoding: Self.post("\(eight)/heap"), as: UTF8.self), as: "heap, busy tab")
 
         // Another session's page and back (its own snapshots stop mattering while it is out of view).
@@ -62,12 +62,12 @@ extension OrielUITests {
         quietKey("[", [.command, .option]) { self.header == eight }
 
         let keys = recorded().filter { $0.name.first.map("⌘⌃⇧⌥".contains) == true }
-        // Every key drew its change in its own turn, or the next for herdr's writes (lane S of phase 25).
+        // Every key drew its change in its own turn, or the next for herdr's writes.
         for entry in keys {
             XCTAssertLessThanOrEqual(entry.turns, 1, entry.name)
         }
-        // A snapshot's apply on the main thread ("main … <snapshots> <their ms>"): about 6 ms on CI, 75 ms before
-        // phase 29 (a set of every tab's focused pane made again for each pane).
+        // A snapshot's apply on the main thread ("main … <snapshots> <their ms>"): about 6 ms on CI (75 ms when a set
+        // of every tab's focused pane was made again for each pane).
         let main = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("main ") }
             .map { $0.split(separator: " ") }
         let applies = main.reduce(0) { $0 + (Int($1[3]) ?? 0) }

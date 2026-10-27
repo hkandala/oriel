@@ -1,4 +1,4 @@
-// A mouse drag through several points, for the drag tests that need two legs (phase 29: a tab held over the
+// A mouse drag through several points, for the drag tests that need two legs (a tab held over the
 // workspace button opens its menu, then drops on a row there): XCUITest drags to one point only. Presses at x y (screen
 // points, top left) for 0.3 s, then moves to each next point over 0.3 s and holds there for its seconds, then lets go.
 // Posted to the HID system, as scripts/swipe.swift does. Only from an Oriel window: never into another app.

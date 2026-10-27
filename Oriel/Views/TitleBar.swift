@@ -161,7 +161,7 @@ private struct AgentsButton: View {
 }
 
 /// The Agents button's panel: the page's agents that need you, then those whose finish is not seen yet, under the
-/// Agents view's group labels (user, phase 30). A click on a done row shows its tab, which clears it.
+/// Agents view's group labels. A click on a done row shows its tab, which clears it.
 private struct AgentsPanel: View {
     let page: Page
     let close: () -> Void
@@ -221,7 +221,7 @@ private struct MachineButton: View {
         let current = pages.machine
         Menu {
             // Another machine shows in its own window: the one used last comes forward, else a new one opens; this
-            // one and its sessions stay (user, phases 28 and 29). Picking the current machine does nothing.
+            // one and its sessions stay. Picking the current machine does nothing.
             // macOS 27 draws no images in these menus (an AppKit NSMenuItem.image does not show either); the icons
             // are here for systems that do.
             ForEach([Machine.thisMac] + MachineList.shared.list) { machine in
@@ -235,7 +235,7 @@ private struct MachineButton: View {
                 }) { Label(machine.name, systemImage: machine.icon) }
             }
             Divider()
-            // The machine's other sessions, also from here (user, phase 29: not found in a remote window).
+            // The machine's other sessions, also from here (not found in a remote window).
             Button("Open Session…", systemImage: "plus.square.on.square") { openSession = true }
             Divider()
             Button("Add Remote Host…", systemImage: "plus") {
@@ -249,7 +249,7 @@ private struct MachineButton: View {
                 }
             }
         } label: {
-            // The icon alone (user, phase 22): no chevron.
+            // The icon alone: no chevron.
             Image(systemName: current.icon).fontWeight(.medium)
                 .frame(width: 28, height: 28)
         }

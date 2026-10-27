@@ -24,7 +24,7 @@ struct WorkspaceRow: View {
         Button {
             page.select(workspace)
             // AppKit's double-click, counted from the events' times: SwiftUI's TapGesture(count: 2) missed one
-            // while the app was busy drawing the first click's selection (phase 31).
+            // while the app was busy drawing the first click's selection.
             if let event = NSApp.currentEvent, event.type == .leftMouseUp, event.clickCount == 2 {
                 startRenaming()
             }
@@ -65,7 +65,7 @@ struct WorkspaceRow: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityValue([state?.word, git.map { "\($0.branch) ahead \($0.ahead) behind \($0.behind)" },
                              parent.map { "worktree of \($0.label)" }].compactMap(\.self).joined(separator: ", "))
-        // At the end of the name's line, never over the name (user, phase 25). Over the button, so a test sees it.
+        // At the end of the name's line, never over the name. Over the button, so a test sees it.
         .overlay(alignment: .topTrailing) {
             if let keycap, !renaming {
                 Keycap(text: "⌃⌘\(keycap)").frame(height: 30).padding(.trailing, 8)

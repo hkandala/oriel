@@ -1,6 +1,6 @@
 import XCTest
 
-/// Program icons (phase 12): tab capsules list their panes' icons, card headers name the program.
+/// Program icons: tab capsules list their panes' icons, card headers name the program.
 extension OrielUITests {
     func testTabsShowTheirProgramsIcons() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -50,7 +50,7 @@ extension OrielUITests {
     }
 
     /// A shell's startup runs short-lived programs (a .zshrc's `gh auth token`): the new tab's icon is the shell's
-    /// from the start, not theirs for a moment (phase 24).
+    /// from the start, not theirs for a moment.
     func testANewTabShowsNoIconOfItsShellsStartup() async throws {
         let (tabs, pane) = try await newWorkspace("startup")
         // A home whose rc files sleep 2 s, past the first second, for zsh and bash, written by a shell.
@@ -71,7 +71,7 @@ extension OrielUITests {
         try await expectIcons(tab) { $0 == ["terminal"] }
     }
 
-    /// A program without a logo shows its letter in the logos' square, so the names after them line up (phase 29).
+    /// A program without a logo shows its letter in the logos' square, so the names after them line up.
     func testLetterIconsTakeTheLogosBox() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, vim) = try await createWorkspace("letters")

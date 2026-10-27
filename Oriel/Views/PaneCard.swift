@@ -24,7 +24,7 @@ struct PaneCard: View {
         let zoomed = page.zoomedPaneID == id
         let terminal = pane.flatMap(page.terminal)
         // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
-        // A split's new card at once, its stand-in too (phase 29), among the shown tab's cards.
+        // A split's new card at once, its stand-in too, among the shown tab's cards.
         let shown = page.selectedTab?.tree?.paneIDs ?? []
         let newest = page.newest.flatMap { newest in
             shown.contains(id) && shown.contains { $0 == newest.id || store.ahead.splitPanes[$0] == newest.id }
@@ -79,7 +79,7 @@ struct PaneCard: View {
         // The card's element is its background: a container would merge into a one-pane page's.
         .background {
             CardSurface(keyboard: lit).accessibilityElement().accessibilityLabel(pane?.cardTitle ?? "terminal")
-                // A plain element has no value in XCUITest (phase 10); the static text trait gives it one.
+                // A plain element has no value in XCUITest; the static text trait gives it one.
                 .accessibilityAddTraits(.isStaticText)
                 // "loading" until herdr's frames settled at the card's size.
                 .accessibilityValue(terminal.map { !$0.ready && !$0.state.isFailed } == true ? "loading" : "")
@@ -233,8 +233,7 @@ struct PaneTitle: View {
 }
 
 /// A floated pane's card in its tab, under its header: a line that says where the pane is, Show Window, which
-/// brings its window to the front, and Bring Back Here, which detaches it into this card with the keyboard (user,
-/// phases 28 and 29).
+/// brings its window to the front, and Bring Back Here, which detaches it into this card with the keyboard.
 private struct FloatedPlaceholder: View {
     let page: Page
     let pane: HostStore.Pane
@@ -263,7 +262,7 @@ private struct FloatedPlaceholder: View {
 }
 
 /// The pane's menu items, with Move Pane to Tab's every tab of the session: their own view, so they are made when
-/// the menu opens, not in each card's body (phase 29: 300 tab titles per card, at every change of one).
+/// the menu opens, not in each card's body (300 tab titles per card, at every change of one).
 private struct PaneItems: View {
     let page: Page
     let pane: HostStore.Pane?
@@ -274,8 +273,8 @@ private struct PaneItems: View {
 }
 
 /// VoiceOver's actions on the card, Move Pane to Tab ▸ flattened to New Tab and New Workspace: any accessibility
-/// client makes SwiftUI build them with the card, and one per tab made a switch to a big session 3 times slower
-/// (phase 30). Their own view, as the menu items are.
+/// client makes SwiftUI build them with the card, and one per tab made a switch to a big session 3 times
+/// slower. Their own view, as the menu items are.
 private struct PaneActions: View {
     let page: Page
     let pane: HostStore.Pane?

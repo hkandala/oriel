@@ -30,7 +30,7 @@ struct TabButton: View {
             clicked()
             page.select(workspace, tab: tab.id)
             // Anywhere on the capsule. AppKit's double-click, counted from the events' times: SwiftUI's
-            // TapGesture(count: 2) missed one while the app drew the first click (phase 31, as a workspace row).
+            // TapGesture(count: 2) missed one while the app drew the first click (as on a workspace row).
             if let event = NSApp.currentEvent, event.type == .leftMouseUp, event.clickCount == 2 {
                 renaming = true
             }
@@ -82,7 +82,7 @@ struct TabButton: View {
                     .accessibilityIdentifier("tab.\(tab.id).rename")
             }
         }
-        // The status slot: × while hovered, else the working dots (the selected tab too, user, phase 25) unless a
+        // The status slot: × while hovered, else the working dots (the selected tab too) unless a
         // keycap is in it.
         .overlay(alignment: .trailing) {
             if working, keycap == nil, !hovering || renaming {
@@ -91,7 +91,7 @@ struct TabButton: View {
                     .accessibilityIdentifier("tab.\(tab.id).working")
             }
         }
-        // At the end, beside the ×: never over the icon or the title (user, phase 25). Over the button, so a test
+        // At the end, beside the ×: never over the icon or the title. Over the button, so a test
         // sees its frame.
         .overlay(alignment: .trailing) {
             if let keycap, !renaming {
@@ -187,7 +187,7 @@ extension Page {
     /// and folder instead (D65), "New Tab" until the program is known (a new pane's is asked a second late).
     func title(_ tab: HostStore.Tab) -> (name: String, folder: String?) {
         guard tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
-        // The stack's first, without the stack: the menus ask for every tab's title (phase 29).
+        // The stack's first, without the stack: the menus ask for every tab's title.
         let front = keyboardCard(tab.id) ?? store.panes(in: tab.id).first
         guard let pane = front, let name = pane.programName else {
             // A new tab (a stand-in, or a pane whose shell still starts): "New Tab", never a number. Else the

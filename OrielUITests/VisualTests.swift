@@ -1,6 +1,6 @@
 import XCTest
 
-/// The scenes phase 22 compares with Rex's pictures, one test per look, kept as attachments so they can be taken
+/// The scenes to compare with Rex's pictures, one test per look, kept as attachments so they can be taken
 /// again on CI. No pixel checks: each step waits for what the scene shows.
 extension OrielUITests {
     func testScenesGlassDark() async throws {

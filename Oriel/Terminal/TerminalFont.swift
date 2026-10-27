@@ -13,7 +13,7 @@ extension PaneTerminal {
     ///
     /// Selections keep each cell's own text color over a macOS-like blue. libghostty's Alabaster and Afterglow set
     /// only a selection background, and Ghostty then draws selected text in the window background: `#212121` on
-    /// `#303030` in dark, `#F7F7F7` on `#C9D0D9` in light (phase 29 lane C). Light: macOS's selected-text blue;
+    /// `#303030` in dark, `#F7F7F7` on `#C9D0D9` in light. Light: macOS's selected-text blue;
     /// dark: the system blue at 0.25 over Afterglow's background, for 7.6 to 1 under Afterglow's text (macOS's dark
     /// `#3F638B` gives 4.0, under WCAG's 4.5). Reverse-video cells still draw in the background color
     /// (Ghostty's rule).
@@ -33,7 +33,7 @@ extension PaneTerminal {
         $0.withCustom("macos-option-as-alt", "false")
     }
 
-    /// Reads the stored size, not a caller's copy: SwiftUI keeps a shortcut's first action (phase 11 Findings).
+    /// Reads the stored size, not a caller's copy: SwiftUI keeps a shortcut's first action.
     static func stepFontSize(_ step: Int) {
         let defaults = UserDefaults.standard
         let size = clamped(defaults.object(forKey: "fontSize") as? Int ?? fontSize) + step

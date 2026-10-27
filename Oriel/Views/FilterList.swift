@@ -107,7 +107,7 @@ struct FilterList: View {
             if submit == nil {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        // Lazy: the palette's 100 rows took 230 ms to build and lay out on CI as it opened (phase 25).
+                        // Lazy: the palette's 100 rows took 230 ms to build and lay out on CI as it opened.
                         LazyVStack(alignment: .leading, spacing: 2) {
                             ForEach(Array(items.enumerated().dropLast(pinned)), id: \.element.id) { offset, _ in
                                 row(items, offset, index)
@@ -176,7 +176,7 @@ struct FilterList: View {
             }
         }
         .modifier(MenuRowDrop(target: item.drop))
-        // The light follows the pointer, as in a menu (user, phase 24).
+        // The light follows the pointer, as in a menu.
         .onContinuousHover { phase in
             guard case .active = phase, NSEvent.mouseLocation != pointer else { return }
             pointed = true

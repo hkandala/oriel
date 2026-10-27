@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Oriel's About window (phase 33: the system panel showed the credits as a dump of text): the icon, name and version,
+/// Oriel's About window (the system panel showed the credits as a dump of text): the icon, name and version,
 /// and a button that opens every credit and license text, `Acknowledgements.txt` in the app.
 struct About: View {
     private var settings = AppSettings()

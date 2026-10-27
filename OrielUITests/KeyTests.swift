@@ -1,6 +1,6 @@
 import XCTest
 
-/// Each level's keys (phase 25): `T` new, `W` close, `[` `]` step, 1–9 jump, the modifier names the level (⌘ tabs,
+/// Each level's keys: `T` new, `W` close, `[` `]` step, 1–9 jump, the modifier names the level (⌘ tabs,
 /// ⌃⌘ workspaces, ⌥⌘ sessions); the Keyboard Shortcuts panel on ⌘/.
 extension OrielUITests {
     func testWorkspaceAndSessionKeysStepAndJump() async throws {
@@ -74,7 +74,7 @@ extension OrielUITests {
         XCTAssertTrue(firstWindow.vanishes(within: 3))
     }
 
-    /// ⌃⇥ and ⌃⇧⇥ step the tabs, never the panes (user, phase 31): in a tab of three panes, also with one tab, where
+    /// ⌃⇥ and ⌃⇧⇥ step the tabs, never the panes: in a tab of three panes, also with one tab, where
     /// they do nothing (AppKit's key view loop stepped the terminals).
     func testControlTabStepsTabsNeverPanes() async throws {
         let first = element("tab.w1:t1"), second = element("tab.w1:t2")
@@ -104,7 +104,7 @@ extension OrielUITests {
         }
     }
 
-    /// A key acts on the key window (user, phase 31): with two windows on different tabs, ⌘D right after switching
+    /// A key acts on the key window: with two windows on different tabs, ⌘D right after switching
     /// splits the key window's tab only, each time.
     func testCommandDSplitsInTheKeyWindowOnly() async throws {
         let (first, second) = try newWindow()
@@ -166,7 +166,7 @@ extension OrielUITests {
         for section in ["Panes", "Tabs", "Workspaces", "Sessions", "View", "Edit"] {
             XCTAssertTrue(element("shortcuts.section.\(section)").exists, section)
         }
-        // A family is one row; a second key is on its first's row. One pattern (phase 25): the key says the action,
+        // A family is one row; a second key is on its first's row. One pattern: the key says the action,
         // the modifier the level.
         let rows = [
             "Split Right": "⌘D", "Select Pane": "⌥⌘←→↑↓", "Show Tab 1–9": "⌘1–9", "New Workspace": "⌃⌘T",

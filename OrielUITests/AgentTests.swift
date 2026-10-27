@@ -1,6 +1,6 @@
 import XCTest
 
-/// Agents (phase 15): states in tabs and workspace rows, the Agents button, its popover and the Agents view. Every
+/// Agents: states in tabs and workspace rows, the Agents button, its popover and the Agents view. Every
 /// status comes from `pane.report_agent` on a throwaway tab, closed after the test (its agent goes with it).
 extension OrielUITests {
     func testWorkingAgentShowsInItsTabAndWorkspace() async throws {
@@ -13,7 +13,7 @@ extension OrielUITests {
         try await waitForValue("workspace.w1", containing: "working")
         keepScreenshot("working dots")
 
-        // The selected tab shows them too (user, phase 25); the × takes their place while hovered.
+        // The selected tab shows them too; the × takes their place while hovered.
         element("tab.\(tab)").click()
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
         XCTAssertTrue(dots.vanishes(within: 2))
@@ -58,7 +58,7 @@ extension OrielUITests {
         XCTAssertEqual(element("sidebar.header").value as? String, one)
     }
 
-    /// The panel also lists unseen finishes, under the Agents view's labels, after needs you (user, phase 30).
+    /// The panel also lists unseen finishes, under the Agents view's labels, after needs you.
     func testTheAgentsPanelListsDoneAgentsAfterNeedsYou() async throws {
         let button = element("titlebar.agents"), panel = element("agents.popover")
         XCTAssertTrue(button.exists(within: connect))

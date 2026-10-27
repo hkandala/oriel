@@ -1,7 +1,7 @@
 import XCTest
 
 extension OrielUITests {
-    /// A tab comes into view in every way (phase 29, lane T): from the change on, each of its cards shows its last
+    /// A tab comes into view in every way: from the change on, each of its cards shows its last
     /// picture, then herdr's screen, and nothing between. The app records each commit (`-recordFrames`): no card gone,
     /// blank, fading, with a third picture or moved. Every tab is shown once first: a new card's first reveal fades in
     /// on purpose. w1's second tab is a middle one (of three), shown whenever a new strip comes (a workspace, a
@@ -45,7 +45,7 @@ extension OrielUITests {
         XCTAssertTrue(records.allSatisfy { !$0.contains(#/ [1-9][0-9]*\//#) }, "\(records)")
     }
 
-    /// A card never shows a picture smaller than its pixels (phase 30 item 12): a tab only the overview showed keeps
+    /// A card never shows a picture smaller than its pixels: a tab only the overview showed keeps
     /// the overview's small snapshot, and shown in the strip afterwards (by its capsule, or by the zoom right after its
     /// tile turned live again), it showed that blurred until it drew. Now it shows its fill and fades in.
     func testACardNeverShowsTheOverviewsSmallSnapshot() async throws {

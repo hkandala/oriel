@@ -1,14 +1,14 @@
 import Foundation
 import HerdrKit
 
-/// Layout writes: panes and splits (phase 17), tab and workspace order (phases 13, 14, 18); each is one `write`,
+/// Layout writes: panes and splits, tab and workspace order; each is one `write`,
 /// then a snapshot read.
 extension HostStore {
     /// Split Right or Down, or Left or Up (`before`): herdr splits only right and down, so a swap puts the new pane
     /// first. Then the run of same-direction splits holding the new pane is evened out, from herdr's tree after
     /// the split, as Rex does (33 / 33 / 33, not herdr's 50 / 25 / 25).
-    /// Shown at once with an empty card for the new pane (phase 25), until a snapshot has herdr's. The pane may be an
-    /// earlier split's stand-in (phase 29): its write, before this one, made herdr's. Returns the new pane, nil when
+    /// Shown at once with an empty card for the new pane, until a snapshot has herdr's. The pane may be an
+    /// earlier split's stand-in: its write, before this one, made herdr's. Returns the new pane, nil when
     /// herdr made none.
     func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false,
                standIn: String) async -> HerdrKit.Pane?

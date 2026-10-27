@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fills a throwaway herdr session with many workspaces, tabs and panes, some working like agents (phase 29).
+"""Fills a throwaway herdr session with many workspaces, tabs and panes, some working like agents.
 
 Usage: scripts/stress.py <oriel-dev-*|oriel-e2e-*> [tabs=300] [workspaces=30] [--panes N] [--agents N]
 Start the session first (scripts/herdr-session.sh up <name>); remove it after (… down <name>): hundreds of shells.

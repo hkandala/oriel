@@ -15,8 +15,8 @@ struct Keycap: View {
 
 extension View {
     /// `shown` turns on once one of `modifiers` alone is held 0.7 s with the window key, and off when they
-    /// change; a key pressed first (⌘T) cancels. ⌘ for the tabs' keycaps, ⌘ or ⌃⌘ for the workspace rows' (user,
-    /// phase 29).
+    /// change; a key pressed first (⌘T) cancels. ⌘ for the tabs' keycaps, ⌘ or ⌃⌘ for the workspace
+    /// rows'.
     func keycapHints(_ modifiers: NSEvent.ModifierFlags..., shown: Binding<Bool>) -> some View {
         modifier(KeycapHints(modifiers: modifiers, shown: shown))
     }

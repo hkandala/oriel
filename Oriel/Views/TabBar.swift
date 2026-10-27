@@ -4,7 +4,7 @@ import SwiftUI
 /// The selected workspace's tabs in the title row (D42): one width on a track, one marker that follows the
 /// strip's scroll, dividers, hover and close. Tabs never shrink: the row scrolls sideways when they do not fit.
 struct TabBar: View {
-    /// Every tab's: the user wants tabs that keep their width and a row that scrolls (phase 24).
+    /// Every tab's: the user wants tabs that keep their width and a row that scrolls.
     static let width: CGFloat = 220
     /// The track's height; Rex's capsules sit 2 pt inside it, 30 pt tall and fully round.
     static let height: CGFloat = 34
@@ -164,7 +164,7 @@ struct TabBar: View {
     /// The look's pill on the page in view, between two tabs while the strip is between their pages: it slides
     /// with a swipe or a wheel turn and jumps on any other switch, as the strip does. Under the overview, on the
     /// selected tab (the strip's place was the tab selected before), so it fades in there with the title row; a
-    /// fade of its own came after the zoom (user, phase 31).
+    /// fade of its own came after the zoom.
     private func marker(_ place: Double, count: Int) -> some View {
         let place = min(max(place, 0), Double(max(count - 1, 0))), selected = page.selectedIndex(in: workspace)
         let rest = !overview && place == place.rounded()
@@ -172,7 +172,7 @@ struct TabBar: View {
         return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
             .frame(width: Self.width, height: Self.height - 2 * Self.inset)
             .modifier(Slide(drawn: place, place: place))
-            // Not in another change's animation: the title row's fade after the overview slid it there (phase 33).
+            // Not in another change's animation: the title row's fade after the overview slid it there.
             .animation(nil, value: place)
             .allowsHitTesting(false)
             // e2e (`-recordLatency YES`): "pill <place> <selected>" when it shows at rest on another tab.
@@ -185,7 +185,7 @@ struct TabBar: View {
 }
 
 /// The pill's offset, drawn at each frame. e2e (`-recordLatency YES`): "pill slides <drawn> <place>" at a frame drawn
-/// short of its place: it follows the strip frame by frame and never animates (phase 33: an animation of the same
+/// short of its place: it follows the strip frame by frame and never animates (an animation of the same
 /// update, the title row's fade after the overview, slid it from the tab selected before).
 private struct Slide: ViewModifier, Animatable {
     var drawn: Double

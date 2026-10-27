@@ -54,7 +54,7 @@ public struct Tab: Decodable, Sendable, Identifiable {
     public let workspaceID: String
     public let label: String
 
-    /// A tab the app draws before herdr has it (phase 25: a new tab shows at once).
+    /// A tab the app draws before herdr has it (a new tab shows at once).
     public init(id: String, workspaceID: String, label: String) {
         self.id = id
         self.workspaceID = workspaceID

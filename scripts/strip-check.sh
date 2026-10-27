@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The empty strip of phase 25 (item 25), checked with no accessibility client: XCUITest is one, and any
+# The empty strip (a lazy strip that laid out no page), checked with no accessibility client: XCUITest is one, and any
 # accessibility client hides the bug (SwiftUI then lays out the strip's pages anyway). So this drives the
 # built app with key events and reads window captures. Fails on the old code, passes on the fix.
 # Usage: scripts/strip-check.sh <Oriel.app>

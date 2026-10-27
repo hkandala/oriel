@@ -3,7 +3,7 @@ import SwiftUI
 
 /// One full-size page per tab of the workspace, paged sideways by a swipe (`Paging`, which selects the tab it
 /// lands on) or a wheel. A new selection (a click, a key, a new or closed tab) shows its page at once: only a swipe
-/// or a mouse's wheel slides (phase 24).
+/// or a mouse's wheel slides.
 struct Strip: View {
     let workspace: HostStore.Workspace
     let pages: WindowPages
@@ -19,7 +19,7 @@ struct Strip: View {
     var body: some View {
         // Pages the reader's size, not `containerRelativeFrame`'s: on a new strip's first layout that took the
         // window's width, so the first offset (`defaultScrollAnchor`) was off by a fraction of a page, and the
-        // scroll geometry reported last could be that one: the tab capsule rested between two tabs (phase 31).
+        // scroll geometry reported last could be that one: the tab capsule rested between two tabs.
         GeometryReader { proxy in
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 0) {
@@ -44,10 +44,10 @@ struct Strip: View {
                 .background(ScrollAnchor(step: turn, drag: drag, lift: lift))
             }
         }
-        // No `.paging`: it snapped the swipe's first move to the next page (phase 31, CI).
+        // No `.paging`: it snapped the swipe's first move to the next page (on CI).
         // A new strip (a workspace or session shown, the overview closed) is laid out on the selected tab's page
         // from its first frame: the scroll below finds a lazy page only once it is laid out, so the strip drew its
-        // first page for a frame and then jumped (phase 29).
+        // first page for a frame and then jumped.
         .defaultScrollAnchor(start, for: .initialOffset)
         .scrollPosition($position, anchor: .leading)
         .scrollIndicators(.never)
@@ -141,8 +141,8 @@ private struct SplitLayout: View {
     @State private var cards = (came: 0, went: 0)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// A split, a close, a swap or a zoom; the terminals keep their size until it ends (`TerminalHost`). A third
-    /// shorter than phase 25's 0.2 s, which the user found slow (phase 27).
+    /// A split, a close, a swap or a zoom; the terminals keep their size until it ends (`TerminalHost`). 0.2 s felt
+    /// slow.
     private var motion: Animation? {
         reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.13)
     }
@@ -162,8 +162,7 @@ private struct SplitLayout: View {
                         .place(rect)
                         // Under the zoomed card, which covers it, so its terminal views get no clicks.
                         .opacity(away ? 0 : 1)
-                        // A new card fades in over half its slide: a longer fade made the panes feel slow (user,
-                        // phase 29).
+                        // A new card fades in over half its slide: a longer fade made the panes feel slow.
                         .animation(motion.map { _ in .easeOut(duration: 0.06) }) { $0.opacity(entering ? 0 : 1) }
                         .zIndex(away ? 0 : 1)
                         .allowsHitTesting(!away)
@@ -206,7 +205,7 @@ private struct SplitLayout: View {
 
     /// The view id of each of these cards already in place. herdr's panes that took splits' stand-ins (`Ahead`)
     /// keep the stand-ins' views, in order, so each new card comes once, where it ends up: a quick ⌘D's stand-ins
-    /// are replaced in one snapshot, and herdr's panes as new views slid in beside them as they went (phase 30).
+    /// are replaced in one snapshot, and herdr's panes as new views slid in beside them as they went.
     private func views(_ ids: [String]) -> [String: String] {
         guard let placed else { return [:] }
         // Not `uniqueKeysWithValues`: a pane twice in herdr's tree must not crash the app.

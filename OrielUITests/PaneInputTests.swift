@@ -1,6 +1,6 @@
 import XCTest
 
-/// Right clicks and drops in a terminal (phase 24).
+/// Right clicks and drops in a terminal.
 extension OrielUITests {
     /// A right click opens the card's menu, also in a mouse app, as herdr opens its pane menu; ⌥ sends it to the app.
     func testRightClickInATerminalOpensThePaneMenu() async throws {
@@ -51,7 +51,7 @@ extension OrielUITests {
     }
 
     /// A dragged file pastes its shell-escaped path, as a drop on Ghostty (herdr's usual terminal) does. The drag comes
-    /// from a window of the helper's: from Finder, now and then no drag started on CI (40304584542, phase 31).
+    /// from a window of the helper's: from Finder, now and then no drag started on CI (40304584542).
     func testDroppingAFilePastesItsPath() async throws {
         let (tab, pane) = try await newTab("drop")
         element("tab.\(tab)").click()

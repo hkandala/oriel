@@ -1,7 +1,7 @@
 import Foundation
 import HerdrKit
 
-/// What the app shows before herdr has it (phase 25): a close, a new tab and a split draw at once, and the snapshots
+/// What the app shows before herdr has it: a close, a new tab and a split draw at once, and the snapshots
 /// after them confirm it. A closing pane, tab or workspace is left out until a snapshot no longer has it; a new tab or
 /// a split shows an empty card under a stand-in id until a snapshot has what herdr made. A failed write takes it back.
 struct Ahead {
@@ -13,10 +13,10 @@ struct Ahead {
     /// herdr's panes for split stand-ins, while one shows: a split of a stand-in (⌘D pressed fast) splits its pane.
     var splitPanes: [String: String] = [:]
     /// herdr's tabs that took stand-ins' places in the last snapshot, by stand-in id: every page's selection and tab
-    /// history follow them as they settle on that snapshot (phase 27).
+    /// history follow them as they settle on that snapshot.
     var arrived: [String: String] = [:]
     /// herdr's tabs that took a stand-in's place, while they last: a close of one whose shell still starts shows at
-    /// once (quick ⌘W after quick ⌘T, phase 27). Not every starting pane: a program run in a pane split a second ago
+    /// once (quick ⌘W after quick ⌘T). Not every starting pane: a program run in a pane split a second ago
     /// would hide, then come back with the question.
     var fresh: Set<String> = []
     /// herdr's tabs for stand-ins closed before they came: the store closes them.
@@ -126,7 +126,7 @@ extension HostStore {
     /// Closes at once when every pane of it runs only its shell; else the close to ask about, with what runs (design
     /// D41), for the asking window. Asked now, not the panes' last answers: a program may have started since. When the
     /// last answers say only shells run, or a new tab's shell still starts, it is gone at once, before this returns,
-    /// while herdr is asked (phases 25, 27: quick ⌘W after quick ⌘T step back one tab each); a program found brings it
+    /// while herdr is asked (quick ⌘W after quick ⌘T step back one tab each); a program found brings it
     /// back with the question. Any other pane with no answer yet waits for herdr's. Nil: nothing to ask.
     func ask(_ request: Close) -> Task<Closing?, Never>? {
         guard let client else { return nil }
@@ -337,20 +337,20 @@ extension Page {
     }
 
     /// A split restores a zoomed layout first, as tmux does: the new pane shows. The new pane gets the keyboard, as
-    /// in Ghostty (user, phase 25). Pressed again before herdr made it (⌘D, fast), the newest card is split, not
+    /// in Ghostty. Pressed again before herdr made it (⌘D, fast), the newest card is split, not
     /// the old one that still has the first responder, and only the newest split's pane takes the keyboard; the
-    /// older ones join the keyboard history before it (phase 29).
+    /// older ones join the keyboard history before it.
     func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
         zoomedPaneID = nil
         // Also the old card asked for: ⌘D read the keyboard card before a snapshot made the split before's pane it
-        // (phase 31: the second ⌘D split the first card, A | C | B | D).
+        // (the second ⌘D split the first card, A | C | B | D).
         let target = newest.flatMap { newest in
             let old = store.pane(paneID)?.terminalID.map { $0 == newest.from } == true
             return paneID == keyboardPane?.id || old ? newest.id : nil
         } ?? paneID
         if let newest {
             // The split before's pane, if made, takes the keyboard no more (`follow`): this one's does. Nor does a
-            // claim it made already: landing now, it would end this split's turn (`tookKeyboard`, phase 31).
+            // claim it made already: landing now, it would end this split's turn (`tookKeyboard`).
             movedTerminal = nil
             keyboardTabID = selectedTab?.id
             if let from = newest.from {
@@ -370,8 +370,8 @@ extension Page {
         follow(new, new?.terminalID, select: false)
     }
 
-    /// Close Pane: the pane, else the shown stand-in, which has no pane yet; ⌘W closes it too (phase 27). Not the
-    /// old keyboard card while a split's lit stand-in waits for herdr's pane (phase 29).
+    /// Close Pane: the pane, else the shown stand-in, which has no pane yet; ⌘W closes it too. Not the
+    /// old keyboard card while a split's lit stand-in waits for herdr's pane.
     func closePane(_ pane: HostStore.Pane?) {
         if let newest, store.pane(newest.id) == nil, pane?.id == keyboardPane?.id {
             return

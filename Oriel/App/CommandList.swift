@@ -18,7 +18,7 @@ struct CommandList {
 
     private var tabs = true
 
-    /// The menu bar's: Move Pane to Tab without the session's tabs (phase 30). AppKit's key equivalent search walks
+    /// The menu bar's: Move Pane to Tab without the session's tabs. AppKit's key equivalent search walks
     /// the whole menu bar at every key (about 30 ms at 300 tabs), and each tab's new title made the menu bar again.
     /// The card's menus and the palette list them.
     var menuBarList: [Command] {
@@ -212,7 +212,7 @@ struct CommandList {
 }
 
 extension CommandList {
-    /// ⇧⌘← ⇧⌘→, as iTerm2 (user, phase 29: most Mac keyboards have no Page Up or Down).
+    /// ⇧⌘← ⇧⌘→, as iTerm2 (most Mac keyboards have no Page Up or Down).
     private static func moveTab(_ page: Page?, _ offset: Int, enabled: Bool) -> Command {
         let side = offset < 0 ? "left" : "right"
         return Command(section: .tabSteps, title: "Move Tab \(side.capitalized)",
@@ -280,7 +280,7 @@ extension CommandList {
             + each("Move Pane", [.command, .option, .shift], symbol: ".square") {
                 await $0.store.swap($1.id, $2)
             }
-            // No key (user, phase 25): dividers and Balance Splits cover it.
+            // No key: dividers and Balance Splits cover it.
             + each("Resize Pane", nil, symbol: ".to.line") {
                 await $0.store.resize($1.id, $2)
             }
@@ -289,7 +289,7 @@ extension CommandList {
                        action: { settings.followMouse.toggle() })]
     }
 
-    /// The places on 1…9, one modifier per level (user, phase 25): ⌘ the workspace's tabs, ⌃⌘ the sidebar's
+    /// The places on 1…9, one modifier per level: ⌘ the workspace's tabs, ⌃⌘ the sidebar's
     /// workspaces, ⌥⌘ the window's sessions. Each finds its place when the key is pressed: the menu may be older
     /// than a switch.
     static func jumps(_ page: Page?, _ pages: WindowPages?) -> [Command] {
@@ -304,7 +304,7 @@ extension CommandList {
                         family: ("Show \(level) 1–9", "1–9")) { show(index) }
             }
         }
-        // The first 9 only: the menu bar is made again when what they read changes (phase 30).
+        // The first 9 only: the menu bar is made again when what they read changes.
         let tabs = (page?.selectedWorkspace?.tabs ?? []).prefix(9), workspaces = page?.sidebarWorkspaces ?? []
         return jump(.tabs, "Tab", .command, tabs.map { page?.titleText($0) ?? $0.label }) { index in
             if let page, let workspace = page.selectedWorkspace, workspace.tabs.indices.contains(index) {
@@ -339,7 +339,7 @@ extension CommandList {
                         }
                     })
         }
-        // Every tab of the session, under its workspace's name (user, phase 25), but the pane's own: herdr refuses
+        // Every tab of the session, under its workspace's name, but the pane's own: herdr refuses
         // that move. A move into a tab lands right of its last card, as a drop on its capsule does: without a
         // target herdr splits the tab's focused pane.
         let others = (tabs ? page?.sidebarWorkspaces ?? [] : []).flatMap { workspace in

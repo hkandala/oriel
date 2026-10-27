@@ -1,6 +1,6 @@
 import XCTest
 
-/// The hover card (phase 19): a tab's panes on a capsule or an Agents view row, and the chrome buttons' tooltips.
+/// The hover card: a tab's panes on a capsule or an Agents view row, and the chrome buttons' tooltips.
 extension OrielUITests {
     func testHoverCardShowsABlockedAgentsScreenAndEscClosesIt() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))

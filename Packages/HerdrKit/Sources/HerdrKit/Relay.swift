@@ -1,7 +1,7 @@
 import Foundation
 import Synchronization
 
-/// One remote process that carries every run of a host over one SSH session (phase 26, round 2): a server may
+/// One remote process that carries every run of a host over one SSH session: a server may
 /// allow only a few sessions per connection (`MaxSessions`), and a second connection would ask for a second
 /// passcode. Runs are lines both ways, as herdr's bridge, events and terminal streams are. The app sends
 /// `o <id> <command hex>` (open), `w <id> <line>`, `c <id>` (close stdin) and `k <id>` (SIGKILL by pid, then close
@@ -182,7 +182,7 @@ final class Relay: Sendable {
             $select->add($out, $errors);
         } elsif ($op eq 'w') { if ($input{$id}) { $pending{$id} .= "$arg\n"; flush($id) } }
         elsif ($op eq 'c') { if ($input{$id}) { $closing{$id} = 1; flush($id) } }
-        # Its stdin too: a wrapper's background child ends with it (T6). The kill first: a wrapper that saw its
+        # Its stdin too: a wrapper's background child ends with it. The kill first: a wrapper that saw its
         # stdin close first could exit by itself (143, not 9).
         elsif ($op eq 'k') { kill 9, $pid{$id} if $pid{$id}; close_input($id) }
     }
@@ -198,7 +198,7 @@ final class Relay: Sendable {
         }
         for my $fh (@{ $readable || [] }) {
             my $n = sysread($fh, my $chunk, 65536);
-            # The app or the connection is gone: exiting closes every run's stdin, which ends it (T6).
+            # The app or the connection is gone: exiting closes every run's stdin, which ends it.
             if (fileno $fh == 0) {
                 exit 0 unless $n;
                 $commands .= $chunk;

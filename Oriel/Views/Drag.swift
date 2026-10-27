@@ -3,7 +3,7 @@ import HerdrKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// What a drag in a window carries (phase 18). The page holds it; the pasteboard only routes the drag to the
+/// What a drag in a window carries. The page holds it; the pasteboard only routes the drag to the
 /// app's drop targets.
 enum Dragged: Equatable {
     case pane(String)
@@ -64,7 +64,7 @@ final class DragSource: NSObject, NSDraggingSource {
         return image
     }
 
-    /// A dragged card as a lifted card (user): one small card shape, 240 × 150 pt, filled with the card's top
+    /// A dragged card as a lifted card: one small card shape, 240 × 150 pt, filled with the card's top
     /// (header and terminal) scaled to cover it, its corners rounded, at 0.85 with a soft shadow; the pointer sits
     /// over the header where it grabbed it. The terminal's Metal layer may not draw into the snapshot: the card's
     /// fill shows there then.

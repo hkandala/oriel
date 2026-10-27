@@ -72,7 +72,7 @@ struct Look {
              keyboard ? (.black.opacity(0.18), 0.8) : (.black.opacity(0.12), 0.7))
     }
 
-    /// A divider's grip: 3.3:1 or more on the window too (gorex's muted icon color was 2.1:1 in light; phase 33).
+    /// A divider's grip: 3.3:1 or more on the window too (gorex's muted icon color was 2.1:1 in light).
     var grip: Color {
         paneButton
     }
@@ -234,7 +234,7 @@ struct ChromeStyle: ButtonStyle {
                             // The same in both styles, and they follow the appearance by themselves (D44).
                             let strength = configuration.isPressed ? 0.08 : hovering && enabled ? 0.05 : 0
                             // On the tint alone: on the whole label it also faded a menu's light from row to row
-                            // (FilterList lights the hovered row; user, phase 29).
+                            // (FilterList lights the hovered row).
                             shape.fill(.primary.opacity(strength)).animation(.easeOut(duration: 0.14), value: hovering)
                         } else if let tint = style.tint {
                             shape.fill(tint)
@@ -354,7 +354,7 @@ struct IconButton: View {
 extension View {
     /// Floating glass (panels, hover panels, the find bar, notices): the system glass over a material, so the text
     /// behind is only a soft blur. Liquid Glass alone is thin on a small panel, and a terminal read clearly through
-    /// the hover card (user, phase 25).
+    /// the hover card.
     func floatingGlass(in shape: some Shape) -> some View {
         glassEffect(.regular, in: shape).background(.regularMaterial, in: shape)
     }

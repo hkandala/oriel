@@ -1,6 +1,6 @@
 import XCTest
 
-/// Phase 21: the find bar, links, the not running and failed start states, and programs of panes never shown.
+/// The find bar, links, the not running and failed start states, and programs of panes never shown.
 extension OrielUITests {
     func testSecondPagesServerStopsAndStartsAloneOnItsPage() async throws {
         let five = try env("ORIEL_SESSION5")

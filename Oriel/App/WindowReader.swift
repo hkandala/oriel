@@ -112,7 +112,7 @@ class TrafficLights: NSView {
         // AppKit lays the buttons out again on title changes (each tab or workspace switch), resizes, key
         // changes and full screen. They go back in this view's layout, after AppKit's tiling and before the
         // draw: a move from the frame notification is dropped for the button AppKit is moving
-        // (`setFrameOrigin:ignoreRentry:`), and one on the next turn came after a draw (phase 24).
+        // (`setFrameOrigin:ignoreRentry:`), and one on the next turn came after a draw.
         let place: @Sendable (Notification) -> Void = { [weak self] _ in
             MainActor.assumeIsolated { self?.needsLayout = true }
         }

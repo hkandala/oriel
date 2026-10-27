@@ -97,7 +97,7 @@ struct Detail: View {
     }
 
     /// The selected workspace's strip, the button that makes a missing tab, or that the session is empty: its page
-    /// header's `+` makes a workspace (user, phase 28).
+    /// header's `+` makes a workspace.
     @ViewBuilder private func tabs() -> some View {
         if let workspace = page.selectedWorkspace {
             if workspace.tabs.isEmpty {
@@ -109,7 +109,7 @@ struct Detail: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // A strip of its own per workspace: a shared one could lay out no page after a switch and stay
-                // empty (phase 25, `make strip-check`).
+                // empty (`make strip-check`).
                 Strip(workspace: workspace, pages: pages, page: page).id("\(page.id) \(workspace.id)")
             }
         } else if page.store.state == .live {

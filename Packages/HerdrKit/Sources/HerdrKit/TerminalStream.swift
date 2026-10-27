@@ -126,7 +126,7 @@ public struct TerminalStream: Sendable {
     }
 
     /// Lets go of the pane by closing stdin: herdr answers `detached` (input sent before still arrives) and the
-    /// run ends (design T6).
+    /// run ends (talking-to-herdr, Running commands).
     public func close() {
         channel.closeInput()
         // The one fallback: a run still going 1 s later (a hung herdr, a write stuck on a full pipe) is killed.
@@ -143,7 +143,8 @@ public struct TerminalStream: Sendable {
 }
 
 extension TerminalStream {
-    /// observe ignores stdin's end, so this wrapper ends it then (design T6). The watcher lets go of stdout and
+    /// observe ignores stdin's end, so this wrapper ends it then (talking-to-herdr, Running commands). The watcher lets
+    /// go of stdout and
     /// stderr, so a run that exits by itself (a failed handshake) ends the stream with its status and reason; fd 3
     /// because a background job's stdin is /dev/null. The watcher goes too, so it never kills a reused pid.
     static let observeWrapper = #"exec 3<&0; "$@" & c=$!; { cat <&3 >/dev/null; kill $c; } >/dev/null 2>&1 & w=$!; "#
@@ -152,7 +153,7 @@ extension TerminalStream {
 
 public extension HerdrClient {
     /// Opens a pane's terminal by its `terminal_id`, so the stream survives the pane moving.
-    /// `--session` wins over `HERDR_SOCKET_PATH` and `HERDR_SESSION` (phase 2 findings).
+    /// `--session` wins over `HERDR_SOCKET_PATH` and `HERDR_SESSION`.
     nonisolated func terminal(
         _ terminalID: String,
         cols: Int,

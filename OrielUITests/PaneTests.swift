@@ -1,6 +1,6 @@
 import XCTest
 
-/// Pane cards and the layout (phase 17): dividers, equal splits, keys, the header's context menu and zoom. Each test
+/// Pane cards and the layout: dividers, equal splits, keys, the header's context menu and zoom. Each test
 /// makes its own tab in w2 (closed after) and checks herdr's tree.
 extension OrielUITests {
     func testDividersDragDoubleClickAndBalance() async throws {
@@ -66,7 +66,7 @@ extension OrielUITests {
         app.typeKey("]", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard("terminal.\(first)"))
 
-        // Resize Pane has no key (phase 25): ⌃⌘→ resizes nothing.
+        // Resize Pane has no key: ⌃⌘→ resizes nothing.
         app.typeKey(.rightArrow, modifierFlags: [.command, .control])
         pick("Pane", "Resize Pane Right")
         try await expectRatio(tab, 0.55)
@@ -91,7 +91,7 @@ extension OrielUITests {
     }
 
     /// Closing the keyboard card gives the keyboard to the card used before it in the tab, most recent first, not to
-    /// herdr's focused pane or the neighbor (phase 27).
+    /// herdr's focused pane or the neighbor.
     func testClosingAPaneGivesTheKeyboardToThePaneUsedBefore() async throws {
         let (tab, first) = try await newTab("used-panes")
         let second = try await split(first), third = try await split(second), fourth = try await split(third)
@@ -113,7 +113,7 @@ extension OrielUITests {
     }
 
     /// A split's new pane gets the keyboard (⌘D and the header's button); ⌘[ ⌘] step in the tree's order, not the
-    /// order the panes were made; ⇧⌘↩ zooms the keyboard card (phase 25: the menu bar kept Zoom Pane disabled from
+    /// order the panes were made; ⇧⌘↩ zooms the keyboard card (the menu bar kept Zoom Pane disabled from
     /// before the split, so the key did nothing).
     func testSplitsGiveTheNewPaneTheKeyboardAndKeysFollowTheTree() async throws {
         let (tab, first) = try await newTab("split-keys")
@@ -146,8 +146,8 @@ extension OrielUITests {
     }
 
     /// ⌘D pressed fast three times splits the newest card each time, as Ghostty does, and the last one made keeps the
-    /// keyboard; ⌘W then steps back through them (phase 29: each split the old card, and the keyboard went to the pane
-    /// whose terminal settled last). Each new card comes once: herdr's pane takes its stand-in's card (phase 30).
+    /// keyboard; ⌘W then steps back through them (each split the old card, and the keyboard went to the pane
+    /// whose terminal settled last). Each new card comes once: herdr's pane takes its stand-in's card.
     func testQuickSplitsSplitTheNewestAndItKeepsTheKeyboard() async throws {
         relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
@@ -171,8 +171,8 @@ extension OrielUITests {
             return panes.count == 4 ? panes : nil
         }
         // The newest is the rightmost (the old code split the first card each time: the newest came right of it), and
-        // herdr's tree is P | (Q | (R | S)): each ⌘D split the newest. A split of an older card nests apart (phase 31:
-        // A | C | B | D, the second ⌘D split the first card).
+        // herdr's tree is P | (Q | (R | S)): each ⌘D split the newest. A split of an older card nests apart (A | C |
+        // B | D: the second ⌘D split the first card).
         XCTAssertEqual(panes.first, first)
         var node = try await root(tab)
         for pane in panes.dropLast() {
@@ -191,7 +191,7 @@ extension OrielUITests {
         XCTAssertTrue(cards.has(\.stringValue, counts(came: 3, went: 2), within: 2), "came went: \(cards.stringValue)")
     }
 
-    /// ⌥⌘ arrows pick from the layout, at once, as Ghostty does (phase 29, the user's layout): three columns, the third
+    /// ⌥⌘ arrows pick from the layout, at once, as Ghostty does (the user's layout): three columns, the third
     /// in four rows. Of the cards along the edge, the one used last, else the one sharing most of it, the top one on a
     /// tie.
     func testSelectPaneKeysPickTheLastUsedElseTheTopNeighbor() async throws {

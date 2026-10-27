@@ -15,7 +15,7 @@ struct OrielApp: App {
         // Before any surface exists, so none starts at libghostty's default size.
         PaneTerminal.setFontSize(settings.fontSize)
         // Second shortcuts (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=) run their first's command. A monitor sees them before any view: an
-        // invisible button's shortcut kept its first action (phase 11).
+        // invisible button's shortcut kept its first action.
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             MainActor.assumeIsolated { KeyboardShortcut.second(event) } ? nil : event
         }
@@ -26,7 +26,7 @@ struct OrielApp: App {
             ContentView()
         }
         .windowToolbarStyle(.unifiedCompact)
-        // 90 % of the screen, centered (user, phase 29: 1200 × 760 was small on a large screen), at least
+        // 90 % of the screen, centered (1200 × 760 was small on a large screen), at least
         // 1200 × 760 and at most the screen; a zoom fills the screen. A larger window AppKit shrank to fit came
         // back at its full size on a zoom, past the screen's edges (CI's 1024 pt screen). A restored window keeps
         // its frame.
@@ -315,7 +315,7 @@ private struct WindowContent: View {
         .testValue("app.latency", "Latency", Latency.shared.recorded.joined(separator: "; "), shown: Latency.isOn)
         .testValue("app.frames", "Frames", FrameProbe.shared.recorded, shown: FrameProbe.isOn)
         .onChange(of: panel, initial: true) { pages.panelOpen = panel != nil }
-        // The sidebar and the Agents view count as drawn changes too (phase 29).
+        // The sidebar and the Agents view count as drawn changes too.
         .onChange(of: "\(panel.map { "\($0)" } ?? "") \(sidebar) \(agents)", initial: true) {
             Latency.shared.panel = $1
         }

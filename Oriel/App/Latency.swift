@@ -19,8 +19,8 @@ func afterCommit(_ extra: CFRunLoopActivity = [], _ body: @escaping @MainActor (
 
 /// e2e (`-recordLatency YES`): for each key or click, the time from the event to the end of the run loop turn whose
 /// Core Animation commit drew a change of the key window (its page, workspace, tab, tabs, cards, panel or dialog),
-/// how many turns that took, and the time from the app taking the event to that end: "⌘T 12ms 0 9ms" (phase 25;
-/// the last since phase 29: an accessibility client's queries can hold the event back for seconds).
+/// how many turns that took, and the time from the app taking the event to that end: "⌘T 12ms 0 9ms" (the
+/// last because an accessibility client's queries can hold the event back for seconds).
 @MainActor @Observable
 final class Latency {
     static let shared = Latency()
@@ -63,7 +63,7 @@ final class Latency {
         }
     }
 
-    /// The main thread's work in the last 5 s (phase 29): run loop turns from wake to sleep, the longest, the
+    /// The main thread's work in the last 5 s: run loop turns from wake to sleep, the longest, the
     /// snapshots applied and their own time: "main 812ms 120ms 34 210ms".
     private func recordMain() {
         // A turn still running counts up to now, so a main thread that never sleeps does not show as idle.
@@ -138,9 +138,9 @@ final class Latency {
             .joined(separator: " ")
     }
 
-    /// The sidebar's pages after a swipe's lift (`swipe`), or the strip's or the overview's (`page`, phase 31):
+    /// The sidebar's pages after a swipe's lift (`swipe`), or the strip's or the overview's (`page`):
     /// their offset at each frame for 0.8 s, in ms from the lift; first the ms to the last change, last the ms to
-    /// the session's show (-1: none): "swipe 230ms 0:145,8:152,… 190" (phases 27, 28).
+    /// the session's show (-1: none): "swipe 230ms 0:145,8:152,… 190".
     func lifted(_ offset: Double, _ name: String = "swipe") {
         guard Self.isOn else { return }
         lifted = (ProcessInfo.processInfo.systemUptime, name)
@@ -161,7 +161,7 @@ final class Latency {
     }
 
     /// The swipe's session is about to show; its own record, as a key's, gives the time to the turn whose commit
-    /// drew it ("session 40ms 0 40ms", phase 30). One record waits at a time: a key during the switch takes its
+    /// drew it ("session 40ms 0 40ms"). One record waits at a time: a key during the switch takes its
     /// place. A strip's or the overview's landing ("page", `Paging`) has only its time in the slide's record.
     func shown() {
         if let (lifted, name) = lifted {
@@ -181,7 +181,7 @@ final class Latency {
     }
 
     @ObservationIgnored private var shownAt = -1
-    /// The overview's tiles made since a swipe's first move: "tiles <count>" at its lift (phase 31: every tile in
+    /// The overview's tiles made since a swipe's first move: "tiles <count>" at its lift (every tile in
     /// view at each move, 20–40 ms a frame).
     @ObservationIgnored var tiles = 0
     @ObservationIgnored private var lifted: (TimeInterval, String)?
@@ -193,7 +193,7 @@ final class Latency {
     }
 }
 
-/// Frames while the window scrolls (phase 29): a display link runs from a scroll event until 0.3 s after the
+/// Frames while the window scrolls: a display link runs from a scroll event until 0.3 s after the
 /// last, and records "scroll <frames> <hitches> <ms>"; a hitch is a frame more than 25 ms after the one before.
 @MainActor
 private final class ScrollMeter: NSObject {

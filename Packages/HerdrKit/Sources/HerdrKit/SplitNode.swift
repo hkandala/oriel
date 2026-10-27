@@ -175,7 +175,7 @@ public extension SplitNode {
     }
 }
 
-/// ⌥⌘ arrows (phase 29): the neighbor from the tree itself, no herdr call.
+/// ⌥⌘ arrows: the neighbor from the tree itself, no herdr call.
 public extension SplitNode {
     /// The pane next to this one that way, as Ghostty and kitty pick it: of the panes along that edge, the one used
     /// last (`used`, latest last), else the one sharing most of the edge, the top or left one on a tie. Nil at the

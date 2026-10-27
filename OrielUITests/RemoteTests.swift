@@ -1,6 +1,6 @@
 import XCTest
 
-/// Remote machines over SSH (phase 26), against CI's sshd on localhost (`scripts/ci-sshd.sh`): oriel-key is this
+/// Remote machines over SSH, against CI's sshd on localhost (`scripts/ci-sshd.sh`): oriel-key is this
 /// user with a key, so its sessions are the e2e ones; oriel-pw asks a host key and a password and has no herdr. They
 /// skip where no such sshd runs.
 extension OrielUITests {
@@ -14,7 +14,7 @@ extension OrielUITests {
         let identifier = app.windows.firstMatch.identifier
         let first = app.windows[identifier]
         addHost("Key Host", "oriel-key")
-        // A new window on it (user, phase 28), with session one from herdr over SSH; this one keeps its page.
+        // A new window on it, with session one from herdr over SSH; this one keeps its page.
         let remote = try otherWindow(than: identifier)
         XCTAssertEqual(machine(of: remote), "Key Host")
         XCTAssertEqual(machine(of: first), "This Mac")
@@ -25,7 +25,7 @@ extension OrielUITests {
         element("titlebar.machine", in: remote).click()
         app.menuItems["Key Host"].firstMatch.click()
         XCTAssertFalse(app.windows.element(boundBy: 2).exists(within: 2))
-        // Picked in the first window's menu, it brings the Key Host window forward (user, phase 29): no new one.
+        // Picked in the first window's menu, it brings the Key Host window forward: no new one.
         raise(first)
         element("titlebar.machine", in: first).click()
         app.menuItems["Key Host"].firstMatch.click()
@@ -92,8 +92,8 @@ extension OrielUITests {
         }
         keepScreenshot("disconnected")
 
-        // Connect asks again: Connecting from the click until the question, then until the session answers
-        // (user, phase 30). Disconnected never shows meanwhile.
+        // Connect asks again: Connecting from the click until the question, then until the session answers.
+        // Disconnected never shows meanwhile.
         element("detail.connect").click()
         XCTAssertTrue(element("detail.connect").vanishes(within: 1))
         XCTAssertTrue(element("ask.answer").exists(within: connect))
@@ -292,7 +292,7 @@ extension OrielUITests {
     }
 
     /// A remote window's Open Session, from the machine menu and the sidebar, lists that machine's sessions and opens
-    /// one as a page (user, phase 29).
+    /// one as a page.
     func testARemoteWindowOpensAnotherSessionOfItsMachine() async throws {
         try await skipWithoutSSH()
         relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
@@ -313,7 +313,7 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
     }
 
-    /// Each window's Open Session lists its own machine's sessions only (user, phase 29): Password Host has no herdr,
+    /// Each window's Open Session lists its own machine's sessions only: Password Host has no herdr,
     /// so its window lists none of This Mac's, which the first window's panel just read.
     func testOpenSessionListsOnlyItsWindowsMachine() async throws {
         try await skipWithoutSSH()

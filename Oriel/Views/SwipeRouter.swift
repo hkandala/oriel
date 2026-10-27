@@ -122,7 +122,7 @@ enum SwipeRouter {
             pager = anchors.allObjects.first { $0.contains(event) }
             if pager == nil {
                 target = scrollView(event)
-                // The strip's and the overview's pages take it as the sidebar's do (phase 31).
+                // The strip's and the overview's pages take it as the sidebar's do.
                 if let paged = anchor(target), paged.marks.drag != nil {
                     (pager, target) = (paged, nil)
                 }
@@ -241,7 +241,7 @@ struct ScrollAnchor: NSViewRepresentable {
     }
 }
 
-/// A paged scroll view's pages that a swipe moves as the sidebar's (the strip's, the overview's; phase 31): they
+/// A paged scroll view's pages that a swipe moves as the sidebar's (the strip's, the overview's): they
 /// follow the fingers one to one and slide on from the lift (`slide`). With the system's paging a 140 pt flick at
 /// 625 pt/s slid back to its page over 0.55 s (CI).
 @MainActor
@@ -273,7 +273,7 @@ final class Paging {
     /// The router's lift: the pages slide to the page it lands on (at once under Reduce Motion), and `land` runs
     /// with its id as they arrive, unless a key, a click or another swipe moved them meanwhile. Not at the
     /// animation's `.logicallyComplete`, which for a scroll fires at once: the tab's terminals or the session
-    /// shown in the slide's first frame held it for 50–150 ms (CI), so it jumped most of a page (phase 31).
+    /// shown in the slide's first frame held it for 50–150 ms (CI), so it jumped most of a page.
     func lift(_ speed: Double, ids: [String], _ position: Binding<ScrollPosition>, reduceMotion: Bool,
               land: @escaping (String) -> Void)
     {
@@ -300,7 +300,7 @@ final class Paging {
     /// at their speed (a cubic whose x is linear, so its first slope is the start's speed in distances per
     /// duration), speeds up only as much as that time needs and eases out; when their speed alone covers it in
     /// that time it only slows down (slope 2: a quadratic ease-out). The session spring (0.2 s) went from 1.6k
-    /// to 15k pt/s in two frames after a slow lift, a page in four (capture F, phase 31): it looked cut.
+    /// to 15k pt/s in two frames after a slow lift, a page in four (capture F): it looked cut.
     private static func slide(_ speed: Double, _ distance: Double) -> Animation {
         let toward = max(distance < 0 ? -speed : speed, 0), length = max(abs(distance), 1)
         let duration = min(0.28, 2 * length / toward)

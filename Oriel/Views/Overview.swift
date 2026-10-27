@@ -11,14 +11,14 @@ struct Overview: View {
     let leading: CGFloat
     @State private var position = ScrollPosition(idType: String.self)
     @State private var paging = Paging()
-    /// A swipe holds or slides the pages: no tile takes the pointer or turns live meanwhile (phase 31).
+    /// A swipe holds or slides the pages: no tile takes the pointer or turns live meanwhile.
     @State private var sliding = false
     /// Each tile's miniature's frame in the overview, by page and tab: not observed, so a scroll redraws nothing.
     @State private var frames = Frames()
     /// The tab whose miniature grows to the page, from its tile's frame; `grown` once it moves.
     @State private var zoom: Zoom?
     @State private var grown = false
-    /// Fades in once open (phase 29).
+    /// Fades in once open.
     @State private var opened = false
     @State private var monitor: Any?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -43,7 +43,7 @@ struct Overview: View {
             let shown = pages.list.firstIndex { $0 === pages.current } ?? 0
             ScrollView(.horizontal) {
                 // The page in view and its neighbors, made before a swipe reaches them: a lazy stack made the next
-                // session's page in the swipe's first frame (40–60 ms with a few tabs, phase 31). Each grid is
+                // session's page in the swipe's first frame (40–60 ms with a few tabs). Each grid is
                 // lazy itself.
                 HStack(spacing: 0) {
                     ForEach(pages.list) { page in
@@ -75,7 +75,7 @@ struct Overview: View {
                 .shielded(zoom != nil || sliding)
                 .background(ScrollAnchor(step: step, drag: drag, lift: lift))
             }
-            // No `.paging`: it snapped a swipe's first move to the next page (phase 31, CI).
+            // No `.paging`: it snapped a swipe's first move to the next page (on CI).
             .scrollPosition($position)
             .scrollIndicators(.never)
             .onScrollGeometryChange(for: ScrollGeometry.self, of: { $0 }, action: { paging.laid($1) })
@@ -218,7 +218,7 @@ struct Overview: View {
 
 extension View {
     /// The window's chrome (the sidebar, the title row) under the overview: laid out while it is open, hidden, so
-    /// it fades in with the zoom; made once the zoom ended, it came a moment late in a big session (phase 30).
+    /// it fades in with the zoom; made once the zoom ended, it came a moment late in a big session.
     /// `own`: the overview's ×, the other way round.
     func underOverview(_ pages: WindowPages, own: Bool = false) -> some View {
         modifier(UnderOverview(pages: pages, own: own))
@@ -232,8 +232,8 @@ private struct UnderOverview: ViewModifier {
 
     func body(content: Content) -> some View {
         let open = pages.overview && !pages.leaving
-        // One quick fade with the zoom's start, the tab bar's pill in it (user, phase 31: 0.18 s looked slow). The
-        // opacity alone: what the tile's pick changes in the same update (the tab, the page) slid in it (phase 33).
+        // One quick fade with the zoom's start, the tab bar's pill in it (0.18 s looked slow). The
+        // opacity alone: what the tile's pick changes in the same update (the tab, the page) slid in it.
         content.animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.12)) {
             $0.opacity(open == own ? 1 : 0)
         }
@@ -291,7 +291,7 @@ extension WindowPages {
     /// The strip shows again, and the keyboard goes back to the tab's card.
     func closeOverview() {
         // The tab bar's pill stays on the selected tab, where it faded in, not where the strip before the overview
-        // left it (a tab chosen in the overview); the new strip's geometry comes a turn later (phase 31).
+        // left it (a tab chosen in the overview); the new strip's geometry comes a turn later.
         if let current, let workspace = current.selectedWorkspace {
             current.stripPage = Double(current.selectedIndex(in: workspace))
         }
@@ -311,13 +311,13 @@ extension WindowPages {
 extension WindowPages {
     /// The cards of the overview's tiles in view, whole tabs, the latest in first, up to a cap: each live card
     /// keeps a swap chain at its card's size, so a live tab costs about its page's pixels three times over (69 MB
-    /// for a full window on Retina): at most 400 MB of tabs (phase 30, lane P: 16 tabs took 1.5 GB), and 16 cards
+    /// for a full window on Retina): at most 400 MB of tabs (16 tabs took 1.5 GB), and 16 cards
     /// (streams). A remote machine's cards share the relay's one SSH session: 6. The other tiles show their
     /// snapshot.
     func overviewCards(_ page: Page) -> [String: String] {
         let tabs = (overviewTabs[page.id] ?? []).reversed().map { tileCards(page, $0) }
         // Those with a card that has no picture yet first (a loader shows there), so each tile in view gets one in
-        // turn (phase 30); one that drew lets go if another waits, and keeps its snapshot. Then the live ones, so
+        // turn; one that drew lets go if another waits, and keeps its snapshot. Then the live ones, so
         // the last turn does not start another.
         let drawn = { (tab: [(String, String)]) in self.pictured(page, tab) }
         let live = { (tab: [(String, String)]) in tab.allSatisfy { self.overviewLive.contains($0.0) } }
@@ -338,7 +338,7 @@ extension WindowPages {
 
     /// The cards that stream for the overview: chosen again when it settles (`overviewCards`), kept on a herdr
     /// snapshot (4 a second while agents work) but for closed panes: choosing there made and freed surfaces in the
-    /// middle of a scroll (phase 30).
+    /// middle of a scroll.
     func overviewStreams(_ page: Page, snapshot: Bool) -> [String: String] {
         guard snapshot else { return overviewCards(page) }
         let kept = page.store.panes.compactMap { pane in
@@ -366,8 +366,8 @@ extension WindowPages {
     func settleOverview() {
         guard overview, !leaving else { return }
         overviewSettling?.cancel()
-        // Not while the grid scrolls or a swipe moves the pages: their end settles (phase 30, a surface made or
-        // freed mid-scroll dropped frames). A sideways swipe's first event also starts and ends the grid's scroll.
+        // Not while the grid scrolls or a swipe moves the pages: their end settles (a surface made or freed
+        // mid-scroll dropped frames). A sideways swipe's first event also starts and ends the grid's scroll.
         guard !overviewScrolling, !overviewSliding else { return }
         overviewSettling = Task {
             try? await Task.sleep(for: .milliseconds(150))

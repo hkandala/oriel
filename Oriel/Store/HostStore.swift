@@ -20,7 +20,7 @@ final class HostStore {
     private(set) var sessions: [Session] = []
     private(set) var workspaces: [Workspace] = []
     private(set) var panes: [Pane] = []
-    /// Each tab's panes in herdr's order, set only when it changes: a view of one tab reads its own (phase 29).
+    /// Each tab's panes in herdr's order, set only when it changes: a view of one tab reads its own.
     private(set) var tabPanes: [String: [Pane]] = [:]
     /// Its panes that need you.
     private(set) var waiting = 0
@@ -37,12 +37,12 @@ final class HostStore {
         writes.busy
     }
 
-    /// What shows before herdr has it (phase 25).
+    /// What shows before herdr has it.
     @ObservationIgnored var ahead = Ahead()
     /// The last snapshot, drawn again with `ahead`.
     @ObservationIgnored private(set) var last: Snapshot?
     /// Panes being closed (`Ahead`), kept with what was asked of them in case the close comes back. A closing card
-    /// fades out with its header, not a stand-in's "terminal" (phase 30).
+    /// fades out with its header, not a stand-in's "terminal".
     @ObservationIgnored private(set) var parked: [String: Pane] = [:]
     /// The tab the user looks at (D14): selected on the page in view of the key window. Its finishes are seen.
     @ObservationIgnored var lookingTabID: String? {
@@ -73,7 +73,7 @@ final class HostStore {
     @ObservationIgnored private var task: Task<Void, Never>?
     /// Workspaces with a git run in flight: one at a time each.
     @ObservationIgnored private var gitRuns: Set<String> = []
-    /// Program asks in flight, 8 at most: a 600-pane session's first snapshot made 600 herdr runs (phase 29).
+    /// Program asks in flight, 8 at most: a 600-pane session's first snapshot made 600 herdr runs.
     @ObservationIgnored let asks = Gate(8)
     @ObservationIgnored private var seen = Seen()
 
@@ -113,7 +113,7 @@ final class HostStore {
 
     /// The Connect button and a new machine: connects to the remote machine, asking the user what ssh asks in the
     /// window that connects (machines#health-check: only this may prompt). The page shows Connecting from the click
-    /// until the session answers (user, phase 30).
+    /// until the session answers.
     func connect(in pages: WindowPages) async {
         // A second click joins the first.
         guard machine.isRemote, !connecting else { return }
@@ -264,7 +264,7 @@ final class HostStore {
             parked[pane.id] = pane
         }
         let make = { self.parked.removeValue(forKey: $0) ?? Pane(id: $0) }
-        // Once, not a new set for each pane: O(panes × tabs) per snapshot (phase 29).
+        // Once, not a new set for each pane: O(panes × tabs) per snapshot.
         let focused = snapshot.focusedPaneIDs
         reuse(self, \.panes, shown.panes, make) { pane, new in
             watchProgram(pane, new)

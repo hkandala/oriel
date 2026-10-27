@@ -1,6 +1,6 @@
 import XCTest
 
-/// The window's sessions (phases 14, 25): Open Session lists, opens, starts, stops and deletes sessions; a session
+/// The window's sessions: Open Session lists, opens, starts, stops and deletes sessions; a session
 /// opened goes last; Detach Session leaves one running. Sessions as in SidebarTests.
 extension OrielUITests {
     func testOpenSessionListsSessionsAndOpensAPage() throws {

@@ -1,6 +1,6 @@
 import XCTest
 
-/// The text size (View ▸ Increase, Decrease and Reset Font Size) and the Option key (phase 11). The size persists in
+/// The text size (View ▸ Increase, Decrease and Reset Font Size) and the Option key. The size persists in
 /// the app's own defaults, so the test puts it back.
 extension OrielUITests {
     /// ⌘+ makes the text bigger, ⌘- smaller, ⌘0 brings back the default size. A shown card's grid follows, herdr's

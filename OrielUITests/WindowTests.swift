@@ -1,7 +1,7 @@
 import AppKit
 import XCTest
 
-/// Several windows (phase 16): windows on one session share its store and agree on one controller (D66); the other
+/// Several windows: windows on one session share its store and agree on one controller (D66); the other
 /// watches with the control capsule. Session one's t1 is p1 | (p2 / p3), t2 holds p4.
 extension OrielUITests {
     func testSecondWindowWatchesUntilItsUserTypes() async throws {
@@ -124,7 +124,7 @@ extension OrielUITests {
         return try (app.windows[identifier], otherWindow(than: identifier))
     }
 
-    /// ⌘N opens a big window in the middle of the screen (user, phase 29): 90 % of it, 1200 × 760 at least, the
+    /// ⌘N opens a big window in the middle of the screen: 90 % of it, 1200 × 760 at least, the
     /// screen at most.
     func testNewWindowFillsMostOfTheScreen() throws {
         let (_, window) = try newWindow()

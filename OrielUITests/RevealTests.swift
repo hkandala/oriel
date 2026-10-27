@@ -1,7 +1,7 @@
 import XCTest
 
 /// A card's terminal keeps its old picture while herdr redraws it at a new grid, a new card fades in once, and both
-/// always show herdr's text in the end (phase 24, items 1, 2 and 19).
+/// always show herdr's text in the end.
 /// The pixels of a terminal are the only place an empty card shows, so these tests read its screenshot.
 extension OrielUITests {
     /// Every way a card comes into view shows its text: launch, another tab and back, another workspace and back, a
@@ -65,7 +65,7 @@ extension OrielUITests {
         try await expectText(["w1:p1"], "after the resize")
     }
 
-    /// A resize never blanks the text (item 19): the old picture stays until herdr's frames at the new grid replace it.
+    /// A resize never blanks the text: the old picture stays until herdr's frames at the new grid replace it.
     /// The sidebar resizes the card, ⌘+ and ⌘- its grid.
     func testResizeNeverBlanksTheText() async throws {
         let terminal = element("terminal.w1:p1")
@@ -96,9 +96,9 @@ extension OrielUITests {
         }
     }
 
-    /// Split, zoom, close and the sidebar animate the card that stays (phase 25, item 3): its host goes through the
+    /// Split, zoom, close and the sidebar animate the card that stays: its host goes through the
     /// sizes in between (`-recordMotion YES` counts them; a card made again or one that jumps takes one or two), and
-    /// its text never blanks on the way (phase 24's rule, never seen with motion before: CI has Reduce Motion on).
+    /// its text never blanks on the way (CI has Reduce Motion on, so this forces motion).
     /// Under Reduce Motion the card jumps.
     func testLayoutMotionAnimatesWithoutBlanking() async throws {
         relaunch(one, ["-recordMotion", "YES"])
@@ -151,7 +151,7 @@ extension OrielUITests {
                 4,
                 "\(step): sizes from \(sizes) to \(host.label)",
             )
-            // A third shorter than phase 25's 0.2 s (phase 27): its sizes span 0.13 s less a frame here, up to 0.153 s
+            // 0.13 s, a third shorter than 0.2 s: its sizes span 0.13 s less a frame here, up to 0.153 s
             // on CI's slower frames (0.2 s gave 0.18 here). Zoom and restore only: herdr answers during the others.
             if ["zoom", "restore"].contains(step) {
                 XCTAssertLessThan(Self.motion(host).ms, 175, "\(step): \(host.label)")
@@ -160,8 +160,8 @@ extension OrielUITests {
         }
     }
 
-    /// A visited card keeps its stream and its surface out of view (phase 27, item 1): back after more tabs than
-    /// phase 25 kept, it shows at once, never loading, with what its program printed meanwhile.
+    /// A visited card keeps its stream and its surface out of view: back after more tabs than
+    /// the old cap of 4, it shows at once, never loading, with what its program printed meanwhile.
     func testAVisitedCardComesBackAtOnce() async throws {
         let terminal = element("terminal.w1:p1")
         XCTAssertTrue(terminal.exists(within: connect))
@@ -203,7 +203,7 @@ extension OrielUITests {
         }
     }
 
-    /// A card past the kept set lets go of its stream and its surface (phase 25, lane O; 4 kept here, 16 by default),
+    /// A card past the kept set lets go of its stream and its surface (4 kept here, 16 by default),
     /// and comes back under its last picture: never empty, then herdr's text.
     func testAnEvictedCardComesBackWithItsPicture() async throws {
         relaunch(one, ["-spareTerminals", "4"])

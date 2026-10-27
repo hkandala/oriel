@@ -65,7 +65,7 @@ extension KeyboardShortcut {
 
     /// The second shortcut's key went down in an Oriel window: runs its first's command there, when enabled, and
     /// takes the key either way. A disabled Show Next Tab (one tab) let ⌃⇥ go on to AppKit's key view loop, which
-    /// stepped the panes (phase 31). Whether it took the key.
+    /// stepped the panes. Whether it took the key.
     @MainActor static func second(_ event: NSEvent) -> Bool {
         guard let first = seconds.first(where: { $0.second.matches(event) })?.first,
               let commands = CommandList.keyWindow else { return false }
@@ -91,7 +91,7 @@ extension CommandList: Equatable {
 extension View {
     /// The window's commands for the menu bar, again whenever what it shows of them changes. SwiftUI rebuilds the
     /// menu bar only when this value changes: `Commands` do not observe. Zoom Pane, disabled while the tab had one
-    /// card, stayed so after a split, and ⇧⌘↩ did nothing (phase 25). A modifier, so reading `all` re-runs only its
+    /// card, stayed so after a split, and ⇧⌘↩ did nothing. A modifier, so reading `all` re-runs only its
     /// body, not the window's.
     func menuBar(_ commands: CommandList) -> some View {
         modifier(MenuBar(commands: commands))
@@ -117,7 +117,7 @@ private struct MenuBar: ViewModifier {
 
 @MainActor
 extension CommandList {
-    /// The key window's commands, made when the key is pressed (phase 31): the menu bar's list may still be another
+    /// The key window's commands, made when the key is pressed: the menu bar's list may still be another
     /// window's. nil without one (a sheet, no window).
     static var keyWindow: [Command]? {
         KeyWindowList.Holder.all.allObjects.first { $0.window?.isKeyWindow == true }?.commands?.menuBarList

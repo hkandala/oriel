@@ -151,7 +151,7 @@ public actor HerdrClient {
 
     // MARK: Updates
 
-    /// Paced as design T4 says; a precondition holds it to one call.
+    /// Paced as talking-to-herdr, Events says; a precondition holds it to one call.
     public func updates() -> AsyncStream<Update> {
         precondition(out == nil, "updates() is called once per client")
         let (stream, out) = AsyncStream<Update>.makeStream()
@@ -161,7 +161,7 @@ public actor HerdrClient {
         return stream
     }
 
-    /// A write's read (design T4): right after the read in flight, never spaced.
+    /// A write's read (talking-to-herdr, Events): right after the read in flight, never spaced.
     public func refresh() {
         hurry = true
         pause?.cancel()
@@ -194,8 +194,7 @@ public actor HerdrClient {
                     out?.yield(.error(error as? HerdrError ?? .failed("\(error)")))
                 }
                 // Events during the read: the next one starts `spacing` after this one did, so a hundred agents'
-                // titles and states (an event each) are not reads back to back, each a 280 KB snapshot at 400 panes
-                // (phase 29).
+                // titles and states (an event each) are not reads back to back, each a 280 KB snapshot at 400 panes.
                 if readAgain, !hurry {
                     let pause = Task { _ = try? await Task.sleep(until: started + Self.spacing) }
                     self.pause = pause
@@ -262,7 +261,8 @@ public actor HerdrClient {
         }
     }
 
-    /// The one health check (design T3): a snapshot read now and every 30 s, every 2 s while reads fail. It also
+    /// The one health check (machines, Health check): a snapshot read now and every 30 s, every 2 s while reads fail.
+    /// It also
     /// catches events the stream missed, and finds a stopped session again once it answers.
     private func beat() async {
         repeat {

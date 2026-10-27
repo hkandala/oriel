@@ -1,6 +1,6 @@
 import XCTest
 
-/// Live terminals (phase 4), checked through herdr: `pane.read`, `pane.get` and a second
+/// Live terminals, checked through herdr: `pane.read`, `pane.get` and a second
 /// `control` stream from the helper. Session one's t1 is p1 | (p2 / p3), t2 holds p4.
 extension OrielUITests {
     func testCardsAttachAtTheirSize() async throws {

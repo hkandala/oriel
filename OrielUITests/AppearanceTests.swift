@@ -1,6 +1,6 @@
 import XCTest
 
-/// Appearance and interface style (phase 10). The window's `window.look` element says which look it draws, from
+/// Appearance and interface style. The window's `window.look` element says which look it draws, from
 /// the effective appearance and the style setting.
 extension OrielUITests {
     /// View ▸ Appearance and View ▸ Interface Style switch the look, with a screenshot of each of the four.
@@ -62,7 +62,7 @@ extension OrielUITests {
         }
     }
 
-    /// Glass cards carry Rex's rim (phase 25): brighter along the top edge than down the sides, on every card alike.
+    /// Glass cards carry Rex's rim: brighter along the top edge than down the sides, on every card alike.
     /// Asserted in dark; light's rim and the card both end near white, so its screenshot is for people.
     func testGlassCardsHaveABrighterTopRim() {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
@@ -81,7 +81,7 @@ extension OrielUITests {
         }
     }
 
-    /// Text selected in a terminal reads well in all four looks (phase 29 lane C): its own color over the selection,
+    /// Text selected in a terminal reads well in all four looks: its own color over the selection,
     /// where libghostty's default drew it in the window background, about the selection's own grey. A drag over a
     /// plain shell selects locally (herdr drops mouse events for a program without mouse mode).
     func testSelectedTextIsReadable() async throws {

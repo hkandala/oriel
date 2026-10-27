@@ -1,6 +1,6 @@
 import XCTest
 
-/// The command palette and the key map (phase 20).
+/// The command palette and the key map.
 extension OrielUITests {
     /// ⌘K lists the places, then the commands, under headers; "split r" ranks Split Right first, and Enter splits
     /// the keyboard card.
@@ -157,7 +157,7 @@ extension OrielUITests {
         app.typeKey("=", modifierFlags: .command)
         XCTAssertTrue(resetFontSize(enabled: true))
 
-        // The palette uses Ghostty's words, as the menu bar does (phase 25). Font Size › lights the current size,
+        // The palette uses Ghostty's words, as the menu bar does. Font Size › lights the current size,
         // scrolled into view below the fold.
         openPalette()
         app.typeText("font size")
@@ -297,7 +297,7 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(last)").exists(within: 2))
         element("tab.\(mover)").click()
         XCTAssertTrue(element("pane.\(pane)").has(\.isHittable, true, within: 3))
-        // Every tab of the session under its workspace's name, New Tab and New Workspace first (phase 25).
+        // Every tab of the session under its workspace's name, New Tab and New Workspace first.
         paneMenu(pane, "Move Pane to Tab")
         let entry = app.windows.firstMatch.menuItems["Move Pane to Tab"]
         XCTAssertTrue(entry.menuItems["second"].exists(within: 2))
@@ -314,7 +314,7 @@ extension OrielUITests {
 
         element("terminal.\(pane)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
-        // The menu bar's has no tabs (phase 30): AppKit searched them at every key.
+        // The menu bar's has no tabs: AppKit searched them at every key.
         app.menuBars.menuBarItems["View"].click()
         app.menuBars.menuItems["Pane"].hover()
         let bar = app.menuBars.menuItems["Move Pane to Tab"]

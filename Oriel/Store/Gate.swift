@@ -1,6 +1,6 @@
 import Foundation
 
-/// At most `count` holders at once; the others wait in order (HostStore's writes and program asks, phase 29).
+/// At most `count` holders at once; the others wait in order (HostStore's writes and program asks).
 @MainActor
 final class Gate {
     private var free: Int

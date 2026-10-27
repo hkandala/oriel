@@ -19,7 +19,7 @@ struct HostDialog: View {
     var body: some View {
         let target = draft.target.trimmingCharacters(in: .whitespaces)
         VStack(alignment: .leading, spacing: 14) {
-            // Text only, flush with the form (user, phase 29: the glyph sat off the line).
+            // Text only, flush with the form (the glyph sat off the line).
             Text(editing ? "Edit Remote Host" : "Add Remote Host").font(.system(size: 13, weight: .semibold))
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
                 GridRow {
@@ -196,7 +196,7 @@ struct AskDialog: View {
 
 extension View {
     /// A dialog's field: filled and outlined, so it reads on the glass over light and dark content (the palette's
-    /// soft capsule nearly vanished there, user, phase 29).
+    /// soft capsule nearly vanished there).
     func dialogField() -> some View {
         fieldCapsule().background(.background.opacity(0.6), in: .capsule)
             .overlay(Capsule().strokeBorder(.primary.opacity(0.2)))

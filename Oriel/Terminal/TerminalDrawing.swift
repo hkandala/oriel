@@ -4,7 +4,7 @@ import GhosttyTerminal
 import IOSurface
 
 /// What a card draws: herdr's frames once they settled at its grid, only while it is shown, and its last picture
-/// meanwhile; never a blank (phase 24, lanes A and F; phase 25, lane O).
+/// meanwhile; never a blank.
 extension PaneTerminal {
     /// The app's paste mode; no cursor until herdr's first frame says whether it shows.
     static let modes = "\u{1B}[?2004h\u{1B}[?25l"
@@ -89,10 +89,10 @@ extension PaneTerminal {
     }
 }
 
-/// The overview's snapshots (phase 28): a tile that is not live shows its terminal's last picture, at the tile's
-/// pixel size (phase 30: 360 px wide blurred on Retina, then sharpened as it turned live), so one scrolled into
+/// The overview's snapshots: a tile that is not live shows its terminal's last picture, at the tile's
+/// pixel size (360 px wide blurred on Retina, then sharpened as it turned live), so one scrolled into
 /// view shows at once, with no fade, until it is live. An IOSurface: Core Animation shows it without a copy of its
-/// own (a `CGImage` doubled the memory, phase 28 on Retina).
+/// own (a `CGImage` doubled the memory).
 extension PaneTerminal {
     /// Least recently taken first out, past 100 MB (lane P): a full-window card's is about 1.3–1.7 MB on Retina.
     static var snapshots: [PaneTerminal] = []
@@ -220,7 +220,7 @@ extension PaneSurfaceView {
     }
 
     /// Out of a miniature, no still smaller than the view's pixels (the overview's snapshot, `dropPicture`) shows
-    /// (phase 30: a card showed blurred, then sharp): the card shows its fill, and its terminal fades in when it
+    /// (a card showed blurred, then sharp): the card shows its fill, and its terminal fades in when it
     /// draws, as a first one.
     func dropSmallStill() {
         // Only a snapshot's (stretched): a full-size still of a card that grew meanwhile shows its old picture
@@ -253,7 +253,7 @@ extension PaneSurfaceView {
     /// The card leaves view: a copy of its last frame stays over the surface until it draws again. libghostty
     /// frees its swap chain while it does not draw (as Ghostty does for hidden tabs) and empties those IOSurfaces
     /// as it frees them (`kIOSurfacePurgeableEmpty`), so the layer's own picture is gone when the view is in a
-    /// window again: a blank frame on every return (CI, phase 27), and lane O's evicted stills came back empty and
+    /// window again: a blank frame on every return, and evicted stills came back empty and
     /// faded in. About 2 ms and 17 MB for a full-window card on Retina.
     func keepPicture() {
         guard still == nil, let layer, let surface = layer.contents as? IOSurface, !surface.emptied,

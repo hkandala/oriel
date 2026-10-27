@@ -221,7 +221,6 @@ struct FloatingWindow: View {
         return HStack(spacing: gap) {
             if let pane {
                 PaneInfo(pane: pane).layoutPriority(1).accessibilityIdentifier("\(id).info")
-                // User, phase 28.
                 Rectangle().fill(look.divider).frame(width: 1, height: 12)
             }
             // One line; the session's name gives way first, in its middle.
@@ -235,7 +234,7 @@ struct FloatingWindow: View {
             .accessibilityValue(page.store.title + rest)
             .accessibilityIdentifier("\(id).place")
             Spacer(minLength: 0)
-            // The title row's buttons (user, phase 27).
+            // The title row's buttons.
             IconButton(symbol: pinned ? "pin.fill" : "pin", help: "Stay on Top", accent: pinned) {
                 page.floating[floating.terminalID]?.toggle()
             }
@@ -313,7 +312,7 @@ private struct FloatReader: NSViewRepresentable {
         }
 
         /// A new floating window: 60 % of its main window's width and 75 % of its height, at least 720 × 460 pt,
-        /// centered over it (user, phases 27 and 28). AppKit keeps it on the screen.
+        /// centered over it. AppKit keeps it on the screen.
         static func frame(over main: NSWindow) -> NSRect {
             let width = max(720, main.frame.width * 0.6), height = max(460, main.frame.height * 0.75)
             let frame = NSRect(x: main.frame.midX - width / 2, y: main.frame.midY - height / 2, width: width,
@@ -375,7 +374,7 @@ extension CommandList {
             edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
             edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
         ] + Self.pane(page, tabs: false) { pane }.filter { $0.key == .closePane }.map { close in
-            // ⌘W detaches, as the red light (user, phase 29).
+            // ⌘W detaches, as the red light.
             var close = close
             close.key = .closeTab
             return close

@@ -1,6 +1,6 @@
 import XCTest
 
-/// Failure paths (phase 6): a session that stops, a pane closed in herdr, a page that closes and quit. A takeover is
+/// Failure paths: a session that stops, a pane closed in herdr, a page that closes and quit. A takeover is
 /// in TerminalTests.
 /// Streams are counted through the helper (`pgrep` on the session's `terminal session` runs).
 extension OrielUITests {

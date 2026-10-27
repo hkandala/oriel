@@ -2,7 +2,7 @@ import AppKit
 import UniformTypeIdentifiers
 import XCTest
 
-/// Oriel's About window (phase 33): the icon, name and version, and a button that opens every credit and license text,
+/// Oriel's About window: the icon, name and version, and a button that opens every credit and license text,
 /// bundled in the app.
 extension OrielUITests {
     func testAboutWindowOpensTheAcknowledgements() {

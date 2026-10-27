@@ -59,11 +59,11 @@ final class Page: Identifiable {
     /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
     var stripPage = 0.0
     /// The terminals that had the keyboard, the latest last: each tab's keyboard card is its latest, so a closed
-    /// one gives way to the card of its tab used before it (phase 27). Observed: the tab's icon stack puts it in
+    /// one gives way to the card of its tab used before it. Observed: the tab's icon stack puts it in
     /// front.
     private var usedTerminals: [String] = []
     /// The latest split's card (its stand-in, then herdr's pane) until its terminal has the keyboard, and the
-    /// terminal that had it before (phase 29). Observed: its card is lit.
+    /// terminal that had it before. Observed: its card is lit.
     var newest: (id: String, from: String?)?
     /// The tab whose terminal last got the keyboard from the app.
     @ObservationIgnored var keyboardTabID: String?
@@ -104,9 +104,9 @@ final class Page: Identifiable {
     }
 
     /// After each snapshot: a closed selected tab gives way to the tab used before it, else the one to its left,
-    /// else the new first (phase 24); a workspace's first selection, or a saved one that is gone, is herdr's
+    /// else the new first; a workspace's first selection, or a saved one that is gone, is herdr's
     /// active tab. A gone workspace falls back to herdr's focused one, and a tab this page made is selected once
-    /// it shows. herdr's tab takes its stand-in's place in the selection and the history (phase 27).
+    /// it shows. herdr's tab takes its stand-in's place in the selection and the history.
     func settle() {
         let arrived = store.ahead.arrived
         if !arrived.isEmpty {
@@ -207,7 +207,7 @@ final class Page: Identifiable {
     /// card it had; herdr's focused pane only picks it the first time a tab is shown. Later snapshots leave it
     /// alone, unless the card with the keyboard closed: then the tab's next card takes it.
     func shown(alive: Set<String>) {
-        // Only what was alive before: a split's new terminal joins the history before a snapshot has it (phase 29).
+        // Only what was alive before: a split's new terminal joins the history before a snapshot has it.
         let gone = self.alive.subtracting(alive)
         self.alive = alive
         let closed = usedTerminals.last.map(gone.contains) ?? false
@@ -311,7 +311,7 @@ final class Page: Identifiable {
 extension Page {
     /// The keyboard goes to the card next to it that way (`SplitNode.neighbor`): the one used last there, else the
     /// one sharing most of its edge. From the tree, at once: herdr's `pane.neighbor` took a round trip and picked
-    /// another (phase 29).
+    /// another.
     func moveKeyboard(_ heading: Heading) {
         let used = usedTerminals.compactMap { id in store.panes.first { $0.terminalID == id }?.id }
         guard let from = keyboardPane, let id = selectedTab?.tree?.neighbor(of: from.id, heading, used: used),

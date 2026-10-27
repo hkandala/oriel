@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 /// One session: its workspaces in the sidebar's order, each its name over a grid of its tabs. Equatable: a swipe's
-/// every move redraws the overview's scroll view, which made every tile's body again at each frame (phase 31).
+/// every move redraws the overview's scroll view, which made every tile's body again at each frame.
 struct OverviewPage: View, Equatable {
     let pages: WindowPages
     let page: Page
@@ -81,8 +81,8 @@ struct OverviewPage: View, Equatable {
 
 extension View {
     /// No hover or hit test reaches the views under it while `shielding` (a scroll, a slide, the zoom): SwiftUI
-    /// looked for the tile under the pointer at every frame (a tenth of the main thread, phase 30). Not
-    /// `allowsHitTesting`, whose change made every tile's body again, equatable or not (phase 31: 30–60 tiles,
+    /// looked for the tile under the pointer at every frame (a tenth of the main thread). Not
+    /// `allowsHitTesting`, whose change made every tile's body again, equatable or not (30–60 tiles,
     /// 20–40 ms at a swipe's start).
     func shielded(_ shielding: Bool) -> some View {
         overlay {
@@ -95,7 +95,7 @@ extension View {
 
 /// A tab as one card: its title row (icon stack, title, status; × on hover) over the miniature of its page. The
 /// selected tab of its workspace has the keyboard card's look. Equatable: the page's body runs again when its grid
-/// starts or stops scrolling, and the first event of a sideways swipe does that (phase 31: 30–70 tiles, 40 ms).
+/// starts or stops scrolling, and the first event of a sideways swipe does that (30–70 tiles, 40 ms).
 private struct Tile: View, Equatable {
     let pages: WindowPages
     let page: Page

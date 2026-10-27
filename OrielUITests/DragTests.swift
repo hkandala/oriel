@@ -1,6 +1,6 @@
 import XCTest
 
-/// Drag and drop (phase 18). Each test makes its own workspace in session one (closed after) and checks herdr.
+/// Drag and drop. Each test makes its own workspace in session one (closed after) and checks herdr.
 extension OrielUITests {
     func testDropOnACardsCenterSwapsAndOnItsEdgePlacesBeside() async throws {
         let (tabs, first) = try await newWorkspace("swap")
@@ -162,7 +162,7 @@ extension OrielUITests {
         }
     }
 
-    /// A tab dragged onto another workspace's row moves there whole (phase 29): its terminals, split tree, ratios and
+    /// A tab dragged onto another workspace's row moves there whole: its terminals, split tree, ratios and
     /// label, and the page follows it. Its own workspace's row is not a target. Then back from a collapsed sidebar:
     /// held over the workspace button, the menu opens and its row takes the drop.
     func testDraggingATabOntoAWorkspaceRowOrMenuRowMovesItWithItsLayout() async throws {
@@ -201,7 +201,7 @@ extension OrielUITests {
         element("titlebar.sidebar").click()
     }
 
-    /// A tab dragged onto New Workspace moves there whole (phase 30): the collapsed sidebar's workspace menu row (held
+    /// A tab dragged onto New Workspace moves there whole: the collapsed sidebar's workspace menu row (held
     /// over the workspace button), then the sidebar's empty space under its rows; the workspace it leaves closes with
     /// its last tab.
     func testDraggingATabOntoNewWorkspaceMovesItWithItsLayout() async throws {

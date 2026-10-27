@@ -79,7 +79,7 @@ struct OpenSession: View {
         }
     }
 
-    /// The page's last known list: shown at once, read again as the panel opens (user, phase 29).
+    /// The page's last known list: shown at once, read again as the panel opens.
     private var sessions: [Session] {
         pages.current?.store.sessions ?? []
     }

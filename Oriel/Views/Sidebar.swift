@@ -31,7 +31,7 @@ struct Sidebar: View {
         .foregroundStyle(look.chrome)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("sidebar")
-        // e2e: made when it shows, not when the overview closes (phase 30).
+        // e2e: made when it shows, not when the overview closes.
         .onAppear { Latency.shared.note("sidebar made") }
     }
 
@@ -64,7 +64,7 @@ struct Sidebar: View {
                 area: area,
             ))
             // A dot, a key, a new page or the sheet: slide there with the session spring. A swipe is there already.
-            // Under the overview at once: hidden, it drew both pages for 0.3 s after an overview swipe (phase 31).
+            // Under the overview at once: hidden, it drew both pages for 0.3 s after an overview swipe.
             .onChange(of: pages.list.map(\.id) + [pages.current?.id ?? ""], initial: true) { old, new in
                 guard let index = pages.list.firstIndex(where: { $0 === pages.current }),
                       swipe.slide != Double(index) else { return }
@@ -114,11 +114,11 @@ private struct SidebarPage: View {
         VStack(alignment: .leading, spacing: 0) {
             // The name and the sort menu's label on one baseline; the `+` has no text to align.
             HStack(alignment: agents == nil ? .center : .firstTextBaseline) {
-                // The rows' size, bold (user, phase 27); a long session name gives way in its middle.
+                // The rows' size, bold; a long session name gives way in its middle.
                 Text(store.title).truncationMode(.middle)
                     .font(.system(size: 13, weight: .bold)).foregroundStyle(.primary).lineLimit(1)
                     .accessibilityIdentifier("sidebar.header")
-                    // The `+`'s height in both views, so the name stays put by the shorter sort capsule (phase 33).
+                    // The `+`'s height in both views, so the name stays put by the shorter sort capsule.
                     .frame(height: 28)
                 Spacer()
                 if let agents {
@@ -138,7 +138,7 @@ private struct SidebarPage: View {
                         .clearsDrop(page) { plus = false }
                 }
             }
-            // The same in both views (it moved 4 pt left in the Agents view, user, phase 33).
+            // The same in both views (it moved 4 pt left in the Agents view).
             .padding(.leading, 22)
             // The `+` and the sort capsule end where the rows do: the sort label's text where the times end.
             .padding(.trailing, Sidebar.rowInsets.trailing)
@@ -195,7 +195,7 @@ private struct SidebarPage: View {
                 .scrollIndicators(.never)
                 .scrollPosition($position)
                 // The selected row and the fade's room round it (its background) into view, just enough, however
-                // it was selected (phase 31); again once laid out, for a row new in this update (a new page).
+                // it was selected; again once laid out, for a row new in this update (a new page).
                 .onChange(of: "into view \(page.selectedWorkspaceID ?? "")", initial: true) { _, id in
                     withTransaction(\.animation, nil) { position.scrollTo(id: id) }
                     Task { position.scrollTo(id: id) }
@@ -246,7 +246,7 @@ private struct SortMenu: View {
                 .frame(height: 22)
         }
         .menuStyle(.button)
-        // A small button, as the header buttons: a capsule filled on hover (user, phase 27).
+        // A small button, as the header buttons: a capsule filled on hover.
         .buttonStyle(ChromeStyle(radius: 11))
         // Whole: the session's name gives way.
         .fixedSize()
@@ -333,8 +333,8 @@ extension Sidebar {
     /// A swipe's lift, with the fingers' speed in points a second: the pages slide on from that speed to the next
     /// page that way, or to the nearest one when slow, with the session spring; the window shows that session as
     /// the slide ends. The pages are the app's own, not a scroll view's: a scroll view's paging snap took about
-    /// 0.4 s (phase 25), and a slide asked of it on a quick flick stood still until a timeout, then snapped back
-    /// while the window showed the other session (phase 28).
+    /// 0.4 s, and a slide asked of it on a quick flick stood still until a timeout, then snapped back
+    /// while the window showed the other session.
     private func lift(_ speed: Double) {
         let width = max(width - gap, 1), page = swipe.slide
         let index = Swipe.landing(page, speed: speed, count: pages.list.count)
@@ -342,7 +342,7 @@ extension Sidebar {
         let target = pages.list[index]
         Latency.shared.lifted(page * width)
         // Shown once the slide looks done, not in its long tail; first drawn at the lift, the session held the
-        // slide's first frames (phase 27).
+        // slide's first frames.
         let still = reduceMotion && !Animation.forceMotion
         slide(to: index, with: still ? nil : .session(speed: speed / width, distance: Double(index) - page)) {
             if target !== pages.current {
@@ -389,8 +389,8 @@ extension Sidebar {
 }
 
 extension Animation {
-    /// The session pages (the sidebar's, the overview's): between the tab spring and phase 25's 0.14 s, which the
-    /// user found too quick and odd (phase 27), with no bounce. A swipe's slide starts at the fingers' `speed`
+    /// The session pages (the sidebar's, the overview's): 0.2 s with no bounce (0.14 s felt too
+    /// quick and odd). A swipe's slide starts at the fingers' `speed`
     /// toward the page `distance` away (in pages a second, and pages), so it goes on from the lift.
     static func session(speed: Double = 0, distance: Double = 0) -> Animation {
         // Critically damped, it would go past the page from a relative speed over ω = 2π / response.

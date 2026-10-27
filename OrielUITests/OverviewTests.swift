@@ -1,6 +1,6 @@
 import XCTest
 
-/// The overview (phase 27, D70): every tab of the session as a live miniature, grouped by workspace.
+/// The overview (D70): every tab of the session as a live miniature, grouped by workspace.
 extension OrielUITests {
     /// ⌃⌘O hides the sidebar, the tab bar and every title-row button but one ×, and shows a tile per tab under its
     /// workspace, two a row on CI's window, with wide margins; a tab never shown draws live in its tile; × closes a
@@ -46,7 +46,7 @@ extension OrielUITests {
         tile.click()
         XCTAssertTrue(overview.vanishes(within: 2))
         XCTAssertTrue(element("sidebar").exists(within: 2))
-        // The sidebar stayed under the overview and faded in with the zoom; made after it, it came late (phase 30).
+        // The sidebar stayed under the overview and faded in with the zoom; made after it, it came late.
         XCTAssertEqual(sidebarsMade, made)
         XCTAssertTrue(element("tab.w2:t1").has(\.isSelected, true, within: 2))
         XCTAssertTrue(hasKeyboard("terminal.w2:p1"))
@@ -69,7 +69,7 @@ extension OrielUITests {
         XCTAssertTrue(element("titlebar.overview").exists(within: 2))
     }
 
-    /// A zoom into a tab the strip never showed (phase 29 item 5), then into the shown one: once the zoom ends, its
+    /// A zoom into a tab the strip never showed, then into the shown one: once the zoom ends, its
     /// card shows at once and never goes back to loading (the user saw it flicker).
     func testOverviewZoomIntoAnUnshownTabShowsItSteadily() async throws {
         relaunch(nil, ["-forceMotion", "YES", "-recordMotion", "YES"])
@@ -93,7 +93,7 @@ extension OrielUITests {
         }
     }
 
-    /// Tiles with nothing to show yet show a loader, and each tile in view gets its picture in turn (phase 30): two
+    /// Tiles with nothing to show yet show a loader, and each tile in view gets its picture in turn: two
     /// never shown tabs of 9 panes each, side by side, more than the 16 live cards together. Before, the one past the
     /// cap stayed blank as long as it was in view.
     func testOverviewLoadsEveryTileInTurn() async throws {
@@ -176,7 +176,7 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard("terminal.w1:p1"))
     }
 
-    /// What the overview costs (phase 27): lane O's workspace of 6 tabs and 12 panes, 8 of them printing, only its
+    /// What the overview costs: a workspace of 6 tabs and 12 panes, 8 of them printing, only its
     /// first tab shown. Open, the cards of the tiles it lays out stream and draw; closed, the ones only it showed let
     /// go (no visits, D46). Footprint and CPU of each step are in the result bundle.
     func testOverviewCostsAndLetsGoAfter() async throws {
@@ -225,7 +225,7 @@ extension OrielUITests {
         scrollOverview(to: element("overview.tab.\(tabs[1])"), step: 3000, steps: 1)
         XCTAssertTrue(card.exists)
         XCTAssertFalse(card.stringValue.hasPrefix("loading"), card.stringValue)
-        // Its snapshot at the tile's pixel size (phase 30): "‹live or snapshot› ‹its width in pixels›".
+        // Its snapshot at the tile's pixel size: "‹live or snapshot› ‹its width in pixels›".
         let width = Double(card.stringValue.split(separator: " ").last ?? "") ?? 0
         XCTAssertGreaterThanOrEqual(width, card.frame.width * (NSScreen.main?.backingScaleFactor ?? 1) - 2,
                                     card.stringValue)
@@ -240,7 +240,7 @@ extension OrielUITests {
     }
 
     /// The overview of 200 tabs over 8 workspaces, 272 panes, 50 of them agents and half the rest printing
-    /// (`scripts/stress.py`, phase 28): while trackpad scrolls go through it, at most 16 cards stream beside the
+    /// (`scripts/stress.py`): while trackpad scrolls go through it, at most 16 cards stream beside the
     /// strip's, the tiles that were live keep a snapshot, and the footprint stays bounded. Footprint, CPU, the frames
     /// dropped while scrolling (`app.latency`) and the main thread's profile are in the result bundle.
     func testOverviewOfManyTabsStaysBounded() async throws {
