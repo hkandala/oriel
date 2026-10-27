@@ -1,10 +1,10 @@
 import Foundation
 import HerdrKit
 
-/// What the app shows before herdr has it: a close, a new tab and a split draw at once, and the snapshots
-/// after them confirm it; a replaced pane's new pane hides until the old one is gone. A closing pane, tab or workspace
-/// is left out until a snapshot no longer has it; a new tab or
-/// a split shows an empty card under a stand-in id until a snapshot has what herdr made. A failed write takes it back.
+/// What the app shows before herdr has it: a close, a new tab and a split draw at once, and the snapshots after them
+/// confirm it; a replaced pane's new pane hides until the old one is gone. A closing pane, tab or workspace is left
+/// out until a snapshot no longer has it; a new tab or a split shows an empty card under a stand-in id until a
+/// snapshot has what herdr made. A failed write takes it back.
 struct Ahead {
     /// Panes, tabs and workspaces being closed. herdr never gives a closed id to a new one while its server runs.
     var closing: Set<String> = []
