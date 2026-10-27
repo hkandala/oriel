@@ -101,8 +101,9 @@ heading at the end.
   state and measuring in `lessons.md` (one-off finds in their phases: SwiftUI traps in 13, Release coverage
   in 31); herdr's spike facts in `multiplexers/herdr.md`, `drag-and-drop.mdx` (the `tab.move` row: another
   workspace is ignored, not refused) and `talking-to-herdr.mdx`; libghostty causes in
-  `talking-to-herdr.mdx`, `window.mdx` and phase 04; open limits as "Left" lists in phases 31 and 32; reasons for left-out features and the
-  Developer ID plan in `future-work/index.mdx`; similar marks in `resources/branding/README.md`.
+  `talking-to-herdr.mdx`, `window.mdx` and phase 04; open limits as "Left" lists in phases 31 and 32;
+  reasons for left-out features and the Developer ID plan in `future-work/index.mdx`; similar marks in
+  `resources/branding/README.md`.
 - **Fix:** phase 33's item 8 is back word for word, and lane D's Findings say the future-work designs
   returned. Stale links in phases 08, 11, 12 and 22 point at the files that hold the facts now.
 - **Decisions:** facts already on a page stay there, not repeated (the cursor shape in `settings.mdx`, the

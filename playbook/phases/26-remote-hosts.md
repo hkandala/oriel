@@ -44,3 +44,5 @@ under `MaxSessions 2`.
 - **Cause, on the way.** The relay's kill (`k`) ended only `sh`, so the observe wrapper's herdr kept streaming;
   it now kills by pid and closes stdin. Runs got their own write buffers, so a run that reads nothing never
   stalls the host.
+- **XCUITest gap.** A SwiftUI `Menu` with `.menuStyle(.button)` has an empty label in XCUITest, even with
+  `.accessibilityLabel`.

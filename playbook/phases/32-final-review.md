@@ -48,7 +48,6 @@ full suite at the end.
 
 - **For the user.** Three store files sit at the 400-line limit (split when the next change needs room);
   Close Other Tabs within a round trip of ⌘T can leave the new tab open.
-
 - **r-remote.** The sockets folder and askpass under `~/Library/Caches/oriel` are made once per launch
   (`static let`): a cache cleaner that deletes them while Oriel runs breaks remote connects until a relaunch
   (about 5 lines to make both per start). While a `dialog()` shows, the window's menu keys (⌘W, ⌘T, ⌘K)
