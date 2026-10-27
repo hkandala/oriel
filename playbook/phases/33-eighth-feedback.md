@@ -136,5 +136,9 @@ per hold, at most 10 minutes, released with a trap).
   Research: flat folders, one file per client, one plugins file. A comment pass replaced phase history in code
   comments with the why. docs 96 → 47 files, plan 60 → 39, resources 278 → 164.
 - **Runs.** The comment-only commits end at 36b7c65; lane F proves the last code commit green.
+- **Reviews.** Three reviews of 4791e5f (workflow, lean, accuracy: 3 blockers, 42 shoulds) and a re-review
+  (rv33-recheck: every item fixed but nits). Skipped nits: `clients/rex.md`'s section numbers keep their gaps
+  (renumbering breaks its § cross-references); AGENTS.md repeats the never-bend rules on purpose (it is the
+  first file an agent reads); the README keeps a short future-work list (the user asked for one).
 - **For the user.** Read README.md and `playbook/workflow.md`; `~/Downloads/oriel-inspirations/` has the
   inspirations, with the git-ignored video folders.
