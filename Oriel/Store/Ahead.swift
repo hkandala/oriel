@@ -21,6 +21,11 @@ struct Ahead {
     var fresh: Set<String> = []
     /// herdr's tabs for stand-ins closed before they came: the store closes them.
     var toClose: [String] = []
+    /// Replace Pane's old panes, each with its tab and the tab's panes when it was asked. A new pane in that tab hides
+    /// while the old one is there, so it shows in the old one's place in one snapshot, never beside it first.
+    var replacing: [String: (tabID: String, known: Set<String>)] = [:]
+    /// The panes that took replaced ones' places in the last snapshot, by old id: every page's zoom follows them.
+    var replaced: [String: String] = [:]
 
     struct NewTab {
         let id: String, workspaceID: String
@@ -74,6 +79,12 @@ struct Ahead {
         closing.formIntersection(ids)
         fresh.formIntersection(ids)
         arrived = [:]
+        let new = replacing.compactMapValues { old in
+            snapshot.panes.first { $0.tabID == old.tabID && !old.known.contains($0.id) }?.id
+        }
+        replaced = new.filter { !ids.contains($0.key) }
+        replacing = replacing.filter { ids.contains($0.key) }
+        let hidden = closing.union(new.filter { ids.contains($0.key) }.values)
         // herdr's tab for each stand-in: the first new one of its workspace.
         tabs.removeAll { standIn in !snapshot.workspaces.contains { $0.id == standIn.workspaceID } }
         for id in tabs.map(\.id) {
@@ -84,7 +95,7 @@ struct Ahead {
             }) else { continue }
             made(id, tab.id)
         }
-        var trees = snapshot.trees.compactMapValues { $0.removing(closing) }
+        var trees = snapshot.trees.compactMapValues { $0.removing(hidden) }
         if let split {
             let now = snapshot.trees[split.tabID]
             let even = now.flatMap { tree in
@@ -112,7 +123,7 @@ struct Ahead {
             !closing.contains($0.id) && (left.contains($0.id) || !had.contains($0.id))
         }
         let shownTabs = Set(tabs.map(\.id))
-        let panes = snapshot.panes.filter { !closing.contains($0.id) && shownTabs.contains($0.tabID) }
+        let panes = snapshot.panes.filter { !hidden.contains($0.id) && shownTabs.contains($0.tabID) }
         for standIn in self.tabs where !standIn.closed && workspaces.contains(where: { $0.id == standIn.workspaceID }) {
             tabs.append(Tab(id: standIn.id, workspaceID: standIn.workspaceID, label: ""))
             trees[standIn.id] = .leaf(paneID: standIn.id)
@@ -173,7 +184,7 @@ extension HostStore {
     /// What runs besides the shells in the panes, asked now, 8 at a time: a big workspace is not 30 herdr runs at once.
     /// A new pane's shell still starting runs short-lived programs (`ls`, `sort`, as after ⌘T): asked again for up to
     /// 0.8 s until only its shell runs. ponytail: a slower startup (a cold nvm) still asks, naming what it runs.
-    private func programs(_ paneIDs: [String], starting: Set<String>, _ client: any Multiplexer) async -> Set<String> {
+    func programs(_ paneIDs: [String], starting: Set<String>, _ client: any Multiplexer) async -> Set<String> {
         await withTaskGroup(of: String?.self) { group in
             var rest = paneIDs[...]
             func next() {

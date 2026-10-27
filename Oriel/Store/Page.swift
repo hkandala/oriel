@@ -138,7 +138,8 @@ final class Page: Identifiable {
         if let find, store.pane(find.paneID) == nil {
             self.find = nil
         }
-        // Gone, or alone in its tab (moved, or its neighbor closed).
+        // A replaced pane's zoom goes to its new pane. Else gone, or alone in its tab (moved, or its neighbor closed).
+        zoomReplaced()
         if let id = zoomedPaneID, alone(id) || store.pane(id)?.tabID != zoomedTabID {
             zoomedPaneID = nil
         }

@@ -1,8 +1,8 @@
 import HerdrKit
 import SwiftUI
 
-/// A close waiting for the user's yes (D41), in the window it was asked in: a floated pane's in its floating
-/// window (D50), every other in the main window.
+/// A close or a Replace Pane waiting for the user's yes (D41), in the window it was asked in: a floated pane's in
+/// its floating window (D50), every other in the main window.
 struct CloseDialog: ViewModifier {
     let page: Page
     /// The floating window's pane.
@@ -22,8 +22,14 @@ struct CloseDialog: ViewModifier {
                 page.closing = nil
             }
         }, presenting: closing) { closing in
-            Button(closing.close.button, role: .destructive) {
-                Task { await page.store.close(closing.close) }
+            Button(closing.replace ? "Replace Pane" : closing.close.button, role: .destructive) {
+                Task {
+                    if closing.replace, let id = closing.close.paneID {
+                        await page.replace(id)
+                    } else {
+                        await page.store.close(closing.close)
+                    }
+                }
             }
             .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) {}
@@ -53,7 +59,7 @@ struct CloseDialog: ViewModifier {
             return ("Close \(which)?", running + "them. Their " + them + end)
         case let .pane(id):
             let name = store.pane(id).map { $0.label ?? $0.folder ?? "terminal" } ?? id
-            return ("Close “\(name)”?", running + "it and" + end)
+            return ("\(closing.replace ? "Replace" : "Close") “\(name)”?", running + "it and" + end)
         case let .workspace(id):
             let worktrees = store.worktrees(of: id)
             let also = worktrees.isEmpty ? "" : worktrees.count == 1 ? " and its worktree’s workspace"

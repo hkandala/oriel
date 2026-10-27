@@ -378,6 +378,17 @@ extension CommandList {
             // herdr's label goes: the header shows the program again.
             act("Reset Pane Name", nil, .paneMove, symbol: "arrow.uturn.backward",
                 enabled: pane?.label != nil) { await $0.store.rename(pane: $1.id, label: "") },
+        ] + ends(page, target)
+    }
+
+    /// Replace Pane and Close Pane: last in the pane's menus, in the File menu in the menu bar.
+    private static func ends(_ page: Page?, _ target: @escaping @MainActor () -> HostStore.Pane?) -> [Command] {
+        let pane = target()
+        return [
+            // A fresh shell in the pane's place: after a change to the shell's setup.
+            Command(section: .close, title: "Replace Pane", key: .replacePane, group: .panes,
+                    symbol: "arrow.clockwise.square", keywords: "pane restart new shell respawn reset",
+                    enabled: pane != nil) { page?.replacePane(target()) },
             Command(section: .close, title: "Close Pane", key: .closePane, group: .panes, symbol: "xmark.square",
                     keywords: "pane", enabled: pane != nil || page?.standIn != nil) { page?.closePane(target()) },
         ]

@@ -373,11 +373,11 @@ extension CommandList {
             },
             edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
             edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
-        ] + Self.pane(page, tabs: false) { pane }.filter { $0.key == .closePane }.map { close in
+        ] + Self.pane(page, tabs: false) { pane }.filter { [.replacePane, .closePane].contains($0.key) }.map {
             // ⌘W detaches, as the red light.
-            var close = close
-            close.key = .closeTab
-            return close
+            var command = $0
+            command.key = command.key == .closePane ? .closeTab : command.key
+            return command
         } + sizes
     }
 }

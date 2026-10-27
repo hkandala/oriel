@@ -27,6 +27,8 @@ extension HostStore {
     struct Closing {
         let close: Close
         let running: [String]
+        /// Replace Pane's question: a new shell takes the pane's place.
+        var replace = false
     }
 
     @MainActor @Observable
