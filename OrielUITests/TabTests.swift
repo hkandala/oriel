@@ -227,8 +227,6 @@ extension OrielUITests {
         app.sheets.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", text, text)).firstMatch
     }
 
-    /// A tab's "claude needs you" stays on its session's tab: session two's w1:t1 has the same id, and its capsule
-    /// showed the other session's announcement.
     /// A row of one tab that grows to two while shown: each capsule's accessibility frame is its own, not the row's.
     func testCapsulesKeepTheirFramesWhenARowOfOneGrows() async throws {
         let row = element("workspace.w2")
@@ -244,6 +242,8 @@ extension OrielUITests {
         XCTAssertEqual(first.frame.maxX + 1, second.frame.minX, "\(first.frame) \(second.frame)")
     }
 
+    /// A tab's "claude needs you" stays on its session's tab: session two's w1:t1 has the same id, and its capsule
+    /// showed the other session's announcement.
     func testAnnouncementStaysInItsSession() async throws {
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         let created = try await Self.call(two, "tab.create", ["workspace_id": "w1", "label": "delta", "cwd": "/tmp",

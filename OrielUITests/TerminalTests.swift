@@ -120,16 +120,16 @@ extension OrielUITests {
         element("tab.w1:t1").click()
         // Back on t1, the keyboard is on p2 again, not on herdr's focused p1.
         XCTAssertTrue(hasKeyboard(terminal))
-        app.typeText("echo oriel-$((40+3))")
+        app.typeText("echo tab-keys-$((40+3))")
         app.typeKey(.return, modifierFlags: [])
-        try await waitFor("w1:p2") { $0.contains("\noriel-43") }
+        try await waitFor("w1:p2") { $0.contains("\ntab-keys-43") }
         let other = try await read("w1:p1")
-        XCTAssertFalse(other.contains("oriel-43"))
+        XCTAssertFalse(other.contains("tab-keys-43"))
 
         // Up arrow (a herdr key) brings the command back.
         app.typeKey(.upArrow, modifierFlags: [])
         app.typeKey(.return, modifierFlags: [])
-        try await waitFor("w1:p2") { $0.components(separatedBy: "\noriel-43").count == 3 }
+        try await waitFor("w1:p2") { $0.components(separatedBy: "\ntab-keys-43").count == 3 }
     }
 
     func testTakenOverCardOffersTakeBack() async throws {
