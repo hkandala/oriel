@@ -1,4 +1,5 @@
 import HerdrKit
+import Network
 import WebKit
 
 /// What a browser card takes from its machine: its pane's command in herdr, its addresses and its data store.
@@ -30,6 +31,8 @@ extension Browser {
         return ["sh", "-c", script, "sh", "Browser", label.arg]
     }
 
+    static let loopback = ["localhost", "127.0.0.1", "::1"]
+
     /// The machine's own loopback on any port, This Mac's files, and a few developer sites.
     static let safe = ["github.com", "gitlab.com", "bitbucket.org", "developer.apple.com",
                        "developer.mozilla.org", "docs.github.com", "vercel.com"]
@@ -60,5 +63,75 @@ extension Browser {
         let store = id.map { WKWebsiteDataStore(forIdentifier: $0) } ?? .nonPersistent()
         stores[machine.id] = store
         return store
+    }
+
+    /// Removing a machine removes its store and its approvals; a store a window still uses stays.
+    static func forget(_ machine: Machine) {
+        stores[machine.id] = nil
+        UserDefaults.standard.removeObject(forKey: "browserApprovals.\(machine.id)")
+        if let id = UUID(uuidString: machine.id) {
+            Task { try? await WKWebsiteDataStore.remove(forIdentifier: id) }
+        }
+    }
+
+    // MARK: Origins
+
+    func approved(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else { return url.isFileURL && store?.machine.isRemote == false }
+        return Self.loopback.contains(host) || Self.safe.contains(host)
+            || host.hasSuffix(".vercel.app") || host.hasSuffix(".netlify.app") || approvals.contains(Self.origin(url))
+    }
+
+    /// Web origins only, the newest 200.
+    func approve(_ url: URL) {
+        guard ["http", "https"].contains(url.scheme?.lowercased()), !approved(url) else { return }
+        UserDefaults.standard.set(Array((approvals + [Self.origin(url)]).suffix(200)), forKey: approvalsKey)
+    }
+
+    /// Per device, per machine.
+    private var approvalsKey: String {
+        "browserApprovals.\(store?.machine.id ?? "")"
+    }
+
+    private var approvals: [String] {
+        UserDefaults.standard.stringArray(forKey: approvalsKey) ?? []
+    }
+
+    // MARK: Remote localhost
+
+    /// The `<machine>` of `<machine>.localhost` (future-work/web-page#remote-localhost): the name in lowercase
+    /// letters, digits and dashes.
+    static func alias(_ name: String) -> String {
+        let words = name.lowercased().split { !($0.isASCII && ($0.isLetter || $0.isNumber)) }
+        return words.isEmpty ? "machine" : words.joined(separator: "-")
+    }
+
+    /// WebKit never proxies a loopback name, so a remote machine's `localhost` loads as `<machine>.localhost`, which
+    /// its proxy asks the machine for as `localhost`. nil alias: This Mac.
+    static func web(_ url: URL, _ alias: String?) -> URL {
+        guard let alias, loopback.contains(url.host?.lowercased() ?? ""),
+              var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        parts.host = "\(alias).localhost"
+        return parts.url ?? url
+    }
+
+    /// The machine's view of a page's address: `localhost` again.
+    static func shown(_ url: URL, _ alias: String?) -> URL {
+        guard let alias, url.host?.lowercased() == "\(alias).localhost",
+              var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        parts.host = "localhost"
+        return parts.url ?? url
+    }
+
+    /// The machine's proxy in its store, before the card's first load; nil when it did not start. The card gives it
+    /// back when it goes (`SSHExec.closeProxy`).
+    static func proxy(_ machine: Machine, _ store: WKWebsiteDataStore) async -> SSHExec? {
+        guard let ssh = await machine.exec() as? SSHExec, let port = try? await ssh.openProxy() else { return nil }
+        guard let endpoint = NWEndpoint.Port(rawValue: port) else {
+            await ssh.closeProxy()
+            return nil
+        }
+        store.proxyConfigurations = [ProxyConfiguration(socksv5Proxy: .hostPort(host: "127.0.0.1", port: endpoint))]
+        return ssh
     }
 }

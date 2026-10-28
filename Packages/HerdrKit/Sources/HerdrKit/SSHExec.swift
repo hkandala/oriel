@@ -27,6 +27,11 @@ public actor SSHExec: Exec {
     /// The one SSH session every run goes through (`Relay`), started by the first run on a master.
     private var relay: Relay?
     private var relayStart: Task<Relay?, Never>?
+    /// The machine's browser proxy while its cards use it (`openProxy`).
+    private var proxy: (front: SOCKSFront, users: Int)?
+    /// ssh's `-D` port and the master it is on: a new master forwards it again.
+    private var dynamic: (port: UInt16, pid: pid_t)?
+    private var forwarding: Task<UInt16, Error>?
 
     public init(target: String, local: ProcessExec) {
         self.target = target
@@ -240,18 +245,18 @@ public actor SSHExec: Exec {
 
     /// The master's pid, from "Master running (pid=123)".
     private func pid() async -> pid_t? {
-        guard let check = try? ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-S", socket, "-O", "check",
-                                                  "--", target], environment)
+        await control(["-O", "check"])?.stderr.split(separator: "pid=").last
+            .flatMap { pid_t($0.prefix { $0.isNumber }) }
+    }
+
+    /// An `ssh -O` command to the master; nil when it did not answer within 5 s (a master stopped with SIGSTOP never
+    /// does).
+    private func control(_ command: [String]) async -> (status: Int32, stderr: String)? {
+        guard let channel = try? ProcessExec.spawn(["/usr/bin/ssh", "-F", "/dev/null", "-S", socket] + command
+            + ["--", target], environment)
         else { return nil }
-        check.closeInput()
-        // A master that is stopped (SIGSTOP) never answers.
-        guard let reply = try? await withTimeout(
-            .seconds(5),
-            onTimeout: check.terminate,
-            { await check.exit().stderr },
-        )
-        else { return nil }
-        return reply.split(separator: "pid=").last.flatMap { pid_t($0.prefix { $0.isNumber }) }
+        channel.closeInput()
+        return try? await withTimeout(.seconds(5), onTimeout: channel.terminate) { await channel.exit() }
     }
 
     /// The last absolute path the login shell prints after our marker (an rc file may print first).
@@ -303,4 +308,80 @@ extension SSHExec {
                                        attributes: [.posixPermissions: 0o700])
         return path
     }()
+}
+
+/// The browser's proxy.
+extension SSHExec {
+    /// The local port of the machine's SOCKS proxy for its browser cards (future-work/web-page#remote-localhost),
+    /// started by the first card; each call is balanced by a `closeProxy`. The proxy forwards through ssh's `-D` on
+    /// the master, started with the first page connection and again on each new master. No password prompt: a
+    /// machine that needs one fails the page until Connect.
+    public func openProxy() async throws -> UInt16 {
+        if proxy == nil {
+            let front = try await SOCKSFront.start { [weak self] in
+                guard let self else { throw HerdrError.disconnected("Closed") }
+                return try await dynamicPort()
+            }
+            // Another card's start may have won meanwhile.
+            if proxy == nil {
+                proxy = (front, 0)
+            } else {
+                front.stop()
+            }
+        }
+        proxy?.users += 1
+        return proxy?.front.port ?? 0
+    }
+
+    /// The machine's last browser card went: the proxy and ssh's `-D` end.
+    public func closeProxy() async {
+        guard let proxy else { return }
+        guard proxy.users <= 1 else {
+            self.proxy?.users -= 1
+            return
+        }
+        self.proxy = nil
+        proxy.front.stop()
+        await cancelForward()
+    }
+
+    private func cancelForward() async {
+        guard let dynamic, dynamic.pid == connection else { return }
+        self.dynamic = nil
+        _ = await control(["-O", "cancel", "-D", "127.0.0.1:\(dynamic.port)"])
+    }
+
+    /// ssh's `-D` port on the live master, forwarded once per master (one at a time).
+    private func dynamicPort() async throws -> UInt16 {
+        try await up(nil)
+        if let dynamic, dynamic.pid == connection {
+            return dynamic.port
+        }
+        if let forwarding {
+            return try await forwarding.value
+        }
+        let task = Task { try await forward() }
+        forwarding = task
+        defer {
+            if forwarding == task {
+                forwarding = nil
+            }
+        }
+        return try await task.value
+    }
+
+    /// A port ssh found taken meanwhile is tried again with another.
+    private func forward() async throws -> UInt16 {
+        for _ in 0 ..< 3 {
+            guard let pid = connection, let port = SOCKSFront.freePort() else { break }
+            guard await control(["-O", "forward", "-D", "127.0.0.1:\(port)"])?.status == 0 else { continue }
+            dynamic = (port, pid)
+            // The last card went while ssh forwarded.
+            if proxy == nil {
+                await cancelForward()
+            }
+            return port
+        }
+        throw HerdrError.failed("ssh did not forward a port to \(target)")
+    }
 }

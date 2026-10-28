@@ -205,7 +205,14 @@ struct BrowserToolbar: View {
                         .onTapGesture { editing = true }
                 }
             }
-            .padding(.horizontal, 10)
+            // A remote machine's name: its `localhost` is that machine's.
+            .safeAreaInset(edge: .trailing, spacing: 4) {
+                if browser.alias != nil {
+                    machine.accessibilityIdentifier("\(id).machine")
+                }
+            }
+            .padding(.leading, 10)
+            .padding(.trailing, browser.alias == nil ? 10 : 4)
             .frame(minWidth: 120, maxWidth: .infinity, minHeight: 26, maxHeight: 26)
             .background(Capsule().fill(.primary.opacity(0.06)))
             .overlay {
@@ -240,6 +247,13 @@ struct BrowserToolbar: View {
                 // On the next turn: a first responder set during an update is undone.
                 DispatchQueue.main.async { editing = true }
             }
+    }
+
+    private var machine: some View {
+        Text(page.store.machine.name).font(.system(size: 11)).foregroundStyle(look.needsYou).lineLimit(1)
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(Capsule().fill(look.needsYou.opacity(0.18)))
+            .fixedSize()
     }
 
     /// "localhost:3000" in full, "/dashboard" at half.

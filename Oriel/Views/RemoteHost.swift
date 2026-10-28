@@ -42,6 +42,7 @@ struct HostDialog: View {
                 if editing {
                     Button("Remove", role: .destructive) {
                         MachineList.shared.list.removeAll { $0.id == draft.id }
+                        Browser.forget(draft)
                         pages.hostDialog = nil
                     }
                     .buttonStyle(.glass)

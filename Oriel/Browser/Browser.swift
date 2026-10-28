@@ -41,20 +41,29 @@ final class Browser: NSObject {
     @ObservationIgnored private var reloaded = false
     @ObservationIgnored private var watches: [NSKeyValueObservation] = []
     @ObservationIgnored private var saving: Task<Void, Never>?
+    /// A remote machine's `<machine>` in `<machine>.localhost`, and its proxy, which every load waits for.
+    @ObservationIgnored let alias: String?
+    @ObservationIgnored private var proxy: Task<SSHExec?, Never>?
 
     init(terminalID: String, paneID: String, label: PaneLabel, store: HostStore) {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
         self.store = store
+        let machine = store.machine
+        alias = machine.isRemote ? Self.alias(machine.name) : nil
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = Self.dataStore(store.machine)
+        let data = Self.dataStore(machine)
+        configuration.websiteDataStore = data
         // Sites that sniff for Safari work.
         configuration.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15"
         // `_inspector show` opens nothing without it (checked).
         configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
         view = BrowserView(frame: .zero, configuration: configuration)
         super.init()
+        if machine.isRemote {
+            proxy = Task { await Self.proxy(machine, data) }
+        }
         view.isInspectable = true
         view.allowsBackForwardNavigationGestures = true
         view.navigationDelegate = self
@@ -82,8 +91,8 @@ final class Browser: NSObject {
                 },
             view.observe(\.url) { [weak self] view, _ in
                 MainActor.assumeIsolated {
-                    if let url = view.url?.absoluteString, url != "about:blank" {
-                        self?.address = url
+                    if let self, let url = view.url, url.absoluteString != "about:blank" {
+                        self.address = Self.shown(url, self.alias).absoluteString
                     }
                 }
             },
@@ -150,7 +159,7 @@ final class Browser: NSObject {
     private func restore(_ url: URL) {
         if let history {
             self.history = nil
-            view.interactionState = history
+            proxied { self.view.interactionState = history }
         } else {
             load(url)
         }
@@ -169,7 +178,21 @@ final class Browser: NSObject {
         if url.isFileURL {
             view.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
         } else {
-            view.load(URLRequest(url: url))
+            proxied { self.view.load(URLRequest(url: Self.web(url, self.alias))) }
+        }
+    }
+
+    /// At once on This Mac; on a remote machine once its proxy is in the store, never without it:
+    /// `<machine>.localhost` would reach This Mac.
+    private func proxied(_ load: @escaping () -> Void) {
+        guard let proxy else { return load() }
+        Task {
+            guard await proxy.value != nil else {
+                failure = ("Oriel could not start the proxy to \(store?.machine.name ?? "")", nil)
+                ready = true
+                return
+            }
+            load()
         }
     }
 
@@ -209,41 +232,20 @@ final class Browser: NSObject {
     /// A save still pending would bring back the state file a close removed.
     isolated deinit {
         saving?.cancel()
+        if let proxy {
+            Task { await proxy.value?.closeProxy() }
+        }
     }
 
     func closePopup() {
         popup = nil
     }
 
-    // MARK: Origins
-
-    private func approved(_ url: URL) -> Bool {
-        let local = store?.machine.isRemote == false
-        guard let host = url.host?.lowercased() else { return url.isFileURL && local }
-        // ponytail: a remote machine's loopback is This Mac's until phase 37's proxy; then the machine's own.
-        return ["localhost", "127.0.0.1", "::1"].contains(host) && local || Self.safe.contains(host)
-            || host.hasSuffix(".vercel.app") || host.hasSuffix(".netlify.app") || approvals.contains(Self.origin(url))
-    }
-
-    /// Web origins only, the newest 200.
-    private func approve(_ url: URL) {
-        guard ["http", "https"].contains(url.scheme?.lowercased()), !approved(url) else { return }
-        UserDefaults.standard.set(Array((approvals + [Self.origin(url)]).suffix(200)), forKey: approvalsKey)
-    }
-
-    /// Per device, per machine.
-    private var approvalsKey: String {
-        "browserApprovals.\(store?.machine.id ?? "")"
-    }
-
-    private var approvals: [String] {
-        UserDefaults.standard.stringArray(forKey: approvalsKey) ?? []
-    }
-
     /// The address after a navigation, on the pane's machine, 500 ms after the last one; last writer wins.
     /// The back and forward list too, while it is under 128 KiB (the state file holds at most 256 KiB).
     private func save() {
-        guard let store, let url = view.url?.absoluteString, url != "about:blank" else { return }
+        guard let store, let url = view.url.map({ Self.shown($0, alias).absoluteString }), url != "about:blank"
+        else { return }
         var state = ["url": url]
         if let history = view.interactionState as? Data, history.count < 128 << 10 {
             state["history"] = history.base64EncodedString()
@@ -268,7 +270,7 @@ extension Browser: WKNavigationDelegate {
         ready = true
         reloaded = false
         if let url = webView.url {
-            approve(url)
+            approve(Self.shown(url, alias))
         }
         save()
     }
@@ -287,13 +289,24 @@ extension Browser: WKNavigationDelegate {
         // A load replaced by another, or a download.
         guard error.code != NSURLErrorCancelled,
               error.domain != "WebKitErrorDomain" || error.code != 102 else { return }
-        let url = (error.userInfo[NSURLErrorFailingURLErrorKey] as? URL) ?? URL(string: address)
+        let url = (error.userInfo[NSURLErrorFailingURLErrorKey] as? URL).map { Self.shown($0, alias) }
+            ?? URL(string: address)
         let place = url.map { [$0.host, $0.port.map(String.init)].compactMap(\.self).joined(separator: ":") } ?? ""
-        let local = url?.host.map { ["localhost", "127.0.0.1", "::1"].contains($0) } ?? false
-        failure = switch error.code {
-        case NSURLErrorCannotConnectToHost where local: ("Nothing answers on \(place)", "Is the dev server running?")
-        case NSURLErrorCannotFindHost: ("Cannot find \(place)", nil)
-        default: (error.localizedDescription, nil)
+        let local = url?.host.map { Self.loopback.contains($0) } ?? false
+        // The proxy refuses a port that does not answer and a name the machine cannot reach; WebKit reports either
+        // code for it (checked).
+        let machine = alias == nil ? nil : store?.machine.name
+        let refused = error.code == NSURLErrorCannotConnectToHost || machine != nil && error.code == NSURLErrorBadURL
+        failure = if refused, let machine, store?.state != .live {
+            ("\(machine) is not connected", nil)
+        } else if refused, local {
+            ("Nothing answers on \(place)" + (machine.map { " on \($0)" } ?? ""), "Is the dev server running?")
+        } else if refused, let machine {
+            ("\(machine) cannot reach \(place)", nil)
+        } else if error.code == NSURLErrorCannotFindHost {
+            ("Cannot find \(place)", nil)
+        } else {
+            (error.localizedDescription, nil)
         }
     }
 
@@ -305,6 +318,13 @@ extension Browser: WKNavigationDelegate {
 
     /// A `mailto:` or an app's link clicked in the page goes to its app; the page stays. Never from script or a frame.
     func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
+        // A remote page's link or redirect to `localhost` means its machine's.
+        if alias != nil, action.targetFrame?.isMainFrame == true, let url = action.request.url,
+           Self.loopback.contains(url.host?.lowercased() ?? "")
+        {
+            load(url)
+            return .cancel
+        }
         guard let url = action.request.url,
               !["http", "https", "file", "about", "blob", "data"].contains(url.scheme?.lowercased() ?? "")
         else { return .allow }
