@@ -159,7 +159,7 @@ extension HostStore {
             while clock.now - begun < .seconds(10), choosers.contains(where: { $0 === chooser }) {
                 if let client, let id = chooser.paneID {
                     guard let since = sent else {
-                        let line = ChatAdapters.launch(agent.command)
+                        let line = await ChatAdapters.launch(agent.command, on: machine.exec())
                         guard await (try? client.sendInput(line, keys: ["enter"], pane: id)) != nil else {
                             return
                         }

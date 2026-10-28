@@ -9,6 +9,9 @@ protocol ChatAdapter: Sendable {
     static var command: String { get }
     /// What the chooser adds to the command for a new launch, with `token` (a fresh lowercase UUID) as its marker.
     static func flags(_ token: String) -> String
+    /// The whole launch line, after writing what it needs on the pane's machine; nil: the agent starts without
+    /// Oriel's flags (no chat). The command and its flags by default.
+    static func prepare(_ token: String, on exec: any Exec) async -> String?
     /// The adapter of the launch whose marker is in the pane's foreground processes (`pane.process_info`), else nil.
     init?(_ foreground: [Program.Foreground])
     /// The launch's marker: a new launch in the same pane is a new chat.
@@ -26,6 +29,10 @@ extension ChatAdapter {
     /// As the chat names it ("Reply to Claude Code"): the chooser's name.
     var name: String {
         Chooser.agents.first { $0.command == Self.command }?.name ?? Self.command
+    }
+
+    static func prepare(_ token: String, on _: any Exec) async -> String? {
+        command + " " + flags(token)
     }
 
     func answer(_: ChatQuestion, _: [String: String], on _: any Exec) async {}
@@ -56,10 +63,10 @@ extension Chat {
 enum ChatAdapters {
     static let all: [any ChatAdapter.Type] = [ClaudeCode.self, Codex.self]
 
-    /// The line the chooser types for an agent: its command with Oriel's flags when it has a chat.
-    static func launch(_ command: String) -> String {
+    /// The line the chooser types for an agent: its adapter's launch line when it has a chat, else its command.
+    static func launch(_ command: String, on exec: any Exec) async -> String {
         guard let adapter = all.first(where: { $0.command == command }) else { return command }
-        return command + " " + adapter.flags(UUID().uuidString.lowercased())
+        return await adapter.prepare(UUID().uuidString.lowercased(), on: exec) ?? command
     }
 
     static func recognize(_ program: Program?) -> (any ChatAdapter)? {
