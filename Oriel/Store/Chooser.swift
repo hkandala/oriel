@@ -15,7 +15,7 @@ final class Chooser {
 
     static let agents = [
         Agent(name: "Claude Code", command: "claude"), Agent(name: "Codex", command: "codex"),
-        Agent(name: "pi", command: "pi"), Agent(name: "opencode", command: "opencode"),
+        Agent(name: "Pi", command: "pi"), Agent(name: "OpenCode", command: "opencode"),
     ]
 
     /// A row of the list: `start` is an agent's, by its place in `agents`.
