@@ -43,6 +43,20 @@ e2e: open a browser from the chooser and the palette on a local test page (a fil
 starts), navigate, relaunch and see the same address, restart the herdr session and see it again, the
 herdr label and placeholder text, Web Inspector opens a window.
 
+## Track B: the user's first try (items 7–14)
+
+Captures: `scrawl-1793181414481-118c7.scrawl` and `scrawl-1793181638672-118c7-3.scrawl` in
+`~/Library/Application Support/scrawl/captures/`.
+
+7. Clicking the address field does not start editing (⌘L does).
+8. One color for every toolbar and card button (the dimmed one), disabled ones dimmer still.
+9. Floating a browser pane selects the page's text, every time.
+10. Web Inspector opens docked at the bottom of the card by default; its own control detaches it to a window.
+11. The state keeps the page's back and forward history too, so it survives a relaunch.
+12. An empty browser card turns white when clicked; it must stay the card's color.
+13. An empty browser card shows a placeholder icon.
+14. ⌘R reloads a browser card; Replace Pane moves to ⇧⌘R everywhere.
+
 ## Findings
 
 ### Track A
