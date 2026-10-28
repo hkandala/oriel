@@ -7,8 +7,8 @@ The design in `docs/content/docs/` wins on any conflict about what the app does.
 
 | Job | How |
 |---|---|
-| Tiny (a color, a wording, a one-liner) | One agent in a worktree. Change it, with its line in the design pages in the same commit. `make lint build test`, push to main, report. No new test, no review. The user tests it by hand. |
-| Small fix (a bug) | As Tiny, plus a test that fails on the old code when one is cheap to write, and the root cause in the commit message. A review only when the change is risky (concurrency, data loss, more than one area). |
+| Tiny (a color, a wording, a one-liner) | One agent in a worktree. Change it, and its line in the design pages if it has one, in the same commit. `make lint build test`, push to main, report. No new test, no review. The user tests it by hand. |
+| Small fix (a bug) | As Tiny, pushed straight to main, plus a test that fails on the old code when one is cheap to write, and the root cause in the commit message. A review only when the change is risky (concurrency, data loss, more than one area). |
 | Feature (one track) | One agent on its local branch, committing locally. One code review, then fixes, then the merge. No push before the review. |
 | Project (several tracks) | [The whole run](#a-project): a plan, tracks in parallel, a review per track, merges one by one, a docs pass, one final review, fixes, the full UI suite, the report. |
 
@@ -119,7 +119,7 @@ drives the GUI at a time ([more slots in VMs](ci.md#more-gui-slots-not-set-up)):
 
 ### CI
 
-- A push to main runs only the checks (about 5 minutes). Nobody waits on it. The orchestrator watches it
+- A push to main runs only the checks (about 3 minutes). Nobody waits on it. The orchestrator watches it
   and sends a red one to the agent of the commit that broke it.
 - The full UI suite runs only when the orchestrator dispatches it: once after a feature merges, or once
   after the final review's fixes merge. The orchestrator sends each failing test to the track that owns it.
