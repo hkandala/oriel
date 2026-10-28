@@ -27,8 +27,11 @@ public enum CodexRollout {
         case ("event_msg", "turn_aborted"):
             history.append(ChatEntry(id: turn + ".end", .note("Interrupted", failed: false), time: time))
         case ("event_msg", "error"):
-            history.append(ChatEntry(id: turn + ".error", .note(payload["message"] as? String ?? "Error", failed: true),
-                                     time: time))
+            history.append(ChatEntry(
+                id: UUID().uuidString,
+                .note(payload["message"] as? String ?? "Error", failed: true),
+                time: time,
+            ))
         default: break
         }
         return true
@@ -47,7 +50,9 @@ public enum CodexRollout {
         case "CommandExecution": command(item, id: id, time: time, into: &history)
         case "FileChange":
             for (path, change) in (item["changes"] as? [String: Any] ?? [:]).sorted(by: { $0.key < $1.key }) {
-                edit(path, change as? [String: Any] ?? [:], id: "\(id).\(path)", time: time, into: &history)
+                // The item's status, declined or failed, is each file's.
+                let change = (change as? [String: Any] ?? [:]).merging(["status": item["status"] ?? ""]) { $1 }
+                edit(path, change, id: "\(id).\(path)", time: time, into: &history)
             }
         case "McpToolCall": mcp(item, id: id, time: time, into: &history)
         default: break
@@ -67,15 +72,17 @@ public enum CodexRollout {
 
     /// The script of `[shell, -lc, script]`; a read as the file it read.
     private static func command(_ item: [String: Any], id: String, time: Date?, into history: inout ChatHistory) {
-        let parsed = item["parsed_cmd"] as? [[String: Any]] ?? [], script = (item["command"] as? [String])?.last ?? ""
+        let parsed = item["parsed_cmd"] as? [[String: Any]] ?? [], argv = item["command"] as? [String] ?? []
+        let script = argv.count == 3 && argv[1] == "-lc" ? argv[2] : argv.joined(separator: " ")
         let path = parsed.count == 1 && parsed[0]["type"] as? String == "read" ? parsed[0]["path"] as? String : nil
         let duration = item["duration"] as? [String: Any]
         let seconds = (duration?["secs"] as? Double ?? 0) + (duration?["nanos"] as? Double ?? 0) / 1e9
         var tool = ChatTool(id: id, name: path == nil ? "bash" : "read", category: path == nil ? .command : .read,
                             target: path ?? ChatHistory.firstLine(script), started: time?.addingTimeInterval(-seconds))
-        let exit = item["exit_code"] as? Int ?? 0
-        tool.failed = exit != 0 || item["status"] as? String == "failed"
-        tool.result = tool.failed ? "exit \(exit)" : ChatHistory.firstLine(item["aggregated_output"])
+        let exit = item["exit_code"] as? Int, status = item["status"] as? String
+        tool.failed = exit.map { $0 != 0 } ?? false || ["failed", "declined"].contains(status)
+        tool.result = !tool.failed ? ChatHistory.firstLine(item["aggregated_output"])
+            : exit.map { "exit \($0)" } ?? status ?? "failed"
         tool.ended = time
         history.append(ChatEntry(id: id, .tool(tool), time: time))
     }
@@ -106,7 +113,9 @@ public enum CodexRollout {
         }
         var tool = ChatTool(id: id, name: "edit", category: .edit, target: path, started: time)
         let added = diff.count { $0.mark == "+" }, removed = diff.count { $0.mark == "-" }
-        tool.result = change["type"] as? String == "delete" ? "deleted"
+        let status = change["status"] as? String ?? ""
+        tool.failed = ["failed", "declined"].contains(status)
+        tool.result = tool.failed ? status : change["type"] as? String == "delete" ? "deleted"
             : [added > 0 ? "+\(added)" : "", removed > 0 ? "-\(removed)" : ""].filter { !$0.isEmpty }
             .joined(separator: " ")
         tool.diff = diff
@@ -115,14 +124,12 @@ public enum CodexRollout {
     }
 
     /// Codex's input box (`› …`) directly above its status row (`<model> <effort> · <folder>`), among the screen's
-    /// last rows: no picker, dialog or question is open. A picker's selected row is `› 1. …`, its footer
-    /// `enter select · esc back`.
+    /// last rows: no picker, dialog or question is open. A picker's selected row is `› 1. …`.
     public static func ready(_ screen: String) -> Bool {
         let rows = screen.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             .suffix(4)
         return zip(rows, rows.dropFirst()).contains { box, status in
-            box.hasPrefix("› ") && box.dropFirst(2).firstMatch(of: /^\d+\./) == nil
-                && status.contains(" · ") && !status.hasPrefix("enter ") && status.firstMatch(of: /^\d+\./) == nil
+            box.hasPrefix("› ") && box.dropFirst(2).firstMatch(of: /^\d+\./) == nil && status.contains(" · ")
         }
     }
 

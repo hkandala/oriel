@@ -38,7 +38,8 @@ Design: [Chat view](../../docs/content/docs/future-work/chat-view.mdx) and
   file they read; edits show the full path (an item has no session folder to shorten it against).
 - **Not built (deviations):** forks show only their own lines (no parent history up to
   `forked_from_ordinal_exclusive`); subagent rows and images are skipped; Codex starts its session at the first
-  prompt, so a new chat is empty, with no "no session" problem, until the first message.
+  prompt, so a new chat is empty until the first message; "Codex has not started a session" shows only when a message
+  goes unconfirmed with no session (the hook did not run: a trust hash Codex no longer takes).
 - **Shared changes:** the history follower moved from `ClaudeCode` to `Chat.follow(history:on:read:)`, and the UI
   tests' `startChat(agent:)` starts `scripts/<command>-stand-in.py` by its place in the chooser (both taken by the pi
   track too).

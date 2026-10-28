@@ -72,3 +72,18 @@ private func history() throws -> ChatHistory {
     // Codex 0.163 ran this hook from `-c hooks.state` with no "Hooks need review" picker.
     #expect(CodexRollout.trust(command) == "sha256:8573ebd0ca560392787a8597d28edaed82f341be511519f80ceb5a91d429795a")
 }
+
+@Test func `declined and killed calls are failures, not successes`() {
+    var history = ChatHistory()
+    let items = [
+        #"{"type":"CommandExecution","id":"a","command":["rm","-rf","g1"],"status":"declined"}"#,
+        #"{"type":"CommandExecution","id":"b","command":["/bin/zsh","-lc","sleep 9"],"status":"failed"}"#,
+        #"{"type":"FileChange","id":"c","status":"declined","changes":{"/t/n.txt":{"type":"add","content":"x\n"}}}"#,
+    ]
+    for item in items {
+        CodexRollout.read(#"{"type":"event_msg","payload":{"type":"item_completed","item":\#(item)}}"#, into: &history)
+    }
+    #expect(history.entries.compactMap(\.tool).map { "\($0.target) \($0.result ?? "") \($0.failed)" } == [
+        "rm -rf g1 declined true", "sleep 9 failed true", "/t/n.txt declined true",
+    ])
+}

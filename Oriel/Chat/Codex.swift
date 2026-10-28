@@ -15,8 +15,9 @@ struct Codex: ChatAdapter {
     /// untouched for 30 days go.
     /// ponytail: `$HOME` unquoted, so a home folder with a space gets no chat, as with Claude Code.
     static func hook(_ token: String) -> String {
-        let folder = "$HOME/.cache/oriel/chat/\(token)", file = "$HOME/.cache/oriel/chat/\(token)/hooks.jsonl"
-        return "umask 077;mkdir -p \(folder);cat>>\(file);echo>>\(file);"
+        // `awk 1`: the line and its newline in one write, so two hooks at once never share a line.
+        let folder = "$HOME/.cache/oriel/chat/\(token)"
+        return "umask 077;mkdir -p \(folder);awk 1 >>\(folder)/hooks.jsonl;"
             + "find $HOME/.cache/oriel/chat -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf {} +"
     }
 
@@ -41,10 +42,13 @@ struct Codex: ChatAdapter {
         self.token = token
     }
 
+    /// Ends when the side file's stream does (a lost connection), so the core follows again.
     @MainActor func follow(_ chat: Chat, on exec: any Exec) async {
-        await withDiscardingTaskGroup { group in
+        await withTaskGroup { group in
             group.addTask { await sessions(chat, exec) }
             group.addTask { await screens(chat) }
+            await group.next()
+            group.cancelAll()
         }
     }
 
@@ -70,15 +74,20 @@ struct Codex: ChatAdapter {
                   let source = object["transcript_path"] as? String, source != chat.source else { continue }
             chat.source = source
             chat.history = ChatHistory()
+            chat.problem = nil
+            // A resumed session's file again: from its start, not from where the chat left it.
+            chat.marks[source] = nil
             follow(source)
         }
     }
 
     /// herdr reports a picker or a dialog as idle: while it says idle or working, a screen whose last rows lack the
     /// input box above the status row waits too (two reads in a row, not a redraw), so the live terminal shows and
-    /// nothing is sent into the picker. The last rows, not the visible ones: the user may have scrolled the pane.
+    /// nothing is sent into the picker. The last rows, not the visible ones: the user may have scrolled the pane. The
+    /// first read alone decides: the chat shown again on an open picker. A message not sent with no session yet: the
+    /// hook did not run (a trust hash Codex no longer takes, hooks turned off).
     @MainActor private func screens(_ chat: Chat) async {
-        var misses = 0
+        var misses = 1
         while !Task.isCancelled {
             var ready = true
             if let state = chat.store?.pane(chat.paneID)?.state, state != .needsYou, let client = chat.store?.client,
@@ -87,6 +96,9 @@ struct Codex: ChatAdapter {
                 ready = CodexRollout.ready(screen)
             }
             misses = ready ? 0 : misses + 1
+            if chat.source == nil, chat.problem == nil, chat.outgoing.contains(where: \.notSent) {
+                chat.problem = "Codex has not started a session"
+            }
             let recorded: Chat.Phase? = misses >= 2 ? .waiting : nil
             // Only a change: Observation reports equal writes too.
             if !Task.isCancelled, chat.recorded != recorded {

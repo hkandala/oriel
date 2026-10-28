@@ -4,8 +4,8 @@ import XCTest
 /// Oriel's flags: it checks the hook's trust hash as Codex does, runs the hook at the first prompt, writes a rollout in
 /// Codex's format, reports its state to herdr and draws Codex's input box above its status row.
 extension OrielUITests {
-    /// Sends, stops, the live terminal for a picker herdr calls idle and for an approval, and the chat again after a
-    /// relaunch, on This Mac.
+    /// Sends, stops, the live terminal for a picker herdr calls idle and for an approval, the chat again after a
+    /// relaunch, and a new session, on This Mac.
     func testACodexChatSendsStopsAndShowsTheTerminalWhileItWaits() async throws {
         let (tab, pane) = try await startChat(agent: 1)
         try await say("hello", in: pane)
@@ -44,6 +44,11 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
         element("tab.\(tab)").click()
         XCTAssertTrue(row(pane, "reply", "Allowed.").exists(within: 10))
+
+        // A new session (`/new`, then a message): its rollout is the history, and the old rows go.
+        try await say("new", in: pane)
+        XCTAssertTrue(row(pane, "reply", "Echo: **new**").exists(within: 5))
+        XCTAssertFalse(row(pane, "reply", "Allowed.").exists)
     }
 
     /// The same chat on a remote machine: the hook, the rollout and the screen over the relay.

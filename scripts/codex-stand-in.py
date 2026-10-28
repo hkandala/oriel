@@ -5,7 +5,8 @@ Started by the chooser with Oriel's flags (`-c hooks.SessionStart=… -c hooks.s
 hash as Codex does (else it shows Codex's "Hooks need review" picker and runs no hook), runs the hook at the first
 prompt, writes a rollout in Codex's format, reports its state to herdr and draws Codex's input box above its status
 row. Prompts: "wait" shows an approval until 1 is typed, "model" opens a picker (herdr still says idle) until Esc,
-"slow" works until Esc, anything else gets one command and the reply "Echo: <prompt>".
+"slow" works until Esc, "new" starts a new session (as `/new` and a prompt do), anything else gets one command and
+the reply "Echo: <prompt>".
 """
 import hashlib
 import json
@@ -42,8 +43,7 @@ identity = {"event_name": "session_start",
 trusts = trusted == "sha256:" + hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(",", ":"))
                                                .encode()).hexdigest()
 token = re.search(r"/\.cache/oriel/chat/([0-9a-f-]{36})/", hook).group(1)
-thread = str(uuid.uuid4())
-rollout = os.path.join(folder, "rollout-" + thread + ".jsonl")
+rollouts = []
 
 
 def report(state):
@@ -54,7 +54,7 @@ def report(state):
 
 def write(kind, **payload):
     line = {"timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime()), "type": kind, "payload": payload}
-    with open(rollout, "a") as file:
+    with open(rollouts[-1], "a") as file:
         file.write(json.dumps(line) + "\n")
 
 
@@ -80,10 +80,12 @@ def key(timeout=None):
 
 
 def prompt(text, started):
-    if not os.path.exists(rollout):
+    if not rollouts or text == "new":
         # Codex starts its session at the first prompt, and a hidden thread with no rollout.
+        thread = str(uuid.uuid4())
+        rollouts.append(os.path.join(folder, "rollout-" + thread + ".jsonl"))
         write("session_meta", id=thread, source="cli", cli_version="0.163.0", cwd=os.getcwd())
-        for path in [rollout, None]:
+        for path in [rollouts[-1], None]:
             subprocess.run([os.environ.get("SHELL", "/bin/sh"), "-lc", hook], capture_output=True, input=json.dumps(
                 {"session_id": thread, "transcript_path": path, "cwd": os.getcwd(), "hook_event_name": "SessionStart",
                  "model": "stand-in", "source": "startup"}), text=True)
@@ -157,7 +159,7 @@ def main():
         # What it and its hook wrote goes with it; first, as a hung-up terminal takes no settings. A second hang-up
         # would stop it halfway.
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
-        if os.path.exists(rollout):
+        for rollout in rollouts:
             os.remove(rollout)
         shutil.rmtree(os.path.expanduser("~/.cache/oriel/chat/" + token), ignore_errors=True)
         termios.tcsetattr(0, termios.TCSADRAIN, attributes)
