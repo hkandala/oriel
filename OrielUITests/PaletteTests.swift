@@ -306,13 +306,6 @@ extension OrielUITests {
         XCTAssertEqual(entry.menuItems.firstMatch.title, "New Tab")
         keepScreenshot("move pane to tab")
         entry.menuItems["target"].click()
-        // Once more when the click was lost to a menu rebuilt under it (on CI; `pick`).
-        if entry.exists, entry.isHittable {
-            app.typeKey(.escape, modifierFlags: [])
-            app.typeKey(.escape, modifierFlags: [])
-            paneMenu(pane, "Move Pane to Tab")
-            app.windows.firstMatch.menuItems["Move Pane to Tab"].menuItems["target"].click()
-        }
         try await expect("the pane right of the last card") { try await order(target) == [first, last, pane] }
         // Drawn there too before the click: herdr's order comes first, and a click on the card's earlier frame went to
         // the last card (on CI).

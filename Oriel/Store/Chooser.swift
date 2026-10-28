@@ -108,10 +108,17 @@ extension HostStore {
         choosers.removeAll { $0 === chooser }
     }
 
-    /// The closed terminals' choosers and chats (a chat holds its whole history).
+    /// The closed terminals' choosers and chats (a chat holds its whole history). Written only when one went: it runs
+    /// at every snapshot, and Observation notifies on a write that changes nothing, which made the open menu bar
+    /// rebuild under the pointer (its tab titles read `choosers`) and lose a click.
     func drop(closed: Set<String>) {
-        choosers.removeAll { $0.terminalID.map(closed.contains) == true }
-        chats = chats.filter { !closed.contains($0.key) }
+        guard !closed.isEmpty else { return }
+        if choosers.contains(where: { $0.terminalID.map(closed.contains) == true }) {
+            choosers.removeAll { $0.terminalID.map(closed.contains) == true }
+        }
+        if chats.keys.contains(where: closed.contains) {
+            chats = chats.filter { !closed.contains($0.key) }
+        }
     }
 
     /// ↑ ↓ move through the rows and stop at the ends, Return picks at once, → opens Agent, ← and Esc close it, Esc on

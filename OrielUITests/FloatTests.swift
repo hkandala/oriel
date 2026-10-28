@@ -205,7 +205,7 @@ extension OrielUITests {
                                    ("Interface Style", "Classic", "classic light"),
                                    ("Appearance", "Dark", "classic dark")]
         {
-            pick(menu, item, look: look)
+            pick(menu, item)
             XCTAssertTrue(element("window.look").has(\.stringValue, look, within: 3))
             XCTAssertTrue(window.isHittable)
             keepScreen("floating window, \(look)")

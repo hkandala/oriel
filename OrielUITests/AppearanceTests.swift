@@ -16,16 +16,16 @@ extension OrielUITests {
         let steps = [("Appearance", "Dark", "glass dark"), ("Appearance", "Light", "glass light"),
                      ("Interface Style", "Classic", "classic light"), ("Appearance", "Dark", "classic dark")]
         for (menu, item, look) in steps {
-            pick(menu, item, look: look)
+            pick(menu, item)
             expectLook(look)
             keepScreenshot(look)
         }
         // Auto follows macOS, from the other appearance so that an Auto that does nothing fails.
         let (system, other) = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
             ? ("dark", "light") : ("light", "dark")
-        pick("Appearance", other.capitalized, look: "classic \(other)")
+        pick("Appearance", other.capitalized)
         expectLook("classic \(other)")
-        pick("Appearance", "Auto", look: "classic \(system)")
+        pick("Appearance", "Auto")
         expectLook("classic \(system)")
     }
 
@@ -181,21 +181,11 @@ extension OrielUITests {
         return brightness.isEmpty ? 0 : brightness[brightness.count / 2]
     }
 
-    /// Picks View ▸ menu ▸ item, again (twice at most) until the window has the look: SwiftUI sometimes rebuilds the
-    /// open menu bar right after the last pick changed the look, which closes the submenu under the click and loses
-    /// it (seen in the recordings, on CI and here; the menu's contents did not change).
-    func pick(_ menu: String, _ item: String, look: String? = nil) {
-        for _ in 0 ..< 3 {
-            app.menuBars.menuBarItems["View"].click()
-            let submenu = app.menuBars.menuItems[menu]
-            submenu.hover()
-            submenu.menuItems[item].click()
-            guard let look, !element("window.look").has(\.stringValue, look, within: 3) else { return }
-            if submenu.isHittable {
-                app.typeKey(.escape, modifierFlags: [])
-                app.typeKey(.escape, modifierFlags: [])
-            }
-        }
+    func pick(_ menu: String, _ item: String) {
+        app.menuBars.menuBarItems["View"].click()
+        let submenu = app.menuBars.menuItems[menu]
+        submenu.hover()
+        submenu.menuItems[item].click()
     }
 
     private func expectLook(_ look: String) {
