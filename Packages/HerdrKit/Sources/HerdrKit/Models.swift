@@ -172,6 +172,15 @@ struct Moved: Decodable {
     enum CodingKeys: String, CodingKey { case moveResult = "move_result" }
 }
 
+/// `layout.apply`: the new tab's one pane.
+struct Applied: Decodable {
+    struct Root: Decodable {
+        let root: Layout.Pane
+    }
+
+    let layout: Root
+}
+
 /// `pane.swap`.
 struct Swapped: Decodable {
     let swap: Change
