@@ -3,7 +3,7 @@
 Goal: the chat view from phase 38 for the other three agents, each through the same adapter interface,
 with the TUI as the fallback for anything an adapter can't do reliably.
 
-Design: [Chat view](../../docs/content/docs/future-work/chat-view.mdx) and
+Design: [Chat view](../../docs/content/docs/ui/chat-view.mdx) and
 `resources/research/agents/{codex,pi,opencode}.md`.
 
 ## Track A: Codex (item 1)

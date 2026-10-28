@@ -38,7 +38,7 @@ struct PaneCard: View {
         let content = page.watched ? 0.85 : 1
         // A new pane's chooser hides its terminal (ui/new-pane).
         let chooser = store.chooser(id), browser = pane.flatMap(page.browser)
-        // An agent Oriel started with its flags: its chat or its terminal (future-work/chat-view).
+        // An agent Oriel started with its flags: its chat or its terminal (ui/chat-view).
         let chat = chooser == nil && !floated ? pane.flatMap(page.chat) : nil
         VStack(spacing: 0) {
             header(

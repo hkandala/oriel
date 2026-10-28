@@ -1,4 +1,4 @@
-// pi-oriel: Oriel's chat view helper for pi, shipped inside Oriel (future-work/chat-view#launch-flags).
+// pi-oriel: Oriel's chat view helper for pi, shipped inside Oriel (ui/chat-view#launch-flags).
 // Oriel writes it to ~/.cache/oriel/pi-oriel-<sha8>.ts and starts pi with `-e <this file> --oriel <state.jsonl>`.
 // It appends one JSON line per change to the state file: the session's transcript, a /tree move, an extension dialog
 // opening or closing, pi starting or stopping work, and the session ending. Public pi events only.

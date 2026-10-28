@@ -56,7 +56,7 @@ heading at the end.
    terminal and chat without ending the running process if possible (orca may restart the agent in chat
    mode; that is acceptable if nothing better exists), streaming the agent's transcript file as a naive
    option, and it must work on remote machines. Write the findings in `resources/research/` and update
-   `docs/content/docs/future-work/chat-view.mdx`.
+   `docs/content/docs/ui/chat-view.mdx`.
 
 ## Lane C3: pi extensions copy through herdr metadata (item 5)
 

@@ -4,8 +4,9 @@ description: "Starting an agent in a new pane, and pasting an image into an agen
 ---
 
 Starting an agent from a new pane is built
-([New pane](/docs/ui/new-pane#agent)). Image paste and launch flags are not
-built. This page is their design
+([New pane](/docs/ui/new-pane#agent)), with the
+[chat view](/docs/ui/chat-view)'s launch flags. Image paste is not built.
+This page is its design
 ([Pane kinds and plugins](/docs/future-work/plugins)).
 
 ## Terminal
@@ -22,14 +23,14 @@ for example `claude`, `codex`, `pi`).
 
 - **Start:** the [New pane](/docs/ui/new-pane#agent) chooser and Start Agent
   Here type the agent's command (`claude`, `codex`, `pi`, `opencode`) into the
-  pane's shell, show a loader until the agent is ready, then show its TUI.
-  The chat view adds its [launch flags](/docs/future-work/chat-view#launch-flags)
-  later.
+  pane's shell with the chat view's
+  [launch flags](/docs/ui/chat-view#launch-flags), show a loader until the
+  agent is ready, then show its chat.
 - **Icon:** the agent's program icon, as today
   ([Program icons](/docs/ui/program-icons)).
-- **View:** terminal by default on the Mac and iPad, chat on iPhone. The chat|term
-  switch changes it, for agents started with Oriel's flags
-  ([Chat view](/docs/future-work/chat-view)).
+- **View:** chat by default for agents started with Oriel's flags, on the
+  Mac and later on iPhone and iPad. The header's Chat · Terminal switch
+  changes it ([Chat view](/docs/ui/chat-view#switching-views)).
 - **Later:** list only the agents herdr finds on the machine, from the
   `integration.list` entries with `available: true` (the command is on the
   herdr server's `PATH`), read each time the list opens. Also flags per agent,

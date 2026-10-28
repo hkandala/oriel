@@ -1,6 +1,6 @@
 import XCTest
 
-/// The chat view (future-work/chat-view) with Claude Code's stand-in (`scripts/claude-stand-in.py`; CI has no Claude
+/// The chat view (ui/chat-view) with Claude Code's stand-in (`scripts/claude-stand-in.py`; CI has no Claude
 /// Code), started by the chooser with Oriel's flags: it runs their hooks, writes a transcript in Claude Code's format
 /// and reports its state to herdr.
 extension OrielUITests {

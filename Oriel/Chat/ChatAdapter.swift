@@ -1,7 +1,7 @@
 import Foundation
 import HerdrKit
 
-/// One agent's side of the chat view (future-work/chat-view). The core (`Chat`, the views, `agent.prompt` for
+/// One agent's side of the chat view (ui/chat-view). The core (`Chat`, the views, `agent.prompt` for
 /// sending) is shared; an adapter says how Oriel starts the agent, how it knows the pane again, how it follows the
 /// agent's history and phase on the pane's machine, how to stop a turn, and, optionally, how to answer a question.
 protocol ChatAdapter: Sendable {

@@ -1,7 +1,7 @@
 import HerdrKit
 import SwiftUI
 
-/// An agent card's chat (future-work/chat-view#what-it-looks-like): the messages, newest at the bottom, and the reply
+/// An agent card's chat (ui/chat-view#what-it-looks-like): the messages, newest at the bottom, and the reply
 /// box with the detail level beside it; the live terminal in their place while the agent waits on something the chat
 /// cannot answer.
 struct ChatView: View {
@@ -175,7 +175,7 @@ struct ChatView: View {
     }
 }
 
-/// The live terminal at the bottom of the card while the agent waits (future-work/chat-view#sending-and-answering):
+/// The live terminal at the bottom of the card while the agent waits (ui/chat-view#waiting):
 /// it takes the keyboard, and goes when the agent works or is idle again.
 private struct WaitingDrawer: View {
     let chat: Chat

@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 extension Page {
-    /// The pane's chat when its agent carries an adapter's launch marker (future-work/chat-view#which-panes-have-it),
+    /// The pane's chat when its agent carries an adapter's launch marker (ui/chat-view#which-panes-have-it),
     /// one per pane for every window of the session.
     func chat(_ pane: HostStore.Pane) -> Chat? {
         guard let terminalID = pane.terminalID, let adapter = ChatAdapters.recognize(pane.program) else { return nil }
@@ -21,7 +21,7 @@ extension Page {
     }
 }
 
-/// A chat card's header controls (future-work/chat-view#switching-views): the agent's state and the chat|term switch,
+/// A chat card's header controls (ui/chat-view#switching-views): the agent's state and the chat|term switch,
 /// which changes only what the card draws.
 struct ChatSwitch: View {
     @Bindable var chat: Chat

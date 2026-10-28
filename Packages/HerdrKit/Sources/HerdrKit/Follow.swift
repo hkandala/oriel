@@ -1,7 +1,7 @@
 import Foundation
 
 /// Where a followed file was read up to, so a new run goes on from there
-/// (future-work/chat-view#where-messages-come-from).
+/// (ui/chat-view#where-messages-come-from).
 public struct FileMark: Equatable, Sendable {
     public var inode = ""
     /// Bytes read, whole lines only.

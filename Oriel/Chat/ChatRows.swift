@@ -1,7 +1,7 @@
 import HerdrKit
 import SwiftUI
 
-/// One row of the chat (future-work/chat-view#detail-levels).
+/// One row of the chat (ui/chat-view#detail-levels).
 struct ChatRowView: View, Equatable {
     let row: ChatRow
     let paneID: String

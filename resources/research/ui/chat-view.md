@@ -3,7 +3,7 @@
 How to show an agent pane as messages with a reply box, switch back to its terminal without ending the agent, and do
 it on remote machines. Based on two spikes per agent in throwaway herdr panes (Claude Code 2.1.310, Codex 0.163, pi
 1.4.0, opencode 1.19.4 and 2.2.0-dev, herdr 0.9.5) and about 30 other apps and tools, read at the source. The design
-is [chat-view.mdx](../../../docs/content/docs/future-work/chat-view.mdx). Evidence per agent:
+is [chat-view.mdx](../../../docs/content/docs/ui/chat-view.mdx). Evidence per agent:
 [Claude Code](../agents/claude-code.md), [Codex](../agents/codex.md), [pi](../agents/pi.md),
 [opencode](../agents/opencode.md). Other apps: [../clients/README.md](../clients/README.md#agent-apps-with-a-chat-view).
 Tools that drive agent TUIs: [controlling-agent-tuis.md](controlling-agent-tuis.md).

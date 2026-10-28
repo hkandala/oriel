@@ -225,7 +225,7 @@ public struct Program: Equatable, Sendable {
     public let script: String?
     /// Only the pane's shell runs.
     public let isShell: Bool
-    /// Every foreground process with its arguments: a chat agent's launch marker is in them (future-work/chat-view).
+    /// Every foreground process with its arguments: a chat agent's launch marker is in them (ui/chat-view).
     public var foreground: [Foreground] = []
 
     public struct Foreground: Equatable, Sendable {

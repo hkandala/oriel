@@ -97,9 +97,13 @@ by the view's alpha), so there is no wait.
 
 ## Agent
 
-A pick types the agent's command and Return into the pane's shell, with no
-flags, as Go to Directory types its `cd`
-([Command palette](/docs/ui/window#command-palette)). On a remote machine the
+A pick types the agent's launch line and Return into the pane's shell, as Go
+to Directory types its `cd`
+([Command palette](/docs/ui/window#command-palette)). The line is the
+command with Oriel's chat flags, so the pane gets a
+[chat view](/docs/ui/chat-view). For Pi and OpenCode, one run on the pane's
+machine first writes the files the line needs
+([Launch flags](/docs/ui/chat-view#launch-flags)). On a remote machine the
 shell and the agent run on that machine. All four agents always show. The app
 does not look for which agents are installed.
 
@@ -112,14 +116,19 @@ does not look for which agents are installed.
   manifests, so this works on remote machines too. All four agents report
   `unknown` 0.3 to 0.7 s after the command, then `idle` (or `blocked` on
   Claude Code's trust prompt) after 3 to 5 s.
-- At ready, the loader fades out over 0.15 s and the terminal fades in, with
-  the keyboard.
-- **Failure.** When the shell is the foreground process again in two checks
-  in a row (the command failed or ended,
-  [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr)), or after
-  10 s with no ready status, the terminal shows the same way, with what the
-  command printed (for example "command not found: opencode"). No other
-  message.
+- At ready, the app reads the pane's foreground processes once
+  (`pane.process_info`), so a pane with a launch marker shows its chat at
+  once. The loader fades out over 0.15 s and the chat or the terminal fades
+  in, with the keyboard.
+- **The bare-command fallback.** When the shell is the foreground process
+  again in two checks in a row, from 1 s after the line
+  ([Program icons](/docs/ui/program-icons#when-the-app-asks-herdr)), the app
+  types the bare command (`claude`, `codex`, `pi` or `opencode`) once more.
+  An agent build that refuses Oriel's flags then starts with no chat.
+- **Failure.** When the shell is in front again after the bare command too
+  (the command failed or ended), or after 10 s with no ready status, the
+  terminal shows the same way, with what the command printed (for example
+  "command not found: opencode"). No other message.
 
 ## Browser
 
@@ -139,7 +148,7 @@ the palette. They have no shortcut.
 | Command | Shows on | Does |
 |---|---|---|
 | Open Terminal Here | agent and browser panes | Replace Pane: a fresh shell, with no chooser |
-| Start Agent Here ▸ | every pane | a sub-page (in menus a submenu) with Claude Code, Codex, Pi and OpenCode; a pick replaces the pane with a fresh shell and starts that agent in it, with the loader |
+| Start Agent Here ▸ | every pane | a sub-page (in menus a submenu) with Claude Code, Codex, Pi and OpenCode; a pick replaces the pane with a fresh shell and starts that agent in it with its launch line, with the loader |
 | Open Browser Here | every pane but a browser pane | replaces the pane with a browser pane, with the loader |
 
 - A pane's kind: a browser pane has a browser label, an agent pane is one

@@ -1,6 +1,6 @@
 import Foundation
 
-/// An agent's history as the chat view draws it (future-work/chat-view): what each adapter's parser makes of the
+/// An agent's history as the chat view draws it (ui/chat-view): what each adapter's parser makes of the
 /// agent's own transcript. The core is user text, replies, tool calls with their results and turn ends; the rest are
 /// extras an adapter may leave out.
 public struct ChatHistory: Equatable, Sendable {
@@ -159,7 +159,7 @@ public struct ChatTodo: Equatable, Sendable {
     public let active: Bool
 }
 
-/// The detail level (future-work/chat-view#detail-levels).
+/// The detail level (ui/chat-view#detail-levels).
 public enum ChatLevel: String, CaseIterable, Sendable {
     case replies, steps, all
 }

@@ -16,7 +16,7 @@ built into the app. Every other pane kind is a plugin: a small web page
 | Pane kind | Kind | UI | JavaScript | How herdr marks the pane |
 |---|---|---|---|---|
 | Terminal | built in | native terminal (libghostty) | none | none (the default) |
-| Agent | built in | native terminal + chat view ([Chat view](/docs/future-work/chat-view)) | none | none (herdr sets `pane.agent`) |
+| Agent | built in | native terminal + chat view ([Chat view](/docs/ui/chat-view)) | none | none (herdr sets `pane.agent`) |
 | Browser | built in | native web view ([Browser](/docs/ui/browser)) | none (only the page's own) | label `oriel:browser#<iid> <url>` |
 | `git-history`, `diff`, `markdown` | core | a web page in a native web view | yes, the public API | label `oriel:…` ([Labels and instance ids](/docs/future-work/plugins/labels)) |
 | your plugins | installed | a web page in a native web view | yes, the public API | label `oriel:…` |

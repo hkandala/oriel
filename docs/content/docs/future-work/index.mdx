@@ -17,7 +17,6 @@ never calls herdr's focus methods. A design gets decision numbers on the
 
 <Cards>
   <Card title="Pane kinds and plugins" href="/docs/future-work/plugins" description="Built-in pane kinds, agent panes, image paste and plugins as small web pages" />
-  <Card title="Chat view" href="/docs/future-work/chat-view" description="An agent's transcript drawn as messages, with a reply box" />
   <Card title="Changes panel" href="/docs/future-work/changes-panel" description="What the agents changed: git diffs in a drawer, a git chip, the last turn" />
   <Card title="Floating pills" href="/docs/future-work/pills" description="Agent status on the Mac screen edge while you work in another app" />
   <Card title="iPhone and iPad" href="/docs/future-work/iphone-and-ipad" description="One pane per page on iPhone, the Mac layout on iPad" />
@@ -79,6 +78,17 @@ never calls herdr's focus methods. A design gets decision numbers on the
     where the user can edit them.
   - "‹machine› does not allow port forwarding": an `ssh -W` probe after a
     refusal tells it from a closed port.
+- **The rest of the chat view** ([Chat view](/docs/ui/chat-view)):
+  - The chat in a floating window (it shows the terminal now).
+  - A host for the pill card: the chat at 360 pt at the Replies level, built
+    when the [floating pills](/docs/future-work/pills) land.
+  - Starting an agent on an old session (`--resume`) with Oriel's flags, so
+    it gets a chat too.
+  - Subagent rows: Claude Code's and Codex's subagents, OpenCode's child
+    sessions.
+  - OpenCode 2.x, with its shared service and `/api/*` routes.
+  - A Codex fork with its parent's lines up to the fork
+    (`forked_from_ordinal_exclusive`). Today it shows only its own lines.
 - **Agents use a browser card.** Today an agent can open a browser pane and
   change its address, nothing more. An agent that needs to drive a page runs
   its own browser on its machine (Playwright, chrome-devtools-mcp).
@@ -149,14 +159,14 @@ never calls herdr's focus methods. A design gets decision numbers on the
 - **Claude Code's transcript path.** herdr's Claude hook sends
   `transcript_path`, but herdr 0.9.5 keeps a path in `agent_session` only for
   pi and omp. The ask: keep it for Claude Code. Then the
-  [chat view](/docs/future-work/chat-view) could take the path from herdr
+  [chat view](/docs/ui/chat-view) could take the path from herdr
   instead of its own SessionStart hook.
 - **Blocked for menus, and forks.** herdr 0.9.5 reports `idle` while an
   agent shows a picker (Claude Code, Codex and opencode model and session
   pickers) or a pi extension dialog, and keeps the old `agent_session` after
   Claude Code's `/branch` and Codex's `/fork`. The ask: `blocked` for those,
   and the new session after a fork. Then the
-  [chat view](/docs/future-work/chat-view#ready-working-waiting) needs no
+  [chat view](/docs/ui/chat-view#codexs-screen-check) needs no
   screen check for Codex before a send.
 - **OSC 7501**, the Program Status Protocol: a terminal escape sequence that a
   program sends to report its status

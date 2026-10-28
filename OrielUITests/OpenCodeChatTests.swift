@@ -1,6 +1,6 @@
 import XCTest
 
-/// OpenCode's chat (future-work/chat-view) with its stand-in (`scripts/opencode-stand-in.py`; CI has no OpenCode),
+/// OpenCode's chat (ui/chat-view) with its stand-in (`scripts/opencode-stand-in.py`; CI has no OpenCode),
 /// started by the chooser with Oriel's line: it serves opencode's history, events and requests behind the password
 /// from the launch's file, and appends the plugin's state lines.
 extension OrielUITests {

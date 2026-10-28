@@ -14,7 +14,9 @@ protocol Exec {
 ```
 
 The app reaches each machine through `run` (D2). Nothing of ours is
-installed on the machine: `sshd`, POSIX tools and herdr do the work.
+installed on the machine: `sshd`, POSIX tools and herdr do the work. The chat
+view writes small helper files under `~/.cache/oriel` before an agent launch
+([Side files](/docs/ui/chat-view#side-files)).
 
 - **This Mac:** `Process`. A GUI app does not get the shell's environment. So
   at launch the app reads `PATH`, `HOME`, `SSH_AUTH_SOCK`, every `XDG_*`
@@ -44,8 +46,8 @@ installed on the machine: `sshd`, POSIX tools and herdr do the work.
   the kernel closes its pipes, so every child ends by itself, remote ones
   too: ssh closes the channel. (Measured with herdr 0.9.5, on This Mac and
   over SSH.)
-- `observe` and `tail -F` ignore a closed stdin, so they always run in this
-  wrapper, on This Mac too:
+- `observe` and `tail -F` (the chat's followers) ignore a closed stdin, so
+  they always run in this wrapper, on This Mac too:
   ```sh
   sh -c '<cmd> & c=$!; cat >/dev/null; kill $c'
   ```
@@ -198,6 +200,28 @@ app's streams ([Scrolling, queries and links](#scrolling-queries-and-links)).
 - Two Macs showing the pane both try; the first one's run deletes the file,
   and the second copies nothing. They also share the mark: the last one to
   write it says whether the pane is remote.
+
+## Chat panes
+
+The [chat view](/docs/ui/chat-view) talks to herdr only through the calls
+below. Everything else goes to the agent's own files, on its machine.
+
+- **The marker.** `pane.process_info` returns `foreground_processes[]` with
+  each process's `argv`. A chat pane is one where an adapter finds its launch
+  marker there ([Launch flags](/docs/ui/chat-view#launch-flags)), asked at
+  the times on [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr).
+  The app writes no herdr state for a chat.
+- **Send** is `agent.prompt {target, text}`. herdr refuses it ("no longer the
+  pane foreground process") unless a foreground process has the agent's
+  name, and while herdr reports the agent blocked (pi-oriel reports pi's
+  dialogs to herdr's pi integration).
+- **Stop** is `pane.send_keys`, and text that starts with `/` is
+  `pane.send_input`. Codex's screen check is `pane.read {source:"recent"}`.
+- **The phase** is herdr's agent status when the adapter has none of its
+  own ([Ready, working, waiting](/docs/ui/chat-view#ready-working-waiting)).
+- **The followers** are runs like any other: one per followed file, in the
+  wrapper above, over the relay on a remote machine. The relay takes one line
+  per write, so pi-oriel goes to the machine as one base64 line.
 
 ## Reconcile
 
@@ -470,7 +494,10 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Detach Session | no herdr call; the page's store disconnects when no window shows it, and the session keeps running |
 | Close a pane | `pane.close`; asks first unless the pane's only foreground process is its shell (`pane.process_info`) |
 | Replace Pane (⇧⌘R) | `pane.split {target_pane_id, direction: right, focus:false}`, then `pane.close` of the old pane: herdr 0.9.5 has no respawn, so the new pane, which herdr starts in the old one's live folder, fills the old one's place and size in the tree. The new pane stays hidden until a snapshot no longer has the old one, so it never shows beside it. Asks first as Close Pane does |
-| Open Terminal Here, Start Agent Here | Replace Pane's calls; Start Agent Here then `pane.send_input` of the agent's command and Return, and `pane.get` every 250 ms until herdr reports the agent ([New pane](/docs/ui/new-pane#agent)) |
+| Open Terminal Here, Start Agent Here | Replace Pane's calls; Start Agent Here then `pane.send_input` of the agent's launch line and Return (the bare command once more if the shell comes back at once), and `pane.get` every 250 ms until herdr reports the agent ([New pane](/docs/ui/new-pane#agent)) |
+| Send in a chat | `agent.prompt {target: pane_id, text}`, only while the agent is ready or working ([Sending and stopping](/docs/ui/chat-view#sending-and-stopping)) |
+| Stop in a chat | `pane.send_keys {pane_id, keys: ["escape"]}` (OpenCode: twice), only while the agent works |
+| Chat text that starts with `/` | `pane.send_input` of the text, with no Return; the card shows its terminal |
 | Browser in the chooser, Open Browser Here | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid>", command}}` (a new tab with the labeled placeholder pane, never a `tab_id`), then `pane.move` beside the old pane and `pane.close` of the old one; a failed move closes the new pane ([Create](/docs/ui/browser#create)) |
 | An address typed in a browser card | `pane.rename {pane_id, label:"oriel:browser#<iid> <url>"}` |
 | Close a tab | `tab.close`; asks first only when a pane of it runs more than its shell (`pane.process_info` of each pane, at once), naming what runs, with the pane count |

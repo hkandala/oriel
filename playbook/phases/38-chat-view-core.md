@@ -4,7 +4,7 @@ Goal: an agent pane that Oriel started can switch between its terminal and a cha
 agent, with no process ended, on This Mac and remote machines. This phase builds the shared core and the
 first adapter (Claude Code); phase 39 adds Codex, pi and opencode.
 
-Design: [Chat view](../../docs/content/docs/future-work/chat-view.mdx) (it wins on details),
+Design: [Chat view](../../docs/content/docs/ui/chat-view.mdx) (it wins on details),
 `resources/research/ui/chat-view.md` and `resources/research/agents/claude-code.md`. The user approved
 (2026-10-28): the transcript file followed by a watcher (no live text); a small reliable core with the TUI
 as the fallback; launch flags with hooks where they make it reliable; chat only for agents Oriel started

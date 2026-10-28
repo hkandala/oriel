@@ -2,7 +2,7 @@ import Foundation
 import HerdrKit
 import Observation
 
-/// An agent pane's chat (future-work/chat-view): the agent's history, whether it is ready, working or waiting, the
+/// An agent pane's chat (ui/chat-view): the agent's history, whether it is ready, working or waiting, the
 /// messages on their way, and whether the card shows the chat or the terminal. The session's store keeps it by
 /// terminal id, for every window; its adapter follows the agent while a card shows the chat.
 @MainActor @Observable
@@ -51,7 +51,7 @@ final class Chat {
         self.store = store
     }
 
-    /// The agent's own record, else herdr's status (future-work/chat-view#ready-working-waiting).
+    /// The agent's own record, else herdr's status (ui/chat-view#ready-working-waiting).
     var phase: Phase {
         if let recorded {
             return recorded
@@ -170,7 +170,7 @@ final class Chat {
     }
 }
 
-/// An AskUserQuestion request (future-work/chat-view#sending-and-answering): its questions and their options, and
+/// An AskUserQuestion request (ui/chat-view#waiting): its questions and their options, and
 /// the questions as the agent sent them, which the answer echoes.
 struct ChatQuestion: Equatable {
     struct Item: Equatable {

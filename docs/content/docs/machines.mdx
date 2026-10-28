@@ -159,6 +159,11 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
   from the machine's first browser card to its last (`-O cancel -D`), and
   forwards again on a new master
   ([Remote localhost](/docs/ui/browser#remote-localhost)).
+- **Chat panes** of a remote machine work as on This Mac: the launch line,
+  the side files and every follower run on the machine, over the relay
+  ([Chat view](/docs/ui/chat-view)). The relay passes lines, so pi-oriel goes
+  as one base64 line. OpenCode's chat needs `curl` on the machine. The others
+  need only POSIX tools.
 - **Local Network privacy:** an `ssh` started by the app counts as the app,
   so a LAN target fails with "No route to host"; Tailscale addresses are not
   affected.

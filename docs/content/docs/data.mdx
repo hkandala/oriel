@@ -21,7 +21,7 @@ One rule decides where each new thing goes (D57):
 | Agent kind, status, `completion_seq` | herdr | `agents[]`, `panes[]` |
 | A machine's sessions | herdr | `herdr session list --json`, run on the machine |
 | Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults`, JSON under `machines` |
-| Settings: appearance, interface style, text size and Focus Follows Mouse ([Settings](/docs/ui/settings)); the Agents view's folded groups (`agentsFolded`); a floating pane's window frame, per pane | app, disk | app storage (`UserDefaults`) |
+| Settings: appearance, interface style, text size and Focus Follows Mouse ([Settings](/docs/ui/settings)); the chat's detail level (`chatLevel`); the Agents view's folded groups (`agentsFolded`); a floating pane's window frame, per pane | app, disk | app storage (`UserDefaults`) |
 | Per window: the machine's id (`machine`), the names of its open pages (`pages`), the page in view (`page`), each page's selected workspace and tabs and its floating panes with their Stay on Top (`selection`, one JSON string), sidebar shown or hidden (`sidebar`), sidebar view (workspaces or agents, `agents`) and its sort (`agentSort`), and sidebar width (`sidebarWidth`) | app, disk | `@SceneStorage`, one set per window |
 | Per page of a window: the selected workspace, the tab per workspace, the keyboard card per tab, the zoomed card. Per open session: its `HostStore`, made on first use. Per session: which window controls it ([Control between windows](/docs/talking-to-herdr#control-between-windows)). | app, per device | memory |
 | Seen values and the time of each status change (Agents view), program icons, git state of each workspace, a divider's ratio while it is dragged | app, per device | memory |
@@ -29,6 +29,9 @@ One rule decides where each new thing goes (D57):
 | Approved browser origins, the newest 200 per machine | app, disk, per device | `UserDefaults`, a list under `browserApprovals.<machine id>` ([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)) |
 | Browser cookies, storage and cache, one store per machine | WebKit, disk, per device | `~/Library/WebKit/<bundle id>/WebsiteDataStore/<machine id>/` ([Profiles](/docs/ui/browser#profiles)) |
 | The choosers of new panes ([New pane](/docs/ui/new-pane)); browser cards' web views, by terminal id | app, per device | memory |
+| A chat per agent pane, by terminal id: its history, marks (how far each file was read), draft, messages on their way, and Chat or Terminal | app, per device | memory, on the session's `HostStore` ([Chat view](/docs/ui/chat-view)) |
+| A chat's side files: hooks and state lines, OpenCode's password, pi-oriel, OpenCode's plugin | the pane's machine | `~/.cache/oriel/` ([Side files](/docs/ui/chat-view#side-files)); files untouched for 30 days go |
+| An agent's transcript, session record and server | the agent | its own files and server on the pane's machine |
 | ControlMaster sockets | app | `~/Library/Caches/oriel/`, while running |
 
 <Callout title="Nothing the app saves describes herdr's state">

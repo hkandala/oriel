@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A reply's Markdown (future-work/chat-view#where-messages-come-from): `AttributedString(markdown:)` with the full
+/// A reply's Markdown (ui/chat-view#where-messages-come-from): `AttributedString(markdown:)` with the full
 /// syntax, split into its blocks, since `Text` draws a block's inline styles but runs the blocks together. Code
 /// blocks are monospaced and scroll sideways; list items get their bullet or number.
 struct Markdown: View {
