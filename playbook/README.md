@@ -53,3 +53,5 @@ run and test it is in the root `README.md`.
 | 35 | Choose what a new pane runs: terminal, agent or browser | [35-new-pane-chooser.md](phases/35-new-pane-chooser.md) |
 | 36 | The browser pane on This Mac | [36-browser-pane.md](phases/36-browser-pane.md) |
 | 37 | The browser pane on remote machines | [37-browser-remote.md](phases/37-browser-remote.md) |
+| 38 | Chat view: the core and Claude Code | [38-chat-view-core.md](phases/38-chat-view-core.md) |
+| 39 | Chat view: Codex, pi (pi-oriel) and opencode | [39-chat-view-agents.md](phases/39-chat-view-agents.md) |
