@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Oriel chat view: research and mock-ups</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* ---------- page (the report itself) ---------- */
+html{--sf:-apple-system,BlinkMacSystemFont,system-ui,"SF Pro Text","Helvetica Neue",sans-serif;}
+:root{--page:#f5f5f7;--ink:#1d1d1f;--ink2:#515154;--ink3:#86868b;--rule:#d2d2d7;--acc:#0a66d8;
+  --ok:#116329;--cav:#9d5c00;--no:#cf222e;--okbg:#dafbe1;--cavbg:#fff1d6;--nobg:#ffebe9;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 var(--sf);-webkit-font-smoothing:antialiased}
+.page{max-width:1240px;margin:0 auto;padding:40px 32px 120px}
+h1{font:700 40px/1.1 -apple-system,"SF Pro Display",sans-serif;letter-spacing:-.02em;margin:0 0 8px}
+h2{font:700 28px/1.2 -apple-system,"SF Pro Display",sans-serif;letter-spacing:-.01em;margin:64px 0 12px;padding-top:12px;border-top:1px solid var(--rule)}
+h3{font:600 19px/1.3 -apple-system,sans-serif;margin:32px 0 8px}
+h4{font:600 15px/1.3 -apple-system,sans-serif;margin:20px 0 6px}
+p,li{color:var(--ink)} .sub{color:var(--ink2);font-size:17px;margin:0 0 24px}
+code,.mono{font:12.5px/1.45 ui-monospace,"SF Mono",Menlo,monospace}
+p code,li code,td code{background:#e8e8ed;padding:1px 5px;border-radius:5px}
+pre{background:#1d1d1f;color:#e8e8ed;padding:16px 18px;border-radius:12px;overflow:auto;font:12.5px/1.5 ui-monospace,"SF Mono",Menlo,monospace}
+pre .c{color:#8b949e} pre .k{color:#ff7b72} pre .t{color:#79c0ff} pre .s{color:#a5d6ff}
+a{color:var(--acc);text-decoration:none} a:hover{text-decoration:underline}
+nav.toc{position:sticky;top:0;z-index:20;background:rgba(245,245,247,.85);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--rule);margin:0 -32px 24px;padding:10px 32px;display:flex;gap:18px;flex-wrap:wrap;font-size:13px;align-items:center}
+nav.toc a{color:var(--ink2)} nav.toc .sp{flex:1}
+.seg-page{display:inline-flex;background:#e3e3e8;border-radius:8px;padding:2px}
+.seg-page button{border:0;background:none;font:500 12px var(--sf);padding:4px 12px;border-radius:6px;color:var(--ink2);cursor:pointer}
+.seg-page button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.tldr{background:#fff;border-radius:16px;padding:20px 26px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tldr li{margin:4px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin:16px 0}
+.card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h4{margin-top:0}
+table{border-collapse:collapse;width:100%;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);font-size:13px;margin:12px 0}
+th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid #ececf0}
+th{background:#fafafc;font-weight:600;color:var(--ink2);font-size:12px}
+tr:last-child td{border-bottom:0}
+td.y,td.c,td.n{font-size:12.5px}
+.b{display:inline-block;font:600 10.5px/1 var(--sf);padding:3px 6px;border-radius:5px;margin-right:4px;white-space:nowrap}
+.b.y{background:var(--okbg);color:var(--ok)} .b.c{background:var(--cavbg);color:var(--cav)} .b.n{background:var(--nobg);color:var(--no)}
+.note{color:var(--ink3);font-size:13px}
+.callout{border-left:3px solid var(--acc);background:#fff;padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+.mock-caption{margin:10px 0 28px;color:var(--ink2);font-size:14px}
+.mock-caption b{color:var(--ink)}
+
+/* ---------- the macOS window imitation ---------- */
+.desk{position:relative;border-radius:18px;padding:34px;overflow:hidden;margin:18px 0 6px;
+  background:radial-gradient(1200px 600px at 10% 0%,#5b3d8f 0%,transparent 60%),radial-gradient(900px 700px at 100% 100%,#0f6b7a 0%,transparent 55%),linear-gradient(135deg,#25253a,#13202a)}
+.desk.lightdesk{background:radial-gradient(1200px 600px at 10% 0%,#c9b8f0 0%,transparent 60%),radial-gradient(900px 700px at 100% 100%,#9fe0e6 0%,transparent 55%),linear-gradient(135deg,#e9e4f7,#d9eef1)}
+.win{--txt:rgba(255,255,255,.92);--txt2:rgba(255,255,255,.62);--txt3:rgba(255,255,255,.40);--chrome:rgba(255,255,255,.65);
+  --winbg:rgba(30,30,30,.72);--card:rgba(255,255,255,.035);--cardkb:rgba(255,255,255,.055);--edge:rgba(0,0,0,.5);--rim:rgba(255,255,255,.07);--rimtop:rgba(255,255,255,.11);
+  --fill1:rgba(255,255,255,.05);--fill2:rgba(255,255,255,.08);--fill3:rgba(255,255,255,.12);--line:rgba(255,255,255,.09);
+  --working:#58a6ff;--needs:#d29922;--done:#3fb950;--err:#f85149;--acc:#0a84ff;--add:rgba(63,185,80,.16);--del:rgba(248,81,73,.16);--addt:#56d364;--delt:#ff7b72;
+  --glass:rgba(255,255,255,.07);--glassedge:rgba(255,255,255,.16);--glasshi:rgba(255,255,255,.22);--shadow:0 8px 30px rgba(0,0,0,.35);
+  --code:rgba(0,0,0,.28);--userbox:rgba(255,255,255,.045);
+  position:relative;color:var(--txt);border-radius:16px;overflow:hidden;
+  background:var(--winbg);backdrop-filter:blur(40px) saturate(170%);-webkit-backdrop-filter:blur(40px) saturate(170%);
+  box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 0 .5px rgba(255,255,255,.18) inset,0 0 0 1px rgba(0,0,0,.55);
+  font:13px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;-webkit-font-smoothing:antialiased}
+.win.light{--txt:rgba(0,0,0,.88);--txt2:rgba(0,0,0,.56);--txt3:rgba(0,0,0,.38);--chrome:rgba(0,0,0,.65);
+  --winbg:rgba(255,255,255,.62);--card:rgba(255,255,255,.6);--cardkb:rgba(255,255,255,.78);--edge:rgba(0,0,0,.1);--rim:rgba(255,255,255,.04);--rimtop:rgba(255,255,255,.3);
+  --fill1:rgba(0,0,0,.04);--fill2:rgba(0,0,0,.06);--fill3:rgba(0,0,0,.09);--line:rgba(0,0,0,.08);
+  --working:#0667d8;--needs:#9d5c00;--done:#116329;--err:#cf222e;--acc:#0a66d8;--add:rgba(17,99,41,.10);--del:rgba(207,34,46,.09);--addt:#116329;--delt:#cf222e;
+  --glass:rgba(255,255,255,.55);--glassedge:rgba(0,0,0,.08);--glasshi:rgba(255,255,255,.9);--shadow:0 8px 24px rgba(0,0,0,.12);
+  --code:rgba(0,0,0,.045);--userbox:rgba(0,0,0,.035);
+  box-shadow:0 30px 80px rgba(0,0,0,.22),0 0 0 .5px rgba(255,255,255,.7) inset,0 0 0 1px rgba(0,0,0,.12)}
+.titlerow{height:46px;display:flex;align-items:center;gap:8px;padding:0 12px 0 18px;color:var(--chrome)}
+.lights{display:flex;gap:8px;margin-right:16px}.lights i{width:12px;height:12px;border-radius:50%;background:#ff5f57;box-shadow:0 0 0 .5px rgba(0,0,0,.25) inset}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+.ico{width:16px;height:16px;display:inline-block;opacity:.9}
+.tabs{display:flex;gap:0;background:var(--fill1);border-radius:17px;height:34px;align-items:center;padding:0 2px;margin-left:8px}
+.tab{width:200px;height:30px;border-radius:15px;display:flex;align-items:center;gap:8px;padding:0 11px;color:var(--txt2);font-size:13px;white-space:nowrap;overflow:hidden}
+.tab.sel{color:var(--txt);background:var(--glass);box-shadow:0 0 0 .5px var(--glassedge) inset,0 1px 0 var(--glasshi) inset,0 2px 8px rgba(0,0,0,.18)}
+.tab .dim{color:var(--txt3)}
+.appicon{width:16px;height:16px;border-radius:4px;display:inline-grid;place-items:center;font:700 9px/1 var(--sf);color:#fff;flex:none}
+.ai-claude{background:#d97757}.ai-codex{background:#111;box-shadow:0 0 0 .5px rgba(255,255,255,.3) inset}.ai-pi{background:#6e56cf}.ai-oc{background:#2b2d31;box-shadow:0 0 0 .5px rgba(255,255,255,.3) inset}.ai-zsh{background:#2d6a3e}
+.light .ai-codex{background:#111}
+.spacer{flex:1}
+.tbtn{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--chrome)}
+.body{display:flex;gap:8px;padding:0 8px 8px 8px;height:calc(100% - 46px)}
+.sidebar{width:200px;flex:none;padding:4px 2px;color:var(--txt)}
+.sidebar .ph{font-weight:700;font-size:13px;padding:2px 10px 8px;display:flex;justify-content:space-between;color:var(--txt)}
+.wsrow{border-radius:9px;padding:6px 10px;display:flex;gap:8px;align-items:flex-start;font-size:13px}
+.wsrow.sel{background:var(--glass);box-shadow:0 0 0 .5px var(--glassedge) inset,0 1px 0 var(--glasshi) inset}
+.wsrow small{display:block;color:var(--txt2);font-size:11px}
+.slot{width:14px;height:18px;display:grid;place-items:center;flex:none}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.dot.needs{background:var(--needs)}.dot.done{background:var(--done)}.dot.err{background:var(--err)}
+.wdots{display:inline-flex;gap:2px}.wdots i{width:3.5px;height:3.5px;border-radius:50%;background:var(--working);animation:wd 1.2s infinite}.wdots i:nth-child(2){animation-delay:.2s}.wdots i:nth-child(3){animation-delay:.4s}
+@keyframes wd{0%,100%{opacity:.25}50%{opacity:1}}
+.strip{flex:1;display:flex;gap:8px;min-width:0}
+.pcard{position:relative;flex:1;min-width:0;border-radius:10px;background:var(--card);box-shadow:0 0 0 1px var(--edge),0 0 0 .7px var(--rim) inset,0 1px 0 var(--rimtop) inset;display:flex;flex-direction:column;overflow:hidden}
+.pcard.kb{background:var(--cardkb)}
+.light .pcard{box-shadow:0 0 0 1px var(--edge),0 1px 0 var(--rimtop) inset,0 2px 5px rgba(0,0,0,.1)}
+.phead{height:36px;flex:none;display:flex;align-items:center;gap:6px;padding:0 8px 0 11px;font-size:13px}
+.phead .lbl{font-weight:600;white-space:nowrap}.phead .lbl span{font-weight:400;color:var(--txt2)}
+.hbtn{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:var(--txt3);font-size:11px}
+/* segmented chat|term switch (SwiftUI .pickerStyle(.segmented) in glass) */
+.seg{display:inline-flex;height:22px;border-radius:11px;padding:2px;background:var(--fill1);box-shadow:0 0 0 .5px var(--line) inset;gap:0}
+.seg b{font:500 11px/18px var(--sf);padding:0 9px;border-radius:9px;color:var(--txt2);display:flex;align-items:center;gap:4px}
+.seg b.on{color:var(--txt);background:var(--glass);box-shadow:0 0 0 .5px var(--glassedge) inset,0 1px 0 var(--glasshi) inset,0 1px 3px rgba(0,0,0,.25)}
+.cap{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font:500 11px/1 var(--sf);white-space:nowrap}
+.cap.working{color:var(--working);background:color-mix(in srgb,var(--working) 14%,transparent)}
+.cap.needs{color:var(--needs);background:color-mix(in srgb,var(--needs) 16%,transparent)}
+.cap.done{color:var(--done);background:color-mix(in srgb,var(--done) 14%,transparent)}
+.cap.err{color:var(--err);background:color-mix(in srgb,var(--err) 14%,transparent)}
+.cap.plain{color:var(--txt2);background:var(--fill1)}
+/* terminal text */
+.term{font:12px/1.45 ui-monospace,"SF Mono",Menlo,monospace;padding:2px 12px 8px 22px;color:var(--txt);white-space:pre;overflow:hidden;flex:1}
+.term .g{color:#3fb950}.term .y{color:#d29922}.term .bl{color:#58a6ff}.term .d{color:var(--txt3)}.term .inv{background:var(--txt);color:#000}
+.light .term .g{color:#116329}.light .term .y{color:#9d5c00}
+
+/* ---------- chat content (shared by designs) ---------- */
+.chat{flex:1;overflow:hidden;justify-content:flex-end;padding:6px 18px 10px 22px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.usr{align-self:stretch;border:1px solid var(--line);background:var(--userbox);border-radius:12px;padding:8px 12px;color:var(--txt)}
+.usr .meta{font-size:11px;color:var(--txt3);float:right}
+.as{position:relative;padding-left:16px}
+.as:before{content:"";position:absolute;left:1px;top:7px;width:6px;height:6px;border-radius:50%;background:var(--txt2)}
+.as p{margin:0 0 6px}.as p:last-child{margin:0}
+.as code{font:11.5px ui-monospace,"SF Mono",monospace;background:var(--fill2);padding:1px 4px;border-radius:4px}
+/* tool group: a summary line, a tree of one-line rows */
+.grp{padding-left:16px;font-size:12.5px}
+.gsum{display:flex;align-items:center;gap:6px;color:var(--txt2);cursor:pointer;user-select:none}
+.gsum .chev{width:10px;color:var(--txt3);transition:transform .15s;display:inline-block}
+.grp.closed .gsum .chev{transform:rotate(-90deg)}
+.grp.closed .tree{display:none}
+.gsum .fail{color:var(--err)}
+.gsum .t{margin-left:auto;color:var(--txt3);font-size:11px}
+.tree{margin:3px 0 0 4px;border-left:1px solid var(--line);padding-left:10px}
+.row{display:flex;gap:6px;align-items:baseline;padding:1.5px 0;color:var(--txt2);white-space:nowrap;overflow:hidden}
+.row .n{font-weight:600;font-style:italic;color:var(--txt2)}
+.row .tg{font:11.5px ui-monospace,"SF Mono",monospace;color:var(--txt);overflow:hidden;text-overflow:ellipsis}
+.row .r{color:var(--txt3)} .row .r.e{color:var(--err)} .row .add{color:var(--addt)} .row .del{color:var(--delt)}
+.row .d{margin-left:auto;color:var(--txt3);font-size:11px;padding-left:8px}
+.row.run .n,.row.run .tg{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+.spin{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--fill3);border-top-color:var(--working);animation:sp .8s linear infinite;display:inline-block;flex:none;align-self:center}
+@keyframes sp{to{transform:rotate(360deg)}}
+.diff{font:11px/1.5 ui-monospace,"SF Mono",monospace;background:var(--code);border-radius:7px;margin:3px 0 4px;padding:5px 0;overflow:hidden}
+.diff div{padding:0 10px;white-space:pre}.diff .a{background:var(--add)}.diff .x{background:var(--del)}.diff .ln{color:var(--txt3);display:inline-block;width:22px}
+.out{font:11px/1.5 ui-monospace,"SF Mono",monospace;background:var(--code);border-radius:7px;margin:3px 0 4px;padding:6px 10px;white-space:pre;color:var(--txt2);overflow:hidden}
+.think{padding-left:16px;font-size:12.5px;color:var(--txt3);font-style:italic}
+/* special boxes */
+.dash{border:1px dashed var(--line);border-radius:10px;padding:6px 10px;font-size:12px;color:var(--txt2);position:relative;margin-left:16px}
+.dash .lab{position:absolute;top:-8px;left:10px;background:inherit;font-size:10.5px;color:var(--txt3);padding:0 4px;backdrop-filter:blur(1px)}
+.todo{margin-left:16px;border-radius:10px;background:var(--fill1);padding:8px 10px;font-size:12.5px}
+.todo .h{display:flex;justify-content:space-between;color:var(--txt2);font-size:11.5px;margin-bottom:4px}
+.todo .i{display:flex;gap:7px;align-items:center;padding:1.5px 0}
+.ck{width:13px;height:13px;border-radius:50%;border:1.3px solid var(--txt3);display:inline-grid;place-items:center;font-size:8px;flex:none}
+.ck.on{background:var(--done);border-color:var(--done);color:#fff}
+.ck.now{border-color:var(--working);box-shadow:0 0 0 2.5px color-mix(in srgb,var(--working) 25%,transparent) inset}
+.todo .i.dn span{color:var(--txt3);text-decoration:line-through}
+.subag{margin-left:16px;border-radius:10px;border:1px solid var(--line);padding:7px 10px;font-size:12.5px}
+.subag .h{display:flex;gap:7px;align-items:center;color:var(--txt)}
+.subag .h .r{margin-left:auto;color:var(--txt3);font-size:11px}
+.subag .tree{margin-top:5px}
+/* approval card (in chat) */
+.ask{margin-left:16px;border-radius:14px;padding:11px 13px;background:color-mix(in srgb,var(--needs) 9%,var(--glass));box-shadow:0 0 0 1px color-mix(in srgb,var(--needs) 45%,transparent) inset,var(--shadow);backdrop-filter:blur(20px)}
+.ask .h{display:flex;gap:7px;align-items:center;font-weight:600;color:var(--txt)}
+.ask .h .w{color:var(--needs)}
+.ask .cmd{font:11.5px/1.5 ui-monospace,"SF Mono",monospace;background:var(--code);padding:6px 9px;border-radius:7px;margin:7px 0;white-space:pre-wrap}
+.ask .why{font-size:12px;color:var(--txt2);margin:0 0 8px}
+.btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.btn{height:24px;padding:0 11px;border-radius:12px;font:500 12px/24px var(--sf);background:var(--fill2);color:var(--txt);box-shadow:0 0 0 .5px var(--line) inset;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.btn.pri{background:var(--acc);color:#fff;box-shadow:0 1px 0 rgba(255,255,255,.25) inset}
+.btn.warn{background:var(--needs);color:#fff}
+.btn.red{color:var(--err)}
+.btn kbd,.kbd{font:500 10px var(--sf);opacity:.65;border:0;background:none}
+.kbdk{font:500 10.5px/1 var(--sf);min-width:20px;height:20px;padding:0 6px;border-radius:5px;background:var(--fill2);box-shadow:0 0 0 .5px var(--line) inset,0 1px 0 var(--line);display:inline-grid;place-items:center;color:var(--txt)}
+.working-row{padding-left:16px;color:var(--txt3);font-size:12.5px;display:flex;align-items:center;gap:8px}
+/* composer */
+.composer{margin:0 10px 10px;border-radius:16px;padding:8px 10px 7px;background:var(--glass);box-shadow:0 0 0 .5px var(--glassedge) inset,0 1px 0 var(--glasshi) inset,var(--shadow);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%)}
+.composer .ph{color:var(--txt3);padding:2px 4px 8px;font-size:13px}
+.composer .ph.typed{color:var(--txt)}
+.ctl{display:flex;gap:4px;align-items:center}
+.pill{height:22px;border-radius:11px;padding:0 8px;display:inline-flex;align-items:center;gap:4px;font:500 11.5px/1 var(--sf);color:var(--txt2);white-space:nowrap}
+.pill:hover{background:var(--fill1)}
+.pill .cv{font-size:8px;opacity:.7}
+.round{width:26px;height:26px;border-radius:13px;display:grid;place-items:center;background:var(--acc);color:#fff;font-size:13px;flex:none}
+.round.stop{background:var(--fill3);color:var(--txt)}
+.ring{width:14px;height:14px;border-radius:50%;background:conic-gradient(var(--txt2) var(--p),var(--fill3) 0);display:inline-block;-webkit-mask:radial-gradient(circle,transparent 4px,#000 4.5px);mask:radial-gradient(circle,transparent 4px,#000 4.5px)}
+/* glass popover/menu */
+.menu{position:absolute;z-index:5;min-width:220px;border-radius:12px;padding:5px;background:var(--glass);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);box-shadow:0 0 0 .5px var(--glassedge) inset,0 1px 0 var(--glasshi) inset,0 18px 50px rgba(0,0,0,.45);font-size:13px}
+.win:not(.light) .menu{background:rgba(40,40,44,.72)}
+.menu .mh{font-size:11px;color:var(--txt3);padding:5px 9px 3px}
+.menu .mi{padding:4px 9px;border-radius:7px;display:flex;gap:8px;align-items:center;color:var(--txt)}
+.menu .mi.hl{background:var(--acc);color:#fff}.menu .mi.hl small{color:rgba(255,255,255,.75)}
+.menu .mi small{margin-left:auto;color:var(--txt3);font-size:11px}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
+/* states strip */
+.states{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.mini{height:300px}
+.win p,.win li{color:inherit}
+/* page-level interactivity */
+.grp .gsum:hover{color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Chat view for Oriel</h1>
+<p class="sub">Research and mock-ups for one chat interface over Claude Code, Codex, pi and opencode running as TUIs in herdr
+panes, on this Mac or over SSH. Spiked on Claude Code 2.1.310, Codex 0.163, pi 1.4.0, opencode 1.19.4 (npm) and 2.2.0-dev
+(source), herdr 0.9.5. October 2026.</p>
+<nav class="toc"><a href="#tldr">TL;DR</a><a href="#agents">Per agent</a><a href="#matrix">Capability matrix</a><a href="#adapter">Adapter</a><a href="#approvals">Approvals</a><a href="#model">Model and mode</a><a href="#slice">First slice</a><a href="#mocks">Mock-ups</a><a href="#open">Risks and open questions</a>
+<span class="sp"></span><span class="seg-page"><button class="on" onclick="setLook('both',this)">As designed</button><button onclick="setLook('dark',this)">Dark</button><button onclick="setLook('light',this)">Light</button></span></nav>
+
+<h2 id="tldr" style="border:0;margin-top:8px">TL;DR</h2>
+<div class="tldr"><ul>
+<li><b>Two levels work for every agent.</b> <b>Base</b>: any running pane, nothing installed. Read the transcript the agent writes
+anyway, send with <code>agent.prompt</code>, answer prompts with keys. <b>Side channel</b>: a live connection beside the
+TUI that gives per-token text and real Approve/Deny buttons. The TUI keeps running in both.</li>
+<li><b>Every agent has a side channel, but three of the four need it chosen at launch.</b> Claude Code: hooks and a statusline
+from <code>--settings</code>. Codex: the TUI started as <code>codex --remote</code> against an app-server Oriel runs. opencode 1.x:
+<code>--port</code> (2.x always has a local service). pi is the exception: a one-file extension attaches to a running TUI with <code>/reload</code>.</li>
+<li><b>In-chat approvals work for all four on the side channel</b>, and the TUI keeps its own dialog open at the same time; the
+first answer wins (Claude: PermissionRequest hook; Codex: <code>requestApproval</code> fan-out; pi: bridge races the dialog;
+opencode: <code>/permission/:id/reply</code>). On Base, the chat shows a <b>Needs you</b> drawer with the live terminal and
+key buttons, and it goes back to chat when the agent stops being blocked.</li>
+<li><b>Model and mode:</b> mode toggles are one key on all four (shift+tab or tab). A model change is direct only for pi
+(<code>/model &lt;exact id&gt;</code>) and side channels (Codex <code>turn/start{model}</code>, pi <code>setModel</code>,
+opencode 2.x API). Otherwise the chat opens the agent's own picker in the drawer. Never type
+<code>/model &lt;name&gt;</code> into Claude Code: it writes the user's global settings.</li>
+<li><b>The big trap:</b> pickers and extension dialogs leave herdr at <code>idle</code>, so <code>agent.prompt</code> can type into
+them (proven on pi, Claude Code and opencode). Send must check the screen first.</li>
+<li><b>First slice:</b> Base for all four (opencode by polling its SQLite), design A in the card, the Needs-you drawer, read-only
+model and mode with a one-key mode toggle. Next: the pi bridge, then opencode's server, then launch-time side channels for
+Claude Code and Codex.</li>
+</ul></div>
+
+<h2 id="agents">What each agent offers</h2>
+<p>The two levels per agent. Evidence and samples from throwaway runs are in the four helper reports
+(<a href="#sources">sources</a>).</p>
+<div class="cards">
+ <div class="card"><h4>Claude Code</h4>
+  <p><b>Base.</b> <code>agent_session</code> id → <code>~/.claude/projects/&lt;cwd slug&gt;/&lt;id&gt;.jsonl</code>, one line per finished
+  block. No live text anywhere on disk. Dialogs report <code>blocked</code>; keys: Return = first option, Esc = no (and ends the
+  turn), arrows for questions and plans.</p>
+  <p><b>Side channel</b> (Oriel launches it with inline <code>--settings</code>): a statusLine command streams model, cost,
+  context %, session id and transcript path; a PermissionRequest hook waits on a decision file and answers tools and
+  AskUserQuestion; a PreToolUse hook on ExitPlanMode approves plans. Files only, so it works over SSH.</p>
+  <p class="note">Company PermissionRequest hooks return allow and beat a deny. The statusline has no mode; read it from the footer.</p></div>
+ <div class="card"><h4>Codex</h4>
+  <p><b>Base.</b> The rollout file the pane's <code>codex</code> process holds open (<code>lsof</code>; keep
+  <code>session_meta.source=="cli"</code>, newest), parsed from <code>event_msg/item_completed</code>. Approvals never reach the
+  rollout. Keys: <code>y</code> yes, Esc no (and aborts the turn), digits for questions.</p>
+  <p><b>Side channel</b> (Oriel starts <code>codex app-server --listen unix://S</code> in a hidden pane and the TUI as
+  <code>codex --remote unix://S</code>): a second client resumes the live thread, gets per-token deltas, gets and answers
+  approvals and questions (the TUI clears), and can start, steer and interrupt turns and change model and effort. The
+  socket speaks WebSocket, so remote needs a small shim.</p>
+  <p class="note">A plain <code>codex</code> TUI listens on nothing and cannot be joined. No cost figure, tokens only.</p></div>
+ <div class="card"><h4>pi</h4>
+  <p><b>Base.</b> <code>agent_session</code> gives the path. A JSONL tree; walk <code>parentId</code> from the last entry. Thinking
+  text, cost per message. No built-in permission prompts; extension dialogs and pickers report <code>idle</code>, so
+  <code>agent.prompt</code> answered a confirm in the spike.</p>
+  <p><b>Side channel</b>: a ~200-line extension (<code>-e</code> at launch, or the extensions folder plus <code>/reload</code> on a
+  running TUI) with a unix socket: live deltas, send with steer or follow-up, images, abort, set model and thinking, every
+  extension's select/confirm/input raced with the TUI, and <code>herdr:blocked</code> so herdr refuses prompts while one is open.</p>
+  <p class="note">Built-in slash commands still need keys. <code>pi --mode rpc</code> on the same file splits the tree: never.</p></div>
+ <div class="card"><h4>opencode</h4>
+  <p><b>Base</b> (1.x, the npm release). No transcript file: SQLite (<code>opencode.db</code>, part rows written per block), found
+  by <code>lsof</code>, session id from herdr's TUI plugin. Poll it with <code>sqlite3</code> or <code>opencode db</code>.
+  Dialogs report <code>blocked</code>; keys: Return allow once, Esc reject, ←/→, digits for questions; interrupt is Esc twice.</p>
+  <p><b>Side channel</b>: 1.x with <code>--port</code> (or <code>serve</code> + <code>attach</code>), and every 2.x TUI (a local
+  service in <code>service.json</code>). SSE over <code>curl -N</code> is plain lines, so it rides Oriel's relay: live deltas,
+  permissions, questions, todos; replies, <code>prompt_async</code>, abort, agent and model changes.</p>
+  <p class="note">2.x changes the API and storage. Model and variant pickers report <code>idle</code>.</p></div>
+</div>
+<h2 id="matrix">Capability matrix</h2>
+<p><span class="b y">today</span> works today · <span class="b c">caveats</span> works with caveats · <span class="b n">no</span> not possible. “S:” is the side channel; the rest is Base (any running pane).</p>
+<table><tr><th style="width:15%">Interaction</th><th>Claude Code</th><th>Codex</th><th>pi</th><th>opencode</th></tr>
+<tr><th colspan="5" style="background:#f0f0f5">Reading</th></tr>
+<tr><td><b>Find the pane's history</b></td><td><span class="b y">today</span>herdr id → <code>projects/&lt;slug&gt;/&lt;id&gt;.jsonl</code>; stale after <code>/branch</code>. S: statusLine <code>transcript_path</code></td><td><span class="b c">caveats</span><code>lsof</code> on the pane's codex pid, filter <code>source==cli</code>, newest; herdr id stale after <code>/fork</code>. S: <code>thread.path</code></td><td><span class="b y">today</span>herdr <code>kind:path</code>; file appears after the first message</td><td><span class="b y">today</span>herdr id <code>ses_…</code> + <code>opencode.db</code> via <code>lsof</code></td></tr>
+<tr><td><b>Messages and tool calls</b></td><td><span class="b y">today</span>tail JSONL; <code>tool_use</code> ↔ <code>tool_result</code> by id</td><td><span class="b y">today</span>tail; <code>item_completed</code> items</td><td><span class="b y">today</span>tail; linearize the tree; <code>toolCall</code> ↔ <code>toolResult</code></td><td><span class="b c">caveats</span>poll SQLite parts (no tail). S: SSE <code>message.part.updated</code></td></tr>
+<tr><td><b>Live text (per token)</b></td><td><span class="b n">no</span>screen only; disk lags by seconds</td><td><span class="b c">caveats</span>S only: <code>item/agentMessage/delta</code></td><td><span class="b c">caveats</span>S only: bridge <code>message_update</code></td><td><span class="b c">caveats</span>S only: SSE <code>message.part.delta</code></td></tr>
+<tr><td><b>Thinking</b></td><td><span class="b c">caveats</span>text empty; “thought for Ns” only</td><td><span class="b c">caveats</span>encrypted; a row only</td><td><span class="b y">today</span>full text</td><td><span class="b y">today</span><code>reasoning</code> parts</td></tr>
+<tr><td><b>Subagents</b></td><td><span class="b y">today</span>Agent tool + <code>subagents/agent-&lt;id&gt;.jsonl</code>; async, ends with <code>task-notification</code></td><td><span class="b c">caveats</span><code>SubAgentActivity</code> items</td><td><span class="b n">no</span>none built in (extensions; pi-herd agents are panes)</td><td><span class="b y">today</span>child sessions with <code>parent_id</code></td></tr>
+<tr><td><b>Todos and plans</b></td><td><span class="b c">caveats</span>TodoWrite rows (not offered on this build); plan file + ExitPlanMode</td><td><span class="b y">today</span><code>Plan</code> items, <code>update_plan</code></td><td><span class="b n">no</span>none built in</td><td><span class="b y">today</span><code>todo</code> table, <code>todo.updated</code></td></tr>
+<tr><td><b>Context, tokens, cost</b></td><td><span class="b y">today</span><code>usage</code>, <code>cost-state</code>. S: statusLine context % and cost</td><td><span class="b c">caveats</span><code>token_count</code> context %; no cost</td><td><span class="b y">today</span><code>usage.cost</code> per message. S: <code>contextUsage</code></td><td><span class="b y">today</span><code>step-finish</code> tokens and cost</td></tr>
+<tr><td><b>Read the model</b></td><td><span class="b y">today</span><code>message.model</code>; S: statusLine</td><td><span class="b y">today</span><code>turn_context.model/effort</code></td><td><span class="b y">today</span><code>model_change</code>, assistant <code>model</code></td><td><span class="b y">today</span>message <code>modelID</code></td></tr>
+<tr><td><b>Read the mode</b></td><td><span class="b c">caveats</span>screen footer; <code>permissionMode</code> lags to turn end</td><td><span class="b y">today</span><code>turn_context</code> approval policy, collaboration mode</td><td><span class="b y">today</span>thinking level (no modes)</td><td><span class="b y">today</span>message <code>agent</code> (build / plan)</td></tr>
+<tr><th colspan="5" style="background:#f0f0f5">Acting</th></tr>
+<tr><td><b>Send so the TUI shows it</b></td><td><span class="b y">today</span><code>agent.prompt</code></td><td><span class="b y">today</span><code>agent.prompt</code>. S: <code>turn/start</code></td><td><span class="b y">today</span><code>agent.prompt</code>. S: <code>sendUserMessage</code></td><td><span class="b y">today</span><code>agent.prompt</code>. S: <code>prompt_async</code></td></tr>
+<tr><td><b>Send while working</b></td><td><span class="b y">today</span>queued; absorbed at the next tool boundary</td><td><span class="b y">today</span>steers the running turn</td><td><span class="b y">today</span>Return = steer; follow-up needs alt+Return or S</td><td><span class="b y">today</span>queued (2.x: steer or queue)</td></tr>
+<tr><td><b>Images</b></td><td><span class="b y">today</span>a pasted absolute path becomes <code>[Image #1]</code></td><td><span class="b c">caveats</span>a path sent alone attaches; inside text it stays text</td><td><span class="b c">caveats</span>path stays text. S: real image block</td><td><span class="b c">caveats</span>S: file part</td></tr>
+<tr><td><b>@file mentions</b></td><td><span class="b y">today</span><code>@path</code> resolves</td><td><span class="b c">caveats</span>literal text; the model reads it</td><td><span class="b c">caveats</span>literal text</td><td><span class="b c">caveats</span>literal text. S: file part</td></tr>
+<tr><td><b>Interrupt</b></td><td><span class="b y">today</span>Esc (no Stop hook)</td><td><span class="b y">today</span>Esc. S: <code>turn/interrupt</code></td><td><span class="b y">today</span>Esc. S: abort</td><td><span class="b y">today</span>Esc Esc. S: <code>/abort</code></td></tr>
+<tr><td><b>Tool approval in chat</b></td><td><span class="b c">caveats</span>S: PermissionRequest hook + decision file; TUI dialog stays as fallback. Base: keys</td><td><span class="b c">caveats</span>S: <code>requestApproval</code> → accept / acceptForSession / decline. Base: <code>y</code> / Esc</td><td><span class="b c">caveats</span>none built in. S: bridge races extension dialogs. Base: unsafe (reports idle)</td><td><span class="b c">caveats</span>S: <code>/permission/:id/reply</code>. Base: Return / Esc / ←→</td></tr>
+<tr><td><b>Questions to the user</b></td><td><span class="b c">caveats</span>S: hook returns <code>answers</code>. Base: arrows + Return</td><td><span class="b c">caveats</span>S: <code>requestUserInput</code>. Base: digits</td><td><span class="b c">caveats</span>S: forwarded select/confirm/input</td><td><span class="b c">caveats</span>S: <code>/question/:id/reply</code>. Base: a digit</td></tr>
+<tr><td><b>Plan approval</b></td><td><span class="b c">caveats</span>S: PreToolUse on ExitPlanMode. Base: keys</td><td><span class="b c">caveats</span>“Implement this plan?” is a picker (idle): keys</td><td><span class="b n">no</span>no plan mode</td><td><span class="b n">no</span>plan is an agent, no approval</td></tr>
+<tr><td><b>Change model</b></td><td><span class="b c">caveats</span>picker + <code>s</code> (session only), screen-driven; never <code>/model &lt;name&gt;</code></td><td><span class="b c">caveats</span>picker + <code>s</code>. S: <code>turn/start{model,effort}</code></td><td><span class="b y">today</span><code>/model &lt;exact scoped id&gt;</code>. S: <code>setModel</code></td><td><span class="b c">caveats</span>picker (1.x). S 2.x: session <code>/model</code></td></tr>
+<tr><td><b>Change mode</b></td><td><span class="b y">today</span>shift+tab cycles auto → manual → accept edits → plan</td><td><span class="b y">today</span>shift+tab plan; <code>/permissions</code> picker</td><td><span class="b y">today</span>shift+tab or <code>/thinking &lt;level&gt;</code></td><td><span class="b y">today</span>tab cycles build ↔ plan</td></tr>
+<tr><td><b>Slash commands</b></td><td><span class="b c">caveats</span>direct ones as text; ~15 open pickers</td><td><span class="b c">caveats</span>known ones as text, no arguments; ~30 open pickers</td><td><span class="b c">caveats</span>direct ones as text; S runs only extension commands</td><td><span class="b c">caveats</span>direct ones as text; pickers need the TUI</td></tr>
+<tr><td><b>New, fork, resume</b></td><td><span class="b c">caveats</span><code>/clear</code>, <code>/branch</code> as text; <code>/resume</code> picker</td><td><span class="b c">caveats</span><code>/new</code> as text; <code>/resume</code>, <code>/fork</code> pickers</td><td><span class="b c">caveats</span><code>/new</code> as text; S: fork/tree/resume without pickers</td><td><span class="b c">caveats</span><code>/new</code>, <code>/fork</code> as text; sessions picker</td></tr>
+<tr><th colspan="5" style="background:#f0f0f5">Safety and reach</th></tr>
+<tr><td><b>herdr says blocked when it is</b></td><td><span class="b c">caveats</span>dialogs yes; pickers idle</td><td><span class="b c">caveats</span>approvals and questions yes; pickers idle</td><td><span class="b n">no</span>idle for dialogs and pickers (S fixes dialogs)</td><td><span class="b c">caveats</span>permissions and questions yes; pickers idle</td></tr>
+<tr><td><b>Remote over SSH</b></td><td><span class="b y">today</span>tail; S hooks use files (needs Oriel's launch)</td><td><span class="b c">caveats</span>Base yes. S needs a WebSocket shim and the app-server in a pane</td><td><span class="b c">caveats</span>Base yes. S needs the bridge file there; socket via Perl or <code>nc -U</code></td><td><span class="b y">today</span><code>sqlite3</code> polling; S <code>curl -N</code> lines</td></tr>
+<tr><td><b>Side channel on a running TUI</b></td><td><span class="b n">no</span><code>--settings</code> applies at launch only</td><td><span class="b n">no</span>only TUIs started with <code>--remote</code></td><td><span class="b y">today</span><code>/reload</code> loads the bridge</td><td><span class="b c">caveats</span>1.x only with <code>--port</code>; 2.x always</td></tr>
+</table>
+<h2 id="adapter">One adapter interface</h2>
+<p>One chat view, one model of a conversation, one small adapter per agent. An adapter turns its sources (transcript
+lines, SQLite rows, hook files, SSE, a bridge socket, app-server events) into <code>ChatEvent</code>s, and turns
+<code>ChatAction</code>s into herdr calls, keys or side-channel calls. herdr's <code>agent_status</code> and the screen
+(<code>pane.read</code>) are shared by all adapters, not per agent.</p>
+<pre><span class="c">// Events in: what the view draws. Ids are the agent's own (tool call id, message id, request id).</span>
+<span class="k">enum</span> <span class="t">ChatEvent</span> {
+    <span class="k">case</span> session(id: <span class="t">String</span>, cwd: <span class="t">String</span>)                         <span class="c">// new id on /clear, /new, /fork: restart the source</span>
+    <span class="k">case</span> user(id: <span class="t">String</span>, text: <span class="t">String</span>, images: [<span class="t">Image</span>], queued: <span class="t">Bool</span>)
+    <span class="k">case</span> text(id: <span class="t">String</span>, markdown: <span class="t">String</span>, final: <span class="t">Bool</span>)        <span class="c">// final:false = a live delta (side channel only)</span>
+    <span class="k">case</span> thinking(id: <span class="t">String</span>, text: <span class="t">String</span>?, seconds: <span class="t">Double</span>?)   <span class="c">// Claude and Codex: no text</span>
+    <span class="k">case</span> tool(<span class="t">ToolCall</span>)                                     <span class="c">// sent again as it runs and ends</span>
+    <span class="k">case</span> subagent(id: <span class="t">String</span>, parentTool: <span class="t">String</span>?, name: <span class="t">String</span>, status: <span class="t">Status</span>)
+    <span class="k">case</span> plan([<span class="t">PlanItem</span>])                                    <span class="c">// todos, Codex plans, opencode todo.updated</span>
+    <span class="k">case</span> ask(<span class="t">Ask</span>)                                           <span class="c">// structured request: only from a side channel</span>
+    <span class="k">case</span> askEnded(id: <span class="t">String</span>, answer: <span class="t">String</span>, by: <span class="t">AnsweredBy</span>)     <span class="c">// .chat, .terminal, .policy (another hook decided)</span>
+    <span class="k">case</span> turnEnded(status: <span class="t">Status</span>, seconds: <span class="t">Double</span>?)             <span class="c">// done, interrupted, error(text)</span>
+    <span class="k">case</span> settings(<span class="t">Settings</span>)                                   <span class="c">// model, effort or thinking, mode, context %, cost</span>
+    <span class="k">case</span> notice(<span class="t">String</span>)                                       <span class="c">// compaction, model switched by the agent, retry</span>
+}
+<span class="k">struct</span> <span class="t">ToolCall</span> { <span class="k">let</span> id, name, target: <span class="t">String</span>; <span class="k">var</span> params: [<span class="t">String</span>: <span class="t">String</span>]; <span class="k">var</span> state: <span class="t">Status</span>; <span class="k">var</span> summary: <span class="t">String</span>?; <span class="k">var</span> diff, output: <span class="t">String</span>? }
+<span class="k">struct</span> <span class="t">Ask</span> { <span class="k">let</span> id: <span class="t">String</span>; <span class="k">let</span> kind: <span class="t">Kind</span> <span class="c">/* tool, question, plan */</span>; <span class="k">let</span> title: <span class="t">String</span>; <span class="k">let</span> detail: <span class="t">String</span>? <span class="c">/* command, diff, plan */</span>
+              <span class="k">let</span> options: [<span class="t">Option</span>] <span class="c">/* label + role: allow, allowAlways, deny, choice */</span>; <span class="k">let</span> allowsText: <span class="t">Bool</span> }
+
+<span class="c">// Actions out: what the composer, the cards and the menus ask for.</span>
+<span class="k">enum</span> <span class="t">ChatAction</span> {
+    <span class="k">case</span> send(text: <span class="t">String</span>, images: [<span class="t">URL</span>])    <span class="c">// agent.prompt (Base) or the side channel</span>
+    <span class="k">case</span> interrupt                            <span class="c">// Esc (opencode: Esc Esc) or the side channel</span>
+    <span class="k">case</span> answer(ask: <span class="t">String</span>, option: <span class="t">String</span>, text: <span class="t">String</span>?)
+    <span class="k">case</span> keys([<span class="t">String</span>])                       <span class="c">// the Needs-you drawer, behind the key guard</span>
+    <span class="k">case</span> setMode(<span class="t">String</span>), setModel(<span class="t">String</span>, effort: <span class="t">String</span>?)
+    <span class="k">case</span> command(<span class="t">String</span>)                      <span class="c">// a direct slash command, typed</span>
+}
+
+<span class="c">// One per agent: ClaudeChat, CodexChat, PiChat, OpencodeChat. The screen-text chat stays for every other pane.</span>
+<span class="k">protocol</span> <span class="t">ChatAdapter</span> {
+    <span class="k">func</span> events(pane: <span class="t">Pane</span>, machine: <span class="t">Machine</span>) -> <span class="t">AsyncStream</span>&lt;<span class="t">ChatEvent</span>&gt;
+    <span class="k">func</span> perform(<span class="k">_</span> action: <span class="t">ChatAction</span>, pane: <span class="t">Pane</span>, machine: <span class="t">Machine</span>) <span class="k">async throws</span>
+    <span class="k">var</span> can: <span class="t">Capabilities</span> { <span class="k">get</span> }              <span class="c">// what to draw: live text, in-chat asks, model menu, mode values</span>
+}</pre>
+<div class="cards">
+ <div class="card"><h4>Shared, not per agent</h4><ul style="margin:0;padding-left:18px">
+  <li>State from <code>agent_status</code>: the Working row, Needs you, Done.</li>
+  <li>The Needs-you drawer: <code>pane.read {source:"visible"}</code> and key buttons.</li>
+  <li>The send guard: no <code>agent.prompt</code> while the screen shows a picker.</li>
+  <li>Grouping tool calls between two replies, summaries ("Read 3 files, ran 1 command").</li>
+  <li>The tail and poll runners over the relay.</li></ul></div>
+ <div class="card"><h4>Per agent (Base)</h4><ul style="margin:0;padding-left:18px">
+  <li>A finder: herdr's <code>agent_session</code>, <code>lsof</code>, the path rule.</li>
+  <li>A lenient line parser, skipping unknown types.</li>
+  <li>A key map: interrupt, mode toggle, and the answer keys of its known dialogs.</li>
+  <li>The list of slash commands that open pickers.</li></ul></div>
+ <div class="card"><h4>Per agent (side channel)</h4><ul style="margin:0;padding-left:18px">
+  <li>Claude: hook and statusline scripts in inline <code>--settings</code>; request and decision files.</li>
+  <li>Codex: a JSON-RPC client over the app-server socket.</li>
+  <li>pi: the bridge extension and its JSONL socket.</li>
+  <li>opencode: SSE plus a few <code>curl</code> calls.</li></ul></div>
+</div>
+
+<h2 id="approvals">Approvals, questions and blocked states</h2>
+<p>Two ways to answer, picked per request. The TUI never closes and always keeps its own dialog, so the user can
+answer in either place.</p>
+<table>
+<tr><th style="width:18%">Way</th><th>When</th><th>What the chat shows</th><th>How the answer goes</th></tr>
+<tr><td><b>1. In-chat card</b></td><td>a side channel sent a structured <code>Ask</code></td>
+ <td>an approval card in the stream (pinned above the composer while scrolled away) with the command, diff or plan, the agent's options as buttons, and a text field for "tell it what to do instead"</td>
+ <td>Claude: decision file read by the waiting hook. Codex: the JSON-RPC reply. pi: the bridge's answer. opencode: <code>POST …/reply</code>. The TUI dialog closes by itself; if the user answers in the TUI first, the card shows "Answered in terminal"</td></tr>
+<tr><td><b>2. Needs-you drawer</b></td><td>Base: <code>agent_status</code> is <code>blocked</code>, or a picker the chat opened is up</td>
+ <td>a drawer over the composer with the live bottom of the terminal and the agent's answer keys as named buttons, plus Open Terminal (design D)</td>
+ <td>a fixed key map per agent, no screen parsing: Claude Code Return = first option, ↓, Esc = no and stop; Codex <code>y</code>, digits, Esc; opencode Return, ←/→, digits, Esc; pi ↑/↓, Return, Esc. Each key is sent only if the screen has not changed since it was read (the key guard). The drawer closes and the chat returns when the agent works or idles again</td></tr>
+</table>
+<div class="callout"><b>Esc is not a plain "No".</b> In Claude Code and Codex it rejects <i>and ends the turn</i>. On the side
+channel, deny with a message instead (Claude <code>{"behavior":"deny","message":…}</code>, Codex <code>decline</code>), so the agent
+can go on. On Base, label the button "No, stop".</div>
+<h4>Things to get right</h4>
+<ul>
+<li><b>Policy wins.</b> On this Mac, company PermissionRequest hooks return <code>allow</code> and beat Oriel's deny. Read the result
+(<code>permissionDecision.source</code>, the tool result) and show "Allowed by policy" instead of pretending the deny worked.</li>
+<li><b>Races.</b> A Claude hook keeps waiting after a TUI answer: give each request an id, and end the hook when the tool's result
+appears. PermissionRequest has no <code>tool_use_id</code>; pair it with the PreToolUse before it.</li>
+<li><b>Few prompts in practice.</b> This user's aliases start Claude Code with <code>--dangerously-skip-permissions</code> and Codex with
+<code>--yolo</code>, and managed configs auto-review most commands. Approvals matter, but questions (AskUserQuestion,
+<code>request_user_input</code>, opencode questions) and plan approval come up as often.</li>
+<li><b>Picker trap.</b> Pickers report <code>idle</code>. Before each send, read the last screen lines and refuse with "A menu is open"
+plus Open Terminal if they look like a picker (each agent's picker footer is a fixed string: "Enter to select", "↑↓ navigate",
+"⇆ select").</li>
+</ul>
+
+<h2 id="model">Model and mode</h2>
+<p>The composer shows the model, the effort or thinking level, the mode, context and cost as pills, read from the sources in the
+matrix. What a click does:</p>
+<table>
+<tr><th style="width:14%"></th><th>Mode pill</th><th>Model pill (Base)</th><th>Model pill (side channel)</th></tr>
+<tr><td><b>Claude Code</b></td><td>a menu of auto, manual, accept edits, plan; sends shift+tab until the footer shows the choice (at most 4)</td><td>opens <code>/model</code> in the drawer; the user picks, Oriel presses <code>s</code> (session only)</td><td>the same; the statusline reads it back. No direct, session-only call exists</td></tr>
+<tr><td><b>Codex</b></td><td>Plan on/off: shift+tab. Permissions: <code>/permissions</code> then a digit (1 Ask, 2 Approve for me, 3 Full Access, 4 Read Only)</td><td>opens <code>/model</code> in the drawer; Oriel presses <code>s</code> at the effort step</td><td>a real menu: <code>turn/start {model, effort}</code> on the next turn</td></tr>
+<tr><td><b>pi</b></td><td>thinking: <code>/thinking &lt;level&gt;</code> typed</td><td>a real menu: <code>/model &lt;exact scoped id&gt;</code> typed (from <code>pi --list-models</code>)</td><td><code>set_model</code>, then <code>set_thinking</code> (a model change resets thinking)</td></tr>
+<tr><td><b>opencode</b></td><td>build ↔ plan: tab</td><td>opens <code>/models</code> in the drawer (a variant picker may follow)</td><td>2.x: session <code>/model</code> and <code>/agent</code> calls; 1.x: <code>/tui/publish</code> commands, or <code>model</code> per prompt</td></tr>
+</table>
+<p class="note">Never send a model name as text to Claude Code (<code>/model x</code> saves it to <code>~/.claude/settings.json</code>) or Codex
+(<code>/model x</code> goes to the model as a message); in both pickers Return saves a global default, <code>s</code> keeps it to the session.</p>
+
+<h2 id="slice">What the first slice ships</h2>
+<ol>
+<li><b>Base for all four.</b> Finders and lenient parsers: pi (path), Claude Code (id → path), Codex (<code>lsof</code>, filtered),
+opencode (<code>opencode db</code> or <code>sqlite3</code> polled once a second while shown). Local and remote.</li>
+<li><b>Design A</b> in the card, behind the chat|term switch: user boxes, replies, tool groups collapsed to a summary line, thinking rows,
+subagent and plan rows, the Working row from <code>agent_status</code>.</li>
+<li><b>Composer:</b> <code>agent.prompt</code> with its refusals and the picker guard; Stop sends the agent's interrupt keys.</li>
+<li><b>Needs you:</b> the drawer with each agent's named answer keys and the key guard.</li>
+<li><b>Pills:</b> model, mode, context, cost read-only; the mode menu (one key per step); the model pill opens the agent's picker in
+the drawer (pi: a real menu).</li>
+</ol>
+<p><b>Next, in this order:</b> the pi bridge (one file, attaches to running TUIs, can ship with pi-hkandala); opencode's server when the
+pane has one (SSE is plain lines); then a <b>New Agent</b> launch path that starts Claude Code with Oriel's <code>--settings</code> and
+Codex with <code>--remote</code> to an app-server in a hidden pane. <b>Left out:</b> restarting agents in structured modes,
+<code>pi --mode rpc</code>, ACP (they end or fork the TUI's session).</p>
+<h2 id="mocks">Mock-ups</h2>
+<p>Five designs for the same view, drawn in HTML and CSS to look like SwiftUI on macOS 26 with Liquid Glass, in Oriel's look
+(<code>Style.swift</code>: 10 pt cards, the 36 pt card header, the status colors, SF Pro and SF Mono). Each shows the same pieces:
+collapsed tool groups, a running tool, a permission request, a subagent, a plan or todo list, the model and mode controls, the
+composer and the chat|term switch. Each uses a different agent to show that one view fits all four. Click a summary line to open
+or close its group. The switch at the top of the page sets dark or light for all of them. Everything here is plain SwiftUI:
+<code>ScrollView</code> + <code>LazyVStack</code>, <code>DisclosureGroup</code>, <code>Picker(.segmented)</code>, <code>Menu</code>,
+<code>.glassEffect()</code>, <code>TextField(axis: .vertical)</code>, <code>AttributedString(markdown:)</code>.</p>
+<h3 id="mock-a">A · Transcript tree (the pi-content-layout look, in the card)</h3>
+<p>The chat replaces the terminal inside the pane card. It reads like pi-content-layout: user messages in a rounded box,
+assistant text after a dot, and every run of tool calls between two replies folded into one summary line with a tree
+of one-line rows. Approvals sit in the stream where they happen. The model, mode, context and cost live in the
+composer. Shown with Claude Code.</p>
+<div class="desk" id="a-dark"><div class="win" style="height:860px">
+ <div class="titlerow"><div class="lights"><i></i><i></i><i></i></div>
+  <span class="tbtn">▢</span><span class="tbtn">⌂</span>
+  <div class="tabs"><div class="tab sel"><span class="appicon ai-claude">✳</span><span class="appicon ai-zsh" style="margin-left:-12px">›</span>api <span class="dim">rate limit</span></div><div class="tab"><span class="appicon ai-codex">◎</span>web <span class="dim">~/code/web</span></div></div>
+  <div class="spacer"></div><span class="tbtn">◫</span><span class="tbtn">⊞</span><span class="tbtn">⌘</span><span class="tbtn">＋</span></div>
+ <div class="body">
+  <div class="sidebar"><div class="ph">default <span>＋</span></div>
+   <div class="wsrow sel"><span class="slot"><i class="dot needs"></i></span><div>api<small>main · 2 panes</small></div></div>
+   <div class="wsrow"><span class="slot"><span class="wdots"><i></i><i></i><i></i></span></span><div>web<small>feat/login</small></div></div>
+   <div class="wsrow"><span class="slot"><i class="dot done"></i></span><div>infra<small>main</small></div></div>
+  </div>
+  <div class="strip">
+   <div class="pcard kb" style="flex:1.75">
+    <div class="phead"><span class="appicon ai-claude">✳</span><span class="lbl">claude <span>~/code/api</span></span>
+     <span class="cap needs"><i class="dot needs"></i>Needs you</span><div class="spacer"></div>
+     <span class="seg"><b class="on">Chat</b><b>Terminal</b></span>
+     <span class="hbtn">⧉</span><span class="hbtn">◫</span><span class="hbtn">⊟</span><span class="hbtn">⤢</span><span class="hbtn">✕</span></div>
+    <div class="chat">
+     <div class="usr"><span class="meta">14:02</span>Add rate limiting to POST /upload, 10 requests a minute per API key, and run the tests.</div>
+     <div class="grp closed"><div class="gsum"><span class="chev">▾</span>Read 3 files, searched 2 times<span class="t">thought for 6s</span></div>
+      <div class="tree"><div class="row"><span class="n">read</span><span class="tg">src/routes/upload.ts</span><span class="r">· 84 lines</span></div></div></div>
+     <div class="as"><p>The route is in <code>src/routes/upload.ts</code> and a Redis client already exists in <code>src/lib/redis.ts</code>. I'll add a sliding-window limiter as middleware.</p></div>
+     <div class="todo"><div class="h"><span>Plan</span><span>2 of 4</span></div>
+      <div class="i dn"><span class="ck on">✓</span><span>Find every caller of uploadFile()</span></div>
+      <div class="i dn"><span class="ck on">✓</span><span>Write rateLimit middleware</span></div>
+      <div class="i"><span class="ck now"></span><span>Fix the failing upload test</span></div>
+      <div class="i"><span class="ck"></span><span>Document the limit in README</span></div></div>
+     <div class="subag"><div class="h"><span style="color:var(--txt2)">⑂</span><b style="font-weight:600">Explore</b><span style="color:var(--txt2)">Find every caller of uploadFile()</span><span class="r">6 files, 4 searches · 18s ✓</span></div></div>
+     <div class="grp"><div class="gsum"><span class="chev">▾</span>Edited 2 files, ran 1 command, <span class="fail">1 failed</span><span class="t">14:03</span></div>
+      <div class="tree">
+       <div class="row"><span class="n">edit</span><span class="tg">src/middleware/rateLimit.ts</span><span class="r">· <span class="add">+38</span></span><span class="d">0.1s</span></div>
+       <div class="row"><span class="n">edit</span><span class="tg">src/routes/upload.ts</span><span class="r">· <span class="add">+3</span> <span class="del">-1</span></span></div>
+       <div class="diff"><div><span class="ln">12</span> router.post("/upload",</div><div class="x"><span class="ln">13</span>-  auth, uploadFile);</div><div class="a"><span class="ln">13</span>+  auth,</div><div class="a"><span class="ln">14</span>+  rateLimit({ perMinute: 10, key: req =&gt; req.apiKey }),</div><div class="a"><span class="ln">15</span>+  uploadFile);</div></div>
+       <div class="row"><span class="n">bash</span><span class="tg">npm test</span><span class="r e">· exit 1</span><span class="d">4.2s</span></div>
+      </div></div>
+     <div class="as"><p>One test fails: the limiter keeps its window between tests. I'll clear the store in <code>beforeEach</code> and rerun the upload tests with a clean Jest cache.</p></div>
+     <div class="grp"><div class="gsum"><span class="chev">▾</span>Editing 1 file, running 2 commands<span class="t"><span class="wdots"><i></i><i></i><i></i></span></span></div>
+      <div class="tree">
+       <div class="row"><span class="n">edit</span><span class="tg">test/upload.test.ts</span><span class="r">· <span class="add">+4</span></span></div>
+       <div class="row run"><span class="spin"></span><span class="n">bash</span><span class="tg">npm run typecheck</span><span class="r">· running</span><span class="d">9s</span></div>
+       <div class="row"><span class="dot needs" style="align-self:center"></span><span class="n">bash</span><span class="tg">rm -rf .cache/jest &amp;&amp; npm test -- upload</span><span class="r" style="color:var(--needs)">· waiting for you</span></div>
+      </div></div>
+     <div class="ask"><div class="h"><span class="w">⚠︎</span>Run this command?</div>
+      <div class="cmd">rm -rf .cache/jest &amp;&amp; npm test -- upload</div>
+      <p class="why">Clear Jest's cache and rerun the upload tests</p>
+      <div class="btns"><span class="btn pri">Yes <kbd>↩</kbd></span><span class="btn">Yes, and don't ask again for <code style="font-size:10.5px;background:none">rm -rf .cache/jest</code></span><span class="btn red">No <kbd>⎋</kbd></span><span class="spacer"></span><span class="btn" style="background:none;box-shadow:none;color:var(--txt2)">Show in Terminal</span></div></div>
+    </div>
+    <div class="composer"><div class="ph">Reply to claude</div>
+     <div class="ctl"><span class="pill">＋</span><span class="pill">@</span><span class="pill">/</span><span class="spacer"></span>
+      <span class="pill">Opus 5.5 <span class="cv">▾</span></span><span class="pill">⏵⏵ Accept edits <span class="cv">▾</span></span>
+      <span class="pill"><span class="ring" style="--p:42%"></span>42%</span><span class="pill">$0.84</span><span class="round">↑</span></div></div>
+   </div>
+   <div class="pcard"><div class="phead"><span class="appicon ai-zsh">›</span><span class="lbl">zsh <span>~/code/api</span></span><div class="spacer"></div><span class="seg"><b>Chat</b><b class="on">Terminal</b></span></div>
+    <div class="term"><span class="g">~/code/api</span> <span class="bl">main*</span> % redis-cli monitor
+<span class="d">OK</span>
+1730070121.3 "ZADD" "rl:k_9f2" "1730070121" ...
+1730070121.3 "ZREMRANGEBYSCORE" "rl:k_9f2" ...
+1730070121.4 "ZCARD" "rl:k_9f2"
+1730070122.0 "ZADD" "rl:k_9f2" "1730070122" ...
+1730070122.1 "ZCARD" "rl:k_9f2"
+<span class="inv"> </span></div></div>
+  </div>
+ </div>
+</div></div>
+<p class="note">The same card in light:</p>
+<div class="desk lightdesk" id="a-light"></div>
+<p class="mock-caption"><b>Why this one:</b> the densest; long sessions stay scannable; one summary line per burst of tool calls;
+the same look the user already reads in pi. The TUI shows its own dialog at the same time; whichever answer comes first wins, and the card then says who answered. <b>Cost:</b> the least chrome; plan and subagents sit inline and scroll away.</p>
+<h3 id="mock-b">B · Chat with an inspector</h3>
+<p>The card splits: the conversation on the left, an inspector on the right with the plan, subagents, context and the
+files changed. Tool groups are rounded blocks with one symbol per tool. An approval pins above the composer (it
+never scrolls away), and the model and approval mode sit in a toolbar above the text field. Shown with Codex.</p>
+<div class="desk"><div class="win" style="height:820px">
+ <div class="titlerow"><div class="lights"><i></i><i></i><i></i></div><span class="tbtn">▢</span><span class="tbtn">⌂</span>
+  <div class="tabs"><div class="tab"><span class="appicon ai-claude">✳</span>api <span class="dim">rate limit</span></div><div class="tab sel"><span class="appicon ai-codex">◎</span>web <span class="dim">~/code/web</span></div></div>
+  <div class="spacer"></div><span class="tbtn">◫</span><span class="tbtn">⊞</span><span class="tbtn">⌘</span><span class="tbtn">＋</span></div>
+ <div class="body"><div class="strip">
+  <div class="pcard kb">
+   <div class="phead"><span class="appicon ai-codex">◎</span><span class="lbl">codex <span>~/code/web</span></span><span class="cap needs"><i class="dot needs"></i>Needs you</span><div class="spacer"></div>
+    <span class="seg"><b class="on">Chat</b><b>Terminal</b></span><span class="hbtn">⧉</span><span class="hbtn">◫</span><span class="hbtn">⊟</span><span class="hbtn">⤢</span><span class="hbtn">✕</span></div>
+   <div style="flex:1;display:flex;min-height:0">
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+     <div class="chat b-chat">
+      <div class="usr"><span class="meta">09:41</span>The login form flashes an error before the request finishes. Fix it and add a test.</div>
+      <div class="blk"><div class="bh"><span class="chev">▸</span>Explored <b>5 files</b>, <b>3 searches</b><span class="t">12s</span></div></div>
+      <div class="as"><p>The error state is set from <code>useForm</code>'s first render, before <code>isSubmitting</code> turns true. I'll gate it on <code>submitCount</code> and add a test that waits for the request.</p></div>
+      <div class="blk open"><div class="bh"><span class="chev">▾</span>Edited <b>2 files</b>, ran <b>1 command</b><span class="t">running</span></div>
+       <div class="bl"><span class="sym">✎</span><span class="tg">src/components/LoginForm.tsx</span><span class="r"><span class="add">+6</span> <span class="del">-2</span></span></div>
+       <div class="bl"><span class="sym">✎</span><span class="tg">src/components/LoginForm.test.tsx</span><span class="r"><span class="add">+31</span></span></div>
+       <div class="bl run"><span class="spin"></span><span class="tg">pnpm vitest run LoginForm</span><span class="r">21s</span></div>
+       <div class="out" style="margin:2px 0 4px 26px"> ✓ renders fields (12 ms)
+ ✓ shows no error while submitting (48 ms)
+ ⠼ shows the server error after a 401</div>
+      </div>
+      <div class="blk"><div class="bh"><span class="chev">▸</span><span class="sym" style="color:var(--txt2)">⑂</span> Subagent <b>reviewer</b> checked the diff<span class="t">2 notes · 34s</span></div></div>
+      <div class="as"><p>The test passes locally. Before pushing I want to run the full suite with network access for the mock server.</p></div>
+     </div>
+     <div class="tray">
+      <div class="h"><span class="w">⚠︎</span><b>Allow this command?</b><span class="spacer"></span><span class="note2">Reason: needs network for the mock server</span></div>
+      <div class="cmd">pnpm test --run</div>
+      <div class="opts">
+       <div class="o sel"><span class="kbdk">Y</span>Yes, proceed</div>
+       <div class="o"><span class="kbdk">P</span>Yes, and don't ask again for <code>pnpm test</code></div>
+       <div class="o"><span class="kbdk">Esc</span>No, and tell Codex what to do differently</div>
+      </div>
+     </div>
+     <div class="composer" style="margin-top:8px"><div class="ctl" style="margin-bottom:6px">
+       <span class="pill" style="background:var(--fill1)">◎ gpt-6-sol <span class="cv">▾</span></span><span class="pill" style="background:var(--fill1)">Effort: high <span class="cv">▾</span></span><span class="pill" style="background:var(--fill1)">⛨ Ask for approval <span class="cv">▾</span></span><span class="pill" style="background:var(--fill1)">Plan ⇧⇥</span><span class="spacer"></span><span class="pill">＋ Image</span></div>
+      <div class="ph">Reply to codex</div>
+      <div class="ctl"><span class="spacer"></span><span class="round stop">■</span></div></div>
+    </div>
+    <div class="insp">
+     <div class="ih">Plan</div>
+     <div class="ii"><span class="ck on">✓</span>Find where the error is set</div>
+     <div class="ii"><span class="ck on">✓</span>Gate it on submitCount</div>
+     <div class="ii"><span class="ck now"></span>Add a test for the 401 path</div>
+     <div class="ii"><span class="ck"></span>Run the full suite</div>
+     <div class="ih">Subagents</div>
+     <div class="ii"><span class="dot done"></span>reviewer <span class="r">34s</span></div>
+     <div class="ih">Context</div>
+     <div class="ctx"><span class="ring big" style="--p:61%"></span><div><b>61%</b> of 272k<br><span class="r">5h limit 23% used</span></div></div>
+     <div class="ih">Changes</div>
+     <div class="ii mono2">LoginForm.tsx <span class="r"><span class="add">+6</span> <span class="del">-2</span></span></div>
+     <div class="ii mono2">LoginForm.test.tsx <span class="r"><span class="add">+31</span></span></div>
+    </div>
+   </div>
+  </div>
+ </div></div>
+</div></div>
+<style>
+.b-chat{padding-right:14px}
+.blk{margin-left:0;border-radius:10px;background:var(--fill1);padding:6px 10px;font-size:12.5px}
+.blk .bh{display:flex;gap:6px;align-items:center;color:var(--txt2)}.blk .bh b{font-weight:600;color:var(--txt)}.blk .bh .t{margin-left:auto;color:var(--txt3);font-size:11px}
+.blk .chev{color:var(--txt3);font-size:9px;width:10px}
+.blk .bl{display:flex;gap:8px;align-items:center;padding:3px 0 0 16px;white-space:nowrap}
+.blk .bl .tg{font:11.5px ui-monospace,"SF Mono",monospace;overflow:hidden;text-overflow:ellipsis}
+.blk .bl .r{margin-left:auto;color:var(--txt3);font-size:11px}
+.blk .bl.run .tg{animation:pulse 1.6s infinite}
+.sym{width:14px;text-align:center;color:var(--txt3);flex:none}
+.tray{margin:0 10px;border-radius:14px;padding:10px 12px;background:color-mix(in srgb,var(--needs) 10%,var(--glass));box-shadow:0 0 0 1px color-mix(in srgb,var(--needs) 45%,transparent) inset,var(--shadow);backdrop-filter:blur(30px)}
+.tray .h{display:flex;gap:7px;align-items:center}.tray .w{color:var(--needs)}.note2{font-size:11px;color:var(--txt3)}
+.tray .cmd{font:11.5px ui-monospace,"SF Mono",monospace;background:var(--code);padding:6px 9px;border-radius:7px;margin:7px 0}
+.tray .opts{display:flex;flex-direction:column;gap:2px}
+.tray .o{display:flex;gap:9px;align-items:center;padding:4px 6px;border-radius:8px;font-size:12.5px}
+.tray .o.sel{background:var(--acc);color:#fff}.tray .o.sel .kbdk{background:rgba(255,255,255,.2);color:#fff}
+.tray code{font:11px ui-monospace,monospace;background:var(--fill2);padding:0 4px;border-radius:4px}
+.insp{width:230px;flex:none;border-left:1px solid var(--line);padding:4px 14px 12px;font-size:12.5px;overflow:hidden}
+.insp .ih{font-size:11px;font-weight:600;color:var(--txt3);text-transform:none;margin:12px 0 5px}
+.insp .ii{display:flex;gap:7px;align-items:center;padding:2px 0}.insp .r{margin-left:auto;color:var(--txt3);font-size:11px}
+.insp .mono2{font:11.5px ui-monospace,monospace}
+.ctx{display:flex;gap:10px;align-items:center;font-size:12px;line-height:1.35}.ctx .r{color:var(--txt3);font-size:11px;margin:0}
+.ring.big{width:30px;height:30px;-webkit-mask:radial-gradient(circle,transparent 10px,#000 10.5px);mask:radial-gradient(circle,transparent 10px,#000 10.5px);background:conic-gradient(var(--working) var(--p),var(--fill3) 0)}
+</style>
+<p class="mock-caption"><b>Why this one:</b> the plan, subagents and context stay in view however long the chat gets; the
+approval cannot scroll away. <b>Cost:</b> the inspector needs about 230 pt, so it hides below a card width of
+about 640 pt (then its sections fold into the composer's toolbar).</p>
+<h3 id="mock-c">C · Focus column with a status island</h3>
+<p>For a zoomed or floated card. The conversation is a centered reading column. A glass island floats at the top
+with the state, the model, the thinking level and the context; clicking a part opens its menu (shown: thinking).
+Tool groups are chips that open in place. When the agent needs you, the composer turns into the question, so the
+answer is where the hands already are. Shown with pi.</p>
+<div class="desk"><div class="win" style="height:840px">
+ <div class="titlerow"><div class="lights"><i></i><i></i><i></i></div><span class="tbtn">▢</span><span class="tbtn">⌂</span>
+  <div class="tabs"><div class="tab sel"><span class="appicon ai-pi">π</span>docs <span class="dim">~/code/site</span></div><div class="tab"><span class="appicon ai-oc">◰</span>infra <span class="dim">terraform</span></div></div>
+  <div class="spacer"></div><span class="tbtn">◫</span><span class="tbtn">⊞</span><span class="tbtn">⌘</span><span class="tbtn">＋</span></div>
+ <div class="body"><div class="strip">
+  <div class="pcard kb" style="position:relative">
+   <div class="phead"><span class="appicon ai-pi">π</span><span class="lbl">pi <span>~/code/site</span></span><div class="spacer"></div>
+    <span class="seg"><b class="on">Chat</b><b>Terminal</b></span><span class="hbtn" style="color:var(--acc)">⤡</span><span class="hbtn">✕</span></div>
+   <div class="island">
+    <span class="seg2 st"><span class="wdots"><i></i><i></i><i></i></span> Working 34s</span><i class="sep"></i>
+    <span class="seg2">sonnet-5.5 <span class="cv">▾</span></span><i class="sep"></i>
+    <span class="seg2 hot">Thinking: medium <span class="cv">▾</span></span><i class="sep"></i>
+    <span class="seg2"><span class="ring" style="--p:18%"></span>18% · $0.31</span>
+   </div>
+   <div class="menu" style="top:84px;left:calc(50% + 8px);min-width:190px">
+    <div class="mh">Thinking level</div>
+    <div class="mi">Off</div><div class="mi">Minimal</div><div class="mi">Low</div>
+    <div class="mi hl">✓ Medium<small>⇧⇥</small></div><div class="mi">High</div><div class="mi">Extra high</div>
+   </div>
+   <div class="col">
+    <div class="ub">Split the API reference into one page per endpoint and keep the sidebar order.</div>
+    <div class="chips"><span class="chip">▸ Read 9 files</span><span class="chip">▸ Searched 3 times</span><span class="chip">▸ Thought for 8s</span></div>
+    <div class="as2">There are 14 endpoints in <code>reference.md</code>. I'll write one page each under <code>content/api/</code>, then let a second agent check every link while I fix the sidebar.</div>
+    <div class="chips"><span class="chip open">▾ Wrote 14 files, edited 1</span></div>
+    <div class="inset">
+     <div class="row"><span class="n">write</span><span class="tg">content/api/create-upload.md</span><span class="r">· <span class="add">+42</span></span></div>
+     <div class="row"><span class="n">write</span><span class="tg">content/api/list-uploads.md</span><span class="r">· <span class="add">+37</span></span></div>
+     <div class="row"><span class="r">… 12 more</span></div>
+     <div class="row"><span class="n">edit</span><span class="tg">content/meta.json</span><span class="r">· <span class="add">+15</span> <span class="del">-1</span></span></div>
+    </div>
+    <div class="stack"><div class="sc back2"></div><div class="sc back1"></div>
+     <div class="sc front"><div class="h"><span class="appicon ai-pi" style="width:14px;height:14px">π</span><b>link-checker</b><span class="cap working" style="height:18px"><span class="wdots"><i></i><i></i><i></i></span>Working</span><span class="spacer"></span><span class="r">pane w2:p3 ›</span></div>
+      <div class="row run"><span class="spin"></span><span class="n">bash</span><span class="tg">lychee content/api/*.md</span><span class="r">· running</span><span class="d">6s</span></div></div></div>
+    <div class="todo" style="margin-left:0"><div class="h"><span>Todo</span><span>3 of 5</span></div>
+     <div class="i dn"><span class="ck on">✓</span><span>One page per endpoint</span></div><div class="i dn"><span class="ck on">✓</span><span>Sidebar order in meta.json</span></div><div class="i dn"><span class="ck on">✓</span><span>Redirect /api/reference</span></div>
+     <div class="i"><span class="ck now"></span><span>Check links</span></div><div class="i"><span class="ck"></span><span>Commit</span></div></div>
+   </div>
+   <div class="sheet">
+    <div class="h"><span class="w">⚠︎</span><b>Allow git push?</b><span class="spacer"></span><span class="note2">from the guard extension</span></div>
+    <div class="cmd">git push origin docs/api-split</div>
+    <div class="btns" style="justify-content:flex-end"><span class="btn red">Deny <kbd>⎋</kbd></span><span class="btn">Always allow git push</span><span class="btn pri">Allow <kbd>↩</kbd></span></div>
+    <div class="ph2">Or type an answer for pi…</div>
+   </div>
+  </div>
+ </div></div>
+</div></div>
+<style>
+.island{position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;height:32px;padding:0 6px;border-radius:16px;background:var(--glass);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:0 0 0 .5px var(--glassedge) inset,0 1px 0 var(--glasshi) inset,var(--shadow);font-size:12px;white-space:nowrap}
+.win:not(.light) .island{background:rgba(50,50,56,.55)}
+.island .seg2{display:inline-flex;align-items:center;gap:5px;padding:0 9px;height:24px;border-radius:12px;color:var(--txt)}
+.island .seg2.st{color:var(--working)}.island .seg2.hot{background:var(--fill2)}
+.island .sep{width:1px;height:14px;background:var(--line)}.island .cv{font-size:8px;opacity:.6}
+.col{width:min(640px,100%);margin:0 auto;flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:12px;padding:56px 10px 12px;overflow:hidden;min-height:0}
+.ub{align-self:flex-end;max-width:80%;background:var(--acc);color:#fff;padding:8px 13px;border-radius:16px 16px 5px 16px}
+.as2{line-height:1.5}.as2 code{font:11.5px ui-monospace,monospace;background:var(--fill2);padding:1px 4px;border-radius:4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{height:24px;border-radius:12px;padding:0 10px;display:inline-flex;align-items:center;font-size:12px;color:var(--txt2);background:var(--fill1);box-shadow:0 0 0 .5px var(--line) inset}
+.chip.open{color:var(--txt);background:var(--fill2)}
+.inset{border-radius:12px;background:var(--fill1);padding:6px 12px;margin-top:-6px}
+.stack{position:relative;padding-top:8px}
+.sc{border-radius:12px;background:var(--glass);box-shadow:0 0 0 .5px var(--glassedge) inset,0 1px 0 var(--glasshi) inset}
+.sc.back2{position:absolute;left:16px;right:16px;top:0;height:20px;opacity:.4}.sc.back1{position:absolute;left:8px;right:8px;top:4px;height:20px;opacity:.7}
+.sc.front{position:relative;padding:8px 12px;box-shadow:0 0 0 .5px var(--glassedge) inset,0 1px 0 var(--glasshi) inset,var(--shadow)}
+.sc .h{display:flex;gap:7px;align-items:center;margin-bottom:3px}.sc .r{color:var(--txt3);font-size:11px}
+.sheet{width:min(660px,calc(100% - 20px));margin:0 auto 10px;border-radius:18px;padding:11px 14px 10px;background:color-mix(in srgb,var(--needs) 9%,var(--glass));backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:0 0 0 1px color-mix(in srgb,var(--needs) 50%,transparent) inset,0 1px 0 var(--glasshi) inset,var(--shadow)}
+.sheet .h{display:flex;gap:7px;align-items:center}.sheet .w{color:var(--needs)}
+.sheet .cmd{font:11.5px ui-monospace,monospace;background:var(--code);padding:6px 9px;border-radius:7px;margin:7px 0 9px}
+.sheet .ph2{color:var(--txt3);border-top:1px solid var(--line);margin-top:9px;padding-top:7px;font-size:12.5px}
+</style>
+<p class="mock-caption"><b>Why this one:</b> calm and roomy for one long task; state and model never scroll away; the
+answer to a question is in the composer's place. <b>Cost:</b> wastes width in a narrow split card; chips hide which
+file was touched until opened.</p>
+<h3 id="mock-d">D · Turn cards with a terminal drawer</h3>
+<p>Each turn is one card: your message on top, the work in the middle, a footer with the time, tokens and cost.
+When the agent asks something the adapter cannot draw, a drawer slides up over the composer with the live bottom of
+the terminal and key buttons; it slides away by itself when the agent stops being blocked. This is the fallback
+every agent gets. Shown with a plain opencode 1.x, which has no side door: its permission prompt is answered from the drawer.</p>
+<div class="desk"><div class="win" style="height:820px">
+ <div class="titlerow"><div class="lights"><i></i><i></i><i></i></div><span class="tbtn">▢</span><span class="tbtn">⌂</span>
+  <div class="tabs"><div class="tab"><span class="appicon ai-pi">π</span>docs <span class="dim">~/code/site</span></div><div class="tab sel"><span class="appicon ai-oc">◰</span>infra <span class="dim">terraform</span></div></div>
+  <div class="spacer"></div><span class="tbtn">◫</span><span class="tbtn">⊞</span><span class="tbtn">⌘</span><span class="tbtn">＋</span></div>
+ <div class="body">
+  <div class="sidebar"><div class="ph">devbox <span>＋</span></div>
+   <div class="wsrow sel"><span class="slot"><i class="dot needs"></i></span><div>infra<small>main · devbox</small></div></div>
+   <div class="wsrow"><span class="slot"><i class="dot done"></i></span><div>billing<small>fix/tax</small></div></div></div>
+  <div class="strip">
+   <div class="pcard kb">
+    <div class="phead"><span class="appicon ai-oc">◰</span><span class="lbl">opencode <span>devbox:~/infra</span></span><span class="cap needs"><i class="dot needs"></i>Needs you</span><div class="spacer"></div>
+     <span class="seg"><b class="on">Chat</b><b>Terminal</b></span><span class="hbtn">⧉</span><span class="hbtn">◫</span><span class="hbtn">⊟</span><span class="hbtn">⤢</span><span class="hbtn">✕</span></div>
+    <div class="chat" style="padding-right:14px;gap:10px">
+     <div class="turn">
+      <div class="th"><b>You</b><span>10:12</span></div>
+      <div class="tb">Why did last night's plan want to replace the NAT gateway?</div>
+      <div class="grp closed" style="padding-left:0"><div class="gsum"><span class="chev">▾</span>Read 4 files, ran 2 commands<span class="t">22s</span></div></div>
+      <div class="tb">The gateway's <code>subnet_id</code> now comes from <code>module.vpc</code>, whose output changed order, so Terraform sees a new subnet. Pinning the index keeps the same gateway.</div>
+      <div class="tf"><span class="dot done"></span>Done in 48s<span>· 12.4k tokens · $0.12</span></div>
+     </div>
+     <div class="turn live">
+      <div class="th"><b>You</b><span>10:15</span></div>
+      <div class="tb">Pin it and run a plan.</div>
+      <div class="grp" style="padding-left:0"><div class="gsum"><span class="chev">▾</span>Edited 1 file, running 1 command<span class="t"><span class="wdots"><i></i><i></i><i></i></span></span></div>
+       <div class="tree"><div class="row"><span class="n">edit</span><span class="tg">nat.tf</span><span class="r">· <span class="add">+1</span> <span class="del">-1</span></span></div>
+        <div class="row run"><span class="spin"></span><span class="n">bash</span><span class="tg">terraform plan -out=tfplan</span><span class="r">· running</span><span class="d">31s</span></div>
+        <div class="row"><span class="n">task</span><span class="tg">general · summarize the plan diff</span><span class="r">· waiting</span></div></div></div>
+     </div>
+    </div>
+    <div class="drawer">
+     <div class="dh"><span class="dot needs"></span><b>opencode needs you</b><span class="spacer"></span><span class="btn" style="height:22px">Open Terminal</span></div>
+     <div class="dterm"><span class="d">┃</span>  <b class="y">△ Permission required</b>
+<span class="d">┃</span>  $ terraform plan -out=tfplan -lock=false
+<span class="d">┃</span>
+<span class="d">┃</span>  <span class="inv"> Allow once </span>   Allow always    Reject
+<span class="d">┃</span>  <span class="d">⇆ select   enter confirm</span></div>
+     <div class="btns"><span class="kbdk">←</span><span class="kbdk">→</span><span class="kbdk" style="padding:0 9px">Return</span><span class="kbdk">Esc</span><span class="spacer"></span></div>
+    </div>
+    <div class="composer" style="opacity:.45"><div class="ph">Reply to opencode</div>
+     <div class="ctl"><span class="pill">＋</span><span class="spacer"></span><span class="pill">Claude Sonnet 4.5 <span class="cv">▾</span></span><span class="pill">Build <span class="cv">▾</span></span><span class="pill">$0.19</span><span class="round stop">■</span></div></div>
+   </div>
+  </div>
+ </div>
+</div></div>
+<style>
+.turn{border-radius:14px;background:var(--fill1);padding:10px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 0 0 .5px var(--line) inset}
+.turn.live{box-shadow:0 0 0 1px color-mix(in srgb,var(--needs) 40%,transparent) inset}
+.turn .th{display:flex;justify-content:space-between;font-size:11.5px;color:var(--txt3)}.turn .th b{color:var(--txt2);font-weight:600}
+.turn .tb code{font:11.5px ui-monospace,monospace;background:var(--fill2);padding:1px 4px;border-radius:4px}
+.turn .tf{display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--txt2);border-top:1px solid var(--line);padding-top:7px}.turn .tf span:last-child{color:var(--txt3)}
+.drawer{margin:0 10px 8px;border-radius:14px;padding:9px 12px 10px;background:var(--glass);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:0 0 0 1px color-mix(in srgb,var(--needs) 45%,transparent) inset,0 1px 0 var(--glasshi) inset,0 -10px 40px rgba(0,0,0,.35)}
+.drawer .dh{display:flex;gap:7px;align-items:center;margin-bottom:7px}
+.dterm{font:12px/1.5 ui-monospace,"SF Mono",monospace;white-space:pre;background:rgba(0,0,0,.35);color:#e6e6e6;border-radius:8px;padding:8px 10px;margin-bottom:8px}
+.light .dterm{background:rgba(0,0,0,.78)}
+.dterm .d{color:#7d8590}.dterm .y{color:#e3b341;font-weight:600}.dterm .inv{background:#e6e6e6;color:#000}
+</style>
+<p class="mock-caption"><b>Why this one:</b> turns map to how people think about a session ("what did that request do,
+what did it cost"); the drawer covers every prompt of every agent, with no parser, and works on remote machines.
+<b>Cost:</b> more vertical space per turn; the drawer shows terminal text, not native buttons.</p>
+<h3 id="mock-e">E · The pill card (the same view, small)</h3>
+<p>The floating pill's card reuses the chat view at 360 pt: the last reply, the current group's summary line, an
+approval with its buttons, and the composer. Nothing new to build once A–D exist.</p>
+<div class="desk fixed" style="display:flex;gap:28px;justify-content:center;padding:40px">
+ <div class="win" style="width:360px;height:430px;display:flex;flex-direction:column">
+  <div class="phead" style="height:40px"><span class="appicon ai-claude">✳</span><span class="lbl">api <span>claude</span></span><span class="cap needs"><i class="dot needs"></i>Needs you</span><div class="spacer"></div><span class="hbtn">⤢</span></div>
+  <div class="chat" style="padding:4px 14px 8px 16px">
+   <div class="as"><p>One test fails: the limiter keeps its window between tests. I'll clear the store and rerun.</p></div>
+   <div class="grp closed"><div class="gsum"><span class="chev">▾</span>Edited 1 file, running 2 commands<span class="t"><span class="wdots"><i></i><i></i><i></i></span></span></div></div>
+   <div class="ask" style="margin-left:0"><div class="h"><span class="w">⚠︎</span>Run this command?</div><div class="cmd">rm -rf .cache/jest &amp;&amp; npm test -- upload</div>
+    <div class="btns"><span class="btn pri">Allow</span><span class="btn">Always</span><span class="btn red">Deny</span></div></div>
+  </div>
+  <div class="composer" style="margin:0 8px 8px"><div class="ctl"><span class="ph" style="padding:0 4px;flex:1">Reply to claude</span><span class="round">↑</span></div></div>
+ </div>
+ <div class="win light" style="width:360px;height:430px;display:flex;flex-direction:column">
+  <div class="phead" style="height:40px"><span class="appicon ai-codex">◎</span><span class="lbl">web <span>codex</span></span><span class="cap done"><i class="dot done"></i>Done</span><div class="spacer"></div><span class="hbtn">⤢</span></div>
+  <div class="chat" style="padding:4px 14px 8px 16px">
+   <div class="grp closed"><div class="gsum"><span class="chev">▾</span>Edited 2 files, ran 3 commands<span class="t">1m 12s</span></div></div>
+   <div class="as"><p>Fixed: the error now shows only after a submit. Added <code>LoginForm.test.tsx</code> with the 401 case; the full suite passes (212 tests).</p></div>
+   <div class="working-row" style="color:var(--done)">✓ Done in 1m 48s · 61% context</div>
+  </div>
+  <div class="composer" style="margin:0 8px 8px"><div class="ctl"><span class="ph" style="padding:0 4px;flex:1">Reply to codex</span><span class="round">↑</span></div></div>
+ </div>
+</div>
+
+<h3 id="states">States: working, needs you, done, error (dark and light)</h3>
+<p>The header's state capsule uses Oriel's status colors (working blue, needs-you amber, finished green, error red),
+the same as the sidebar's dots. The bottom of the chat changes with the state.</p>
+<div class="desk" id="statesdesk"><div class="states">
+ <div class="win mini" style="display:flex;flex-direction:column">
+  <div class="phead"><span class="appicon ai-claude">✳</span><span class="lbl">claude</span><span class="cap working"><span class="wdots"><i></i><i></i><i></i></span>Working</span><div class="spacer"></div><span class="seg"><b class="on">Chat</b><b>Term</b></span></div>
+  <div class="chat" style="padding:4px 12px 6px 14px"><div class="grp"><div class="gsum"><span class="chev">▾</span>Reading 2 files<span class="t"></span></div><div class="tree"><div class="row run"><span class="spin"></span><span class="n">read</span><span class="tg">src/app.ts</span></div></div></div>
+   <div class="working-row"><span class="wdots"><i></i><i></i><i></i></span>Working · 14s</div></div>
+  <div class="composer" style="margin:0 8px 8px;padding:6px 8px"><div class="ctl"><span class="ph" style="padding:0 2px;flex:1;font-size:12px">Reply to claude</span><span class="round stop">■</span></div></div></div>
+ <div class="win mini" style="display:flex;flex-direction:column">
+  <div class="phead"><span class="appicon ai-codex">◎</span><span class="lbl">codex</span><span class="cap needs"><i class="dot needs"></i>Needs you</span><div class="spacer"></div><span class="seg"><b class="on">Chat</b><b>Term</b></span></div>
+  <div class="chat" style="padding:4px 12px 6px 14px"><div class="ask" style="margin-left:0;padding:9px 10px"><div class="h"><span class="w">⚠︎</span>Allow this command?</div><div class="cmd">cargo test</div><div class="btns"><span class="btn pri">Yes</span><span class="btn">Always</span><span class="btn red">No</span></div></div></div>
+  <div class="composer" style="margin:0 8px 8px;padding:6px 8px;opacity:.5"><div class="ctl"><span class="ph" style="padding:0 2px;flex:1;font-size:12px">Reply to codex</span><span class="round">↑</span></div></div></div>
+ <div class="win mini" style="display:flex;flex-direction:column">
+  <div class="phead"><span class="appicon ai-pi">π</span><span class="lbl">pi</span><span class="cap done"><i class="dot done"></i>Done</span><div class="spacer"></div><span class="seg"><b class="on">Chat</b><b>Term</b></span></div>
+  <div class="chat" style="padding:4px 12px 6px 14px"><div class="as"><p>All 14 pages written; the link check is clean.</p></div><div class="working-row" style="color:var(--done)">✓ Done in 3m 02s · $0.31</div></div>
+  <div class="composer" style="margin:0 8px 8px;padding:6px 8px"><div class="ctl"><span class="ph" style="padding:0 2px;flex:1;font-size:12px">Reply to pi</span><span class="round">↑</span></div></div></div>
+ <div class="win mini" style="display:flex;flex-direction:column">
+  <div class="phead"><span class="appicon ai-oc">◰</span><span class="lbl">opencode</span><span class="cap err"><i class="dot err"></i>Error</span><div class="spacer"></div><span class="seg"><b class="on">Chat</b><b>Term</b></span></div>
+  <div class="chat" style="padding:4px 12px 6px 14px"><div class="as"><p>Checking the plan output…</p></div>
+   <div class="ask" style="margin-left:0;padding:9px 10px;background:color-mix(in srgb,var(--err) 9%,var(--glass));box-shadow:0 0 0 1px color-mix(in srgb,var(--err) 45%,transparent) inset"><div class="h"><span style="color:var(--err)">⨯</span>Provider error</div><p class="why" style="margin:4px 0 6px">529 overloaded · retried 3 times</p><div class="btns"><span class="btn">Retry</span><span class="btn" style="background:none;box-shadow:none;color:var(--txt2)">Open Terminal</span></div></div></div>
+  <div class="composer" style="margin:0 8px 8px;padding:6px 8px"><div class="ctl"><span class="ph" style="padding:0 2px;flex:1;font-size:12px">Reply to opencode</span><span class="round">↑</span></div></div></div>
+</div></div>
+<div class="desk lightdesk" id="statesdesk-light"></div>
+<h3 id="pick">Which design</h3>
+<p><b>A in pane cards, C when a card is zoomed or floated, E for the pill card, D's drawer as the fallback inside all of them.</b>
+A is the densest and matches the pi-content-layout look the user reads all day. Take two things from B: the approval card
+pins above the composer while it is scrolled out of view, and the plan shows as a small capsule over the composer
+("Plan 2 of 4") that opens the list. B's inspector costs too much width in split cards; keep it for later if users ask.</p>
+
+<h2 id="open">Risks and open questions</h2>
+<h4>Risks</h4>
+<ol>
+<li><b>Format churn.</b> Codex replaced its event names within ten releases; Claude Code adds entry types often; opencode 2.x changes
+storage and API. Parsers must skip what they do not know and key on the version in the file's header.</li>
+<li><b>Typing into a picker.</b> herdr reports <code>idle</code> for pickers and pi's dialogs. The send guard reads the screen; an upstream
+fix in herdr is better (below).</li>
+<li><b>Side channels need the launch.</b> Claude Code, Codex and opencode 1.x get their side channel only when Oriel starts them.
+Panes the user started stay on Base.</li>
+<li><b>Writes to the user's config.</b> <code>/model x</code> and Return in pickers (Claude Code, Codex), Esc on Codex's startup
+promo, pi's <code>/reload</code> (<code>trust.json</code>) all wrote global files during the spikes. The adapters must use the
+session-only paths.</li>
+<li><b>Policy and races</b> on approvals (above): show what really happened, not what was clicked.</li>
+</ol>
+<h4>Open questions for the user</h4>
+<ol>
+<li><b>Should Oriel start agents?</b> A New Agent menu that launches Claude Code with Oriel's <code>--settings</code>, Codex with
+<code>--remote</code> and an app-server pane, and opencode with <code>--port</code> is the only way to give those three live text and
+in-chat approvals. It changes how agents start (and bypasses the user's shell aliases).</li>
+<li><b>The pi bridge:</b> ship it in pi-hkandala (loaded everywhere pi-hkandala is installed, so remote machines get it too), or have
+Oriel copy it to each machine? The second breaks "nothing installed on machines".</li>
+<li><b>Codex remote:</b> a line↔WebSocket shim sent with each run (Perl is on every machine the relay works on), or Codex side channel
+on This Mac only?</li>
+<li><b>History:</b> keep the 256 KiB start, or page back further on scroll?</li>
+<li><b>Upstream asks for herdr:</b> keep Claude Code's <code>transcript_path</code>; follow <code>/branch</code> and Codex
+<code>/fork</code>; report <code>blocked</code> for pickers and pi's <code>ui_prompt</code> dialogs; detect opencode 2.x.</li>
+</ol>
+
+<h2 id="sources">Sources</h2>
+<ul>
+<li>Helper reports with evidence from throwaway runs, in the Oriel repo: <code>resources/research/agents/claude-code.md</code>,
+<code>codex.md</code>, <code>pi.md</code>, <code>opencode.md</code>, and the pi bridge spike <code>pi-bridge.ts</code>.</li>
+<li>Oriel: <code>docs/content/docs/future-work/chat-view.mdx</code>, <code>resources/research/ui/chat-view.md</code>,
+<code>resources/research/clients/{orca,paseo,paradev}.md</code>, <code>resources/research/multiplexers/herdr.md</code>.</li>
+<li>UI reference: pi-hkandala <code>extensions/pi-content-layout</code>.</li>
+</ul>
+</div>
+<script>
+// Light copies: the states strip and design A, cloned so they stay in sync with the dark originals.
+for (const [src, dst] of [["statesdesk", "statesdesk-light"], ["a-dark", "a-light"]]) {
+  const from = document.getElementById(src), to = document.getElementById(dst);
+  if (!from || !to) continue;
+  const copy = from.firstElementChild.cloneNode(true);
+  copy.querySelectorAll(".win").forEach(w => w.classList.add("light"));
+  if (copy.classList.contains("win")) copy.classList.add("light");
+  to.appendChild(copy);
+}
+// Click a group's summary line to open or close it, as in pi-content-layout.
+document.addEventListener("click", e => {
+  const s = e.target.closest(".gsum");
+  if (s) s.parentElement.classList.toggle("closed");
+});
+// The page's appearance switch: every mock-up window and its desktop.
+function setLook(mode, btn) {
+  document.querySelectorAll(".seg-page button").forEach(b => b.classList.toggle("on", b === btn));
+  document.querySelectorAll(".desk:not(.fixed)").forEach(d => {
+    const light = mode === "light" ? true : mode === "dark" ? false : d.classList.contains("lightdesk-orig");
+    d.classList.toggle("lightdesk", light);
+    d.querySelectorAll(".win:not(.fixed)").forEach(w => w.classList.toggle("light", light));
+  });
+}
+document.querySelectorAll(".desk.lightdesk").forEach(d => d.classList.add("lightdesk-orig"));
+</script>
+</body>
+</html>

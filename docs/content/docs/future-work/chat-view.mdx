@@ -1,73 +1,99 @@
 ---
 title: "Chat view"
-description: "Transcripts, screen-text chat, sending, answering and switching views"
+description: "Transcripts, side channels, sending, answering, model and mode, and switching views"
 ---
 
 Not built. This page is the design of the chat view: an agent or terminal
 pane drawn as messages with a reply box, instead of its terminal. The agent
 keeps running in its herdr pane; the chat is a second way to look at the same
 process, so switching ends nothing, and it works the same on remote machines.
+It has a parser for Claude Code, Codex, pi and opencode, and screen text for
+every other pane. The research, a capability matrix per agent and mock-ups
+are in `resources/research/ui/chat-view.md` and its `chat-view.html`.
 
 ## Where messages come from
 
-1. Find the transcript from the pane's `agent_session`: a path when herdr
-   gives one (pi), else an id (Claude Code, Codex).
-2. Find the file on the machine: `ls`, or `lsof` for Codex.
-3. Tail it with `tail -c +N -F`: new lines arrive as the agent writes them.
-4. Parse each line into user text, assistant text, thinking and tool calls.
+1. Find the agent's history from the pane's `agent_session`: a path when herdr
+   gives one (pi), else an id (Claude Code, Codex, opencode).
+2. Find it on the machine: a path rule, `lsof`, or opencode's database.
+3. Follow it: `tail -c +N -F` for a file, a poll for opencode's database.
+4. Parse each entry into user text, assistant text, thinking and tool calls.
 5. Draw the messages: Markdown, with tool calls collapsed.
 
-herdr keeps no chat history, but it knows where each agent writes its own
-transcript: `agent_session` on the pane.
+herdr keeps no chat history, but it knows where each agent writes its own:
+`agent_session` on the pane.
 
-| Agent | `agent_session` | Transcript file on the machine |
+| Agent | `agent_session` | History on the machine |
 |---|---|---|
-| pi | `kind:"path"` | that path |
-| Claude Code | `kind:"id"` | `~/.claude/projects/*/<id>.jsonl` |
+| pi | `kind:"path"` | that path, a JSON Lines tree |
+| Claude Code | `kind:"id"` | `~/.claude/projects/<cwd, with / and . as ->/<id>.jsonl` |
 | Codex | `kind:"id"` (a hint only) | the `rollout-*.jsonl` file the pane's codex process holds open |
+| opencode | `kind:"id"` (`ses_…`) | rows in `opencode.db` (SQLite), which the pane's process holds open |
 
-### Codex and missing integrations
+### Finding the file
 
-- Codex starts a shared app-server daemon by default and its TUI attaches to
-  it. The daemon then runs the hooks and writes the rollouts, so herdr's id can
-  point at another pane's thread. The app checks the pane's foreground
-  processes for an open rollout file (`lsof -p <pid> -Fn`, or `/proc/<pid>/fd`
-  on Linux). A Codex started with `--no-daemon` (herdr's advice for its
-  integration) holds its rollout open; a Codex on the daemon does not, and its
-  pane uses the screen-text chat.
-- Claude Code and Codex report `agent_session` only when herdr's
-  integration is installed. If it is missing, the pane uses the screen-text
-  chat. The app shows no text that tells the user to run a herdr command
-  (an installer for agent integrations is left out on purpose,
+- **Codex:** `lsof -p <pid> -Fn` (or `/proc/<pid>/fd` on Linux) on the pane's
+  foreground codex process. One process holds every rollout it opened (older
+  threads after `/new`, `/resume` or `/fork`, and reviewer sub-threads), so
+  the app keeps the files whose first line has `source` `cli` and takes the
+  newest. herdr's id stays on the parent after `/fork`. A Codex attached to
+  a shared app-server holds no rollout; its pane uses the screen-text chat.
+- **opencode:** `lsof` gives the database; the session id comes from herdr's
+  opencode plugin.
+- **Not there yet:** pi, Claude Code and Codex write their file at the first
+  message, after herdr reports it. The tail waits for it (`tail -F`).
+- **No integration:** Claude Code, Codex and opencode report `agent_session`
+  only when herdr's integration is installed. If it is missing, the pane uses
+  the screen-text chat. The app shows no text that tells the user to run a
+  herdr command (an installer for agent integrations is left out on purpose,
   [Future work](/docs/future-work#left-out-on-purpose)).
 
 ### Read and parse
 
-- **Read:** the app finds the file once. Then it runs one long-lived
+- **Read:** the app finds the history once. For a file it runs one long-lived
   `tail -c +<offset> -F <file>` on the machine (the chat tail), wrapped so a
-  closed channel ends it. New lines arrive as the agent writes them. A chat
-  tail has no timeout, like the other long-lived streams; the
+  closed channel ends it. For opencode it runs
+  `sqlite3 -json <db> "<rows changed since the last read>"` (or
+  `opencode db`) once a second while the chat is shown. A chat tail has no
+  timeout, like the other long-lived streams; the
   [health check](/docs/machines#health-check) finds a dead one.
 - On open it reads the last 256 KiB and drops the first partial line. Simpler
   choice: no older history in v1. Revisit when users ask for history older
   than the last 256 KiB.
-- **Parse:** a small, lenient parser per agent turns lines into messages:
-  user text, assistant text (Markdown), thinking (collapsed), tool calls and
-  results (one collapsed row each), images. Unknown lines are skipped.
+- **Parse:** a small, lenient parser per agent turns entries into messages:
+  user text, assistant text (Markdown), thinking (collapsed; Claude Code and
+  Codex save no thinking text, so a "Thought for 6s" row), tool calls and
+  results paired by their id, subagents, plans and todos, images. Unknown
+  entries are skipped. Codex: the `item_completed` items. pi: walk `parentId`
+  from the last entry, so abandoned branches stay hidden.
 - **Markdown:** `AttributedString(markdown:)` with the `.full` syntax option,
   split into blocks. Code blocks are monospaced and scroll sideways.
-- **Session changes** (`/new`, `/resume`) do not always send an event, so
-  while a chat view is open the app re-checks `agent_session` on each
-  snapshot and after each send, and restarts the tail when it changes.
-- **More parsers** come later, one per agent that writes a transcript.
-- **Working row:** agents write a message to the transcript when it is done,
-  not word by word. While `agent_status` is `working`, the last row says
-  "Working".
-- **Known limits:** pi transcripts are trees and are read in file order.
-  A custom `CLAUDE_CONFIG_DIR` is not followed in v1, until herdr reports
-  Claude Code's path too
-  ([Waiting on herdr](/docs/future-work#waiting-on-herdr)). Codex needs no
-  folder: `lsof` gives the full path.
+- **Session changes** (`/new`, `/clear`, `/branch`, `/fork`, `/resume`) do not
+  always send an event, so while a chat view is open the app re-checks
+  `agent_session` on each snapshot and after each send, and restarts the tail
+  when it changes.
+- **Working row:** agents write a message when it is done, not word by word.
+  While `agent_status` is `working`, the last row says "Working".
+- **Known limits:** a custom `CLAUDE_CONFIG_DIR` is not followed in v1, until
+  herdr reports Claude Code's path too
+  ([Waiting on herdr](/docs/future-work#waiting-on-herdr)).
+
+## Side channels
+
+Later, after the first version. Each agent can also be reached beside its
+TUI, without ending it. A side channel adds text word by word and real
+answer buttons. The chat uses one when the pane has it, and the transcript
+otherwise.
+
+| Agent | Side channel | When a pane has it |
+|---|---|---|
+| pi | a bridge extension inside the TUI, on a unix socket | loaded with `-e`, or attached to a running pi with `/reload` |
+| opencode | its HTTP server: SSE events and a few calls, through `curl` | every 2.x pane; 1.x started with `--port` |
+| Claude Code | hooks and a statusline in `--settings`, through files on the machine | started by Oriel |
+| Codex | a second client of its app-server | started by Oriel as `codex --remote` to an app-server in a hidden pane |
+
+Order: pi, then opencode, then Claude Code and Codex together with a way for
+Oriel to start agents.
 
 ## Screen-text chat
 
@@ -86,22 +112,56 @@ transcript: `agent_session` on the pane.
   - `agent_blocked`: herdr refuses while a dialog is open, so a message can
     never approve a prompt by accident. The draft is kept.
   - `agent_not_ready`: "Agent is starting". The draft is kept.
-  - While the agent is working, Send stays on; the text joins the agent's own
-    input queue.
+  - **A menu is open:** herdr reports `idle` for the agents' pickers (model,
+    sessions) and for pi's extension dialogs, so a send would type into them.
+    Before each send the app reads the last screen lines; if they end in the
+    agent's picker footer, it shows "A menu is open" with **Open Terminal**
+    and keeps the draft.
+  - While the agent is working, Send stays on. Claude Code and opencode queue
+    the text, Codex and pi steer the running turn with it.
 - A pasted image becomes a path in the draft
   ([Image paste](/docs/future-work/plugins/agent#image-paste)).
 - Sends to one pane go one at a time, in order. Drafts are kept in memory per
   pane and shared with the pill card.
-- **Blocked panel:** the bottom of the screen (`pane.read {source:"detection",
-  format:"text"}`) and key buttons that send `agent.send_keys` with `"up"`,
-  `"down"`, `"enter"`, `"esc"`, `"1"`, `"2"`, `"3"`. **Open terminal** flips
-  the card to the terminal view. There is no per-agent prompt parsing.
-- **Key guard:** while the panel is shown, its text is re-read on every
+- **Stop** sends the agent's interrupt: Esc (opencode: Esc twice). Never
+  ctrl+c, which quits some agents.
+- **Needs you:** while the agent is `blocked`, a drawer covers the reply box.
+  It shows the bottom of the screen (`pane.read {source:"detection",
+  format:"text"}`), the agent's answer keys as named buttons, and **Open
+  Terminal**, which flips the card to the terminal view. The keys are a
+  fixed map per agent, with no prompt parsing: Claude Code Return (first
+  option), ↓, Esc; Codex `y`, digits, Esc; opencode Return, ←, →, digits,
+  Esc; pi ↑, ↓, Return, Esc; `agent.send_keys` for each. Esc in Claude Code
+  and Codex also ends the turn, so its button says "No, stop". The drawer
+  closes when the agent is working or idle again.
+- **Key guard:** while the drawer is shown, its text is re-read on every
   snapshot change for that pane. On a click the app reads it once more and
   sends the key only if the agent is still blocked **and** the text is
   unchanged. Otherwise it shows "Prompt changed, not sent". The prompt may
   have been answered on another device. A spinner tick can cause a false
   "changed", which is the safe failure.
+- **With a side channel** the request arrives with its command, diff, plan or
+  questions, and the chat draws an approval card with the agent's own options
+  instead of the drawer. The TUI shows its dialog too; the first answer wins,
+  and the card then says where it was answered. Another hook's decision (a
+  company policy that allows) wins over the card, and the card shows that.
+
+## Model and mode
+
+- The reply box shows the model, the effort or thinking level, the mode,
+  context and cost, read from the history (Codex: `turn_context`; Claude
+  Code: each message's model, the mode from the screen's footer).
+- **Mode** is one key per step: shift+tab in Claude Code (auto, manual,
+  accept edits, plan), Codex (plan) and pi (thinking level); tab in opencode
+  (build, plan). The menu sends it until the read-back shows the choice.
+- **Model:** pi takes `/model <exact id>` typed, so its menu is real. For
+  the others the model button sends `/model` (`/models` in opencode) and
+  flips to the drawer with the agent's own picker. In Claude Code and Codex
+  the app answers the picker's last step with `s`, so the choice stays in
+  this session; Return there, and Claude Code's `/model <name>`, write the
+  user's global settings.
+- With a side channel, Codex (`turn/start` with a model and effort), pi and
+  opencode 2.x change the model directly.
 
 ## Switching views
 
@@ -118,28 +178,31 @@ transcript: `agent_session` on the pane.
 - The card keeps its header, with the chat|term switch. Under it the
   messages scroll, newest at the bottom, and the reply box sits at the
   bottom of the card.
-- If the agent needs you, the blocked panel shows the bottom of its screen
-  and the key buttons, above the reply box.
+- The look of pi-hkandala's content layout: user messages in a rounded box,
+  replies after a dot, and every run of tool calls between two replies
+  folded into one summary line ("Read 3 files, ran 1 command", failures in
+  red) that opens into one row per call. Edits open with their diff. A
+  running call shows a spinner and its time.
+- A zoomed or floated card centers the messages in a reading column, with
+  the state, model and context in a glass capsule at the top.
+- If the agent needs you, the drawer or the approval card sits above the
+  reply box.
 - The same view, smaller, is the [floating pills](/docs/future-work/pills)'
   pill card.
 
 ## Choices
 
-- **The agent's transcript, tailed on the machine, plus `agent.prompt`**;
-  parsers for pi, Claude Code and Codex; a screen-text chat for every other
-  agent or terminal pane. Any agent or terminal pane can switch, and nothing
-  ends. Rejected: per-agent prompt parsers;
-  parsing the screen into fake messages.
+- **The agent's history, followed on the machine, plus `agent.prompt`**;
+  parsers for Claude Code, Codex, pi and opencode; a screen-text chat for
+  every other agent or terminal pane. Any agent or terminal pane can switch,
+  and nothing ends. Rejected: per-agent prompt parsers (a fixed key map per
+  agent instead); parsing the screen into fake messages.
 - **The key guard.** The prompt may have changed on another device. Rejected:
   sending without a check.
-- **No structured mode.** Rejected: restarting the agent in a structured mode
-  (Claude Code's stream-json, `codex app-server`, `pi --mode rpc`) or through
-  ACP. It ends the agent to switch, needs a fork to come back (two processes
-  must not write one session), takes a large adapter per agent, and on a
-  remote machine the process would die with the SSH link, where a herdr pane
-  lives on.
-- **Later, Codex only:** codex's app-server sends a thread's events to every
-  client that resumed it, so a chat could join the running thread of a Codex
-  on the daemon, with live text. Revisit when users ask for it; it needs a
-  reliable way from a pane to its thread and a line adapter on the relay (the
-  socket speaks WebSocket).
+- **Side channels beside the TUI, never instead of it.** Rejected:
+  restarting the agent in a structured mode (Claude Code's stream-json,
+  `codex app-server` alone, `pi --mode rpc`) or through ACP. It ends the agent
+  to switch, needs a fork to come back (two processes must not write one
+  session: `pi --mode rpc` on the TUI's file split its tree), takes a large
+  adapter per agent, and on a remote machine the process would die with the
+  SSH link, where a herdr pane lives on.
