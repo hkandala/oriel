@@ -48,7 +48,7 @@ struct PiAgent: ChatAdapter {
         umask 077; d=$HOME/.cache/oriel; f=$HOME/$1
         mkdir -p "$d" && chmod 700 "$d" && base64 -d >"$f.$$" && mv "$f.$$" "$f" || exit 1
         find "$d/chat" -mindepth 2 -mtime +30 -delete 2>/dev/null
-        find "$d/chat" -mindepth 1 -type d -empty -delete 2>/dev/null; exit 0
+        find "$d/chat" -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null; exit 0
         """#
         guard let channel = try? await exec.run(["sh", "-c", script, "sh", file]) else { return nil }
         channel.write(source.base64EncodedString())

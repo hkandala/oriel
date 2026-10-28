@@ -19,7 +19,7 @@ struct Codex: ChatAdapter {
         let folder = "$HOME/.cache/oriel/chat/\(token)"
         return "umask 077;mkdir -p \(folder);awk 1 >>\(folder)/hooks.jsonl;"
             + "find $HOME/.cache/oriel/chat -mindepth 2 -mtime +30 -delete 2>/dev/null;"
-            + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -delete 2>/dev/null"
+            + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null"
     }
 
     /// The trust key is the `-c` layer's own (`codex-rs/hooks`); an inline table, as the `-c` parser splits a dotted

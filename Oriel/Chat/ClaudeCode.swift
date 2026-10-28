@@ -24,10 +24,12 @@ struct ClaudeCode: ChatAdapter {
     /// ponytail: `$HOME` unquoted, so a home folder with a space gets no chat; quote it (escaped JSON) if one shows up.
     static func flags(_ token: String) -> String {
         let folder = "umask 077;set -f;d=$HOME/.cache/oriel/chat/\(token);mkdir -p $d"
-        // Side files untouched for 30 days go, then empty folders (appends do not change a folder's time).
+        // Side files untouched for 30 days go, then empty folders (appends do not change a folder's time; a minute old:
+        // not one a launch just made). ponytail: a session idle 30 days loses its chat on a relaunch; touch the files
+        // on use if that shows up.
         let start = "\(folder);{ tr -d [:cntrl:];echo;}>>$d/hooks.jsonl;"
             + "find $HOME/.cache/oriel/chat -mindepth 2 -mtime +30 -delete 2>/dev/null;"
-            + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -delete 2>/dev/null"
+            + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null"
         let ask = "\(folder);rm -f $d/answer;echo $$ >$d/ask;{ tr -d [:cntrl:];echo;}>>$d/hooks.jsonl;n=0;"
             + "while [ $n -lt 9000 ] && grep -qx $$ $d/ask 2>/dev/null && kill -0 $PPID 2>/dev/null;do "
             + "if [ -f $d/answer ];then cat $d/answer;rm -f $d/answer $d/ask;exit 0;fi;sleep 0.2;n=$((n+1));done;"
