@@ -29,7 +29,7 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 - **Results.** Each test job uploads `e2e-xcresult-<shard>`: the xcresult with screen recordings, also of
   green runs. The checks job uploads the strip check's captures (`strip-check`).
 - **Time.** A full run takes 10–14 minutes: about 2 minutes of setup and build per job plus a fifth of about
-  2130 s of UI tests.
+  2835 s of UI tests.
 
 ## Running part of it
 
