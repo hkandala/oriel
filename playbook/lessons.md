@@ -57,6 +57,8 @@ Problems that came back across phases, and the rule that stops each. How we work
   and defaults: `pane.swap` moves focus despite `focus:false`; `pane.move` without a target splits the
   focused pane; some calls write outside the throwaway session (`worktree.create` writes to
   `~/.herdr/worktrees/`, so tests never call it). Trust the spike over the design pages.
+- **`agent.prompt` needs a foreground process with the agent's name** (`claude`), also for an agent reported with
+  `report-agent`: a stand-in agent runs under that name.
 - **herdr ids repeat:** tab ids (`w1:t1`) across sessions, session names across machines. Key state by
   (machine, session, id).
 - **Validate outside input before it reaches argv or a shell:** `oriel://` URLs, herdr metadata, dropped
