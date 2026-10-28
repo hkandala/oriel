@@ -189,10 +189,12 @@ extension Page {
         guard tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
         // The stack's first, without the stack: the menus ask for every tab's title.
         let front = keyboardCard(tab.id) ?? store.panes(in: tab.id).first
-        guard let pane = front, let name = pane.programName else {
+        // Its front card asks what it runs (ui/new-pane): "New Tab", as the card's header says "New Pane".
+        let choosing = front.map { store.chooser($0.id) != nil } ?? false
+        guard let pane = front, let name = pane.programName, !choosing else {
             // A new tab (a stand-in, or a pane whose shell still starts): "New Tab", never a number. Else the
             // number, for a pane whose program herdr cannot say.
-            return (front?.starting == false ? tab.label : "New Tab", nil)
+            return (front?.starting == false && !choosing ? tab.label : "New Tab", nil)
         }
         // The folder's name ("pi oriel"), as in Rex: a tab is narrow.
         return (name, pane.cwd.map { $0 == Self.home ? "~" : ($0 as NSString).lastPathComponent })

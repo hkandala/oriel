@@ -342,8 +342,11 @@ extension HostStore {
     /// first pane, which asks what it runs.
     func newWorkspace(label: String? = nil, cwd: String = "~") async -> HerdrKit.Pane? {
         var created: HerdrKit.Pane?
-        await write { created = try await $0.newWorkspace(label: label, cwd: cwd) }
-        choose(created)
+        // Before the snapshot that shows it, so its first frame has the chooser.
+        await write {
+            created = try await $0.newWorkspace(label: label, cwd: cwd)
+            choose(created)
+        }
         return created
     }
 
