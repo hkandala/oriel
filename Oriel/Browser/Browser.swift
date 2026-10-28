@@ -83,8 +83,13 @@ final class Browser: NSObject {
         view.uiDelegate = self
         view.onKey = { [weak self] in self?.key($0) ?? false }
         view.setAccessibilityIdentifier("browser.\(paneID)")
-        // KVO on the main thread: WebKit changes these there.
-        watches = [
+        watches = watch()
+        Task { await start() }
+    }
+
+    /// The toolbar's values, by KVO on the main thread, where WebKit changes them.
+    private func watch() -> [NSKeyValueObservation] {
+        [
             view
                 .observe(\.isLoading) { [weak self] view, _ in
                     MainActor.assumeIsolated { self?.loading = view.isLoading }
@@ -111,7 +116,6 @@ final class Browser: NSObject {
                 }
             },
         ]
-        Task { await start() }
     }
 
     /// The load rule: the saved address (the state file on the pane's machine), else the label's; a machine's own
