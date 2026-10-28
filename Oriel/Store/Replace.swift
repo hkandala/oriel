@@ -12,6 +12,13 @@ extension Ahead {
         /// herdr's answer to the split: the new pane.
         var made: HerdrKit.Pane?
     }
+
+    /// `cards` after a show: the new panes still there, and the ones that just took replaced panes' places.
+    mutating func keepCards(_ ids: [String]) {
+        cards = cards.filter { ids.contains($0.key) }.merging(replaced.compactMap { old, new in
+            new.made.map { ($0.id, old) }
+        }) { $1 }
+    }
 }
 
 /// Replace Pane (⌘R): a fresh shell in the pane's place, size and folder, as after a change to the shell's setup.

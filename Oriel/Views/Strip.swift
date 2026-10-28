@@ -210,12 +210,12 @@ private struct SplitLayout: View {
         guard let placed else { return [:] }
         // Not `uniqueKeysWithValues`: a pane twice in herdr's tree must not crash the app.
         var views = Dictionary(placed.filter { ids.contains($0.id) }, uniquingKeysWith: { first, _ in first })
+        for (new, old) in page.store.ahead.cards where ids.contains(new) {
+            views[new] = placed.first { $0.id == old }?.view ?? views[new]
+        }
         let gone = placed.filter { Ahead.isStandIn($0.id) && !ids.contains($0.id) }
         for (new, old) in zip(ids.filter { views[$0] == nil }, gone) {
             views[new] = old.view
-        }
-        for (old, new) in page.store.ahead.replaced.compactMapValues(\.made?.id) where ids.contains(new) {
-            views[new] = placed.first { $0.id == old }?.view ?? views[new]
         }
         return views
     }

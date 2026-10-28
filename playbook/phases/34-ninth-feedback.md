@@ -296,8 +296,10 @@ heading at the end.
 - **Cause:** the strip keeps each card's view by pane id. At the swap the old pane id left the tree and the new one
   came, so SwiftUI made a new card: it started beside its slot and slid in from its side of the split (the strip's
   "new card" motion), while the old card faded out.
-- **Fix:** the strip's view ids map a replaced pane's new pane (`Ahead.replaced`) onto the old pane's card view, as
-  a split's stand-in hands its card to herdr's pane. The card stays where it is; only its terminal is new, and
+- **Fix:** the strip's view ids map a replaced pane's new pane onto the old pane's card view, as a split's stand-in
+  hands its card to herdr's pane, before the stand-in mapping. The map (`Ahead.cards`, new → old) lasts while the
+  new pane is there, not one show: the strip renders after the snapshot, and a second snapshot or redraw may come
+  first (review). The card stays where it is; only its terminal is new, and
   `TerminalCard`'s new host plays the usual reveal fade. Splits and closes keep their motion.
 - **Runs:** `testReplacingAShellPaneTakesItsPlaceAndFolder` now launches with `-forceMotion YES -recordMotion YES`
   and checks the strip's card counter ("came went") does not change: red on the old code ("3 0, then 4 1"), green

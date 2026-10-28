@@ -27,6 +27,8 @@ struct Ahead {
     var replacing: [String: Replacing] = [:]
     /// The replacements done in the last snapshot, by old pane id: every page's zoom and floating window follow them.
     var replaced: [String: Replacing] = [:]
+    /// Replaced panes by new id, while it is there: the strip's next render, maybe after more shows, keeps the card.
+    var cards: [String: String] = [:]
 
     struct NewTab {
         let id: String, workspaceID: String
@@ -81,6 +83,7 @@ struct Ahead {
         fresh.formIntersection(ids)
         arrived = [:]
         replaced = replacing.filter { !ids.contains($0.key) }
+        keepCards(ids)
         replacing = replacing.filter { ids.contains($0.key) }
         let hidden = closing.union(replacing.values.flatMap { old in
             snapshot.panes.filter { $0.tabID == old.tabID && !old.known.contains($0.id) }.map(\.id)

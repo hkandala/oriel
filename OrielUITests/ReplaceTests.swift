@@ -4,7 +4,7 @@ import XCTest
 /// Pane does, when something besides the shell runs.
 extension OrielUITests {
     /// With motion (CI has Reduce Motion on): the new pane takes the old card in place, so no card comes into the
-    /// page sliding from its side and none fades out; only the terminal's reveal fades in.
+    /// page sliding from its side and none fades out.
     func testReplacingAShellPaneTakesItsPlaceAndFolder() async throws {
         relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
