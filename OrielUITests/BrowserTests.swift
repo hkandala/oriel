@@ -112,9 +112,20 @@ extension OrielUITests {
                                                                "cwd": "/tmp", "focus": false]), "pane")
         addTeardownBlock { _ = try? await Self.call(five, "pane.close", ["pane_id": pane]) }
         try await Self.call(five, "pane.rename", ["pane_id": pane, "label": "oriel:browser#e2e5ab \(page)"])
+        // A site a machine put in a label waits for Open (future-work/web-page#when-a-page-loads-by-itself).
+        let site = try await id(Self.call(five, "pane.split", ["target_pane_id": pane, "direction": "down",
+                                                               "cwd": "/tmp", "focus": false]), "pane")
+        addTeardownBlock { _ = try? await Self.call(five, "pane.close", ["pane_id": site]) }
+        try await Self.call(
+            five,
+            "pane.rename",
+            ["pane_id": site, "label": "oriel:browser#e2e5ac https://example.com/"],
+        )
         let tab: String = try await field(self.pane(pane, in: five)["tab_id"], "\(pane)'s tab")
         relaunch(five)
         XCTAssertTrue(pageText("oriel-page-one").exists(within: connect))
+        XCTAssertTrue(element("browser.\(site).open").exists(within: 3))
+        XCTAssertEqual(element("browser.\(site).message").value as? String, "Open https://example.com/?")
         // A click gives the card the keyboard; the tab (herdr's number label) takes its page's title.
         pageText("oriel-page-one").click()
         XCTAssertTrue(element("tab.\(tab)").has(\.label, "One", within: 3))

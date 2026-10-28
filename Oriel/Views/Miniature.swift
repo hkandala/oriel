@@ -51,8 +51,9 @@ private struct MiniCard: View {
         shape.fill(look.cardFill)
             .overlay(shape.stroke(edge.color, lineWidth: edge.width))
             .overlay(alignment: .topLeading) {
-                if let pane, page.floats(pane) {
-                    Image(systemName: "pip").foregroundStyle(.secondary)
+                if let pane, page.floats(pane) || pane.browser != nil {
+                    // A browser card's web view stays in its card: its symbol here.
+                    Image(systemName: page.floats(pane) ? "pip" : "globe").foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let pane, let id = pane.terminalID {
                     let isLive = live.contains(id)

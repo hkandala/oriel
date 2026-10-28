@@ -32,16 +32,22 @@ extension HostStore {
         guard let old = pane(paneID), let workspace = workspace(of: old.tabID) else { return }
         ahead.replacing[paneID] = Ahead.Replacing(tabID: old.tabID, known: Set(last?.panes.map(\.id) ?? []),
                                                   terminal: old.terminalID)
-        let label = PaneLabel.browser(taken: Set(panes.compactMap { PaneLabel($0.label)?.iid }))
+        let taken = Set(panes.compactMap { PaneLabel($0.label)?.iid })
         let done = await write { client in
             var new: HerdrKit.Pane?
             if browser {
                 // In the pane's live folder, as a split is.
-                let cwd = try await client.pane(paneID).cwd ?? old.cwd ?? "~"
+                let cwd = try await client.pane(paneID).cwd ?? old.cwd ?? "~", label = PaneLabel.browser(taken: taken)
                 if let tab = try await client.newTab(workspace: workspace.id, cwd: cwd, label: label.text,
                                                      command: Browser.placeholder(label))
                 {
-                    new = try await client.move(pane: tab, to: .tab(old.tabID, beside: paneID))
+                    do {
+                        new = try await client.move(pane: tab, to: .tab(old.tabID, beside: paneID))
+                    } catch {
+                        // Not left behind in its own tab.
+                        try? await client.close(pane: tab)
+                        throw error
+                    }
                 }
             } else {
                 new = try await client.split(paneID, .right)

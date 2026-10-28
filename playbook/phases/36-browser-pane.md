@@ -44,3 +44,33 @@ starts), navigate, relaunch and see the same address, restart the herdr session 
 herdr label and placeholder text, Web Inspector opens a window.
 
 ## Findings
+
+### Track A
+
+- **Spike:** `layout.apply` with `label` and `command`, then `pane.move` beside the old pane, works (Replace Pane's
+  steps; a failed move closes the new pane). After a session stop and start the label is back on a plain shell with
+  a new terminal id; the card is rebuilt from the label and the state file. `_WKInspector show` works in the running
+  app but docks under the page; `detach` moves it to WebKit's own window "Web Inspector — ‹page›" only after about
+  1 s, so the app retries it until that window shows.
+- **Decisions (for the docs pass):** the placeholder shows the address it started with (none from the chooser and
+  Open Browser Here); the TUI border shows the current label. An address is approved for the machine when typed
+  and when a page finishes loading in the card (so a relaunch on a page reached by a link loads by itself); the
+  safe list is the design's, plus This Mac's `file://`. Typed `file://` is accepted on This Mac. Popups
+  (`window.open`) open over the card with a close button and close on `window.close()`; a `target=_blank` link loads
+  in the card. ⌘+ ⌘− ⌘0 zoom the page while a browser card has the keyboard. Web views live in the window's
+  registry by terminal id and leave the view tree with their card.
+- **Decisions:** the tab title of a browser card is its page's title, else its host, else "New Tab"; the floating
+  window's title row shows the label's address. Overview tiles of browser cards show a `globe`. Rename Pane stays
+  (a rename that breaks the label turns the card back into a terminal). Open Location ⌘L and Show Web Inspector
+  ⌥⌘I are Edit menu commands.
+- **Not built:** Find in the page (⌘F is disabled on a browser card), the ⌥-click on a terminal link, the
+  palette's "Open in Browser" row for a typed address, Refresh, and the Inspector button's lit state.
+- **Contract (item 6, for the docs pass):** label `oriel:browser#<iid> <url>`; iid 6 `[a-z0-9]`, unique in the
+  session, never changed; url `http(s)://` (bare `host:port` gets `http://`), ≤ 1024 characters, no control
+  characters, `file://` only on This Mac (remote files through a server); the placeholder is optional; other
+  plugins take their kind's argument the same way. The skill `oriel-panes` (pi-hkandala `skills/oriel-panes/`) has
+  the exact commands: `herdr pane split "$HERDR_PANE_ID" --direction right --no-focus`, `herdr pane rename`, and
+  `herdr pane run … placeholder.sh`.
+- **For the user:** a real dev server page (`localhost:3000`) and a login that should persist across relaunches;
+  Web Inspector from the button and from Safari's Develop menu; an OAuth popup; the address field's look in light
+  mode; a floated browser pane; Increase Contrast on the toolbar.
