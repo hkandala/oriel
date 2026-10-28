@@ -2,42 +2,41 @@ import HerdrKit
 import SwiftUI
 
 /// An agent card's chat (future-work/chat-view#what-it-looks-like): the messages, newest at the bottom, and the reply
-/// box; the live terminal in its place while the agent waits on something the chat cannot answer. The pill card is
-/// the same view at the Replies level.
+/// box with the detail level beside it; the live terminal in their place while the agent waits on something the chat
+/// cannot answer.
 struct ChatView: View {
     @Bindable var chat: Chat
     let page: Page
     let terminal: PaneTerminal?
-    let level: ChatLevel
-    /// A zoomed card: the messages in a reading column.
-    var column = false
-    /// Stacks clicked open or closed, against the level's default.
-    @State private var toggled: Set<String> = []
+    /// The conversation's reading column, as in Messages: a wide card centers it.
+    private static let column: CGFloat = 760
+    /// Stacks clicked open or closed: they stay so at every level (else open at All only).
+    @State private var opened: [String: Bool] = [:]
     @State private var height: CGFloat = 0
     @FocusState private var composing: Bool
     @Environment(\.look) private var look
+    private var settings = AppSettings()
+
+    init(chat: Chat, page: Page, terminal: PaneTerminal?) {
+        self.chat = chat
+        self.page = page
+        self.terminal = terminal
+    }
 
     var body: some View {
-        let id = chat.paneID, working = chat.phase == .working
+        let id = chat.paneID, working = chat.phase == .working, level = settings.chatLevel
         let rows = chat.history.rows(level, working: working)
         VStack(spacing: 0) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(rows) { row in
-                        ChatRowView(row: row, paneID: id, open: (level == .all) != toggled.contains(row.id)) {
-                            toggled.formSymmetricDifference([row.id])
-                        }
+                        let open = opened[row.id] ?? (level == .all)
+                        ChatRowView(row: row, paneID: id, open: open) { opened[row.id] = !open }
                     }
                     ForEach(chat.outgoing) { message in
                         outgoing(message)
                     }
-                    if working, rows.last.map({
-                        if case .summary = $0 {
-                            false
-                        } else {
-                            true
-                        }
-                    }) ?? true {
+                    if working, rows.last?.isSummary != true {
                         HStack(spacing: 6) {
                             WorkingDots()
                             Text("Working").foregroundStyle(.secondary)
@@ -49,7 +48,7 @@ struct ChatView: View {
                     }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)
-                .frame(maxWidth: column ? 760 : .infinity)
+                .frame(maxWidth: Self.column)
                 .frame(maxWidth: .infinity)
             }
             .defaultScrollAnchor(.bottom)
@@ -57,6 +56,7 @@ struct ChatView: View {
             .focusEffectDisabled()
             .accessibilityIdentifier("chat.\(id)")
             bottom.padding(.horizontal, 10).padding(.bottom, 10).padding(.top, 4)
+                .frame(maxWidth: Self.column).frame(maxWidth: .infinity)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
         .task { await chat.viewed() }
@@ -97,6 +97,9 @@ struct ChatView: View {
         let id = chat.paneID, working = chat.phase == .working
         let name = chat.adapter.name
         return HStack(alignment: .bottom, spacing: 8) {
+            Segments(id: "chat.\(id).level", options: [("Replies", .replies), ("Steps", .steps), ("All", .all)],
+                     selection: settings.$chatLevel)
+                .padding(.bottom, 5)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 TextField("Reply to \(name)", text: $chat.draft, axis: .vertical)
                     .textFieldStyle(.plain)

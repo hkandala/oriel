@@ -30,7 +30,9 @@ struct ChatRowView: View, Equatable {
                 }
             }
             .font(.system(size: 12)).foregroundStyle(.secondary)
-            .accessibilityElement(children: .combine)
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityValue(text)
             .accessibilityIdentifier("chat.\(paneID).summary")
         case let .reply(_, text):
             Markdown(text: text).accessibilityIdentifier("chat.\(paneID).reply")

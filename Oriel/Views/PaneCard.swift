@@ -57,7 +57,7 @@ struct PaneCard: View {
                 } else if let browser {
                     BrowserCard(browser: browser)
                 } else if let chat, chat.showsChat {
-                    ChatView(chat: chat, page: page, terminal: terminal, level: settings.chatLevel, column: zoomed)
+                    ChatView(chat: chat, page: page, terminal: terminal)
                 } else if let terminal {
                     // Rex's text starts 12 pt in from the card's edge.
                     TerminalCard(terminal: terminal, watched: page.watched, alpha: chooser == nil ? content : 0)

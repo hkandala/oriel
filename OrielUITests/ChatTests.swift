@@ -16,7 +16,7 @@ extension OrielUITests {
         try await waitFor(pane) { $0.contains("Echo: **hello**") }
 
         // Steps: the turn's command as a stack, which a click opens; Replies: only the quiet line; All: open.
-        let levels = ["replies", "steps", "all"].map { element("pane.\(pane).level.\($0)") }
+        let levels = ["replies", "steps", "all"].map { element("chat.\(pane).level.\($0)") }
         let before = levels.first(where: \.isSelected) ?? levels[1]
         addTeardownBlock { @MainActor in
             if before.exists {
@@ -24,16 +24,25 @@ extension OrielUITests {
             }
         }
         levels[1].click()
-        let stack = element("chat.\(pane).stack")
+        let stacks = app.descendants(matching: .any).matching(identifier: "chat.\(pane).stack")
+        let stack = stacks.element(boundBy: 0)
         XCTAssertTrue(stack.has(\.stringValue, "closed", within: 2))
         XCTAssertTrue(stack.label.hasPrefix("Ran 1 command"), stack.label)
         stack.click()
         XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
         levels[0].click()
         XCTAssertTrue(stack.vanishes(within: 2))
-        XCTAssertTrue(element("chat.\(pane).summary").label.contains("1 command"))
-        levels[2].click()
+        XCTAssertTrue(element("chat.\(pane).summary").stringValue.hasSuffix(" · 1 command"))
+        // Clicked open, it stays open; All opens every stack.
+        levels[1].click()
         XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
+        stack.click()
+        XCTAssertTrue(stack.has(\.stringValue, "closed", within: 2))
+        try await say("again", in: pane)
+        XCTAssertTrue(row(pane, "reply", "Echo: **again**").exists(within: 5))
+        levels[2].click()
+        XCTAssertTrue(stacks.element(boundBy: 1).has(\.stringValue, "open", within: 2))
+        XCTAssertEqual(stack.stringValue, "closed")
         keepScreenshot("chat")
 
         // Stop sends Esc while it works.

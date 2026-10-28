@@ -9,20 +9,13 @@ extension Page {
     }
 }
 
-/// A chat card's header controls (future-work/chat-view#switching-views): the agent's state, the detail level while
-/// the chat shows, and the chat|term switch, which changes only what the card draws.
+/// A chat card's header controls (future-work/chat-view#switching-views): the agent's state and the chat|term switch,
+/// which changes only what the card draws.
 struct ChatSwitch: View {
     @Bindable var chat: Chat
     let page: Page
     let state: AgentState?
-    private var settings = AppSettings()
     @Environment(\.look) private var look
-
-    init(chat: Chat, page: Page, state: AgentState?) {
-        self.chat = chat
-        self.page = page
-        self.state = state
-    }
 
     var body: some View {
         let id = chat.paneID
@@ -33,10 +26,6 @@ struct ChatSwitch: View {
                     .background(color.opacity(0.15), in: .rect(cornerRadius: 4))
                     .fixedSize()
                     .accessibilityIdentifier("pane.\(id).state")
-            }
-            if chat.showsChat {
-                Segments(id: "pane.\(id).level", options: [("Replies", .replies), ("Steps", .steps), ("All", .all)],
-                         selection: settings.$chatLevel)
             }
             Segments(id: "pane.\(id).view", options: [("Chat", true), ("Terminal", false)], selection: $chat.showsChat)
         }
@@ -65,7 +54,7 @@ struct ChatSwitch: View {
 
 /// A small segmented control in the app's own style: a track, and the raised pill on the chosen segment, as the tab
 /// bar.
-private struct Segments<Value: Hashable>: View {
+struct Segments<Value: Hashable>: View {
     let id: String
     let options: [(String, Value)]
     @Binding var selection: Value

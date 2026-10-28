@@ -23,9 +23,9 @@ protocol ChatAdapter: Sendable {
 }
 
 extension ChatAdapter {
-    /// As the reply box names it ("Reply to claude").
+    /// As the chat names it ("Reply to Claude Code"): the chooser's name.
     var name: String {
-        Self.command
+        Chooser.agents.first { $0.command == Self.command }?.name ?? Self.command
     }
 
     func answer(_: ChatQuestion, _: [String: String], on _: any Exec) async {}

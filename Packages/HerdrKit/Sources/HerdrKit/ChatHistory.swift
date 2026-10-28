@@ -93,7 +93,15 @@ extension ChatEntry {
     }
 }
 
-extension ChatRow {
+public extension ChatRow {
+    var isSummary: Bool {
+        if case .summary = self {
+            true
+        } else {
+            false
+        }
+    }
+
     var isReply: Bool {
         if case .reply = self {
             true
@@ -177,9 +185,9 @@ public enum ChatRow: Equatable, Sendable, Identifiable {
 }
 
 public extension ChatHistory {
-    /// The rows at a level. Replies: the user's messages, each turn's quiet line and its last reply. Steps and All:
-    /// every reply, thinking row and todo list, and each run of tool calls as one stack. `working`: the last turn runs
-    /// on.
+    /// The rows at a level. Replies: the user's messages, each turn's quiet line and its last reply. Steps: every
+    /// reply and todo list, and each run of tool calls as one stack; All adds the thinking rows. `working`: the last
+    /// turn runs on.
     func rows(_ level: ChatLevel, working: Bool) -> [ChatRow] {
         var turns: [[ChatEntry]] = []
         for entry in entries {
@@ -217,7 +225,8 @@ public extension ChatHistory {
                 stack.append(tool)
                 continue
             }
-            guard let row = entry.row else { continue }
+            // Thinking only at All: at Steps it is noise between the steps.
+            guard let row = entry.row, level == .all || entry.kind != .thinking else { continue }
             if !stack.isEmpty {
                 rows.append(.stack(id: stackID, tools: stack))
                 stack = []
