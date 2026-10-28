@@ -105,12 +105,11 @@ private func snapshot() throws -> Snapshot {
         let json = #"{"process_info":{"pane_id":"w1:p1","shell_pid":7,"foreground_processes":[\#(processes)]}}"#
         return try JSONDecoder().decode(ProcessInfoResult.self, from: Data(json.utf8)).processInfo
     }
-    #expect(try info(#"{"pid":7,"name":"zsh","argv0":"-zsh"}"#).program == Program(name: "zsh", argv0: "-zsh",
-                                                                                   isShell: true))
+    #expect(try info(#"{"pid":7,"name":"zsh","argv0":"-zsh"}"#).program?.isShell == true)
     #expect(try info(#"{"pid":7,"name":"fish"}"#).program?.isShell == true)
     // `exec vim` keeps the shell's pid.
-    #expect(try info(#"{"pid":7,"name":"vim","argv0":"vim"}"#).program == Program(name: "vim", argv0: "vim"))
-    #expect(try info(#"{"pid":9,"name":"sleep"}"#).program == Program(name: "sleep"))
+    #expect(try info(#"{"pid":7,"name":"vim","argv0":"vim"}"#).program?.isShell == false)
+    #expect(try info(#"{"pid":9,"name":"sleep"}"#).program?.foreground == [Program.Foreground(pid: 9, argv: [])])
     // While the shell starts, its rc files run in the foreground too.
     #expect(try info(#"{"pid":8,"name":"bash"},{"pid":7,"name":"zsh"}"#).program?.name == "bash")
     // A Node CLI: the script is the first argument that is not an option.

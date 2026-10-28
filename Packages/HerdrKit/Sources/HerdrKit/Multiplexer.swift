@@ -74,6 +74,8 @@ public protocol Multiplexer: Sendable {
     func sendKeys(_ keys: [String], pane paneID: String) async throws
     /// Text typed at the pane's cursor, then logical keys (`enter`).
     func sendInput(_ text: String, keys: [String], pane paneID: String) async throws
+    /// Submits a prompt to the pane's agent: pasted, then Enter. Refused while the agent is blocked.
+    func prompt(_ text: String, pane paneID: String) async throws
 }
 
 /// A way from a pane, for keys that move the keyboard, swap or resize.
@@ -225,5 +227,9 @@ extension HerdrClient: Multiplexer {
 
     public nonisolated func sendInput(_ text: String, keys: [String], pane paneID: String) async throws {
         let _: Created = try await call("pane.send_input", ["pane_id": paneID, "text": text, "keys": keys])
+    }
+
+    public nonisolated func prompt(_ text: String, pane paneID: String) async throws {
+        let _: Created = try await call("agent.prompt", ["target": paneID, "text": text])
     }
 }

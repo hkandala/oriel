@@ -225,6 +225,13 @@ public struct Program: Equatable, Sendable {
     public let script: String?
     /// Only the pane's shell runs.
     public let isShell: Bool
+    /// Every foreground process with its arguments: a chat agent's launch marker is in them (future-work/chat-view).
+    public var foreground: [Foreground] = []
+
+    public struct Foreground: Equatable, Sendable {
+        public let pid: Int
+        public let argv: [String]
+    }
 
     init(name: String, argv0: String? = nil, script: String? = nil, isShell: Bool = false) {
         self.name = name
@@ -264,8 +271,10 @@ struct PaneProcesses: Decodable {
     var program: Program? {
         let program = foregroundProcesses.first { $0.pid != shellPID || !$0.isShell }
         return (program ?? foregroundProcesses.first).map { process in
-            Program(name: process.name, argv0: process.argv0,
-                    script: process.argv?.dropFirst().first { !$0.hasPrefix("-") }, isShell: program == nil)
+            var found = Program(name: process.name, argv0: process.argv0,
+                                script: process.argv?.dropFirst().first { !$0.hasPrefix("-") }, isShell: program == nil)
+            found.foreground = foregroundProcesses.map { Program.Foreground(pid: $0.pid, argv: $0.argv ?? []) }
+            return found
         }
     }
 
