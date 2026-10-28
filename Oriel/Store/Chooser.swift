@@ -154,18 +154,22 @@ extension HostStore {
         Task {
             defer { drop(chooser) }
             let clock = ContinuousClock(), begun = clock.now
-            var sent: ContinuousClock.Instant?, shells = 0
+            var sent: ContinuousClock.Instant?, shells = 0, line: String?
             // A new tab's stand-in waits for herdr's pane. A chooser dropped meanwhile (its pane closed) ends it.
             while clock.now - begun < .seconds(10), choosers.contains(where: { $0 === chooser }) {
                 if let client, let id = chooser.paneID {
                     guard let since = sent else {
-                        let line = await ChatAdapters.launch(agent.command, on: machine.exec())
+                        // With Oriel's flags first; once more without them when the shell came back at once (a build
+                        // that refuses them starts with no chat rather than not at all).
+                        let next = line == nil ? await ChatAdapters.launch(agent.command, on: machine.exec())
+                            : agent.command
                         // Its pane may have closed during the launch's run on the machine.
                         guard choosers.contains(where: { $0 === chooser }),
-                              await (try? client.sendInput(line, keys: ["enter"], pane: id)) != nil
+                              await (try? client.sendInput(next, keys: ["enter"], pane: id)) != nil
                         else {
                             return
                         }
+                        line = next
                         sent = clock.now
                         continue
                     }
@@ -181,7 +185,8 @@ extension HostStore {
                     if clock.now - since > .seconds(1), self.pane(id)?.starting == false {
                         shells = await (try? client.program(id))?.isShell == true ? shells + 1 : 0
                         if shells == 2 {
-                            return
+                            guard line != agent.command else { return }
+                            (sent, shells) = (nil, 0)
                         }
                     }
                 }

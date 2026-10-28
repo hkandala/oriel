@@ -6,7 +6,8 @@ in the environment), it runs opencode 1.x's server shapes on 127.0.0.1 behind Ba
 permission and question requests and their replies), appends the state lines Oriel's TUI plugin would (only when
 the config names the plugin file), reports its state to herdr and answers prompts on its terminal: "allow" asks a
 permission, "ask" a question, "pick" opens a dialog until 1 is typed, "slow" works until Esc Esc, anything else
-gets one command and the reply "Echo: <prompt>".
+gets one command and the reply "Echo: <prompt>". With ORIEL_STAND_IN_REFUSE=1 it refuses the flags, as a build
+without them may, and runs plain (no server) when started without them.
 """
 import base64
 import http.server
@@ -25,6 +26,9 @@ import threading
 import time
 import tty
 
+if os.environ.get("ORIEL_STAND_IN_REFUSE") == "1" and "--port" in sys.argv:
+    sys.exit("Unrecognized flag: --port")
+plain = "--port" not in sys.argv
 folder = os.path.join(os.environ.get("TMPDIR", "/tmp"), "oriel-stand-in")
 os.makedirs(folder, exist_ok=True)
 # herdr prompts an agent only while a process of its name runs in the foreground: run again as `opencode`.
@@ -37,10 +41,12 @@ if os.environ.get("ORIEL_STAND_IN") != "1":
     os.symlink(app if os.path.exists(app) else os.path.realpath(sys.executable), link)
     os.execv(link, [link, os.path.abspath(__file__)] + sys.argv[1:])
 
-password = os.environ["OPENCODE_SERVER_PASSWORD"]
-state_file = os.environ.get("ORIEL_OC_STATE")
-with open(os.environ["OPENCODE_TUI_CONFIG"]) as config:
-    plugged = all(os.path.exists(path) for path in json.load(config)["plugin"])
+password = os.environ.get("OPENCODE_SERVER_PASSWORD")
+state_file = None if plain else os.environ.get("ORIEL_OC_STATE")
+plugged = False
+if not plain:
+    with open(os.environ["OPENCODE_TUI_CONFIG"]) as config:
+        plugged = all(os.path.exists(path) for path in json.load(config)["plugin"])
 ids = itertools.count(1)
 messages, requests, clients = [], {}, []
 lock = threading.Lock()
@@ -276,11 +282,13 @@ def prompt(text):
 
 def main():
     global url
-    # Not http.server's own server: its bind looks up the host's name, and macOS then asks for the local network.
-    server = socketserver.ThreadingTCPServer(("127.0.0.1", 0), Server)
-    server.daemon_threads = True
-    url = "http://127.0.0.1:%d" % server.server_address[1]
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    url = "plain"
+    if not plain:
+        # Not http.server's own server: its bind looks up the host's name, and macOS then asks for the local network.
+        server = socketserver.ThreadingTCPServer(("127.0.0.1", 0), Server)
+        server.daemon_threads = True
+        url = "http://127.0.0.1:%d" % server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
     # A closed pane hangs up: clean up as on Ctrl-C.
     signal.signal(signal.SIGHUP, lambda *_: sys.exit(0))
     attributes = termios.tcgetattr(0)

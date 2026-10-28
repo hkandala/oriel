@@ -97,9 +97,12 @@ Design: [Chat view](../../docs/content/docs/future-work/chat-view.mdx) and
   words); a question with `multiple` or with no options goes to the live terminal. Every pending request on the
   TUI's own server counts (subagents' too: one server per TUI). Phase: a dialog or a request is Waiting, a busy
   `session.status` is Working, else herdr's status.
-- **Decisions (MetaCode):** the company build ignores the plugin, so it is told by its silence: no state line after
-  15 s sets "OpenCode has not reported its session" and flips the card to its terminal (the switch stays). A late
-  line (a slow first plugin install) clears it. Not checked on MetaCode itself (blocked here).
+- **Decisions (MetaCode):** the company build ignores the plugin, so it is told by what it does. A launch whose shell
+  is back in front at once (a build that refuses the flags) is typed again plain, once, for every agent: it starts
+  with no chat rather than not at all. A build that ignores them sends no state line: after 15 s the chat says "OpenCode
+  has not reported its session" and flips the card to its terminal, once; a late line (a slow first plugin install)
+  clears it. Not told apart up front: the app's `command -v opencode` is not the pane shell's (a function or alias
+  wins there), and on this Mac it turned every stand-in launch plain. Not checked on MetaCode itself (blocked here).
 - **Core change (with t39-pi):** `ChatAdapter.prepare(token, on:) -> String?`, the whole launch line after writing
   what it needs; the chooser's line awaits `ChatAdapters.launch(_:on:)`. `Chat.viewed` clears `recorded` only once
   the adapter's `follow` returned (an adapter's own task could set it again after the card went). HerdrKit's
@@ -114,7 +117,8 @@ Design: [Chat view](../../docs/content/docs/future-work/chat-view.mdx) and
   nothing useful at start, so the phase waits for the first status event.
 - **Not built:** subagent rows (child sessions), images, `prompt_async`, opencode 2.x (shared service, `/api/*`).
   ponytail: the history is rebuilt whole on each event and loaded whole (megabytes for a long session).
-- **Runs:** the stand-in test green locally; a real opencode-ai 1.19.4 driven through the app once (a throwaway test,
+- **Runs:** the remote test's first run hung on the prompt above; green after the fix (40692353122). The stand-in
+  tests green locally; a real opencode-ai 1.19.4 driven through the app once (a throwaway test,
   not kept): recognized, history loaded, a sent message confirmed, its API error shown, `/models` gave the drawer.
 - **For the user:** a real opencode-ai (npm) from the chooser: a reply, a bash permission answered in the chat and one
   answered in the TUI (the card goes), a question, `/sessions` to an old session, Esc Esc from Stop; MetaCode from
