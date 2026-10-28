@@ -96,6 +96,8 @@ struct ClaudeCode: ChatAdapter {
                 if source != chat.source {
                     chat.source = source
                     chat.history = ChatHistory()
+                    // A resumed session's file again: from its start, not from where the chat left it.
+                    chat.marks[source] = nil
                     follow(source)
                 }
             } else if object["tool_name"] as? String == "AskUserQuestion",
