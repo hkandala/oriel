@@ -1,9 +1,11 @@
 ---
 title: "Browser"
-description: "A web view with Web Inspector in a placeholder herdr pane"
+description: "Approved: a web view with Web Inspector in a placeholder herdr pane, on This Mac and remote machines"
 ---
 
-Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+Approved, being built: This Mac in phase 36, remote machines in phase 37
+([phases](https://github.com/hkandala/oriel/blob/main/playbook/README.md)).
+This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
 Research and spikes:
 [`browser.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/browser.md).
 
@@ -18,8 +20,11 @@ and it is built into the app.
   ([Plugin UI](/docs/future-work/plugins/plugin-ui)). WebKit is part of
   macOS and iOS, so the app grows by nothing.
 - The page gets no bridge: no `window.oriel`, no script message handlers.
-- **Web Inspector** opens in its own window: the card's DevTools button
-  (⌥⌘I) shows WebKit's inspector for that page. Every browser card sets
+- **Web Inspector** opens in its own window: the card's Web Inspector button
+  (⌥⌘I, Safari's key) shows WebKit's inspector for that page. The window is
+  WebKit's own, titled "Web Inspector — ‹address›", and closes with the card.
+  The button is lit (the accent on an accent circle at 0.07, as Zoom's
+  Restore) while the window is open. Every browser card sets
   `isInspectable`, so Safari's Develop menu (Develop › ‹this Mac› › Oriel)
   reaches the page too. Showing the inspector from a button has no public API;
   the button calls WebKit's `_WKInspector` `show` (cmux ships the same).
@@ -43,6 +48,15 @@ contain secrets (for example a `?token=` URL).
 
 ## Create
 
+A browser pane comes from the [New pane](/docs/ui/new-pane#browser) chooser,
+Open Browser Here, or an address typed in the palette.
+- From the chooser and Open Browser Here, the pane has no address yet: the
+  label is `oriel:browser#<iid>` with no argument, and the card opens with an
+  empty address field that has the keyboard. The first address the user
+  enters goes into the label (step 3).
+- The new pane takes the old pane's place with Replace Pane's steps
+  ([Commands that change a pane's kind](/docs/ui/new-pane#commands-that-change-a-panes-kind)).
+
 1. The user types an address. A bare `host:port` gets `http://`. Only `http`
    and `https` are accepted. Addresses longer than 1024 characters are refused
    (the label's argument limit).
@@ -55,17 +69,44 @@ contain secrets (for example a `?token=` URL).
 
 ## In herdr's TUI
 
-The placeholder prints "Browser", the address and "Shown in Oriel" in the
-middle of the pane, and draws them again when the pane is resized
+The placeholder, about 20 lines of `sh` run by herdr as the pane's command,
+prints "Browser", the address ("No page" when there is none) and "Shown in
+Oriel" in the middle of the pane, and draws them again when the pane is resized
 (`SIGWINCH`). The TUI's border shows the label. Keys typed into the pane do
 nothing ([Create](/docs/future-work/plugins/labels#create)).
 
-## Draw
+## The card
 
-- The card header is the toolbar: Back, Forward, Reload (Stop while
-  loading), the address (the host in full, the path dimmed, and the
-  machine's name on a remote machine), DevTools, then the usual card buttons.
-  A thin progress line runs under the header while a page loads.
+The approved look (mock-up A): the browser card sits in herdr's split like
+any card, for example beside the dev server's terminal. The title row
+changes nothing: the tab shows the browser's `globe` tile beside the
+others.
+
+- **Toolbar.** The card header (36 pt) is the toolbar. From the leading
+  edge, 11 pt in: Back, Forward and Reload (Stop while a page loads), as
+  22 × 22 pt buttons with 11 pt glyphs like the card header's; a button that
+  cannot act is dimmed to 0.35. Then the address field, which takes the free
+  width. Then the ports chip ([Finding ports](#finding-ports)), the Web
+  Inspector button, and the usual card buttons: Float Pane, Split Right,
+  Split Down, Zoom and Close. 6 pt between items.
+- **Address field.** A capsule 26 pt tall, at least 120 pt wide, filled with
+  the primary color at 0.06 under a 0.5 pt edge at 0.08, text 12.5 pt: the
+  host in full, the path at 0.5, and on a remote machine the machine's name
+  in a small chip at the end (11 pt, in the needs-you color on a 0.18 fill of
+  it). A click or ⌘L selects the whole address with an accent focus ring.
+  Return loads it and gives the keyboard to the page; Esc puts back the
+  current address and gives the keyboard to the page.
+- **Loading.** A 2 pt progress line in the accent runs under the header
+  while a page loads, and Reload turns into Stop.
+- **The loader and fade.** While the card is built (a pick in the chooser, a
+  relaunch, a rebuilt card), it shows the [New pane](/docs/ui/new-pane#browser)
+  loader. When the web view has drawn its first page (or the empty field), the
+  loader fades out over 0.15 s and the page fades in (at once with Reduce
+  Motion).
+- **Error.** A page that fails to load shows, in the middle of the card, a
+  warning symbol, the app's words in 14 pt (for example "Nothing answers on
+  localhost:3001 on devbox"), "Is the dev server running?" in secondary text
+  for a refused local port, and **Reload**.
 - The page is inset 6 pt inside the card, so its corners stay inside the
   card's radius. Cards are never glass; the header follows the card look.
 - Navigation stays inside the card (like an iframe). A link that asks for a
@@ -73,10 +114,9 @@ nothing ([Create](/docs/future-work/plugins/labels#create)).
   typed.
 - The card's web view is kept in the PaneViewRegistry, so scrolling away
   does not reload it.
-- A page that fails to load shows the app's words and the machine, for
-  example "Nothing answers on localhost:3001 on devbox", with **Reload**.
 - A floated browser pane ([Floating pane](/docs/ui/window#floating-pane))
-  keeps the same toolbar under the floating window's title row.
+  keeps the same toolbar, without the card buttons, under the floating
+  window's title row, which shows the `globe` tile and the page's title.
 
 ## Viewing state on the machine
 
@@ -124,8 +164,10 @@ one).
 - Removing a machine removes its store (`WKWebsiteDataStore.remove(forIdentifier:)`).
 - `proxyConfigurations` belongs to the store and is not saved: the app sets
   it each time it makes the store, before the first load.
-- WebKit uses no keychain item for cookies or storage, so no keychain prompt
-  appears (checked with stores that set cookies).
+- No keychain: WebKit uses no keychain item for cookies or storage, so no
+  keychain prompt appears (checked with stores that set cookies). The app
+  keeps an HTTP login only for the session (`URLCredential` `.forSession`),
+  so none goes to the keychain.
 
 ## Remote localhost
 
@@ -177,14 +219,38 @@ ssh -F /dev/null -S <ctl> -O forward -D 127.0.0.1:<P> <target>
 
 ## Finding ports
 
-- **Open :‹port› chip:** when a frame arrives for a terminal card of the
+- **Ports chip** (phase 37), in the toolbar: a `network` button. A click
+  lists the machine's listening TCP ports in a menu, ":3000 node (vite)",
+  from one run of `ss -ltnH` (Linux) or `lsof -nP -iTCP -sTCP:LISTEN`
+  (macOS) when the menu opens, never on a timer. A pick loads
+  `localhost:<port>` in the card.
+- **Open :‹port› chip** (after phase 37): when a frame arrives for a terminal card of the
   selected tab, the app searches the screen text it already holds for
   `https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):[0-9]+`. A match
   shows "Open :3000" on that terminal's card. A click makes a browser pane
   for that address next to it.
-- **Ports list:** the picker's Browser entry lists the machine's listening
-  ports. It runs `ss -ltnH` (Linux) or `lsof -nP -iTCP -sTCP:LISTEN` (macOS)
-  once when the list opens, never on a timer.
+
+## Commands on a browser card
+
+- Open Browser Here is hidden. Open Terminal Here and Start Agent Here
+  replace the pane, and Replace Pane (⌘R) gives a shell with the
+  [New pane](/docs/ui/new-pane) chooser. None of them asks first.
+- ⌘L focuses the address. ⌥⌘I opens Web Inspector. ⌘F finds in the page with
+  `WKWebView`'s find, in the same find bar.
+- Copy, Paste and Select All act on the page.
+- Go to Directory and Insert Path are disabled. The font size items keep
+  changing the app's text size and leave the page as it is.
+
+## Security
+
+- The page gets no bridge in the first slice: no `window.oriel`, no script
+  message handlers, so a page cannot run commands.
+- A page that a machine puts in a label or state file loads only by the
+  rules in [When a page loads by itself](#when-a-page-loads-by-itself).
+- Later plugins get a bridge with the rules in
+  [Plugin security](/docs/future-work/plugins/security): a card bound to its
+  pane's machine, consent at install, and a content rule and Content Security
+  Policy that allow only the plugin's own script.
 
 ## Agents
 
@@ -205,8 +271,6 @@ machine; it needs its own consent design
   (`applicationNameForUserAgent`), so sites that sniff for Safari work.
 - When the page's process ends (`webViewWebContentProcessDidTerminate`),
   the card loads the page again.
-- ⌘L focuses the address in the header; ⌘F finds in the page with
-  `WKWebView`'s find.
 - When the command palette's query is an address, its top row is "Open in
   Browser": a browser pane beside the keyboard card.
 - Page dialogs show as a sheet on the card, labeled with the origin.
@@ -217,6 +281,16 @@ machine; it needs its own consent design
   app knows the pane by its label alone, builds the card again and reads the
   state file ([Create](/docs/future-work/plugins/labels#create)).
 
+## Open points
+
+- Whether `_WKInspector` `show` opens Web Inspector from the running app (a
+  background spike got the object but no window). Phase 36 checks it. Safari's
+  Develop menu works either way.
+- How many servers cannot resolve `*.localhost`, and whether the app's own
+  SOCKS listener is worth it.
+- Public sites in a remote machine's card: through the machine (chosen) or
+  direct.
+
 ## Risks
 
 | Risk | Effect | Plan |
@@ -224,7 +298,7 @@ machine; it needs its own consent design
 | Labels or state files written by a hostile machine | a page opens by itself | an origin outside the approvals and the safe list needs a click ([When a page loads by itself](#when-a-page-loads-by-itself)) |
 | The SOCKS port is open to other accounts on the Mac | another account can reach the machine's network | accepted for a single-user Mac; a random port, open only while a card needs it |
 | A server with `AllowTcpForwarding no` | remote `localhost` pages cannot load | the card says so; Tailscale or LAN addresses still load; a bigger server helper later |
-| `_WKInspector` is private | the DevTools button may break on a macOS update | Safari's Develop menu still reaches every card |
+| `_WKInspector` is private | the Web Inspector button may break on a macOS update | Safari's Develop menu still reaches every card |
 | Web view memory | memory growth | the shared cap of live web views ([Plugin UI](/docs/future-work/plugins/plugin-ui#risks)) |
 
 ## Choices

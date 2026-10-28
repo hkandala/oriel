@@ -3,12 +3,13 @@ title: "Pane kinds and plugins"
 description: "Terminal, agent and browser are built in; every other pane kind is a plugin"
 ---
 
-Not built. Today a new tab or split is always a terminal. The pages in this
-section are the design for the pane picker, the Agent and Browser kinds, and
-plugins.
+Not built. The built-in kinds come first: the
+[New pane](/docs/ui/new-pane) chooser and the [Browser](/docs/future-work/web-page)
+are approved and being built. The pages in this section are the design for
+the Agent and Browser kinds and for plugins.
 
 A pane kind is what a pane shows: a terminal, an agent, a browser or a
-plugin. One picker makes every pane kind. Terminal, Agent and Browser are
+plugin. Terminal, Agent and Browser are
 built into the app. Every other pane kind is a plugin: a small web page
 ([Plugin UI](/docs/future-work/plugins/plugin-ui)) from one plugin registry.
 
@@ -29,22 +30,17 @@ built into the app. Every other pane kind is a plugin: a small web page
 - herdr's own TUI plugins are not part of this system. A pane that a herdr
   plugin opened shows as a terminal, because it is one.
 
-## The picker
+## Choosing a kind
 
-`+` in the tab bar and a split open the picker. Its header names the
-machine ("New pane on devbox").
+Every new pane shows the [New pane](/docs/ui/new-pane) chooser with the
+built-in kinds: Terminal, Agent and Browser. Its commands (Open Terminal Here,
+Start Agent Here, Open Browser Here) change a pane's kind later.
 
-- The fixed rows come first: Terminal, Agent ▸ (one row per available agent,
-  [Agent](/docs/future-work/plugins/agent#agent)) and Browser (an address
-  field and the machine's listening ports,
-  [Finding ports](/docs/future-work/web-page#finding-ports)).
-- Then a "Plugins" header and one row per plugin pane kind from the
-  manifests: core plugins first,
-  then linked and installed ones. A plugin whose pane needs an argument asks
-  for it before the pane is made
+- Plugin kinds join the chooser when plugins are built: one more option that
+  lists the plugin pane kinds from the manifests, core plugins first, then
+  linked and installed ones. A plugin whose pane needs an argument asks for it
+  before the pane is made
   ([Manifest](/docs/future-work/plugins/packages#manifest)).
-- The app calls herdr only after the user picks. Until then nothing changes
-  in herdr.
 
 ## Run and dial
 
@@ -106,7 +102,7 @@ nothing that only third-party plugins need:
 - the label grammar and its parser, the instance id, and restore by label
   ([Labels and instance ids](/docs/future-work/plugins/labels));
 - the placeholder pane made with `layout.apply` and `pane.move`;
-- the picker with its fixed rows;
+- the chooser's Browser option and Open Browser Here;
 - the instance state file and **Refresh**
   ([State and restore](/docs/future-work/plugins/state));
 - the load rule and the approvals per machine.
@@ -117,7 +113,7 @@ app:
 
 ```json
 { "id": "browser", "title": "Browser", "icon": "globe",
-  "arg": { "title": "Address", "placeholder": "localhost:3000", "required": true } }
+  "arg": { "title": "Address", "placeholder": "localhost:3000", "required": false } }
 ```
 
 What a pane kind gets from the app is small: its pane context (machine,
@@ -128,10 +124,10 @@ event, preferences, packages, consent and plugin cards.
 
 ## Choices
 
-- **One picker, one registry.** The three built-in kinds are special
+- **One chooser, one registry.** The three built-in kinds are special
   everywhere else (streams, chat, labels); one model covers the rest.
   Rejected: native manifests for the built-in kinds (a `native` field,
-  reserved ids), and herdr TUI plugins in the picker.
+  reserved ids), and herdr TUI plugins in the chooser.
 - **Plugins live in the app**, installed from a git URL or a linked folder,
   already built; the app never runs npm
   ([Packages](/docs/future-work/plugins/packages)). One install per Mac covers

@@ -1,15 +1,15 @@
 ---
 title: "Agent panes and image paste"
-description: "Starting an agent from the picker, and pasting an image into an agent"
+description: "Starting an agent in a new pane, and pasting an image into an agent"
 ---
 
-Not built. Today the app shows an agent that you start in a terminal, with its
-status; it cannot start one, and a pasted image is not sent. This page is the
-design ([Pane kinds and plugins](/docs/future-work/plugins)).
+Not built. Starting an agent from a new pane is approved and being built
+([New pane](/docs/ui/new-pane#agent)); image paste is not built. This page
+is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
 
 ## Terminal
 
-The Terminal row makes a pane as the app does today: `pane.split` or
+Terminal is the pane as the app makes it today: `pane.split` or
 `tab.create`. herdr starts the user's shell, and the card draws the frame
 stream ([Terminal plane](/docs/talking-to-herdr#terminal-plane)). The
 chat|term switch shows the screen text instead
@@ -20,28 +20,18 @@ chat|term switch shows the screen text instead
 An agent pane is a pane where herdr detected an agent (`pane.agent` is set,
 for example `claude`, `codex`, `pi`).
 
-- **Picker:** the `integration.list` entries with `available: true` (the
-  command is on the herdr server's `PATH`), read each time the picker opens,
-  so a newly installed agent shows at once. The kind is the entry's `label`.
-  Simpler choice: agents without a herdr integration are not listed. Start
-  them from a terminal, and herdr still detects them. Revisit when users ask
-  for agents that herdr has no integration for.
-- **Start:** split or new tab, then
-  `agent.start {name: "<kind>-<4 random [a-z0-9]>", kind, pane_id}`.
-  - `name` must match `[a-z][a-z0-9_-]{0,31}` and be unique on the machine.
-  - A new shell may not be ready: herdr returns `agent_pane_busy`, and the app
-    retries every 250 ms for up to 5 s.
-  - `agent.start` types the command and returns at once. If no agent appears
-    within 10 s, the card shows "Agent did not start" and the last screen
-    lines.
+- **Start:** the [New pane](/docs/ui/new-pane#agent) chooser and Start Agent
+  Here type the agent's command (`claude`, `codex`, `pi`, `opencode`) into the
+  pane's shell, show a loader until the agent is ready, then show its TUI.
 - **Icon:** the agent's program icon, as today
   ([Program icons](/docs/ui/program-icons)).
 - **View:** terminal by default on the Mac and iPad, chat on iPhone. The chat|term
   switch changes it ([Chat view](/docs/future-work/chat-view)).
-
-Why `integration.list`: one call, herdr checks the `PATH`, and a newly
-installed agent shows at once. Rejected: probing every agent with
-`command -v`; a list read once on connect.
+- **Later:** list only the agents herdr finds on the machine, from the
+  `integration.list` entries with `available: true` (the command is on the
+  herdr server's `PATH`), read each time the list opens; and flags per agent
+  set by the user. Simpler choice now: the four agents always show, and a
+  missing one shows "command not found" in its terminal.
 
 ## Image paste
 

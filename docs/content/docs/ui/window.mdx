@@ -435,6 +435,8 @@ tabs.
 
 - One page per tab, full width, paged. Each workspace of each session has its
   own strip, so a switch never starts from another workspace's scroll.
+- A pane the app creates shows the [New pane](/docs/ui/new-pane) chooser
+  first: Terminal, Agent or Browser.
 - Inside a page, pane cards follow herdr's split tree, with an 8 pt gap
   between them. The gap is the divider: drag it to resize (a grip shows on
   hover and while dragged), double-click it to reset it to 0.5, and ⌥⌘=
@@ -475,7 +477,9 @@ How it works: [Layout and sizing](/docs/layout).
     tab of the session but the pane's own, grouped by workspace: each
     workspace's name as a section header, in the sidebar's order), Rename
     Pane…, Reset Pane Name.
-  - Replace Pane (⌘R), Close Pane (⌘W).
+  - Replace Pane (⌘R), Open Terminal Here, Start Agent Here ▸, Open Browser
+    Here ([New pane](/docs/ui/new-pane#commands-that-change-a-panes-kind)),
+    Close Pane (⌘W).
 - The same items are in View ▸ Pane in the menu bar, for the keyboard card
   (the zoomed card of the selected tab, when there is one). Replace Pane and
   Close Pane stay in the File menu. In View ▸ Pane, Move Pane to Tab ▸ has New Tab and New
@@ -494,7 +498,9 @@ How it works: [Layout and sizing](/docs/layout).
   the old one's place and size, starts in its folder, and gets the keyboard.
   The old card stays until herdr has closed the old pane; then the card shows
   the new terminal in place, with no slide or layout motion: only the
-  terminal's usual fade-in plays. A zoomed pane's new pane stays zoomed, and
+  terminal's usual fade-in plays. On an agent or browser pane the new pane
+  shows the [New pane](/docs/ui/new-pane) chooser; on a terminal it does not.
+  A zoomed pane's new pane stays zoomed, and
   a floated pane's new pane floats in a window at the same place, with its
   Stay on Top. ⌘W while a replace runs does nothing: the old pane is closing
   already.
@@ -660,7 +666,8 @@ clients see it there.
   and Focus Follows Mouse skip it.
 - **Keys and ⌘K.** In the floating window the menu bar and the palette offer
   only what applies to it: Detach Pane (⌘W, as the red light: a window's
-  close puts the pane back, nothing stops), Replace Pane (⌘R), Close Pane (⇧⌘W), Stay on Top,
+  close puts the pane back, nothing stops), Replace Pane (⌘R), Open Terminal
+  Here, Start Agent Here, Open Browser Here, Close Pane (⇧⌘W), Stay on Top,
   Find, Find Next and Find Previous, the font size items, Copy and Paste. The
   palette lists no tabs, workspaces or sessions.
 - **Saved.** The floating panes and their Stay on Top are kept with the main
