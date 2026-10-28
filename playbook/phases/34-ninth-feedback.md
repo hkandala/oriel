@@ -93,6 +93,12 @@ heading at the end.
    Pane's rule (ask only when something other than the shell runs). Also in the card menu and the Shortcuts
    panel, local and remote.
 
+## Lane P2: Replace Pane without motion (item 9)
+
+9. **"It works, but the pane animates in from the left or right on replace. Remove that: no animation, the
+   pane contents just clear and show the empty shell; use our usual fade-in for pane contents."** The card
+   keeps its place with no slide or layout motion; only the terminal's reveal fade plays.
+
 ## Findings
 
 ### Lane K
