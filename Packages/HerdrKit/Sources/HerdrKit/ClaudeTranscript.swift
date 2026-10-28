@@ -99,12 +99,7 @@ public enum ClaudeTranscript {
         var shown = name.lowercased()
         switch name {
         case "TodoWrite":
-            let todos = (input["todos"] as? [[String: Any]] ?? []).map { todo in
-                let status = todo["status"] as? String
-                return ChatTodo(text: todo["content"] as? String ?? "", done: status == "completed",
-                                active: status == "in_progress")
-            }
-            history.append(ChatEntry(id: id, .todos(todos), time: time))
+            history.append(ChatEntry(id: id, .todos(ChatTodo.list(input["todos"])), time: time))
             return
         case "Read", "NotebookRead": (category, target) = (.read, path ?? "")
         case "Edit", "MultiEdit", "Write", "NotebookEdit": (category, target) = (.edit, path ?? "")
@@ -151,17 +146,14 @@ public enum ClaudeTranscript {
             }
         }
         if diff.isEmpty, extra["type"] as? String == "create", let text = extra["content"] as? String {
-            diff = text.split(separator: "\n", omittingEmptySubsequences: false).dropLast(text.hasSuffix("\n") ? 1 : 0)
-                .enumerated().map { ChatTool.DiffLine(mark: "+", number: $0 + 1, text: String($1)) }
+            diff = ChatTool.DiffLine.added(text)
         }
         let text: String
         if failed {
             let first = ChatHistory.firstLine(content)
             text = first.hasPrefix("Exit code ") ? "exit " + first.dropFirst(10) : first
         } else if !diff.isEmpty {
-            let added = diff.count { $0.mark == "+" }, removed = diff.count { $0.mark == "-" }
-            text = ["+\(added)", removed > 0 ? "-\(removed)" : ""].filter { !$0.isEmpty && $0 != "+0" }
-                .joined(separator: " ")
+            text = ChatTool.change(diff)
         } else if let lines = (extra["file"] as? [String: Any])?["numLines"] as? Int {
             text = ChatHistory.count(lines, "line")
         } else {

@@ -65,8 +65,9 @@ private func tools(_ history: ChatHistory) -> [ChatTool] {
     #expect(tools(live.history).allSatisfy { $0.result != nil })
 }
 
-@Test func `a unified diff gives numbered lines`() {
-    let diff = OpenCodeSession
-        .diff("--- a\n+++ a\n@@ -3,2 +3,3 @@\n keep\n-old\n+new\n+more\n\\ No newline at end of file\n")
+@Test func `a unified diff gives numbered lines, its headers skipped`() {
+    let diff = ChatTool.DiffLine
+        .unified("--- a\n+++ a\n@@ -3,2 +3,3 @@\n keep\n-old\n+new\n+more\n\\ No newline at end of file\n")
     #expect(diff.map { "\($0.mark)\($0.number) \($0.text)" } == [" 3 keep", "-4 old", "+4 new", "+5 more"])
+    #expect(ChatTool.change(diff) == "+2 -1")
 }

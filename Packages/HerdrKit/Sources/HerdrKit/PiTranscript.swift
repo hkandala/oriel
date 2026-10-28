@@ -195,9 +195,7 @@ public struct PiTranscript: Sendable {
             text = last.hasPrefix("Command exited with code ") ? "exit " + last.dropFirst(25)
                 : ChatHistory.firstLine(content)
         } else if !diff.isEmpty {
-            let added = diff.count { $0.mark == "+" }, removed = diff.count { $0.mark == "-" }
-            text = [added > 0 ? "+\(added)" : "", removed > 0 ? "-\(removed)" : ""].filter { !$0.isEmpty }
-                .joined(separator: " ")
+            text = ChatTool.change(diff)
         } else if message["toolName"] as? String == "read" {
             text = ChatHistory.count(content.split(separator: "\n", omittingEmptySubsequences: false).count, "line")
         } else {

@@ -284,6 +284,52 @@ public extension ChatHistory {
     }
 }
 
+extension ChatTool.DiffLine {
+    /// A unified diff's lines with their numbers (`@@ -a,b +c,d @@` hunks); headers and "\ No newline" skipped.
+    static func unified(_ text: String) -> [Self] {
+        var lines: [Self] = [], old = 0, new = 0, inHunk = false
+        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            if line.hasPrefix("@@") {
+                let numbers = line.split(separator: " ").dropFirst().prefix(2)
+                    .map { Int($0.dropFirst().split(separator: ",").first ?? "") ?? 1 }
+                (old, new, inHunk) = (numbers.first ?? 1, numbers.last ?? 1, true)
+                continue
+            }
+            guard inHunk, let mark = line.first, "+- ".contains(mark) else { continue }
+            lines.append(Self(mark: mark, number: mark == "-" ? old : new, text: String(line.dropFirst())))
+            old += mark == "+" ? 0 : 1
+            new += mark == "-" ? 0 : 1
+        }
+        return lines
+    }
+
+    /// A new file's lines, all added.
+    static func added(_ text: String) -> [Self] {
+        text.split(separator: "\n", omittingEmptySubsequences: false).dropLast(text.hasSuffix("\n") ? 1 : 0)
+            .enumerated().map { Self(mark: "+", number: $0 + 1, text: String($1)) }
+    }
+}
+
+extension ChatTool {
+    /// A change as its row says it: "+3 -1", "+2", "-4".
+    static func change(_ diff: [DiffLine]) -> String {
+        let added = diff.count { $0.mark == "+" }, removed = diff.count { $0.mark == "-" }
+        return [added > 0 ? "+\(added)" : nil, removed > 0 ? "-\(removed)" : nil].compactMap(\.self)
+            .joined(separator: " ")
+    }
+}
+
+extension ChatTodo {
+    /// A todo list as Claude Code's TodoWrite and opencode's todowrite give it (`content`, `status`).
+    static func list(_ todos: Any?) -> [ChatTodo] {
+        (todos as? [[String: Any]] ?? []).map { todo in
+            let status = todo["status"] as? String
+            return ChatTodo(text: todo["content"] as? String ?? "", done: status == "completed",
+                            active: status == "in_progress")
+        }
+    }
+}
+
 public extension ChatTool {
     /// A stack's front: "Edited 2 files, ran 1 command, 1 failed"; "Editing 1 file, running 2 commands" while one runs.
     static func summary(_ tools: [ChatTool]) -> String {

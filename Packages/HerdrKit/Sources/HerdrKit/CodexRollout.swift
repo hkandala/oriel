@@ -91,33 +91,14 @@ public enum CodexRollout {
     private static func edit(_ path: String, _ change: [String: Any], id: String, time: Date?,
                              into history: inout ChatHistory)
     {
-        var diff: [ChatTool.DiffLine] = []
-        if let content = change["content"] as? String, change["type"] as? String == "add" {
-            diff = content.split(separator: "\n", omittingEmptySubsequences: false)
-                .dropLast(content.hasSuffix("\n") ? 1 : 0)
-                .enumerated().map { ChatTool.DiffLine(mark: "+", number: $0 + 1, text: String($1)) }
-        }
-        var old = 1, new = 1
-        for line in (change["unified_diff"] as? String ?? "").split(separator: "\n") {
-            if line.hasPrefix("@@") {
-                // "@@ -1,2 +1,2 @@"
-                let numbers = line.split(separator: " ").dropFirst().prefix(2)
-                    .map { Int($0.dropFirst().split(separator: ",").first ?? "") ?? 1 }
-                (old, new) = (numbers.first ?? 1, numbers.last ?? 1)
-                continue
-            }
-            guard let mark = line.first, " +-".contains(mark) else { continue }
-            diff.append(ChatTool.DiffLine(mark: mark, number: mark == "-" ? old : new, text: String(line.dropFirst())))
-            old += mark == "+" ? 0 : 1
-            new += mark == "-" ? 0 : 1
-        }
+        let content = change["type"] as? String == "add" ? change["content"] as? String : nil
+        let diff = content.map(ChatTool.DiffLine.added)
+            ?? ChatTool.DiffLine.unified(change["unified_diff"] as? String ?? "")
         var tool = ChatTool(id: id, name: "edit", category: .edit, target: path, started: time)
-        let added = diff.count { $0.mark == "+" }, removed = diff.count { $0.mark == "-" }
         let status = change["status"] as? String ?? ""
         tool.failed = ["failed", "declined"].contains(status)
         tool.result = tool.failed ? status : change["type"] as? String == "delete" ? "deleted"
-            : [added > 0 ? "+\(added)" : "", removed > 0 ? "-\(removed)" : ""].filter { !$0.isEmpty }
-            .joined(separator: " ")
+            : ChatTool.change(diff)
         tool.diff = diff
         tool.ended = time
         history.append(ChatEntry(id: id, .tool(tool), time: time))

@@ -127,12 +127,7 @@ public struct OpenCodeSession {
         let state = part["state"] as? [String: Any] ?? [:], input = state["input"] as? [String: Any] ?? [:]
         let times = state["time"] as? [String: Any], started = date(times?["start"])
         if part["tool"] as? String == "todowrite" {
-            let todos = (input["todos"] as? [[String: Any]] ?? []).map { todo in
-                let status = todo["status"] as? String
-                return ChatTodo(text: todo["content"] as? String ?? "", done: status == "completed",
-                                active: status == "in_progress")
-            }
-            history.append(ChatEntry(id: id, .todos(todos), time: started))
+            history.append(ChatEntry(id: id, .todos(ChatTodo.list(input["todos"])), time: started))
             return
         }
         let callID = part["callID"] as? String ?? id
@@ -145,7 +140,8 @@ public struct OpenCodeSession {
         case "error":
             history.finish(tool: callID, result: ChatHistory.firstLine(state["error"]), failed: true, at: ended)
         case "completed":
-            let metadata = state["metadata"] as? [String: Any] ?? [:], diff = diff(metadata["diff"] as? String ?? "")
+            let metadata = state["metadata"] as? [String: Any] ?? [:],
+                diff = ChatTool.DiffLine.unified(metadata["diff"] as? String ?? "")
             let text = result(metadata, diff, output: state["output"])
             history.finish(tool: callID, result: text, failed: text.hasPrefix("exit "), diff: diff, at: ended)
         default: break
@@ -200,32 +196,12 @@ public struct OpenCodeSession {
             return "exit \(exit)"
         }
         if !diff.isEmpty {
-            let added = diff.count { $0.mark == "+" }, removed = diff.count { $0.mark == "-" }
-            return [added > 0 ? "+\(added)" : nil, removed > 0 ? "-\(removed)" : nil].compactMap(\.self)
-                .joined(separator: " ")
+            return ChatTool.change(diff)
         }
         if let lines = (metadata["display"] as? [String: Any])?["totalLines"] as? Int {
             return ChatHistory.count(lines, "line")
         }
         return ChatHistory.firstLine(output)
-    }
-
-    /// A unified diff's lines with their numbers (`@@ -a,b +c,d @@` hunks); headers and "\ No newline" skipped.
-    static func diff(_ text: String) -> [ChatTool.DiffLine] {
-        var lines: [ChatTool.DiffLine] = [], old = 0, new = 0, inHunk = false
-        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
-            if line.hasPrefix("@@") {
-                let numbers = line.split(separator: " ").dropFirst().prefix(2)
-                    .map { Int($0.dropFirst().split(separator: ",").first ?? "") ?? 1 }
-                (old, new, inHunk) = (numbers.first ?? 1, numbers.last ?? 1, true)
-                continue
-            }
-            guard inHunk, let mark = line.first, "+- ".contains(mark) else { continue }
-            lines.append(ChatTool.DiffLine(mark: mark, number: mark == "-" ? old : new, text: String(line.dropFirst())))
-            old += mark == "+" ? 0 : 1
-            new += mark == "-" ? 0 : 1
-        }
-        return lines
     }
 
     /// opencode's times are milliseconds since 1970.
