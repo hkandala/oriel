@@ -4,9 +4,9 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 
 ## Layout
 
-- **Workflows.** `.github/workflows/ci.yml` runs the app's checks on every push to main and on pull
-  requests, except docs-only changes (`playbook/**`, `docs/**`, `resources/**`, `**/*.md`): those start
-  no run, so they cancel nothing.
+- **Workflows.** `.github/workflows/ci.yml` runs the checks on every push to main and on pull requests,
+  except docs-only changes (`playbook/**`, `docs/**`, `resources/**`, `**/*.md`): those start no run. The
+  UI tests run only on a dispatch.
 - **Docs site.** `.github/workflows/docs-deploy.yml` builds the docs and deploys them to the Vercel project
   `oriel` when `docs/` changes; Vercel's own git deploys are off. Run the `vercel` CLI only from the repo
   root: in another folder `vercel pull --yes` creates and links a new project.
@@ -15,18 +15,19 @@ How CI runs, how to run part of it, and how to keep it green and fast.
   (`HERDR_VERSION` in `ci.yml`). At 1x, cell sizes round: `stty size` can be one column narrower than the
   card's grid, and a 1 pt font step can leave the column count the same, so grid tests allow one column. A
   second ⌃⌘F during the full-screen animation is lost.
-- **Five jobs** (`test (0)` to `test (4)`), each a shard of the UI tests. `test (0)` also runs `make lint`,
-  `make build`, `make test` (HerdrKit, the three-finger check, the acknowledgements check) and, after its UI tests,
-  `make strip-check`. Every job starts CI's sshd on localhost for the remote-host tests
-  (`scripts/ci-sshd.sh`).
-- **Shards by time.** `make e2e SHARD=i/5 SHARD_HEAD=180` runs the tests that `scripts/shard.py` gives
-  shard i: the slowest test first, each to the shard with the least time so far, from
-  `scripts/test-times.tsv` (a test not listed counts 15 s). Shard 0 starts with 180 s for its checks.
+- **Checks** (a push or a pull request): one job, `checks`, runs `make lint`, `make build`,
+  `make build-tests` (the UI tests compile), `make test` (HerdrKit, the three-finger check, the
+  acknowledgements check) and `make strip-check`. It takes about 4 minutes.
+- **Full run** (a dispatch): five jobs (`test (0)` to `test (4)`), each a shard of the UI tests. Every job
+  starts CI's sshd on localhost for the remote-host tests (`scripts/ci-sshd.sh`).
+- **Shards by time.** `make e2e SHARD=i/5` runs the tests that `scripts/shard.py` gives shard i: the slowest
+  test first, each to the shard with the least time so far, from `scripts/test-times.tsv` (a test not
+  listed counts 15 s).
 - **On-demand tests.** The Makefile's `ON_DEMAND` list (stress tests, cost and memory measurements,
-  frame-record tests, the look scenes) is left out of `make e2e` and of push runs. Run them before a release
+  frame-record tests, the look scenes) is left out of `make e2e` and of full runs. Run them before a release
   and after a change to what they measure.
-- **Results.** Each job uploads `e2e-xcresult-<shard>`: the xcresult with screen recordings, also of green
-  runs. Job 0 also uploads the strip check's captures.
+- **Results.** Each test job uploads `e2e-xcresult-<shard>`: the xcresult with screen recordings, also of
+  green runs. The checks job uploads the strip check's captures (`strip-check`).
 - **Time.** A full run takes 10–14 minutes: about 2 minutes of setup and build per job plus a fifth of about
   2130 s of UI tests.
 
@@ -34,8 +35,9 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 
 | What | Command | Machines |
 |---|---|---|
-| Full run | push to main | 5 |
-| Chosen UI tests | `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB` | 1, no lint or build |
+| Checks | push to main | 1 |
+| Full run | `gh workflow run ci.yml --ref main` | 5 |
+| Chosen UI tests | `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB` | 1 |
 | On-demand tests | `gh workflow run ci.yml --ref main -f on_demand=true` | 4 |
 | Same locally | `make e2e ONLY=…`, `make e2e ON_DEMAND_ONLY=1` (under the GUI lock) | this Mac |
 
@@ -44,11 +46,11 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 - **Watch it** in a background command, not a polling loop: `gh run watch <id> >/dev/null; gh run view <id>
   --json conclusion,jobs`. Trust the `conclusion`: `gh run watch --exit-status` has exited 0 on a failed
   run. A chosen-tests run takes about 2.5 minutes for two tests.
-- A push cancels the push run in flight (`cancel-in-progress`). A dispatch never cancels a push run or
-  another dispatch. Batch dispatches; use chosen-tests runs for single checks.
-- **Sign off** with a full run on your own last commit: another lane's push can cancel yours, so dispatch
-  one (`gh workflow run ci.yml --ref main`) if needed, and judge a run by which tests failed, not by its
-  color.
+- A push cancels the checks run in flight (`cancel-in-progress`). A dispatch never cancels a run and is
+  never cancelled. Only the orchestrator dispatches full runs ([workflow.md](workflow.md#ci)). Use
+  chosen-tests runs for single checks.
+- **Judge a run by which tests failed**, not by its color, and give each failing test to the track that owns
+  it.
 - **Old code or work in progress on CI** (a remote probe while the GUI is busy, or to prove a test is red
   on the old code): commit on a detached HEAD, push a tag, `gh workflow run ci.yml --ref <tag> -f
   only_testing=…`, read the result, delete the tag. The hooks still run on that commit (no `--no-verify`):
@@ -65,7 +67,8 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 3. Think of CI's machine ([Layout](#layout)); Option sends Alt there.
 4. Give it 20 minutes from the logs. Then simplify the test or the feature and write it down, or hand it on.
    No debug branches.
-5. Never rerun to green. A fix is proven by two full runs in a row green on the first try.
+5. Never rerun to green: run again only after a code change. A flake fix is proven by two full runs in a
+   row green on the first try.
 
 ## Writing fast tests
 
@@ -83,7 +86,7 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 
 ## Refresh the test times
 
-When tests are added or get slower, rewrite `scripts/test-times.tsv` from two or three green full runs: the
+When tests are added or get slower, rewrite `scripts/test-times.tsv` from two or three green full runs (dispatches): the
 mean of the passed tests, from each shard's artifact:
 
 ```sh

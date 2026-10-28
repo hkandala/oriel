@@ -25,31 +25,22 @@ env:
 permissions:
   contents: read
 
-# A dispatch run gets its own group: it never cancels the push run or another dispatch.
+# Push runs cancel older push runs on the same ref; a dispatch gets its own group and never cancels anything.
 concurrency:
   group: ci-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # 5 parallel jobs, the account's macOS limit (playbook/ci.md, Layout): shard 0 also runs lint, the build and HerdrKit's
-  # tests (they need herdr), and gets fewer UI tests for it. An ad-hoc run of chosen tests takes one.
-  test:
+  # Push and pull request: the fast checks only (playbook/ci.md, Layout). The UI tests run on dispatch.
+  checks:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: xcode-27
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ${{ fromJSON(inputs.only_testing && '[0]' || inputs.on_demand && '[0, 1, 2, 3]' || '[0, 1, 2, 3, 4]') }}
-    env:
-      CHECKS: ${{ matrix.shard == 0 && !inputs.only_testing && !inputs.on_demand }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - if: env.CHECKS == 'true'
-        run: brew update --quiet && brew bundle
-      - if: env.CHECKS != 'true'
-        run: brew install xcbeautify
+      - run: brew update --quiet && brew bundle
       - name: install herdr
-        run: |
+        run: &install-herdr |
           mkdir -p ~/.local/bin
           curl -fsSL -o ~/.local/bin/herdr "https://github.com/herdrdev/herdr/releases/download/v$HERDR_VERSION/herdr-macos-aarch64"
           echo "$HERDR_SHA256  $HOME/.local/bin/herdr" | shasum -a 256 -c
@@ -57,27 +48,41 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           # The app finds herdr through the login shell, like a user's rc file after install.
           echo 'export PATH="$HOME/.local/bin:$PATH"' | tee -a ~/.zshrc >> ~/.bash_profile
-      - if: env.CHECKS == 'true'
-        run: make lint
-      # Its macOS build is the UI tests' too: their build then adds only the test bundle.
-      - if: env.CHECKS == 'true'
-        run: make build
-      - if: env.CHECKS == 'true'
-        run: make test
+      - run: make lint
+      - run: make build
+      # The UI tests compile, though they do not run here.
+      - run: make build-tests
+      - run: make test
+      - run: make strip-check
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: strip-check
+          path: .build/strip-check
+
+  # Dispatch: the UI tests on 5 parallel jobs, the account's macOS limit; a run of chosen tests takes one, the
+  # on-demand tests take 4.
+  test:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: xcode-27
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(inputs.only_testing && '[0]' || inputs.on_demand && '[0, 1, 2, 3]' || '[0, 1, 2, 3, 4]') }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: brew install xcbeautify
+      - name: install herdr
+        run: *install-herdr
       # The remote-host tests' machines.
       - run: scripts/ci-sshd.sh
       - if: ${{ inputs.only_testing }}
         run: make e2e
         env:
           ONLY: ${{ inputs.only_testing }}
-      # SHARD_HEAD (scripts/shard.py): shard 0's checks above and the strip check below take 190–230 s, less the
-      # 60–80 s its UI test build saves on the app built by make build.
       - if: ${{ !inputs.only_testing }}
-        run: >-
-          make e2e SHARD=${{ matrix.shard }}/${{ strategy.job-total }}
-          ${{ inputs.on_demand && 'ON_DEMAND_ONLY=1' || 'SHARD_HEAD=180' }}
-      - if: ${{ !cancelled() && env.CHECKS == 'true' }}
-        run: make strip-check
+        run: make e2e SHARD=${{ matrix.shard }}/${{ strategy.job-total }} ${{ inputs.on_demand && 'ON_DEMAND_ONLY=1' || '' }}
       # What the remote-host tests' sshd saw, and the SSH runs left.
       - if: failure()
         run: tail -60 /tmp/oriel-sshd/sshd.log; pgrep -lf 'ssh ' || true
@@ -86,6 +91,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: e2e-xcresult-${{ matrix.shard }}
-          path: |
-            .build/DerivedData/e2e.xcresult
-            .build/strip-check
+          path: .build/DerivedData/e2e.xcresult

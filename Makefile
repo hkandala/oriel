@@ -1,5 +1,5 @@
 SHELL := /bin/bash -eo pipefail
-.PHONY: setup format lint build test e2e strip-check run app dmg install icons
+.PHONY: setup format lint build build-tests test e2e strip-check run app dmg install icons
 
 DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
@@ -26,6 +26,10 @@ lint:
 build:
 	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)
 
+# The app and the UI tests, built but not run (CI's push checks).
+build-tests:
+	$(XCODEBUILD) $(MAC) build-for-testing $(BEAUTIFY)
+
 test:
 	swift test --package-path Packages/HerdrKit --scratch-path $(DERIVED_DATA)/HerdrKit
 	swiftc -parse-as-library Oriel/Views/ThreeFingers.swift scripts/three-fingers-check.swift -o $(DERIVED_DATA)/three-fingers
@@ -37,10 +41,9 @@ test:
 
 # Runs the UI tests against throwaway herdr sessions, removed even when tests fail.
 # ONLY=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB runs just those.
-# SHARD=i/n runs shard i (0-based) of n, split by the tests' measured times (scripts/shard.py, scripts/test-times.tsv);
-# SHARD_HEAD=s: shard 0 spends s seconds on other work first. Without ONLY, the ON_DEMAND tests are left out: the
-# stress tests, the cost and frame-record measurements and the look scenes (minutes in all, numbers and screenshots
-# more than behaviour; playbook/ci.md). ON_DEMAND_ONLY=1 runs only them (CI: the on_demand input).
+# SHARD=i/n runs shard i (0-based) of n, split by the tests' measured times (scripts/shard.py, scripts/test-times.tsv).
+# Without ONLY, the ON_DEMAND tests are left out: the stress tests, the cost and frame-record measurements and the
+# look scenes (minutes in all, numbers and screenshots more than behaviour; playbook/ci.md). ON_DEMAND_ONLY=1 runs only them (CI: the on_demand input).
 ON_DEMAND := testHundredsOfPanesStayQuick testOverviewOfManyTabsStaysBounded testMemoryAndCPUOverManyTabs \
 	testOverviewCostsAndLetsGoAfter testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar \
 	testATabComesIntoViewWithoutAFlicker testACardNeverShowsTheOverviewsSmallSnapshot \
@@ -49,8 +52,7 @@ ifdef ON_DEMAND_ONLY
 SHARD ?= 0/1
 endif
 ifdef SHARD
-ONLY := $(shell scripts/shard.py $(SHARD) $(if $(ON_DEMAND_ONLY),--on-demand) $(if $(SHARD_HEAD),--head $(SHARD_HEAD)) \
-	$(ON_DEMAND))
+ONLY := $(shell scripts/shard.py $(SHARD) $(if $(ON_DEMAND_ONLY),--on-demand) $(ON_DEMAND))
 # An empty list would run every test.
 $(if $(ONLY),,$(error no tests for SHARD=$(SHARD)))
 endif
