@@ -240,6 +240,12 @@ public struct Program: Equatable, Sendable {
         self.isShell = isShell
     }
 
+    /// What a plugin pane's placeholder looks like: its `cat` under its shell and nothing else (herdr lists no argv
+    /// for the script's `sh`). The caller asks it only of a pane with a plugin label.
+    public var isPlaceholder: Bool {
+        name == "cat" && foreground.count <= 2
+    }
+
     /// The name people know it by: a Node CLI's script name (`gemini`), else the process name.
     public var title: String {
         guard let script, ["node", "bun"].contains(name) else { return name }

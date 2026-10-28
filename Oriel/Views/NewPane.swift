@@ -10,6 +10,10 @@ struct NewPane: View {
     /// The card's id, which the identifiers start with.
     let cardID: String
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var fade: Animation? {
+        reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15)
+    }
+
     @Environment(\.look) private var look
     /// VoiceOver goes to the selected row as the list shows.
     @AccessibilityFocusState private var focus: Chooser.Row?
@@ -43,9 +47,9 @@ struct NewPane: View {
                 }
             }
         }
-        .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: chooser.starting)
-        .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: chooser.open)
-        .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: chooser.browsing)
+        .animation(fade, value: chooser.starting)
+        .animation(fade, value: chooser.open)
+        .animation(fade, value: chooser.browsing)
         .onAppear { focus = chooser.selected }
         .onChange(of: chooser.selected) { pointer = NSEvent.mouseLocation }
         // It leaves when the pane runs something else (typed from herdr's TUI): a program besides the shell, or an

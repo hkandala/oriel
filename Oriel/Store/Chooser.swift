@@ -3,9 +3,8 @@ import HerdrKit
 import Observation
 
 /// A new pane's chooser (ui/new-pane): Terminal, Agent (which opens its agents under it) or Browser. The app's own
-/// state, kept on the session's store so
-/// every window shows it; herdr sees a plain shell. Its card is a new tab's or split's stand-in until herdr made the
-/// pane, then the pane's terminal, which a move keeps.
+/// state, kept on the session's store so every window shows it; herdr sees a plain shell. Its card is a new tab's or
+/// split's stand-in until herdr made the pane, then the pane's terminal, which a move keeps.
 @MainActor @Observable
 final class Chooser {
     /// An agent it starts: its name, and its command, which is its program icon's id too.
@@ -190,16 +189,17 @@ extension HostStore {
 }
 
 extension Page {
-    /// A browser pane takes the chooser's pane's place, with Replace Pane's steps (ui/new-pane#browser); a new tab's
-    /// stand-in waits for herdr's pane.
+    /// A browser pane takes the chooser's pane's place, with Replace Pane's steps (ui/new-pane#browser). It waits for
+    /// a snapshot that has the pane: herdr's split or tab answer comes before one, and a fast pick (⌘D, then 3) would
+    /// find nothing to replace.
     func openBrowser(_ chooser: Chooser) {
         guard chooser.starting == nil, !chooser.browsing else { return }
         chooser.browsing = true
         Task {
             defer { store.drop(chooser) }
             let clock = ContinuousClock(), begun = clock.now
-            while chooser.paneID == nil, clock.now - begun < .seconds(10),
-                  store.choosers.contains(where: { $0 === chooser })
+            while chooser.paneID.flatMap(store.pane).flatMap({ store.workspace(of: $0.tabID) }) == nil,
+                  clock.now - begun < .seconds(10), store.choosers.contains(where: { $0 === chooser })
             {
                 try? await Task.sleep(for: .milliseconds(100))
             }
@@ -237,7 +237,10 @@ extension Page {
     /// floating one too), unless a text field, a panel or the overview has the keyboard.
     static func chooserKey(_ event: NSEvent) -> Bool {
         // ⌃ and ⌥ keys too, or ⌃D would end the hidden shell: the app's ⌃ keys are second shortcuts, taken before.
-        guard !event.modifierFlags.contains(.command), let window = NSApp.keyWindow,
+        // ⌘V too, which would paste into the hidden shell; the app's other ⌘ keys work as usual.
+        let paste = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
+            && event.charactersIgnoringModifiers == "v"
+        guard !event.modifierFlags.contains(.command) || paste, let window = NSApp.keyWindow,
               !(window.firstResponder is NSText) else { return false }
         let target: (Page, String)?
         if let pages = WindowPages.windows.first(where: { $0.window === window }) {
@@ -256,7 +259,9 @@ extension Page {
             target = nil
         }
         guard let (page, id) = target, let chooser = page.store.chooser(id) else { return false }
-        page.store.key(event, chooser, page: page)
+        if !paste {
+            page.store.key(event, chooser, page: page)
+        }
         return true
     }
 }

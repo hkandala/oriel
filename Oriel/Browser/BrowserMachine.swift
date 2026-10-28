@@ -33,7 +33,7 @@ extension Browser {
 
     static let loopback = ["localhost", "127.0.0.1", "::1"]
 
-    /// The machine's own loopback on any port, This Mac's files, and a few developer sites.
+    /// Developer sites that load by themselves (with the machine's loopback and This Mac's files, `approved`).
     static let safe = ["github.com", "gitlab.com", "bitbucket.org", "developer.apple.com",
                        "developer.mozilla.org", "docs.github.com", "vercel.com"]
 

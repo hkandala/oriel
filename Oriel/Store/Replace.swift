@@ -98,9 +98,8 @@ extension Page {
         let replacement = replacement ?? Replacement(chooser: pane.agent != nil || pane.browser != nil)
         asking.insert(key)
         Task {
-            // A browser pane runs only its placeholder: no question.
-            let running = pane.browser != nil ? []
-                : await store.programs([pane.id], starting: pane.starting ? [pane.id] : [], client)
+            let running = await store.programs([pane.id], starting: pane.starting ? [pane.id] : [],
+                                               placeholders: pane.browser != nil ? [pane.id] : [], client)
             asking.remove(key)
             if running.isEmpty {
                 await replace(pane.id, replacement)

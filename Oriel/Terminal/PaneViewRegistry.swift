@@ -33,13 +33,7 @@ final class PaneViewRegistry {
             return terminal
         }
         let terminal = PaneTerminal(terminalID: terminalID, paneID: paneID, client: client)
-        terminal.view.onKeyboard = { [weak self] in
-            // The newest holder: a view that had the keyboard before must not take it back when SwiftUI moves it
-            // to a new host (`viewWillMove`). A floating window's terminal (alone in it) drops none.
-            guard let self, pages?.floats(terminalID) != true else { return }
-            dropClaims(but: terminalID)
-            pages?.current?.tookKeyboard(terminalID)
-        }
+        terminal.view.onKeyboard = claim(terminalID)
         terminal.view.onReturn = { [weak self] in self?.pages?.returned(terminalID) }
         terminal.onInput = { [weak self] in self?.pages?.input(terminalID) }
         terminal.watches = { [weak self] in self?.pages?.page(of: terminalID)?.watched ?? false }
@@ -51,7 +45,8 @@ final class PaneViewRegistry {
 
     /// The browser pane's card, made on first use from its label.
     func browser(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String, store: HostStore) -> Browser {
-        if let browser = browsers[terminalID] {
+        // Made again for another iid: its state file is another's.
+        if let browser = browsers[terminalID], browser.label.iid == label.iid {
             // Only a change: Observation reports equal writes too, and every card body asks.
             if browser.paneID != pane.id {
                 browser.paneID = pane.id
@@ -60,24 +55,34 @@ final class PaneViewRegistry {
             return browser
         }
         let browser = Browser(terminalID: terminalID, paneID: pane.id, label: label, store: store)
-        browser.view.onKeyboard = { [weak self] in
-            guard let self, pages?.floats(terminalID) != true else { return }
-            dropClaims(but: terminalID)
-            pages?.current?.tookKeyboard(terminalID)
-        }
+        browser.view.onKeyboard = claim(terminalID)
         browsers[terminalID] = browser
         return browser
     }
 
     /// Cards whose label got another address from elsewhere load it (`Browser.follow`), at each snapshot.
-    private func follow() {
+    /// A card goes with its pane or its label (a rename that breaks it, another iid): its page, timers and proxy share
+    /// stop with it.
+    private func follow(_ alive: Set<String>) {
         guard !browsers.isEmpty else { return }
-        for pane in (pages?.withFloats ?? []).flatMap(\.store.panes) {
-            if let terminalID = pane.terminalID, let browser = browsers[terminalID], let label = pane.browser,
-               label.iid == browser.label.iid
-            {
+        let labels = Dictionary((pages?.withFloats ?? []).flatMap(\.store.panes).compactMap { pane in
+            pane.terminalID.flatMap { id in pane.browser.map { (id, $0) } }
+        }, uniquingKeysWith: { first, _ in first })
+        browsers = browsers.filter { alive.contains($0.key) && labels[$0.key]?.iid == $0.value.label.iid }
+        for (terminalID, browser) in browsers {
+            if let label = labels[terminalID] {
                 browser.follow(label.arg)
             }
+        }
+    }
+
+    /// A terminal or browser view took the keyboard: the newest holder. A view that had the keyboard before must not
+    /// take it back when SwiftUI moves it to a new host (`viewWillMove`). A floating window's (alone in it) drops none.
+    private func claim(_ terminalID: String) -> () -> Void {
+        { [weak self] in
+            guard let self, pages?.floats(terminalID) != true else { return }
+            dropClaims(but: terminalID)
+            pages?.current?.tookKeyboard(terminalID)
         }
     }
 
@@ -99,8 +104,7 @@ final class PaneViewRegistry {
             Self.recent.removeAll { $0 === terminal }
             PaneTerminal.snapshots.removeAll { $0 === terminal }
         }
-        browsers = browsers.filter { alive.contains($0.key) }
-        follow()
+        follow(alive)
         // Without a client (the page in view connecting), the terminals there go on: another page's floated ones.
         let make = { (ids: [String: String]) in
             ids.compactMap { id, pane in client.map { self.terminal(id, pane: pane, client: $0) } ??
@@ -156,11 +160,7 @@ final class PaneViewRegistry {
 
     /// The main window's terminal that has the keyboard, from the window itself, so it cannot drift.
     var keyboardTerminalID: String? {
-        terminals.first { pages?.floats($0.key) != true && $0.value.view.window?.firstResponder === $0.value.view }
-            .map(\.key) ?? browsers
-            .first {
-                pages?.floats($0.key) != true && $0.value.view.window?.firstResponder === $0.value.view
-            }
-            .map(\.key)
+        let views = terminals.mapValues { $0.view as NSView }.merging(browsers.mapValues(\.view)) { first, _ in first }
+        return views.first { pages?.floats($0.key) != true && $0.value.window?.firstResponder === $0.value }?.key
     }
 }

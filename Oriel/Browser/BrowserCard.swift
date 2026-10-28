@@ -101,12 +101,10 @@ private struct Asking: View {
 
     var body: some View {
         let id = "browser.\(browser.paneID)"
-        let host = url.host.map { host in host + (url.port.map { ":\($0)" } ?? "") }
-        let rest = host.map { url.absoluteString.components(separatedBy: $0).dropFirst().joined(separator: $0) }
         VStack(spacing: 10) {
             Image(systemName: "globe").font(.system(size: 36, weight: .light)).foregroundStyle(.secondary)
             Text("Open this page?").font(.system(size: 15, weight: .semibold))
-            Text("\(Text(host ?? url.absoluteString))\(Text(rest ?? "").foregroundStyle(.secondary))")
+            addressText(url.absoluteString)
                 .font(.system(size: 13)).lineLimit(2).truncationMode(.middle).multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
                 .accessibilityIdentifier("\(id).message")
@@ -224,8 +222,8 @@ struct BrowserToolbar: View {
             .focused($editing)
             // On the field, before the overlay that would take it too.
             .accessibilityIdentifier("\(id).address")
-            // Its text hidden under the shown address while not editing; not by opacity, as SwiftUI focuses no view at
-            // opacity 0 (the first focus of a new card was lost).
+            // Its text hidden under the shown address while not editing; not by opacity: SwiftUI focuses no view at
+            // opacity 0.
             .foregroundStyle(editing ? AnyShapeStyle(.primary) : AnyShapeStyle(.clear))
             .overlay(alignment: .leading) {
                 // A click selects the address, as ⌘L does.
@@ -295,21 +293,26 @@ struct BrowserToolbar: View {
         }
     }
 
-    /// "localhost:3000" in full, "/dashboard" at half.
+    /// The address, or the prompt while there is none.
     private var shown: some View {
-        let url = URL(string: browser.address)
-        let host = url.flatMap { url in url.host.map { $0 + (url.port.map { ":\($0)" } ?? "") } }
-        let rest = host.map { browser.address.components(separatedBy: $0).dropFirst().joined(separator: $0) } ?? ""
         // The field's own prompt is hidden with its text.
-        return Group {
+        Group {
             if browser.address.isEmpty {
                 Text("Enter a URL").foregroundStyle(.tertiary)
             } else {
-                Text("\(Text(host ?? browser.address))\(Text(rest).foregroundStyle(.secondary))")
+                addressText(browser.address)
             }
         }
         .font(.system(size: 12.5)).lineLimit(1).truncationMode(.tail)
     }
+}
+
+/// An address as the toolbar and "Open this page?" show it: "localhost:3000" in full, "/dashboard" at half.
+private func addressText(_ address: String) -> Text {
+    let url = URL(string: address)
+    let host = url.flatMap { url in url.host.map { $0 + (url.port.map { ":\($0)" } ?? "") } }
+    let rest = host.map { address.components(separatedBy: $0).dropFirst().joined(separator: $0) } ?? ""
+    return Text("\(Text(host ?? address))\(Text(rest).foregroundStyle(.secondary))")
 }
 
 /// A floated browser pane: the toolbar without the card buttons, under the floating window's title row.

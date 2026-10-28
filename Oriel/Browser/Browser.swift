@@ -58,8 +58,9 @@ final class Browser: NSObject {
         self.paneID = paneID
         self.label = label
         labelled = label.arg
-        // A new pane (no address yet) has no state file: its address field takes the keyboard at once. A claim kept
-        // for the read was dropped when AppKit gave the keyboard to another card as the replaced pane's view left.
+        // A new pane (no address yet) has no state file: its address field takes the keyboard at once. A claim held
+        // across the read would be dropped when AppKit gives the keyboard to another card as the replaced pane's view
+        // leaves.
         reading = !label.arg.isEmpty
         self.store = store
         let machine = store.machine
@@ -112,6 +113,10 @@ final class Browser: NSObject {
                 MainActor.assumeIsolated {
                     if let self, let url = view.url, url.absoluteString != "about:blank" {
                         self.address = Self.shown(url, self.alias).absoluteString
+                        // A single-page app's route (`pushState`) finishes no navigation.
+                        if self.loaded {
+                            self.save()
+                        }
                     }
                 }
             },
@@ -206,10 +211,17 @@ final class Browser: NSObject {
     }
 
     /// The saved page with its back and forward list, else the address alone.
+    /// The history's current page must pass the load rule too: a process on the machine writes the state file.
     private func restore(_ url: URL) {
         if let history {
             self.history = nil
-            proxied { self.view.interactionState = history }
+            proxied {
+                self.view.interactionState = history
+                guard let current = (self.view.backForwardList.currentItem?.url).map({ Self.shown($0, self.alias) }),
+                      Self.origin(current) != Self.origin(url), !self.approved(current) else { return }
+                self.view.stopLoading()
+                self.asking = current
+            }
         } else {
             load(url)
         }
@@ -318,12 +330,9 @@ extension Browser: WKNavigationDelegate {
         loaded = true
     }
 
-    func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
+    func webView(_: WKWebView, didFinish _: WKNavigation!) {
         ready = true
         reloaded = false
-        if let url = webView.url {
-            approve(Self.shown(url, alias))
-        }
         save()
     }
 
@@ -362,6 +371,10 @@ extension Browser: WKNavigationDelegate {
             var request = action.request
             request.url = Self.web(url, alias)
             proxied { self.view.load(request) }
+            return .cancel
+        }
+        // A remote card never shows This Mac's files (a history entry or a script may ask for one).
+        if alias != nil, action.request.url?.isFileURL == true {
             return .cancel
         }
         guard let url = action.request.url,

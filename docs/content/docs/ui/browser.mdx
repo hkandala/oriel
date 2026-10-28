@@ -153,10 +153,12 @@ the instance state file
 - It holds `{"url": …, "history": …}`. `url` is as the machine sees it.
   `history` is WebKit's `interactionState` (the back and forward list) in
   base64, left out at 128 KiB and over.
-- Written 500 ms after a navigation ends. Last writer wins.
+- Written 500 ms after a navigation ends or the address changes (a
+  single-page app's route). Last writer wins.
 - Read when the card is built: a relaunch, a session restart, another
   device. The card opens the saved page with its history, else the label's
-  address. Both follow the load rule below.
+  address. Both follow the load rule below, and so does the history's current
+  page: one from another origin that is not approved stops and asks.
 - Typing an address removes the file. The device that closes the pane
   removes it, and the 30-day cleanup on connect takes the rest.
 - **An open card follows its label.** When the label gets another address
@@ -170,8 +172,9 @@ the instance state file
 Any process on a machine (a prompt-injected agent, a script) can rename a
 pane or write its state file. So:
 - A page the user types loads at once and approves its origin for that
-  machine. A page that finishes loading in the card approves its origin too,
-  so after a relaunch a page reached by a link loads by itself.
+  machine; so does **Open**. A page that only finishes loading approves
+  nothing: a link the user clicks loads, but after a relaunch the card asks
+  before it opens a saved page from an origin not approved.
 - A page from the machine (the label, the state file, a rename) loads by
   itself only if its origin is approved for that machine or on the safe list.
   Otherwise the card asks **Open this page?**, under a `globe`, with the
@@ -276,8 +279,9 @@ machine's listening TCP ports in a menu.
 | ⇧⌘R | Replace Pane: a fresh shell with the [New pane](/docs/ui/new-pane) chooser, with no question | File |
 
 - Open Browser Here is hidden. Open Terminal Here and Start Agent Here replace
-  the pane with no question, because it runs only its placeholder. Closing it
-  never asks either.
+  the pane with no question while it runs only its placeholder or a plain
+  shell, and closing it asks nothing then either. Any other program asks, as
+  in any pane: any process can label a pane.
 - Find (⌘F), Insert Path, Go to Directory and Reset Pane Name are disabled.
 - A floating window offers Reload Page, Open Location and Show Web Inspector
   too.
@@ -328,7 +332,8 @@ Open.
 
 | Risk | Effect | Plan |
 |---|---|---|
-| Labels or state files written by a hostile machine | a page opens by itself | an origin outside the approvals and the safe list needs a click |
+| Labels or state files written by a hostile machine | a page opens by itself | an origin outside the approvals and the safe list needs a click, also for the saved history's current page |
+| A hostile machine serves a page on its own `localhost` (safe list) | that page loads by itself, and its links, redirects and requests go anywhere | accepted: the rule stops a label or state file alone from opening an unapproved origin, not a page the machine serves; a link it leads to approves nothing |
 | The SOCKS port is open to other accounts on the Mac | another account can reach the machine's network | accepted for a single-user Mac; a random port, open only while a card needs it |
 | A server with `AllowTcpForwarding no` | remote pages cannot load | the card says "cannot reach"; Tailscale or LAN addresses still load; a bigger server helper later |
 | `_WKInspector` is private | the Web Inspector button can break on a macOS update | Safari's Develop menu still reaches every card |
@@ -344,8 +349,9 @@ Open.
   Rejected: real Chrome driven over its DevTools protocol; a Chromium build of
   our own.
 - **A built-in pane kind with one store per machine**, and the load rule
-  above. No request leaves the device for an unknown origin without the user,
-  and machines stay apart. Rejected: loading every label by itself; tracking
+  above. A label or state file alone never opens an origin that is not
+  approved or safe, and machines stay apart. A page that loads (the machine's
+  own `localhost` among them) can still lead anywhere: see Risks. Rejected: loading every label by itself; tracking
   which device created or edited a label.
 - **Remote pages through one SOCKS proxy per machine**, with the app's front
   before ssh's `-D`. One forward covers every port and name on the machine,

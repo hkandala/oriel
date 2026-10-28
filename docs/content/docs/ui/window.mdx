@@ -493,7 +493,8 @@ How it works: [Layout and sizing](/docs/layout).
   keeps the keyboard.
 - **Rename Pane** puts a text field in the header. Enter saves the label; an
   empty name clears it; Esc cancels. Then the keyboard goes back to the card.
-  **Reset Pane Name** (enabled once the pane has a name, also in the palette)
+  **Reset Pane Name** (enabled once the pane has a name, not on a browser
+  pane, also in the palette)
   clears herdr's label, so the header shows the program again.
 - Drag the header to move the pane ([Drag and drop](/docs/ui/drag-and-drop)).
 - **Replace Pane** (⇧⌘R, also in the palette) puts a fresh shell in the pane's
@@ -507,8 +508,8 @@ How it works: [Layout and sizing](/docs/layout).
   a floated pane's new pane floats in a window at the same place, with its
   Stay on Top. ⌘W while a replace runs does nothing: the old pane is closing
   already.
-- Close and Replace Pane ask first unless the pane runs only its shell or is
-  a browser pane (Return confirms, Esc cancels). Replace Pane's dialog says "Replace
+- Close and Replace Pane ask first unless the pane runs only its shell or a
+  browser pane's placeholder (Return confirms, Esc cancels). Replace Pane's dialog says "Replace
   “‹name›”?" and has a Replace Pane button.
 - Every question before an action that ends something (a close, Replace
   Pane, Stop or Delete Session) shows that action's button in red, the

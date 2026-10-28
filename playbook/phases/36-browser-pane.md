@@ -102,40 +102,30 @@ Captures: `scrawl-1793181414481-118c7.scrawl` and `scrawl-1793181638672-118c7-3.
 
 ### Track B
 
-- **Cause (7):** the address field sits at opacity 0 under the shown address while not editing, and SwiftUI gives
-  an invisible view no clicks. **Fix:** the shown address takes the click and starts editing.
-- **Cause (9):** the address field's select-all went to the first responder; in a new floating window the web view
-  had it by then, and selected its whole page. **Fix:** select-all goes to the field's editor only.
+- **Causes (7, 9, 12):** the address field hid at opacity 0, which SwiftUI gives no clicks or focus; its select-all
+  went to the first responder, a floated card's web view by then; an empty web view draws white once clicked.
+  **Fix:** the shown address takes the click, the field hides its text with a clear style, select-all goes to the
+  field's editor, and the web view shows from its first commit, under a 44 pt `globe` (13) and the progress line
+  (17); the empty field says "Enter a URL" (19: words that are no address go nowhere, so no "Search").
 - **Cause (10):** WebKit keeps the inspector's last attach state in the app's defaults
-  (`__WebInspectorPageGroupLevel1__.WebKit2InspectorStartsAttached`), which the old detach set to 0. **Fix:** no
-  detach; the key is removed before each show, so it docks under the page every time; the inspector's own control
-  moves it to a window.
-- **Cause (12):** an empty web view draws white once clicked. **Fix:** it stays hidden until there is an address,
-  under a 44 pt `globe` (13) that gives the address field the keyboard; a first typed address shows the loader.
-- **Decisions (11, for the docs pass):** the state file is `{"url", "history"}`: `history` is WebKit's
-  `interactionState` (the back and forward list) in base64, left out over 128 KiB; restored with the saved page
-  (file:// pages too).
-- **Decisions (8, 14):** toolbar buttons take the card buttons' `paneButton` color, at 0.35 when they cannot act.
-  Replace Pane is ⇧⌘R everywhere; ⌘R is Reload Page (View menu, palette, floating window) on a browser card.
-- **For the user:** float a browser pane (no selection); Web Inspector docked, then its own window control.
-- **Decisions (15):** "Open this page?" under a `globe`, the address (host, path dimmed, middle-truncated), Not Now
-  and Open; Return and Esc answer while the card has the keyboard. Not Now leaves the page the card had, or the
-  empty card with its globe.
-- **Cause (16):** herdr sends no event for `pane.rename` (spiked on 0.9.5, also `report-metadata --title`), so the
-  app saw an agent's rename only at the next event or the 30 s heartbeat. **Fix:** the skill follows each rename
-  with a `pane.report_metadata` token (`oriel-label`, 1 s), whose `pane.updated` makes the app read the layout. A
-  card loads a label address that is not its own last one (it keeps the address its own rename replaced, so a
-  snapshot read before that rename does not undo it). Design change for the docs pass: an open browser card
-  follows its label.
-- **Cause (18):** a new card's address field lost its first focus two ways. `layout.apply`'s temporary tab showed
-  the new pane for a snapshot, then Replace Pane's hiding took it out again, and the page read that as the pane
-  closing and dropped it from the keyboard history, so the keyboard went back to the old card. And SwiftUI focuses no
-  view at opacity 0 (the field hid its text by opacity). **Fix:** the replace hides the new pane by its label in
-  every tab (the temporary tab no longer shows); the field hides its text with a clear style and retries its focus
-  while a just-made card is not in its window yet; a new card (no address) claims the field at once.
-- **Decisions (17, 19):** the web view shows from its first commit; until then the globe and the 2 pt progress line.
-  The field's prompt is "Enter a URL" (typed words that are no address go nowhere, so no "Search").
-- **Cause (CI):** a browser card's header buttons showed on hover and took width from the address field, so the field
-  moved under the pointer between the hover and the click (a narrow card on CI's screen). **Fix:** a browser card
-  keeps the buttons' room while they are hidden.
-
+  (`__WebInspectorPageGroupLevel1__.WebKit2InspectorStartsAttached`), which the old detach set to 0. **Fix:** the key
+  is removed before each show, so it docks; its own control moves it to a window. WebKit opens a window anyway in a
+  card too small to dock (CI's screen).
+- **Cause (18):** `layout.apply`'s temporary tab showed the new pane for a snapshot; hidden again by the replace, it
+  read as closed and left the keyboard history. **Fix:** the replace hides it by its label in every tab; a new card
+  claims its field at once, and the field retries its focus while the card is not in its window yet. On CI the
+  header buttons took width on hover, so the field moved under the pointer: a browser card keeps their room.
+- **Cause (16):** herdr sends no event for `pane.rename` (spiked on 0.9.5). **Fix:** the skill follows each rename
+  with a `pane.report_metadata` token, whose `pane.updated` makes the app read the layout; an open card follows a
+  label address that is not its own last one.
+- **Decisions (8, 14, 15):** toolbar buttons take the card buttons' `paneButton` color, at 0.35 when they cannot
+  act. Replace Pane is ⇧⌘R everywhere; ⌘R is Reload Page. "Open this page?" shows the address with Not Now and Open
+  (Return, Esc).
+- **Decisions (11):** the state file is `{"url", "history"}`, `history` being WebKit's `interactionState` in base64,
+  left out over 128 KiB; a single-page app's route change saves it too.
+- **Final review:** a pane labelled as a browser closes or is replaced without the question only while it runs the
+  placeholder (its `cat` under its shell alone: herdr lists no argv for the script) or a plain shell; the history's current page passes the load rule; only typed
+  or Open'd origins are approved (a finished load approves nothing); a card goes with its label or iid; the chooser's
+  Browser waits for the snapshot with its pane; ⌘V at the chooser no longer pastes into the hidden shell.
+- **For the user:** float a browser pane (no selection); Web Inspector docked, then its own window control; a
+  relaunch on a page reached by a link now asks "Open this page?" unless its site was typed or opened.

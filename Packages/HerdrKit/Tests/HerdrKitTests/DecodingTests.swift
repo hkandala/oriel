@@ -121,6 +121,11 @@ private func snapshot() throws -> Snapshot {
     #expect(try info(node).program?.title == "cli.js")
     // An exited shell.
     #expect(try info("").program == nil)
+    // A plugin pane's placeholder, as herdr lists it: its `cat` and its shell, nothing else.
+    let cat = #"{"pid":9,"name":"cat","argv":["cat"]}"#
+    #expect(try info(cat + #",{"pid":7,"name":"bash","argv0":"sh","argv":[]}"#).program?.isPlaceholder == true)
+    #expect(try info(#"{"pid":8,"name":"claude"},"# + cat + #",{"pid":7,"name":"bash"}"#).program?.isPlaceholder
+        == false)
 }
 
 @Test func `session names follow herdr's rule`() {

@@ -35,7 +35,7 @@ struct PortsChip: View {
             .onAppear {
                 guard asked.map({ ContinuousClock.now - $0 > .seconds(1) }) ?? true else { return }
                 asked = .now
-                look()
+                ask()
             }
         } label: {
             Image(systemName: "network").font(.system(size: 11)).frame(width: 22, height: 22)
@@ -58,7 +58,7 @@ struct PortsChip: View {
     }
 
     /// The last answer shows until the new one comes.
-    private func look() {
+    private func ask() {
         let store = page.store
         Task {
             do {

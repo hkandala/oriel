@@ -154,15 +154,16 @@ extension HostStore {
         let action = closing(request)
         // ponytail: a program typed in a new tab in its first seconds hides too, and comes back with the question.
         let clear = asked.allSatisfy {
-            $0.program?.isShell == true || $0.browser != nil || $0.starting && ahead.fresh.contains($0.tabID)
+            $0.program?.isShell == true || $0.browser != nil && $0.program?.isPlaceholder == true
+                || $0.starting && ahead.fresh.contains($0.tabID)
         }
         if clear {
             hide(request)
         }
         let starting = Set(asked.filter(\.starting).map(\.id))
         return Task {
-            // A browser pane runs only its placeholder.
-            let running = await programs(asked.filter { $0.browser == nil }.map(\.id), starting: starting, client)
+            let running = await programs(asked.map(\.id), starting: starting,
+                                         placeholders: Set(asked.filter { $0.browser != nil }.map(\.id)), client)
             // Sorted: "A program" leads the list.
             guard running.isEmpty else {
                 if clear {
@@ -188,13 +189,21 @@ extension HostStore {
     /// What runs besides the shells in the panes, asked now, 8 at a time: a big workspace is not 30 herdr runs at once.
     /// A new pane's shell still starting runs short-lived programs (`ls`, `sort`, as after ⌘T): asked again for up to
     /// 0.8 s until only its shell runs. ponytail: a slower startup (a cold nvm) still asks, naming what it runs.
-    func programs(_ paneIDs: [String], starting: Set<String>, _ client: any Multiplexer) async -> Set<String> {
+    /// `placeholders`: browser panes, whose placeholder runs no program (any process can label a pane, so only the
+    /// placeholder counts).
+    func programs(_ paneIDs: [String], starting: Set<String>, placeholders: Set<String> = [],
+                  _ client: any Multiplexer) async -> Set<String>
+    {
         await withTaskGroup(of: String?.self) { group in
             var rest = paneIDs[...]
             func next() {
                 guard let id = rest.popFirst() else { return }
                 group.addTask {
-                    let ask = { try await client.program(id).flatMap { $0.isShell ? nil : $0.title } }
+                    let ask = {
+                        try await client.program(id).flatMap {
+                            $0.isShell || placeholders.contains(id) && $0.isPlaceholder ? nil : $0.title
+                        }
+                    }
                     do {
                         var name = try await ask()
                         for _ in 0 ..< (starting.contains(id) ? 4 : 0) where name != nil {

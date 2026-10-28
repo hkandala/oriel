@@ -59,9 +59,12 @@ final class SOCKSFront: Sendable {
     /// One page connection: the greeting and the CONNECT request here, then ssh's reply and the bytes both ways.
     private func serve(_ client: NWConnection) async {
         Self.start(client)
-        guard let hello = await client.read(2), hello[0] == 5, hello[1] > 0, await client.read(Int(hello[1])) != nil
+        guard let hello = await client.read(2), hello[0] == 5, hello[1] > 0,
+              let methods = await client.read(Int(hello[1]))
         else { return client.cancel() }
-        // No authentication: only this user's processes reach a loopback port they can guess.
+        // No authentication: any local account can use the port while a card is open, as with ssh's own `-D`
+        // (ui/browser#risks).
+        guard methods.contains(0) else { return Self.answer(client, Data([5, 0xFF])) }
         client.send(content: Data([5, 0]), completion: .idempotent)
         guard let head = await client.read(4), head[0] == 5, head[1] == 1, let address = await address(client, head[3]),
               let port = await client.read(2)
@@ -72,7 +75,7 @@ final class SOCKSFront: Sendable {
         let ssh = NWConnection(host: .ipv4(.loopback), port: endpoint, using: .tcp)
         Self.start(ssh)
         ssh.send(content: Data([5, 1, 0]) + head + address + port, completion: .idempotent)
-        guard await ssh.read(2) != nil, let reply = await ssh.readSome() else {
+        guard await ssh.read(2) == Data([5, 0]), let reply = await ssh.readSome() else {
             ssh.cancel()
             return Self.answer(client, Self.refused)
         }
