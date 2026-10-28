@@ -135,4 +135,7 @@ Captures: `scrawl-1793181414481-118c7.scrawl` and `scrawl-1793181638672-118c7-3.
   while a just-made card is not in its window yet; a new card (no address) claims the field at once.
 - **Decisions (17, 19):** the web view shows from its first commit; until then the globe and the 2 pt progress line.
   The field's prompt is "Enter a URL" (typed words that are no address go nowhere, so no "Search").
+- **Cause (CI):** a browser card's header buttons showed on hover and took width from the address field, so the field
+  moved under the pointer between the hover and the click (a narrow card on CI's screen). **Fix:** a browser card
+  keeps the buttons' room while they are hidden.
 

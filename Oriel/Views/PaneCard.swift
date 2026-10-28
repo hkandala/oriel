@@ -173,8 +173,11 @@ struct PaneCard: View {
             Spacer(minLength: 0)
             // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.
             // Not on a split's or a new tab's empty card before herdr has its pane (`Ahead`).
+            // A browser card keeps their room, so its address field does not move under the pointer on hover.
             if showsButtons, pane != nil {
                 buttons(zoomed: zoomed)
+            } else if browser != nil {
+                buttons(zoomed: zoomed).hidden()
             }
         }
         .fontWeight(.medium)
