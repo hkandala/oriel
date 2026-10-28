@@ -13,37 +13,34 @@ public struct FileMark: Equatable, Sendable {
 /// One line of a followed file, and the mark after it.
 public enum FollowedLine: Sendable {
     /// The file is read from `mark` on: a new file (another inode, or shorter than the old mark) starts again, from
-    /// its last 256 KiB. The lines before it belong to another file when `restarted`.
+    /// the first whole line of its last 256 KiB. The lines before it belong to another file when `restarted`.
     case opened(FileMark, restarted: Bool)
     case line(String, FileMark)
 }
 
 public extension Exec {
-    /// Follows a file on the machine as `tail -F` does, from `mark` on (also before the file exists, and across
-    /// rotation), until the stream is dropped. A file read from its last 256 KiB drops its first, partial line.
+    /// Follows a file on the machine (a relative path is under the home folder) as `tail -F` does, from `mark` on,
+    /// also before the file exists, until the stream is dropped. A file rotated meanwhile starts again at the next
+    /// follow, which compares its inode with the mark's.
     func follow(_ path: String, from mark: FileMark) async throws -> AsyncStream<FollowedLine> {
         let channel = try await run(Self.ending(Self.followScript, [path, String(mark.offset), mark.inode]))
         let (stream, continuation) = AsyncStream<FollowedLine>.makeStream()
         let reader = Task {
-            var mark = mark, partial = false
+            var mark = mark
             for await line in channel.lines {
                 if line.hasPrefix("oriel-follow ") {
                     let parts = line.split(separator: " ")
-                    guard parts.count == 4, let offset = Int(parts[2]) else { continue }
+                    guard parts.count == 3, let offset = Int(parts[2]) else { continue }
                     let restarted = parts[1] != mark.inode || offset != mark.offset
                     mark = FileMark()
                     mark.inode = String(parts[1])
                     mark.offset = offset
-                    partial = restarted && offset > 0 && parts[3] == "cut"
                     continuation.yield(.opened(mark, restarted: restarted))
                     continue
                 }
+                // Whole lines from a line start only, so the byte count holds (a cut inside a character would not).
                 mark.offset += line.utf8.count + 1
-                if partial {
-                    partial = false
-                } else {
-                    continuation.yield(.line(line, mark))
-                }
+                continuation.yield(.line(line, mark))
             }
             continuation.finish()
         }
@@ -80,16 +77,17 @@ public extension Exec {
     }
 
     /// Waits for the file, then tells its inode and where it reads from: the old mark when it is the same file and no
-    /// shorter, else the last 256 KiB ("cut" when that is not the start).
+    /// shorter, else the first line start in the last 256 KiB.
     static var followScript: String {
         #"""
-        while [ ! -f "$1" ]; do sleep 0.5; done
-        n=$(ls -i "$1" | awk '{print $1}'); s=$(wc -c <"$1" | tr -d ' '); o=$2; c=whole
+        f=$1; case $f in /*) ;; *) f=$HOME/$f ;; esac
+        while [ ! -f "$f" ]; do sleep 0.5; done
+        n=$(ls -i "$f" | awk '{print $1}'); s=$(wc -c <"$f" | tr -d ' '); o=$2
         if [ "$n" != "$3" ] || [ "$s" -lt "$o" ]; then
-          o=0; [ "$s" -gt 262144 ] && o=$((s - 262144)) && c=cut
+          o=0; [ "$s" -gt 262144 ] && o=$((s - 262144)) && o=$((o + $(tail -c +$((o + 1)) "$f" | head -n 1 | wc -c)))
         fi
-        echo "oriel-follow $n $o $c"
-        exec tail -c +$((o + 1)) -F "$1" 2>/dev/null
+        echo "oriel-follow $n $o"
+        exec tail -c +$((o + 1)) -F "$f" 2>/dev/null
         """#
     }
 
@@ -101,7 +99,7 @@ public extension Exec {
             case $f in /*) ;; *) f=$HOME/$f ;; esac
             [ -f "$f" ] && n=$(tr -d '\n' <"$f") && break
           done
-          [ "$n" != "$o" ] && echo "$n" && o=$n
+          [ "$n" != "$o" ] && printf '%s\n' "$n" && o=$n
           sleep 0.3
         done
         """#

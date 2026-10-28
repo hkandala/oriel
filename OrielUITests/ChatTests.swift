@@ -136,7 +136,7 @@ extension OrielUITests {
         return (tab, pane)
     }
 
-    /// Types a message into the reply box and waits until the transcript has it.
+    /// Types a message into the reply box and waits until the transcript has it (the bubble on its way is `sending`).
     private func say(_ text: String, in pane: String) async throws {
         app.typeText(text + "\r")
         XCTAssertTrue(row(pane, "user", text).exists(within: 5))

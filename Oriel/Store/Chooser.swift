@@ -145,9 +145,8 @@ extension HostStore {
     }
 
     /// Types the agent's command (with Oriel's chat flags, future-work/chat-view#launch-flags) into the pane's shell,
-    /// as
-    /// Go to Directory types its `cd`, and shows the loader until
-    /// the agent is ready: herdr reports it with a status (all four agents, read from their screens on any machine).
+    /// as Go to Directory types its `cd`, and shows the loader until the agent is ready: herdr reports it with a status
+    /// (all four agents, read from their screens on any machine).
     /// The terminal shows sooner when the shell is in front again (the command failed or ended), or after 10 s.
     func start(_ agent: Chooser.Agent, _ chooser: Chooser) {
         // Once: a double click's second click lands on the row as it fades out.

@@ -59,7 +59,13 @@ struct ChatView: View {
                 .frame(maxWidth: Self.column).frame(maxWidth: .infinity)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
-        .task { await chat.viewed() }
+        .task(id: ObjectIdentifier(chat)) { await chat.viewed() }
+        // An answered question goes once the agent goes on (herdr's status; the adapter clears its own).
+        .onChange(of: chat.phase) { old, new in
+            if old == .waiting, new != .waiting {
+                chat.question = nil
+            }
+        }
         // In place of the terminal that had the keyboard (the chooser's loader went, or the switch flipped).
         .onAppear {
             if page.keyboardPane?.id == chat.paneID {
@@ -87,6 +93,8 @@ struct ChatView: View {
             VStack(spacing: 8) {
                 if let question = chat.question, chat.phase == .waiting {
                     QuestionCard(question: question, paneID: chat.paneID) { chat.answer($0) }
+                        .disabled(question.answered)
+                        .id(question.raw)
                 }
                 composer
             }
@@ -140,7 +148,7 @@ struct ChatView: View {
     /// Sending, dimmed; or "Not sent" with Show Terminal.
     private func outgoing(_ message: Chat.Outgoing) -> some View {
         VStack(alignment: .trailing, spacing: 4) {
-            UserBubble(text: message.text, paneID: chat.paneID).opacity(message.notSent ? 0.5 : 0.7)
+            UserBubble(text: message.text, paneID: chat.paneID, sending: true).opacity(message.notSent ? 0.5 : 0.7)
             if message.notSent {
                 HStack(spacing: 8) {
                     Text("Not sent").font(.system(size: 11)).foregroundStyle(look.error)

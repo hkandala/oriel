@@ -3,8 +3,8 @@ import HerdrKit
 import Observation
 
 /// An agent pane's chat (future-work/chat-view): the agent's history, whether it is ready, working or waiting, the
-/// messages on their way, and whether the card shows the chat or the terminal. The registry keeps it by terminal id,
-/// as a browser card; its adapter follows the agent while a card shows the chat.
+/// messages on their way, and whether the card shows the chat or the terminal. The session's store keeps it by
+/// terminal id, for every window; its adapter follows the agent while a card shows the chat.
 @MainActor @Observable
 final class Chat {
     enum Phase: Equatable {
@@ -141,8 +141,11 @@ final class Chat {
     private func confirm() {
         guard !outgoing.isEmpty, case let .user(text)? = history.entries.last?.kind else { return }
         let sent = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let index = outgoing.firstIndex(where: { $0.text == sent }) {
-            outgoing.remove(at: index)
+        if let index = outgoing.firstIndex(where: { $0.text == sent }),
+           // Confirmed after "Not sent": the draft it gave back would send it twice.
+           outgoing.remove(at: index).notSent, draft == sent
+        {
+            draft = ""
         }
     }
 
@@ -154,8 +157,8 @@ final class Chat {
     }
 
     func answer(_ answers: [String: String]) {
-        guard let question, let store else { return }
-        self.question = nil
+        guard let question, !question.answered, let store else { return }
+        self.question?.answered = true
         Task { await adapter.answer(question, answers, on: store.machine.exec()) }
     }
 }
@@ -166,9 +169,10 @@ struct ChatQuestion: Equatable {
     struct Item: Equatable {
         let text: String
         let options: [String]
-        let multiple: Bool
     }
 
     let items: [Item]
     let raw: Data
+    /// Answered in the chat: it stays, disabled, until the agent goes on (no drawer meanwhile).
+    var answered = false
 }

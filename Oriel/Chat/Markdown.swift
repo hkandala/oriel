@@ -70,13 +70,14 @@ struct Markdown: View {
     /// A new block of its innermost kind; a list item starts with its bullet or number, indented by its depth.
     private static func block(_ kinds: [PresentationIntent.Kind], _ piece: AttributedString) -> Block {
         var kind = Kind.text, prefix = ""
-        for component in kinds {
+        for (index, component) in kinds.enumerated() {
             switch component {
             case .codeBlock: kind = .code
             case .header: kind = .heading
             case .blockQuote: kind = .quote
             case let .listItem(ordinal) where prefix.isEmpty:
-                let ordered = kinds.contains { $0 == .orderedList }
+                // The list that holds this item, the next component out.
+                let ordered = kinds.dropFirst(index + 1).first == .orderedList
                 prefix = ordered ? "\(ordinal). " : "• "
             default: break
             }

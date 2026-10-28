@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 /// The chat's file follower on This Mac (the relay runs the same script): a file made late, a split write, a resume
-/// from a mark, a rotated file, and a big file read from its last 256 KiB without its first partial line.
+/// from a mark, a rotated file, and a big file read from the first line start in its last 256 KiB.
 @Test func `follow reads whole lines and goes on from its mark`() async throws {
     let folder = FileManager.default.temporaryDirectory.appending(path: "oriel-follow-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -40,13 +40,14 @@ import Testing
         Issue.record("no restart"); return
     }
 
+    // The cut lands inside a two-byte character: the mark still counts bytes from a line start.
     let big = folder.appending(path: "big.jsonl")
-    try Data((String(repeating: "x", count: 300_000) + "\nlast\n").utf8).write(to: big)
+    try Data((String(repeating: "é", count: 150_000) + "\nlast\n").utf8).write(to: big)
     var cut = try await localExec.follow(big.path, from: FileMark()).makeAsyncIterator()
-    guard case let .opened(start, true)? = await cut.next(), case .line("last", _)? = await cut.next() else {
+    guard case let .opened(start, true)? = await cut.next(), case let .line("last", end)? = await cut.next() else {
         Issue.record("not cut"); return
     }
-    #expect(start.offset == 300_006 - 262_144)
+    #expect(start.offset == 300_001 && end.offset == 300_006)
 }
 
 @Test func `watch prints a file each time it changes`() async throws {

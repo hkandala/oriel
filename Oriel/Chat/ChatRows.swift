@@ -55,6 +55,8 @@ struct ChatRowView: View, Equatable {
 struct UserBubble: View {
     let text: String
     let paneID: String
+    /// On its way: not in the history yet.
+    var sending = false
 
     var body: some View {
         Text(text)
@@ -67,7 +69,7 @@ struct UserBubble: View {
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isStaticText)
             .accessibilityValue(text)
-            .accessibilityIdentifier("chat.\(paneID).user")
+            .accessibilityIdentifier("chat.\(paneID).\(sending ? "sending" : "user")")
     }
 }
 
@@ -225,6 +227,7 @@ struct QuestionCard: View {
                 Label(item.text, systemImage: "questionmark.circle.fill").font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical).foregroundStyle(look.needsYou)
                 FlowButtons(options: item.options, chosen: answers[item.text], paneID: paneID) { option in
+                    guard !question.answered else { return }
                     answers[item.text] = option
                     if answers.count == question.items.count {
                         answer(answers)

@@ -108,7 +108,10 @@ private func snapshot() throws -> Snapshot {
     #expect(try info(#"{"pid":7,"name":"zsh","argv0":"-zsh"}"#).program?.isShell == true)
     #expect(try info(#"{"pid":7,"name":"fish"}"#).program?.isShell == true)
     // `exec vim` keeps the shell's pid.
-    #expect(try info(#"{"pid":7,"name":"vim","argv0":"vim"}"#).program?.isShell == false)
+    #expect(try info(#"{"pid":7,"name":"vim","argv0":"vim"}"#).program.map { [$0.name, $0.argv0 ?? ""] } == [
+        "vim",
+        "vim",
+    ])
     #expect(try info(#"{"pid":9,"name":"sleep"}"#).program?.foreground == [Program.Foreground(pid: 9, argv: [])])
     // While the shell starts, its rc files run in the foreground too.
     #expect(try info(#"{"pid":8,"name":"bash"},{"pid":7,"name":"zsh"}"#).program?.name == "bash")

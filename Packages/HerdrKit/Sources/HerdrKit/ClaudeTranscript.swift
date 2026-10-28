@@ -81,7 +81,9 @@ public enum ClaudeTranscript {
             history.append(ChatEntry(id: id, .note("Interrupted", failed: false), time: time))
         } else if let range = text.range(of: "<command-name>"), let end = text.range(of: "</command-name>") {
             history.append(ChatEntry(id: id, .user(String(text[range.upperBound ..< end.lowerBound])), time: time))
-        } else if !text.hasPrefix("<") {
+        } else if !["<task-notification>", "<local-command-", "<command-", "<bash-", "<system-reminder>"]
+            .contains(where: text.hasPrefix)
+        {
             history.append(ChatEntry(id: id, .user(text), time: time))
         }
     }

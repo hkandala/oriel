@@ -9,6 +9,8 @@ Esc, "mute" drops the next prompt, anything else gets one command and the reply 
 import json
 import os
 import select
+import shutil
+import signal
 import subprocess
 import sys
 import termios
@@ -119,6 +121,8 @@ def prompt(text, started):
 
 
 def main():
+    # A closed pane hangs up: clean up as on Ctrl-C.
+    signal.signal(signal.SIGHUP, lambda *_: sys.exit(0))
     hook("SessionStart", {"session_id": token, "transcript_path": transcript, "cwd": os.getcwd(),
                           "hook_event_name": "SessionStart", "source": "startup"})
     attributes = termios.tcgetattr(0)
@@ -146,6 +150,12 @@ def main():
                 prompt(text.strip(), time.time())
                 mute = text.strip() == "mute"
     finally:
+        # What it and its hooks wrote goes with it; first, as a hung-up terminal takes no settings. A second hang-up
+        # would stop it halfway.
+        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+        if os.path.exists(transcript):
+            os.remove(transcript)
+        shutil.rmtree(os.path.expanduser("~/.cache/oriel/chat/" + token), ignore_errors=True)
         termios.tcsetattr(0, termios.TCSADRAIN, attributes)
 
 

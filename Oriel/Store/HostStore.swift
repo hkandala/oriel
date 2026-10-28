@@ -30,8 +30,9 @@ final class HostStore {
     private(set) var focusedWorkspaceID: String?
     /// The last failed write, shown for a few seconds; ✕ clears it.
     var notice: Notice?
-    /// The new panes' choosers (ui/new-pane): the app's own, so every window shows them.
+    /// New panes' choosers (ui/new-pane) and agent panes' chats by terminal id: the app's own, for every window.
     var choosers: [Chooser] = []
+    @ObservationIgnored var chats: [String: Chat] = [:]
     /// Writes, one at a time in order: a quick second close or split waits for the first (both show at once).
     @ObservationIgnored private let writes = Gate(1)
     /// A write in flight (not observed: read when a key or a drag acts).

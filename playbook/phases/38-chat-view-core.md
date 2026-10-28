@@ -43,9 +43,11 @@ stacked tool cards, the pill card version (E). Mock-up: `~/Downloads/oriel-resea
   `ChatAdapters.all`. The core does sending (`agent.prompt`, confirmed by the history), stopping, slash text, the
   drawer and the views. HerdrKit gives `Exec.follow` (tail -F with inode and offset, last 256 KiB) and `Exec.watch` (a
   rewritten file printed on change), and `ChatHistory` (entries, rows per level) that each parser fills.
-- **Decisions:** the hooks hold no quote and no backslash (`set -f`, a fixed `ask`/`answer` file pair instead of
-  per-request ids), so the inline `--settings` reads the same in sh, bash, zsh and fish: no settings file, even for
-  fish. Multi-answer questions go to the terminal. A card of a marked pane opens on the chat; the switch is kept in
+- **Decisions:** the hooks hold no quote and no backslash (`set -f`, one `ask`/`answer` file pair that the waiting
+  hook marks with its pid instead of per-request ids), so the inline `--settings` reads the same in sh, bash, zsh and
+  fish: no settings file, even for fish. The side files live in `~/.cache/oriel/chat/T/` (0700, the user's own on a
+  shared machine; folders untouched for 30 days go), not `/tmp/oriel-chat/T`. Chats live on the session's store, one
+  per pane for every window. Multi-answer questions go to the terminal. A card of a marked pane opens on the chat; the switch is kept in
   memory. The adapter follows only while a card shows the chat (marks keep the place); off screen the header's state
   is herdr's.
 - **Decisions (the orchestrator's polish, for the docs pass):** the messages, the reply box and the question card sit

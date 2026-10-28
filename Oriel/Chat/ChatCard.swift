@@ -2,10 +2,22 @@ import HerdrKit
 import SwiftUI
 
 extension Page {
-    /// The pane's chat when its agent carries an adapter's launch marker (future-work/chat-view#which-panes-have-it).
+    /// The pane's chat when its agent carries an adapter's launch marker (future-work/chat-view#which-panes-have-it),
+    /// one per pane for every window of the session.
     func chat(_ pane: HostStore.Pane) -> Chat? {
         guard let terminalID = pane.terminalID, let adapter = ChatAdapters.recognize(pane.program) else { return nil }
-        return terminals.chat(pane, adapter, terminalID: terminalID, store: store)
+        if let chat = store.chats[terminalID], chat.adapter.token == adapter.token {
+            // Only a change: Observation reports equal writes too, and every card body asks.
+            if chat.paneID != pane.id {
+                chat.paneID = pane.id
+            }
+            return chat
+        }
+        // A new launch is a new chat; the closed panes' chats go.
+        let chat = Chat(adapter: adapter, paneID: pane.id, store: store)
+        store.chats = store.chats.filter { id, _ in store.panes.contains { $0.terminalID == id } }
+        store.chats[terminalID] = chat
+        return chat
     }
 }
 
