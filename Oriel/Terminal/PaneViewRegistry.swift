@@ -69,6 +69,18 @@ final class PaneViewRegistry {
         return browser
     }
 
+    /// Cards whose label got another address from elsewhere load it (`Browser.follow`), at each snapshot.
+    private func follow() {
+        guard !browsers.isEmpty else { return }
+        for pane in (pages?.withFloats ?? []).flatMap(\.store.panes) {
+            if let terminalID = pane.terminalID, let browser = browsers[terminalID], let label = pane.browser,
+               label.iid == browser.label.iid
+            {
+                browser.follow(label.arg)
+            }
+        }
+    }
+
     /// The browser card of this terminal id, if made.
     func built(_ terminalID: String) -> Browser? {
         browsers[terminalID]
@@ -88,6 +100,7 @@ final class PaneViewRegistry {
             PaneTerminal.snapshots.removeAll { $0 === terminal }
         }
         browsers = browsers.filter { alive.contains($0.key) }
+        follow()
         // Without a client (the page in view connecting), the terminals there go on: another page's floated ones.
         let make = { (ids: [String: String]) in
             ids.compactMap { id, pane in client.map { self.terminal(id, pane: pane, client: $0) } ??

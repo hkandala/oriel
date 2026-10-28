@@ -24,12 +24,12 @@ extension CommandList {
     static func browser(_ browser: Browser?) -> [Command] {
         [
             Command(section: .view, title: "Reload Page", key: .init("r"), symbol: "arrow.clockwise",
-                    keywords: "refresh browser", enabled: browser?.address.isEmpty == false) { browser?.reload() },
+                    keywords: "refresh browser", enabled: browser?.loaded == true) { browser?.reload() },
             Command(section: .edit, title: "Open Location", key: .init("l"), symbol: "link",
                     keywords: "address url browser", enabled: browser != nil) { browser?.wantsAddress = true },
             Command(section: .edit, title: "Show Web Inspector", key: .init("i", modifiers: [.command, .option]),
                     symbol: "hammer", keywords: "developer tools devtools browser",
-                    enabled: browser?.address.isEmpty == false) { browser?.showInspector() },
+                    enabled: browser?.loaded == true) { browser?.showInspector() },
         ]
     }
 }
@@ -44,9 +44,8 @@ struct BrowserCard: View {
         WebHost(view: browser.view)
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .padding([.horizontal, .bottom], 6)
-            // An empty web view draws white: hidden until there is a page.
-            .opacity(browser.ready && browser.failure == nil && browser.asking == nil && !browser.address
-                .isEmpty ? 1 : 0)
+            // An empty web view draws white: hidden until it has a page.
+            .opacity(browser.ready && browser.failure == nil && browser.asking == nil && browser.loaded ? 1 : 0)
             .overlay(alignment: .top) {
                 if browser.loading {
                     ProgressView(value: browser.progress).progressViewStyle(.linear).tint(.accentColor)
@@ -55,14 +54,12 @@ struct BrowserCard: View {
             }
             .overlay {
                 if let failure = browser.failure {
-                    message(failure.text, hint: failure.hint, symbol: "exclamationmark.triangle", button: "Reload",
-                            action: browser.reload)
+                    failed(failure.text, hint: failure.hint)
                 } else if let url = browser.asking {
-                    message("Open \(url.absoluteString)?", hint: nil, symbol: "globe", button: "Open",
-                            action: browser.open)
+                    Asking(browser: browser, url: url)
                 } else if !browser.ready {
                     BrowserLoader()
-                } else if browser.address.isEmpty {
+                } else if !browser.loaded {
                     // No page yet: the kind's symbol; a click gives the address field the keyboard.
                     Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(.rect)
@@ -80,18 +77,47 @@ struct BrowserCard: View {
             .accessibilityIdentifier("browser.\(browser.paneID).card")
     }
 
-    private func message(_ text: String, hint: String?, symbol: String, button: String,
-                         action: @escaping () -> Void) -> some View
-    {
+    /// A load that failed, in the app's words, and Reload.
+    private func failed(_ text: String, hint: String?) -> some View {
         VStack(spacing: 8) {
-            Image(systemName: symbol).font(.system(size: 28)).foregroundStyle(.secondary)
+            Image(systemName: "exclamationmark.triangle").font(.system(size: 28)).foregroundStyle(.secondary)
             Text(text).font(.system(size: 14)).multilineTextAlignment(.center).lineLimit(3)
                 .accessibilityIdentifier("browser.\(browser.paneID).message")
             if let hint {
                 Text(hint).foregroundStyle(.secondary)
             }
-            Button(button, action: action).buttonStyle(.glassProminent).padding(.top, 4)
-                .accessibilityIdentifier("browser.\(browser.paneID).\(button == "Reload" ? "retry" : "open")")
+            Button("Reload", action: browser.reload).buttonStyle(.glassProminent).padding(.top, 4)
+                .accessibilityIdentifier("browser.\(browser.paneID).retry")
+        }
+        .padding(24)
+    }
+}
+
+/// A page the machine put in the label or the state file, from an origin not approved yet
+/// (future-work/web-page#when-a-page-loads-by-itself): the question, its address, Open (Return) and Not Now (Esc).
+private struct Asking: View {
+    let browser: Browser
+    let url: URL
+
+    var body: some View {
+        let id = "browser.\(browser.paneID)"
+        let host = url.host.map { host in host + (url.port.map { ":\($0)" } ?? "") }
+        let rest = host.map { url.absoluteString.components(separatedBy: $0).dropFirst().joined(separator: $0) }
+        VStack(spacing: 10) {
+            Image(systemName: "globe").font(.system(size: 36, weight: .light)).foregroundStyle(.secondary)
+            Text("Open this page?").font(.system(size: 15, weight: .semibold))
+            Text("\(Text(host ?? url.absoluteString))\(Text(rest ?? "").foregroundStyle(.secondary))")
+                .font(.system(size: 13)).lineLimit(2).truncationMode(.middle).multilineTextAlignment(.center)
+                .frame(maxWidth: 360)
+                .accessibilityIdentifier("\(id).message")
+            HStack(spacing: 8) {
+                Button("Not Now", action: browser.notNow).buttonStyle(.glass)
+                    .accessibilityIdentifier("\(id).not-now")
+                Button("Open", action: browser.open).buttonStyle(.glassProminent)
+                    .accessibilityIdentifier("\(id).open")
+            }
+            .controlSize(.large)
+            .padding(.top, 6)
         }
         .padding(24)
     }
@@ -175,7 +201,7 @@ struct BrowserToolbar: View {
                     .accessibilityIdentifier("\(id).forward")
                 IconButton(symbol: browser.loading ? "xmark" : "arrow.clockwise", help: browser.loading ? "Stop"
                     : "Reload", size: 22) { browser.loading ? browser.view.stopLoading() : browser.reload() }
-                    .disabled(browser.address.isEmpty).opacity(browser.address.isEmpty ? 0.35 : 1)
+                    .disabled(!browser.loaded).opacity(browser.loaded ? 1 : 0.35)
                     .accessibilityIdentifier("\(id).reload")
             }
             .foregroundStyle(look.paneButton)
@@ -183,7 +209,7 @@ struct BrowserToolbar: View {
             PortsChip(browser: browser, page: page).foregroundStyle(look.paneButton)
             IconButton(symbol: "hammer", help: "Web Inspector", key: .init("i", modifiers: [.command, .option]),
                        size: 22, action: browser.showInspector)
-                .disabled(browser.address.isEmpty).opacity(browser.address.isEmpty ? 0.35 : 1)
+                .disabled(!browser.loaded).opacity(browser.loaded ? 1 : 0.35)
                 .foregroundStyle(look.paneButton)
                 .accessibilityIdentifier("\(id).inspector")
         }
@@ -192,15 +218,17 @@ struct BrowserToolbar: View {
     /// A capsule: the host in full and the rest at half while not editing; a click or ⌘L selects it all. Return
     /// loads, Esc puts the address back; both give the keyboard to the page.
     private func address(_ id: String) -> some View {
-        TextField("Address", text: $text)
+        TextField("Enter a URL", text: $text)
             .textFieldStyle(.plain)
             .font(.system(size: 12.5))
             .focused($editing)
             // On the field, before the overlay that would take it too.
             .accessibilityIdentifier("\(id).address")
-            .opacity(editing ? 1 : 0)
+            // Its text hidden under the shown address while not editing; not by opacity, as SwiftUI focuses no view at
+            // opacity 0 (the first focus of a new card was lost).
+            .foregroundStyle(editing ? AnyShapeStyle(.primary) : AnyShapeStyle(.clear))
             .overlay(alignment: .leading) {
-                // A click selects the address, as ⌘L does: a field at opacity 0 takes no clicks.
+                // A click selects the address, as ⌘L does.
                 if !editing {
                     shown.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading).contentShape(.rect)
                         .onTapGesture { editing = true }
@@ -245,8 +273,7 @@ struct BrowserToolbar: View {
             .onChange(of: browser.wantsAddress, initial: true) {
                 guard browser.wantsAddress else { return }
                 browser.wantsAddress = false
-                // On the next turn: a first responder set during an update is undone.
-                DispatchQueue.main.async { editing = true }
+                focus(tries: 10)
             }
     }
 
@@ -257,13 +284,31 @@ struct BrowserToolbar: View {
             .fixedSize()
     }
 
+    /// From the next turn (a first responder set during an update is undone), again every 50 ms while a card just
+    /// made is not in its window yet, as long as it is still this card's turn.
+    private func focus(tries: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + (tries == 10 ? 0 : 0.05)) {
+            guard !editing, tries > 0, let pane = page.store.pane(browser.paneID),
+                  page.floats(pane) || page.keyboardCard(pane.tabID) === pane else { return }
+            editing = true
+            focus(tries: tries - 1)
+        }
+    }
+
     /// "localhost:3000" in full, "/dashboard" at half.
     private var shown: some View {
         let url = URL(string: browser.address)
         let host = url.flatMap { url in url.host.map { $0 + (url.port.map { ":\($0)" } ?? "") } }
         let rest = host.map { browser.address.components(separatedBy: $0).dropFirst().joined(separator: $0) } ?? ""
-        return Text("\(Text(host ?? browser.address))\(Text(rest).foregroundStyle(.secondary))")
-            .font(.system(size: 12.5)).lineLimit(1).truncationMode(.tail)
+        // The field's own prompt is hidden with its text.
+        return Group {
+            if browser.address.isEmpty {
+                Text("Enter a URL").foregroundStyle(.tertiary)
+            } else {
+                Text("\(Text(host ?? browser.address))\(Text(rest).foregroundStyle(.secondary))")
+            }
+        }
+        .font(.system(size: 12.5)).lineLimit(1).truncationMode(.tail)
     }
 }
 

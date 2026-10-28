@@ -24,17 +24,25 @@ final class Browser: NSObject {
     private(set) var failure: (text: String, hint: String?)?
     /// A page the machine put in the label or the state file, from an origin not approved: "Open ‹url›?".
     private(set) var asking: URL?
+    /// The web view has shown a page: until then it stays hidden (an empty one draws white), under the globe and the
+    /// progress line.
+    private(set) var loaded = false
     /// The loader shows until the first page drew, or at once with nothing to load.
     private(set) var ready = false
     /// A `window.open` page (OAuth needs its opener) in a sheet over the card, until it closes.
-    private(set) var popup: WKWebView?
+    var popup: WKWebView?
     /// Its address's host, its title.
-    private(set) var popupHost = ""
+    var popupHost = ""
     /// The address field takes the keyboard when it shows, or now (⌘L, a new empty card).
     var wantsAddress = false
     /// The pane got the keyboard while the state file was read: given once the address is known.
     @ObservationIgnored private var claimed = false
     @ObservationIgnored private var reading = true
+    /// The label's address the card follows: the label it was built from or this card's last rename. Another
+    /// address in the label (an agent's rename) loads in the card (`follow`).
+    @ObservationIgnored private var labelled: String
+    /// The address this card's last rename replaced: a snapshot read before the rename still has it.
+    @ObservationIgnored private var replaced: String?
     /// The saved back and forward list (WebKit's `interactionState`), restored with the saved page.
     @ObservationIgnored private var history: Data?
     /// The page's process ended since the last load finished: it loads again once.
@@ -49,6 +57,10 @@ final class Browser: NSObject {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
+        labelled = label.arg
+        // A new pane (no address yet) has no state file: its address field takes the keyboard at once. A claim kept
+        // for the read was dropped when AppKit gave the keyboard to another card as the replaced pane's view left.
+        reading = !label.arg.isEmpty
         self.store = store
         let machine = store.machine
         alias = machine.isRemote ? Self.alias(machine.name) : nil
@@ -69,6 +81,7 @@ final class Browser: NSObject {
         view.allowsBackForwardNavigationGestures = true
         view.navigationDelegate = self
         view.uiDelegate = self
+        view.onKey = { [weak self] in self?.key($0) ?? false }
         view.setAccessibilityIdentifier("browser.\(paneID)")
         // KVO on the main thread: WebKit changes these there.
         watches = [
@@ -133,12 +146,11 @@ final class Browser: NSObject {
     /// The address field's Return: a bare `host:port` gets `http://`. The label gets the typed address.
     func go(_ text: String) {
         guard let store, let url = Self.url(text, local: !store.machine.isRemote) else { return }
+        asking = nil
         approve(url)
-        // The loader until the first page drew, not the white of an empty web view.
-        if address.isEmpty {
-            ready = false
-        }
         load(url)
+        replaced = labelled
+        labelled = url.absoluteString
         // The saved address goes: a typed load that fails opens the typed one after a relaunch.
         saving?.cancel()
         let path = label.statePath(session: store.session)
@@ -156,6 +168,39 @@ final class Browser: NSObject {
         restore(url)
     }
 
+    /// Return opens and Esc dismisses "Open this page?" while the card has the keyboard.
+    private func key(_ event: NSEvent) -> Bool {
+        guard asking != nil, [36, 76, 53].contains(event.keyCode) else { return false }
+        if event.keyCode == 53 {
+            notNow()
+        } else {
+            open()
+        }
+        return true
+    }
+
+    /// "Not now": the page it had, or none.
+    func notNow() {
+        asking = nil
+        history = nil
+        address = view.url?.absoluteString ?? ""
+    }
+
+    /// The label got another address from elsewhere (an agent's `herdr pane rename`): it loads as a new page in the
+    /// card's history, by the load rule.
+    func follow(_ arg: String) {
+        guard arg != labelled, arg != replaced, let store else { return }
+        replaced = nil
+        labelled = arg
+        guard let url = Self.url(arg, local: !store.machine.isRemote) else { return }
+        address = url.absoluteString
+        if approved(url) {
+            load(url)
+        } else {
+            asking = url
+        }
+    }
+
     /// The saved page with its back and forward list, else the address alone.
     private func restore(_ url: URL) {
         if let history {
@@ -167,6 +212,7 @@ final class Browser: NSObject {
     }
 
     func reload() {
+        guard asking == nil else { return }
         if failure != nil || view.url == nil, let url = URL(string: address) {
             load(url)
         } else {
@@ -265,6 +311,7 @@ final class Browser: NSObject {
 extension Browser: WKNavigationDelegate {
     func webView(_: WKWebView, didCommit _: WKNavigation!) {
         failure = nil
+        loaded = true
     }
 
     func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
@@ -320,65 +367,5 @@ extension Browser: WKNavigationDelegate {
             NSWorkspace.shared.open(url)
         }
         return .cancel
-    }
-}
-
-extension Browser: WKUIDelegate {
-    /// `window.open` (an OAuth popup keeps its opener) in a sheet over the card; a link that asks for a new window
-    /// without script opens in the card.
-    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
-                 for action: WKNavigationAction, windowFeatures _: WKWindowFeatures) -> WKWebView?
-    {
-        guard action.navigationType == .other else {
-            webView.load(action.request)
-            return nil
-        }
-        let popup = WKWebView(frame: .zero, configuration: configuration)
-        popup.uiDelegate = self
-        popup.setAccessibilityIdentifier("browser.\(paneID).popup")
-        self.popup = popup
-        popupHost = action.request.url?.host ?? ""
-        return popup
-    }
-
-    func webViewDidClose(_ webView: WKWebView) {
-        if webView === popup {
-            popup = nil
-        }
-    }
-
-    /// Page dialogs as a sheet on the window, labeled with the origin.
-    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
-                 initiatedByFrame frame: WKFrameInfo) async
-    {
-        _ = await dialog(webView, message, frame, buttons: ["OK"])
-    }
-
-    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String,
-                 initiatedByFrame frame: WKFrameInfo) async -> Bool
-    {
-        await dialog(webView, message, frame, buttons: ["OK", "Cancel"]) == .alertFirstButtonReturn
-    }
-
-    func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters,
-                 initiatedByFrame _: WKFrameInfo) async -> [URL]?
-    {
-        guard let window = webView.window else { return nil }
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
-        panel.canChooseDirectories = parameters.allowsDirectories
-        return await panel.beginSheetModal(for: window) == .OK ? panel.urls : nil
-    }
-
-    private func dialog(_ webView: WKWebView, _ message: String, _ frame: WKFrameInfo,
-                        buttons: [String]) async -> NSApplication.ModalResponse
-    {
-        guard let window = webView.window else { return .cancel }
-        let alert = NSAlert()
-        let origin = frame.securityOrigin, port = origin.port > 0 ? ":\(origin.port)" : ""
-        alert.messageText = (origin.host.isEmpty ? origin.protocol : origin.host) + port
-        alert.informativeText = message
-        buttons.forEach { alert.addButton(withTitle: $0) }
-        return await alert.beginSheetModal(for: window)
     }
 }

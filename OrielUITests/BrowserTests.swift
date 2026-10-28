@@ -88,11 +88,16 @@ extension OrielUITests {
         XCTAssertTrue(pageText("oriel-page-two").exists(within: 5))
         XCTAssertTrue(element("browser.\(browser).back").isEnabled)
 
-        // Web Inspector, docked: the page gives it the card's lower part.
+        // Web Inspector, docked: the page gives it the card's lower part. WebKit docks it only in a card tall enough,
+        // else it opens its own window (CI's small screen).
         let web = element("browser.\(browser)"), height = web.frame.height
+        let window = app.windows.matching(NSPredicate(format: "title BEGINSWITH 'Web Inspector'")).firstMatch
         element("browser.\(browser).inspector").click()
-        XCTAssertTrue(until(5) { web.frame.height < height * 0.8 })
+        XCTAssertTrue(until(5) { web.frame.height < height * 0.8 || window.exists })
         keepScreenshot("web inspector")
+        if window.exists {
+            window.buttons[XCUIIdentifierCloseWindow].click()
+        }
 
         // The saved address, not the label's.
         try await expectSaved("two.html", iid: String(made.dropFirst("oriel:browser#".count)), shell: left)
@@ -153,25 +158,41 @@ extension OrielUITests {
                                                                "cwd": "/tmp", "focus": false]), "pane")
         addTeardownBlock { _ = try? await Self.call(five, "pane.close", ["pane_id": pane]) }
         try await Self.call(five, "pane.rename", ["pane_id": pane, "label": "oriel:browser#e2e5ab \(page)"])
-        // A site a machine put in a label waits for Open (future-work/web-page#when-a-page-loads-by-itself).
+        // A site a machine put in a label waits for Open (future-work/web-page#when-a-page-loads-by-itself);
+        // `.invalid`:
+        // approvals live in the defaults the tests share with the user's Oriel.
         let site = try await id(Self.call(five, "pane.split", ["target_pane_id": pane, "direction": "down",
                                                                "cwd": "/tmp", "focus": false]), "pane")
         addTeardownBlock { _ = try? await Self.call(five, "pane.close", ["pane_id": site]) }
         try await Self.call(
             five,
             "pane.rename",
-            ["pane_id": site, "label": "oriel:browser#e2e5ac https://example.com/"],
+            ["pane_id": site, "label": "oriel:browser#e2e5ac https://oriel.invalid/"],
         )
         let tab: String = try await field(self.pane(pane, in: five)["tab_id"], "\(pane)'s tab")
-        relaunch(five)
+        // The question in both appearances, for people reviewing a run.
+        relaunch(five, ["-appearance", "light"])
+        XCTAssertTrue(element("browser.\(site).open").exists(within: connect))
+        keepScreenshot("open this page, light")
+        relaunch(five, ["-appearance", "dark"])
         XCTAssertTrue(pageText("oriel-page-one").exists(within: connect))
         XCTAssertTrue(element("browser.\(site).open").exists(within: 3))
-        XCTAssertEqual(element("browser.\(site).message").value as? String, "Open https://example.com/?")
+        XCTAssertEqual(element("browser.\(site).message").value as? String, "oriel.invalid/")
+        keepScreenshot("open this page, dark")
+        element("browser.\(site).not-now").click()
+        XCTAssertTrue(element("browser.\(site).empty").exists(within: 3))
+        XCTAssertFalse(element("browser.\(site).open").exists)
         // A click gives the card the keyboard; the tab (herdr's number label) takes its page's title.
         pageText("oriel-page-one").click()
         XCTAssertTrue(element("tab.\(tab)").has(\.label, "One", within: 3))
-        app.webViews.links["Two"].click()
+        // An agent changes the address with the skill's commands: a rename, then a metadata token so Oriel reads the
+        // layout again (a rename sends no event). The card loads it as a new page of its history.
+        let two = page.replacing("one.html", with: "two.html")
+        try await Self.call(five, "pane.rename", ["pane_id": pane, "label": "oriel:browser#e2e5ab \(two)"])
+        try await Self.call(five, "pane.report_metadata", ["pane_id": pane, "source": "oriel-panes",
+                                                           "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
         XCTAssertTrue(pageText("oriel-page-two").exists(within: 5))
+        XCTAssertTrue(element("browser.\(pane).back").has(\.isEnabled, true, within: 3))
         XCTAssertTrue(element("tab.\(tab)").has(\.label, "Two", within: 3))
         // Floated and back, the same page.
         let window = try float(pane)

@@ -11,6 +11,14 @@ extension Ahead {
         let terminal: String?
         /// herdr's answer to the split: the new pane.
         var made: HerdrKit.Pane?
+        /// A browser pane's label: hidden in the tab it is made in too, which then drops out (it showed for a
+        /// snapshot, and its going took the pane out of the keyboard history).
+        var label: String?
+
+        /// The new panes, hidden until the old one is gone.
+        func hidden(_ panes: [HerdrKit.Pane]) -> [String] {
+            panes.filter { $0.tabID == tabID && !known.contains($0.id) || label != nil && $0.label == label }.map(\.id)
+        }
     }
 
     /// `cards` after a show: the new panes still there, and the ones that just took replaced panes' places.
@@ -30,14 +38,14 @@ extension HostStore {
     /// (future-work/plugins/labels#create).
     func replace(_ paneID: String, browser: Bool = false, made: (HerdrKit.Pane) -> Void) async {
         guard let old = pane(paneID), let workspace = workspace(of: old.tabID) else { return }
+        let label = browser ? PaneLabel.browser(taken: Set(panes.compactMap { PaneLabel($0.label)?.iid })) : nil
         ahead.replacing[paneID] = Ahead.Replacing(tabID: old.tabID, known: Set(last?.panes.map(\.id) ?? []),
-                                                  terminal: old.terminalID)
-        let taken = Set(panes.compactMap { PaneLabel($0.label)?.iid })
+                                                  terminal: old.terminalID, label: label?.text)
         let done = await write { client in
             var new: HerdrKit.Pane?
-            if browser {
+            if let label {
                 // In the pane's live folder, as a split is.
-                let cwd = try await client.pane(paneID).cwd ?? old.cwd ?? "~", label = PaneLabel.browser(taken: taken)
+                let cwd = try await client.pane(paneID).cwd ?? old.cwd ?? "~"
                 if let tab = try await client.newTab(workspace: workspace.id, cwd: cwd, label: label.text,
                                                      command: Browser.placeholder(label))
                 {
