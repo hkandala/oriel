@@ -87,7 +87,9 @@ private struct ToolStack: View {
                 Spacer(minLength: 4)
                 if running {
                     WorkingDots()
-                } else if let start = tools.first?.started, let end = tools.last?.ended {
+                } else if let start = tools.first?.started, let end = tools.last?.ended,
+                          end.timeIntervalSince(start) >= 1
+                {
                     Text(ChatHistory.duration(end.timeIntervalSince(start))).font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                 }
@@ -142,7 +144,7 @@ private struct ToolRow: View {
                     Text("· running").foregroundStyle(.tertiary)
                 }
                 Spacer(minLength: 4)
-                if diff, let start = tool.started, let end = tool.ended {
+                if diff, let start = tool.started, let end = tool.ended, end.timeIntervalSince(start) >= 1 {
                     Text(ChatHistory.duration(end.timeIntervalSince(start))).foregroundStyle(.tertiary)
                 }
             }

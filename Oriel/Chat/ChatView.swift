@@ -54,11 +54,18 @@ struct ChatView: View {
             }
             .defaultScrollAnchor(.bottom)
             .defaultScrollAnchor(.bottom, for: .sizeChanges)
+            .focusEffectDisabled()
             .accessibilityIdentifier("chat.\(id)")
             bottom.padding(.horizontal, 10).padding(.bottom, 10).padding(.top, 4)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
         .task { await chat.viewed() }
+        // In place of the terminal that had the keyboard (the chooser's loader went, or the switch flipped).
+        .onAppear {
+            if page.keyboardPane?.id == chat.paneID {
+                chat.wantsKeyboard = true
+            }
+        }
         .onChange(of: chat.wantsKeyboard, initial: true) {
             // On the next turn: a first responder set during an update is undone.
             if chat.wantsKeyboard {
@@ -185,6 +192,12 @@ private struct WaitingDrawer: View {
         .onAppear {
             if let terminalID = page.store.pane(chat.paneID)?.terminalID, page.keyboardPane?.id == chat.paneID {
                 page.terminals.focus(terminalID)
+            }
+        }
+        // The reply box takes the keyboard back.
+        .onDisappear {
+            if page.keyboardPane?.id == chat.paneID {
+                chat.wantsKeyboard = true
             }
         }
     }

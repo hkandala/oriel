@@ -41,7 +41,7 @@ struct ClaudeCode: ChatAdapter {
                   flag + 1 < process.argv.count else { continue }
             let id = process.argv[flag + 1]
             guard UUID(uuidString: id) != nil, id == id.lowercased(), token == nil || token == id,
-                  process.argv.contains(where: { $0.contains("/tmp/oriel-chat/\(id)/") }) else { continue }
+                  process.argv.contains(where: { $0.contains("/tmp/oriel-chat/\(id)") }) else { continue }
             token = id
             pids.append(process.pid)
         }

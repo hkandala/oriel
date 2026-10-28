@@ -16,23 +16,23 @@ extension OrielUITests {
         try await waitFor(pane) { $0.contains("Echo: **hello**") }
 
         // Steps: the turn's command as a stack, which a click opens; Replies: only the quiet line; All: open.
-        let level = element("pane.\(pane).level")
-        let before = level.radioButtons.allElementsBoundByIndex.first(where: \.isSelected)?.label ?? "Steps"
+        let levels = ["replies", "steps", "all"].map { element("pane.\(pane).level.\($0)") }
+        let before = levels.first(where: \.isSelected) ?? levels[1]
         addTeardownBlock { @MainActor in
-            if level.exists {
-                level.radioButtons[before].click()
+            if before.exists {
+                before.click()
             }
         }
-        level.radioButtons["Steps"].click()
+        levels[1].click()
         let stack = element("chat.\(pane).stack")
         XCTAssertTrue(stack.has(\.stringValue, "closed", within: 2))
         XCTAssertTrue(stack.label.hasPrefix("Ran 1 command"), stack.label)
         stack.click()
         XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
-        level.radioButtons["Replies"].click()
+        levels[0].click()
         XCTAssertTrue(stack.vanishes(within: 2))
         XCTAssertTrue(element("chat.\(pane).summary").label.contains("1 command"))
-        level.radioButtons["All"].click()
+        levels[2].click()
         XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
         keepScreenshot("chat")
 
@@ -56,8 +56,8 @@ extension OrielUITests {
         app.typeText("/help\r")
         XCTAssertTrue(element("chat.\(pane).composer").vanishes(within: 3))
         try await waitFor(pane) { $0.contains("/help") }
-        XCTAssertTrue(element("pane.\(pane).view").radioButtons["Terminal"].isSelected)
-        element("pane.\(pane).view").radioButtons["Chat"].click()
+        XCTAssertTrue(element("pane.\(pane).view.terminal").isSelected)
+        element("pane.\(pane).view.chat").click()
         XCTAssertTrue(element("chat.\(pane).composer").exists(within: 3))
     }
 

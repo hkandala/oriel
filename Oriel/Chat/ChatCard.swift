@@ -35,22 +35,11 @@ struct ChatSwitch: View {
                     .accessibilityIdentifier("pane.\(id).state")
             }
             if chat.showsChat {
-                Picker("Detail", selection: settings.$chatLevel) {
-                    Text("Replies").tag(ChatLevel.replies)
-                    Text("Steps").tag(ChatLevel.steps)
-                    Text("All").tag(ChatLevel.all)
-                }
-                .accessibilityIdentifier("pane.\(id).level")
+                Segments(id: "pane.\(id).level", options: [("Replies", .replies), ("Steps", .steps), ("All", .all)],
+                         selection: settings.$chatLevel)
             }
-            Picker("View", selection: $chat.showsChat) {
-                Text("Chat").tag(true)
-                Text("Terminal").tag(false)
-            }
-            .accessibilityIdentifier("pane.\(id).view")
+            Segments(id: "pane.\(id).view", options: [("Chat", true), ("Terminal", false)], selection: $chat.showsChat)
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .controlSize(.small)
         .fixedSize()
         .onChange(of: chat.showsChat) {
             // The card keeps the keyboard: the reply box, or the terminal.
@@ -71,5 +60,29 @@ struct ChatSwitch: View {
         case .ready, .starting:
             return state == .finishedUnseen ? (AgentState.finishedUnseen.capsule, look.finished) : nil
         }
+    }
+}
+
+/// A small segmented control in the app's own style: a track, and the raised pill on the chosen segment, as the tab
+/// bar.
+private struct Segments<Value: Hashable>: View {
+    let id: String
+    let options: [(String, Value)]
+    @Binding var selection: Value
+    @Environment(\.look) private var look
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(options, id: \.0) { title, value in
+                Button { selection = value } label: {
+                    Text(title).font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 20)
+                }
+                .buttonStyle(ChromeStyle(selected: selection == value, radius: 6))
+                .accessibilityAddTraits(selection == value ? .isSelected : [])
+                .accessibilityIdentifier("\(id).\(title.lowercased())")
+            }
+        }
+        .padding(2)
+        .background(look.track, in: .rect(cornerRadius: 8))
     }
 }
