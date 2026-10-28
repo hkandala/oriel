@@ -61,7 +61,7 @@ extension Chat {
 }
 
 enum ChatAdapters {
-    static let all: [any ChatAdapter.Type] = [ClaudeCode.self, Codex.self]
+    static let all: [any ChatAdapter.Type] = [ClaudeCode.self, Codex.self, PiAgent.self]
 
     /// The line the chooser types for an agent: its adapter's launch line when it has a chat, else its command.
     static func launch(_ command: String, on exec: any Exec) async -> String {

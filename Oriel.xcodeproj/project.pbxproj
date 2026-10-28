@@ -44,6 +44,9 @@
 			exceptions = (
 				0A1B2C3D4E5F60718293A4B5 /* Exceptions for "Oriel" folder in "Oriel" target */,
 			);
+			explicitFileTypes = {
+				"Chat/pi-oriel.ts" = text;
+			};
 			path = Oriel;
 			sourceTree = "<group>";
 		};
