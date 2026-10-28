@@ -265,6 +265,23 @@ public extension ChatHistory {
     static func count(_ number: Int, _ noun: String) -> String {
         "\(number) \(noun)\(number == 1 ? "" : "s")"
     }
+
+    /// A target or a result as its row shows it: the first line, at most 120 characters.
+    static func firstLine(_ value: Any?) -> String {
+        let text = (value as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let line = text.prefix { $0 != "\n" }
+        return line.count > 120 ? line.prefix(119) + "…" : String(line)
+    }
+
+    /// A path under the session's folder from there, else whole.
+    static func short(_ path: String, _ cwd: String?) -> String {
+        guard let cwd, path.hasPrefix(cwd + "/") else { return path }
+        return String(path.dropFirst(cwd.count + 1))
+    }
+
+    static func date(_ text: String) -> Date? {
+        try? Date.ISO8601FormatStyle(includingFractionalSeconds: true).parse(text)
+    }
 }
 
 public extension ChatTool {

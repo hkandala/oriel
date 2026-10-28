@@ -12,7 +12,7 @@ public enum ClaudeTranscript {
             return false
         }
         let line = Line(object: object, id: object["uuid"] as? String ?? UUID().uuidString,
-                        time: (object["timestamp"] as? String).flatMap(date))
+                        time: (object["timestamp"] as? String).flatMap(ChatHistory.date))
         guard object["isSidechain"] as? Bool != true, object["isMeta"] as? Bool != true else { return true }
         switch object["type"] as? String {
         case "user" where object["isCompactSummary"] as? Bool != true: user(line, into: &history)
@@ -93,7 +93,8 @@ public enum ClaudeTranscript {
     {
         let name = block["name"] as? String ?? "tool", input = block["input"] as? [String: Any] ?? [:]
         let toolID = block["id"] as? String ?? id
-        let path = (input["file_path"] as? String ?? input["notebook_path"] as? String).map { short($0, cwd) }
+        let path = (input["file_path"] as? String ?? input["notebook_path"] as? String)
+            .map { ChatHistory.short($0, cwd) }
         let category: ChatTool.Category, target: String
         var shown = name.lowercased()
         switch name {
@@ -107,19 +108,19 @@ public enum ClaudeTranscript {
             return
         case "Read", "NotebookRead": (category, target) = (.read, path ?? "")
         case "Edit", "MultiEdit", "Write", "NotebookEdit": (category, target) = (.edit, path ?? "")
-        case "Bash": (category, target) = (.command, firstLine(input["command"]))
-        case "Grep", "Glob": (category, target) = (.search, firstLine(input["pattern"]))
-        case "WebSearch": (category, target) = (.search, firstLine(input["query"]))
+        case "Bash": (category, target) = (.command, ChatHistory.firstLine(input["command"]))
+        case "Grep", "Glob": (category, target) = (.search, ChatHistory.firstLine(input["pattern"]))
+        case "WebSearch": (category, target) = (.search, ChatHistory.firstLine(input["query"]))
         case "Task", "Agent":
             shown = input["subagent_type"] as? String ?? "agent"
-            (category, target) = (.other, firstLine(input["description"]))
+            (category, target) = (.other, ChatHistory.firstLine(input["description"]))
         case "AskUserQuestion":
             let question = (input["questions"] as? [[String: Any]])?.first?["question"]
-            (category, target) = (.other, firstLine(question))
+            (category, target) = (.other, ChatHistory.firstLine(question))
         default:
             // An MCP tool's own name (`mcp__server__tool`), and its first text argument.
             shown = String(name.split(separator: "_").last ?? Substring(name)).lowercased()
-            (category, target) = (.other, firstLine(input.values.first { $0 is String }))
+            (category, target) = (.other, ChatHistory.firstLine(input.values.first { $0 is String }))
         }
         history.append(ChatEntry(id: id, .tool(ChatTool(id: toolID, name: shown, category: category, target: target,
                                                         started: time)), time: time))
@@ -155,7 +156,7 @@ public enum ClaudeTranscript {
         }
         let text: String
         if failed {
-            let first = firstLine(content)
+            let first = ChatHistory.firstLine(content)
             text = first.hasPrefix("Exit code ") ? "exit " + first.dropFirst(10) : first
         } else if !diff.isEmpty {
             let added = diff.count { $0.mark == "+" }, removed = diff.count { $0.mark == "-" }
@@ -164,24 +165,8 @@ public enum ClaudeTranscript {
         } else if let lines = (extra["file"] as? [String: Any])?["numLines"] as? Int {
             text = ChatHistory.count(lines, "line")
         } else {
-            text = firstLine(content)
+            text = ChatHistory.firstLine(content)
         }
         history.finish(tool: id, result: text, failed: failed, diff: diff, at: time)
-    }
-
-    private static func firstLine(_ value: Any?) -> String {
-        let text = (value as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let line = text.prefix { $0 != "\n" }
-        return line.count > 120 ? line.prefix(119) + "…" : String(line)
-    }
-
-    /// A path under the session's folder from there, else whole.
-    private static func short(_ path: String, _ cwd: String?) -> String {
-        guard let cwd, path.hasPrefix(cwd + "/") else { return path }
-        return String(path.dropFirst(cwd.count + 1))
-    }
-
-    private static func date(_ text: String) -> Date? {
-        try? Date.ISO8601FormatStyle(includingFractionalSeconds: true).parse(text)
     }
 }
