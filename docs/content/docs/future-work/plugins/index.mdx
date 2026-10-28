@@ -16,7 +16,7 @@ built into the app. Every other pane kind is a plugin: a small web page
 |---|---|---|---|---|
 | Terminal | built in | native terminal (libghostty) | none | none (the default) |
 | Agent | built in | native terminal + chat view ([Chat view](/docs/future-work/chat-view)) | none | none (herdr sets `pane.agent`) |
-| Browser | built in | Chromium (CEF) on the Mac, WebKit on iOS ([Browser](/docs/future-work/web-page)) | none (only the page's own) | label `oriel:browser#<iid> <url>` |
+| Browser | built in | native web view ([Browser](/docs/future-work/web-page)) | none (only the page's own) | label `oriel:browser#<iid> <url>` |
 | `git-history`, `diff`, `markdown` | core | a web page in a native web view | yes, the public API | label `oriel:…` ([Labels and instance ids](/docs/future-work/plugins/labels)) |
 | your plugins | installed | a web page in a native web view | yes, the public API | label `oriel:…` |
 
@@ -74,7 +74,7 @@ func dial(host: String, port: Int) async throws -> Channel
   `ClearAllForwardings=yes` ([The SSH connection](/docs/machines#the-ssh-connection);
   [evidence](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#how-plugins-reach-a-remote-machine)).
 - `dial` needs a `Channel` that carries bytes; today a `Channel` gives lines.
-- A browser card needs a SOCKS proxy, not a stream:
+- A browser card needs a SOCKS forward, not a stream:
   [Remote localhost](/docs/future-work/web-page#remote-localhost).
 - Nothing of ours is installed on the machine: `sshd`, POSIX tools and herdr
   do the work. A bigger helper would sit behind the same `run` and `dial` calls
@@ -94,13 +94,15 @@ func dial(host: String, port: Int) async throws -> Channel
 - App storage (`UserDefaults`): consent and This Mac answers per plugin id
   and source, plugin preferences (passwords in the Keychain), and approved
   browser origins per machine with the safe list. Plugin code and its source
-  record live in `~/Library/Application Support/Oriel/plugins/`, Chromium's
-  profiles (one per machine) in `~/Library/Application Support/Oriel/Browser/`.
+  record live in `~/Library/Application Support/Oriel/plugins/`. Browser
+  cards keep one WebKit data store per machine.
 
 ## The first slice
 
-The browser is the first pane kind on this design. It brings the parts every
-later kind needs, and nothing that only third-party plugins need:
+The browser is the first pane kind on this design. It is built into the
+app: nothing to install, enable or disable, and its page gets no bridge (no
+`window.oriel`, so no `run`). It brings the parts every later kind needs, and
+nothing that only third-party plugins need:
 - the label grammar and its parser, the instance id, and restore by label
   ([Labels and instance ids](/docs/future-work/plugins/labels));
 - the placeholder pane made with `layout.apply` and `pane.move`;

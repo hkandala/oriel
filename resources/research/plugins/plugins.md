@@ -85,8 +85,8 @@ at `55e4665:resources/research/plugins/plugin-system-v2-spike/`.
 
 ## The browser pane
 
-The first pane kind on this foundation draws Chromium through CEF, so Chrome DevTools come with it; plugin cards
-stay WKWebView. Engines compared, CEF measurements, the placeholder and remote spikes: [browser.md](browser.md).
+The first pane kind on this foundation is a WKWebView with Web Inspector. The WebKit, proxy, placeholder and
+restart spikes, and CEF (considered, not chosen): [browser.md](browser.md).
 
 ## Plugins on iOS
 
@@ -128,8 +128,9 @@ herdr already keeps the terminals alive, and `sshd` already reads files, runs gi
   `~/.local/share/oriel/agent/<ver>/` and SHA-256 checked, falling back to `$XDG_RUNTIME_DIR` or `/tmp` when the
   home is `noexec`. About 800–1,500 lines plus ~500 lines of Swift client. Shipping it as a herdr plugin was
   rejected: that install is interactive and global per user, so two app versions would fight over it.
-- **SOCKS instead of forwards** loses the secure context (`crypto.subtle`, service workers);
-  `WKWebsiteDataStore.proxyConfigurations` needs macOS 14 or iOS 17; WebKit has known proxy leaks.
+- **SOCKS in WebKit:** `WKWebsiteDataStore.proxyConfigurations` (macOS 14, iOS 17) never carries `localhost`,
+  `127.0.0.1` or `[::1]`, but carries `<name>.localhost` and keeps it a secure context
+  ([browser.md](browser.md#remote-pages)).
 - **Finding ports:** `pane.process_info`'s tty can tell which pane owns a port; `ports.list` in herdr would be a
   friendly upstream ask.
 - **Checked:** `ssh -W`, `-O forward -L` and `-O forward -D` work on a ControlMaster started with

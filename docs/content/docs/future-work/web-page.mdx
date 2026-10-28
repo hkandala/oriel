@@ -1,54 +1,30 @@
 ---
 title: "Browser"
-description: "A Chromium page with Chrome DevTools in a placeholder herdr pane"
+description: "A web view with Web Inspector in a placeholder herdr pane"
 ---
 
 Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
-Research and measurements:
+Research and spikes:
 [`browser.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/browser.md).
 
 herdr cannot draw a web page. So a herdr pane holds the place in the layout,
-and the app draws a browser in its rectangle. The browser is the first pane
-kind built on the [plugin foundation](/docs/future-work/plugins#the-first-slice).
+and the app draws a web view in its rectangle. The browser is the first pane
+kind built on the [plugin foundation](/docs/future-work/plugins#the-first-slice),
+and it is built into the app.
 
 ## The engine
 
-On the Mac the page is Chromium, through CEF (Chromium Embedded Framework),
-so Chrome DevTools come with it. iPhone and iPad use WebKit, as Apple
-requires.
-
-- Each card holds one CEF browser as a child `NSView` (CEF calls this Alloy
-  style; on macOS a child view is always Alloy style). Chromium handles
-  typing, IME, trackpad scrolling and accessibility itself. SwiftUI views
-  drawn over the page (sheets, the find bar) show above it.
-- A small Objective-C++ shim wraps CEF's C++ API: one `NSView` class (load,
-  back, forward, reload, stop, find, DevTools, and callbacks for the address,
-  title, loading and errors), the `NSApplication` subclass CEF needs, and the
-  message pump. Swift cannot subclass CEF's C++ handler classes.
-- **The app object:** SwiftUI ignores `NSPrincipalClass`, so `App.init()`
-  creates CEF's `NSApplication` subclass before SwiftUI makes its own, and
-  SwiftUI adopts it.
-- **The run loop:** CEF's `external_message_pump`. CEF asks for work through
-  `OnScheduleMessagePumpWork`, and the app runs `CefDoMessageLoopWork` from
-  timers on the main run loop in common modes, so pages keep running during
-  drags and menus.
-- **Processes:** Chromium's browser process is the app itself. The GPU, the
-  network, storage and one renderer per site run as helper apps. A hung page
-  freezes only its renderer.
-- **The bundle:** the framework (about 333 MB, arm64) and five helper apps in
-  `Contents/Frameworks`, signed inside out with the hardened runtime and
-  `com.apple.security.cs.allow-jit` (and `disable-library-validation` while
-  the app is signed ad hoc). There is no Mac App Store path.
-- **Updates:** CEF ships a branch about every 4 weeks, and security builds
-  trail Chrome by 2 or 3 days. The app pins one exact build, as it pins
-  libghostty-spm: a script downloads it and checks its SHA-256.
-- **Its own folders and keychain item:** CEF's `root_cache_path` is under
-  `~/Library/Application Support/Oriel/Browser/`, and cookies are encrypted
-  with a keychain item of Oriel's own. Stock CEF uses the shared "Chromium
-  Safe Storage" item, which asks for the login password and holds every
-  request until the user answers.
-- Chromium's background requests (component updates, autofill queries) are
-  off, so nothing loads that the user did not ask for.
+- Each card holds one `WKWebView` with a `WKUIDelegate`, wrapped for SwiftUI
+  ([Plugin UI](/docs/future-work/plugins/plugin-ui)). WebKit is part of
+  macOS and iOS, so the app grows by nothing.
+- The page gets no bridge: no `window.oriel`, no script message handlers.
+- **Web Inspector** opens in its own window: the card's DevTools button
+  (⌥⌘I) shows WebKit's inspector for that page. Every browser card sets
+  `isInspectable`, so Safari's Develop menu (Develop › ‹this Mac› › Oriel)
+  reaches the page too. Showing the inspector from a button has no public API;
+  the button calls WebKit's `_WKInspector` `show` (cmux ships the same).
+  Before building: check that `show` opens the window in the running app (a
+  spike app in the background got the inspector object, but no window).
 
 ## The marker is the pane label
 
@@ -60,8 +36,10 @@ restarts (tested on 0.9.5). Metadata tokens are capped at 80 characters and
 lost on restart. Titles, process arguments and environment are lost or
 invisible.
 
-The address is stored in herdr's session file and shown to every device. Do
-not use addresses that contain secrets (for example a `?token=` URL).
+The address in the label is as the machine sees it: `localhost` means the
+pane's machine ([Remote localhost](#remote-localhost)). It is stored in
+herdr's session file and shown to every device. Do not use addresses that
+contain secrets (for example a `?token=` URL).
 
 ## Create
 
@@ -93,26 +71,12 @@ nothing ([Create](/docs/future-work/plugins/labels#create)).
 - Navigation stays inside the card (like an iframe). A link that asks for a
   new window opens in the same card. The label keeps the address the user
   typed.
-- The card's browser is kept in the PaneViewRegistry, so scrolling away does
-  not reload it.
+- The card's web view is kept in the PaneViewRegistry, so scrolling away
+  does not reload it.
 - A page that fails to load shows the app's words and the machine, for
   example "Nothing answers on localhost:3001 on devbox", with **Reload**.
-
-## DevTools
-
-- The DevTools button (⌥⌘I) opens Chromium's DevTools for the card's page in
-  their own window (CEF's `ShowDevTools`). The window closes with the card.
-  No remote debugging port is open.
-- **Docked DevTools** (inside the card, under or beside the page) come next.
-  CEF cannot dock them on macOS: DevTools are always Chrome style, and
-  docking them in a child view crashes on a CEF check. The plan: the DevTools
-  page in a second child view, connected to that one page through a bridge
-  of the app's own on `127.0.0.1`, with a random port and an unguessable
-  path, which passes messages with `SendDevToolsMessage` and
-  `AddDevToolsMessageObserver`. Before building: check whether a child view
-  can load the DevTools page bundled in Chromium, or the app must ship it.
-- Rejected: CEF's remote debugging port (any process on the Mac could read
-  and drive every page, with its cookies).
+- A floated browser pane ([Floating pane](/docs/ui/window#floating-pane))
+  keeps the same toolbar under the floating window's title row.
 
 ## Viewing state on the machine
 
@@ -120,7 +84,7 @@ The address after in-card navigation is saved on the pane's machine, in the
 same instance state file as a plugin's
 ([The instance state file](/docs/future-work/plugins/state#the-instance-state-file)):
 `$HOME/.local/state/oriel/<session>/browser/<iid>.json`, holding
-`{"url": …}`.
+`{"url": …}`, as the machine sees it.
 - Written debounced (500 ms) when a navigation ends, as for plugins. Last
   writer wins.
 - Read when the card is built or on Refresh
@@ -148,49 +112,68 @@ pane to `oriel:browser#<iid> <url>` or write its state file. So:
 - The Settings window ([Future work](/docs/future-work#smaller-items)) lists
   the approvals and the safe list; the user can edit both.
 
+## Profiles
+
+Each machine has its own `WKWebsiteDataStore(forIdentifier:)`, with the
+machine's id from the machine list as its identifier (This Mac has a fixed
+one).
+- The store keeps cookies, local storage, IndexedDB, the cache and service
+  workers on disk, under `~/Library/WebKit/<bundle id>/WebsiteDataStore/<id>/`,
+  across relaunches. Logins persist, and machines stay apart.
+- Stores are per device: another Mac or the iPhone has its own logins.
+- Removing a machine removes its store (`WKWebsiteDataStore.remove(forIdentifier:)`).
+- `proxyConfigurations` belongs to the store and is not saved: the app sets
+  it each time it makes the store, before the first load.
+- WebKit uses no keychain item for cookies or storage, so no keychain prompt
+  appears (checked with stores that set cookies).
+
 ## Remote localhost
 
-On a remote machine, `localhost:3000` means that machine. Each machine has
-its own Chromium profile (a `CefRequestContext` with its own folder), and a
-remote machine's profile sends every request through that machine:
+On a remote machine, `localhost:3000` means that machine. One SOCKS forward
+per machine carries every page of that machine's cards:
 
 ```sh
 ssh -F /dev/null -S <ctl> -O forward -D 127.0.0.1:<P> <target>
 ```
 
-```text
-SetPreference("proxy", {mode: "fixed_servers", server: "socks5://127.0.0.1:<P>",
-                        bypass_list: "<-loopback>"})
-```
-
 - `-D` makes the host's ControlMaster a SOCKS proxy on a free local port
-  `<P>`. `<-loopback>` makes Chromium send `localhost` through it too (it
-  sends loopback direct by default). SOCKS5 passes the host name, so the
-  machine resolves it: its `localhost`, its LAN and VPN names, its
-  `/etc/hosts`.
-- Every port works with one forward, and the page's origin stays exactly
-  `http://localhost:3000`, a secure context, so OAuth callbacks, CORS lists
-  and service workers keep working. This Mac's `localhost:3000` and
-  devbox's never mix, because their profiles are apart.
+  `<P>`. Each connection to it becomes a channel on the existing SSH
+  connection, and the server connects to the host and port the page asked
+  for. The machine's store gets
+  `ProxyConfiguration(socksv5Proxy: 127.0.0.1:<P>)`.
+- Each machine has its own `<P>`. The page's port (3000) travels inside each
+  SOCKS request, so devbox's `:3000` and another machine's `:3000` never
+  compete for a port on the Mac.
+- **WebKit never sends `localhost`, `127.0.0.1` or `[::1]` through a proxy**
+  (checked; `matchDomains` does not change it). So a remote card loads
+  `http://<machine>.localhost:3000` where the machine sees
+  `http://localhost:3000`. WebKit sends that name through the proxy and
+  treats it as a secure context, and the machine resolves `*.localhost` to its
+  own loopback (macOS and Linux with systemd do). Checked end to end.
+- `<machine>` is the machine's name in lowercase letters, digits and dashes
+  (made unique in the list). The address field and the label show the
+  machine's view (`localhost:3000`) with the machine's name beside it.
+- Each machine's pages have their own origins (`devbox.localhost:3000`) and
+  their own store, so nothing of two machines mixes.
+- Simpler choice: the origin is `devbox.localhost:3000`, not `localhost:3000`.
+  OAuth callbacks and CORS lists need that name added; Vite allows
+  `*.localhost` by default. Revisit if dev servers refuse it often.
+- A machine that cannot resolve `*.localhost` shows "‹machine› cannot reach
+  ‹name›". A fix then is a small SOCKS listener of the app's own that maps
+  `*.localhost` to `localhost` and dials through `ssh -W`.
 - Public sites in a remote machine's card also load through that machine.
-  Simpler choice; revisit if heavy public sites feel slow (a PAC script could
-  send only loopback and private names through the machine).
-- This Mac's profile uses no proxy. Never the global profile: in the spike,
-  a browser in it followed another profile's proxy.
-- The proxy setting is saved in the profile, so the app sets it (or `direct`)
-  each time it creates the profile.
+  Simpler choice; revisit if they feel slow.
+- This Mac's store uses no proxy.
 - The forward starts with the machine's first browser card and ends with its
   last (`ssh -O cancel`). It uses no [SSH session](/docs/machines#ssh-sessions).
   It needs `AllowTcpForwarding yes` on the server (the default). If a server
   refuses, the card says "‹machine› does not allow port forwarding".
 - Checked: `-O forward -D`, `-O forward -L` and `-W` work on a master started
-  with `ClearAllForwardings=yes` (OpenSSH 10.3). Chrome 156 sent loopback
-  through the proxy with `<-loopback>` and kept `isSecureContext` true.
+  with `ClearAllForwardings=yes` (OpenSSH 10.3).
 - **iPhone and iPad** ([iPhone and iPad](/docs/future-work/iphone-and-ipad)):
-  WebKit, so an in-app listener on `127.0.0.1:<P>` pipes each connection it
-  accepts into a Citadel `direct-tcpip` channel, one port at a time.
-  Listeners stop when the app goes to the background, like terminal streams,
-  and start again on return.
+  an in-app SOCKS listener on `127.0.0.1:<P>` pipes each connection it
+  accepts into a Citadel `direct-tcpip` channel. Listeners stop when the app
+  goes to the background, like terminal streams, and start again on return.
 
 ## Finding ports
 
@@ -203,58 +186,69 @@ SetPreference("proxy", {mode: "fixed_servers", server: "socks5://127.0.0.1:<P>",
   ports. It runs `ss -ltnH` (Linux) or `lsof -nP -iTCP -sTCP:LISTEN` (macOS)
   once when the list opens, never on a timer.
 
+## Agents
+
+The first slice gives agents no control of browser cards. An agent that
+needs a browser runs its own on its machine (Playwright, chrome-devtools-mcp),
+next to the dev server. WKWebView has no automation protocol, and
+`safaridriver` drives only Safari. A later design could let an agent ask the
+app, through a pane metadata token, to read, run script in or capture one
+browser card it is allowed to, with the result written back to a file on the
+machine; it needs its own consent design
+([Changes panel](/docs/future-work/changes-panel)).
+
 ## Other rules
 
 - Pages are told the current `prefers-color-scheme`, which follows the
   app's appearance (D44).
-- When a page's renderer ends (`OnRenderProcessTerminated`), the card loads
-  the page again.
-- ⌘L focuses the address in the header; ⌘F finds in the page. CEF's
-  `OnPreKeyEvent` passes the app's shortcuts to the menu while the page has
-  focus.
+- The web view's user agent ends with `Version/18.0 Safari/605.1.15`
+  (`applicationNameForUserAgent`), so sites that sniff for Safari work.
+- When the page's process ends (`webViewWebContentProcessDidTerminate`),
+  the card loads the page again.
+- ⌘L focuses the address in the header; ⌘F finds in the page with
+  `WKWebView`'s find.
 - When the command palette's query is an address, its top row is "Open in
   Browser": a browser pane beside the keyboard card.
 - Page dialogs show as a sheet on the card, labeled with the origin.
+- Plain `http` needs `NSAllowsArbitraryLoadsInWebContent` and
+  `NSAllowsLocalNetworking`.
 - Closing a browser pane never asks, because it runs only its placeholder.
-- After a cold restart the pane returns as a plain shell with its label, so
-  the page still draws ([Create](/docs/future-work/plugins/labels#create)).
-- Memory: about 200–280 MB for the first page (all of Chromium's
-  processes), 70–80 MB for each more page, and about 300 MB more while
-  DevTools are open (measured with CEF 156). The shared cap of live web views
-  holds ([Plugin UI](/docs/future-work/plugins/plugin-ui#risks)).
+- After a cold restart the pane returns as a plain shell with its label. The
+  app knows the pane by its label alone, builds the card again and reads the
+  state file ([Create](/docs/future-work/plugins/labels#create)).
 
 ## Risks
 
 | Risk | Effect | Plan |
 |---|---|---|
 | Labels or state files written by a hostile machine | a page opens by itself | an origin outside the approvals and the safe list needs a click ([When a page loads by itself](#when-a-page-loads-by-itself)) |
-| CEF's browser process runs in the app | an engine crash ends the app | an exact pin, reviewed updates; watch crash reports |
-| A late engine update | known Chromium security holes stay open | a bump each CEF release, or CEF's long-term branch |
 | The SOCKS port is open to other accounts on the Mac | another account can reach the machine's network | accepted for a single-user Mac; a random port, open only while a card needs it |
 | A server with `AllowTcpForwarding no` | remote `localhost` pages cannot load | the card says so; Tailscale or LAN addresses still load; a bigger server helper later |
-| SwiftUI's own application class is replaced by CEF's subclass | undocumented; may break on a macOS update | checked on each macOS release |
-| App size (+330 MB) and memory | a bigger download; memory growth | the shared cap of live web views; later, download the engine on first use |
+| `_WKInspector` is private | the DevTools button may break on a macOS update | Safari's Develop menu still reaches every card |
+| Web view memory | memory growth | the shared cap of live web views ([Plugin UI](/docs/future-work/plugins/plugin-ui#risks)) |
 
 ## Choices
 
-- **Chromium through CEF on the Mac.** Chrome DevTools in the app, the page
-  as Chrome draws it, and a proxy per profile that carries loopback.
-  Rejected: WKWebView with Safari's Web Inspector (not Chrome DevTools;
-  docking it needs private API); real Chrome driven over the DevTools
-  protocol (screencast frames, no IME); off-screen rendering (the app would
-  redo input, IME and accessibility); a Chromium build of our own (a team's
-  work); CefSwift, a pure Swift wrapper (about 8,000 lines from one author;
-  watch it).
-- **A built-in pane kind with one profile per machine**, and the load rule
+- **WKWebView with Web Inspector in its own window.** No size cost, the same
+  engine as plugin cards and iOS, and a proxy per store. Considered: Chromium
+  through CEF, for Chrome DevTools. It worked in a spike (a SwiftUI host, a
+  314-line Objective-C++ shim, a profile and SOCKS proxy per machine), but it
+  adds 330 MB to the app, uses 195–281 MB for the first page and about
+  300 MB more with DevTools open, needs an engine update about every 4 weeks,
+  runs Chromium's browser process inside the app, cannot dock DevTools on
+  macOS, and its shared "Chromium Safe Storage" keychain item held every
+  request behind a password prompt. Rejected: real Chrome driven over its
+  DevTools protocol (screencast frames, no IME); a Chromium build of our own.
+- **A built-in pane kind with one store per machine**, and the load rule
   above. No request leaves the device for an unknown origin without the user,
   and machines stay apart. Rejected: loading every label by itself; tracking
   which device created or edited a label; a two-part rule for the saved
   address.
 - **Remote pages through a SOCKS forward per machine.** One forward covers
-  every port and name on the machine, the origin stays exact, and nothing is
-  installed there. Rejected: a forward per port (port clashes between
-  machines, a navigation decider); a server helper of our own now;
-  `pane.output_matched` on a second event stream.
+  every port and name on the machine, and nothing is installed there.
+  Rejected: a forward per port (ports clash between machines and with the
+  Mac, and a page's links need a navigation decider); a server helper of our
+  own now; `pane.output_matched` on a second event stream.
 - **The typed address in the label, the current one in the state file.**
   Coming back to a browser card, on any device or after a restart, shows the
   page where the user left it, with one state path for every card. Rejected:
