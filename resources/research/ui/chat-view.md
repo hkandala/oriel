@@ -21,23 +21,145 @@ herdr 0.9.5), then one spike per agent for Claude Code, Codex, pi and opencode (
    lines of code.
 4. **The trap:** pickers and pi's extension dialogs leave herdr at `idle`, so `agent.prompt` can type into them
    (proven on pi, Claude Code and opencode).
-5. **First slice:** Base for all four agents, the transcript-tree look, the Needs-you drawer with each agent's answer
-   keys, model and mode read back with a one-key mode toggle. Side channels next: pi, then opencode, then Claude Code
-   and Codex through a launch path.
+5. **First slice:** Base for all four agents, then side channels ([Recommendation](#recommendation)).
 
 ## Per agent
 
-The full research, the capability matrix (agent × interaction), the adapter interface, the approval and model
-designs and five Liquid Glass mock-ups are in [chat-view.html](chat-view.html) (open it in a browser). The evidence
-per agent, from throwaway runs: [Claude Code](../agents/claude-code.md), [Codex](../agents/codex.md),
-[pi](../agents/pi.md) (with the [bridge spike](../agents/pi-bridge.ts)), [opencode](../agents/opencode.md).
+The evidence per agent, from throwaway runs: [Claude Code](../agents/claude-code.md), [Codex](../agents/codex.md),
+[pi](../agents/pi.md), [opencode](../agents/opencode.md). Versions: Claude Code 2.1.310, Codex 0.163, pi 1.4.0,
+opencode 1.19.4 (npm) and 2.2.0-dev (source), herdr 0.9.5.
 
-| | Base: history | Side channel | Joins a running TUI | In-chat approvals |
+### Capability matrix
+
+Base works on any running pane; "S:" needs the side channel. yes: works today. partly: works with caveats. no: not
+possible.
+
+| Interaction | Claude Code | Codex | pi | opencode |
 |---|---|---|---|---|
-| Claude Code 2.1 | `agent_session` id → `~/.claude/projects/<slug>/<id>.jsonl` | `--settings` hooks + statusline, through files | no | PermissionRequest hook waits on a decision file; company `allow` hooks beat a deny |
-| Codex 0.163 | the rollout its process holds open (`lsof`, `source=="cli"`, newest) | `codex --remote` to an app-server; WebSocket | no | `requestApproval` goes to every client; first answer wins |
-| pi 1.4 | `agent_session` path; a tree | bridge extension, unix socket | yes, `/reload` | the bridge races extension dialogs; pi has no built-in prompts |
-| opencode 1.19 / 2.2-dev | SQLite rows, polled | HTTP + SSE (`curl -N` is lines) | 2.x yes, 1.x only with `--port` | `/permission/:id/reply`, `/question/:id/reply` |
+| Find the history | yes: id → `projects/<slug>/<id>.jsonl`; stale after `/branch`. S: statusline `transcript_path` | partly: `lsof`, `source=="cli"`, newest; id stale after `/fork`. S: `thread.path` | yes: the path; the file appears at the first message | yes: id `ses_…`, `opencode.db` by `lsof` |
+| Messages and tool calls | yes: tail; `tool_use` ↔ `tool_result` by id | yes: tail; `item_completed` | yes: tail; walk the tree | partly: poll SQLite parts. S: SSE `message.part.updated` |
+| Live text (per token) | no: screen only; disk lags by seconds | S only: `item/agentMessage/delta` | S only: `message_update` | S only: `message.part.delta` |
+| Thinking | partly: no text, "thought for Ns" | partly: encrypted, a row only | yes: full text | yes: reasoning parts |
+| Subagents | yes: Agent tool, `subagents/agent-<id>.jsonl` | partly: `SubAgentActivity` items | no: none built in | yes: child sessions (`parent_id`) |
+| Todos and plans | partly: TodoWrite; plan file and ExitPlanMode | yes: plan items | no | yes: `todo` table, `todo.updated` |
+| Context, tokens, cost | yes: usage. S: statusline | partly: `token_count`; no cost | yes: `usage.cost`. S: `contextUsage` | yes: step-finish tokens and cost |
+| Read the model | yes: `message.model` | yes: `turn_context` | yes: `model_change` | yes: `modelID` |
+| Read the mode | partly: screen footer (`permissionMode` lags to turn end) | yes: `turn_context` | yes: thinking level (no modes) | yes: the message's agent (build, plan) |
+| Send so the TUI shows it | yes: `agent.prompt` | yes. S: `turn/start` | yes. S: `sendUserMessage` | yes. S: `prompt_async` |
+| Send while working | queued to the next tool boundary | steers the turn | Return steers; follow-up needs alt+Return or S | queued (2.x: steer or queue) |
+| Images | yes: a pasted path becomes `[Image #1]` | partly: a path alone attaches; in text it stays text | partly: the path stays text. S: image block | partly: S: file part |
+| `@file` | yes | partly: literal text | partly: literal text | partly: literal text. S: file part |
+| Tool approval in chat | partly: S: PermissionRequest hook and a decision file | partly: S: `requestApproval` (accept, acceptForSession, decline) | partly: none built in. S: the bridge races extension dialogs | partly: S: `/permission/:id/reply` |
+| Questions to the user | partly: S: the hook returns answers | partly: S: `requestUserInput` | partly: S: forwarded select, confirm, input | partly: S: `/question/:id/reply` |
+| Plan approval | partly: S: PreToolUse on ExitPlanMode | partly: "Implement this plan?" is a picker (idle) | no: no plan mode | no: plan is an agent, no approval |
+| Slash commands | direct ones as text; ~15 open pickers | known ones as text, no arguments; ~30 open pickers | direct ones as text; S runs only extension commands | direct ones as text; pickers need the TUI |
+| New, fork, resume | `/clear`, `/branch` as text; `/resume` picker | `/new` as text; `/resume`, `/fork` pickers | `/new` as text. S: fork, tree, resume without pickers | `/new`, `/fork` as text; sessions picker |
+| herdr says `blocked` | dialogs yes; pickers idle | approvals and questions yes; pickers idle | no: dialogs and pickers idle (S fixes dialogs) | permissions and questions yes; pickers idle |
+| Remote over SSH | yes: tail. S: files, needs Oriel's launch | partly: S needs a WebSocket shim | partly: S needs the bridge file there, `nc -U` | yes: `sqlite3` poll. S: `curl -N` |
+| S on a running TUI | no: `--settings` only at launch | no: only a TUI started with `--remote` | yes: `/reload` | partly: 2.x always; 1.x only with `--port` |
+
+Without a side channel, approvals, questions and plans are answered with keys (pi: unsafe, since herdr reports idle).
+
+### Key maps
+
+Fixed per agent; no prompt parsing. Never ctrl+c.
+
+| | Claude Code | Codex | pi | opencode |
+|---|---|---|---|---|
+| Answer a prompt | Return = first option, ↓, Esc = no and end the turn | `y`, digits, Esc = no and end the turn | ↑/↓, Return, Esc | Return = allow once, ←/→, digits, Esc = reject |
+| Interrupt | Esc | Esc | Esc | Esc Esc |
+| Mode step | shift+tab | shift+tab | shift+tab | tab |
+
+## Adapter interface
+
+One chat view, one model of a conversation, one small adapter per agent (`ClaudeChat`, `CodexChat`, `PiChat`,
+`OpencodeChat`; screen text for every other pane). An adapter turns its sources (transcript lines, SQLite rows, hook
+files, SSE, the bridge socket, app-server events) into `ChatEvent`s, and `ChatAction`s into herdr calls, keys or
+side-channel calls. Ids are the agent's own.
+
+```swift
+enum ChatEvent {
+    case session(id: String, cwd: String)                    // new id on /clear, /new, /fork: restart the source
+    case user(id: String, text: String, images: [Image], queued: Bool)
+    case text(id: String, markdown: String, final: Bool)     // final:false = a live delta (side channel only)
+    case thinking(id: String, text: String?, seconds: Double?)
+    case tool(ToolCall)                                      // sent again as it runs and ends
+    case subagent(id: String, parentTool: String?, name: String, status: Status)
+    case plan([PlanItem])
+    case ask(Ask)                                            // tool, question or plan: side channel only
+    case askEnded(id: String, answer: String, by: AnsweredBy) // chat, terminal, policy
+    case turnEnded(status: Status, seconds: Double?)
+    case settings(Settings)                                  // model, effort or thinking, mode, context, cost
+    case notice(String)                                      // compaction, model switched by the agent, retry
+}
+enum ChatAction {
+    case send(text: String, images: [URL]), interrupt, command(String)
+    case answer(ask: String, option: String, text: String?)
+    case keys([String])                                      // the Needs-you drawer, behind the key guard
+    case setMode(String), setModel(String, effort: String?)
+}
+protocol ChatAdapter {
+    func events(pane: Pane, machine: Machine) -> AsyncStream<ChatEvent>
+    func perform(_ action: ChatAction, pane: Pane, machine: Machine) async throws
+    var can: Capabilities { get }                            // live text, in-chat asks, model menu, mode values
+}
+```
+
+- **Shared:** state from `agent_status`, the Needs-you drawer, the send guard, grouping tool calls between two
+  replies into a summary line, the tail and poll runners over the relay.
+- **Per agent, Base:** a finder, a lenient parser that skips unknown types, the key map, the slash commands that open
+  pickers.
+- **Per agent, side channel:** Claude Code's hook and statusline scripts in inline `--settings` with request and
+  decision files; a JSON-RPC client for Codex's app-server; pi's bridge socket; opencode's SSE and a few `curl` calls.
+
+## Approvals and questions
+
+The TUI keeps its own dialog in both ways, so the user can answer in either place.
+
+| Way | When | The chat shows | The answer goes |
+|---|---|---|---|
+| In-chat card | a side channel sent an `Ask` | the command, diff or plan, the agent's options as buttons, a field for "tell it what to do instead"; pinned above the composer while scrolled away | Claude Code: the decision file the hook waits on. Codex: the JSON-RPC reply. pi: the bridge. opencode: `POST …/reply`. The TUI dialog closes; a TUI answer shows "Answered in terminal" |
+| Needs-you drawer | Base: `blocked`, or a picker the chat opened | the live bottom of the terminal, the key map as named buttons, Open Terminal | each key only if the screen is unchanged since it was read (the key guard) |
+
+- **Esc is not "No".** In Claude Code and Codex it also ends the turn: on Base the button says "No, stop"; on the side
+  channel deny with a message (Claude `{"behavior":"deny","message":…}`, Codex `decline`) so the agent goes on.
+- **Policy wins.** Company PermissionRequest hooks return `allow` and beat Oriel's deny. Read the result
+  (`permissionDecision.source`, the tool result) and show "Allowed by policy".
+- **Races.** A Claude hook keeps waiting after a TUI answer: give each request an id and end the hook when the tool's
+  result appears. PermissionRequest has no `tool_use_id`; pair it with the PreToolUse before it.
+- **Few prompts in practice.** This user's aliases start Claude Code with `--dangerously-skip-permissions` and Codex
+  with `--yolo`, and managed configs auto-review most commands. Questions and plan approval come up as often.
+- **Picker trap.** Before each send, read the last screen lines; a picker footer is a fixed string ("Enter to
+  select", "↑↓ navigate", "⇆ select").
+
+## Model and mode
+
+The composer shows model, effort or thinking, mode, context and cost as pills, read from the sources in the matrix.
+
+| | Mode pill | Model pill, Base | Model pill, side channel |
+|---|---|---|---|
+| Claude Code | auto, manual, accept edits, plan: shift+tab until the footer shows it (at most 4) | `/model` in the drawer; Oriel presses `s` (session only) | the same; the statusline reads it back. No direct session-only call |
+| Codex | plan: shift+tab. Permissions: `/permissions`, then 1 Ask, 2 Approve for me, 3 Full Access, 4 Read Only | `/model` in the drawer; `s` at the effort step | `turn/start {model, effort}` on the next turn |
+| pi | `/thinking <level>` typed | a real menu: `/model <exact scoped id>` (from `pi --list-models`) | `set_model`, then `set_thinking` (a model change resets thinking) |
+| opencode | build ↔ plan: tab | `/models` in the drawer (a variant picker may follow) | 2.x: session `/model` and `/agent`; 1.x: `/tui/publish` commands, or a model per prompt |
+
+Never send a model name as text: Claude Code's `/model x` saves it to `~/.claude/settings.json`, Codex sends it to the
+model. In both pickers Return saves a global default; `s` keeps it to the session.
+
+## Mock-ups
+
+Five directions were drawn (outside the repo) in Oriel's look, each with a different agent:
+
+- **A, transcript tree** (Claude Code): pi-content-layout in the card; user boxes, replies after a dot, tool runs
+  folded into one summary line, approvals inline. The densest. **Pane cards.**
+- **B, chat with an inspector** (Codex): plan, subagents, context and changed files in a right column; the approval
+  pinned above the composer. The inspector needs ~230 pt, too wide for split cards; take only the pinned approval and
+  a "Plan 2 of 4" capsule over the composer.
+- **C, focus column with a status island** (pi): a centered reading column, state, model, thinking and context in a
+  glass capsule; the composer turns into the question. **Zoomed or floated cards.**
+- **D, turn cards with a terminal drawer** (opencode 1.x): one card per turn with time, tokens and cost; the
+  Needs-you drawer. **The drawer is the fallback inside all of them.**
+- **E, the pill card** (Claude Code, Codex): A at 360 pt. **The pill card.**
 
 ## How the three apps do it
 
@@ -106,4 +228,27 @@ Option 1 as the base for all four agents, plus a side channel per agent (option 
   server when the pane has one; Claude Code hooks and Codex `--remote` once Oriel starts agents itself.
 - **Never:** options 2 and 4 while herdr owns the agents; `pi --mode rpc` on the TUI's file (it splits the tree).
 
-The first slice and the order are on the design page.
+**First slice:** Base for all four, local and remote (opencode's database polled once a second while shown); design
+A behind the chat|term switch with the Working row from `agent_status`; the composer with `agent.prompt`, its
+refusals and the picker guard; Stop sends the interrupt keys; the Needs-you drawer with the key guard; model, mode,
+context and cost pills read only, a mode menu, and a model pill that opens the agent's picker (pi: a real menu).
+
+## Risks and open questions
+
+- **Format churn.** Codex replaced its event names within ten releases, Claude Code adds entry types often, opencode
+  2.x changes storage and API. Parsers skip what they do not know and key on the version in the file's header.
+- **Side channels need the launch.** Panes the user started stay on Base for Claude Code, Codex and opencode 1.x.
+- **Writes to the user's config.** `/model x` and Return in pickers (Claude Code, Codex), Esc on Codex's startup
+  promo, and pi's `/reload` (`trust.json`) all wrote global files in the spikes. Adapters use the session-only paths.
+
+Open, for the user:
+1. Should Oriel start agents? A New Agent menu (Claude Code with Oriel's `--settings`, Codex with `--remote` and an
+   app-server pane, opencode with `--port`) is the only way to give those three live text and in-chat approvals. It
+   changes how agents start and bypasses the user's shell aliases.
+2. The pi bridge: ship it in pi-hkandala (remote machines that have it get it too), or have Oriel copy it to each
+   machine (breaks "nothing installed on machines")?
+3. Codex remote: a line↔WebSocket shim sent with each run (Perl is on every machine the relay works on), or the
+   Codex side channel on This Mac only?
+4. History: keep the 256 KiB start, or page back further on scroll?
+5. Upstream asks for herdr: keep Claude Code's `transcript_path`; follow `/branch` and Codex `/fork`; report `blocked`
+   for pickers and pi's dialogs; detect opencode 2.x.

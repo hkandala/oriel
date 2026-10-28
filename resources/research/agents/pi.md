@@ -1,6 +1,6 @@
 # pi: chat view research
 
-> Spiked in throwaway herdr sessions for the [chat view](../ui/chat-view.md). The spike files named below lived in `/tmp/oriel-research/pi/` and were not kept, except the bridge, kept as [pi-bridge.ts](pi-bridge.ts).
+> Spiked in throwaway herdr sessions for the [chat view](../ui/chat-view.md). The spike files named below lived in `/tmp/oriel-research/pi/` and were not kept; the bridge's design is under [The bridge](#the-bridge).
 
 Agent: `/usr/local/bin/pi` (company launcher, Mach-O) → `/usr/local/bin/pi_cli/pi.real`, a compiled build of
 upstream `@earendil-works/pi-coding-agent` **1.4.0** (`/usr/local/bin/pi_cli/package.json`). Docs read:
@@ -13,10 +13,29 @@ Throwaway run: herdr session `oriel-dev-research-pi`, pane `w1:p1`, cwd `/tmp/or
 Session torn down, processes killed.
 
 Files here:
-- `bridge.ts`: the spike extension (≈200 lines). `asker.ts`: a stand-in third-party extension with a
+- `bridge.ts`: the spike extension ([The bridge](#the-bridge)). `asker.ts`: a stand-in third-party extension with a
   confirm/select/input. `linearize.py`: prints the current branch of a session file.
 - `samples/session-*.jsonl`: my 4 session files (system prompt, signatures and base64 redacted).
   `samples/bridge-events*.jsonl`: what the bridge streamed.
+
+## The bridge
+
+A one-file pi extension (~200 lines), loaded with `-e` or from the extensions folder plus `/reload`. On
+`session_start` in TUI mode it listens on a unix socket (`ORIEL_BRIDGE_SOCK`) and greets each client with
+`{"type":"hello","state":…}`. JSON lines both ways; every client gets every event.
+
+- **In:** `prompt {text, deliverAs?: steer|followUp}` (`pi.sendUserMessage`), `command {text}` (extension,
+  template and skill commands only), `abort`, `compact {instructions?}`, `new_session` (through its own
+  `/oriel-new` command), `set_model {provider, modelId}`, `set_thinking {level}`, `get_state`,
+  `ui_response {id, value}`. Each gets `{"type":"response", id, ok, …}`.
+- **Out:** `event` (pi's agent, turn, message, tool, model, thinking, compaction and tree events, with
+  `message_update.partial` and `turn_end.context` trimmed); `ui_request {id, kind: select|confirm|input, title,
+  options|message|placeholder, approval?: {toolCallId, toolName, input}}`; `ui_resolved {id, by: client|tui, value}`.
+- **Dialogs:** it wraps the shared `ctx.ui.select/confirm/input` and races the TUI dialog against the clients;
+  the first answer wins and the loser is dismissed (the TUI through an `AbortSignal`). While one is open it
+  emits `herdr:blocked`. A `tool_call` gate on `bash`, `write`, `edit` (`ORIEL_GATE_TOOLS`), active only
+  while a client is connected, asks Allow/Deny the same way.
+- On `session_shutdown` it closes the clients and removes the socket.
 
 Company-build differences from upstream: extra extensions are always loaded (meta, provenance, trajectory,
 dss4_guardrails, llm-rules). The model catalog is quirky (haiku-4-5 400s on max_tokens, sonnet-4-5 400s on
