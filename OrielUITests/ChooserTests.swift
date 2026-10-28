@@ -82,6 +82,13 @@ extension OrielUITests {
             app.typeKey(.upArrow, modifierFlags: [])
         }
         XCTAssertTrue(selected(0))
+        // The card's menu over the list too.
+        options[1].rightClick()
+        let main = app.windows.matching(NSPredicate(format: "identifier BEGINSWITH 'main-'")).firstMatch
+        XCTAssertTrue(main.menuItems["Split Right"].exists(within: 2))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(main.menuItems["Split Right"].vanishes(within: 2))
+        XCTAssertTrue(options[0].exists)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(options[0].vanishes(within: 2))
         try await waitForPrompt(right)

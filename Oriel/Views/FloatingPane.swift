@@ -194,6 +194,7 @@ struct FloatingWindow: View {
             .overlay {
                 if let pane {
                     NewPaneOverlay(chooser: chooser, page: page, cardID: pane.id)
+                        .contextMenu { CommandItems(commands: commands.all, sections: [.palette, .close]) }
                 }
             }
             .overlay(alignment: .topTrailing) {

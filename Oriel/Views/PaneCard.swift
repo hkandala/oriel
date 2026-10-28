@@ -67,10 +67,18 @@ struct PaneCard: View {
                             Divider()
                             PaneItems(page: page, pane: pane)
                         }
+                } else {
+                    // A stand-in's card, before herdr made its pane: an empty `Group` drops its overlays, and the
+                    // chooser showed only once the terminal came.
+                    Color.clear
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay { NewPaneOverlay(chooser: floated ? nil : chooser, page: page, cardID: id) }
+            // The card's menu also over the chooser, which takes the terminal's clicks.
+            .overlay {
+                NewPaneOverlay(chooser: floated ? nil : chooser, page: page, cardID: id)
+                    .contextMenu { PaneItems(page: page, pane: pane) }
+            }
             .overlay(alignment: .topTrailing) {
                 if !floated, let find = page.find, find.paneID == id {
                     FindBar(find: find, page: page).padding(gap)
