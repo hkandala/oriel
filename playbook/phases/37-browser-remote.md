@@ -40,12 +40,18 @@ proxy, two machines with the same port don't collide, and the ports chip lists t
   card reads both as refused.
 - **Decisions:** the front and the `-D` start with a machine's first card and end with its last (`-O cancel`); the
   `-D` dies with its master and the next page connection forwards again on the new one (checked by killing the
-  master). Two machines of one target share the exec, so one proxy. `<machine>` is the name in lowercase words
-  joined by dashes, not made unique: each machine has its own store and proxy, so a clash mixes nothing. A remote
-  page's main-frame link or redirect to `localhost` loads the machine's (OAuth callbacks to `localhost:3000` work).
-  A remote card's loads, and its restored back and forward list, wait for the proxy: without it
-  `<machine>.localhost` would reach This Mac. Removing a machine also removes its approvals; its store stays on
-  disk while one of its windows is open.
+  master). Connections the front already carries (an HMR websocket) live on after the last card until WebKit drops
+  them. Two machines of one target share the exec, so one proxy; after a target edit, old cards share the store
+  with the new target's proxy (rare, accepted). `<machine>` is the name in lowercase words joined by dashes, not
+  made unique: each machine has its own store and proxy, so a clash mixes nothing; any `*.localhost` shows as
+  `localhost`, so a rename keeps working, but its pages get a new origin (their logins go).
+- **Decisions (This Mac's loopback):** a remote card never reaches it. Its loads and restored back and forward
+  list wait for the proxy; a main-frame link, redirect or `form_post` to `localhost` is sent as
+  `<machine>.localhost`; a content rule blocks every other loopback request (images, fetches, websockets, frames,
+  popups, and `127.1`, `localhost.`, `[::ffff:7f…]`, which WebKit never proxies). So a remote page that calls
+  `http://localhost:8000` from script is blocked, not sent to the machine: serve the API on the page's origin. For
+  `127.1` WebKit still opens an empty preconnect to This Mac (no bytes). Removing a machine also removes its
+  approvals; its store stays on disk if a window still uses it (`remove(forIdentifier:)` fails then, no retry).
 - **Decisions (errors):** "Nothing answers on localhost:3001 on ‹machine›" for a loopback port, "‹machine› cannot
   reach ‹host:port›" for another name, "‹machine› is not connected" while its session is not live. Not built: "does
   not allow port forwarding" (WebKit sees the same refusal; a `ssh -W` probe on failure could tell it).
@@ -59,3 +65,6 @@ proxy, two machines with the same port don't collide, and the ports chip lists t
   login that persists across relaunches); a port with nothing on it (the error comes at once); the ports chip's
   groups; a private name (`http://<host>.<corp domain>`) typed in a remote card; close the last browser card and
   check `lsof -nP -iTCP -sTCP:LISTEN | grep ssh` shows no SOCKS port; after the OTP Connect, a card reloads.
+- **Runs:** CI's sshd is this Mac, so "two machines, one port" is one pane shown in a This Mac window and a Key
+  Host window at once: WebKit connects to one, sshd to the other. A CI window recording draws web pages blank on
+  both machines (the accessibility values are right); locally they draw.

@@ -29,10 +29,12 @@ final class SOCKSFront: Sendable {
         let waiting = Mutex<CheckedContinuation<Void, Error>?>(nil)
         try await withCheckedThrowingContinuation { continuation in
             waiting.withLock { $0 = continuation }
-            front.listener.stateUpdateHandler = { state in
+            front.listener.stateUpdateHandler = { [weak front] state in
                 switch state {
                 case .ready: waiting.withLock { $0.take() }?.resume()
-                case let .failed(error), let .waiting(error): waiting.withLock { $0.take() }?.resume(throwing: error)
+                case let .failed(error), let .waiting(error):
+                    front?.listener.cancel()
+                    waiting.withLock { $0.take() }?.resume(throwing: error)
                 default: break
                 }
             }
@@ -41,8 +43,9 @@ final class SOCKSFront: Sendable {
         return front
     }
 
-    var port: UInt16 {
-        listener.port?.rawValue ?? 0
+    /// Set once it is ready.
+    var port: NWEndpoint.Port {
+        listener.port ?? .any
     }
 
     func stop() {
@@ -94,7 +97,10 @@ final class SOCKSFront: Sendable {
             guard let count = await client.read(1), count[0] > 0, let name = await client.read(Int(count[0])) else {
                 return nil
             }
-            let host = String(decoding: name, as: UTF8.self).lowercased()
+            var host = String(decoding: name, as: UTF8.self).lowercased()
+            if host.hasSuffix(".") {
+                host.removeLast()
+            }
             return host.hasSuffix(".localhost") ? Data([9]) + Data("localhost".utf8) : count + name
         default: return nil
         }
@@ -125,8 +131,9 @@ final class SOCKSFront: Sendable {
                 return
             }
             if end {
-                into.send(content: data, contentContext: .finalMessage, isComplete: true, completion: .idempotent)
-                return done()
+                // Done once it went out: the other way may have ended, and done ends both.
+                return into.send(content: data, contentContext: .finalMessage, isComplete: true,
+                                 completion: .contentProcessed { _ in done() })
             }
             into.send(content: data, completion: .contentProcessed { error in
                 if error == nil {

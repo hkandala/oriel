@@ -26,34 +26,46 @@ import Testing
             }
         }
     }
+    let ready = AsyncStream<Void> { continuation in
+        ssh.stateUpdateHandler = {
+            if $0 == .ready {
+                continuation.finish()
+            }
+        }
+    }
     ssh.start(queue: .global())
     defer { ssh.cancel() }
-    while ssh.port?.rawValue ?? 0 == 0 {
-        try await Task.sleep(for: .milliseconds(10))
-    }
+    for await _ in ready {}
     let upstream = try #require(ssh.port?.rawValue)
     let front = try await SOCKSFront.start { upstream }
     defer { front.stop() }
 
-    // A page's CONNECT through the front: its reply code, and the connection.
-    func connect(_ host: String, _ port: UInt16) async throws -> (UInt8?, NWConnection) {
-        let page = try NWConnection(host: .ipv4(.loopback), port: #require(.init(rawValue: front.port)), using: .tcp)
-        page.start(queue: .global())
-        page.send(content: Data([5, 1, 0]), completion: .idempotent)
-        #expect(await page.read(2) == Data([5, 0]))
-        page.send(content: Data([5, 1, 0, 3, UInt8(host.utf8.count)]) + Data(host.utf8)
-            + Data([UInt8(port >> 8), UInt8(port & 0xFF)]), completion: .idempotent)
-        return await (page.read(10)?[1], page)
-    }
-
-    let (open, page) = try await connect("Devbox.localhost", 7)
+    let (open, page) = await connect(front, "Devbox.localhost.", 7)
     #expect(open == 0)
     page.send(content: Data("ping".utf8), completion: .idempotent)
     #expect(await page.read(4) == Data("ping".utf8))
     page.cancel()
-    let (refused, _) = try await connect("devbox.localhost", 8)
+    let (refused, _) = await connect(front, "devbox.localhost", 8)
     #expect(refused == 5)
-    let (other, _) = try await connect("db.internal", 7)
+    let (other, _) = await connect(front, "db.internal", 7)
     #expect(other == 5)
     #expect(asked.withLock { $0 } == ["localhost", "localhost", "db.internal"])
+}
+
+/// A machine that cannot be reached (blocked until Connect): a general failure, at once.
+@Test func `front fails at once without a machine`() async throws {
+    let front = try await SOCKSFront.start { throw HerdrError.disconnected("Canceled") }
+    defer { front.stop() }
+    #expect(await connect(front, "devbox.localhost", 7).0 == 1)
+}
+
+/// A page's CONNECT through the front: its reply code, and the connection.
+private func connect(_ front: SOCKSFront, _ host: String, _ port: UInt16) async -> (UInt8?, NWConnection) {
+    let page = NWConnection(host: .ipv4(.loopback), port: front.port, using: .tcp)
+    page.start(queue: .global())
+    page.send(content: Data([5, 1, 0]), completion: .idempotent)
+    #expect(await page.read(2) == Data([5, 0]))
+    page.send(content: Data([5, 1, 0, 3, UInt8(host.utf8.count)]) + Data(host.utf8)
+        + Data([UInt8(port >> 8), UInt8(port & 0xFF)]), completion: .idempotent)
+    return await (page.read(10)?[1], page)
 }

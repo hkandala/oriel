@@ -46,8 +46,8 @@ public extension Exec {
             ps -E -ww -o pid=,command= -p "$(echo $p | tr ' ' ,)" 2>/dev/null |
               awk '{ for (i = 2; i <= NF; i++) print $1, $i }'
           fi
-          echo; printf '%s\n' "$l"
-        } | awk -F '\t' '!d { if ($0 == "") d = 1; i = index($0, " "); k = substr($0, i + 1)
+          echo oriel-listeners; printf '%s\n' "$l"
+        } | awk -F '\t' '!d { if ($0 == "oriel-listeners") d = 1; i = index($0, " "); k = substr($0, i + 1)
             n = substr($0, 1, i - 1)
             if (k ~ /^HERDR_SESSION=/) s[n] = substr(k, 15)
             if (k ~ /^HERDR_WORKSPACE_ID=/) w[n] = substr(k, 20)

@@ -78,7 +78,7 @@ extension Browser {
 
     func approved(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased() else { return url.isFileURL && store?.machine.isRemote == false }
-        return Self.loopback.contains(host) || Self.safe.contains(host)
+        return Self.loopback.contains(host) || host.hasSuffix(".localhost") || Self.safe.contains(host)
             || host.hasSuffix(".vercel.app") || host.hasSuffix(".netlify.app") || approvals.contains(Self.origin(url))
     }
 
@@ -115,9 +115,10 @@ extension Browser {
         return parts.url ?? url
     }
 
-    /// The machine's view of a page's address: `localhost` again.
+    /// The machine's view of a page's address: `localhost` again, for any `<name>.localhost` (the proxy asks the
+    /// machine for `localhost`), also the one of a name the machine had before a rename.
     static func shown(_ url: URL, _ alias: String?) -> URL {
-        guard let alias, url.host?.lowercased() == "\(alias).localhost",
+        guard alias != nil, url.host?.lowercased().hasSuffix(".localhost") == true,
               var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         parts.host = "localhost"
         return parts.url ?? url
@@ -125,13 +126,53 @@ extension Browser {
 
     /// The machine's proxy in its store, before the card's first load; nil when it did not start. The card gives it
     /// back when it goes (`SSHExec.closeProxy`).
-    static func proxy(_ machine: Machine, _ store: WKWebsiteDataStore) async -> SSHExec? {
+    /// The card's content rule goes in with it: a page's images, fetches, frames and popups to a loopback name
+    /// would reach This Mac, as WebKit never proxies one.
+    static func proxy(_ machine: Machine, _ store: WKWebsiteDataStore,
+                      _ content: WKUserContentController) async -> SSHExec?
+    {
         guard let ssh = await machine.exec() as? SSHExec, let port = try? await ssh.openProxy() else { return nil }
-        guard let endpoint = NWEndpoint.Port(rawValue: port) else {
+        guard let rule = await noLoopback.value else {
             await ssh.closeProxy()
             return nil
         }
-        store.proxyConfigurations = [ProxyConfiguration(socksv5Proxy: .hostPort(host: "127.0.0.1", port: endpoint))]
+        content.add(rule)
+        store.proxyConfigurations = [ProxyConfiguration(socksv5Proxy: .hostPort(host: "127.0.0.1", port: port))]
         return ssh
+    }
+
+    /// Every spelling of loopback WebKit loads without a proxy (`127.1`, `localhost.`, `[::ffff:7f00:1]`, checked);
+    /// `<name>.localhost` goes on to the proxy. Content rules have no alternation: one rule each.
+    private static let noLoopback = Task { @MainActor in
+        // Regexes in JSON strings: each backslash twice.
+        // A user name before the host (`u@localhost`) too.
+        let rules = [#"localhost[.]?[:/]"#, #"127\\."#, #"\\[::1\\]"#, #"\\[::ffff:7f"#]
+            .map { #"^[^:]+://([^/]*@)?"# + $0 }
+            .map { #"{"trigger":{"url-filter":"\#($0)"},"action":{"type":"block"}}"# }
+        return try? await WKContentRuleListStore.default()
+            .compileContentRuleList(
+                forIdentifier: "oriel-no-loopback",
+                encodedContentRuleList: "[\(rules.joined(separator: ","))]",
+            )
+    }
+
+    /// A failed load in the app's words, and the line under it. The proxy refuses a port that does not answer and a
+    /// name the machine cannot reach; WebKit reports either code for it (checked).
+    func failureText(_ error: NSError, _ url: URL?) -> (text: String, hint: String?) {
+        let place = url.map { [$0.host, $0.port.map(String.init)].compactMap(\.self).joined(separator: ":") } ?? ""
+        let local = url?.host.map { Self.loopback.contains($0) } ?? false
+        let machine = alias == nil ? nil : store?.machine.name
+        let refused = error.code == NSURLErrorCannotConnectToHost || machine != nil && error.code == NSURLErrorBadURL
+        return if refused, let machine, store?.state != .live {
+            ("\(machine) is not connected", nil)
+        } else if refused, local {
+            ("Nothing answers on \(place)" + (machine.map { " on \($0)" } ?? ""), "Is the dev server running?")
+        } else if refused, let machine {
+            ("\(machine) cannot reach \(place)", nil)
+        } else if error.code == NSURLErrorCannotFindHost {
+            ("Cannot find \(place)", nil)
+        } else {
+            (error.localizedDescription, nil)
+        }
     }
 }

@@ -62,7 +62,8 @@ final class Browser: NSObject {
         view = BrowserView(frame: .zero, configuration: configuration)
         super.init()
         if machine.isRemote {
-            proxy = Task { await Self.proxy(machine, data) }
+            let content = view.configuration.userContentController
+            proxy = Task { await Self.proxy(machine, data, content) }
         }
         view.isInspectable = true
         view.allowsBackForwardNavigationGestures = true
@@ -291,23 +292,7 @@ extension Browser: WKNavigationDelegate {
               error.domain != "WebKitErrorDomain" || error.code != 102 else { return }
         let url = (error.userInfo[NSURLErrorFailingURLErrorKey] as? URL).map { Self.shown($0, alias) }
             ?? URL(string: address)
-        let place = url.map { [$0.host, $0.port.map(String.init)].compactMap(\.self).joined(separator: ":") } ?? ""
-        let local = url?.host.map { Self.loopback.contains($0) } ?? false
-        // The proxy refuses a port that does not answer and a name the machine cannot reach; WebKit reports either
-        // code for it (checked).
-        let machine = alias == nil ? nil : store?.machine.name
-        let refused = error.code == NSURLErrorCannotConnectToHost || machine != nil && error.code == NSURLErrorBadURL
-        failure = if refused, let machine, store?.state != .live {
-            ("\(machine) is not connected", nil)
-        } else if refused, local {
-            ("Nothing answers on \(place)" + (machine.map { " on \($0)" } ?? ""), "Is the dev server running?")
-        } else if refused, let machine {
-            ("\(machine) cannot reach \(place)", nil)
-        } else if error.code == NSURLErrorCannotFindHost {
-            ("Cannot find \(place)", nil)
-        } else {
-            (error.localizedDescription, nil)
-        }
+        failure = failureText(error, url)
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
@@ -319,10 +304,13 @@ extension Browser: WKNavigationDelegate {
     /// A `mailto:` or an app's link clicked in the page goes to its app; the page stays. Never from script or a frame.
     func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
         // A remote page's link or redirect to `localhost` means its machine's.
+        // Its request as it is: an OAuth `form_post` keeps its body. The content rule blocks the rest (`proxy`).
         if alias != nil, action.targetFrame?.isMainFrame == true, let url = action.request.url,
            Self.loopback.contains(url.host?.lowercased() ?? "")
         {
-            load(url)
+            var request = action.request
+            request.url = Self.web(url, alias)
+            proxied { self.view.load(request) }
             return .cancel
         }
         guard let url = action.request.url,

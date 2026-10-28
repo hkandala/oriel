@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import Network
 
 /// Runs commands on a remote machine through its one ControlMaster, with the system `ssh`: the user's config,
 /// agent and keys work unchanged (machines#macos). A run starts the master when none lives, never with a prompt;
@@ -316,7 +317,7 @@ extension SSHExec {
     /// started by the first card; each call is balanced by a `closeProxy`. The proxy forwards through ssh's `-D` on
     /// the master, started with the first page connection and again on each new master. No password prompt: a
     /// machine that needs one fails the page until Connect.
-    public func openProxy() async throws -> UInt16 {
+    public func openProxy() async throws -> NWEndpoint.Port {
         if proxy == nil {
             let front = try await SOCKSFront.start { [weak self] in
                 guard let self else { throw HerdrError.disconnected("Closed") }
@@ -330,7 +331,7 @@ extension SSHExec {
             }
         }
         proxy?.users += 1
-        return proxy?.front.port ?? 0
+        return proxy?.front.port ?? .any
     }
 
     /// The machine's last browser card went: the proxy and ssh's `-D` end.

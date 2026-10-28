@@ -54,6 +54,7 @@ extension OrielUITests {
     /// puts it in the label.
     func testThePortsChipOpensAListeningPort() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let window = app.windows[app.windows.firstMatch.identifier]
         let (tab, left) = try await createWorkspace("ports")
         element("workspace.\(workspace(of: tab))").click()
         try await waitForPrompt(left)
@@ -61,12 +62,11 @@ extension OrielUITests {
         try await serveWho(port, from: left)
         element("terminal.\(left)").click()
         let (browser, made) = try await chooseBrowser(besides: left, in: tab)
-        let item = openPorts(browser, port: port, in: app.windows.firstMatch)
+        let item = openPorts(browser, port: port, in: window)
         XCTAssertTrue(item.exists(within: 5))
         XCTAssertTrue(app.menuItems["ports"].exists)
         keepScreenshot("ports chip")
         item.click()
-        let window = app.windows.firstMatch
         XCTAssertTrue(whoText("via=com.apple.WebKit", in: window).exists(within: 5))
         try await expect("the port in the label") { try await paneLabel(browser) == "\(made) http://localhost:\(port)" }
     }
@@ -115,5 +115,11 @@ extension OrielUITests {
             try await paneLabel(browser) == "oriel:browser#e2erem http://localhost:\(port)"
         }
         XCTAssertTrue(whoText("via=sshd", in: remote).exists(within: 5))
+        // A port nothing listens on: the proxy's refusal at once (ssh's own close made WebKit wait 60 s).
+        element("browser.\(browser).address", in: remote).click()
+        app.typeText("localhost:\(port + 1)\r")
+        let message = element("browser.\(browser).message", in: remote)
+        XCTAssertTrue(until(5) { message.value as? String == "Nothing answers on localhost:\(port + 1) on Key Host" },
+                      "\(message.value ?? "")")
     }
 }
