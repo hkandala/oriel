@@ -160,7 +160,10 @@ extension HostStore {
                 if let client, let id = chooser.paneID {
                     guard let since = sent else {
                         let line = await ChatAdapters.launch(agent.command, on: machine.exec())
-                        guard await (try? client.sendInput(line, keys: ["enter"], pane: id)) != nil else {
+                        // Its pane may have closed during the launch's run on the machine.
+                        guard choosers.contains(where: { $0 === chooser }),
+                              await (try? client.sendInput(line, keys: ["enter"], pane: id)) != nil
+                        else {
                             return
                         }
                         sent = clock.now
