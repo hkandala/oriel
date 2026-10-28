@@ -54,7 +54,7 @@ extension Chat {
 }
 
 enum ChatAdapters {
-    static let all: [any ChatAdapter.Type] = [ClaudeCode.self]
+    static let all: [any ChatAdapter.Type] = [ClaudeCode.self, Codex.self]
 
     /// The line the chooser types for an agent: its command with Oriel's flags when it has a chat.
     static func launch(_ command: String) -> String {
