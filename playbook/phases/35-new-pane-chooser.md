@@ -23,8 +23,9 @@ browser ones when the pane already is one; the agent one shows all the time. Use
    **Terminal** (selected), **Agent**, **Browser**. ←/→ or ↑/↓ move, Return or a click picks, Esc picks
    Terminal. The herdr pane and its shell start at once behind it, as today. Panes made outside Oriel (herdr's
    TUI or CLI) and panes that already run something show their terminal as today. The chooser is the app's
-   state only (not herdr's); after a relaunch, a pane still at the chooser shows its terminal. Design bar:
-   Liquid Glass, the app's fonts, generous padding; send the orchestrator one rough screenshot first.
+   state only (not herdr's); after a relaunch, a pane still at the chooser shows its terminal. Design bar (user):
+   "modern Liquid Glass, center aligned, spacious with good padding and icons"; the full design is
+   `docs/content/docs/ui/new-pane.mdx`. Send the orchestrator one rough screenshot first.
 2. **Terminal** fades the terminal in (the usual reveal) and gives it the keyboard.
 3. **Agent** shows Claude Code, Codex, pi and opencode (the program icons) on the same chooser. Picking one
    runs its command (`claude`, `codex`, `pi`, `opencode`, no flags) in the pane's shell, shows a loader on
