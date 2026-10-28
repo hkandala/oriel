@@ -123,15 +123,15 @@ never calls herdr's focus methods. A design gets decision numbers on the
 - **Claude Code's transcript path.** herdr's Claude hook sends
   `transcript_path`, but herdr 0.9.5 keeps a path in `agent_session` only for
   pi and omp. The ask: keep it for Claude Code. Then the
-  [chat view](/docs/future-work/chat-view) opens the file herdr names, with no
-  search under `~/.claude/projects`, and a custom `CLAUDE_CONFIG_DIR` works.
+  [chat view](/docs/future-work/chat-view) could take the path from herdr
+  instead of its own SessionStart hook.
 - **Blocked for menus, and forks.** herdr 0.9.5 reports `idle` while an
   agent shows a picker (Claude Code, Codex and opencode model and session
   pickers) or a pi extension dialog, and keeps the old `agent_session` after
   Claude Code's `/branch` and Codex's `/fork`. The ask: `blocked` for those,
   and the new session after a fork. Then the
-  [chat view](/docs/future-work/chat-view#sending-and-answering) needs no
-  screen check before a send.
+  [chat view](/docs/future-work/chat-view#ready-working-waiting) needs no
+  screen check for Codex before a send.
 - **OSC 7501**, the Program Status Protocol: a terminal escape sequence that a
   program sends to report its status
   ([spec](https://www.superlogical.com/rex/docs/build/program-status)). herdr

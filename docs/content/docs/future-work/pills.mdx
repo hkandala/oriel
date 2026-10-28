@@ -29,8 +29,9 @@ program icon, name, workspace, glyph and status word. Rows never reorder.
 Click a glyph or a row. The pill card is the compact
 [chat view](/docs/future-work/chat-view) for that agent:
 
-- the last messages (or screen text), live while the agent works;
-- for a blocked agent, its prompt and the blocked panel's key buttons;
+- the last messages (the screen text for an agent Oriel did not start);
+- for an agent that waits, the chat's question or approval card when it has
+  one, else **Show Terminal**, which opens the pane in the app;
 - a reply box, **Mark seen**, **Open in app** and **✕**. **Open in app**
   selects the pane and brings its window forward. It opens a window on that
   machine again if none shows it.
@@ -95,8 +96,7 @@ and the pill only shows while the app is inactive.
   over it (SwiftUI hover is unreliable in an inactive app).
 - **Same data and rules:** glyphs and pill cards read each open session's
   `HostStore` snapshot ([Agents and notifications](/docs/status#agents-and-notifications)).
-  The pill card is the chat view, so it never opens a terminal stream. Its key
-  buttons use the key guard
+  The pill card is the chat view, so it never opens a terminal stream
   ([Sending and answering](/docs/future-work/chat-view#sending-and-answering)).
   Peeking or opening a pill card does not mark an agent seen. **Mark seen**,
   a reply or **Open in app** does.

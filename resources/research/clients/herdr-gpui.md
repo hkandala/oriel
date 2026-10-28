@@ -247,13 +247,110 @@ or on another branch, then `read-tree -m -u` and `reset`. The dialog shows only 
 
 ## 8. Chat view
 
-Covered in depth in [../ui/chat-view.md](../ui/chat-view.md). In short (`herdr-gpui/docs/rich-chat.md`): native ACP chats
+Oriel's decisions are in [../ui/chat-view.md](../ui/chat-view.md). In short (`herdr-gpui/docs/rich-chat.md`): native ACP chats
 run by `herdr-acp` inside a pane (found through the pane token `acp`; the GUI derives the socket path itself),
 and, opt-in, **running Claude Code and Codex sessions drawn as rich messages above the CLI's own input
 rows**: only the upper terminal cells are replaced, the bottom rows (editor, approvals, IME, image paste) stay
 the real program (`chat/terminal.rs:1`), and a blocked prompt expands them. The session is found by probing
 herdr metadata and the process every 2–30 s; Linux hosts only. Six layouts, Markdown, TeX, Mermaid, and
 `herdr-ui` fenced widget cards.
+
+
+Details, read at `b16a39b`:
+
+### Two chat paths
+
+| | Native ACP chat | Existing CLI session ("observe") |
+|---|---|---|
+| Process | `herdr-acp` runs in the pane and drives the agent headless; it draws **its own** TUI there | the agent's own TUI, unchanged |
+| Agents | Claude, Codex, pi, Copilot, Gemini, opencode, any ACP command | **Claude and Codex only** (`herdr-gpui/src/chat/existing.rs:375-379`) |
+| Data | ACP or a translated headless protocol, live, with text deltas (`Change::Append`) | the agent's own JSONL, read-only, no live text |
+| Send, approvals | GUI composer, permission cards, model/mode menus | none: the original TUI editor stays visible below the chat |
+| Hosts | local socket; SSH via `herdr-acp connect ID` over ssh stdio | **Linux agent hosts only** (local or SSH) |
+
+Both feed one wire, `herdr-chat-protocol` (u32 length + JSON frames, `Hello/Welcome/Snapshot/Change/Ack/Bye`, cursor
+with epoch and seq). Client and server share one reducer, `Transcript::apply`; a change that does not fit makes the
+client ask for a fresh snapshot (`herdr-gpui/src/chat/session.rs:183-197`).
+
+### Native ACP chat (replaces the TUI)
+
+- Start: `tab.create` with `env.HERDR_ACP=<path>`, then one fixed line typed into the new shell,
+  ` sh -c 'exec "$HERDR_ACP" claude'` (`herdr-gpui/src/chat/start.rs:101-150`). Same idea as Oriel's chooser.
+- Claude runs as `claude -p --input-format stream-json --output-format stream-json --include-partial-messages
+  --permission-prompt-tool stdio --session-id <id>` (`herdr-acp/src/claude.rs:31-45`); approvals arrive as
+  `can_use_tool` control requests. Codex runs as `codex app-server`, pi as `pi --mode rpc` (pi extension
+  `select`/`confirm` become permission cards). Others go through ACP adapters (`herdr-acp/README.md`).
+- Subagent messages are dropped from the stream (`herdr-acp/src/claude/bridge.rs:113-118`); `TodoWrite` becomes the plan.
+- Discovery: `herdr-acp` sets pane metadata token `acp=<endpoint id>` and `pane.report_agent` state; the GUI derives the
+  socket path from the id, never from daemon text (`herdr-gpui/src/chat/discovery.rs:40-69`).
+- So the agent's real TUI is gone. The "terminal" for this chat is `herdr-acp`'s own ratatui view
+  (`herdr-acp/src/tui/view.rs`). `herdr-gpui chat show|hide|toggle` flips the GUI overlay off that view.
+
+### Existing CLI session (the part that matches Oriel)
+
+- **Finding the file** (`herdr-gpui/src/chat/existing.rs:237-346`): `herdr api snapshot` gives the pane's
+  `agent_session` (must be a UUID and name the same agent as the pane); `herdr pane process-info` gives the foreground
+  processes; a shell script reads `/proc/<pid>/stat` for parent, group and start ticks (`:294`, `:352-359`). The snapshot
+  is read again after, and the binding drops if the session changed. Probes every 2 s, backing off to 30 s (`:25-26`).
+- Then it spawns `herdr-acp observe <agent> <session> <pid> <start-ticks> --pane <id>` locally, or the same over
+  `ssh` (`herdr-gpui/src/chat/chats.rs:41-70`). The observer re-checks the start ticks, then looks for the file:
+  open fds in `/proc/<pid>/fd`; for Claude `<CLAUDE_CONFIG_DIR or ~/.claude>/projects/*/<session>.jsonl` (Claude
+  opens its log only while writing); for Codex, rollouts in three date folders from the UUIDv7 timestamp
+  (`herdr-acp/src/observe/identity.rs:48-92`). Exactly one match or it fails. It reads only `CLAUDE_CONFIG_DIR` /
+  `CODEX_HOME` from `/proc/<pid>/environ` (`:150-186`). No cwd search, no newest-file guess, no hooks.
+- **Following**: polls every 1 s (`herdr-acp/src/mirror.rs:27`). On a size or mtime change it **re-parses the last
+  8 MiB** (`mirror/transcript.rs:151-194`, with a `ponytail` note that an incremental reader may come later), then diffs
+  old and new entry lists into `Push/Replace/Truncate`, or sends a new snapshot when history was rewritten
+  (`mirror.rs:130-211`). It pins the file by dev+inode and stops when the process start ticks change
+  (`observe.rs:146-159`, `identity.rs:115-129`). A partial last line waits for its newline (`transcript.rs:512-514`).
+- **Parsing** (`herdr-acp/src/mirror/transcript.rs`): Claude: `user`/`assistant` records, blocks `text`, `thinking`,
+  `tool_use`, `tool_result` (`is_error` → failed); dedupe by `uuid`; `isSidechain` skipped, so no subagents
+  (`:431-483`). Codex: `session_meta`, `turn_context` (model, effort), `compacted`, `event_msg/token_count` (context
+  use), `response_item` `message`/`reasoning`/`function_call`/`custom_tool_call`/`*_output`; other `event_msg` ignored to
+  avoid duplicates (`:314-391`). Tool results pair by call id through a map (`:277-312`); an output without a call is
+  dropped. Unknown records, oversized lines (>1 MiB) and bad JSON are skipped and set `truncated`. Caps: 2,000 entries,
+  2 MiB text, 128 KiB per field. Tool kind is always `Other`: cards show the raw JSON input.
+- **Input and approvals**: the transcript is read-only; `submit` fails with "use the agent's terminal"
+  (`session.rs:141-144`). The GUI replaces only the upper rows of the real pane; the **bottom 8 rows stay the live TUI
+  editor**, and it grows to the whole pane minus 3 rows while herdr reports `blocked` (`chat/terminal.rs:15-47`). A
+  draggable divider sets its height. Status comes from the herdr snapshot, not the log (`session.rs:85-91`).
+- Failures: one failed probe keeps the overlay, two drop it and the pane is a plain terminal again
+  (`existing.rs:181-188`). Non-Linux hosts fail the `uname` check, so macOS agents never get this view.
+
+### UI (shared by both paths)
+
+- Entry kinds: user, agent, thought, image, tool, turn summary, notice (`herdr-chat-protocol/src/model.rs:138-164`).
+- Tool card: header with a status dot (pending, running, done, failed), folded by default; folded it shows diff `+/−`
+  counts, images, the first locations and output lines; open shows full text (`view/entries.rs:232-460`). **No
+  grouping** of consecutive tool calls and no detail levels. Issue #595 asks for "each turn's tool work folded into one
+  row"; #837 proposes clearer tool cards, live tool progress and a "Jump to latest" button.
+- Thoughts fold to their first line (`view/entries.rs:191-229`). Plan and changed files sit in a side rail (`view/rail.rs`).
+- Six layouts: Timeline, Bubbles, Terminal (Claude Code look), Document, Cards (one card per turn), iMessage.
+- Rich text: Markdown, TeX (RaTeX), syntax colors, tables, Mermaid, inline HTML pages, a `herdr-ui` widget fence.
+- Composer (ACP only): `/` completion, history, attachments, queued prompts, header buttons for model, thinking, mode;
+  context use and cost; permission cards above the composer (`view/panels.rs`).
+
+### Size and issues
+
+Without tests: GUI chat 16.2k lines (`herdr-gpui/src/chat`), `herdr-acp` 10.7k (of which the log mirror and observer
+~1.8k), protocol 1.6k. About 28.5k, or 48k with tests; the phone app adds 13.8k. No TODOs in the chat code. The README
+still says the view "is never offered for SSH", but the code routes SSH (`chat/discovery.rs:28-37`). Open: #595
+(chat lens beside the terminal; the user runs Claude/Codex on macOS, which observe does not cover), #837 (follow-ups).
+
+### For Oriel
+
+- Copy: find the file from herdr's `agent_session` id plus the agent's config dir, an exact-name lookup, never a
+  newest-file guess. Fail closed to the terminal on zero or several matches.
+- Copy: keep the live TUI's bottom rows under a read-only chat, and expand them when herdr says `blocked`. It is a cheap,
+  agent-neutral answer to approvals, and a nicer fallback than a full "Show Terminal" switch.
+- Copy: pin the file (dev+inode), skip a partial last line, skip unknown records, pair tool results by id in a map,
+  and send a fresh snapshot when the file was rewritten.
+- Copy: Codex reads only `response_item`, never the duplicated `event_msg` text; Claude dedupes by `uuid`.
+- Avoid: re-parsing an 8 MiB tail on every change; tail from an offset instead (Oriel's `tail -F`).
+- Avoid: `/proc`-only process checks (Linux only); Oriel's own launch flags give the session id directly.
+- Avoid: a headless replacement for the TUI (the native ACP path); it loses the real TUI, which Oriel keeps.
+- Note: their sends need the ACP path; the observed chat has no composer. Oriel's `agent.prompt` composer on the real
+  TUI is something neither path has.
 
 ## 9. Settings, keys, notifications, phone
 

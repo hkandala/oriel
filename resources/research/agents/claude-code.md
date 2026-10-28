@@ -1,259 +1,231 @@
 # Claude Code: chat view research
 
-> Spiked in throwaway herdr sessions for the [chat view](../ui/chat-view.md). The spike files named below lived in `/tmp/oriel-research/claude/` and were not kept.
+> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/oriel-research/` and were not kept.
 
-Agent: Claude Code 2.1.310 (native binary behind the company launcher `/usr/local/bin/claude`; the user's
-zsh alias resolves "latest" = 2.1.311). Throwaway herdr session `oriel-dev-research-claude`, cwd
-`/tmp/oriel-research/claude/work`, models Haiku 5.5 / Sonnet 5.5. Session deleted, processes killed.
+Claude Code 2.1.310 behind the company launcher `/usr/local/bin/claude`. herdr 0.9.5, throwaway session
+`oriel-dev-research-claude2` (now deleted). Every session was launched the way the chooser would: the command typed into
+the pane's zsh with `herdr pane run` (and once over SSH). Model haiku.
 
-Files here: `hook.py` (spike hook: logs every event, waits for a decision file), `statusline.py`,
-`settings.json` (the per-run `--settings` file), `events.jsonl` (every hook input from my runs),
-`statusline.jsonl` (102 statusline payloads), `sample-transcript-types.jsonl` (one trimmed line per
-transcript entry kind), `sample-*.json` (hook inputs for PermissionRequest / AskUserQuestion /
-ExitPlanMode), `tail-timing.log` (when lines hit disk).
+## Summary
 
-## 0. Environment traps found first (they change every result)
-
-| Trap | Evidence | Effect for Oriel |
-|---|---|---|
-| The user's zsh alias adds `--dangerously-skip-permissions` (and two more `--dangerously-*` flags) | first launch through the shell showed `⏵⏵ bypass permissions on` | A `claude` typed in a pane shell runs in **bypass** mode: no approval prompts at all. |
-| Managed settings set `permissions.defaultMode: auto`. A `--settings` file with `defaultMode: default` does not override it. The `--permission-mode default` flag does. | footer `⏵⏵ auto mode on` until I passed the flag | Mode at start depends on managed policy. |
-| The launcher injects its own `--settings {json}` (model `claude-opus-5-5[1m]`, `--autocompact`, env) and merges my file into it. | `pgrep -fl` argv | Per-run `--settings` works, but it merges with the launcher's settings. |
-| The OS sandbox auto-allows Bash inside the cwd (`mkdir`, `rm -r` ran with no prompt in "manual" mode). | `rm -r d2` ran with no PermissionRequest | Real approval prompts are rarer than upstream. I used `permissions.ask` rules to force them. |
-| Company plugins add **PermissionRequest hooks that return `allow`** (`agent-security-guardrails`, plus `bento` and `planning-with-files` from the user's plugins). The builtin `cc-plugin-sec-default` module waits for all hooks. **An `allow` from any hook beat my hook's `deny`.** | debug log: guardrails `{"behavior":"allow"}` at +70 ms; my `deny` at +2.9 s; TUI showed "Allowed by PermissionRequest hook" | A chat "Deny" button cannot win against guardrails. Disabling them per run (`"enabledPlugins": {"agent-security-guardrails@agent-market": false, ...}` in `--settings`) made deny work. |
-| `/model <name>` (direct form) **writes `"model"` into `~/.claude/settings.json`**, even with `--setting-sources project,local`. | `diff` against the backup Claude made; **I reverted it at once** (copied the backup back; only that key differed) | Don't send `/model <name>`. Use the picker plus `s` ("this session only"). See §6. |
-
-User config (read only, names only): `~/.claude/settings.json` has hooks: Notification
-(`permission_prompt`) / PreToolUse / SessionEnd / SessionStart / Stop / UserPromptSubmit →
-`agentbar-hook.sh`. It also has SessionStart → `herdr-agent-state.sh session` and SessionStart → `rex
-__internal session-start`. It has **no statusLine**, `askUserQuestionTimeout: 5m`, `tui: fullscreen`,
-and 58 enabled plugins. Managed settings have 2 PreToolUse hooks (web-tool guards) and 1 PostToolUse hook
-(Write chmod), and no statusLine. Hooks merge across levels, so a per-run `--settings` adds to all of these.
-In practice 28 to 37 hooks run per event (`running PreToolUse hooks… 23/28`, `hookCount: 37`).
-
-herdr integration: `herdr integration status` → `claude: current (v11)`. The hook
-(`~/.claude/hooks/herdr-agent-state.sh`) runs on SessionStart only. It sends `pane.report_agent_session`
-with `agent_session_id`, `agent_session_path` (= transcript_path) and `session_start_source`. herdr keeps
-only `{kind:"id", value:<uuid>}` (path dropped). Busy/idle/blocked status comes from screen detection.
-
-## 1. Transcript
-
-- **Where:** `~/.claude/projects/<cwd with every / and . → ->/<session-uuid>.jsonl` (here
-  `-private-tmp-oriel-research-claude-work`). Subagents:
-  `<uuid>/subagents/agent-<agentId>.jsonl` + `agent-<id>.meta.json`
-  (`agentType, description, toolUseId, requestShape:"background", finished`).
-- **Created lazily:** no file (not even the project folder) until the first prompt. herdr already
-  reports the id at startup, so the path can be missing for a while.
-- **Finding the pane's file** (works today, with caveats):
-  1. herdr `agent_session.value` on `pane.get` (needs the integration; stale after `/branch`, see below;
-     cleared to null when claude exits).
-  2. Any hook input carries `session_id` + `transcript_path` (exact, live).
-  3. The **statusLine** stdin carries `session_id` + `transcript_path` on every redraw (best live source).
-  4. `lsof` is useless: Claude does not keep the jsonl open (checked).
-  5. Newest-mtime `*.jsonl` in the cwd's project folder (racy with two panes in one cwd).
-- **Session changes** (tested):
-
-| Action | Session id / file | SessionStart `source` | herdr `agent_session` |
+| Feature | Mechanism | Rating | Evidence |
 |---|---|---|---|
-| `--resume <id>` | same id, same file (appends) | `resume` | updated |
-| `/clear` | **new id**, new file (written at the next prompt) | `clear` (+ SessionEnd `reason: clear`) | updated at once |
-| `/branch` (fork) | **new id**, file written at once with copied history | `fork` | **stays on the old id** (hook ran and reported; herdr ignored it) |
-| `/compact` | same id, same file; `system/compact_boundary` + `user` with `isCompactSummary:true` | `compact` (+ Pre/PostCompact) | unchanged (correct) |
-| exit (ctrl+c ×2) | — | SessionEnd | `agent_session` → null |
+| Launch flags | `--session-id <T> --settings '<json>'` typed after the full path | RELIABLE | launcher merges both `--settings`; user hooks still ran |
+| Recognize an Oriel pane | `herdr pane process-info` argv has `--session-id <T>` and `/tmp/oriel-chat/<T>` | RELIABLE | found pid by token, local and over SSH |
+| Transcript discovery | SessionStart hook appends `{session_id, transcript_path, source}` to `/tmp/oriel-chat/<T>/hooks.jsonl` | RELIABLE | startup, resume, clear, `/new`, fork, compact all tested |
+| File watching | `tail -n +1 -F <transcript>`; hold back a partial last line | RELIABLE | late file, partial line, rotation tested |
+| Parser | known `type`s only, skip the rest | RELIABLE for the core, FRAGILE for extras | `parse.py` on 2 sessions + subagent |
+| Live text | none on disk (one line per finished block) | SKIP | disk 0.1–1.8 s after the screen |
+| Ready / blocked signal | `~/.claude/sessions/<pid>.json` `status`: `idle` / `busy` / `waiting` / `shell` | FRAGILE (undocumented) but the best one | `waiting` on dialogs, questions **and pickers**; herdr says `idle` in pickers |
+| Send | `herdr agent prompt` only when status is `idle`; confirm by the transcript `user` line | RELIABLE with the gate | idle, working (queued), multiline tested |
+| Send over the messaging socket | `messagingSocketPath` frame | SKIP | arrives as a "peer Claude session" message, not the user |
+| Interrupt | `escape` key | RELIABLE | partial text + `[Request interrupted by user]` |
+| Tool approvals in chat | PermissionRequest hook that waits | SKIP → show the TUI | company hooks override deny; TUI answer can stall |
+| Questions (AskUserQuestion) in chat | PermissionRequest hook, matcher `AskUserQuestion`, waits for `dec-<id>` | RELIABLE | answered from chat (local and SSH); TUI-first works |
+| Plan approval, MCP elicitation, pickers | — | SKIP → show the TUI | status `waiting` tells the chat |
+| Remote | same files and commands over SSH; streams = `tail -F`, actions = one-shot | RELIABLE | user-mode sshd on 127.0.0.1 |
+| statusLine | would replace the user's statusline | SKIP | the hook and the sessions file cover it |
+| Model / mode / images / slash commands | keys or text | SKIP except slash text | see §8 |
 
-## 2. Event types
+## Launch command
 
-**When it hits disk:** one line per finished content block / message, not per token. Measured
-(`tail-timing.log`): the screen showed streamed text at t+4.8 s, and the assistant line landed at t+8.5 s.
-The only live partial stream in interactive mode is the screen (`pane.read`). Hooks are per event,
-not per token. `--include-partial-messages` is `-p` only.
+Oriel makes a fresh lowercase UUID `T` per launch (a reused id fails: "Session ID … is already in use"). It is the
+session id **and** the token for the side-channel folder. It types (one line, 891 bytes):
 
-Transcript `type`s seen (2.1.310 has many more than older docs):
+```sh
+/usr/local/bin/claude --session-id T --settings '{"hooks":{
+ "SessionStart":[{"hooks":[{"type":"command","timeout":10,
+   "command":"d=/tmp/oriel-chat/T;mkdir -p $d;{ tr -d \"[:cntrl:]\";echo;}>>$d/hooks.jsonl"}]}],
+ "PermissionRequest":[{"matcher":"AskUserQuestion","hooks":[{"type":"command","timeout":1810,
+   "command":"d=/tmp/oriel-chat/T;mkdir -p $d;id=$(date +%s)$$;: >$d/req-$id;{ printf \"{\\\"oriel_req\\\":\\\"$id\\\",\\\"input\\\":\";tr -d \"[:cntrl:]\";echo \"}\";}>>$d/hooks.jsonl;n=0;while [ $n -lt 9000 ] && [ -f $d/req-$id ] && kill -0 $PPID 2>/dev/null;do if [ -f $d/dec-$id ];then cat $d/dec-$id;rm -f $d/dec-$id $d/req-$id;exit 0;fi;sleep 0.2;n=$((n+1));done;rm -f $d/req-$id"}]}]}}'
+```
 
-| Entry | How to show | Fields we need |
+(Line breaks added here; `gen.py T --inline` prints the real line. Plus the user's own chooser flags.)
+
+- Nothing is installed. The hooks are POSIX `sh` + `tr` + `date` only (no python, no jq).
+- Hook stdin JSON never has raw control characters inside strings, so `tr -d "[:cntrl:]"` makes one line.
+- **Shells:** fine in zsh/bash/sh. fish treats `\\` inside single quotes differently and would break the `\\\"`
+  sequences. For fish or an unknown shell, write the same JSON to `/tmp/oriel-chat/T/settings.json` first (one relay
+  run: `mkdir -p … && cat > …`) and type `--settings /tmp/oriel-chat/T/settings.json` (file mode of `gen.py`).
+- The line lands in the shell's history and scrollback (it is long). The file form keeps it short.
+- **Never pass the command through nested shell quoting.** My first SSH launch used a heredoc inside `$( )` run by
+  macOS `/bin/sh` (bash 3.2). It silently dropped brace groups from the JSON, and a stray `/usr/local/bin/claude` line
+  reached the TUI as a prompt that the agent then acted on (it ran `ls -l /usr/local/bin/claude`). Sending the line
+  base64-encoded (`herdr pane run <pane> "$(echo <b64> | base64 -d)"`) gave a byte-identical argv. Oriel's relay should
+  pass it as one argv string, never re-quote it.
+
+## 1. Launch flags and recognition
+
+- **Merging with the launcher:** the Mach-O launcher adds its own `--settings {cleanupPeriodDays, env…}`,
+  `--add-dir`, `--autocompact`. The native process argv then has two `--settings`. Test: a `-p` run with
+  `--settings '{"env":{"X_ORIEL":"1"},"hooks":{"SessionStart":…}}'` logged `launcher_env=set oriel_env=set`: both apply.
+- **User config kept:** hooks merge across levels. The user's SessionStart hook (herdr integration) still ran:
+  herdr's `agent_session` was set. `~/.claude/settings.json` mtime unchanged through all runs. `~/.claude.json` is
+  rewritten by every Claude run (its own state), not by anything Oriel sends.
+- **No `--permission-mode`.** Managed policy starts in `auto`. Oriel should not change it (I added `default` only for
+  tests). The user's own chooser flags go after Oriel's.
+- **Recognize later** (also after an Oriel relaunch): `herdr pane process-info --pane <id>` lists the foreground
+  processes with argv. The pane is Oriel's when a `…/claude_code/native/claude` argv contains `--session-id <T>` and
+  `/tmp/oriel-chat/<T>`. That pid also names `~/.claude/sessions/<pid>.json`. Tested locally and over SSH.
+- **Limits:** after `/exit` the pane is a shell again (no marker). herdr's own restore re-runs `claude --resume <id>`
+  without Oriel's flags, so that pane gets no chat. To resume with the chat, Oriel types
+  `--resume <current session id> --settings …` with the same token (tested: SessionStart `source:"resume"`, same file).
+
+## 2. Transcript discovery
+
+SessionStart fires for every session change and gives the exact path. `hooks.jsonl` from my runs:
+
+| Action | `source` | Session id / file |
 |---|---|---|
-| `user`, `content` string | user bubble | `message.content`, `uuid`, `parentUuid`, `timestamp`, `permissionMode` (mode at send), `promptId`, `origin.kind`, `promptSource:"typed"` |
-| `user`, content `[text, image]` | bubble + image | image is inline `{"type":"image","source":{"type":"base64","media_type":"image/png","data":…}}`, `imagePasteIds` |
-| `user` with `isMeta` / `<command-name>/model</command-name><command-args>…` / `<local-command-stdout>` | slash command row | parse the tags; hide `<local-command-caveat>` |
-| `user`, content `[tool_result]` | fill the matching tool row | `tool_use_id` ↔ assistant `tool_use.id`; `is_error`; `toolUseResult` (structured: `{type:"create",filePath,structuredPatch}`, Bash stdout, Agent `{isAsync,agentId,…}`); `permissionDecision {decision:"accept"/"reject", source:"hook"}`; `toolDenialKind: "user-rejected"/"permission-rule"` |
-| `user` `[text "[Request interrupted by user for tool use]"]` | "Interrupted" row | `interruptedMessageId` |
-| `user` with `<task-notification>` | background subagent finished | task-id, tool-use-id, output-file |
-| `user` with `isCompactSummary` | "Conversation compacted" summary (collapsed) | |
-| `assistant` content `text` / `tool_use` / `thinking` | Markdown / collapsed tool row / thinking | one content block per line, same `message.id` across lines; `message.model` (**model per message**), `message.usage` (input/output/cache tokens, `thinking_tokens`), `stop_reason`, `requestedModel`, `perTurnEffort`. **Thinking text is empty** (`thinking:""` + `signature`): only a "thought for N" row is possible (`thinkingDurationMs`). |
-| `attachment` (many kinds) | mostly hide | show `queued_command` (a message queued mid-turn, **not** a `user` line!), `file` (@mention), `hook_permission_decision`, `plan_mode` / `plan_mode_exit` (`planFilePath`), `hook_system_message`; hide `hook_success`, `skill_listing`, `instructions`, `prompt_snapshot`, `deferred_tools_*`, `total_tokens_reminder`, `environment`, `model`, `date` |
-| `system` `turn_duration` | end-of-turn marker ("Worked for 9s") | `durationMs`, `messageCount` |
-| `system` `stop_hook_summary`, `informational`, `compact_boundary` | hide / notice / divider | `compactMetadata {trigger, preTokens, postTokens}` |
-| `permission-mode`, `mode` | current mode (lags: written at turn end, not on shift+tab) | `permissionMode` |
-| `cost-state` | cost | `totalCostUSD`, `modelUsage{model:{inputTokens,…,costUSD}}` |
-| `ai-title`, `agent-name`, `last-prompt` | tab title | `aiTitle` |
-| `queue-operation` | queue UI | `operation: enqueue/remove`, `reason: absorbed_mid_turn`, `content` |
-| `file-history-snapshot` / `-delta`, `api-request*`, `atis-latch` | ignore | |
-| subagent file lines | nested under the Agent tool row | `isSidechain:true`, `agentId` |
+| launch | `startup` | = T, `~/.claude/projects/<cwd, / and . → ->/T.jsonl` |
+| `--resume T` | `resume` | same id, same file (appends) |
+| `/clear` and `/new` | `clear` (after SessionEnd `reason:clear`) | new id, new file created at once |
+| `/branch` (fork) | `fork` | new id, history copied |
+| `/compact` | `compact` | same id, same file |
 
-TodoWrite / TaskCreate: **not offered** in this session (the model searched with ToolSearch and found
-none). Upstream would write `tool_use` name `TodoWrite`/`TaskCreate`. Treat todos as a tool row. Plan
-mode writes the plan to `~/.claude/plans/<slug>.md` with a normal `Write` tool call, then `ExitPlanMode`.
+- Rule: the **last SessionStart line wins**; switch the tail to its `transcript_path`. Never guess by mtime.
+- The line can lag the action by 1–3 s here, because 30–60 company hooks run on each event.
+- Cross-checks: `sessions/<pid>.json` `sessionId` followed `/clear` at once and fork only when that turn ended (13 s).
+  herdr `agent_session` followed `/clear` but **stayed on the old id after fork** (as in round 1).
+- The transcript file can be missing at first (two launches that exited before a prompt left none). `tail -F` waits.
 
-Hooks seen live (`events.jsonl`): SessionStart (`source`, `model`), UserPromptSubmit (`prompt`),
-PreToolUse (`tool_name`, `tool_input`, `tool_use_id`), PermissionRequest (`tool_name`, `tool_input`,
-`permission_suggestions` (often null), **no `tool_use_id`**), PostToolUse, Notification
-(`notification_type: permission_prompt`, about 6 s after a dialog opens), Stop (`last_assistant_message`;
-**not fired on Esc interrupt**), SubagentStart/Stop (`agent_id`, `agent_type`, `agent_transcript_path`,
-`last_assistant_message`), PreCompact/PostCompact (`trigger`, `compact_summary`), PostModelSwitch
-(`from_model`, `to_model`, `requested_model`, `source: auto` when plan mode or auto mode swaps the model),
-SessionEnd (`reason`). Most carry `permission_mode` and `prompt_id`.
+## 3. File watching and the parser
 
-## 3. Blocked states
+- **Latency** (`timing.py` polls the screen and the file every 0.1 s): one-word reply: screen 5.08 s, disk 5.20 s.
+  350-word reply: screen 29.94 s, disk 31.71 s. A text block hits disk when it is finished, so disk lags the screen
+  by the block's streaming time. No live text, as decided.
+- **`tail -n +1 -F`** (BSD tail on This Mac): picked up a file created 1 s late, a rotated file (`mv` + new file), and
+  passed a split write (`{"b":` … `2}`) through as bytes. The reader keeps the partial last line until its newline.
+- **Size:** about 70 KB per session start and 100–600 KB per turn (`skill_listing` 97 KB, `api-request-blob` 92 KB
+  lines). Read from a remembered byte offset (`tail -c +N -F`) after a reconnect; don't re-read from 0.
+- **`parse.py` items:** `user` (string content, text blocks, `attachment/queued_command` as a queued user),
+  `assistant` text, `thinking` (always empty text: show a "thought" row only), `tool` (paired with its `tool_result`
+  by `tool_use_id`; `is_error` → error), `subagent` (Agent/Task tool; the `<task-notification>` user line marks it
+  done; detail in `<session>/subagents/agent-<id>.jsonl` + `.meta.json`, parse with `--sub`), `todos` / `plan` /
+  `question` (TodoWrite / ExitPlanMode / AskUserQuestion as tool rows), `interrupted`, `command` +
+  `command_output` (slash commands), `compact_boundary` + `compacted` (summary), `error`
+  (`assistant.isApiErrorMessage`), `turn_end` (`system/turn_duration`). Everything else is skipped, and a torn or
+  non-JSON line is skipped.
+- **Robust:** `type` user/assistant, Anthropic content blocks (`text`, `tool_use`, `tool_result`, `thinking`),
+  `tool_use_id` pairing, `message.id`. These are the API's own shapes.
+- **Not robust (2.1.x churns them):** `attachment` kinds (`queued_command` replaced plain `user` lines),
+  `system` subtypes, `origin.kind` (`human`/`peer`/`task-notification`), the `<task-notification>` and
+  `<command-name>` tags, `isCompactSummary`, `isApiErrorMessage`. Keep each of these as an optional extra.
+- **Turn end is not one signal.** `turn_duration` is missing after an interrupt. A background task can start a turn
+  with no user message (seen: "Background command … completed" → new turn). Use the status file for busy/idle and the
+  transcript only for content.
 
-| State | TUI shows | herdr `agent_status` | Hook | Answer without the TUI |
-|---|---|---|---|---|
-| Tool approval (Bash/Write/Edit) | box: "Do you want to create b.txt? ❯ 1. Yes / 2. Yes, and switch to accept edits… / 3. No · Esc to cancel · Tab to amend" | `blocked` | **PermissionRequest** (dialog already open while the hook runs) | **hook decision (works, with caveats)**; keys: `enter` = option 1, `escape` = reject **and end the turn** ("User rejected write to e.txt") |
-| AskUserQuestion | "☐ Fruit / Which fruit…? ❯ 1. Apple … 4. Type something. 5. Chat about this · Enter to select · ↑/↓ · Esc to cancel" | `blocked` | PreToolUse, then PermissionRequest | **hook with `answers` (works today)**; keys: `down`…`enter` (tested), Esc = "User declined to answer" |
-| ExitPlanMode | "Ready to code? Here is Claude's plan: … ❯ 1. Yes, and use auto mode / 2. Yes, manually approve edits / 3. Tell Claude what to change" | `blocked` | PreToolUse (input has `plan` + `planFilePath` injected), then PermissionRequest | **PreToolUse allow + updatedInput works**; PermissionRequest `allow` was **parsed but the dialog stayed** (not possible that way); keys: `down`,`enter` (tested) |
-| `/model` confirm ("Switch model? ❯ 1. Yes…") and `/model` picker | picker | confirm: `idle`; picker: **`idle`** | none | keys only; `agent.prompt` would type into the picker |
+## 4. Send
 
-- `agent.prompt` while blocked → `{"code":"agent_blocked"}` before it sends anything (tested).
-- **KEY SPIKE: can a hook wait for an outside decision?** Yes. `hook.py` writes `pending.json`,
-  polls `decision.json` every 0.2 s for N s, then prints the decision. Results:
-  - **PermissionRequest:** the TUI **shows the normal dialog right away while the hook waits** (it does
-    not hide it). Writing `{"behavior":"allow"}` closed the dialog and the tool ran ("Allowed by
-    PermissionRequest hook"). `{"behavior":"deny","message":"Denied from Oriel chat"}` → tool_result
-    `is_error`, the model read the message (only after guardrails was disabled, §0).
-    `{"behavior":"allow","updatedPermissions":[{"type":"setMode","mode":"acceptEdits","destination":"session"}]}`
-    → footer switched to `⏵⏵ accept edits on`. **Timeout** (no output, exit 0) → the dialog simply stays.
-    That is the fallback for free. The default hook timeout is 600 s (I set 120).
-  - **Race:** if the user answers in the TUI first, Claude goes on, but **the hook process is not
-    killed**. It keeps polling until its own timeout (seen with `pgrep`) and would eat a later decision
-    file. The protocol needs a per-request id, and the hook must give up when the request is gone.
-    PermissionRequest has no `tool_use_id`: match on `prompt_id` + `tool_name` + `tool_input`, or pair it
-    with the preceding PreToolUse's `tool_use_id`, and treat a tool_result for that id as "answered".
-  - **AskUserQuestion via PreToolUse:** the TUI shows a spinner `running PreToolUse hooks… 3/4`
-    (status `working`, no dialog). Returning `permissionDecision:"allow"` +
-    `updatedInput = {questions (echoed), answers:{"Which color do you prefer?":"Blue"}}` → "User
-    answered Claude's questions: → Blue". The dialog never appeared. On timeout, PermissionRequest
-    fires next, then the dialog.
-  - **AskUserQuestion via PermissionRequest** (better): the dialog is visible while waiting, and
-    `{"behavior":"allow","updatedInput":{questions, answers}}` answered it ("Dog") and closed it. So
-    the chat and the TUI can both answer, and the first one wins.
-  - **ExitPlanMode via PreToolUse** `{"permissionDecision":"allow","updatedInput":<echo tool_input>}` →
-    plan approved with no dialog. The mode went back to the mode before plan mode (acceptEdits). Via
-    PermissionRequest `allow` (with or without setMode): the hook result was logged, but the TUI kept
-    the dialog, so I answered with keys. Not tried: PermissionRequest `allow` + `updatedInput`.
-    Plan feedback ("Tell Claude what to change") through a hook = `deny` + `message` (not tested).
-  - **Esc while a PreToolUse hook waits** interrupts the turn and **kills** the hook.
-- **Chat buttons:** yes. The hook input carries everything: tool + input (command / file_path +
-  content), questions + options + multiSelect, plan markdown. The option labels of the TUI dialog
-  ("Yes, and switch to accept edits") are not in the input; synthesise them (Allow / Allow + accept
-  edits via setMode / Deny with message).
-
-## 4. Sending
-
-`herdr agent prompt` (bracketed paste + Enter), all tested:
-- idle → normal turn. Multiline (`\n`) stays one message. `@a.txt` resolves (attachment `file`, Read
-  shown). A pasted absolute **image path** becomes `[Image #1]` and is sent as a base64 image block. A
-  text starting with `/` runs the command (`/clear`, `/compact`, `/branch`, `/model`).
-- **while working → queued**: the TUI shows the text above the prompt with "ctrl+enter to send now" and
-  "Press up to edit queued messages". It is absorbed at the next tool boundary ("The user sent a new
-  message while you were working"), recorded as `queue-operation` + `attachment/queued_command`.
-- blocked → `agent_blocked`. A picker open → status `idle`, so a prompt would go into the picker (risk).
-- No server call makes the TUI show a message (only Remote Control, which goes through Anthropic's cloud
-  and was not tested).
+- `herdr agent prompt <pane> <text>` while idle: one turn. Multiline (`\n`) stayed one message.
+- While working: the TUI showed it queued ("ctrl+enter to send now"). It ran as the next turn, or is absorbed mid-turn
+  as `attachment/queued_command` (round 1). The parser shows both as a user item.
+- **Landed** = a transcript `user` line (or `queued_command`) with that text. **UserPromptSubmit is not proof:** an
+  Esc during the 2–6 s of UserPromptSubmit hooks put the text back into the composer, the hook had fired, and no
+  `user` line was written.
+- **Ready gate:** send only when `sessions/<pid>.json` `status == "idle"`, and only after the SessionStart line exists.
+  - Picker trap reproduced: with `/resume` open, herdr reported `idle`, accepted the prompt, and the text went into the
+    picker's search box. The status file said `waiting` the whole time (also for `/model` and `/config`).
+  - Starting: a prompt sent 0.5 s after launch was accepted (`agent_status: unknown`). The text sat in the composer
+    with no Enter.
+  - Blocked: herdr returns `agent_blocked` for dialogs (round 1).
+  - Leftover risk: `idle` with the user's draft in the composer. The prompt is appended to that draft.
 
 ## 5. Interrupt
 
-`escape` while working → "Interrupted · What should Claude do instead?". Transcript: a `tool_result`
-"The user doesn't want to proceed…" (`toolUseResult: "User rejected tool use"`) + a user text
-`[Request interrupted by user for tool use]` with `interruptedMessageId`. **No Stop hook.** In a
-dialog, Esc = reject + end of turn. ctrl+c twice = exit the TUI (never send it from the chat).
+`herdr pane send-keys <pane> escape` while working. Mid-stream: the partial assistant text is written, then a user
+line `[Request interrupted by user]` (`…for tool use` during a tool). The screen shows "Interrupted · What should Claude
+do instead?". No Stop hook, no `turn_duration`. The status goes to `idle`. Esc before the model starts returns the
+prompt text to the composer. Send Esc only when the status is `busy` (Esc at an idle prompt did nothing, but a second
+Esc opens the rewind picker). Never send ctrl+c.
 
-## 6. Model and mode
+## 6. Approvals and questions
 
-| Want | How | Status |
+**Tool approvals: SKIP, show the TUI.** A waiting PermissionRequest hook does work mechanically (the dialog stays
+visible while it waits; `allow` runs the tool; `deny` + message reaches the model, and the dialog closed 1.0 s after
+the decision file). But in this company environment it is not reliable:
+
+1. Company plugins add PermissionRequest hooks. `agent-security-guardrails` returned
+   `{"behavior":"allow"}` 100 ms after a Write request (debug log). Claude waits for **all** hooks and an allow wins:
+   my chat `deny` gave "Allowed by PermissionRequest hook" and the file was written.
+2. Without Oriel, that same request would close by itself. With Oriel's waiting hook, the dialog stays open until
+   someone answers, so Oriel would **add prompts** the user never had, and its Deny button would lie.
+3. TUI-first race: once (of four tries) the TUI answer did not apply until my hook exited (spinner "running
+   PermissionRequest hooks… 4/5", herdr status `idle`); it went on the moment the request file was removed.
+4. Deny did win for a `curl` that guardrails itself asked about. So upstream (no auto-allowing hooks) this would be
+   FRAGILE, not SKIP.
+
+The chat instead shows the pending tool row (the `tool_use` line is already on disk, no result yet) with status
+`waiting` and a "Show terminal" button. Keys work as a fallback in the terminal (`enter` = first option, `escape` =
+reject and end the turn, digits pick an option).
+
+**Questions (AskUserQuestion): RELIABLE in chat.** The hook (matcher `AskUserQuestion` only, verified: a Bash dialog
+made no request) appends `{"oriel_req":"<id>","input":{…tool_input.questions…}}` to `hooks.jsonl` and waits.
+- Answer: write `dec-<id>` atomically (`… > dec-<id>.tmp && mv`), content
+  `{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedInput":{"questions":<echo>,"answers":{"<question text>":"<label>"}}}}}`.
+  Result: "Which fruit? → Pear", the dialog closed, the model replied "Pear". It worked with guardrails on, and over SSH
+  ("Black").
+- No decision → the dialog stays (other hooks' allow does not close a question). Timeout is the same: the hook
+  prints nothing.
+- TUI first: Claude went on at once ("Cat", "Mon"); my hook kept polling. Oriel removes `req-<id>` when the
+  question's `tool_result` appears or the status leaves `waiting`; the hook then exits. It also exits when Claude dies
+  (`kill -0 $PPID`) or after 30 min. `askUserQuestionTimeout` (5 min in this user's settings) was not tested.
+- Multi-question / multiSelect / "Type something": build `answers` per question; free text was not tested.
+
+**Knowing it waits:** `sessions/<pid>.json` `status: "waiting"` for permission dialogs, questions and pickers.
+It turned `waiting` about 1 s before herdr turned `blocked`. herdr says `blocked` for dialogs only, and the
+Notification hook (`permission_prompt`) comes about 6 s late (`idle_prompt` after about 60 s idle). Rule: `waiting`
+with no open Oriel question → show the TUI. If the file is missing, fall back to herdr `blocked`.
+
+## 7. Remote (tested with a user-mode sshd)
+
+`/usr/sbin/sshd -D -f /tmp/…/sshd_config` on 127.0.0.1:2299, temp keys, `AuthorizedKeysFile` under /tmp, `UsePAM no`,
+`StrictModes no` (absolute paths are needed for `-D`). Client: `ssh -F /dev/null -i … -o UserKnownHostsFile=/tmp/…`.
+Killed afterwards; private keys deleted.
+
+| Need | Over one connection | Result |
 |---|---|---|
-| Change model, this session only | `/model` (picker: "Enter to set as default · **s to use this session only** · Esc"), move with `up`/`down` (read the `❯` row first; the start row varies), press `s` → "Set model to Sonnet 5.5 for this session only"; user settings md5 unchanged | works with caveats (screen-driven) |
-| `/model sonnet` typed | asks "Switch model? 1. Yes" (cache warning), then **saves to `~/.claude/settings.json`** | avoid |
-| Effort | `--effort` at launch; `/effort` (footer shows `◐ medium · /effort`). Not run, because it probably persists like `/model` | untested |
-| Mode | `shift+tab` cycles **auto → manual(default) → accept edits → plan → auto** (bypass only when launched with it). Also a PermissionRequest hook `updatedPermissions setMode` (tested) | works today |
-| Plan mode swaps the model | entering plan/auto fired PostModelSwitch haiku→sonnet `source:auto` | note |
-| **Read model** | statusLine `model.id/display_name` (live), PostModelSwitch hook, `assistant.message.model` (per message), screen | works today |
-| **Read mode** | **screen footer** (`⏸ manual mode on`, `⏵⏵ accept edits on`, `⏸ plan mode on`, `⏵⏵ auto mode on`, `bypass permissions on`), hook `permission_mode` (at events only), transcript `permissionMode` (at send / turn end). **The statusLine has no mode field** in 2.1.310 | works with caveats |
+| Launch | one-shot `herdr pane run <pane> "<cmd>"` (pass the command as one argv string, e.g. base64) | worked |
+| Recognize / pid | one-shot `herdr pane process-info --pane <id>` | worked |
+| Session changes, questions | stream `tail -n +1 -F /tmp/oriel-chat/T/hooks.jsonl` | worked |
+| Transcript | stream `tail -c +N -F <transcript_path>` (path from the hook line, never a local path) | worked, parsed |
+| Answer a question | one-shot `cat > dec-<id>.tmp && mv …` with the JSON on stdin | worked ("Black") |
+| Status | one-shot `cat ~/.claude/sessions/<pid>.json` (the file is rewritten, not appended: poll it, or run a Perl loop that prints on change) | worked |
+| Send / interrupt | one-shot `herdr agent prompt` / `pane send-keys` | worked |
 
-StatusLine stdin keys: `session_id, session_name, prompt_id, transcript_path, cwd, workspace{current_dir,
-project_dir, added_dirs}, model{id, display_name}, version, output_style{name}, cost{total_cost_usd,
-total_duration_ms, total_api_duration_ms, total_lines_added/removed}, context_window{total_input_tokens,
-total_output_tokens, context_window_size, current_usage{…}, used_percentage, remaining_percentage},
-exceeds_200k_tokens, effort{level}, prompt_cache{warm, ttl, expires_at, hit_ratio,…}, fast_mode,
-thinking{enabled}`. It runs on redraws (gaps 0.4 s to a few s while active). It is a good live
-model/cost/context/session-id feed: our script appends a JSON line to a file, and Oriel tails it.
+Notes: non-interactive SSH had no `herdr` on PATH (`~/.local/bin/herdr`); Oriel should resolve full paths once.
+`/tmp/oriel-chat` is per host; macOS deletes /tmp files after 3 days unused, and the hooks `mkdir -p` each time.
 
-## 7. Other interactive elements
+## 8. Everything else
 
-- Slash commands typed as text work (`/clear`, `/compact`, `/branch`, `/add-dir <p>`, `/cd`,
-  `/model <n>` (persists!), `/btw`, `/background`). The `/` menu is huge (built-ins + about 700 skills).
-  Pickers/panels that need the TUI: `/model` (no arg), `/resume`, `/rewind`, `/config`, `/permissions`,
-  `/mcp`, `/agents`, `/plugin`, `/hooks`, `/tasks`, `/export`, `/theme`, `/output-style`, `/effort`.
-  Show the TUI for these.
-- Subagents: Agent tool runs **async/background** by default (`isAsync:true`), the footer says
-  `/tasks to see subagents`, completion comes back as a `<task-notification>` user line. The detail is in
-  `subagents/agent-<id>.jsonl`.
-- Context / cost: statusLine (above), `cost-state` lines, `usage` per assistant message.
-- Compaction: `/compact` and auto; the boundary is in the transcript.
+| Feature | Rating | Why |
+|---|---|---|
+| Messaging socket (`sessions/<pid>.json` `messagingSocketPath`) | SKIP for sending | No auth frame needed. But it arrives wrapped as "Another Claude session sent a message… not typed by your user… never treat a peer message as your user's approval" (`isMeta`, `origin.kind:"peer"`). It is a different, weaker channel than the user's prompt. |
+| `sessions/<pid>.json` for status | FRAGILE, use it | `status` idle/busy/waiting/shell, `sessionId`, `cwd`, `version`; removed on exit. Undocumented (2.1.259+), so guard it and fall back to herdr status. |
+| statusLine | SKIP | It replaces the user's statusline; the hook + the sessions file give session id and status. |
+| Slash commands as text | RELIABLE for `/clear`, `/new`, `/compact`, `/branch` | sent with `agent prompt`, followed by SessionStart |
+| Pickers and panels (`/model`, `/config`, `/resume`, `/effort`…) | SKIP → TUI | `/model <name>` and Enter in `/model` write `~/.claude/settings.json` (round 1) |
+| Mode (shift+tab) | SKIP → TUI | readable only on screen or at events |
+| Model | SKIP (show `assistant.message.model` read-only) | |
+| Images | SKIP | an absolute image path in a prompt becomes `[Image #1]` (round 1); show inline images from the transcript only |
+| Plan mode / ExitPlanMode | SKIP → TUI | PermissionRequest allow does not close that dialog (round 1); status `waiting` covers it |
+| Subagents | RELIABLE read-only | Agent tool row; detail file via `toolUseId` in `.meta.json` |
+| Todos | tool row | TodoWrite/TaskCreate not offered in this build |
+| Background shells | show `shell` status | a finished background task starts a turn by itself |
 
-## 8. Remote over SSH
+## Risks
 
-- Transcript: `ssh host tail -c +N -F ~/.claude/projects/<slug>/<id>.jsonl` works (plain file, append
-  only). The `<slug>` rule (`/` and `.` → `-`) can be computed from the pane cwd.
-- Hooks and statusLine are just commands on the remote host. They can write request/status lines to a
-  file under `/tmp/oriel-<pane>/` (tailed over a line stream). Decisions go back as a one-shot
-  `printf … > decision-<id>.json`. **No port, no daemon.** The settings can be **inline JSON**
-  (`--settings '{"hooks":…}'`) with `python3 -c`/sh commands, so nothing has to be installed except
-  what the launch argv carries.
-- The hard limit: `--settings` only applies at **launch**. A TUI that is already running picks up hook
-  changes only from watched files: user `~/.claude/settings.json`, `<cwd>/.claude/settings.json`,
-  `<cwd>/.claude/settings.local.json`. I confirmed that creating `work/.claude/settings.local.json`
-  mid-session made its UserPromptSubmit hook fire on the next prompt ("Detected change to …"). Editing
-  my `--settings` file mid-session did **not** apply new `ask` rules. Writing into the user's project or
-  global settings breaks the "no config edits" rule. So for already-running panes the fallback is keys +
-  screen.
+1. The status file and the hook folder are the only reliable "ready / waiting" sources, and the status file is
+   undocumented. If it disappears, fall back to herdr `blocked`/`idle` and refuse to send while a picker may be open.
+2. Company hooks change outcomes (auto-allow, 30–60 hooks per event, slow SessionStart/UserPromptSubmit). Keep chat
+   actions to the ones no other hook can override: send, Esc, question answers.
+3. Typing the launch line through layers of shell quoting can corrupt it and leak text into the TUI as a prompt.
+4. Transcript format churn: keep the core to API content blocks; every 2.1.x extra is optional.
 
-## 9. Recommendation
+## From the first spike
 
-**Events:** tail the transcript (path from statusLine/hooks; herdr `agent_session` as a fallback).
-Parse `user`/`assistant`/`tool_result`/`queued_command`/`compact_boundary`/`turn_duration` and skip the
-rest. Show "Working" + screen text while `agent_status=working` (no token stream on disk).
-
-**Live side channel (for panes Oriel launches):** start Claude with an Oriel `--settings` (inline JSON):
-- `statusLine` → appends stdin JSON to `/tmp/oriel/<pane>/status.jsonl` (model, cost, context,
-  session_id, transcript_path). Careful: this **replaces the screen statusline** if the user has one
-  (this user has none). The script can run the user's own statusline command and pass its output through.
-- `SessionStart` / `PostModelSwitch` / `Stop` / `SubagentStop` → event lines (fixes the stale `/branch` id).
-- `PermissionRequest` (all tools) → writes `req-<id>.json`, polls `dec-<id>.json`, gives up on timeout
-  or when the request is answered elsewhere. That gives chat **Approve / Deny / Allow + mode** buttons,
-  with the TUI dialog visible as the fallback, and **AskUserQuestion options** (answers via
-  `updatedInput`).
-- `PreToolUse` matcher `ExitPlanMode` only → plan **Approve** button (allow + echoed `updatedInput`).
-  Keep it short or async, because it shows a spinner, not the dialog, while it waits.
-
-**Actions out:** `agent.prompt` for messages (queues while working), `agent.send_keys escape` to
-interrupt, `shift+tab` for mode (read back from the footer), `/model` picker + `s` for model,
-`/clear`, `/compact`, `/branch` as text. Pickers and panels → "show the TUI".
-
-**Already-running panes / no Oriel launch:** transcript + screen. Blocked dialogs are answered with keys
-(`enter` = first option, `escape` = reject, arrows + `enter` for AskUserQuestion / plan). Parse the
-options from `pane.read --source visible`.
-
-**Top 5 risks**
-1. **Other PermissionRequest hooks win.** The company guardrails `allow` beats our `deny`, and user
-   plugins (bento, planning-with-files) also decide. Deny/approve buttons can lie unless we detect it
-   (watch `permissionDecision.source` / the tool_result) or disable those plugins per run.
-2. **Launch-only control.** `--settings` hooks/statusLine need Oriel to start the agent. Existing panes
-   (and the user's alias with `--dangerously-skip-permissions`, managed `auto` mode) get keys + screen only.
-3. **Orphan hooks and races.** A hook that keeps waiting after a TUI answer must not swallow a later
-   decision. There is no `tool_use_id` on PermissionRequest. Each hook process also costs ~0.1–1 s, and
-   every event already runs ~30 hooks.
-4. **Session identity drift.** herdr ignores `/branch` (fork), the file does not exist until the
-   first prompt, and `agent_session` becomes null on exit. Use the statusLine/hook session_id.
-5. **Format churn and side effects.** 2.1.x adds entry types often (`queued_command` instead of
-   `user`, empty thinking, `permission-mode` lines that lag). `/model <name>` and probably `/effort`
-   write the user's global settings. Plan mode/auto mode swap models silently. A picker leaves
-   `agent_status` at `idle`, so `agent.prompt` can type into it.
+- The statusLine command gets model, cost, context window, session id, transcript path and effort on every redraw, but no permission mode, and it replaces the user's own statusline.
+- `/model <name>` and Return in the `/model` picker write `~/.claude/settings.json`; `s` in the picker keeps the choice to the session.
+- Plan mode and auto mode switch the model by themselves (a PostModelSwitch hook with `source:auto`).
+- ExitPlanMode can be approved from a PreToolUse hook (allow plus the echoed `updatedInput`); a PermissionRequest `allow` leaves its dialog open.
+- The user's shell alias adds `--dangerously-skip-permissions`, and managed settings start in `auto` mode, so real approval prompts are rare here.

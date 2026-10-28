@@ -1,225 +1,270 @@
 # opencode: chat view research
 
-> Spiked in throwaway herdr sessions for the [chat view](../ui/chat-view.md). The spike files named below lived in `/tmp/oriel-research/opencode/` and were not kept.
+> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/oriel-research/` and were not kept.
 
-Tested two builds:
+Tested: npm `opencode-ai@1.19.4` (round 1 install), `XDG_*` under `/tmp`, project `.opencode/opencode.json` with
+`{env:…}` for the gateway, Haiku 4.5, `bash`/`edit` set to `ask`. herdr 0.9.5, throwaway session
+`oriel-dev-research-opencode2`. Commands were typed into the pane's shell with `herdr pane run`, the way the chooser
+would.
 
-- **v1.19.4**: the npm `latest` release (2026-10-22), the one users run today. Installed with
-  `npm i --prefix /tmp/oriel-research/opencode/v1 opencode-ai@1.19.4`. The source is the tag, in `src-v1/`.
-- **v2.2.0 dev**: `github.com/anomalyco/opencode` HEAD. `sst/opencode` redirects to the same repo. It was built from
-  source in `src/` with bun 1.4.4 and run as `bun run --cwd packages/cli src/index.ts`. It is not on npm `latest` yet
-  (npm tags `dev` and `beta` only). The architecture changes a lot, so it is covered too.
+## Summary
 
-Setup: a herdr session `oriel-dev-research-opencode` and the scratch folder `work/` with a project
-`.opencode/opencode.json`. The model is `anthropic/claude-haiku-4-5` through the company gateway, using `{env:...}`
-substitution, so no secrets are on disk. Permissions are set to `bash: ask` and `edit: ask`. `XDG_*` points under
-`/tmp`. The free opencode zen models answered "Free usage limit reached" (HTTP 429).
+| # | Feature | Mechanism | Rating | Evidence |
+|---|---|---|---|---|
+| 1 | Launch flags | `--port 0 --hostname 127.0.0.1` + `OPENCODE_SERVER_PASSWORD` (read from a 0600 file) + `OPENCODE_TUI_CONFIG` → Oriel's 20-line TUI plugin | RELIABLE (npm build) / SKIP (company launcher) | 1.1 |
+| 1 | Recognize the pane | The plugin's state line `{pid,url,session,dialog}` in a file whose path Oriel chose; its `pid` = `pane.process_info` pid | RELIABLE | 1.2 |
+| 2 | Find the transcript | `session` field in the state line (from `api.route.current`), and the server URL, so the chat reads `GET /session/<id>/message` | RELIABLE | 2 |
+| 2 | Follow /new, /sessions, fork, compaction | State line changes within 200 ms. Compaction keeps the id and adds a `compaction` part. Subagents are child sessions. | RELIABLE | 2 |
+| 3 | Watch | `curl -sN /event` (SSE, one JSON object per `data:` line) + `tail -F` of the state file | RELIABLE | 3 |
+| 3 | Parser | Upsert messages and parts by id (`parse.py`). The same code reads history and SSE, and skips unknown types. | RELIABLE core, FRAGILE extras | 3.3 |
+| 3 | SQLite polling (no port) | `sqlite3 -json` on `part.time_updated` | FRAGILE | 3.4 |
+| 4 | Send | `herdr agent prompt`, only when the state line has `dialog:false` and herdr is not `blocked`. Confirmed by the user message on SSE (~0.4 s). | RELIABLE | 4 |
+| 4 | `prompt_async` | Shows in the TUI, but ignores the TUI's agent (Plan) and model selection | FRAGILE | 4 |
+| 5 | Interrupt | `esc` `esc` (herdr send-keys). On disk: `error.name=MessageAbortedError`. | RELIABLE | 5 |
+| 6 | Permissions | SSE `permission.asked` / `GET /permission` → `POST /permission/:id/reply {once,always,reject}` | RELIABLE | 6 |
+| 6 | Questions | SSE `question.asked` / `GET /question` → `POST /question/:id/reply {answers:[["Blue"]]}` | RELIABLE | 6 |
+| 6 | Other waits | `dialog:true` (pickers), or herdr `blocked` with no known request → show the TUI | RELIABLE | 6 |
+| 7 | Remote | All of the above as line streams and one-shot commands over one SSH connection (tested with a user-mode sshd) | RELIABLE | 7 |
+| 8 | Model/mode change, pickers, images, `@file` | Show the TUI. `tab` cycles the agent. | SKIP | 8 |
+| 8 | Show model/agent, todos, subagent rows | From the transcript (`agent`, `modelID`, `todowrite` input, `task` metadata `sessionId`) | RELIABLE | 3.3 |
 
-For the herdr integration, I copied herdr's installed opencode plugins into the project `.opencode/` (nothing global
-changed). Note: the herdr session was also created under the `/tmp` `XDG_CONFIG_HOME`.
+## Launch command (what Oriel types)
 
-Spike files in `/tmp/oriel-research/opencode/`:
-- `v1-events.sse`, `v2-events.sse`: raw SSE from my runs.
-- `v1-parts-sample.jsonl`, `v1-messages-sample.jsonl`: database rows.
-- `v1-routes.txt`: the v1 route list.
-- Helpers: `hr.sh`, `v2c.sh` (reads the v2 registration file and never prints the password).
+One relay run per host, once. It writes three files into `D=${XDG_CACHE_HOME:-$HOME/.cache}/oriel/opencode`, a 0700
+folder:
+- `oriel-tui.js`: copy of `oriel/oriel-tui.js`.
+- `tui.json`: `{"plugin":["<D>/oriel-tui.js"]}`.
 
-## 0. The one fact that decides the design
+One relay run per pane:
+- `umask 077; printf %s <random> > <D>/<terminal_id>.pw`.
 
-| Build | Where the server lives | Reachable from outside? |
+Then Oriel types this into the pane (`T` = herdr `terminal_id`; `<opencode>` = the resolved binary):
+
+```sh
+ env ORIEL_OC_STATE=<D>/<T>.jsonl OPENCODE_TUI_CONFIG=<D>/tui.json sh -c 'OPENCODE_SERVER_PASSWORD=$(cat <D>/<T>.pw) exec <opencode> --port 0 --hostname 127.0.0.1'
+```
+
+Tested as typed. `process_info` argv is `opencode --port 0 --hostname 127.0.0.1`. The password is not in the
+scrollback, the argv or the shell history (`grep` on `pane read recent`: 0). The server answered 401 without auth
+and 200 with it.
+
+## 1. Launch flags and recognition
+
+**1.1 Why each part.**
+- `--port 0` turns on the HTTP listener inside the TUI process. Without it, v1 has no side door. Port 0 tries 4096
+  first, then picks a random port; the second pane got `127.0.0.1:59843`.
+- `--hostname 127.0.0.1` beats a user config `server.hostname`, such as `0.0.0.0` or `mdns`.
+- `OPENCODE_SERVER_PASSWORD` turns on Basic auth (user `opencode`). In `--port` mode the TUI itself uses
+  `ServerAuth.headers()`, so it keeps working.
+- `OPENCODE_TUI_CONFIG` is **merged** between the global and the project `tui.json`, so plugins are concatenated.
+  Test: the user's herdr plugin (copied into the `/tmp` global config) and Oriel's plugin both ran. herdr
+  `agent_session` and Oriel's `session` showed the same id.
+- No user file is touched. The user's `opencode.json`, permission rules and plugins apply unchanged.
+- The env vars are inherited by the agent's tools (same user, so this is acceptable).
+- Not caused by Oriel: on every start, opencode itself writes `.gitignore`, `package.json` and `node_modules` into the
+  global config folder and into every `.opencode` folder (its `@opencode-ai/plugin` install). This happens with or
+  without plugins.
+
+**1.2 Recognition, also after an Oriel relaunch.** The plugin appends a line to `$ORIEL_OC_STATE` at start and
+whenever a value changes (it polls every 200 ms):
+`{"t":…,"pid":58763,"url":"http://127.0.0.1:62532","route":"home","session":null,"dialog":false}`.
+- Oriel knows the path, because it built it from the `terminal_id`.
+- A pane gets the chat switch only when the last line's `pid` equals the pid in `herdr pane process-info`.
+- If the user quits and starts opencode by hand, the pid differs, so there is no chat.
+- After an Oriel relaunch, `tail -n1` of the file restores `url` and `session`. curl reads the password file on the
+  host, so Oriel stores no secret.
+- No `lsof` is needed: the plugin reports the real URL.
+- Startup: herdr said `idle` at +4.1 s and the first state line came at +6.7 s. opencode waits for its plugin npm
+  install before it loads plugins. **Risk:** on a host with no npm registry, this may delay or block the plugin until
+  npm fails. Then there is no state line and no chat (a safe failure).
+
+**Security of the port.** Without a password, any local process can drive the agent (prompt → bash → code runs as
+the user). Other users on shared Linux hosts can do it too, and maybe web pages through DNS rebinding. **So the
+password is required.** With Basic auth over loopback, the risk is the same as the user's own files. On Linux,
+`/proc/<pid>/environ` is owner-only and argv does not hold the password. curl gets the password from stdin
+(`curl -K -` with `user = "opencode:…"`), never from argv.
+
+## 2. Transcript discovery
+
+The transcript is `GET <url>/session/<session>/message`, which returns `[{info, parts}]`. History is read once, then
+SSE takes over. **There is no file to guess. The id comes from this TUI's own route.** Tested, from the state file:
+
+| Action | State line | Notes |
 |---|---|---|
-| v1, plain `opencode` | The server runs in a **worker thread inside the TUI process**. The TUI talks to it through in-process RPC (`url: "http://opencode.internal"`, `cli/cmd/tui.ts:273`). | **No.** `lsof -iTCP -sTCP:LISTEN` on the pane's pid shows no listener. Config `server.port` is ignored: only argv `--port`, `--hostname` or `--mdns` turn on the HTTP listener. |
-| v1, `opencode --port N` (or `--hostname`, `--mdns`) | The same TUI also listens on `127.0.0.1:N`. It has no auth unless `OPENCODE_SERVER_PASSWORD` is set. | Yes, full API. Tested on `--port 47801`. |
-| v1, `opencode serve` + `opencode attach <url>` | A shared server. The TUI is a client. | Yes. Tested: the attached TUI showed a prompt sent through the API. |
-| v2 dev, plain `opencode` | **Every TUI connects to one background service** (`opencode serve --service`). The service is found through `$XDG_STATE_HOME/opencode/service.json` (`service-<channel>.json`, mode 0600, holding `{id, version, url, pid, password}`). The default port is 0xC0DE = 49374 (`local` channel 49375). | **Yes, always.** HTTP Basic auth, user `opencode`, password from that file. Without auth: 401. |
+| First prompt | `route:"session", session:ses_…ab36` | SSE `session.created` |
+| `/new` | `route:"home", session:null` right away | SSE has **nothing** until the first prompt. This is why the plugin exists. |
+| `/sessions`, pick an old one | `session:ses_…fc83` | SSE has **nothing** at all. Without the plugin the chat would be stale. |
+| `/fork`, then pick a message | `dialog:true` (picker), then the new `ses_…a671` | Copies the history |
+| `/compact` | Same id | `compaction` part + assistant message with `agent:"compaction"`; SSE `session.compacted` |
+| Subagent (`task`) | Root id kept | Child `ses_…` with `parentID`. The tool metadata `sessionId` links to it. |
 
-So on v1 a running plain TUI **cannot** be joined. The chat must read the SQLite database and drive the TUI with
-herdr keys. On v1 with `--port`, and on all of v2, a full side connection exists, and the TUI shows everything it
-does. The only working way to find the port of a v1 `--port` TUI is
-`lsof -nP -a -p <pane pid> -iTCP -sTCP:LISTEN`, or its argv from `pane.process_info`. There is no state file.
+Without Oriel's plugin, the fallback is herdr `agent_session`, which works only if herdr's opencode integration is
+installed. The SSE-only fallback follows only on activity: FRAGILE.
 
-## 1. Transcript
+## 3. Watching
 
-| | v1.19.4 | v2 dev |
-|---|---|---|
-| File | `$XDG_DATA_HOME/opencode/opencode.db` (SQLite, WAL) | `$XDG_DATA_HOME/opencode/opencode[-channel].db` (`opencode-local.db` here) |
-| Tables | `session`, `message` (`data` JSON with `role`), `part` (`data` JSON with `type`), `todo`, `permission` (saved "always" rules only) | `session_v2`, `session_message` (`type`, `seq`, `data`), `session_inbox` (queued prompts). The `event` table stayed empty. |
-| Find the pane's session | herdr `agent_session` `{kind:"id", value:"ses_…", source:"herdr:opencode"}`. It is reported by herdr's **TUI plugin** (`herdr-tui-session.js`) from the TUI route. Works today. | The same plugin has a v2 `setup()` path. Not verified: herdr did not detect my source build as opencode (process name `bun`), so it stayed `agent_status: unknown`. A compiled binary should behave like v1. |
-| Find the database | `lsof -p <pid> -Fn` shows `…/opencode.db`. `opencode db path` also works. | The service pid in `service.json` holds the database. |
-| Read without sqlite3 | `opencode db "<sql>"` (prints TSV), `opencode export <ses>` (JSON) | The API: `GET /api/session/:id/message` |
+**3.1 Streams.**
+- `curl -sN -K - <url>/event`: one `data: {json}` line per event, a blank line, and a heartbeat every 10 s.
+- Only this TUI process's events arrive, because each `--port` TUI has its own server and bus. Filter by
+  `sessionID`; child sessions use their own id.
+- `tail -n1 -F <state>.jsonl` waits for a file that is created late (tested with BSD tail).
+- Partial lines: every event is one line. curl line-buffers, so a broken last line only happens when the stream
+  dies. Then reconnect and re-read `GET …/message`. Upserts make the replay harmless.
 
-Session changes (v1, tested):
-- `/new` keeps the old `agent_session` until the first prompt, then a new `ses_…` appears.
-- `/sessions` (also `/resume`, `/continue`) and `POST /tui/select-session` switch the route, and herdr's
-  `agent_session` follows within about 1 s.
-- `/compact` keeps the **same** session id. It adds a user message with a `compaction` part and an assistant summary
-  message (agent `compaction`). The SSE event is `session.compacted`.
-- Fork (`/fork`) makes a new session. Subagents (the `task` tool) make child sessions with `parent_id`. herdr's
-  plugin keeps the root id.
+**3.2 Latency (This Mac).** For a 100-word reply ending in `XQ7END`:
+- SSE final `message.part.updated` at .585.
+- The SQLite row at .600 (polled every 20 ms).
+- The TUI screen showed it at .619 (polled every 30 ms).
 
-## 2. Events
+The **complete** text part arrives when the text block ends, together with the last token on screen. While it
+streams, only `message.part.delta` events arrive (ignored by design). So the chat shows each block when it is done.
+Tool parts update at pending, running and completed. The user message arrives 0.4 s after `herdr agent prompt`.
 
-**When data reaches the disk (both builds, tested by polling during a long reply):**
-- A text part row is created empty when the text starts.
-- The full text is written once, when the text block ends (v1: `length(text)` stayed 0 while the TUI streamed).
-- An abort flushes the partial text.
-- Tool parts are written at each state change. A tool that waits for approval sits in `running` (v1) on disk.
-- **Pending permissions and questions are never on disk.** They are in memory and in SSE only.
-- **Live per-token data exists only in SSE** (`message.part.delta` in v1, `session.text.delta` in v2).
+**3.3 Parser** (`parse.py`, about 140 lines, with an `assert` self-check in `demo()`).
+- Messages and parts go into dicts keyed by id. Ids sort by time.
+- Output: `user`, `assistant`, `thinking` (from `reasoning`), `tool` (call and result are **one part**:
+  `state.status` / `input` / `output` / `error`), `subagent` (`task`, with `child_session`), `todos` (`todowrite`
+  input), `attachment`, `compacted`, `compaction_summary`, `interrupted`, `error`, `turn_end`, `permission_pending`
+  and `question_pending`.
+- It skips and counts unknown part and event types. sse4 skipped `plugin.added`, `session.diff`, `todo.updated`,
+  `tui.*` and others.
+- Runs: `python3 parse.py <ses> runs/hist-….json`, `… runs/sse4.log`, `… runs/reasoning-messages.json`.
 
-| Event | v1 storage (`part.data.type` or `message.data`) | v1 SSE (`GET /event`) | v2 storage / SSE (`GET /api/event`) |
-|---|---|---|---|
-| User text | user message + `text` part | `message.updated`, `message.part.updated` | `session_message type=user {text, files, agents, skills}` |
-| Assistant text | `text` {text, time} | `message.part.delta {partID, field:"text", delta}` | `assistant.content[] type=text`; `session.text.started/delta/ended` |
-| Thinking | `reasoning` | delta on the reasoning part | `content type=reasoning`; `session.reasoning.*` |
-| Tool call and result | `tool` {tool, callID, state: pending, running, completed (output) or error} | `message.part.updated` | `content type=tool` {id, name, state: streaming, running, completed or error}; `session.tool.called/success/failed`. Call and result pair by `callID` / `id`. |
-| Step usage and cost | `step-start`, `step-finish` {tokens, cost, reason}; message `cost`/`tokens`/`modelID`/`agent` | — | assistant `cost`, `tokens`, `finish`; `session.step.ended`, `session.usage.updated` |
-| Subagent | `subtask` and `agent` parts; child session | `session.created` with `parentID` | `parent_id`; `session.created` |
-| Todos | `todo` table | `todo.updated` | — |
-| Files and images | `file` part {mime, url, filename} | | `user.files[]` |
-| Snapshot and patch | `snapshot` and `patch` parts | `session.diff`, `file.edited` | `assistant.snapshot` |
-| Compaction | `compaction` part | `session.compacted` | `type=compaction` (running, completed, failed); `session.compaction.*` |
-| Error | message `error` {name, data} | `session.error` | `assistant.error`; `idle.outcome=failed` |
-| Abort | message `error.name = "MessageAbortedError"` | `session.status idle` | `type=idle outcome:"interrupted"`; `session.execution.interrupted` |
-| Turn done | — | `session.idle`, `session.status {type: idle, busy or retry}` | `type=idle`; `session.execution.succeeded` |
-| Model and agent | per message `agent`, `modelID`, `providerID` | | `agent-switched`, `model-switched` messages; `session.agent.selected`, `session.model.selected` |
-| Permission | — | `permission.asked {id, sessionID, permission, patterns, metadata.diff, always, tool{messageID, callID}}`, `permission.replied {requestID, reply}` | `permission.asked {id, action, resources, save, metadata.files[].patch, source}` |
-| Question | — | `question.asked {id, questions[{question, header, options[{label, description}]}], tool}`, `question.replied {answers}` | **`form.created`** {form{id, fields[{key, title, options, custom}], metadata.kind:"question"}}, `form.replied` |
+Robust:
+- id-keyed upserts.
+- `type` / `role` / `text` / `tool` / `state.status`.
+- Ignoring anything unknown.
+- History and live data share one shape.
 
-## 3. Blocked states
+Fragile:
+- Per-tool shapes (`todowrite` input, `task` metadata `sessionId`, `question` input).
+- Turn end: `finish:"tool-calls"` after a rejected permission has no `stop`. Use SSE `session.idle` /
+  `session.status idle` live, and the next user message in history.
+- `synthetic` text parts.
+- Pending cards: an API `abort` does not publish `permission.replied` (see 6). Rebuild them from `GET /permission`
+  and `GET /question` on `session.idle` and on reconnect.
 
-All of these were tested.
+**3.4 No port.** You can poll `opencode.db` (WAL) with `sqlite3 -json`. Rows land as fast as SSE (above). But the
+schema is internal, it changes in 2.x, `sqlite3` may not exist on the host, and pending requests are never on disk.
+FRAGILE. Only useful for panes not started by Oriel, which get no chat anyway.
 
-| | What happens |
-|---|---|
-| TUI screen | Permission: `△ Permission required → Edit a.txt / diff / Allow once  Allow always  Reject  ⇆ select enter confirm`. Question: a numbered list plus "Type your own answer", `↑↓ select enter submit esc dismiss`. |
-| herdr `agent_status` | `blocked` for both, through the TUI plugin. `agent.prompt` returns `{"code":"agent_blocked"}`. **Works today.** |
-| **Answer with keys** (works today, also on a plain v1 TUI) | Permission: `enter` = the selected option (Allow once by default); `left`/`right` or `h`/`l` move; `esc` = Reject. Question: a **digit key picks and submits** (`3` → "Plum"); `up`/`down` + `enter`; `esc` dismisses. Tested on a no-port v1 pane. |
-| Answer through the server (v1 `--port`) | `GET /permission` → `POST /permission/:id/reply {"reply":"once\|always\|reject","message"?}`. `GET /question` → `POST /question/:id/reply {"answers":[["Blue"]]}` or `/reject`. The TUI dialog **closed on its own** and the turn went on. Tested. The old `/session/:id/permissions/:pid` route still exists. |
-| Answer through the server (v2) | `POST /api/session/:id/permission/:rid/reply {"decision":"once"}`. `POST /api/session/:id/form/:fid/reply {"answer":{"q0":"Blue"}}`. Tested; the TUI followed. |
+## 4. Send
 
-Verdict: real Approve / Deny / option buttons are possible.
-- **Reliable:** structured data from SSE or `GET /permission`, and the answer sent through the API. Needs v1 `--port` or v2.
-- **Fallback for a plain v1 TUI:** draw buttons from the screen (the design's blocked panel) and send keys.
-  The keys are fixed (enter, esc, left/right, digits), so the panel can label them.
+- Idle: `herdr agent prompt` works. Multiline keeps its newlines (`"Multi A\n\nMulti B…"`; herdr adds one trailing
+  space).
+- Working: the TUI shows the message as `QUEUED`. The user message is **saved at once** and runs after the turn.
+  This is a queue, not a steer.
+- Confirmation: the user `message.updated` + text part on SSE, about 0.4 s later. No event within ~3 s means the
+  send failed, so show the TUI.
 
-## 4. Sending messages
+Failure cases:
+- **A picker is open** (`/models`, `/sessions`, `/fork`): herdr still says `idle`, and the typed text goes into the
+  search box (round 1). The plugin says `dialog:true` (tested with `/models` and `/fork`). **Refuse to send while
+  `dialog` is true.**
+- **Permission or question:** herdr says `blocked` and `agent prompt` returns `agent_blocked`.
+- **Starting:** no state line yet. Refuse.
 
-| Case | Result |
-|---|---|
-| `agent.prompt` while idle | Works. The text shows and the turn starts. |
-| While working | Works: the TUI **queues** it (shown with a `QUEUED` tag) and runs it after the turn. This is not a steer. |
-| Multiline | Works: bracketed paste keeps the newlines. |
-| `/command` | Works when the command exists. `/compact` and `/new` run directly. `/models`, `/sessions` and `/agents` open pickers. |
-| `@file` | **Caveat.** Pasted `@a.txt` stays plain text (no `file` part), because a mention needs the autocomplete pick. The API can attach it instead: a v1 `parts:[{type:"file", mime, url:"file://…"}]`, or v2 `files[]`. |
-| Image | Only as a pasted path, or through an API file part. |
-| v1 `POST /session/:id/prompt_async {parts:[{type:"text", text}]}` | 204. **The TUI showed the message and the reply** when it was on that session. Tested. Also accepts `model`, `agent`, `variant`. |
-| v1 `POST /tui/append-prompt {text}` + `POST /tui/submit-prompt` | Fills and submits the TUI's own input box. Tested. |
-| v2 `POST /api/session/:id/prompt {text, delivery:"queue"\|"steer"}` | Shown in the TUI. Tested with queue. **v2 adds a real steer.** |
-
-**Danger:** pickers and dialogs that are not approvals do **not** set `blocked`. After `/models` I picked Sonnet, and a
-second "Select variant" (reasoning effort) dialog opened. herdr still said `idle`, so the next `agent.prompt` text went
-into the dialog's search box.
+Alternatives:
+- `POST /session/:id/prompt_async` → 204, and the TUI showed it. But with no `agent` it uses the **default agent**
+  (Build) even when the TUI is in Plan mode. The model comes from the session. FRAGILE.
+- `POST /tui/append-prompt` + `/tui/submit-prompt` with a picker open: both returned `true`, but nothing was
+  submitted, and the text stayed in the input box. No confirmation. FRAGILE.
 
 ## 5. Interrupt
 
-- Keys: `esc` once shows "esc again to interrupt"; a **second `esc`** cancels. Tested.
-- On disk: the assistant message gets `error {name:"MessageAbortedError"}` and the TUI shows "· interrupted".
-- v1 server: `POST /session/:id/abort` → `true`. The TUI shows interrupted. Tested.
-- v2 server: `POST /api/session/:id/interrupt` → `{"interrupted":true}`. An `idle outcome:"interrupted"` message is
-  written. Tested.
+- `esc` shows "esc again to interrupt"; a second `esc` cancels. The TUI shows `· interrupted` and herdr goes `idle`.
+- On SSE: `session.error {name:"MessageAbortedError"}`. Saved: the assistant message `error.name` and the partial
+  text.
+- `POST /session/:id/abort` → `true` also works, but see 6. Prefer the keys.
 
-## 6. Model and mode
+## 6. Approvals and questions (in-chat, through the port)
 
-**v1, by keys:**
-- `tab` / `shift+tab` cycle the agents build ↔ plan (v2 hint: `shift+tab agents`).
-- `/models` opens a picker. Typing filters it and `enter` picks. Some models then open a second **variant** picker.
-- `/variants` opens the reasoning-effort picker.
-- There is no direct `/model <name>` form.
-- The model is kept **per agent** in the TUI's memory. Switching back to Build restored Haiku. `state/opencode/model.json`
-  holds recent models and variants for the whole TUI, not per pane.
+- **Seen:** SSE `permission.asked {id, permission:"bash", patterns, metadata.command, always, tool.callID}`; the same
+  from `GET /permission`. Pair it with the tool row by `tool.callID`.
+- **Answered from outside:** `POST /permission/per_…/reply {"reply":"once"}` → 200 `true`. The TUI dialog closed,
+  herdr went `blocked`→`working`, and the command ran. Then SSE `permission.replied {requestID, reply}`.
+- **Questions:** `POST /question/que_…/reply {"answers":[["Blue"]]}` → 200. The TUI showed "Blue" and the model
+  said "You picked Blue." Then SSE `question.replied`. There is also `/question/:id/reject`. Custom-text answers were
+  not tested.
+- **Race:** after the user answered in the TUI (`esc` = reject), Oriel's reply got **404
+  `PermissionNotFoundError`**: clean. The chat drops the card on `*.replied` or on a 404.
+- **Timeouts:** none. A request waits forever (in-memory `Deferred`).
+- **Abort while pending:** `POST /abort` ended the turn, but the permission **stayed** in `GET /permission`, in the
+  TUI dialog and as herdr `blocked`. A later `reject` cleared it. Keep the card while `GET /permission` lists it.
+- **Policies:** config rules are checked before asking. `deny` and `allow` never emit `asked`. The `permission.ask`
+  plugin hook exists in the types but is not wired in v1. "Always" adds in-memory rules and auto-replies with
+  matching pending requests (`reply:"always"` events).
+- **Knowing that it waits:**
+  1. A pending request from SSE or GET means a known card.
+  2. `dialog:true` from the plugin means a picker. Show the TUI.
+  3. herdr `blocked` (screen-based; it worked without herdr's plugin) with no pending request means something
+     unknown. Show the TUI.
 
-**v1, by server:**
-- `POST /tui/execute-command {"command":"agent_cycle"}` switches Build → Plan. Tested. Only legacy aliases work here.
-- `POST /tui/publish {type:"tui.command.execute", properties:{command:"<any keymap id>"}}` dispatches any TUI command:
-  `agent.cycle`, `model.list`, `model.cycle_recent`, `variant.cycle`, `permission.mode` (toggles auto-approve),
-  `session.interrupt`, `session.compact`, `session.new`…
-- `prompt_async` can set `model`, `agent` and `variant` for one message, without changing the TUI selector.
+## 7. Remote (one SSH connection, line streams and one-shot commands)
 
-**v2:** `POST /api/session/:id/agent {"agent":"plan"}` and `/model {"model":{providerID, id}}` change the **session**
-state. The TUI footer followed at once ("Plan · Claude Sonnet 4.5"). Tested.
+Tested through a user-mode `sshd` on `127.0.0.1:22999` (temp keys under `/tmp`, `-F /dev/null`; killed after):
+- `sh -c "tail -n 1 -F <state>"` streamed the route change to `home`.
+- `sh -c 'printf "user = …%s" "$(cat .pw)" | curl -sN -K - <url>/event'` streamed `SSH-OK` and `session.idle`. The
+  password stays on the host.
+- One-shot `herdr --session … agent prompt` (use the full path: it was not on the non-login `PATH`), and
+  `send-keys`.
 
-**Read back:**
-- The footer on screen (`Build · Claude Haiku 4.5 (latest) Anthropic`, then tokens, % and $).
-- The last assistant message's `agent`, `modelID` and `providerID` (v1).
-- `session_v2.agent` and `session_v2.model` (v2).
-- `GET /config/providers` (v1) or `/api/model` (v2) for the model list.
+Everything else is also a one-shot `curl`: history GET, permission and question replies. The plugin files are one
+relay write. Needs `curl` on the host; Perl's `IO::Socket` could stand in (not tested). No port forward, no daemon.
 
-Approval mode: `--auto` at start, or the `permission.mode` command. Plan mode is the `plan` agent.
+## 8. Everything else
 
-## 7. Other interactive elements
-
-- **Slash commands that open a picker:** `/sessions` (`resume`, `continue`), `/models`, `/agents`, `/variants`,
-  `/mcps`, `/themes`, `/connect`, `/workspaces`, `/skills`, `/help`, `/timeline`.
-- **Slash commands that run directly:** `/new` (`clear`), `/compact` (`summarize`), `/undo`, `/redo`, `/fork`,
-  `/rename`, `/copy`, `/export`, `/thinking`, `/timestamps`, `/diff`, `/status`, `/exit`, and custom commands
-  (`GET /command`).
-- Other pickers: the `@` file mention and `/` autocomplete.
-- Context and cost: the footer `14.0K (7%) · $0.02`; `step-finish` tokens and cost.
-- Todos: `todo` table and `todo.updated`.
-- Subagents: child sessions; the TUI moves between them with `session.child.*`.
-- Every picker needs the TUI ("show terminal"), unless the chat rebuilds it from API data (models, agents, sessions,
-  which v1 `--port` and v2 can list).
-
-## 8. Remote over SSH
-
-| Need | How over the relay | Extra install? |
+| Item | Rating | Note |
 |---|---|---|
-| Transcript, v1 plain | Polled one-shot commands: `sqlite3 -json <db> "select … where time_updated > ?"`, or `opencode db "<sql>"` (TSV). No `tail -F`: the data is in SQLite. | `sqlite3` or the opencode CLI, which is already there. |
-| Live events, v1 `--port` / v2 | `curl -sN http://127.0.0.1:<port>/event` is **line-based SSE**, so a relay line stream carries it directly. v2 needs the Basic header, built on the host from `service.json`, so the password never leaves the host. | `curl` only. No port forward. |
-| Actions | One-shot `curl -XPOST …/permission/:id/reply`, `/prompt_async`, `/abort`, `/tui/*` | `curl` |
-| Keys and screen | herdr `agent.send_keys` and `pane.read`, as today | none |
+| Model / variant change | SKIP | A picker chain. Show the TUI. |
+| Agent (Build/Plan) | SKIP for setting, RELIABLE for display | `tab` cycles, but the result is only on screen. Show the last message's `agent` and `modelID`. |
+| Slash commands | Partly | `/compact` and `/new` sent as text run directly. Picker commands set `dialog:true`, so show the TUI. |
+| Images, `@file` | SKIP | A pasted `@file` stays plain text. |
+| Subagent detail | RELIABLE (read-only) | `GET /session/<child>/message`, same parser |
+| Todos | RELIABLE | `todowrite` input in the transcript; `GET /session/:id/todo` |
 
-Nothing needs a local port, a daemon or an install beyond `curl` and `sqlite3`.
+## 2.x (unreleased dev)
 
-## 9. Recommendation: the opencode adapter
+- **Launch:** the TUI has no `--port`. Every TUI attaches to a shared background service with Basic auth from
+  `$XDG_STATE_HOME/opencode/service.json` (0600). So the side door always exists and no password flag is needed.
+- **Plugin:** `OPENCODE_TUI_CONFIG` is gone (`tui.json` is migrated). Route reporting needs the v2 plugin path, the
+  way herdr's plugin has a v2 `setup()`.
+- **API:** routes move under `/api/*`. Questions become forms (`/form/:fid/reply`). The permission reply is
+  `/api/session/:id/permission/:rid/reply`. A prompt can use `delivery:"steer"`.
+- **Storage:** `session_message` instead of `message`/`part`. The parser needs a second mapping.
+- **Shared service:** it serves many TUIs, so filter strictly by `sessionID`.
 
-1. **Find:** the pane's `agent_session.value` (`ses_…`) from herdr. For the database, use `lsof -p <pid> -Fn | grep
-   opencode.*\.db`, or `opencode db path`. For the server, check in this order: v2 `service.json` → v1
-   `lsof -iTCP -sTCP:LISTEN` on the pane pid (or `--port` in argv) → no server.
-2. **Events:** when a server exists, one `curl -N /event` stream filtered to the session. This gives live text,
-   tools, `permission.asked` and `question.asked` / `form.created`, status and idle. Read history once from
-   `GET /session/:id/message` (v1) or `/api/session/:id/message` (v2). With no server (plain v1, the common case
-   today), **poll SQLite** about every 1 s on `part.time_updated`. Text then appears per block, not per token, and
-   the "Working" row comes from herdr's `agent_status`.
-3. **Actions with a server:**
-   - Permissions and questions become real buttons through `/permission/:id/reply` and `/question/:id/reply` (v2:
-     `…/permission/:rid/reply`, `…/form/:fid/reply`).
-   - Send with `prompt_async` (v2 `prompt` with `delivery` steer or queue). Interrupt with `/abort` (v2 `/interrupt`).
-   - Agent and model switching: v2 API, or v1 `/tui/publish` commands.
-4. **Actions without a server (plain v1):**
-   - `agent.prompt` to send. The TUI queues it when busy.
-   - Blocked panel keys: `enter`, `esc`, `left`, `right`, digits. Interrupt is `esc esc`. Mode is `tab`.
-   - Model changes go to "show the TUI", because the picker chain needs it.
-5. **In chat:** messages, tools, approvals and questions (structured when a server exists, keys otherwise), send,
-   interrupt, agent toggle. **Show the TUI for:** model and variant pickers on v1, the session picker, `@`
-   autocomplete, diff view and themes.
+## Source
 
-**Top 5 risks**
-1. **A plain v1 TUI has no side door.** We get disk data per block, no pending-permission details on disk, and
-   key-driven answers only. Asking users to run `opencode --port 0`… changes how they launch it, and `--port 0` picks
-   a random port, so it must be found with `lsof`.
-2. **v2 is a different API and storage** (`/api/*`, `session_message`, forms instead of questions, a background
-   service with Basic auth, no `/tui/*` control routes). The adapter needs two parsers and two clients, and the switch
-   could land in any release.
-3. **Non-approval dialogs are not "blocked".** Model, variant and session pickers left `agent_status: idle`, and a
-   prompt typed into the variant search box. The key guard, plus a screen check for `esc`-able dialogs, is needed
-   before sending.
-4. **Shared servers.** One v2 service, or one v1 `serve`, holds many sessions and TUIs. `/tui/*` events reach every
-   TUI attached to that workspace. Filter strictly by `sessionID` and prefer session-scoped calls over TUI-scoped ones.
-5. **herdr detection and plugin coverage.** `agent_session` comes only from herdr's opencode TUI plugin. It was
-   installed here as v13; without it there is no session id, and a `cwd` plus latest-`time_updated` guess is ambiguous.
-   herdr did not detect a source-run v2 (`bun`) as opencode at all.
+The TUI plugin as tested (20 lines), named in Oriel's `tui.json` (`{"plugin":["<D>/oriel-tui.js"]}`). Reading the server URL goes through the SDK client's private `_client`: check it on each opencode release.
 
-Not verified: herdr's v2 plugin reporting (blocked by the `bun` process name); images; `todo` and subagent events
-(read from source, not run); question custom-text answers.
+```js
+// Oriel TUI plugin: appends one JSON line to $ORIEL_OC_STATE whenever the TUI's session, dialog state or server URL changes.
+import { appendFileSync } from "node:fs"
+export default {
+  id: "oriel.state",
+  tui: async (api) => {
+    const file = process.env.ORIEL_OC_STATE
+    if (!file) return
+    let last = ""
+    const tick = () => {
+      const r = api.route.current
+      const cfg = api.client?._client?.getConfig?.() ?? api.client?.client?.getConfig?.()
+      const s = { pid: process.pid, url: cfg?.baseUrl ?? null, route: r?.name ?? null,
+        session: r?.name === "session" ? r.params?.sessionID ?? null : null, dialog: api.ui.dialog.open }
+      const k = JSON.stringify(s)
+      if (k !== last) { last = k; appendFileSync(file, JSON.stringify({ t: Date.now(), ...s }) + "\n") }
+    }
+    tick()
+    const iv = setInterval(tick, 200)
+    api.lifecycle.onDispose(() => clearInterval(iv))
+  },
+}
+```
+
+## From the first spike
+
+- A plain 1.x TUI runs its server in a worker thread with no HTTP listener; only `--port`, `--hostname` or `--mdns` open one. 2.x always attaches to a shared local service (`service.json`, Basic auth).
+- Storage is SQLite (`opencode.db`): `session`, `message`, `part` (text, reasoning, tool, step-start/finish with cost and tokens, file, agent, subtask, patch, compaction). Pending permissions and questions are never on disk.
+- Keys: Return allows once, Esc rejects, ←/→ move, a digit answers a question; Esc twice interrupts; tab cycles build and plan.
+- 1.x `/tui/append-prompt`, `/tui/submit-prompt` and `/tui/publish` drive the TUI's own input and commands. Model and variant pickers report `idle`.

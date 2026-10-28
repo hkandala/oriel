@@ -1,294 +1,249 @@
 # pi: chat view research
 
-> Spiked in throwaway herdr sessions for the [chat view](../ui/chat-view.md). The spike files named below lived in `/tmp/oriel-research/pi/` and were not kept; the bridge's design is under [The bridge](#the-bridge).
+> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/oriel-research/` and were not kept.
 
-Agent: `/usr/local/bin/pi` (company launcher, Mach-O) → `/usr/local/bin/pi_cli/pi.real`, a compiled build of
-upstream `@earendil-works/pi-coding-agent` **1.4.0** (`/usr/local/bin/pi_cli/package.json`). Docs read:
-`/usr/local/bin/pi_cli/docs/{extensions,session-format,rpc,rpc-commands,rpc-extension-ui,keybindings,slash-commands,sessions,message-types}.md`.
-Exact types read from upstream `main` on GitHub (`core/extensions/types.ts`, `session-manager.ts`,
-`rpc-mode.ts`, `extensions/runner.ts`); 1.4.0 behaved the same in every test below.
+Agent: `/usr/local/bin/pi` (company launcher) → `pi_cli/pi.real`, upstream `@earendil-works/pi-coding-agent` 1.4.0.
+Tests ran in herdr session `oriel-dev-research-pi2` (removed). Panes were started the way the chooser starts
+them: `herdr pane run <pane> "<command>"` types the command and Return into the pane's shell.
 
-Throwaway run: herdr session `oriel-dev-research-pi`, pane `w1:p1`, cwd `/tmp/oriel-research/pi/work`,
-`herdr agent start pi-r --kind pi --pane w1:p1 -- --model anthropic/claude-sonnet-5-5 --session-dir /tmp/oriel-research/pi/sessions -e /tmp/oriel-research/pi/bridge.ts [-e asker.ts]`.
-Session torn down, processes killed.
+## Summary
 
-Files here:
-- `bridge.ts`: the spike extension ([The bridge](#the-bridge)). `asker.ts`: a stand-in third-party extension with a
-  confirm/select/input. `linearize.py`: prints the current branch of a session file.
-- `samples/session-*.jsonl`: my 4 session files (system prompt, signatures and base64 redacted).
-  `samples/bridge-events*.jsonl`: what the bridge streamed.
+| Feature | Mechanism | Rating | Evidence |
+|---|---|---|---|
+| Launch flags | `pi -e <oriel-pi.ts> --oriel <state.jsonl>`. The extension file is written once by a relay run | **RELIABLE** | The launcher passed both flags through to `pi.real`. The user's 22–24 extensions, herdr integration and settings stayed active |
+| Recognize an Oriel pane | `--oriel <path>` in the argv from `pane.process_info`. This works after an Oriel relaunch too | **RELIABLE** | Both `pi` and `pi.real` show the argv |
+| Ready for input | The first `session` line in the state file (pi runs `session_start` in TUI mode) | **RELIABLE** | herdr already says `idle` about 1 s after launch, before the TUI is up. A prompt sent then was typed into the editor, and its Enter was lost |
+| Transcript discovery | The last `session` line in the state file gives `path`. herdr's `agent_session` gives the same path when the herdr integration is installed | **RELIABLE** | startup, /new, /fork, /resume tested. Both sources agreed every time |
+| Follow /tree | A `tree` line gives the new leaf, because pi writes nothing to the transcript on /tree | **RELIABLE** | `{"type":"tree","leaf":"07f07f41"}`, while the file's last entry was still `37364911` |
+| Compaction | Same file. pi appends a `compaction` entry | **RELIABLE** | Tested with project-local `keepRecentTokens:1500` |
+| File watching | `tail -F` on the path. Each entry is one whole line, written at `message_end` | **RELIABLE** | 40 ms from disk to watcher. Up to 1 s when the file is created late |
+| Parser | Walk `parentId` back from the last entry (or from the `tree` leaf). Map a few types. Skip and count everything else | **RELIABLE** for the core, **FRAGILE** for the abort shape | See §3 |
+| Send | `herdr agent prompt`. Enter while working = steer | **RELIABLE** | idle, working and multiline tested |
+| Send confirmation | The user entry appears in the transcript | **RELIABLE**, but late for steer | A steered message lands only when pi delivers it, after the current tool ends |
+| Refuse send in an extension dialog | `ui_prompt_start/end` → `herdr:blocked` and a `blocked` state line | **RELIABLE** | `agent prompt` → `{"code":"agent_blocked"}` |
+| Refuse send in a built-in picker | none (`/model`, `/tree`, `/fork`, `/resume`, `/settings`) | **SKIP** → show the TUI | herdr says `idle` and the extension sees nothing. Screen checks are fragile |
+| Interrupt | `herdr agent send-keys esc` | **RELIABLE** | `stopReason:"aborted"`, or `stopReason:"error"` + "The operation was aborted." |
+| "Waits on something" | A `blocked` state line with `kind` and `title` | **RELIABLE** for extension dialogs | confirm, select, input, a tool gate and a timeout were all seen and cleared |
+| In-chat answers | keys (`enter`, `down enter`, `esc`, text + `enter`) | **FRAGILE** → show the TUI | They work, but the options are unknown and an answer can race into the editor |
+| Remote | All file + herdr one-shot + `tail -F` streams | **RELIABLE** (reasoned, no sshd test) | §7 |
+| Model, thinking, slash commands, images | keys / typed commands | **SKIP** → show the TUI | §8 |
 
-## The bridge
+## Launch command
 
-A one-file pi extension (~200 lines), loaded with `-e` or from the extensions folder plus `/reload`. On
-`session_start` in TUI mode it listens on a unix socket (`ORIEL_BRIDGE_SOCK`) and greets each client with
-`{"type":"hello","state":…}`. JSON lines both ways; every client gets every event.
+Before the first launch on a machine, Oriel does one relay run. The extension has no `'`, so it fits in single quotes:
 
-- **In:** `prompt {text, deliverAs?: steer|followUp}` (`pi.sendUserMessage`), `command {text}` (extension,
-  template and skill commands only), `abort`, `compact {instructions?}`, `new_session` (through its own
-  `/oriel-new` command), `set_model {provider, modelId}`, `set_thinking {level}`, `get_state`,
-  `ui_response {id, value}`. Each gets `{"type":"response", id, ok, …}`.
-- **Out:** `event` (pi's agent, turn, message, tool, model, thinking, compaction and tree events, with
-  `message_update.partial` and `turn_end.context` trimmed); `ui_request {id, kind: select|confirm|input, title,
-  options|message|placeholder, approval?: {toolCallId, toolName, input}}`; `ui_resolved {id, by: client|tui, value}`.
-- **Dialogs:** it wraps the shared `ctx.ui.select/confirm/input` and races the TUI dialog against the clients;
-  the first answer wins and the loser is dismissed (the TUI through an `AbortSignal`). While one is open it
-  emits `herdr:blocked`. A `tool_call` gate on `bash`, `write`, `edit` (`ORIEL_GATE_TOOLS`), active only
-  while a client is connected, asks Allow/Deny the same way.
-- On `session_shutdown` it closes the clients and removes the socket.
+```sh
+d="${XDG_CACHE_HOME:-$HOME/.cache}/oriel"; mkdir -p "$d/state" && chmod 700 "$d" &&
+f="$d/pi-<sha8>.ts"; [ -f "$f" ] || { printf '%s' '<file text>' > "$f.tmp" && mv "$f.tmp" "$f"; }
+```
 
-Company-build differences from upstream: extra extensions are always loaded (meta, provenance, trajectory,
-dss4_guardrails, llm-rules). The model catalog is quirky (haiku-4-5 400s on max_tokens, sonnet-4-5 400s on
-thinking, sonnet-5-5 refuses thinking `off`). The user's own packages add `pi-retry` (writes `context_edit`
-entries after errors) and `pi-time-sense` (a `custom_message` on every prompt).
+Then Oriel types this into the pane's shell (it keeps the user's alias for `pi`, if any):
 
-## Summary table
+```sh
+pi -e ~/.cache/oriel/pi-<sha8>.ts --oriel ~/.cache/oriel/state/<uuid>.jsonl
+```
 
-| Need | Mechanism | Verdict |
+- Use a per-user 0700 folder, not a shared `/tmp/oriel`: anyone who can write the folder can run code in pi.
+  Name the file by content hash, so two Oriel versions don't fight and the write is idempotent.
+- **The file must exist.** If `-e` names a missing file, pi exits at once with `Failed to load extension … Extension
+  path does not exist` and `Unknown option: --oriel` (tested). The chooser's failure rule then shows the terminal.
+- No `-ne`, no `--session-dir`, no `--session-id`. pi still loads the user's settings, packages and extensions, and
+  herdr's integration (`agent_session` and states were still reported). Sessions stay in the user's normal folder, so
+  `/resume` works as usual.
+- `--session-id <uuid>` would fix only the first file name (`<ts>_<uuid>.jsonl`), not /new or /fork. It is not needed.
+- `--session <path>` with a path that does not exist uses that exact path (pi source `_setSessionFile`). It is not needed either.
+- Not inline: pi needs a real `.ts` path, and `/reload` reads the file again. A pipe (`<(…)`) cannot be read twice.
+- Lost on resume: herdr's resume and pi's exit hint (`pi --session-dir … --session <id>`) start pi without Oriel's
+  flags. That pane then has no `--oriel` in its argv, so it is shown as a terminal only. That is the intended rule.
+
+**Recognize the pane after an Oriel relaunch:** `pane.process_info` returns `foreground_processes[].argv`. It held
+`["/usr/local/bin/pi","-e",".../oriel-pi.ts","--oriel",".../state/e5ae….jsonl",…]`, and `pi.real` showed the
+same args after the launcher's own `--extension …`. Find `--oriel`, take the next arg, and read the state file. Oriel
+keeps no other state. The `pid` in each `session` line matches `pi.real`'s pid in `process_info`. Delete the state
+file when the pane closes.
+
+## The extension (`oriel-pi.ts`)
+
+It appends to `--oriel`, only in TUI mode:
+`session {reason,path,pid}`, `blocked {kind,title}`, `unblocked`, `tree {leaf}`, `working`, `idle`, `shutdown`.
+On `ui_prompt_start` and `ui_prompt_end` it emits `pi.events "herdr:blocked"` `{active}`.
+
+Why it is robust:
+- It uses public events only: `session_start` with `reason`, `session_tree`, `ui_prompt_start/end`, `agent_start`,
+  `agent_settled`, `session_shutdown`, and `registerFlag`/`getFlag`. There is no monkeypatch. Round 1 wrapped `ctx.ui`;
+  that is no longer needed.
+- pi's runner wraps the shared `ctx.ui` itself (`wrapUIPromptContext`). So `ui_prompt_*` fires for **every**
+  extension's `select/confirm/input/editor/custom`. Nested prompts give one start/end pair.
+- Version floor: `ui_prompt_*` is in pi **0.84.4+**, `agent_settled` 0.80.4+, `ctx.mode` about 0.7x, and
+  `session_start.reason` long before that. On an older pi, unknown `pi.on` names simply never fire: the `session`
+  lines still work, and `blocked` lines are just missing. Oriel can check `pi --version` (the last line; the launcher
+  prints a banner first) in the same relay run.
+- It writes to herdr only through `herdr:blocked`, so herdr's own integration (installed on this Mac) does the
+  reporting. Without that integration (for example on a remote machine), the state file alone still drives the chat.
+
+## Details
+
+### 1. Launch: tests
+- Pane `w1:p1`, launched with Oriel's flags plus `--session-dir`/`--model`/`--thinking low` and the stand-ins (the
+  extra flags only keep the test out of the user's session folder and cheap). The state file got
+  `{"type":"session","reason":"startup","path":".../2026-10-28T07-35-46-023Z_e5aefd15-….jsonl","pid":74269}`.
+  `pane get` showed the same path as `agent_session {kind:"path",source:"herdr:pi"}`.
+- `~/.pi/agent` top-level files, compared before and after: only `meta-muse-model-catalog.json` changed (00:35, at
+  the first pi start). That is the company build refreshing its model catalog cache, as on every pi start. It is
+  not from Oriel's flags. No `trust.json` was written. I did not use `/reload`, which writes it.
+
+### 2. Transcript discovery: tests
+
+| Action | State file | herdr `agent_session` | Transcript |
+|---|---|---|---|
+| startup | `session reason:startup` | same path | written at the first message (header + buffered entries at once) |
+| /new | `shutdown`, then 1.4 s later `session reason:new` | updated | new file, not on disk until the first message |
+| /fork (picker) | `session reason:fork` | updated | new file. Forking at the first message put its text in the editor, and the file came later |
+| /resume (picker) | `session reason:resume`, old path | updated | the existing file, appended to |
+| /tree (picker) | `tree leaf:<id>` | no change | **nothing written** until the next entry |
+| /compact | nothing | no change | `compaction` entry appended to the same file |
+| /quit | `shutdown` | — | — |
+| /clear | does not exist in pi | | |
+
+The chat always tails the path from the newest `session` line. "Path known, file missing" is normal: keep `tail -F`
+running. pi rewrites a file in place (`open "w"`) only when it migrates an old-version file on load, or when the
+file is empty. So on truncation, re-read from offset 0 (`tail -F` prints "file truncated" and starts over).
+
+### 3. File watching and the parser
+- `tail -n +1 -F` on This Mac, started before the file existed. The first flush arrived 0.75 s after pi wrote it
+  (`tail` checks for a missing file once per second). After that, the disk timestamp to the watcher line was
+  41 ms, 39 ms and 226 ms (`tail.log`). pi writes one whole line per entry with `appendFileSync`. I saw no partial
+  line, but the parser keeps a trailing fragment anyway.
+- Write timing: user entry at submit. Assistant entry at its `message_end`: a tool-call message is written before
+  the tool runs (and before any approval gate). Tool result when the tool ends. There is no live text (by design).
+- `parse.py` emits: `user` (text, image count), `assistant`, `thinking`, `tool` (call paired with its result by
+  `toolCallId`), `bash` (user `!cmd`), `error`, `aborted`, `turn_end` (any `stopReason` other than `toolUse`),
+  `divider` (compaction, branch_summary), `note` (`custom_message` with `display:true`). It skips and counts
+  everything else. For my sample: `{'model_change':1,'thinking_level_change':1,'role:system':1,'custom_message':1,'custom':1}`.
+  `--follow` ran on a not-yet-existing path through 2 turns and a compaction (`follow.log`).
+- **Robust:** the tree walk (`id`/`parentId`), `message.role`, the content block types `text/thinking/toolCall`,
+  `toolResult.toolCallId`, and skipping unknown types, blocks and roles.
+- **Fragile:**
+  - The abort shape. Esc while streaming gave `stopReason:"aborted"`, "Operation aborted". Esc during a tool gave a
+    `toolResult` (isError, "Killed: 9"), then an empty assistant with `stopReason:"error"`, "The operation was
+    aborted." The parser matches "abort" in the error text.
+  - Subagents, todos and plan mode are not built in. They are plain tools (the user's `agent_start`, the company
+    `codemode`), so they show as generic tool rows.
+  - The user's extensions add entry types: `pi-time-sense` `custom_message` (display:false), `pi-retry`
+    `context_edit`. Both are skipped.
+- Show the raw branch. Don't apply `context_edit` or the compaction window; those only change what the model sees.
+
+### 4. Send
+- Idle: `agent prompt` → `agent_prompted`. The user entry appeared in 0.75 s (first flush), later ones in about 40 ms.
+- While working (`sleep 6` tool): `agent_prompted`, shown as a steer. The transcript order was toolResult → **user
+  (steer)** → assistant. The user entry is written at delivery (48.459), not at submit (about 43.4). So the chat
+  shows the message as "queued" until its entry appears. A follow-up (Alt+Enter) needs keys; `agent.prompt` always
+  presses Enter.
+- Multiline: one user entry, `"line one of steer\nline two: …"`.
+- Failure cases:
+  - **Starting:** herdr reported `idle` 1 s after launch. A prompt sent then was typed into the editor, but not
+    submitted. Gate sending on the state file's `session` line: a prompt sent right after it worked (`READY`).
+  - **Extension dialog:** `{"error":{"code":"agent_blocked",…}}`, and nothing was typed.
+  - **Built-in picker:** herdr says `idle`, and `agent.prompt` would type into it (round 1 showed this; the `/fork`
+    picker's Enter forks). The `/model` picker's Enter selects (Ctrl+S sets the default). Rule: the composer does
+    not send `/…` text. It switches to the TUI and types it there.
+  - **Session switch:** do not send between `shutdown` and the next `session` line.
+- Ready = the last state line is `session`, `idle`, `unblocked` or `tree` (not `blocked` or `shutdown`) **and**
+  herdr `agent_status` is `idle` or `working`.
+
+### 5. Interrupt
+`herdr agent send-keys <pane> esc`. In the transcript: an assistant entry with `stopReason:"aborted"` (streaming)
+or `"error"` + "The operation was aborted." (during a tool, after a killed `toolResult`). The state file gets `idle`.
+Esc in a dialog cancels the dialog only. Never send ctrl+c (it clears the editor, and twice exits).
+
+### 6. Approvals and questions
+pi has no built-in approvals. Questions come only from extensions, and every one of them goes through `ctx.ui`.
+- **The chat knows pi waits:**
+  - `/ask-me` gave `blocked confirm "Deploy?"`, then `select "Pick a color"`, then `input "Your name?"`, each about
+    11 ms after the previous `unblocked`.
+  - The tool gate gave `blocked select "⚠️ Dangerous command:\n\n  rm -rf ./nothing-here\n\nAllow?"` 33 ms after the
+    tool-call entry. So the chat can label the pending tool row "waiting".
+  - herdr went to `blocked` too.
+- **Answered from outside with keys:** `enter` (Yes), then `down enter` (green), then `send-text Ada` + `enter` →
+  `asker got ok=true color=green name=Ada`. Gate: `down enter` → toolResult `"Blocked by user"`, isError.
+- **Timeout:** a `{timeout:2000}` confirm gave `blocked`, then `unblocked` after 2.4 s, and herdr went back to
+  `idle` (`timed got false`).
+- **Race:** after the TUI answered, a late `enter` from the chat landed on an empty editor and did nothing. With a
+  draft in the editor, it would submit the draft. The options and the default are not in the event (only `kind` and
+  `title`). So in-chat buttons need the round-1 `ctx.ui` wrap: **FRAGILE**.
+- **Other extensions and policies:** they keep working. Another extension that emits `herdr:blocked` itself only
+  raises herdr's counter, and each pair stays balanced. `meta/command-policy` blocks without asking, so no prompt
+  is shown.
+- **Rule:** on `blocked`, the chat shows a row "pi is asking: ‹title›" and a "Show terminal" button. Built-in
+  pickers send no signal. They only open from typed `/` commands or keys in the TUI, so the user is already in the TUI.
+
+### 7. Remote (one SSH relay: line streams and one-shot commands)
+Reasoned out; I did not start a test sshd.
+- **Write the extension:** one `sh -c` run (above). It needs only POSIX sh, `printf`, `mkdir` and `mv`.
+- **Launch and recognize the pane:** herdr `pane run` and `pane.process_info` on the remote herdr, as on This Mac.
+- **State:** `tail -n +1 -F <state>` as one long-lived stream. **Transcript:** `tail -c +<offset> -F <path>`. When a
+  new `session` line arrives, restart that stream. GNU and BusyBox `tail -F` both retry missing files, and GNU
+  uses inotify.
+- **Send, keys, interrupt:** herdr one-shots.
+- **Blocked:** the state file works even when the herdr pi integration is not installed on the remote. Then
+  `agent.prompt` is not refused, so the chat must check the state line itself.
+- The only file Oriel installs is `~/.cache/oriel/pi-<sha8>.ts`. No daemon, no socket, no port.
+
+### 8. Everything else
+| Item | Rating | Note |
 |---|---|---|
-| Find transcript | herdr `agent_session {kind:"path"}` (from herdr's pi extension) | **works today** |
-| Parse transcript | JSONL tree; linearize from last entry via `parentId` | **works with caveats** (/tree moves the leaf in memory only) |
-| Live tokens, tool start/end | in-TUI extension `bridge.ts` → unix socket | **works today (spike)**, needs the extension loaded |
-| Send message shown in TUI | `agent.prompt` (keys) or bridge `pi.sendUserMessage` | **works today** |
-| Steer / follow-up | Enter = steer, Alt+Enter = follow-up; bridge `deliverAs` | **works today** |
-| Abort | `Esc` key or bridge `ctx.abort()` | **works today** |
-| Model / thinking | bridge `pi.setModel`/`setThinkingLevel`; `/model <exact scoped id>`; ctrl+p; shift+tab | **works today** (picker for non-exact names) |
-| Approvals / questions | pi has none built in; bridge races TUI dialog against the chat | **works today (spike)** |
-| Same without the bridge | screen keys only; herdr says `idle`, **agent.prompt is not refused** | **works with caveats (unsafe)** |
-| Built-in slash commands from the bridge | not possible (`sendUserMessage` sends them to the model) | keys only |
-| `pi --mode rpc` on the TUI's session | second process, splits the tree | **not possible** |
+| Model / thinking change | SKIP → TUI | `/model <exact scoped id>` and `/thinking <lvl>` work as typed text, but a non-exact name opens the picker. Read the current model from the last assistant entry's `provider/model/thinkingLevel` (RELIABLE, display only) |
+| Slash commands | SKIP → TUI | Typed into the TUI. Headless ones (`/name x`, `/compact`, `/new`) show up in the state file or transcript |
+| Images | SKIP | A pasted path stays text. A real image block needs an extension API (round-1 bridge) |
+| Subagents, todos, plan | generic tool rows | Not built in |
+| Cost / context | RELIABLE (display) | Sum `usage.cost.total` over the assistant entries |
+| Steer vs follow-up | steer only | `agent.prompt` = Enter = steer |
+| Live text | SKIP | By design (would need the round-1 socket) |
 
-## 1. Transcript
+Option (a), with no extension, works for discovery only where the herdr integration is installed. It has no ready
+signal (herdr says `idle` early) and no blocked signal (dialogs read as `idle`, and `agent.prompt` answers them).
+Option (b) costs 31 lines and one cached file, and closes all three gaps. **Recommend (b).**
 
-- **Where:** `~/.pi/agent/sessions/--<cwd with / → ->--/<ISO-ts>_<uuid>.jsonl` (or `--session-dir`).
-  The company `pi-herd` launcher uses `~/.pi/agent/pi-herd/sessions/`, so don't guess the folder; use the path.
-- **Which pane:** herdr's installed pi integration (`herdr integration status` → `pi: current (v9)`,
-  `~/.pi/agent/extensions/herdr-agent-state.ts`) calls `pane.report_agent_session` with
-  `agent_session_path = ctx.sessionManager.getSessionFile()` on `session_start` and every `agent_start`.
-  `pane get` showed `"agent_session":{"agent":"pi","kind":"path","source":"herdr:pi","value":"/tmp/oriel-research/pi/sessions/2026-10-28T01-57-30-338Z_01a1803a-….jsonl"}`
-  right after start. No lsof or cwd search is needed.
-- **The file can be missing at first:** pi writes nothing until the first user or assistant message
-  (`_persist` → `_hasConversation()`). Then it writes the header and all buffered entries at once.
-  herdr reports the path before the file exists. Custom entries made before that (`asker-result`) showed
-  up only at the first flush. Oriel must handle "path known, file not there yet" (use `tail -F`).
-- **When the file changes:**
+## Source
 
-| Action | File | Seen in test |
-|---|---|---|
-| `/new` | new file; `agent_session` updates at once (new file not yet on disk) | yes (via bridge `/oriel-new`) |
-| `/fork` | new file written at once, header has `parentSession` | yes |
-| `/clone` | new file with `parentSession` (docs) | no |
-| `/resume` | switches to the other file; `session_start` → herdr reports the new path | docs + integration source |
-| `/tree` | **same file, nothing written**; leaf moves in memory. A `branch_summary` is written only if you pick "Summarize" | yes |
-| compaction | same file, appends a `compaction` entry | docs ("Nothing to compact (session too small)" in my run) |
-| `/clear` | does not exist in pi (ctrl+c clears the editor) | — |
+The extension as tested (31 lines). Oriel writes it to `~/.cache/oriel/pi-<sha8>.ts` before the first launch on a machine.
 
-- **Format:** first line `{"type":"session","version":3,"id","timestamp","cwd"[,"parentSession"]}`. Then
-  entries `{type,id(8 hex),parentId,timestamp,…}` that form a **tree**.
-- **Linearize:** on load pi sets the leaf to the **last entry in the file**. Walk `parentId` from there to
-  the root (`linearize.py`). In my run: 66 entries, one branch point (`364010d0`), active branch 48 entries.
-  Caveat: after `/tree` with "No summary" the in-memory leaf is `364010d0`, but the file's last entry
-  is on the old branch until the next append. The bridge sees this as
-  `{"type":"session_tree","newLeafId":"364010d0","oldLeafId":"33964b0d"}`.
-  Other caveat: apply `context_edit` (`replacement:null` hides the target from the model; the UI still
-  shows it) and the compaction window if you want "what the model sees". For a chat view, show the raw branch.
+```ts
+// Oriel chat helper for pi. Load per run: pi -e <this file> --oriel <state.jsonl>
+// Appends one JSON line per change: the live transcript path, and whether a ctx.ui dialog is open.
+// Also tells the herdr pi integration (if installed) that pi is blocked, so herdr agent.prompt refuses.
+// @ts-nocheck
+import { appendFileSync } from "node:fs";
 
-## 2. Event types
+export default function (pi) {
+	pi.registerFlag("oriel", { type: "string", description: "Oriel: state file to append to" });
+	let ui = false; // a TUI session is live
+	const w = (o) => {
+		const f = pi.getFlag("oriel");
+		if (ui && f) try { appendFileSync(f, JSON.stringify({ ts: Date.now(), ...o }) + "\n"); } catch {}
+	};
+	pi.on("session_start", (e, ctx) => {
+		ui = ctx.mode === "tui";
+		w({ type: "session", reason: e.reason, path: ctx.sessionManager.getSessionFile(), pid: process.pid });
+	});
+	pi.on("ui_prompt_start", (e) => {
+		pi.events.emit("herdr:blocked", { active: true, label: e.title ?? e.kind });
+		w({ type: "blocked", kind: e.kind, title: e.title });
+	});
+	pi.on("ui_prompt_end", () => {
+		pi.events.emit("herdr:blocked", { active: false });
+		w({ type: "unblocked" });
+	});
+	pi.on("session_tree", (e) => w({ type: "tree", leaf: e.newLeafId })); // /tree moves the leaf without writing the transcript
+	pi.on("agent_start", () => w({ type: "working" }));
+	pi.on("agent_settled", (_e, ctx) => ctx.isIdle() && w({ type: "idle" }));
+	pi.on("session_shutdown", () => w({ type: "shutdown" }));
+}
+```
 
-Transcript entry types: `session`, `message`, `model_change`, `thinking_level_change`, `compaction`,
-`branch_summary`, `custom` (extension state, not in context), `custom_message` (in context, `display` flag),
-`label`, `session_info` (name), `context_edit`, `usage` (e.g. cache warm).
+## From the first spike
 
-| Event | Where | Fields we need |
-|---|---|---|
-| system prompt / tools | `message` role `system` (first one complete, later ones patch `sections`, `toolsAdded/Removed`) | skip in chat |
-| user text, images | `message` role `user`, `content` string or `[{type:"text"},{type:"image",data(base64),mimeType}]` | text, images |
-| assistant text | role `assistant`, `content[{type:"text",text}]` | text |
-| thinking | `content[{type:"thinking",thinking,thinkingSignature}]` | thinking (collapsed) |
-| tool call | `content[{type:"toolCall",id,name,arguments}]`, `stopReason:"toolUse"` | id, name, arguments |
-| tool result | role `toolResult`, `toolCallId` (pairs with toolCall.id), `toolName`, `content`, `isError`, `details` | pair by id |
-| user `!cmd` | role `bashExecution` `{command,output,exitCode,cancelled,truncated}` | yes (tested `!echo hi-from-bang`) |
-| errors | assistant with `stopReason:"error"`, `errorMessage` (e.g. a 400 body), empty content | show as error row |
-| abort | assistant with `stopReason:"aborted"`, `errorMessage:"Operation aborted"`, partial text kept | tested with Esc |
-| usage / cost | every assistant `usage{input,output,cacheRead,cacheWrite,totalTokens,cost{…,total}}`; also `usage` entries and compaction/branch-summary `usage` | sum for cost |
-| model | assistant `provider`,`model`,`thinkingLevel`; `model_change{provider,modelId}`; `thinking_level_change{thinkingLevel}` | read back current |
-| compaction | `compaction{summary,firstKeptEntryId,tokensBefore}` | divider row |
-| branch summary | `branch_summary{fromId,summary}` | divider row |
-| extension messages | `custom_message{customType,content,display}` (e.g. `pi-time-sense`) | show if `display` |
-| session name | `session_info{name}` | header |
-| subagents / todos / plan mode | **not built in**; only as extension tools and examples (`subagent/`, `todo.ts`, `plan-mode/`) | generic tool rows |
-| file mentions | none: `@note.txt` stays literal text (the TUI's `@` is only path autocomplete) | — |
-
-**When it hits disk:** once per **finished message** (`appendMessage` at `message_end`: user, then the
-assistant after its stream ends, then each tool result). There are no partials in the file. The tool-call
-assistant line is written before the tool runs (ts 01:59:17, result 01:59:30 behind an approval).
-
-**Live partial stream:** only inside the process. Extension events (`message_update` with
-`assistantMessageEvent` = `text_start/delta/end`, `thinking_*`, `toolcall_*`, plus `tool_execution_*`,
-`agent_*`, `turn_*`) are what the bridge forwards. Counts from one run: 30 `text_delta`, 8 `thinking_delta`,
-11 `toolcall_delta`. Trim the payloads: `message_update.partial` repeats the whole message on every token,
-and `turn_end.context` was 42 KB per turn.
-
-## 3. Blocked states
-
-pi has **no built-in permission prompts**. Installed extensions (from `~/.pi/agent/settings.json`
-`packages: ["../../code/pi-hkandala"]`, plus company `/usr/local/bin/pi_cli/extensions`): **none ask before
-tool calls.** `meta/command-policy.ts` *blocks* some shell commands with no prompt. `dss4_guardrails` never
-blocks. `pi-bash-bg` has a `ui.select` only in a job-picker command. Questions come only from extensions
-(`ctx.ui.select/confirm/input/editor/custom`) and from built-in pickers (`/model`, `/tree`, `/fork`, `/resume`, `/settings`).
-
-**Without a bridge (what herdr sees):**
-- A third-party `ctx.ui.confirm` (`asker.ts`, `/ask-me`): `pane get` → `"agent_status":"idle"`. herdr's pi
-  extension reports `blocked` only when some extension emits `pi.events "herdr:blocked"`; pi's own
-  `ui_prompt_start` event is not used. Then `herdr agent prompt w1:p1 "hello"` → **`agent_prompted`, not
-  `agent_blocked`**. The paste+Enter **answered the dialog** (result `ok=true`). Built-in pickers (the
-  /tree "Summarize branch?" select, the /model picker) also show `idle`.
-- Answering by keys works: `herdr agent send-keys w1:p1 down enter` (select 2nd), `enter`, `esc`
-  (= cancel → `undefined`/false). Screen text (`pane read --source visible`) shows the title, options, and
-  `↑↓ navigate  enter select  escape/ctrl+c cancel`.
-
-**With the bridge (spike, works today):**
-- `tool_call` gate (bash/write/edit, only while a client is connected) calls `raceDialog`. It shows the TUI
-  select **and** sends `{"type":"ui_request","id":"ui-1","kind":"select","title":"Oriel bridge: allow bash?…","options":["Allow","Deny"],"approval":{"toolCallId":"toolu_…","toolName":"bash","input":{"command":"ls -la"}}}`.
-  The first answer wins. A client answer aborts the TUI dialog through its `AbortSignal`. A TUI answer
-  sends `{"type":"ui_resolved","id":…,"by":"tui","value":"Deny"}`. A late client answer gets
-  `"no such request (already answered?)"`. All three were tested: client Allow, TUI `down enter` (Deny),
-  TUI `esc` (cancel → deny).
-- It emits `herdr:blocked` while waiting, so `agent_status` = **blocked**, and `agent prompt` →
-  `{"code":"agent_blocked"}`. That fixes the hole above.
-- **Every extension's dialog:** `ctx.ui` is one shared object (`runner.uiContext`), so the bridge wraps
-  `select/confirm/input` once and forwards them all. Tested with `asker.ts`: confirm answered by the
-  client (`true`), select by the TUI (`green`), input by the client (`"Ada"`) → `asker got ok=true color=green name=Ada`.
-  This is a monkeypatch, not an API. `editor()` and `custom()` components are not forwarded; built-in
-  pickers are not extension dialogs and cannot be forwarded.
-- Chat can show real buttons: kind + title + options/message/placeholder + tool input.
-
-## 4. Sending a message
-
-| Case | Keys (`herdr agent prompt`) | Bridge (`pi.sendUserMessage`) |
-|---|---|---|
-| idle | paste + Enter, shows as a user box | shows as a normal user box; `input` event `source:"extension"`; transcript identical to typed |
-| working | Enter = **steer** ("Steering: …" row, delivered after the current tool) | `deliverAs:"steer"` |
-| working, queue | Alt+Enter = follow-up (keys only; `agent.prompt` always presses Enter) | `deliverAs:"followUp"` ("Follow-up: …" row, runs after the turn) |
-| multiline | works (bracketed paste) | works |
-| `/cmd` | runs built-in and extension commands | only extension/template/skill commands (`expandPromptTemplates:true`); **built-ins go to the model as text** (`/name via-bridge` became a user message) |
-| `@path` | literal text | literal text |
-| image | pasted path stays text; the model then used `read` on it (worked) | `[{type:"text"},{type:"image",data,mimeType}]` → real image block (model answered "Red.") |
-
-Steer test: during `sleep 10`, steer "apple" via keys and follow-up "banana" via the bridge. Transcript order:
-toolResult → user STEER → assistant "done apple" → user FOLLOWUP → assistant "banana".
-Gotcha: `agent prompt --wait` after `/compact` returned `agent_prompt_stalled` (no `working` report during compaction).
-
-## 5. Interrupt
-
-- `Esc` (`app.interrupt`) aborts the run. It also cancels pi-retry's backoff and dismisses an open dialog
-  (it does not abort the run then). ctrl+c clears the editor (twice = exit). **Don't send ctrl+c.**
-- Transcript: partial assistant message with `stopReason:"aborted"`, `errorMessage:"Operation aborted"`.
-  Live: `agent_settled {aborted:true}`.
-- Bridge `{"type":"abort"}` → `ctx.abort()`: same result.
-
-## 6. Model and thinking
-
-- **Bridge (best):** `set_model {provider,modelId}` → `ctx.modelRegistry.find` + `pi.setModel`, and
-  `set_thinking {level}` → `pi.setThinkingLevel` (clamped). The TUI footer updates and the transcript gets
-  `model_change` and `thinking_level_change`. **Order matters:** a model switch resets thinking to the
-  default (`high`), so wait for the set_model response, then set thinking. My thinking-first try was
-  clamped to `off` on haiku and then replaced by `high`.
-- `/model anthropic/claude-opus-5-5` (exact id **in the scoped list** `enabledModels`) switches directly.
-  `/model sonnet-5-5` or a model outside the scope opens the **picker** with the text pre-filled
-  ("No matching models"). Then `tab` (scope all/scoped) + `enter` chooses. `/thinking [level]` is the
-  direct form (docs).
-- Keys: `ctrl+p` cycles scoped models (`model_select source:"cycle"`, went to `openai/gpt-6-sol`),
-  `shift+ctrl+p` cycles back, `shift+tab` cycles thinking (`low→medium`), `ctrl+l` opens the model selector.
-- Modes: pi has no plan or approval mode built in (plan-mode is an example extension).
-- **Read back:** bridge `get_state` → `{model, thinking, idle, sessionFile, sessionId, leafId, contextUsage, pendingMessages, commands}`.
-  Also the last `model_change`/`thinking_level_change` on the branch (but `--model`/`--thinking` at startup
-  write one too), or the footer text `… · sonnet-5.5 · low`. Live: `model_select{model,previous,source}`,
-  `thinking_level_select{level,previousLevel}`.
-
-## 7. Other interactive elements
-
-Built-in commands (pi's slash-commands doc): `/settings`, `/model [p/m]`, `/thinking [lvl]`,
-`/scoped-models`, `/login`, `/logout`, `/llama`, `/new`, `/resume`, `/name [n]`, `/session`, `/tree`,
-`/fork`, `/clone`, `/compact [instr]`, `/import <path>`, `/copy`, `/export [path]`, `/share`, `/bug`,
-`/trust`, `/reload`, `/hotkeys`, `/changelog`, `/quit`. Plus extension commands, prompt templates and
-`/skill:name`. `pi.getCommands()` lists only the non-built-ins.
-
-| Headless as typed text | Opens a picker or dialog |
-|---|---|
-| `/new`, `/name x`, `/compact [x]`, `/thinking lvl`, `/model <exact scoped>`, `/clone`, `/session`, `/export p`, `/reload`, `/quit`, `/copy`, `!cmd` | `/model` (no arg or no exact match), `/tree` (list + "Summarize branch?"), `/fork` (pick a user message), `/resume`, `/settings`, `/scoped-models`, `/login`, `/hotkeys` |
-
-- Pickers show `agent_status: idle`, so the chat can't tell they are open. Use the bridge's knowledge of
-  what it sent, or screen text.
-- Command-only APIs (`newSession`, `fork`, `navigateTree`, `switchSession`) are available to the bridge
-  through a trick. It registers a command (`/oriel-new`) and triggers it with
-  `sendUserMessage("/oriel-new",{expandPromptTemplates:true})`. Tested: a new session started, and herdr
-  updated `agent_session`. The same trick works for fork/tree/resume with a target id, with no picker.
-- Cost/context: footer (`󰝦 11.1k/1M`, `cold (~$0.03)`), bridge `contextUsage`, or summed `usage.cost`.
-- **Hot-loading:** `/reload` (typed) reloads extensions **without restarting the process**. A new
-  `work/.pi/extensions/late.ts` was live afterwards (`late-hello` in `getCommands`). So a bridge installed
-  in `~/.pi/agent/extensions` (or a project dir) can be attached to an already running TUI.
-  Side effect seen: `/reload` wrote `~/.pi/agent/trust.json` for the project folder (I deleted it). Any
-  reload or session switch restarts the bridge and drops clients; clients must reconnect.
-
-### Why not `pi --mode rpc`
-
-It is a separate process with its own `SessionManager`. It loads the file once and keeps its own leaf; pi
-has no file watching or locking. Test: `pi --mode rpc --session <tui file>` + `set_session_name` appended
-`session_info a013bd64 parent 5ab8ebdc`. Then `/name from-tui` in the TUI appended `db2f959a`, **also with
-parent 5ab8ebdc**. The tree split into two sibling branches, and neither process sees the other's
-entries, live events or queue. It also can't show anything in the TUI. RPC is only usable for a
-*different* session (or after the TUI quits).
-
-## 8. Remote over SSH
-
-| Piece | Over a plain SSH relay |
-|---|---|
-| `agent_session` path | herdr API, works as-is |
-| transcript tail | `tail -c +N -F <path>` line stream, **works** |
-| send / keys / abort / pickers | herdr `agent.prompt` / `send_keys`, works |
-| bridge events | `ssh host nc -U <sock>` as a long-lived line stream (stdout = events). **Works with caveats**: needs `nc` with `-U` (BSD/openbsd nc; not GNU netcat), or `socat`, or `python3 -c`. No local port, no daemon. |
-| bridge commands | one-shot `echo '{…}' \| nc -U -w1 <sock>`. Tested: a one-shot connection answered `ui-4` while another client listened (pending answers are global, events go to all clients). |
-| install | the bridge file must exist on the remote and be loaded: `-e` at launch, or `~/.pi/agent/extensions/` + `/reload`. That is an install on the remote (one file, no daemon). |
-
-If `nc -U` is a problem, the same bridge could use a file pair (append commands to `cmd.jsonl`, the bridge
-watches it; events to `events.jsonl` for `tail -F`). Not built.
-
-## 9. Recommendation
-
-**Adapter, two tiers:**
-1. **Baseline (works on any pi today, no install):** `agent_session` path → `tail -F` → parser
-   (linearize from the last entry; handle missing file, `context_edit`, compaction, `session_tree` gap).
-   Send with `agent.prompt` (Enter = steer while working). Abort with `send_keys esc`. Model by
-   `/model <exact scoped id>` typed, else picker + "show the TUI". Blocked: **no reliable signal** (herdr
-   says idle), so show the screen-text panel and guard keys.
-2. **Bridge tier (when `bridge.ts` is loaded):** a socket per pi (path keyed by session id or pid, e.g.
-   `$TMPDIR/oriel-pi-<sessionId>.sock`, found by `pane.process_info` pid or a small discovery file). It
-   gives live deltas ("Working" row with real text), real Approve/Deny and option buttons for every
-   extension dialog (race with the TUI, first answer wins), `herdr:blocked` so `agent.prompt` is refused
-   safely, `set_model`/`set_thinking`/`abort`/`compact`, steer vs follow-up, images, and
-   new/fork/tree/resume without pickers. The transcript stays the source of truth for history; the bridge
-   adds the live layer.
-
-**In chat:** messages, tool rows, thinking, errors/aborts, approvals and extension
-select/confirm/input (bridge), model/thinking menus (bridge or exact `/model`), steer/follow-up, images
-(bridge). **Show the TUI:** built-in pickers (`/tree`, `/fork`, `/resume`, `/settings`, `/login`, `/model`
-search), `ctx.ui.editor/custom` components, anything while no bridge is loaded and the screen looks like a dialog.
-
-**Top 5 risks**
-1. **Typing into an unreported dialog.** Without a `herdr:blocked` emitter, herdr reports `idle` and
-   `agent.prompt` paste+Enter **answers the dialog** (proven: `ok=true`). Built-in pickers are the same.
-   The key guard must not rely on `agent_status` for pi.
-2. **The bridge must be loaded in the TUI.** `-e` only at launch. Otherwise it needs a file in the
-   extensions dir + `/reload` (writes trust.json; restarts the runtime and drops clients). It is an install
-   on remote machines, and the `ctx.ui` wrap is a monkeypatch that may break across pi versions.
-3. **Tree vs file order.** `/tree` moves the leaf without writing. Linearize from the last entry and fix
-   up with `session_tree` (bridge) or re-read on the next append. Reading "in file order" shows abandoned
-   branches.
-4. **Session churn.** `/new`, `/fork`, `/resume`, `/reload` change the file and/or restart the bridge.
-   `agent_session` updates, but the new file may not exist until the first message. The tail and the
-   socket must retry.
-5. **Payload size and the company build.** Live events carry full messages and context (trim
-   `partial`, `turn_end.context`); images are inline base64 in the transcript. The launcher's catalog and
-   extra extensions (pi-retry `context_edit`, time-sense `custom_message`) add entry types the parser must
-   skip politely. Model switches reset thinking.
+- A bridge extension with a unix socket inside the TUI gave live deltas, sends with steer or follow-up, images, abort, `setModel` and `setThinkingLevel`, and every extension dialog raced between the TUI and a client (first answer wins). Not needed without live text; the 31-line state extension covers the core.
+- `pi --mode rpc` on the TUI's session file is a second process: it split the tree into two sibling branches. Never.
+- `/reload` loads a new extension into a running TUI, but writes `~/.pi/agent/trust.json`.
+- `/model <exact scoped id>` switches directly; any other argument opens the picker. ctrl+p cycles models, shift+tab cycles thinking.

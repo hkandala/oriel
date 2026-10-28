@@ -48,15 +48,41 @@ the client files say only what each one uses.
 | [herdr-browser.md](herdr-browser.md) | a Chromium view inside a herdr pane (plugin; deprecated) |
 | [agentaps.md](agentaps.md) | GPUI and WASM over iroh; runs its own agents over ACP, not herdr |
 
-## Agent apps with a terminal and a chat view (not herdr clients)
+## Agent apps with a chat view
 
-Read for the chat view; the options for Oriel are compared in [../ui/chat-view.md](../ui/chat-view.md).
+Read for the chat view; the decisions are in [../ui/chat-view.md](../ui/chat-view.md). "Same process" means the chat
+shows the agent's live TUI process, not a second one.
+
+| File | Same process | What it is |
+|---|---|---|
+| [cmux.md](cmux.md) | yes | Ghostty terminal; its chat tails the running agent's transcript, path from per-run hooks; "Answer in terminal" |
+| [nimbalyst.md](nimbalyst.md) | opt-in, Claude only | structured workspace; the real Claude TUI with an API-proxy tee and Claude's session record |
+| [pi-agent-dashboard.md](pi-agent-dashboard.md) | yes | a pi extension mirrors a live TUI to a web chat; dialogs in both places, first answer wins |
+| [orca.md](orca.md) | yes (transcript chat) | Electron IDE: a transcript chat over the TUI, or a structured chat that forks to switch |
+| [herdr-gpui.md](herdr-gpui.md) | yes, opt-in, Linux hosts | herdr client; Claude Code and Codex messages drawn above the CLI's own input rows, which grow while blocked |
+| [omnara.md](omnara.md) | yes (dropped) | PTY wrapper with `--session-id`, scraped approvals |
+| [happy.md](happy.md) | no: kills the TUI | phone app that resumes the session with the Agent SDK |
+| [superset.md](superset.md), [paradev.md](paradev.md) | no | ACP chats in a host daemon; terminal agents tracked by hooks |
+| [emdash.md](emdash.md) | no | each conversation is a chat or a TUI, chosen at creation |
+| [super-engineering.md](super-engineering.md) | no | closed Rust ADE; switches views only when idle, by resuming |
+| [sculptor.md](sculptor.md) | no | chat agents and terminal agents apart; per-run hooks for terminal agents |
+| [claudecodeui.md](claudecodeui.md) | no | headless chat turns beside a separate `claude --resume` shell |
+| [remodex.md](remodex.md) | no | iPhone chat on Codex's app-server, a rollout tail for outside runs |
+| [paseo.md](paseo.md) | no | a daemon that runs agents headless; terminals apart |
+| [t3code.md](t3code.md) | no TUI | chat only, over the Agent SDK, app-server, pi RPC, ACP, opencode |
+| [vibe-kanban.md](vibe-kanban.md), [crystal.md](crystal.md), [opcode.md](opcode.md), [terragon.md](terragon.md) | no TUI | headless runs, mostly one process per turn |
+
+## Tools that control agent TUIs
+
+Compared in [../ui/controlling-agent-tuis.md](../ui/controlling-agent-tuis.md).
 
 | File | What it is |
 |---|---|
-| [orca.md](orca.md) | Electron IDE: a transcript chat over the running TUI, or a structured chat that forks to switch |
-| [paseo.md](paseo.md) | a daemon that runs agents headless (Agent SDK, app-server, pi RPC, ACP); terminals apart |
-| [paradev.md](paradev.md) | ACP chats journaled in a host daemon; terminals apart, no live switch |
+| [agentapi.md](agentapi.md) | an HTTP API made from a screen scraper; deprecated |
+| [agent-deck.md](agent-deck.md) | a hardened send layer, and Claude's inbox socket |
+| [claude-code-own-surfaces.md](claude-code-own-surfaces.md) | Claude Code's session record, inbox socket, agent view, channels, Remote Control |
+| [tmux-and-pty-controllers.md](tmux-and-pty-controllers.md) | tmux, PTY and MCP controllers |
+| [acp-bridges.md](acp-bridges.md) | ACP bridges and wrappers that own the agent process |
 
 ## Compared
 
@@ -100,7 +126,8 @@ the client reaches a herdr on another machine. Details and sources are in each c
   Sending is `agent.prompt` (or paste + Enter), answers are `agent.send_keys`. No client builds chat from herdr
   alone.
 - **Apps that own their agents run chat as a structured child** (Paseo and Paradev only that; Orca beside a
-  transcript chat). None shows one process both as a terminal and as a structured chat.
+  transcript chat). The ones that show a chat over the live TUI read its transcript (cmux, herdr-gpui, Orca) or run
+  inside it (pi-agent-dashboard).
 - **Five ways to reach a machine:** SSH with a streamlocal channel to the API socket (nothing installed; LAN,
   Tailscale or a jump host); SSH exec of the herdr CLI (simplest, but polls and has no events); a daemon on
   the machine over LAN HTTPS (needs a pinned self-signed certificate); an outbound relay with WebRTC (works
