@@ -156,7 +156,8 @@ struct Palette: View {
             command.menu.filter { $0.enabled && $0.title.fuzzyScore(filter) != nil }.map { choice in
                 let current = command.previews ? choice.title == kept : choice.checked == true
                 let symbol = current ? "checkmark" : choice.symbol
-                return FilterList.Item(id: Self.choiceID(choice), symbol: symbol, title: choice.title,
+                return FilterList.Item(id: Self.choiceID(choice), symbol: symbol, program: choice.program,
+                                       title: choice.title,
                                        section: choice.heading, act: {
                                            kept = nil
                                            choice.action()

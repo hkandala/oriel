@@ -7,8 +7,9 @@ struct FilterList: View {
     struct Item {
         let id: String
         var symbol: String?
-        /// A pane's program tile instead of the symbol.
+        /// A pane's program tile instead of the symbol, or a program's.
         var pane: HostStore.Pane?
+        var program: String?
         /// A workspace's state icon instead of the symbol; `.some(nil)` for a workspace with no agent.
         var state: AgentState??
         let title: String

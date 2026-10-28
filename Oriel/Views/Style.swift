@@ -262,8 +262,8 @@ struct MenuRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if let pane = item.pane {
-                ProgramTile(icon: pane.iconID, letter: pane.letter)
+            if let icon = item.pane?.iconID ?? item.program {
+                ProgramTile(icon: icon, letter: item.pane?.letter)
             } else if let state = item.state {
                 StateIcon(state: state).frame(width: 22)
             } else {

@@ -209,6 +209,8 @@ struct Command {
     var family: (title: String, keys: String)?
     /// The palette row's SF Symbol.
     var symbol: String?
+    /// A program icon's id instead of the symbol (an agent of Start Agent Here).
+    var program: String?
     /// The header of its section in a submenu and a palette sub-page: a workspace's name over its tabs.
     var heading: String?
     /// More words the palette's filter matches.

@@ -79,7 +79,7 @@ extension CommandList {
         let agent = Command(section: .close, title: "Start Agent Here", group: .panes, symbol: "sparkles",
                             keywords: "pane kind claude code codex pi opencode", enabled: pane != nil,
                             menu: Chooser.agents.map { agent in
-                                Command(section: .close, title: agent.name) {
+                                Command(section: .close, title: agent.name, program: agent.command) {
                                     if let page, let pane = target() {
                                         page.start(agent, in: pane)
                                     }
