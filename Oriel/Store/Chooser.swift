@@ -2,7 +2,8 @@ import AppKit
 import HerdrKit
 import Observation
 
-/// A new pane's chooser (ui/new-pane): Terminal, Agent or Browser. The app's own state, kept on the session's store so
+/// A new pane's chooser (ui/new-pane): Terminal, Agent (which opens its agents under it) or Browser. The app's own
+/// state, kept on the session's store so
 /// every window shows it; herdr sees a plain shell. Its card is a new tab's or split's stand-in until herdr made the
 /// pane, then the pane's terminal, which a move keeps.
 @MainActor @Observable
@@ -17,14 +18,18 @@ final class Chooser {
         Agent(name: "pi", command: "pi"), Agent(name: "opencode", command: "opencode"),
     ]
 
+    /// A row of the list: `start` is an agent's, by its place in `agents`.
+    enum Row: Hashable {
+        case terminal, agent, browser, start(Int)
+    }
+
     @ObservationIgnored let standIn: String?
     /// herdr's pane, once it answered.
     @ObservationIgnored var paneID: String?
     @ObservationIgnored var terminalID: String?
-    /// The Agent step shows.
-    var agents = false
-    /// The selected tile of the step that shows.
-    var selection = 0
+    /// Agent is open: its agents show under it.
+    var open = false
+    var selected = Row.terminal
     /// The picked agent until it is ready: the card shows the loader.
     var starting: Agent?
 
@@ -32,13 +37,40 @@ final class Chooser {
         self.standIn = standIn
     }
 
-    var count: Int {
-        agents ? Self.agents.count : 3
+    var rows: [Row] {
+        [.terminal, .agent] + (open ? Self.agents.indices.map(Row.start) : []) + [.browser]
     }
 
     func made(_ pane: HerdrKit.Pane) {
         paneID = pane.id
         terminalID = pane.terminalID
+    }
+
+    /// Its number key: the top rows', or the agents' while Agent is open.
+    func number(_ row: Row) -> Int? {
+        let numbered = open ? Self.agents.indices.map(Row.start) : [.terminal, .agent, .browser]
+        return numbered.firstIndex(of: row).map { $0 + 1 }
+    }
+}
+
+extension Chooser.Row {
+    /// Its name, and the line on its right.
+    var labels: (name: String, detail: String) {
+        switch self {
+        case .terminal: ("Terminal", "Shell")
+        case .agent: ("Agent", "Coding agent")
+        case .browser: ("Browser", "Coming soon")
+        case let .start(index): (Chooser.agents[index].name, Chooser.agents[index].command)
+        }
+    }
+
+    /// Its identifier's last part: an agent's command, else its name.
+    var id: String {
+        if case let .start(index) = self {
+            Chooser.agents[index].command
+        } else {
+            labels.name.lowercased()
+        }
     }
 }
 
@@ -74,41 +106,40 @@ extension HostStore {
         choosers.removeAll { $0 === chooser }
     }
 
-    /// ← → ↑ ↓ move and stop at the ends, Return and the number keys pick at once, Esc picks Terminal or goes back
-    /// from the Agent step. Other keys do nothing, also while the loader shows.
+    /// ↑ ↓ move through the rows and stop at the ends, Return picks at once, → opens Agent, ← and Esc close it, Esc on
+    /// a closed list picks Terminal. The number keys pick the top rows, or the agents while Agent is open. Other keys
+    /// do nothing, also while the loader shows.
     func key(_ event: NSEvent, _ chooser: Chooser) {
         guard chooser.starting == nil else { return }
+        let rows = chooser.rows, index = rows.firstIndex(of: chooser.selected) ?? 0
         switch event.keyCode {
-        case 123, 126: chooser.selection = max(chooser.selection - 1, 0)
-        case 124, 125: chooser.selection = min(chooser.selection + 1, chooser.count - 1)
+        case 125, 126: chooser.selected = rows[max(0, min(index + (event.keyCode == 125 ? 1 : -1), rows.count - 1))]
+        // → on a closed Agent opens it; ← and Esc close an open one.
+        case 124 where chooser.selected == .agent && !chooser.open, 123 where chooser.open, 53 where chooser.open:
+            pick(chooser, .agent)
+        case 53: drop(chooser)
         case 36, 76:
             if !event.isARepeat {
-                pick(chooser, chooser.selection)
+                pick(chooser, chooser.selected)
             }
-        case 53 where chooser.agents: back(chooser)
-        case 53: drop(chooser)
         default:
-            if let number = Int(event.charactersIgnoringModifiers ?? ""), (1 ... chooser.count).contains(number) {
-                pick(chooser, number - 1)
+            let number = Int(event.charactersIgnoringModifiers ?? "")
+            if let row = rows.first(where: { number != nil && chooser.number($0) == number }) {
+                pick(chooser, row)
             }
         }
     }
 
-    func pick(_ chooser: Chooser, _ index: Int) {
-        if chooser.agents {
-            start(Chooser.agents[index], chooser)
-        } else if index == 1 {
-            chooser.agents = true
-            chooser.selection = 0
-        } else {
-            // Terminal; Browser too until phase 36.
-            drop(chooser)
+    /// Agent opens with its first agent selected, or closes with itself selected.
+    func pick(_ chooser: Chooser, _ row: Chooser.Row) {
+        switch row {
+        case .agent:
+            chooser.open.toggle()
+            chooser.selected = chooser.open ? .start(0) : .agent
+        case let .start(index): start(Chooser.agents[index], chooser)
+        // Browser too until phase 36.
+        case .terminal, .browser: drop(chooser)
         }
-    }
-
-    func back(_ chooser: Chooser) {
-        chooser.agents = false
-        chooser.selection = 1
     }
 
     /// Types the agent's command into the pane's shell, as Go to Directory types its `cd`, and shows the loader until

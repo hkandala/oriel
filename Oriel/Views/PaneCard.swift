@@ -39,8 +39,13 @@ struct PaneCard: View {
         // A new pane's chooser hides its terminal (ui/new-pane).
         let chooser = store.chooser(id)
         VStack(spacing: 0) {
-            header(pane ?? store.parked[id], zoomed: zoomed, showsButtons: lit || hovering || zoomed)
-                .opacity(content)
+            header(
+                pane ?? store.parked[id],
+                zoomed: zoomed,
+                showsButtons: lit || hovering || zoomed,
+                new: chooser != nil,
+            )
+            .opacity(content)
             Group {
                 if let pane, floated {
                     FloatedPlaceholder(page: page, pane: pane)
@@ -128,7 +133,8 @@ struct PaneCard: View {
         .accessibilityHidden(away)
     }
 
-    private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool) -> some View {
+    /// `new`: the chooser shows (ui/new-pane), and the title says so.
+    private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool) -> some View {
         HStack(spacing: 3) {
             // Clicks pass through to the header's double-click.
             ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
@@ -140,9 +146,15 @@ struct PaneCard: View {
                 }, end: { stopRenaming(pane) }, blur: { page.renamingPaneID = nil })
                     .accessibilityIdentifier("pane.\(id).rename")
             } else {
-                PaneTitle(pane: pane)
-                    .allowsHitTesting(false)
-                    .accessibilityIdentifier("pane.\(id).title")
+                Group {
+                    if new {
+                        Text("New Pane").lineLimit(1)
+                    } else {
+                        PaneTitle(pane: pane)
+                    }
+                }
+                .allowsHitTesting(false)
+                .accessibilityIdentifier("pane.\(id).title")
             }
             Spacer(minLength: 0)
             // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.

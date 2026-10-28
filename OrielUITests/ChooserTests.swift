@@ -24,6 +24,8 @@ extension OrielUITests {
         let terminal = element("pane.\(pane).chooser.terminal")
         XCTAssertTrue(terminal.has(\.isSelected, true, within: 3))
         XCTAssertTrue(element("pane.\(pane).chooser.browser").exists)
+        let title = element("pane.\(pane).title")
+        XCTAssertTrue(until(2) { [title.label, title.stringValue].contains("New Pane") }, title.debugDescription)
         keepScreenshot("new pane chooser")
         try await waitForPrompt(pane)
         app.typeText("echo leaked")
@@ -34,8 +36,8 @@ extension OrielUITests {
         XCTAssertFalse(text.contains("leaked"), text)
     }
 
-    /// ⌘D on a pane made outside the app (no chooser): the split's card shows it. The arrows move the selection and
-    /// stop at the ends; Esc gives the terminal.
+    /// ⌘D on a pane made outside the app (no chooser): the split's card shows it. ↑ ↓ move the selection and stop at
+    /// the ends, → opens Agent's agents under it and ← closes them; Esc gives the terminal.
     func testSplitShowsTheChooserArrowsMoveAndEscGivesATerminal() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("chooser split")
@@ -46,20 +48,26 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard("terminal.\(left)"))
         app.typeKey("d", modifierFlags: .command)
         let right = try await replaced(left, in: tab, besides: [left])
-        let options = ["terminal", "agent", "browser"].map { element("pane.\(right).chooser.\($0)") }
+        let options = ["terminal", "agent", "browser", "claude"].map { element("pane.\(right).chooser.\($0)") }
         func selected(_ index: Int) -> Bool {
-            until(2) { options.map(\.isSelected) == options.indices.map { $0 == index } }
+            until(2) { options.map { $0.exists && $0.isSelected } == options.indices.map { $0 == index } }
         }
         XCTAssertTrue(options[0].exists(within: 3))
         XCTAssertTrue(selected(0))
-        app.typeKey(.rightArrow, modifierFlags: [])
-        XCTAssertTrue(selected(1))
         app.typeKey(.downArrow, modifierFlags: [])
+        XCTAssertTrue(selected(1))
+        XCTAssertFalse(options[3].exists)
         app.typeKey(.rightArrow, modifierFlags: [])
+        XCTAssertTrue(selected(3))
+        app.typeKey(.leftArrow, modifierFlags: [])
+        XCTAssertTrue(selected(1))
+        XCTAssertTrue(options[3].vanishes(within: 2))
+        app.typeKey(.downArrow, modifierFlags: [])
+        app.typeKey(.downArrow, modifierFlags: [])
         XCTAssertTrue(selected(2))
-        app.typeKey(.upArrow, modifierFlags: [])
-        app.typeKey(.leftArrow, modifierFlags: [])
-        app.typeKey(.leftArrow, modifierFlags: [])
+        for _ in 0 ..< 3 {
+            app.typeKey(.upArrow, modifierFlags: [])
+        }
         XCTAssertTrue(selected(0))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(options[0].vanishes(within: 2))
@@ -88,9 +96,10 @@ extension OrielUITests {
 
         let agent = try await newPane("claude", #"echo oriel-stand-in; sleep 2; "$HERDR_BIN_PATH" pane report-agent "#
             + #"--source oriel-e2e --agent claude --state idle "$HERDR_PANE_ID"; sleep 100"#)
+        // 2 opens Agent with its first agent selected: Return picks it.
         app.typeKey("2", modifierFlags: [])
         XCTAssertTrue(element("pane.\(agent).chooser.claude").has(\.isSelected, true, within: 2))
-        XCTAssertTrue(element("pane.\(agent).chooser.back").exists)
+        XCTAssertEqual(element("pane.\(agent).chooser.agent").stringValue, "expanded")
         app.typeKey(.return, modifierFlags: [])
         let loader = element("pane.\(agent).loader")
         XCTAssertTrue(loader.exists(within: 2))
