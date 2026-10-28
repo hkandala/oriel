@@ -154,7 +154,7 @@ private struct WebHost: NSViewRepresentable {
 }
 
 /// The card header's toolbar (mock-up A): Back, Forward, Reload or Stop, and the address field, which takes the free
-/// width; then Web Inspector.
+/// width; then the ports chip and Web Inspector.
 struct BrowserToolbar: View {
     let browser: Browser
     let page: Page
@@ -180,6 +180,7 @@ struct BrowserToolbar: View {
             }
             .foregroundStyle(look.paneButton)
             address(id)
+            PortsChip(browser: browser, page: page).foregroundStyle(look.paneButton)
             IconButton(symbol: "hammer", help: "Web Inspector", key: .init("i", modifiers: [.command, .option]),
                        size: 22, action: browser.showInspector)
                 .disabled(browser.address.isEmpty).opacity(browser.address.isEmpty ? 0.35 : 1)
