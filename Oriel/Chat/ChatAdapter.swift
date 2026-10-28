@@ -31,6 +31,28 @@ extension ChatAdapter {
     func answer(_: ChatQuestion, _: [String: String], on _: any Exec) async {}
 }
 
+extension Chat {
+    /// Follows the history file while it is the chat's, each line read by the adapter's parser (false: a torn line);
+    /// five torn lines in a row are a problem.
+    func follow(history source: String, on exec: any Exec, read: (String, inout ChatHistory) -> Bool) async {
+        guard let lines = try? await exec.follow(source, from: marks[source] ?? FileMark()) else { return }
+        var torn = 0
+        for await line in lines where !Task.isCancelled && self.source == source {
+            switch line {
+            case let .opened(_, restarted) where restarted && !history.entries.isEmpty:
+                history = ChatHistory()
+            case let .line(text, mark):
+                marks[source] = mark
+                torn = read(text, &history) ? 0 : torn + 1
+                if torn == 5 {
+                    problem = "The transcript is not in a format the chat knows"
+                }
+            case .opened: break
+            }
+        }
+    }
+}
+
 enum ChatAdapters {
     static let all: [any ChatAdapter.Type] = [ClaudeCode.self]
 

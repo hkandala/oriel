@@ -70,7 +70,7 @@ struct ClaudeCode: ChatAdapter {
         defer { transcript?.cancel() }
         let follow = { (source: String) in
             transcript?.cancel()
-            transcript = Task { await history(chat, source, exec) }
+            transcript = Task { await chat.follow(history: source, on: exec, read: ClaudeTranscript.read) }
         }
         if let source = chat.source {
             follow(source)
@@ -106,24 +106,6 @@ struct ClaudeCode: ChatAdapter {
                 if await run(["sh", "-c", #"test -f "$HOME/$1/ask""#, "sh", folder], exec) == 0, !Task.isCancelled {
                     chat.question = question
                 }
-            }
-        }
-    }
-
-    @MainActor private func history(_ chat: Chat, _ source: String, _ exec: any Exec) async {
-        guard let lines = try? await exec.follow(source, from: chat.marks[source] ?? FileMark()) else { return }
-        var torn = 0
-        for await line in lines where !Task.isCancelled && chat.source == source {
-            switch line {
-            case let .opened(_, restarted) where restarted && !chat.history.entries.isEmpty:
-                chat.history = ChatHistory()
-            case let .line(text, mark):
-                chat.marks[source] = mark
-                torn = ClaudeTranscript.read(text, into: &chat.history) ? 0 : torn + 1
-                if torn == 5 {
-                    chat.problem = "The transcript is not in a format the chat knows"
-                }
-            case .opened: break
             }
         }
     }
