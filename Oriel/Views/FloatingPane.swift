@@ -168,12 +168,15 @@ struct FloatingWindow: View {
 
     private func content(_ pages: WindowPages, _ page: Page, _ pane: HostStore.Pane?) -> some View {
         let terminal = pane.flatMap(page.terminal), chooser = pane.flatMap { page.store.chooser($0.id) }
+        let browser = pane.flatMap(page.browser)
         let commands = CommandList(pages: pages, palette: $palette, settings: settings,
                                    floating: floating)
         return VStack(spacing: 0) {
             header(page, pane)
             Group {
-                if let terminal {
+                if let browser {
+                    FloatingBrowser(browser: browser, page: page)
+                } else if let terminal {
                     TerminalCard(terminal: terminal, watched: page.watched,
                                  alpha: chooser != nil ? 0 : page.watched ? 0.85 : 1)
                         // In this window by now: a claim made while it was still the main window's card would

@@ -32,6 +32,8 @@ final class Chooser {
     var selected = Row.terminal
     /// The picked agent until it is ready: the card shows the loader.
     var starting: Agent?
+    /// Browser was picked: the card shows the browser's loader while its pane takes this one's place.
+    var browsing = false
 
     init(standIn: String? = nil) {
         self.standIn = standIn
@@ -59,7 +61,7 @@ extension Chooser.Row {
         switch self {
         case .terminal: ("Terminal", "Shell")
         case .agent: ("Agent", "Coding agent")
-        case .browser: ("Browser", "Coming soon")
+        case .browser: ("Browser", "Web page")
         case let .start(index): (Chooser.agents[index].name, Chooser.agents[index].command)
         }
     }
@@ -112,7 +114,8 @@ extension HostStore {
     /// do nothing, also while the loader shows.
     func key(_ event: NSEvent, _ chooser: Chooser) {
         // A held key moves on, but picks once: a held 2 would open Agent, then start Codex.
-        guard chooser.starting == nil, !event.isARepeat || [125, 126].contains(event.keyCode) else { return }
+        guard chooser.starting == nil, !chooser.browsing,
+              !event.isARepeat || [125, 126].contains(event.keyCode) else { return }
         let rows = chooser.rows, index = rows.firstIndex(of: chooser.selected) ?? 0
         switch event.keyCode {
         case 125, 126: chooser.selected = rows[max(0, min(index + (event.keyCode == 125 ? 1 : -1), rows.count - 1))]
@@ -136,8 +139,27 @@ extension HostStore {
             chooser.open.toggle()
             chooser.selected = chooser.open ? .start(0) : .agent
         case let .start(index): start(Chooser.agents[index], chooser)
-        // Browser too until phase 36.
-        case .terminal, .browser: drop(chooser)
+        case .browser: openBrowser(chooser)
+        case .terminal: drop(chooser)
+        }
+    }
+
+    /// A browser pane takes the chooser's pane's place, with Replace Pane's steps (ui/new-pane#browser); a new tab's
+    /// stand-in waits for herdr's pane.
+    func openBrowser(_ chooser: Chooser) {
+        guard chooser.starting == nil, !chooser.browsing else { return }
+        chooser.browsing = true
+        Task {
+            defer { drop(chooser) }
+            let clock = ContinuousClock(), begun = clock.now
+            while chooser.paneID == nil, clock.now - begun < .seconds(10),
+                  choosers.contains(where: { $0 === chooser })
+            {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            guard let id = chooser.paneID, let page = windows.first?.list.first(where: { $0.store === self })
+            else { return }
+            await page.replace(id, Replacement(browser: true))
         }
     }
 
@@ -183,6 +205,15 @@ extension HostStore {
 }
 
 extension Page {
+    /// Open Browser Here: the chooser's pick on a pane that shows it, else a Replace Pane.
+    func openBrowser(in pane: HostStore.Pane) {
+        if let chooser = store.chooser(pane.id) {
+            store.openBrowser(chooser)
+        } else {
+            replacePane(pane, Replacement(button: "Open Browser", browser: true))
+        }
+    }
+
     /// Start Agent Here: the chooser's pick on a pane that shows it, else a Replace Pane that starts the agent.
     func start(_ agent: Chooser.Agent, in pane: HostStore.Pane) {
         if let chooser = store.chooser(pane.id) {

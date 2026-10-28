@@ -24,7 +24,8 @@ seven=oriel-e2e-$id-g
 eight=oriel-e2e-$id-h
 # A session joins the cleanup only once it is up: a failed `up` must not remove a session it did not make.
 made=("$four" "$six" "$eight")
-trap 'for s in "${made[@]}"; do scripts/herdr-session.sh down "$s" || true; done' EXIT
+# Browser panes' state files (future-work/plugins/state) go with their sessions.
+trap 'for s in "${made[@]}"; do scripts/herdr-session.sh down "$s" || true; rm -rf "$HOME/.local/state/oriel/$s"; done' EXIT
 for s in "$one" "$two" "$three" "$five" "$seven"; do
     scripts/herdr-session.sh up "$s"
     made+=("$s")

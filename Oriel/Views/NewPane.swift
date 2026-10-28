@@ -24,6 +24,8 @@ struct NewPane: View {
             Group {
                 if let agent = chooser.starting {
                     loader(agent)
+                } else if chooser.browsing {
+                    BrowserLoader().accessibilityIdentifier("pane.\(cardID).loader")
                 } else {
                     let rows = chooser.rows
                     let height = CGFloat(rows.count) * (Self.row + Self.spacing) - Self.spacing
@@ -43,12 +45,13 @@ struct NewPane: View {
         }
         .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: chooser.starting)
         .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: chooser.open)
+        .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: chooser.browsing)
         .onAppear { focus = chooser.selected }
         .onChange(of: chooser.selected) { pointer = NSEvent.mouseLocation }
         // It leaves when the pane runs something else (typed from herdr's TUI): a program besides the shell, or an
         // agent herdr reports. Not the programs of a new shell's startup.
         .onChange(of: runs, initial: true) {
-            if runs, chooser.starting == nil {
+            if runs, chooser.starting == nil, !chooser.browsing {
                 page.store.drop(chooser)
             }
         }
@@ -121,7 +124,7 @@ struct NewPane: View {
             }
         }
         .accessibilityLabel(name)
-        .accessibilityValue(row == .browser ? detail : row == .agent ? chooser.open ? "expanded" : "collapsed" : "")
+        .accessibilityValue(row == .agent ? chooser.open ? "expanded" : "collapsed" : "")
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityFocused($focus, equals: row)
         .accessibilityIdentifier("pane.\(cardID).chooser.\(row.id)")

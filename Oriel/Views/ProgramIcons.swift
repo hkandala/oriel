@@ -29,7 +29,8 @@ struct ProgramTile: View {
         let shape = RoundedRectangle(cornerRadius: 5, style: .continuous)
         // The glyphs carry their own padding in a 24 pt box.
         ProgramMark(icon: icon, letter: letter, size: 17)
-            .foregroundStyle(Color(hex: colors?.glyph))
+            // The globe (a browser pane) is no catalog icon: a generic tool's green glyph on the neutral tile.
+            .foregroundStyle(Color(hex: colors?.glyph ?? (icon == "globe" ? "#7ee787" : nil)))
             .frame(width: 22, height: 18)
             .background(Color(hex: colors?.background), in: shape)
             .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.12), .clear], startPoint: .top,
@@ -62,6 +63,9 @@ private struct ProgramMark: View {
         Group {
             if icon == "placeholder", let letter {
                 Text(letter).font(.system(size: size * 0.65, weight: .bold, design: .rounded))
+            } else if icon == "globe" {
+                // A browser pane's (future-work/web-page): the system's symbol, on the neutral tile.
+                Image(systemName: "globe").resizable().scaledToFit().padding(size * 0.12)
             } else {
                 Image("program.\(icon)").resizable()
             }

@@ -104,8 +104,17 @@ extension HostStore {
             cwd.map { ($0 as NSString).abbreviatingWithTildeInPath }
         }
 
-        /// The card header's parts: the label alone, else the program and the folder, as in Rex ("zsh", "~").
+        /// A browser pane's label (future-work/web-page): the pane's kind.
+        var browser: PaneLabel? {
+            PaneLabel(label).flatMap { $0.plugin == "browser" ? $0 : nil }
+        }
+
+        /// The card header's parts: the label alone, else the program and the folder, as in Rex ("zsh", "~"). A
+        /// browser's address, not its label.
         var header: (name: String?, folder: String) {
+            if let browser {
+                return (nil, browser.arg.isEmpty ? "Browser" : browser.arg)
+            }
             let name = label == nil ? programName : nil
             return (name, label ?? folder ?? (name == nil ? "terminal" : ""))
         }
@@ -127,7 +136,7 @@ extension HostStore {
 
         /// Its program icon's catalog id.
         var iconID: String {
-            programIcons.iconID(agent: agent, program: program, title: terminalTitle)
+            browser != nil ? "globe" : programIcons.iconID(agent: agent, program: program, title: terminalTitle)
         }
     }
 }

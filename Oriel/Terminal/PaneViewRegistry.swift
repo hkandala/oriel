@@ -22,6 +22,8 @@ final class PaneViewRegistry {
     /// Its window's pages: they hear of the keyboard, Return and input in its terminals.
     weak var pages: WindowPages?
     private var terminals: [String: PaneTerminal] = [:]
+    /// Browser panes' cards (future-work/web-page), by terminal id as terminals are: a moved card keeps its page.
+    private var browsers: [String: Browser] = [:]
 
     /// The pane's terminal, made on first use.
     func terminal(_ terminalID: String, pane paneID: String, client: any Multiplexer) -> PaneTerminal {
@@ -47,6 +49,27 @@ final class PaneViewRegistry {
         return terminal
     }
 
+    /// The browser pane's card, made on first use from its label.
+    func browser(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String, store: HostStore) -> Browser {
+        if let browser = browsers[terminalID] {
+            browser.paneID = pane.id
+            return browser
+        }
+        let browser = Browser(terminalID: terminalID, paneID: pane.id, label: label, store: store)
+        browser.view.onKeyboard = { [weak self] in
+            guard let self, pages?.floats(terminalID) != true else { return }
+            dropClaims(but: terminalID)
+            pages?.current?.tookKeyboard(terminalID)
+        }
+        browsers[terminalID] = browser
+        return browser
+    }
+
+    /// The browser card of this terminal id, if made.
+    func built(_ terminalID: String) -> Browser? {
+        browsers[terminalID]
+    }
+
     /// Streams and draws these terminals (terminal id → pane id); past the `spare` most recently shown others,
     /// the rest let go. `unvisited` stream and draw too but are no visit (the overview): they keep their place in
     /// `recent`, and one not in it lets go once no longer shown. Drops the terminals not in `alive` (their panes
@@ -60,6 +83,7 @@ final class PaneViewRegistry {
             Self.recent.removeAll { $0 === terminal }
             PaneTerminal.snapshots.removeAll { $0 === terminal }
         }
+        browsers = browsers.filter { alive.contains($0.key) }
         // Without a client (the page in view connecting), the terminals there go on: another page's floated ones.
         let make = { (ids: [String: String]) in
             ids.compactMap { id, pane in client.map { self.terminal(id, pane: pane, client: $0) } ??
@@ -95,6 +119,7 @@ final class PaneViewRegistry {
     func focus(_ terminalID: String) {
         dropClaims(but: terminalID)
         terminals[terminalID]?.view.takeKeyboard()
+        browsers[terminalID]?.takeKeyboard()
     }
 
     /// Per window: a floating window's terminals keep their claims.
@@ -102,11 +127,18 @@ final class PaneViewRegistry {
         for (id, terminal) in terminals where id != terminalID && pages?.floats(id) != true {
             terminal.view.dropClaim()
         }
+        for (id, browser) in browsers where id != terminalID && pages?.floats(id) != true {
+            browser.view.dropClaim()
+        }
     }
 
     /// The main window's terminal that has the keyboard, from the window itself, so it cannot drift.
     var keyboardTerminalID: String? {
         terminals.first { pages?.floats($0.key) != true && $0.value.view.window?.firstResponder === $0.value.view }
+            .map(\.key) ?? browsers
+            .first {
+                pages?.floats($0.key) != true && $0.value.view.window?.firstResponder === $0.value.view
+            }
             .map(\.key)
     }
 }

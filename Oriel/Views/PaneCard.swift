@@ -37,7 +37,7 @@ struct PaneCard: View {
         // The watching window's dim (D66), on the header and the terminal.
         let content = page.watched ? 0.85 : 1
         // A new pane's chooser hides its terminal (ui/new-pane).
-        let chooser = store.chooser(id)
+        let chooser = store.chooser(id), browser = pane.flatMap(page.browser)
         VStack(spacing: 0) {
             header(
                 pane ?? store.parked[id],
@@ -49,6 +49,8 @@ struct PaneCard: View {
             Group {
                 if let pane, floated {
                     FloatedPlaceholder(page: page, pane: pane)
+                } else if let browser {
+                    BrowserCard(browser: browser)
                 } else if let terminal {
                     // Rex's text starts 12 pt in from the card's edge.
                     TerminalCard(terminal: terminal, watched: page.watched, alpha: chooser == nil ? content : 0)
@@ -145,8 +147,9 @@ struct PaneCard: View {
     private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool) -> some View {
         HStack(spacing: 3) {
             // Clicks pass through to the header's double-click.
-            ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
-            if page.renamingPaneID == id {
+            if let pane, !page.floats(pane), let browser = page.browser(pane) {
+                BrowserToolbar(browser: browser, page: page)
+            } else if page.renamingPaneID == id {
                 // Enter: herdr's label (an empty one clears it); the snapshot after it shows it. A click elsewhere
                 // keeps the keyboard and the selection where it went.
                 RenameField(prompt: "Pane Name", initial: pane?.label ?? "", commit: { label in
@@ -154,6 +157,7 @@ struct PaneCard: View {
                 }, end: { stopRenaming(pane) }, blur: { page.renamingPaneID = nil })
                     .accessibilityIdentifier("pane.\(id).rename")
             } else {
+                ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
                 Group {
                     if new {
                         Text("New Pane").lineLimit(1)

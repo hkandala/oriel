@@ -49,7 +49,8 @@ struct CommandList {
                     }),
             Command(section: .file, title: "Go to Directory…", key: .init("g", modifiers: [.command, .shift]),
                     group: .edit, symbol: "folder", keywords: "cd folder path navigate",
-                    enabled: page?.keyboardPane?.program?.isShell == true, action: {
+                    enabled: page?.keyboardPane.map { $0.program?.isShell == true && $0.browser == nil } == true,
+                    action: {
                         Task { await page?.choosePath(directory: true) }
                     }),
         ]
@@ -87,14 +88,21 @@ struct CommandList {
                     }),
             Command(section: .close, title: "Close Window", symbol: "xmark") { NSApp.keyWindow?.performClose(nil) },
         ]
-        let find = page?.find
+        let find = page?.find, terminal = page?.keyboardPane.map { $0.browser == nil } == true
+        let browser = page?.keyboardPane.flatMap { page?.browser($0) }
         let edit = [
             Command(section: .edit, title: "Insert Path…", key: .init("i", modifiers: [.command, .shift]),
                     symbol: "text.insert", keywords: "file folder path",
-                    enabled: page?.keyboardPane != nil) { Task { await page?.choosePath(directory: false) } },
+                    enabled: terminal) { Task { await page?.choosePath(directory: false) } },
             // As in Rex, Find Previous has no key: ⇧⌘G is Go to Directory.
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    keywords: "search scrollback", enabled: live && page?.keyboardPane != nil) { page?.openFind() },
+                    keywords: "search scrollback", enabled: live && terminal) { page?.openFind() },
+            // A browser card's (future-work/web-page#commands-on-a-browser-card).
+            Command(section: .edit, title: "Open Location", key: .init("l"), symbol: "link",
+                    keywords: "address url browser", enabled: browser != nil) { browser?.wantsAddress = true },
+            Command(section: .edit, title: "Show Web Inspector", key: .init("i", modifiers: [.command, .option]),
+                    symbol: "hammer", keywords: "developer tools devtools browser",
+                    enabled: browser?.address.isEmpty == false) { browser?.showInspector() },
             Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
                     enabled: find != nil) { Task { await page?.find?.step(1) } },
             Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: find != nil) {
@@ -107,6 +115,17 @@ struct CommandList {
 
     private var view: [Command] {
         let size = settings.fontSize, sizes = PaneTerminal.fontSizes
+        let page = pages?.current?.keyboardPane?.browser
+        // A browser card with the keyboard zooms its page instead.
+        func zoom(_ step: Int, else text: @escaping () -> Void) -> () -> Void {
+            {
+                if let view = BrowserView.focused {
+                    view.zoom(step)
+                } else {
+                    text()
+                }
+            }
+        }
         return [
             Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",
                     enabled: palette != nil) { palette?.wrappedValue.toggle() },
@@ -136,13 +155,14 @@ struct CommandList {
                     }, previews: true),
             // The text size (design: theme and accessibility); the key monitor takes ⌘=.
             Command(section: .size, title: "Increase Font Size", key: .bigger, symbol: "textformat.size.larger",
-                    keywords: "bigger text", enabled: size < sizes.upperBound) { PaneTerminal.stepFontSize(1) },
+                    keywords: "bigger text", enabled: size < sizes.upperBound || page != nil,
+                    action: zoom(1) { PaneTerminal.stepFontSize(1) }),
             Command(section: .size, title: "Decrease Font Size", key: .init("-"), symbol: "textformat.size.smaller",
-                    keywords: "smaller text", enabled: size > sizes.lowerBound) { PaneTerminal.stepFontSize(-1) },
+                    keywords: "smaller text", enabled: size > sizes.lowerBound || page != nil,
+                    action: zoom(-1) { PaneTerminal.stepFontSize(-1) }),
             Command(section: .size, title: "Reset Font Size", key: .init("0"), symbol: "textformat.size",
-                    keywords: "actual size text", enabled: size != PaneTerminal.fontSize, action: {
-                        settings.fontSize = PaneTerminal.fontSize
-                    }),
+                    keywords: "actual size text", enabled: size != PaneTerminal.fontSize || page != nil,
+                    action: zoom(0) { [settings] in settings.fontSize = PaneTerminal.fontSize }),
         ]
     }
 

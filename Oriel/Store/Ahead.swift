@@ -155,13 +155,16 @@ extension HostStore {
         let asked = panes.filter { pane in request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
         let action = closing(request)
         // ponytail: a program typed in a new tab in its first seconds hides too, and comes back with the question.
-        let clear = asked.allSatisfy { $0.program?.isShell == true || $0.starting && ahead.fresh.contains($0.tabID) }
+        let clear = asked.allSatisfy {
+            $0.program?.isShell == true || $0.browser != nil || $0.starting && ahead.fresh.contains($0.tabID)
+        }
         if clear {
             hide(request)
         }
         let starting = Set(asked.filter(\.starting).map(\.id))
         return Task {
-            let running = await programs(asked.map(\.id), starting: starting, client)
+            // A browser pane runs only its placeholder.
+            let running = await programs(asked.filter { $0.browser == nil }.map(\.id), starting: starting, client)
             // Sorted: "A program" leads the list.
             guard running.isEmpty else {
                 if clear {
@@ -247,7 +250,15 @@ extension HostStore {
     /// The close's herdr calls, from what shows now (before it is hidden).
     private func closing(_ close: Close) -> (any Multiplexer) async throws -> Void {
         switch close {
-        case let .pane(id): return { try await $0.close(pane: id) }
+        case let .pane(id):
+            // The device that closes a browser pane removes its state file (future-work/plugins/state).
+            let state = pane(id)?.browser?.statePath(session: session), machine = machine
+            return { client in
+                try await client.close(pane: id)
+                if let state {
+                    await machine.exec().remove(home: state)
+                }
+            }
         case let .tab(id): return { try await $0.close(tab: id) }
         case let .otherTabs(asked, _):
             // Not ones closed meanwhile (their close would fail the rest), and all at once: one by one, 20 tabs took

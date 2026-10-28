@@ -189,6 +189,9 @@ extension Page {
         guard tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
         // The stack's first, without the stack: the menus ask for every tab's title.
         let front = keyboardCard(tab.id) ?? store.panes(in: tab.id).first
+        if let pane = front, let label = pane.browser {
+            return (browserTitle(pane, label), nil)
+        }
         // Its front card asks what it runs (ui/new-pane): "New Tab", as the card's header says "New Pane".
         let choosing = front.map { store.chooser($0.id) != nil } ?? false
         guard let pane = front, let name = pane.programName, !choosing else {

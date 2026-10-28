@@ -71,10 +71,18 @@ extension CommandList {
         let replace = Command(section: .close, title: "Replace Pane", key: .replacePane, group: .panes,
                               symbol: "arrow.clockwise.square", keywords: "pane restart new shell respawn reset",
                               enabled: pane != nil) { page?.replacePane(target()) }
-        // Only on an agent pane: on a terminal it is Replace Pane.
-        let terminal = pane?.agent == nil ? [] : [
+        // Only on an agent or browser pane: on a terminal it is Replace Pane.
+        let terminal = pane?.agent == nil && pane?.browser == nil ? [] : [
             Command(section: .close, title: "Open Terminal Here", group: .panes, symbol: "terminal",
                     keywords: "pane shell kind") { page?.replacePane(target(), Replacement(button: "Open Terminal")) },
+        ]
+        let browser = pane?.browser != nil ? [] : [
+            Command(section: .close, title: "Open Browser Here", group: .panes, symbol: "globe",
+                    keywords: "pane kind web page url localhost", enabled: pane != nil, action: {
+                        if let page, let pane = target() {
+                            page.openBrowser(in: pane)
+                        }
+                    }),
         ]
         let agent = Command(section: .close, title: "Start Agent Here", group: .panes, symbol: "sparkles",
                             keywords: "pane kind claude code codex pi opencode", enabled: pane != nil,
@@ -85,8 +93,7 @@ extension CommandList {
                                     }
                                 }
                             })
-        return [replace] + terminal + [
-            agent,
+        return [replace] + terminal + [agent] + browser + [
             Command(section: .close, title: "Close Pane", key: .closePane, group: .panes, symbol: "xmark.square",
                     keywords: "pane", enabled: pane != nil || page?.standIn != nil) { page?.closePane(target()) },
         ]

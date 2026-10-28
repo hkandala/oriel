@@ -26,12 +26,27 @@ extension HostStore {
     /// herdr 0.9.5 has no respawn: the pane is split (herdr starts the new one in the pane's live folder) and closed,
     /// so the new one fills the old one's place in the tree, at its size. The new pane hides until the old one is
     /// gone (`Ahead.replacing`). `made` runs as herdr makes the new pane, before the close.
-    func replace(_ paneID: String, made: (HerdrKit.Pane) -> Void) async {
-        guard let old = pane(paneID) else { return }
+    /// A browser pane (`browser`) is made with its label and placeholder in a new tab, then moved beside the pane
+    /// (future-work/plugins/labels#create).
+    func replace(_ paneID: String, browser: Bool = false, made: (HerdrKit.Pane) -> Void) async {
+        guard let old = pane(paneID), let workspace = workspace(of: old.tabID) else { return }
         ahead.replacing[paneID] = Ahead.Replacing(tabID: old.tabID, known: Set(last?.panes.map(\.id) ?? []),
                                                   terminal: old.terminalID)
+        let label = PaneLabel.browser(taken: Set(panes.compactMap { PaneLabel($0.label)?.iid }))
         let done = await write { client in
-            guard let new = try await client.split(paneID, .right) else {
+            var new: HerdrKit.Pane?
+            if browser {
+                // In the pane's live folder, as a split is.
+                let cwd = try await client.pane(paneID).cwd ?? old.cwd ?? "~"
+                if let tab = try await client.newTab(workspace: workspace.id, cwd: cwd, label: label.text,
+                                                     command: Browser.placeholder(label))
+                {
+                    new = try await client.move(pane: tab, to: .tab(old.tabID, beside: paneID))
+                }
+            } else {
+                new = try await client.split(paneID, .right)
+            }
+            guard let new else {
                 throw HerdrError.failed("herdr named no pane")
             }
             ahead.replacing[paneID]?.made = new
@@ -53,6 +68,8 @@ struct Replacement {
     /// The chooser, or the loader while this agent starts.
     var chooser = false
     var agent: Chooser.Agent?
+    /// A browser pane (Open Browser Here, the chooser's Browser).
+    var browser = false
 }
 
 extension Page {
@@ -64,10 +81,12 @@ extension Page {
         guard let pane, let client = store.client, store.ahead.replacing[pane.id] == nil, !asking.contains(key),
               event?.type != .keyDown || event?.isARepeat != true,
               newest.map({ store.pane($0.id) != nil || pane.id != keyboardPane?.id }) ?? true else { return }
-        let replacement = replacement ?? Replacement(chooser: pane.agent != nil)
+        let replacement = replacement ?? Replacement(chooser: pane.agent != nil || pane.browser != nil)
         asking.insert(key)
         Task {
-            let running = await store.programs([pane.id], starting: pane.starting ? [pane.id] : [], client)
+            // A browser pane runs only its placeholder: no question.
+            let running = pane.browser != nil ? []
+                : await store.programs([pane.id], starting: pane.starting ? [pane.id] : [], client)
             asking.remove(key)
             if running.isEmpty {
                 await replace(pane.id, replacement)
@@ -81,7 +100,7 @@ extension Page {
     /// window as the old one's closes (`floatReplaced`).
     func replace(_ paneID: String, _ replacement: Replacement) async {
         let old = store.pane(paneID)?.terminalID
-        await store.replace(paneID) { new in
+        await store.replace(paneID, browser: replacement.browser) { new in
             if replacement.chooser {
                 store.choose(new, starting: replacement.agent)
             }
