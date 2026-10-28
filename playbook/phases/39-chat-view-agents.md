@@ -101,7 +101,14 @@ Design: [Chat view](../../docs/content/docs/future-work/chat-view.mdx) and
   15 s sets "OpenCode has not reported its session" and flips the card to its terminal (the switch stays). A late
   line (a slow first plugin install) clears it. Not checked on MetaCode itself (blocked here).
 - **Core change (with t39-pi):** `ChatAdapter.prepare(token, on:) -> String?`, the whole launch line after writing
-  what it needs; the chooser's line awaits `ChatAdapters.launch(_:on:)`. Also took t39-codex's shared `startChat`.
+  what it needs; the chooser's line awaits `ChatAdapters.launch(_:on:)`. `Chat.viewed` clears `recorded` only once
+  the adapter's `follow` returned (an adapter's own task could set it again after the card went). HerdrKit's
+  `Exec.lines(script, args)` is the long-running stream `watch` and the event stream share.
+- **Decisions (security):** the password lives in opencode's environment, so its tools inherit it (the research
+  accepted this: the same user); a user's own `OPENCODE_TUI_CONFIG` is replaced for chat launches. curl gets the
+  password from a here-document, and the state line's url must be exactly `http://127.0.0.1:<port>`.
+- **Cause (CI):** the stand-in's first remote run hung on macOS's "Allow Python to find devices on local networks?":
+  `http.server`'s bind looks up the host's name. It binds a plain `socketserver` now.
 - **Cause (spike):** `/new` and `/sessions` send no server event, and a question or permission keeps `dialog:false`,
   so the plugin's session field and the event stream are both needed; `/session/status` is `{}` when idle and said
   nothing useful at start, so the phase waits for the first status event.

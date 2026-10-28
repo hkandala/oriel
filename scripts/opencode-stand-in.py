@@ -5,8 +5,8 @@ Started by the chooser with Oriel's line (`--port 0 --hostname 127.0.0.1 -- orie
 in the environment), it runs opencode 1.x's server shapes on 127.0.0.1 behind Basic auth (the history, `/event`, the
 permission and question requests and their replies), appends the state lines Oriel's TUI plugin would (only when
 the config names the plugin file), reports its state to herdr and answers prompts on its terminal: "allow" asks a
-permission, "ask" a question, "pick" opens a dialog until 1 is typed, "slow" works until Esc Esc, "mute" drops the
-next prompt, anything else gets one command and the reply "Echo: <prompt>".
+permission, "ask" a question, "pick" opens a dialog until 1 is typed, "slow" works until Esc Esc, anything else
+gets one command and the reply "Echo: <prompt>".
 """
 import base64
 import http.server
@@ -15,7 +15,9 @@ import json
 import os
 import queue
 import select
+import shutil
 import signal
+import socketserver
 import subprocess
 import sys
 import termios
@@ -42,7 +44,6 @@ with open(os.environ["OPENCODE_TUI_CONFIG"]) as config:
 ids = itertools.count(1)
 messages, requests, clients = [], {}, []
 lock = threading.Lock()
-replied = threading.Condition(lock)
 answers = {}
 session = None
 
@@ -77,7 +78,7 @@ def part(entry, kind, **fields):
     return value
 
 
-def update(entry, value):
+def update(value):
     publish("message.part.updated", sessionID=session, part=value)
 
 
@@ -156,7 +157,6 @@ class Server(http.server.BaseHTTPRequestHandler):
             if found:
                 del requests[parts[2]]
                 answers[parts[2]] = body
-                replied.notify_all()
         if not found:
             self.reply(404, {"_tag": "NotFoundError"})
             return
@@ -210,7 +210,7 @@ def command(entry, text, output):
     if output is not None:
         tool["state"] = {"status": "completed", "input": {"command": text}, "output": output, "title": text,
                          "metadata": {"exit": 0}, "time": {"start": tool["state"]["time"]["start"], "end": now()}}
-        update(entry, tool)
+        update(tool)
     return tool
 
 
@@ -243,7 +243,7 @@ def prompt(text):
         tool["state"] = {"status": "completed" if reply != "reject" else "error", "input": tool["state"]["input"],
                          "output": "", "error": "Rejected", "time": {"start": tool["state"]["time"]["start"],
                                                                       "end": now()}}
-        update(entry, tool)
+        update(tool)
         answer(entry, "Allowed." if reply != "reject" else "Rejected.")
     elif text == "ask":
         report("blocked")
@@ -276,7 +276,8 @@ def prompt(text):
 
 def main():
     global url
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Server)
+    # Not http.server's own server: its bind looks up the host's name, and macOS then asks for the local network.
+    server = socketserver.ThreadingTCPServer(("127.0.0.1", 0), Server)
     server.daemon_threads = True
     url = "http://127.0.0.1:%d" % server.server_address[1]
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -288,7 +289,7 @@ def main():
     say("OpenCode stand-in " + url)
     write_state()
     report("idle")
-    line, mute = "", False
+    line = ""
     try:
         while True:
             data = key()
@@ -301,15 +302,12 @@ def main():
                 continue
             text, line = line.split("\r", 1)
             say("")
-            if mute:
-                mute = False
-            elif text.strip():
+            if text.strip():
                 prompt(text.strip())
-                mute = text.strip() == "mute"
     finally:
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
         if state_file:
-            subprocess.run(["rm", "-rf", os.path.dirname(state_file)])
+            shutil.rmtree(os.path.dirname(state_file), ignore_errors=True)
         termios.tcsetattr(0, termios.TCSADRAIN, attributes)
 
 

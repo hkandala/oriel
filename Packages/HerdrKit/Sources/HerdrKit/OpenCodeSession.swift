@@ -9,7 +9,7 @@ public struct OpenCodeSession {
     public let id: String
     public private(set) var history = ChatHistory()
     private var messages: [String: Message] = [:]
-    private var parts: [String: Part] = [:]
+    private var parts: [String: [String: Any]] = [:]
 
     public init(id: String) {
         self.id = id
@@ -24,11 +24,6 @@ public struct OpenCodeSession {
         let error: String?
         let model: String?
         let cwd: String?
-    }
-
-    private struct Part {
-        let message: String
-        let object: [String: Any]
     }
 
     /// The history's `[{info, parts}]`; false when the text is not that.
@@ -60,7 +55,7 @@ public struct OpenCodeSession {
         case "message.removed":
             let message = properties["messageID"] as? String
             messages[message ?? ""] = nil
-            parts = parts.filter { $0.value.message != message }
+            parts = parts.filter { $0.value["messageID"] as? String != message }
         case "message.part.removed": parts[properties["partID"] as? String ?? ""] = nil
         default: return false
         }
@@ -83,8 +78,8 @@ public struct OpenCodeSession {
     }
 
     private mutating func part(_ part: [String: Any]) {
-        guard let id = part["id"] as? String, let message = part["messageID"] as? String else { return }
-        parts[id] = Part(message: message, object: part)
+        guard let id = part["id"] as? String, part["messageID"] is String else { return }
+        parts[id] = part
     }
 
     /// The history again from every message and part, in id order (opencode's ids sort by time).
@@ -92,7 +87,7 @@ public struct OpenCodeSession {
     /// session gets slow.
     private mutating func build() {
         var history = ChatHistory(), turn: Date?
-        let byMessage = Dictionary(grouping: parts, by: \.value.message)
+        let byMessage = Dictionary(grouping: parts) { $0.value["messageID"] as? String ?? "" }
         for (id, message) in messages.sorted(by: { $0.key < $1.key }) {
             if message.user {
                 turn = message.created
@@ -100,7 +95,7 @@ public struct OpenCodeSession {
                 history.model = model
             }
             for (partID, part) in (byMessage[id] ?? []).sorted(by: { $0.key < $1.key }) {
-                Self.read(part.object, id: partID, message, into: &history)
+                Self.read(part, id: partID, message, into: &history)
             }
             guard !message.user else { continue }
             if let error = message.error {
@@ -206,7 +201,7 @@ public struct OpenCodeSession {
         }
         if !diff.isEmpty {
             let added = diff.count { $0.mark == "+" }, removed = diff.count { $0.mark == "-" }
-            return ["+\(added)", removed > 0 ? "-\(removed)" : ""].filter { !$0.isEmpty && $0 != "+0" }
+            return [added > 0 ? "+\(added)" : nil, removed > 0 ? "-\(removed)" : nil].compactMap(\.self)
                 .joined(separator: " ")
         }
         if let lines = (metadata["display"] as? [String: Any])?["totalLines"] as? Int {
@@ -249,20 +244,7 @@ public extension Exec {
         user = "opencode:$(cat "$HOME/$1/pw")"
         EOF
         """#
-        let channel = try await run(["sh", "-c", TerminalStream.observeWrapper, "sh", "sh", "-c", script, "sh",
-                                     folder, url])
-        let (stream, continuation) = AsyncStream<String>.makeStream()
-        let reader = Task {
-            for await line in channel.lines {
-                continuation.yield(line)
-            }
-            continuation.finish()
-        }
-        continuation.onTermination = { _ in
-            reader.cancel()
-            channel.closeInput()
-        }
-        return stream
+        return try await lines(script, [folder, url])
     }
 
     /// One request, a POST when it has a JSON `body`: the HTTP status and the body; nil when there was no answer.

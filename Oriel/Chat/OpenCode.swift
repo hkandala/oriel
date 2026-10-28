@@ -24,14 +24,17 @@ struct OpenCode: ChatAdapter {
     /// Writes the plugin and its `tui.json` (each whole, then renamed: another pane may be starting) and the launch's
     /// password, then gives the line: the password goes from its file into the environment, never into argv or the
     /// scrollback. The line reads the same in sh, bash, zsh and fish (3.4 and later).
-    /// ponytail: a home folder with a `"` breaks `tui.json`; escape it if one shows up.
+    /// Side files untouched for 30 days go, as Claude Code's hook does.
+    /// ponytail: a home folder with a `"` breaks `tui.json`; escape it if one shows up. A pane running for 30 days
+    /// loses its password file then (the chat says the server did not answer); touch it while followed if that matters.
     static func prepare(_ token: String, on exec: any Exec) async -> String? {
         let script = #"""
         umask 077; c=$HOME/.cache/oriel; d=$c/chat/$1; p=$c/opencode/oriel-tui.js
         mkdir -p "$c/opencode" "$d" && cat >"$p.$$" && mv "$p.$$" "$p" && t=$c/opencode/tui.json &&
         printf '{"plugin":["%s"]}\n' "$p" >"$t.$$" && mv "$t.$$" "$t" &&
         od -An -tx1 -N16 /dev/urandom | tr -d ' \n' >"$d/pw" || exit 1
-        find "$c/chat" -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf {} + 2>/dev/null; exit 0
+        find "$c/chat" -mindepth 2 -mtime +30 -delete 2>/dev/null
+        find "$c/chat" -mindepth 1 -type d -empty -delete 2>/dev/null; exit 0
         """#
         guard let channel = try? await exec.run(["sh", "-c", script, "sh", token]) else { return nil }
         for line in plugin.split(separator: "\n") {
@@ -60,7 +63,8 @@ struct OpenCode: ChatAdapter {
           const config = api.client?._client?.getConfig?.() ?? api.client?.client?.getConfig?.()
           const line = JSON.stringify({ pid: process.pid, url: config?.baseUrl ?? null,
             session: route?.name === "session" ? route.params?.sessionID ?? null : null, dialog: api.ui.dialog.open })
-          if (line !== last) { last = line; appendFileSync(file, line + "\n") }
+          // A plugin must never break its host: a removed folder only ends the reports.
+          if (line !== last) { last = line; try { appendFileSync(file, line + "\n") } catch {} }
         }
         tick()
         const timer = setInterval(tick, 200)
@@ -92,7 +96,8 @@ struct OpenCode: ChatAdapter {
         defer { server?.cancel() }
         let late = Task {
             try? await Task.sleep(for: .seconds(15))
-            if !Task.isCancelled, chat.source == nil {
+            // Once: a user who went back to the chat stays there.
+            if !Task.isCancelled, chat.source == nil, chat.problem != Self.unreported {
                 chat.problem = Self.unreported
                 chat.showsChat = false
             }
@@ -104,7 +109,8 @@ struct OpenCode: ChatAdapter {
             guard case let .line(text, _) = line,
                   let state = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
                   let pid = state["pid"] as? Int, pids.contains(pid),
-                  let url = state["url"] as? String, url.hasPrefix("http://127.0.0.1:") else { continue }
+                  let url = state["url"] as? String, url.wholeMatch(of: /http:\/\/127\.0\.0\.1:[0-9]{1,5}/) != nil
+            else { continue }
             let session = (state["session"] as? String).flatMap { Self.isID($0) ? $0 : nil }
             if chat.problem == Self.unreported {
                 chat.problem = nil
@@ -120,6 +126,7 @@ struct OpenCode: ChatAdapter {
                 if chat.source != source {
                     chat.history = ChatHistory()
                     chat.source = source
+                    chat.problem = chat.problem?.hasPrefix(Self.serverProblem) == true ? nil : chat.problem
                 }
                 server = session.map { session in
                     Task {
@@ -141,12 +148,21 @@ struct OpenCode: ChatAdapter {
                                    _ exec: any Exec) async
     {
         guard let events = try? await exec.openCodeEvents(url, password: folder) else { return }
-        var lines = events.makeAsyncIterator()
-        while let line = await lines.next(), !line.contains(#""server.connected""#) {}
+        var lines = events.makeAsyncIterator(), connected = false
+        while !connected, let line = await lines.next() {
+            connected = line.contains(#""server.connected""#)
+        }
+        guard !Task.isCancelled else { return }
+        guard connected else {
+            chat.problem = Self.serverProblem + " did not answer"
+            return
+        }
         guard var session = await history(chat, url, id, exec) else { return }
         chat.history = session.history
-        waits.requests = []
+        // A status before the stream dropped may be old; a card answered before (the answer may be lost) is new again.
+        waits.busy = nil
         await waits.load(url, folder, exec)
+        waits.fresh = true
         guard !Task.isCancelled else { return }
         waits.publish(chat)
         while let line = await lines.next(), !Task.isCancelled {
@@ -170,10 +186,10 @@ struct OpenCode: ChatAdapter {
         guard !Task.isCancelled else { return nil }
         var session = OpenCodeSession(id: id)
         guard let answer, answer.status == 200, session.load(answer.body) else {
-            chat.problem = "OpenCode's server did not give the session" + (answer.map { " (\($0.status))" } ?? "")
+            chat.problem = Self.serverProblem + " did not give the session" + (answer.map { " (\($0.status))" } ?? "")
             return nil
         }
-        if chat.problem?.hasPrefix("OpenCode's server") == true {
+        if chat.problem?.hasPrefix(Self.serverProblem) == true {
             chat.problem = nil
         }
         return session
@@ -181,6 +197,7 @@ struct OpenCode: ChatAdapter {
 
     /// A slow first start (opencode installs its plugin packages first) may still report: the chat goes on then.
     static let unreported = "OpenCode has not reported its session"
+    static let serverProblem = "OpenCode's server"
 
     /// opencode's ids (`ses_…`, `per_…`, `que_…`) as they go into a URL.
     static func isID(_ id: String) -> Bool {
@@ -209,6 +226,8 @@ struct OpenCode: ChatAdapter {
 @MainActor private final class Waits {
     var dialog = false
     var busy: Bool?
+    /// The next publish shows the card again, even the same request's.
+    var fresh = false
     var requests: [(id: String, question: ChatQuestion?)] = []
 
     /// Its card: a permission's three replies, or a question's options (one answer each: else the terminal).
@@ -236,14 +255,20 @@ struct OpenCode: ChatAdapter {
         let usable = !items.isEmpty && items.allSatisfy { !$0.options.isEmpty }
         let raw = try? JSONSerialization.data(withJSONObject: ["kind": kind, "id": id, "url": url])
         requests.append((id, usable ? raw.map { ChatQuestion(items: items, raw: $0) } : nil))
-        requests.sort { $0.id < $1.id }
+        // By time: the ids after their kind's prefix.
+        requests.sort { $0.id.dropFirst(4) < $1.id.dropFirst(4) }
     }
 
-    /// The requests that wait now.
+    /// The requests that wait now, all at once: a publish meanwhile keeps the old ones.
     func load(_ url: String, _ folder: String, _ exec: any Exec) async {
+        var lists: [(String, [[String: Any]])] = []
         for kind in ["permission", "question"] {
             let body = await exec.openCode(url, "/\(kind)", password: folder)?.body ?? ""
-            for request in (try? JSONSerialization.jsonObject(with: Data(body.utf8))) as? [[String: Any]] ?? [] {
+            lists.append((kind, (try? JSONSerialization.jsonObject(with: Data(body.utf8))) as? [[String: Any]] ?? []))
+        }
+        requests = []
+        for (kind, list) in lists {
+            for request in list {
                 add(kind, request, url)
             }
         }
@@ -274,8 +299,9 @@ struct OpenCode: ChatAdapter {
             chat.recorded = phase
         }
         let question = dialog ? nil : requests.first?.question
-        if chat.question?.raw != question?.raw {
+        if fresh || chat.question?.raw != question?.raw {
             chat.question = question
+            fresh = false
         }
     }
 }

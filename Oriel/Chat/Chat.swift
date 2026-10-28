@@ -85,6 +85,11 @@ final class Chat {
                     await adapter.follow(self, on: exec)
                     try? await Task.sleep(for: .seconds(2))
                 }
+                // Not followed, it would go stale: herdr's status until a card shows the chat again. Once the adapter
+                // returned, so no task of its writes after.
+                if viewers == 0 {
+                    recorded = nil
+                }
             }
         }
         defer {
@@ -92,8 +97,6 @@ final class Chat {
             if viewers == 0 {
                 following?.cancel()
                 following = nil
-                // Not followed, it would go stale: herdr's status until a card shows the chat again.
-                recorded = nil
             }
         }
         // Until the card goes.

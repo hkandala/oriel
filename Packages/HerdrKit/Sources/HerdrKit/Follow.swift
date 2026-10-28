@@ -55,7 +55,12 @@ public extension Exec {
     /// every 0.3 s; the first of `paths` (relative ones under the home folder) that exists, or an empty line when none
     /// does.
     func watch(_ paths: [String]) async throws -> AsyncStream<String> {
-        let channel = try await run(Self.ending(Self.watchScript, paths))
+        try await lines(Self.watchScript, paths)
+    }
+
+    /// A long-running script's lines until the stream is dropped, which ends the script.
+    internal func lines(_ script: String, _ arguments: [String]) async throws -> AsyncStream<String> {
+        let channel = try await run(Self.ending(script, arguments))
         let (stream, continuation) = AsyncStream<String>.makeStream()
         let reader = Task {
             for await line in channel.lines {
