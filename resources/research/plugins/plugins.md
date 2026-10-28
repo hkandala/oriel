@@ -88,6 +88,11 @@ at `55e4665:resources/research/plugins/plugin-system-v2-spike/`.
 The first pane kind on this foundation is a WKWebView with Web Inspector. The WebKit, proxy, placeholder and
 restart spikes, and CEF (considered, not chosen): [browser.md](browser.md).
 
+## Default plugins
+
+File viewer, Markdown, diff and git history, and file tree, native views against web components, measured:
+[default-plugins.md](default-plugins.md).
+
 ## Plugins on iOS
 
 - App Store guideline 2.5.2 forbids downloaded code that "introduces or changes features".
