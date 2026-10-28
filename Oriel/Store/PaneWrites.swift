@@ -205,3 +205,76 @@ extension HostStore {
         await write { try await $0.move(workspaces: workspaceIDs, before: workspaceID) }
     }
 }
+
+extension Page {
+    /// The selected tab while it is a new tab's stand-in.
+    var standIn: String? {
+        selectedTab.flatMap { Ahead.isStandIn($0.id) ? $0.id : nil }
+    }
+
+    /// Closes it, or asks first in this window (D41).
+    func close(_ close: HostStore.Close) {
+        // The same close again (a second ⇧⌘W while herdr is asked) would ask twice; another close goes on.
+        let key = String(describing: close)
+        // The old pane of a replace that runs: herdr closes it already.
+        guard !asking.contains(key), close.paneID.flatMap({ store.ahead.replacing[$0] }) == nil else { return }
+        let before = (selectedWorkspaceID, selectedTabIDs)
+        guard let asked = store.ask(close) else { return }
+        let hidden = (selectedWorkspaceID, selectedTabIDs)
+        asking.insert(key)
+        Task {
+            closing = await asked.value
+            // A close shown at once that asks after all comes back: so does the selection it moved, unless the
+            // user moved it since.
+            if closing != nil, selectedWorkspaceID == hidden.0, selectedTabIDs == hidden.1 {
+                (selectedWorkspaceID, selectedTabIDs) = before
+            }
+            asking.remove(key)
+        }
+    }
+
+    /// A split restores a zoomed layout first, as tmux does: the new pane shows. The new pane gets the keyboard, as
+    /// in Ghostty. Pressed again before herdr made it (⌘D, fast), the newest card is split, not
+    /// the old one that still has the first responder, and only the newest split's pane takes the keyboard; the
+    /// older ones join the keyboard history before it.
+    func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false) async {
+        zoomedPaneID = nil
+        // Also the old card asked for: ⌘D read the keyboard card before a snapshot made the split before's pane it
+        // (the second ⌘D split the first card, A | C | B | D).
+        let target = newest.flatMap { newest in
+            let old = store.pane(paneID)?.terminalID.map { $0 == newest.from } == true
+            return paneID == keyboardPane?.id || old ? newest.id : nil
+        } ?? paneID
+        if let newest {
+            // The split before's pane, if made, takes the keyboard no more (`follow`): this one's does. Nor does a
+            // claim it made already: landing now, it would end this split's turn (`tookKeyboard`).
+            movedTerminal = nil
+            keyboardTabID = selectedTab?.id
+            if let from = newest.from {
+                terminals.focus(from)
+            }
+        }
+        let standIn = Ahead.standIn()
+        newest = (standIn, newest?.from ?? terminals.keyboardTerminalID)
+        let new = await store.split(target, direction, before: before, standIn: standIn)
+        guard newest?.id == standIn else {
+            if let id = new?.terminalID {
+                use(id)
+            }
+            return
+        }
+        newest = new.map { ($0.id, newest?.from) }
+        follow(new, new?.terminalID, select: false)
+    }
+
+    /// Close Pane: the pane, else the shown stand-in, which has no pane yet; ⌘W closes it too. Not the
+    /// old keyboard card while a split's lit stand-in waits for herdr's pane.
+    func closePane(_ pane: HostStore.Pane?) {
+        if let newest, store.pane(newest.id) == nil, pane?.id == keyboardPane?.id {
+            return
+        }
+        if let id = pane?.id ?? standIn {
+            close(.pane(id))
+        }
+    }
+}
