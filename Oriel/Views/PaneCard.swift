@@ -36,6 +36,8 @@ struct PaneCard: View {
         let follow = hovering && settings.followMouse && !away && active && !floated
         // The watching window's dim (D66), on the header and the terminal.
         let content = page.watched ? 0.85 : 1
+        // A new pane's chooser hides its terminal (ui/new-pane).
+        let chooser = store.chooser(id)
         VStack(spacing: 0) {
             header(pane ?? store.parked[id], zoomed: zoomed, showsButtons: lit || hovering || zoomed)
                 .opacity(content)
@@ -44,7 +46,7 @@ struct PaneCard: View {
                     FloatedPlaceholder(page: page, pane: pane)
                 } else if let terminal {
                     // Rex's text starts 12 pt in from the card's edge.
-                    TerminalCard(terminal: terminal, watched: page.watched, alpha: content)
+                    TerminalCard(terminal: terminal, watched: page.watched, alpha: chooser == nil ? content : 0)
                         .overlay {
                             if let find = page.find, find.paneID == id {
                                 FindHighlights(find: find, terminal: terminal)
@@ -63,6 +65,7 @@ struct PaneCard: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay { NewPaneOverlay(chooser: floated ? nil : chooser, page: page, cardID: id) }
             .overlay(alignment: .topTrailing) {
                 if !floated, let find = page.find, find.paneID == id {
                     FindBar(find: find, page: page).padding(gap)

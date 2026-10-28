@@ -23,10 +23,10 @@ struct CloseDialog: ViewModifier {
                 page.closing = nil
             }
         }, presenting: closing) { closing in
-            Button(closing.replace ? "Replace Pane" : closing.close.button, role: .destructive) {
+            Button(closing.replace?.button ?? closing.close.button, role: .destructive) {
                 Task {
-                    if closing.replace, let id = closing.close.paneID {
-                        await page.replace(id)
+                    if let replace = closing.replace, let id = closing.close.paneID {
+                        await page.replace(id, replace)
                     } else {
                         await page.store.close(closing.close)
                     }
@@ -59,7 +59,7 @@ struct CloseDialog: ViewModifier {
             return ("Close \(which)?", running + "them. Their " + them + end)
         case let .pane(id):
             let name = store.pane(id).map { $0.label ?? $0.folder ?? "terminal" } ?? id
-            return ("\(closing.replace ? "Replace" : "Close") “\(name)”?", running + "it and" + end)
+            return ("\(closing.replace == nil ? "Close" : "Replace") “\(name)”?", running + "it and" + end)
         case let .workspace(id):
             let worktrees = store.worktrees(of: id)
             let also = worktrees.isEmpty ? "" : worktrees.count == 1 ? " and its worktree’s workspace"

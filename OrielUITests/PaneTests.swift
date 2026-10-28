@@ -182,6 +182,7 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard("terminal.\(panes[3])"))
         // herdr's cards shown: three came, none went.
         XCTAssertTrue(cards.has(\.stringValue, counts(came: 3, went: 0), within: 2), "came went: \(cards.stringValue)")
+        pickTerminal(panes[3])
         try await typeAndRead(panes[3])
         for (closed, next) in [(panes[3], panes[2]), (panes[2], panes[1])] {
             app.typeKey("w", modifierFlags: .command)

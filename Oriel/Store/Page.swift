@@ -373,17 +373,20 @@ extension Page {
         let pane = (workspace.id == selectedWorkspaceID ? keyboardPane : nil)
             ?? tabs.lazy.compactMap { self.keyboardCard($0) }.first
         let standIn = store.standIn(in: workspace.id)
+        let chooser = store.choose(standIn: standIn)
         select(workspace, tab: standIn)
         guard let made = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id) else {
             store.dropStandIn(standIn)
+            store.drop(chooser)
             return
         }
-        store.madeTab(standIn, made)
+        chooser.made(made)
+        store.madeTab(standIn, made.tabID)
     }
 
     /// The snapshot after it selects the new workspace.
     func newWorkspace(label: String? = nil, cwd: String = "~") async {
-        arriving = await store.newWorkspace(label: label, cwd: cwd)?.id ?? arriving
+        arriving = await store.newWorkspace(label: label, cwd: cwd)?.tabID ?? arriving
     }
 
     /// The keyboard goes to the previous or next card in the tab's tree, round the ends; not to a floated one.

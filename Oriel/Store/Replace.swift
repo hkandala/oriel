@@ -46,32 +46,45 @@ extension HostStore {
     }
 }
 
+/// What Replace Pane's new pane shows, and the red button of its question (ui/new-pane): Replace Pane gives an agent
+/// pane's new pane the chooser; Open Terminal Here and Start Agent Here are replaces too.
+struct Replacement {
+    var button = "Replace Pane"
+    /// The chooser, or the loader while this agent starts.
+    var chooser = false
+    var agent: Chooser.Agent?
+}
+
 extension Page {
     /// Replace Pane: asks first in this window when something besides the shell runs, as Close Pane does (D41). Not
     /// the old keyboard card while a split's lit stand-in waits for herdr's pane (as `closePane`), nor a held ⌘R's
     /// repeats.
-    func replacePane(_ pane: HostStore.Pane?) {
+    func replacePane(_ pane: HostStore.Pane?, _ replacement: Replacement? = nil) {
         let key = "replace \(pane?.id ?? "")", event = NSApp.currentEvent
         guard let pane, let client = store.client, store.ahead.replacing[pane.id] == nil, !asking.contains(key),
               event?.type != .keyDown || event?.isARepeat != true,
               newest.map({ store.pane($0.id) != nil || pane.id != keyboardPane?.id }) ?? true else { return }
+        let replacement = replacement ?? Replacement(chooser: pane.agent != nil)
         asking.insert(key)
         Task {
             let running = await store.programs([pane.id], starting: pane.starting ? [pane.id] : [], client)
             asking.remove(key)
             if running.isEmpty {
-                await replace(pane.id)
+                await replace(pane.id, replacement)
             } else {
-                closing = HostStore.Closing(close: .pane(pane.id), running: running.sorted(), replace: true)
+                closing = HostStore.Closing(close: .pane(pane.id), running: running.sorted(), replace: replacement)
             }
         }
     }
 
     /// Without asking. The new pane gets the keyboard at herdr's answer, as a moved pane does; a floated one's
     /// window as the old one's closes (`floatReplaced`).
-    func replace(_ paneID: String) async {
+    func replace(_ paneID: String, _ replacement: Replacement) async {
         let old = store.pane(paneID)?.terminalID
         await store.replace(paneID) { new in
+            if replacement.chooser {
+                store.choose(new, starting: replacement.agent)
+            }
             if old.flatMap({ floating[$0] }) == nil {
                 follow(new, new.terminalID, select: false)
             }

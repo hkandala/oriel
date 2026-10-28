@@ -52,10 +52,10 @@ public protocol Multiplexer: Sendable {
     func move(pane paneID: String, to destination: Destination) async throws -> Pane?
     /// A nil label clears it.
     func rename(pane paneID: String, label: String?) async throws
-    /// Returns the new tab's id.
-    func newTab(workspace workspaceID: String, cwd: String) async throws -> String?
-    /// Returns the new workspace's first tab. Without a label the multiplexer names it.
-    func newWorkspace(label: String?, cwd: String) async throws -> Tab?
+    /// Returns the new tab's pane.
+    func newTab(workspace workspaceID: String, cwd: String) async throws -> Pane?
+    /// Returns the new workspace's first pane. Without a label the multiplexer names it.
+    func newWorkspace(label: String?, cwd: String) async throws -> Pane?
     func rename(workspace workspaceID: String, label: String) async throws
     /// Moves the workspaces, in this order, before another one, or last.
     func move(workspaces workspaceIDs: [String], before workspaceID: String?) async throws
@@ -167,14 +167,14 @@ extension HerdrClient: Multiplexer {
         let _: Created = try await call("pane.rename", ["pane_id": paneID, "label": label ?? NSNull()])
     }
 
-    public nonisolated func newTab(workspace workspaceID: String, cwd: String) async throws -> String? {
-        try await (call("tab.create", ["workspace_id": workspaceID, "cwd": cwd, "focus": false]) as Created).tab?.id
+    public nonisolated func newTab(workspace workspaceID: String, cwd: String) async throws -> Pane? {
+        try await (call("tab.create", ["workspace_id": workspaceID, "cwd": cwd, "focus": false]) as Created).rootPane
     }
 
-    public nonisolated func newWorkspace(label: String?, cwd: String) async throws -> Tab? {
+    public nonisolated func newWorkspace(label: String?, cwd: String) async throws -> Pane? {
         var params: [String: any Sendable] = ["cwd": cwd, "focus": false]
         params["label"] = label
-        return try await (call("workspace.create", params) as Created).tab
+        return try await (call("workspace.create", params) as Created).rootPane
     }
 
     public nonisolated func rename(workspace workspaceID: String, label: String) async throws {

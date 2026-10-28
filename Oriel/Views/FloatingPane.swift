@@ -174,7 +174,8 @@ struct FloatingWindow: View {
             header(page, pane)
             Group {
                 if let terminal {
-                    TerminalCard(terminal: terminal, watched: page.watched, alpha: page.watched ? 0.85 : 1)
+                    TerminalCard(terminal: terminal, watched: page.watched,
+                                 alpha: page.store.chooser(pane?.id ?? "") != nil ? 0 : page.watched ? 0.85 : 1)
                         // In this window by now: a claim made while it was still the main window's card would
                         // take that window's keyboard.
                         .onAppear { terminal.view.takeKeyboard() }
@@ -190,6 +191,11 @@ struct FloatingWindow: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay {
+                if let pane {
+                    NewPaneOverlay(chooser: page.store.chooser(pane.id), page: page, cardID: pane.id)
+                }
+            }
             .overlay(alignment: .topTrailing) {
                 if let find = page.find, find.paneID == pane?.id {
                     FindBar(find: find, page: page).padding(gap)
@@ -373,7 +379,7 @@ extension CommandList {
             },
             edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
             edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
-        ] + Self.pane(page, tabs: false) { pane }.filter { [.replacePane, .closePane].contains($0.key) }.map {
+        ] + Self.pane(page, tabs: false) { pane }.filter { $0.section == .close }.map {
             // ⌘W detaches, as the red light.
             var command = $0
             command.key = command.key == .closePane ? .closeTab : command.key

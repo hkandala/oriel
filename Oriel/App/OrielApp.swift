@@ -15,9 +15,12 @@ struct OrielApp: App {
         // Before any surface exists, so none starts at libghostty's default size.
         PaneTerminal.setFontSize(settings.fontSize)
         // Second shortcuts (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=) run their first's command. A monitor sees them before any view: an
-        // invisible button's shortcut kept its first action. Return in a red confirmation clicks it.
+        // invisible button's shortcut kept its first action. Return in a red confirmation clicks it. A new pane's
+        // chooser takes its keys before the terminal under it.
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            MainActor.assumeIsolated { KeyboardShortcut.second(event) || NSWindow.confirm(event) } ? nil : event
+            MainActor.assumeIsolated {
+                KeyboardShortcut.second(event) || NSWindow.confirm(event) || Page.chooserKey(event)
+            } ? nil : event
         }
     }
 

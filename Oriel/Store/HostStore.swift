@@ -30,6 +30,8 @@ final class HostStore {
     private(set) var focusedWorkspaceID: String?
     /// The last failed write, shown for a few seconds; ✕ clears it.
     var notice: Notice?
+    /// The new panes' choosers (ui/new-pane): the app's own, so every window shows them.
+    var choosers: [Chooser] = []
     /// Writes, one at a time in order: a quick second close or split waits for the first (both show at once).
     @ObservationIgnored private let writes = Gate(1)
     /// A write in flight (not observed: read when a key or a drag acts).
@@ -322,22 +324,23 @@ private let gitUsable = Task { await GitStatus.usable(exec: localExec.value) }
 /// Writes: each is one multiplexer action, then a snapshot read.
 extension HostStore {
     /// A new tab in the workspace, in `cwd` or the pane's directory, asked now: a `cd` sends no event, so the
-    /// snapshot's cwd may be old. Its id.
-    func newTab(in workspaceID: String, cwd: String?, of paneID: String? = nil) async -> String? {
+    /// snapshot's cwd may be old. Its pane.
+    func newTab(in workspaceID: String, cwd: String?, of paneID: String? = nil) async -> HerdrKit.Pane? {
         var cwd = cwd
         if let paneID, let fresh = try? await client?.pane(paneID).cwd {
             cwd = fresh
         }
-        var created: String?
+        var created: HerdrKit.Pane?
         await write { created = try await $0.newTab(workspace: workspaceID, cwd: cwd ?? "~") }
         return created
     }
 
     /// In home by default (herdr reads `~` as the machine's home): a server launchd started has another cwd. Its
-    /// first tab.
-    func newWorkspace(label: String? = nil, cwd: String = "~") async -> HerdrKit.Tab? {
-        var created: HerdrKit.Tab?
+    /// first pane, which asks what it runs.
+    func newWorkspace(label: String? = nil, cwd: String = "~") async -> HerdrKit.Pane? {
+        var created: HerdrKit.Pane?
         await write { created = try await $0.newWorkspace(label: label, cwd: cwd) }
+        choose(created)
         return created
     }
 

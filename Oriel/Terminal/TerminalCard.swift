@@ -22,7 +22,17 @@ struct TerminalHost: NSViewRepresentable {
     }
 
     func updateNSView(_ host: Host, context _: Context) {
-        host.alphaValue = alpha
+        // A new pane's chooser hid it (ui/new-pane): it fades in as the chooser fades out.
+        if host.alphaValue == 0, alpha > 0,
+           !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || Animation.forceMotion
+        {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.15
+                host.animator().alphaValue = alpha
+            }
+        } else {
+            host.alphaValue = alpha
+        }
         if Host.record {
             host.setAccessibilityIdentifier("host.\(terminal.paneID)")
         }
@@ -93,7 +103,7 @@ struct TerminalCard: View {
     let terminal: PaneTerminal
     /// Another window controls the session (D66): the window's capsule offers Take Back instead of the card.
     let watched: Bool
-    /// The content's opacity: the watching dim (D66).
+    /// The content's opacity: the watching dim (D66); 0 under a new pane's chooser, with no spinner.
     let alpha: CGFloat
 
     var body: some View {
@@ -122,7 +132,7 @@ struct TerminalCard: View {
             // The card's fill (after a grid change, its old picture) until herdr drew it at its size; a spinner
             // only when that takes over 0.5 s.
             .overlay {
-                if !terminal.ready, !terminal.state.isFailed {
+                if !terminal.ready, !terminal.state.isFailed, alpha > 0 {
                     Waiting(delay: .milliseconds(500))
                 }
             }

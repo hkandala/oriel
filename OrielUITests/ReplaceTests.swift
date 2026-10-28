@@ -90,7 +90,7 @@ extension OrielUITests {
     }
 
     /// The one new pane of the tab, once herdr closed the old one and the others stayed.
-    private func replaced(_ old: String, in tab: String, besides others: [String]) async throws -> String {
+    func replaced(_ old: String, in tab: String, besides others: [String]) async throws -> String {
         try await poll("a new pane in \(old)'s place") { () async throws -> String? in
             let panes = try await (snapshot()["panes"] as? [[String: Any]] ?? [])
                 .filter { $0["tab_id"] as? String == tab }.compactMap { $0["pane_id"] as? String }

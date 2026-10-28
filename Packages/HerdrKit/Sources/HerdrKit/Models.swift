@@ -79,10 +79,12 @@ public struct Pane: Decodable, Sendable, Identifiable {
     public let title: String?
     /// herdr's viewport, which every client of the pane shares.
     public let scroll: PaneScroll?
+    /// The agent's status; `unknown` until herdr read it from the agent's screen.
+    public let agentStatus: AgentStatus?
 
     enum CodingKeys: String, CodingKey {
         case id = "pane_id", terminalID = "terminal_id", tabID = "tab_id", label, cwd, agent
-        case title = "terminal_title_stripped", scroll
+        case title = "terminal_title_stripped", scroll, agentStatus = "agent_status"
     }
 }
 
@@ -154,12 +156,13 @@ public enum AgentStatus: String, Decodable, Sendable {
     }
 }
 
-/// What `workspace.create` and `tab.create` return: the new tab, to select once a snapshot shows it. Any other
-/// reply decodes as one too (its tab is optional).
+/// What `workspace.create`, `tab.create` and `pane.split` return: the new pane (its tab's first, `root_pane`). Any
+/// other reply decodes as one too (its panes are optional).
 struct Created: Decodable {
-    let tab: Tab?
-    /// `pane.split`'s new pane.
+    let rootPane: Pane?
     let pane: Pane?
+
+    enum CodingKeys: String, CodingKey { case rootPane = "root_pane", pane }
 }
 
 /// `pane.move`: the pane where it went (a move to another workspace gives it a new id).

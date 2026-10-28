@@ -105,6 +105,7 @@ extension OrielUITests {
         // ⌘T: the new tab opens in /usr and has the keyboard; ⌘W there closes it (only its shell runs).
         var pane = try await commandT()
         try await waitForPrompt(pane)
+        pickTerminal(pane)
         try await typeAndRead(pane)
         let tab = try await tabOf(pane)
         app.typeKey("w", modifierFlags: .command)
@@ -157,6 +158,7 @@ extension OrielUITests {
         let pane = "\(workspace):p1"
         XCTAssertTrue(element("pane.\(pane)").has(\.isHittable, true, within: 3))
         try await waitForPrompt(pane)
+        pickTerminal(pane)
         try await typeAndRead(pane)
     }
 

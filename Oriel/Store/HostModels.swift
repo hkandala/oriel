@@ -28,7 +28,7 @@ extension HostStore {
         let close: Close
         let running: [String]
         /// Replace Pane's question: a new shell takes the pane's place.
-        var replace = false
+        var replace: Replacement?
     }
 
     @MainActor @Observable
@@ -195,7 +195,8 @@ extension HostStore {
             if try await client.startServer(within: .seconds(timeout)),
                try await client.snapshot().workspaces.isEmpty
             {
-                _ = try await client.newWorkspace(label: nil, cwd: "~")
+                let pane = try await client.newWorkspace(label: nil, cwd: "~")
+                all.first { Self.key($0.session, $0.machine) == key }?.choose(pane)
             }
         }
         starting[key] = start

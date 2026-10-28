@@ -9,7 +9,7 @@ extension HostStore {
     /// the split, as Rex does (33 / 33 / 33, not herdr's 50 / 25 / 25).
     /// Shown at once with an empty card for the new pane, until a snapshot has herdr's. The pane may be an
     /// earlier split's stand-in: its write, before this one, made herdr's. Returns the new pane, nil when
-    /// herdr made none.
+    /// herdr made none. The new card asks what it runs.
     func split(_ paneID: String, _ direction: SplitNode.Direction, before: Bool = false,
                standIn: String) async -> HerdrKit.Pane?
     {
@@ -26,12 +26,14 @@ extension HostStore {
             )
             redraw()
         }
+        let chooser = choose(standIn: standIn)
         var made: HerdrKit.Pane?
         let done = await write { client in
             let paneID = ahead.splitPanes[paneID] ?? paneID
             // The split before failed: its notice says so.
             guard !Ahead.isStandIn(paneID), let new = try await client.split(paneID, direction) else { return }
             made = new
+            chooser.made(new)
             // Here, not after `write`: the next write may start first.
             ahead.splitPanes[standIn] = new.id
             if before {
@@ -41,6 +43,9 @@ extension HostStore {
         }
         // Not a later split's stand-in, which took the slot. No pane comes (herdr made none, or the split before
         // failed): the stand-in goes now, not after two more snapshots, which an idle session may never send.
+        if made == nil {
+            drop(chooser)
+        }
         if ahead.split?.standIn == standIn {
             ahead.split?.after = 0
             if !done || made == nil {
