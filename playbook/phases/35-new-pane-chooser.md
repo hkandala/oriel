@@ -57,8 +57,8 @@ ready; Esc gives a terminal; ⌘R on a terminal shows no chooser; the palette co
   (on Agent it opens it, its first agent selected), → opens Agent, ← and Esc close it, Esc on a closed list picks
   Terminal; 1–3 pick the top rows, 1–4 the agents while Agent is open. The back button and `.back` id are gone; the
   Agent row's value is "expanded" or "collapsed". Mock-up: `~/Downloads/oriel-research/new-pane-final.html`. Agent
-  opens and closes over 0.15 s (none with Reduce Motion). The loader is one line: a small spinner, the agent's
-  program tile (22 × 18 pt) and "Starting ‹agent›…" in 13 pt secondary.
+  opens and closes over 0.15 s (none with Reduce Motion). The loader: the agent's program tile (44 × 36 pt) centered,
+  and under it one centered line, a small spinner left of "Starting ‹agent›…" in 13 pt secondary.
 - **Decisions:** Open Browser Here waits for phase 36 (it would do what Open Terminal Here does). Start Agent Here is
   a submenu / palette sub-page; Open Terminal Here shows only on an agent pane. Both are Replace Pane with its question
   (red button "Open Terminal", "Start ‹agent›"); on a pane at the chooser Start Agent Here is the chooser's pick.

@@ -143,10 +143,12 @@ struct NewPane: View {
     }
 
     private func loader(_ agent: Chooser.Agent) -> some View {
-        HStack(spacing: 8) {
-            ProgressView().controlSize(.small)
-            ProgramTile(icon: agent.command)
-            Text("Starting \(agent.name)…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)
+        VStack(spacing: 12) {
+            ProgramTile(icon: agent.command).scaleEffect(2).frame(width: 44, height: 36)
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Starting \(agent.name)…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isStaticText)
