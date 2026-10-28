@@ -26,12 +26,15 @@ extension OrielUITests {
     }
 
     /// Waits until the pane's state file on This Mac holds the address, read with `cat` in a shell of the session.
+    /// A short marker, not the file: a narrow pane wraps the JSON (CI's screen), and the typed command holds no "42".
     func expectSaved(_ text: String, iid: String, shell: String, in session: String? = nil) async throws {
         let path = "~/.local/state/oriel/\(session ?? one)/browser/\(iid).json"
         try await poll("\(text) in \(path)") { () async throws -> Bool? in
-            try await Self.call(session ?? one, "pane.send_text", ["pane_id": shell, "text": "clear; cat \(path)\r"])
+            try await Self.call(session ?? one, "pane.send_text", [
+                "pane_id": shell, "text": "clear; grep -q \(text) \(path) && echo saved-$((6*7))\r",
+            ])
             try await Task.sleep(for: .milliseconds(200))
-            return try await read(shell, in: session).contains(text) ? true : nil
+            return try await read(shell, in: session).contains("saved-42") ? true : nil
         }
     }
 
