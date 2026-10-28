@@ -15,7 +15,7 @@ the client files say only what each one uses.
 | [rai.md](rai.md) | who is working, stuck or needs approval |
 | [allward.md](allward.md) | a terminal for agents across machines |
 | [moo.md](moo.md) | terminal, agents sidebar, browser tabs, ⌘K |
-| [herdr-gpui.md](herdr-gpui.md) | Rust and GPUI desktop client (macOS, Linux, Windows) |
+| [herdr-gpui.md](herdr-gpui.md) | Rust and GPUI client (macOS, Linux, Windows): client-only browser, diff review and chat tabs |
 | [rex.md](rex.md) | Rex.app, the macOS client of the Rex multiplexer: the look Oriel follows |
 | [gorex.md](gorex.md) | a Rex-like app in Go (and MyGo, its framework) |
 | [kero.md](kero.md) | terminal panes beside a browser and a changes panel |
@@ -72,7 +72,7 @@ the client reaches a herdr on another machine. Details and sources are in each c
 | paca | SwiftUI, SwiftTerm | `terminal session control` (pipes) | events then snapshot | `ssh -N -L` both sockets | no | no | no |
 | allward | AppKit, own VT + Metal | the herdr TUI in its own PTY | `herdr api snapshot` on demand | plain ssh | no | no | no |
 | moo | AppKit + SwiftUI, SwiftTerm fork | the herdr TUI in a Moo tab | events (status only) | none | no | no | app-only tabs, not restored |
-| herdr-gpui | Rust GPUI desktop | server-rendered cell grids on the client socket (focused tab) | binary client socket | `remote-client-bridge` over ssh stdio | no | OS notifications | app-only WKWebView tabs per workspace |
+| herdr-gpui | Rust GPUI desktop | server-rendered cell grids on the client socket (focused tab) | binary client socket + `herdr` CLI scripts | `remote-client-bridge` over ssh stdio (also WSL, cloud) | ACP chats; running Claude Code and Codex drawn above their own input rows | OS notifications; Web Push from a Mac daemon | app-only WKWebView tabs (not herdr panes) |
 | herdrup | SwiftUI iOS, SwiftTerm | fork-only `pane.stream` | fork-only `api-bridge` over SSH exec | Citadel SSH; fork daemon federation | no | APNs through a Worker relay | no |
 | Heeler | SwiftUI iOS 18, libghostty | PTY running `agent attach --takeover` | direct-streamlocal to the API socket | own libssh2 SSH, jump host | no (composer sends `agent.prompt`) | APNs through a stateless Worker relay, end-to-end encrypted | no |
 | Kelpie | Heeler fork | the herdr TUI over the SSH PTY | as Heeler | as Heeler | Claude Code transcript (`tail -c +N`) | as Heeler | no |

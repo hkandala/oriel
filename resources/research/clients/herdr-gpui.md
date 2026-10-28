@@ -1,260 +1,357 @@
 # herdr-gpui (penso): Rust and GPUI desktop client
 
-Repo: https://github.com/penso/herdr-gpui. About 234k lines of Rust, most of it tests and UI.
-Facts below come from the code and the READMEs. Guesses are marked **(guess)**.
+Repo: https://github.com/penso/herdr-gpui ("Herdr UI"), read at `b16a39b` (2026-10-28). macOS, Linux and
+Windows. About 607k lines of Rust in 21 crates, 40% of it tests; the app crate alone is 395k. Apache-2.0.
+Facts come from the code; guesses are marked **(guess)**. Paths are under `crates/herdr-gpui/src/` unless
+they name a crate.
+
+## Summary
+
+- **A cell painter, not a terminal.** herdr emulates every PTY and sends one cell grid per client (the
+  client's focused tab) over the private binary client socket. The app paints cells with GPUI and
+  hit-tests the rectangles herdr sends. No emulator, no local scrollback.
+- **Every non-terminal view is client-only.** Browser, diff review, code view, VS Code and the rest are
+  tabs in the app's own JSON file, keyed by daemon and workspace id. herdr, its TUI and other devices
+  never see them. There is no plugin framework: each view is a variant of one closed enum.
+- **Agents talk to the app** through its own control socket (`herdr-gpui browser open URL`) and, from
+  SSH hosts, through herdr workspace metadata tokens used as a mailbox.
+- **Notes back to the agent** (on a diff line, a page element, a terminal selection) are one prompt,
+  pasted when herdr says the agent is idle, with Enter 150 ms later.
+- **Breadth far past Oriel's scope:** Teleport (move a worktree and its agent sessions to another host),
+  fan-out, PR and issue lists, automations in Luau, usage meters for 94 providers, cloud sandboxes, a
+  phone PWA served from the Mac, a rich chat over ACP and over running Claude Code and Codex.
 
 ## 1. Architecture
 
-Cargo workspace (`Cargo.toml`), Rust edition 2024, `unsafe_code = "deny"`:
-
-| crate | lines | role |
+| Crate | Lines (src) | Role |
 |---|---|---|
-| `crates/herdr-protocol` | ~2.8k | Wire types copied from herdr 0.9.1 `src/protocol/{wire,endpoint}.rs` (see `NOTICE.md`). Bincode framing, plus decoders for surface scroll, delta and reuse. |
-| `crates/herdr-client` | ~14k | Connection worker thread, handshake, revision fencing, request lane, SSH/WSL bridge, saved-host catalog, sessions list/delete, port forward, file upload. |
-| `crates/herdr-gpui` | ~217k | The app: sidebar, tab strip, terminal painter, browser tabs, review/diff, PR lookup, usage meters, "Teleport", notifications, sound, settings, updater. |
+| `herdr-protocol` | 1.5k | herdr 0.9 wire types copied from herdr (bincode, positional) |
+| `herdr-client` | 11k | one worker thread per connection; SSH, WSL and cloud stdio bridges; SSH master pool |
+| `herdr-gpui` | 235k | the app |
+| `herdr-remote` | 26k | cloud hosts (Coder, Docker, Daytona, Railway, Azure, …), Teleport (7k) |
+| `herdr-remote-control` | 14k | a separate daemon that serves the phone PWA over HTTPS |
+| `herdr-acp`, `herdr-chat-protocol` | 12k | an ACP agent runner in a pane, and the GUI's attach protocol |
+| `herdr-vcs`, `herdr-github`, `herdr-orchestrator` | 2k, 7k, 8k | git CLI worker, checkpoints, code index; GitHub GraphQL; per-repo SQLite |
+| `herdr-usage`, `herdr-automate(ion)` | 36k, 9k | plan limits for 94 providers; a Luau automation daemon |
+| `herdr-control-protocol`, `herdr-commands` | 2.6k, 1.1k | the app's own CLI socket; a catalog of 118 commands with default keys |
 
-Main dependencies: `gpui-pre =0.3.6`, `gpui-wry`/`lb-wry` (embedded WebKit), `bincode 2` (serde,
-standard config), `serde_json`, `crossbeam-channel`, `rodio` (sounds), `syntect` (diffs), `ureq`,
-`rusqlite` (browser cookies for usage providers), `objc2-*` (dock badge, WKWebView snapshot),
-`security-framework` (Keychain). There is **no terminal-emulator crate** (no alacritty_terminal,
-vte, or libghostty).
+No async runtime in the app: threads, bounded `crossbeam` queues, and a **16 ms timer** that drains every
+inbox (`window/construct.rs:63`). Every feature has its own worker, with timeouts and output caps.
 
-## 2. Transport and handshake (herdr socket)
+## 2. How it talks to herdr
 
-**Socket discovery** (`herdr-client` README, "Local Discovery"): first `HERDR_SOCKET_PATH` (the
-client socket name is derived from its stem as `-client.sock`), then `HERDR_CLIENT_SOCKET_PATH`,
-then `HERDR_SESSION` (default `default`). The path is `~/.config/herdr/herdr-client.sock`, or
-`sessions/<name>/herdr-client.sock` for a named session. The docs stress: "`--socket` must name
-the binary **client** socket, not the JSON API socket." If no local server is running, the app
-starts `herdr server` (`src/daemon.rs`).
+Three ways in:
 
-**Framing** (`herdr-protocol/src/codec.rs`): each frame is a `u32` little-endian length followed
-by a bincode-2 `standard()` payload (varint ints; an enum is a varint variant index followed by
-its fields in order). Caps: 2 MiB outbound and 32 MiB inbound (graphics). Field order and variant
-order are the contract: `// Field and variant order MUST remain unchanged: bincode uses positional encoding.`
+1. **The binary client socket** (`herdr-client.sock`): all live state. u32-LE length + bincode-2 frames.
+   Handshake `endpoint.hello.v1` / `endpoint.welcome.v1` (JSON inside `EndpointControl`) negotiates codecs
+   (`shell.snapshot.v1`, `shell.surface.v1`, …), optional surface encodings, and returns `methods`, an
+   **allowlist** of JSON-RPC methods for this connection. herdr < 0.9.0 is refused.
+2. **The `herdr` CLI in shell scripts**, locally or over SSH, for what the allowlist lacks: `api snapshot`
+   (layouts, `agent_session`), `pane process-info`, `pane move`, `agent start|prompt`, `worktree add`,
+   `session list|delete`. Teleport, fan-out, the orchestrator, pane moves and chat discovery all go this way
+   (`herdr-remote/src/teleport.rs:5`: "The GUI connection's method allowlist lacks layouts, process details,
+   and agent sessions").
+3. **The JSON API socket**: only the phone daemon uses it (§9), because an inactive client connection may not
+   write.
 
-**Handshake** (`herdr-client/src/session.rs:175-197`). The client sends
-`ClientMessage::EndpointControl { kind: "endpoint.hello.v1", data: <JSON> }`:
+- **Requests** ride the client socket as `ClientShellEndpointRequest{boot_id, request:"{id,method,params}"}`,
+  one in flight, 60 s timeout. Methods: `pane.split|close|zoom|swap|focus|focus_direction|scroll|copy_search|copy_motion|selection.read|link.resolve|link.activate|rename|input.set`,
+  `layout.set_split_ratio`, `tab.create|close|focus|move|rename`, `workspace.create|close|focus|move|move_block|rename`,
+  `worktree.create|list|open|remove`, `client_shell.surface.set`, `integration.*`. Every optional feature checks
+  `Method::advertised_in(welcome.methods)` and hides itself rather than fail.
+- **State** is a full `ClientShellSnapshot` pushed on every change: workspaces (branch, ahead/behind,
+  worktree key, `tokens`), tabs, panes (label, cwd), agents (`agent_status`, `state_change_seq`,
+  `state_labels`, `tokens`), custom commands, `tab_bar_right` segments. It carries no agent session ids.
+- **Fencing:** a lower `revision` or a new `boot_id` drops the connection; a surface shows only if its
+  `(boot_id, projection_revision)` matches the snapshot.
+- **Reconnect** is the app's: `500 ms << n`, capped at 30 s, reset after 60 s up. Wake from sleep is seen
+  when the wall clock jumps ahead of the monotonic clock; then every SSH link must answer a ping in 3 s.
+  Remote links ping after 5 s quiet and die 10 s later. Input is never replayed.
+- **Version coupling:** the bincode copy breaks on any field or variant reorder upstream. One optimization
+  (a request pipelined behind a focus call) is allowed only for the exact versions 0.9.0–0.9.5 the author
+  read. A refused handshake becomes "run `herdr update`" or "update Herdr UI".
 
-```json
-{ "generation": 1, "cell_width_px": 8, "cell_height_px": 16,
-  "surface_size": {"cols": 80, "rows": 24}, "pixel_mouse": true,
-  "direct_graphics": false, "endpoint_keybindings": false, "mouse_capture": false,
-  "surface_active": true, "surface_reuse": true, "surface_delta": true, "surface_scroll": true,
-  "snapshot_codecs": ["shell.snapshot.v1"], "surface_codecs": ["shell.surface.v1"],
-  "input_codecs": ["shell.input.semantic.v1"], "blob_codecs": ["shell.blob.v1"] }
-```
+## 3. Terminals and panes
 
-The server replies `EndpointControl { kind: "endpoint.welcome.v1", data }`:
+- **Wire:** `PaneSurfaceFrame{frame: cells, panes[]{pane_id, rect, inner_rect, scroll, mouse_reporting,
+  alternate_screen_active}, splits[]{hit_rect, path}, popup, graphics}`; `CellData{symbol, fg, bg, modifier,
+  hyperlink}`. Updates as row patches, `surface-delta`, `surface-scroll` (region shifts plus changed rows) or
+  `surface-reuse` (metadata only). herdr renders at most every 16 ms.
+- **Painter** (`terminal_painter.rs`, ~4.7k with parts): three layers (backgrounds as runs, text, decorations),
+  one `paint_layer` each. Glyphs are shaped per cell (so **no ligatures**), cached by (bold/italic, symbol),
+  not by colour, with an ASCII table; 4096 entries. Box drawing and powerline glyphs are geometry. Each pane
+  is a cached GPUI view per layer, and output notifies a tiny `SurfaceSignal` so the sidebar is not rebuilt.
+  Measured on an M4 Max (160×50 dense grid): warm hover p95 51 → 12 ms, scroll 56 → 14 ms, warm shaping
+  6,981 → 0 calls, background quads 8,000 → 50 (`PERFORMANCE.md`).
+- **Smooth scroll:** herdr scrolls by whole rows at ≤ 60 Hz, which judders on a 120 Hz trackpad, so the app
+  slides each delta over 48 ms, filling rows from up to 4 earlier surfaces.
+- **Scrollback, find, copy mode, off-screen selection and links** are server RPCs (`pane.copy_search`,
+  `pane.copy_motion`, `pane.selection.read`, `pane.link.resolve`).
+- **Input:** text through the IME handler as `TextCommit`, other keys as `Key{code, modifiers}`, Cmd keys
+  never reach the pane. `[pane_keys]` defaults: ⌘← ⌘→ ⌘⌫ → ⌃A ⌃E ⌃U, ⌥← ⌥→ → ⌥B ⌥F, and **⇧↩ → Esc CR**
+  everywhere, because herdr sends a bare CR for Shift-Enter to apps without kitty keys, which submits an agent
+  prompt. Option as Alt `"auto"`: left Option is Alt on US/ABC layouts, right Option types accents. Image
+  paste goes as `ClipboardImage`; herdr writes a temp file and pastes its path.
+- **Layout:** herdr owns splits and draws borders into the grid. A divider drag sends
+  `layout.set_split_ratio{tab_id, path, ratio}`, newest wins, no local preview. Resizes wait 150 ms to settle
+  ("agents re-rendering whole transcripts"); with two clients on one tab a window takes the size back only if
+  it had input in the last 5 s.
+- **Editor groups:** side-by-side groups, each with its own tab strip mixing herdr tabs and app tabs. Because
+  herdr projects one focused tab per client, **every extra group showing a terminal, and every torn-off
+  window, opens another client connection**. Parked groups report unfocused and re-focus their tab when an
+  agent moves every client's focus.
 
-```json
-{ "generation": 1, "server_version": "0.9.3", "snapshot_codec": "shell.snapshot.v1",
-  "surface_codec": "shell.surface.v1", "input_codec": "shell.input.semantic.v1",
-  "blob_codec": "shell.blob.v1", "methods": ["pane.focus", ...],
-  "capabilities": ["surface_interest","presentation_effects_fence","health_check", "surface_delta", ...] }
-```
+## 4. Remote machines
 
-`methods` is a **server allowlist** of JSON-RPC methods this connection may call. The client
-refuses to send anything not listed (`Method::advertised_in`). A daemon older than 0.9.0 answers
-with a legacy `ServerMessage::Welcome` and is rejected (`Error::LegacyDaemon`).
+- **SSH bridge:** `ssh -T -C -o BatchMode=yes -o StrictHostKeyChecking=yes … host /bin/sh -c <probe>` finds
+  `herdr`, prints `status client --json`, waits for `accept`, then `exec herdr --session S
+  remote-client-bridge`: the same bincode stream over ssh stdio. WSL and cloud hosts run the same script
+  over their own exec channel (Azure through a WebSocket-to-stdio helper).
+- **All hosts stay connected.** The shown host has an active surface; others send
+  `client_shell.surface.set{active:false}` and get snapshots only, which feed the cross-host Overview, the Dock
+  badge and notifications.
+- **Host keys:** ssh writes the offered key to a scratch `known_hosts` (`accept-new`); after the user approves
+  the fingerprint the app appends those lines to the real file.
+- **Side traffic** (git, scripts, uploads) uses a private ControlMaster pool per host, two lanes (quick,
+  bulk), killed by a pipe watchdog if the app dies. The terminal bridge has its own connection.
+- **Port forwards:** one `ssh -N -L 127.0.0.1:L:localhost:R` each, ready when `LocalCommand=echo marker`
+  prints (with `ExitOnForwardFailure`), so another process on the port cannot fool it.
+- **Listening ports** come from one long-lived `sh` per host (`ss -ltnp` or `lsof`) every 5 s, and each
+  listener's environment (`/proc/<pid>/environ`, `ps -E -ww`) gives its `HERDR_WORKSPACE_ID`: ports are listed
+  **per workspace** with no guessing.
+- **Local Network privacy:** a process in a herdr pane is its own responsible process and gets "no route to
+  host" on LAN addresses (TN3179), so device setup (`ssh-copy-id`, `herdr machine add`) runs as a child of the
+  app and the pane only mirrors it (`setup_relay.rs`).
+- **Teleport** moves a worktree to another host: commits as a git bundle, uncommitted work as temp commits,
+  tabs and splits rebuilt from `herdr api snapshot`, agent session files (Claude, Codex, OpenCode, pi, Copilot)
+  copied with paths rewritten. A pane can move to another device the same way.
 
-The installed herdr agrees with this (read-only check): `herdr status client --json` →
-`{"version":"0.9.3","protocol":22,"endpoint_protocol_generation":1,"endpoint_capabilities":["surface_interest","presentation_effects_fence","health_check"],"remote_host_bridge":true,"remote_bridge_idle_timeout":true,...}`.
+## 5. Non-terminal views: the model
 
-**Server → client messages** (`wire.rs: enum ServerMessage`):
-- `EndpointControl{kind:"shell.snapshot.v1", data:<JSON ClientShellSnapshot>}`: the **full** state,
-  pushed on every change. `revision` only goes up within one `boot_id`. A changed boot or a lower
-  revision causes a disconnect.
-- `PaneSurface(PaneSurfaceFrame)`: a full cell grid. `PaneSurfacePatch` carries row patches
-  against `base_surface_revision`.
-- Optional encodings arrive as `EndpointControl` kinds: `endpoint.surface-scroll.v1` (base64
-  bincode), `endpoint.surface-delta.v1` (base64), and `endpoint.surface-reuse.v1` (JSON).
-- `ClientShellEndpointResponseChunk{boot_id, request_id, final_chunk, data}`: the JSON-RPC
-  response, which may arrive in chunks.
-- `SemanticNotification{kind: NeedsAttention|Finished|UpdateInstalled|Custom, title, body, sound, agent, workspace_id, tab_id, pane_id, position}`.
-- `Clipboard{data}` (OSC 52), `TerminalBell{count}`, `WindowTitle`, `ServerShutdown`,
-  `ClientShellKeyboardReportAll`, `MouseCapture`, `GraphicsFile`, and legacy `Notify`.
+- **Client-only tabs** (`browser/store.rs:1`: "Herdr has no browser panes, so these live only in this
+  client"). One closed enum, `Location { Web{url} | Local{file} | Review{checkout} | Orchestrator | Code{file,
+  line} | Devices }`, matched by hand in the tab strip, renderer, restore and CLI. Saved in
+  `~/.local/state/herdr/gpui/browser-tabs.json`:
+  ```json
+  {"id":7,"scope":"local:/…/herdr-client.sock","workspace_id":"w7V",
+   "location":{"kind":"web","url":"http://127.0.0.1:53122/app"},"title":"My app","origin":"w7V:p2","zoom":125}
+  ```
+  `scope` names the daemon (workspace ids mean nothing across daemons); `origin` is the agent pane that gets
+  notes. Tabs are dropped when their workspace vanishes between two snapshots of one `boot_id`; a daemon
+  restart changes ids, so tabs can be orphaned **(guess)**. Group layouts go in `editor-groups.json`.
+- **In herdr's TUI** these views do not exist. A browser is never inside herdr's split tree: it sits in a
+  GPUI column beside a terminal column.
+- **herdr's own plugins** are passed through, never run: bound `plugin_action` keys (with the highlighted text
+  as `selected_text`), link handlers, plugin popups as terminals, and the values plugins report.
+  Settings › Plugins lists every custom `$name` from `pane.report_metadata` / `workspace.report_metadata`
+  (64 keys, 48-character samples) and adds a token to the sidebar by editing `[ui.sidebar] rows` in herdr's
+  **shared** `config.toml`, so the TUI changes too.
+- **Durable stores avoid workspace ids:** notes, viewed marks and checkpoints key on host + repo + branch.
 
-**Client → server messages** (`enum ClientMessage`, the subset in use):
-`ClientShellPaneInput{pane_id, events}`, `ClientShellPopupInput{terminal_id, events}`,
-`ClientShellResize{cell_width_px, cell_height_px, surface_size, pixel_mouse}`,
-`ClientShellEndpointRequest{boot_id, request:<JSON string>}`, `ClientShellFocus{focused}`
-(window focus), `ClientShellHostTheme{update}` (lets herdr answer OSC 10/11/4 colour queries),
-`ClipboardImage{target, extension, data}`, and `EndpointControl{kind:"endpoint.health.ping.v1"}`.
+## 6. Built-in views
 
-**JSON-RPC envelope** (`herdr-client/src/handle.rs:240`):
+### Browser
 
-```rust
-let request = json!({"id": id, "method": method.as_str(), "params": params}).to_string();
-self.enqueue(boot_id, ClientMessage::ClientShellEndpointRequest { boot_id: boot_id.into(), request }, ...)
-```
+- **Engine:** `lb-wry` 0.53 (a wry fork): WKWebView on macOS, WebView2 on Windows, nothing on Linux (system
+  browser; a phased WebKitGTK plan in `herdr-gpui/docs/linux-browser-plan.md`). No engine shipped.
+- **Z-order trick** (`browser/stacking.rs`): GPUI paints one layer, so the WKWebView is moved *under* GPUI's
+  NSView, every background paints around the page rects, and a router NSView above answers `hitTest:` so
+  menus and toasts draw over live pages. Hidden pages are parked at (-100000, -100000) because a hidden NSView
+  still caught drags. A local `NSEvent` monitor hands keys to the focused page except the app's tab,
+  workspace and font keys (font keys zoom the page, 50–300%).
+- **Rules:** navigation only to http(s), `about:blank` and its preview scheme; downloads refused; URLs ≤ 8 KB;
+  a typed bare host gets `http://` for loopback names and `https://` otherwise. **OAuth popups** are built from
+  WebKit's own configuration inside `createWebViewWith` and adopted as a tab, so `window.opener` works, and
+  `webViewDidClose` closes it.
+- **Missing:** one default WebKit store for every host (no profiles); Web Inspector only in debug builds; no
+  cap on live views (one per tab per window); the current URL is written back on every load.
+- **Remote pages:** a per-port `-O forward -L` and the URL rewritten to `127.0.0.1:<random>`, which changes the
+  origin (storage lost), saves a dead port on restore, and is not applied to addresses the user types.
+- **Agents open pages** (§7). Page automation is small: `tab text` (`innerText`, 64 KB), `screenshot`,
+  navigate, back, zoom. No click or type, no CDP.
+- **Annotate:** `annotate.js` in a closed shadow root picks an element, a text selection or a region; the
+  note is written in a **native** panel the page cannot read; a `takeSnapshot(afterScreenUpdates:)` PNG per
+  pick; then one prompt with selector, quoted text marked as data, an HTML snippet, the screenshot path and the
+  note. Screenshot paths are on the Mac even for a remote agent **(guess: a gap)**.
+- **Local pages:** a custom scheme `herdr-preview://` rooted at one folder (canonicalized, no dotfiles, never
+  `$HOME`, 403 to web origins). Markdown renders with pulldown-cmark, sanitized, under a no-script CSP. Local
+  preview pages get `herdr.send(summary, data)` and an "explainer kit" CSS/JS themed like the window.
 
-The response is the endpoint's `{id,result}` or `{id,error}`. Only **one request is in flight**
-at a time; later commands wait in FIFO order (60 s request deadline).
+### Review (diff) tab
 
-**Methods the GUI calls** (`herdr-client/src/method.rs`, the full closed set):
-`client_shell.surface.set`, `command.invoke`, `integration.list|install`, `layout.set_split_ratio`,
-`pane.clear|close|copy_motion|copy_search|edit_scrollback|focus|focus_direction|input.set|link.activate|link.resolve|rename|resize|scroll|selection.read|split|swap|zoom`,
-`product_announcement.dismiss`, `release_notes.dismiss`, `server.reload_config`,
-`tab.close|create|focus|move|rename`, `workspace.close|create|focus|move_block|rename`,
-`worktree.create|list|open|remove`.
-Example param shapes from the code:
+- **Data:** git CLI only, on a worker, 30 s timeout. First `--numstat` and `--name-status` (cheap at any
+  size), then patch bodies in batches of 64 files or 20k lines, visible files first; a file over 20k lines or
+  4 MiB shows **Load diff**. Untracked files from `ls-files --others`, generated files from
+  `check-attr linguist-generated` (folded).
+- **Bases:** Uncommitted (`HEAD`) and Branch (`merge-base HEAD <base>`, base = the PR's base, else
+  `origin/HEAD`, else main/master; a picker lists branches most recently left first). Nothing is fetched.
+- **UI:** unified or side by side (removed runs paired with the added run after them, which also gives word
+  emphasis), a GitHub-like file tree with filter and **Hide viewed**, expand context (200 lines from the
+  working file), find, ignore whitespace, copy hunk as patch, `e` opens `$EDITOR` in a split. syntect runs one
+  hunk at a time as it scrolls in and maps tokens to **7 classes coloured from the terminal palette**, so a theme
+  change needs no re-parse. One `String` per file with line ranges into it.
+- **Viewed marks** keyed by (checkout, branch) store each file's +/− counts, so a file that changes again
+  comes back unviewed (`review-viewed.json`).
+- **Refresh:** a poll of `git diff --numstat HEAD` and `git status --porcelain` every 5 s on the focused
+  checkout (30 s for others), shared with the title bar's git chip. No file watching. No reload while a note
+  is being written.
+- **Notes:** click any gutter; anchor = path + side + working-tree line (+ the revision for a removed line);
+  50 notes × 2,000 chars; sent through the delivery below.
 
-```json
-{"method":"pane.split","params":{"target_pane_id":"w1:p1","direction":"right","focus":true}}
-{"method":"pane.zoom","params":{"pane_id":"w1:p1","mode":"on"|"off"|"toggle"}}
-{"method":"pane.swap","params":{"source_pane_id":"…","target_pane_id":"…"}}
-{"method":"pane.focus_direction","params":{"pane_id":"…","direction":"left"}}
-{"method":"layout.set_split_ratio","params":{"tab_id":"w1:t1","path":[true,false],"ratio":0.42}}
-{"method":"tab.move","params":{"tab_id":"…","insert_index":2}}
-{"method":"tab.create","params":{"workspace_id":"w1","focus":true}}
-{"method":"pane.input.set","params":{"pane_id":"…","right_click":"herdr"|"pane"}}
-{"method":"client_shell.surface.set","params":{"active":false}}
-```
+### Checkpoints
 
-The endpoint allowlist does **not** cover layouts, process details, or agent sessions
-(`teleport.rs`: "The GUI connection's method allowlist lacks layouts, process details, and agent
-sessions"). For those, the app runs the `herdr` CLI, locally or over SSH: `herdr pane run`,
-`herdr agent start`, `herdr session list|stop|delete --json`, `herdr machine add|rename|remove`,
-and `herdr worktree remove`.
+On by default. When an agent's status goes idle/done → working, or working/blocked → idle/done (not
+blocked → working; never on the first snapshot or a new `boot_id`), a 269-line POSIX script copies the real
+index to a temp index, `git add -A`, `write-tree`, skips a tree equal to the last one, then `commit-tree -p
+HEAD` with a `Herdr-Branch:` trailer and `update-ref refs/herdr-gpui/checkpoints/<sha1(branch)>/<ms>`; newest
+50 kept, `core.fsmonitor=false`. Restore captures the current state first, refuses during a merge or rebase
+or on another branch, then `read-tree -m -u` and `reset`. The dialog shows only +/− counts, no diff.
 
-**Threading and liveness** (`herdr-client` README, "Transport Rules"): one worker thread per
-connection owns connect, writes and reads. A bounded queue (64 commands, 8 events) applies
-backpressure. The GUI drains every connection's inbox on a **16 ms timer**
-(`window.rs:647`, `endpoint/polling.rs::poll_endpoints`). Over SSH, a quiet link triggers
-`endpoint.health.ping.v1` after 5 s, and the link is declared dead 10 s later with no reply.
+### Others
 
-**Reconnect**: the client crate has none ("No reconnect or replay"). The GUI owns it per
-endpoint: `Duration::from_millis(500u64 << attempts.min(8)).min(30s)` (`endpoint.rs:315`). On
-reconnect the GUI does a fresh handshake and gets a full snapshot and surface. Input is never
-replayed.
+| View | What | Source | Cost (src lines) |
+|---|---|---|---|
+| Code view | read-only file at a line, outline | syntect, a ctags-like line scanner | 0.8k |
+| Go to File / Symbol | empty query lists uncommitted files first | git ls-files, line scanner (≤ 300k symbols) | 1.7k |
+| Open in editor | `pane.split` then types `exec sh -c …` into the new shell; reuses Neovim via `--listen` / `--remote-expr` | local only | 0.5k |
+| VS Code tab | `code serve-web` on loopback with a token file, license consent | local only | 3.7k |
+| px0 tab | px0.ai's review workbench | local only | 1k |
+| Overview | needs-you first across hosts; pin, snooze, settle; a Closed shelf reopens agents with `--continue` | snapshots | 2.7k |
+| PRs and Issues | GitHub/GitLab lists, merge, dispatch an agent on branch `agent/<id>-<slug>-<hash8>` | GraphQL, SQLite per repo | 16k |
+| Fan-out | one prompt to ≤ 6 agents in their own worktrees, compare, keep one | herdr CLI scripts | 3.2k |
+| Worktree scripts | `.herdr/worktree.toml` setup/run/archive, trusted by file digest | `tab.create` with the script in env | 1.2k |
+| Usage, load, ports, caffeine | status bar meters | 94 providers; sysinfo; `ss`/`lsof` | 40k |
 
-## 3. Live terminal content and rendering
+## 7. Agents talking to the app
 
-- **No PTY bytes reach the client.** herdr has its own emulator server-side. It sends
-  `PaneSurfaceFrame`:
+- **Local:** `$XDG_STATE_HOME/herdr/gpui/control.sock` (0700 folder), one JSON line in, one out, 256 KiB,
+  `PROTOCOL_VERSION` 9 reported by `status`. The CLI is the app binary; the caller comes from
+  `HERDR_PANE_ID` / `HERDR_WORKSPACE_ID`, which also picks the window (exit 5 if none shows that workspace).
+  Stable exit codes 0–8, long-poll `events wait`.
+  ```json
+  {"method":"browser.open","page":{"url":"http://localhost:3000/"},"caller":{"pane_id":"w_1:p1","workspace_id":"w_1"},"focus":true}
+  {"method":"browser.feedback","pane_id":"w_1:p1","wait_seconds":600}   ← {"status":"feedback","text":"…"}
+  ```
+  A managed `SKILL.md` (marker `herdr-gpui-managed-skill v1`) goes into `~/.claude/skills` and `~/.agents/skills`
+  after one consent; a user's own file without the marker is never touched.
+- **SSH hosts: metadata tokens as a mailbox.** The app installs a 185-line `sh` shim on each host. It runs
+  `herdr workspace report-metadata $HERDR_WORKSPACE_ID --source herdr-gpui --ttl-ms 30000 --token
+  herdr-gpui-<id>=open <pane> --token herdr-gpui-<id>_0=<80 chars> …` (≤ 12 chunks, because herdr keeps 80
+  characters per value and 16 tokens per report). Windows read it from the next snapshot, serve each id once
+  (a 256-entry seen ring), and accept only http(s) in that workspace.
+- **Delivery to an agent** (`agent_notes.rs`), shared by review notes, page notes and terminal-selection
+  notes: if the agent waits in `browser feedback --wait`, it takes the batch; else once herdr reports the
+  agent idle or done (or after 120 s), the text is pasted (controls but `\n` stripped), then Enter 150 ms
+  later. Never into a pane with no agent (a shell would run it) or a blocked one; those wait for `feedback`.
+  **Withdraw** takes back a queued batch; sent notes stay dimmed; Send resends only new or edited notes.
 
-```rust
-pub struct PaneSurfaceFrame { boot_id, projection_revision: u64, surface_revision: u64,
-    frame: FrameData,            // whole client-sized grid of the focused tab
-    panes: Vec<PaneSurfacePane>, // per pane: pane_id, rect, inner_rect, scrollbar_rect, scroll{offset_from_bottom,max,viewport_rows}, focused, mouse_reporting, alternate_screen_active
-    splits: Vec<PaneSurfaceSplit>, // direction, pos, area, hit_rect, path: Vec<bool>
-    popup: Option<Box<ClientShellPopupSurface>>, graphics: SurfaceGraphicsScene }
-pub struct CellData { symbol: String, fg: u32, bg: u32, modifier: u16, skip: bool, hyperlink: Option<u32> }
-// colours: 0..=16 named (0 = default), 0x010000XX indexed, 0x02RRGGBB rgb
-```
+## 8. Chat view
 
-- **Fencing**: a surface is shown only when `(boot_id, projection_revision)` equals the latest
-  snapshot's `(boot_id, revision)`. This stops cells and metadata from mixing across focus changes.
-- **Graphics** (kitty/sixel images) arrive as RGB/RGBA/PNG assets in `SurfaceGraphicsScene`. They
-  are sent once and kept per connection (`herdr-client/src/surface_images.rs`).
-- **Rendering**: a custom GPUI cell painter (`herdr-gpui/src/terminal_painter.rs`, ~1k lines plus
-  submodules). It shapes runs per row with a glyph cache. Box-drawing, block and powerline glyphs
-  are drawn as geometry snapped to device pixels. It also handles selection and search tints,
-  cursor shapes (DECSCUSR 0-6), hyperlinks, and an accessibility transcript
-  (`terminal/accessibility.rs`).
-- **Scrollback** stays server-side. The surface is only the viewport. The scrollbar comes from
-  `pane.scroll` metrics. Find, copy mode and selection use the
-  `pane.copy_search`/`pane.copy_motion`/`pane.selection.read` RPCs (`scrollback.rs`). Wheel input
-  goes up as `Mouse{ScrollUp/Down}` events.
-- **Keys** (`terminal.rs:439-480`): GPUI keystrokes become `ClientPaneInputEvent::Key{code,
-  modifiers: shift=1|ctrl=2|alt=4, kind: Press|Repeat, ...}`. Printable text goes through the
-  IME input handler as `TextCommit(String)`, so dead keys and IME are not sent twice. Cmd-V sends
-  `Paste(String)`. Images go through `ClipboardImage`.
-- **Resize**: `viewport()` turns the terminal area's pixels into cols×rows (clamped to 4096 and
-  1e6 cells). Those values go up in `ClientShellResize`, and herdr re-lays out the tab to that size.
+Covered in depth in [../ui/chat-view.md](../ui/chat-view.md). In short (`herdr-gpui/docs/rich-chat.md`): native ACP chats
+run by `herdr-acp` inside a pane (found through the pane token `acp`; the GUI derives the socket path itself),
+and, opt-in, **running Claude Code and Codex sessions drawn as rich messages above the CLI's own input
+rows**: only the upper terminal cells are replaced, the bottom rows (editor, approvals, IME, image paste) stay
+the real program (`chat/terminal.rs:1`), and a blocked prompt expands them. The session is found by probing
+herdr metadata and the process every 2–30 s; Linux hosts only. Six layouts, Markdown, TeX, Mermaid, and
+`herdr-ui` fenced widget cards.
 
-## 4. Pane layout
+## 9. Settings, keys, notifications, phone
 
-- herdr **owns the layout and draws it inside the grid**. The client paints one grid for the
-  focused tab. It uses `panes[].rect` to hit-test clicks and route input to a `pane_id`, and
-  `splits[].hit_rect` to show resize cursors. Dragging a divider sends
-  `layout.set_split_ratio{tab_id, path, ratio}` (`terminal/splits.rs`, `window/mouse.rs:637`).
-- **Focus is per client**: "The daemon keeps a focused tab and projects a surface per client"
-  (`group_terminals.rs`). To show another tab, the client sends `tab.focus` and waits for the new
-  snapshot and surface. The herdr CLI or agents can move *every* client's focus. Parked groups
-  then re-focus their own tab.
-- **"Editor groups"** (side-by-side views, `group_terminals.rs`, README "Editor Groups"): **each
-  group that shows a herdr tab opens its own extra client connection**. Non-active groups report
-  `ClientShellFocus{focused:false}` and drop notifications. "A tab is live in one group at a time:
-  the daemon sizes a tab for a single client", so a second view of the same tab shows a clipped
-  or padded copy. The group layout is saved locally in `editor-groups.json`.
-- There is no per-pane surface stream. A single pane is shown full-size only through `pane.zoom`.
+- **Settings:** `config-gpui.toml` (managed, rewritten each start), `config-gpui.local.toml` (user), and
+  herdr's shared `config.toml` (theme, sounds, toasts, `[keys]`), edited with `toml_edit`, polled every 250 ms
+  and taken after two equal reads. Each row says "Herdr" (shared) or "Herdr UI". A search box over a static
+  row catalog. Themes: herdr's 18 plus Ghostty's theme files; the host theme goes to herdr so OSC 10/11
+  queries get answers.
+- **Keys:** catalog defaults → herdr `[keys]` (prefix chords too) → app overrides; per device, a host's own
+  `[keys]`. Palette with fzf syntax (nucleo) and frecency keyed on host + path + branch.
+- **Notifications:** herdr's `SemanticNotification` from every host, with the TUI's timing (delayed attention
+  needs Blocked; Finished waits ≤ 1 s for Done; hidden for the visible tab of the focused window). Dock badge
+  counts Done + Blocked once per `(host, boot_id, pane_id)`, highest `state_change_seq` wins. Sounds per agent.
+- **Accessibility:** one pane's rows as AccessKit text; F6 moves between regions; `ink()` shifts only the
+  lightness of status colours to WCAG 3:1 / 4.5:1 against the chrome.
+- **Phone:** a separate per-user daemon serves a PWA over HTTPS on the LAN or Tailscale, with its own CA
+  name-constrained to private ranges. Pairing: a QR with a 60 s one-time token and the CA fingerprint, a device
+  P-256 key, a 6-digit code from `sha256(token‖key‖nonce)` approved on the desktop, then signed challenges
+  for short bearer tokens. Reads through an inactive client connection; every write on the JSON API with
+  `focus:false`; `pane.read` every 300 ms while a phone shows a pane. Web Push works; the iOS app is only a
+  Live Activity companion and its APNs path is not wired.
 
-## 5. State mapping: herdr vs. local
+## 10. License
 
-From the snapshot (pushed, full replace): `workspaces[]` (id, label, branch, git_ahead_behind,
-worktree, `agent_status`, `tokens`), `tabs[]` (workspace_id, label, zoomed, `agent_status`),
-`panes[]` (cwd, foreground_cwd, label), `agents[]` (pane_id, `agent` label such as
-"claude"/"codex"/"pi", display_agent, title, terminal_title, `agent_status:
-idle|working|blocked|done|unknown`, `state_change_seq`, state_labels, tokens), `agent_order`,
-focused ids, `commands[]` (custom commands and keybindings), and update/release-notes info.
-Unknown status strings decode to `Unknown`, which keeps newer servers compatible. The sidebar
-says: "Status comes from the daemon's snapshot, never from guessing at terminal output"
-(`sidebar/agents.rs`). Agent icons are SVGs keyed on herdr's `agent_label` list (24 agents,
-`icons.rs`).
+Apache-2.0 (`LICENSE`, `NOTICE`). Code may be reused, in Swift translation or verbatim (scripts, JS), with the
+license and a notice of changes. `herdr-protocol` and the settings schema are themselves adapted from herdr
+(Apache-2.0). Small, self-contained pieces worth taking as text: `annotate.js` (374 lines), the checkpoint
+script (`herdr-vcs/src/checkpoint/script.rs`), the remote shim (`remote_browser/herdr-gpui.sh`), the review
+prompt wording. Bundled RaTeX is MIT, KaTeX fonts OFL.
 
-Kept locally (`~/.local/state/herdr/gpui/` and the herdr client state dir):
-`window-state.json` (window geometry), `browser-tabs.json`, `editor-groups.json`,
-`preferences.json`, `agent-skill.json`, `usage-keychain.json`, `config-gpui.toml` (GUI overrides
-on top of the shared `~/.config/herdr/config.toml`), `gpui-wsl.json`. It also reads and writes
-herdr's own `client/endpoints.json` (saved SSH hosts, `{version, ssh:[{id,label,target,session,enabled}]}`)
-and `client/endpoint-selection.json`, and re-reads the catalog every 2 s. Theme, sound and toast
-settings come from the local herdr config, not from the remote daemon.
+## 11. Compared with Oriel
 
-## 6. Multiple hosts and remote machines
+| Topic | herdr-gpui | Oriel | Verdict |
+|---|---|---|---|
+| Terminal bytes | herdr's cell grid, painted by GPUI | ANSI on `terminal session control`, libghostty | Oriel's: ligatures, local scrollback and find, no painter to keep |
+| herdr access | binary socket, method allowlist, CLI for the rest | JSON API through `remote-api-bridge`, events then snapshot | Oriel's: no positional wire copy, no CLI detour |
+| Panes on screen | one focused tab per connection; a connection per extra group | every pane of the shown tab streamed on its own | Oriel's |
+| Non-terminal panes | client-only tabs in a local JSON, a closed enum | a labelled placeholder herdr pane, one kind registry | Oriel's: other devices and the TUI see it, it survives restarts |
+| Browser profiles | one store for all hosts | one `WKWebsiteDataStore` per machine | Oriel's |
+| Remote localhost | per-port `-L`, URL rewritten | one SOCKS `-D` per machine, `<machine>.localhost` | Oriel's |
+| Web Inspector | debug builds only | ⌥⌘I, `isInspectable` | Oriel's |
+| OAuth popups | adopted with `window.opener` | opened in the same card | **theirs** |
+| Ports | per workspace via `HERDR_WORKSPACE_ID`, every 5 s | menu on click, by process name | **theirs** for grouping; Oriel's for no timer |
+| Diff | review tab: two-phase load, side by side, viewed marks, notes | changes drawer, read-only, unified | combine: Oriel's drawer, their loading and marks |
+| Last turn | commit + hidden ref, restore | loose `write-tree`, id in a state file | **theirs** |
+| Agent → app | control socket; token mailbox from SSH hosts | float and copy tokens; none for pages | same pattern; theirs reaches further |
+| Notes → agent | paste when idle, Enter 150 ms later | "Later" | **theirs** as the rule |
+| Chat | rich view above the CLI's own input rows; ACP | transcript tail + composer (design) | see [../ui/chat-view.md](../ui/chat-view.md) |
+| Phone | PWA served by a Mac daemon | native iOS app over SSH (design) | Oriel's direction; their pairing is a good reference |
 
-- `ConnectTarget::{Local, Session{name}, Socket(path), Ssh{target, session}, Wsl{distro, session}}`.
-- **SSH bridge** (`herdr-client/src/ssh.rs`): runs `ssh -T -C -o BatchMode=yes -o
-  StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ControlMaster=no
-  host /bin/sh -c '<script>'`. The script searches PATH and known install roots for `herdr`, runs
-  `herdr status client --json`, and prints `herdr-remote-output-ready:1`. The client checks
-  generation and capabilities, then writes `accept` or `accept-idle`. The script then runs
-  `exec herdr --session S remote-client-bridge [--idle-timeout-v1]`. **The same bincode stream
-  runs over ssh stdio.** The bridge starts the remote daemon if needed. Disconnecting only detaches.
-- It never prompts for passwords. MFA hosts need a user-configured `ControlMaster auto`.
-- **All hosts connect at once**. The selected host has an active surface. The others send
-  `client_shell.surface.set {"active":false}` and get snapshots only, which feed the cross-host
-  Agents list and notifications. The capability `surface_interest` is required for this.
-- Port forwarding: `ssh -N` master plus `ssh -O forward -L 127.0.0.1:L:localhost:R`
-  (`forward.rs`). File upload goes over separate ssh processes (`upload.rs`).
-- "Teleport" moves a worktree, its tabs and its agent sessions to another host. It copies each
-  agent's session files (Claude, Codex, OpenCode, Pi, Copilot) and rewrites paths inside them
-  (`teleport/sessions.rs`). This is the only place it touches agent JSONL storage.
-- There is **no** iroh, relay, Tailscale integration, or remote agent of its own.
+## 12. For Oriel
 
-## 7. Mobile, push, chat
+### Reuse
 
-- **Mobile**: none. No iOS target, no pairing or QR, no relay, no auth or crypto beyond SSH.
-- **Notifications**: the source is herdr's `SemanticNotification` (`NeedsAttention` /
-  `Finished` / `UpdateInstalled` / `Custom`) from every connected endpoint. The app uses the
-  TUI's timing rules: delayed attention needs a Blocked agent, and Finished needs projected Done.
-  Finished is suppressed for the active tab while the window is focused. It shows in-app toasts
-  and posts local OS notifications through GPUI (`UNUserNotificationCenter` on macOS,
-  `window/system_notifications.rs`). A click routes back through boot-fenced navigation. Sounds
-  play through rodio using herdr's MP3s. There is **no remote push (no APNs)**.
-- **Chat view**: **none**. Agent output is shown only as terminal cells. The nearest thing is
-  `agent_notes.rs`, which sends page annotations or review notes to an agent. When the agent is
-  `Idle`/`Done`, it sends `ClientPaneInputEvent::Paste(text)` and then, 150 ms later, an `Enter`
-  Key event. Delivery is held for up to 120 s while the agent is `Working`/`Blocked`. It never
-  types into a `Blocked` prompt, and never into a plain shell (to avoid running the text).
-  Otherwise the notes are queued for the agent to pull with `herdr-gpui browser feedback --wait`.
-- Approvals and blocked prompts: shown only as status `blocked` (sidebar dot plus a
-  NeedsAttention toast). The user answers by typing in the terminal.
+1. **Checkpoints as commit + hidden ref** for the changes panel's Last turn: `commit-tree -p HEAD` under
+   `refs/oriel/checkpoints/<sha1(branch)>/<stamp>` with a branch trailer, keep 50, real index copied to a temp
+   index, `core.fsmonitor=false`, skip an unchanged tree, ignore blocked → working. Every device sees the refs,
+   `git gc` cannot prune them, and no state file holds the tree id. Cost: about 1 day.
+2. **The delivery rule for notes to an agent:** paste when herdr says idle or done (hold up to 120 s), Enter
+   150 ms later, never into a shell or a blocked agent, Withdraw while queued, resend only new or edited. The
+   prompt marks quoted code as data. Fits `pane.send_input` with bracketed paste. Cost: 1–2 days with the
+   Changes panel's Comments.
+3. **Two-phase diff loading** (`--numstat`/`--name-status`, then bodies in bounded batches, visible first,
+   "Load diff" past 20k lines or 4 MiB) and **viewed marks with +/− counts**. Cost: in the drawer's budget,
+   +0.5 day for marks.
+4. **Ports per workspace** from `HERDR_WORKSPACE_ID` in each listener's environment, one more line in the
+   ports chip's shell run. Cost: 2 hours.
+5. **OAuth popup adoption** in the browser card: build the popup from WebKit's configuration in
+   `createWebViewWith` and show it as a sheet over the card until `webViewDidClose`. Cost: half a day.
+6. **The metadata-token mailbox** for a later "agent opens a page in a card": an id per request, URL in
+   80-character chunks, 30 s TTL, served once, http(s) only, only the request's own workspace, then Oriel's
+   load rule. Same channel as Oriel's float requests. Cost: 1 day plus a small shim or pi-hkandala tool.
+7. **Small habits:** navigation filter (http(s) and `about:blank` only, downloads refused); per-card page zoom on
+   ⌘+/⌘−; hidden web views out of the hierarchy so they take no drops; `LocalCommand=echo marker` +
+   `ExitOnForwardFailure` for forward readiness; host-key approval through a scratch `known_hosts`; wake
+   detection by wall vs monotonic clock; `ink()` for status colours on Glass.
+8. **Terminal key defaults** to check against libghostty: ⇧↩ → Esc CR for agents, Option as Alt "auto".
 
-## 8. Non-terminal panes (web pages)
+### Avoid
 
-- **Browser tabs** (`src/browser/*`): "Herdr panes are always terminals, so these tabs belong to
-  this client alone; the daemon and its other clients never see them." They are native WKWebViews
-  (wry) drawn above the GPUI window, and hidden while overlays are open. They are stored in
-  `browser-tabs.json` as `{id, scope: "local:<socket>"|"<profile-id>", workspace_id, location, title, pane_id?}`.
-  They are removed when herdr closes that workspace. They appear in the tab strip next to herdr
-  tabs.
-- Agents open pages through a **local control socket** owned by the app (`src/control/*`). The
-  protocol is one JSON line in and one JSON line out:
-  `{"method":"browser.open","page":{"url":"…"},"caller":{"pane_id":"$HERDR_PANE_ID","workspace_id":"$HERDR_WORKSPACE_ID","daemon_socket":"…"},"focus":true}`,
-  plus `browser.reload` and `browser.feedback`. The CLI wrapper is `herdr-gpui browser open URL`.
-  The app installs a skill (`skills/herdr-gpui-browser/SKILL.md`) into `~/.claude/skills` and
-  `~/.agents/skills` so agents know about it. Remote agents cannot reach this socket.
-- Other client-only views: the diff/review tab (syntect), PR badges (GitHub), usage meters for
-  about 60 providers, and listening ports.
+- The binary client socket and its allowlist (and the CLI detours it forces), one connection per visible tab,
+  a 16 ms polling tick, server-rendered cells.
+- Client-only tabs keyed by daemon workspace ids, and a closed enum per surface.
+- Writing herdr's shared `config.toml` from the app.
+- Per-port forwards that rewrite the page origin; a web view per tab per window with no cap.
+- Typing a command into a fresh shell to start a program (their editor path): Oriel's `layout.apply` with a
+  command is better.
+- The breadth (usage meters, automations, cloud sandboxes, orchestrator, VS Code server): each is a product.
+
+### Worth adding (cost guess)
+
+| Feature | Why | Cost |
+|---|---|---|
+| Restore a checkpoint, diff first in the drawer | undo an agent's turn | 1–2 days after item 1 |
+| Branch base picker with fallback PR base → `origin/HEAD` → main/master | the drawer plans only `origin/<default>` | half a day |
+| Side by side and word emphasis in the drawer | reading big edits | 2 days |
+| Annotate a page and send to the agent | their most-used browser loop | 3–4 days; needs a bridge, so after the first slice |
+| Show a local `.md`/`.html` an agent wrote (scheme handler, no-script CSP) | no dev server needed | 1 day local; more over SSH |
+| Back/Forward pane history (⌘[ ⌘]) and reopen closed tab (⌘⇧T) | navigation | 1 day each |
+| Plugin values: show `agents[].tokens`, `state_labels`, `tab_bar_right` as herdr's TUI does | herdr plugins show something in Oriel | 1 day |
+| Closed-agents shelf that reopens with `--continue` | recover a closed agent | 1 day |
