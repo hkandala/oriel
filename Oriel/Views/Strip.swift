@@ -203,9 +203,9 @@ private struct SplitLayout: View {
         }
     }
 
-    /// The view id of each of these cards already in place. herdr's panes that took splits' stand-ins (`Ahead`)
-    /// keep the stand-ins' views, in order, so each new card comes once, where it ends up: a quick ⌘D's stand-ins
-    /// are replaced in one snapshot, and herdr's panes as new views slid in beside them as they went.
+    /// The view id of each of these cards already in place. herdr's panes that took splits' stand-ins (`Ahead`) keep
+    /// their views, in order, so each new card comes once, where it ends up; a replaced pane's new pane keeps its card,
+    /// in place (no slide in, no fade out).
     private func views(_ ids: [String]) -> [String: String] {
         guard let placed else { return [:] }
         // Not `uniqueKeysWithValues`: a pane twice in herdr's tree must not crash the app.
@@ -213,6 +213,9 @@ private struct SplitLayout: View {
         let gone = placed.filter { Ahead.isStandIn($0.id) && !ids.contains($0.id) }
         for (new, old) in zip(ids.filter { views[$0] == nil }, gone) {
             views[new] = old.view
+        }
+        for (old, new) in page.store.ahead.replaced.compactMapValues(\.made?.id) where ids.contains(new) {
+            views[new] = placed.first { $0.id == old }?.view ?? views[new]
         }
         return views
     }

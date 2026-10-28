@@ -290,3 +290,16 @@ heading at the end.
   window). Red on the old code locally (⌘R did nothing: "waited for a new pane", no dialog), green locally.
 - **For the user:** in a pane, change your `.zshrc`, press ⌘R: a fresh shell in the same place and folder. Try it
   with `vim` open (it asks), zoomed (⇧⌘↩), and in a floating window.
+
+### Lane P2
+
+- **Cause:** the strip keeps each card's view by pane id. At the swap the old pane id left the tree and the new one
+  came, so SwiftUI made a new card: it started beside its slot and slid in from its side of the split (the strip's
+  "new card" motion), while the old card faded out.
+- **Fix:** the strip's view ids map a replaced pane's new pane (`Ahead.replaced`) onto the old pane's card view, as
+  a split's stand-in hands its card to herdr's pane. The card stays where it is; only its terminal is new, and
+  `TerminalCard`'s new host plays the usual reveal fade. Splits and closes keep their motion.
+- **Runs:** `testReplacingAShellPaneTakesItsPlaceAndFolder` now launches with `-forceMotion YES -recordMotion YES`
+  and checks the strip's card counter ("came went") does not change: red on the old code ("3 0, then 4 1"), green
+  with the fix, both local under the GUI lock (with the other replace tests and the quick-split test).
+- **For the user:** ⌘R a pane: the card stays put, the old text clears and the new prompt fades in.

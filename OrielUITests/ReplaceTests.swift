@@ -3,7 +3,10 @@ import XCTest
 /// Replace Pane (⌘R): a fresh shell in the pane's place, size and folder, with the keyboard; it asks first, as Close
 /// Pane does, when something besides the shell runs.
 extension OrielUITests {
+    /// With motion (CI has Reduce Motion on): the new pane takes the old card in place, so no card comes into the
+    /// page sliding from its side and none fades out; only the terminal's reveal fades in.
     func testReplacingAShellPaneTakesItsPlaceAndFolder() async throws {
+        relaunch(one, ["-recordMotion", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("replace")
         let right = try await split(left)
@@ -24,11 +27,14 @@ extension OrielUITests {
         })
         element("terminal.\(right)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(right)"))
+        let cards = element("cards.\(tab)"), came = cards.stringValue
 
         app.typeKey("r", modifierFlags: .command)
         let new = try await replaced(right, in: tab, besides: [left, below])
         XCTAssertTrue(card.vanishes(within: 3))
         let replaced = element("pane.\(new)")
+        XCTAssertTrue(replaced.exists(within: 3))
+        XCTAssertFalse(until(1) { cards.stringValue != came }, "cards came, went: \(came), then \(cards.stringValue)")
         // The old card's place and size, to the point.
         XCTAssertTrue(until(3) {
             guard replaced.exists else { return false }
