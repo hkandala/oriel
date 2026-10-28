@@ -1,14 +1,14 @@
 ---
 title: "Pane kinds and plugins"
-description: "Terminal, agent and web page are built in; every other pane kind is a plugin"
+description: "Terminal, agent and browser are built in; every other pane kind is a plugin"
 ---
 
 Not built. Today a new tab or split is always a terminal. The pages in this
-section are the design for the pane picker, the Agent and Web page kinds, and
+section are the design for the pane picker, the Agent and Browser kinds, and
 plugins.
 
-A pane kind is what a pane shows: a terminal, an agent, a web page or a
-plugin. One picker makes every pane kind. Terminal, Agent and Web page are
+A pane kind is what a pane shows: a terminal, an agent, a browser or a
+plugin. One picker makes every pane kind. Terminal, Agent and Browser are
 built into the app. Every other pane kind is a plugin: a small web page
 ([Plugin UI](/docs/future-work/plugins/plugin-ui)) from one plugin registry.
 
@@ -16,13 +16,13 @@ built into the app. Every other pane kind is a plugin: a small web page
 |---|---|---|---|---|
 | Terminal | built in | native terminal (libghostty) | none | none (the default) |
 | Agent | built in | native terminal + chat view ([Chat view](/docs/future-work/chat-view)) | none | none (herdr sets `pane.agent`) |
-| Web page | built in | native web view ([Web page](/docs/future-work/web-page)) | none (only the page's own) | label `oriel:web#<iid> <url>` |
+| Browser | built in | Chromium (CEF) on the Mac, WebKit on iOS ([Browser](/docs/future-work/web-page)) | none (only the page's own) | label `oriel:browser#<iid> <url>` |
 | `git-history`, `diff`, `markdown` | core | a web page in a native web view | yes, the public API | label `oriel:…` ([Labels and instance ids](/docs/future-work/plugins/labels)) |
 | your plugins | installed | a web page in a native web view | yes, the public API | label `oriel:…` |
 
 - Core plugins ship with the app. They use exactly the public API and are
   reference code for plugin authors.
-- A web or plugin pane is a real herdr pane with a label. In herdr it runs a
+- A browser or plugin pane is a real herdr pane with a label. In herdr it runs a
   quiet placeholder command, so herdr TUI users see what the pane is. The
   placeholder is cosmetic: the label is the truth
   ([Labels and instance ids](/docs/future-work/plugins/labels)).
@@ -35,7 +35,7 @@ built into the app. Every other pane kind is a plugin: a small web page
 machine ("New pane on devbox").
 
 - The fixed rows come first: Terminal, Agent ▸ (one row per available agent,
-  [Agent](/docs/future-work/plugins/agent#agent)) and Web page (an address
+  [Agent](/docs/future-work/plugins/agent#agent)) and Browser (an address
   field and the machine's listening ports,
   [Finding ports](/docs/future-work/web-page#finding-ports)).
 - Then a "Plugins" header and one row per plugin pane kind from the
@@ -48,7 +48,7 @@ machine ("New pane on devbox").
 
 ## Run and dial
 
-Web pages and plugins reach their pane's machine through two calls on its
+Browser panes and plugins reach their pane's machine through two calls on its
 `Exec`. The app has the first one today
 ([Running commands](/docs/talking-to-herdr#running-commands)); the second
 is new:
@@ -74,7 +74,7 @@ func dial(host: String, port: Int) async throws -> Channel
   `ClearAllForwardings=yes` ([The SSH connection](/docs/machines#the-ssh-connection);
   [evidence](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#how-plugins-reach-a-remote-machine)).
 - `dial` needs a `Channel` that carries bytes; today a `Channel` gives lines.
-- A web card needs a local port, not a stream:
+- A browser card needs a SOCKS proxy, not a stream:
   [Remote localhost](/docs/future-work/web-page#remote-localhost).
 - Nothing of ours is installed on the machine: `sshd`, POSIX tools and herdr
   do the work. A bigger helper would sit behind the same `run` and `dial` calls
@@ -89,12 +89,40 @@ func dial(host: String, port: Int) async throws -> Channel
   machine in Swift.
 - `HerdrKit` gets the label parser, the state-file write command and the
   transcript parsers, each with unit tests. `SSHExec` gets `dial`.
-- The `PaneViewRegistry` owns web and plugin cards as it owns terminal views,
+- The `PaneViewRegistry` owns browser and plugin cards as it owns terminal views,
   so scrolling never destroys them.
 - App storage (`UserDefaults`): consent and This Mac answers per plugin id
   and source, plugin preferences (passwords in the Keychain), and approved
-  web origins per machine with the safe list. Plugin code and its source
-  record live in `~/Library/Application Support/Oriel/plugins/`.
+  browser origins per machine with the safe list. Plugin code and its source
+  record live in `~/Library/Application Support/Oriel/plugins/`, Chromium's
+  profiles (one per machine) in `~/Library/Application Support/Oriel/Browser/`.
+
+## The first slice
+
+The browser is the first pane kind on this design. It brings the parts every
+later kind needs, and nothing that only third-party plugins need:
+- the label grammar and its parser, the instance id, and restore by label
+  ([Labels and instance ids](/docs/future-work/plugins/labels));
+- the placeholder pane made with `layout.apply` and `pane.move`;
+- the picker with its fixed rows;
+- the instance state file and **Refresh**
+  ([State and restore](/docs/future-work/plugins/state));
+- the load rule and the approvals per machine.
+
+A built-in kind is declared with the fields a manifest uses later
+([Manifest](/docs/future-work/plugins/packages#manifest)), as a value in the
+app:
+
+```json
+{ "id": "browser", "title": "Browser", "icon": "globe",
+  "arg": { "title": "Address", "placeholder": "localhost:3000", "required": true } }
+```
+
+What a pane kind gets from the app is small: its pane context (machine,
+session, iid, argument, cwd), `setArg`, `state.get` and `state.set`, and
+`run`. Web plugins get the same calls as `window.oriel` later
+([Plugin API](/docs/future-work/plugins/api)). Later: `dial`, the snapshot
+event, preferences, packages, consent and plugin cards.
 
 ## Choices
 

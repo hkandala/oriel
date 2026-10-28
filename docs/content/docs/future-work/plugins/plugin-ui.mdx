@@ -38,13 +38,14 @@ How the page reaches its machine:
   appearance.
 - Any JavaScript works: plain DOM, React, Svelte or anything else, bundled by
   the author. The app runs no build step.
-- Web page cards use the same web view type. SwiftUI's own `WebPage` is not
-  used: it has no new-window hook, so it drops `window.open` silently
+- Browser cards draw Chromium instead ([Browser](/docs/future-work/web-page)).
+  Plugin cards stay WebKit: it is small, runs on iOS and has the hooks the
+  security rules need. SwiftUI's own `WebPage` is not used: it has no new-window hook, so it drops `window.open` silently
   ([Plugin security](/docs/future-work/plugins/security)).
 - WebKit is built into macOS and iOS, so the same plugin can run on an
   [iPhone and iPad app](/docs/future-work/iphone-and-ipad#plugins) too.
 - A web view costs about 50 MB empty and 120–200 MB in use. The app keeps at
-  most 6 live web views on the Mac, web pages and plugin
+  most 6 live web views on the Mac, browser and plugin
   cards together, least recently used first out. An evicted card keeps an
   image of its last frame.
 - The card header has a plugin|term switch, which shows the pane's
@@ -67,7 +68,7 @@ How the page reaches its machine:
 |---|---|---|
 | Plugin HTML built from repository text | a script in a repository file runs in the plugin page | the Content Security Policy allows only the plugin's own scripts; core plugins insert text, not HTML |
 | A malicious plugin the user installed | anything the user can do on machines where its panes open | the consent sheet in plain words, the This Mac confirm, the source shown and pinned to a commit ([Plugin security](/docs/future-work/plugins/security)) |
-| Web view memory (120–200 MB each) | memory growth | at most 6 live web views, web pages and plugin cards together; evict on memory pressure |
+| Web view memory (120–200 MB each) | memory growth | at most 6 live web views, browser and plugin cards together; evict on memory pressure |
 | Third-party code in the app | updates lag; supply chain | exact pins, reviewed updates (as for libghostty-spm today) |
 
 ## Options we compared

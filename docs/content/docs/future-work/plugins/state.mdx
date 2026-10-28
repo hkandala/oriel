@@ -12,7 +12,7 @@ Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/p
 | the pane and its place in the layout | — | herdr pane | every device and the herdr TUI |
 | plugin, pane kind, instance id | `git-history#k3f9q2` (`/<pane>` only when the plugin has several) | the pane label | every device |
 | the argument: what the pane shows | `main`, `design/notes.md` | the pane label | every device, the TUI border |
-| view state | selected commit, filters, scroll anchor; a web card's current address and scroll position | a JSON file on the pane's machine, keyed by iid | every device that reaches the machine, when it builds the card |
+| view state | selected commit, filters, scroll anchor; a browser card's current address | a JSON file on the pane's machine, keyed by iid | every device that reaches the machine, when it builds the card |
 | preferences | diff style | the app, per device | this device |
 | plugin code and consent | — | the app | this device |
 | in-memory UI state | hover, expanded rows | the page | this card only |
@@ -53,7 +53,7 @@ it relative to the home folder, where every command starts
 - The app also writes `<plugin-id>/_plugin.json` (title, source, version) each
   time it creates a pane of that plugin, so a device without the plugin can
   suggest installing it.
-- **Cleanup:** the device that closes a web or plugin pane removes its state
+- **Cleanup:** the device that closes a browser or plugin pane removes its state
   file (`rm -f`). On connect, the app runs once
   `find .local/state/oriel/<session> -type f -mtime +30 -delete`, so files of
   panes closed elsewhere (in the TUI, by a script) go after 30 days. Every
@@ -64,8 +64,8 @@ it relative to the home folder, where every command starts
 
 1. Connect each machine and read `session.snapshot`.
 2. Classify every pane by its label:
-   - matching the `oriel:` grammar → (plugin, pane, iid, arg); for `web`, the
-     argument is the typed URL ([Web page](/docs/future-work/web-page) load rules
+   - matching the `oriel:` grammar → (plugin, pane, iid, arg); for `browser`, the
+     argument is the typed URL ([Browser](/docs/future-work/web-page) load rules
      apply);
    - otherwise → `agent` if herdr set `pane.agent`, else `terminal`.
 3. Resolve the plugin in the registry (core, then a linked folder, then an
@@ -101,7 +101,7 @@ holds for its argument (the label) and its state file. A card is built on:
   keep their state.
 
 While a card is open, another device's renames and state writes do not
-move it. Every plugin card and web card has **Refresh** in its header: it
+move it. Every plugin card and browser card has **Refresh** in its header: it
 writes this card's pending state, reads `session.snapshot` (a rename sends no
 event), then builds the card again with the label and state from the
 machine.
@@ -116,5 +116,5 @@ machine.
 - **An open card changes only when it is built or on Refresh.** A scroll or
   rename on one device never moves a card under the user's eyes on another,
   and a rename costs no extra call. Rejected: following renames and state
-  writes live through a metadata token (`oriel_rev`); live follow for web
+  writes live through a metadata token (`oriel_rev`); live follow for browser
   cards only; separate Reload and Refresh buttons.

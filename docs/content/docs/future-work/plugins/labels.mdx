@@ -22,7 +22,7 @@ oriel:git-history#k3f9q2 main
 oriel:markdown#q2m0zd design/notes.md
 oriel:diff#a81xw0 base=main
 oriel:kanban/board#7tt1qe
-oriel:web#m4p8sa http://localhost:3000/dashboard
+oriel:browser#m4p8sa http://localhost:3000/dashboard
 ```
 
 - A plugin with one pane kind omits `/<pane-name>`. A label without a pane
@@ -48,9 +48,9 @@ cold restart, and the label survives it, so the iid lives in the label.
 
 ## Create
 
-Web and plugin panes are created the same way.
+Browser and plugin panes are created the same way.
 
-1. Picker → argument prompt if required → generate the iid (web and plugin panes).
+1. Picker → argument prompt if required → generate the iid.
 2. `layout.apply` without a `tab_id` makes a new tab with one pane. herdr
    starts the pane with its label and its placeholder command in one call:
    ```text
@@ -60,9 +60,11 @@ Web and plugin panes are created the same way.
    ```
    - `cwd` is the source pane's cwd, so a diff split from an agent's pane
      opens in that agent's repository.
-   - The script prints the title, the argument and "shown by Oriel", then runs
-     `stty raw -echo; exec cat >/dev/null`. `stty raw` makes Ctrl-C and
-     Ctrl-D plain bytes, so a herdr TUI user cannot end the pane by accident.
+   - The script prints the title, the argument and "Shown in Oriel" in the
+     middle of the pane, and again on `SIGWINCH` (a resize). It runs
+     `stty raw -echo` and a background `cat <&0 >/dev/null`, and waits on
+     it. `stty raw` makes Ctrl-C and Ctrl-D plain bytes, so a herdr TUI user
+     cannot end the pane by accident (checked on 0.9.5).
    - herdr runs the argv itself. No login shell, quoting or envelope is
      involved: the title and argument are plain argv (`"$1"`, `"$2"`).
 3. For a new tab, that is all. For a split, `pane.move {pane_id,
@@ -89,7 +91,7 @@ After a cold restart herdr brings the pane back as a plain shell with its
 label: it saves the command but runs it again only after a live update. The
 card works anyway. A fix is an upstream ask
 ([Future work](/docs/future-work)). If the placeholder process is killed,
-herdr closes the pane. Closing a web or plugin pane never asks, because it
+herdr closes the pane. Closing a browser or plugin pane never asks, because it
 runs only its placeholder (the app knows it by its label).
 </Callout>
 
