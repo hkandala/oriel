@@ -16,7 +16,8 @@ struct CloseDialog: ViewModifier {
             return floated == id ? closing : nil
         }
         let dialog = dialog(closing)
-        // An alert: a confirmation dialog ignored its .defaultAction button's Return.
+        // An alert: a confirmation dialog ignored Return. Its action is red, so not AppKit's default button: Return
+        // clicks it all the same (`NSWindow.confirm`).
         content.alert(dialog?.title ?? "", isPresented: Binding { closing != nil } set: {
             if !$0 {
                 page.closing = nil
@@ -31,7 +32,6 @@ struct CloseDialog: ViewModifier {
                     }
                 }
             }
-            .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) {}
         } message: { _ in
             Text(dialog?.message ?? "")
@@ -79,5 +79,25 @@ private extension HostStore.Close {
         case .otherTabs: "Close Tabs"
         case .workspace: "Close Workspace"
         }
+    }
+}
+
+@MainActor
+extension NSWindow {
+    /// Return (or Enter) in an alert whose action is red clicks that action (D41: Return confirms). AppKit draws a
+    /// destructive button red only while it is not the default button, and then gives it no Return; as the default it
+    /// is blue. Not in a sheet with a default button: AppKit's Return goes there. Whether it clicked.
+    static func confirm(_ event: NSEvent) -> Bool {
+        func buttons(_ view: NSView) -> [NSButton] {
+            [view as? NSButton].compactMap(\.self) + view.subviews.flatMap(buttons)
+        }
+        guard [36, 76].contains(event.keyCode),
+              event.modifierFlags.isDisjoint(with: [.command, .shift, .option, .control]),
+              let window = NSApp.keyWindow, window.sheetParent != nil else { return false }
+        let all = window.contentView.map(buttons) ?? []
+        guard !all.contains(where: { $0.keyEquivalent == "\r" }),
+              let action = all.first(where: { $0.hasDestructiveAction && $0.isEnabled }) else { return false }
+        action.performClick(nil)
+        return true
     }
 }

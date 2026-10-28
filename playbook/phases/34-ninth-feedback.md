@@ -312,3 +312,21 @@ heading at the end.
   and checks the strip's card counter ("came went") does not change: red on the old code ("3 0, then 4 1"), green
   with the fix, both local under the GUI lock (with the other replace tests and the quick-split test).
 - **For the user:** ⌘R a pane: the card stays put, the old text clears and the new prompt fades in.
+
+### Lane D2
+
+- **Cause:** every confirmation (close pane, tab, tabs, workspace, Replace Pane, Stop and Delete Session) already
+  had a destructive button, but it was also the default button (`.keyboardShortcut(.defaultAction)`, for Return).
+  AppKit draws the default button blue whatever its role, and gives a destructive button no Return (spiked with a
+  bare `NSAlert`: `hasDestructiveAction` drops its `\r`; setting `\r` back turns it blue). `.tint` and
+  `.foregroundStyle` on an alert button change nothing.
+- **Fix:** the buttons lose `.defaultAction`, so AppKit draws them red; the app's key monitor clicks a sheet's
+  enabled destructive button on Return or Enter when the sheet has no default button (`NSWindow.confirm`). Machine
+  dialogs keep their own default buttons; there is no other alert in the app (Detach Session never asks).
+- **Runs:** XCUITest can read the color from pixels: the close-pane, Replace Pane and Stop Session tests now check
+  the button is red (`isRed`, its margin lowered from 50 to 30: the dark red bubble reads about 45), and every
+  dialog test that confirms with Return passed locally (close pane, tab, tabs to the right, other tabs, workspace,
+  floated pane, Replace Pane, Stop and Delete Session). On the old code the button is blue.
+- **For the user:** close a pane running `sleep 100`: the Close Pane button is red, and Return still closes it.
+  Before and after, dark and light: `/tmp/oriel-shots/d2/compare.png` (Debug build through XCUITest; AppKit draws
+  the alert the same in Release).

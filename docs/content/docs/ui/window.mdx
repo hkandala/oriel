@@ -501,6 +501,10 @@ How it works: [Layout and sizing](/docs/layout).
 - Close and Replace Pane ask first unless the pane runs only its shell
   (Return confirms, Esc cancels). Replace Pane's dialog says "Replace
   “‹name›”?" and has a Replace Pane button.
+- Every question before an action that ends something (a close, Replace
+  Pane, Stop or Delete Session) shows that action's button in red, the
+  macOS destructive style. AppKit draws a red button only when it is not the
+  dialog's default button, so the app gives Return to the red button itself.
 - ⌘-click on a link in a terminal opens it in the default browser, `http` and
   `https` only.
 

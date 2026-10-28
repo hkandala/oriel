@@ -15,6 +15,8 @@ extension OrielUITests {
         element("pane.\(second).close").click()
         let confirm = app.sheets.buttons["Close Pane"]
         XCTAssertTrue(confirm.exists(within: 2))
+        // Red, and still Return's (below).
+        XCTAssertTrue(until(2) { isRed(confirm) })
         XCTAssertTrue(app.sheets.staticTexts["sleep is running in it and will end, here and in every herdr client. "
                 + "This cannot be undone."].exists)
         keepScreenshot("close pane dialog")

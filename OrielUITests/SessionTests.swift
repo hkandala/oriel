@@ -104,6 +104,7 @@ extension OrielUITests {
         element("\(row.identifier).stop").click()
         let stop = app.sheets.buttons["Stop Session"]
         XCTAssertTrue(stop.exists(within: 2))
+        XCTAssertTrue(until(2) { isRed(stop) })
         // Return confirms, as a click does.
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("\(row.identifier).delete").exists(within: 10))
@@ -247,13 +248,14 @@ extension OrielUITests {
     }
 
     /// Whether the element draws mostly red: a destructive button's fill, with the lit row's accent at its corners.
-    private func isRed(_ element: XCUIElement) -> Bool {
+    /// Mostly red, by its pixels: a destructive button (XCUITest reads no color). An alert's fades in: wait.
+    func isRed(_ element: XCUIElement) -> Bool {
         let pixels = Self.pixels(element.screenshot().image)
         let count = max(pixels.count / 4, 1)
         let mean = (0 ..< 3).map { channel in
             stride(from: channel, to: pixels.count, by: 4).reduce(0) { $0 + Int(pixels[$1]) } / count
         }
-        return mean[0] > mean[1] + 50 && mean[0] > mean[2] + 50
+        return mean[0] > mean[1] + 30 && mean[0] > mean[2] + 30
     }
 
     /// The page in view's session (a static text's value).

@@ -113,6 +113,7 @@ extension OrielUITests {
         app.typeKey("r", modifierFlags: .command)
         let confirm = app.sheets.buttons["Replace Pane"]
         XCTAssertTrue(confirm.exists(within: 3))
+        XCTAssertTrue(until(2) { isRed(confirm) })
         XCTAssertTrue(sheetText("Replace “/private/tmp”?").exists)
         XCTAssertTrue(sheetText("sleep is running in it and will end, here and in every herdr client. "
                 + "This cannot be undone.").exists)

@@ -48,7 +48,8 @@ struct OpenSession: View {
                 suggested = sessions.newName
             }
         }
-        // Both end what runs for good, on every device (D41's reason to ask). An alert: Return confirms it.
+        // Both end what runs for good, on every device (D41's reason to ask). An alert: Return confirms it
+        // (`NSWindow.confirm`), and its action is red.
         .alert(
             "\(asking?.verb.capitalized ?? "") the session “\(asking?.session ?? "")”?",
             isPresented: Binding { asking != nil } set: {
@@ -69,7 +70,6 @@ struct OpenSession: View {
                     await pages.current?.store.loadSessions()
                 }
             }
-            .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) {}
         } message: { asked in
             Text(asked.verb == "stop"
