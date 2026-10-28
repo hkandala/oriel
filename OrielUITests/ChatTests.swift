@@ -5,8 +5,8 @@ import XCTest
 /// and reports its state to herdr.
 extension OrielUITests {
     /// In this checkout, which the pane's shell reads (the runner itself is sandboxed).
-    private static let standIn = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-        .appending(path: "scripts/claude-stand-in.py").path
+    private static let scripts = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .appending(path: "scripts")
 
     /// Sends, stops, levels, slash text to the terminal, and "Not sent", on This Mac.
     func testAChatSendsStopsAndShowsItsLevels() async throws {
@@ -111,9 +111,9 @@ extension OrielUITests {
         XCTAssertTrue(row(pane, "reply", "You chose Pear.").exists(within: 5))
     }
 
-    /// A new tab of w2 whose chooser starts the stand-in as Claude Code, once the chat shows with the keyboard in its
-    /// reply box.
-    private func startChat(_ arguments: [String] = []) async throws -> (tab: String, pane: String) {
+    /// A new tab of w2 whose chooser starts the agent at `agent` (its place in the chooser) as its stand-in,
+    /// `scripts/<command>-stand-in.py`, once the chat shows with the keyboard in its reply box.
+    func startChat(_ arguments: [String] = [], agent: Int = 0) async throws -> (tab: String, pane: String) {
         if !arguments.isEmpty {
             relaunch(one, arguments)
         }
@@ -126,10 +126,12 @@ extension OrielUITests {
         let pane = try await pane(of: tab)
         XCTAssertTrue(element("pane.\(pane).chooser.terminal").exists(within: 3))
         try await waitForPrompt(pane)
-        // `function`: a user's own `claude` alias does not expand in it.
-        try await send("function claude { python3 '\(Self.standIn)' \"$@\"; }\r", to: pane)
+        // `function`: a user's own alias of the command does not expand in it.
+        let command = ["claude", "codex", "pi", "opencode"][agent]
+        let standIn = Self.scripts.appending(path: "\(command)-stand-in.py").path
+        try await send("function \(command) { python3 '\(standIn)' \"$@\"; }\r", to: pane)
         app.typeKey("2", modifierFlags: [])
-        app.typeKey(.return, modifierFlags: [])
+        app.typeKey("\(agent + 1)", modifierFlags: [])
         let composer = element("chat.\(pane).composer")
         XCTAssertTrue(composer.exists(within: 15))
         XCTAssertTrue(hasKeyboard(composer))
@@ -137,13 +139,13 @@ extension OrielUITests {
     }
 
     /// Types a message into the reply box and waits until the transcript has it (the bubble on its way is `sending`).
-    private func say(_ text: String, in pane: String) async throws {
+    func say(_ text: String, in pane: String) async throws {
         app.typeText(text + "\r")
         XCTAssertTrue(row(pane, "user", text).exists(within: 5))
     }
 
     /// The chat's row of this kind with this text.
-    private func row(_ pane: String, _ kind: String, _ value: String) -> XCUIElement {
+    func row(_ pane: String, _ kind: String, _ value: String) -> XCUIElement {
         app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier == %@ AND value == %@", "chat.\(pane).\(kind)", value)).firstMatch
     }
