@@ -52,10 +52,12 @@ herdr label and placeholder text, Web Inspector opens a window.
   a new terminal id; the card is rebuilt from the label and the state file. `_WKInspector show` works in the running
   app but docks under the page; `detach` moves it to WebKit's own window "Web Inspector — ‹page›" only after about
   1 s, so the app retries it until that window shows.
-- **Decisions (for the docs pass):** the placeholder shows the address it started with (none from the chooser and
-  Open Browser Here); the TUI border shows the current label. An address is approved for the machine when typed
-  and when a page finishes loading in the card (so a relaunch on a page reached by a link loads by itself); the
-  safe list is the design's, plus This Mac's `file://`. Typed `file://` is accepted on This Mac. Popups
+- **Decisions (for the docs pass):** the placeholder shows the address it started with, and nothing for none (the
+  chooser and Open Browser Here start with none, and "No page" would stay after the first address); the TUI border
+  shows the current label. A web origin is approved for the machine when typed and when a page finishes loading in
+  the card (so a relaunch on a page reached by a link loads by itself), the newest 200 per machine; the safe list is
+  the design's, plus This Mac's `file://`. A remote machine's `localhost` is not safe until phase 37's proxy (it
+  would reach This Mac). Typing an address removes the saved one. Typed `file://` is accepted on This Mac. Popups
   (`window.open`) open over the card with a close button and close on `window.close()`; a `target=_blank` link loads
   in the card. ⌘+ ⌘− ⌘0 zoom the page while a browser card has the keyboard. Web views live in the window's
   registry by terminal id and leave the view tree with their card.
@@ -63,6 +65,8 @@ herdr label and placeholder text, Web Inspector opens a window.
   window's title row shows the label's address. Overview tiles of browser cards show a `globe`. Rename Pane stays
   (a rename that breaks the label turns the card back into a terminal). Open Location ⌘L and Show Web Inspector
   ⌥⌘I are Edit menu commands.
+- **Decisions:** the temporary tab of `layout.apply` may show for one snapshot (as the design allows); state files of
+  browser panes closed with their tab or replaced go with the 30-day prune. A `mailto:` or app link opens its app.
 - **Not built:** Find in the page (⌘F is disabled on a browser card), the ⌥-click on a terminal link, the
   palette's "Open in Browser" row for a typed address, Refresh, and the Inspector button's lit state.
 - **Contract (item 6, for the docs pass):** label `oriel:browser#<iid> <url>`; iid 6 `[a-z0-9]`, unique in the

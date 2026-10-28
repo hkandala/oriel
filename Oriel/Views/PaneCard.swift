@@ -145,28 +145,32 @@ struct PaneCard: View {
 
     /// `new`: the chooser shows (ui/new-pane), and the title says so.
     private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool) -> some View {
-        HStack(spacing: 3) {
-            // Clicks pass through to the header's double-click.
-            if let pane, !page.floats(pane), let browser = page.browser(pane) {
+        // A browser card's header is its toolbar (future-work/web-page#the-card), unless it is renamed.
+        let browser = pane.flatMap { page.renamingPaneID != id && !page.floats($0) ? page.browser($0) : nil }
+        return HStack(spacing: 3) {
+            if let browser {
                 BrowserToolbar(browser: browser, page: page)
-            } else if page.renamingPaneID == id {
-                // Enter: herdr's label (an empty one clears it); the snapshot after it shows it. A click elsewhere
-                // keeps the keyboard and the selection where it went.
-                RenameField(prompt: "Pane Name", initial: pane?.label ?? "", commit: { label in
-                    Task { await page.store.rename(pane: id, label: label) }
-                }, end: { stopRenaming(pane) }, blur: { page.renamingPaneID = nil })
-                    .accessibilityIdentifier("pane.\(id).rename")
             } else {
+                // Clicks pass through to the header's double-click.
                 ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
-                Group {
-                    if new {
-                        Text("New Pane").lineLimit(1)
-                    } else {
-                        PaneTitle(pane: pane)
+                if page.renamingPaneID == id {
+                    // Enter: herdr's label (an empty one clears it); the snapshot after it shows it. A click elsewhere
+                    // keeps the keyboard and the selection where it went.
+                    RenameField(prompt: "Pane Name", initial: pane?.label ?? "", commit: { label in
+                        Task { await page.store.rename(pane: id, label: label) }
+                    }, end: { stopRenaming(pane) }, blur: { page.renamingPaneID = nil })
+                        .accessibilityIdentifier("pane.\(id).rename")
+                } else {
+                    Group {
+                        if new {
+                            Text("New Pane").lineLimit(1)
+                        } else {
+                            PaneTitle(pane: pane)
+                        }
                     }
+                    .allowsHitTesting(false)
+                    .accessibilityIdentifier("pane.\(id).title")
                 }
-                .allowsHitTesting(false)
-                .accessibilityIdentifier("pane.\(id).title")
             }
             Spacer(minLength: 0)
             // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.

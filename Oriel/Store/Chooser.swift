@@ -112,7 +112,7 @@ extension HostStore {
     /// ↑ ↓ move through the rows and stop at the ends, Return picks at once, → opens Agent, ← and Esc close it, Esc on
     /// a closed list picks Terminal. The number keys pick the top rows, or the agents while Agent is open. Other keys
     /// do nothing, also while the loader shows.
-    func key(_ event: NSEvent, _ chooser: Chooser) {
+    func key(_ event: NSEvent, _ chooser: Chooser, page: Page?) {
         // A held key moves on, but picks once: a held 2 would open Agent, then start Codex.
         guard chooser.starting == nil, !chooser.browsing,
               !event.isARepeat || [125, 126].contains(event.keyCode) else { return }
@@ -121,45 +121,26 @@ extension HostStore {
         case 125, 126: chooser.selected = rows[max(0, min(index + (event.keyCode == 125 ? 1 : -1), rows.count - 1))]
         // → on a closed Agent opens it; ← and Esc close an open one.
         case 124 where chooser.selected == .agent && !chooser.open, 123 where chooser.open, 53 where chooser.open:
-            pick(chooser, .agent)
+            pick(chooser, .agent, page: page)
         case 53: drop(chooser)
-        case 36, 76: pick(chooser, chooser.selected)
+        case 36, 76: pick(chooser, chooser.selected, page: page)
         default:
             let number = Int(event.charactersIgnoringModifiers ?? "")
             if let row = rows.first(where: { number != nil && chooser.number($0) == number }) {
-                pick(chooser, row)
+                pick(chooser, row, page: page)
             }
         }
     }
 
-    /// Agent opens with its first agent selected, or closes with itself selected.
-    func pick(_ chooser: Chooser, _ row: Chooser.Row) {
+    /// Agent opens with its first agent selected, or closes with itself selected. `page`: where it was picked.
+    func pick(_ chooser: Chooser, _ row: Chooser.Row, page: Page?) {
         switch row {
         case .agent:
             chooser.open.toggle()
             chooser.selected = chooser.open ? .start(0) : .agent
         case let .start(index): start(Chooser.agents[index], chooser)
-        case .browser: openBrowser(chooser)
+        case .browser: page?.openBrowser(chooser)
         case .terminal: drop(chooser)
-        }
-    }
-
-    /// A browser pane takes the chooser's pane's place, with Replace Pane's steps (ui/new-pane#browser); a new tab's
-    /// stand-in waits for herdr's pane.
-    func openBrowser(_ chooser: Chooser) {
-        guard chooser.starting == nil, !chooser.browsing else { return }
-        chooser.browsing = true
-        Task {
-            defer { drop(chooser) }
-            let clock = ContinuousClock(), begun = clock.now
-            while chooser.paneID == nil, clock.now - begun < .seconds(10),
-                  choosers.contains(where: { $0 === chooser })
-            {
-                try? await Task.sleep(for: .milliseconds(100))
-            }
-            guard let id = chooser.paneID, let page = windows.first?.list.first(where: { $0.store === self })
-            else { return }
-            await page.replace(id, Replacement(browser: true))
         }
     }
 
@@ -205,10 +186,29 @@ extension HostStore {
 }
 
 extension Page {
+    /// A browser pane takes the chooser's pane's place, with Replace Pane's steps (ui/new-pane#browser); a new tab's
+    /// stand-in waits for herdr's pane.
+    func openBrowser(_ chooser: Chooser) {
+        guard chooser.starting == nil, !chooser.browsing else { return }
+        chooser.browsing = true
+        Task {
+            defer { store.drop(chooser) }
+            let clock = ContinuousClock(), begun = clock.now
+            while chooser.paneID == nil, clock.now - begun < .seconds(10),
+                  store.choosers.contains(where: { $0 === chooser })
+            {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            if let id = chooser.paneID {
+                await replace(id, Replacement(browser: true))
+            }
+        }
+    }
+
     /// Open Browser Here: the chooser's pick on a pane that shows it, else a Replace Pane.
     func openBrowser(in pane: HostStore.Pane) {
         if let chooser = store.chooser(pane.id) {
-            store.openBrowser(chooser)
+            openBrowser(chooser)
         } else {
             replacePane(pane, Replacement(button: "Open Browser", browser: true))
         }
@@ -235,21 +235,24 @@ extension Page {
         // ⌃ and ⌥ keys too, or ⌃D would end the hidden shell: the app's ⌃ keys are second shortcuts, taken before.
         guard !event.modifierFlags.contains(.command), let window = NSApp.keyWindow,
               !(window.firstResponder is NSText) else { return false }
-        let target: (HostStore, String)?
+        let target: (Page, String)?
         if let pages = WindowPages.windows.first(where: { $0.window === window }) {
             guard !pages.overview, !pages.panelOpen, let page = pages.current, !page.store.choosers.isEmpty else {
                 return false
             }
-            target = page.keyCardID.map { (page.store, $0) }
+            target = page.keyCardID.map { (page, $0) }
         } else if let view = window.firstResponder as? PaneSurfaceView, let store = view.store(),
-                  let id = view.terminal?.paneID
+                  let id = view.terminal?.paneID,
+                  // The page that floats it.
+                  let page = WindowPages.windows.lazy.flatMap(\.withFloats)
+                      .first(where: { $0.store === store && store.pane(id).map($0.floats) == true })
         {
-            target = (store, id)
+            target = (page, id)
         } else {
             target = nil
         }
-        guard let (store, id) = target, let chooser = store.chooser(id) else { return false }
-        store.key(event, chooser)
+        guard let (page, id) = target, let chooser = page.store.chooser(id) else { return false }
+        page.store.key(event, chooser, page: page)
         return true
     }
 }

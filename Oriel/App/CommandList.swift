@@ -97,29 +97,27 @@ struct CommandList {
             // As in Rex, Find Previous has no key: ⇧⌘G is Go to Directory.
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
                     keywords: "search scrollback", enabled: live && terminal) { page?.openFind() },
-            // A browser card's (future-work/web-page#commands-on-a-browser-card).
-            Command(section: .edit, title: "Open Location", key: .init("l"), symbol: "link",
-                    keywords: "address url browser", enabled: browser != nil) { browser?.wantsAddress = true },
-            Command(section: .edit, title: "Show Web Inspector", key: .init("i", modifiers: [.command, .option]),
-                    symbol: "hammer", keywords: "developer tools devtools browser",
-                    enabled: browser?.address.isEmpty == false) { browser?.showInspector() },
             Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
                     enabled: find != nil) { Task { await page?.find?.step(1) } },
             Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: find != nil) {
                 Task { await page?.find?.step(-1) }
             },
         ]
-        return file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + view + paneKeys
+        return file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + Self
+            .browser(browser)
+            + view + paneKeys
             + palette(page) + window(page, pages)
     }
 
     private var view: [Command] {
         let size = settings.fontSize, sizes = PaneTerminal.fontSizes
-        let page = pages?.current?.keyboardPane?.browser
-        // A browser card with the keyboard zooms its page instead.
+        let current = pages?.current
+        let page = current?.keyboardPane?.browser
+        // A browser card with the keyboard (its page or its address field) zooms its page instead.
         func zoom(_ step: Int, else text: @escaping () -> Void) -> () -> Void {
             {
-                if let view = BrowserView.focused {
+                let card = current?.keyboardPane.flatMap { $0.terminalID.flatMap { current?.terminals.built($0) } }
+                if let view = BrowserView.focused ?? card?.view {
                     view.zoom(step)
                 } else {
                     text()

@@ -93,7 +93,7 @@ struct NewPane: View {
             if let pane = page.store.pane(cardID) {
                 page.go(to: pane)
             }
-            page.store.pick(chooser, row)
+            page.store.pick(chooser, row, page: page)
         } label: {
             HStack(spacing: 8) {
                 icon(row, selected: selected)

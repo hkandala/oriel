@@ -3,12 +3,14 @@ import XCTest
 /// Browser panes (future-work/web-page): a herdr pane labeled `oriel:browser#<iid> <url>` with a placeholder, shown
 /// as a web view card. The test pages are files a shell of the session writes (the runner is sandboxed).
 extension OrielUITests {
-    /// Two pages: one links to two.
+    /// Two pages: one links to two and opens a popup that closes itself.
     func writePages(from pane: String, in session: String? = nil) async throws -> String {
         let folder = "/tmp/oriel-e2e-browser"
         try await Self.call(session ?? one, "pane.send_text", ["pane_id": pane, "text": """
-        mkdir -p \(folder) && printf '<title>One</title><p>oriel-page-one</p><a href="two.html">Two</a>' \
-        >\(folder)/one.html && printf '<title>Two</title><p>oriel-page-two</p>' >\(folder)/two.html && clear\r
+        mkdir -p \(folder) && printf '<title>One</title><p>oriel-page-one</p><a href="two.html">Two</a> \
+        <button onclick="window.open(\\x27pop.html\\x27)">Pop</button>' >\(folder)/one.html && \
+        printf '<title>Two</title><p>oriel-page-two</p>' >\(folder)/two.html && \
+        printf '<p>oriel-pop</p><button onclick="window.close()">Done</button>' >\(folder)/pop.html && clear\r
         """])
         try await waitFor(pane, in: session) { !$0.contains("printf") }
         return "file://\(folder)/one.html"
@@ -21,6 +23,16 @@ extension OrielUITests {
     /// The page's text, in its web view.
     func pageText(_ text: String) -> XCUIElement {
         app.webViews.staticTexts.matching(NSPredicate(format: "value == %@", text)).firstMatch
+    }
+
+    /// Waits until the pane's state file on This Mac holds the address, read with `cat` in a shell of the session.
+    func expectSaved(_ text: String, iid: String, shell: String, in session: String? = nil) async throws {
+        let path = "~/.local/state/oriel/\(session ?? one)/browser/\(iid).json"
+        try await poll("\(text) in \(path)") { () async throws -> Bool? in
+            try await Self.call(session ?? one, "pane.send_text", ["pane_id": shell, "text": "clear; cat \(path)\r"])
+            try await Task.sleep(for: .milliseconds(200))
+            return try await read(shell, in: session).contains(text) ? true : nil
+        }
     }
 
     func paneLabel(_ pane: String, in session: String? = nil) async throws -> String {
@@ -37,10 +49,7 @@ extension OrielUITests {
         let browser = try await replaced(chooser, in: tab, besides: [left])
         let label = try await paneLabel(browser)
         XCTAssertTrue(label.hasPrefix("oriel:browser#") && !label.contains(" "), label)
-        if !hasKeyboard(element("browser.\(browser).address")) {
-            print("DEBUGTREE", app.windows.firstMatch.debugDescription)
-            XCTFail("no keyboard")
-        }
+        XCTAssertTrue(hasKeyboard(element("browser.\(browser).address")))
         return (browser, label)
     }
 
@@ -64,6 +73,12 @@ extension OrielUITests {
         XCTAssertTrue(pageText("oriel-page-one").exists(within: 5))
         try await expect("the typed address in the label") { try await paneLabel(browser) == "\(made) \(page)" }
         keepScreenshot("browser card")
+        // window.open: over the card, gone on window.close().
+        app.webViews.buttons["Pop"].click()
+        let popup = element("browser.\(browser).popup")
+        XCTAssertTrue(popup.exists(within: 5))
+        popup.buttons["Done"].click()
+        XCTAssertTrue(popup.vanishes(within: 3))
         app.webViews.links["Two"].click()
         XCTAssertTrue(pageText("oriel-page-two").exists(within: 5))
         XCTAssertTrue(element("browser.\(browser).back").isEnabled)
@@ -75,8 +90,8 @@ extension OrielUITests {
         keepScreenshot("web inspector", of: inspector)
         inspector.buttons[XCUIIdentifierCloseWindow].click()
 
-        // The saved address (500 ms after the load), not the label's.
-        try await Task.sleep(for: .seconds(1))
+        // The saved address, not the label's.
+        try await expectSaved("two.html", iid: String(made.dropFirst("oriel:browser#".count)), shell: left)
         relaunch()
         element("workspace.w2").click()
         element("tab.\(tab)").click()
@@ -84,7 +99,12 @@ extension OrielUITests {
         let kept = try await paneLabel(browser)
         XCTAssertEqual(kept, "\(made) \(page)")
 
-        // Open Browser Here on the terminal.
+        try await openBrowserHere(on: left, in: tab, besides: browser)
+    }
+
+    /// Open Browser Here from the palette on a terminal: a browser pane in its place. Not offered on a browser pane,
+    /// where ⌘R gives a shell with the chooser.
+    func openBrowserHere(on left: String, in tab: String, besides browser: String) async throws {
         element("terminal.\(left)").click()
         openPalette()
         app.typeText("open browser here")
@@ -94,11 +114,19 @@ extension OrielUITests {
         let otherLabel = try await paneLabel(other)
         XCTAssertTrue(otherLabel.hasPrefix("oriel:browser#"), otherLabel)
         XCTAssertTrue(hasKeyboard("browser.\(other).address"))
-        // Not on a browser pane.
+        // Not on a browser pane, where Open Terminal Here is.
         openPalette()
-        app.typeText("open browser here")
-        XCTAssertFalse(element("palette.command.Open Browser Here").exists(within: 1))
+        app.typeText("here")
+        XCTAssertTrue(element("palette.command.Open Terminal Here").exists(within: 2))
+        XCTAssertFalse(element("palette.command.Open Browser Here").exists)
         app.typeKey(.escape, modifierFlags: [])
+        // ⌘R on a browser card: a shell with the chooser.
+        XCTAssertTrue(hasKeyboard("browser.\(other).address"))
+        app.typeKey("r", modifierFlags: .command)
+        let shell = try await replaced(other, in: tab, besides: [browser])
+        XCTAssertTrue(element("pane.\(shell).chooser.terminal").exists(within: 3))
+        let shellLabel = try await paneLabel(shell)
+        XCTAssertEqual(shellLabel, "")
     }
 
     /// A pane an agent labels with the herdr CLI shows its page; after a session stop and start (a plain shell, a new
@@ -140,7 +168,7 @@ extension OrielUITests {
         element("float.\(pane).detach").click()
         XCTAssertTrue(window.vanishes(within: 3))
         XCTAssertTrue(pageText("oriel-page-two").exists(within: 3))
-        try await Task.sleep(for: .seconds(1))
+        try await expectSaved("two.html", iid: "e2e5ab", shell: shell, in: five)
 
         try await Self.post("\(five)/stop")
         XCTAssertTrue(element("detail.start").exists(within: 10))

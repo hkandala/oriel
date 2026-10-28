@@ -19,6 +19,19 @@ extension Page {
     }
 }
 
+extension CommandList {
+    /// A browser card's (future-work/web-page#commands-on-a-browser-card), in the main and the floating windows.
+    static func browser(_ browser: Browser?) -> [Command] {
+        [
+            Command(section: .edit, title: "Open Location", key: .init("l"), symbol: "link",
+                    keywords: "address url browser", enabled: browser != nil) { browser?.wantsAddress = true },
+            Command(section: .edit, title: "Show Web Inspector", key: .init("i", modifiers: [.command, .option]),
+                    symbol: "hammer", keywords: "developer tools devtools browser",
+                    enabled: browser?.address.isEmpty == false) { browser?.showInspector() },
+        ]
+    }
+}
+
 /// The card's page (future-work/web-page#the-card): the web view inset 6 pt, a progress line under the header while
 /// a page loads, a failure or "Open ‹url›?" in the middle, and the loader until the first page drew.
 struct BrowserCard: View {
@@ -49,7 +62,7 @@ struct BrowserCard: View {
             }
             .overlay {
                 if let popup = browser.popup {
-                    Popup(view: popup, close: browser.closePopup).padding(24)
+                    Popup(view: popup, title: browser.popupHost, close: browser.closePopup).padding(24)
                 }
             }
             .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: browser.ready)
@@ -68,7 +81,7 @@ struct BrowserCard: View {
                 Text(hint).foregroundStyle(.secondary)
             }
             Button(button, action: action).buttonStyle(.glassProminent).padding(.top, 4)
-                .accessibilityIdentifier("browser.\(browser.paneID).\(button.lowercased())")
+                .accessibilityIdentifier("browser.\(browser.paneID).\(button == "Reload" ? "retry" : "open")")
         }
         .padding(24)
     }
@@ -93,13 +106,14 @@ struct BrowserLoader: View {
 /// A `window.open` page over the card, with its title and a close button; `window.close()` closes it too.
 private struct Popup: View {
     let view: WKWebView
+    let title: String
     let close: () -> Void
     @Environment(\.look) private var look
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(view.title ?? view.url?.host ?? "").font(.system(size: 12, weight: .medium)).lineLimit(1)
+                Text(title).font(.system(size: 12, weight: .medium)).lineLimit(1)
                 Spacer()
                 IconButton(symbol: "xmark", help: "Close", size: 22, action: close)
             }

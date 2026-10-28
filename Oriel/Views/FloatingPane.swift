@@ -375,7 +375,7 @@ extension CommandList {
             Command(section: .view, title: "Stay on Top", symbol: "pin", checked: page.floating[terminalID] == true,
                     setting: true) { page.floating[terminalID]?.toggle() },
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    enabled: pane != nil) { page.openFind(pane) },
+                    enabled: pane.map { $0.browser == nil } == true) { page.openFind(pane) },
             Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
                     enabled: page.find != nil) { Task { await page.find?.step(1) } },
             Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: page.find != nil) {
@@ -388,6 +388,6 @@ extension CommandList {
             var command = $0
             command.key = command.key == .closePane ? .closeTab : command.key
             return command
-        } + sizes
+        } + sizes + Self.browser(pane.flatMap(page.browser))
     }
 }

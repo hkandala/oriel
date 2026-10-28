@@ -16,31 +16,27 @@ public struct PaneLabel: Equatable, Sendable {
 
     /// Nil for a user's own label (`todo: fix login`) or one that breaks the grammar.
     public init?(_ label: String?) {
+        // Most labels are a user's: no regex for them (every card asks at every render).
         guard let label, label.hasPrefix("oriel:") else { return nil }
-        let head = label.dropFirst(6).prefix { $0 != " " }
-        let arg = label.dropFirst(6 + head.count).drop { $0 == " " }
-        let parts = head.split(separator: "#", omittingEmptySubsequences: false)
-        guard parts.count == 2, let plugin = parts[0].split(separator: "/").first,
-              Self.matches(plugin, first: Self.lowercase + Self.digits, rest: "._-", max: 64),
-              parts[0].split(separator: "/", omittingEmptySubsequences: false).count <= 2,
-              parts[1].count == 6, parts[1].allSatisfy({ Self.lowercase.contains($0) || Self.digits.contains($0) }),
-              arg.count <= 1024, !arg.contains(where: \.isControl)
-        else { return nil }
-        self.init(plugin: String(plugin), iid: String(parts[1]), arg: String(arg))
+        let grammar = /oriel:([a-z0-9][a-z0-9._-]{0,63})(?:\/[a-z0-9][a-z0-9-]{0,31})?#([a-z0-9]{6})(?: +(.*))?/
+        guard let match = try? grammar.wholeMatch(in: label) else { return nil }
+        let arg = match.3.map(String.init) ?? ""
+        guard arg.count <= 1024, !arg.contains(where: \.isControl) else { return nil }
+        self.init(plugin: String(match.1), iid: String(match.2), arg: arg)
     }
 
     public var text: String {
         "oriel:\(plugin)#\(iid)" + (arg.isEmpty ? "" : " \(arg)")
     }
 
-    /// A browser pane's label.
-    public static func browser(_ url: String = "", taken: Set<String>) -> PaneLabel {
-        PaneLabel(plugin: "browser", iid: newIID(taken: taken), arg: url)
+    /// A new browser pane's label, with no address yet.
+    public static func browser(taken: Set<String>) -> PaneLabel {
+        PaneLabel(plugin: "browser", iid: newIID(taken: taken))
     }
 
     /// 6 random `[a-z0-9]`, not one of `taken` (the session's labels' iids).
     public static func newIID(taken: Set<String>) -> String {
-        let alphabet = Array(lowercase + digits)
+        let alphabet = Array("abcdefghijklmnopqrstuvwxyz0123456789")
         while true {
             let iid = String((0 ..< 6).map { _ in alphabet.randomElement() ?? "a" })
             if !taken.contains(iid) {
@@ -52,13 +48,6 @@ public struct PaneLabel: Equatable, Sendable {
     /// The instance state file, relative to the home folder (future-work/plugins/state).
     public func statePath(session: String) -> String {
         ".local/state/oriel/\(session)/\(plugin)/\(iid).json"
-    }
-
-    private static let lowercase = "abcdefghijklmnopqrstuvwxyz", digits = "0123456789"
-
-    private static func matches(_ text: Substring, first: String, rest: String, max: Int) -> Bool {
-        guard let head = text.first, first.contains(head), text.count <= max else { return false }
-        return text.dropFirst().allSatisfy { first.contains($0) || rest.contains($0) }
     }
 }
 

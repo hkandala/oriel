@@ -52,7 +52,11 @@ final class PaneViewRegistry {
     /// The browser pane's card, made on first use from its label.
     func browser(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String, store: HostStore) -> Browser {
         if let browser = browsers[terminalID] {
-            browser.paneID = pane.id
+            // Only a change: Observation reports equal writes too, and every card body asks.
+            if browser.paneID != pane.id {
+                browser.paneID = pane.id
+                browser.view.setAccessibilityIdentifier("browser.\(pane.id)")
+            }
             return browser
         }
         let browser = Browser(terminalID: terminalID, paneID: pane.id, label: label, store: store)
@@ -128,7 +132,7 @@ final class PaneViewRegistry {
             terminal.view.dropClaim()
         }
         for (id, browser) in browsers where id != terminalID && pages?.floats(id) != true {
-            browser.view.dropClaim()
+            browser.dropClaim()
         }
     }
 

@@ -28,8 +28,15 @@ final class Browser: NSObject {
     private(set) var ready = false
     /// A `window.open` page (OAuth needs its opener) in a sheet over the card, until it closes.
     private(set) var popup: WKWebView?
+    /// Its address's host, its title.
+    private(set) var popupHost = ""
     /// The address field takes the keyboard when it shows, or now (⌘L, a new empty card).
     var wantsAddress = false
+    /// The pane got the keyboard while the state file was read: given once the address is known.
+    @ObservationIgnored private var claimed = false
+    @ObservationIgnored private var reading = true
+    /// The page's process ended since the last load finished: it loads again once.
+    @ObservationIgnored private var reloaded = false
     @ObservationIgnored private var watches: [NSKeyValueObservation] = []
     @ObservationIgnored private var saving: Task<Void, Never>?
 
@@ -42,6 +49,7 @@ final class Browser: NSObject {
         configuration.websiteDataStore = Self.dataStore(store.machine)
         // Sites that sniff for Safari work.
         configuration.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15"
+        // `_inspector show` opens nothing without it (checked).
         configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
         view = BrowserView(frame: .zero, configuration: configuration)
         super.init()
@@ -87,7 +95,15 @@ final class Browser: NSObject {
         guard let store else { return }
         let saved = await store.machine.exec().read(home: label.statePath(session: store.session))
             .flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any] }?["url"] as? String
-        guard let url = Self.url(saved ?? label.arg, local: !store.machine.isRemote) else {
+        reading = false
+        defer {
+            if claimed {
+                claimed = false
+                takeKeyboard()
+            }
+        }
+        // Not over an address typed meanwhile.
+        guard address.isEmpty, let url = Self.url(saved ?? label.arg, local: !store.machine.isRemote) else {
             ready = true
             return
         }
@@ -105,6 +121,10 @@ final class Browser: NSObject {
         guard let store, let url = Self.url(text, local: !store.machine.isRemote) else { return }
         approve(url)
         load(url)
+        // The saved address goes: a typed load that fails opens the typed one after a relaunch.
+        saving?.cancel()
+        let path = label.statePath(session: store.session)
+        Task { await store.machine.exec().remove(home: path) }
         let label = PaneLabel(plugin: label.plugin, iid: label.iid, arg: url.absoluteString)
         Task { await store.rename(pane: paneID, label: label.text) }
         view.takeKeyboard()
@@ -137,10 +157,21 @@ final class Browser: NSObject {
 
     /// The pane's keyboard: the page, or the address field while there is no page.
     func takeKeyboard() {
-        if address.isEmpty {
+        if reading {
+            claimed = true
+        } else if address.isEmpty {
             wantsAddress = true
         } else {
             view.takeKeyboard()
+        }
+    }
+
+    /// Another card of the window asked for the keyboard.
+    func dropClaim() {
+        view.dropClaim()
+        claimed = false
+        if wantsAddress {
+            wantsAddress = false
         }
     }
 
@@ -164,52 +195,29 @@ final class Browser: NSObject {
         }
     }
 
+    /// A save still pending would bring back the state file a close removed.
+    isolated deinit {
+        saving?.cancel()
+    }
+
     func closePopup() {
         popup = nil
     }
 
-    /// The pane's command in herdr (future-work/web-page#in-herdrs-tui): "Browser", the address it started with, and
-    /// "Shown in Oriel", centered and drawn again on a resize. Keys do nothing: `stty raw` makes Ctrl-C and Ctrl-D
-    /// plain bytes for the `cat` that swallows them. herdr runs the argv itself, with no shell quoting.
-    static func placeholder(_ label: PaneLabel) -> [String] {
-        let script = #"""
-        draw() {
-          set -- $(stty size 2>/dev/null || echo "24 80"); r=$1 c=$2
-          printf '\033[?25l\033[2J'
-          line() {
-            x=$(( (c - ${#2}) / 2 + 1 )); [ $x -lt 1 ] && x=1
-            printf '\033[%d;%dH%b%s\033[0m' "$1" "$x" "$3" "$2"
-          }
-          y=$(( r / 2 - 2 ))
-          line $y "$T" '\033[1m'
-          [ -n "$U" ] && line $((y + 2)) "$U" '\033[4;34m'
-          line $((y + 4)) "Shown in Oriel" '\033[2m'
-        }
-        T=$1 U=$2
-        stty raw -echo 2>/dev/null
-        trap draw WINCH
-        draw
-        cat <&0 >/dev/null &
-        while kill -0 $! 2>/dev/null; do wait $!; done
-        """#
-        return ["sh", "-c", script, "sh", "Browser", label.arg]
-    }
-
     // MARK: Origins
 
-    /// The machine's own loopback on any port, This Mac's files, and a few developer sites.
-    private static let safe = ["github.com", "gitlab.com", "bitbucket.org", "developer.apple.com",
-                               "developer.mozilla.org", "docs.github.com", "vercel.com"]
-
     private func approved(_ url: URL) -> Bool {
-        guard let host = url.host?.lowercased() else { return url.isFileURL }
-        return ["localhost", "127.0.0.1", "::1"].contains(host) || Self.safe.contains(host)
+        let local = store?.machine.isRemote == false
+        guard let host = url.host?.lowercased() else { return url.isFileURL && local }
+        // ponytail: a remote machine's loopback is This Mac's until phase 37's proxy; then the machine's own.
+        return ["localhost", "127.0.0.1", "::1"].contains(host) && local || Self.safe.contains(host)
             || host.hasSuffix(".vercel.app") || host.hasSuffix(".netlify.app") || approvals.contains(Self.origin(url))
     }
 
+    /// Web origins only, the newest 200.
     private func approve(_ url: URL) {
-        guard !approved(url) else { return }
-        UserDefaults.standard.set(approvals + [Self.origin(url)], forKey: approvalsKey)
+        guard ["http", "https"].contains(url.scheme?.lowercased()), !approved(url) else { return }
+        UserDefaults.standard.set(Array((approvals + [Self.origin(url)]).suffix(200)), forKey: approvalsKey)
     }
 
     /// Per device, per machine.
@@ -219,36 +227,6 @@ final class Browser: NSObject {
 
     private var approvals: [String] {
         UserDefaults.standard.stringArray(forKey: approvalsKey) ?? []
-    }
-
-    private static func origin(_ url: URL) -> String {
-        "\(url.scheme ?? "")://\(url.host ?? "")" + (url.port.map { ":\($0)" } ?? "")
-    }
-
-    /// `http`, `https`, and `file` on This Mac only; at most 1024 characters (the label's argument).
-    static func url(_ text: String, local: Bool) -> URL? {
-        let text = text.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty, text.count <= 1024 else { return nil }
-        let full = text.contains("://") ? text : "http://\(text)"
-        guard let url = URL(string: full), let scheme = url.scheme?.lowercased() else { return nil }
-        return ["http", "https"].contains(scheme) && url.host != nil || scheme == "file" && local ? url : nil
-    }
-
-    // MARK: Storage
-
-    /// One store per machine (future-work/web-page#profiles): cookies, storage and the cache stay apart.
-    private static var stores: [String: WKWebsiteDataStore] = [:]
-
-    private static func dataStore(_ machine: Machine) -> WKWebsiteDataStore {
-        if let store = stores[machine.id] {
-            return store
-        }
-        // This Mac's fixed id ("oriel" … "thisMa"); a remote machine's from its id.
-        let id = UUID(uuidString: machine.id)
-            ?? UUID(uuid: (0x6F, 0x72, 0x69, 0x65, 0x6C, 0, 0x40, 0, 0x80, 0, 0x74, 0x68, 0x69, 0x73, 0x4D, 0x61))
-        let store = WKWebsiteDataStore(forIdentifier: id)
-        stores[machine.id] = store
-        return store
     }
 
     /// The address after a navigation, on the pane's machine, 500 ms after the last one; last writer wins.
@@ -272,6 +250,7 @@ extension Browser: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
         ready = true
+        reloaded = false
         if let url = webView.url {
             approve(url)
         }
@@ -303,7 +282,20 @@ extension Browser: WKNavigationDelegate {
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        guard !reloaded else { return }
+        reloaded = true
         webView.reload()
+    }
+
+    /// A `mailto:` or an app's link clicked in the page goes to its app; the page stays. Never from script or a frame.
+    func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
+        guard let url = action.request.url,
+              !["http", "https", "file", "about", "blob", "data"].contains(url.scheme?.lowercased() ?? "")
+        else { return .allow }
+        if action.navigationType == .linkActivated, action.targetFrame?.isMainFrame != false {
+            NSWorkspace.shared.open(url)
+        }
+        return .cancel
     }
 }
 
@@ -321,6 +313,7 @@ extension Browser: WKUIDelegate {
         popup.uiDelegate = self
         popup.setAccessibilityIdentifier("browser.\(paneID).popup")
         self.popup = popup
+        popupHost = action.request.url?.host ?? ""
         return popup
     }
 

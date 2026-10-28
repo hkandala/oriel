@@ -25,12 +25,12 @@ struct ProgramTile: View {
     @Environment(\.displayScale) private var scale
 
     var body: some View {
-        let colors = programIcons.first { $0.id == icon }?.tile
+        // The globe (a browser pane) is no catalog icon: a generic tool's glyph, on the shell's tile.
+        let colors = programIcons.first { $0.id == (icon == "globe" ? "terminal" : icon) }?.tile
         let shape = RoundedRectangle(cornerRadius: 5, style: .continuous)
         // The glyphs carry their own padding in a 24 pt box.
         ProgramMark(icon: icon, letter: letter, size: 17)
-            // The globe (a browser pane) is no catalog icon: a generic tool's green glyph on the neutral tile.
-            .foregroundStyle(Color(hex: colors?.glyph ?? (icon == "globe" ? "#7ee787" : nil)))
+            .foregroundStyle(Color(hex: colors?.glyph))
             .frame(width: 22, height: 18)
             .background(Color(hex: colors?.background), in: shape)
             .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.12), .clear], startPoint: .top,
