@@ -28,7 +28,7 @@ struct Look {
     let dark: Bool
     /// Increase Contrast: the dim colors below are stronger. The system's own colors follow it by themselves.
     var contrast = false
-    /// Text on the accent pill (a palette row, the new pane's list).
+    /// Text on the accent pill of the new pane's list.
     static let onAccent = Color.white
 
     /// Glass: over the behind-window blur, blended `overlay` under `window`; it darkens the blur in dark.

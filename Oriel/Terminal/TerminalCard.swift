@@ -112,6 +112,8 @@ struct TerminalCard: View {
             .id(ObjectIdentifier(terminal))
             .overlay(alignment: .bottom) {
                 switch terminal.state {
+                // Not under a new pane's chooser, where it could not be clicked.
+                case _ where alpha == 0: EmptyView()
                 case .watching where !watched:
                     Button("In use elsewhere · Take Back", action: terminal.takeBack)
                         .buttonStyle(.glass)

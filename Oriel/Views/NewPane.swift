@@ -85,7 +85,13 @@ struct NewPane: View {
         // Readable on the accent pill.
         let dim = selected ? AnyShapeStyle(Look.onAccent.opacity(0.75))
             : look.contrast ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary)
-        return Button { page.store.pick(chooser, row) } label: {
+        return Button {
+            // The card takes the keyboard, as a click on its terminal does.
+            if let pane = page.store.pane(cardID) {
+                page.go(to: pane)
+            }
+            page.store.pick(chooser, row)
+        } label: {
             HStack(spacing: 8) {
                 icon(row, selected: selected)
                 Text(name).lineLimit(1)

@@ -30,8 +30,7 @@ final class HostStore {
     private(set) var focusedWorkspaceID: String?
     /// The last failed write, shown for a few seconds; ✕ clears it.
     var notice: Notice?
-    /// The new panes' choosers (ui/new-pane): the app's own, so every window shows them. ponytail: a pane closed at
-    /// its chooser leaves it here (a few bytes); drop them on a pane's close if that ever adds up.
+    /// The new panes' choosers (ui/new-pane): the app's own, so every window shows them.
     var choosers: [Chooser] = []
     /// Writes, one at a time in order: a quick second close or split waits for the first (both show at once).
     @ObservationIgnored private let writes = Gate(1)
@@ -250,6 +249,9 @@ final class HostStore {
 
     /// The snapshot onto the objects, as the app shows it (`ahead`); its agent changes.
     private func apply(_ snapshot: Snapshot) -> [Seen.Change] {
+        // A pane closed at its chooser: herdr's raw panes, so one made since the last snapshot stays.
+        let gone = Set(last?.panes.compactMap(\.terminalID) ?? []).subtracting(snapshot.panes.compactMap(\.terminalID))
+        choosers.removeAll { $0.terminalID.map(gone.contains) == true }
         last = snapshot
         let shown = ahead.show(snapshot)
         let tabs = Dictionary(grouping: shown.tabs, by: \.workspaceID)

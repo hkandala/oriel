@@ -25,8 +25,8 @@ final class Chooser {
 
     @ObservationIgnored let standIn: String?
     /// herdr's pane, once it answered.
-    @ObservationIgnored var paneID: String?
-    @ObservationIgnored var terminalID: String?
+    var paneID: String?
+    var terminalID: String?
     /// Agent is open: its agents show under it.
     var open = false
     var selected = Row.terminal
@@ -80,8 +80,9 @@ extension HostStore {
     func chooser(_ cardID: String) -> Chooser? {
         guard !choosers.isEmpty else { return nil }
         let terminalID = pane(cardID)?.terminalID
-        let standIn = ahead.splitPanes.first { $0.value == cardID }?.key ?? cardID
-        return choosers.first { $0.terminalID != nil && $0.terminalID == terminalID || $0.standIn == standIn }
+        return choosers.first {
+            $0.standIn == cardID || $0.paneID == cardID || $0.terminalID != nil && $0.terminalID == terminalID
+        }
     }
 
     /// A chooser on a new tab's or split's stand-in; `made` gives it herdr's pane.
@@ -110,7 +111,8 @@ extension HostStore {
     /// a closed list picks Terminal. The number keys pick the top rows, or the agents while Agent is open. Other keys
     /// do nothing, also while the loader shows.
     func key(_ event: NSEvent, _ chooser: Chooser) {
-        guard chooser.starting == nil else { return }
+        // A held key moves on, but picks once: a held 2 would open Agent, then start Codex.
+        guard chooser.starting == nil, !event.isARepeat || [125, 126].contains(event.keyCode) else { return }
         let rows = chooser.rows, index = rows.firstIndex(of: chooser.selected) ?? 0
         switch event.keyCode {
         case 125, 126: chooser.selected = rows[max(0, min(index + (event.keyCode == 125 ? 1 : -1), rows.count - 1))]
@@ -118,10 +120,7 @@ extension HostStore {
         case 124 where chooser.selected == .agent && !chooser.open, 123 where chooser.open, 53 where chooser.open:
             pick(chooser, .agent)
         case 53: drop(chooser)
-        case 36, 76:
-            if !event.isARepeat {
-                pick(chooser, chooser.selected)
-            }
+        case 36, 76: pick(chooser, chooser.selected)
         default:
             let number = Int(event.charactersIgnoringModifiers ?? "")
             if let row = rows.first(where: { number != nil && chooser.number($0) == number }) {
@@ -146,6 +145,8 @@ extension HostStore {
     /// the agent is ready: herdr reports it with a status (all four agents, read from their screens on any machine).
     /// The terminal shows sooner when the shell is in front again (the command failed or ended), or after 10 s.
     func start(_ agent: Chooser.Agent, _ chooser: Chooser) {
+        // Once: a double click's second click lands on the row as it fades out.
+        guard chooser.starting == nil else { return }
         chooser.starting = agent
         Task {
             defer { drop(chooser) }
@@ -185,30 +186,29 @@ extension Page {
     /// Start Agent Here: the chooser's pick on a pane that shows it, else a Replace Pane that starts the agent.
     func start(_ agent: Chooser.Agent, in pane: HostStore.Pane) {
         if let chooser = store.chooser(pane.id) {
-            if chooser.starting == nil {
-                store.start(agent, chooser)
-            }
+            store.start(agent, chooser)
         } else {
             replacePane(pane, Replacement(button: "Start \(agent.name)", chooser: true, agent: agent))
         }
     }
 
-    /// The card keys go to: a new tab's or split's card also before herdr made its pane, while the old card's
-    /// terminal keeps the keyboard.
+    /// The card keys go to: a new tab's or split's card also before its terminal took the keyboard from the old
+    /// card's (herdr's split answer comes before the snapshot that shows it).
     var keyCardID: String? {
-        let newest = newest?.id
-        return standIn ?? (newest.map { selectedTab?.tree?.paneIDs.contains($0) == true } == true ? newest : nil)
-            ?? keyboardPane?.id
+        standIn ?? newest?.id ?? keyboardPane?.id
     }
 
     /// The keyboard card's chooser takes its keys before the terminal under it (`OrielApp`), in the key window (a
     /// floating one too), unless a text field, a panel or the overview has the keyboard.
     static func chooserKey(_ event: NSEvent) -> Bool {
-        guard event.modifierFlags.isDisjoint(with: [.command, .control, .option]), let window = NSApp.keyWindow,
+        // ⌃ and ⌥ keys too, or ⌃D would end the hidden shell: the app's ⌃ keys are second shortcuts, taken before.
+        guard !event.modifierFlags.contains(.command), let window = NSApp.keyWindow,
               !(window.firstResponder is NSText) else { return false }
         let target: (HostStore, String)?
         if let pages = WindowPages.windows.first(where: { $0.window === window }) {
-            guard !pages.overview, !pages.panelOpen, let page = pages.current else { return false }
+            guard !pages.overview, !pages.panelOpen, let page = pages.current, !page.store.choosers.isEmpty else {
+                return false
+            }
             target = page.keyCardID.map { (page.store, $0) }
         } else if let view = window.firstResponder as? PaneSurfaceView, let store = view.store(),
                   let id = view.terminal?.paneID

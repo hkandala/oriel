@@ -34,6 +34,19 @@ extension OrielUITests {
         try await typeAndRead(pane)
         let text = try await read(pane)
         XCTAssertFalse(text.contains("leaked"), text)
+
+        // ⌘T then Return at once, before herdr made the pane: the Return is the new card's, not the old shell's (which
+        // keeps the first responder meanwhile).
+        let tabs = try await tabIDs()
+        app.typeKey("t", modifierFlags: .command)
+        app.typeKey(.return, modifierFlags: [])
+        let next = try await self.pane(of: newTabID(after: tabs))
+        XCTAssertTrue(element("pane.\(next)").exists(within: 3))
+        XCTAssertFalse(element("pane.\(next).chooser.terminal").exists)
+        try await waitForPrompt(next)
+        try await typeAndRead(next)
+        let old = try await read(pane)
+        XCTAssertEqual(old, text, "the Return went to the old shell")
     }
 
     /// ⌘D on a pane made outside the app (no chooser): the split's card shows it. ↑ ↓ move the selection and stop at
@@ -94,8 +107,9 @@ extension OrielUITests {
             return pane
         }
 
-        let agent = try await newPane("claude", #"echo oriel-stand-in; sleep 2; "$HERDR_BIN_PATH" pane report-agent "#
-            + #"--source oriel-e2e --agent claude --state idle "$HERDR_PANE_ID"; sleep 100"#)
+        let report = #""$HERDR_BIN_PATH" --session "$HERDR_SESSION" pane report-agent --source oriel-e2e "#
+            + #"--agent claude --state idle "$HERDR_PANE_ID""#
+        let agent = try await newPane("claude", "echo oriel-stand-in; sleep 2; \(report); sleep 100")
         // 2 opens Agent with its first agent selected: Return picks it.
         app.typeKey("2", modifierFlags: [])
         XCTAssertTrue(element("pane.\(agent).chooser.claude").has(\.isSelected, true, within: 2))
