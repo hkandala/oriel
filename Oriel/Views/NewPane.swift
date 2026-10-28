@@ -145,6 +145,7 @@ struct NewPane: View {
     private func loader(_ agent: Chooser.Agent) -> some View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small)
+            ProgramTile(icon: agent.command)
             Text("Starting \(agent.name)…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)
         }
         .accessibilityElement(children: .ignore)
