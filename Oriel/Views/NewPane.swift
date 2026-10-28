@@ -42,6 +42,7 @@ struct NewPane: View {
             }
         }
         .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: chooser.starting)
+        .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: chooser.open)
         .onAppear { focus = chooser.selected }
         .onChange(of: chooser.selected) { pointer = NSEvent.mouseLocation }
         // It leaves when the pane runs something else (typed from herdr's TUI): a program besides the shell, or an
@@ -136,10 +137,9 @@ struct NewPane: View {
     }
 
     private func loader(_ agent: Chooser.Agent) -> some View {
-        VStack(spacing: 10) {
-            ProgramTile(icon: agent.command).scaleEffect(2).frame(width: 44, height: 36)
+        HStack(spacing: 8) {
             ProgressView().controlSize(.small)
-            Text("Starting \(agent.name)…").font(.system(size: 13)).foregroundStyle(.secondary)
+            Text("Starting \(agent.name)…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isStaticText)
