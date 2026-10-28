@@ -122,8 +122,12 @@ final class Chat {
                 notSent(message.id)
                 return
             }
-            // Sent means the history has it (Claude Code's company hooks can take a few seconds).
+            // Sent means the history has it (Claude Code's company hooks can take a few seconds). pi steers: a message
+            // sent while it works shows in its history when it takes it, after the running tool.
             try? await Task.sleep(for: .seconds(5))
+            while phase == .working {
+                try? await Task.sleep(for: .seconds(1))
+            }
             notSent(message.id)
         }
     }
