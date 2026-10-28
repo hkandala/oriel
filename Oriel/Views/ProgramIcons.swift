@@ -64,7 +64,7 @@ private struct ProgramMark: View {
             if icon == "placeholder", let letter {
                 Text(letter).font(.system(size: size * 0.65, weight: .bold, design: .rounded))
             } else if icon == "globe" {
-                // A browser pane's (future-work/web-page): the system's symbol, on the neutral tile.
+                // A browser pane's (ui/browser): the system's symbol, on the neutral tile.
                 Image(systemName: "globe").resizable().scaledToFit().padding(size * 0.12)
             } else {
                 Image("program.\(icon)").resizable()

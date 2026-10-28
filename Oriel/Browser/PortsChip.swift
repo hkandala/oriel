@@ -1,7 +1,7 @@
 import HerdrKit
 import SwiftUI
 
-/// The ports chip (future-work/web-page#finding-ports): the machine's listening TCP ports, from one run each time the
+/// The ports chip (ui/browser#finding-ports): the machine's listening TCP ports, from one run each time the
 /// menu opens, grouped by the herdr workspace whose pane started them; a pick loads `localhost:<port>` in the card.
 struct PortsChip: View {
     let browser: Browser

@@ -3,28 +3,28 @@ title: "New pane"
 description: "The chooser on a new pane: Terminal, Agent or Browser, its keys and look, and the commands that change a pane's kind"
 ---
 
-Approved, being built in phase 35 (the browser in phase 36). A new pane asks
-what it runs: **Terminal**, **Agent** or **Browser**. Terminal is selected, so
-⌘T and then Return gives a terminal with no click.
+A new pane asks what it runs: **Terminal**, **Agent** or **Browser**.
+Terminal is selected, so ⌘T and then Return gives a terminal with no click.
 
 ## Which panes show it
 
 - Every pane the app creates with a new shell: ⌘T and the title row's `+`,
   ⌘D, ⇧⌘D, Split Left and Split Up, ⌃⌘T and every New Workspace (the page
-  header's `+`, the workspace menu, a drop on New Workspace, a folder dropped
-  on the Dock icon), New Tab in a workspace's menu, and the first workspace of
-  a session the app started.
-- The herdr pane and its shell start at once behind the chooser, as without
-  it. Nothing in herdr waits for the pick.
+  header's `+`, the workspace menu, a folder dropped on the Dock icon), New
+  Tab in a workspace's menu, and the first workspace of a session the app
+  started.
+- The herdr pane and its shell start at once behind the chooser. Nothing in
+  herdr waits for the pick.
 - Panes made outside the app (herdr's TUI, its CLI, another device) and panes
-  that already run something show their terminal as before. Moved panes
-  (Move Pane to Tab, a drag) keep what they show.
-- **Replace Pane** (⌘R) on a terminal gives a fresh shell with no chooser. On
+  that already run something show their terminal. A moved pane (Move Pane to
+  Tab, a drag) keeps what it shows: the chooser follows its pane by terminal
+  id.
+- **Replace Pane** (⇧⌘R) on a terminal gives a fresh shell with no chooser. On
   an agent or browser pane it gives a fresh shell with the chooser.
-- The chooser is the app's own state, kept on the pane in the app, so every
-  window of the app shows it on that pane. herdr, its TUI and other devices
-  see a plain shell. After a relaunch, a pane still at the chooser shows its
-  terminal.
+- The chooser is the app's own state, kept on the session's `HostStore`, so
+  every window of the app shows it on that pane. herdr, its TUI and other
+  devices see a plain shell. After a relaunch, a pane still at the chooser
+  shows its terminal.
 - The chooser leaves without a pick when the pane starts to run something else
   (a program other than the shell, or an agent that herdr reports), for
   example when someone types into it from herdr's TUI. Then the terminal
@@ -32,168 +32,146 @@ what it runs: **Terminal**, **Agent** or **Browser**. Terminal is selected, so
 
 ## Look
 
-A glass panel in the middle of the card, over the waiting terminal. The
-terminal stays hidden under it (the card shows only its fill), so no prompt
-text shows through the glass.
+A compact list in the middle of the card, on the card's own fill. The
+terminal stays hidden under it, so no prompt text shows. There is no panel,
+no title and no key hint. While the chooser shows, the card's header says
+"New Pane", and a new tab's capsule says "New Tab".
 
-- **Panel.** Floating glass, as the palette has it
-  ([Theme](/docs/ui/theme-and-accessibility#appearance-and-interface-style)):
-  radius 18, 24 pt of padding on every side, 408 pt wide and 196 pt tall.
-  It is centered on the card's area under the header. It looks the same in
-  Glass and Classic, and follows Light and Dark by itself.
-- **Header row**, 20 pt tall: "New Pane" in 13 pt semibold, secondary. On a
-  remote machine "New Pane on ‹machine›". 16 pt under it, the options.
-- **Options.** Three tiles side by side, 112 × 112 pt each, 12 pt apart,
-  radius 14:
-  - at the top, 22 pt in, the kind's symbol at 28 pt regular: `terminal`,
-    `sparkles`, `globe`;
-  - 10 pt under it, the name in 13 pt medium: "Terminal", "Agent", "Browser";
-  - under the name, one line in 11 pt secondary: "Shell", "Coding agent",
-    "Web page". Until the browser is built, Browser's line says "Coming
-    soon";
-  - in the top right corner, 8 pt in, its number key ("1", "2", "3") in 10 pt
-    tertiary.
-- **Selection.** A tile is the primary color at 0.04. The selected tile is
-  the accent at 0.18 with a 1.5 pt accent edge at 0.6, and its symbol in the
-  accent. It moves in the same frame, with no fade, as in a menu.
-- **Increase Contrast** gives every tile a 1 pt edge in the primary color at
-  0.25, and the secondary and tertiary text the system's stronger colors.
-- **Motion.** The panel comes with the card (a new card slides in with it).
-  A step change cross-fades over 0.15 s. After a pick the panel fades out over
-  0.15 s. Reduce Motion makes each change at once. Reduce Transparency is
-  handled by the system glass.
+- **List.** At most 300 pt wide (the card's width less 24 pt), as tall as its
+  rows (at most the card's height less 16 pt). Rows are 28 pt tall and 2 pt
+  apart.
+- **Row**, from the leading edge, 8 pt in: the kind's symbol in a 22 pt column
+  (`terminal`, `sparkles`, `globe`, in secondary), the name in 13 pt, then on
+  the right a short description in 12 pt ("Shell", "Coding agent", "Web
+  page") and the row's number key in 11 pt, both tertiary. The description
+  hides on a card narrower than 300 pt.
+- **Agent** has a 9 pt chevron after its name: `chevron.right` when closed,
+  `chevron.down` when open, with its symbol in the accent. Open, it shows its
+  four agents under it, indented 28 pt, each with its program tile
+  ([Program icons](/docs/ui/program-icons)) and its command in monospaced
+  text as the description:
 
-### Small cards and floating windows
+  | Agent | Command |
+  |---|---|
+  | Claude Code | `claude` |
+  | Codex | `codex` |
+  | Pi | `pi` |
+  | OpenCode | `opencode` |
 
-- When the card's area under the header is narrower than 440 pt or lower
-  than 228 pt (the panel and 16 pt on each side), the panel turns into a
-  list: as wide as the area less 16 pt, at most 280 pt, 12 pt of padding, the
-  same header row, and one 32 pt row per option (the symbol at 16 pt, the
-  name in 13 pt, the number key at the row's end), 4 pt apart. The selected
-  row is the palette's accent pill, radius 8.
-- A card smaller than the list cuts it like any content. The keys still work.
-- In a [floating window](/docs/ui/window#floating-pane) (Replace Pane on a
-  floated agent pane) the chooser sits in the middle of the window's card,
-  with the same rules.
-- A zoomed card shows it in the middle of the zoomed card.
+- **Selection.** The palette's accent pill
+  ([Command palette](/docs/ui/window#command-palette)), with the row's text
+  and symbol on the accent. It moves in the same frame, with no fade.
+- **Increase Contrast** gives the descriptions and keys the secondary color.
+- **Motion.** Agent opens and closes over 0.15 s. After a pick the list fades
+  out over 0.15 s while the terminal fades in. Reduce Motion makes each change
+  at once.
+- **Small cards.** A card lower than the list scrolls it to the selected row.
+  A zoomed card and a [floating window](/docs/ui/window#floating-pane)
+  (Replace Pane on a floated agent pane) show it in their middle, with the
+  same rules.
 
 ## Keys and pointer
 
-The chooser has the keyboard as soon as it shows. The card it sits on is the
-keyboard card (a new pane gets the keyboard, as today).
-- ← → and ↑ ↓ move the selection. They stop at the ends.
-- Return picks the selected option at once, on both steps.
-- 1, 2 and 3 pick that option at once (1 to 4 on the Agent step).
-- Esc on the first step picks Terminal. Esc on the Agent step goes back to the
-  first step, with Agent selected.
-- The pointer moves the selection, as in the palette. A click picks.
-- Other keys do nothing. The app's shortcuts (⌘T, ⌘W, ⌘K, ⌘[ and others) work
-  as usual. When the keyboard moves to another card, the chooser stays on its
-  card and has the keyboard again when the card does.
+The chooser has the keyboard as soon as it shows: its card is the keyboard
+card. The app sends the chooser its keys before any terminal, so a fast ⌘T
+and Return never reaches the old card's shell.
+- ↑ and ↓ move the selection. They stop at the ends.
+- Return picks the selected row. On Agent it opens or closes the agents,
+  and open selects the first agent.
+- → on Agent opens it. ← and Esc close it again, with Agent selected.
+- Esc on a closed list picks Terminal.
+- 1, 2 and 3 pick the top rows. While Agent is open, 1 to 4 pick the agents.
+- A held key moves on, but picks only once.
+- The pointer selects a row once it moves, as in the palette. A click picks.
+  A click beside the list gives the card the keyboard.
+- Other keys do nothing, also ⌃ and ⌥ chords, so ⌃D cannot end the hidden
+  shell. The app's ⌘ shortcuts (⌘T, ⌘W, ⌘K, ⌘[ and others) and text fields
+  work as usual. When the keyboard moves to another card, the chooser stays
+  on its card and has the keyboard again when the card does.
 
 ## Terminal
 
-The panel fades out and the terminal shows with its usual fade-in
-([Pane card](/docs/ui/window#pane-card)), with the keyboard. The shell has
-been running since the pane was made, so there is no wait.
+The list fades out and the terminal fades in over 0.15 s, with the keyboard.
+The shell has run and streamed since the pane was made (the chooser hides it
+by the view's alpha), so there is no wait.
 
 ## Agent
 
-The same panel shows its second step. The header row has a back button (a
-22 pt `chevron.left`, as the card header's buttons) and "Agent". Under it,
-four tiles, 84 × 112 pt, 8 pt apart:
+A pick types the agent's command and Return into the pane's shell, with no
+flags, as Go to Directory types its `cd`
+([Command palette](/docs/ui/window#command-palette)). On a remote machine the
+shell and the agent run on that machine. All four agents always show. The app
+does not look for which agents are installed.
 
-| Tile | Name | Command |
-|---|---|---|
-| 1 | Claude Code | `claude` |
-| 2 | Codex | `codex` |
-| 3 | pi | `pi` |
-| 4 | opencode | `opencode` |
-
-- Each tile shows the agent's program tile at twice its size (44 × 36 pt,
-  [Program icons](/docs/ui/program-icons)), the name in 12 pt medium, and the
-  command in 11 pt secondary monospaced text. Claude Code is selected first.
-- All four always show. The app does not look for which agents are installed.
-- A pick types the command and Return into the pane's shell, as Go to
-  Directory types its `cd` ([Command palette](/docs/ui/window#command-palette)),
-  with no flags. On a remote machine the shell and the agent run on that
-  machine.
-- **The loader.** The panel fades out and the card shows, in its middle, the
-  agent's program tile at 44 × 36 pt, under it a small spinner, and under that
+- **The loader.** The card shows the agent's program tile at 44 × 36 pt in its
+  middle. 12 pt under it is one centered line: a small spinner left of
   "Starting ‹agent›…" in 13 pt secondary. The terminal stays hidden.
-- **Ready** is the first of these signals:
-  - herdr reports that agent on the pane (`agent` set, with a status).
-  - the agent's first full screen: herdr's frames stop for 0.3 s after the
-    screen left the shell's prompt.
-
-  Phase 35 spikes which signal each agent gives, on This Mac and on a remote
-  machine, and writes the result here.
-- At ready, the loader fades out over 0.15 s and the terminal fades in with
-  its usual fade-in, with the keyboard.
-- **Failure.** When the command ends (the shell is the foreground process
-  again, asked as after a Return,
+- **Ready.** The app asks herdr for the pane (`pane.get`) every 250 ms. The
+  agent is ready when herdr reports it (`agent` set) with a status other than
+  `unknown`. herdr reads the status from the screen with its detection
+  manifests, so this works on remote machines too. All four agents report
+  `unknown` 0.3 to 0.7 s after the command, then `idle` (or `blocked` on
+  Claude Code's trust prompt) after 3 to 5 s.
+- At ready, the loader fades out over 0.15 s and the terminal fades in, with
+  the keyboard.
+- **Failure.** When the shell is the foreground process again in two checks
+  in a row (the command failed or ended,
   [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr)), or after
-  10 s with no ready signal, the terminal shows the same way, with what the
+  10 s with no ready status, the terminal shows the same way, with what the
   command printed (for example "command not found: opencode"). No other
   message.
 
 ## Browser
 
-Until phase 36, Browser is a placeholder: its tile says "Coming soon", and a
-pick shows the terminal as Terminal does.
-
-From phase 36, a pick turns the pane into a browser pane with Replace Pane's
-steps: the browser's labeled pane takes the old pane's place and size, and the
-old pane closes ([Create](/docs/future-work/web-page#create)). Meanwhile the
-card shows the loader with the `globe` symbol and "Opening Browser…". Then the
-browser card fades in with an empty address field that has the keyboard
-([Browser](/docs/future-work/web-page)).
+A pick turns the pane into a browser pane with Replace Pane's steps: the
+browser's labeled pane takes the old pane's place and size, and the old pane
+closes ([Create](/docs/ui/browser#create)). Meanwhile the card shows the
+browser's loader: the `globe` symbol, and under it a spinner and "Opening
+Browser…". Then the browser card fades in with an empty address field that
+has the keyboard ([Browser](/docs/ui/browser)).
 
 ## Commands that change a pane's kind
 
 Three commands turn the keyboard card into another kind. They are in the File
-menu after Replace Pane, in the card's context menu after Replace Pane, and
-in the palette. They have no shortcut.
+menu and the card's context menu, between Replace Pane and Close Pane, and in
+the palette. They have no shortcut.
 
 | Command | Shows on | Does |
 |---|---|---|
 | Open Terminal Here | agent and browser panes | Replace Pane: a fresh shell, with no chooser |
-| Start Agent Here ▸ | every pane | a sub-page (in menus a submenu) with Claude Code, Codex, pi and opencode; a pick replaces the pane with a fresh shell and starts that agent in it, with the loader |
-| Open Browser Here | every pane but a browser pane (from phase 36) | replaces the pane with a browser pane, with the loader |
+| Start Agent Here ▸ | every pane | a sub-page (in menus a submenu) with Claude Code, Codex, Pi and OpenCode; a pick replaces the pane with a fresh shell and starts that agent in it, with the loader |
+| Open Browser Here | every pane but a browser pane | replaces the pane with a browser pane, with the loader |
 
 - A pane's kind: a browser pane has a browser label, an agent pane is one
   where herdr reports an agent, and every other pane is a terminal (also one
   that runs vim or a server).
-- All three use Replace Pane's machinery: the new pane gets the old one's
-  place, size and folder, and the keyboard, and a zoomed or floated pane
-  stays so ([Pane card](/docs/ui/window#pane-card)).
+- All three use Replace Pane's steps: the new pane gets the old one's place,
+  size and folder, and the keyboard, and a zoomed or floated pane stays so
+  ([Pane card](/docs/ui/window#pane-card)).
 - They ask first as Replace Pane does, unless the pane runs only its shell or
   is a browser pane (it runs only its placeholder). The dialog is Replace
   Pane's ("Replace “‹name›”?"), and its red button names the command: "Open
   Terminal", "Start ‹agent›" or "Open Browser".
 - On a pane that shows the chooser, Start Agent Here and Open Browser Here act
   as the chooser's picks, with no replace.
-- In a floating window the palette and the menu bar offer them too.
-- The Keyboard Shortcuts panel does not list them (it lists commands with a
-  shortcut).
+- A floating window's palette and menu bar offer them too.
 
 ## VoiceOver and identifiers
 
-- The panel is a group named "New Pane". Each tile is a button named by its
+- The list is a group named "New Pane". Each row is a button named by its
   option ("Terminal", "Agent", "Browser", "Claude Code", …), with the
-  selected trait on the selected one. Browser's value is "Coming soon" until
-  phase 36. The back button is "Back".
-- When the chooser shows, VoiceOver moves to the selected tile. The loader
-  reads "Starting ‹agent›".
+  selected trait on the selected one. Agent's value is "expanded" or
+  "collapsed".
+- When the chooser shows, VoiceOver moves to the selected row. The loader
+  reads "Starting ‹agent›" or "Opening Browser".
 - Identifiers sit on the leaf elements, after the card's `pane.‹id›`:
   `pane.‹id›.chooser.terminal`, `.agent`, `.browser`, `.claude`, `.codex`,
-  `.pi`, `.opencode`, `.back`, and `pane.‹id›.loader` for the loader.
+  `.pi`, `.opencode`, and `pane.‹id›.loader` for the loader.
 
 ## Later
 
-- Flags per agent, set by the user (for example a permission mode), in the
-  Settings window ([Future work](/docs/future-work#smaller-items)).
-- Only the agents installed on the machine, from herdr's `integration.list`
+- Flags per agent, set by the user (for example a permission mode), and only
+  the agents installed on the machine
   ([Agent panes](/docs/future-work/plugins/agent#agent)).
 - Plugin pane kinds in the chooser
   ([Pane kinds and plugins](/docs/future-work/plugins#choosing-a-kind)).

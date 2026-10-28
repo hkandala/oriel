@@ -1,0 +1,359 @@
+---
+title: "Browser"
+description: "A browser pane: a web view with Web Inspector in a placeholder herdr pane, on This Mac and on remote machines"
+---
+
+herdr cannot draw a web page. So a herdr pane holds the place in the layout,
+and the app draws a web view in its rectangle. The browser is the first pane
+kind built on the [plugin foundation](/docs/future-work/plugins#the-first-slice),
+and it is built into the app. What is not built yet is in
+[Future work](/docs/future-work#smaller-items). Research:
+[`browser.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/browser.md).
+
+## The label
+
+A pane is a browser pane when its herdr label is `oriel:browser#<iid> <url>`,
+for example `oriel:browser#m4p8sa http://localhost:3000/dashboard`
+([Labels and instance ids](/docs/future-work/plugins/labels)). The app knows
+the pane from the label alone: a pane made by the app, by an agent or in
+herdr's TUI is the same.
+
+- **iid** (the instance id): exactly 6 characters of `[a-z0-9]`, not used by
+  another pane of the session. It names the pane's state file and never
+  changes.
+- **url**: `http://` or `https://`, at most 1024 characters, no control
+  characters. A bare `host:port` gets `http://`. `file://` opens only on This
+  Mac; a remote machine serves its files through a server. A new pane has no
+  url yet: `oriel:browser#<iid>`.
+- The address is as the machine sees it: `localhost` means the pane's machine
+  ([Remote pages](#remote-localhost)). herdr keeps it in its session file and
+  shows it to every device, so an address must not hold a secret (for
+  example a `?token=` URL).
+- The label is the only pane field that has no length limit and survives
+  moves and cold restarts (herdr 0.9.5). Metadata tokens are cut at 80
+  characters and lost on restart.
+- Rename Pane works on a browser pane. A name that breaks the label turns the
+  card back into a terminal. Reset Pane Name is disabled.
+
+## Create
+
+A browser pane comes from the chooser's Browser
+([New pane](/docs/ui/new-pane#browser)), Open Browser Here, or an agent
+([Agents open browser panes](#agents-open-browser-panes)).
+
+1. The app picks a free iid and makes the pane in one call:
+   `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label,
+   command}}` in a new tab, with the old pane's live folder, the label
+   `oriel:browser#<iid>` and the placeholder as its command
+   ([Create](/docs/future-work/plugins/labels#create)).
+2. `pane.move` puts it beside the old pane, and `pane.close` closes the old
+   pane, as Replace Pane does. If the move fails, the new pane closes. The new
+   pane stays hidden by its label in every tab until the old one is gone, so
+   the temporary tab never shows.
+3. The card shows "Opening Browser…", then an empty address field that has
+   the keyboard.
+4. The user types an address. Return loads it, approves its origin
+   ([When a page loads by itself](#when-a-page-loads-by-itself)), removes the
+   saved state, and sets the label with
+   `pane.rename {label: "oriel:browser#<iid> <url>"}`.
+
+## In herdr's TUI
+
+The placeholder, about 20 lines of `sh` that herdr runs as the pane's command,
+prints "Browser", the address it started with (nothing for none) and "Shown in
+Oriel" in the middle of the pane. It draws them again when the pane is resized
+(`SIGWINCH`). Keys typed into the pane do nothing. The TUI's border shows the
+current label. After a cold restart herdr brings the pane back as a plain shell
+with its label, and the card works the same
+([Labels and instance ids](/docs/future-work/plugins/labels#create)).
+
+## The card
+
+The card sits in herdr's split like any card, for example beside the dev
+server's terminal.
+
+- **Toolbar.** The card header (36 pt) is the toolbar. From the leading edge,
+  11 pt in: Back, Forward and Reload (Stop while a page loads), 22 × 22 pt
+  buttons with 11 pt glyphs. Then the address field, which takes the free
+  width. Then the ports chip ([Finding ports](#finding-ports)), the Web
+  Inspector button (`hammer`), and the usual card buttons: Float Pane, Split
+  Right, Split Down, Zoom and Close. 6 pt between items. Every toolbar button
+  has the card buttons' color, at 0.35 when it cannot act. The card buttons
+  keep their room while they are hidden, so the address field does not move
+  under the pointer on hover.
+- **Address field.** A capsule 26 pt tall, at least 120 pt wide, filled with
+  the primary color at 0.06 under a 0.5 pt edge at 0.08, text 12.5 pt: the
+  host and port in full, the rest in secondary. Empty, it says "Enter a URL".
+  On a remote machine the machine's name sits in a chip at its end (11 pt, in
+  the needs-you color on a 0.18 fill of it). A click or ⌘L selects the whole
+  address under a 1.5 pt accent edge. Return loads it and gives the keyboard
+  to the page. Esc puts back the current address and gives the keyboard to
+  the page.
+- **Empty card.** Until its first page, the card shows a 44 pt `globe` in
+  tertiary. A click on it gives the address field the keyboard. The web view
+  stays hidden until a page commits, because an empty web view draws white.
+- **Loading.** A 2 pt progress line in the accent runs under the header while
+  a page loads.
+- **Loader.** Only while a card first opens or reads its saved state: the
+  `globe` at 28 pt, and under it a spinner left of "Opening Browser…" in
+  13 pt secondary. It fades out over 0.15 s (at once with Reduce Motion). A
+  typed address shows the progress line alone.
+- **Error.** A page that fails shows, in the middle of the card, a warning
+  symbol, the app's words in 14 pt, a line in secondary text for a refused
+  local port, and **Reload**:
+
+  | Case | Text |
+  |---|---|
+  | nothing listens on a `localhost` port | "Nothing answers on localhost:3001" (on a remote machine "… on ‹machine›"), then "Is the dev server running?" |
+  | a remote machine cannot reach a name | "‹machine› cannot reach ‹host:port›" |
+  | the remote session is not live | "‹machine› is not connected" |
+  | an unknown name | "Cannot find ‹host›" |
+  | the proxy did not start | "Oriel could not start the proxy to ‹machine›" |
+  | anything else | WebKit's own text |
+
+- The page is inset 6 pt from the card's sides and bottom, with a 6 pt
+  radius. Cards are never glass.
+- The tab's title is the page's title, else its host, else "New Tab". Its
+  program icon and overview tile show `globe`.
+- The window's `PaneViewRegistry` keeps each web view by terminal id, so a
+  card scrolled away or moved keeps its page.
+- A floated browser pane ([Floating pane](/docs/ui/window#floating-pane))
+  keeps the toolbar, without the card buttons, under the floating window's
+  title row, which shows the label's address.
+
+## Popups, links and dialogs
+
+- A page's `window.open` (an OAuth login, for example) opens over the card,
+  24 pt in, with its host and a close button. The popup keeps its opener, and
+  `window.close()` closes it.
+- A link that asks for a new window without script (`target=_blank`) loads in
+  the card.
+- A `mailto:` or app link that the user clicks opens its app. The page stays.
+- Page alerts and confirms show as a sheet on the window, titled with the
+  origin. A file input opens the system's open panel as a sheet.
+
+## Web Inspector
+
+The Web Inspector button or ⌥⌘I (Safari's key) shows WebKit's inspector,
+docked at the bottom of the card. Its own control moves it to a window.
+- Showing it has no public API: the app calls WebKit's `_WKInspector` `show`
+  (cmux ships the same). WebKit keeps the last docked or window choice in the
+  app's defaults (`__WebInspectorPageGroupLevel1__.WebKit2InspectorStartsAttached`),
+  so the app removes that key before each show, and it docks every time.
+- Every card sets `isInspectable`, so Safari's Develop menu (Develop › ‹this
+  Mac› › Oriel) reaches each page too.
+- The button and ⌥⌘I are disabled until the card has a page.
+
+## State on the machine
+
+The page and its back and forward list are saved on the pane's machine, in
+the instance state file
+([The instance state file](/docs/future-work/plugins/state#the-instance-state-file)):
+`$HOME/.local/state/oriel/<session>/browser/<iid>.json`.
+- It holds `{"url": …, "history": …}`. `url` is as the machine sees it.
+  `history` is WebKit's `interactionState` (the back and forward list) in
+  base64, left out at 128 KiB and over.
+- Written 500 ms after a navigation ends. Last writer wins.
+- Read when the card is built: a relaunch, a session restart, another
+  device. The card opens the saved page with its history, else the label's
+  address. Both follow the load rule below.
+- Typing an address removes the file. The device that closes the pane
+  removes it, and the 30-day cleanup on connect takes the rest.
+- **An open card follows its label.** When the label gets another address
+  from elsewhere (an agent's rename), the card loads it as a new entry of its
+  history, by the load rule. It ignores the address that its own rename
+  replaced, so an older snapshot does not undo a typed address.
+- Simpler choice: the scroll position is not saved.
+
+## When a page loads by itself
+
+Any process on a machine (a prompt-injected agent, a script) can rename a
+pane or write its state file. So:
+- A page the user types loads at once and approves its origin for that
+  machine. A page that finishes loading in the card approves its origin too,
+  so after a relaunch a page reached by a link loads by itself.
+- A page from the machine (the label, the state file, a rename) loads by
+  itself only if its origin is approved for that machine or on the safe list.
+  Otherwise the card asks **Open this page?**, under a `globe`, with the
+  address (host in full, path dimmed, cut in the middle) and two buttons:
+  **Not Now** and **Open**. Return opens and Esc is Not Now while the card has
+  the keyboard. Open approves the origin. Not Now leaves the page the card
+  had, or the empty card.
+- The safe list: the machine's own `localhost`, `127.0.0.1`, `[::1]` and
+  `*.localhost` on any port, This Mac's `file://` pages, and `github.com`,
+  `gitlab.com`, `bitbucket.org`, `developer.apple.com`,
+  `developer.mozilla.org`, `docs.github.com`, `vercel.com`, `*.vercel.app`
+  and `*.netlify.app`.
+- Approvals are per device and per machine, the newest 200 web origins, in
+  the app's defaults (`browserApprovals.<machine id>`,
+  [Data](/docs/data#every-piece-of-data)). Removing a machine removes them.
+  There is no screen to edit them yet
+  ([Future work](/docs/future-work#smaller-items)).
+
+## Profiles
+
+Each machine has its own `WKWebsiteDataStore(forIdentifier:)`, with the
+machine's id as its identifier (This Mac has a fixed one).
+- The store keeps cookies, local storage, IndexedDB, the cache and service
+  workers on disk, under `~/Library/WebKit/<bundle id>/WebsiteDataStore/<id>/`,
+  across relaunches. Logins persist, and machines stay apart.
+- Stores are per device: another Mac has its own logins.
+- Removing a machine removes its store
+  (`WKWebsiteDataStore.remove(forIdentifier:)`). If a window still uses the
+  store, it stays on disk.
+- WebKit uses no keychain item for cookies or storage, so no keychain prompt
+  appears.
+
+## Remote localhost
+
+On a remote machine, `localhost:3000` means that machine, and private names
+resolve as the machine resolves them. Every page of the machine's cards goes
+through one SOCKS proxy on the Mac, carried by the machine's existing SSH
+connection. Nothing is installed on the machine.
+
+- **The front.** A SOCKS5 listener of the app's own (HerdrKit's `SOCKSFront`)
+  on a free loopback port is the store's proxy. It passes each connection to
+  ssh's own SOCKS forward on the machine's ControlMaster
+  ([The SSH connection](/docs/machines#the-ssh-connection)):
+  ```sh
+  ssh -F /dev/null -S <ctl> -O forward -D 127.0.0.1:<P> <target>
+  ```
+  ssh's `-D` closes a connection it cannot open with no SOCKS reply, and
+  WebKit then waits 60 s. The front answers "refused" at once instead.
+- **`<machine>.localhost`.** WebKit never sends `localhost`, `127.0.0.1` or
+  `[::1]` through a proxy. So a remote card loads
+  `http://<machine>.localhost:3000` where the machine sees
+  `http://localhost:3000`, and the front asks the machine for `localhost`
+  wherever a page asked for `<anything>.localhost`. The machine needs no
+  `*.localhost` resolver. The address field and the label show `localhost`,
+  with the machine's chip.
+- `<machine>` is the machine's name in lowercase words joined by dashes
+  ("machine" when none is left). It is not made unique: each machine has its
+  own store and proxy, so a clash mixes nothing. After a rename, pages keep
+  working, but their origin changes and their logins go.
+- **This Mac's loopback is never reached** from a remote card. Loads and a
+  restored back and forward list wait for the proxy. A main-frame link,
+  redirect or form post to `localhost` is sent as `<machine>.localhost`. A
+  content rule blocks every other loopback request: images, fetches,
+  websockets, frames and popups, and spellings such as `127.1`, `localhost.`
+  and `[::ffff:7f…]`. So a remote page whose script calls
+  `http://localhost:8000` is blocked: serve that API on the page's own origin.
+- Public sites in a remote card also load through the machine.
+- The proxy starts with the machine's first browser card and ends with its
+  last (`ssh -O cancel`). The `-D` ends with its master, and the next page
+  connection forwards again on the new master. A connection the front already
+  carries (a dev server's live-reload websocket) lives on after the last card
+  until WebKit drops it. Two machines with one SSH target share one proxy.
+- The forward uses no [SSH session](/docs/machines#ssh-sessions). It needs
+  `AllowTcpForwarding yes` on the server (the default). A server that refuses
+  shows as "cannot reach".
+- This Mac's store uses no proxy.
+
+## Finding ports
+
+The ports chip (`network`, in the toolbar, on every machine) lists the
+machine's listening TCP ports in a menu.
+- One run on the machine each time the menu opens, never on a timer:
+  `ss -ltnp`, else `lsof -nP -iTCP -sTCP:LISTEN`. It lists listeners on any
+  address or on loopback, one per port, with the process's name (empty for
+  another user's process).
+- Ports group under the session's workspaces, by each listener's
+  `HERDR_SESSION` and `HERDR_WORKSPACE_ID` (from `/proc/<pid>/environ`, else
+  one `ps -E`), then "Other". With no match it is one plain list.
+- The menu says "Looking for Ports…" until the first answer, then shows the
+  last answer until the new one comes. "No Listening Ports" and "‹machine› did
+  not answer" cover the rest.
+- A pick loads `localhost:<port>` in the card, as if typed.
+
+## Commands on a browser card
+
+| Keys | Command | Menu |
+|---|---|---|
+| ⌘R | Reload Page (enabled once there is a page) | View |
+| ⌘L | Open Location: the address field, all selected | Edit |
+| ⌥⌘I | Show Web Inspector | Edit |
+| ⌘+ ⌘− ⌘0 | zoom the page, 50 to 300 % in 10 % steps, while the card has the keyboard | View |
+| ⇧⌘R | Replace Pane: a fresh shell with the [New pane](/docs/ui/new-pane) chooser, with no question | File |
+
+- Open Browser Here is hidden. Open Terminal Here and Start Agent Here replace
+  the pane with no question, because it runs only its placeholder. Closing it
+  never asks either.
+- Find (⌘F), Insert Path, Go to Directory and Reset Pane Name are disabled.
+- A floating window offers Reload Page, Open Location and Show Web Inspector
+  too.
+
+## Agents open browser panes
+
+Any agent that can run herdr opens a browser pane next to itself, on any
+machine. The `oriel-panes` skill in pi-hkandala
+([`skills/oriel-panes/SKILL.md`](https://github.com/hkandala/pi-hkandala/blob/master/skills/oriel-panes/SKILL.md))
+has the exact commands:
+
+1. `herdr pane split "$HERDR_PANE_ID" --direction right --no-focus` makes a
+   pane beside the agent's own.
+2. `herdr pane rename <pane> "oriel:browser#<iid> <url>"` makes it a browser
+   pane, with a fresh iid.
+3. A `pane.report_metadata` on that pane with the token `oriel-label`
+   (`ttl_ms` 1000), through `herdr remote-api-bridge`. herdr sends no event
+   for a rename, so this token's `pane.updated` event makes the app read the
+   snapshot at once. Without it the card shows at the next event or the 30 s
+   health check.
+4. Optional: `herdr pane run <pane> …` starts the skill's `placeholder.sh` for
+   herdr TUI users.
+
+To change the address, the agent renames the pane with the same iid and runs
+step 3 again. The open card loads the new page as a new history entry, by the
+load rule. An address from an agent that is not approved or safe waits for
+Open.
+
+## Security
+
+- The page gets no bridge: no `window.oriel` and no script message handlers,
+  so a page cannot run commands.
+- A page that a machine puts in a label or state file loads only by the
+  rules in [When a page loads by itself](#when-a-page-loads-by-itself).
+- Later plugins get a bridge with the rules in
+  [Plugin security](/docs/future-work/plugins/security).
+
+## Other rules
+
+- The web view's user agent ends with `Version/18.0 Safari/605.1.15`
+  (`applicationNameForUserAgent`), so sites that sniff for Safari work.
+- When the page's process ends (`webViewWebContentProcessDidTerminate`), the
+  card loads the page again, once per load.
+- Plain `http` needs `NSAllowsArbitraryLoadsInWebContent` and
+  `NSAllowsLocalNetworking` in `Info.plist`.
+
+## Risks
+
+| Risk | Effect | Plan |
+|---|---|---|
+| Labels or state files written by a hostile machine | a page opens by itself | an origin outside the approvals and the safe list needs a click |
+| The SOCKS port is open to other accounts on the Mac | another account can reach the machine's network | accepted for a single-user Mac; a random port, open only while a card needs it |
+| A server with `AllowTcpForwarding no` | remote pages cannot load | the card says "cannot reach"; Tailscale or LAN addresses still load; a bigger server helper later |
+| `_WKInspector` is private | the Web Inspector button can break on a macOS update | Safari's Develop menu still reaches every card |
+| Web view memory | memory grows with many browser cards | no cap yet; the shared cap of live web views ([Plugin UI](/docs/future-work/plugins/plugin-ui#risks)) when it hurts |
+
+## Choices
+
+- **WKWebView with Web Inspector.** No size cost, the same engine as plugin
+  cards and iOS, and a proxy per store. Considered: Chromium through CEF, for
+  Chrome DevTools. It worked in a spike, but it adds 330 MB to the app, uses
+  195–281 MB for the first page, needs an engine update about every 4 weeks,
+  and its shared keychain item held every request behind a password prompt.
+  Rejected: real Chrome driven over its DevTools protocol; a Chromium build of
+  our own.
+- **A built-in pane kind with one store per machine**, and the load rule
+  above. No request leaves the device for an unknown origin without the user,
+  and machines stay apart. Rejected: loading every label by itself; tracking
+  which device created or edited a label.
+- **Remote pages through one SOCKS proxy per machine**, with the app's front
+  before ssh's `-D`. One forward covers every port and name on the machine,
+  refusals come at once, and nothing is installed there. Rejected: a forward
+  per port (ports clash between machines and with the Mac, and the origin
+  changes); a server helper of our own now.
+- **The typed address in the label, the current one in the state file.**
+  Coming back to a browser card, on any device or after a restart, shows the
+  page where the user left it. Rejected: rewriting the label on every
+  navigation (a rename per click, seen by every TUI); state kept per device
+  in the app.

@@ -3,7 +3,8 @@ title: "Labels and instance ids"
 description: "How a plugin pane is stored in herdr: label, placeholder and instance id"
 ---
 
-Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+The browser pane uses this design as built ([Browser](/docs/ui/browser#the-label)). For other plugins it is the
+design ([Pane kinds and plugins](/docs/future-work/plugins)).
 
 ## Label format
 
@@ -73,8 +74,8 @@ Browser and plugin panes are created the same way.
    the pane in place, and the temporary tab closes itself. For left or top,
    then `pane.swap`, as for drops.
 
-- Every device, this one included, may see the temporary tab for one
-  snapshot.
+- Other devices can see the temporary tab for one snapshot. The device that
+  creates the pane hides it by its label until it is in place.
 - `pane.created` already carries the label, so other devices draw the card at
   once.
 

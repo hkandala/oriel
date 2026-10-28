@@ -22,7 +22,7 @@ final class PaneViewRegistry {
     /// Its window's pages: they hear of the keyboard, Return and input in its terminals.
     weak var pages: WindowPages?
     private var terminals: [String: PaneTerminal] = [:]
-    /// Browser panes' cards (future-work/web-page), by terminal id as terminals are: a moved card keeps its page.
+    /// Browser panes' cards (ui/browser), by terminal id as terminals are: a moved card keeps its page.
     private var browsers: [String: Browser] = [:]
 
     /// The pane's terminal, made on first use.

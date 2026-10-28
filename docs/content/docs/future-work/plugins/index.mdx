@@ -3,10 +3,10 @@ title: "Pane kinds and plugins"
 description: "Terminal, agent and browser are built in; every other pane kind is a plugin"
 ---
 
-Not built. The built-in kinds come first: the
-[New pane](/docs/ui/new-pane) chooser and the [Browser](/docs/future-work/web-page)
-are approved and being built. The pages in this section are the design for
-the Agent and Browser kinds and for plugins.
+Terminal, Agent and Browser are built in
+([New pane](/docs/ui/new-pane), [Browser](/docs/ui/browser)). Plugins are not
+built. The pages in this section are the design for plugins, on the
+foundation that the browser built ([The first slice](#the-first-slice)).
 
 A pane kind is what a pane shows: a terminal, an agent, a browser or a
 plugin. Terminal, Agent and Browser are
@@ -17,7 +17,7 @@ built into the app. Every other pane kind is a plugin: a small web page
 |---|---|---|---|---|
 | Terminal | built in | native terminal (libghostty) | none | none (the default) |
 | Agent | built in | native terminal + chat view ([Chat view](/docs/future-work/chat-view)) | none | none (herdr sets `pane.agent`) |
-| Browser | built in | native web view ([Browser](/docs/future-work/web-page)) | none (only the page's own) | label `oriel:browser#<iid> <url>` |
+| Browser | built in | native web view ([Browser](/docs/ui/browser)) | none (only the page's own) | label `oriel:browser#<iid> <url>` |
 | `git-history`, `diff`, `markdown` | core | a web page in a native web view | yes, the public API | label `oriel:…` ([Labels and instance ids](/docs/future-work/plugins/labels)) |
 | your plugins | installed | a web page in a native web view | yes, the public API | label `oriel:…` |
 
@@ -65,13 +65,13 @@ func dial(host: String, port: Int) async throws -> Channel
   run, so a missing master never prompts: one process, one stream on its
   stdio. It opens a forwarding channel, not an SSH session, so the server's
   `MaxSessions` (its limit on sessions per connection) does not count it. It
-  needs `AllowTcpForwarding yes` on the server (the default). Check first that
-  `-W` and `-O forward` work on a master started with
-  `ClearAllForwardings=yes` ([The SSH connection](/docs/machines#the-ssh-connection);
+  needs `AllowTcpForwarding yes` on the server (the default). `-W` and
+  `-O forward` work on a master started with `ClearAllForwardings=yes`
+  ([The SSH connection](/docs/machines#the-ssh-connection);
   [evidence](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#how-plugins-reach-a-remote-machine)).
 - `dial` needs a `Channel` that carries bytes; today a `Channel` gives lines.
-- A browser card needs a SOCKS forward, not a stream:
-  [Remote localhost](/docs/future-work/web-page#remote-localhost).
+- A browser card uses a SOCKS proxy per machine, not a stream:
+  [Remote localhost](/docs/ui/browser#remote-localhost).
 - Nothing of ours is installed on the machine: `sshd`, POSIX tools and herdr
   do the work. A bigger helper would sit behind the same `run` and `dial` calls
   ([Future work](/docs/future-work#smaller-items)).
@@ -89,38 +89,40 @@ func dial(host: String, port: Int) async throws -> Channel
   so scrolling never destroys them.
 - App storage (`UserDefaults`): consent and This Mac answers per plugin id
   and source, plugin preferences (passwords in the Keychain), and approved
-  browser origins per machine with the safe list. Plugin code and its source
+  browser origins per machine (built). Plugin code and its source
   record live in `~/Library/Application Support/Oriel/plugins/`. Browser
   cards keep one WebKit data store per machine.
 
 ## The first slice
 
-The browser is the first pane kind on this design. It is built into the
-app: nothing to install, enable or disable, and its page gets no bridge (no
-`window.oriel`, so no `run`). It brings the parts every later kind needs, and
-nothing that only third-party plugins need:
-- the label grammar and its parser, the instance id, and restore by label
+The browser is the first pane kind on this design, built into the app:
+nothing to install, enable or disable, and its page gets no bridge (no
+`window.oriel`, so no `run`). It built the parts every later kind needs:
+- the label grammar and its parser (HerdrKit's `PaneLabel`), the instance id,
+  and restore by label
   ([Labels and instance ids](/docs/future-work/plugins/labels));
 - the placeholder pane made with `layout.apply` and `pane.move`;
 - the chooser's Browser option and Open Browser Here;
-- the instance state file and **Refresh**
+- the instance state file: read when a card is built, written 500 ms after a
+  change, removed on close, and the 30-day cleanup on connect
   ([State and restore](/docs/future-work/plugins/state));
 - the load rule and the approvals per machine.
 
-A built-in kind is declared with the fields a manifest uses later
-([Manifest](/docs/future-work/plugins/packages#manifest)), as a value in the
-app:
+Not built yet: **Refresh**, the cap of live web views, and the manifest value
+for a built-in kind. The browser calls its label and state file from Swift.
+Plugins get them as calls: their pane context (machine, session, iid,
+argument, cwd), `setArg`, `state.get` and `state.set`, and `run`, as
+`window.oriel` ([Plugin API](/docs/future-work/plugins/api)). A built-in kind
+will be declared with the fields a manifest uses
+([Manifest](/docs/future-work/plugins/packages#manifest)):
 
 ```json
 { "id": "browser", "title": "Browser", "icon": "globe",
   "arg": { "title": "Address", "placeholder": "localhost:3000", "required": false } }
 ```
 
-What a pane kind gets from the app is small: its pane context (machine,
-session, iid, argument, cwd), `setArg`, `state.get` and `state.set`, and
-`run`. Web plugins get the same calls as `window.oriel` later
-([Plugin API](/docs/future-work/plugins/api)). Later: `dial`, the snapshot
-event, preferences, packages, consent and plugin cards.
+Later: `dial`, the snapshot event, preferences, packages, consent and plugin
+cards.
 
 ## Choices
 

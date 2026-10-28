@@ -4,7 +4,7 @@ Goal: a pane can be a browser: a WKWebView card with mock-up A's toolbar, Web In
 and its address kept across relaunches and session restarts. It is the first built-in plugin kind, so the
 pane, label and state rules it sets are the ones later plugins follow. Remote machines come in phase 37.
 
-Design: [Browser](../../docs/content/docs/future-work/web-page.mdx), the plugin pages under
+Design: [Browser](../../docs/content/docs/ui/browser.mdx), the plugin pages under
 `docs/content/docs/future-work/plugins/`, and `resources/research/plugins/browser.md`. The user approved
 WKWebView (not CEF), Web Inspector in a separate window, and mock-up A
 (`~/Downloads/oriel-research/browser-view.html`).

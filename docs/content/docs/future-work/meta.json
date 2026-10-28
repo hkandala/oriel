@@ -3,7 +3,6 @@
   "pages": [
     "index",
     "plugins",
-    "web-page",
     "chat-view",
     "changes-panel",
     "pills",

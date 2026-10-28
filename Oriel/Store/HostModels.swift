@@ -104,7 +104,7 @@ extension HostStore {
             cwd.map { ($0 as NSString).abbreviatingWithTildeInPath }
         }
 
-        /// A browser pane's label (future-work/web-page): the pane's kind.
+        /// A browser pane's label (ui/browser): the pane's kind.
         var browser: PaneLabel? {
             PaneLabel(label).flatMap { $0.plugin == "browser" ? $0 : nil }
         }

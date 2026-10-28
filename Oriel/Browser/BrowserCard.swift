@@ -20,7 +20,7 @@ extension Page {
 }
 
 extension CommandList {
-    /// A browser card's (future-work/web-page#commands-on-a-browser-card), in the main and the floating windows.
+    /// A browser card's (ui/browser#commands-on-a-browser-card), in the main and the floating windows.
     static func browser(_ browser: Browser?) -> [Command] {
         [
             Command(section: .view, title: "Reload Page", key: .init("r"), symbol: "arrow.clockwise",
@@ -34,7 +34,7 @@ extension CommandList {
     }
 }
 
-/// The card's page (future-work/web-page#the-card): the web view inset 6 pt, a progress line under the header while
+/// The card's page (ui/browser#the-card): the web view inset 6 pt, a progress line under the header while
 /// a page loads, a failure or "Open ‹url›?" in the middle, and the loader until the first page drew.
 struct BrowserCard: View {
     let browser: Browser
@@ -94,7 +94,7 @@ struct BrowserCard: View {
 }
 
 /// A page the machine put in the label or the state file, from an origin not approved yet
-/// (future-work/web-page#when-a-page-loads-by-itself): the question, its address, Open (Return) and Not Now (Esc).
+/// (ui/browser#when-a-page-loads-by-itself): the question, its address, Open (Return) and Not Now (Esc).
 private struct Asking: View {
     let browser: Browser
     let url: URL

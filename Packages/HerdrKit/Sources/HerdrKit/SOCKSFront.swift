@@ -2,7 +2,7 @@ import Foundation
 import Network
 import Synchronization
 
-/// A remote machine's proxy for its browser cards (future-work/web-page#remote-localhost): SOCKS5 on a loopback port of
+/// A remote machine's proxy for its browser cards (ui/browser#remote-localhost): SOCKS5 on a loopback port of
 /// the app's own, in front of ssh's `-D` on the machine's ControlMaster. It does two things ssh's does not: a page that
 /// asks for `<name>.localhost` reaches the machine's `localhost`, so the machine need not resolve `*.localhost`; and a
 /// connection the machine cannot open gets a "refused" reply at once (ssh closes it without a reply, and WebKit then

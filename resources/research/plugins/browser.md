@@ -1,6 +1,6 @@
 # Browser pane: WebKit, the foundation and remote
 
-Facts behind the browser pane (`docs/content/docs/future-work/web-page.mdx`), the first pane kind on the plugin
+Facts behind the browser pane (`docs/content/docs/ui/browser.mdx`), the first pane kind on the plugin
 foundation (`future-work/plugins/`). Spikes ran on an Apple Silicon Mac with macOS 27.0.1, Xcode 27.1, Swift 6.4,
 herdr 0.9.5 and OpenSSH 10.3, in a small ad-hoc signed app (`WKWebView`, no sandbox).
 

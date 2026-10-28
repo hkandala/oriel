@@ -8,6 +8,9 @@ design of a changes panel: a drawer beside the strip that shows what changed
 in the keyboard card's worktree, against one of three bases (the state the
 diff compares with). The idea and its git commands come from Kero
 ([research](https://github.com/hkandala/oriel/blob/main/resources/research/clients/kero.md#the-changes-panel-diff-viewer)).
+The checkpoints, the loading, the viewed marks and the comment delivery come
+from herdr-gpui
+([research](https://github.com/hkandala/oriel/blob/main/resources/research/clients/herdr-gpui.md)).
 
 ## The drawer
 
@@ -19,9 +22,10 @@ diff compares with). The idea and its git commands come from Kero
   carry no cwd, so an agent that changes folder without a shell `cd` is not
   followed.
 - **Bases:** Uncommitted (`HEAD` against now, untracked files included),
-  Branch
-  (`git merge-base HEAD refs/remotes/origin/<default>` against now) and Last
-  turn (below).
+  Branch (`git merge-base HEAD <base>` against now) and Last turn (below).
+  Branch's `<base>` is the base of the branch's pull request when `gh` on the
+  machine names one, else `origin/HEAD`, else `main` or `master`. Nothing is
+  fetched.
 - **Saved:** open or closed and its width per window, in `@SceneStorage` next
   to `sidebarWidth`. The base and the folded files live in memory. Nothing is
   in herdr.
@@ -29,9 +33,15 @@ diff compares with). The idea and its git commands come from Kero
   workspace rows does ([Git status](/docs/talking-to-herdr#git-status)), with
   `--no-optional-locks --no-ext-diff --no-textconv`. The result is cached by
   worktree root in the session's `HostStore`, so two windows on one session
-  share it. Changed files come from `git diff -M -z --name-status <rev>
-  <now-tree>`, then `--numstat`. "Now" is a snapshot tree too, so untracked
-  files show in every base.
+  share it. "Now" is a snapshot tree too, so untracked files show in every
+  base.
+- **Two-phase load:** first the file list, cheap at any size:
+  `git diff -M -z --name-status <rev> <now-tree>` and `--numstat`. Then the
+  patches in batches of 64 files or 20,000 lines, the visible files first. A
+  file over 20,000 lines or 4 MiB shows **Load diff** instead.
+- **Viewed marks:** the user marks a file viewed. The mark keeps the file's
+  `+` and `−` counts, per worktree root and branch, per device in app
+  storage. A file whose counts change comes back unviewed.
 - **Drawing:** from git's patch (`git diff -M <base>`), not from two whole
   texts: a short parser of unified diff hunks, and git does the diff
   algorithm. Lines draw in the terminal font in a lazy stack (or one text view
@@ -53,36 +63,45 @@ on cards. The chip needs the user's agreement before it is built.
 
 ## Last turn
 
-- **Trigger:** when an agent's status goes from idle or done to working, the
-  app writes a git tree of the working tree on the machine without touching
-  the user's index:
+- **Trigger:** when an agent's status goes from idle or done to working, or
+  from working to idle or done (not from blocked to working), the app saves
+  a checkpoint of the working tree on the machine, without touching the
+  user's index. It runs with `-c core.fsmonitor=false`:
   ```sh
   cp .git/index $tmp/index
   GIT_INDEX_FILE=$tmp/index git add --all -- .
-  GIT_INDEX_FILE=$tmp/index git write-tree
+  tree=$(GIT_INDEX_FILE=$tmp/index git write-tree)
+  git commit-tree -p HEAD -m "Oriel-Branch: <branch>" $tree
+  git update-ref refs/oriel/checkpoints/<sha1 of branch>/<stamp> <commit>
   ```
-  The base "Last turn" is that tree against now.
-- **Where the tree id lives:** in the machine's state folder,
-  `$HOME/.local/state/oriel/<session>/`, keyed by the pane's `terminal_id`, as
-  plugin state is ([State and restore](/docs/future-work/plugins/state)). Every
-  device and window sees the same turn, and it survives an app restart.
+  A tree equal to the last checkpoint's is skipped. The newest 50 per branch
+  are kept. The base "Last turn" is the newest checkpoint against now.
+- **A commit under a hidden ref:** every device and window sees the same
+  checkpoints, they survive an app restart, `git gc` cannot prune them, and
+  no state file holds them. Branches, `git log` and the user's index do not
+  show them.
 - **Gap:** the app sees a turn only while a window has that session open. A
   turn that starts with no Oriel running has no snapshot, and the drawer then
   offers only Uncommitted and Branch. A real fix needs herdr to take the
   snapshot or send a hook on a status change (an upstream ask).
-- **Two devices** both see the change and both write; the trees hold the same
-  content, and the last writer wins.
-- **Side effect:** the snapshot writes loose, unreferenced objects into the
-  repository's `.git/objects` (`git gc` prunes them later). The Settings
-  window says so and has an off switch.
+- **Two devices** both see the change. The second one finds the same tree
+  and skips it.
 
 ## Later
 
 - **Revert a hunk:** writes files on the machine through `Exec`. It refuses
   while an agent in that worktree works, and when the file's hash changed
   since it was shown.
-- **Comments to the agent** on lines, sent with `pane.send_input`, kept in
-  memory per window until sent.
+- **Restore a checkpoint**, diff first: the drawer shows the checkpoint
+  against now before the user restores. Restore saves a checkpoint of the
+  current state first, refuses during a merge or rebase or on another branch,
+  then runs `git read-tree -m -u <tree>` and `git reset`.
+- **Comments to the agent** on lines, kept in memory per window until sent.
+  They follow one delivery rule: the app pastes them with `pane.send_input`
+  (bracketed paste, quoted code marked as data) when herdr says the agent is
+  idle or done, or after 120 s, and sends Enter 150 ms later. It never pastes
+  into a shell or a blocked agent. **Withdraw** takes back a queued batch,
+  and Send sends only new or edited comments.
 
 ## Order
 

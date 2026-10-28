@@ -3,7 +3,10 @@ title: "State and restore"
 description: "Where plugin state lives and how a fresh app restores plugin panes from herdr"
 ---
 
-Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+The browser pane uses the instance state file and the restore steps as built
+([State on the machine](/docs/ui/browser#state-on-the-machine)). Refresh and
+the rest are the design for plugins
+([Pane kinds and plugins](/docs/future-work/plugins)).
 
 ## Where each piece of state lives
 
@@ -65,7 +68,7 @@ it relative to the home folder, where every command starts
 1. Connect each machine and read `session.snapshot`.
 2. Classify every pane by its label:
    - matching the `oriel:` grammar → (plugin, pane, iid, arg); for `browser`, the
-     argument is the typed URL ([Browser](/docs/future-work/web-page) load rules
+     argument is the typed URL ([Browser](/docs/ui/browser) load rules
      apply);
    - otherwise → `agent` if herdr set `pane.agent`, else `terminal`.
 3. Resolve the plugin in the registry (core, then a linked folder, then an
@@ -84,7 +87,7 @@ it relative to the home folder, where every command starts
 5. When the card is first shown: build its web page, inject the pane context, read
    the state file if the plugin uses one, render.
 6. On every later snapshot, a pane that is gone destroys the card. Nothing
-   else changes an open card.
+   else changes an open card, except a browser card's label (below).
 
 Nothing in these steps reads app storage except plugin code, consent and
 preferences.
@@ -100,11 +103,15 @@ holds for its argument (the label) and its state file. A card is built on:
   Returning from the background is not a fresh start: cards still in memory
   keep their state.
 
-While a card is open, another device's renames and state writes do not
-move it. Every plugin card and browser card has **Refresh** in its header: it
-writes this card's pending state, reads `session.snapshot` (a rename sends no
-event), then builds the card again with the label and state from the
-machine.
+While a card is open, another device's state writes do not move it, and
+neither do renames of a plugin card. Every plugin card will have **Refresh**
+in its header (not built): it writes this card's pending state, reads
+`session.snapshot` (a rename sends no event), then builds the card again with
+the label and state from the machine.
+
+A browser card follows its label: another address in the label loads in the
+open card as a new history entry, so an agent can change the page in place
+([State on the machine](/docs/ui/browser#state-on-the-machine)).
 
 ## Choices
 
@@ -116,5 +123,6 @@ machine.
 - **An open card changes only when it is built or on Refresh.** A scroll or
   rename on one device never moves a card under the user's eyes on another,
   and a rename costs no extra call. Rejected: following renames and state
-  writes live through a metadata token (`oriel_rev`); live follow for browser
-  cards only; separate Reload and Refresh buttons.
+  writes live through a metadata token (`oriel_rev`); separate Reload and
+  Refresh buttons. The browser follows its label only, because an agent
+  that shows a page must be able to change it.

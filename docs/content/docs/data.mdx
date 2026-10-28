@@ -15,7 +15,7 @@ One rule decides where each new thing goes (D57):
 
 | Data | Owner | Where |
 |---|---|---|
-| Workspaces, tabs, panes, order, labels | herdr | `session.snapshot` |
+| Workspaces, tabs, panes, order, labels (a browser pane's kind, iid and typed address: [The label](/docs/ui/browser#the-label)) | herdr | `session.snapshot` |
 | Split tree and ratios | herdr | `snapshot.layouts[]` |
 | Terminal content and PTY | herdr | `terminal session` frames |
 | Agent kind, status, `completion_seq` | herdr | `agents[]`, `panes[]` |
@@ -25,6 +25,10 @@ One rule decides where each new thing goes (D57):
 | Per window: the machine's id (`machine`), the names of its open pages (`pages`), the page in view (`page`), each page's selected workspace and tabs and its floating panes with their Stay on Top (`selection`, one JSON string), sidebar shown or hidden (`sidebar`), sidebar view (workspaces or agents, `agents`) and its sort (`agentSort`), and sidebar width (`sidebarWidth`) | app, disk | `@SceneStorage`, one set per window |
 | Per page of a window: the selected workspace, the tab per workspace, the keyboard card per tab, the zoomed card. Per open session: its `HostStore`, made on first use. Per session: which window controls it ([Control between windows](/docs/talking-to-herdr#control-between-windows)). | app, per device | memory |
 | Seen values and the time of each status change (Agents view), program icons, git state of each workspace, a divider's ratio while it is dragged | app, per device | memory |
+| A browser pane's page and its back and forward list | the pane's machine | `$HOME/.local/state/oriel/<session>/browser/<iid>.json` ([State on the machine](/docs/ui/browser#state-on-the-machine)) |
+| Approved browser origins, the newest 200 per machine | app, disk, per device | `UserDefaults`, a list under `browserApprovals.<machine id>` ([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)) |
+| Browser cookies, storage and cache, one store per machine | WebKit, disk, per device | `~/Library/WebKit/<bundle id>/WebsiteDataStore/<machine id>/` ([Profiles](/docs/ui/browser#profiles)) |
+| The choosers of new panes ([New pane](/docs/ui/new-pane)); browser cards' web views, by terminal id | app, per device | memory |
 | ControlMaster sockets | app | `~/Library/Caches/oriel/`, while running |
 
 <Callout title="Nothing the app saves describes herdr's state">

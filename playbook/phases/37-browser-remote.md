@@ -4,7 +4,7 @@ Goal: a browser pane on a remote machine shows pages from that machine (its loca
 private names) through the existing SSH connection, with its own profile per machine, and a ports chip to
 open a listening port in one click.
 
-Design: the Remote section of [Browser](../../docs/content/docs/future-work/web-page.mdx) and
+Design: the Remote section of [Browser](../../docs/content/docs/ui/browser.mdx) and
 `resources/research/plugins/browser.md`.
 
 ## Track A: remote browser (items 1–3)

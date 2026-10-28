@@ -4,7 +4,7 @@ import WebKit
 
 /// What a browser card takes from its machine: its pane's command in herdr, its addresses and its data store.
 extension Browser {
-    /// The pane's command in herdr (future-work/web-page#in-herdrs-tui): "Browser", the address it started with, and
+    /// The pane's command in herdr (ui/browser#in-herdrs-tui): "Browser", the address it started with, and
     /// "Shown in Oriel", centered and drawn again on a resize. Keys do nothing: `stty raw` makes Ctrl-C and Ctrl-D
     /// plain bytes for the `cat` that swallows them. herdr runs the argv itself, with no shell quoting.
     static func placeholder(_ label: PaneLabel) -> [String] {
@@ -51,7 +51,7 @@ extension Browser {
         return ["http", "https"].contains(scheme) && url.host != nil || scheme == "file" && local ? url : nil
     }
 
-    /// One store per machine (future-work/web-page#profiles): cookies, storage and the cache stay apart.
+    /// One store per machine (ui/browser#profiles): cookies, storage and the cache stay apart.
     private static var stores: [String: WKWebsiteDataStore] = [:]
 
     static func dataStore(_ machine: Machine) -> WKWebsiteDataStore {
@@ -99,7 +99,7 @@ extension Browser {
 
     // MARK: Remote localhost
 
-    /// The `<machine>` of `<machine>.localhost` (future-work/web-page#remote-localhost): the name in lowercase
+    /// The `<machine>` of `<machine>.localhost` (ui/browser#remote-localhost): the name in lowercase
     /// letters, digits and dashes.
     static func alias(_ name: String) -> String {
         let words = name.lowercased().split { !($0.isASCII && ($0.isLetter || $0.isNumber)) }

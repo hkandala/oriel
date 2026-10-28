@@ -3,9 +3,9 @@ import HerdrKit
 import Observation
 import WebKit
 
-/// A browser pane's card (future-work/web-page): its web view and what the toolbar shows. Built from the label once;
-/// an open card follows no rename (future-work/plugins/state#when-a-card-reads-its-state). The registry keeps it, so
-/// a tab shown again does not reload it.
+/// A browser pane's card (ui/browser): its web view and what the toolbar shows. Built from the label once; an
+/// open card then loads another address in its label (`follow`). The registry keeps it, so a tab shown again does
+/// not reload it.
 @MainActor @Observable
 final class Browser: NSObject {
     let terminalID: String

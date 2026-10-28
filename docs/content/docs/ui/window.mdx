@@ -461,6 +461,9 @@ How it works: [Layout and sizing](/docs/layout).
   edge, five 22 × 22 pt buttons, 2 pt apart: Float Pane, Split Right, Split
   Down, Zoom and Close, with 11 pt regular glyphs, dimmer than the title row's buttons (white
   0.42 or black 0.45, at least 3:1 on the card). Zoom is disabled when the tab has one pane.
+  While the [New pane](/docs/ui/new-pane) chooser shows, the header says "New
+  Pane". A browser card's header is its toolbar
+  ([Browser](/docs/ui/browser#the-card)).
 - **Terminal.** 10 pt in from the card's sides and 8 pt above its bottom; its
   text starts 12 pt in, as in Rex.
 - The buttons show on the keyboard card and on a hovered card.
@@ -477,7 +480,7 @@ How it works: [Layout and sizing](/docs/layout).
     tab of the session but the pane's own, grouped by workspace: each
     workspace's name as a section header, in the sidebar's order), Rename
     Pane…, Reset Pane Name.
-  - Replace Pane (⌘R), Open Terminal Here, Start Agent Here ▸, Open Browser
+  - Replace Pane (⇧⌘R), Open Terminal Here, Start Agent Here ▸, Open Browser
     Here ([New pane](/docs/ui/new-pane#commands-that-change-a-panes-kind)),
     Close Pane (⌘W).
 - The same items are in View ▸ Pane in the menu bar, for the keyboard card
@@ -493,7 +496,7 @@ How it works: [Layout and sizing](/docs/layout).
   **Reset Pane Name** (enabled once the pane has a name, also in the palette)
   clears herdr's label, so the header shows the program again.
 - Drag the header to move the pane ([Drag and drop](/docs/ui/drag-and-drop)).
-- **Replace Pane** (⌘R, also in the palette) puts a fresh shell in the pane's
+- **Replace Pane** (⇧⌘R, also in the palette) puts a fresh shell in the pane's
   place, for example after a change to the shell's setup. The new pane has
   the old one's place and size, starts in its folder, and gets the keyboard.
   The old card stays until herdr has closed the old pane; then the card shows
@@ -504,8 +507,8 @@ How it works: [Layout and sizing](/docs/layout).
   a floated pane's new pane floats in a window at the same place, with its
   Stay on Top. ⌘W while a replace runs does nothing: the old pane is closing
   already.
-- Close and Replace Pane ask first unless the pane runs only its shell
-  (Return confirms, Esc cancels). Replace Pane's dialog says "Replace
+- Close and Replace Pane ask first unless the pane runs only its shell or is
+  a browser pane (Return confirms, Esc cancels). Replace Pane's dialog says "Replace
   “‹name›”?" and has a Replace Pane button.
 - Every question before an action that ends something (a close, Replace
   Pane, Stop or Delete Session) shows that action's button in red, the
@@ -517,7 +520,7 @@ How it works: [Layout and sizing](/docs/layout).
 ## Find bar
 
 ⌘F (Edit ▸ Find…) opens the find bar on the keyboard card; ⌘F again focuses
-its field.
+its field. It is disabled on a browser card.
 - A glass capsule 320 pt wide and 32 pt tall at the card's top right, 8 pt in
   from its edge and 8 pt under the header: the field ("Find"), the match count
   ("3 of 12", in a fixed slot so the bar never changes width), ↑ (Find
@@ -651,7 +654,9 @@ clients see it there.
   again; nothing stops). The red traffic light detaches too. Below the title
   row, the glass card holds only the terminal, with no header, 8 pt in from
   the window's edges, its text 10 pt in from the card's sides, as in a pane
-  card. A pane's first float opens it at 60 % of the main window's width and
+  card. A browser pane's card has its toolbar instead
+  ([Browser](/docs/ui/browser#the-card)), and a pane at the chooser shows
+  the chooser. A pane's first float opens it at 60 % of the main window's width and
   75 % of its height (at least 720 × 460 pt), centered over the main window; it
   moves and resizes like any window, and keeps its frame for the next time
   that pane floats.
@@ -666,10 +671,11 @@ clients see it there.
   and Focus Follows Mouse skip it.
 - **Keys and ⌘K.** In the floating window the menu bar and the palette offer
   only what applies to it: Detach Pane (⌘W, as the red light: a window's
-  close puts the pane back, nothing stops), Replace Pane (⌘R), Open Terminal
+  close puts the pane back, nothing stops), Replace Pane (⇧⌘R), Open Terminal
   Here, Start Agent Here, Open Browser Here, Close Pane (⇧⌘W), Stay on Top,
-  Find, Find Next and Find Previous, the font size items, Copy and Paste. The
-  palette lists no tabs, workspaces or sessions.
+  Find, Find Next and Find Previous, the font size items, Copy and Paste, and
+  on a browser pane Reload Page (⌘R), Open Location (⌘L) and Show Web
+  Inspector (⌥⌘I). The palette lists no tabs, workspaces or sessions.
 - **Saved.** The floating panes and their Stay on Top are kept with the main
   window that floated them, and open again when it restores. A pane that
   herdr closed closes its window; one that moved to another tab or workspace
@@ -750,6 +756,8 @@ A window that watches a session another window controls (D66).
   - Appearance › and Interface Style ›: a row highlighted for 0.75 s previews
     on the window. Enter keeps it; Esc restores the old one.
   - Font Size ›: 8 to 32 pt.
+  - Start Agent Here ›: Claude Code, Codex, Pi and OpenCode
+    ([New pane](/docs/ui/new-pane#commands-that-change-a-panes-kind)).
 - **Go to Directory** (⇧⌘G) opens the system folder panel at the keyboard
   card's folder. Choosing a folder types `cd -- '‹path›'` and Return into the
   card. Enabled only when the card runs only its shell.

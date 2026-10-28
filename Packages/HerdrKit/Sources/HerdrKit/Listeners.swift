@@ -1,5 +1,5 @@
 /// A TCP port that listens on a machine's loopback, for a browser card's ports chip
-/// (future-work/web-page#finding-ports), with the herdr session and workspace of its process when the machine lets the
+/// (ui/browser#finding-ports), with the herdr session and workspace of its process when the machine lets the
 /// user read its environment.
 public struct Listener: Hashable, Sendable {
     public let port: Int

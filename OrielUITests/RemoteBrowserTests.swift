@@ -1,6 +1,6 @@
 import XCTest
 
-/// Browser cards and their machine (future-work/web-page#remote-localhost, #finding-ports). The test server names the
+/// Browser cards and their machine (ui/browser#remote-localhost, #finding-ports). The test server names the
 /// process that connected to it: WebKit on This Mac, sshd through a remote machine's proxy. On CI Key Host is this Mac
 /// over SSH (`scripts/ci-sshd.sh`), so one port serves both machines.
 extension OrielUITests {

@@ -1,6 +1,6 @@
 import XCTest
 
-/// Browser panes (future-work/web-page): a herdr pane labeled `oriel:browser#<iid> <url>` with a placeholder, shown
+/// Browser panes (ui/browser): a herdr pane labeled `oriel:browser#<iid> <url>` with a placeholder, shown
 /// as a web view card. The test pages are files a shell of the session writes (the runner is sandboxed).
 extension OrielUITests {
     /// Two pages: one links to two and opens a popup that closes itself.
@@ -158,7 +158,7 @@ extension OrielUITests {
                                                                "cwd": "/tmp", "focus": false]), "pane")
         addTeardownBlock { _ = try? await Self.call(five, "pane.close", ["pane_id": pane]) }
         try await Self.call(five, "pane.rename", ["pane_id": pane, "label": "oriel:browser#e2e5ab \(page)"])
-        // A site a machine put in a label waits for Open (future-work/web-page#when-a-page-loads-by-itself);
+        // A site a machine put in a label waits for Open (ui/browser#when-a-page-loads-by-itself);
         // `.invalid`:
         // approvals live in the defaults the tests share with the user's Oriel.
         let site = try await id(Self.call(five, "pane.split", ["target_pane_id": pane, "direction": "down",

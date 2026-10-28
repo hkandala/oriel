@@ -143,7 +143,7 @@ struct PaneCard: View {
 
     /// `new`: the chooser shows (ui/new-pane), and the title says so.
     private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool) -> some View {
-        // A browser card's header is its toolbar (future-work/web-page#the-card), unless it is renamed.
+        // A browser card's header is its toolbar (ui/browser#the-card), unless it is renamed.
         let browser = pane.flatMap { page.renamingPaneID != id && !page.floats($0) ? page.browser($0) : nil }
         return HStack(spacing: 3) {
             if let browser {
