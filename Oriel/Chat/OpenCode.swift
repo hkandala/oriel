@@ -34,7 +34,7 @@ struct OpenCode: ChatAdapter {
         printf '{"plugin":["%s"]}\n' "$p" >"$t.$$" && mv "$t.$$" "$t" &&
         od -An -tx1 -N16 /dev/urandom | tr -d ' \n' >"$d/pw" || exit 1
         find "$c/chat" -mindepth 2 -mtime +30 -delete 2>/dev/null
-        find "$c/chat" -mindepth 1 -type d -empty -delete 2>/dev/null; exit 0
+        find "$c/chat" -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null; exit 0
         """#
         guard let channel = try? await exec.run(["sh", "-c", script, "sh", token]) else { return nil }
         for line in plugin.split(separator: "\n") {
