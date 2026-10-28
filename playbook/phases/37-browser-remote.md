@@ -17,7 +17,8 @@ Design: the Remote section of [Browser](../../docs/content/docs/future-work/web-
    `localhost:<port>` to `<machine>.localhost:<port>` (shown as typed in the address field if that reads
    better), which the machine resolves to its own loopback; private names go through the proxy as typed.
 3. **Ports chip.** The toolbar shows the machine's listening TCP ports (one run over the relay when the
-   chip opens) and opens one in the card.
+   chip opens) and opens one in the card. Group them by herdr workspace through `HERDR_WORKSPACE_ID` in
+   each listener's environment where the machine allows reading it (herdr-gpui does this), else one list.
 
 e2e on CI's sshd: a tiny HTTP server on the "remote" side, a browser pane on Key Host loads it through the
 proxy, two machines with the same port don't collide, and the ports chip lists the server.
