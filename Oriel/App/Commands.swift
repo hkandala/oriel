@@ -161,6 +161,8 @@ struct AppSettings: DynamicProperty {
     @AppStorage("interfaceStyle") var style = InterfaceStyle.glass
     @AppStorage("fontSize") var fontSize = PaneTerminal.fontSize
     @AppStorage("focusFollowsMouse") var followMouse = false
+    /// The chat view's detail level, one for the app (future-work/chat-view#detail-levels).
+    @AppStorage("chatLevel") var chatLevel = ChatLevel.steps
 }
 
 /// One command (D48). The menu bar and the palette read the one list of them (`CommandList`).

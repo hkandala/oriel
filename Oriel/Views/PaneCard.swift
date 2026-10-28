@@ -38,12 +38,15 @@ struct PaneCard: View {
         let content = page.watched ? 0.85 : 1
         // A new pane's chooser hides its terminal (ui/new-pane).
         let chooser = store.chooser(id), browser = pane.flatMap(page.browser)
+        // An agent Oriel started with its flags: its chat or its terminal (future-work/chat-view).
+        let chat = chooser == nil && !floated ? pane.flatMap(page.chat) : nil
         VStack(spacing: 0) {
             header(
                 pane ?? store.parked[id],
                 zoomed: zoomed,
                 showsButtons: lit || hovering || zoomed,
                 new: chooser != nil,
+                chat: chat,
             )
             .opacity(content)
             // A ZStack, not a Group: a Group's modifiers go on each child, so the chooser's overlay was made again
@@ -53,6 +56,8 @@ struct PaneCard: View {
                     FloatedPlaceholder(page: page, pane: pane)
                 } else if let browser {
                     BrowserCard(browser: browser)
+                } else if let chat, chat.showsChat {
+                    ChatView(chat: chat, page: page, terminal: terminal, level: settings.chatLevel, column: zoomed)
                 } else if let terminal {
                     // Rex's text starts 12 pt in from the card's edge.
                     TerminalCard(terminal: terminal, watched: page.watched, alpha: chooser == nil ? content : 0)
@@ -142,7 +147,9 @@ struct PaneCard: View {
     }
 
     /// `new`: the chooser shows (ui/new-pane), and the title says so.
-    private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool) -> some View {
+    private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool, chat: Chat?)
+        -> some View
+    {
         // A browser card's header is its toolbar (ui/browser#the-card), unless it is renamed.
         let browser = pane.flatMap { page.renamingPaneID != id && !page.floats($0) ? page.browser($0) : nil }
         return HStack(spacing: 3) {
@@ -171,6 +178,9 @@ struct PaneCard: View {
                 }
             }
             Spacer(minLength: 0)
+            if let chat {
+                ChatSwitch(chat: chat, page: page, state: pane?.state)
+            }
             // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.
             // Not on a split's or a new tab's empty card before herdr has its pane (`Ahead`).
             // A browser card keeps their room, so its address field does not move under the pointer on hover.

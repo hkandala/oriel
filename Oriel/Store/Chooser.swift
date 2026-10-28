@@ -144,7 +144,9 @@ extension HostStore {
         }
     }
 
-    /// Types the agent's command into the pane's shell, as Go to Directory types its `cd`, and shows the loader until
+    /// Types the agent's command (with Oriel's chat flags, future-work/chat-view#launch-flags) into the pane's shell,
+    /// as
+    /// Go to Directory types its `cd`, and shows the loader until
     /// the agent is ready: herdr reports it with a status (all four agents, read from their screens on any machine).
     /// The terminal shows sooner when the shell is in front again (the command failed or ended), or after 10 s.
     func start(_ agent: Chooser.Agent, _ chooser: Chooser) {
@@ -159,7 +161,8 @@ extension HostStore {
             while clock.now - begun < .seconds(10), choosers.contains(where: { $0 === chooser }) {
                 if let client, let id = chooser.paneID {
                     guard let since = sent else {
-                        guard await (try? client.sendInput(agent.command, keys: ["enter"], pane: id)) != nil else {
+                        let line = ChatAdapters.launch(agent.command)
+                        guard await (try? client.sendInput(line, keys: ["enter"], pane: id)) != nil else {
                             return
                         }
                         sent = clock.now
@@ -168,6 +171,8 @@ extension HostStore {
                     if let pane = try? await client.pane(id), pane.agent != nil,
                        pane.agentStatus.map({ $0 != .unknown }) == true
                     {
+                        // Its launch marker before the loader goes, so a chat pane shows its chat at once.
+                        await askProgram(id, soon: true)
                         return
                     }
                     // Not while a new shell starts (`Pane.starting`): the command waits for its prompt. Twice in a row:

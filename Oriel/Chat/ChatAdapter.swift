@@ -1,0 +1,47 @@
+import Foundation
+import HerdrKit
+
+/// One agent's side of the chat view (future-work/chat-view). The core (`Chat`, the views, `agent.prompt` for
+/// sending) is shared; an adapter says how Oriel starts the agent, how it knows the pane again, how it follows the
+/// agent's history and phase on the pane's machine, how to stop a turn, and, optionally, how to answer a question.
+protocol ChatAdapter: Sendable {
+    /// The chooser's command, which is herdr's agent name too (`claude`).
+    static var command: String { get }
+    /// What the chooser adds to the command for a new launch, with `token` (a fresh lowercase UUID) as its marker.
+    static func flags(_ token: String) -> String
+    /// The adapter of the launch whose marker is in the pane's foreground processes (`pane.process_info`), else nil.
+    init?(_ foreground: [Program.Foreground])
+    /// The launch's marker: a new launch in the same pane is a new chat.
+    var token: String { get }
+    /// Keys that interrupt a turn, sent only while the agent works.
+    var stopKeys: [String] { get }
+    /// Follows the agent on its machine until cancelled: the history, the phase it records, its questions and
+    /// problems go into the chat. Goes on from the chat's marks.
+    @MainActor func follow(_ chat: Chat, on exec: any Exec) async
+    /// Answers the chat's question; adapters with no channel for questions never set one.
+    func answer(_ question: ChatQuestion, _ answers: [String: String], on exec: any Exec) async
+}
+
+extension ChatAdapter {
+    /// As the reply box names it ("Reply to claude").
+    var name: String {
+        Self.command
+    }
+
+    func answer(_: ChatQuestion, _: [String: String], on _: any Exec) async {}
+}
+
+enum ChatAdapters {
+    static let all: [any ChatAdapter.Type] = [ClaudeCode.self]
+
+    /// The line the chooser types for an agent: its command with Oriel's flags when it has a chat.
+    static func launch(_ command: String) -> String {
+        guard let adapter = all.first(where: { $0.command == command }) else { return command }
+        return command + " " + adapter.flags(UUID().uuidString.lowercased())
+    }
+
+    static func recognize(_ program: Program?) -> (any ChatAdapter)? {
+        guard let foreground = program?.foreground, !foreground.isEmpty else { return nil }
+        return all.lazy.compactMap { $0.init(foreground) }.first
+    }
+}

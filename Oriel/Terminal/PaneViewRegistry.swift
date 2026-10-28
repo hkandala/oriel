@@ -24,6 +24,8 @@ final class PaneViewRegistry {
     private var terminals: [String: PaneTerminal] = [:]
     /// Browser panes' cards (ui/browser), by terminal id as terminals are: a moved card keeps its page.
     private var browsers: [String: Browser] = [:]
+    /// Agent panes' chats (future-work/chat-view), by terminal id too.
+    private var chats: [String: Chat] = [:]
 
     /// The pane's terminal, made on first use.
     func terminal(_ terminalID: String, pane paneID: String, client: any Multiplexer) -> PaneTerminal {
@@ -81,6 +83,19 @@ final class PaneViewRegistry {
         }
     }
 
+    /// The pane's chat for this launch of its agent, made on first use; a new launch is a new chat.
+    func chat(_ pane: HostStore.Pane, _ adapter: any ChatAdapter, terminalID: String, store: HostStore) -> Chat {
+        if let chat = chats[terminalID], chat.adapter.token == adapter.token {
+            if chat.paneID != pane.id {
+                chat.paneID = pane.id
+            }
+            return chat
+        }
+        let chat = Chat(adapter: adapter, paneID: pane.id, store: store)
+        chats[terminalID] = chat
+        return chat
+    }
+
     /// The browser card of this terminal id, if made.
     func built(_ terminalID: String) -> Browser? {
         browsers[terminalID]
@@ -101,6 +116,7 @@ final class PaneViewRegistry {
         }
         browsers = browsers.filter { alive.contains($0.key) }
         follow()
+        chats = chats.filter { alive.contains($0.key) }
         // Without a client (the page in view connecting), the terminals there go on: another page's floated ones.
         let make = { (ids: [String: String]) in
             ids.compactMap { id, pane in client.map { self.terminal(id, pane: pane, client: $0) } ??
@@ -135,6 +151,11 @@ final class PaneViewRegistry {
     /// would take it back when its tab returns; this one wins instead.
     func focus(_ terminalID: String) {
         dropClaims(but: terminalID)
+        // A card that shows its chat: the reply box.
+        if let chat = chats[terminalID], chat.showsChat, chat.live, !chat.drawer {
+            chat.wantsKeyboard = true
+            return
+        }
         terminals[terminalID]?.view.takeKeyboard()
         browsers[terminalID]?.takeKeyboard()
     }
