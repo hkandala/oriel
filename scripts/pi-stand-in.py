@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """pi's stand-in for the chat view's UI tests (CI has no pi).
 
-Started by the chooser with Oriel's flags (`-e <pi-oriel.ts> --oriel <state file>`), it needs the extension file to
-exist (pi exits without it), writes the state lines pi-oriel writes and a session file in pi's format, reports its
-state to herdr and answers prompts on its terminal: "wait" opens a dialog until 1 is typed, "slow" works until Esc,
-"/tree" moves the leaf back before the last turn, anything else gets one command and the reply "Echo: <prompt>".
+Started by the chooser with Oriel's flags (`-e <pi-oriel-<sha8>.ts> --oriel <state file>`), it needs the extension
+file whole (its sha256 starts with the name's sha8), writes the state lines pi-oriel writes and a session file in pi's
+format, reports its state to herdr and answers prompts on its terminal: "wait" opens a dialog until 1 is typed, "slow"
+works until Esc and takes a message sent meanwhile after its tool, as pi steers, "/tree" moves the leaf back before
+the last user message, anything else gets one command and the reply "Echo: <prompt>".
 """
+import hashlib
 import json
 import os
 import select
@@ -34,6 +36,10 @@ args = sys.argv[1:]
 extension, state = args[args.index("-e") + 1], args[args.index("--oriel") + 1]
 if not os.path.isfile(extension):
     sys.exit("Failed to load extension: Extension path does not exist: " + extension)
+with open(extension, "rb") as file:
+    if not os.path.basename(extension).endswith("-" + hashlib.sha256(file.read()).hexdigest()[:8] + ".ts"):
+        sys.exit("The extension is not whole: " + extension)
+os.makedirs(os.path.dirname(state), mode=0o700, exist_ok=True)
 transcript = os.path.join(folder, os.path.basename(os.path.dirname(state)) + ".jsonl")
 leaf = None
 
@@ -110,11 +116,16 @@ def prompt(text):
     elif text == "slow":
         call = "toolu_" + uuid.uuid4().hex[:12]
         assistant([{"type": "toolCall", "id": call, "name": "bash", "arguments": {"command": "sleep 30"}}], "toolUse")
-        deadline = time.time() + 30
-        while time.time() < deadline and "\x1b" not in key(deadline - time.time()):
-            pass
+        deadline, typed = time.time() + 30, ""
+        while time.time() < deadline:
+            data = key(deadline - time.time())
+            if "\x1b" in data:
+                break
+            typed += data
         entry("toolResult", toolCallId=call, toolName="bash", content=[{"type": "text", "text": "Killed: 9"}],
               isError=True)
+        for steer in typed.split("\r")[:-1]:
+            entry("user", content=[{"type": "text", "text": steer.strip()}])
         assistant([], "error", errorMessage="The operation was aborted.")
         say("Interrupted")
     else:

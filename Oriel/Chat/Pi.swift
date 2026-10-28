@@ -18,18 +18,8 @@ struct PiAgent: ChatAdapter {
         var phase = Chat.Phase.starting
         /// The phase a dialog interrupted, back when it closes.
         var beforeDialog = Chat.Phase.ready
-        /// `/tree` moves the transcript has not been read up to: the leaf, from that size of the file on.
-        var moves: [(leaf: String?, at: Int)] = []
 
         nonisolated init() {}
-
-        /// The moves the transcript has been read up to.
-        func move(upTo offset: Int, _ history: inout ChatHistory) {
-            while let move = moves.first, move.at <= offset {
-                moves.removeFirst()
-                transcript.move(to: move.leaf, into: &history)
-            }
-        }
     }
 
     /// The extension, and its file on the machine, named by its content: two versions of Oriel never fight over one.
@@ -40,26 +30,28 @@ struct PiAgent: ChatAdapter {
             + ".ts"
     }
 
-    /// Under the home folder of the pane's machine, beside Claude Code's side files (the same 30-day sweep).
-    private var state: String {
+    /// Under the home folder of the pane's machine, beside Claude Code's side files (the same 30-day sweep); pi-oriel
+    /// makes its folder.
+    private static func state(_ token: String) -> String {
         ".cache/oriel/chat/\(token)/pi.jsonl"
     }
 
     static func flags(_ token: String) -> String {
-        "-e ~/\(file ?? "") --oriel ~/.cache/oriel/chat/\(token)/pi.jsonl"
+        "-e ~/\(file ?? "") --oriel ~/\(state(token))"
     }
 
-    /// One run writes the extension (whole: a temporary file, then a rename) and the launch's folder, and sweeps the
-    /// launches' folders untouched for 30 days. pi exits at once when `-e` names no file: no chat then.
+    /// One run writes the extension, whole: base64 (the relay passes lines), a temporary file, then a rename. pi exits
+    /// at once when `-e` names no file: no chat then. It sweeps the side files as Claude Code's hook does.
     static func prepare(_ token: String, on exec: any Exec) async -> String? {
         guard let source, let file else { return nil }
         let script = #"""
         umask 077; d=$HOME/.cache/oriel; f=$HOME/$1
-        mkdir -p "$d/chat/$2" && chmod 700 "$d" && cat >"$f.$$" && mv "$f.$$" "$f" || exit 1
-        find "$d/chat" -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf {} + 2>/dev/null; exit 0
+        mkdir -p "$d" && chmod 700 "$d" && base64 -d >"$f.$$" && mv "$f.$$" "$f" || exit 1
+        find "$d/chat" -mindepth 2 -mtime +30 -delete 2>/dev/null
+        find "$d/chat" -mindepth 1 -type d -empty -delete 2>/dev/null; exit 0
         """#
-        guard let channel = try? await exec.run(["sh", "-c", script, "sh", file, token]) else { return nil }
-        channel.write(String(decoding: source, as: UTF8.self))
+        guard let channel = try? await exec.run(["sh", "-c", script, "sh", file]) else { return nil }
+        channel.write(source.base64EncodedString())
         channel.closeInput()
         return await channel.exit().status == 0 ? command + " " + flags(token) : nil
     }
@@ -89,9 +81,7 @@ struct PiAgent: ChatAdapter {
             transcript?.cancel()
             transcript = Task {
                 await chat.follow(history: source, on: exec) { line, history in
-                    let read = kept.transcript.read(line, into: &history)
-                    kept.move(upTo: chat.marks[source]?.offset ?? 0, &history)
-                    return read
+                    kept.transcript.read(line, end: chat.marks[source]?.offset ?? 0, into: &history)
                 }
             }
         }
@@ -105,6 +95,7 @@ struct PiAgent: ChatAdapter {
             }
         }
         defer { late.cancel() }
+        let state = Self.state(token)
         guard let lines = try? await exec.follow(state, from: chat.marks[state] ?? FileMark()) else { return }
         // Lines buffered before a cancel still come: not into the next follow's chat.
         for await line in lines where !Task.isCancelled {
@@ -126,7 +117,6 @@ struct PiAgent: ChatAdapter {
         case "session":
             guard let source = object["path"] as? String else { return nil }
             chat.problem = nil
-            kept.moves = []
             kept.phase = .ready
             if source != chat.source {
                 chat.source = source
@@ -136,11 +126,7 @@ struct PiAgent: ChatAdapter {
                 changed = source
             }
         case "tree":
-            // pi writes nothing on /tree: the leaf moves once the transcript is read up to its size then.
-            kept.moves.append((object["leaf"] as? String, object["at"] as? Int ?? 0))
-            if let source = chat.source {
-                kept.move(upTo: chat.marks[source]?.offset ?? 0, &chat.history)
-            }
+            kept.transcript.tree(object["leaf"] as? String, at: object["at"] as? Int ?? 0, into: &chat.history)
         case "blocked":
             kept.beforeDialog = kept.phase == .waiting ? kept.beforeDialog : kept.phase
             kept.phase = .waiting

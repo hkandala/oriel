@@ -4,8 +4,8 @@ import Foundation
 /// Entries form a tree by `id` and `parentId`; the history is the branch from the leaf back to the root
 /// (resources/research/agents/pi.md#3-file-watching-and-the-parser). The core reads `message` entries: user text,
 /// assistant text, thinking and tool calls, and tool results; errors, interrupts, `!` commands and compaction are
-/// extras. Anything else is skipped.
-/// It keeps the tree; the history it builds is the caller's (the chat's), changed in place.
+/// extras. Anything else is skipped. It keeps the tree; the history it builds is the caller's (the chat's), changed in
+/// place.
 public struct PiTranscript: Sendable {
     /// Each entry read, by id: its parent and what it does to the history, so another branch is built again without
     /// reading the file again.
@@ -13,6 +13,11 @@ public struct PiTranscript: Sendable {
     private var leaf: String?
     /// The session's folder, from the header: tool paths under it show from there.
     private var cwd: String?
+    /// Where the file was read up to, and the `/tree` moves it has not been read up to yet.
+    /// ponytail: a file pi rewrites in place (it migrates an old one) keeps the old offsets and nodes; the nodes
+    /// heal by id, a pending move may be lost.
+    private var offset = 0
+    private var moves: [(leaf: String?, size: Int)] = []
 
     public init() {}
 
@@ -27,16 +32,27 @@ public struct PiTranscript: Sendable {
         case model(String)
     }
 
-    /// Adds the entry; it is the leaf now (pi appends to its leaf). False when the line is not JSON (a torn line).
+    /// Adds the entry, which ends `end` bytes into the file; it is the leaf now (pi appends to its leaf). False when
+    /// the line is not JSON (a torn line).
     @discardableResult
-    public mutating func read(_ line: String, into history: inout ChatHistory) -> Bool {
+    public mutating func read(_ line: String, end: Int, into history: inout ChatHistory) -> Bool {
+        offset = end
+        defer {
+            while let move = moves.first, move.size <= end {
+                moves.removeFirst()
+                if move.size == end {
+                    self.move(to: move.leaf, into: &history)
+                }
+            }
+        }
         guard let object = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else {
             return false
         }
         if object["type"] as? String == "session" {
             cwd = object["cwd"] as? String
+            return true
         }
-        guard let id = object["id"] as? String, object["type"] as? String != "session" else { return true }
+        guard let id = object["id"] as? String else { return true }
         let node = Node(parent: object["parentId"] as? String, steps: steps(object, id: id))
         nodes[id] = node
         if node.parent != nil, node.parent == leaf {
@@ -48,8 +64,18 @@ public struct PiTranscript: Sendable {
         return true
     }
 
-    /// `/tree` moved the leaf (nil: before the first entry); the next entry grows from there.
-    public mutating func move(to leaf: String?, into history: inout ChatHistory) {
+    /// `/tree` moved the leaf (nil: before the first entry) when the file was `size` bytes long; pi writes nothing
+    /// then. The move shows once the file is read up to there (the state file and this one are two streams), and never
+    /// when it was read past it: the entries after it grew from the new leaf already.
+    public mutating func tree(_ leaf: String?, at size: Int, into history: inout ChatHistory) {
+        if size == offset {
+            move(to: leaf, into: &history)
+        } else if size > offset {
+            moves.append((leaf, size))
+        }
+    }
+
+    private mutating func move(to leaf: String?, into history: inout ChatHistory) {
         self.leaf = leaf
         var branch: [Node] = [], id = leaf
         while let current = id, let node = nodes[current], branch.count < nodes.count {
@@ -77,7 +103,9 @@ public struct PiTranscript: Sendable {
         let time = (object["timestamp"] as? String).flatMap(ChatHistory.date)
         switch object["type"] as? String {
         case "message": break
-        case "compaction": return [.add(ChatEntry(id: id, .note("Compacted", failed: false), time: time))]
+        case let type? where ["compaction", "branch_summary"].contains(type):
+            let text = type == "compaction" ? "Compacted" : "Summarized the branch"
+            return [.add(ChatEntry(id: id, .note(text, failed: false), time: time))]
         default: return []
         }
         let message = object["message"] as? [String: Any] ?? [:]
@@ -99,7 +127,7 @@ public struct PiTranscript: Sendable {
                                 target: ChatHistory.firstLine(message["command"]), started: time)
             let result = message["cancelled"] as? Bool == true ? "cancelled" : code.map { "exit \($0)" } ?? ""
             return [.add(ChatEntry(id: id, .tool(tool), time: time)),
-                    .finish(id: id, result: result, failed: code != 0, diff: [], time: time)]
+                    .finish(id: id, result: result, failed: code.map { $0 != 0 } ?? false, diff: [], time: time)]
         default: return []
         }
     }

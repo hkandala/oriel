@@ -3,7 +3,8 @@
 // It appends one JSON line per change to the state file: the session's transcript, a /tree move, an extension dialog
 // opening or closing, pi starting or stopping work, and the session ending. Public pi events only.
 // @ts-nocheck
-import { appendFileSync, statSync } from "node:fs";
+import { appendFileSync, mkdirSync, statSync } from "node:fs";
+import { dirname } from "node:path";
 
 export default function (pi) {
 	pi.registerFlag("oriel", { type: "string", description: "Oriel: the state file to append to" });
@@ -11,7 +12,11 @@ export default function (pi) {
 	let path;
 	const write = (line) => {
 		const file = pi.getFlag("oriel");
-		if (ui && file) try { appendFileSync(file, JSON.stringify(line) + "\n"); } catch {}
+		// The folder too: Oriel sweeps side files untouched for 30 days, and empty folders.
+		if (ui && file) try {
+			mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
+			appendFileSync(file, JSON.stringify(line) + "\n", { mode: 0o600 });
+		} catch {}
 	};
 	pi.on("session_start", (_event, ctx) => {
 		ui = ctx.mode === "tui";

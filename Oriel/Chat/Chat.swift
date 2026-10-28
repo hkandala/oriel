@@ -123,9 +123,9 @@ final class Chat {
                 return
             }
             // Sent means the history has it (Claude Code's company hooks can take a few seconds). pi steers: a message
-            // sent while it works shows in its history when it takes it, after the running tool.
+            // sent while it works shows in its history when it takes it, after the running tool (or its dialog).
             try? await Task.sleep(for: .seconds(5))
-            while phase == .working {
+            while phase == .working || phase == .waiting {
                 try? await Task.sleep(for: .seconds(1))
             }
             notSent(message.id)
