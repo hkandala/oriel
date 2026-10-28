@@ -8,7 +8,7 @@ run and test it is in the root `README.md`.
 | [workflow.md](workflow.md) | How we work |
 | [lessons.md](lessons.md) | Problems that came back, and the rule for each |
 | [ci.md](ci.md) | How CI runs, and how to run, watch and read it |
-| [phases/](phases/) | One file per phase: what was asked and its Findings; a new phase adds a row below |
+| [phases/](phases/) | One file per phase: its tracks, what was asked and its Findings; a new phase adds a row below |
 
 ## Phases
 

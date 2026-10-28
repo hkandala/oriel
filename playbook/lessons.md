@@ -8,8 +8,8 @@ Problems that came back across phases, and the rule that stops each. How we work
 - **Read the failing step and its screen recording before you rerun or guess** ([ci.md](ci.md#a-test-fails-only-on-ci)).
 - **Write tests for CI's machine** ([ci.md](ci.md#layout)): pick windows by identifier, select far tabs by
   key, launch motion tests with `-forceMotion YES`.
-- **Make every assertion fail without the feature, and prove it on the old code** (a throwaway tag; both run
-  ids in Findings). Typical blind checks: an absence checked before the menu opened, a wait already true, a
+- **Make every assertion fail without the feature, and see it fail on the old code** when that is cheap
+  (locally, or a throwaway tag on CI). Typical blind checks: an absence checked before the menu opened, a wait already true, a
   check a fallback also satisfies.
 - **Before a click, wait for what is drawn, not for herdr's or the model's state**, or the click lands on the
   old frame (a sliding button, a moved card, a menu still loading).
@@ -19,7 +19,7 @@ Problems that came back across phases, and the rule that stops each. How we work
   visible rows; a container's frame is the union of its children, and `.offset` or an overflowing child moves
   a frame away from what is drawn (place with padding); `.accessibilityElement(children: .ignore)` needs
   `.isStaticText` for its value to reach XCUITest. After a change to a shared surface (ids, keys, menu order,
-  the chrome), grep the UI tests for it and run the whole suite.
+  the chrome), grep the UI tests for it and run the ones that use it.
 - **Scope every query.** `app.windows.firstMatch` can be a tooltip, a hover card or a floating pane, and
   menu bar items share names with context menu items. Use `app.windows[id]` and the menu's own items.
 - **An accessibility client changes the app it watches**: it hides lazy-layout bugs and slows large UIs.
@@ -46,7 +46,7 @@ Problems that came back across phases, and the rule that stops each. How we work
 
 - **A flake is a bug** ([ci.md](ci.md#a-test-fails-only-on-ci)).
 - **Check exit codes; never pipe a check through `grep`.**
-- **The 400-line file limit is a shared budget.** Several lanes add to the same big files: split a file that
+- **The 400-line file limit is a shared budget.** Several tracks add to the same big files: split a file that
   is close to the limit before adding to it, and check it after each rebase.
 - **Automated rewrites change meaning.** Formatter rules and scripted replaces have flipped logic or matched
   nothing. Read the diff; make every scripted edit fail loudly when it matches nothing.
