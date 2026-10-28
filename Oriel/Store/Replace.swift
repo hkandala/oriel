@@ -21,7 +21,7 @@ extension Ahead {
     }
 }
 
-/// Replace Pane (⌘R): a fresh shell in the pane's place, size and folder, as after a change to the shell's setup.
+/// Replace Pane (⇧⌘R): a fresh shell in the pane's place, size and folder, as after a change to the shell's setup.
 extension HostStore {
     /// herdr 0.9.5 has no respawn: the pane is split (herdr starts the new one in the pane's live folder) and closed,
     /// so the new one fills the old one's place in the tree, at its size. The new pane hides until the old one is
@@ -80,7 +80,7 @@ struct Replacement {
 
 extension Page {
     /// Replace Pane: asks first in this window when something besides the shell runs, as Close Pane does (D41). Not
-    /// the old keyboard card while a split's lit stand-in waits for herdr's pane (as `closePane`), nor a held ⌘R's
+    /// the old keyboard card while a split's lit stand-in waits for herdr's pane (as `closePane`), nor a held ⇧⌘R's
     /// repeats.
     func replacePane(_ pane: HostStore.Pane?, _ replacement: Replacement? = nil) {
         let key = "replace \(pane?.id ?? "")", event = NSApp.currentEvent

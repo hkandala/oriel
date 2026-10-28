@@ -13,7 +13,8 @@ extension KeyboardShortcut {
     static let zoom = KeyboardShortcut(.return, modifiers: [.command, .shift])
     /// Close Pane; in a floating window Detach Pane, which closes the window and puts the pane back in its tab.
     static let closePane = KeyboardShortcut("w")
-    static let replacePane = KeyboardShortcut("r")
+    /// ⇧⌘R: ⌘R reloads a browser card.
+    static let replacePane = KeyboardShortcut("r", modifiers: [.command, .shift])
     /// Close Tab; in a floating window Close Pane.
     static let closeTab = KeyboardShortcut("w", modifiers: [.command, .shift])
     static let previousTab = KeyboardShortcut("[", modifiers: [.command, .shift])

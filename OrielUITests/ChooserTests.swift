@@ -146,7 +146,7 @@ extension OrielUITests {
         try await waitFor(failing) { $0.contains("\noriel-no-agent") }
     }
 
-    /// ⌘R on a terminal gives a shell with no chooser; on an agent pane, the chooser. Open Terminal Here shows only
+    /// ⇧⌘R on a terminal gives a shell with no chooser; on an agent pane, the chooser. Open Terminal Here shows only
     /// on an agent pane, Start Agent Here on every pane.
     func testReplacePaneAndThePaletteFollowThePanesKind() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -165,7 +165,7 @@ extension OrielUITests {
         }
         commands(here: false)
 
-        app.typeKey("r", modifierFlags: .command)
+        app.typeKey("r", modifierFlags: [.command, .shift])
         let shell = try await replaced(pane, in: tab, besides: [])
         XCTAssertTrue(element("pane.\(shell)").exists(within: 3))
         XCTAssertFalse(element("pane.\(shell).chooser.terminal").exists)
@@ -176,7 +176,7 @@ extension OrielUITests {
         XCTAssertTrue(until(3) { element("pane.\(shell)").label.hasPrefix("claude") })
         XCTAssertTrue(hasKeyboard("terminal.\(shell)"))
         commands(here: true)
-        app.typeKey("r", modifierFlags: .command)
+        app.typeKey("r", modifierFlags: [.command, .shift])
         let chosen = try await replaced(shell, in: tab, besides: [])
         let terminal = element("pane.\(chosen).chooser.terminal")
         XCTAssertTrue(terminal.has(\.isSelected, true, within: 3))

@@ -58,7 +58,8 @@ extension OrielUITests {
 
     /// The chooser's Browser makes a labeled browser pane in the pane's place, its empty address with the keyboard; a
     /// typed address loads and goes into the label; the placeholder shows in herdr. A link's page comes back after a
-    /// relaunch (the state file). Web Inspector opens its window. Open Browser Here from the palette.
+    /// relaunch with its history (the state file), and a click selects the address. Web Inspector docks under the page.
+    /// Open Browser Here from the palette.
     func testBrowserFromTheChooserLoadsATypedAddressAndKeepsItsPage() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("browser")
@@ -69,6 +70,7 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard("terminal.\(left)"))
         let (browser, made) = try await chooseBrowser(besides: left, in: tab)
         try await waitFor(browser, in: nil) { $0.contains("Browser") && $0.contains("Shown in Oriel") }
+        XCTAssertTrue(element("browser.\(browser).empty").exists)
         keepScreenshot("browser card, empty")
 
         app.typeText(page)
@@ -86,12 +88,11 @@ extension OrielUITests {
         XCTAssertTrue(pageText("oriel-page-two").exists(within: 5))
         XCTAssertTrue(element("browser.\(browser).back").isEnabled)
 
-        // Web Inspector, in its own window.
+        // Web Inspector, docked: the page gives it the card's lower part.
+        let web = element("browser.\(browser)"), height = web.frame.height
         element("browser.\(browser).inspector").click()
-        let inspector = app.windows.matching(NSPredicate(format: "title BEGINSWITH 'Web Inspector'")).firstMatch
-        XCTAssertTrue(inspector.exists(within: 5))
-        keepScreenshot("web inspector", of: inspector)
-        inspector.buttons[XCUIIdentifierCloseWindow].click()
+        XCTAssertTrue(until(5) { web.frame.height < height * 0.8 })
+        keepScreenshot("web inspector")
 
         // The saved address, not the label's.
         try await expectSaved("two.html", iid: String(made.dropFirst("oriel:browser#".count)), shell: left)
@@ -101,12 +102,21 @@ extension OrielUITests {
         XCTAssertTrue(pageText("oriel-page-two").exists(within: connect))
         let kept = try await paneLabel(browser)
         XCTAssertEqual(kept, "\(made) \(page)")
+        // A click selects the address, as ⌘L does; Esc gives the page the keyboard.
+        let address = element("browser.\(browser).address")
+        address.click()
+        XCTAssertTrue(hasKeyboard(address))
+        app.typeKey(.escape, modifierFlags: [])
+        // The history came back with it.
+        XCTAssertTrue(element("browser.\(browser).back").has(\.isEnabled, true, within: 3))
+        element("browser.\(browser).back").click()
+        XCTAssertTrue(pageText("oriel-page-one").exists(within: 5))
 
         try await openBrowserHere(on: left, in: tab, besides: browser)
     }
 
     /// Open Browser Here from the palette on a terminal: a browser pane in its place. Not offered on a browser pane,
-    /// where ⌘R gives a shell with the chooser.
+    /// where ⇧⌘R gives a shell with the chooser.
     func openBrowserHere(on left: String, in tab: String, besides browser: String) async throws {
         element("terminal.\(left)").click()
         openPalette()
@@ -123,9 +133,9 @@ extension OrielUITests {
         XCTAssertTrue(element("palette.command.Open Terminal Here").exists(within: 2))
         XCTAssertFalse(element("palette.command.Open Browser Here").exists)
         app.typeKey(.escape, modifierFlags: [])
-        // ⌘R on a browser card: a shell with the chooser.
+        // ⇧⌘R on a browser card: a shell with the chooser.
         XCTAssertTrue(hasKeyboard("browser.\(other).address"))
-        app.typeKey("r", modifierFlags: .command)
+        app.typeKey("r", modifierFlags: [.command, .shift])
         let shell = try await replaced(other, in: tab, besides: [browser])
         XCTAssertTrue(element("pane.\(shell).chooser.terminal").exists(within: 3))
         let shellLabel = try await paneLabel(shell)

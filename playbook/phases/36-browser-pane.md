@@ -92,3 +92,23 @@ Captures: `scrawl-1793181414481-118c7.scrawl` and `scrawl-1793181638672-118c7-3.
 - **For the user:** a real dev server page (`localhost:3000`) and a login that should persist across relaunches;
   Web Inspector from the button and from Safari's Develop menu; an OAuth popup; the address field's look in light
   mode; a floated browser pane; Increase Contrast on the toolbar.
+
+### Track B
+
+- **Cause (7):** the address field sits at opacity 0 under the shown address while not editing, and SwiftUI gives
+  an invisible view no clicks. **Fix:** the shown address takes the click and starts editing.
+- **Cause (9):** the address field's select-all went to the first responder; in a new floating window the web view
+  had it by then, and selected its whole page. **Fix:** select-all goes to the field's editor only.
+- **Cause (10):** WebKit keeps the inspector's last attach state in the app's defaults
+  (`__WebInspectorPageGroupLevel1__.WebKit2InspectorStartsAttached`), which the old detach set to 0. **Fix:** no
+  detach; the key is removed before each show, so it docks under the page every time; the inspector's own control
+  moves it to a window.
+- **Cause (12):** an empty web view draws white once clicked. **Fix:** it stays hidden until there is an address,
+  under a 44 pt `globe` (13) that gives the address field the keyboard; a first typed address shows the loader.
+- **Decisions (11, for the docs pass):** the state file is `{"url", "history"}`: `history` is WebKit's
+  `interactionState` (the back and forward list) in base64, left out over 128 KiB; restored with the saved page
+  (file:// pages too).
+- **Decisions (8, 14):** toolbar buttons take the card buttons' `paneButton` color, at 0.35 when they cannot act.
+  Replace Pane is ⇧⌘R everywhere; ⌘R is Reload Page (View menu, palette, floating window) on a browser card.
+- **For the user:** float a browser pane (no selection); Web Inspector docked, then its own window control.
+

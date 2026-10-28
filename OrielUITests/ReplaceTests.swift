@@ -1,6 +1,6 @@
 import XCTest
 
-/// Replace Pane (⌘R): a fresh shell in the pane's place, size and folder, with the keyboard; it asks first, as Close
+/// Replace Pane (⇧⌘R): a fresh shell in the pane's place, size and folder, with the keyboard; it asks first, as Close
 /// Pane does, when something besides the shell runs.
 extension OrielUITests {
     /// With motion (CI has Reduce Motion on): the new pane takes the old card in place, so no card comes into the
@@ -29,7 +29,7 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard("terminal.\(right)"))
         let cards = element("cards.\(tab)"), came = cards.stringValue
 
-        app.typeKey("r", modifierFlags: .command)
+        app.typeKey("r", modifierFlags: [.command, .shift])
         let new = try await replaced(right, in: tab, besides: [left, below])
         XCTAssertTrue(card.vanishes(within: 3))
         let replaced = element("pane.\(new)")
@@ -62,7 +62,7 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(left)").vanishes(within: 2))
         element("terminal.\(right)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(right)"))
-        app.typeKey("r", modifierFlags: .command)
+        app.typeKey("r", modifierFlags: [.command, .shift])
         let zoomed = try await replaced(right, in: tab, besides: [left])
         XCTAssertTrue(element("pane.\(zoomed)").exists(within: 3))
         XCTAssertFalse(element("pane.\(left)").exists)
@@ -78,7 +78,7 @@ extension OrielUITests {
         element("float.\(zoomed).pin").click()
         XCTAssertTrue(hasKeyboard("terminal.\(zoomed)", in: window))
         let frame = window.frame
-        app.typeKey("r", modifierFlags: .command)
+        app.typeKey("r", modifierFlags: [.command, .shift])
         let floated = try await replaced(zoomed, in: tab, besides: [left])
         XCTAssertTrue(window.vanishes(within: 3))
         let next = app.windows.containing(.any, identifier: "float.\(floated)").firstMatch
@@ -110,7 +110,7 @@ extension OrielUITests {
         element("terminal.\(pane)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
 
-        app.typeKey("r", modifierFlags: .command)
+        app.typeKey("r", modifierFlags: [.command, .shift])
         let confirm = app.sheets.buttons["Replace Pane"]
         XCTAssertTrue(confirm.exists(within: 3))
         XCTAssertTrue(until(2) { isRed(confirm) })

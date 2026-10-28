@@ -23,6 +23,8 @@ extension CommandList {
     /// A browser card's (future-work/web-page#commands-on-a-browser-card), in the main and the floating windows.
     static func browser(_ browser: Browser?) -> [Command] {
         [
+            Command(section: .view, title: "Reload Page", key: .init("r"), symbol: "arrow.clockwise",
+                    keywords: "refresh browser", enabled: browser?.address.isEmpty == false) { browser?.reload() },
             Command(section: .edit, title: "Open Location", key: .init("l"), symbol: "link",
                     keywords: "address url browser", enabled: browser != nil) { browser?.wantsAddress = true },
             Command(section: .edit, title: "Show Web Inspector", key: .init("i", modifiers: [.command, .option]),
@@ -42,7 +44,9 @@ struct BrowserCard: View {
         WebHost(view: browser.view)
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .padding([.horizontal, .bottom], 6)
-            .opacity(browser.ready && browser.failure == nil && browser.asking == nil ? 1 : 0)
+            // An empty web view draws white: hidden until there is a page.
+            .opacity(browser.ready && browser.failure == nil && browser.asking == nil && !browser.address
+                .isEmpty ? 1 : 0)
             .overlay(alignment: .top) {
                 if browser.loading {
                     ProgressView(value: browser.progress).progressViewStyle(.linear).tint(.accentColor)
@@ -58,6 +62,12 @@ struct BrowserCard: View {
                             action: browser.open)
                 } else if !browser.ready {
                     BrowserLoader()
+                } else if browser.address.isEmpty {
+                    // No page yet: the kind's symbol; a click gives the address field the keyboard.
+                    Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(.rect)
+                        .onTapGesture { browser.wantsAddress = true }
+                        .accessibilityIdentifier("browser.\(browser.paneID).empty")
                 }
             }
             .overlay {
@@ -150,9 +160,11 @@ struct BrowserToolbar: View {
     let page: Page
     @State private var text = ""
     @FocusState private var editing: Bool
+    @Environment(\.look) private var look
 
     var body: some View {
         let id = "browser.\(browser.paneID)"
+        // The card buttons' one color; a button that cannot act at 0.35 of it.
         HStack(spacing: 6) {
             HStack(spacing: 0) {
                 IconButton(symbol: "chevron.left", help: "Back", size: 22) { browser.view.goBack() }
@@ -163,12 +175,15 @@ struct BrowserToolbar: View {
                     .accessibilityIdentifier("\(id).forward")
                 IconButton(symbol: browser.loading ? "xmark" : "arrow.clockwise", help: browser.loading ? "Stop"
                     : "Reload", size: 22) { browser.loading ? browser.view.stopLoading() : browser.reload() }
+                    .disabled(browser.address.isEmpty).opacity(browser.address.isEmpty ? 0.35 : 1)
                     .accessibilityIdentifier("\(id).reload")
             }
+            .foregroundStyle(look.paneButton)
             address(id)
             IconButton(symbol: "hammer", help: "Web Inspector", key: .init("i", modifiers: [.command, .option]),
                        size: 22, action: browser.showInspector)
-                .disabled(browser.address.isEmpty)
+                .disabled(browser.address.isEmpty).opacity(browser.address.isEmpty ? 0.35 : 1)
+                .foregroundStyle(look.paneButton)
                 .accessibilityIdentifier("\(id).inspector")
         }
     }
@@ -184,8 +199,10 @@ struct BrowserToolbar: View {
             .accessibilityIdentifier("\(id).address")
             .opacity(editing ? 1 : 0)
             .overlay(alignment: .leading) {
+                // A click selects the address, as ⌘L does: a field at opacity 0 takes no clicks.
                 if !editing {
-                    shown.allowsHitTesting(false)
+                    shown.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading).contentShape(.rect)
+                        .onTapGesture { editing = true }
                 }
             }
             .padding(.horizontal, 10)
@@ -213,7 +230,9 @@ struct BrowserToolbar: View {
                 }
                 page.tookKeyboard(browser.terminalID)
                 // Selected whole, after the field took the keyboard.
-                DispatchQueue.main.async { NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil) }
+                // To the field's editor only: sent to the first responder, a web view that took the keyboard meanwhile
+                // selected its whole page (a floated card).
+                DispatchQueue.main.async { (NSApp.keyWindow?.firstResponder as? NSText)?.selectAll(nil) }
             }
             .onChange(of: browser.wantsAddress, initial: true) {
                 guard browser.wantsAddress else { return }

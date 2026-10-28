@@ -35,6 +35,8 @@ final class Browser: NSObject {
     /// The pane got the keyboard while the state file was read: given once the address is known.
     @ObservationIgnored private var claimed = false
     @ObservationIgnored private var reading = true
+    /// The saved back and forward list (WebKit's `interactionState`), restored with the saved page.
+    @ObservationIgnored private var history: Data?
     /// The page's process ended since the last load finished: it loads again once.
     @ObservationIgnored private var reloaded = false
     @ObservationIgnored private var watches: [NSKeyValueObservation] = []
@@ -93,8 +95,10 @@ final class Browser: NSObject {
     /// page loads by itself only from an approved or safe origin.
     private func start() async {
         guard let store else { return }
-        let saved = await store.machine.exec().read(home: label.statePath(session: store.session))
-            .flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any] }?["url"] as? String
+        let state = await store.machine.exec().read(home: label.statePath(session: store.session))
+            .flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any] }
+        let saved = state?["url"] as? String
+        history = saved == nil ? nil : (state?["history"] as? String).flatMap { Data(base64Encoded: $0) }
         reading = false
         defer {
             if claimed {
@@ -109,7 +113,7 @@ final class Browser: NSObject {
         }
         address = url.absoluteString
         if approved(url) {
-            load(url)
+            restore(url)
         } else {
             asking = url
             ready = true
@@ -120,6 +124,10 @@ final class Browser: NSObject {
     func go(_ text: String) {
         guard let store, let url = Self.url(text, local: !store.machine.isRemote) else { return }
         approve(url)
+        // The loader until the first page drew, not the white of an empty web view.
+        if address.isEmpty {
+            ready = false
+        }
         load(url)
         // The saved address goes: a typed load that fails opens the typed one after a relaunch.
         saving?.cancel()
@@ -135,7 +143,17 @@ final class Browser: NSObject {
         guard let url = asking else { return }
         asking = nil
         approve(url)
-        load(url)
+        restore(url)
+    }
+
+    /// The saved page with its back and forward list, else the address alone.
+    private func restore(_ url: URL) {
+        if let history {
+            self.history = nil
+            view.interactionState = history
+        } else {
+            load(url)
+        }
     }
 
     func reload() {
@@ -175,24 +193,17 @@ final class Browser: NSObject {
         }
     }
 
-    /// WebKit's own Web Inspector window for this page. No public API shows it: `_WKInspector` (cmux ships it);
-    /// Safari's Develop menu reaches every card too (`isInspectable`).
+    /// WebKit's Web Inspector for this page, docked under it as Inspect Element opens it; its own control moves it to
+    /// a window. No public API shows it: `_WKInspector` (cmux ships it); Safari's Develop menu reaches every card too
+    /// (`isInspectable`).
     func showInspector() {
-        let inspector = NSSelectorFromString("_inspector")
-        guard view.responds(to: inspector), let object = view.perform(inspector)?.takeUnretainedValue() as? NSObject
-        else { return }
-        let show = NSSelectorFromString("show"), detach = NSSelectorFromString("detach")
-        guard object.responds(to: show), object.responds(to: detach) else { return }
-        // `show` docks it under the page, and `detach` moves it to its own window only once it loaded (about 1 s).
-        let windows = { NSApp.windows.filter { $0.isVisible && $0.title.hasPrefix("Web Inspector") }.count }
-        let before = windows()
+        let inspector = NSSelectorFromString("_inspector"), show = NSSelectorFromString("show")
+        guard view.responds(to: inspector), let object = view.perform(inspector)?.takeUnretainedValue() as? NSObject,
+              object.responds(to: show) else { return }
+        // Docked each time: WebKit keeps the last choice of a window in the app's defaults.
+        // ponytail: WebKit's private key; if it changes, the inspector opens as it was left.
+        UserDefaults.standard.removeObject(forKey: "__WebInspectorPageGroupLevel1__.WebKit2InspectorStartsAttached")
         object.perform(show)
-        Task {
-            for _ in 0 ..< 20 where windows() == before {
-                try? await Task.sleep(for: .milliseconds(200))
-                object.perform(detach)
-            }
-        }
     }
 
     /// A save still pending would bring back the state file a close removed.
@@ -230,9 +241,14 @@ final class Browser: NSObject {
     }
 
     /// The address after a navigation, on the pane's machine, 500 ms after the last one; last writer wins.
+    /// The back and forward list too, while it is under 128 KiB (the state file holds at most 256 KiB).
     private func save() {
-        guard let store, let url = view.url?.absoluteString, url != "about:blank",
-              let data = try? JSONSerialization.data(withJSONObject: ["url": url]) else { return }
+        guard let store, let url = view.url?.absoluteString, url != "about:blank" else { return }
+        var state = ["url": url]
+        if let history = view.interactionState as? Data, history.count < 128 << 10 {
+            state["history"] = history.base64EncodedString()
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: state) else { return }
         let path = label.statePath(session: store.session), line = String(decoding: data, as: UTF8.self)
         saving?.cancel()
         saving = Task {
