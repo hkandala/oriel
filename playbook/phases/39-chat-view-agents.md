@@ -48,3 +48,30 @@ Design: [Chat view](../../docs/content/docs/future-work/chat-view.mdx) and
   chat, Stop, `/model` typed in the chat (it flips to the terminal) and a picker left open when you flip back (the
   terminal shows at the bottom); `/new` then a message (the chat starts the new session); a remote machine. The
   company launcher still reinstalls its llm-rules plugin into `~/.codex` on each start, as it always does.
+
+### Track B
+
+- **Built:** `pi-oriel.ts` is an app resource (an `explicitFileTypes` entry makes Xcode copy a `.ts`). The chooser's
+  one run writes it to `~/.cache/oriel/pi-oriel-<sha8>.ts` (whole, by content hash) and makes the launch's folder;
+  the line is `pi -e ~/.cache/oriel/pi-oriel-<sha8>.ts --oriel ~/.cache/oriel/chat/T/pi.jsonl`. The marker is that
+  path in the argv of `pi` or `pi.real`. The state file sits beside Claude Code's side files, so the same 30-day sweep
+  clears it (the run sweeps too).
+- **Core changes (told to the other tracks):** `ChatAdapter.prepare(token, on:) -> String?` (the whole launch line
+  after writing what it needs; nil starts the plain command), the chooser line awaits `ChatAdapters.launch(_:on:)`;
+  `ChatHistory.firstLine/short/date` shared by the parsers; a message sent while the agent works waits until it stops
+  working before "Not sent" (pi and Codex steer: the history gets the message only after the running tool).
+- **Decisions:** the state lines are only what the adapter reads (`session {path}`, `tree {leaf, at}`, `blocked`,
+  `unblocked`, `working`, `idle`, `shutdown`); no dialog title, pid or reason. Before the first `session` line the
+  phase is starting (herdr says idle about 1 s before pi's editor takes input). `shutdown` is starting too (no send
+  between `/new`'s two lines). A dialog gives the drawer; its in-chat answer stays out (the options are unknown).
+- **Cause (`/tree`):** pi writes nothing on `/tree`, and the state file and the transcript are two streams: on a new
+  chat the state file is read before the transcript, so a bare leaf was applied to an empty history and the old
+  entries then moved the leaf back. pi-oriel adds `at`, the transcript's size at the move, and the leaf moves when the
+  transcript is read up to it. The parser keeps each entry's parent and its steps, so another branch is built again
+  without reading the file.
+- **Not built:** no `pi --version` check (an old pi without `ui_prompt_*` just has no dialog lines); model, thinking,
+  images and pickers stay in the terminal (pi's pickers send no signal: the user opened them in the terminal anyway);
+  a state file longer than the follower's last 256 KiB (about 3,000 turns) loses its `session` line on a new chat.
+- **For the user:** a real pi from the chooser on This Mac and a remote machine; an extension dialog (the drawer, and
+  herdr refusing a send meanwhile); `/tree` to an earlier message, `/new`, `/fork` and `/resume` (the chat follows);
+  a message sent while pi runs a long tool (it shows as sending until pi takes it); Esc mid-stream and mid-tool.
