@@ -34,7 +34,8 @@ extension OrielUITests {
         app.typeText("echo leaked")
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(terminal.vanishes(within: 2))
-        XCTAssertTrue(until(3) { capsule.label.hasPrefix("zsh") }, capsule.label)
+        // The shell and the folder: "zsh tmp" here, "bash tmp" on CI.
+        XCTAssertTrue(until(3) { capsule.label.hasSuffix(" tmp") }, capsule.label)
         try await typeAndRead(pane)
         let text = try await read(pane)
         XCTAssertFalse(text.contains("leaked"), text)

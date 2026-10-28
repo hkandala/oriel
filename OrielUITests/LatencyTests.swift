@@ -50,6 +50,8 @@ extension OrielUITests {
         let selected = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'tab.' AND selected == true"))
             .firstMatch
         key("t", .command) { selected.label == "New Tab" && !self.element("tab.w1:t1").isSelected }
+        // Terminal: the title stays "New Tab" while the new pane's chooser shows.
+        app.typeKey(.return, modifierFlags: [])
         var titles: [String] = []
         XCTAssertTrue(until(5) {
             titles.append(selected.label)
