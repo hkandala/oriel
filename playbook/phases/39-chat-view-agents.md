@@ -83,3 +83,32 @@ Design: [Chat view](../../docs/content/docs/future-work/chat-view.mdx) and
 - **For the user:** a real pi from the chooser on This Mac and a remote machine; an extension dialog (the drawer, and
   herdr refusing a send meanwhile); `/tree` to an earlier message, `/new`, `/fork` and `/resume` (the chat follows);
   a message sent while pi runs a long tool (it shows as sending until pi takes it); Esc mid-stream and mid-tool.
+
+### Track C
+
+- **Decisions:** the marker is `-- oriel-T` after `--port 0 --hostname 127.0.0.1` (opencode's yargs ignores what
+  follows `--`), plus the design's check that the state line's `pid` is the marked process's. The line is
+  `ORIEL_OC_STATE=… OPENCODE_TUI_CONFIG=… OPENCODE_SERVER_PASSWORD=$(cat "…/pw") opencode …` typed straight into the
+  user's shell (sh, bash, zsh, fish ≥ 3.4), not the research's `env … sh -c 'exec opencode …'`: a user's alias or
+  function still runs, and the password never reaches argv or the scrollback. The per-launch password and state live
+  in `~/.cache/oriel/chat/T/` (Claude Code's folder, the same 30-day cleanup); the plugin and `tui.json` in
+  `~/.cache/oriel/opencode/`, rewritten whole by `prepare` before each launch.
+- **Decisions:** permissions show as a question card ("Bash: touch x", Allow once · Allow always · Reject, the TUI's
+  words); a question with `multiple` or with no options goes to the live terminal. Every pending request on the
+  TUI's own server counts (subagents' too: one server per TUI). Phase: a dialog or a request is Waiting, a busy
+  `session.status` is Working, else herdr's status.
+- **Decisions (MetaCode):** the company build ignores the plugin, so it is told by its silence: no state line after
+  15 s sets "OpenCode has not reported its session" and flips the card to its terminal (the switch stays). A late
+  line (a slow first plugin install) clears it. Not checked on MetaCode itself (blocked here).
+- **Core change (with t39-pi):** `ChatAdapter.prepare(token, on:) -> String?`, the whole launch line after writing
+  what it needs; the chooser's line awaits `ChatAdapters.launch(_:on:)`. Also took t39-codex's shared `startChat`.
+- **Cause (spike):** `/new` and `/sessions` send no server event, and a question or permission keeps `dialog:false`,
+  so the plugin's session field and the event stream are both needed; `/session/status` is `{}` when idle and said
+  nothing useful at start, so the phase waits for the first status event.
+- **Not built:** subagent rows (child sessions), images, `prompt_async`, opencode 2.x (shared service, `/api/*`).
+  ponytail: the history is rebuilt whole on each event and loaded whole (megabytes for a long session).
+- **Runs:** the stand-in test green locally; a real opencode-ai 1.19.4 driven through the app once (a throwaway test,
+  not kept): recognized, history loaded, a sent message confirmed, its API error shown, `/models` gave the drawer.
+- **For the user:** a real opencode-ai (npm) from the chooser: a reply, a bash permission answered in the chat and one
+  answered in the TUI (the card goes), a question, `/sessions` to an old session, Esc Esc from Stop; MetaCode from
+  the chooser (the card should fall back to its terminal after 15 s); a remote machine (needs `curl` there).
