@@ -50,3 +50,6 @@ run and test it is in the root `README.md`.
 | 32 | Final review of the whole repository and cleanup | [32-final-review.md](phases/32-final-review.md) |
 | 33 | Eighth feedback: iOS removed, chrome, About panel, remote drops, this playbook | [33-eighth-feedback.md](phases/33-eighth-feedback.md) |
 | 34 | Ninth feedback: future work designs in the docs, clipboard from remote machines | [34-ninth-feedback.md](phases/34-ninth-feedback.md) |
+| 35 | Choose what a new pane runs: terminal, agent or browser | [35-new-pane-chooser.md](phases/35-new-pane-chooser.md) |
+| 36 | The browser pane on This Mac | [36-browser-pane.md](phases/36-browser-pane.md) |
+| 37 | The browser pane on remote machines | [37-browser-remote.md](phases/37-browser-remote.md) |
