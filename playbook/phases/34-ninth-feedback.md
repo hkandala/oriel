@@ -99,6 +99,13 @@ heading at the end.
    pane contents just clear and show the empty shell; use our usual fade-in for pane contents."** The card
    keeps its place with no slide or layout motion; only the terminal's reveal fade plays.
 
+## Lane D2: destructive buttons in red (item 10)
+
+10. **"For all confirmation dialogs, the action button should be red; I see them in blue, like Replace Pane
+    and Close Pane."** Every confirmation whose action ends or replaces something (close pane, tab,
+    workspace, window, session detach or delete, replace pane, remove machine, others) shows its action
+    button in red (destructive), while Return still confirms.
+
 ## Findings
 
 ### Lane K
