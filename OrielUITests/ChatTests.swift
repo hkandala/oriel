@@ -113,7 +113,10 @@ extension OrielUITests {
 
     /// A new tab of w2 whose chooser starts the agent at `agent` (its place in the chooser) as its stand-in,
     /// `scripts/<command>-stand-in.py`, once the chat shows with the keyboard in its reply box.
-    func startChat(_ arguments: [String] = [], agent: Int = 0) async throws -> (tab: String, pane: String) {
+    /// `environment`: assignments before the stand-in's command; `chat: false` returns once the agent was picked.
+    func startChat(_ arguments: [String] = [], agent: Int = 0, environment: String = "",
+                   chat: Bool = true) async throws -> (tab: String, pane: String)
+    {
         if !arguments.isEmpty {
             relaunch(one, arguments)
         }
@@ -129,9 +132,10 @@ extension OrielUITests {
         // `function`: a user's own alias of the command does not expand in it.
         let command = ["claude", "codex", "pi", "opencode"][agent]
         let standIn = Self.scripts.appending(path: "\(command)-stand-in.py").path
-        try await send("function \(command) { python3 '\(standIn)' \"$@\"; }\r", to: pane)
+        try await send("function \(command) { \(environment)python3 '\(standIn)' \"$@\"; }\r", to: pane)
         app.typeKey("2", modifierFlags: [])
         app.typeKey("\(agent + 1)", modifierFlags: [])
+        guard chat else { return (tab, pane) }
         let composer = element("chat.\(pane).composer")
         XCTAssertTrue(composer.exists(within: 15))
         XCTAssertTrue(hasKeyboard(composer))

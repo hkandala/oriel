@@ -33,8 +33,10 @@ and
   Oriel's flags then starts with no chat, not with no agent.
 - **MetaCode**, the company's OpenCode build, ignores Oriel's plugin and
   sends no state line. After 15 s the chat says "OpenCode has not reported
-  its session" and the card flips to its terminal, once. A late line (a slow
-  first plugin install) clears it. The app does not check the build up
+  its session" and the card flips to its terminal, once. The header shows
+  Error only while the card shows the chat. A late line (a slow first plugin
+  install) clears it when the card shows the chat again. The app does not
+  check the build up
   front: its own `command -v opencode` is not the pane shell's, where an
   alias or a function wins.
 

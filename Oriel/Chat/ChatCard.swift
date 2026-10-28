@@ -13,9 +13,8 @@ extension Page {
             }
             return chat
         }
-        // A new launch is a new chat; the closed panes' chats go.
+        // A new launch is a new chat (a closed pane's goes with the snapshot that drops it).
         let chat = Chat(adapter: adapter, paneID: pane.id, store: store)
-        store.chats = store.chats.filter { id, _ in store.panes.contains { $0.terminalID == id } }
         store.chats[terminalID] = chat
         return chat
     }
@@ -52,7 +51,8 @@ struct ChatSwitch: View {
 
     /// Working, Needs you, Done or Error, in the status colors; none while idle.
     private var capsule: (String, Color)? {
-        if chat.problem != nil {
+        // Only while the chat shows: nothing follows the agent behind its terminal, so nothing would clear it.
+        if chat.problem != nil, chat.showsChat {
             return ("Error", look.error)
         }
         switch chat.phase {

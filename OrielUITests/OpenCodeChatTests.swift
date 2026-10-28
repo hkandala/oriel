@@ -44,19 +44,7 @@ extension OrielUITests {
     /// A build that refuses Oriel's flags (the company build may) still starts: the chooser types the plain command
     /// once, and its pane has no chat.
     func testAnOpenCodeThatRefusesTheFlagsStartsPlain() async throws {
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        element("workspace.w2").click()
-        let tabs = try await tabIDs()
-        closeNew("tab", besides: tabs)
-        app.typeKey("t", modifierFlags: .command)
-        let pane = try await pane(of: newTabID(after: tabs))
-        XCTAssertTrue(element("pane.\(pane).chooser.terminal").exists(within: 3))
-        try await waitForPrompt(pane)
-        let standIn = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .appending(path: "scripts/opencode-stand-in.py").path
-        try await send("function opencode { ORIEL_STAND_IN_REFUSE=1 python3 '\(standIn)' \"$@\"; }\r", to: pane)
-        app.typeKey("2", modifierFlags: [])
-        app.typeKey("4", modifierFlags: [])
+        let pane = try await startChat(agent: 3, environment: "ORIEL_STAND_IN_REFUSE=1 ", chat: false).pane
         try await waitFor(pane, times: 100) { $0.contains("OpenCode stand-in plain") }
         let text = try await read(pane)
         XCTAssertTrue(text.contains("Unrecognized flag: --port"), text)

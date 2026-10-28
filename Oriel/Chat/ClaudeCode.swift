@@ -24,12 +24,7 @@ struct ClaudeCode: ChatAdapter {
     /// ponytail: `$HOME` unquoted, so a home folder with a space gets no chat; quote it (escaped JSON) if one shows up.
     static func flags(_ token: String) -> String {
         let folder = "umask 077;set -f;d=$HOME/.cache/oriel/chat/\(token);mkdir -p $d"
-        // Side files untouched for 30 days go, then empty folders (appends do not change a folder's time; a minute old:
-        // not one a launch just made). ponytail: a session idle 30 days loses its chat on a relaunch; touch the files
-        // on use if that shows up.
-        let start = "\(folder);{ tr -d [:cntrl:];echo;}>>$d/hooks.jsonl;"
-            + "find $HOME/.cache/oriel/chat -mindepth 2 -mtime +30 -delete 2>/dev/null;"
-            + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null"
+        let start = "\(folder);{ tr -d [:cntrl:];echo;}>>$d/hooks.jsonl;" + ChatAdapters.sweep
         let ask = "\(folder);rm -f $d/answer;echo $$ >$d/ask;{ tr -d [:cntrl:];echo;}>>$d/hooks.jsonl;n=0;"
             + "while [ $n -lt 9000 ] && grep -qx $$ $d/ask 2>/dev/null && kill -0 $PPID 2>/dev/null;do "
             + "if [ -f $d/answer ];then cat $d/answer;rm -f $d/answer $d/ask;exit 0;fi;sleep 0.2;n=$((n+1));done;"
@@ -68,51 +63,22 @@ struct ClaudeCode: ChatAdapter {
     /// The side file: the last SessionStart's transcript is the history (a new one after `/clear`, a fork or a
     /// resume starts the history again); a question shows until it is answered. No session after 10 s: a problem.
     @MainActor private func hooks(_ chat: Chat, _ exec: any Exec) async {
-        let path = folder + "/hooks.jsonl"
-        var transcript: Task<Void, Never>?
-        defer { transcript?.cancel() }
-        let follow = { (source: String) in
-            transcript?.cancel()
-            transcript = Task { await chat.follow(history: source, on: exec, read: ClaudeTranscript.read) }
-        }
-        if let source = chat.source {
-            follow(source)
-        }
-        let late = Task {
-            try? await Task.sleep(for: .seconds(10))
-            if !Task.isCancelled, chat.source == nil {
-                chat.problem = "Claude Code has not started a session"
-            }
-        }
-        defer { late.cancel() }
-        guard let lines = try? await exec.follow(path, from: chat.marks[path] ?? FileMark()) else { return }
-        // Lines buffered before a cancel still come: not into the next follow's chat.
-        for await line in lines where !Task.isCancelled {
-            guard case let .line(text, mark) = line else { continue }
-            chat.marks[path] = mark
-            guard let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any]
-            else { continue }
-            if object["hook_event_name"] as? String == "SessionStart",
-               let source = object["transcript_path"] as? String
-            {
-                chat.problem = nil
-                if source != chat.source {
-                    chat.source = source
-                    chat.history = ChatHistory()
-                    // A resumed session's file again: from its start, not from where the chat left it.
-                    chat.marks[source] = nil
-                    follow(source)
+        await chat
+            .followSessions(folder + "/hooks.jsonl", on: exec, late: true, read: ClaudeTranscript.read) { object in
+                if object["hook_event_name"] as? String == "SessionStart" {
+                    return object["transcript_path"] as? String
                 }
-            } else if object["tool_name"] as? String == "AskUserQuestion",
-                      let questions = (object["tool_input"] as? [String: Any])?["questions"] as? [[String: Any]]
-            {
-                // Only while its hook waits: a new chat reads the file from the start, old questions too.
-                let question = Self.question(questions)
-                if await run(["sh", "-c", #"test -f "$HOME/$1/ask""#, "sh", folder], exec) == 0, !Task.isCancelled {
-                    chat.question = question
+                if object["tool_name"] as? String == "AskUserQuestion",
+                   let questions = (object["tool_input"] as? [String: Any])?["questions"] as? [[String: Any]]
+                {
+                    // Only while its hook waits: a new chat reads the file from the start, old questions too.
+                    let question = Self.question(questions)
+                    if await run(["sh", "-c", #"test -f "$HOME/$1/ask""#, "sh", folder], exec) == 0, !Task.isCancelled {
+                        chat.question = question
+                    }
                 }
+                return nil
             }
-        }
     }
 
     /// The session record's `status`: idle (and `shell`, a background command) is ready, busy works, waiting waits for
@@ -135,15 +101,11 @@ struct ClaudeCode: ChatAdapter {
         }
     }
 
-    /// Single choices only: a question with several answers is answered in the terminal.
+    /// Single choices with options only: the terminal answers the rest.
     private static func question(_ questions: [[String: Any]]) -> ChatQuestion? {
-        guard !questions.isEmpty, !questions.contains(where: { $0["multiSelect"] as? Bool == true }),
+        guard let items = ChatQuestion.items(questions, several: "multiSelect"),
               let raw = try? JSONSerialization.data(withJSONObject: questions) else { return nil }
-        return ChatQuestion(items: questions.map { question in
-            ChatQuestion.Item(text: question["question"] as? String ?? "",
-                              options: (question["options"] as? [[String: Any]] ?? [])
-                                  .compactMap { $0["label"] as? String })
-        }, raw: raw)
+        return ChatQuestion(items: items, raw: raw)
     }
 
     /// A short run's exit status.
@@ -155,18 +117,18 @@ struct ClaudeCode: ChatAdapter {
     }
 
     /// The hook prints this decision: allow, with the questions echoed and the answers by question text. Written whole
-    /// (a temporary file, then a rename), and only while the hook still waits.
-    func answer(_ question: ChatQuestion, _ answers: [String: String], on exec: any Exec) async {
+    /// (a temporary file, then a rename), and only while the hook still waits (else false: the hook is gone).
+    func answer(_ question: ChatQuestion, _ answers: [String: String], on exec: any Exec) async -> Bool {
         guard let questions = try? JSONSerialization.jsonObject(with: question.raw),
               let data = try? JSONSerialization.data(withJSONObject: [
                   "hookSpecificOutput": ["hookEventName": "PermissionRequest", "decision": [
                       "behavior": "allow", "updatedInput": ["questions": questions, "answers": answers],
                   ]],
-              ]) else { return }
+              ]) else { return false }
         let script = #"d="$HOME/$1"; [ -f "$d/ask" ] && cat >"$d/answer.tmp" && mv "$d/answer.tmp" "$d/answer""#
-        guard let channel = try? await exec.run(["sh", "-c", script, "sh", folder]) else { return }
+        guard let channel = try? await exec.run(["sh", "-c", script, "sh", folder]) else { return false }
         channel.write(String(decoding: data, as: UTF8.self))
         channel.closeInput()
-        _ = await channel.exit()
+        return await channel.exit().status == 0
     }
 }

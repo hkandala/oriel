@@ -24,7 +24,7 @@ struct OpenCode: ChatAdapter {
     /// Writes the plugin and its `tui.json` (each whole, then renamed: another pane may be starting) and the launch's
     /// password, then gives the line: the password goes from its file into the environment, never into argv or the
     /// scrollback. The line reads the same in sh, bash, zsh and fish (3.4 and later).
-    /// Side files untouched for 30 days go, as Claude Code's hook does.
+    /// Side files untouched for 30 days go (`ChatAdapters.sweep`).
     /// ponytail: a home folder with a `"` breaks `tui.json`; escape it if one shows up. A pane running for 30 days
     /// loses its password file then (the chat says the server did not answer); touch it while followed if that matters.
     static func prepare(_ token: String, on exec: any Exec) async -> String? {
@@ -33,8 +33,7 @@ struct OpenCode: ChatAdapter {
         mkdir -p "$c/opencode" "$d" && cat >"$p.$$" && mv "$p.$$" "$p" && t=$c/opencode/tui.json &&
         printf '{"plugin":["%s"]}\n' "$p" >"$t.$$" && mv "$t.$$" "$t" &&
         od -An -tx1 -N16 /dev/urandom | tr -d ' \n' >"$d/pw" || exit 1
-        find "$c/chat" -mindepth 2 -mtime +30 -delete 2>/dev/null
-        find "$c/chat" -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null; exit 0
+        \#(ChatAdapters.sweep); exit 0
         """#
         guard let channel = try? await exec.run(["sh", "-c", script, "sh", token]) else { return nil }
         for line in plugin.split(separator: "\n") {
@@ -207,17 +206,18 @@ struct OpenCode: ChatAdapter {
     /// The permission card's buttons, as the TUI names them, and the replies they send.
     static let replies = [("Allow once", "once"), ("Allow always", "always"), ("Reject", "reject")]
 
-    /// A request already answered in the TUI gets a 404; its `replied` event took the card away.
-    func answer(_ question: ChatQuestion, _ answers: [String: String], on exec: any Exec) async {
+    /// A request already answered in the TUI gets a 404: its `replied` event takes the card away.
+    func answer(_ question: ChatQuestion, _ answers: [String: String], on exec: any Exec) async -> Bool {
         guard let request = try? JSONSerialization.jsonObject(with: question.raw) as? [String: String],
               let kind = request["kind"], let id = request["id"], let url = request["url"]
-        else { return }
+        else { return false }
         let body: Any = kind == "permission"
             ? ["reply": Self.replies.first { $0.0 == answers.values.first }?.1 ?? "reject"]
             : ["answers": question.items.map { [answers[$0.text] ?? ""] }]
-        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
-        _ = await exec.openCode(url, "/\(kind)/\(id)/reply", body: String(decoding: data, as: UTF8.self),
-                                password: folder)
+        guard let data = try? JSONSerialization.data(withJSONObject: body),
+              let status = await exec.openCode(url, "/\(kind)/\(id)/reply", body: String(decoding: data, as: UTF8.self),
+                                               password: folder)?.status else { return false }
+        return (200 ..< 300).contains(status) || status == 404
     }
 }
 
@@ -243,18 +243,10 @@ struct OpenCode: ChatAdapter {
             items = [ChatQuestion.Item(text: target.isEmpty ? name : "\(name): \(target)",
                                        options: OpenCode.replies.map(\.0))]
         } else {
-            let questions = request["questions"] as? [[String: Any]] ?? []
-            if !questions.contains(where: { $0["multiple"] as? Bool == true }) {
-                items = questions.map { question in
-                    ChatQuestion.Item(text: question["question"] as? String ?? "",
-                                      options: (question["options"] as? [[String: Any]] ?? [])
-                                          .compactMap { $0["label"] as? String })
-                }
-            }
+            items = ChatQuestion.items(request["questions"] as? [[String: Any]] ?? [], several: "multiple") ?? []
         }
-        let usable = !items.isEmpty && items.allSatisfy { !$0.options.isEmpty }
         let raw = try? JSONSerialization.data(withJSONObject: ["kind": kind, "id": id, "url": url])
-        requests.append((id, usable ? raw.map { ChatQuestion(items: items, raw: $0) } : nil))
+        requests.append((id, items.isEmpty ? nil : raw.map { ChatQuestion(items: items, raw: $0) }))
         // By time: the ids after their kind's prefix.
         requests.sort { $0.id.dropFirst(4) < $1.id.dropFirst(4) }
     }

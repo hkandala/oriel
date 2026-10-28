@@ -108,6 +108,12 @@ extension HostStore {
         choosers.removeAll { $0 === chooser }
     }
 
+    /// The closed terminals' choosers and chats (a chat holds its whole history).
+    func drop(closed: Set<String>) {
+        choosers.removeAll { $0.terminalID.map(closed.contains) == true }
+        chats = chats.filter { !closed.contains($0.key) }
+    }
+
     /// ↑ ↓ move through the rows and stop at the ends, Return picks at once, → opens Agent, ← and Esc close it, Esc on
     /// a closed list picks Terminal. The number keys pick the top rows, or the agents while Agent is open. Other keys
     /// do nothing, also while the loader shows.

@@ -213,7 +213,7 @@ private struct Plan: View {
     }
 }
 
-/// Claude's question with its options; a click answers once every question has an answer.
+/// A question the chat can answer, with its options; a click answers once every question has an answer.
 struct QuestionCard: View {
     let question: ChatQuestion
     let paneID: String

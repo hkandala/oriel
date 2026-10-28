@@ -21,8 +21,9 @@ protocol ChatAdapter: Sendable {
     /// Follows the agent on its machine until cancelled: the history, the phase it records, its questions and
     /// problems go into the chat. Goes on from the chat's marks.
     @MainActor func follow(_ chat: Chat, on exec: any Exec) async
-    /// Answers the chat's question; adapters with no channel for questions never set one.
-    func answer(_ question: ChatQuestion, _ answers: [String: String], on exec: any Exec) async
+    /// Answers the chat's question; false when it did not reach the agent. Adapters with no channel for questions
+    /// never set one.
+    func answer(_ question: ChatQuestion, _ answers: [String: String], on exec: any Exec) async -> Bool
 }
 
 extension ChatAdapter {
@@ -35,24 +36,73 @@ extension ChatAdapter {
         command + " " + flags(token)
     }
 
-    func answer(_: ChatQuestion, _: [String: String], on _: any Exec) async {}
+    func answer(_: ChatQuestion, _: [String: String], on _: any Exec) async -> Bool {
+        false
+    }
 }
 
 extension Chat {
+    private static let unknownFormat = "The transcript is not in a format the chat knows"
+
+    /// Follows an agent's side file from the chat's mark: `line` gives a line's history file when it starts a session
+    /// (and handles any other line itself). A new file is the history from its start. `late`: no session after 10 s is
+    /// a problem.
+    func followSessions(_ sideFile: String, on exec: any Exec, late: Bool,
+                        read: @escaping (String, inout ChatHistory) -> Bool, restarted: @escaping () -> Void = {},
+                        line: ([String: Any]) async -> String?) async
+    {
+        var transcript: Task<Void, Never>?
+        defer { transcript?.cancel() }
+        let follow = { (source: String) in
+            transcript?.cancel()
+            transcript = Task { await self.follow(history: source, on: exec, read: read, restarted: restarted) }
+        }
+        if let source {
+            follow(source)
+        }
+        let timer = Task {
+            try? await Task.sleep(for: .seconds(10))
+            if late, !Task.isCancelled, source == nil {
+                problem = "\(adapter.name) has not started a session"
+            }
+        }
+        defer { timer.cancel() }
+        guard let lines = try? await exec.follow(sideFile, from: marks[sideFile] ?? FileMark()) else { return }
+        // Lines buffered before a cancel still come: not into the next follow's chat.
+        for await entry in lines where !Task.isCancelled {
+            guard case let .line(text, mark) = entry else { continue }
+            marks[sideFile] = mark
+            guard let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
+                  let next = await line(object), !Task.isCancelled else { continue }
+            problem = nil
+            guard next != source else { continue }
+            source = next
+            history = ChatHistory()
+            // A resumed session's file again: from its start, not from where the chat left it.
+            marks[next] = nil
+            follow(next)
+        }
+    }
+
     /// Follows the history file while it is the chat's, each line read by the adapter's parser (false: a torn line);
-    /// five torn lines in a row are a problem.
-    func follow(history source: String, on exec: any Exec, read: (String, inout ChatHistory) -> Bool) async {
+    /// five torn lines in a row are a problem, until a good one. `restarted`: the file was rewritten.
+    func follow(history source: String, on exec: any Exec, read: (String, inout ChatHistory) -> Bool,
+                restarted: () -> Void = {}) async
+    {
         guard let lines = try? await exec.follow(source, from: marks[source] ?? FileMark()) else { return }
         var torn = 0
         for await line in lines where !Task.isCancelled && self.source == source {
             switch line {
-            case let .opened(_, restarted) where restarted && !history.entries.isEmpty:
+            case let .opened(_, again) where again && !history.entries.isEmpty:
                 history = ChatHistory()
+                restarted()
             case let .line(text, mark):
                 marks[source] = mark
                 torn = read(text, &history) ? 0 : torn + 1
                 if torn == 5 {
-                    problem = "The transcript is not in a format the chat knows"
+                    problem = Self.unknownFormat
+                } else if torn == 0, problem == Self.unknownFormat {
+                    problem = nil
                 }
             case .opened: break
             }
@@ -62,6 +112,13 @@ extension Chat {
 
 enum ChatAdapters {
     static let all: [any ChatAdapter.Type] = [ClaudeCode.self, Codex.self, PiAgent.self, OpenCode.self]
+
+    /// Every adapter's side files untouched for 30 days go, then empty folders (appends do not change a folder's
+    /// time; a minute old: not one a launch just made). Plain, unquoted sh: Claude Code's and Codex's hooks hold no
+    /// quote. ponytail: `$HOME` unquoted (a home folder with a space keeps its files); a session idle 30 days loses
+    /// its chat on a relaunch: touch the files on use if that shows up.
+    static let sweep = "find $HOME/.cache/oriel/chat -mindepth 2 -mtime +30 -delete 2>/dev/null;"
+        + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null"
 
     /// The line the chooser types for an agent: its adapter's launch line when it has a chat, else its command.
     static func launch(_ command: String, on exec: any Exec) async -> String {

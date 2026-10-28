@@ -41,14 +41,13 @@ struct PiAgent: ChatAdapter {
     }
 
     /// One run writes the extension, whole: base64 (the relay passes lines), a temporary file, then a rename. pi exits
-    /// at once when `-e` names no file: no chat then. It sweeps the side files as Claude Code's hook does.
+    /// at once when `-e` names no file: no chat then. It sweeps old side files (`ChatAdapters.sweep`).
     static func prepare(_ token: String, on exec: any Exec) async -> String? {
         guard let source, let file else { return nil }
         let script = #"""
         umask 077; d=$HOME/.cache/oriel; f=$HOME/$1
         mkdir -p "$d" && chmod 700 "$d" && base64 -d >"$f.$$" && mv "$f.$$" "$f" || exit 1
-        find "$d/chat" -mindepth 2 -mtime +30 -delete 2>/dev/null
-        find "$d/chat" -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null; exit 0
+        \#(ChatAdapters.sweep); exit 0
         """#
         guard let channel = try? await exec.run(["sh", "-c", script, "sh", file]) else { return nil }
         channel.write(source.base64EncodedString())
@@ -75,56 +74,22 @@ struct PiAgent: ChatAdapter {
     /// problem.
     @MainActor func follow(_ chat: Chat, on exec: any Exec) async {
         chat.recorded = kept.phase
-        var transcript: Task<Void, Never>?
-        defer { transcript?.cancel() }
-        let follow = { [kept] (source: String) in
-            transcript?.cancel()
-            transcript = Task {
-                await chat.follow(history: source, on: exec) { line, history in
-                    kept.transcript.read(line, end: chat.marks[source]?.offset ?? 0, into: &history)
-                }
-            }
-        }
-        if let source = chat.source {
-            follow(source)
-        }
-        let late = Task {
-            try? await Task.sleep(for: .seconds(10))
-            if !Task.isCancelled, chat.source == nil {
-                chat.problem = "Pi has not started a session"
-            }
-        }
-        defer { late.cancel() }
-        let state = Self.state(token)
-        guard let lines = try? await exec.follow(state, from: chat.marks[state] ?? FileMark()) else { return }
-        // Lines buffered before a cancel still come: not into the next follow's chat.
-        for await line in lines where !Task.isCancelled {
-            guard case let .line(text, mark) = line else { continue }
-            chat.marks[state] = mark
-            guard let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any] else {
-                continue
-            }
-            if let source = read(object, chat) {
-                follow(source)
-            }
-        }
+        await chat.followSessions(Self.state(token), on: exec, late: true, read: { [kept] line, history in
+            kept.transcript.read(line, end: chat.marks[chat.source ?? ""]?.offset ?? 0, into: &history)
+        }, restarted: { [kept] in kept.transcript = PiTranscript() }, line: { read($0, chat) })
     }
 
-    /// A state line: the phase it says, and the transcript to follow when the session changed.
+    /// A state line: the phase it says, and a session line's transcript.
     @MainActor private func read(_ object: [String: Any], _ chat: Chat) -> String? {
-        var changed: String?
+        var session: String?
         switch object["type"] as? String {
         case "session":
             guard let source = object["path"] as? String else { return nil }
-            chat.problem = nil
             kept.phase = .ready
             if source != chat.source {
-                chat.source = source
-                chat.marks[source] = nil
                 kept.transcript = PiTranscript()
-                chat.history = ChatHistory()
-                changed = source
             }
+            session = source
         case "tree":
             kept.transcript.tree(object["leaf"] as? String, at: object["at"] as? Int ?? 0, into: &chat.history)
         case "blocked":
@@ -140,6 +105,6 @@ struct PiAgent: ChatAdapter {
         case nil: return nil
         }
         chat.recorded = kept.phase
-        return changed
+        return session
     }
 }

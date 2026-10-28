@@ -27,7 +27,8 @@ final class Chat {
 
     /// The card shows the chat; else its terminal (kept in memory per pane).
     var showsChat = true
-    /// The phase the agent itself records (Claude Code's session record); nil without one: herdr's status then.
+    /// The phase the agent itself records (a session record, a state file, its server); nil without one: herdr's
+    /// status then.
     var recorded: Phase?
     /// What the agent asks that the chat can answer, shown while it waits.
     var question: ChatQuestion?
@@ -78,7 +79,10 @@ final class Chat {
     func viewed() async {
         viewers += 1
         if viewers == 1, let store {
+            let old = following
             following = Task {
+                // A card gone and back at once: the last follow ends first, so two never read from one mark.
+                await old?.value
                 let exec = await store.machine.exec()
                 // Again after a lost connection, from the marks.
                 while !Task.isCancelled {
@@ -96,7 +100,6 @@ final class Chat {
             viewers -= 1
             if viewers == 0 {
                 following?.cancel()
-                following = nil
             }
         }
         // Until the card goes.
@@ -163,15 +166,21 @@ final class Chat {
         Task { try? await client.sendKeys(keys, pane: paneID) }
     }
 
+    /// An answer that did not reach the agent (its hook gone, the server or the connection failed) drops the card:
+    /// the live terminal takes it.
     func answer(_ answers: [String: String]) {
         guard let question, !question.answered, let store else { return }
         self.question?.answered = true
-        Task { await adapter.answer(question, answers, on: store.machine.exec()) }
+        Task {
+            if await !adapter.answer(question, answers, on: store.machine.exec()), self.question?.raw == question.raw {
+                self.question = nil
+            }
+        }
     }
 }
 
-/// An AskUserQuestion request (ui/chat-view#waiting): its questions and their options, and
-/// the questions as the agent sent them, which the answer echoes.
+/// A question the chat can answer (ui/chat-view#waiting): its questions and their options, and what the adapter needs
+/// to answer it (the questions as the agent sent them, a request's id).
 struct ChatQuestion: Equatable {
     struct Item: Equatable {
         let text: String
@@ -182,4 +191,18 @@ struct ChatQuestion: Equatable {
     let raw: Data
     /// Answered in the chat: it stays, disabled, until the agent goes on (no drawer meanwhile).
     var answered = false
+}
+
+extension ChatQuestion {
+    /// Questions as Claude Code and OpenCode send them (`question`, `options[].label`); nil when one takes several
+    /// answers (`several` is the agent's key for it) or has no options: the live terminal answers those.
+    static func items(_ questions: [[String: Any]], several: String) -> [Item]? {
+        let items = questions.map { question in
+            Item(text: question["question"] as? String ?? "",
+                 options: (question["options"] as? [[String: Any]] ?? []).compactMap { $0["label"] as? String })
+        }
+        guard !items.isEmpty, !questions.contains(where: { $0[several] as? Bool == true }),
+              items.allSatisfy({ !$0.options.isEmpty }) else { return nil }
+        return items
+    }
 }

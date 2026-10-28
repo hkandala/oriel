@@ -252,9 +252,9 @@ final class HostStore {
 
     /// The snapshot onto the objects, as the app shows it (`ahead`); its agent changes.
     private func apply(_ snapshot: Snapshot) -> [Seen.Change] {
-        // A pane closed at its chooser: herdr's raw panes, so one made since the last snapshot stays.
+        // A pane closed at its chooser or chat: herdr's raw panes, so one made since the last snapshot stays.
         let gone = Set(last?.panes.compactMap(\.terminalID) ?? []).subtracting(snapshot.panes.compactMap(\.terminalID))
-        choosers.removeAll { $0.terminalID.map(gone.contains) == true }
+        drop(closed: gone)
         last = snapshot
         let shown = ahead.show(snapshot)
         let tabs = Dictionary(grouping: shown.tabs, by: \.workspaceID)

@@ -11,15 +11,13 @@ struct Codex: ChatAdapter {
     let stopKeys = ["escape"]
 
     /// Codex runs it with the user's login shell (`$SHELL -lc`), fish too: plain commands with no variable of its
-    /// own, no quote and no backslash. It runs at each session's first prompt, not at launch. Side files untouched for
-    /// 30 days go, then empty folders, as Claude Code's hook does.
+    /// own, no quote and no backslash. It runs at each session's first prompt, not at launch, and sweeps old side
+    /// files (`ChatAdapters.sweep`).
     /// ponytail: `$HOME` unquoted, so a home folder with a space gets no chat, as with Claude Code.
     static func hook(_ token: String) -> String {
         // `awk 1`: the line and its newline in one write, so two hooks at once never share a line.
         let folder = "$HOME/.cache/oriel/chat/\(token)"
-        return "umask 077;mkdir -p \(folder);awk 1 >>\(folder)/hooks.jsonl;"
-            + "find $HOME/.cache/oriel/chat -mindepth 2 -mtime +30 -delete 2>/dev/null;"
-            + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null"
+        return "umask 077;mkdir -p \(folder);awk 1 >>\(folder)/hooks.jsonl;" + ChatAdapters.sweep
     }
 
     /// The trust key is the `-c` layer's own (`codex-rs/hooks`); an inline table, as the `-c` parser splits a dotted
@@ -56,30 +54,8 @@ struct Codex: ChatAdapter {
     /// The last SessionStart with a rollout is the history: a new one after `/new`, `/clear`, a fork or a resume,
     /// at its first prompt. One with no rollout (a hidden thread of Codex's own) is not.
     @MainActor private func sessions(_ chat: Chat, _ exec: any Exec) async {
-        let path = ".cache/oriel/chat/\(token)/hooks.jsonl"
-        var rollout: Task<Void, Never>?
-        defer { rollout?.cancel() }
-        let follow = { (source: String) in
-            rollout?.cancel()
-            rollout = Task { await chat.follow(history: source, on: exec, read: CodexRollout.read) }
-        }
-        if let source = chat.source {
-            follow(source)
-        }
-        guard let lines = try? await exec.follow(path, from: chat.marks[path] ?? FileMark()) else { return }
-        // Lines buffered before a cancel still come: not into the next follow's chat.
-        for await line in lines where !Task.isCancelled {
-            guard case let .line(text, mark) = line else { continue }
-            chat.marks[path] = mark
-            guard let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
-                  let source = object["transcript_path"] as? String, source != chat.source else { continue }
-            chat.source = source
-            chat.history = ChatHistory()
-            chat.problem = nil
-            // A resumed session's file again: from its start, not from where the chat left it.
-            chat.marks[source] = nil
-            follow(source)
-        }
+        await chat.followSessions(".cache/oriel/chat/\(token)/hooks.jsonl", on: exec, late: false,
+                                  read: CodexRollout.read) { $0["transcript_path"] as? String }
     }
 
     /// herdr reports a picker or a dialog as idle: while it says idle or working, a screen whose last rows lack the
