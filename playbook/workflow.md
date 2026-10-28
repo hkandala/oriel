@@ -48,6 +48,11 @@ track writes only under its own heading. On a merge conflict in the phase file, 
 report, the orchestrator checks that each numbered item landed: the user must never ask twice. When the user
 asks "why", explain and change nothing.
 
+A change to how something looks goes to the agent as the user's exact words, quoted, plus the orchestrator's
+reading of them as a before/after sketch (for example `logo / [spinner] Starting Claude Code…`). If the
+words allow two readings, ask the user or show a quick mock-up before the agent builds; never pass on a
+paraphrase.
+
 ## Mechanics
 
 ### Worktrees, branches and merging
@@ -90,8 +95,9 @@ drives the GUI at a time ([more slots in VMs](ci.md#more-gui-slots-not-set-up)):
 ```
 
 - Run UI tests locally only when the run is quick: one test, under about 2 minutes, and the lock is free.
-  Otherwise use a [chosen-tests CI run](ci.md#running-part-of-it). Never run the same tests again without a
-  code change.
+  Otherwise use a [chosen-tests CI run](ci.md#running-part-of-it): dispatch it, give the run id in your
+  report, and go on. The orchestrator watches it and sends back failures. Never run the same tests again
+  without a code change.
 - Take the lock only if it is free. If it is not, work on and try later (no waiting loop). One run per hold,
   released by the trap, also on failure. Never hold it while you read results, edit, build or wait for CI.
   Never remove someone else's lock. A lock older than 10 minutes whose owner is not `user` and whose agent is
@@ -162,7 +168,7 @@ A feature runs the same loop.
    commit. Answer each nit with a fix or a one-line reason.
 8. A feature updates its design pages on its branch. A track leaves them to the docs pass.
 9. Report when the branch is reviewed and fixed: what was built, the commits, the tests, screenshot paths
-   (a new window or panel only), anything open. Never wait on CI. At 2 hours, report progress anyway.
+   (a new window or panel only), anything open, and the id of any CI run still going. Never wait on CI, chosen-tests runs included. At 2 hours, report progress anyway.
 10. Merge when the orchestrator says so, and report the push.
 
 ### The orchestrator's check after each track
