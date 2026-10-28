@@ -11,14 +11,15 @@ struct Codex: ChatAdapter {
     let stopKeys = ["escape"]
 
     /// Codex runs it with the user's login shell (`$SHELL -lc`), fish too: plain commands with no variable of its
-    /// own, no quote and no backslash. It runs at each session's first prompt, not at launch. The launches' folders
-    /// untouched for 30 days go.
+    /// own, no quote and no backslash. It runs at each session's first prompt, not at launch. Side files untouched for
+    /// 30 days go, then empty folders, as Claude Code's hook does.
     /// ponytail: `$HOME` unquoted, so a home folder with a space gets no chat, as with Claude Code.
     static func hook(_ token: String) -> String {
         // `awk 1`: the line and its newline in one write, so two hooks at once never share a line.
         let folder = "$HOME/.cache/oriel/chat/\(token)"
         return "umask 077;mkdir -p \(folder);awk 1 >>\(folder)/hooks.jsonl;"
-            + "find $HOME/.cache/oriel/chat -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf {} +"
+            + "find $HOME/.cache/oriel/chat -mindepth 2 -mtime +30 -delete 2>/dev/null;"
+            + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -delete 2>/dev/null"
     }
 
     /// The trust key is the `-c` layer's own (`codex-rs/hooks`); an inline table, as the `-c` parser splits a dotted
