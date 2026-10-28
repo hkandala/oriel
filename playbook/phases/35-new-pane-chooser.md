@@ -46,3 +46,29 @@ its command (CI has no agents: use a stand-in command on PATH that the test prov
 ready; Esc gives a terminal; ⌘R on a terminal shows no chooser; the palette commands show and hide by kind.
 
 ## Findings
+
+### Track A
+
+- **Decisions (design change, user-approved, for the docs pass):** no glass panel and no tiles. The chooser is a
+  compact list centered on the card's own fill (at most 300 pt wide, 28 pt rows, the palette's accent pill, symbol or
+  program tile, the description on the right, hidden under 300 pt), with no title and no key hint; the card's header
+  says "New Pane" while it shows. Agent is not a second step: it opens its four agents in place, indented under it
+  (› / ⌄), and a short card scrolls the list to the selected row. Keys: ↑ ↓ move and stop at the ends, Return picks
+  (on Agent it opens it, its first agent selected), → opens Agent, ← and Esc close it, Esc on a closed list picks
+  Terminal; 1–3 pick the top rows, 1–4 the agents while Agent is open. The back button and `.back` id are gone; the
+  Agent row's value is "expanded" or "collapsed". Mock-up: `~/Downloads/oriel-research/new-pane-final.html`.
+- **Decisions:** Open Browser Here waits for phase 36 (it would do what Open Terminal Here does). Start Agent Here is
+  a submenu / palette sub-page; Open Terminal Here shows only on an agent pane. Both are Replace Pane with its question
+  (red button "Open Terminal", "Start ‹agent›"); on a pane at the chooser Start Agent Here is the chooser's pick.
+- **Spike:** all four agents get herdr's `agent` 0.3–0.7 s after the command with status `unknown`, then a real one
+  (`idle`, or `blocked` on claude's trust prompt) at 2.8–5 s. herdr reads it from the screen with its detection
+  manifests (`herdr agent explain`), not the integrations, so it works on remote machines too. Ready is `agent` set and
+  status not `unknown`; no frame-quiet fallback, the 10 s ceiling covers the rest. Remote not run (no user hosts).
+- **Cause (keys):** the old card's terminal keeps the first responder until herdr makes the new pane, so ⌘T then a
+  fast Return went to the old shell. **Fix:** an app key monitor sends the keyboard card's chooser its keys (stand-ins
+  included, by `Page.keyCardID`) before any terminal; ⌘ keys and text fields are left alone.
+- **Decisions:** the chooser hides its terminal by the host view's alpha (it stays first responder and streams), and
+  the terminal fades in over 0.15 s as the list fades out. `tab.create` / `workspace.create` now return herdr's
+  `root_pane`, so the chooser follows its pane by terminal id (a move keeps it).
+- **For the user:** a real agent start (claude, codex, pi, opencode) with the loader; a fast ⌘T then Return; the
+  list in light mode, Increase Contrast and a very narrow or short pane; Replace Pane on a floated agent pane.
