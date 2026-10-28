@@ -173,7 +173,8 @@ struct FloatingWindow: View {
                                    floating: floating)
         return VStack(spacing: 0) {
             header(page, pane)
-            Group {
+            // Not a Group, whose modifiers go on each child: the chooser's overlay would be made again as they change.
+            ZStack {
                 if let browser {
                     FloatingBrowser(browser: browser, page: page)
                 } else if let terminal {

@@ -24,14 +24,14 @@ struct PaneCard: View {
         let zoomed = page.zoomedPaneID == id
         let terminal = pane.flatMap(page.terminal)
         // The tab's keyboard card is lit, also while a text field has the keyboard; herdr's focus until one had it.
-        // A split's new card at once, its stand-in too, among the shown tab's cards.
+        // A split's new card at once, its stand-in too, among the shown tab's cards; a new tab's stand-in.
         let shown = page.selectedTab?.tree?.paneIDs ?? []
         let newest = page.newest.flatMap { newest in
             shown.contains(id) && shown.contains { $0 == newest.id || store.ahead.splitPanes[$0] == newest.id }
                 ? newest.id : nil
         }
         let lit = newest.map { $0 == id || store.ahead.splitPanes[id] == $0 }
-            ?? pane.map { page.keyboardCard($0.tabID) === $0 } ?? false
+            ?? pane.map { page.keyboardCard($0.tabID) === $0 } ?? (id == page.standIn)
         let floated = pane.map(page.floats) ?? false
         let follow = hovering && settings.followMouse && !away && active && !floated
         // The watching window's dim (D66), on the header and the terminal.
@@ -46,7 +46,9 @@ struct PaneCard: View {
                 new: chooser != nil,
             )
             .opacity(content)
-            Group {
+            // A ZStack, not a Group: a Group's modifiers go on each child, so the chooser's overlay was made again
+            // (a fade out and in) as the terminal came, and dropped with no child (a stand-in's card).
+            ZStack {
                 if let pane, floated {
                     FloatedPlaceholder(page: page, pane: pane)
                 } else if let browser {
@@ -69,10 +71,6 @@ struct PaneCard: View {
                             Divider()
                             PaneItems(page: page, pane: pane)
                         }
-                } else {
-                    // A stand-in's card, before herdr made its pane: an empty `Group` drops its overlays, and the
-                    // chooser showed only once the terminal came.
-                    Color.clear
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -87,7 +85,7 @@ struct PaneCard: View {
                 }
             }
         }
-        // The whole card, also with no terminal (a split's stand-in): an empty `Group` takes no room, and the card
+        // The whole card, also with no terminal (a split's stand-in): the empty content takes no room, and the card
         // was a header-high band.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // As the card shows: what runs in it now, for its icon (the snapshot's ask was when the pane was new). Not
