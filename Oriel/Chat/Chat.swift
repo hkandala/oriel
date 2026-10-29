@@ -26,8 +26,7 @@ final class Chat {
 
     /// The card shows the chat; else its terminal (kept in memory per pane).
     var showsChat = true
-    /// The phase the agent itself records (a session record, a state file, its server); nil without one: herdr's
-    /// status then.
+    /// The phase the agent itself records (a session record, a state file, its server); nil: herdr's status.
     var recorded: Phase?
     /// What the agent asks that the chat can answer, shown while it waits.
     var question: ChatQuestion?
@@ -40,7 +39,7 @@ final class Chat {
     var wantsKeyboard = false
     /// Where each followed file was read up to, so a card shown again goes on from there.
     @ObservationIgnored var marks: [String: FileMark] = [:]
-    /// The history's file, from the agent's side file.
+    /// Where the history comes from: its file, or OpenCode's server and session.
     @ObservationIgnored var source: String?
     @ObservationIgnored private var viewers = 0
     @ObservationIgnored private var following: Task<Void, Never>?

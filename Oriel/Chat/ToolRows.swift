@@ -1,9 +1,7 @@
 import HerdrKit
 import SwiftUI
 
-/// A run of tool calls as one quiet line (ui/chat-view#detail-levels), so the replies stand out: its header (the
-/// turn's quiet line, or the run's summary and time) and a chevron; open, a row per call under it, each of which opens
-/// on its own to its input and output.
+/// A run of tool calls as one quiet line (ui/chat-view#detail-levels), so the replies stand out; open, a row per call.
 struct ToolStack<Header: View>: View {
     let tools: [ChatTool]
     let open: Bool
@@ -44,8 +42,7 @@ struct ToolStack<Header: View>: View {
     }
 }
 
-/// `terminal  bash npm test · exit 1   4.2s`: the tool's symbol, name, target, result and time; open, its input (an
-/// edit's diff) and its output.
+/// `terminal  bash npm test · exit 1   4.2s`; open, its input (an edit's diff) and its output.
 private struct ToolRow: View {
     let tool: ChatTool
     let open: Bool
@@ -128,7 +125,6 @@ private struct ToolDetail: View {
     }
 }
 
-/// A disclosure chevron, turned down when open.
 private struct Chevron: View {
     let open: Bool
 

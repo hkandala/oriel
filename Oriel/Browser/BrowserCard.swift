@@ -34,8 +34,7 @@ extension CommandList {
     }
 }
 
-/// The card's page (ui/browser#the-card): the web view inset 6 pt, a progress line under the header while
-/// a page loads, a failure or "Open ‹url›?" in the middle, and the loader until the first page drew.
+/// The card's page (ui/browser#the-card).
 struct BrowserCard: View {
     let browser: Browser
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -90,8 +89,7 @@ struct BrowserCard: View {
     }
 }
 
-/// A page the machine put in the label or the state file, from an origin not approved yet
-/// (ui/browser#when-a-page-loads-by-itself): the question, its address, Open (Return) and Not Now (Esc).
+/// "Open this page?" (ui/browser#when-a-page-loads-by-itself).
 private struct Asking: View {
     let browser: Browser
     let url: URL
@@ -185,7 +183,6 @@ struct BrowserToolbar: View {
 
     var body: some View {
         let id = "browser.\(browser.paneID)"
-        // A disabled button dims through its style alone, as the card's other buttons.
         HStack(spacing: 6) {
             HStack(spacing: 0) {
                 IconButton(symbol: "chevron.left", help: "Back", size: 22) { browser.view.goBack() }

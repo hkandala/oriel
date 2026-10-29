@@ -1,9 +1,7 @@
 import SwiftUI
 
-/// A reply's Markdown (ui/chat-view#where-messages-come-from): `AttributedString(markdown:)` with the full
-/// syntax, split into its blocks, since `Text` draws a block's inline styles but runs the blocks together. Headings
-/// step down in size, code blocks are monospaced and scroll sideways, list items hang behind their bullet or number,
-/// and the space between blocks shows where a section starts.
+/// A reply's Markdown (ui/chat-view#where-messages-come-from), drawn block by block: `Text` draws a block's inline
+/// styles but runs the blocks together.
 struct Markdown: View {
     let text: String
 

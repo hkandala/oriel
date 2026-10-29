@@ -130,9 +130,8 @@ enum ChatAdapters {
     static let sweep = "find $HOME/.cache/oriel/chat -mindepth 2 -mtime +30 -delete 2>/dev/null;"
         + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null"
 
-    /// The line the chooser types for an agent with a chat, with Oriel's flags; nil when it has none, or when its
-    /// run on the machine failed. `resume`: herdr's session of the agent, for Enable Chat (nil when the agent does not
-    /// take it).
+    /// The line the chooser types for an agent with a chat; nil when it has none or its run on the machine failed.
+    /// `resume`: herdr's session of the agent, for Enable Chat (nil also when the agent does not take it).
     static func launch(_ command: String, resume: String? = nil, on exec: any Exec) async -> String? {
         guard let adapter = adapter(command) else { return nil }
         let arguments = resume.flatMap(adapter.resume)

@@ -1,8 +1,7 @@
 import HerdrKit
 import SwiftUI
 
-/// An agent card's chat (ui/chat-view#what-it-looks-like): the messages, newest at the bottom, and the reply
-/// box; the live terminal in their place while the agent waits on something the chat cannot answer.
+/// An agent card's chat (ui/chat-view#what-it-looks-like).
 struct ChatView: View {
     @Bindable var chat: Chat
     let page: Page
@@ -19,40 +18,9 @@ struct ChatView: View {
     private var settings = AppSettings()
 
     var body: some View {
-        let id = chat.paneID, working = chat.phase == .working, level = settings.chatLevel
-        let rows = chat.history.rows(level, working: working)
+        let id = chat.paneID
         VStack(spacing: 0) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
-                    ForEach(rows) { row in
-                        let open = opened[row.id] ?? (level == .all)
-                        ChatRowView(row: row, paneID: id, open: open, toggle: { opened[row.id] = !open },
-                                    opened: openTools, toggleTool: { openTools.formSymmetricDifference([$0]) })
-                    }
-                    ForEach(chat.outgoing) { message in
-                        outgoing(message)
-                    }
-                    if working, rows.last?.isSummary != true {
-                        HStack(spacing: 6) {
-                            WorkingDots()
-                            Text("Working").foregroundStyle(.secondary)
-                        }
-                        .font(.system(size: 12))
-                    }
-                    if let problem = chat.problem {
-                        problemCard(problem)
-                    }
-                }
-                .padding(.horizontal, 32).padding(.vertical, 16)
-                .frame(maxWidth: Self.column)
-                .frame(maxWidth: .infinity)
-            }
-            // The messages fade in under the header instead of being cut by it.
-            .fadeEdges(.vertical, start: 12, end: 0)
-            .defaultScrollAnchor(.bottom)
-            .defaultScrollAnchor(.bottom, for: .sizeChanges)
-            .focusEffectDisabled()
-            .accessibilityIdentifier("chat.\(id)")
+            messages
             // The reply box lines up with the messages.
             bottom.padding(.horizontal, 32).padding(.bottom, 14).padding(.top, 4)
                 .frame(maxWidth: Self.column).frame(maxWidth: .infinity)
@@ -96,6 +64,42 @@ struct ChatView: View {
                 page.tookKeyboard(terminalID)
             }
         }
+    }
+
+    private var messages: some View {
+        let id = chat.paneID, working = chat.phase == .working, level = settings.chatLevel
+        let rows = chat.history.rows(level, working: working)
+        return ScrollView {
+            LazyVStack(alignment: .leading, spacing: 10) {
+                ForEach(rows) { row in
+                    let open = opened[row.id] ?? (level == .all)
+                    ChatRowView(row: row, paneID: id, open: open, toggle: { opened[row.id] = !open },
+                                opened: openTools, toggleTool: { openTools.formSymmetricDifference([$0]) })
+                }
+                ForEach(chat.outgoing) { message in
+                    outgoing(message)
+                }
+                if working, rows.last?.isSummary != true {
+                    HStack(spacing: 6) {
+                        WorkingDots()
+                        Text("Working").foregroundStyle(.secondary)
+                    }
+                    .font(.system(size: 12))
+                }
+                if let problem = chat.problem {
+                    problemCard(problem)
+                }
+            }
+            .padding(.horizontal, 32).padding(.vertical, 16)
+            .frame(maxWidth: Self.column)
+            .frame(maxWidth: .infinity)
+        }
+        // The messages fade in under the header instead of being cut by it.
+        .fadeEdges(.vertical, start: 12, end: 0)
+        .defaultScrollAnchor(.bottom)
+        .defaultScrollAnchor(.bottom, for: .sizeChanges)
+        .focusEffectDisabled()
+        .accessibilityIdentifier("chat.\(id)")
     }
 
     @ViewBuilder private var bottom: some View {
@@ -195,8 +199,7 @@ struct ChatView: View {
     }
 }
 
-/// The live terminal at the bottom of the card while the agent waits (ui/chat-view#waiting):
-/// it takes the keyboard, and goes when the agent works or is idle again.
+/// The live terminal at the bottom of the card while the agent waits (ui/chat-view#waiting).
 private struct WaitingDrawer: View {
     let chat: Chat
     let page: Page

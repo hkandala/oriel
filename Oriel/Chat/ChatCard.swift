@@ -78,8 +78,7 @@ extension ChatLevel {
     }
 }
 
-/// The agent's state in a chat card's header: Working, Needs you, Done or Error, in the status colors; none while
-/// idle.
+/// A chat card's state capsule; none while idle.
 struct ChatCapsule: View {
     let chat: Chat
     let state: AgentState?
