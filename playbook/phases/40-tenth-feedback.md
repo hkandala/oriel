@@ -163,3 +163,20 @@ agent    row 1: Session title ·························
   the alert), and that each comes back in the same session with its chat. That Codex's `codex -c … resume <id>`
   keeps the hook. The titles of real sessions in the tab and the Agents view, and a `/rename` (Claude Code), `/name`
   (pi).
+
+### Track D
+
+- **Fix:** one helper each where code was written several times: `Exec.succeeds` (a short script with input, true
+  on exit 0) for five runs, `ChatAdapters.marked`/`token`/`after` for the four adapters' marker scans, the side
+  folder in the adapter protocol, `Exec.follow` built on `Exec.lines`, one KVO mirror for the toolbar's six values,
+  one `Page.kindTitle` for the floating window's title and title row, and the popup and its host as one value.
+- **Fix:** one-use pieces went (`FlowButtons`, `OpenCodeSession.Call`, `closePopup`, `ChatView.init`,
+  `Segments`' generic), formatter-wrapped lines read straight, and the chat's message list is its own part.
+- **Fix:** comments that said what the code says or told history went (about 45 lines); the design links,
+  `ponytail:` ceilings and the AppKit, WebKit and SwiftUI traps stayed. Guards with no visible reason kept theirs
+  (the toolbar's single dim, `dropClaim`'s equal-write guard).
+- **Decisions:** no behavior change: Pi's marker now needs an absolute path (its flags always give one).
+- **For the orchestrator:** Claude Code's `structuredPatch` and `DiffLine.unified` count lines alike, but Claude's
+  keeps `\ No newline` rows; sharing one counter drops them (a small fix, a behavior change). `ChatQuestion.raw` as
+  JSON `Data` (OpenCode puts a `[String: String]` in it) could be a typed value, touching both adapters' `answer`.
+  TabButton keeps a third copy of the browser title (out of scope).
