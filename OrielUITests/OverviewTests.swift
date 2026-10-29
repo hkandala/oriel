@@ -288,39 +288,53 @@ extension OrielUITests {
     }
 
     /// A browser's and a chat's cards show their own view in their tile, live: the page follows a new address. The
-    /// chat takes no keyboard there: Esc leaves.
+    /// web view there takes no keys, also when its card is given the keyboard (the palette closing), and has it
+    /// again after.
     func testOverviewShowsBrowserAndChatCards() async throws {
         let (tab, chat) = try await startChat()
         closeAfter("tab", tab)
         try await say("hello", in: chat)
         XCTAssertTrue(row(chat, "reply", "Echo: **hello**").exists(within: 5))
-        // A shell beside it writes the pages, then becomes a browser by its label (a new iid: no saved page).
+        // A shell beside it writes two pages whose title shows a key they got, then becomes a browser by its label
+        // (a new iid: no saved page).
         let browser = try await id(Self.call(one, "pane.split", ["target_pane_id": chat, "direction": "right",
                                                                  "cwd": "/tmp", "focus": false]), "pane")
         try await waitForPrompt(browser, in: one)
-        let page = try await writePages(from: browser)
-        let dark = page.replacing("one.html", with: "dark.html")
-        try await send("printf '<body style=\"background:black\"></body>' >\(dark.dropFirst(7)); clear\r", to: browser)
-        let iid = String(format: "e2e%03x", Int.random(in: 0 ..< 4096))
-        try await Self.call(one, "pane.rename", ["pane_id": browser, "label": "oriel:browser#\(iid) \(page)"])
-        XCTAssertTrue(pageText("oriel-page-one").exists(within: 10))
+        let folder = "/tmp/oriel-e2e-browser", keys = "<script>onkeydown = e => document.title = \\x27key \\x27 + e.key"
+            + "</script>"
+        try await send("mkdir -p \(folder) && printf '<title>Light</title>\(keys)' >\(folder)/light.html && printf "
+            + "'<title>Dark</title><body style=\"background:black\">\(keys)' >\(folder)/dark.html && clear\r",
+            to: browser)
+        try await waitFor(browser, in: one) { !$0.contains("printf") }
+        let iid = String(format: "e2e%03x", Int.random(in: 0 ..< 4096)), title = element("pane.\(browser).title")
+        try await Self.call(one, "pane.rename", ["pane_id": browser,
+                                                 "label": "oriel:browser#\(iid) file://\(folder)/light.html"])
+        XCTAssertTrue(title.has(\.stringValue, "Light", within: 10))
+        element("browser.\(browser)").click()
+        XCTAssertTrue(hasKeyboard(element("browser.\(browser)")))
 
         app.typeKey("o", modifierFlags: [.command, .control])
         let shot = element("overview.card.\(browser)")
         XCTAssertTrue(shot.has(\.stringValue, "browser", within: 3))
         XCTAssertEqual(element("overview.card.\(chat)").stringValue, "chat")
-        // The page, not the card's fill.
-        let white = mean(shot)
-        XCTAssertGreaterThan(white, 150)
+        let light = mean(shot)
         keepScreenshot("overview, browser and chat")
         // Another address from the label (as an agent sets it): the tile follows the page.
-        try await Self.call(one, "pane.rename", ["pane_id": browser, "label": "oriel:browser#\(iid) \(dark)"])
+        try await Self.call(one, "pane.rename", ["pane_id": browser,
+                                                 "label": "oriel:browser#\(iid) file://\(folder)/dark.html"])
         try await Self.call(one, "pane.report_metadata", ["pane_id": browser, "source": "oriel-panes",
                                                           "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
-        XCTAssertTrue(until(5) { mean(shot) < white - 100 }, "\(white) \(mean(shot))")
+        XCTAssertTrue(until(5) { mean(shot) < light - 100 }, "\(light) \(mean(shot))")
+        // The palette closing gives the keyboard card the keyboard, here the browser: it waits for the strip.
+        app.typeKey("k", modifierFlags: .command)
+        XCTAssertTrue(hasKeyboard(element("palette.filter")))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(element("palette.filter").vanishes(within: 2))
+        app.typeText("x")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
-        XCTAssertTrue(hasKeyboard(element("chat.\(chat).composer")))
+        XCTAssertTrue(hasKeyboard(element("browser.\(browser)")))
+        XCTAssertEqual(title.stringValue, "Dark")
     }
 
     /// How many times the sidebar was made (`-recordLatency`).

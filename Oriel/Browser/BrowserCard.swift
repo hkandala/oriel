@@ -162,9 +162,11 @@ private struct Popup: View {
 private struct WebHost: NSViewRepresentable {
     let view: WKWebView
 
-    func makeNSView(context _: Context) -> TerminalHost.Host {
+    func makeNSView(context: Context) -> TerminalHost.Host {
         let host = TerminalHost.Host(), box = NSView()
         host.clipsToBounds = true
+        // Only an overview's tile disables its card.
+        (view as? BrowserView)?.inTile = !context.environment.isEnabled
         // WebKit docks the Web Inspector beside the web view by frames that take y as growing upward: in a plain box,
         // which the (flipped) host fits.
         view.removeFromSuperview()

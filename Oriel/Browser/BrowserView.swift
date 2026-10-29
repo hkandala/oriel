@@ -9,6 +9,8 @@ final class BrowserView: WKWebView {
     private var wantsKeyboard = false
     /// Open ‹Link› in New Tab was picked: the page asks for its new window next (`createWebViewWith`).
     var opensTab = false
+    /// In an overview's tile (D70): keys go to the overview; a claim waits until the card has it back.
+    var inTile = false
 
     /// The key window's browser that has the keyboard: ⌘+ ⌘− ⌘0 zoom its page.
     static var focused: BrowserView? {
@@ -19,7 +21,7 @@ final class BrowserView: WKWebView {
         wantsKeyboard = true
         // After SwiftUI's update: a first responder set during one is undone.
         DispatchQueue.main.async { [weak self] in
-            guard let self, wantsKeyboard, let window else { return }
+            guard let self, wantsKeyboard, !inTile, let window else { return }
             wantsKeyboard = false
             window.makeFirstResponder(self)
         }
@@ -76,6 +78,10 @@ final class BrowserView: WKWebView {
         if wantsKeyboard, window != nil {
             takeKeyboard()
         }
+    }
+
+    override var acceptsFirstResponder: Bool {
+        !inTile && super.acceptsFirstResponder
     }
 
     override func becomeFirstResponder() -> Bool {
