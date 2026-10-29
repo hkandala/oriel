@@ -5,7 +5,8 @@ import XCTest
 extension OrielUITests {
     /// The file in CodeMirror; the jump bar follows the caret; an edit shows the dirty dot and ⌘Z clears it; ⌘S
     /// saves; a change on disk reloads a clean file, and a dirty one gets the toast (Keep Mine, then Reload); ⌘F opens
-    /// the editor's search; the overview's tile shows it. ⇧⌘← selects in the editor, not Move Tab Left; ⌘[ reaches the
+    /// the editor's search, as do ⌘G and ⇧⌘G; the overview's tile shows it. ⇧⌘← selects in the editor, not Move Tab
+    /// Left; ⌘[ reaches the
     /// app before CodeMirror.
     func testAFileCardEditsSavesAndReloadsItsFile() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -50,14 +51,27 @@ extension OrielUITests {
         XCTAssertTrue(until(5) { editor.stringValue.hasPrefix("let y = 2") })
         try await diskChangesWhileDirty(card, file: file, shell: left)
 
-        editor.click()
-        app.typeKey("f", modifierFlags: .command)
-        let search = element("file.\(card).page").textFields.firstMatch
-        XCTAssertTrue(search.exists(within: 2) && hasKeyboard(search))
-        app.typeKey(.escape, modifierFlags: [])
-
+        findKeys(card)
         tiled(card, "file")
         try await keysStayInTheEditor(card, shell: left)
+    }
+
+    /// ⌘F opens the editor's search with the keyboard; ⌘G and ⇧⌘G (Find Next and Previous) reach it too, and open
+    /// it again.
+    private func findKeys(_ card: String) {
+        let editor = element("file.\(card).page").textViews.firstMatch
+        let search = element("file.\(card).page").textFields.firstMatch
+        for (key, modifiers) in [
+            ("f", XCUIElement.KeyModifierFlags.command),
+            ("g", .command),
+            ("g", [.command, .shift]),
+        ] {
+            editor.click()
+            app.typeKey(key, modifierFlags: modifiers)
+            XCTAssertTrue(search.exists(within: 2) && hasKeyboard(search), "\(key) \(modifiers)")
+            app.typeKey(.escape, modifierFlags: [])
+            XCTAssertTrue(search.vanishes(within: 2))
+        }
     }
 
     /// The card's page shows in its overview tile.
@@ -127,7 +141,7 @@ extension OrielUITests {
 
     /// An image at Fit, Actual Size and zoomed in, and again after a change on disk; a PDF's page `n of m`, which
     /// follows a scroll; the info view of
-    /// another file, with no zoom; audio's player; the overview's tile shows it.
+    /// another file and of an image that does not decode; audio's player; the overview's tile shows it.
     func testAPreviewCardShowsImagesPDFsAndOtherFiles() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("preview")
@@ -136,8 +150,8 @@ extension OrielUITests {
         try await send("rm -rf \(folder) && mkdir \(folder) && cd \(folder) && sips -s format png -z 900 1200 "
             + "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericDocumentIcon.icns "
             + "--out icon.png >/dev/null && seq 1 150 >lines.txt && cupsfilter lines.txt >lines.pdf 2>/dev/null "
-            + "&& head -c 3000 /dev/urandom >notes.bin && say -o hi.m4a --data-format=aac hi && clear "
-            + "&& echo ready-$((6*7))\r", to: left)
+            + "&& head -c 3000 /dev/urandom >notes.bin && printf nope >broken.png "
+            + "&& say -o hi.m4a --data-format=aac hi && clear && echo ready-$((6*7))\r", to: left)
         try await waitFor(left) { $0.contains("ready-42") }
         addTeardownBlock { [one] in _ = try? await Self.call(
             one,
@@ -172,10 +186,12 @@ extension OrielUITests {
         XCTAssertTrue(until(3) { pages.stringValue != first })
         keepScreenshot("preview card, PDF")
 
-        try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "notes.bin"])
-        let name = page.staticTexts.matching(NSPredicate(format: "value == %@", "notes.bin")).firstMatch
-        XCTAssertTrue(name.exists(within: 10))
-        XCTAssertFalse(element("pane.\(card).zoom.fit").exists)
+        // The info view: another file, and an image that does not decode (never an empty card).
+        for file in ["notes.bin", "broken.png"] {
+            try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + file])
+            let name = page.staticTexts.matching(NSPredicate(format: "value == %@", file)).firstMatch
+            XCTAssertTrue(name.exists(within: 10), file)
+        }
         XCTAssertFalse(pages.exists)
         // Audio in WebKit's player.
         try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "hi.m4a"])

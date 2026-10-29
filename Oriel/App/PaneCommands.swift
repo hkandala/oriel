@@ -140,10 +140,9 @@ extension CommandList {
                         }
                     }),
             Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
-                    enabled: page.find != nil) { Task { await page.find?.step(1) } },
-            Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: page.find != nil) {
-                Task { await page.find?.step(-1) }
-            },
+                    enabled: page.find != nil || editor != nil) { page.findStep(1, in: editor) },
+            Command(section: .edit, title: "Find Previous", key: editor == nil ? nil : .findPrevious,
+                    symbol: "chevron.up", enabled: page.find != nil || editor != nil) { page.findStep(-1, in: editor) },
             edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
             edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
         ] + Self.pane(page, tabs: false) { pane }.filter { $0.section == .close }.map {

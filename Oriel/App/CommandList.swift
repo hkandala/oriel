@@ -32,7 +32,7 @@ struct CommandList {
             return floatingCommands(floating)
         }
         let page = pages?.current, pages = pages, workspace = page?.selectedWorkspace, tab = page?.selectedTab
-        let live = page?.store.state == .live
+        let live = page?.store.state == .live, editor = page?.editor
         let file = [
             Command(section: .file, title: "New Window", key: .init("n"), symbol: "macwindow.badge.plus") {
                 WindowPages.open(machine: pages?.machine ?? .thisMac)
@@ -47,14 +47,15 @@ struct CommandList {
                     keywords: "create start switch", enabled: openSession != nil, action: {
                         openSession?.wrappedValue = true
                     }),
-            Command(section: .file, title: "Go to Directory…", key: .init("g", modifiers: [.command, .shift]),
+            // Over a File or Markdown card ⇧⌘G is Find Previous, as in a text editor.
+            Command(section: .file, title: "Go to Directory…", key: editor == nil ? .findPrevious : nil,
                     group: .edit, symbol: "folder", keywords: "cd folder path navigate",
                     enabled: page?.keyboardPane.map { $0.program?.isShell == true && $0.plugin == nil } == true,
                     action: {
                         Task { await page?.choosePath(directory: true) }
                     }),
             Command(section: .file, title: "Save", key: .init("s"), symbol: "square.and.arrow.down",
-                    enabled: page?.editor != nil) { page?.editor?.web.send(["op": "save"]) },
+                    enabled: editor != nil) { page?.editor?.web.send(["op": "save"]) },
         ]
         let close = [
             Command(section: .close, title: "Close Tab", key: .closeTab, group: .tabs, symbol: "xmark.rectangle",
@@ -96,9 +97,9 @@ struct CommandList {
             Command(section: .edit, title: "Insert Path…", key: .init("i", modifiers: [.command, .shift]),
                     symbol: "text.insert", keywords: "file folder path",
                     enabled: terminal) { Task { await page?.choosePath(directory: false) } },
-            // As in Rex, Find Previous has no key: ⇧⌘G is Go to Directory.
+            // As in Rex, Find Previous has no key but over an editor: ⇧⌘G is Go to Directory.
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    keywords: "search scrollback", enabled: live && terminal || page?.editor != nil, action: {
+                    keywords: "search scrollback", enabled: live && terminal || editor != nil, action: {
                         if let editor = page?.editor {
                             editor.web.send(["op": "find"])
                         } else {
@@ -106,10 +107,11 @@ struct CommandList {
                         }
                     }),
             Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
-                    enabled: find != nil) { Task { await page?.find?.step(1) } },
-            Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: find != nil) {
-                Task { await page?.find?.step(-1) }
-            },
+                    enabled: find != nil || editor != nil) { page?.findStep(1, in: page?.editor) },
+            Command(section: .edit, title: "Find Previous", key: editor == nil ? nil : .findPrevious,
+                    symbol: "chevron.up", enabled: find != nil || editor != nil, action: {
+                        page?.findStep(-1, in: page?.editor)
+                    }),
         ]
         return file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + Self
             .browser(browser)

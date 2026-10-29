@@ -21,6 +21,8 @@ extension KeyboardShortcut {
     static let nextTab = KeyboardShortcut("]", modifiers: [.command, .shift])
     static let bigger = KeyboardShortcut("+")
     static let findNext = KeyboardShortcut("g")
+    /// Go to Directory, and Find Previous over a File or Markdown card.
+    static let findPrevious = KeyboardShortcut("g", modifiers: [.command, .shift])
 
     /// A command's second shortcut runs its first's command (OrielApp's key monitor); the menu shows the first.
     static let seconds: [(second: KeyboardShortcut, first: KeyboardShortcut)] = [

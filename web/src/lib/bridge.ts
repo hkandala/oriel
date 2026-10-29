@@ -4,7 +4,7 @@
 export type Info = { name: string; size: string; kind: string; icon: string }
 /** `read`: the card's file, as its kind shows it (Oriel/Plugins/File/Document.swift). */
 export type FileReply = { text: string; readOnly: boolean } | { info: Info }
-export type PreviewReply = { type: string; data: string } | { info: Info }
+export type PreviewReply = { type: string; data: string; fallback: Info } | { info: Info }
 
 type Ask = { op: "read" }
 /**
@@ -20,7 +20,7 @@ type Report =
 /** From the app: row 2's controls, menu commands, and the file again after a change on disk. */
 export type In =
   | ({ op: "load" } & (FileReply | PreviewReply))
-  | { op: "saved" | "save" | "find" }
+  | { op: "saved" | "save" | "find" | "findNext" | "findPrevious" }
   | { op: "zoom"; to: "fit" | "actual" | "in" | "out" }
 
 declare global {

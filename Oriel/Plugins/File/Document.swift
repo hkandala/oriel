@@ -48,6 +48,8 @@ extension WebCard {
         guard ["file", "markdown", "preview", "files"].contains(kind), let store else { return }
         let changes = await Files.watch(arg, exec: store.machine.exec())
         if kind == "files" {
+            // What changed while the card was hidden.
+            send(["op": "changed"])
             for await _ in changes {
                 send(["op": "changed"])
             }
@@ -83,42 +85,47 @@ extension WebCard {
         (arg as NSString).lastPathComponent
     }
 
-    /// The reply to `read` and the file's hash, nil for the info view. Preview reads only what WebKit shows; a
+    /// The reply to `read` and the file's hash, nil for the info view. Preview reads only the image types both
+    /// variants draw, PDF, audio and video, and sends the info view along for a file the page cannot decode; a
     /// remote file over 4 MiB, or one not in UTF-8, opens read only.
     private func contents() async throws -> (reply: [String: Any], hash: String?) {
         guard let store else { throw HerdrError.failed("Closed") }
         let exec = await store.machine.exec(), ext = (arg as NSString).pathExtension
         let type = UTType(filenameExtension: ext) ?? .data
         let preview = kind == PluginKind.preview.rawValue
-        if preview, ![.image, .pdf, .audiovisualContent].contains(where: type.conforms) {
-            return try await (info(Files.size(arg, exec: exec), type), nil)
+        let shown: [UTType] = [.png, .jpeg, .gif, .webP, .heic, .tiff, .bmp, .svg, .pdf, .audiovisualContent]
+        if preview, !shown.contains(where: type.conforms) {
+            return try await (["info": info(Files.size(arg, exec: exec), type)], nil)
         }
         do {
             let file = try await Files.read(arg, exec: exec)
             if preview {
                 let group = type.conforms(to: .image) ? "image" : type.conforms(to: .audio) ? "audio" : "video"
                 let mime = type.preferredMIMEType ?? "\(group)/\(ext)"
-                return (["type": mime, "data": file.data.base64EncodedString()], file.hash)
+                return (
+                    ["type": mime, "data": file.data.base64EncodedString(), "fallback": info(file.data.count, type)],
+                    file.hash,
+                )
             }
             // Not `String(data:encoding:)`, which drops a byte order mark the save would not write back.
             let text = String(validating: file.data, as: UTF8.self)
             let readOnly = text == nil || store.machine.isRemote && file.data.count > Files.remoteEditLimit
             return (["text": text ?? String(decoding: file.data, as: UTF8.self), "readOnly": readOnly], file.hash)
         } catch let FileError.tooLarge(size) {
-            return (info(size, type), nil)
+            return (["info": info(size, type)], nil)
         }
     }
 
     /// The info view: name, size, kind and the type's icon as a PNG.
-    private func info(_ size: Int, _ type: UTType) -> [String: Any] {
+    private func info(_ size: Int, _ type: UTType) -> [String: String] {
         var rect = CGRect(x: 0, y: 0, width: 192, height: 192)
         let png = NSWorkspace.shared.icon(for: type).cgImage(forProposedRect: &rect, context: nil, hints: nil)
             .flatMap { NSBitmapImageRep(cgImage: $0).representation(using: .png, properties: [:]) }
-        return ["info": [
+        return [
             "name": name, "size": size.formatted(.byteCount(style: .file)),
             "kind": type.localizedDescription ?? "Document",
             "icon": "data:image/png;base64,\(png?.base64EncodedString() ?? "")",
-        ]]
+        ]
     }
 }
 
@@ -133,6 +140,15 @@ extension Page {
     /// The File or Markdown card with the keyboard: the menu's Save and Find go to its page.
     var editor: Plugin? {
         editor(keyboardPane)
+    }
+
+    /// Find Next (1) or Previous (-1): in the editor's page, else in the terminal's find bar.
+    func findStep(_ step: Int, in editor: Plugin?) {
+        if let editor {
+            editor.web.send(["op": step > 0 ? "findNext" : "findPrevious"])
+        } else {
+            Task { await find?.step(step) }
+        }
     }
 
     /// The pane's card when it is a File or Markdown card.
