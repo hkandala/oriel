@@ -17,7 +17,7 @@ final class Browser: NSObject {
     private(set) var address = ""
     private(set) var title = ""
     /// The page's icon for the header, the globe while nil, and where it came from (`loadIcon`).
-    var icon: (url: URL, image: NSImage?)?
+    var icon: (href: String, image: NSImage?)?
     private(set) var loading = false
     private(set) var progress = 0.0
     private(set) var canGoBack = false

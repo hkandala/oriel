@@ -18,6 +18,11 @@ extension Page {
         store.chats[terminalID] = chat
         return chat
     }
+
+    /// The pane's card has the window's keyboard, or the pane floats: its window has its own.
+    func hasKeyboard(_ paneID: String) -> Bool {
+        keyboardPane?.id == paneID || store.pane(paneID).map(floats) == true
+    }
 }
 
 /// A chat card's row-2 controls (ui/chat-view#switching-views): the detail level while the chat shows, and the
@@ -26,11 +31,6 @@ struct ChatSwitch: View {
     @Bindable var chat: Chat
     let page: Page
     private var settings = AppSettings()
-
-    init(chat: Chat, page: Page) {
-        self.chat = chat
-        self.page = page
-    }
 
     var body: some View {
         let id = chat.paneID
@@ -43,8 +43,7 @@ struct ChatSwitch: View {
         .fixedSize()
         .onChange(of: chat.showsChat) {
             // The card keeps the keyboard: the reply box, or the terminal; in a floating window too.
-            guard let pane = page.store.pane(id), let terminalID = pane.terminalID,
-                  page.keyboardPane?.id == id || page.floats(pane) else { return }
+            guard page.hasKeyboard(id), let terminalID = page.store.pane(id)?.terminalID else { return }
             Task { page.terminals.focus(terminalID) }
         }
     }

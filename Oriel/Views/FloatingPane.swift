@@ -19,7 +19,7 @@ extension Page {
     func float(_ pane: HostStore.Pane) {
         guard let terminalID = pane.terminalID else { return }
         if floating[terminalID] != nil {
-            terminal(pane)?.view.takeKeyboard()
+            terminals.focus(terminalID)
         } else if !WindowPages.windows.contains(where: { $0.floats(terminalID) }) {
             floating[terminalID] = false
             if zoomedPaneID == pane.id {
@@ -151,11 +151,13 @@ struct FloatingWindow: View {
                 content(pages, page, pane)
             }
         }
-        .frame(minWidth: 320, minHeight: 200)
+        // A chat's title row holds its switch too.
+        .frame(minWidth: page.flatMap { page in pane.flatMap(page.chat) } == nil ? 320 : 440, minHeight: 200)
         .windowChrome(look)
         .environment(\.look, look)
         .navigationTitle(pane.map { pane in
-            pane.browser.map { "Browser " + (page?.browserTitle(pane, $0) ?? "") } ?? pane.cardTitle
+            pane.browser.map { ["Browser", page?.browserTitle(pane, $0)].compactMap(\.self).joined(separator: " ") }
+                ?? pane.cardTitle
         } ?? "terminal")
         .background(FloatReader(terminalID: floating.terminalID, main: pages?.window,
                                 pinned: page?.floating[floating.terminalID] == true,
@@ -180,8 +182,7 @@ struct FloatingWindow: View {
                 if let browser {
                     FloatingBrowser(browser: browser, page: page)
                 } else if let chat, chat.showsChat {
-                    // In this window by now, as the terminal below.
-                    ChatView(chat: chat, page: page, terminal: terminal).onAppear { chat.wantsKeyboard = true }
+                    ChatView(chat: chat, page: page, terminal: terminal)
                 } else if let terminal {
                     terminalCard(terminal, page, pane, faded: chooser != nil, commands)
                 } else {
@@ -200,7 +201,7 @@ struct FloatingWindow: View {
                     FindBar(find: find, page: page).padding(gap)
                 }
             }
-            .background(CardSurface(keyboard: terminal?.hasKeyboard == true))
+            .background(CardSurface(keyboard: terminal?.hasKeyboard == true || chat?.showsChat == true))
             .clipShape(CardSurface.shape)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("float.\(pane?.id ?? "")")

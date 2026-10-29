@@ -1,5 +1,4 @@
 import AppKit
-import Network
 import WebKit
 
 /// What a page asks of its card: new windows, dialogs and file panels.
@@ -65,38 +64,30 @@ extension Browser: WKUIDelegate {
 
 extension Browser {
     /// The page's icon after each load: its `<link rel=icon>`, else `/favicon.ico`; nil (the globe) when it does not
-    /// load. WebKit has no favicon API. Fetched through the card's proxy; a remote card's only from its page's host,
-    /// which its proxy asks the machine for.
+    /// load. WebKit has no favicon API: the page fetches it, so its proxy, its rules and CORS apply as to any fetch.
     func loadIcon() {
+        let page = view.url
         Task {
-            let script = "return document.querySelector('link[rel~=icon]')?.href ?? null"
-            // Spaces stay raw in a `data:` icon's href; URL would escape its `%`s with them.
-            let href = try? await view.callAsyncJavaScript(script, contentWorld: .defaultClient) as? String
-            let page = view.url, raw = href?.replacingOccurrences(of: " ", with: "%20")
-            let found = raw.flatMap(URL.init(string:)) ?? page.flatMap { URL(string: "/favicon.ico", relativeTo: $0) }
-            guard let page, let url = found?.absoluteURL, url != icon?.url else { return }
-            icon = (url, icon?.image)
-            let image = await Self.image(url, page: page, remote: alias != nil,
-                                         proxies: view.configuration.websiteDataStore.proxyConfigurations)
+            let found = try? await view.callAsyncJavaScript(Self.iconScript, arguments: ["known": icon?.href ?? ""],
+                                                            contentWorld: .defaultClient) as? [Any]
             // Not over a newer page's.
-            if icon?.url == url {
-                icon = (url, image)
-            }
+            guard view.url == page, let href = found?.first as? String, href != icon?.href else { return }
+            icon = (href, (found?.last as? String).flatMap { Data(base64Encoded: $0) }.flatMap(NSImage.init(data:)))
         }
     }
 
-    private static func image(_ url: URL, page: URL, remote: Bool, proxies: [ProxyConfiguration]) async -> NSImage? {
-        let scheme = url.scheme?.lowercased() ?? ""
-        guard ["http", "https", "data"].contains(scheme), !remote || scheme == "data" || url.host == page.host
-        else { return nil }
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.proxyConfigurations = proxies
-        configuration.timeoutIntervalForRequest = 5
-        let session = URLSession(configuration: configuration)
-        defer { session.finishTasksAndInvalidate() }
-        guard let (data, response) = try? await session.data(from: url),
-              (response as? HTTPURLResponse).map({ $0.statusCode < 300 }) ?? true, data.count < 1 << 20
-        else { return nil }
-        return NSImage(data: data)
-    }
+    /// `[href, base64 or null]`; just the href when it is the one the card has. At most 1 MiB, in 5 s.
+    private static let iconScript = """
+    const link = document.querySelector('link[rel~=icon]')
+    const href = link ? link.href : new URL('/favicon.ico', location.href).href
+    if (href === known) return [href, null]
+    try {
+      const response = await fetch(href, { signal: AbortSignal.timeout(5000) })
+      const blob = await response.blob()
+      if (!response.ok || blob.size > 1048576) return [href, null]
+      let text = ''
+      for (const byte of new Uint8Array(await blob.arrayBuffer())) text += String.fromCharCode(byte)
+      return [href, btoa(text)]
+    } catch { return [href, null] }
+    """
 }

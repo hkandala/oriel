@@ -47,7 +47,7 @@ private struct MiniCard: View {
             edge = look.edge(keyboard: false)
         let pane = page.store.pane(id)
         let terminal = CGSize(width: max(size.width - 2 * PaneCard.inset, 1),
-                              height: max(size.height - PaneCard.header - gap, 1))
+                              height: max(size.height - page.headerHeight(pane) - gap, 1))
         shape.fill(look.cardFill)
             .overlay(shape.stroke(edge.color, lineWidth: edge.width))
             .overlay(alignment: .topLeading) {
@@ -77,7 +77,7 @@ private struct MiniCard: View {
                         + "\(view?.snapshot?.width ?? 0)")
                     .frame(width: terminal.width * scale, height: terminal.height * scale)
                     .padding(.leading, PaneCard.inset * scale)
-                    .padding(.top, PaneCard.header * scale)
+                    .padding(.top, page.headerHeight(pane) * scale)
                 }
             }
     }

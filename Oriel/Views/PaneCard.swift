@@ -153,9 +153,8 @@ struct PaneCard: View {
     private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool, chat: Chat?)
         -> some View
     {
-        let floated = pane.map(page.floats) ?? false
-        let browser = floated ? nil : pane.flatMap(page.browser)
-        let agent = !floated && !new && (chat != nil || pane?.agent != nil)
+        let browser = page.twoRows(pane) ? pane.flatMap(page.browser) : nil
+        let agent = page.twoRows(pane) && browser == nil
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 3) {
                 title(pane, new: new, browser: browser, agent: agent)
@@ -283,6 +282,19 @@ struct PaneCard: View {
         if let pane {
             page.go(to: pane)
         }
+    }
+}
+
+extension Page {
+    /// A browser's or an agent's card has a second header row; a terminal's, a floated or a choosing one has one.
+    func twoRows(_ pane: HostStore.Pane?) -> Bool {
+        guard let pane, !floats(pane), store.chooser(pane.id) == nil else { return false }
+        return pane.browser != nil || pane.agent != nil || ChatAdapters.recognize(pane.program) != nil
+    }
+
+    /// The card's header: one row or two.
+    func headerHeight(_ pane: HostStore.Pane?) -> CGFloat {
+        PaneCard.header + (twoRows(pane) ? PaneCard.row : 0)
     }
 }
 

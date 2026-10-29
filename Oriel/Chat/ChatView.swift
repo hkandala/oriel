@@ -67,7 +67,7 @@ struct ChatView: View {
         }
         // In place of the terminal that had the keyboard (the chooser's loader went, or the switch flipped).
         .onAppear {
-            if page.keyboardPane?.id == chat.paneID {
+            if page.hasKeyboard(chat.paneID) {
                 chat.wantsKeyboard = true
             }
         }
@@ -197,13 +197,13 @@ private struct WaitingDrawer: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chat.\(chat.paneID).drawer")
         .onAppear {
-            if let terminalID = page.store.pane(chat.paneID)?.terminalID, page.keyboardPane?.id == chat.paneID {
+            if let terminalID = page.store.pane(chat.paneID)?.terminalID, page.hasKeyboard(chat.paneID) {
                 page.terminals.focus(terminalID)
             }
         }
         // The reply box takes the keyboard back.
         .onDisappear {
-            if page.keyboardPane?.id == chat.paneID {
+            if page.hasKeyboard(chat.paneID) {
                 chat.wantsKeyboard = true
             }
         }

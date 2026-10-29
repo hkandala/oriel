@@ -87,10 +87,11 @@ agent    row 1: Session title ·························
   keyboard card; row 2 (32 pt) has the toolbar, or the agent's program and folder with `Show: Steps ⌄` and
   Chat | Terminal. Row 2 ends on row 1's trailing inset. The detail level is a native `Menu` with an inline
   `Picker` in `ChromeStyle`.
-- **Fix (page icon):** WKWebView has no favicon API. After each load one JS read takes `<link rel~=icon>`, else
-  `/favicon.ico` loads through a URLSession that has the card's proxy; nothing loads: the globe. A remote card
-  fetches icons only from its page's host. A `data:` href keeps raw spaces, and `URL(string:)` then escapes
-  its `%`s too: spaces become `%20` first.
+- **Fix (page icon):** WKWebView has no favicon API. After each load one script in the page reads
+  `<link rel~=icon>` (else `/favicon.ico`) and fetches it, at most 1 MiB in 5 s, as base64. The page's own
+  fetch goes through its proxy and its loopback rule, needs no ATS exception and decodes `data:` hrefs that
+  `URL(string:)` escaped twice; CORS keeps a few cross-origin icons out (the globe). The globe also shows
+  over a failed load.
 - **Decisions:** the state capsule sits in row 1 for any agent card (the chat's own capsule for a chat card,
   herdr's state for others). A floated card in its tab keeps one row. In a floating window the chat's
   switch and Show menu sit in the title row, right of the place, and Show shows only while the chat does. A
@@ -98,9 +99,7 @@ agent    row 1: Session title ·························
   window read `Browser` and the page dimmed; a browser card's row 1 shows the page alone.
 - **Decisions (item 2):** the ports chip, `Exec.listeners()` and their tests are gone; the remote browser
   test still checks the proxy's localhost and its refusal.
-- **For the docs pass:** the overview's miniature still subtracts a one-row header from a two-row card's
-  terminal (`Miniature.swift`), so an agent card's miniature terminal is about 32 pt too tall, slightly
-  stretched.
 - **For the user:** check a real site's icon (github.com, a dev server), the I-beam and the fill on the
-  address field, and Back and Forward in both appearances.
+  address field, and Back and Forward in both appearances. An agent started by hand in a shell grows the
+  second row when herdr notices it, and the terminal gets 32 pt shorter then.
 

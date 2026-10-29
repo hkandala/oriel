@@ -19,7 +19,7 @@ extension OrielUITests {
         // Steps: the turn's command as a stack, which a click opens; Replies: only the quiet line; All: open.
         let before = element("chat.\(pane).level").stringValue
         addTeardownBlock { @MainActor in
-            if !before.isEmpty {
+            if !before.isEmpty, self.element("chat.\(pane).level").exists {
                 self.level(before, in: pane)
             }
         }

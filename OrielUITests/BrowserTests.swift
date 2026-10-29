@@ -7,7 +7,10 @@ extension OrielUITests {
     func writePages(from pane: String, in session: String? = nil) async throws -> String {
         let folder = "/tmp/oriel-e2e-browser"
         try await Self.call(session ?? one, "pane.send_text", ["pane_id": pane, "text": """
-        mkdir -p \(folder) && printf '<title>One</title><p>oriel-page-one</p><a href="two.html">Two</a> \
+        mkdir -p \(folder) && printf '<title>One</title><link rel="icon" href="data:image/svg+xml,<svg \
+        xmlns=%%22http://www.w3.org/2000/svg%%22 \
+        viewBox=%%220 0 16 16%%22><rect width=%%2216%%22 height=%%2216%%22/></svg>"> \
+        <p>oriel-page-one</p><a href="two.html">Two</a> \
         <button onclick="window.open(\\x27pop.html\\x27)">Pop</button>' >\(folder)/one.html && \
         printf '<title>Two</title><p>oriel-page-two</p>' >\(folder)/two.html && \
         printf '<p>oriel-pop</p><button onclick="window.close()">Done</button>' >\(folder)/pop.html && clear\r
@@ -76,6 +79,8 @@ extension OrielUITests {
         app.typeText(page)
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(pageText("oriel-page-one").exists(within: 5))
+        // Its `<link rel=icon>`, a `data:` SVG with spaces and escapes.
+        XCTAssertTrue(element("browser.\(browser).icon").has(\.stringValue, "page", within: 5))
         try await expect("the typed address in the label") { try await paneLabel(browser) == "\(made) \(page)" }
         keepScreenshot("browser card")
         // window.open: over the card, gone on window.close().

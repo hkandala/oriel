@@ -317,17 +317,23 @@ private func addressText(_ address: String) -> Text {
     return Text("\(Text(host ?? address))\(Text(rest).foregroundStyle(.secondary))")
 }
 
-/// Row 1's icon: the page's, else the globe.
+/// Row 1's icon: the page's, else the globe (also over a failed load).
 struct BrowserIcon: View {
     let browser: Browser
 
     var body: some View {
-        if let icon = browser.icon?.image {
-            Image(nsImage: icon).resizable().interpolation(.high).scaledToFit()
-                .frame(width: 16, height: 16).accessibilityHidden(true)
-        } else {
-            ProgramGlyph(icon: "globe")
+        let icon = browser.failure == nil ? browser.icon?.image : nil
+        Group {
+            if let icon {
+                Image(nsImage: icon).resizable().interpolation(.high).scaledToFit().frame(width: 16, height: 16)
+            } else {
+                ProgramGlyph(icon: "globe")
+            }
         }
+        .accessibilityElement()
+        .accessibilityAddTraits(.isStaticText)
+        .accessibilityValue(icon == nil ? "globe" : "page")
+        .accessibilityIdentifier("browser.\(browser.paneID).icon")
     }
 }
 
