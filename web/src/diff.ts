@@ -137,10 +137,11 @@ const options: CodeViewOptions<undefined, undefined> = {
     return box
   },
   // ⌘-click: the file, at the line when it is in the new file.
+  // ⌘-click: the file at the line, or for a removed line at the one after it.
   onLineClick: ({ event, lineNumber, annotationSide }, context) => {
-    const type = files.find((file) => file.name === context.item.id)?.type
-    if (event.metaKey && type !== "deleted") {
-      openFile(context.item.id, annotationSide === "additions" ? lineNumber : undefined)
+    const file = files.find((file) => file.name === context.item.id)
+    if (event.metaKey && file && file.type !== "deleted") {
+      openFile(file.name, annotationSide === "additions" ? lineNumber : newLine(file, lineNumber))
     }
   },
 }
@@ -149,17 +150,26 @@ viewer.setup(main)
 show(reply.patch)
 if (at && files.some((file) => file.name === at)) reveal(at)
 
-/** Draws a new patch; the same files keep their place and their Viewed while their text is the same. */
+/**
+ * Draws a new patch. A file keeps its place, its fold and its Viewed while its text is the same; a Viewed file that
+ * changed opens again. A file new to the card with over 2,000 changed lines starts folded.
+ */
 function show(next: string) {
   patch = next
   files = parsePatchFiles(patch).flatMap((parsed) => parsed.files)
+  const changed = new Set<string>()
   for (const [name, was] of viewed) {
     const file = files.find((file) => file.name === name)
-    if (!file || text(file) !== was) viewed.delete(name)
+    if (!file || text(file) !== was) {
+      viewed.delete(name)
+      changed.add(name)
+    }
   }
-  viewer.setItems(files.map((fileDiff) => ({
-    id: fileDiff.name, type: "diff", fileDiff, collapsed: viewed.has(fileDiff.name),
-  })))
+  viewer.setItems(files.map((fileDiff) => {
+    const { added, removed } = sums(fileDiff), was = item(fileDiff.name)
+    const folded = was ? was.collapsed && !changed.has(fileDiff.name) : added + removed > 2000
+    return { id: fileDiff.name, type: "diff", fileDiff, collapsed: viewed.has(fileDiff.name) || folded }
+  }))
   changes = files.flatMap(blocks)
   change = -1
   empty.textContent = files.length ? "" : "No changes"
@@ -181,14 +191,19 @@ function show(next: string) {
   }
 }
 
-/** `+n −m`, as the spec writes them (the header's own counts are hidden). */
-function counts(file: FileDiffMetadata) {
+function sums(file: FileDiffMetadata) {
   let added = 0
   let removed = 0
   for (const hunk of file.hunks) {
     added += hunk.additionLines
     removed += hunk.deletionLines
   }
+  return { added, removed }
+}
+
+/** `+n −m`, as the spec writes them (the header's own counts are hidden). */
+function counts(file: FileDiffMetadata) {
+  const { added, removed } = sums(file)
   return [
     element("span", "added", added ? `+${added}` : ""),
     element("span", "removed", removed ? `−${removed}` : ""),
@@ -213,6 +228,21 @@ function blocks(file: FileDiffMetadata) {
       return [place]
     })
   })
+}
+
+/** The new file's line for an old one shown: the same line when unchanged, the one after the change when removed. */
+function newLine(file: FileDiffMetadata, number: number) {
+  for (const hunk of file.hunks) {
+    let line = hunk.additionStart
+    let old = hunk.deletionStart
+    for (const content of hunk.hunkContent) {
+      const context = content.type === "context"
+      const span = context ? content.lines : content.deletions
+      if (number >= old && number < old + span) return context ? line + number - old : line + content.additions
+      line += context ? content.lines : content.additions
+      old += span
+    }
+  }
 }
 
 function text(file: FileDiffMetadata) {
