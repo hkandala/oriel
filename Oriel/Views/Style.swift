@@ -23,7 +23,7 @@ enum InterfaceStyle: String {
 
 /// Every color the views draw, for one interface style and appearance (D44). Values from Rex's Glass (Modern) and
 /// Classic (System) material files, tuned by eye.
-struct Look {
+struct Look: Equatable {
     let style: InterfaceStyle
     let dark: Bool
     /// Increase Contrast: the dim colors below are stronger. The system's own colors follow it by themselves.

@@ -62,19 +62,24 @@ Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track ow
 ### Track C
 
 - **Decisions:** one TextKit 2 `NSTextView` per column, a paragraph per row (file header, unmodified-lines row, hunk,
-  line, filler), laid out whole at once so every row's top is known; no wrapping, so Side by Side's two views keep
-  their rows level and scroll together. Backgrounds, the old/new gutter and `+`/`−` are drawn in `drawBackground`
-  from those tops (no layout-fragment subclass); word marks are background attributes. Colors are the Look's
-  `finished`/`error`/`working`, as Files' git letters.
+  line, filler) of a fixed height, so every row's top comes from the rows (TextKit 2 makes no fragment for a last
+  empty paragraph); no wrapping, so Side by Side's two views keep their rows level and scroll together. The text is
+  laid out whole (its width), so a file over 2,000 changed lines starts folded. Backgrounds, the old/new gutter and
+  `+`/`−` are drawn in `drawBackground` from those tops (no layout-fragment subclass); word marks are background
+  attributes. Colors are the Look's `finished`/`error`/`working`, as Files' git letters.
 - **Decisions:** the file headers are SwiftUI views over the text, placed at their rows on each scroll; the top file's
   stays pinned until the next pushes it (sticky). Viewed folds the file and is kept with the file's patch: a file that
   changes since is not viewed any more. Uncommitted runs the diff again on each `Files.watch` yield of the root while
-  the card shows (git's index refresh writes once, then it is quiet); the text changes only when the patch does.
+  the card shows (git's index refresh writes once, then it is quiet); the text changes only when the patch does, and a
+  refresh or the layout toggle keeps the top file where it was. On a remote machine the root's 2 s check sees only
+  `ls` and `git status`, so an edit to a file already changed shows on the next status change (`Files.poll`, phase
+  42 track B's).
 - **Decisions:** the source pop-up rewrites the pane's label (`<root> <hash>`), so the title, tab and a relaunch follow
   it. Previous / Next go from run to run of changed lines across files; "N unmodified lines" has no expand (it needs
   whole files). Defaults: Unified, file list open (agreed with t44-diff, as the row-2 ids).
 - **Decisions:** `Plugin.place` and `Page.open(_:arg:at:)` carry a linked open's landing (a file's line for ⌘-click, a
-  diff's file for Files' Changes), kept by terminal id until the card is made.
+  diff's file for Files' Changes), kept by terminal id until the card is made. The File and Markdown content (tracks
+  A and B) read the line; DiffTests checks the tab and its file, not the line; Files' tests check the diff's landing.
 - **Cause:** NSTextView (TextKit 2) moved the text left by its paragraph indent and kept the first column as narrow as
   its scroll view; the gutter is now the container inset with no line padding, and the view's size is set from the
   laid-out width.

@@ -4,9 +4,8 @@ import XCTest
 /// card with two header rows.
 extension OrielUITests {
     /// The chooser's Changes and ⌘K Open Files Here make labeled panes in the pane's place, rooted at its git
-    /// repository. File, Preview and Markdown
-    /// cards from their labels, their tabs titled by kind and file; an edit shows the dirty dot. The cards come back
-    /// after a relaunch.
+    /// repository. File, Preview and Markdown cards from their labels, their tabs titled by kind and file; an edit
+    /// shows the dirty dot. The cards come back after a relaunch.
     func testPluginPanesOpenFromTheChooserThePaletteAndLinks() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("plugins")

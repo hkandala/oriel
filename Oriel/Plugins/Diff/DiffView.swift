@@ -34,10 +34,17 @@ final class DiffText: NSTextView {
         return (scroll, text)
     }
 
-    /// Lays the whole text out at once, so every row's top is known and stays.
-    /// ponytail: about 190 ms for 6,700 lines; lay out by pages if 16 MB patches must open fast.
+    /// Lays the whole text out at once, for its width and so that TextKit draws each row at its top.
+    /// ponytail: about 190 ms for 6,700 lines, and files over 2,000 lines start folded; lay out by pages if whole
+    /// 16 MB patches must open fast.
     func show(_ rows: [DiffRow], _ text: NSAttributedString, columns: Int, look: Look) {
         self.rows = rows
+        // Every row is one line of a fixed height.
+        var bottom: CGFloat = 0
+        tops = [0] + rows.map { row in
+            bottom += row.kind == .header ? DiffRow.headerHeight : DiffRow.height
+            return bottom
+        }
         self.look = look
         self.columns = columns
         digits = max(3, String(rows.compactMap { max($0.old ?? 0, $0.new ?? 0) }.max() ?? 0).count)
@@ -46,13 +53,6 @@ final class DiffText: NSTextView {
         textStorage?.setAttributedString(text)
         guard let layout = textLayoutManager else { return }
         layout.ensureLayout(for: layout.documentRange)
-        var tops: [CGFloat] = []
-        layout.enumerateTextLayoutFragments(from: layout.documentRange.location) { fragment in
-            tops.append(fragment.layoutFragmentFrame.minY)
-            return true
-        }
-        tops.append(layout.usageBoundsForTextContainer.maxY)
-        self.tops = tops.count == rows.count + 1 ? tops : (0 ... rows.count).map { CGFloat($0) * DiffRow.height }
         width = layout.usageBoundsForTextContainer.maxX + 2 * gutterWidth
         needsDisplay = true
     }
@@ -163,6 +163,8 @@ final class DiffView: NSView {
     private var headers: [Int: NSView] = [:]
     /// The header rows, for each scroll.
     private var starts: [Int] = []
+    /// The files shown, by index.
+    private var paths: [String] = []
     private var current = -1
     private var sideBySide = false
     private var syncing = false
@@ -190,12 +192,17 @@ final class DiffView: NSView {
         fatalError()
     }
 
-    /// Keeps the `anchor` file's header where it is on the screen (pinned stays pinned).
-    func show(_ files: [DiffFile], folded: Set<String>, sideBySide: Bool, look: Look, anchor: Int? = nil) {
-        let kept = anchor.flatMap(headerTop).map { $0 - top }
+    /// Keeps the `anchor` file (else the top one) where it was on the screen: as far into it, or at its header when
+    /// it got shorter than that (folded).
+    func show(_ files: [DiffFile], folded: Set<String>, sideBySide: Bool, look: Look, anchor: String? = nil) {
+        let path = anchor ?? (paths.indices.contains(current) ? paths[current] : nil)
+        let into = path.flatMap(paths.firstIndex).flatMap(headerTop).map { top - $0 }
+        paths = files.map(\.path)
         self.sideBySide = sideBySide
-        for (text, side) in zip(texts, sideBySide ? [DiffRow.Side.old, .new] : [.unified]) {
-            let (rows, string) = DiffRow.layout(files, folded: folded, side: side, look: look)
+        // Unified keeps no copy of Side by Side's new column.
+        for (text, side) in zip(texts, sideBySide ? [DiffRow.Side.old, .new] : [.unified, nil]) {
+            let (rows, string) = side.map { DiffRow.layout(files, folded: folded, side: $0, look: look) }
+                ?? ([], NSAttributedString())
             text.show(rows, string, columns: side == .unified ? 2 : 1, look: look)
         }
         scrolls[1].isHidden = !sideBySide
@@ -204,10 +211,10 @@ final class DiffView: NSView {
         headers = [:]
         needsLayout = true
         layoutSubtreeIfNeeded()
-        if let anchor, let kept, let header = headerTop(anchor) {
-            scroll(to: header - max(kept, 0))
+        if let into, let file = path.flatMap(paths.firstIndex), let header = headerTop(file) {
+            let end = starts.first { texts[0].tops[$0] > header }.map { texts[0].tops[$0] } ?? texts[0].tops.last ?? 0
+            scroll(to: header + min(into, max(0, end - header - DiffRow.headerHeight)))
         }
-        placeHeaders()
     }
 
     /// Scrolls the file's header to the top.
@@ -239,10 +246,17 @@ final class DiffView: NSView {
         }
     }
 
+    /// Out of a window, the header views go (they hold the card); the next layout makes them again.
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if wantsKeyboard, window != nil {
-            takeKeyboard()
+        if window == nil {
+            headers.values.forEach { $0.removeFromSuperview() }
+            headers = [:]
+        } else {
+            needsLayout = true
+            if wantsKeyboard {
+                takeKeyboard()
+            }
         }
     }
 

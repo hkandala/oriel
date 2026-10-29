@@ -38,7 +38,6 @@ struct DiffContent: View {
         .onAppear {
             // The first column is Unified's, or Side by Side's old side.
             for (text, name) in zip(card.view.texts, ["text", "new"]) {
-                text.onKeyboard = { [weak terminals = page.terminals] in terminals?.claimed(plugin.terminalID) }
                 text.setAccessibilityIdentifier("\(id).\(name)")
             }
         }
@@ -73,7 +72,11 @@ private struct DiffList: View {
     @Environment(\.look) private var look
 
     var body: some View {
-        List(selection: Binding<Int?>(get: { card.current }, set: { $0.map(card.view.reveal) })) {
+        List(selection: Binding<Int?>(get: { card.current }, set: { file in
+            // A file near the end whose header cannot reach the top stays lit.
+            file.map(card.view.reveal)
+            card.current = file ?? card.current
+        })) {
             ForEach(Array(card.files.enumerated()), id: \.offset) { _, file in
                 HStack(spacing: 6) {
                     Text(String(file.letter)).foregroundStyle(look.git(file.letter)).fontWeight(.semibold)
@@ -113,13 +116,13 @@ private struct DiffCounts: View {
 /// A file's header over its row in the diff: fold, the path, `+n −m`, Open File, Viewed.
 struct DiffHeader: View {
     let card: DiffCard
-    let plugin: Plugin
+    let paneID: String
     let file: Int
     @Environment(\.look) private var look
 
     var body: some View {
         if card.files.indices.contains(file) {
-            let diff = card.files[file], id = "diff.\(plugin.paneID).file.\(diff.path)"
+            let diff = card.files[file], id = "diff.\(paneID).file.\(diff.path)"
             let folder = (diff.path as NSString).deletingLastPathComponent
             HStack(spacing: 8) {
                 Button { card.fold(file) } label: {
@@ -136,7 +139,7 @@ struct DiffHeader: View {
                 Button("Open File", systemImage: "arrow.up.forward.square") { card.open(diff) }
                     .labelStyle(.iconOnly).help("Open File").disabled(diff.letter == "D")
                     .accessibilityIdentifier("\(id).open")
-                Toggle("Viewed", isOn: Binding(get: { card.isViewed(diff) }, set: { card.view(file, $0) }))
+                Toggle("Viewed", isOn: Binding(get: { card.isViewed(diff) }, set: { card.markViewed(file, $0) }))
                     .toggleStyle(.checkbox).accessibilityIdentifier("\(id).viewed")
             }
             .lineLimit(1).truncationMode(.head)
@@ -144,6 +147,7 @@ struct DiffHeader: View {
             .font(.system(size: 12))
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The text scrolls under a pinned header, and a glass card has no opaque color.
             .background(.bar)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier(id)

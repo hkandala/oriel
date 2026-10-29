@@ -10,6 +10,7 @@ extension OrielUITests {
         let (_, shell) = try await newTab("diff")
         try await waitForPrompt(shell)
         let repo = "/tmp/oriel-e2e-diff", root = "/private/tmp/oriel-e2e-diff"
+        addTeardownBlock { try? FileManager.default.removeItem(atPath: repo) }
         try await send("rm -rf \(repo) && mkdir \(repo) && cd \(repo) && git init -q && seq 1 80 > a.txt && "
             + "echo old > b.txt && seq 1 20 > c.txt && git add . && git -c user.name=e2e -c user.email=e2e@oriel "
             + "-c commit.gpgsign=false commit -qm first && seq 101 180 > a.txt && echo new > b.txt && seq 1 19 > c.txt "
@@ -48,12 +49,12 @@ extension OrielUITests {
         // A change on disk shows without a reload.
         try await send("echo more >> b.txt\r", to: shell)
         try await expect("the new line", times: 100) { lines().contains("more") }
-        // Its tile in the overview borrows the diff, which comes back to the card after.
+        // Its overview tile borrows the diff view; the card has it again after, with its lines.
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(element("overview.card.\(pane)").has(\.stringValue, "diff", within: 3))
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(element("overview.card.\(pane)").vanishes(within: 3))
-        XCTAssertTrue(text.exists(within: 3))
+        XCTAssertTrue(until(3) { lines().contains("more") })
         try await commit(pane, root: root, text: text)
         try await links(pane, in: tab, root: root, text: text)
     }
@@ -110,7 +111,8 @@ extension OrielUITests {
     /// The source pop-up's commit: the label names it and the title is its short hash.
     private func commit(_ pane: String, root: String, text: XCUIElement) async throws {
         element("pane.\(pane).diff.source").click()
-        app.menuItems.matching(NSPredicate(format: "title ENDSWITH ' first'")).firstMatch.click()
+        element("pane.\(pane).diff.source").menuItems.matching(NSPredicate(format: "title ENDSWITH ' first'"))
+            .firstMatch.click()
         let hash = try await poll("the commit's label") { () async throws -> String? in
             let words = try await paneLabel(pane).split(separator: " ")
             return words.count == 3 && words[1] == root && words[2].count == 40 ? String(words[2]) : nil
