@@ -34,7 +34,12 @@ final class FileTree: NSObject {
 
     /// The filter field's text: the tree shows the matching files with their folders.
     var filter = "" {
-        didSet { refilter() }
+        // Not on an equal write: the field writes its text again as it loses the keyboard.
+        didSet {
+            if filter != oldValue {
+                refilter()
+            }
+        }
     }
 
     /// Why the root could not be listed.

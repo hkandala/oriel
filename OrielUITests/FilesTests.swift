@@ -27,8 +27,7 @@ extension OrielUITests {
         XCTAssertTrue(item("a.swift").exists(within: 3))
         XCTAssertFalse(item("Sources/main.swift").exists)
         item("Sources").doubleClick()
-        XCTAssertTrue(item("Sources/main.swift").has(\.stringValue, "M", within: 3),
-                      element("files.\(pane).tree").debugDescription)
+        XCTAssertTrue(item("Sources/main.swift").has(\.stringValue, "M", within: 3), rows(pane))
         filterTree(pane, "notes")
         XCTAssertTrue(item("Sources/main.swift").vanishes(within: 5))
         filterTree(pane, "")
@@ -100,6 +99,12 @@ extension OrielUITests {
         closeAfter("tab", tab)
         element("tab.\(tab)").click()
         return (tab, pane)
+    }
+
+    /// The tree's rows with their values, for a failure's message.
+    private func rows(_ pane: String) -> String {
+        element("files.\(pane).tree").staticTexts.allElementsBoundByIndex.map { "\($0.identifier)=\($0.stringValue)" }
+            .joined(separator: " ")
     }
 
     /// Types the filter's text in place of what it had, once the field has the keyboard (an empty one is a button
