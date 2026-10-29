@@ -118,6 +118,8 @@ struct DiffHeader: View {
     let paneID: String
     let file: Int
     @Environment(\.look) private var look
+    /// Under 480 pt the counts give way, so Open File and Viewed stay on the header (as the web variant).
+    @State private var wide = true
 
     var body: some View {
         if card.files.indices.contains(file) {
@@ -134,7 +136,9 @@ struct DiffHeader: View {
                 let name = Text((diff.path as NSString).lastPathComponent).fontWeight(.semibold)
                 Text("\(before.foregroundStyle(.secondary))\(name)")
                 Spacer(minLength: 8)
-                DiffCounts(added: diff.added, removed: diff.removed)
+                if wide {
+                    DiffCounts(added: diff.added, removed: diff.removed)
+                }
                 Button("Open File", systemImage: "arrow.up.forward.square") { card.open(diff) }
                     .labelStyle(.iconOnly).help("Open File").disabled(diff.letter == "D")
                     .accessibilityIdentifier("\(id).open")
@@ -146,6 +150,7 @@ struct DiffHeader: View {
             .font(.system(size: 12))
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onGeometryChange(for: Bool.self) { $0.size.width >= 480 } action: { wide = $0 }
             // The text scrolls under a pinned header, and a glass card has no opaque color.
             .background(.bar)
             .accessibilityElement(children: .contain)
