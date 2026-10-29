@@ -64,6 +64,8 @@ final class DiffCard {
             } catch {
                 guard !Task.isCancelled else { return }
                 failure = error.localizedDescription
+                files = []
+                redraw()
             }
             commits = await Array((log ?? []).prefix(50))
             loaded = true

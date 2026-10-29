@@ -37,7 +37,7 @@ struct DiffRow {
             text.append(NSAttributedString(string: clean(string) + "\n", attributes: attributes(row.kind)))
             for word in words {
                 text.addAttribute(.backgroundColor, value: NSColor((row.kind == .added ? look.finished : look.error)
-                        .opacity(0.35)), range: NSRange(location: start + word.lowerBound, length: word.count))
+                        .opacity(0.4)), range: NSRange(location: start + word.lowerBound, length: word.count))
             }
             rows.append(row)
         }

@@ -30,15 +30,17 @@ struct DiffContent: View {
             }
         }
         .onAppear {
-            for text in card.view.texts {
+            // The first column is Unified's, or Side by Side's old side.
+            for (text, name) in zip(card.view.texts, ["text", "new"]) {
                 text.onKeyboard = { [weak terminals = page.terminals] in terminals?.claimed(plugin.terminalID) }
+                text.setAccessibilityIdentifier("\(id).\(name)")
             }
         }
     }
 
     private func message(_ text: String) -> some View {
         Text(text).font(.system(size: 13)).foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity).background(.background.opacity(0.001))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -70,6 +72,7 @@ private struct DiffList: View {
                     DiffCounts(added: file.added, removed: file.removed)
                 }
                 .help(file.path)
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("\(id).list.\(file.path)")
             }
         }

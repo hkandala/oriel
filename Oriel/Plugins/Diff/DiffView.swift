@@ -85,6 +85,9 @@ final class DiffText: NSTextView {
                 NSColor(fill).setFill()
                 frame.fill(using: .sourceOver)
             }
+            if row.kind == .filler {
+                hatch(frame)
+            }
             let numbers = columns == 2 ? [row.old, row.new] : [row.old ?? row.new]
             // On the text's baseline: TextKit puts a line's extra height above it.
             let baseline = frame.maxY - DiffRow.font.ascender + DiffRow.font.descender
@@ -105,12 +108,27 @@ final class DiffText: NSTextView {
 
     private func fill(_ kind: DiffRow.Kind) -> Color? {
         switch kind {
-        case .added: look.finished.opacity(0.13)
-        case .removed: look.error.opacity(0.13)
+        case .added: look.finished.opacity(0.07)
+        case .removed: look.error.opacity(0.07)
         case .hunk: look.working.opacity(0.1)
-        case .filler: look.paneButton.opacity(0.08)
         default: nil
         }
+    }
+
+    /// No line on this side: lines at 45° every 8 pt, on x + y, so they run on through the rows of a run.
+    private func hatch(_ frame: NSRect) {
+        let path = NSBezierPath()
+        var sum = ((frame.minX + frame.minY) / 8).rounded(.down) * 8
+        while sum < frame.maxX + frame.maxY {
+            path.move(to: NSPoint(x: sum - frame.minY, y: frame.minY))
+            path.line(to: NSPoint(x: sum - frame.maxY, y: frame.maxY))
+            sum += 8
+        }
+        NSGraphicsContext.saveGraphicsState()
+        NSBezierPath(rect: frame).addClip()
+        NSColor(look.paneButton.opacity(0.18)).setStroke()
+        path.stroke()
+        NSGraphicsContext.restoreGraphicsState()
     }
 
     /// ⌘-click on a line opens the file there.
