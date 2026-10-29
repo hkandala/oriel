@@ -76,3 +76,31 @@ agent    row 1: Session title ·························
    refactor, no behavior change.
 
 ## Findings
+
+### Track A
+
+- **Cause (item 3):** the toolbar dimmed a disabled button twice: its own 0.35 opacity on top of the 0.4 that
+  `ChromeStyle` gives every disabled button, so Back and Forward drew at 0.14. **Fix:** the toolbar's opacity
+  went; they dim once, as Zoom does.
+- **Fix (items 1, 9):** a browser's or an agent's card has two header rows: row 1 (36 pt, so it lines up with a
+  terminal card's header beside it) has the title, the state capsule and the pane buttons on hover or on the
+  keyboard card; row 2 (32 pt) has the toolbar, or the agent's program and folder with `Show: Steps ⌄` and
+  Chat | Terminal. Row 2 ends on row 1's trailing inset. The detail level is a native `Menu` with an inline
+  `Picker` in `ChromeStyle`.
+- **Fix (page icon):** WKWebView has no favicon API. After each load one JS read takes `<link rel~=icon>`, else
+  `/favicon.ico` loads through a URLSession that has the card's proxy; nothing loads: the globe. A remote card
+  fetches icons only from its page's host. A `data:` href keeps raw spaces, and `URL(string:)` then escapes
+  its `%`s too: spaces become `%20` first.
+- **Decisions:** the state capsule sits in row 1 for any agent card (the chat's own capsule for a chat card,
+  herdr's state for others). A floated card in its tab keeps one row. In a floating window the chat's
+  switch and Show menu sit in the title row, right of the place, and Show shows only while the chat does. A
+  floated plugin pane (any `oriel:` label) shows no place and no divider. The browser tab and the floating
+  window read `Browser` and the page dimmed; a browser card's row 1 shows the page alone.
+- **Decisions (item 2):** the ports chip, `Exec.listeners()` and their tests are gone; the remote browser
+  test still checks the proxy's localhost and its refusal.
+- **For the docs pass:** the overview's miniature still subtracts a one-row header from a two-row card's
+  terminal (`Miniature.swift`), so an agent card's miniature terminal is about 32 pt too tall, slightly
+  stretched.
+- **For the user:** check a real site's icon (github.com, a dev server), the I-beam and the fill on the
+  address field, and Back and Forward in both appearances.
+
