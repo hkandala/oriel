@@ -300,9 +300,9 @@ extension OrielUITests {
     func testWindowTitleOfADefaultLabelIsTheProgramAndFolder() async throws {
         let window = app.windows.firstMatch
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
-        // t1 keeps herdr's default label: the front card's program and folder name (/private/tmp); the shell is zsh
-        // here, bash on CI.
-        try await expect("the window title ‹shell› tmp - ‹session›") { window.title.hasSuffix(" tmp - \(one)") }
+        // t1 keeps herdr's default label: the front card's program and folder name (/private/tmp), a bar between
+        // them as in every plain-text title; the shell is zsh here, bash on CI.
+        try await expect("the window title ‹shell› | tmp - ‹session›") { window.title.hasSuffix("sh | tmp - \(one)") }
     }
 
     /// Opens the workspace menu; its filter has the keyboard.

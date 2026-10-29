@@ -164,7 +164,7 @@ struct FloatingWindow: View {
         .windowChrome(look)
         .environment(\.look, look)
         .navigationTitle(pane.map { pane in
-            page?.kindTitle(pane).map { [$0, $1].compactMap(\.self).joined(separator: " ") } ?? pane.cardTitle
+            page?.kindTitle(pane).map { [$0, $1].plainTitle } ?? pane.cardTitle
         } ?? "terminal")
         .background(FloatReader(terminalID: floating.terminalID, main: pages?.window,
                                 pinned: page?.floating[floating.terminalID] == true,

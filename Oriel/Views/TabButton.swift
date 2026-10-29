@@ -228,6 +228,14 @@ extension Page {
     /// The title in one string, for the window title and menus.
     func titleText(_ tab: HostStore.Tab) -> String {
         let title = title(tab)
-        return [title.name, title.folder ?? ""].filter { !$0.isEmpty }.joined(separator: " ")
+        return [title.name, title.folder].plainTitle
+    }
+}
+
+extension [String?] {
+    /// A title's parts where it shows as plain text (⌘K, menus, window titles): with no dimmed part, a bar
+    /// separates them ("Browser | Hacker News").
+    var plainTitle: String {
+        compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " | ")
     }
 }
