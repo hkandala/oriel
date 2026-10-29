@@ -53,8 +53,8 @@ cold restart of herdr or another device rebuilds the card from the label alone.
   ([Create](/docs/ui/browser#create)).
 - **File, Preview and Markdown** open only from links in other plugin cards.
   Diff opens from links too. A link is a **linked open**: the kind's pane in
-  a new herdr tab right after the selected tab, in the same workspace and on
-  the same machine. The app selects the new tab and gives its card the keyboard. The
+  a new herdr tab right after the card's own tab, in its workspace and on
+  the same machine, also from a floating window. The app selects the new tab and gives its card the keyboard. The
   calls are `layout.apply` for a new tab with the labeled pane, then
   `tab.move`, because herdr adds the tab last
   ([Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls)).
