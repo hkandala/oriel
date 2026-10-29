@@ -161,6 +161,8 @@ final class DiffView: NSView {
     /// The file at the top changed.
     var onCurrent: ((Int) -> Void)?
     private var headers: [Int: NSView] = [:]
+    /// The header rows, for each scroll.
+    private var starts: [Int] = []
     private var current = -1
     private var sideBySide = false
     private var syncing = false
@@ -197,6 +199,7 @@ final class DiffView: NSView {
             text.show(rows, string, columns: side == .unified ? 2 : 1, look: look)
         }
         scrolls[1].isHidden = !sideBySide
+        starts = texts[0].rows.indices.filter { texts[0].rows[$0].kind == .header }
         headers.values.forEach { $0.removeFromSuperview() }
         headers = [:]
         needsLayout = true
@@ -217,11 +220,11 @@ final class DiffView: NSView {
     /// The next (1) or previous (-1) run of changed lines, under its file's pinned header.
     func step(_ direction: Int) {
         let text = texts[0], top = top + DiffRow.headerHeight
-        let starts = text.rows.indices.filter { index in
+        let runs = text.rows.indices.filter { index in
             let changed = { (kind: DiffRow.Kind) in kind == .added || kind == .removed || kind == .filler }
             return changed(text.rows[index].kind) && (index == 0 || !changed(text.rows[index - 1].kind))
         }.map { text.tops[$0] }
-        if let start = direction > 0 ? starts.first(where: { $0 > top + 1 }) : starts.last(where: { $0 < top - 1 }) {
+        if let start = direction > 0 ? runs.first(where: { $0 > top + 1 }) : runs.last(where: { $0 < top - 1 }) {
             scroll(to: start - DiffRow.headerHeight)
         }
     }
@@ -291,7 +294,6 @@ final class DiffView: NSView {
 
     private func placeHeaders() {
         let text = texts[0], top = top, height = bounds.height
-        let starts = text.rows.indices.filter { text.rows[$0].kind == .header }
         var shown: [Int: CGFloat] = [:]
         for (place, row) in starts.enumerated() {
             let own = text.tops[row] - top
