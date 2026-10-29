@@ -319,6 +319,8 @@ extension OrielUITests {
         let shot = element("overview.card.\(browser)")
         XCTAssertTrue(shot.has(\.stringValue, "browser", within: 3))
         XCTAssertEqual(element("overview.card.\(chat)").stringValue, "chat")
+        // w2's row is below CI's window.
+        scrollOverview(to: shot)
         let light = mean(shot)
         keepScreenshot("overview, browser and chat")
         // Another address from the label (as an agent sets it): the tile follows the page.
