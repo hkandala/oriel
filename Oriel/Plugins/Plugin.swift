@@ -115,6 +115,8 @@ final class Plugin {
     /// Where a linked open lands, which the content reads once and sets to nil: a file's 1-based line, a diff's file
     /// from the repository's root.
     var place: String?
+    /// A Files card's tree.
+    @ObservationIgnored lazy var tree = FileTree(plugin: self)
 
     init(terminalID: String, paneID: String, label: PaneLabel) {
         self.terminalID = terminalID

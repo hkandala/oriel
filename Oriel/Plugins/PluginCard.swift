@@ -20,22 +20,27 @@ struct PluginCard: View {
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
-        PluginPlaceholder(plugin: plugin, page: page)
-            .overlay(alignment: .top) {
-                if let toast = plugin.toast {
-                    ToastView(toast: toast, plugin: plugin).padding(.top, 6)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
+        Group {
+            switch plugin.kind {
+            case .files: FilesCard(plugin: plugin, page: page)
+            default: PluginPlaceholder(plugin: plugin, page: page)
             }
-            .animation(.easeOut(duration: 0.15), value: plugin.toast == nil)
-            // In place of the card that had the keyboard.
-            .onAppear {
-                if isEnabled, page.hasKeyboard(plugin.paneID) {
-                    plugin.wantsKeyboard = true
-                }
+        }
+        .overlay(alignment: .top) {
+            if let toast = plugin.toast {
+                ToastView(toast: toast, plugin: plugin).padding(.top, 6)
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).card")
+        }
+        .animation(.easeOut(duration: 0.15), value: plugin.toast == nil)
+        // In place of the card that had the keyboard.
+        .onAppear {
+            if isEnabled, page.hasKeyboard(plugin.paneID) {
+                plugin.wantsKeyboard = true
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).card")
     }
 }
 
@@ -122,6 +127,13 @@ struct PluginToolbar: View {
     let page: Page
 
     var body: some View {
+        switch plugin.kind {
+        case .files: FilesToolbar(plugin: plugin)
+        default: placeholder
+        }
+    }
+
+    private var placeholder: some View {
         HStack(spacing: 6) {
             Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
                 .truncationMode(.middle)
