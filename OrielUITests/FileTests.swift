@@ -23,7 +23,7 @@ extension OrielUITests {
         ) }
         element("tab.\(tab)").click()
         let card = try await split(left)
-        try await Self.call(one, "pane.rename", ["pane_id": card, "label": "oriel:file#e2efil \(file)"])
+        try await relabel(card, "oriel:file#e2efil \(file)")
         let editor = element("file.\(card).page").textViews.firstMatch
         XCTAssertTrue(until(10) { editor.exists && editor.stringValue.contains("let x = 1") })
         let jump = element("pane.\(card).jump"), dirty = element("pane.\(card).dirty")
@@ -60,8 +60,8 @@ extension OrielUITests {
     /// it again.
     private func findKeys(_ card: String) {
         let editor = element("file.\(card).page").textViews.firstMatch
-        // Not the panel's Replace field.
-        let search = element("file.\(card).page").textFields["Find"]
+        // WebKit takes CodeMirror's `name="search"` field for a search field.
+        let search = element("file.\(card).page").searchFields.firstMatch
         for (key, modifiers) in [
             ("f", XCUIElement.KeyModifierFlags.command),
             ("g", .command),
@@ -73,6 +73,14 @@ extension OrielUITests {
             app.typeKey(.escape, modifierFlags: [])
             XCTAssertTrue(search.vanishes(within: 2))
         }
+    }
+
+    /// A new label, and the metadata report that makes the app read the snapshot (herdr sends no event for a rename),
+    /// as an agent's `oriel-panes` does.
+    private func relabel(_ pane: String, _ label: String) async throws {
+        try await Self.call(one, "pane.rename", ["pane_id": pane, "label": label])
+        try await Self.call(one, "pane.report_metadata", ["pane_id": pane, "source": "oriel-panes",
+                                                          "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
     }
 
     /// The card's page shows in its overview tile.
@@ -167,7 +175,7 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         let card = try await split(left)
         let label = "oriel:preview#e2eprv \(folder)/"
-        try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "icon.png"])
+        try await relabel(card, label + "icon.png")
         let page = element("preview.\(card).page"), image = page.images["icon.png"]
         XCTAssertTrue(image.exists(within: 10))
         // Fit: as wide as the card at most.
@@ -185,7 +193,7 @@ extension OrielUITests {
         try await send("sips -z 200 300 icon.png >/dev/null\r", to: left)
         XCTAssertTrue(until(5) { abs(image.frame.width - 300) < 2 })
 
-        try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "lines.pdf"])
+        try await relabel(card, label + "lines.pdf")
         let pages = element("pane.\(card).page")
         XCTAssertTrue(until(10) { pages.exists && pages.stringValue.hasPrefix("1 of ") && pages.stringValue != "1 of 1"
         })
@@ -196,13 +204,13 @@ extension OrielUITests {
 
         // The info view: another file, and an image that does not decode (never an empty card).
         for file in ["notes.bin", "broken.png"] {
-            try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + file])
+            try await relabel(card, label + file)
             let name = page.staticTexts.matching(NSPredicate(format: "value == %@", file)).firstMatch
             XCTAssertTrue(name.exists(within: 10), file)
         }
         XCTAssertFalse(pages.exists)
         // Audio in WebKit's player.
-        try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "hi.m4a"])
+        try await relabel(card, label + "hi.m4a")
         XCTAssertTrue(until(10) { page.buttons.firstMatch.exists })
         tiled(card, "preview")
     }
