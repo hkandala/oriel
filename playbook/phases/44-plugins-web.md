@@ -137,14 +137,12 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   page's links: no kind is a file, opened with `PluginKind.opening`); D added `at`, B the watch.
 - **Decisions:** the tree starts with the root's listing and lists a folder when it opens (`Files.list`, which gives
   the ignored flag); the first letter of a filter loads every path (`Files.paths`, again after a change) under the
-  folders not listed yet, and `@pierre/trees`' search shows the matches with their folders. Git letters come from
+  folders not listed yet. The filter matches file names, as the native variant (the first 5,000): Pierre's own
+  search matches whole paths and takes no matcher, so the matches are a second tree, shown in the first one's place. Git letters come from
   one `Git.status`, so a folder never opened still gets its dot. Git runs only when the root is its repository's
   root (the way in opens Files there): `Git.status` paths are the repository's, the tree's its root's.
-- **Decisions:** a click on a match ends the filter and shows the file in the whole tree (the tree's own way); the
-  page tells the app, and row 2's field empties. A double-click opens what its first click was on, as the rows move
-  under it. Double-click, ⌘-click or Return opens; a folder's double-click opens or closes it once. The filter is
-  Pierre's: it matches the whole path from the root (`src` matches every file under `src/`), where the native
-  variant matches names; no matches says so instead of showing the whole tree.
+- **Decisions:** double-click, ⌘-click or Return opens; a folder's double-click opens or closes it once. A filter
+  with no matches says so.
 - **Cause:** a link to a folder or a submodule is `sub/` in a listing and `sub` in `git ls-files`: adding both made
   Pierre's batch throw, and the filter never loaded. One entry per name now.
 - **Decisions:** the Git section reads its changes and history at the load and after each change under the root
@@ -153,7 +151,8 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   `--finished`, `--error`, as the native `Look.git`); the folder dot is always the modified color (the tree does not
   know which letter is inside). ⌘F does nothing over a Files card (B's Find is for File and Markdown).
 - **Measured:** the page bundle is 250 KB (Pierre's tree and Preact). The filter's paths stop at `Files.paths`' 8 MB.
-- **Runs:** the Files test ran on CI only (a chosen-tests run): local UI runs failed in `newTab` while the Mac
-  reported ⌃⌘ held.
+- **Runs:** the Files test ran on CI only (chosen-tests runs): local UI runs failed in `newTab` while the Mac
+  reported ⌃⌘ held. The first run failed at the first row: the test's label had an 8-letter iid, which is no plugin
+  label (6), so the pane stayed a terminal.
 - **For the user:** open Files Here in a big repository (the kernel, a monorepo): the first letter of the filter
   loads every path; check the wait, the arrow keys after it, and the memory of its web process.
