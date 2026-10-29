@@ -33,8 +33,8 @@ extension Page {
     }
 
     /// A linked open: a new herdr tab right after the selected one, in its workspace, which the snapshot after it
-    /// selects with the keyboard.
-    func open(_ kind: PluginKind, arg: String) async {
+    /// selects with the keyboard. Its card starts at `place` (`Plugin.place`).
+    func open(_ kind: PluginKind, arg: String, at place: String? = nil) async {
         guard let workspace = selectedWorkspace,
               let index = workspace.tabs.firstIndex(where: { $0.id == selectedTab?.id }) else { return }
         let label = store.newLabel(kind, arg: arg), cwd = keyboardPane?.cwd ?? "~"
@@ -45,6 +45,9 @@ extension Page {
                                                    command: label.placeholder)
             else { throw HerdrError.failed("herdr named no pane") }
             let pane = try await client.pane(id)
+            if let place, let terminalID = pane.terminalID {
+                terminals.places[terminalID] = place
+            }
             // herdr adds it last: before the tab now after the selected one.
             try await client.move(tab: pane.tabID, to: index + 1)
             follow(pane, pane.terminalID)

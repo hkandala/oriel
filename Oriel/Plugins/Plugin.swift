@@ -112,6 +112,9 @@ final class Plugin {
     var toast: Toast?
     /// The card is to take the keyboard, on the next turn (a first responder set during an update is undone).
     var wantsKeyboard = false
+    /// Where a linked open lands, which the content reads once and sets to nil: a file's 1-based line, a diff's file
+    /// from the repository's root.
+    var place: String?
 
     init(terminalID: String, paneID: String, label: PaneLabel) {
         self.terminalID = terminalID

@@ -26,6 +26,8 @@ final class PaneViewRegistry {
     private var browsers: [String: Browser] = [:]
     /// The other plugin panes' cards, the same way.
     private var plugins: [String: Plugin] = [:]
+    /// A linked open's `Plugin.place`, until its card is made.
+    var places: [String: String] = [:]
 
     /// The pane's terminal, made on first use.
     func terminal(_ terminalID: String, pane paneID: String, client: any Multiplexer) -> PaneTerminal {
@@ -71,6 +73,7 @@ final class PaneViewRegistry {
             return plugin
         }
         let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label)
+        plugin.place = places.removeValue(forKey: terminalID)
         plugins[terminalID] = plugin
         return plugin
     }
