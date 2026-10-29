@@ -122,11 +122,8 @@ struct PreviewCard: View {
             switch preview.content {
             case let .image(image): ImageScroll(image: image, preview: preview, page: page)
                 .accessibilityIdentifier("\(id).image")
-            // A group of their own: AppKit's PDF and player views give out no identifier.
             case let .pdf(document): PDFPages(document: document, preview: preview, page: page)
-                .accessibilityElement(children: .contain).accessibilityIdentifier("\(id).pdf")
             case let .media(url, version): Player(url: url, plugin: plugin, page: page).id(version)
-                .accessibilityElement(children: .contain).accessibilityIdentifier("\(id).player")
             case let .info(note): FileInfo(plugin: plugin, page: page, note: note)
             case nil: PluginLoader(kind: .preview)
             }

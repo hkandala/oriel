@@ -151,7 +151,8 @@ extension OrielUITests {
         try await imageZoomsAndReloads(folder, shell: shell)
 
         let pdf = try await openPlugin("preview", "\(folder)/three.pdf")
-        let pages = element("preview.\(pdf).pdf"), page = element("pane.\(pdf).page")
+        // The card: PDFKit's view gives out no identifier.
+        let pages = element("preview.\(pdf).card"), page = element("pane.\(pdf).page")
         XCTAssertTrue(page.has(\.stringValue, "1 of 3", within: 5))
         // Down, whichever way the wheel goes here.
         pages.scroll(byDeltaX: 0, deltaY: -3000)
@@ -162,7 +163,9 @@ extension OrielUITests {
         try await clickTakesTheKeyboard(pdf, pages)
 
         let audio = try await openPlugin("preview", "\(folder)/a.wav")
-        XCTAssertTrue(element("preview.\(audio).player").exists(within: 5))
+        // The player's controls (AVKit's view gives out no identifier), not the info view.
+        XCTAssertTrue(element("preview.\(audio).card").buttons.firstMatch.exists(within: 5))
+        XCTAssertFalse(element("preview.\(audio).info").exists)
         XCTAssertFalse(element("pane.\(audio).zoom.fit").exists)
 
         let other = try await openPlugin("preview", "\(folder)/data.zip")
