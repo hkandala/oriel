@@ -3,9 +3,8 @@ import HerdrKit
 import Observation
 
 /// A new pane's chooser (ui/new-pane): Terminal, Agent (which opens its agents under it), Browser, Files or
-/// Changes. The app's own
-/// state, kept on the session's store so every window shows it; herdr sees a plain shell. Its card is a new tab's or
-/// split's stand-in until herdr made the pane, then the pane's terminal, which a move keeps.
+/// Changes. The app's own state, kept on the session's store so every window shows it; herdr sees a plain shell. Its
+/// card is a new tab's or split's stand-in until herdr made the pane, then the pane's terminal, which a move keeps.
 @MainActor @Observable
 final class Chooser {
     /// An agent it starts: its name, and its command, which is its program icon's id too.
