@@ -90,7 +90,7 @@ extension OrielUITests {
     /// A Files tab on the repository, selected.
     private func filesCard() async throws -> (tab: String, pane: String) {
         let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
-            "type": "pane", "cwd": "/tmp", "label": "oriel:files#e2e43files /private/tmp/oriel-e2e-files",
+            "type": "pane", "cwd": "/tmp", "label": "oriel:files#e2e43f /private/tmp/oriel-e2e-files",
             "command": ["sh", "-c", "cat", "sh"],
         ]])
         let layout = reply["layout"] as? [String: Any]
