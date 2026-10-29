@@ -93,5 +93,8 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   one.
 - **Decisions:** the menu's Save (⌘S) and Find… (⌘F) go to the page of a File or Markdown card with the keyboard
   (`Page.editor`), in the main and floating windows; over other plugin cards Find stays off.
-- **For the user:** a video or audio file over 16 MB shows the info view, not the player; an image type WebKit cannot
-  draw (PSD, RAW) shows an empty card. Check Open With's apps, the toast's look, and a PDF's zoom by hand.
+- **Decisions (parity, with phase 43):** Preview draws PNG, JPEG, GIF, WebP, HEIC, TIFF, BMP, SVG, PDF, audio and
+  video up to the 16 MB cap; any other file, or one WebKit or pdf.js cannot decode, shows the info view. ⌘G and ⇧⌘G
+  (Find Next and Previous) go to the editor's search; over an editor ⇧⌘G is Find Previous, not Go to Directory. An
+  overview tile runs no second watch; Files lists again when its card shows.
+- **For the user:** check Open With's apps, the toast's look, and a PDF's zoom by hand.
