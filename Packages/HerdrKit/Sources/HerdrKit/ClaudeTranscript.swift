@@ -128,21 +128,16 @@ public enum ClaudeTranscript {
                                into history: inout ChatHistory)
     {
         let failed = block["is_error"] as? Bool == true
-        let content = block["content"] as? String
-            ?? (block["content"] as? [
-                [String: Any]
-            ])?.compactMap { $0["text"] as? String }.joined(separator: "\n") ?? ""
+        let blocks = block["content"] as? [[String: Any]] ?? []
+        let content = block["content"] as? String ?? blocks.compactMap { $0["text"] as? String }.joined(separator: "\n")
         let extra = extra as? [String: Any] ?? [:]
         var diff: [ChatTool.DiffLine] = []
         for hunk in extra["structuredPatch"] as? [[String: Any]] ?? [] {
             var old = hunk["oldStart"] as? Int ?? 1, new = hunk["newStart"] as? Int ?? 1
             for line in hunk["lines"] as? [String] ?? [] {
                 guard let mark = line.first else { continue }
-                diff.append(ChatTool.DiffLine(
-                    mark: mark,
-                    number: mark == "-" ? old : new,
-                    text: String(line.dropFirst()),
-                ))
+                let number = mark == "-" ? old : new
+                diff.append(ChatTool.DiffLine(mark: mark, number: number, text: String(line.dropFirst())))
                 old += mark == "+" ? 0 : 1
                 new += mark == "-" ? 0 : 1
             }
@@ -161,13 +156,7 @@ public enum ClaudeTranscript {
         } else {
             text = ChatHistory.firstLine(content)
         }
-        history.finish(
-            tool: id,
-            result: text,
-            failed: failed,
-            diff: diff,
-            output: ChatHistory.detail(content),
-            at: time,
-        )
+        let output = ChatHistory.detail(content)
+        history.finish(tool: id, result: text, failed: failed, diff: diff, output: output, at: time)
     }
 }

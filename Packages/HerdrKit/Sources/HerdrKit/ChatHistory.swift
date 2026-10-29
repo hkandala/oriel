@@ -1,8 +1,6 @@
 import Foundation
 
-/// An agent's history as the chat view draws it (ui/chat-view): what each adapter's parser makes of the
-/// agent's own transcript. The core is user text, replies, tool calls with their results and turn ends; the rest are
-/// extras an adapter may leave out.
+/// An agent's history as the chat view draws it (ui/chat-view), as each agent's parser reads its transcript.
 public struct ChatHistory: Equatable, Sendable {
     public private(set) var entries: [ChatEntry] = []
     /// The model of the last reply and its thinking effort, in the agent's words ("high"), shown read only.
@@ -20,7 +18,7 @@ public struct ChatHistory: Equatable, Sendable {
         entries.append(entry)
     }
 
-    /// A tool call's result; nil when the call is not known (a result in a later read than its call is still paired).
+    /// A tool call's result, also in a later read than its call; dropped when the call is not known.
     public mutating func finish(tool id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine] = [],
                                 output: String = "", at time: Date?)
     {
@@ -43,7 +41,6 @@ public struct ChatEntry: Equatable, Sendable, Identifiable {
         case todos([ChatTodo])
         /// "Interrupted", an API error, a compaction.
         case note(String, failed: Bool)
-        /// The agent finished its turn after this long.
         case turnEnd(seconds: Double)
     }
 
@@ -208,7 +205,6 @@ extension ChatTool.DiffLine {
         return lines
     }
 
-    /// A new file's lines, all added.
     static func added(_ text: String) -> [Self] {
         text.split(separator: "\n", omittingEmptySubsequences: false).dropLast(text.hasSuffix("\n") ? 1 : 0)
             .enumerated().map { Self(mark: "+", number: $0 + 1, text: String($1)) }

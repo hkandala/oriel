@@ -137,9 +137,10 @@ public struct PiTranscript: Sendable {
     }
 
     private func assistant(_ message: [String: Any], _ blocks: [[String: Any]], id: String, time: Date?) -> [Step] {
-        var steps: [Step] = (message["model"] as? String)
-            .map { [.model($0, effort: message["thinkingLevel"] as? String)] }
-            ?? []
+        var steps: [Step] = []
+        if let model = message["model"] as? String {
+            steps.append(.model(model, effort: message["thinkingLevel"] as? String))
+        }
         for (index, block) in blocks.enumerated() {
             let entry = "\(id).\(index)"
             switch block["type"] as? String {

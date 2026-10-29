@@ -5,7 +5,6 @@ public enum ChatLevel: String, CaseIterable, Sendable {
     case replies, steps, all
 }
 
-/// One row of the chat at a detail level.
 public enum ChatRow: Equatable, Sendable, Identifiable {
     case user(id: String, text: String)
     /// The quiet line under a user message: "Worked 1m 48s · 2 files edited · 3 commands". `since` while it works.

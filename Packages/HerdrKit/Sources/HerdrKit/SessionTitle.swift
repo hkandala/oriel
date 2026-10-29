@@ -11,9 +11,8 @@ enum SessionTitle {
             + #"grep -a '"type":"custom-title"' "$f" | tail -n 1; grep -a '"type":"ai-title"' "$f" | tail -n 1"#,
         "codex": #"grep -a -F "\"id\":\"$1\"" "$HOME/.codex/session_index.jsonl" | tail -n 1"#,
         "pi": #"grep -a '"type":"session_info"' "$1" | tail -n 1"#,
-        "opencode": #"sqlite3 -readonly -cmd '.timeout 1000' "#
-            +
-            #""${XDG_DATA_HOME:-$HOME/.local/share}/opencode/opencode.db" "select title from session where id = '$1'""#,
+        "opencode": #"sqlite3 -readonly -cmd '.timeout 1000' "${XDG_DATA_HOME:-$HOME/.local/share}/opencode/"#
+            + #"opencode.db" "select title from session where id = '$1'""#,
     ]
 
     /// The title in the script's output; nil when there is none yet (OpenCode's own placeholder too).

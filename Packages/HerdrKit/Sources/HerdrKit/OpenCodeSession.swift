@@ -134,10 +134,11 @@ public struct OpenCodeSession {
             return
         }
         let callID = part["callID"] as? String ?? id
-        let call = call(part["tool"] as? String ?? "tool", input, cwd)
-        let target = call.target.isEmpty ? ChatHistory.firstLine(state["title"]) : call.target
-        history.append(ChatEntry(id: id, .tool(ChatTool(id: callID, name: call.name, category: call.category,
-                                                        target: target, input: ChatHistory.detail(input),
+        let tool = part["tool"] as? String ?? "tool", (category, target) = kind(tool, input, cwd)
+        let name = tool == "task" ? input["subagent_type"] as? String ?? "agent" : tool
+        let shown = target.isEmpty ? ChatHistory.firstLine(state["title"]) : target
+        history.append(ChatEntry(id: id, .tool(ChatTool(id: callID, name: name, category: category,
+                                                        target: shown, input: ChatHistory.detail(input),
                                                         started: started)), time: started))
         let ended = date(times?["end"])
         switch state["status"] as? String {
@@ -154,45 +155,19 @@ public struct OpenCodeSession {
         }
     }
 
-    private struct Call {
-        let name: String
-        let category: ChatTool.Category
-        /// Empty: the tool's own title.
-        let target: String
-
-        init(_ name: String, _ category: ChatTool.Category, _ target: String) {
-            self.name = name
-            self.category = category
-            self.target = target
-        }
-    }
-
-    /// The row's name, kind and target.
-    private static func call(_ tool: String, _ input: [String: Any], _ cwd: String?) -> Call {
+    /// The row's kind and target; empty: the tool's own title.
+    private static func kind(_ tool: String, _ input: [String: Any], _ cwd: String?) -> (ChatTool.Category, String) {
         let path = (input["filePath"] as? String).map { ChatHistory.short($0, cwd) } ?? ""
-        switch tool {
-        case "bash": return Call(tool, .command, ChatHistory.firstLine(input["command"]))
-        case "read": return Call(tool, .read, path)
-        case "edit", "write", "multiedit", "apply_patch", "patch": return Call(tool, .edit, path)
-        case "grep", "glob", "list": return Call(
-                tool,
-                .search,
-                ChatHistory.firstLine(input["pattern"] ?? input["path"]),
-            )
-        case "websearch": return Call(tool, .search, ChatHistory.firstLine(input["query"]))
-        case "task":
-            return Call(
-                input["subagent_type"] as? String ?? "agent",
-                .other,
-                ChatHistory.firstLine(input["description"]),
-            )
-        case "question":
-            return Call(
-                tool,
-                .other,
-                ChatHistory.firstLine((input["questions"] as? [[String: Any]])?.first?["question"]),
-            )
-        default: return Call(tool, .other, "")
+        let question = (input["questions"] as? [[String: Any]])?.first?["question"]
+        return switch tool {
+        case "bash": (.command, ChatHistory.firstLine(input["command"]))
+        case "read": (.read, path)
+        case "edit", "write", "multiedit", "apply_patch", "patch": (.edit, path)
+        case "grep", "glob", "list": (.search, ChatHistory.firstLine(input["pattern"] ?? input["path"]))
+        case "websearch": (.search, ChatHistory.firstLine(input["query"]))
+        case "task": (.other, ChatHistory.firstLine(input["description"]))
+        case "question": (.other, ChatHistory.firstLine(question))
+        default: (.other, "")
         }
     }
 

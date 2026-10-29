@@ -28,11 +28,8 @@ public enum CodexRollout {
         case ("event_msg", "turn_aborted"):
             history.append(ChatEntry(id: turn + ".end", .note("Interrupted", failed: false), time: time))
         case ("event_msg", "error"):
-            history.append(ChatEntry(
-                id: UUID().uuidString,
-                .note(payload["message"] as? String ?? "Error", failed: true),
-                time: time,
-            ))
+            let note = ChatEntry.Kind.note(payload["message"] as? String ?? "Error", failed: true)
+            history.append(ChatEntry(id: UUID().uuidString, note, time: time))
         default: break
         }
         return true

@@ -23,11 +23,11 @@ public extension Exec {
     /// also before the file exists, until the stream is dropped. A file rotated meanwhile starts again at the next
     /// follow, which compares its inode with the mark's.
     func follow(_ path: String, from mark: FileMark) async throws -> AsyncStream<FollowedLine> {
-        let channel = try await run(Self.ending(Self.followScript, [path, String(mark.offset), mark.inode]))
+        let lines = try await lines(Self.followScript, [path, String(mark.offset), mark.inode])
         let (stream, continuation) = AsyncStream<FollowedLine>.makeStream()
         let reader = Task {
             var mark = mark
-            for await line in channel.lines {
+            for await line in lines {
                 if line.hasPrefix("oriel-follow ") {
                     let parts = line.split(separator: " ")
                     guard parts.count == 3, let offset = Int(parts[2]) else { continue }
@@ -44,10 +44,8 @@ public extension Exec {
             }
             continuation.finish()
         }
-        continuation.onTermination = { _ in
-            reader.cancel()
-            channel.closeInput()
-        }
+        // Ends `lines`, and so the script.
+        continuation.onTermination = { _ in reader.cancel() }
         return stream
     }
 
@@ -58,9 +56,11 @@ public extension Exec {
         try await lines(Self.watchScript, paths)
     }
 
-    /// A long-running script's lines until the stream is dropped, which ends the script.
+    /// A long-running script's lines until the stream is dropped, which closes its stdin: the wrapper then ends it
+    /// (neither the script nor `tail` reads stdin).
     internal func lines(_ script: String, _ arguments: [String]) async throws -> AsyncStream<String> {
-        let channel = try await run(Self.ending(script, arguments))
+        let channel = try await run(["sh", "-c", TerminalStream.observeWrapper, "sh", "sh", "-c", script, "sh"]
+            + arguments)
         let (stream, continuation) = AsyncStream<String>.makeStream()
         let reader = Task {
             for await line in channel.lines {
@@ -73,12 +73,6 @@ public extension Exec {
             channel.closeInput()
         }
         return stream
-    }
-
-    /// The script, ended when its stdin closes (the app dropped the stream, or quit): neither it nor `tail` reads
-    /// stdin.
-    private static func ending(_ script: String, _ arguments: [String]) -> [String] {
-        ["sh", "-c", TerminalStream.observeWrapper, "sh", "sh", "-c", script, "sh"] + arguments
     }
 
     /// Waits for the file, then tells its inode and where it reads from: the old mark when it is the same file and no
