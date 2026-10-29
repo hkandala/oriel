@@ -97,6 +97,9 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   video up to the 16 MB cap; any other file, or one WebKit or pdf.js cannot decode, shows the info view. ⌘G and ⇧⌘G
   (Find Next and Previous) go to the editor's search; over an editor ⇧⌘G is Find Previous, not Go to Directory. An
   overview tile runs no second watch; Files lists again when its card shows.
+- **Runs:** FileTests green on CI in run 40876173188 after four red runs that were all the tests' own faults: a
+  seven-letter iid (the label grammar takes six), a rename with no metadata report (herdr sends no event for it),
+  CodeMirror's Find field (WebKit makes `name="search"` a search field), a card-wide image at Fit.
 - **For the user:** check Open With's apps, the toast's look, and a PDF's zoom by hand.
 
 ### Track D
