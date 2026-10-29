@@ -30,6 +30,8 @@ extension OrielUITests {
         XCTAssertTrue(item("Sources/main.swift").has(\.stringValue, "M", within: 3), rows(pane))
         filterTree(pane, "notes")
         XCTAssertTrue(item("Sources/main.swift").vanishes(within: 5))
+        filterTree(pane, "zzz")
+        XCTAssertTrue(element("files.\(pane).message").has(\.stringValue, "No matching files", within: 3))
         filterTree(pane, "")
         // The folder open before the filter is open again.
         XCTAssertTrue(item("Sources/main.swift").exists(within: 3))
@@ -42,6 +44,10 @@ extension OrielUITests {
         try await opens("oriel:markdown#", " \(root)/notes.md", from: tab) { item("notes.md").doubleClick() }
         try await opens("oriel:file#", " \(root)/a.swift", from: tab) {
             XCUIElement.perform(withKeyModifiers: .command) { item("a.swift").click() }
+        }
+        try await opens("oriel:file#", " \(root)/a.swift", from: tab) {
+            item("a.swift").click()
+            app.typeKey(.return, modifierFlags: [])
         }
         element("files.\(pane).git").click()
         let change = element("files.\(pane).change.Sources/main.swift")

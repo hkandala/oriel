@@ -42,12 +42,12 @@ extension OrielUITests {
         XCTAssertTrue(label.hasPrefix("oriel:markdown#") && label.hasSuffix(" \(root)/other.md"), label)
         XCTAssertTrue(element("tab.\(opened)").has(\.label, "Markdown other.md", within: 5))
         element("tab.\(cardTab)").click()
-        try await markdownOutline(pane)
+        try await markdownOutline(pane, in: cardTab)
         try await editMarkdown(pane, in: cardTab, shell: shell)
     }
 
     /// The outline: its headings, and a click scrolls to the last.
-    private func markdownOutline(_ pane: String) async throws {
+    private func markdownOutline(_ pane: String, in cardTab: String) async throws {
         element("pane.\(pane).outline").click()
         let bottom = element("markdown.\(pane).heading.1")
         XCTAssertTrue(bottom.has(\.label, "Bottom", within: 3))
@@ -58,6 +58,14 @@ extension OrielUITests {
         XCTAssertTrue(section.has(\.isHittable, true, within: 3))
         element("pane.\(pane).outline").click()
         XCTAssertTrue(bottom.vanishes(within: 3))
+        // ⌘F in Read: Edit, with the find bar; ⌘E goes back.
+        element("tab.\(cardTab)").click()
+        app.typeKey("f", modifierFlags: .command)
+        XCTAssertTrue(element("pane.\(pane).mode.edit").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(element("markdown.\(pane).card").searchFields.firstMatch.exists(within: 3))
+        app.typeKey(.escape, modifierFlags: [])
+        app.typeKey("e", modifierFlags: .command)
+        XCTAssertTrue(element("pane.\(pane).mode.read").has(\.isSelected, true, within: 3))
     }
 
     /// ⌘E, an edit, ⌘S, and changes on disk to the clean and the dirty card.

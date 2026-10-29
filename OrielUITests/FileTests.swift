@@ -50,6 +50,7 @@ extension OrielUITests {
 
         try await keepMineAndOverwrite(pane, shell: shell, folder: folder)
         try await undoFindAndOverview(pane)
+        try await crlfStays(shell, folder: folder)
 
         // A terminal's ⌘F is still its own find bar.
         element("tab.\(tab)").click()
@@ -96,10 +97,11 @@ extension OrielUITests {
         app.typeKey(.upArrow, modifierFlags: .command)
         app.typeText("q")
         XCTAssertTrue(text.has(\.stringValue, "q" + before, within: 2))
+        XCTAssertTrue(element("pane.\(pane).dirty").exists(within: 3))
+        // Back to the disk's text: not dirty.
         app.typeKey("z", modifierFlags: .command)
         XCTAssertTrue(text.has(\.stringValue, before, within: 2))
-        app.typeKey("s", modifierFlags: .command)
-        XCTAssertTrue(element("pane.\(pane).dirty").vanishes(within: 5))
+        XCTAssertTrue(element("pane.\(pane).dirty").vanishes(within: 3))
 
         app.typeKey("f", modifierFlags: .command)
         XCTAssertTrue(element("file.\(pane).card").searchFields.firstMatch.exists(within: 3))
@@ -113,6 +115,21 @@ extension OrielUITests {
         text.click()
         app.typeText("w")
         XCTAssertTrue(element("pane.\(pane).dirty").exists(within: 3))
+    }
+
+    /// A CRLF file keeps CRLF after a Return and a save.
+    private func crlfStays(_ shell: String, folder: String) async throws {
+        try await run("printf 'a\\r\\nb\\r\\n' >\(folder)/crlf.txt", in: shell)
+        let pane = try await openPlugin("file", "\(folder)/crlf.txt")
+        let text = element("file.\(pane).text")
+        XCTAssertTrue(text.has(\.stringValue, "a\r\nb\r\n", within: 5))
+        text.click()
+        app.typeKey(.downArrow, modifierFlags: .command)
+        app.typeKey(.return, modifierFlags: [])
+        app.typeText("c")
+        app.typeKey("s", modifierFlags: .command)
+        XCTAssertTrue(element("pane.\(pane).dirty").vanishes(within: 5))
+        try await run("[ \"$(tr -cd '\\r' <\(folder)/crlf.txt | wc -c)\" -eq 3 ]", in: shell)
     }
 
     /// An image with zoom that reloads from disk, a PDF's pages, audio, another file's info view; a click gives a
