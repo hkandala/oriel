@@ -97,6 +97,8 @@ private extension ChatRow {
         "Asked 1 question", "Wrote 1 file, ran 1 command, edited 1 file, read 1 file", "Ran 1 command",
         "Ran 3 commands, ran toolsearch 1 time, ran search_files 1 time, 2 failed",
     ])
+    #expect(everything.compactMap(\.steps)
+        .contains { $0.contains { $0.kind == .thinking } && $0.contains { $0.tool != nil } })
     // Thinking alone is a row of its own.
     #expect(everything.count { $0.kind == "thinking" } == 2)
     #expect(Set(everything.map(\.id)).count == everything.count)

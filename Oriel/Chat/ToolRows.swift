@@ -110,7 +110,8 @@ private struct Icon: View {
     let symbol: String
 
     var body: some View {
-        Image(systemName: symbol).foregroundStyle(.tertiary).frame(width: 14).accessibilityHidden(true)
+        Image(systemName: symbol).resizable().scaledToFit().foregroundStyle(.tertiary).frame(width: 13, height: 13)
+            .frame(width: 14).accessibilityHidden(true)
     }
 }
 

@@ -157,3 +157,32 @@ user's answers to the orchestrator's questions.
   around the text field. Not worth that now.
 - **For the user.** In a long chat, scroll up: the messages show under the glass box. Hold ⇧Return: lines, no send.
   Press Esc while the agent works.
+
+### Track D
+- **Fix (16):** `Show: Replies · Activity · Everything`, Replies by default (`ChatLevel` cases renamed, so an old
+  saved `steps` or `all` reads as Replies).
+- **Cause (17):** the turn's line counted only edits and commands (reads only when there was neither), and each running
+  run and the line drew their own working dots beside the chat's bottom loader, which hid while the line was last.
+  **Fix:** Replies: `Working 48s · Read 9 files, ran 4 commands` with every tool counted, not openable. Activity: the
+  same line, opening to every step of the turn (tool calls and thinking). Everything: no line; runs, thinking and every
+  reply. No dots on lines or runs; the bottom loader shows whenever the agent works.
+- **Fix (18):** runs are worded as pi-content-layout words them: its verb and noun per tool for every agent's names,
+  calls counted (not distinct files), in the order the tools first ran, `ran ‹tool› N times` for others, codemode's
+  script calls counted as their own (pi's `details.calls`). As in its groups, thinking between tool calls is a step of
+  the run (a `Thought` row inside it) instead of splitting it; thinking alone keeps its own row.
+- **Fix (19):** one shape family for the step symbols: `doc.text`, `square.and.pencil`, `terminal`,
+  `doc.text.magnifyingglass`, `curlybraces.square`, and `text.bubble` for thinking.
+- **Cause (20):** an open call's Input and Output were one scroll view of both axes; inside the strip's sideways
+  scroll view such a scroll view gets no vertical wheel (a probe window showed it). **Fix:** a vertical scroll view
+  around a sideways one.
+- **Cause (21):** while a closed run streamed, its header changed on every call: the running call's target came and
+  went, its working dots came and went, and the verbs flipped between Running and Ran; the bottom loader hid and came
+  back as the line stopped or started being the last row. **Fix:** all of those are gone; only the counts and the
+  line's time change.
+- **Decisions:** Activity shows the same rows as Replies (no plans, no earlier replies): only the line opens. Runs at
+  Everything open by default, as All did. Claude's MCP tools now show their own name (`search_files`, it was
+  `files`). Running verbs (`Running 1 command`) are gone with pi's wording. Not pi's: `web_fetch` counts calls, not pages,
+  pi-herd tools count calls, not agents, and a codemode call's failed script calls do not count as failed (the parsers
+  keep no per-call args or status).
+- **For the user:** at Activity while a turn streams, the closed line must not flicker; the step symbols in an open
+  run read as one size; a sideways swipe over an open output box whose text fits still turns the strip.

@@ -38,8 +38,14 @@ extension OrielUITests {
         level("Everything", in: pane)
         XCTAssertTrue(element("chat.\(pane).summary").vanishes(within: 2))
         XCTAssertEqual(stacks.count, 2)
-        XCTAssertEqual(stacks.element(boundBy: 1).label, "Ran 1 command")
+        XCTAssertTrue(stacks.element(boundBy: 1).label.hasPrefix("Ran 1 command"))
         XCTAssertEqual(stacks.element(boundBy: 1).stringValue, "open")
+        // Clicked closed, a run stays closed.
+        stacks.element(boundBy: 0).click()
+        XCTAssertTrue(stacks.element(boundBy: 0).has(\.stringValue, "closed", within: 2))
+        level("Replies", in: pane)
+        level("Everything", in: pane)
+        XCTAssertTrue(stacks.element(boundBy: 0).has(\.stringValue, "closed", within: 2))
         keepScreenshot("chat")
 
         // Esc anywhere in the chat stops it while it works, as Stop does.
@@ -82,9 +88,11 @@ extension OrielUITests {
         let place = { output.frame.minY - tool.frame.minY }, start = place()
         // The box's middle (its text starts 8 pt in); either way, by natural scrolling.
         let point = "\(output.frame.minX + 40) \(output.frame.minY + 82)"
-        for step in [-10, 10] where place() == start {
+        for step in [-10, 10] {
             _ = try await Self.post("\(one)/swipe", Data("\(point) \(step) 14 100 1".utf8))
-            try await Task.sleep(for: .seconds(1))
+            if until(3, { place() < start - 50 }) {
+                break
+            }
         }
         XCTAssertLessThan(place(), start - 50)
     }

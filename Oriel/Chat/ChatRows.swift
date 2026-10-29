@@ -36,7 +36,7 @@ struct ChatRowView: View, Equatable {
             let tools = steps.compactMap(\.tool)
             stack(steps) {
                 Text(ChatTool.summary(tools)).foregroundStyle(.secondary)
-                Time(start: tools.first?.started, end: tools.last?.ended)
+                Time(start: steps.first?.time, end: tools.last?.ended)
             }
         case let .todos(_, todos): Plan(todos: todos)
         case let .note(_, text, failed):

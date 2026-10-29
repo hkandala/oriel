@@ -68,6 +68,9 @@ Problems that came back across phases, and the rule that stops each. How we work
 
 ## SwiftUI and AppKit
 
+- **Inside a sideways scroll view (the strip), a SwiftUI scroll view of both axes gets no vertical wheel**: only its
+  scroll bar moves it. Nest one scroll view per axis. A probe window that sends wheel events to itself
+  (`window.sendEvent`) shows it without the GUI.
 - **Re-check state after every `await` and before every delayed effect**: state read before an await, late
   drop or hover events after the action ended, an older write winning over a newer one, a double click
   starting two connects. Use generation counters and structured `.task`.
