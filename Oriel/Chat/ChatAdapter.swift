@@ -1,9 +1,8 @@
 import Foundation
 import HerdrKit
 
-/// One agent's side of the chat view (ui/chat-view). The core (`Chat`, the views, `agent.prompt` for
-/// sending) is shared; an adapter says how Oriel starts the agent, how it knows the pane again, how it follows the
-/// agent's history and phase on the pane's machine, how to stop a turn, and, optionally, how to answer a question.
+/// One agent's side of the chat view (ui/chat-view); the core (`Chat`, the views, sending with `agent.prompt`) is
+/// shared.
 protocol ChatAdapter: Sendable {
     /// The chooser's command, which is herdr's agent name too (`claude`).
     static var command: String { get }
@@ -33,6 +32,11 @@ protocol ChatAdapter: Sendable {
 }
 
 extension ChatAdapter {
+    /// The launch's side files, under the home folder of the pane's machine: the user's own, on a shared machine too.
+    var folder: String {
+        ".cache/oriel/chat/\(token)"
+    }
+
     /// As the chat names it ("Reply to Claude Code"): the chooser's name.
     var name: String {
         Chooser.agents.first { $0.command == Self.command }?.name ?? Self.command
@@ -92,8 +96,8 @@ extension Chat {
 
     /// Follows the history file while it is the chat's, each line read by the adapter's parser (false: a torn line);
     /// five torn lines in a row are a problem, until a good one. `restarted`: the file was rewritten.
-    func follow(history source: String, on exec: any Exec, read: (String, inout ChatHistory) -> Bool,
-                restarted: () -> Void = {}) async
+    private func follow(history source: String, on exec: any Exec, read: (String, inout ChatHistory) -> Bool,
+                        restarted: () -> Void = {}) async
     {
         guard let lines = try? await exec.follow(source, from: marks[source] ?? FileMark()) else { return }
         var torn = 0

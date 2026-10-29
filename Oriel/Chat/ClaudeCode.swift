@@ -14,11 +14,6 @@ struct ClaudeCode: ChatAdapter {
     static let stopKeys = ["escape"]
     static let quit = "/exit"
 
-    /// Under the home folder of the pane's machine: the user's own, on a shared machine too.
-    var folder: String {
-        ".cache/oriel/chat/\(token)"
-    }
-
     /// The hooks hold no quote and no backslash, so the single-quoted JSON reads the same in sh, bash, zsh and fish.
     /// `set -f`: `[:cntrl:]` is no file pattern. The question hook writes its pid to `ask` and waits for `answer` while
     /// `ask` still holds its pid (a newer question's hook, or the chat seeing it answered in the terminal, ends it) and

@@ -31,8 +31,7 @@ struct PiAgent: ChatAdapter {
             + ".ts"
     }
 
-    /// Under the home folder of the pane's machine, beside Claude Code's side files (the same 30-day sweep); pi-oriel
-    /// makes its folder.
+    /// pi-oriel makes its folder.
     private static func state(_ token: String) -> String {
         ".cache/oriel/chat/\(token)/pi.jsonl"
     }
@@ -50,7 +49,7 @@ struct PiAgent: ChatAdapter {
     }
 
     /// One run writes the extension, whole: base64 (the relay passes lines), a temporary file, then a rename. pi exits
-    /// at once when `-e` names no file: no chat then. It sweeps old side files (`ChatAdapters.sweep`).
+    /// at once when `-e` names no file: no chat then.
     static func prepare(_ token: String, resume: String?, on exec: any Exec) async -> String? {
         guard let source, let file else { return nil }
         let script = #"""
@@ -62,8 +61,7 @@ struct PiAgent: ChatAdapter {
         return command + " " + flags(token, resume: resume)
     }
 
-    /// `--oriel …/.cache/oriel/chat/T/pi.jsonl` with T a lowercase UUID: the launcher's `pi` and its `pi.real` both
-    /// carry it.
+    /// `--oriel …/.cache/oriel/chat/T/pi.jsonl`: the launcher's `pi` and its `pi.real` both carry it.
     init?(_ foreground: [Program.Foreground]) {
         guard let token = ChatAdapters.marked(foreground, { argv in
             argv.after("--oriel").flatMap { path in

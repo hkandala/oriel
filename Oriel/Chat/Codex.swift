@@ -12,8 +12,7 @@ struct Codex: ChatAdapter {
     static let quit = "/quit"
 
     /// Codex runs it with the user's login shell (`$SHELL -lc`), fish too: plain commands with no variable of its
-    /// own, no quote and no backslash. It runs at each session's first prompt, not at launch, and sweeps old side
-    /// files (`ChatAdapters.sweep`).
+    /// own, no quote and no backslash. It runs at each session's first prompt, not at launch.
     /// ponytail: `$HOME` unquoted, so a home folder with a space gets no chat, as with Claude Code.
     static func hook(_ token: String) -> String {
         // `awk 1`: the line and its newline in one write, so two hooks at once never share a line.
@@ -57,7 +56,7 @@ struct Codex: ChatAdapter {
     /// The last SessionStart with a rollout is the history: a new one after `/new`, `/clear`, a fork or a resume,
     /// at its first prompt. One with no rollout (a hidden thread of Codex's own) is not.
     @MainActor private func sessions(_ chat: Chat, _ exec: any Exec) async {
-        await chat.followSessions(".cache/oriel/chat/\(token)/hooks.jsonl", on: exec, late: false,
+        await chat.followSessions(folder + "/hooks.jsonl", on: exec, late: false,
                                   read: CodexRollout.read) { $0["transcript_path"] as? String }
     }
 

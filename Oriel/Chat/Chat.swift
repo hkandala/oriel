@@ -2,9 +2,8 @@ import Foundation
 import HerdrKit
 import Observation
 
-/// An agent pane's chat (ui/chat-view): the agent's history, whether it is ready, working or waiting, the
-/// messages on their way, and whether the card shows the chat or the terminal. The session's store keeps it by
-/// terminal id, for every window; its adapter follows the agent while a card shows the chat.
+/// An agent pane's chat (ui/chat-view). The session's store keeps it by terminal id, for every window; its adapter
+/// follows the agent while a card shows the chat.
 @MainActor @Observable
 final class Chat {
     enum Phase: Equatable {
@@ -159,7 +158,6 @@ final class Chat {
         }
     }
 
-    /// The agent's interrupt, only while it works.
     func stop() {
         guard phase == .working, let client = store?.client else { return }
         let keys = type(of: adapter).stopKeys, paneID = paneID
@@ -179,8 +177,8 @@ final class Chat {
     }
 }
 
-/// A question the chat can answer (ui/chat-view#waiting): its questions and their options, and what the adapter needs
-/// to answer it (the questions as the agent sent them, a request's id).
+/// A question the chat can answer (ui/chat-view#waiting), and in `raw` what the adapter needs to answer it (the
+/// questions as the agent sent them, a request's id).
 struct ChatQuestion: Equatable {
     struct Item: Equatable {
         let text: String

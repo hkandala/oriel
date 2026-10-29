@@ -14,10 +14,6 @@ struct OpenCode: ChatAdapter {
     static let stopKeys = ["escape", "escape"]
     static let quit = "/exit"
 
-    var folder: String {
-        ".cache/oriel/chat/\(token)"
-    }
-
     static func flags(_ token: String, resume: String?) -> String {
         (resume.map { $0 + " " } ?? "") + "--port 0 --hostname 127.0.0.1 -- oriel-\(token)"
     }
@@ -29,7 +25,6 @@ struct OpenCode: ChatAdapter {
     /// Writes the plugin and its `tui.json` (each whole, then renamed: another pane may be starting) and the launch's
     /// password, then gives the line: the password goes from its file into the environment, never into argv or the
     /// scrollback. The line reads the same in sh, bash, zsh and fish (3.4 and later).
-    /// Side files untouched for 30 days go (`ChatAdapters.sweep`).
     /// ponytail: a home folder with a `"` breaks `tui.json`; escape it if one shows up. A pane running for 30 days
     /// loses its password file then (the chat says the server did not answer); touch it while followed if that matters.
     static func prepare(_ token: String, resume: String?, on exec: any Exec) async -> String? {
@@ -48,8 +43,7 @@ struct OpenCode: ChatAdapter {
             + "OPENCODE_SERVER_PASSWORD=$(cat \"\(folder)/pw\") \(command) \(flags(token, resume: resume))"
     }
 
-    /// The TUI plugin: one line whenever the session, a dialog or the server changes, checked every 200 ms. The
-    /// server's address comes from the SDK client's private `_client`: check it on each opencode release.
+    /// The server's address comes from the SDK client's private `_client`: check it on each opencode release.
     static let plugin = #"""
     // Oriel's TUI plugin: one JSON line to $ORIEL_OC_STATE whenever the session, a dialog or the server changes.
     import { appendFileSync } from "node:fs"

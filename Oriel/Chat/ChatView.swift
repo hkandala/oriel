@@ -18,12 +18,6 @@ struct ChatView: View {
     @Environment(\.look) private var look
     private var settings = AppSettings()
 
-    init(chat: Chat, page: Page, terminal: PaneTerminal?) {
-        self.chat = chat
-        self.page = page
-        self.terminal = terminal
-    }
-
     var body: some View {
         let id = chat.paneID, working = chat.phase == .working, level = settings.chatLevel
         let rows = chat.history.rows(level, working: working)
@@ -139,11 +133,11 @@ struct ChatView: View {
                 }
                 Spacer(minLength: 0)
                 if working, chat.draft.isEmpty {
-                    round("stop.fill", help: "Stop", id: "chat.\(id).stop", action: chat.stop)
+                    roundButton("stop.fill", help: "Stop", id: "chat.\(id).stop", action: chat.stop)
                 } else {
                     let text = !chat.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     let ready = [.ready, .working].contains(chat.phase) || chat.draft.hasPrefix("/")
-                    round("arrow.up", help: "Send", id: "chat.\(id).send", enabled: text && ready) {
+                    roundButton("arrow.up", help: "Send", id: "chat.\(id).send", enabled: text && ready) {
                         chat.send(chat.draft)
                     }
                 }
@@ -155,9 +149,8 @@ struct ChatView: View {
         .onTapGesture { composing = true }
     }
 
-    /// A small round button in the reply box: the accent when it can act, else a faint gray.
-    private func round(_ symbol: String, help: String, id: String, enabled: Bool = true,
-                       action: @escaping () -> Void) -> some View
+    private func roundButton(_ symbol: String, help: String, id: String, enabled: Bool = true,
+                             action: @escaping () -> Void) -> some View
     {
         Button(action: action) {
             Image(systemName: symbol).font(.system(size: 10, weight: .bold))

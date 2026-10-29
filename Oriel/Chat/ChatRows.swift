@@ -141,11 +141,14 @@ struct QuestionCard: View {
             ForEach(question.items, id: \.text) { item in
                 Label(item.text, systemImage: "questionmark.circle.fill").font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical).foregroundStyle(look.needsYou)
-                FlowButtons(options: item.options, chosen: answers[item.text], paneID: paneID) { option in
-                    guard !question.answered else { return }
-                    answers[item.text] = option
-                    if answers.count == question.items.count {
-                        answer(answers)
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(item.options, id: \.self) { option in
+                        Button { pick(option, for: item) } label: {
+                            Text(option).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.glass)
+                        .tint(answers[item.text] == option ? .accentColor : nil)
+                        .accessibilityIdentifier("chat.\(paneID).option.\(option)")
                     }
                 }
             }
@@ -156,24 +159,12 @@ struct QuestionCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chat.\(paneID).question")
     }
-}
 
-private struct FlowButtons: View {
-    let options: [String]
-    let chosen: String?
-    let paneID: String
-    let pick: (String) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(options, id: \.self) { option in
-                Button { pick(option) } label: {
-                    Text(option).frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.glass)
-                .tint(chosen == option ? .accentColor : nil)
-                .accessibilityIdentifier("chat.\(paneID).option.\(option)")
-            }
+    private func pick(_ option: String, for item: ChatQuestion.Item) {
+        guard !question.answered else { return }
+        answers[item.text] = option
+        if answers.count == question.items.count {
+            answer(answers)
         }
     }
 }

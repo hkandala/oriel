@@ -109,8 +109,7 @@ struct ChatCapsule: View {
     }
 }
 
-/// A small segmented control in the app's own style: a track, and the raised pill on the chosen segment, as the tab
-/// bar.
+/// A small segmented control in the app's own style, as the tab bar.
 struct Segments<Value: Hashable>: View {
     let id: String
     let options: [(String, Value)]
