@@ -54,10 +54,6 @@ struct CommandList {
                     action: {
                         Task { await page?.choosePath(directory: true) }
                     }),
-            // The key only over an editor: a disabled item would swallow ⌘S everywhere else.
-            Command(section: .file, title: "Save", key: editor == nil ? nil : .save, symbol: "square.and.arrow.down",
-                    enabled: editor != nil) { page?.editor?.web.send(["op": "save"]) },
-            Self.editMode { page?.editor },
         ]
         let close = [
             Command(section: .close, title: "Close Tab", key: .closeTab, group: .tabs, symbol: "xmark.rectangle",
@@ -93,28 +89,13 @@ struct CommandList {
                     }),
             Command(section: .close, title: "Close Window", symbol: "xmark") { NSApp.keyWindow?.performClose(nil) },
         ]
-        let find = page?.find, terminal = page?.keyboardPane.map { $0.plugin == nil } == true
+        let terminal = page?.keyboardPane.map { $0.plugin == nil } == true
         let browser = page?.keyboardPane.flatMap { page?.browser($0) }
         let edit = [
             Command(section: .edit, title: "Insert Path…", key: .init("i", modifiers: [.command, .shift]),
                     symbol: "text.insert", keywords: "file folder path",
                     enabled: terminal) { Task { await page?.choosePath(directory: false) } },
-            // As in Rex, Find Previous has no key but over an editor: ⇧⌘G is Go to Directory.
-            Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    keywords: "search scrollback", enabled: live && terminal || editor != nil, action: {
-                        if let editor = page?.editor {
-                            editor.web.send(["op": "find"])
-                        } else {
-                            page?.openFind()
-                        }
-                    }),
-            Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
-                    enabled: find != nil || editor != nil) { page?.findStep(1, in: page?.editor) },
-            Command(section: .edit, title: "Find Previous", key: editor == nil ? nil : .findPrevious,
-                    symbol: "chevron.up", enabled: find != nil || editor != nil, action: {
-                        page?.findStep(-1, in: page?.editor)
-                    }),
-        ]
+        ] + Self.editorCommands(page: page, pane: nil, terminal: live && terminal) { [page] in page?.editor }
         return file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + Self
             .browser(browser)
             + view + paneKeys

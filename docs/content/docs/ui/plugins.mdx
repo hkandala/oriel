@@ -125,14 +125,14 @@ File and Markdown edit the file. Both use the same editor and the same rules.
   |---|---|---|
   | the file changed on disk and the card is dirty | "‹name› changed on disk." | Reload, **Keep Mine** |
   | ⌘S, and the file changed on disk since the last read | "‹name› changed on disk since you opened it." | Overwrite, **Reload** |
-  | the save failed | "Could not save ‹name›: ‹reason›" | Close, **Try Again** |
+  | the save failed | "‹name› was not saved: ‹reason›" | Cancel, **Try Again** |
 
   Keep Mine takes the disk's new hash, so the next ⌘S writes over that
   version without a question. Reload drops the edits.
-- **Read only.** A file that is not UTF-8 opens read only. So does a file
-  over 4 MiB on a remote machine.
-- **Too large.** A file over 16 MB shows the info view: the system's icon
-  for its type, its name, its kind and its size.
+- **Read only.** A file over 4 MiB on a remote machine opens read only.
+- **Not text, too large.** A file that is not UTF-8, or one over 16 MB,
+  shows the info view: the system's icon for its type, its name, its kind
+  and its size.
 - Preview reloads its file on a change too. Diff (Uncommitted) and Files
   follow their folder ([Diff](#diff), [Files](#files)).
 
@@ -289,7 +289,7 @@ over the card that uses it, because a disabled menu item swallows its key.
 | ⌘G | Find Next (Edit menu) | always. Over a terminal it steps the find bar |
 | ⇧⌘G | Find Previous (Edit menu) | only while a File or Markdown card has the keyboard. Elsewhere ⇧⌘G is Go to Directory |
 | ⌘E | Edit Mode (View menu) | only while a Markdown card has the keyboard |
-| ⌘+ ⌘− ⌘0 | the app's text size. The card's text follows it, with no page zoom | always |
+| ⌘+ ⌘− ⌘0 | the app's text size. Cards keep their own size, as native ones do | always |
 | ⇧⌘← ⇧⌘→ | Move Tab Left, Right | the page gets it first (select to the line's start or end). When the page does not take it, the tab moves |
 
 - ⌘[ ⌘], ⌘D, ⌘W and the other app keys work over a plugin card as over a
@@ -313,10 +313,11 @@ the machine. The limits:
   file it compares the file's `cksum`. For a folder (Files, a Diff of
   Uncommitted) it compares the folder's entries, its `git status` and the
   changed files' text. A hidden card checks nothing.
-- git comes from the machine's `PATH`. When This Mac has git only as the
-  stub without the developer tools, Files cards show no git and Files and
-  Changes take the pane's folder as their root, on every machine. A remote
-  Diff card still runs git ([Git status](/docs/talking-to-herdr#git-status)).
+- git comes from the machine's `PATH`, and a remote machine's git always
+  runs: one without git shows no git and roots Files and Changes at the
+  pane's folder. When This Mac has git only as the stub without the developer
+  tools, cards on This Mac run no git
+  ([Git status](/docs/talking-to-herdr#git-status)).
 
 ## How the web cards work
 
@@ -341,9 +342,9 @@ the machine. The limits:
 - **Before the page runs**, a document-start script sets `window.card` (the
   label's argument and a linked open's landing) and the app's colors as CSS
   variables on the root: `--text`, `--dim`, `--divider`, `--accent`,
-  `--working`, `--needs-you`, `--finished`, `--error`, `--font-size` and
-  `color-scheme`. So the first paint has the app's colors. A change of look
-  or text size sets them again. The page's background is clear, and the
+  `--working`, `--needs-you`, `--finished`, `--error` and `color-scheme`.
+  So the first paint has the app's colors. A change of look sets them again.
+  The text size is fixed (`--font-size` in `card.css`). The page's background is clear, and the
   card's fill draws behind it.
 - **The bridge** is one script message handler with replies
   (`WKScriptMessageHandlerWithReply`), named `oriel`. The page cannot run a

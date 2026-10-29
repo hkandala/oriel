@@ -6,10 +6,8 @@ extension WebCard {
     /// state.
     func patch() async -> (Any?, String?) {
         guard let store else { return (nil, "Closed") }
-        let (root, source) = PaneLabel(plugin: kind, iid: "", arg: arg).diff
-        // On a Mac without the developer tools git opens their install dialog.
-        let usable = await gitUsable.value
-        guard store.machine.isRemote || usable else { return (nil, "git is not installed") }
+        let (root, source) = diff
+        guard await store.gitRuns() else { return (nil, "git is not installed") }
         do {
             let patch = try await Git.patch(root, commit: source == "uncommitted" ? nil : source,
                                             exec: store.machine.exec())

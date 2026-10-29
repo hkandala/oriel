@@ -19,8 +19,6 @@ const children = new Map<string, Set<string>>()
 const unlisted = new Set<string>()
 const ignored = new Set<string>()
 let changes: Change[] = []
-/** The root, when it is a git repository's root. */
-let repo: string | undefined
 /** Row 2's filter, every path of the root that it searches (loaded at its first letter), and how many match. */
 let filter = ""
 let paths: Promise<void> | undefined
@@ -95,7 +93,7 @@ async function list(at: string) {
   unlisted.delete(at)
   let entries: Entry[]
   try {
-    entries = await ask({ op: "list", path: at ? `${base}/${at.slice(0, -1)}` : root, repo })
+    entries = await ask({ op: "list", path: at ? `${base}/${at.slice(0, -1)}` : root })
   } catch {
     if (at) return
     children.clear()
@@ -207,7 +205,7 @@ receive((message) => {
 /** Every file of the root, for the filter: added under the folders no listing filled yet. */
 async function loadPaths() {
   const operations: FileTreeBatchOperation[] = []
-  for (const path of (await ask({ op: "paths", repo }).catch(() => [])) as string[]) put(path, operations)
+  for (const path of (await ask({ op: "paths" }).catch(() => [])) as string[]) put(path, operations)
   tree.batch(operations)
 }
 
@@ -218,7 +216,6 @@ head.addEventListener("click", () => head.setAttribute("aria-expanded", String(s
 
 async function git() {
   const answer: { changes: Change[]; commits: Commit[] } | null = await ask({ op: "git" }).catch(() => null)
-  repo = answer ? root : undefined
   section.hidden = !answer
   changes = answer?.changes ?? []
   showStatus()

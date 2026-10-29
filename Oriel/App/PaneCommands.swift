@@ -129,29 +129,15 @@ extension CommandList {
                     enabled: palette != nil) { palette?.wrappedValue.toggle() },
             Command(section: .view, title: "Stay on Top", symbol: "pin", checked: page.floating[terminalID] == true,
                     setting: true) { page.floating[terminalID]?.toggle() },
-            // The key only over an editor: a disabled item would swallow ⌘S everywhere else.
-            Command(section: .file, title: "Save", key: editor == nil ? nil : .save, symbol: "square.and.arrow.down",
-                    enabled: editor != nil) { editor?.web.send(["op": "save"]) },
-            Self.editMode { editor },
-            Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    enabled: pane.map { $0.plugin == nil } == true || editor != nil, action: {
-                        if let editor {
-                            editor.web.send(["op": "find"])
-                        } else {
-                            page.openFind(pane)
-                        }
-                    }),
-            Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
-                    enabled: page.find != nil || editor != nil) { page.findStep(1, in: editor) },
-            Command(section: .edit, title: "Find Previous", key: editor == nil ? nil : .findPrevious,
-                    symbol: "chevron.up", enabled: page.find != nil || editor != nil) { page.findStep(-1, in: editor) },
-            edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
-            edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
-        ] + Self.pane(page, tabs: false) { pane }.filter { $0.section == .close }.map {
-            // ⌘W detaches, as the red light.
-            var command = $0
-            command.key = command.key == .closePane ? .closeTab : command.key
-            return command
-        } + sizes + Self.browser(pane.flatMap(page.browser))
+        ] + Self.editorCommands(page: page, pane: pane, terminal: pane.map { $0.plugin == nil } == true) { editor }
+            + [
+                edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
+                edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
+            ] + Self.pane(page, tabs: false) { pane }.filter { $0.section == .close }.map {
+                // ⌘W detaches, as the red light.
+                var command = $0
+                command.key = command.key == .closePane ? .closeTab : command.key
+                return command
+            } + sizes + Self.browser(pane.flatMap(page.browser))
     }
 }
