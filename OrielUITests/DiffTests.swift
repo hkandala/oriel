@@ -59,7 +59,7 @@ extension OrielUITests {
         try await commandClick(far, after: tab, root: root)
         try await show(tab)
         try await sideBySide(card, page, far)
-        XCTAssertTrue(far.has(\.isHittable, true, within: 3))
+        XCTAssertTrue(far.has(\.isHittable, true, within: 3), "far \(far.frame), page \(page.frame)")
         try await commandClick(far, after: tab, root: root)
         try await send("cd / && rm -rf \(repo)\r", to: left)
     }
