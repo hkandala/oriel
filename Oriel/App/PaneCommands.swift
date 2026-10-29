@@ -110,7 +110,7 @@ extension CommandList {
         let terminalID = floating.terminalID
         guard let page = pages?.withFloats.first(where: { $0.id == floating.session }) else { return [] }
         let pane = page.store.panes.first { $0.terminalID == terminalID }
-        let terminal = pane.flatMap(page.terminal)
+        let terminal = pane.flatMap(page.terminal), editor = pane.flatMap(page.plugin).flatMap { $0.edits ? $0 : nil }
         var main = self
         main.floating = nil
         let sizes = main.all.filter { $0.section == .size || $0.title == "Font Size" }
@@ -129,8 +129,16 @@ extension CommandList {
                     enabled: palette != nil) { palette?.wrappedValue.toggle() },
             Command(section: .view, title: "Stay on Top", symbol: "pin", checked: page.floating[terminalID] == true,
                     setting: true) { page.floating[terminalID]?.toggle() },
+            Command(section: .file, title: "Save", key: .init("s"), symbol: "square.and.arrow.down",
+                    enabled: editor != nil) { editor?.web.send(["op": "save"]) },
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    enabled: pane.map { $0.plugin == nil } == true) { page.openFind(pane) },
+                    enabled: pane.map { $0.plugin == nil } == true || editor != nil, action: {
+                        if let editor {
+                            editor.web.send(["op": "find"])
+                        } else {
+                            page.openFind(pane)
+                        }
+                    }),
             Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
                     enabled: page.find != nil) { Task { await page.find?.step(1) } },
             Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: page.find != nil) {
