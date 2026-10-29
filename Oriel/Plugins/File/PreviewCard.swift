@@ -179,13 +179,14 @@ struct FileInfo: View {
 
     var body: some View {
         let path = plugin.label.arg, type = UTType(filenameExtension: (path as NSString).pathExtension) ?? .data
+        let name = (path as NSString).lastPathComponent
+        let details = [size?.formatted(.byteCount(style: .file)), type.localizedDescription].compactMap(\.self)
+            .joined(separator: " · ")
         VStack(spacing: 6) {
             Image(nsImage: NSWorkspace.shared.icon(for: type)).resizable().frame(width: 64, height: 64)
                 .padding(.bottom, 6)
-            Text((path as NSString).lastPathComponent).font(.system(size: 13, weight: .semibold))
-            Text([size?.formatted(.byteCount(style: .file)), type.localizedDescription].compactMap(\.self)
-                .joined(separator: " · "))
-                .foregroundStyle(.secondary)
+            Text(name).font(.system(size: 13, weight: .semibold))
+            Text(details).foregroundStyle(.secondary)
             if let note {
                 Text(note).foregroundStyle(.secondary)
             }
@@ -194,9 +195,11 @@ struct FileInfo: View {
         .multilineTextAlignment(.center)
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Before the element: its focus wrapper would take the identifier from the combined label.
         .takesKeyboard(plugin, page)
-        .accessibilityElement(children: .combine)
+        // One element that reads its lines: a plain Text gives a combined element no label.
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isStaticText)
+        .accessibilityLabel([name, details, note].compactMap(\.self).joined(separator: ", "))
         .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).info")
         .task(id: path) {
             if isEnabled {
