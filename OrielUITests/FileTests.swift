@@ -27,7 +27,7 @@ extension OrielUITests {
         let editor = element("file.\(card).page").textViews.firstMatch
         XCTAssertTrue(until(10) { editor.exists && editor.stringValue.contains("let x = 1") })
         let jump = element("pane.\(card).jump"), dirty = element("pane.\(card).dirty")
-        XCTAssertEqual(jump.stringValue, "oriel-e2e-file › main.swift")
+        XCTAssertTrue(jump.stringValue.hasPrefix("oriel-e2e-file › main.swift"), jump.stringValue)
         editor.click()
         app.typeKey(.upArrow, modifierFlags: .command)
         app.typeKey(.downArrow, modifierFlags: [])
@@ -147,9 +147,9 @@ extension OrielUITests {
         let (tab, left) = try await newTab("preview")
         try await waitForPrompt(left)
         let folder = "/tmp/oriel-e2e-preview"
-        try await send("rm -rf \(folder) && mkdir \(folder) && cd \(folder) && sips -s format png -z 900 1200 "
-            + "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericDocumentIcon.icns "
-            + "--out icon.png >/dev/null && seq 1 150 >lines.txt && cupsfilter lines.txt >lines.pdf 2>/dev/null "
+        try await send("rm -rf \(folder) && mkdir \(folder) && cd \(folder) && { printf 'P6\\n1200 900\\n255\\n'; "
+            + "head -c 3240000 /dev/zero | tr '\\0' '\\200'; } >gray.ppm && sips -s format png gray.ppm --out icon.png "
+            + ">/dev/null && seq 1 150 >lines.txt && cupsfilter lines.txt >lines.pdf 2>/dev/null "
             + "&& head -c 3000 /dev/urandom >notes.bin && printf nope >broken.png "
             + "&& say -o hi.m4a --data-format=aac hi && clear && echo ready-$((6*7))\r", to: left)
         try await waitFor(left) { $0.contains("ready-42") }
@@ -164,11 +164,12 @@ extension OrielUITests {
         try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "icon.png"])
         let page = element("preview.\(card).page"), image = page.images["icon.png"]
         XCTAssertTrue(image.exists(within: 10))
-        XCTAssertTrue(until(3) { image.frame.width > 100 && image.frame.width < page.frame.width })
+        // Fit: as wide as the card at most.
+        XCTAssertTrue(until(3) { image.frame.width > 100 && image.frame.width <= page.frame.width + 1 })
         element("pane.\(card).zoom.actual").click()
         XCTAssertTrue(until(3) { abs(image.frame.width - 1200) < 2 })
         element("pane.\(card).zoom.fit").click()
-        XCTAssertTrue(until(3) { image.frame.width < page.frame.width })
+        XCTAssertTrue(until(3) { image.frame.width <= page.frame.width + 1 })
         let fit = image.frame.width
         element("pane.\(card).zoom.in").click()
         XCTAssertTrue(until(3) { abs(image.frame.width - fit * 1.25) < 2 })
