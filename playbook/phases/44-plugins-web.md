@@ -171,8 +171,9 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   `.isSelected`); front matter hidden in Read and skipped by the outline, text in Edit; images are not loaded, their
   alt text links to them (a relative one opens Preview); links open from Read only; a linked open with a line opens
   Edit at that line. Unlike the native variant there is no 128 KB gate: CodeMirror and markdown-it stay fast at
-  megabytes; the File card's caps (16 MB view, 4 MiB remote edit) hold. lezer has no front matter rule, so Edit draws
-  its last key as a setext heading: accepted, the text is right.
+  megabytes; the File card's caps (16 MB view, 4 MiB remote edit) hold. Front matter (`---` on the first line to the
+  next `---` line) is YAML in Edit (`yamlFrontmatter`), so it is no rule or heading there nor in the outline. Away
+  from the caret a task's `[ ]` is a box; table pipes stay (CodeMirror has no table view).
 - **Cause:** with `html: true` a file's `<meta http-equiv=refresh>`, a form or an SVG link navigated the card to any
   site, which then had the bridge (read and save the file). **Fix:** every web card allows only `oriel-plugin:`
   navigations (`Relay`).

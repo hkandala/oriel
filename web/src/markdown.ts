@@ -2,9 +2,10 @@
 // mark hidden unless the caret is in its element. The outline lists the headings; row 2 picks the mode and the
 // outline, and the page reports what it shows.
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
+import { yamlFrontmatter } from "@codemirror/lang-yaml"
 import { ensureSyntaxTree, HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language"
 import { Prec } from "@codemirror/state"
-import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view"
+import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from "@codemirror/view"
 import { tags } from "@lezer/highlight"
 import MarkdownIt from "markdown-it"
 import { arg, at, receive, report } from "./lib/bridge"
@@ -22,8 +23,8 @@ document.body.append(outline, pane)
 
 const md = new MarkdownIt({ html: true, linkify: true })
 type Env = { ids: Map<string, number>; line: number }
-/** A YAML front matter's end: Read leaves it out, the outline skips it. */
-const front = (text: string) => /^---\n[\w-]+:[\s\S]*?\n---(?:\n|$)/.exec(text)?.[0].length ?? 0
+/** A YAML front matter's end, which Read leaves out: Edit's parser (`yamlFrontmatter`) takes the same lines. */
+const front = (text: string) => /^---\n[\s\S]*?\n---(?:\n|$)/.exec(text)?.[0].length ?? 0
 
 /** The text as HTML, without its front matter, task boxes drawn as GitHub does. */
 function render(text: string) {
@@ -50,8 +51,11 @@ md.renderer.rules.image = (tokens, i) => {
   return `<a href="${escapeHtml(src)}">${escapeHtml(tokens[i].content || src)}</a>`
 }
 
-// Marks in Edit, hidden outside their element: a heading's `#`, emphasis, a link's brackets and address, code ticks.
-const marks = new Set(["HeaderMark", "EmphasisMark", "StrikethroughMark", "LinkMark", "URL", "LinkTitle", "CodeMark"])
+// Marks in Edit, hidden outside their element: a heading's `#`, emphasis, a link's brackets and address, code ticks;
+// a task's `[ ]` becomes a box.
+const marks = new Set([
+  "HeaderMark", "EmphasisMark", "StrikethroughMark", "LinkMark", "URL", "LinkTitle", "CodeMark", "TaskMarker",
+])
 // A setext heading's underline stays: hidden, it would leave an empty line.
 const shown = new Set(["FencedCode", "Autolink", "LinkReference", "SetextHeading1", "SetextHeading2"])
 
@@ -70,11 +74,25 @@ function hidden(view: EditorView): DecorationSet {
         if (state.selection.ranges.some((range) => range.from <= parent.to && range.to >= parent.from)) return
         // A heading's mark takes its space along.
         const end = node.name === "HeaderMark" && state.sliceDoc(node.to, node.to + 1) === " " ? node.to + 1 : node.to
-        ranges.push(Decoration.replace({}).range(node.from, end))
+        const box = node.name === "TaskMarker" ? new Box(state.sliceDoc(node.from + 1, node.to - 1) !== " ") : undefined
+        ranges.push(Decoration.replace({ widget: box }).range(node.from, end))
       },
     })
   }
   return Decoration.set(ranges, true)
+}
+
+/** A task's box in Edit, as Read draws it. */
+class Box extends WidgetType {
+  constructor(readonly checked: boolean) {
+    super()
+  }
+  eq(other: Box) {
+    return other.checked === this.checked
+  }
+  toDOM() {
+    return Object.assign(document.createElement("input"), { type: "checkbox", disabled: true, checked: this.checked })
+  }
 }
 
 const livePreview = ViewPlugin.fromClass(
@@ -109,7 +127,8 @@ let edit = false
 let outlined = false
 article.hidden = true
 const view = await editor([
-  markdown({ base: markdownLanguage }),
+  // Front matter as YAML, not as a rule and a heading.
+  yamlFrontmatter({ content: markdown({ base: markdownLanguage }) }),
   syntaxHighlighting(look),
   livePreview,
   EditorView.lineWrapping,
@@ -148,12 +167,11 @@ function show(view: EditorView, nowEdit: boolean, nowOutlined: boolean) {
 function list(view: EditorView) {
   const { state } = view
   const rows: HTMLButtonElement[] = []
-  const start = front(state.doc.sliceString(0, 10_000))
   syntaxTree(state).iterate({
     enter(node) {
       const level = /^(?:ATX|Setext)Heading(\d)$/.exec(node.name)?.[1]
-      if (!level) return ["Document", "Blockquote", "BulletList", "OrderedList", "ListItem"].includes(node.name)
-      if (node.from < start) return false
+      // `Body` holds the Markdown after the front matter.
+      if (!level) return ["Document", "Body", "Blockquote", "BulletList", "OrderedList", "ListItem"].includes(node.name)
       const line = state.doc.lineAt(node.from)
       // The text between an ATX heading's marks, or above a setext heading's underline.
       const [first, last] = node.node.getChildren("HeaderMark")
