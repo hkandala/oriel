@@ -79,10 +79,10 @@ struct PluginToolbar: View {
     let page: Page
 
     var body: some View {
-        if plugin.kind == .diff {
-            DiffToolbar(plugin: plugin, page: page)
-        } else {
-            pathRow
+        switch plugin.kind {
+        case .diff: DiffToolbar(plugin: plugin, page: page)
+        case .files: FilesBar(card: plugin.web, paneID: plugin.paneID)
+        default: pathRow
         }
     }
 

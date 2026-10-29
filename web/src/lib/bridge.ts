@@ -5,14 +5,34 @@ export type Info = { name: string; size: string; kind: string; icon: string }
 /** `read`: the card's file, as its kind shows it (Oriel/Plugins/File/Document.swift). */
 export type FileReply = { text: string; readOnly: boolean } | { info: Info }
 export type PreviewReply = { type: string; data: string; fallback: Info } | { info: Info }
+/** A folder's entry (`list`). */
+export type Entry = { name: string; folder: boolean; ignored: boolean }
+/** A changed file from the repository's root (`git`), its letter as `Git.Change`'s. */
+export type Change = { letter: string; path: string }
+/** A commit with its row of the history graph (`git`): lanes as `Git.GraphRow`'s, `date` in ms. */
+export type Commit = {
+  hash: string
+  subject: string
+  date: number
+  lane: number
+  children: number[]
+  parents: number[]
+  through: number[]
+}
 
 /** `patch`: a diff's patch as git prints it, its repo's root, and row 2's state. */
 export type PatchReply = { patch: string; root: string; split: boolean; list: boolean }
 
-type Ask = { op: "read" } | { op: "patch" }
+/** `list`, `paths` and `git`: the Files card's root (Oriel/Plugins/Files/FilesCard.swift). */
+type Ask =
+  | { op: "read" }
+  | { op: "patch" }
+  | { op: "list"; path: string; repo?: string }
+  | { op: "paths"; repo?: string }
+  | { op: "git" }
 /**
  * `open`: a new tab; with no kind, `arg` is a file opened with its kind; `at` its landing (`at` below). `save`: the
- * editor's text, to disk.
+ * editor's text, to disk. `filter`: the Files card ended its filter.
  */
 type Report =
   | { op: "dirty"; dirty: boolean }
@@ -20,6 +40,7 @@ type Report =
   | { op: "save"; text: string }
   | { op: "symbol"; symbol: string }
   | { op: "page"; page: number; pages: number }
+  | { op: "filter"; text: string }
 /** From the app: row 2's controls, menu commands, and the file again after a change on disk. */
 export type In =
   | ({ op: "load" } & (FileReply | PreviewReply))
@@ -28,8 +49,10 @@ export type In =
   | { op: "layout"; split: boolean }
   | { op: "list"; open: boolean }
   | { op: "step"; by: 1 | -1 }
-  /** The work tree changed: ask for the patch again. */
+  /** The work tree changed: a diff asks for the patch again, Files lists its open folders again. */
   | { op: "changed" }
+  | { op: "filter"; text: string }
+  | { op: "collapse" }
 
 declare global {
   interface Window {
