@@ -53,8 +53,9 @@ struct TabButton: View {
                 }
             }
             .padding(.leading, 11)
-            // The title fades out before the × (its 22 pt circle ends 28 pt from the end), else at 12 pt.
-            .padding(.trailing, keycap != nil ? keycapInset : hovering && !renaming ? 28 : 12)
+            // The title fades out before the × (its 22 pt circle ends 28 pt from the end) or the working dots (24 pt),
+            // else at 12 pt.
+            .padding(.trailing, keycap != nil ? keycapInset : hovering && !renaming || working ? 28 : 12)
             .frame(width: TabBar.width, height: TabBar.height, alignment: .leading)
         }
         // The selection is the tab bar's marker.
