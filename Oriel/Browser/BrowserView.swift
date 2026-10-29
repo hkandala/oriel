@@ -14,7 +14,7 @@ class BrowserView: WKWebView {
 
     /// The key window's browser that has the keyboard: ⌘+ ⌘− ⌘0 zoom its page.
     static var focused: BrowserView? {
-        // A web card follows the app's text size, as a native card does.
+        // Not a web card's: it keeps its text size, and the keys size the terminals' text.
         (NSApp.keyWindow?.firstResponder as? BrowserView).flatMap { $0 is WebCardView ? nil : $0 }
     }
 

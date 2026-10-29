@@ -458,9 +458,10 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
   pages never run. One run per workspace at a time.
 - **No developer tools.** At launch the app checks once where `git` is. When
   it is only `/usr/bin/git` and `xcode-select -p` fails, the app runs no git
-  at all, so macOS never offers to install the developer tools. Rows then
-  have one line, Files cards show no git, and Diff cards say "git is not
-  installed".
+  on This Mac, so macOS never offers to install the developer tools. Rows on
+  every machine then have one line. This Mac's Files cards show no git and
+  its Diff cards say "git is not installed". Plugin cards on a remote machine
+  still run that machine's git.
 - **Worktrees.** herdr's `worktree.is_linked_worktree` and `repo_key` place a
   linked worktree under its repository's workspace. No git run is needed for
   that. herdr 0.9.5 fills a workspace's `worktree` only after a `worktree.*`

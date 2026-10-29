@@ -62,8 +62,7 @@ struct DiffToolbar: View {
             .foregroundStyle(look.paneButton)
         }
         .task(id: root) {
-            let usable = await gitUsable.value
-            guard page.store.machine.isRemote || usable else { return }
+            guard await page.store.gitRuns() else { return }
             commits = await (try? Git.log(root, exec: page.store.machine.exec()).prefix(50)).map(Array.init) ?? []
         }
     }

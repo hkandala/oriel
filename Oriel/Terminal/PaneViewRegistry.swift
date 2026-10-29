@@ -69,7 +69,6 @@ final class PaneViewRegistry {
         if let plugin = plugins[terminalID], plugin.label.iid == label.iid {
             if plugin.paneID != pane.id {
                 plugin.paneID = pane.id
-                plugin.web.view.setAccessibilityIdentifier("\(plugin.web.kind).\(pane.id).page")
             }
             return plugin
         }

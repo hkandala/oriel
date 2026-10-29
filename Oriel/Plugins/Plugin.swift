@@ -104,7 +104,10 @@ extension PaneLabel {
 @MainActor @Observable
 final class Plugin {
     let terminalID: String
-    var paneID: String
+    var paneID: String {
+        didSet { name() }
+    }
+
     /// Its arg changes with a rename from elsewhere or the card's own (a diff's source); its iid never does.
     var label: PaneLabel
     /// The content: `web/src/<kind>.ts`.
@@ -114,8 +117,12 @@ final class Plugin {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
-        web = WebCard(kind: (label.kind ?? .file).rawValue, arg: label.arg, place: place, store: store)
-        web.view.setAccessibilityIdentifier("\(web.kind).\(paneID).page")
+        web = WebCard(kind: label.kind ?? .file, arg: label.arg, place: place, store: store)
+        name()
+    }
+
+    private func name() {
+        web.view.setAccessibilityIdentifier("\(kind.rawValue).\(paneID).page")
     }
 
     var kind: PluginKind {

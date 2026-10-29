@@ -1,4 +1,8 @@
-/* The app sets the variables on the root element (WebCard.swift); the card's fill draws behind the page. */
+/* The app sets the colors on the root element (WebCard.swift); the card's fill draws behind the page. Cards keep
+   one text size, as native ones do. */
+:root {
+  --font-size: 13px;
+}
 html,
 body {
   margin: 0;

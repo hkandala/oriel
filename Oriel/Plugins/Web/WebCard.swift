@@ -9,7 +9,7 @@ import WebKit
 /// process per web view whatever the process pool. The page talks to the app through `web/src/lib/bridge.ts`.
 @MainActor @Observable
 final class WebCard {
-    let kind: String
+    let kind: PluginKind
     /// The label's argument; a new one (a rename from elsewhere, a diff's source) loads the page again with it.
     var arg: String {
         didSet {
@@ -28,7 +28,7 @@ final class WebCard {
     @ObservationIgnored let view: WebCardView
     /// A linked open's landing, for the first load only: a line for a file, a path from the repo's root for a diff.
     @ObservationIgnored private var place: String?
-    /// Opens a link from the page in a new tab (`Page.open(_:arg:at:)`).
+    /// Opens a link from the page in a new tab (`Page.open(_:arg:at:from:)`).
     @ObservationIgnored var open: ((PluginKind, String, String?) -> Void)?
     fileprivate(set) var dirty = false
     /// A diff's row 2: Side by Side, and the file list shown. Per card, not saved.
@@ -42,6 +42,8 @@ final class WebCard {
 
     /// Files: row 2's filter; a page loaded again ends it.
     var filter = ""
+    /// Files: the root, when the last `git` ask found it a repository's root; listings then carry git's state.
+    @ObservationIgnored var repo: String?
     /// What the Markdown page shows, as it reports it.
     private(set) var markdown = (edit: false, outline: false)
     var toast: Toast?
@@ -56,7 +58,7 @@ final class WebCard {
     @ObservationIgnored private var loaded = false
     @ObservationIgnored private var css = ""
 
-    init(kind: String, arg: String, place: String?, store: HostStore) {
+    init(kind: PluginKind, arg: String, place: String?, store: HostStore) {
         self.kind = kind
         self.arg = arg
         self.place = place
@@ -169,10 +171,11 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
         await card?.answer(message.body) ?? (nil, "Closed")
     }
 
-    /// The bundle's pages only: a Markdown file's HTML (a `<meta>` refresh, a form) would take the view, and the
-    /// bridge with it, to any site.
+    /// The card's own page only: a Markdown file's HTML (a `<meta>` refresh, a form) would take the view, and the
+    /// bridge with it, to any site or to another kind's page.
     func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
-        action.request.url?.scheme == PluginScheme.name ? .allow : .cancel
+        guard let url = action.request.url, let card else { return .cancel }
+        return url.scheme == PluginScheme.name && url.path == PluginScheme.page(card.kind).path ? .allow : .cancel
     }
 
     func webView(_: WKWebView, didFinish _: WKNavigation!) {
@@ -208,14 +211,14 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
     static let name = "oriel-plugin"
     private static let folder = Bundle.main.resourceURL?.appending(path: "web")
 
-    static func page(_ kind: String) -> URL {
-        URL(string: "\(name)://app/")?.appending(path: kind) ?? URL(filePath: "/")
+    static func page(_ kind: PluginKind) -> URL {
+        URL(string: "\(name)://app/")?.appending(path: kind.rawValue) ?? URL(filePath: "/")
     }
 
     func webView(_: WKWebView, start task: any WKURLSchemeTask) {
         guard let url = task.request.url else { return }
         // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
-        let file = url.lastPathComponent, page = url.pathExtension.isEmpty
+        let file = url.lastPathComponent, page = url.pathExtension.isEmpty && PluginKind(rawValue: file) != nil
         // A kind's page has its own styles when it imports CSS (esbuild writes `<kind>.css`).
         let styles = page && Self.folder
             .map { FileManager.default.fileExists(atPath: $0.appending(path: "\(file).css").path) } == true
@@ -244,12 +247,11 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
     func webView(_: WKWebView, stop _: any WKURLSchemeTask) {}
 }
 
-/// A card's page in the card, with the app's colors and text size.
+/// A card's page in the card, with the app's colors.
 struct WebCardContent: View {
     let card: WebCard
     @Environment(\.self) private var environment
     @Environment(\.look) private var look
-    @AppStorage("fontSize") private var fontSize = PaneTerminal.fontSize
 
     var body: some View {
         let css = [
@@ -259,7 +261,7 @@ struct WebCardContent: View {
         ].map { name, color in
             let rgb = color.resolve(in: environment)
             return "--\(name): rgb(\(rgb.red * 255) \(rgb.green * 255) \(rgb.blue * 255) / \(rgb.opacity))"
-        }.joined(separator: "; ") + "; --font-size: \(fontSize)px; color-scheme: \(look.dark ? "dark" : "light")"
+        }.joined(separator: "; ") + "; color-scheme: \(look.dark ? "dark" : "light")"
         WebHost(view: card.view).onChange(of: css, initial: true) { card.theme(css) }
     }
 }

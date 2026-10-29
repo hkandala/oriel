@@ -52,10 +52,16 @@ const pdf = async (data: Uint8Array, fallback: () => void) => {
     report({ op: "page", page: pageNumber, pages: viewer.pagesCount }),
   )
   // The scheme serves pdf.js's fonts, maps and decoders from the bundle's one folder.
-  const document_ = await pdfjs
-    .getDocument({ data, isEvalSupported: false, wasmUrl: "./", standardFontDataUrl: "./", cMapUrl: "./" })
-    .promise.catch(fallback)
-  if (!document_) return
+  const task = pdfjs.getDocument({
+    data,
+    isEvalSupported: false,
+    wasmUrl: "./",
+    standardFontDataUrl: "./",
+    cMapUrl: "./",
+  })
+  // A failed load would leave its worker running.
+  const document_ = await task.promise.catch(() => void task.destroy())
+  if (!document_) return fallback()
   viewer.setDocument(document_)
   release = () => void document_.destroy()
   report({ op: "page", page: 1, pages: document_.numPages })

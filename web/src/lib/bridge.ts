@@ -27,8 +27,8 @@ export type PatchReply = { patch: string; root: string; split: boolean; list: bo
 type Ask =
   | { op: "read" }
   | { op: "patch" }
-  | { op: "list"; path: string; repo?: string }
-  | { op: "paths"; repo?: string }
+  | { op: "list"; path: string }
+  | { op: "paths" }
   | { op: "git" }
 /**
  * `open`: a new tab; with no kind, `arg` is a file opened with its kind; `at` its landing (`at` below). `save`: the

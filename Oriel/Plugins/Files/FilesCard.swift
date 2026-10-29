@@ -28,7 +28,7 @@ extension WebCard {
     /// path for the filter, and the repository's changes and history when the root is a repository's; and its report
     /// that the filter ended. The other kinds' messages come first (`answer`).
     func files(_ message: [String: Any]) async -> (Any?, String?) {
-        let ask = message["op"] as? String, repo = message["repo"] as? String
+        let ask = message["op"] as? String
         guard ask != "filter" else {
             filter = message["text"] as? String ?? ""
             return (nil, nil)
@@ -44,7 +44,9 @@ extension WebCard {
                 return try await (Files.paths(arg, repo: repo, exec: exec), nil)
             default:
                 // A root inside a repository but not its root shows no git (the Files pane's root is the repo's).
-                guard await gitUsable.value, await Git.root(arg, exec: exec) == arg else { return (NSNull(), nil) }
+                let runs = await store?.gitRuns() == true
+                repo = runs ? await Git.root(arg, exec: exec).flatMap { $0 == arg ? $0 : nil } : nil
+                guard repo != nil else { return (NSNull(), nil) }
                 async let changes = Git.status(arg, exec: exec)
                 // None before the first commit.
                 let commits = await (try? Git.log(arg, exec: exec)) ?? []

@@ -1,5 +1,6 @@
 import AppKit
 import HerdrKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 /// The file of a File, Markdown or Preview card (phase 42's spec, items 1 to 3): read for its page, saved by its
@@ -8,8 +9,11 @@ extension WebCard {
     /// The page's `read` (`web/src/lib/bridge.ts`): the text to edit, the bytes to show, or the info view's facts;
     /// keeps the hash a save checks.
     func read() async -> (Any?, String?) {
+        let asked = arg
         do {
             let (reply, hash) = try await contents()
+            // A rename meanwhile loads the page again with the new file.
+            guard arg == asked else { return (nil, "Renamed") }
             self.hash = hash
             return (reply, nil)
         } catch {
@@ -34,8 +38,8 @@ extension WebCard {
             )
         } catch {
             toast = Toast(
-                text: "Could not save \(name): \(error.localizedDescription)",
-                other: ("Close", {}),
+                text: "\(name) was not saved: \(error.localizedDescription)",
+                other: ("Cancel", {}),
                 main: ("Try Again", { [weak self] in Task { await self?.save(text, over: hash) } }),
             )
         }
@@ -49,10 +53,9 @@ extension WebCard {
         // A diff of the uncommitted changes follows its work tree; a commit's never changes.
         // ponytail: on This Mac a build under an ignored folder makes the diff ask git about once a second; skip
         // events under ignored folders if that costs.
-        let diff = PaneLabel(plugin: kind, iid: "", arg: arg).diff
-        guard kind != "diff" || diff.source == "uncommitted" else { return }
-        let changes = await Files.watch(kind == "diff" ? diff.root : arg, exec: store.machine.exec())
-        if kind == "files" || kind == "diff" {
+        guard kind != .diff || diff.source == "uncommitted" else { return }
+        let changes = await Files.watch(kind == .diff ? diff.root : arg, exec: store.machine.exec())
+        if kind == .files || kind == .diff {
             // What changed while the card was hidden.
             send(["op": "changed"])
             for await _ in changes {
@@ -81,7 +84,8 @@ extension WebCard {
     }
 
     private func reload() async {
-        guard let (reply, hash) = try? await contents() else { return }
+        let asked = arg
+        guard let (reply, hash) = try? await contents(), arg == asked else { return }
         self.hash = hash
         send(reply.merging(["op": "load"]) { $1 })
     }
@@ -90,14 +94,19 @@ extension WebCard {
         (arg as NSString).lastPathComponent
     }
 
+    /// A diff's repo root and source, from its argument.
+    var diff: (root: String, source: String) {
+        PaneLabel(plugin: kind.rawValue, iid: "", arg: arg).diff
+    }
+
     /// The reply to `read` and the file's hash, nil for the info view. Preview reads only the image types both
-    /// variants draw, PDF, audio and video, and sends the info view along for a file the page cannot decode; a
-    /// remote file over 4 MiB, or one not in UTF-8, opens read only.
+    /// variants draw, PDF, audio and video, and sends the info view along for a file the page cannot decode; a file
+    /// not in UTF-8 is the info view, and a remote file over 4 MiB opens read only.
     private func contents() async throws -> (reply: [String: Any], hash: String?) {
         guard let store else { throw HerdrError.failed("Closed") }
         let exec = await store.machine.exec(), ext = (arg as NSString).pathExtension
         let type = UTType(filenameExtension: ext) ?? .data
-        let preview = kind == PluginKind.preview.rawValue
+        let preview = kind == .preview
         let shown: [UTType] = [.png, .jpeg, .gif, .webP, .heic, .tiff, .bmp, .svg, .pdf, .audiovisualContent]
         if preview, !shown.contains(where: type.conforms) {
             return try await (["info": info(Files.size(arg, exec: exec), type)], nil)
@@ -113,9 +122,11 @@ extension WebCard {
                 )
             }
             // Not `String(data:encoding:)`, which drops a byte order mark the save would not write back.
-            let text = String(validating: file.data, as: UTF8.self)
-            let readOnly = text == nil || store.machine.isRemote && file.data.count > Files.remoteEditLimit
-            return (["text": text ?? String(decoding: file.data, as: UTF8.self), "readOnly": readOnly], file.hash)
+            guard let text = String(validating: file.data, as: UTF8.self) else {
+                return (["info": info(file.data.count, type)], nil)
+            }
+            let readOnly = store.machine.isRemote && file.data.count > Files.remoteEditLimit
+            return (["text": text, "readOnly": readOnly], file.hash)
         } catch let FileError.tooLarge(size) {
             return (["info": info(size, type)], nil)
         }
@@ -159,5 +170,34 @@ extension Page {
     /// The pane's card when it is a File or Markdown card.
     func editor(_ pane: HostStore.Pane?) -> Plugin? {
         pane.flatMap(plugin).flatMap { $0.edits ? $0 : nil }
+    }
+}
+
+extension CommandList {
+    /// Save, Edit Mode, Find…, Find Next and Find Previous, in the main and the floating windows. Over a File or
+    /// Markdown card (`editor`, asked again when an item runs: the menu bar may be older than the last keyboard move)
+    /// they act in its page; else Find opens `pane`'s find bar (the keyboard card's when nil) when `terminal`. ⌘S and
+    /// ⇧⌘G have their key only over an editor: a disabled item would swallow them elsewhere (⇧⌘G is Go to Directory).
+    static func editorCommands(page: Page?, pane: HostStore.Pane?, terminal: Bool,
+                               _ editor: @escaping @MainActor () -> Plugin?) -> [Command]
+    {
+        let over = editor() != nil, find = page?.find != nil
+        return [
+            Command(section: .file, title: "Save", key: over ? .save : nil, symbol: "square.and.arrow.down",
+                    enabled: over) { editor()?.web.send(["op": "save"]) },
+            editMode(editor),
+            Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
+                    keywords: "search scrollback", enabled: terminal || over, action: {
+                        if let editor = editor() {
+                            editor.web.send(["op": "find"])
+                        } else {
+                            page?.openFind(pane)
+                        }
+                    }),
+            Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
+                    enabled: find || over) { page?.findStep(1, in: editor()) },
+            Command(section: .edit, title: "Find Previous", key: over ? .findPrevious : nil, symbol: "chevron.up",
+                    enabled: find || over) { page?.findStep(-1, in: editor()) },
+        ]
     }
 }

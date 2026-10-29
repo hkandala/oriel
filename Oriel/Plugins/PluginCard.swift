@@ -72,8 +72,7 @@ private struct ToastView: View {
     }
 }
 
-/// The card header's second row: the kind's controls, a placeholder the variants replace; Open With for a file on
-/// This Mac.
+/// The card header's second row: the kind's controls, and Open With for a file on This Mac.
 struct PluginToolbar: View {
     let plugin: Plugin
     let page: Page
@@ -82,26 +81,20 @@ struct PluginToolbar: View {
         switch plugin.kind {
         case .diff: DiffToolbar(plugin: plugin, page: page)
         case .files: FilesBar(card: plugin.web, paneID: plugin.paneID)
-        default: pathRow
-        }
-    }
-
-    private var pathRow: some View {
-        HStack(spacing: 6) {
-            // Each kind's own spacer: Preview's controls sit right of it, by Open With.
-            switch plugin.kind {
-            case .file:
-                JumpBar(plugin: plugin)
-                Spacer(minLength: 0)
-            case .preview: PreviewBar(plugin: plugin)
-            case .markdown: MarkdownBar(plugin: plugin)
-            default:
-                Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer(minLength: 0)
-            }
-            if [.file, .preview, .markdown].contains(plugin.kind), !page.store.machine.isRemote {
-                OpenWith(path: plugin.label.arg).accessibilityIdentifier("pane.\(plugin.paneID).open-with")
+        case .browser: EmptyView()
+        case .file, .preview, .markdown:
+            HStack(spacing: 6) {
+                // Each kind's own spacer: Preview's controls sit right of it, by Open With.
+                switch plugin.kind {
+                case .preview: PreviewBar(plugin: plugin)
+                case .markdown: MarkdownBar(plugin: plugin)
+                default:
+                    JumpBar(plugin: plugin)
+                    Spacer(minLength: 0)
+                }
+                if !page.store.machine.isRemote {
+                    OpenWith(path: plugin.label.arg).accessibilityIdentifier("pane.\(plugin.paneID).open-with")
+                }
             }
         }
     }
