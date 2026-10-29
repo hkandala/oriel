@@ -111,6 +111,7 @@ final class DiffText: NSTextView {
         case .added: look.finished.opacity(0.07)
         case .removed: look.error.opacity(0.07)
         case .hunk: look.working.opacity(0.1)
+        case .gap: look.paneButton.opacity(0.06)
         default: nil
         }
     }

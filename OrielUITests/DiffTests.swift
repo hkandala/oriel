@@ -3,7 +3,7 @@ import XCTest
 /// The Diff plugin (phase 43, spec item 4): a repository's uncommitted changes or one commit, Unified or Side by
 /// Side, a header per file and the file list; its links open the file's plugin in a new tab.
 extension OrielUITests {
-    /// An 80-line file and a short one, committed, then all changed: the diff, its file list, previous / next change,
+    /// An 80-line file and two short ones, committed, then changed: the diff, its file list, previous / next change,
     /// fold and Viewed, Side by Side, a refresh on a change, a commit from the source pop-up, Open File and ⌘-click.
     func testDiffShowsFoldsAndOpensItsChanges() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -11,8 +11,9 @@ extension OrielUITests {
         try await waitForPrompt(shell)
         let repo = "/tmp/oriel-e2e-diff", root = "/private/tmp/oriel-e2e-diff"
         try await send("rm -rf \(repo) && mkdir \(repo) && cd \(repo) && git init -q && seq 1 80 > a.txt && "
-            + "echo old > b.txt && git add . && git -c user.name=e2e -c user.email=e2e@oriel -c commit.gpgsign=false "
-            + "commit -qm first && seq 101 180 > a.txt && echo new > b.txt && clear && echo ready-$((6*7))\r",
+            + "echo old > b.txt && seq 1 20 > c.txt && git add . && git -c user.name=e2e -c user.email=e2e@oriel "
+            + "-c commit.gpgsign=false commit -qm first && seq 101 180 > a.txt && echo new > b.txt && seq 1 19 > c.txt "
+            + "&& echo twenty >> c.txt && clear && echo ready-$((6*7))\r",
             to: shell)
         try await waitFor(shell) { $0.contains("ready-42") }
         let (tab, pane) = try await diffTab(root: root, cwd: repo)
@@ -20,26 +21,17 @@ extension OrielUITests {
         let (after, _) = try await createTab(in: "w2")
         closeAfter("tab", after)
         let text = element("diff.\(pane).text"), lines = { text.stringValue.split(separator: "\n") }
-        try await expect("the uncommitted diff") { lines().contains("101") && lines().contains("new") }
+        // c.txt's hunk starts at its line 17.
+        try await expect("the uncommitted diff") {
+            lines().contains("101") && lines().contains("new") && lines().contains("16 unmodified lines")
+        }
         XCTAssertTrue(element("pane.\(pane).title").has(\.stringValue, "Changes", within: 3))
         XCTAssertTrue(element("diff.\(pane).list.a.txt").exists)
-        text.click()
+        // On a line near the top: the text runs far below the window.
+        text.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 200, dy: 100)).click()
         XCTAssertTrue(hasKeyboard(text))
 
-        // b.txt's header is below the first screen until Next Change reaches its lines.
-        let header = element("diff.\(pane).file.b.txt")
-        XCTAssertFalse(header.exists)
-        element("pane.\(pane).diff.next").click()
-        XCTAssertFalse(header.exists)
-        element("pane.\(pane).diff.next").click()
-        XCTAssertTrue(header.exists(within: 2))
-        element("pane.\(pane).diff.previous").click()
-        XCTAssertTrue(header.vanishes(within: 2))
-        element("diff.\(pane).list.b.txt").click()
-        XCTAssertTrue(header.exists(within: 2))
-        element("diff.\(pane).list.a.txt").click()
-        XCTAssertTrue(header.vanishes(within: 2))
-
+        steps(pane)
         try await folds(pane, lines)
 
         // Side by Side: the old lines on the left, the new on the right.
@@ -64,6 +56,22 @@ extension OrielUITests {
         XCTAssertTrue(text.exists(within: 3))
         try await commit(pane, root: root, text: text)
         try await links(pane, in: tab, root: root, text: text)
+    }
+
+    /// b.txt's header is below the first screen until Next Change, or the file list, reaches its lines.
+    private func steps(_ pane: String) {
+        let header = element("diff.\(pane).file.b.txt")
+        XCTAssertFalse(header.exists)
+        element("pane.\(pane).diff.next").click()
+        XCTAssertFalse(header.exists)
+        element("pane.\(pane).diff.next").click()
+        XCTAssertTrue(header.exists(within: 2))
+        element("pane.\(pane).diff.previous").click()
+        XCTAssertTrue(header.vanishes(within: 2))
+        element("diff.\(pane).list.b.txt").click()
+        XCTAssertTrue(header.exists(within: 2))
+        element("diff.\(pane).list.a.txt").click()
+        XCTAssertTrue(header.vanishes(within: 2))
     }
 
     /// Viewed folds a file, and so does its disclosure; the list closes from row 2.
