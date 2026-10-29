@@ -85,6 +85,11 @@ extension HostStore {
         var since: Date?
         /// The agent's name: herdr's `display_agent`, else its kind.
         var agentName: String?
+        /// Its agent's session (herdr's `agent_session` value, of this agent), and that session's title (`watchTitle`).
+        var session: String?
+        var sessionTitle: String?
+        /// What the last title read was for.
+        @ObservationIgnored var titleKey: String?
         /// What runs in the foreground (the shell when nothing else does), from the last `pane.process_info`.
         var program: Program?
         /// herdr was asked for the program at least once.
@@ -127,6 +132,16 @@ extension HostStore {
         /// The program's name for the card header: herdr's agent, else the foreground process ("zsh" for the shell).
         var programName: String? {
             agent ?? program?.title
+        }
+
+        /// An agent pane's name (ui/chat-view): the user's herdr label, else its session's title; nil for other panes.
+        var agentTitle: String? {
+            agent == nil ? nil : label ?? sessionTitle ?? "New Session"
+        }
+
+        /// The agent's name as people know it ("Claude Code"): the chooser's, else herdr's.
+        var agentLabel: String? {
+            Chooser.agents.first { $0.command == agent }?.name ?? agentName
         }
 
         /// The placeholder icon's letter.
@@ -254,6 +269,7 @@ extension HostStore {
     /// Asks what the pane runs: when it is new (or a new terminal under a reused id), and when its agent or title word
     /// changes. A progress title ("build 51%") changes on and on; its first word does not.
     func watchProgram(_ pane: Pane, _ new: HerdrKit.Pane) {
+        watchTitle(pane, new)
         if new.terminalID != pane.terminalID {
             pane.program = nil
             pane.asked = false
@@ -290,6 +306,34 @@ extension HostStore {
                     }
                 }
                 await askProgram(pane.id)
+            }
+        }
+    }
+}
+
+extension HostStore {
+    /// Reads its agent's session title again (`Exec.sessionTitle`) when the session, the terminal title or the status
+    /// changes: Claude Code and pi put a new title in the terminal's, and Codex and OpenCode name a session during its
+    /// first turn. Through the program asks' gate: a session's first snapshot has every agent at once.
+    func watchTitle(_ pane: Pane, _ new: HerdrKit.Pane) {
+        let session = new.agentSession.flatMap { $0.agent == new.agent ? $0.value : nil }
+        if pane.session != session {
+            pane.session = session
+        }
+        let key = session.map { "\($0) \(new.title ?? "") \(new.agentStatus?.rawValue ?? "")" }
+        guard key != pane.titleKey else { return }
+        pane.titleKey = key
+        guard let session, let agent = new.agent else {
+            pane.sessionTitle = nil
+            return
+        }
+        Task {
+            await asks.enter()
+            defer { asks.leave() }
+            guard pane.titleKey == key else { return }
+            let title = await machine.exec().sessionTitle(agent: agent, session: session)
+            if pane.titleKey == key, pane.sessionTitle != title {
+                pane.sessionTitle = title
             }
         }
     }

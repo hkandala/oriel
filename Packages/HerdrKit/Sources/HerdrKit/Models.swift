@@ -81,11 +81,20 @@ public struct Pane: Decodable, Sendable, Identifiable {
     public let scroll: PaneScroll?
     /// The agent's status; `unknown` until herdr read it from the agent's screen.
     public let agentStatus: AgentStatus?
+    /// The agent's session, as its herdr integration reported it.
+    public let agentSession: AgentSession?
 
     enum CodingKeys: String, CodingKey {
         case id = "pane_id", terminalID = "terminal_id", tabID = "tab_id", label, cwd, agent
-        case title = "terminal_title_stripped", scroll, agentStatus = "agent_status"
+        case title = "terminal_title_stripped", scroll, agentStatus = "agent_status", agentSession = "agent_session"
     }
+}
+
+/// herdr's `agent_session`: `value` is the session's id (Claude Code, Codex, OpenCode) or its file (pi). It can be an
+/// earlier agent's: check `agent`.
+public struct AgentSession: Decodable, Sendable {
+    public let agent: String?
+    public let value: String?
 }
 
 public struct PaneScroll: Decodable, Sendable {

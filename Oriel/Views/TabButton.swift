@@ -200,7 +200,11 @@ extension Page {
             // number, for a pane whose program herdr cannot say.
             return (front?.starting == false && !choosing ? tab.label : "New Tab", nil)
         }
-        // The folder's name ("pi oriel"), as in Rex: a tab is narrow.
+        // An agent's session title ("Claude Code Fix login"); else the folder's name ("zsh oriel"), as in Rex: a tab is
+        // narrow.
+        if let title = pane.agentTitle {
+            return (pane.agentLabel ?? name, title)
+        }
         return (name, pane.cwd.map { $0 == Self.home ? "~" : ($0 as NSString).lastPathComponent })
     }
 

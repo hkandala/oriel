@@ -174,9 +174,8 @@ struct AgentButton: View {
         .accessibilityAddTraits(lit ? .isSelected : [])
     }
 
-    /// The pane's name when it has one, else the agent's.
     private var title: String {
-        pane.label ?? pane.agentName ?? "agent"
+        pane.agentTitle ?? "agent"
     }
 
     private var line2: String {
@@ -281,7 +280,7 @@ struct AgentsList: View {
     /// name. `key` folds one: "‹machine› ‹session› ‹sort› ‹group›".
     static func groups(_ page: Page, filter: String, sort: AgentSort) -> [Group] {
         let rows = page.store.agentPanes.filter { pane in
-            [pane.label, pane.agentName, page.place(pane)].compactMap(\.self).contains { $0.matches(filter) }
+            [pane.agentTitle, pane.agentName, page.place(pane)].compactMap(\.self).contains { $0.matches(filter) }
         }
         let key = { (group: String) in "\(page.store.machine.id) \(page.id) \(sort.rawValue) \(group)" }
         let groups = switch sort {
