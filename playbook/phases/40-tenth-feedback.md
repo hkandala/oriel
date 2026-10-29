@@ -6,7 +6,7 @@ reads better: a growing reply box, quieter tool calls, roomier Markdown. Then on
 and chat code for simplicity.
 
 Design: [Browser](../../docs/content/docs/ui/browser.mdx), [Chat view](../../docs/content/docs/ui/chat-view.mdx),
-[Floating panes](../../docs/content/docs/ui/floating-panes.mdx). The user's words are quoted; the sketches are the
+[Floating panes](../../docs/content/docs/ui/window.mdx#floating-pane). The user's words are quoted; the sketches are the
 orchestrator's reading.
 
 The header, for both kinds (a terminal card keeps its one row):
