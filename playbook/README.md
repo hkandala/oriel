@@ -60,3 +60,4 @@ run and test it is in the root `README.md`.
 | 42 | Default plugins: the shared spec and base (branch `plugins-base`) | [42-plugins-base.md](phases/42-plugins-base.md) |
 | 43 | Default plugins with native views (branch `plugins-native`) | [43-plugins-native.md](phases/43-plugins-native.md) |
 | 44 | Default plugins with web components (branch `plugins-web`) | [44-plugins-web.md](phases/44-plugins-web.md) |
+| 45 | Twelfth feedback: the chat's turns, empty state, speed and the panes skill | [45-twelfth-feedback.md](phases/45-twelfth-feedback.md) |
