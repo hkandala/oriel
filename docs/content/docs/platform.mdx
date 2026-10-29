@@ -5,8 +5,8 @@ description: "The codebase, dependencies, the strip, the tab bar and tests"
 
 ## Project
 
-- One Xcode project, one macOS SwiftUI app target, and one local Swift
-  package, `HerdrKit`.
+- One Xcode project, one macOS SwiftUI app target, and two local Swift
+  packages: `HerdrKit`, and `Grammars` for the File card's colors.
 - Minimum OS: macOS 26 (Liquid Glass; one minimum means no fallbacks).
   Building needs Xcode 27.
 - **Several windows** (`WindowGroup`; File ▸ New Window, ⌘N). Each window
@@ -25,7 +25,10 @@ description: "The codebase, dependencies, the strip, the tab bar and tests"
 |---|---|---|
 | Terminal drawing | `Lakr233/libghostty-spm`, exact pin (it brings DisplayLink) | Metal, IME, one Swift API |
 | SSH | the system `/usr/bin/ssh` | the user's SSH setup works unchanged |
-| The chat's Markdown | `swiftlang/swift-markdown` 0.9.0, exact pin (it brings cmark-gfm) | Apple's GFM parser: tables, task lists, strikethrough (D86) |
+| Markdown (the chat's replies, Markdown's Read and outline) | `swiftlang/swift-markdown` 0.9.0, exact pin (it brings cmark-gfm) | Apple's GFM parser: tables, task lists, strikethrough (D86) |
+| Markdown's Edit ([Default plugins](/docs/ui/plugins#markdown)) | `nodes-app/swift-markdown-engine` (MarkdownEngine, Apache-2.0), exact pin | a live preview of the file's own text on TextKit 2 |
+| File's syntax colors | the local package `Packages/Grammars`: `tree-sitter/swift-tree-sitter` and 17 tree-sitter grammars, each at an exact tag | colors for the lines on screen only, an incremental parse per edit, and the jump bar's symbol from the same tree |
+| PDF, audio and video in Preview | PDFKit and AVKit, part of macOS | no dependency |
 
 Each library has its entry, with its license, in the app's `Acknowledgements.txt`
 ([Program icons](/docs/ui/program-icons)).
@@ -100,7 +103,12 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
   ratios, the snapshot pacing (one read in flight, read again), float
   requests, the seen rules, git status parsing, fuzzy matching, program icon
   matching, the terminal stream's frames, the remote command envelope and
-  the relay.
+  the relay, and `Files` and `Git` (listings, reads, saves, the patch and the
+  graph) run through `ProcessExec` and the relay on a real repository.
+- **Plugin tests** (`PluginTests`, `FileTests`, `MarkdownTests`, `DiffTests`,
+  `FilesTests`) open each kind in a throwaway session and check the card's
+  text and controls through accessibility, and the labels and files through
+  herdr and the disk.
 
 What it looks like: [Main window](/docs/ui/window),
 [Theme and accessibility](/docs/ui/theme-and-accessibility).

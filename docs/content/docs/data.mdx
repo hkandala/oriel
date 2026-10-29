@@ -15,7 +15,7 @@ One rule decides where each new thing goes (D57):
 
 | Data | Owner | Where |
 |---|---|---|
-| Workspaces, tabs, panes, order, labels (a browser pane's kind, iid and typed address: [The label](/docs/ui/browser#the-label)) | herdr | `session.snapshot` |
+| Workspaces, tabs, panes, order, labels (a browser pane's kind, iid and typed address: [The label](/docs/ui/browser#the-label); a plugin pane's kind, iid and file, root or diff source, its only state: [The label](/docs/ui/plugins#the-label)) | herdr | `session.snapshot` |
 | Split tree and ratios | herdr | `snapshot.layouts[]` |
 | Terminal content and PTY | herdr | `terminal session` frames |
 | Agent kind, status, `completion_seq`, session (`agent_session`) | herdr | `agents[]`, `panes[]` |
@@ -29,6 +29,9 @@ One rule decides where each new thing goes (D57):
 | Approved browser origins, the newest 200 per machine | app, disk, per device | `UserDefaults`, a list under `browserApprovals.<machine id>` ([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)) |
 | Browser cookies, storage and cache, one store per machine | WebKit, disk, per device | `~/Library/WebKit/<bundle id>/WebsiteDataStore/<machine id>/` ([Profiles](/docs/ui/browser#profiles)) |
 | The choosers of new panes ([New pane](/docs/ui/new-pane)); browser cards' web views, by terminal id | app, per device | memory |
+| Plugin cards, by terminal id: the text and its unsaved edits, the file's hash at the last read or save, Markdown's mode and outline, a Diff's layout, file list, folds and Viewed files, a Files card's open folders and filter ([Default plugins](/docs/ui/plugins)) | app, per device | memory |
+| A remote machine's audio or video in a Preview card | app, disk, per device | a copy per version in the temporary folder (`oriel-preview-*`), which the system empties |
+| The files a plugin card shows and saves | the pane's machine | the files themselves; a save killed halfway leaves a `.oriel-save.*` beside the file ([Edits, saves and reloads](/docs/ui/plugins#edits-saves-and-reloads)) |
 | A chat per agent pane, by terminal id: its history, marks (how far each file was read), draft, messages on their way, and Chat or TUI | app, per device | memory, on the session's `HostStore` ([Chat view](/docs/ui/chat-view)) |
 | A chat's side files: hooks and state lines, OpenCode's password, pi-oriel, OpenCode's plugin | the pane's machine | `~/.cache/oriel/` ([Side files](/docs/ui/chat-view#side-files)); files untouched for 30 days go |
 | An agent's transcript, session record and server | the agent | its own files and server on the pane's machine |

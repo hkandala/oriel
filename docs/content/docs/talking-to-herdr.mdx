@@ -16,7 +16,10 @@ protocol Exec {
 The app reaches each machine through `run` (D2). Nothing of ours is
 installed on the machine: `sshd`, POSIX tools and herdr do the work. The chat
 view writes small helper files under `~/.cache/oriel` before an agent launch
-([Side files](/docs/ui/chat-view#side-files)).
+([Side files](/docs/ui/chat-view#side-files)). Plugin cards read, save, list
+and watch files and run git the same way
+([Default plugins](/docs/ui/plugins#remote-machines),
+[Commands](/docs/reference/herdr-calls#commands)).
 
 - **This Mac:** `Process`. A GUI app does not get the shell's environment. So
   at launch the app reads `PATH`, `HOME`, `SSH_AUTH_SOCK`, every `XDG_*`
@@ -456,7 +459,8 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 - **No developer tools.** At launch the app checks once where `git` is. When
   it is only `/usr/bin/git` and `xcode-select -p` fails, the app runs no git
   at all, so macOS never offers to install the developer tools. Rows then
-  have one line.
+  have one line, Files cards show no git, and Diff cards say "Git is not
+  installed on this Mac".
 - **Worktrees.** herdr's `worktree.is_linked_worktree` and `repo_key` place a
   linked worktree under its repository's workspace. No git run is needed for
   that. herdr 0.9.5 fills a workspace's `worktree` only after a `worktree.*`
@@ -505,6 +509,9 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Browser in the chooser, Open Browser Here | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid>", command}}` (a new tab with the labeled placeholder pane, never a `tab_id`), then `pane.move` beside the old pane and `pane.close` of the old one; a failed move closes the new pane ([Create](/docs/ui/browser#create)) |
 | An address typed in a browser card | `pane.rename {pane_id, label:"oriel:browser#<iid> <url>"}` |
 | A link opened in a new tab (⌘-click, `target=_blank`, Open Link in New Tab) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid> <url>", command}}`: a new tab after the workspace's others, with the link in the label ([Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs)) |
+| Files or Changes in the chooser, Open Files Here, Open Changes Here | `git rev-parse --show-toplevel` on the machine for the root (none when git cannot run), then the browser's calls with the label `oriel:files#<iid> <root>` or `oriel:diff#<iid> <root> uncommitted` |
+| A linked open from a plugin card | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label, command}}` (a new tab, in its card's folder), `pane.get` of the new pane, then `tab.move {tab_id, insert_index}` to right after the card's tab (herdr adds the tab last); the snapshot after it selects the tab ([Ways in](/docs/ui/plugins#ways-in)) |
+| A diff's source picked in its row 2 | `pane.rename {pane_id, label:"oriel:diff#<iid> <root> <source>"}` |
 | Close a tab | `tab.close`; asks first only when a pane of it runs more than its shell (`pane.process_info` of each pane, at once), naming what runs, with the pane count |
 | Close a workspace | `workspace.close {workspace_id, close_group}`; asks as for a tab, with the tab and pane count. `close_group: true` for a repository's workspace with linked worktree workspaces: herdr refuses the close without it (`workspace_group_close_required`), and with it closes all of them, also ones not next to it. The git worktrees stay on disk. A worktree's own workspace closes alone |
 | Close Other Tabs, Close Tabs to the Right | one `tab.close` per tab, all at once; asks once as for a tab, with the total pane count |
@@ -517,6 +524,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Move the keyboard (⌥⌘ + arrow; not a write) | no herdr call: the app picks the card from the split tree ([Moving the keyboard](/docs/layout#moving-the-keyboard)) |
 | A pane comes into view or leaves it | `pane.report_metadata {pane_id, source:"oriel", tokens:{"oriel-shown": "1", "remote" or null}, ttl_ms:30000}` ([Float requests](#float-requests)) |
 | Git state of the workspace rows (not a write) | no herdr call: `git status` on the machine ([Git status](#git-status)) |
+| Plugin cards' files and git (not herdr writes) | no herdr call: commands on the machine through `Exec.run` ([Commands](/docs/reference/herdr-calls#commands)) |
 
 - No close can be undone.
 - Every create and move passes `focus:false`, so herdr's focus never moves.
