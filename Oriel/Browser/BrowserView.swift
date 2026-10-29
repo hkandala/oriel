@@ -34,6 +34,7 @@ final class BrowserView: WKWebView {
     /// with the link's address, and `opensTab` makes that a tab. No downloads: the app does not save them.
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
         super.willOpenMenu(menu, with: event)
+        opensTab = false
         menu.items = menu.items.compactMap { item in
             let id = item.identifier?.rawValue ?? ""
             guard !id.hasPrefix("WKMenuItemIdentifierDownload") else { return nil }
@@ -50,6 +51,12 @@ final class BrowserView: WKWebView {
         guard let item = tab.representedObject as? NSMenuItem, let action = item.action else { return }
         opensTab = true
         NSApp.sendAction(action, to: item.target, from: item)
+    }
+
+    /// A pick WebKit never asked a window for (New Tab on a `mailto:` link) must not make the page's next popup a tab.
+    override func mouseDown(with event: NSEvent) {
+        opensTab = false
+        super.mouseDown(with: event)
     }
 
     override func keyDown(with event: NSEvent) {

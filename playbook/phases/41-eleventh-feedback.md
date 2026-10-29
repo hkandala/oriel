@@ -238,3 +238,27 @@ user's answers to the orchestrator's questions.
 - **For the user:** swipe, hold the three fingers still for a second, then move them: one step only. If swipes
   stop again, check whether ⌥⌘] and a two-finger swipe over the sidebar still work; that tells a lost window
   from a stuck swipe.
+### Track A
+
+- **Cause, item 1.** WebKit's Open Link in New Window asks the UI delegate for a window with navigation type
+  `.other`, as a page's `window.open` does, so it opened the OAuth popup sheet. The menu carries no address: the
+  New Tab item sends the New Window item's own action with a flag set, and the window WebKit then asks for becomes
+  a herdr tab (`layout.apply`, `focus:false`) with a browser pane labeled with the link.
+- **Decisions, item 1.** The new tab goes after the workspace's others and stays in the background, as in Safari.
+  Opening a link in a tab (menu, ⌘-click, `target=_blank`) approves its origin, so the new card loads without
+  "Open this page?"; a click that loads in the card still approves nothing. Every link-started new window becomes
+  a tab (WebKit does not tell `rel=opener` apart); a `target=_blank` form and a `blob:` or `data:` page still load
+  in the card. Esc always closes a popup, also inside the popup's own page. browser.mdx's "`target=_blank` loads
+  in the card" is now wrong (docs pass).
+- **Cause, item 3.** The web view had an autoresizing mask, so the 0.13 s split motion resized it at every frame:
+  24–37 sizes per split or close, each one a page layout in WebKit's process, while the terminals beside it hold
+  their grid until the motion ends. The main thread was not the problem (the longest turn was 15 ms with or
+  without a browser, each `setFrameSize` under 1 ms).
+- **Fix, item 3.** The web view sits in the terminals' host (`TerminalHost.Host`, now for any view), which fits
+  it once its size stops changing for 150 ms: one size per motion. The page is clipped, or shows the card's fill
+  at its new edge, until then. A window drag reflows the page when the drag pauses or ends, as terminals do.
+- **Runs.** No test for the hold itself (a test hook would cost more than it guards); the docked Web Inspector
+  check in the chooser test resizes the card after docking.
+- **For the user.** Split beside a browser card (⌘D on it and on its neighbor) and close again: the motion should
+  match a terminal-only tab. Right-click a link: Open Link in New Tab, no Download items. ⌘-click a link and click
+  a `target=_blank` one. Open an OAuth login: Esc and the × close it.

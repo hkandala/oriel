@@ -93,16 +93,7 @@ extension OrielUITests {
         XCTAssertTrue(pageText("oriel-page-two").exists(within: 5))
         XCTAssertTrue(element("browser.\(browser).back").isEnabled)
 
-        // Web Inspector, docked: the page gives it the card's lower part. WebKit docks it only in a card tall enough,
-        // else it opens its own window (CI's small screen).
-        let web = element("browser.\(browser)"), height = web.frame.height
-        let window = app.windows.matching(NSPredicate(format: "title BEGINSWITH 'Web Inspector'")).firstMatch
-        element("browser.\(browser).inspector").click()
-        XCTAssertTrue(until(5) { web.frame.height < height * 0.8 || window.exists })
-        keepScreenshot("web inspector")
-        if window.exists {
-            window.buttons[XCUIIdentifierCloseWindow].click()
-        }
+        showInspector(browser)
 
         // The saved address, not the label's.
         try await expectSaved("two.html", iid: String(made.dropFirst("oriel:browser#".count)), shell: left)
@@ -152,7 +143,8 @@ extension OrielUITests {
             XCTAssertTrue(pageText("oriel-page-one").exists, how)
         }
 
-        app.webViews.links["Two"].rightClick()
+        // At its middle: XCUITest finds the link's text over the whole link.
+        app.webViews.links["Two"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
         let menu = app.windows.firstMatch.menuItems
         XCTAssertTrue(menu["Open Link in New Tab"].exists(within: 2))
         XCTAssertFalse(menu["Open Link in New Window"].exists)
@@ -174,6 +166,28 @@ extension OrielUITests {
         XCTAssertTrue(popup.exists(within: 5))
         element("browser.\(pane).card").buttons["Close"].click()
         XCTAssertTrue(popup.vanishes(within: 3))
+    }
+
+    /// Web Inspector, docked: the page gives it the card's lower part, also after the card changes size.
+    func showInspector(_ browser: String) {
+        let web = element("browser.\(browser)"), height = web.frame.height
+        let window = app.windows.matching(NSPredicate(format: "title BEGINSWITH 'Web Inspector'")).firstMatch
+        element("browser.\(browser).inspector").click()
+        XCTAssertTrue(until(5) { web.frame.height < height * 0.8 || window.exists })
+        keepScreenshot("web inspector")
+        if window.exists {
+            window.buttons[XCUIIdentifierCloseWindow].click()
+        } else {
+            // Docked, it stays under the page as the card changes size: the page keeps its inset.
+            let card = element("browser.\(browser).card"), before = card.frame.width
+            let inset = before - web.frame.width
+            element("titlebar.sidebar").click()
+            XCTAssertTrue(until(3) {
+                card.frame.width > before && abs(card.frame.width - web.frame.width - inset) < 1
+                    && web.frame.height < card.frame.height * 0.8
+            }, "\(web.frame) in \(card.frame)")
+            element("titlebar.sidebar").click()
+        }
     }
 
     /// Open Browser Here from the palette on a terminal: a browser pane in its place. Not offered on a browser pane,

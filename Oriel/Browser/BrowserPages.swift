@@ -5,25 +5,24 @@ import WebKit
 /// What a page asks of its card: new windows, dialogs and file panels.
 extension Browser: WKUIDelegate {
     /// `window.open` (an OAuth popup keeps its opener) in a sheet over the card. A link that asks for a new window
-    /// (`target=_blank`) and Open Link in New Tab open a tab; a form that does loads in the card.
+    /// (`target=_blank`, also `rel=opener`: WebKit does not say) and Open Link in New Tab open a tab; a form that
+    /// does, and a page no label can hold (`blob:`), load in the card.
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for action: WKNavigationAction, windowFeatures _: WKWindowFeatures) -> WKWebView?
     {
-        let view = webView as? BrowserView
-        if view?.opensTab == true || action.navigationType == .linkActivated {
-            view?.opensTab = false
-            if let url = action.request.url {
-                openTab(url)
+        let source = webView as? BrowserView
+        let tab = source?.opensTab == true || action.navigationType == .linkActivated
+        source?.opensTab = false
+        guard action.navigationType == .other, !tab else {
+            if !tab || action.request.url.map(openTab) != true {
+                webView.load(action.request)
             }
-            return nil
-        }
-        guard action.navigationType == .other else {
-            webView.load(action.request)
             return nil
         }
         let popup = BrowserView(frame: .zero, configuration: configuration)
         popup.uiDelegate = self
         popup.onKey = { [weak self] in self?.key($0) ?? false }
+        popup.onKeyboard = view.onKeyboard
         popup.setAccessibilityIdentifier("browser.\(paneID).popup")
         popup.takeKeyboard()
         self.popup = (popup, action.request.url?.host ?? "")
@@ -73,9 +72,13 @@ extension Browser: WKUIDelegate {
 }
 
 extension Browser {
+    /// The page takes the keyboard back if the popup had it: one that closes itself leaves the user's typing alone.
     func closePopup() {
+        let had = popup.map { $0.view.window?.firstResponder === $0.view } ?? false
         popup = nil
-        view.takeKeyboard()
+        if had {
+            view.takeKeyboard()
+        }
     }
 
     /// Open Link in New Tab, ⌘-click and `target=_blank`: a browser pane on the link in a new tab after the
@@ -83,7 +86,9 @@ extension Browser {
     /// so the new card loads it. False for an address a label cannot hold.
     @discardableResult
     func openTab(_ link: URL) -> Bool {
-        guard let store, let pane = store.pane(paneID), let workspace = store.workspace(of: pane.tabID),
+        // Not `mailto:`: `url` reads an address without `://` as a host.
+        guard ["http", "https", "file"].contains(link.scheme?.lowercased() ?? ""), let store,
+              let pane = store.pane(paneID), let workspace = store.workspace(of: pane.tabID),
               let url = Self.url(Self.shown(link, alias).absoluteString, local: !store.machine.isRemote)
         else { return false }
         approve(url)

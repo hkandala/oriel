@@ -86,9 +86,9 @@ struct TerminalHost: NSViewRepresentable {
             fit()
         }
 
-        /// Gone from here once a newer host adopted it.
+        /// Gone from here once a newer host adopted it. Last: WebKit docks the Web Inspector below its web view.
         private var view: NSView? {
-            subviews.first
+            subviews.last
         }
 
         private func fit() {
