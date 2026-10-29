@@ -121,8 +121,10 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   `M` changed neither the listing nor `git status`, so a remote Uncommitted went stale (red on the old poll, green
   on the new in a HerdrKit test; the native variant gets it with HerdrKit). A failed first ask waits for a change
   in the work tree and asks again, and a pick in the file list puts previous / next half a step before its file.
-- **Decisions:** a file with no hunks (binary, mode only, a pure rename) shows its header alone. In Side by Side a
-  ⌘-click on the old side of an unchanged line opens the file at its top. The ⌘-click's landing at the line is the
+- **Decisions (parity):** a file new to the card with over 2,000 changed lines starts folded; a refresh keeps each
+  file's fold, and a Viewed file whose text changed opens again. ⌘-click on a removed line opens the file at the line
+  after the change; on the old side of an unchanged line, at that line. A file with no hunks (binary, mode only, a
+  pure rename) shows its header alone. The ⌘-click's landing at the line is the
   File page's (`lib/editor.ts`); DiffTests checks it.
 - **For the user:** check the source pop-up's width with a long commit subject, Side by Side in a half-width card,
   and the sticky header's blur over the lines in Glass light and dark.
