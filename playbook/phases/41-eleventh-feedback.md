@@ -210,8 +210,9 @@ user's answers to the orchestrator's questions.
   empty for the few milliseconds of a local read.
 - **Fix (25).** swift-markdown 0.9.0 (cmark-gfm) parses; the views draw tables (head on a fill, column alignment),
   task lists, strikethrough, nested quotes and lists, and rules. An image shows as its description, linked to it: loaded
-  on its own, a reply could send what the agent read to any server. swift-markdown has no autolink extension: bare `http(s)://` and `www.` addresses are linked with
-  `NSDataDetector` (not names such as `Oriel.app`). It has no footnotes either: `[^1]` reads as written.
+  on its own, a reply could send what the agent read to any server. swift-markdown has no autolink extension: bare
+  `http(s)://` and `www.` addresses are linked with `NSDataDetector` (not names such as `Oriel.app`). It has no
+  footnotes either: `[^1]` reads as written.
 - **Also.** An unknown tool's target was its "first" text argument in a parsed dictionary's random order (a flaky
   history); it is now the first by key, in Claude's and pi's parsers.
 - **For the user.** Open the chat of a long Claude Code or Codex session after a relaunch: every turn shows, at once;

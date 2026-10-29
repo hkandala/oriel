@@ -68,6 +68,7 @@ extension Chat {
             old?.cancel()
             transcript = Task {
                 await old?.value
+                guard !Task.isCancelled else { return }
                 await self.follow(history: source, on: exec, skip: skip, read: read, restarted: restarted)
             }
         }
