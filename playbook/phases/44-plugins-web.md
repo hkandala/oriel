@@ -98,3 +98,23 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   (Find Next and Previous) go to the editor's search; over an editor ⇧⌘G is Find Previous, not Go to Directory. An
   overview tile runs no second watch; Files lists again when its card shows.
 - **For the user:** check Open With's apps, the toast's look, and a PDF's zoom by hand.
+### Track D
+
+- **Decisions:** the page parses git's patch itself: `Git.patch` gives `Git.diff`'s text (`Git.diff` parses the same
+  text), and `parsePatchFiles` feeds `@pierre/diffs`' `CodeView` (one virtualized scroll, sticky file headers, word
+  marks). HerdrKit's own word marks serve only the native variant. Row 2's state (`split`, `list`) lives on
+  `WebCard`, so the page's first `patch` ask gets it and a reload (a new source) keeps it.
+- **Decisions:** a new source rewrites the pane's label (`<root> <hash>`); the registry hands the new arg to the
+  card, which loads the page again. The pop-up lists the commits read when the card appeared: a commit made later
+  shows after the card comes back.
+- **Decisions:** Uncommitted follows the work tree as in the native variant: `WebCard.watch` watches the root, the
+  page asks again and redraws only when the patch text changed; Viewed stays on a file whose text is the same. git's
+  index refresh after `git diff` yields once more, then nothing.
+- **Decisions:** `N unmodified lines` rows are not expandable (that needs each file's whole text, a new HerdrKit
+  call); none at a file's end. The theme's fills go transparent over the card's fill, lines at 10 %, word marks at
+  28 %, the sticky header blurs what scrolls under it. A deleted file has no Open File and no ⌘-click.
+- **Decisions:** a linked open's landing (`Page.open(_:arg:at:)`, `window.card.at`) is one shot by terminal id,
+  not in the label: a relaunch opens at the top. Previous / next step through the change blocks in order from the
+  last one stepped to or the file picked in the list, not from the scroll position.
+- **For the user:** check the source pop-up's width with a long commit subject, Side by Side in a half-width card,
+  and the sticky header's blur over the lines in Glass light and dark.
