@@ -70,6 +70,7 @@ final class FileText {
             // A file gone keeps its text, which a save writes again; one grown too large shows the info view.
             if !loaded || error is FileError {
                 failure = FileText.reason(error)
+                hash = nil
             }
         }
     }

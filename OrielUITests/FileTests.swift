@@ -9,7 +9,6 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("file")
         let folder = "/tmp/oriel-e2e-file"
-        removeAfter(folder, shell: shell)
         let swift = #"struct Box {\n    func open() {}\n}\n"#
         try await run("rm -rf \(folder) && mkdir \(folder) && printf '\(swift)' >\(folder)/main.swift", in: shell)
         let pane = try await openPlugin("file", "\(folder)/main.swift")
@@ -92,6 +91,8 @@ extension OrielUITests {
         XCTAssertTrue(text.has(\.stringValue, "q" + before, within: 2))
         app.typeKey("z", modifierFlags: .command)
         XCTAssertTrue(text.has(\.stringValue, before, within: 2))
+        app.typeKey("s", modifierFlags: .command)
+        XCTAssertTrue(element("pane.\(pane).dirty").vanishes(within: 5))
 
         app.typeKey("f", modifierFlags: .command)
         XCTAssertTrue(element("file.\(pane).card").searchFields.firstMatch.exists(within: 3))
@@ -113,7 +114,6 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("preview")
         let folder = "/tmp/oriel-e2e-preview"
-        removeAfter(folder, shell: shell)
         let icon = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericDocumentIcon.icns"
         // A WAV of silence: its header, then 2048 bytes.
         let wav = #"RIFF\x24\x08\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00\x40\x1f\x00\x00\x40\x1f\x00\x00"#
@@ -135,6 +135,7 @@ extension OrielUITests {
             pages.scroll(byDeltaX: 0, deltaY: 3000)
         }
         XCTAssertTrue(until(2) { page.stringValue != "1 of 3" }, page.stringValue)
+        try await clickTakesTheKeyboard(pdf, pages)
 
         let audio = try await openPlugin("preview", "\(folder)/a.wav")
         XCTAssertTrue(element("preview.\(audio).player").exists(within: 5))
@@ -144,16 +145,20 @@ extension OrielUITests {
         let info = element("preview.\(other).info")
         XCTAssertTrue(info.exists(within: 5))
         XCTAssertTrue(info.label.contains("data.zip"), info.label)
-        // A click gives it the keyboard from the terminal beside it: ⌘W closes the preview.
-        let terminal = try await split(other)
+        try await clickTakesTheKeyboard(other, info)
+    }
+
+    /// A click on the content gives it the keyboard from the terminal beside it: ⌘W closes the preview.
+    private func clickTakesTheKeyboard(_ pane: String, _ content: XCUIElement) async throws {
+        let terminal = try await split(pane)
         element("terminal.\(terminal)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(terminal)"))
-        info.click()
+        content.click()
         app.typeKey("w", modifierFlags: .command)
-        try await expect("\(other) closed") {
+        try await expect("\(pane) closed") {
             let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
             let ids = panes.compactMap { $0["pane_id"] as? String }
-            return !ids.contains(other) && ids.contains(terminal)
+            return !ids.contains(pane) && ids.contains(terminal)
         }
     }
 
@@ -171,13 +176,6 @@ extension OrielUITests {
         keepScreenshot("preview card, image")
         try await run("sips -z 64 64 \(folder)/icon.png >/dev/null", in: shell)
         XCTAssertTrue(until(5) { picture.frame.width < actual / 4 }, "\(picture.frame.width) after \(actual)")
-    }
-
-    /// After the test, before its tab closes.
-    private func removeAfter(_ folder: String, shell: String) {
-        addTeardownBlock { [one] in
-            _ = try? await Self.call(one, "pane.send_text", ["pane_id": shell, "text": "rm -rf \(folder)\r"])
-        }
     }
 
     /// Runs the command in the shell pane and waits for it to succeed.
