@@ -74,6 +74,8 @@ const options: CodeViewOptions<undefined, undefined> = {
   // `N unmodified lines`, not expandable: that needs each file's whole text.
   hunkSeparators: "line-info-basic",
   stickyHeaders: true,
+  // Clicks right after Next Change or a pick in the list (CodeView drops them while it scrolls).
+  pointerEventsOnScroll: true,
   layout: { paddingTop: 0, paddingBottom: 24, gap: 0 },
   // The card's fill shows through; the sticky header blurs what scrolls under it.
   unsafeCSS: `

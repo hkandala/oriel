@@ -4,17 +4,17 @@ import XCTest
 /// `web/src/diff.ts` with the file list, and row 2 drives it.
 extension OrielUITests {
     /// Uncommitted lists the changed and the untracked files and follows the work tree; the overview's tile shows
-    /// the card; the source pop-up picks a commit (the label and the title follow, the page loads it); Next Change
-    /// scrolls to a change the page has not drawn; ⌘-click on a line (at the line) and Open File open the file in a
-    /// new tab right after this one; Side by Side puts the old and the new line on one row; the file list hides;
-    /// Viewed folds the file.
+    /// the card; the source pop-up picks a commit (the label and the title follow, the page loads it); Open File
+    /// opens the file in a new tab right after this one; Viewed folds the file and opens it again; Next Change
+    /// scrolls to a change the page has not drawn; Side by Side puts the old and the new line on one row; the file
+    /// list hides; ⌘-click on a line opens the file at the line.
     func testDiffCardShowsAPatchAndOpensItsFiles() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("diff")
         try await waitForPrompt(left)
         let repo = "/tmp/oriel-e2e-diff", root = "/private/tmp/oriel-e2e-diff"
         let hash = try await makeRepo(repo, in: left)
-        element("tab.\(tab)").click()
+        try await show(tab)
         let card = try await split(left)
         try await Self.call(one, "pane.rename", ["pane_id": card, "label": "oriel:diff#e2edif \(root) uncommitted"])
 
@@ -37,22 +37,38 @@ extension OrielUITests {
         XCTAssertTrue(page.buttons["b.md"].vanishes(within: 10))
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 3))
 
+        // Clicks in the page wait for what it draws: its layout comes back late after the card was hidden.
+        let open = page.buttons["Open a.txt"]
+        XCTAssertTrue(open.has(\.isHittable, true, within: 3))
+        _ = try await opens("\(root)/a.txt", after: tab) { open.click() }
+        try await show(tab)
+        let viewed = page.checkBoxes["Viewed a.txt"], line = page.staticTexts.matching(
+            NSPredicate(format: "value BEGINSWITH 'line'"),
+        ).firstMatch
+        XCTAssertTrue(viewed.has(\.isHittable, true, within: 3) && line.exists)
+        viewed.click()
+        XCTAssertTrue(line.vanishes(within: 3))
+        viewed.click()
+        XCTAssertTrue(line.exists(within: 3))
+
         let far = page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'far290'")).firstMatch
         XCTAssertFalse(far.exists)
         element("pane.\(card).diff.next").click()
         element("pane.\(card).diff.next").click()
         XCTAssertTrue(far.exists(within: 3))
-
+        try await sideBySide(card, page, far)
+        XCTAssertTrue(far.has(\.isHittable, true, within: 3))
         let file = try await opens("\(root)/a.txt", after: tab) {
             XCUIElement.perform(withKeyModifiers: .command) { far.click() }
         }
         // At the line: the editor draws only the lines in view.
         let editor = element("file.\(file).page").textViews.firstMatch
         XCTAssertTrue(until(5) { (editor.value as? String)?.contains("far290") == true })
-        element("tab.\(tab)").click()
-        _ = try await opens("\(root)/a.txt", after: tab) { page.buttons["Open a.txt"].click() }
-        element("tab.\(tab)").click()
-        // Side by Side: the old line and the new one on one row.
+        try await send("cd / && rm -rf \(repo)\r", to: left)
+    }
+
+    /// Side by Side puts the old line and the new one on one row; the file list hides and comes back.
+    private func sideBySide(_ card: String, _ page: XCUIElement, _ far: XCUIElement) async throws {
         element("pane.\(card).diff.layout").radioButtons["Side by Side"].click()
         let old = page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'line 290'")).firstMatch
         XCTAssertTrue(until(3) {
@@ -63,9 +79,6 @@ extension OrielUITests {
         XCTAssertTrue(page.buttons["a.txt"].vanishes(within: 3))
         element("pane.\(card).diff.file-list").click()
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 3))
-        page.checkBoxes["Viewed a.txt"].click()
-        XCTAssertTrue(far.vanishes(within: 3))
-        try await send("cd / && rm -rf \(repo)\r", to: left)
     }
 
     /// A repository with two commits and uncommitted changes, made in the shell pane; HEAD's hash.
@@ -100,9 +113,8 @@ extension OrielUITests {
         let opened = try await newTabID(after: before)
         closeAfter("tab", opened)
         try await expect("\(opened) right after \(tab)") {
-            let order = try await (Self.call(one, "tab.list", ["workspace_id": "w2"])["tabs"] as? [[String: Any]] ?? [])
-                .compactMap { $0["tab_id"] as? String }
-            return order.firstIndex(of: opened) == order.firstIndex(of: tab).map { $0 + 1 }
+            let index = try await order(of: opened), before = try await order(of: tab)
+            return index != nil && index == before.map { $0 + 1 }
         }
         XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
         let pane = try await pane(of: opened), label = try await paneLabel(pane)
