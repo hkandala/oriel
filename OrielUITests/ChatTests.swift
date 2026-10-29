@@ -199,9 +199,9 @@ extension OrielUITests {
         let enable = element("pane.\(pane).enable-chat")
         XCTAssertTrue(enable.exists(within: 10))
         // Row 1 the session's title, row 2 the button where Chat | Terminal sits.
-        XCTAssertTrue(until(3) { self.twoRows(pane, title: "New Session", above: "pane.\(pane).enable-chat") })
+        XCTAssertTrue(until(3) { self.twoRows(pane, title: "Untitled", above: "pane.\(pane).enable-chat") })
         let label = { self.element("tab.\(tab)").label }
-        XCTAssertTrue(until(3) { label().contains("Claude Code New Session") }, label())
+        XCTAssertTrue(until(3) { label().contains("Claude Code Untitled") }, label())
         try await send("hello\r", to: pane)
         try await waitFor(pane) { $0.contains("Echo: **hello**") }
         keepScreenshot("enable-chat")

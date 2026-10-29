@@ -141,9 +141,9 @@ extension OrielUITests {
         try await expect("each row's state") {
             rows.map { $0.value as? String } == ["Needs you", "Working", "Done", "Idle"]
         }
-        // The pane's name, else its session's title ("New Session" before one); line 2 names the workspace.
+        // The pane's name, else its session's title ("Untitled" before one); line 2 names the workspace.
         try await expect("the pane's name as the title") { rows[1].label.hasPrefix("fixer, alpha · ") }
-        XCTAssertTrue(rows[3].label.hasPrefix("New Session, alpha · "), rows[3].label)
+        XCTAssertTrue(rows[3].label.hasPrefix("Untitled, alpha · "), rows[3].label)
         // Each group's header, with its count, sits above its row and below the row before.
         let groups = ["Needs you", "Working", "Done", "Idle"].map { element("agents.group.\($0)") }
         XCTAssertEqual(groups.map(\.label), ["Needs you 1", "Working 1", "Done 1", "Idle 1"])

@@ -136,7 +136,7 @@ extension HostStore {
 
         /// An agent pane's name (ui/chat-view): the user's herdr label, else its session's title; nil for other panes.
         var agentTitle: String? {
-            agent == nil ? nil : label ?? sessionTitle ?? "New Session"
+            agent == nil ? nil : label ?? sessionTitle ?? "Untitled"
         }
 
         /// The agent's name as people know it ("Claude Code"): the chooser's, else herdr's.
