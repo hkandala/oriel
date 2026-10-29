@@ -82,8 +82,7 @@ extension OrielUITests {
         let layout = reply["layout"] as? [String: Any]
         let tab: String = try field(layout?["tab_id"], "layout's tab")
         closeAfter("tab", tab)
-        XCTAssertTrue(element("tab.\(tab)").has(\.isHittable, true, within: 3))
-        element("tab.\(tab)").click()
+        try await show(tab)
         return try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
     }
 }
