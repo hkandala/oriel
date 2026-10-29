@@ -1,21 +1,22 @@
 import XCTest
 
 /// The Markdown plugin (phase 44): Read renders the file, Edit (⌘E) is its own text with each mark hidden unless
-/// the caret is in its element, the outline lists the headings, ⌘S saves, the overview's tile shows the page and a
-/// relative link opens its file in a new tab.
+/// the caret is in its element, the outline lists the headings, ⌘S saves, Read follows the file on disk, the
+/// overview's tile shows the page and a relative link opens its file in a new tab.
 extension OrielUITests {
     func testMarkdownCardReadsEditsSavesAndLinks() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (_, shell) = try await newTab("markdown")
         let folder = "/tmp/oriel-e2e-markdown"
-        let (_, shell) = try await markdownTab(["sh"], label: nil)
         try await waitForPrompt(shell)
+        addTeardownBlock { [one] in
+            _ = try? await Self.call(one, "pane.send_text", ["pane_id": shell, "text": "rm -rf \(folder)\r"])
+        }
         try await send("mkdir -p \(folder) && cd \(folder) && printf '%s\\n' '---' 'title: Hidden' '---' '# Notes' "
             + "'Some *words*.' '## Second' '[Other](other.md)' >notes.md && printf '# Other\\n' >other.md && clear "
             + "&& echo ready-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("ready-42") }
-        let (tab, card) = try await markdownTab(["sh", "-c", "cat", "sh"],
-                                                label: "oriel:markdown#e2emd \(folder)/notes.md")
-        element("tab.\(tab)").click()
+        let card = try await markdownCard("\(folder)/notes.md")
 
         // Read: the rendered page, front matter left out; no editor.
         let page = element("markdown.\(card).page")
@@ -25,9 +26,35 @@ extension OrielUITests {
         XCTAssertFalse(page.textViews.firstMatch.exists)
         element("pane.\(card).outline").click()
         XCTAssertTrue(element("pane.\(card).outline").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(page.buttons["Second"].exists(within: 3))
+        XCTAssertFalse(page.buttons["title: Hidden"].exists)
         keepScreenshot("markdown card, read, outline")
 
-        // Edit: marks away from the caret (at the top) are hidden.
+        try await editAndSave(card, page: page, shell: shell)
+
+        // The overview's tile shows the card's own page.
+        app.typeKey("o", modifierFlags: [.command, .control])
+        XCTAssertTrue(element("overview.card.\(card)").has(\.stringValue, "markdown", within: 3))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(element("overview").vanishes(within: 2))
+
+        // Back in Read, clean: a change on disk shows; a relative link opens its file in a new tab after this one.
+        app.typeKey("e", modifierFlags: .command)
+        XCTAssertTrue(element("pane.\(card).mode.read").has(\.isSelected, true, within: 3))
+        try await send("printf '## Third\\n' >>notes.md\r", to: shell)
+        XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Third'")).firstMatch.exists(within: 5))
+        let before = try await tabIDs()
+        page.links["Other"].click()
+        let opened = try await newTabID(after: before)
+        closeAfter("tab", opened)
+        XCTAssertTrue(element("tab.\(opened)").has(\.label, "Markdown other.md", within: 5))
+        let label = try await paneLabel(pane(of: opened))
+        XCTAssertTrue(label.hasPrefix("oriel:markdown#") && label.hasSuffix(" \(folder)/other.md"), label)
+    }
+
+    /// ⌘E: marks away from the caret (at the top) are hidden; an outline row puts the caret on its heading, whose
+    /// mark shows. A typed letter shows the dirty dot and ⌘S writes it to the file.
+    private func editAndSave(_ card: String, page: XCUIElement, shell: String) async throws {
         page.staticTexts.matching(NSPredicate(format: "value == 'Second'")).firstMatch.click()
         app.typeKey("e", modifierFlags: .command)
         XCTAssertTrue(element("pane.\(card).mode.edit").has(\.isSelected, true, within: 3))
@@ -35,7 +62,6 @@ extension OrielUITests {
         XCTAssertTrue(until(5) { editor.exists && editor.stringValue.contains("Some words.") })
         XCTAssertFalse(editor.stringValue.contains("*words*"))
         XCTAssertFalse(editor.stringValue.contains("## Second"))
-        // An outline row puts the caret on its heading: its mark shows.
         page.buttons["Second"].click()
         XCTAssertTrue(until(3) { editor.stringValue.contains("## Second") })
         XCTAssertFalse(element("pane.\(card).dirty").exists)
@@ -46,34 +72,18 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(card).dirty").vanishes(within: 5))
         try await send("clear && grep -q '^x## Second$' notes.md && echo saved-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("saved-42") }
-
-        // The overview's tile shows the card's own page.
-        app.typeKey("o", modifierFlags: [.command, .control])
-        XCTAssertTrue(element("overview.card.\(card)").has(\.stringValue, "markdown", within: 3))
-        app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(element("overview").vanishes(within: 2))
-
-        // Back in Read, a relative link: its file in a new tab right after this one.
-        app.typeKey("e", modifierFlags: .command)
-        XCTAssertTrue(element("pane.\(card).mode.read").has(\.isSelected, true, within: 3))
-        let before = try await tabIDs()
-        page.links["Other"].click()
-        let opened = try await newTabID(after: before)
-        closeAfter("tab", opened)
-        XCTAssertTrue(element("tab.\(opened)").has(\.label, "Markdown other.md", within: 5))
-        let label = try await paneLabel(pane(of: opened))
-        XCTAssertTrue(label.hasPrefix("oriel:markdown#") && label.hasSuffix(" \(folder)/other.md"), label)
-        try await send("rm -rf \(folder)\r", to: shell)
     }
 
-    /// A new tab in w2 made with `layout.apply` (no ⌘T, no focus change); with a label, a plugin's pane.
-    private func markdownTab(_ command: [String], label: String?) async throws -> (tab: String, pane: String) {
-        var root: [String: Any] = ["type": "pane", "cwd": "/tmp", "command": command]
-        root["label"] = label
+    /// A Markdown card of this file in a tab of its own in w2 (selected by `newTab`), made as Oriel makes one, shown.
+    private func markdownCard(_ path: String) async throws -> String {
+        let root: [String: Any] = ["type": "pane", "cwd": "/tmp", "label": "oriel:markdown#e2emdc \(path)",
+                                   "command": ["sh", "-c", "cat", "sh"]]
         let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": root])
         let layout = reply["layout"] as? [String: Any]
         let tab: String = try field(layout?["tab_id"], "layout's tab")
         closeAfter("tab", tab)
-        return try (tab, field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane"))
+        XCTAssertTrue(element("tab.\(tab)").has(\.isHittable, true, within: 3))
+        element("tab.\(tab)").click()
+        return try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
     }
 }

@@ -15,13 +15,15 @@ const outline = document.createElement("nav")
 const article = document.createElement("article")
 const pane = document.createElement("main")
 article.tabIndex = -1
+// Shown once the file is: not beside the info view.
+outline.hidden = true
 pane.append(article)
 document.body.append(outline, pane)
 
 const md = new MarkdownIt({ html: true, linkify: true })
 type Env = { ids: Map<string, number>; line: number }
 /** A YAML front matter's end: Read leaves it out, the outline skips it. */
-const front = (text: string) => /^---\n[\s\S]*?\n---(?:\n|$)/.exec(text)?.[0].length ?? 0
+const front = (text: string) => /^---\n[\w-]+:[\s\S]*?\n---(?:\n|$)/.exec(text)?.[0].length ?? 0
 
 /** The text as HTML, without its front matter, task boxes drawn as GitHub does. */
 function render(text: string) {
@@ -44,7 +46,8 @@ md.renderer.rules.heading_open = (tokens, i, options, env: Env, self) => {
 // Images are not loaded: their alt text links to them, as in the native variant.
 md.renderer.rules.image = (tokens, i) => {
   const { escapeHtml } = md.utils
-  return `<a href="${escapeHtml(tokens[i].attrGet("src") ?? "")}">${escapeHtml(tokens[i].content)}</a>`
+  const src = tokens[i].attrGet("src") ?? ""
+  return `<a href="${escapeHtml(src)}">${escapeHtml(tokens[i].content || src)}</a>`
 }
 
 // Marks in Edit, hidden outside their element: a heading's `#`, emphasis, a link's brackets and address, code ticks.
@@ -62,6 +65,8 @@ function hidden(view: EditorView): DecorationSet {
       enter(node) {
         const parent = node.node.parent
         if (!marks.has(node.name) || !parent || shown.has(parent.name)) return
+        // A bare address (GFM) is the text itself.
+        if (node.name === "URL" && parent.name !== "Link" && parent.name !== "Image") return
         if (state.selection.ranges.some((range) => range.from <= parent.to && range.to >= parent.from)) return
         // A heading's mark takes its space along.
         const end = node.name === "HeaderMark" && state.sliceDoc(node.to, node.to + 1) === " " ? node.to + 1 : node.to
@@ -115,9 +120,10 @@ const view = await editor([
     ".cm-content": { boxSizing: "border-box", maxWidth: "640px", margin: "0 auto", padding: "16px 24px 48px" },
   })),
   EditorView.updateListener.of((update) => {
-    if (update.docChanged) {
-      if (!edit) render(update.state.doc.toString())
-      if (outlined) list(update.view)
+    if (update.docChanged && !edit) render(update.state.doc.toString())
+    // Also as the background parse reaches more headings.
+    if (outlined && (update.docChanged || syntaxTree(update.startState) !== syntaxTree(update.state))) {
+      list(update.view)
     }
   }),
 ], pane)
@@ -130,7 +136,10 @@ function show(view: EditorView, nowEdit: boolean, nowOutlined: boolean) {
   article.hidden = edit
   view.dom.hidden = !edit
   outline.hidden = !outlined
-  if (outlined) list(view)
+  if (outlined) {
+    ensureSyntaxTree(view.state, view.state.doc.length, 200)
+    list(view)
+  }
   ;(edit ? view : article).focus()
   report({ op: "markdown", edit, outline: outlined })
 }
@@ -139,15 +148,20 @@ function show(view: EditorView, nowEdit: boolean, nowOutlined: boolean) {
 function list(view: EditorView) {
   const { state } = view
   const rows: HTMLButtonElement[] = []
-  const start = front(state.sliceDoc(0, 10_000))
-  ;(ensureSyntaxTree(state, state.doc.length, 200) ?? syntaxTree(state)).iterate({
+  const start = front(state.doc.sliceString(0, 10_000))
+  syntaxTree(state).iterate({
     enter(node) {
       const level = /^(?:ATX|Setext)Heading(\d)$/.exec(node.name)?.[1]
       if (!level) return ["Document", "Blockquote", "BulletList", "OrderedList", "ListItem"].includes(node.name)
       if (node.from < start) return false
       const line = state.doc.lineAt(node.from)
+      // The text between an ATX heading's marks, or above a setext heading's underline.
+      const [first, last] = node.node.getChildren("HeaderMark")
+      const text = node.name.startsWith("ATX")
+        ? state.sliceDoc(first?.to ?? node.from, last?.from ?? node.to)
+        : state.sliceDoc(node.from, first?.from ?? node.to)
       const row = document.createElement("button")
-      row.textContent = line.text.replace(/^[\s>*+\d.-]*#*\s*|\s#*\s*$/g, "") || line.text
+      row.textContent = text.trim() || line.text
       row.style.paddingLeft = `${12 * Number(level)}px`
       // Edit: the caret to the heading; Read: its element, by its source line.
       row.onclick = () => {
@@ -165,21 +179,25 @@ function list(view: EditorView) {
 
 // Links in Read: `#` scrolls the page, http(s) opens the browser plugin, a relative path the plugin of its kind.
 article.addEventListener("click", (event) => {
-  const href = (event.target as Element).closest("a")?.getAttribute("href")
-  if (!href) return
+  const link = (event.target as Element).closest("a")
+  if (!link) return
+  // Also an empty address, which would load the page again and lose the edits.
   event.preventDefault()
+  const href = link.getAttribute("href") ?? ""
   if (href.startsWith("#")) {
     document.getElementById(decodeURIComponent(href.slice(1)))?.scrollIntoView()
   } else if (/^https?:/i.test(href)) {
     report({ op: "open", kind: "browser", arg: href })
-  } else if (!/^[a-z][a-z\d+.-]*:/i.test(href)) {
+  } else if (href && !/^[a-z][a-z\d+.-]*:/i.test(href)) {
     const base = `file://${arg.split("/").map(encodeURIComponent).join("/")}`
     report({ op: "open", arg: decodeURIComponent(new URL(href, base).pathname) })
   }
 })
 
 // Undefined when the file is too large to show: the info view is there instead.
-if (view) {
+if (!view) {
+  report({ op: "markdown", edit: false, outline: false })
+} else {
   receive((message) => {
     if (message.op === "markdown") return show(view, message.edit, message.outline)
     // Find works in the text: Read hides it.
