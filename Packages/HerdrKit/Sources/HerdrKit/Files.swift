@@ -111,6 +111,11 @@ public enum Files {
         return FileContents(data: data, hash: String(lines[1]))
     }
 
+    /// The file's `cksum`, as `read` gives it: a check whether it changed that reads no bytes back.
+    public static func hash(_ path: String, exec: any Exec) async throws -> String {
+        try await exec.checkedOutput(["sh", "-c", #"cksum <"$1""#, "sh", path])
+    }
+
     /// The file's size in bytes, for the info view of a file not read.
     public static func size(_ path: String, exec: any Exec) async throws -> Int {
         let text = try await exec.checkedOutput(["sh", "-c", #"wc -c <"$1""#, "sh", path])

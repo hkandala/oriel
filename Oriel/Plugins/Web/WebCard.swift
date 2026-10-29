@@ -13,7 +13,10 @@ final class WebCard {
     /// The label's argument; a new one (a rename from elsewhere, a diff's source) loads the page again with it.
     var arg: String {
         didSet {
+            // Another file: its page reads it again.
             place = nil
+            hash = nil
+            toast = nil
             if loaded {
                 script()
                 view.reload()
@@ -97,12 +100,14 @@ final class WebCard {
         switch message["op"] as? String {
         case "read":
             // A page loaded again, maybe for another file: its reports come again.
+            dirty = false
             symbol = ""
             page = ""
             return await read()
         case "save":
-            // Only a file read: a nil hash would overwrite whatever is on disk.
-            guard let text = message["text"] as? String, let hash else { return (nil, "Not read") }
+            // Only a file read: a nil hash would overwrite whatever is on disk. One save at a time: a second would
+            // check the first's old hash; its edits keep the dot for the next ⌘S.
+            guard !saving, let text = message["text"] as? String, let hash else { return (nil, "Not read") }
             await save(text, over: hash)
         case "symbol":
             symbol = message["symbol"] as? String ?? ""
@@ -181,10 +186,11 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
         let file = url.lastPathComponent, page = url.pathExtension.isEmpty
         // A kind's page has its own styles when it imports CSS (esbuild writes `<kind>.css`).
-        let styles = Self.folder.map { FileManager.default.fileExists(atPath: $0.appending(path: "\(file).css").path) }
+        let styles = page && Self.folder
+            .map { FileManager.default.fileExists(atPath: $0.appending(path: "\(file).css").path) } == true
         let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""
         <!doctype html><meta charset="utf-8"><link rel="stylesheet" href="card.css">\
-        \(styles == true ? "<link rel=\"stylesheet\" href=\"\(file).css\">" : "")\
+        \(styles ? "<link rel=\"stylesheet\" href=\"\(file).css\">" : "")\
         <script type="module" src="\(file).js"></script>
         """.utf8) : Self.folder.flatMap { try? Data(contentsOf: $0.appending(path: file)) }
         guard let data else {

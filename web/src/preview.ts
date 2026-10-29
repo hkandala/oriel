@@ -7,6 +7,8 @@ import { info } from "./lib/info"
 
 type Zoom = Extract<In, { op: "zoom" }>["to"]
 let zoom: (to: Zoom) => void = () => {}
+/** What the file shown holds: an image's resize observer, a PDF's worker. */
+let release = () => {}
 
 const image = (url: string) => {
   const box = Object.assign(document.createElement("div"), { className: "scroller" })
@@ -20,7 +22,9 @@ const image = (url: string) => {
     img.style.width = `${img.naturalWidth * (scale === "fit" ? fit() : scale)}px`
   }
   img.onload = apply
-  new ResizeObserver(apply).observe(box)
+  const observer = new ResizeObserver(apply)
+  observer.observe(box)
+  release = () => observer.disconnect()
   zoom = (to) => {
     const now = scale === "fit" ? fit() : scale
     scale = to === "fit" ? "fit" : to === "actual" ? 1 : Math.min(16, Math.max(0.05, now * (to === "in" ? 1.25 : 0.8)))
@@ -55,6 +59,7 @@ const pdf = async (data: Uint8Array) => {
     cMapUrl: "./",
   }).promise
   viewer.setDocument(document_)
+  release = () => void document_.destroy()
   report({ op: "page", page: 1, pages: document_.numPages })
   zoom = (to) => {
     if (to === "in") viewer.increaseScale()
@@ -67,6 +72,8 @@ let url = ""
 
 const show = async (file: PreviewReply) => {
   zoom = () => {}
+  release()
+  release = () => {}
   URL.revokeObjectURL(url)
   if ("info" in file) return info(file.info, document.body)
   const bytes: Uint8Array = (Uint8Array as unknown as { fromBase64(s: string): Uint8Array }).fromBase64(file.data)
@@ -78,9 +85,10 @@ const show = async (file: PreviewReply) => {
   document.body.replaceChildren(player)
 }
 
+/** One file at a time, in order: a PDF loads over several turns. */
+let shown = ask({ op: "read" }).then(show)
 receive((message) => {
   if (message.op === "zoom") zoom(message.to)
   // The file again after a change on disk.
-  if (message.op === "load") show(message as PreviewReply)
+  if (message.op === "load") shown = shown.then(() => show(message as PreviewReply))
 })
-await show(await ask({ op: "read" }))

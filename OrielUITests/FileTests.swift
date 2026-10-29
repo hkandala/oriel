@@ -85,7 +85,7 @@ extension OrielUITests {
     }
 
     /// A change on disk while dirty: the toast; Keep Mine keeps the edit and the next ⌘S writes it over the change;
-    /// Reload takes the disk's text and clears the dot.
+    /// a ⌘S over it offers Overwrite; Reload takes the disk's text and clears the dot.
     private func diskChangesWhileDirty(_ card: String, file: String, shell: String) async throws {
         let editor = element("file.\(card).page").textViews.firstMatch, dirty = element("pane.\(card).dirty")
         let toast = element("pane.\(card).toast")
@@ -104,6 +104,18 @@ extension OrielUITests {
         try await send("grep -q mine \(file) && ! grep -q 'z = 3' \(file) && echo kept-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("\nkept-42") }
 
+        // ⌘S over the toast: the disk changed since the read, so the save asks; Overwrite writes.
+        app.typeText("over")
+        XCTAssertTrue(dirty.exists(within: 3))
+        try await send("printf 'let v = 5\\n' >\(file)\r", to: shell)
+        XCTAssertTrue(toast.has(\.stringValue, "main.swift changed on disk.", within: 5))
+        app.typeKey("s", modifierFlags: .command)
+        XCTAssertTrue(toast.has(\.stringValue, "main.swift changed on disk since you opened it.", within: 5))
+        element("pane.\(card).toast.other").click()
+        XCTAssertTrue(dirty.vanishes(within: 3))
+        try await send("grep -q over \(file) && ! grep -q 'v = 5' \(file) && echo overwrote-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("\noverwrote-42") }
+
         app.typeText("again")
         XCTAssertTrue(dirty.exists(within: 3))
         try await send("printf 'let w = 4\\n' >\(file)\r", to: shell)
@@ -113,8 +125,9 @@ extension OrielUITests {
         XCTAssertTrue(dirty.vanishes(within: 3))
     }
 
-    /// An image at Fit, Actual Size and zoomed in; a PDF's page `n of m`, which follows a scroll; the info view of
-    /// another file, with no zoom; the overview's tile shows it.
+    /// An image at Fit, Actual Size and zoomed in, and again after a change on disk; a PDF's page `n of m`, which
+    /// follows a scroll; the info view of
+    /// another file, with no zoom; audio's player; the overview's tile shows it.
     func testAPreviewCardShowsImagesPDFsAndOtherFiles() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("preview")
@@ -123,7 +136,8 @@ extension OrielUITests {
         try await send("rm -rf \(folder) && mkdir \(folder) && cd \(folder) && sips -s format png -z 900 1200 "
             + "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericDocumentIcon.icns "
             + "--out icon.png >/dev/null && seq 1 150 >lines.txt && cupsfilter lines.txt >lines.pdf 2>/dev/null "
-            + "&& head -c 3000 /dev/urandom >notes.bin && clear && echo ready-$((6*7))\r", to: left)
+            + "&& head -c 3000 /dev/urandom >notes.bin && say -o hi.m4a --data-format=aac hi && clear "
+            + "&& echo ready-$((6*7))\r", to: left)
         try await waitFor(left) { $0.contains("ready-42") }
         addTeardownBlock { [one] in _ = try? await Self.call(
             one,
@@ -146,6 +160,9 @@ extension OrielUITests {
         XCTAssertTrue(until(3) { abs(image.frame.width - fit * 1.25) < 2 })
         XCTAssertFalse(element("pane.\(card).page").exists)
         keepScreenshot("preview card, image")
+        // A change on disk shows the new image, at Fit.
+        try await send("sips -z 200 300 icon.png >/dev/null\r", to: left)
+        XCTAssertTrue(until(5) { abs(image.frame.width - 300) < 2 })
 
         try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "lines.pdf"])
         let pages = element("pane.\(card).page")
@@ -160,6 +177,9 @@ extension OrielUITests {
         XCTAssertTrue(name.exists(within: 10))
         XCTAssertFalse(element("pane.\(card).zoom.fit").exists)
         XCTAssertFalse(pages.exists)
+        // Audio in WebKit's player.
+        try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "hi.m4a"])
+        XCTAssertTrue(until(10) { page.buttons.firstMatch.exists })
         tiled(card, "preview")
     }
 }

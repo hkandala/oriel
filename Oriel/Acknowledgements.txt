@@ -3110,7 +3110,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ========================================================================
 
-pdf.js's standard fonts: Foxit fonts, BSD-style; Liberation fonts, OFL-1.1
+pdf.js's standard fonts: Foxit fonts, BSD-style; Liberation fonts, GPL-2.0 with the font exception
 https://github.com/mozilla/pdf.js
 
 // Copyright 2014 PDFium Authors. All rights reserved.

@@ -22,7 +22,6 @@
     "@lezer/highlight": "1.2.5",
     "@pierre/diffs": "1.6.2",
     "@pierre/trees": "1.0.0-beta.6",
-    "codemirror": "6.0.2",
     "markdown-it": "15.0.3",
     "pdfjs-dist": "6.4.299"
   },

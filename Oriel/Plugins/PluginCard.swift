@@ -75,14 +75,17 @@ struct PluginToolbar: View {
 
     var body: some View {
         HStack(spacing: 6) {
+            // Each kind's own spacer: Preview's controls sit right of it, by Open With.
             switch plugin.kind {
-            case .file: JumpBar(plugin: plugin)
+            case .file:
+                JumpBar(plugin: plugin)
+                Spacer(minLength: 0)
             case .preview: PreviewBar(plugin: plugin)
             default:
                 Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
                     .truncationMode(.middle)
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
             if [.file, .preview, .markdown].contains(plugin.kind), !page.store.machine.isRemote {
                 OpenWith(path: plugin.label.arg).accessibilityIdentifier("pane.\(plugin.paneID).open-with")
             }
