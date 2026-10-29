@@ -227,11 +227,15 @@ user's answers to the orchestrator's questions.
   step, the next swipe stepped nothing until its own lift.
 - **Fix:** `ThreeFingers` starts over after a pause of more than 0.2 s in the touch stream, and no AppKit phase
   decides anything. The check script lifts nowhere and swipes again; it fails on the old code.
-- **Not reproduced:** a stop that lasts until a relaunch. Through context menus, missed lifts and full screen in
-  and out, the window kept getting touches, and swipes came back within one gesture. Left that could still
-  stop them for good: the window no longer getting touches (AppKit replacing the frame view that takes them),
-  `panelOpen` staying set, or the event's window not matching a `WindowPages`. Web views and sheets were not
-  driven: the run that opens a browser pane posts keys, and those were paused.
+- **Not reproduced:** a stop that lasts until a relaunch. A second run drove the user's path through
+  accessibility actions (no keys), posted a three-finger swipe pair after each step, and logged the three
+  suspects every half second. The path: a browser pane, its context menu, its popup sheet, full screen in and
+  out, the overview, the palette, a second session, new and switched tabs. Through all of it, the window kept
+  one frame view that takes touches, with its one touch listener. `panelOpen` was set only while the palette
+  showed. Every swipe's window matched its `WindowPages`, and every swipe stepped. Only an open context menu
+  stops touches, and they come back when it closes (the missed lift above). A borderless-and-back style change
+  does swap in a frame view that takes no touches, but nothing on this path does that. The chat view was not
+  driven.
 - **Decisions:** 0.2 s, because the pad reports fingers every 12 to 15 ms, still ones too, and event timestamps
   are the pad's, so a busy main thread makes no pause. Fingers held still longer than that after a step, then
   moved 20 pt, step again.
