@@ -63,14 +63,14 @@ final class PaneViewRegistry {
     }
 
     /// The plugin pane's card, made on first use from its label.
-    func plugin(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String, store: HostStore) -> Plugin {
+    func plugin(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String) -> Plugin {
         if let plugin = plugins[terminalID], plugin.label.iid == label.iid {
             if plugin.paneID != pane.id {
                 plugin.paneID = pane.id
             }
             return plugin
         }
-        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label, store: store)
+        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label)
         plugins[terminalID] = plugin
         return plugin
     }
@@ -84,10 +84,16 @@ final class PaneViewRegistry {
         let labels = Dictionary((pages?.withFloats ?? []).flatMap(\.store.panes).compactMap { pane in
             pane.terminalID.flatMap { id in pane.plugin.map { (id, $0) } }
         }, uniquingKeysWith: { first, _ in first })
-        browsers = browsers.filter { alive.contains($0.key) && labels[$0.key]?.iid == $0.value.label.iid }
-        plugins = plugins.filter { alive.contains($0.key) && labels[$0.key]?.iid == $0.value.label.iid }
-        for (terminalID, plugin) in plugins where labels[terminalID] != plugin.label {
-            plugin.label = labels[terminalID] ?? plugin.label
+        // Also a label of another kind with the same iid.
+        func kept(_ id: String, _ label: PaneLabel) -> Bool {
+            alive.contains(id) && labels[id].map { $0.iid == label.iid && $0.kind == label.kind } == true
+        }
+        browsers = browsers.filter { kept($0.key, $0.value.label) }
+        plugins = plugins.filter { kept($0.key, $0.value.label) }
+        for (terminalID, plugin) in plugins {
+            if let label = labels[terminalID], label != plugin.label {
+                plugin.label = label
+            }
         }
         for (terminalID, browser) in browsers {
             if let label = labels[terminalID] {
@@ -104,6 +110,11 @@ final class PaneViewRegistry {
             dropClaims(but: terminalID)
             pages?.current?.tookKeyboard(terminalID)
         }
+    }
+
+    /// A plugin card's content took the keyboard: as a terminal's or a browser's view does.
+    func claimed(_ terminalID: String) {
+        claim(terminalID)()
     }
 
     /// The browser card of this terminal id, if made.
@@ -176,6 +187,9 @@ final class PaneViewRegistry {
         }
         for (id, browser) in browsers where id != terminalID && pages?.floats(id) != true {
             browser.dropClaim()
+        }
+        for (id, plugin) in plugins where id != terminalID && plugin.wantsKeyboard {
+            plugin.wantsKeyboard = false
         }
     }
 

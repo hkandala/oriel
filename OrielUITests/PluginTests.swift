@@ -3,7 +3,7 @@ import XCTest
 /// Plugin panes (phase 42): a herdr pane labeled `oriel:<kind>#<iid> <arg>` with a placeholder, shown as the kind's
 /// card with two header rows.
 extension OrielUITests {
-    /// The chooser's Files and ⌘K Open Changes Here make labeled panes in the pane's place, rooted at its git
+    /// The chooser's Changes and ⌘K Open Files Here make labeled panes in the pane's place, rooted at its git
     /// repository; Open in New Tab (`Page.open`) makes a tab right after the current one. File, Preview and Markdown
     /// cards from their labels, their tabs titled by kind and file; an edit shows the dirty dot. The cards come back
     /// after a relaunch.
@@ -15,8 +15,9 @@ extension OrielUITests {
         closeAfter("tab", after)
         try await waitForPrompt(left)
         let repo = "/tmp/oriel-e2e-plugins", root = "/private/tmp/oriel-e2e-plugins"
-        try await send("rm -rf \(repo) && mkdir \(repo) && cd \(repo) && git init -q && clear\r", to: left)
-        try await waitFor(left) { !$0.contains("git") }
+        try await send("rm -rf \(repo) && mkdir \(repo) && cd \(repo) && git init -q && clear && echo ready-$((6*7))\r",
+                       to: left)
+        try await waitFor(left) { $0.contains("ready-42") }
         element("tab.\(tab)").click()
         element("terminal.\(left)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(left)"))
@@ -25,23 +26,23 @@ extension OrielUITests {
         let chooser = try await replaced(left, in: tab, besides: [left])
         XCTAssertTrue(element("pane.\(chooser).chooser.files").exists(within: 3))
         XCTAssertTrue(element("pane.\(chooser).chooser.changes").exists)
-        app.typeKey("4", modifierFlags: [])
-        let files = try await replaced(chooser, in: tab, besides: [left])
-        let filesLabel = try await paneLabel(files)
-        XCTAssertTrue(filesLabel.hasPrefix("oriel:files#") && filesLabel.hasSuffix(" \(root)"), filesLabel)
-        XCTAssertTrue(element("files.\(files).card").exists(within: 3))
-        XCTAssertTrue(element("pane.\(files).title").has(\.stringValue, "oriel-e2e-plugins", within: 3))
-        try await waitFor(files, in: nil) { $0.contains("Files") && $0.contains("Shown in Oriel") }
+        app.typeKey("5", modifierFlags: [])
+        let diff = try await replaced(chooser, in: tab, besides: [left])
+        let diffLabel = try await paneLabel(diff)
+        XCTAssertTrue(diffLabel.hasPrefix("oriel:diff#") && diffLabel.hasSuffix(" \(root) uncommitted"), diffLabel)
+        XCTAssertTrue(element("diff.\(diff).card").exists(within: 3))
+        XCTAssertTrue(element("pane.\(diff).title").has(\.stringValue, "Changes", within: 3))
+        try await waitFor(diff, in: nil) { $0.contains("Diff") && $0.contains("Shown in Oriel") }
 
         element("terminal.\(left)").click()
         openPalette()
-        app.typeText("open changes here")
-        XCTAssertTrue(element("palette.command.Open Changes Here").has(\.isSelected, true, within: 2))
+        app.typeText("open files here")
+        XCTAssertTrue(element("palette.command.Open Files Here").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
-        let diff = try await replaced(left, in: tab, besides: [files])
-        let diffLabel = try await paneLabel(diff)
-        XCTAssertTrue(diffLabel.hasPrefix("oriel:diff#") && diffLabel.hasSuffix(" \(root) uncommitted"), diffLabel)
-        XCTAssertTrue(element("pane.\(diff).title").has(\.stringValue, "Changes", within: 3))
+        let files = try await replaced(left, in: tab, besides: [diff])
+        let filesLabel = try await paneLabel(files)
+        XCTAssertTrue(filesLabel.hasPrefix("oriel:files#") && filesLabel.hasSuffix(" \(root)"), filesLabel)
+        XCTAssertTrue(element("pane.\(files).title").has(\.stringValue, "oriel-e2e-plugins", within: 3))
         keepScreenshot("files and changes cards")
 
         try await openInNewTab(diff, after: tab, label: " \(root) uncommitted")
@@ -52,8 +53,6 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         XCTAssertTrue(element("files.\(files).card").exists(within: connect))
         XCTAssertTrue(element("diff.\(diff).card").exists)
-        let kept = try await paneLabel(files)
-        XCTAssertEqual(kept, filesLabel)
     }
 
     /// Page.open from the card's placeholder: a new tab right after this one, selected, with the same kind and

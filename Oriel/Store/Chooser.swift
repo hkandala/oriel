@@ -64,7 +64,8 @@ extension Chooser.Row {
         case .agent: ("Agent", "Coding agent")
         case .plugin(.browser): ("Browser", "Web page")
         case .plugin(.files): ("Files", "File tree")
-        case .plugin: ("Changes", "Uncommitted diff")
+        case .plugin(.diff): ("Changes", "Uncommitted diff")
+        case let .plugin(kind): (kind.name, "")
         case let .start(index): (Chooser.agents[index].name, Chooser.agents[index].command)
         }
     }
