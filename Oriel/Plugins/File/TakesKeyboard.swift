@@ -36,8 +36,9 @@ private struct TakesKeyboard: ViewModifier {
 }
 
 /// A click on a preview's AppKit view (a PDF, a player, an image), which SwiftUI's taps miss: the view takes the
-/// keyboard itself, for its own keys (arrows, Space), and claims it for the card, so ⌘W closes the card.
-final class KeyboardClick: NSClickGestureRecognizer {
+/// keyboard itself, for its own keys (arrows, Space), and claims it for the card, so ⌘W closes the card. On the mouse
+/// down: a PDF's selection loop takes the mouse up.
+final class KeyboardClick: NSGestureRecognizer {
     private weak var plugin: Plugin?
     private weak var terminals: PaneViewRegistry?
 
@@ -45,8 +46,6 @@ final class KeyboardClick: NSClickGestureRecognizer {
         self.plugin = plugin
         terminals = page.terminals
         super.init(target: nil, action: nil)
-        target = self
-        action = #selector(clicked)
         delaysPrimaryMouseButtonEvents = false
     }
 
@@ -55,11 +54,13 @@ final class KeyboardClick: NSClickGestureRecognizer {
         fatalError("init(coder:) is not used")
     }
 
-    @objc private func clicked() {
+    override func mouseDown(with _: NSEvent) {
         view?.window?.makeFirstResponder(view)
         if let plugin {
             terminals?.claimed(plugin.terminalID)
         }
+        // The view gets the click as ever.
+        state = .failed
     }
 }
 
