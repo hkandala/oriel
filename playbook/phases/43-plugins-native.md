@@ -85,3 +85,31 @@ Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track ow
   laid-out width.
 - **For the user:** a big change set (thousands of lines) opens in about 0.2 s; scroll, the pinned header, Viewed on a
   long file, Side by Side on a narrow card, and ⌘-click on a removed line (opens the file at the line after it).
+
+### Track A
+
+- **Decisions:** the grammars sit in a local package, `Packages/Grammars` (one product in the Xcode project, not 19
+  package references), pinned to exact tags. CSS, JavaScript, Python and YAML use an older tag: the newer manifests
+  look for `src/scanner.c` from the build's folder, not the package's, and drop the scanner. Kotlin is fwcd's grammar
+  (the tree-sitter-grammars tag has no queries). TypeScript and C++ queries are added to the JavaScript and C ones.
+- **Decisions:** colors are TextKit 2 rendering attributes set in `renderingAttributesValidator`: TextKit asks per
+  paragraph as it lays one out, so only the lines on screen run a query; edits update the tree in place. A capture's
+  color comes from its role, as Xcode's theme, in AppKit's system colors (light and dark, no Look token). No colors
+  over 4 MB, where a parse takes about a second. Lines wrap and go on at their own indent (`NSTextParagraph` from the
+  content storage's delegate); the current line is the caret's whole paragraph.
+- **Decisions:** `FileText` (Oriel/Plugins/) is the file and markdown cards' one load, save and reload: bytes with a
+  NUL or not UTF-8 show the preview's info view; a change on disk reloads a clean text, and a dirty one gets
+  “‹name› changed on disk.” [Reload] [Keep Mine]; a save that finds the disk changed gets “‹name› changed on disk
+  since you opened it.” [Overwrite] [Reload]. The safe choice is the main button (phase 42's Toast). Keep Mine takes
+  the disk's hash: the next ⌘S writes over that version but still stops on a later change.
+- **Decisions:** ⌘S (File ▸ Save) and ⌘F, ⌘G on a card with a file text: `CommandList.plugin` and `CommandList.find`.
+  Find sends `performTextFinderAction:` down the responder chain, so the system find bar opens on whichever text view
+  has the keyboard (markdown's too). The terminal's find stays as it was.
+- **Decisions:** the jump bar's symbol is the innermost declaration around the caret from the tree (a node type that
+  ends in declaration, definition, item, spec or specifier, and its `name` field, C declarator or first identifier),
+  not `tags.scm`, which 7 of the grammars lack.
+- **Decisions:** the preview reads every file through `Files.read` on both machines (one 16 MB cap, reloads compared by
+  hash). Audio and video on This Mac play from the file; a remote one from a copy in the temporary folder. Image zoom
+  is the scroll view's magnification; Fit fits, Actual Size is 100 %.
+- **For the user:** check the colors of a few languages, a long wrapped line, ⌘F and ⌘G, ⌘Z after an edit, a reload
+  while you type, and a PDF's page count while you scroll.

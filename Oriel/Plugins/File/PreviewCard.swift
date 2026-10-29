@@ -153,7 +153,7 @@ struct PreviewBar: View {
                     .accessibilityIdentifier("\(id).page")
             }
             HStack(spacing: 0) {
-                IconButton(symbol: "arrow.up.left.and.arrow.down.right", help: "Fit", size: 22) { preview.zoom(.fit) }
+                IconButton(symbol: "aspectratio", help: "Fit", size: 22) { preview.zoom(.fit) }
                     .accessibilityIdentifier("\(id).zoom.fit")
                 IconButton(symbol: "minus.magnifyingglass", help: "Zoom Out", size: 22) { preview.zoom(.smaller) }
                     .accessibilityIdentifier("\(id).zoom.out")
