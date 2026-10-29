@@ -1,5 +1,6 @@
 import HerdrKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The pane kinds Oriel draws itself over a herdr pane that runs a placeholder, named by the pane's label
 /// (future-work/plugins/labels): the browser and the default plugins.
@@ -12,6 +13,23 @@ enum PluginKind: String, CaseIterable {
     }
 
     static let symbols = Set(allCases.map(\.symbol))
+
+    /// The kind that opens a file, by its name alone (a remote file is not read first): Markdown, then images, PDF,
+    /// audio and video, then text. A name the system does not know (`.rs`, `Makefile`) is text; anything else
+    /// previews, which shows its icon, size and Open With.
+    static func opening(_ path: String) -> PluginKind {
+        let ext = (path as NSString).pathExtension.lowercased()
+        if ["md", "markdown", "mdx"].contains(ext) {
+            return .markdown
+        }
+        // `.ts` is TypeScript, not an MPEG-2 stream.
+        guard !ext.isEmpty, !["ts", "mts", "cts"].contains(ext), let type = UTType(filenameExtension: ext),
+              !type.isDynamic else { return .file }
+        if [.image, .pdf, .audiovisualContent].contains(where: type.conforms) {
+            return .preview
+        }
+        return type.conforms(to: .text) ? .file : .preview
+    }
 
     /// Its SF Symbol: the card's, the tab's and the chooser's icon.
     var symbol: String {
