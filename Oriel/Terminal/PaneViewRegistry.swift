@@ -122,6 +122,11 @@ final class PaneViewRegistry {
         browsers[terminalID]
     }
 
+    /// The plugin card of this terminal id, if made.
+    func builtPlugin(_ terminalID: String) -> Plugin? {
+        plugins[terminalID]
+    }
+
     /// Streams and draws these terminals (terminal id → pane id); past the `spare` most recently shown others,
     /// the rest let go. `unvisited` stream and draw too but are no visit (the overview): they keep their place in
     /// `recent`, and one not in it lets go once no longer shown. Drops the terminals not in `alive` (their panes
