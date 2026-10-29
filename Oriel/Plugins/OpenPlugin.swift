@@ -45,6 +45,8 @@ extension Page {
                                                    command: label.placeholder)
             else { throw HerdrError.failed("herdr named no pane") }
             let pane = try await client.pane(id)
+            // ponytail: a card made from a snapshot before this line misses its landing; hand it over in the label
+            // if that shows.
             if let place, let terminalID = pane.terminalID {
                 terminals.landings[terminalID] = place
             }

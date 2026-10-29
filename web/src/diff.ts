@@ -15,7 +15,6 @@ style.textContent = `
     --diffs-header-font-family: system-ui; user-select: none; -webkit-user-select: none }
   .list { flex: none; width: clamp(160px, 28%, 260px); overflow-y: auto; padding: 4px 6px 12px 0;
     border-right: 0.5px solid var(--divider); box-sizing: border-box }
-  .list[hidden] { display: none }
   .count { color: var(--dim); font-size: 11px; font-weight: 600; text-transform: uppercase; padding: 6px 8px }
   .row { all: unset; box-sizing: border-box; display: flex; gap: 4px; align-items: baseline; width: 100%;
     padding: 3px 8px; border-radius: 6px; white-space: nowrap }
@@ -25,17 +24,17 @@ style.textContent = `
   .folder { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
     color: var(--dim); font-size: 11px }
   .added, .removed, .letter { flex: none; font: 11px ui-monospace, monospace }
+  .actions .added, .actions .removed { font-size: inherit }
   .added { color: var(--finished) } .removed { color: var(--error) }
   .letter { width: 1.5ch; text-align: right; font-weight: 600; color: var(--working) }
   .letter.A { color: var(--finished) } .letter.D { color: var(--error) } .letter.R { color: var(--needs-you) }
   .diff { flex: 1; min-width: 0; overflow: auto }
   .empty { position: fixed; inset: 0; margin: auto; height: fit-content; text-align: center; color: var(--dim) }
-  .empty:empty { display: none }
   .disclosure, .open { all: unset; color: var(--dim); border-radius: 5px; padding: 1px 6px }
   .disclosure:hover, .open:hover { color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent) }
   .actions { display: flex; align-items: center; gap: 10px; margin-left: 10px; font: 12px system-ui;
     color: var(--dim) }
-  .viewed { display: flex; align-items: center; gap: 4px }
+  .mark { display: flex; align-items: center; gap: 4px }
   .disclosure { display: inline-block; transform: rotate(90deg); transition: transform 0.15s }
   .disclosure.shut { transform: none }
 `
@@ -47,19 +46,25 @@ const main = element("main", "diff")
 const empty = element("p", "empty")
 document.body.append(nav, main, empty)
 
-const { root, split, list, ...first }: PatchReply = await ask({ op: "patch" }).catch((error: Error) => {
-  empty.textContent = error.message
-  throw error
-})
+// A first ask that fails (a folder not yet a repo, a machine away) waits for a change in the work tree.
+let reply: PatchReply | undefined
+while (!reply) {
+  reply = await ask({ op: "patch" }).catch((error: Error) => {
+    empty.textContent = error.message
+    return undefined
+  })
+  if (!reply) await new Promise<void>((resolve) => receive(() => resolve()))
+}
+const { root, split, list } = reply
 let patch = ""
 let files: FileDiffMetadata[] = []
-// Each change block's first line, in order, for previous / next; the last one stepped to.
+// Each change block's first line, in order, for previous / next; the last one stepped to, or half a step before
+// the next one after a pick in the list.
 let changes: { id: string; lineNumber: number; side: "additions" | "deletions" }[] = []
 let change = -1
 /** The files marked Viewed, with their text then: a file that changes since drops the mark. */
 const viewed = new Map<string, string>()
 nav.hidden = !list
-main.ariaLabel = split ? "Side by Side" : "Unified"
 
 const options: CodeViewOptions<undefined, undefined> = {
   theme: { dark: "pierre-dark", light: "pierre-light" },
@@ -72,6 +77,7 @@ const options: CodeViewOptions<undefined, undefined> = {
   layout: { paddingTop: 0, paddingBottom: 24, gap: 0 },
   // The card's fill shows through; the sticky header blurs what scrolls under it.
   unsafeCSS: `
+    [data-diffs-header] :is([data-additions-count], [data-deletions-count]) { display: none }
     :host {
       --diffs-light-bg: transparent !important;
       --diffs-dark-bg: transparent !important;
@@ -107,7 +113,8 @@ const options: CodeViewOptions<undefined, undefined> = {
   },
   renderHeaderMetadata: (diff: FileDiffMetadata) => {
     const box = element("span", "actions")
-    const label = element("label", "viewed")
+    box.append(...counts(diff))
+    const label = element("label", "mark")
     const check = element("input", "")
     check.type = "checkbox"
     check.ariaLabel = `Viewed ${diff.name}`
@@ -139,7 +146,7 @@ const options: CodeViewOptions<undefined, undefined> = {
 }
 const viewer = new CodeView(options)
 viewer.setup(main)
-show(first.patch)
+show(reply.patch)
 if (at && files.some((file) => file.name === at)) reveal(at)
 
 /** Draws a new patch; the same files keep their place and their Viewed while their text is the same. */
@@ -158,20 +165,13 @@ function show(next: string) {
   empty.textContent = files.length ? "" : "No changes"
   nav.replaceChildren(element("div", "count", `${files.length} ${files.length === 1 ? "file" : "files"}`))
   for (const file of files) {
-    let added = 0
-    let removed = 0
-    for (const hunk of file.hunks) {
-      added += hunk.additionLines
-      removed += hunk.deletionLines
-    }
     const button = element("button", viewed.has(file.name) ? "row viewed" : "row")
     button.dataset.id = file.name
     const slash = file.name.lastIndexOf("/")
     button.append(
       element("span", "name", file.name.slice(slash + 1)),
       element("span", "folder", file.name.slice(0, Math.max(slash, 0))),
-      element("span", "added", added ? `+${added}` : ""),
-      element("span", "removed", removed ? `−${removed}` : ""),
+      ...counts(file),
       element("span", `letter ${letters[file.type]}`, letters[file.type]),
     )
     button.title = file.name
@@ -179,6 +179,20 @@ function show(next: string) {
     button.onclick = () => reveal(file.name)
     nav.append(button)
   }
+}
+
+/** `+n −m`, as the spec writes them (the header's own counts are hidden). */
+function counts(file: FileDiffMetadata) {
+  let added = 0
+  let removed = 0
+  for (const hunk of file.hunks) {
+    added += hunk.additionLines
+    removed += hunk.deletionLines
+  }
+  return [
+    element("span", "added", added ? `+${added}` : ""),
+    element("span", "removed", removed ? `−${removed}` : ""),
+  ]
 }
 
 function blocks(file: FileDiffMetadata) {
@@ -236,7 +250,9 @@ function row(id: string) {
 function reveal(id: string) {
   if (item(id).collapsed) collapse(id, false)
   viewer.scrollTo({ type: "item", id, align: "start" })
-  change = changes.findIndex((place) => place.id === id) - 1
+  const order = (name: string) => files.findIndex((file) => file.name === name)
+  const next = changes.findIndex((place) => order(place.id) >= order(id))
+  change = (next < 0 ? changes.length : next) - 0.5
 }
 
 // The host sets `color-scheme` on the root with the app's look.
@@ -269,7 +285,6 @@ receive((message) => {
       break
     case "layout":
       options.diffStyle = message.split ? "split" : "unified"
-      main.ariaLabel = message.split ? "Side by Side" : "Unified"
       viewer.setOptions({ ...options })
       break
     case "list":
@@ -277,7 +292,8 @@ receive((message) => {
       break
     case "step": {
       if (!changes.length) return
-      change = Math.min(Math.max(change + message.by, 0), changes.length - 1)
+      const step = message.by > 0 ? Math.floor(change) + 1 : Math.ceil(change) - 1
+      change = Math.min(Math.max(step, 0), changes.length - 1)
       const place = changes[change]
       if (item(place.id).collapsed) collapse(place.id, false)
       viewer.scrollTo({ type: "line", ...place, align: "center" })
