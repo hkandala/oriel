@@ -128,3 +128,32 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   File page's (`lib/editor.ts`); DiffTests checks it.
 - **For the user:** check the source pop-up's width with a long commit subject, Side by Side in a half-width card,
   and the sticky header's blur over the lines in Glass light and dark.
+
+### Track E
+
+- **Decisions:** every plugin card is its kind's page: `Plugin.web` is a `WebCard` made with the card, its view takes
+  and drops the keyboard through the registry as a browser's does, and `Plugin.dirty` is the page's. Track E wrote
+  this shared commit first, with `WebCard.send`/`receive` (row 2 and the app to the page) and the `open` report (the
+  page's links: no kind is a file, opened with `PluginKind.opening`); D added `at`, B the watch.
+- **Decisions:** the tree starts with the root's listing and lists a folder when it opens (`Files.list`, which gives
+  the ignored flag); the first letter of a filter loads every path (`Files.paths`, again after a change) under the
+  folders not listed yet, and `@pierre/trees`' search shows the matches with their folders. Git letters come from
+  one `Git.status`, so a folder never opened still gets its dot. Git runs only when the root is its repository's
+  root (the way in opens Files there): `Git.status` paths are the repository's, the tree's its root's.
+- **Decisions:** a click on a match ends the filter and shows the file in the whole tree (the tree's own way); the
+  page tells the app, and row 2's field empties. A double-click opens what its first click was on, as the rows move
+  under it. Double-click, ⌘-click or Return opens; a folder's double-click opens or closes it once. The filter is
+  Pierre's: it matches the whole path from the root (`src` matches every file under `src/`), where the native
+  variant matches names; no matches says so instead of showing the whole tree.
+- **Cause:** a link to a folder or a submodule is `sub/` in a listing and `sub` in `git ls-files`: adding both made
+  Pierre's batch throw, and the filter never loaded. One entry per name now.
+- **Decisions:** the Git section reads its changes and history at the load and after each change under the root
+  (B's watch; one refresh at a time, changes meanwhile joined), also while closed: `git log -n 100` is cheap. A
+  repository with no commit yet has changes and no history. Letter colors are the app's (`--needs-you`,
+  `--finished`, `--error`, as the native `Look.git`); the folder dot is always the modified color (the tree does not
+  know which letter is inside). ⌘F does nothing over a Files card (B's Find is for File and Markdown).
+- **Measured:** the page bundle is 250 KB (Pierre's tree and Preact). The filter's paths stop at `Files.paths`' 8 MB.
+- **Runs:** the Files test ran on CI only (a chosen-tests run): local UI runs failed in `newTab` while the Mac
+  reported ⌃⌘ held.
+- **For the user:** open Files Here in a big repository (the kernel, a monorepo): the first letter of the filter
+  loads every path; check the wait, the arrow keys after it, and the memory of its web process.

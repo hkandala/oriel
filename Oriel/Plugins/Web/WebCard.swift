@@ -40,6 +40,8 @@ final class WebCard {
         didSet { send(["op": "list", "open": list]) }
     }
 
+    /// Files: row 2's filter, which the page also ends (a click on a match shows it in the whole tree).
+    var filter = ""
     var toast: Toast?
     /// A File card's jump bar: the scopes around the caret (`file.ts`).
     private(set) var symbol = ""
@@ -132,7 +134,7 @@ final class WebCard {
             open?((message["kind"] as? String).flatMap(PluginKind.init) ?? PluginKind.opening(arg), arg,
                   message["at"] as? String)
         default:
-            return (nil, "Unknown message")
+            return await files(message)
         }
         return (nil, nil)
     }
