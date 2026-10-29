@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 
 extension View {
-    /// A content that is no text view takes the keyboard, as phase 42's placeholder: on a click, and when the page
-    /// gives it to the card.
+    /// A SwiftUI content takes the keyboard, as phase 42's placeholder: on a click, and when the page gives it to the
+    /// card.
     func takesKeyboard(_ plugin: Plugin, _ page: Page) -> some View {
         modifier(TakesKeyboard(plugin: plugin, page: page))
     }
@@ -36,12 +36,15 @@ private struct TakesKeyboard: ViewModifier {
     }
 }
 
-/// A click on a preview's AppKit view, which SwiftUI's taps miss: the card takes the keyboard (`takesKeyboard`).
+/// A click on a preview's AppKit view (a PDF, a player, an image), which SwiftUI's taps miss: the view takes the
+/// keyboard itself, for its own keys (arrows, Space), and claims it for the card, so ⌘W closes the card.
 final class KeyboardClick: NSClickGestureRecognizer {
     private weak var plugin: Plugin?
+    private weak var terminals: PaneViewRegistry?
 
-    init(_ plugin: Plugin?) {
+    init(_ plugin: Plugin?, _ page: Page) {
         self.plugin = plugin
+        terminals = page.terminals
         super.init(target: nil, action: nil)
         target = self
         action = #selector(clicked)
@@ -54,6 +57,20 @@ final class KeyboardClick: NSClickGestureRecognizer {
     }
 
     @objc private func clicked() {
-        plugin?.wantsKeyboard = true
+        view?.window?.makeFirstResponder(view)
+        if let plugin {
+            terminals?.claimed(plugin.terminalID)
+        }
+    }
+}
+
+extension NSView {
+    /// The view takes the keyboard when the page gives it to the card (`wantsKeyboard`), on the next turn.
+    func takeKeyboard(_ plugin: Plugin?) {
+        guard let plugin, plugin.wantsKeyboard else { return }
+        Task {
+            plugin.wantsKeyboard = false
+            window?.makeFirstResponder(self)
+        }
     }
 }

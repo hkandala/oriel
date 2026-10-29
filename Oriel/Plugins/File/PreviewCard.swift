@@ -125,14 +125,14 @@ struct PreviewCard: View {
         let preview = page.preview(plugin), id = "preview.\(plugin.paneID)"
         Group {
             switch preview.content {
-            case let .image(image): ImageScroll(image: image, preview: preview).accessibilityIdentifier("\(id).image")
-            case let .pdf(document): PDFPages(document: document, preview: preview, id: "\(id).pdf")
-            case let .media(url, version): Player(url: url, plugin: plugin, id: "\(id).player").id(version)
+            case let .image(image): ImageScroll(image: image, preview: preview, page: page)
+                .accessibilityIdentifier("\(id).image")
+            case let .pdf(document): PDFPages(document: document, preview: preview, page: page, id: "\(id).pdf")
+            case let .media(url, version): Player(url: url, plugin: plugin, page: page, id: "\(id).player").id(version)
             case let .info(note): FileInfo(plugin: plugin, page: page, note: note)
             case nil: PluginLoader(kind: .preview)
             }
         }
-        .takesKeyboard(plugin, page)
         .task(id: plugin.label.arg) {
             if isEnabled {
                 await preview.run()
@@ -201,6 +201,7 @@ struct FileInfo: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).info")
+        .takesKeyboard(plugin, page)
         .task(id: path) {
             if isEnabled {
                 size = try? await Files.size(path, exec: page.store.machine.exec())
@@ -213,9 +214,10 @@ struct FileInfo: View {
 private struct ImageScroll: NSViewRepresentable {
     let image: NSImage
     let preview: Preview
+    let page: Page
 
     func makeNSView(context: Context) -> NSScrollView {
-        let scroll = NSScrollView()
+        let scroll = KeyScroll()
         scroll.contentView = CenteringClip()
         scroll.drawsBackground = false
         scroll.hasVerticalScroller = true
@@ -227,12 +229,15 @@ private struct ImageScroll: NSViewRepresentable {
         scroll.documentView = NSImageView()
         if context.environment.isEnabled {
             preview.scroll = scroll
-            scroll.addGestureRecognizer(KeyboardClick(preview.plugin))
+            scroll.addGestureRecognizer(KeyboardClick(preview.plugin, page))
         }
         return scroll
     }
 
-    func updateNSView(_ scroll: NSScrollView, context _: Context) {
+    func updateNSView(_ scroll: NSScrollView, context: Context) {
+        if context.environment.isEnabled {
+            scroll.takeKeyboard(preview.plugin)
+        }
         guard let view = scroll.documentView as? NSImageView, view.image !== image else { return }
         view.image = image
         view.frame = NSRect(origin: .zero, size: image.size)
@@ -243,6 +248,41 @@ private struct ImageScroll: NSViewRepresentable {
                 scroll.magnify(toFit: view.frame)
             }
         }
+    }
+}
+
+/// The image's scroll view takes the keyboard: the arrows scroll a zoomed image.
+private final class KeyScroll: NSScrollView {
+    override var acceptsFirstResponder: Bool {
+        true
+    }
+
+    override func keyDown(with event: NSEvent) {
+        interpretKeyEvents([event])
+    }
+
+    override func moveUp(_: Any?) {
+        nudge(0, 1)
+    }
+
+    override func moveDown(_: Any?) {
+        nudge(0, -1)
+    }
+
+    override func moveLeft(_: Any?) {
+        nudge(-1, 0)
+    }
+
+    override func moveRight(_: Any?) {
+        nudge(1, 0)
+    }
+
+    /// 40 pt on screen.
+    private func nudge(_ right: CGFloat, _ upward: CGFloat) {
+        let step = 40 / magnification, bounds = contentView.bounds
+        let moved = bounds.offsetBy(dx: right * step, dy: upward * step)
+        contentView.scroll(to: contentView.constrainBoundsRect(moved).origin)
+        reflectScrolledClipView(contentView)
     }
 }
 
@@ -266,6 +306,7 @@ private final class CenteringClip: NSClipView {
 private struct PDFPages: NSViewRepresentable {
     let document: PDFDocument
     let preview: Preview
+    let page: Page
     /// On the view itself: AppKit's views keep their own accessibility.
     let id: String
 
@@ -279,7 +320,7 @@ private struct PDFPages: NSViewRepresentable {
         view.backgroundColor = .clear
         guard context.environment.isEnabled else { return view }
         preview.pdf = view
-        view.addGestureRecognizer(KeyboardClick(preview.plugin))
+        view.addGestureRecognizer(KeyboardClick(preview.plugin, page))
         // By selector: the center lets go of the coordinator by itself.
         NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Pages.changed),
                                                name: .PDFViewPageChanged, object: view)
@@ -288,6 +329,9 @@ private struct PDFPages: NSViewRepresentable {
 
     func updateNSView(_ view: PDFView, context: Context) {
         view.setAccessibilityIdentifier(id)
+        if context.environment.isEnabled {
+            view.takeKeyboard(preview.plugin)
+        }
         if view.document !== document {
             view.document = document
             context.coordinator.changed(Notification(name: .PDFViewPageChanged, object: view))
@@ -313,6 +357,7 @@ private struct PDFPages: NSViewRepresentable {
 private struct Player: NSViewRepresentable {
     let url: URL
     let plugin: Plugin
+    let page: Page
     let id: String
 
     func makeNSView(context: Context) -> AVPlayerView {
@@ -320,12 +365,15 @@ private struct Player: NSViewRepresentable {
         view.controlsStyle = .inline
         view.player = AVPlayer(url: url)
         if context.environment.isEnabled {
-            view.addGestureRecognizer(KeyboardClick(plugin))
+            view.addGestureRecognizer(KeyboardClick(plugin, page))
         }
         return view
     }
 
-    func updateNSView(_ view: AVPlayerView, context _: Context) {
+    func updateNSView(_ view: AVPlayerView, context: Context) {
         view.setAccessibilityIdentifier(id)
+        if context.environment.isEnabled {
+            view.takeKeyboard(plugin)
+        }
     }
 }

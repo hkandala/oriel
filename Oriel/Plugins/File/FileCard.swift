@@ -13,7 +13,7 @@ struct FileCard: View {
         let file = page.fileText(plugin)
         Group {
             if let failure = file.failure {
-                FileInfo(plugin: plugin, page: page, note: failure).takesKeyboard(plugin, page)
+                FileInfo(plugin: plugin, page: page, note: failure)
             } else if file.loaded {
                 CodeView(file: file, page: page)
             } else {

@@ -109,8 +109,8 @@ Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track ow
   stays as it was.
 - **Decisions:** PluginCard clips and pads every kind's content once (6 pt, as the browser's page). A content that is
   no text view takes the keyboard through `takesKeyboard` (a click, AppKit views too, and `wantsKeyboard`); the file
-  card's text view claims it itself. A click on a PDF or a video moves the first responder to the card, so its own
-  arrow and Space keys stop.
+  card's text view claims it itself. A click on a PDF, a player or an image gives that AppKit view the keyboard (its
+  arrows and Space; the image's arrows scroll it when zoomed) and claims it for the card, so ⌘W closes the card.
 - **Decisions:** the jump bar's symbol is the innermost declaration around the caret from the tree (a node type that
   ends in declaration, definition, item, spec or specifier, and its `name` field, C declarator or first identifier),
   not `tags.scm`, which 7 of the grammars lack.
