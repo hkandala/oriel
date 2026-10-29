@@ -167,6 +167,9 @@ final class DiffView: NSView {
     private var paths: [String] = []
     private var current = -1
     private var sideBySide = false
+    /// The change last stepped to, by its file and its place among the file's changes: a switch between Unified and
+    /// Side by Side comes back to it (as the web variant).
+    private var stepped: (path: String, run: Int)?
     private var syncing = false
 
     override var isFlipped: Bool {
@@ -196,6 +199,7 @@ final class DiffView: NSView {
     func show(_ files: [DiffFile], folded: Set<String>, sideBySide: Bool, look: Look, anchor: String? = nil) {
         let path = anchor ?? (paths.indices.contains(current) ? paths[current] : nil)
         let into = path.flatMap(paths.firstIndex).flatMap(headerTop).map { top - $0 }
+        let switched = sideBySide != self.sideBySide
         paths = files.map(\.path)
         self.sideBySide = sideBySide
         // Unified keeps no copy of Side by Side's new column.
@@ -210,6 +214,12 @@ final class DiffView: NSView {
         headers = [:]
         needsLayout = true
         layoutSubtreeIfNeeded()
+        if switched, anchor == nil, let stepped, let file = paths.firstIndex(of: stepped.path) {
+            let runs = runs().filter { texts[0].rows[$0].file == file }
+            if runs.indices.contains(stepped.run) {
+                return scroll(to: texts[0].tops[runs[stepped.run]] - DiffRow.headerHeight)
+            }
+        }
         if let into, let file = path.flatMap(paths.firstIndex), let header = headerTop(file) {
             let end = starts.first { texts[0].tops[$0] > header }.map { texts[0].tops[$0] } ?? texts[0].tops.last ?? 0
             scroll(to: header + min(into, max(0, end - header - DiffRow.headerHeight)))
@@ -225,14 +235,19 @@ final class DiffView: NSView {
 
     /// The next (1) or previous (-1) run of changed lines, under its file's pinned header.
     func step(_ direction: Int) {
-        let text = texts[0], top = top + DiffRow.headerHeight
-        let runs = text.rows.indices.filter { index in
-            let changed = { (kind: DiffRow.Kind) in kind == .added || kind == .removed || kind == .filler }
-            return changed(text.rows[index].kind) && (index == 0 || !changed(text.rows[index - 1].kind))
-        }.map { text.tops[$0] }
-        if let start = direction > 0 ? runs.first(where: { $0 > top + 1 }) : runs.last(where: { $0 < top - 1 }) {
-            scroll(to: start - DiffRow.headerHeight)
-        }
+        let text = texts[0], top = top + DiffRow.headerHeight, runs = runs()
+        guard let run = direction > 0 ? runs.first(where: { text.tops[$0] > top + 1 })
+            : runs.last(where: { text.tops[$0] < top - 1 }) else { return }
+        let file = text.rows[run].file
+        stepped = (paths[file], runs.filter { text.rows[$0].file == file }.firstIndex(of: run) ?? 0)
+        scroll(to: text.tops[run] - DiffRow.headerHeight)
+    }
+
+    /// The first rows of the runs of changed lines.
+    private func runs() -> [Int] {
+        let rows = texts[0].rows
+        let changed = { (kind: DiffRow.Kind) in kind == .added || kind == .removed || kind == .filler }
+        return rows.indices.filter { changed(rows[$0].kind) && ($0 == 0 || !changed(rows[$0 - 1].kind)) }
     }
 
     /// Out of a window, the header views go (they hold the card); the next layout makes them again.
