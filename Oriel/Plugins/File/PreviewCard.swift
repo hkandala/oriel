@@ -193,10 +193,11 @@ struct FileInfo: View {
         }
         .font(.system(size: 12))
         .multilineTextAlignment(.center)
-        // One element that reads its lines: a plain Text gives a combined element no label.
+        // One element that reads its lines, as the jump bar: a plain Text gives a combined element no label.
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isStaticText)
-        .accessibilityLabel([name, details, note].compactMap(\.self).joined(separator: ", "))
+        .accessibilityLabel("File Info")
+        .accessibilityValue([name, details, note].compactMap(\.self).joined(separator: ", "))
         .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).info")
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

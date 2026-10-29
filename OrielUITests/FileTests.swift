@@ -171,7 +171,7 @@ extension OrielUITests {
         let other = try await openPlugin("preview", "\(folder)/data.zip")
         let info = element("preview.\(other).info")
         XCTAssertTrue(info.exists(within: 5))
-        XCTAssertTrue(info.label.contains("data.zip"), info.label)
+        XCTAssertTrue(info.stringValue.hasPrefix("data.zip, "), info.stringValue)
         try await clickTakesTheKeyboard(other, info)
     }
 
