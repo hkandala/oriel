@@ -78,8 +78,9 @@ extension OrielUITests {
     private func sideBySide(_ card: String, _ page: XCUIElement, _ far: XCUIElement) async throws {
         element("pane.\(card).diff.layout").radioButtons["Side by Side"].click()
         let old = page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'line 290'")).firstMatch
+        // By their tops: a narrow column wraps the old line.
         XCTAssertTrue(until(3) {
-            old.exists && abs(old.frame.midY - far.frame.midY) < 2 && old.frame.maxX < far.frame.minX
+            old.exists && abs(old.frame.minY - far.frame.minY) < 2 && old.frame.maxX < far.frame.minX
         })
         keepScreenshot("diff card, side by side")
         element("pane.\(card).diff.file-list").click()
