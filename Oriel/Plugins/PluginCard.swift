@@ -17,6 +17,8 @@ struct PluginCard: View {
     let page: Page
     @State private var text = ""
     @FocusState private var focused: Bool
+    /// False in an overview tile, which leaves the keyboard to the card.
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         let id = "\(plugin.kind.rawValue).\(plugin.paneID)"
@@ -52,12 +54,12 @@ struct PluginCard: View {
         .animation(.easeOut(duration: 0.15), value: plugin.toast == nil)
         // In place of the card that had the keyboard, and when the page gives it the keyboard.
         .onAppear {
-            if page.hasKeyboard(plugin.paneID) {
+            if isEnabled, page.hasKeyboard(plugin.paneID) {
                 plugin.wantsKeyboard = true
             }
         }
         .onChange(of: plugin.wantsKeyboard, initial: true) {
-            if plugin.wantsKeyboard {
+            if plugin.wantsKeyboard, isEnabled {
                 plugin.wantsKeyboard = false
                 Task { focused = true }
             }
