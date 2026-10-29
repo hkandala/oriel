@@ -162,11 +162,15 @@ private struct WebHost: NSViewRepresentable {
     let view: WKWebView
 
     func makeNSView(context _: Context) -> TerminalHost.Host {
-        let host = TerminalHost.Host()
+        let host = TerminalHost.Host(), box = NSView()
         host.clipsToBounds = true
+        // WebKit docks the Web Inspector beside the web view by frames that take y as growing upward: in a plain box,
+        // which the (flipped) host fits.
         view.removeFromSuperview()
-        view.frame = host.bounds
-        host.addSubview(view)
+        view.frame = box.bounds
+        view.autoresizingMask = [.width, .height]
+        box.addSubview(view)
+        host.addSubview(box)
         return host
     }
 

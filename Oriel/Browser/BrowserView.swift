@@ -53,13 +53,15 @@ final class BrowserView: WKWebView {
         NSApp.sendAction(action, to: item.target, from: item)
     }
 
-    /// A pick WebKit never asked a window for (New Tab on a `mailto:` link) must not make the page's next popup a tab.
+    /// A pick WebKit never asked a window for (New Tab on a `mailto:` link) must not make the page's next popup a tab
+    /// (also from a key, `keyDown`).
     override func mouseDown(with event: NSEvent) {
         opensTab = false
         super.mouseDown(with: event)
     }
 
     override func keyDown(with event: NSEvent) {
+        opensTab = false
         if onKey?(event) != true {
             super.keyDown(with: event)
         }

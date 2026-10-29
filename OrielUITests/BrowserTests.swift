@@ -170,10 +170,11 @@ extension OrielUITests {
 
     /// Web Inspector, docked: the page gives it the card's lower part, also after the card changes size.
     func showInspector(_ browser: String) {
-        let web = element("browser.\(browser)"), height = web.frame.height
+        let web = element("browser.\(browser)"), height = web.frame.height, top = web.frame.minY
         let window = app.windows.matching(NSPredicate(format: "title BEGINSWITH 'Web Inspector'")).firstMatch
         element("browser.\(browser).inspector").click()
-        XCTAssertTrue(until(5) { web.frame.height < height * 0.8 || window.exists })
+        // Under the page: the page keeps its top.
+        XCTAssertTrue(until(5) { web.frame.height < height * 0.8 && abs(web.frame.minY - top) < 1 || window.exists })
         keepScreenshot("web inspector")
         if window.exists {
             window.buttons[XCUIIdentifierCloseWindow].click()
@@ -184,7 +185,7 @@ extension OrielUITests {
             element("titlebar.sidebar").click()
             XCTAssertTrue(until(3) {
                 card.frame.width > before && abs(card.frame.width - web.frame.width - inset) < 1
-                    && web.frame.height < card.frame.height * 0.8
+                    && web.frame.height < card.frame.height * 0.8 && abs(web.frame.minY - top) < 1
             }, "\(web.frame) in \(card.frame)")
             element("titlebar.sidebar").click()
         }
