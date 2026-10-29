@@ -69,3 +69,27 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   with it (local, three green runs). One local run drew a blank card while the disk was full.
 - **For the user:** nothing to try by hand yet: the test card shows only for a pane labeled `oriel:webtest#<iid>
   <path>`, and phase 42's integration replaces it with the five kinds.
+
+### Track B
+
+- **Decisions:** the file stays native: `read` gives the page the text and keeps its hash on the `WebCard`; ⌘S makes
+  the page report its text and the app saves it by that hash. While a card shows (`PluginCard`'s `.task`, so a
+  remote machine is polled only then), a change on disk reloads a clean file in place (only the changed middle is
+  replaced, so caret and scroll stay) and gives a dirty one the toast `Reload | Keep Mine`; Keep Mine takes the
+  disk's new hash, so the next ⌘S writes over that version without asking. A conflict at save: `Overwrite | Reload`.
+  ⌘S on a clean file writes nothing. One `watch` serves File, Markdown, Preview and Files.
+- **Decisions:** `lib/editor.ts` is the CodeMirror that File and Markdown share (no line numbers or colors: File adds
+  them). Colors are Xcode's default roles, one `light-dark()` pair per role. A CRLF file saves as CRLF; a file not in
+  UTF-8, or a remote one over 4 MiB, opens read only; over 16 MB both kinds show the info view.
+- **Decisions:** languages load by extension, each its own chunk. Swift, Kotlin, Ruby, shell and TOML have only
+  CodeMirror's legacy modes (no Lezer grammar for Swift exists): no tree, so their jump bar symbol is the
+  declarations less indented above the caret; the others read the Lezer tree.
+- **Decisions:** Preview reads the file over the bridge (base64, 16 MB cap) and shows it from a blob: `<img>` (Fit
+  never enlarges), pdf.js's own viewer (lazy pages, Fit is page width), `<audio>`/`<video>`. pdf.js loads its worker,
+  decoders, fonts and maps by name from the bundle's one folder (`make web` copies them); the scheme gives `.wasm`
+  its MIME type and the CSP allows wasm, blob images and media. A kind's page links `<kind>.css` when esbuild wrote
+  one.
+- **Decisions:** the menu's Save (⌘S) and Find… (⌘F) go to the page of a File or Markdown card with the keyboard
+  (`Page.editor`), in the main and floating windows; over other plugin cards Find stays off.
+- **For the user:** a video or audio file over 16 MB shows the info view, not the player; an image type WebKit cannot
+  draw (PSD, RAW) shows an empty card. Check Open With's apps, the toast's look, and a PDF's zoom by hand.
