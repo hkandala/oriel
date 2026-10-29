@@ -149,3 +149,14 @@ extension HostStore {
         return PaneLabel(plugin: kind.rawValue, iid: PaneLabel.newIID(taken: taken), arg: arg)
     }
 }
+
+extension Look {
+    /// A git letter's color (`Git.Change.letter`), in Files and Diff: the agent state colors.
+    func git(_ letter: Character) -> Color {
+        switch letter {
+        case "M", "T": needsYou
+        case "D", "C": error
+        default: finished
+        }
+    }
+}
