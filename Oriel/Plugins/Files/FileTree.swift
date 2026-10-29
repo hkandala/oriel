@@ -1,7 +1,6 @@
 import AppKit
 import HerdrKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// A Files card's tree and git data, kept on its `Plugin`: the outline view is made once, as a browser's web view
 /// is, so a float or a move keeps the open folders and the scroll. Folders are listed when they open, and again with
@@ -125,6 +124,7 @@ final class FileTree: NSObject {
     func collapseAll() {
         outline.collapseItem(nil, collapseChildren: true)
         expanded = []
+        listings = listings.filter(\.key.isEmpty)
     }
 
     func open(_ path: String) {
@@ -276,7 +276,7 @@ final class FileTree: NSObject {
             open(node.path)
         } else if outline.isItemExpanded(node) {
             outline.collapseItem(node)
-        } else {
+        } else if outlineView(outline, shouldExpandItem: node) {
             outline.expandItem(node)
         }
     }
@@ -297,103 +297,34 @@ extension FileTree: NSOutlineViewDataSource, NSOutlineViewDelegate {
 
     func outlineView(_ outline: NSOutlineView, viewFor _: NSTableColumn?, item: Any) -> NSView? {
         guard let node = item as? Node else { return nil }
-        let row = outline.makeView(withIdentifier: Row.id, owner: nil) as? Row ?? Row()
+        let row = outline.makeView(withIdentifier: FileRow.id, owner: nil) as? FileRow ?? FileRow()
         row.show(node, look: look, id: "files.\(plugin?.paneID ?? "").item.\(node.path)")
         return row
+    }
+
+    /// A folder lists before it opens: rows reloaded while the outline slid them open stayed half drawn (on CI).
+    func outlineView(_: NSOutlineView, shouldExpandItem item: Any) -> Bool {
+        guard matches == nil, let node = item as? Node, listings[node.path] == nil else { return true }
+        Task {
+            await list(node.path)
+            if listings[node.path] != nil {
+                outline.expandItem(node)
+            }
+        }
+        return false
     }
 
     /// Only the tree's own folders: the filter's open all theirs.
     func outlineViewItemWillExpand(_ notification: Notification) {
         guard matches == nil, let node = notification.userInfo?["NSObject"] as? Node else { return }
         expanded.insert(node.path)
-        Task { await list(node.path) }
     }
 
+    /// A closed folder lists again when it opens.
     func outlineViewItemDidCollapse(_ notification: Notification) {
         guard matches == nil, let node = notification.userInfo?["NSObject"] as? Node else { return }
-        expanded = expanded.filter { $0 != node.path && !$0.hasPrefix(node.path + "/") }
-    }
-}
-
-/// The tree's view: tells the card when it takes the keyboard, and takes it once in a window.
-final class Outline: NSOutlineView {
-    var onKeyboard: () -> Void = {}
-    var wantsKeyboard = false {
-        didSet { viewDidMoveToWindow() }
-    }
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        guard wantsKeyboard, let window else { return }
-        wantsKeyboard = false
-        // On the next turn: a first responder set during an update is undone.
-        DispatchQueue.main.async { window.makeFirstResponder(self) }
-    }
-
-    override func becomeFirstResponder() -> Bool {
-        let took = super.becomeFirstResponder()
-        if took {
-            onKeyboard()
-        }
-        return took
-    }
-}
-
-/// A tree row: the file's icon and name, its git letter (a dot for a folder with changes); dimmed when ignored.
-private final class Row: NSTableCellView {
-    static let id = NSUserInterfaceItemIdentifier("files.row")
-    private let letter = NSTextField(labelWithString: "")
-
-    init() {
-        super.init(frame: .zero)
-        identifier = Self.id
-        let icon = NSImageView(), name = Name(labelWithString: "")
-        name.lineBreakMode = .byTruncatingMiddle
-        name.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        name.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        letter.setContentHuggingPriority(.required, for: .horizontal)
-        letter.setAccessibilityElement(false)
-        imageView = icon
-        textField = name
-        let stack = NSStackView(views: [icon, name, letter])
-        stack.spacing = 6
-        stack.distribution = .fill
-        stack.edgeInsets.right = 10
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stack)
-        NSLayoutConstraint.activate([
-            icon.widthAnchor.constraint(equalToConstant: 16), icon.heightAnchor.constraint(equalToConstant: 16),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder _: NSCoder) {
-        nil
-    }
-
-    func show(_ node: FileTree.Node, look: Look, id: String) {
-        let type = node.isFolder ? .folder : UTType(filenameExtension: (node.name as NSString).pathExtension) ?? .data
-        imageView?.image = NSWorkspace.shared.icon(for: type)
-        textField?.stringValue = node.name
-        textField?.textColor = node.ignored ? .tertiaryLabelColor : .labelColor
-        imageView?.alphaValue = node.ignored ? 0.45 : 1
-        letter.stringValue = node.letter.map { node.isFolder ? "●" : String($0) } ?? ""
-        letter.font = .systemFont(ofSize: node.isFolder ? 7 : 11, weight: .semibold)
-        letter.textColor = node.letter.map { NSColor(look.git($0)) }
-        // On the name: the outline's own cell element stands in for this view.
-        textField?.setAccessibilityIdentifier(id)
-        (textField as? Name)?.value = node.ignored ? "Ignored" : node.letter.map(String.init) ?? ""
-    }
-}
-
-/// A row's name, whose accessibility value is the row's git letter, or Ignored.
-private final class Name: NSTextField {
-    var value = ""
-
-    override func accessibilityValue() -> String? {
-        value
+        let inside = { (path: String) in path == node.path || path.hasPrefix(node.path + "/") }
+        expanded = expanded.filter { !inside($0) }
+        listings = listings.filter { !inside($0.key) }
     }
 }
