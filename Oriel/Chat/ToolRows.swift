@@ -123,17 +123,18 @@ private struct ToolDetail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title).font(.system(size: 10, weight: .medium)).foregroundStyle(.tertiary)
-            ScrollView([.vertical, .horizontal]) {
-                Text(text).font(.system(size: 11, design: .monospaced)).lineSpacing(2).textSelection(.enabled)
-                    .fixedSize().padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            // One scroll view per axis: inside the strip's sideways one, a scroll view of both axes lost every vertical
+            // scroll (only its scroll bar moved it).
+            ScrollView {
+                ScrollView(.horizontal) {
+                    // The id on the text, which moves as it scrolls.
+                    Text(text).font(.system(size: 11, design: .monospaced)).lineSpacing(2).textSelection(.enabled)
+                        .fixedSize().accessibilityIdentifier(id).padding(8)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxHeight: 180).fixedSize(horizontal: false, vertical: true)
             .background(.primary.opacity(0.04), in: .rect(cornerRadius: 6))
-            .accessibilityElement(children: .ignore)
-            .accessibilityAddTraits(.isStaticText)
-            .accessibilityValue(text)
-            .accessibilityIdentifier(id)
         }
     }
 }

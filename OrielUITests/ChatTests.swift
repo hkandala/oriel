@@ -66,6 +66,29 @@ extension OrielUITests {
         XCTAssertTrue(element("chat.\(pane).composer").exists(within: 3))
     }
 
+    /// An open tool call's long output scrolls inside its box under two fingers, not the chat around it.
+    func testAToolOutputScrollsInsideItsBox() async throws {
+        let pane = try await startChat().pane
+        try await say("long", in: pane)
+        XCTAssertTrue(row(pane, "reply", "Counted.").exists(within: 5))
+        keepLevel(in: pane)
+        level("Everything", in: pane)
+        let tool = element("chat.\(pane).tool")
+        tool.click()
+        let output = element("chat.\(pane).tool.output")
+        XCTAssertTrue(output.exists(within: 2))
+        keepScreenshot("tool output")
+        // Where the text sits under its row: the same while the chat scrolls, higher once the box scrolls.
+        let place = { output.frame.minY - tool.frame.minY }, start = place()
+        // The box's middle (its text starts 8 pt in); either way, by natural scrolling.
+        let point = "\(output.frame.minX + 40) \(output.frame.minY + 82)"
+        for step in [-10, 10] where place() == start {
+            _ = try await Self.post("\(one)/swipe", Data("\(point) \(step) 14 100 1".utf8))
+            try await Task.sleep(for: .seconds(1))
+        }
+        XCTAssertLessThan(place(), start - 50)
+    }
+
     /// A floated chat pane's window shows the chat with the keyboard, and its title row has the switch.
     func testAFloatingWindowShowsTheChat() async throws {
         let pane = try await startChat().pane

@@ -4,9 +4,10 @@
 Started by the chooser with Oriel's flags (`--session-id T --settings <json>`), it runs the settings' own hooks,
 writes a transcript in Claude Code's format, reports its state to herdr and answers prompts on its terminal: "wait"
 shows a dialog until 1 is typed, "ask" asks a question through the PermissionRequest hook, "slow" works until Esc,
-"mute" drops the next prompt, anything else gets one command and the reply "Echo: <prompt>". Ctrl-C clears the line,
-and on an empty one asks for another; "/exit" quits. Started without flags it reports its session to herdr (as
-herdr's Claude Code integration does) and keeps its transcript, which `--resume <session>` goes on with.
+"mute" drops the next prompt, "long" gets a command with 200 lines of output, anything else gets one command and the
+reply "Echo: <prompt>". Ctrl-C clears the line, and on an empty one asks for another; "/exit" quits. Started without
+flags it reports its session to herdr (as herdr's Claude Code integration does) and keeps its transcript, which
+`--resume <session>` goes on with.
 """
 import json
 import os
@@ -123,6 +124,9 @@ def prompt(text, started):
         write("user", message={"content": "[Request interrupted by user]"})
         report("idle")
         say("Interrupted")
+    elif text == "long":
+        tool("seq 200", "\n".join(str(n) for n in range(1, 201)))
+        reply("Counted.", started)
     else:
         time.sleep(0.5)
         tool("echo " + text, text)
