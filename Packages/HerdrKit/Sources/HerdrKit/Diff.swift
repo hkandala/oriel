@@ -43,6 +43,7 @@ public struct DiffLine: Equatable, Sendable {
     }
 
     public let kind: Kind
+    /// Without a CRLF line's `\r`.
     public let text: String
     /// The line's number in the old and in the new file; nil on the side it is not in.
     public let old: Int?
@@ -68,8 +69,8 @@ public extension Git {
             ))
         }
         // Before the first commit, against the empty tree.
-        // ponytail: 16 MB of patch and 64 KB of untracked names (a cut last line reads as a shorter file); a patch
-        // per file when bigger changes must show.
+        // ponytail: 16 MB of patch and 64 KB of untracked names (a cut last line reads as a shorter file), and the
+        // pipe hides git's errors: an empty patch; a patch per file when bigger changes must show.
         let script = #"""
         cd "$1" && shift && h=$(git rev-parse -q --verify HEAD || git hash-object -t tree /dev/null) || exit
         { git "$@" "$h" --
@@ -102,7 +103,10 @@ extension DiffFile {
             } else if files[files.count - 1].hunks.isEmpty {
                 files[files.count - 1].header(line)
             } else if let kind = DiffLine.Kind(line.unicodeScalars.first) {
-                let text = String(line.unicodeScalars.dropFirst())
+                var text = String(line.unicodeScalars.dropFirst())
+                if text.unicodeScalars.last == "\r" {
+                    text.unicodeScalars.removeLast()
+                }
                 files[files.count - 1].hunks[files[files.count - 1].hunks.count - 1].lines.append(DiffLine(
                     kind: kind, text: text, old: kind == .added ? nil : old, new: kind == .removed ? nil : new,
                 ))
