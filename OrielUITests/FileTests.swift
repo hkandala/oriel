@@ -220,17 +220,17 @@ extension OrielUITests {
         let tab: String = try field(layout?["tab_id"], "layout's tab")
         let pane: String = try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
         closeAfter("tab", tab)
+        // The capsule at rest (it slides in), then its card.
         let capsule = element("tab.\(tab)")
         XCTAssertTrue(capsule.has(\.isHittable, true, within: 3))
-        capsule.click()
-        // At rest, not still sliding in: a click on its content would miss.
-        let card = element("\(kind).\(pane).card")
-        XCTAssertTrue(card.has(\.isHittable, true, within: 5))
         var frame = CGRect.null
         XCTAssertTrue(until(3) {
-            defer { frame = card.frame }
-            return card.frame == frame
+            defer { frame = capsule.frame }
+            return capsule.frame == frame
         })
+        capsule.click()
+        XCTAssertTrue(capsule.has(\.isSelected, true, within: 3))
+        XCTAssertTrue(element("\(kind).\(pane).card").has(\.isHittable, true, within: 5))
         return pane
     }
 }
