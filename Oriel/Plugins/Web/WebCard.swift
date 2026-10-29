@@ -58,10 +58,10 @@ final class WebCard {
         let message = body as? [String: Any] ?? [:]
         switch message["op"] as? String {
         case "read":
-            // ponytail: `cat`, trimmed, until phase 42's file data lands, which adds the hash and the size caps.
             guard let path = message["path"] as? String, let store else { return (nil, "No file") }
             do {
-                return try await (["text": store.machine.exec().output(["cat", "--", path])], nil)
+                let file = try await Files.read(path, exec: store.machine.exec())
+                return (["text": String(decoding: file.data, as: UTF8.self)], nil)
             } catch {
                 return (nil, error.localizedDescription)
             }
