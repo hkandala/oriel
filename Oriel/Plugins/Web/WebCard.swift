@@ -13,6 +13,7 @@ final class WebCard {
     /// The label's argument; a new one (a rename from elsewhere, a diff's source) loads the page again with it.
     var arg: String {
         didSet {
+            place = nil
             if loaded {
                 script()
                 view.reload()
@@ -22,16 +23,19 @@ final class WebCard {
 
     @ObservationIgnored weak var store: HostStore?
     @ObservationIgnored let view: WebCardView
-    /// Opens a link from the page in a new tab (`Page.open(_:arg:)`).
-    @ObservationIgnored var open: ((PluginKind, String) -> Void)?
+    /// A linked open's landing, for the first load only: a line for a file, a path from the repo's root for a diff.
+    @ObservationIgnored private var place: String?
+    /// Opens a link from the page in a new tab (`Page.open(_:arg:at:)`).
+    @ObservationIgnored var open: ((PluginKind, String, String?) -> Void)?
     fileprivate(set) var dirty = false
     var toast: Toast?
     @ObservationIgnored private var loaded = false
     @ObservationIgnored private var css = ""
 
-    init(kind: String, arg: String, store: HostStore) {
+    init(kind: String, arg: String, place: String?, store: HostStore) {
         self.kind = kind
         self.arg = arg
+        self.place = place
         self.store = store
         let configuration = WKWebViewConfiguration()
         configuration.setURLSchemeHandler(PluginScheme.shared, forURLScheme: PluginScheme.name)
@@ -66,13 +70,15 @@ final class WebCard {
     }
 
     private func script() {
-        let card = (try? JSONSerialization.data(withJSONObject: ["arg": arg, "css": css])).map {
+        var card: [String: Any] = ["arg": arg, "css": css]
+        card["at"] = place
+        let json = (try? JSONSerialization.data(withJSONObject: card)).map {
             String(decoding: $0, as: UTF8.self)
         } ?? "{}"
         let content = view.configuration.userContentController
         content.removeAllUserScripts()
         content.addUserScript(WKUserScript(
-            source: "window.card = \(card); document.documentElement.style.cssText = card.css",
+            source: "window.card = \(json); document.documentElement.style.cssText = card.css",
             injectionTime: .atDocumentStart, forMainFrameOnly: true,
         ))
     }
@@ -94,7 +100,8 @@ final class WebCard {
         case "open":
             // No kind: a file, opened with its kind.
             guard let arg = message["arg"] as? String else { return (nil, "No path") }
-            open?((message["kind"] as? String).flatMap(PluginKind.init) ?? PluginKind.opening(arg), arg)
+            open?((message["kind"] as? String).flatMap(PluginKind.init) ?? PluginKind.opening(arg), arg,
+                  message["at"] as? String)
         default:
             return (nil, "Unknown message")
         }
