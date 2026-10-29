@@ -103,3 +103,22 @@ agent    row 1: Session title ·························
   address field, and Back and Forward in both appearances. An agent started by hand in a shell grows the
   second row when herdr notices it, and the terminal gets 32 pt shorter then.
 
+### Track C
+
+- **Cause (14):** each run of tool calls was a Liquid Glass card with stacked edges, as loud as a reply, and the
+  parsers kept only a call's first line, so there was nothing to open. **Fix:** a run is one quiet line (the
+  summary, a chevron, the time); open, a row per call (symbol, name, target, result, time), each opening on its own to
+  its Input (an edit's diff instead) and Output, monospaced, at most 180 pt, then it scrolls. `ChatTool` keeps
+  `input` and `output` whole (capped at 20 000 characters) from all four parsers. The todo list lost its glass too.
+- **Decisions (14):** the turn's quiet line ("Worked 7s · 1 command") takes the run of calls right under it, so the
+  two lines never say the same twice; a run after a reply keeps its own line. Calls open at Steps too, wherever a run
+  is open. Diffs show only when their call is opened.
+- **Cause (16):** one 13 pt face with 8 pt between every block: headings were only semibold, list items had no
+  hanging indent, inline code read larger than the text. **Fix:** 14 pt with 4 pt line spacing, headings 22/18/16 pt
+  with 22 or 16 pt above them, hanging bullets (•, ◦, ▪ by depth), a list item's later paragraphs under its text,
+  inline code at 0.9 of its block on a faint fill, 32 pt side padding, and the reply box on the same edges.
+- **Fix (10):** the reply box grows from 1 to 10 lines, then scrolls; under the text, the model as the picker names
+  it (Claude's `claude-opus-5-5` reads "Opus 5.5", others raw) and `· effort` when track B gives one, and a 22 pt
+  round Send or Stop at the right.
+- **Cause (13):** only the reply box took clicks. **Fix:** a simultaneous tap on the whole message list gives the
+  reply box (and so the card) the keyboard, also on a reply's text; buttons and links act as well.
