@@ -265,18 +265,21 @@ The changes of one source in one scroll, drawn by TextKit 2.
   `→` for a rename, the folder in secondary and the name in semibold, `+n
   −m`, **Open File** (not on a deleted file) and a **Viewed** box. The top
   file's header stays pinned until the next file's header pushes it up.
-  Viewed folds the file. It stays viewed while the file's patch is the same,
+  Under 480 pt the counts give way, so Open File and Viewed stay. Viewed
+  folds the file. It stays viewed while the file's patch is the same,
   and opens again when the patch changes. A file new to the card with over
   2,000 changed lines starts folded.
 - **Side by Side** shows the old file and the new file in two columns that
   scroll together. A run of removed lines faces the run of added lines after
-  it, and the shorter side gets hatched filler rows.
+  it, and the shorter side gets hatched filler rows. Lines do not wrap: each
+  column scrolls sideways on its own.
 - **The file list** is a 220 pt column at the left: one row per file with
   its letter (`M A D R`), its name and `+n −m`. The path shows on hover. A
   click scrolls to the file, and the file at the top is lit. The toggle hides
   and shows it.
 - **Previous and next change** go from run to run of changed lines, across
-  files, under the pinned header.
+  files, under the pinned header, from the scroll position. A switch between
+  Unified and Side by Side comes back to the change last stepped to.
 - ⌘-click on a line opens the file at that line. On a removed line it opens
   the next line the new file has. A deleted file's lines open nothing.
 - "No Changes" shows when the patch is empty. "Not a Git repository", "Git
