@@ -57,6 +57,9 @@ Problems that came back across phases, and the rule that stops each. How we work
 - **Check exit codes; never pipe a check through `grep`.**
 - **The 400-line file limit is a shared budget.** Several tracks add to the same big files: split a file that
   is close to the limit before adding to it, and check it after each rebase.
+- **A starved Mac fails HerdrKit's timed tests.** With many agents building, starting a process can take 20 s or
+  more, and the integration tests' time limits run out (no race: longer limits only move the break). When
+  `uptime` shows a load in the hundreds, run `make test` again once before you chase a HerdrKit timeout.
 - **Automated rewrites change meaning.** Formatter rules and scripted replaces have flipped logic or matched
   nothing. Read the diff; make every scripted edit fail loudly when it matches nothing.
 
