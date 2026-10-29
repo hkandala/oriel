@@ -28,8 +28,8 @@ struct NewPane: View {
             Group {
                 if let agent = chooser.starting {
                     loader(agent)
-                } else if chooser.browsing {
-                    BrowserLoader().accessibilityIdentifier("pane.\(cardID).loader")
+                } else if let kind = chooser.opening {
+                    PluginLoader(kind: kind).accessibilityIdentifier("pane.\(cardID).loader")
                 } else {
                     let rows = chooser.rows
                     let height = CGFloat(rows.count) * (Self.row + Self.spacing) - Self.spacing
@@ -49,13 +49,13 @@ struct NewPane: View {
         }
         .animation(fade, value: chooser.starting)
         .animation(fade, value: chooser.open)
-        .animation(fade, value: chooser.browsing)
+        .animation(fade, value: chooser.opening)
         .onAppear { focus = chooser.selected }
         .onChange(of: chooser.selected) { pointer = NSEvent.mouseLocation }
         // It leaves when the pane runs something else (typed from herdr's TUI): a program besides the shell, or an
         // agent herdr reports. Not the programs of a new shell's startup.
         .onChange(of: runs, initial: true) {
-            if runs, chooser.starting == nil, !chooser.browsing {
+            if runs, chooser.starting == nil, chooser.opening == nil {
                 page.store.drop(chooser)
             }
         }
@@ -140,7 +140,7 @@ struct NewPane: View {
             switch row {
             case .terminal: Image(systemName: "terminal")
             case .agent: Image(systemName: "sparkles")
-            case .browser: Image(systemName: "globe")
+            case let .plugin(kind): Image(systemName: kind.symbol)
             case .start: ProgramTile(icon: row.id)
             }
         }

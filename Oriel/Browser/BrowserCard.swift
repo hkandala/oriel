@@ -56,7 +56,7 @@ struct BrowserCard: View {
                 } else if let url = browser.asking {
                     Asking(browser: browser, url: url)
                 } else if !browser.ready {
-                    BrowserLoader()
+                    PluginLoader(kind: .browser)
                 } else if !browser.loaded {
                     Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(.rect)
@@ -113,22 +113,6 @@ private struct Asking: View {
             .padding(.top, 6)
         }
         .padding(24)
-    }
-}
-
-/// While a browser card is built.
-struct BrowserLoader: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "globe").font(.system(size: 28)).foregroundStyle(.secondary)
-            HStack(spacing: 8) {
-                ProgressView().controlSize(.small)
-                Text("Opening Browser…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(.isStaticText)
-        .accessibilityLabel("Opening Browser")
     }
 }
 

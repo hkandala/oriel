@@ -29,11 +29,6 @@ public struct PaneLabel: Equatable, Sendable {
         "oriel:\(plugin)#\(iid)" + (arg.isEmpty ? "" : " \(arg)")
     }
 
-    /// A new browser pane's label, with no address yet.
-    public static func browser(taken: Set<String>, arg: String = "") -> PaneLabel {
-        PaneLabel(plugin: "browser", iid: newIID(taken: taken), arg: arg)
-    }
-
     /// 6 random `[a-z0-9]`, not one of `taken` (the session's labels' iids).
     public static func newIID(taken: Set<String>) -> String {
         let alphabet = Array("abcdefghijklmnopqrstuvwxyz0123456789")

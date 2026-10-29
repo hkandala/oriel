@@ -180,17 +180,17 @@ final class Page: Identifiable {
         return pane ?? panes.first(where: \.focused)
     }
 
-    /// The selected tab's and the floated terminals (terminal id → pane id) that stream; not a browser's placeholder.
+    /// The selected tab's and the floated terminals (terminal id → pane id) that stream; not a plugin's placeholder.
     var shownTerminals: [String: String] {
         Dictionary(store.panes.compactMap { pane in
-            (pane.tabID == selectedTab?.id || floats(pane)) && pane.browser == nil
+            (pane.tabID == selectedTab?.id || floats(pane)) && pane.plugin == nil
                 ? pane.terminalID.map { ($0, pane.id) } : nil
         }, uniquingKeysWith: { first, _ in first })
     }
 
     /// The pane's terminal, made on first use once the store is connected.
     func terminal(_ pane: HostStore.Pane) -> PaneTerminal? {
-        guard let terminalID = pane.terminalID, let client = store.client, pane.browser == nil else { return nil }
+        guard let terminalID = pane.terminalID, let client = store.client, pane.plugin == nil else { return nil }
         return terminals.terminal(terminalID, pane: pane.id, client: client)
     }
 
@@ -243,7 +243,7 @@ final class Page: Identifiable {
             keyboardTabID = tab.id
             // Made now if its card has not drawn yet (a tab just jumped to); it takes the keyboard once it is in
             // the window.
-            _ = (terminal(pane), browser(pane))
+            _ = (terminal(pane), browser(pane), plugin(pane))
             terminals.focus(terminalID)
         }
     }

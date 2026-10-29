@@ -53,8 +53,9 @@ private struct MiniCard: View {
         shape.fill(look.cardFill)
             .overlay(shape.stroke(edge.color, lineWidth: edge.width))
             .overlay(alignment: .topLeading) {
-                if let pane, page.floats(pane) {
-                    Image(systemName: "pip").foregroundStyle(.secondary)
+                if let pane, page.floats(pane) || pane.plugin.map({ $0.kind != .browser }) == true {
+                    // A plugin's card stays in its card: its symbol here.
+                    Image(systemName: page.floats(pane) ? "pip" : pane.iconID).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let pane, pane.browser != nil || page.shownChat(pane) != nil {
                     // Not a terminal: its own view once the strip made it, else its kind's symbol. A tile makes no

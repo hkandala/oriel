@@ -2,7 +2,8 @@ import AppKit
 import HerdrKit
 import Observation
 
-/// A new pane's chooser (ui/new-pane): Terminal, Agent (which opens its agents under it) or Browser. The app's own
+/// A new pane's chooser (ui/new-pane): Terminal, Agent (which opens its agents under it), Browser, Files or
+/// Changes. The app's own
 /// state, kept on the session's store so every window shows it; herdr sees a plain shell. Its card is a new tab's or
 /// split's stand-in until herdr made the pane, then the pane's terminal, which a move keeps.
 @MainActor @Observable
@@ -17,10 +18,12 @@ final class Chooser {
         Agent(name: "Pi", command: "pi"), Agent(name: "OpenCode", command: "opencode"),
     ]
 
-    /// A row of the list: `start` is an agent's, by its place in `agents`.
+    /// A row of the list: `start` is an agent's, by its place in `agents`; `plugin` a browser, Files or Changes.
     enum Row: Hashable {
-        case terminal, agent, browser, start(Int)
+        case terminal, agent, plugin(PluginKind), start(Int)
     }
+
+    static let plugins = [PluginKind.browser, .files, .diff].map(Row.plugin)
 
     @ObservationIgnored let standIn: String?
     /// herdr's pane, once it answered.
@@ -31,15 +34,15 @@ final class Chooser {
     var selected = Row.terminal
     /// The picked agent until it is ready: the card shows the loader.
     var starting: Agent?
-    /// Browser was picked: the card shows the browser's loader while its pane takes this one's place.
-    var browsing = false
+    /// Browser, Files or Changes was picked: the card shows its loader while its pane takes this one's place.
+    var opening: PluginKind?
 
     init(standIn: String? = nil) {
         self.standIn = standIn
     }
 
     var rows: [Row] {
-        [.terminal, .agent] + (open ? Self.agents.indices.map(Row.start) : []) + [.browser]
+        [.terminal, .agent] + (open ? Self.agents.indices.map(Row.start) : []) + Self.plugins
     }
 
     func made(_ pane: HerdrKit.Pane) {
@@ -49,7 +52,7 @@ final class Chooser {
 
     /// Its number key: the top rows', or the agents' while Agent is open.
     func number(_ row: Row) -> Int? {
-        let numbered = open ? Self.agents.indices.map(Row.start) : [.terminal, .agent, .browser]
+        let numbered = open ? Self.agents.indices.map(Row.start) : [.terminal, .agent] + Self.plugins
         return numbered.firstIndex(of: row).map { $0 + 1 }
     }
 }
@@ -60,7 +63,9 @@ extension Chooser.Row {
         switch self {
         case .terminal: ("Terminal", "Shell")
         case .agent: ("Agent", "Coding agent")
-        case .browser: ("Browser", "Web page")
+        case .plugin(.browser): ("Browser", "Web page")
+        case .plugin(.files): ("Files", "File tree")
+        case .plugin: ("Changes", "Uncommitted diff")
         case let .start(index): (Chooser.agents[index].name, Chooser.agents[index].command)
         }
     }
@@ -126,7 +131,7 @@ extension HostStore {
     /// do nothing, also while the loader shows.
     func key(_ event: NSEvent, _ chooser: Chooser, page: Page?) {
         // A held key moves on, but picks once: a held 2 would open Agent, then start Codex.
-        guard chooser.starting == nil, !chooser.browsing,
+        guard chooser.starting == nil, chooser.opening == nil,
               !event.isARepeat || [125, 126].contains(event.keyCode) else { return }
         let rows = chooser.rows, index = rows.firstIndex(of: chooser.selected) ?? 0
         switch event.keyCode {
@@ -151,7 +156,7 @@ extension HostStore {
             chooser.open.toggle()
             chooser.selected = chooser.open ? .start(0) : .agent
         case let .start(index): start(Chooser.agents[index], chooser)
-        case .browser: page?.openBrowser(chooser)
+        case let .plugin(kind): page?.open(kind, chooser)
         case .terminal: drop(chooser)
         }
     }
@@ -285,35 +290,6 @@ extension HostStore {
 }
 
 extension Page {
-    /// A browser pane takes the chooser's pane's place, with Replace Pane's steps (ui/new-pane#browser). It waits for
-    /// a snapshot that has the pane: herdr's split or tab answer comes before one, and a fast pick (⌘D, then 3) would
-    /// find nothing to replace.
-    func openBrowser(_ chooser: Chooser) {
-        guard chooser.starting == nil, !chooser.browsing else { return }
-        chooser.browsing = true
-        Task {
-            defer { store.drop(chooser) }
-            let clock = ContinuousClock(), begun = clock.now
-            while chooser.paneID.flatMap(store.pane).flatMap({ store.workspace(of: $0.tabID) }) == nil,
-                  clock.now - begun < .seconds(10), store.choosers.contains(where: { $0 === chooser })
-            {
-                try? await Task.sleep(for: .milliseconds(100))
-            }
-            if let id = chooser.paneID {
-                await replace(id, Replacement(browser: true))
-            }
-        }
-    }
-
-    /// Open Browser Here: the chooser's pick on a pane that shows it, else a Replace Pane.
-    func openBrowser(in pane: HostStore.Pane) {
-        if let chooser = store.chooser(pane.id) {
-            openBrowser(chooser)
-        } else {
-            replacePane(pane, Replacement(button: "Open Browser", browser: true))
-        }
-    }
-
     /// Start Agent Here: the chooser's pick on a pane that shows it, else a Replace Pane that starts the agent.
     func start(_ agent: Chooser.Agent, in pane: HostStore.Pane) {
         if let chooser = store.chooser(pane.id) {
