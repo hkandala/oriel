@@ -318,6 +318,7 @@ extension OrielUITests {
         XCTAssertTrue(until(5) { mean(shot) < white - 100 }, "\(white) \(mean(shot))")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
+        XCTAssertTrue(hasKeyboard(element("chat.\(chat).composer")))
     }
 
     /// How many times the sidebar was made (`-recordLatency`).
