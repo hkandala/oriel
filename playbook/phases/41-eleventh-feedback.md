@@ -245,6 +245,8 @@ user's answers to the orchestrator's questions.
   `.other`, as a page's `window.open` does, so it opened the OAuth popup sheet. The menu carries no address: the
   New Tab item sends the New Window item's own action with a flag set, and the window WebKit then asks for becomes
   a herdr tab (`layout.apply`, `focus:false`) with a browser pane labeled with the link.
+- **Cause, "an overlay you can't close".** The popup's header used the card's fill, nearly clear in dark, so over
+  a white page its × was white on white. The popup now sits on the app's floating glass; Esc closes it too.
 - **Decisions, item 1.** The new tab goes after the workspace's others and stays in the background, as in Safari.
   Opening a link in a tab (menu, ⌘-click, `target=_blank`) approves its origin, so the new card loads without
   "Open this page?"; a click that loads in the card still approves nothing. Every link-started new window becomes
