@@ -56,6 +56,11 @@ public extension Git {
     /// The patch, with renames, of one commit against its first parent, or with `commit` nil of the uncommitted
     /// changes: staged, unstaged and untracked files against HEAD.
     static func diff(_ root: String, commit: String?, exec: any Exec) async throws -> [DiffFile] {
+        try await DiffFile.parse(patch(root, commit: commit, exec: exec))
+    }
+
+    /// `diff`'s patch as git prints it, for a view that parses its own (the web Diff card).
+    static func patch(_ root: String, commit: String?, exec: any Exec) async throws -> String {
         // The user's config must not change the format: color, an external tool, other prefixes, quoted names.
         let git = ["git", "-c", "core.quotePath=false", "-c", "diff.suppressBlankEmpty=false"]
         let flags = ["--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/", "-M"]
@@ -63,10 +68,10 @@ public extension Git {
             // A hash from a pane's label: never an option.
             guard !commit.isEmpty,
                   commit.allSatisfy(\.isHexDigit) else { throw HerdrError.failed("No commit \(commit)") }
-            return try await DiffFile.parse(exec.checkedOutput(
+            return try await exec.checkedOutput(
                 git + ["-C", root, "show"] + flags + ["-m", "--first-parent", "--format=", commit],
                 timeout: .seconds(30),
-            ))
+            )
         }
         // Before the first commit, against the empty tree.
         // ponytail: 16 MB of patch and 64 KB of untracked names (a cut last line reads as a shorter file), and the
@@ -77,10 +82,10 @@ public extension Git {
           git ls-files -z -o --exclude-standard | head -c 65536 | xargs -0 -r -n 1 git "$@" --no-index -- /dev/null
         } | head -c 16777216
         """#
-        return try await DiffFile.parse(exec.checkedOutput(
+        return try await exec.checkedOutput(
             ["sh", "-c", script, "sh", root] + git.dropFirst() + ["diff"] + flags,
             timeout: .seconds(30),
-        ))
+        )
     }
 }
 
