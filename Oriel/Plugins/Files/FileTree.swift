@@ -44,8 +44,10 @@ final class FileTree: NSObject {
 
     /// Why the root could not be listed.
     private(set) var failure: String?
-    /// The git repository's root, when the root is in one and git can run.
+    /// The root when it is a git repository's root and git can run.
     private(set) var repo: String?
+    /// The filter matches no file.
+    private(set) var noMatches = false
     private(set) var changes: [Git.Change] = []
     private(set) var history: [(commit: Git.Commit, row: Git.GraphRow)] = []
     private(set) var branch = ""
@@ -119,7 +121,7 @@ final class FileTree: NSObject {
         self.exec = exec
         let repo = await gitUsable.value ? await Git.root(root, exec: exec) : nil
         guard root == self.root else { return }
-        self.repo = repo
+        self.repo = repo == root ? root : nil
         await relist()
         for await _ in Files.watch(root, exec: exec) {
             await relist()
@@ -213,6 +215,7 @@ final class FileTree: NSObject {
     private func refilter() {
         guard !filter.isEmpty else {
             matches = nil
+            noMatches = false
             outline.reloadData()
             for path in expanded.sorted(by: { $0.count < $1.count }) {
                 outline.expandItem(nodes[path])
@@ -220,11 +223,7 @@ final class FileTree: NSObject {
             return
         }
         guard let paths else { return loadPaths() }
-        // The changes' letters by path from the root.
-        let prefix = repo.map { root == $0 ? "" : root.dropFirst($0.count + 1) + "/" } ?? ""
-        let letters = Dictionary(changes.compactMap { change in
-            change.path.hasPrefix(prefix) ? (String(change.path.dropFirst(prefix.count)), change.letter) : nil
-        }, uniquingKeysWith: { first, _ in first })
+        let letters = Dictionary(changes.map { ($0.path, $0.letter) }, uniquingKeysWith: { first, _ in first })
         var rows: [String: [Node]] = [:], seen: Set<String> = []
         // ponytail: the first 5,000 matches, all open at once; a lazy outline when a one-letter filter needs more.
         let found = paths.lazy
@@ -241,6 +240,7 @@ final class FileTree: NSObject {
             }
         }
         matches = rows.mapValues { $0.sorted(by: Node.before) }
+        noMatches = rows.isEmpty
         outline.reloadData()
         outline.expandItem(nil, expandChildren: true)
     }

@@ -27,12 +27,10 @@ final class Preview {
     @ObservationIgnored weak var pdf: PDFView?
     /// Weak: the plugin keeps this.
     private(set) weak var plugin: Plugin?
-    private let machine: Machine
     @ObservationIgnored private var hash: String?
 
-    init(plugin: Plugin, machine: Machine) {
+    init(plugin: Plugin) {
         self.plugin = plugin
-        self.machine = machine
     }
 
     var path: String {
@@ -44,28 +42,29 @@ final class Preview {
     }
 
     /// The card's `.task(id: path)`.
-    func run() async {
+    func run(_ machine: Machine) async {
         let exec = await machine.exec()
-        await load(exec)
+        await load(exec, remote: machine.isRemote)
         for await _ in Files.watch(path, exec: exec) {
-            await load(exec)
+            await load(exec, remote: machine.isRemote)
         }
     }
 
-    private func load(_ exec: any Exec) async {
+    private func load(_ exec: any Exec, remote: Bool) async {
         guard let type, [.image, .pdf, .audiovisualContent].contains(where: type.conforms) else {
             content = .info(nil)
             return
         }
         do {
             let contents = try await Files.read(path, exec: exec)
-            guard contents.hash != hash else { return }
+            // Not for a path the card left.
+            guard contents.hash != hash, !Task.isCancelled else { return }
             hash = contents.hash
             if type.conforms(to: .pdf) {
                 content = PDFDocument(data: contents.data).map(Content.pdf) ?? .info("Not a PDF")
             } else if type.conforms(to: .image) {
                 content = NSImage(data: contents.data).map(Content.image) ?? .info("Not an image")
-            } else if machine.isRemote {
+            } else if remote {
                 // The player reads a file. ponytail: one per version in the temporary folder, which the system
                 // empties.
                 let copy = FileManager.default.temporaryDirectory.appending(
@@ -83,6 +82,14 @@ final class Preview {
         }
     }
 
+    /// The whole image, but not past 100 %.
+    static func fit(_ scroll: NSScrollView, _ image: NSView) {
+        scroll.magnification = 1
+        if image.frame.width > scroll.bounds.width || image.frame.height > scroll.bounds.height {
+            scroll.magnify(toFit: image.frame)
+        }
+    }
+
     func zoom(_ zoom: Zoom) {
         if let pdf {
             switch zoom {
@@ -93,24 +100,12 @@ final class Preview {
             }
         } else if let scroll, let image = scroll.documentView {
             switch zoom {
-            case .fit: scroll.magnify(toFit: image.frame)
+            case .fit: Self.fit(scroll, image)
             case .smaller: scroll.animator().magnification /= 1.25
             case .bigger: scroll.animator().magnification *= 1.25
             case .actual: scroll.animator().magnification = 1
             }
         }
-    }
-}
-
-extension Page {
-    /// The card's preview, made once.
-    func preview(_ plugin: Plugin) -> Preview {
-        if let preview = plugin.preview {
-            return preview
-        }
-        let preview = Preview(plugin: plugin, machine: store.machine)
-        plugin.preview = preview
-        return preview
     }
 }
 
@@ -122,7 +117,7 @@ struct PreviewCard: View {
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
-        let preview = page.preview(plugin), id = "preview.\(plugin.paneID)"
+        let preview = plugin.preview, id = "preview.\(plugin.paneID)"
         Group {
             switch preview.content {
             case let .image(image): ImageScroll(image: image, preview: preview, page: page)
@@ -135,7 +130,7 @@ struct PreviewCard: View {
         }
         .task(id: plugin.label.arg) {
             if isEnabled {
-                await preview.run()
+                await preview.run(page.store.machine)
             }
         }
     }
@@ -241,13 +236,8 @@ private struct ImageScroll: NSViewRepresentable {
         guard let view = scroll.documentView as? NSImageView, view.image !== image else { return }
         view.image = image
         view.frame = NSRect(origin: .zero, size: image.size)
-        // Fit when bigger than the card, once it has its size.
-        Task {
-            scroll.magnification = 1
-            if image.size.width > scroll.bounds.width || image.size.height > scroll.bounds.height {
-                scroll.magnify(toFit: view.frame)
-            }
-        }
+        // Once the card has its size.
+        Task { Preview.fit(scroll, view) }
     }
 }
 

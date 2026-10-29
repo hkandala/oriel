@@ -12,6 +12,8 @@ struct MarkdownCard: View {
     @State private var focused = false
     @FocusState private var reading: Bool
     @State private var headings: [OutlineHeading] = []
+    /// Read's sections, parsed off the main actor when the text changes.
+    @State private var sections: [(line: Int, text: String)] = []
     @State private var anchor = EditorAnchor()
     /// The line Read scrolls to.
     @State private var target: Int?
@@ -41,7 +43,7 @@ struct MarkdownCard: View {
     }()
 
     var body: some View {
-        let file = page.fileText(plugin)
+        let file = plugin.file
         HStack(spacing: 0) {
             if plugin.outline {
                 outline
@@ -51,7 +53,15 @@ struct MarkdownCard: View {
         }
         .task(id: plugin.label.arg) {
             if isEnabled {
-                await file.run()
+                await file.run(page.store.machine)
+            }
+        }
+        .task(id: file.text) {
+            // A tile draws the first screen or so.
+            let text = isEnabled ? file.text : String(file.text.prefix(8 << 10))
+            let parsed = await Task.detached { OutlineHeading.sections(text) }.value
+            if !Task.isCancelled {
+                sections = parsed
             }
         }
         .task(id: plugin.outline ? file.text : nil) {
@@ -104,7 +114,14 @@ struct MarkdownCard: View {
         .onChange(of: focused) {
             // On the next turn: the card's own `focused = true` comes before the view is first responder.
             if focused {
-                Task { anchor.tookKeyboard() }
+                Task {
+                    anchor.tookKeyboard()
+                    // ⌘F from Read, now in Edit.
+                    if let find = plugin.find {
+                        plugin.find = nil
+                        CommandList.findInText(find)
+                    }
+                }
             }
         }
     }
@@ -115,12 +132,12 @@ struct MarkdownCard: View {
 
     /// The file's text in a text view: Edit's, or a big file's in both modes.
     static func showsText(_ plugin: Plugin) -> Bool {
-        plugin.editing || (plugin.file?.text.utf8.count ?? 0) > renderLimit
+        plugin.editing || plugin.file.text.utf8.count > renderLimit
     }
 
     @ViewBuilder private func content(_ file: FileText) -> some View {
         if let failure = file.failure {
-            Text(failure).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
+            FileInfo(plugin: plugin, page: page, note: failure)
         } else if !file.loaded {
             // A tile leaves the load to the card, which may not have been shown yet.
             Group {
@@ -139,7 +156,7 @@ struct MarkdownCard: View {
                                   isFocused: $focused, header: front == 0 ? nil : AnyView(frontMatter(file)))
                 .background(AnchorView(anchor: anchor))
         } else {
-            read(file.text)
+            read
         }
     }
 
@@ -176,10 +193,9 @@ struct MarkdownCard: View {
             .frame(maxWidth: .infinity)
     }
 
-    /// Read: the chat's renderer in a centered 640 pt column, a section a time. A tile draws the first screen or so.
-    private func read(_ text: String) -> some View {
-        let sections = OutlineHeading.sections(isEnabled ? text : String(text.prefix(8 << 10)))
-        return ScrollViewReader { proxy in
+    /// Read: the chat's renderer in a centered 640 pt column, a section a time.
+    private var read: some View {
+        ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 20) {
                     // Each by its line, which the scroll asks for: a lazy stack knows a row's id before it builds it.
@@ -211,9 +227,9 @@ struct MarkdownCard: View {
     /// The outline's or a `#heading` link's jump: Read scrolls to it, a text view puts the caret on its line.
     private func jump(to heading: OutlineHeading) {
         if showsText {
-            anchor.jump(to: max(0, heading.offset - front(page.fileText(plugin))))
+            anchor.jump(to: max(0, heading.offset - front(plugin.file)))
         } else {
-            target = OutlineHeading.sections(page.fileText(plugin).text).last { $0.line <= heading.line }?.line
+            target = sections.last { $0.line <= heading.line }?.line
         }
     }
 
@@ -241,25 +257,23 @@ struct MarkdownCard: View {
     }
 
     /// A link from Read: a web address in the browser plugin, a relative or absolute path in its own kind's,
-    /// `#heading` in place, `mailto:` with the Mac's mail app.
+    /// `#heading` in place.
     private func open(_ url: URL) async {
         switch url.scheme?.lowercased() {
         case "http", "https":
             await page.open(.browser, arg: url.absoluteString)
         case nil where url.path.isEmpty:
             let name = url.fragment(percentEncoded: false)?.lowercased()
-            if let heading = OutlineHeading.parse(page.fileText(plugin).text).first(where: { $0.anchor == name }) {
+            if let heading = OutlineHeading.parse(plugin.file.text).first(where: { $0.anchor == name }) {
                 jump(to: heading)
             }
-        case nil, "file":
+        case nil:
             let folder = URL(filePath: (plugin.label.arg as NSString).deletingLastPathComponent,
                              directoryHint: .isDirectory)
             let path = (URL(string: url.relativeString, relativeTo: folder) ?? url).standardized
                 .path(percentEncoded: false)
             await page.open(.opening(path), arg: path)
-        case "mailto":
-            NSWorkspace.shared.open(url)
-        // A cloned repository's file is outside input: no `oriel:`, `smb:` or other app's link.
+        // A cloned repository's file is outside input: no `oriel:`, `file:`, `mailto:` or other app's link.
         default: break
         }
     }
@@ -288,6 +302,6 @@ struct MarkdownToolbar: View {
             .layoutPriority(1)
         Segments(id: "\(id).mode", options: [("Read", false), ("Edit", true)], selection: $plugin.editing)
             .fixedSize()
-            .disabled(page.fileText(plugin).readOnly)
+            .disabled(plugin.file.readOnly)
     }
 }

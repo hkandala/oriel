@@ -10,9 +10,8 @@ extension Page {
     }
 }
 
-/// The card's content under its header, with the toast at its top. Each kind's content is a placeholder the
-/// variants replace (phases 43 and 44); a kind's content takes the keyboard on `plugin.wantsKeyboard` and calls
-/// `page.terminals.claimed` when it gets it.
+/// The card's content under its header, with the toast at its top. A kind's content takes the keyboard on
+/// `plugin.wantsKeyboard` and claims it for the card when the user clicks it.
 struct PluginCard: View {
     let plugin: Plugin
     let page: Page
@@ -27,7 +26,8 @@ struct PluginCard: View {
             case .file: FileCard(plugin: plugin, page: page)
             case .preview: PreviewCard(plugin: plugin, page: page)
             case .markdown: MarkdownCard(plugin: plugin, page: page)
-            default: PluginPlaceholder(plugin: plugin, page: page)
+            // A browser's card is its own.
+            case .browser: EmptyView()
             }
         }
         // As the browser's page.
@@ -48,53 +48,6 @@ struct PluginCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).card")
-    }
-}
-
-/// A kind's content until its variant's replaces it.
-private struct PluginPlaceholder: View {
-    let plugin: Plugin
-    let page: Page
-    @State private var text = ""
-    @FocusState private var focused: Bool
-    /// False in an overview tile.
-    @Environment(\.isEnabled) private var isEnabled
-
-    var body: some View {
-        let id = "\(plugin.kind.rawValue).\(plugin.paneID)"
-        VStack(spacing: 8) {
-            HStack {
-                Spacer()
-                // The placeholder's way to `Page.open` (the test's too) until the variants' links replace it.
-                Button("Open in New Tab") { Task { await page.open(plugin.kind, arg: plugin.label.arg) } }
-                    .accessibilityIdentifier("\(id).open")
-            }
-            if plugin.kind == .file {
-                TextEditor(text: $text).font(.system(size: 12, design: .monospaced)).scrollContentBackground(.hidden)
-                    .focused($focused)
-                    .onChange(of: text) { plugin.dirty = true }
-                    .accessibilityIdentifier("\(id).text")
-            } else {
-                Image(systemName: plugin.kind.symbol).font(.system(size: 28)).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(.rect)
-                    .focusable()
-                    .focusEffectDisabled()
-                    .focused($focused)
-                    .onTapGesture { focused = true }
-            }
-        }
-        .onChange(of: plugin.wantsKeyboard, initial: true) {
-            if plugin.wantsKeyboard, isEnabled {
-                plugin.wantsKeyboard = false
-                Task { focused = true }
-            }
-        }
-        .onChange(of: focused) {
-            if focused {
-                page.terminals.claimed(plugin.terminalID)
-            }
-        }
     }
 }
 
@@ -126,8 +79,7 @@ private struct ToastView: View {
     }
 }
 
-/// The card header's second row: the kind's controls, a placeholder the variants replace; Open With for a file on
-/// This Mac.
+/// The card header's second row: the kind's controls; Open With for a file on This Mac.
 struct PluginToolbar: View {
     let plugin: Plugin
     let page: Page
@@ -136,23 +88,21 @@ struct PluginToolbar: View {
         switch plugin.kind {
         case .files: FilesToolbar(plugin: plugin)
         case .diff: DiffToolbar(plugin: plugin, page: page)
-        default: withOpenWith
+        case .file, .preview, .markdown: withOpenWith
+        case .browser: EmptyView()
         }
     }
 
-    /// The file kinds' row and the placeholders', Open With last.
+    /// The file kinds' row, Open With last.
     private var withOpenWith: some View {
         HStack(spacing: 6) {
             switch plugin.kind {
-            case .file: JumpBar(plugin: plugin, file: page.fileText(plugin))
-            case .preview: PreviewBar(plugin: plugin, preview: page.preview(plugin))
-            case .markdown: MarkdownToolbar(plugin: plugin, page: page)
-            default:
-                Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
-                    .truncationMode(.middle)
+            case .file: JumpBar(plugin: plugin, file: plugin.file)
+            case .preview: PreviewBar(plugin: plugin, preview: plugin.preview)
+            default: MarkdownToolbar(plugin: plugin, page: page)
             }
             Spacer(minLength: 0)
-            if [.file, .preview, .markdown].contains(plugin.kind), !page.store.machine.isRemote {
+            if !page.store.machine.isRemote {
                 OpenWith(path: plugin.label.arg).accessibilityIdentifier("pane.\(plugin.paneID).open-with")
             }
         }

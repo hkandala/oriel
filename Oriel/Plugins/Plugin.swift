@@ -119,13 +119,15 @@ final class Plugin {
     @ObservationIgnored lazy var tree = FileTree(plugin: self)
     /// A diff's state, made on first use.
     @ObservationIgnored lazy var diff = DiffCard()
-    /// A file or markdown card's text (`Page.fileText`).
-    @ObservationIgnored var file: FileText?
-    /// A preview card's file (`Page.preview`).
-    @ObservationIgnored var preview: Preview?
+    /// A file or markdown card's text.
+    @ObservationIgnored lazy var file = FileText(plugin: self)
+    /// A preview card's file.
+    @ObservationIgnored lazy var preview = Preview(plugin: self)
     /// Markdown: Edit mode, else Read; its outline shows.
     var editing = false
     var outline = false
+    /// Markdown: a Find from Read, which Edit's text view does once it has the keyboard.
+    @ObservationIgnored var find: NSTextFinder.Action?
 
     init(terminalID: String, paneID: String, label: PaneLabel) {
         self.terminalID = terminalID

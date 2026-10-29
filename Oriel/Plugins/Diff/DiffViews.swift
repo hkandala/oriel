@@ -31,8 +31,7 @@ struct DiffContent: View {
         }
         .onChange(of: plugin.wantsKeyboard, initial: true) {
             if plugin.wantsKeyboard, isEnabled {
-                plugin.wantsKeyboard = false
-                card.view.takeKeyboard()
+                card.view.texts[0].takeKeyboard(plugin)
             }
         }
         .onAppear {

@@ -2,8 +2,7 @@ import AppKit
 import SwiftUI
 
 extension View {
-    /// A SwiftUI content takes the keyboard, as phase 42's placeholder: on a click, and when the page gives it to the
-    /// card.
+    /// A SwiftUI content takes the keyboard: on a click, and when the page gives it to the card.
     func takesKeyboard(_ plugin: Plugin, _ page: Page) -> some View {
         modifier(TakesKeyboard(plugin: plugin, page: page))
     }
@@ -65,12 +64,13 @@ final class KeyboardClick: NSClickGestureRecognizer {
 }
 
 extension NSView {
-    /// The view takes the keyboard when the page gives it to the card (`wantsKeyboard`), on the next turn.
+    /// The view takes the keyboard the page gives the card (`wantsKeyboard`), on the next turn: a first responder set
+    /// during an update is undone, and a host that adopts the view has it in its window by then.
     func takeKeyboard(_ plugin: Plugin?) {
         guard let plugin, plugin.wantsKeyboard else { return }
-        Task {
-            plugin.wantsKeyboard = false
-            window?.makeFirstResponder(self)
+        plugin.wantsKeyboard = false
+        DispatchQueue.main.async { [weak self] in
+            self?.window?.makeFirstResponder(self)
         }
     }
 }

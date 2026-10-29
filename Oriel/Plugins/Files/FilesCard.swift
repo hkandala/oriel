@@ -1,7 +1,7 @@
 import HerdrKit
 import SwiftUI
 
-/// A Files card: the tree of its root, and the Git section at its bottom when the root is in a repository.
+/// A Files card: the tree of its root, and the Git section at its bottom when the root is a repository's root.
 struct FilesCard: View {
     let plugin: Plugin
     let page: Page
@@ -13,8 +13,8 @@ struct FilesCard: View {
         let tree = plugin.tree, id = "files.\(plugin.paneID)"
         let files = TreeHost(view: tree.scroll)
             .overlay {
-                if let failure = tree.failure {
-                    Text(failure).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(24)
+                if let message = tree.failure ?? (tree.noMatches ? "No matching files" : nil) {
+                    Text(message).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(24)
                         .accessibilityIdentifier("\(id).message")
                 }
             }
@@ -43,8 +43,7 @@ struct FilesCard: View {
         .onChange(of: [look.dark, look.contrast], initial: true) { tree.look = look }
         .onChange(of: plugin.wantsKeyboard, initial: true) {
             if plugin.wantsKeyboard, isEnabled {
-                plugin.wantsKeyboard = false
-                tree.outline.wantsKeyboard = true
+                tree.outline.takeKeyboard(plugin)
             }
         }
     }

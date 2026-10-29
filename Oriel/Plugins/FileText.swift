@@ -6,11 +6,11 @@ import SwiftUI
 /// checked by hash, the reload on a change on disk, and their toasts.
 @MainActor @Observable
 final class FileText {
-    /// What the editor shows and edits; a change from the editor marks the card dirty.
+    /// What the editor shows and edits; the card is dirty while it differs from the disk's (an undo back clears it).
     var text = "" {
         didSet {
-            if !loading, plugin?.dirty == false {
-                plugin?.dirty = true
+            if !loading, plugin?.dirty != (text != disk) {
+                plugin?.dirty = text != disk
             }
         }
     }
@@ -25,17 +25,18 @@ final class FileText {
 
     /// Weak: the plugin keeps this.
     private(set) weak var plugin: Plugin?
-    private let machine: Machine
-    /// The disk's hash when the text was read or saved; the save checks it.
+    /// The pane's machine, from `run`.
+    @ObservationIgnored private var machine = Machine.thisMac
+    /// The disk's text and hash when it was read or saved; the save checks the hash.
+    @ObservationIgnored private var disk = ""
     @ObservationIgnored private var hash: String?
     @ObservationIgnored private var loading = false
     @ObservationIgnored private var saving = false
     /// The file card's text view, which an overview tile borrows.
     @ObservationIgnored var editor: CodeEditor?
 
-    init(plugin: Plugin, machine: Machine) {
+    init(plugin: Plugin) {
         self.plugin = plugin
-        self.machine = machine
     }
 
     var path: String {
@@ -47,7 +48,8 @@ final class FileText {
     }
 
     /// The card's `.task(id: path)`: loads the file, then follows it on disk.
-    func run() async {
+    func run(_ machine: Machine) async {
+        self.machine = machine
         let exec = await machine.exec()
         await check(exec)
         for await _ in Files.watch(path, exec: exec) {
@@ -60,14 +62,15 @@ final class FileText {
         let known = hash
         do {
             let contents = try await Files.read(path, exec: exec)
-            // Not when a save ended meanwhile: the read may be older than it.
-            guard contents.hash != hash, hash == known, !saving else { return }
+            // Not when a save ended meanwhile (the read may be older than it), nor for a path the card left.
+            guard contents.hash != hash, hash == known, !saving, !Task.isCancelled else { return }
             guard loaded, plugin?.dirty == true else { return apply(contents) }
             plugin?.toast = Toast(text: "\(name) changed on disk.",
                                   other: ("Reload", { [weak self] in self?.apply(contents) }),
                                   main: ("Keep Mine", { [weak self] in self?.keep(contents) }))
         } catch {
-            // A file gone keeps its text, which a save writes again; one grown too large shows the info view.
+            // A file gone keeps its text, which a save writes again; one grown too large shows the info view, edits
+            // or not. ponytail: no toast for that.
             if !loaded || error is FileError {
                 failure = FileText.reason(error)
                 hash = nil
@@ -78,12 +81,13 @@ final class FileText {
     /// The edits stay, over the disk's new version (once too large: back to the text).
     private func keep(_ contents: FileContents) {
         hash = contents.hash
+        disk = String(validating: contents.data, as: UTF8.self) ?? disk
         failure = nil
     }
 
-    /// ⌘S.
+    /// ⌘S; nothing for the disk's own text, which a write would only touch (every watcher and build wakes).
     func save() async {
-        guard loaded, !readOnly, failure == nil else { return }
+        guard loaded, !readOnly, failure == nil, plugin?.dirty == true else { return }
         await write(replacing: hash)
     }
 
@@ -92,15 +96,17 @@ final class FileText {
         // A second ⌘S while one saves would find the first one's hash on disk.
         guard !saving else { return }
         let saved = text
+        // Return types a bare line feed: a CRLF file stays CRLF throughout.
+        let bytes = saved.range(of: "\r\n") == nil ? saved
+            : saved.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\n", with: "\r\n")
         saving = true
         defer { saving = false }
         do {
-            self.hash = try await Files.save(Data(saved.utf8), to: path, replacing: hash, exec: machine.exec())
+            self.hash = try await Files.save(Data(bytes.utf8), to: path, replacing: hash, exec: machine.exec())
+            disk = saved
             plugin?.toast = nil
             // Edits made while it saved stay unsaved.
-            if text == saved {
-                plugin?.dirty = false
-            }
+            plugin?.dirty = text != saved
         } catch FileError.changed {
             plugin?.toast = Toast(text: "\(name) changed on disk since you opened it.",
                                   other: ("Overwrite", { [weak self] in Task { await self?.write(replacing: nil) } }),
@@ -120,19 +126,20 @@ final class FileText {
     /// The file's bytes as the text, clean.
     private func apply(_ contents: FileContents) {
         hash = contents.hash
+        plugin?.dirty = false
+        plugin?.toast = nil
         // A byte order mark stays in the text, so a save keeps it.
         guard !contents.data.contains(0), let string = String(validating: contents.data, as: UTF8.self) else {
             failure = "Not a text file"
             return
         }
+        disk = string
         loading = true
         text = string
         loading = false
         readOnly = machine.isRemote && contents.data.count > Files.remoteEditLimit
         failure = nil
         loaded = true
-        plugin?.dirty = false
-        plugin?.toast = nil
     }
 
     /// An error as the card says it.
@@ -142,17 +149,5 @@ final class FileText {
         case let HerdrError.failed(text): text
         default: error.localizedDescription
         }
-    }
-}
-
-extension Page {
-    /// The card's file text, made once.
-    func fileText(_ plugin: Plugin) -> FileText {
-        if let file = plugin.file {
-            return file
-        }
-        let file = FileText(plugin: plugin, machine: store.machine)
-        plugin.file = file
-        return file
     }
 }

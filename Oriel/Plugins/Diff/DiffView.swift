@@ -168,7 +168,6 @@ final class DiffView: NSView {
     private var current = -1
     private var sideBySide = false
     private var syncing = false
-    private var wantsKeyboard = false
 
     override var isFlipped: Bool {
         true
@@ -236,16 +235,6 @@ final class DiffView: NSView {
         }
     }
 
-    func takeKeyboard() {
-        wantsKeyboard = true
-        // After SwiftUI's update: a first responder set during one is undone.
-        DispatchQueue.main.async { [weak self] in
-            guard let self, wantsKeyboard, let window else { return }
-            wantsKeyboard = false
-            window.makeFirstResponder(texts[0])
-        }
-    }
-
     /// Out of a window, the header views go (they hold the card); the next layout makes them again.
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -254,9 +243,6 @@ final class DiffView: NSView {
             headers = [:]
         } else {
             needsLayout = true
-            if wantsKeyboard {
-                takeKeyboard()
-            }
         }
     }
 

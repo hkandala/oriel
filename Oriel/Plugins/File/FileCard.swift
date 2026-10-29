@@ -10,7 +10,7 @@ struct FileCard: View {
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
-        let file = page.fileText(plugin)
+        let file = plugin.file
         Group {
             if let failure = file.failure {
                 FileInfo(plugin: plugin, page: page, note: failure)
@@ -22,7 +22,7 @@ struct FileCard: View {
         }
         .task(id: plugin.label.arg) {
             if isEnabled {
-                await file.run()
+                await file.run(page.store.machine)
             }
         }
     }

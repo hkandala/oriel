@@ -14,7 +14,6 @@ struct CodeView: NSViewRepresentable {
         let host = TerminalHost.Host(), editor = file.editor ?? CodeEditor(file: file, page: page)
         file.editor = editor
         host.clipsToBounds = true
-        editor.scroll.removeFromSuperview()
         editor.scroll.frame = host.bounds
         host.addSubview(editor.scroll)
         return host
@@ -103,12 +102,7 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
         }
         text.isEditable = !file.readOnly
         text.setAccessibilityIdentifier("file.\(plugin.paneID).text")
-        if plugin.wantsKeyboard {
-            Task {
-                plugin.wantsKeyboard = false
-                text.window?.makeFirstResponder(text)
-            }
-        }
+        text.takeKeyboard(plugin)
         if let place = plugin.place {
             Task {
                 plugin.place = nil

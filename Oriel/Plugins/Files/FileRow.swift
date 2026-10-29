@@ -2,22 +2,20 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The tree's view: tells the card when it takes the keyboard, and takes it once in a window.
+/// The tree's view: tells the card when it takes the keyboard; Return opens a file as a double-click does.
 final class Outline: NSOutlineView {
     var onKeyboard: () -> Void = {}
     /// The row of a double-click, from the click itself: `doubleAction` did not come for a double-click whose first
     /// click took the keyboard from the filter field (on CI).
     var onDoubleClick: (Int) -> Void = { _ in }
-    var wantsKeyboard = false {
-        didSet { viewDidMoveToWindow() }
-    }
 
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        guard wantsKeyboard, let window else { return }
-        wantsKeyboard = false
-        // On the next turn: a first responder set during an update is undone.
-        DispatchQueue.main.async { window.makeFirstResponder(self) }
+    override func keyDown(with event: NSEvent) {
+        // Return and Enter.
+        if [36, 76].contains(event.keyCode), selectedRow >= 0 {
+            onDoubleClick(selectedRow)
+        } else {
+            super.keyDown(with: event)
+        }
     }
 
     override func mouseDown(with event: NSEvent) {
