@@ -5,6 +5,9 @@ import UniformTypeIdentifiers
 /// The tree's view: tells the card when it takes the keyboard, and takes it once in a window.
 final class Outline: NSOutlineView {
     var onKeyboard: () -> Void = {}
+    /// The row of a double-click, from the click itself: `doubleAction` did not come for a double-click whose first
+    /// click took the keyboard from the filter field (on CI).
+    var onDoubleClick: (Int) -> Void = { _ in }
     var wantsKeyboard = false {
         didSet { viewDidMoveToWindow() }
     }
@@ -15,6 +18,13 @@ final class Outline: NSOutlineView {
         wantsKeyboard = false
         // On the next turn: a first responder set during an update is undone.
         DispatchQueue.main.async { window.makeFirstResponder(self) }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
+        if event.clickCount == 2 {
+            onDoubleClick(row(at: convert(event.locationInWindow, from: nil)))
+        }
     }
 
     override func becomeFirstResponder() -> Bool {

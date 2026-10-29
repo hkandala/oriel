@@ -94,7 +94,7 @@ final class FileTree: NSObject {
         outline.delegate = self
         outline.target = self
         outline.action = #selector(clicked)
-        outline.doubleAction = #selector(doubleClicked)
+        outline.onDoubleClick = { [weak self] row in self?.doubleClicked(row) }
         outline.onKeyboard = { [weak self] in
             guard let self, let plugin = self.plugin else { return }
             page?.terminals.claimed(plugin.terminalID)
@@ -275,8 +275,8 @@ final class FileTree: NSObject {
         open(node.path)
     }
 
-    @objc private func doubleClicked() {
-        guard let node = outline.item(atRow: outline.clickedRow) as? Node else { return }
+    private func doubleClicked(_ row: Int) {
+        guard let node = outline.item(atRow: row) as? Node else { return }
         if !node.isFolder {
             open(node.path)
         } else if outline.isItemExpanded(node) {
