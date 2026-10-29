@@ -53,22 +53,18 @@ extension WebCard {
             }
             return
         }
-        // Not before the page's first read, and not for the card's own save.
+        // Not before the page's first read, nor for the card's own save, nor with a hash a save replaced meanwhile.
+        // The hash first: a card shown again reads no file that did not change.
         func check() async {
-            guard hash != nil, let (reply, new) = try? await contents(), !saving, new != hash else { return }
-            let load = reply.merging(["op": "load"]) { $1 }
-            guard dirty else {
-                hash = new
-                send(load)
-                return
-            }
+            let before = hash
+            guard before != nil, let now = try? await Files.hash(arg, exec: store.machine.exec()), now != before,
+                  !saving, hash == before
+            else { return }
+            guard dirty else { return await reload() }
             toast = Toast(
                 text: "\(name) changed on disk.",
-                other: ("Reload", { [weak self] in
-                    self?.hash = new
-                    self?.send(load)
-                }),
-                main: ("Keep Mine", { [weak self] in self?.hash = new }),
+                other: ("Reload", { [weak self] in Task { await self?.reload() } }),
+                main: ("Keep Mine", { [weak self] in self?.hash = now }),
             )
         }
         await check()
@@ -104,7 +100,8 @@ extension WebCard {
                 let mime = type.preferredMIMEType ?? "\(group)/\(ext)"
                 return (["type": mime, "data": file.data.base64EncodedString()], file.hash)
             }
-            let text = String(data: file.data, encoding: .utf8)
+            // Not `String(data:encoding:)`, which drops a byte order mark the save would not write back.
+            let text = String(validating: file.data, as: UTF8.self)
             let readOnly = text == nil || store.machine.isRemote && file.data.count > Files.remoteEditLimit
             return (["text": text ?? String(decoding: file.data, as: UTF8.self), "readOnly": readOnly], file.hash)
         } catch let FileError.tooLarge(size) {
@@ -135,6 +132,11 @@ extension Plugin {
 extension Page {
     /// The File or Markdown card with the keyboard: the menu's Save and Find go to its page.
     var editor: Plugin? {
-        keyboardPane.flatMap(plugin).flatMap { $0.edits ? $0 : nil }
+        editor(keyboardPane)
+    }
+
+    /// The pane's card when it is a File or Markdown card.
+    func editor(_ pane: HostStore.Pane?) -> Plugin? {
+        pane.flatMap(plugin).flatMap { $0.edits ? $0 : nil }
     }
 }

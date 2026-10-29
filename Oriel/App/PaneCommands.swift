@@ -110,7 +110,7 @@ extension CommandList {
         let terminalID = floating.terminalID
         guard let page = pages?.withFloats.first(where: { $0.id == floating.session }) else { return [] }
         let pane = page.store.panes.first { $0.terminalID == terminalID }
-        let terminal = pane.flatMap(page.terminal), editor = pane.flatMap(page.plugin).flatMap { $0.edits ? $0 : nil }
+        let terminal = pane.flatMap(page.terminal), editor = page.editor(pane)
         var main = self
         main.floating = nil
         let sizes = main.all.filter { $0.section == .size || $0.title == "Font Size" }

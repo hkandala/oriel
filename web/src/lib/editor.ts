@@ -63,8 +63,9 @@ export const find = (view: EditorView) => openSearchPanel(view)
 export const handle = (view: EditorView, message: In) => {
   switch (message.op) {
     case "load":
-      if ("text" in message) load(view, message.text)
-      else info(message.info, view.dom.parentElement ?? document.body)
+      // A file now too large, or now read only (not UTF-8, over a remote cap): the page starts again with it.
+      if ("text" in message && message.readOnly === view.state.readOnly) load(view, message.text)
+      else location.reload()
       break
     case "saved":
       disk = saving ?? disk
