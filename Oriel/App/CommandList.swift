@@ -236,14 +236,18 @@ extension CommandList {
         return Command(section: .tabSteps, title: "Move Tab \(side.capitalized)",
                        key: .init(offset < 0 ? .leftArrow : .rightArrow, modifiers: [.command, .shift]),
                        symbol: "arrow.\(side).to.line", enabled: enabled, action: {
-                           // The menu takes the arrow before a text field: there it still selects to the line's
-                           // end. Not from the palette or a click (the palette's field has the keyboard then).
+                           // The menu takes the arrow before a text field or a web card: there it still selects to
+                           // the line's end. Not from the palette or a click (the palette's field has the keyboard
+                           // then).
                            let event = NSApp.currentEvent
                            let arrow = event?.type == .keyDown && [123, 124].contains(event?.keyCode)
                            let select = offset < 0 ? #selector(NSResponder.moveToBeginningOfLineAndModifySelection)
                                : #selector(NSResponder.moveToEndOfLineAndModifySelection)
-                           if arrow, let text = NSApp.keyWindow?.firstResponder as? NSTextView {
+                           let responder = NSApp.keyWindow?.firstResponder
+                           if arrow, let text = responder as? NSTextView {
                                text.doCommand(by: select)
+                           } else if arrow, let event, let web = responder as? WebCardView {
+                               web.keyDown(with: event)
                            } else if let page, let tab = page.selectedTab {
                                Task { await page.store.move(tab: tab.id, by: offset) }
                            }

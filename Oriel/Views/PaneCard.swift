@@ -60,6 +60,8 @@ struct PaneCard: View {
                     BrowserCard(browser: browser)
                 } else if let plugin {
                     PluginCard(plugin: plugin, page: page)
+                } else if let pane, let web = page.webTest(pane) {
+                    WebTestCard(card: web, paneID: pane.id)
                 } else if let pane, let chat = page.shownChat(pane) {
                     ChatView(chat: chat, page: page, terminal: terminal)
                 } else if let terminal {
