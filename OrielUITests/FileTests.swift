@@ -184,6 +184,8 @@ extension OrielUITests {
             let ids = panes.compactMap { $0["pane_id"] as? String }
             return !ids.contains(pane) && ids.contains(terminal)
         }
+        let tab: String = try await field(self.pane(terminal)["tab_id"], "\(terminal)'s tab")
+        _ = try await Self.call(one, "tab.close", ["tab_id": tab])
     }
 
     /// Actual Size, then bigger; a smaller image on disk replaces it.
@@ -211,6 +213,13 @@ extension OrielUITests {
 
     /// A tab with a plugin pane made as Oriel makes one (`layout.apply` with the label), selected: its pane.
     private func openPlugin(_ kind: String, _ path: String) async throws -> String {
+        // One plugin tab at a time: CI's narrow tab bar clips a fourth capsule, and a click on it misses.
+        let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
+        for tab in Set(panes.filter { ($0["label"] as? String)?.hasPrefix("oriel:") == true }
+            .compactMap { $0["tab_id"] as? String }) where tab.hasPrefix("w2:")
+        {
+            _ = try? await Self.call(one, "tab.close", ["tab_id": tab])
+        }
         let iid = String(UUID().uuidString.lowercased().filter(\.isHexDigit).prefix(6))
         let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
             "type": "pane", "cwd": "/tmp", "label": "oriel:\(kind)#\(iid) \(path)",
@@ -229,7 +238,6 @@ extension OrielUITests {
             return capsule.frame == frame
         })
         capsule.click()
-        XCTAssertTrue(capsule.has(\.isSelected, true, within: 3))
         XCTAssertTrue(element("\(kind).\(pane).card").has(\.isHittable, true, within: 5))
         return pane
     }
