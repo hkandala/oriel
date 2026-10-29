@@ -1,0 +1,9 @@
+/* The app sets the variables on the root element (WebCard.swift); the card's fill draws behind the page. */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  color: var(--text);
+  font: var(--font-size) system-ui;
+}

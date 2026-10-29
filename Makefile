@@ -1,5 +1,5 @@
 SHELL := /bin/bash -eo pipefail
-.PHONY: setup format lint build build-tests test e2e strip-check run app dmg install icons
+.PHONY: setup format lint web build build-tests test e2e strip-check run app dmg install icons
 
 DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
@@ -23,11 +23,21 @@ lint:
 	swiftformat --lint .
 	swiftlint lint --strict --quiet
 
-build:
+# The plugin cards' pages (Oriel/Plugins/Web): one module per kind, shared chunks; the project copies .build/web
+# into the app's resources.
+web: web/node_modules/.package-lock.json
+	rm -rf .build/web
+	web/node_modules/.bin/esbuild web/src/*.ts web/src/*.css --bundle --splitting --format=esm --minify \
+		--target=safari18 --log-level=warning --outdir=.build/web
+
+web/node_modules/.package-lock.json: web/package-lock.json
+	npm ci --prefix web --no-audit --no-fund
+
+build: web
 	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)
 
 # The app and the UI tests, built but not run (CI's push checks).
-build-tests:
+build-tests: web
 	$(XCODEBUILD) $(MAC) build-for-testing $(BEAUTIFY)
 
 test:
@@ -56,7 +66,7 @@ ONLY := $(shell scripts/shard.py $(SHARD) $(if $(ON_DEMAND_ONLY),--on-demand) $(
 # An empty list would run every test.
 $(if $(ONLY),,$(error no tests for SHARD=$(SHARD)))
 endif
-e2e:
+e2e: web
 	rm -rf $(DERIVED_DATA)/e2e.xcresult
 	scripts/e2e.sh $(XCODEBUILD) $(MAC) \
 		-test-timeouts-enabled YES -default-test-execution-time-allowance 120 \
@@ -68,13 +78,13 @@ e2e:
 strip-check:
 	scripts/strip-check.sh $(DERIVED_DATA)/Build/Products/Debug/Oriel.app
 
-run:
+run: web
 	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)
 	open $(DERIVED_DATA)/Build/Products/Debug/Oriel.app $(if $(SESSION),--args -session $(SESSION))
 
 # A Release Oriel.app to copy into ~/Applications, and a disk image of it. Ad-hoc signed: fine on this Mac;
 # another Mac needs right-click > Open once, and notifications need a real signing identity.
-app:
+app: web
 	$(XCODEBUILD) $(MAC) -configuration Release build $(BEAUTIFY)
 	@echo "$(DERIVED_DATA)/Build/Products/Release/Oriel.app"
 
