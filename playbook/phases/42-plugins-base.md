@@ -121,3 +121,24 @@ identifiers of the header controls. Only the content area differs. Each variant'
    newline-safe form. Unit tests on real output from this repo.
 
 ## Findings
+
+### Track A
+
+- **Decisions:** `PluginKind` holds the browser too, so one label, placeholder, creation (`layout.apply` + move +
+  close), close and Replace Pane path serves all six; `Pane.plugin` (any kind's label) replaced every
+  `browser != nil` check that means "runs only a placeholder". The other five kinds share one `Plugin` card object
+  per pane (kind, label, `dirty`, `toast`, `wantsKeyboard`), kept by terminal id as browsers are; variants hang their
+  state on it and replace the arms of `PluginCard` (content) and `PluginToolbar` (row 2).
+- **Decisions:** label args: `files` = root, `file|preview|markdown` = absolute path, `diff` = `<root> <source>` with
+  the source the last word (`uncommitted` or a hash). Titles come from the label alone (`PaneLabel.title`), so menus
+  build no card. The diff's kind name is `Diff` (tab `Diff Changes`); the chooser row and ⌘K say Changes.
+- **Decisions:** Files and Changes take the git root of the pane's live folder (`Git.root`, only when This Mac's
+  git check passed), else the folder. `PluginKind(path:)` is the spec's "which kind opens a file" rule (unknown or no
+  extension → file), for the variants' links.
+- **Decisions:** `Page.open(_:arg:)` makes the tab with `layout.apply`, then `tab.move` to right after the selected
+  tab (herdr adds it last; spiked: no focus change), and selects it on the next snapshot.
+- **For the variants:** each placeholder has an `Open in New Tab` button (it drives `Page.open` in the test) and file
+  and markdown an empty editor that sets `dirty`; replace both. A content view takes the keyboard on
+  `plugin.wantsKeyboard` and calls `page.tookKeyboard` when it gets it, as the placeholder does.
+- **For the user:** Open With ▾ lists the default app first; check its icons and that it is absent on a remote
+  machine.
