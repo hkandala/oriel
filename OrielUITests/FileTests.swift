@@ -23,9 +23,9 @@ extension OrielUITests {
         ) }
         element("tab.\(tab)").click()
         let card = try await split(left)
-        try await Self.call(one, "pane.rename", ["pane_id": card, "label": "oriel:file#e2efile \(file)"])
+        try await Self.call(one, "pane.rename", ["pane_id": card, "label": "oriel:file#e2efil \(file)"])
         let editor = element("file.\(card).page").textViews.firstMatch
-        XCTAssertTrue(until(10) { editor.stringValue.contains("let x = 1") })
+        XCTAssertTrue(until(10) { editor.exists && editor.stringValue.contains("let x = 1") })
         let jump = element("pane.\(card).jump"), dirty = element("pane.\(card).dirty")
         XCTAssertEqual(jump.stringValue, "oriel-e2e-file › main.swift")
         editor.click()
@@ -160,7 +160,7 @@ extension OrielUITests {
         ) }
         element("tab.\(tab)").click()
         let card = try await split(left)
-        let label = "oriel:preview#e2eprev \(folder)/"
+        let label = "oriel:preview#e2eprv \(folder)/"
         try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "icon.png"])
         let page = element("preview.\(card).page"), image = page.images["icon.png"]
         XCTAssertTrue(image.exists(within: 10))
