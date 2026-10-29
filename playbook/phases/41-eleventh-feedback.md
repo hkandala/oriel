@@ -268,3 +268,19 @@ user's answers to the orchestrator's questions.
 - **For the user.** Split beside a browser card (⌘D on it and on its neighbor) and close again: the motion should
   match a terminal-only tab. Right-click a link: Open Link in New Tab, no Download items. ⌘-click a link and click
   a `target=_blank` one. Open an OAuth login: Esc and the × close it.
+
+### Track F
+- **Cause.** A tile drew only terminals: a browser card showed a globe, and a chat card drew its terminal, not the
+  chat. Worse, the tile streamed a browser pane's placeholder terminal and waited for its picture.
+- **Fix.** A card that is not a terminal shows its own view, at the card's size and scaled to the tile. For a
+  browser, that is a `takeSnapshot` of its web view, taken again each second while the tile shows. The latest
+  snapshot of each card stays in a cache, so the zoom and the next opening start from it. For a chat, it is the
+  card's `ChatView`, live, disabled, and without hit testing. The tile has the clicks, the wheel and the keyboard.
+  Browser and chat panes no longer stream or wait in the tile.
+- **Decisions.** A web view that was never shown gets the card's size, so its first snapshot is not empty. A browser
+  that has not drawn a page yet shows the globe. A chat tile has no waiting drawer: the drawer's terminal stays
+  with its card. The design page's "terminal drawn live inside" needs the docs pass to add "or the card's own
+  view".
+- **For the user.** Open the overview with a browser tab and a chat tab: you see the page and the chat, not a globe
+  or the terminal. The chat in a tile follows new messages, and a browser tile updates about once a second. Leave
+  the overview through a browser tile: no globe flashes during the zoom.
