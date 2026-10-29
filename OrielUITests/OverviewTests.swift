@@ -309,7 +309,7 @@ extension OrielUITests {
         let iid = String(format: "e2e%03x", Int.random(in: 0 ..< 4096)), title = element("pane.\(browser).title")
         try await Self.call(one, "pane.rename", ["pane_id": browser,
                                                  "label": "oriel:browser#\(iid) file://\(folder)/light.html"])
-        XCTAssertTrue(title.has(\.stringValue, "Light", within: 10))
+        XCTAssertTrue(title.has(\.stringValue, "Light", within: connect))
         element("browser.\(browser)").click()
         XCTAssertTrue(hasKeyboard(element("browser.\(browser)")))
 
