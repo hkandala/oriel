@@ -113,14 +113,14 @@ extension HostStore {
 
         /// A browser pane's label (ui/browser): the pane's kind.
         var browser: PaneLabel? {
-            PaneLabel(label).flatMap { $0.plugin == "browser" ? $0 : nil }
+            plugin.flatMap { $0.kind == .browser ? $0 : nil }
         }
 
         /// The card header's parts: the label alone, else the program and the folder, as in Rex ("zsh", "~"). A
-        /// browser's address, not its label.
+        /// browser's address or a plugin's argument, not its label.
         var header: (name: String?, folder: String) {
-            if let browser {
-                return (nil, browser.arg.isEmpty ? "Browser" : browser.arg)
+            if let plugin {
+                return (nil, plugin.arg.isEmpty ? plugin.kind?.name ?? "" : plugin.arg)
             }
             let name = label == nil ? programName : nil
             return (name, label ?? folder ?? (name == nil ? "terminal" : ""))
@@ -153,7 +153,7 @@ extension HostStore {
 
         /// Its program icon's catalog id.
         var iconID: String {
-            browser != nil ? "globe" : programIcons.iconID(agent: agent, program: program, title: terminalTitle)
+            plugin?.kind?.symbol ?? programIcons.iconID(agent: agent, program: program, title: terminalTitle)
         }
     }
 }

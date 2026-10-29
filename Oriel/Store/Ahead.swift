@@ -154,7 +154,7 @@ extension HostStore {
         let action = closing(request)
         // ponytail: a program typed in a new tab in its first seconds hides too, and comes back with the question.
         let clear = asked.allSatisfy {
-            $0.program?.isShell == true || $0.browser != nil && $0.program?.isPlaceholder == true
+            $0.program?.isShell == true || $0.plugin != nil && $0.program?.isPlaceholder == true
                 || $0.starting && ahead.fresh.contains($0.tabID)
         }
         if clear {
@@ -163,7 +163,7 @@ extension HostStore {
         let starting = Set(asked.filter(\.starting).map(\.id))
         return Task {
             let running = await programs(asked.map(\.id), starting: starting,
-                                         placeholders: Set(asked.filter { $0.browser != nil }.map(\.id)), client)
+                                         placeholders: Set(asked.filter { $0.plugin != nil }.map(\.id)), client)
             // Sorted: "A program" leads the list.
             guard running.isEmpty else {
                 if clear {
@@ -258,8 +258,8 @@ extension HostStore {
     private func closing(_ close: Close) -> (any Multiplexer) async throws -> Void {
         switch close {
         case let .pane(id):
-            // The device that closes a browser pane removes its state file (future-work/plugins/state).
-            let state = pane(id)?.browser?.statePath(session: session), machine = machine
+            // The device that closes a plugin pane removes its state file (future-work/plugins/state).
+            let state = pane(id)?.plugin?.statePath(session: session), machine = machine
             return { client in
                 try await client.close(pane: id)
                 if let state {

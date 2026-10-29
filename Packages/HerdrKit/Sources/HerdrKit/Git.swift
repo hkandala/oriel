@@ -51,3 +51,11 @@ public extension GitStatus {
         return await !((try? exec.output(["xcode-select", "-p"])) ?? "").isEmpty
     }
 }
+
+public enum Git {
+    /// The repository's root of a folder, or nil when it is in none.
+    public static func root(_ folder: String, exec: any Exec) async -> String? {
+        let root = try? await exec.output(["git", "-C", folder, "rev-parse", "--show-toplevel"], timeout: .seconds(5))
+        return root?.isEmpty == false ? root : nil
+    }
+}

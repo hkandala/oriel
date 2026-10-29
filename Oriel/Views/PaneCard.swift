@@ -39,7 +39,7 @@ struct PaneCard: View {
         // The watching window's dim (D66), on the header and the terminal.
         let content = page.watched ? 0.85 : 1
         // A new pane's chooser hides its terminal (ui/new-pane).
-        let chooser = store.chooser(id), browser = pane.flatMap(page.browser)
+        let chooser = store.chooser(id), browser = pane.flatMap(page.browser), plugin = pane.flatMap(page.plugin)
         // An agent Oriel started with its flags: its chat or its terminal (ui/chat-view).
         let chat = chooser == nil && !floated ? pane.flatMap(page.chat) : nil
         VStack(spacing: 0) {
@@ -58,6 +58,8 @@ struct PaneCard: View {
                     FloatedPlaceholder(page: page, pane: pane)
                 } else if let browser {
                     BrowserCard(browser: browser)
+                } else if let plugin {
+                    PluginCard(plugin: plugin, page: page)
                 } else if let pane, let chat = page.shownChat(pane) {
                     ChatView(chat: chat, page: page, terminal: terminal)
                 } else if let terminal {
@@ -148,16 +150,20 @@ struct PaneCard: View {
         .accessibilityHidden(away)
     }
 
-    /// `new`: the chooser shows (ui/new-pane), and the title says so. A browser's or an agent's card has a second row
-    /// with its kind's controls; a terminal's has one row.
+    /// `new`: the chooser shows (ui/new-pane), and the title says so. A browser's, a plugin's or an agent's card has a
+    /// second row with its kind's controls; a terminal's has one row.
     private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool, chat: Chat?)
         -> some View
     {
         let browser = page.twoRows(pane) ? pane.flatMap(page.browser) : nil
-        let agent = page.twoRows(pane) && browser == nil
+        let plugin = page.twoRows(pane) ? pane.flatMap(page.plugin) : nil
+        let agent = page.twoRows(pane) && browser == nil && plugin == nil
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 3) {
                 title(pane, new: new, browser: browser, agent: agent)
+                if plugin?.dirty == true {
+                    DirtyDot(paneID: id)
+                }
                 Spacer(minLength: 0)
                 if let chat {
                     ChatCapsule(chat: chat, state: pane?.state)
@@ -173,6 +179,8 @@ struct PaneCard: View {
             .frame(height: Self.header)
             if let browser {
                 BrowserToolbar(browser: browser, page: page).frame(height: Self.row)
+            } else if let plugin {
+                PluginToolbar(plugin: plugin, page: page).frame(height: Self.row)
             } else if agent, let pane {
                 HStack(spacing: 6) {
                     ProgramGlyph(icon: pane.iconID, letter: pane.letter).allowsHitTesting(false)
@@ -205,8 +213,8 @@ struct PaneCard: View {
         .contextMenu { PaneItems(page: page, pane: pane) }
     }
 
-    /// Row 1's title: the rename field; else the browser's page with its icon, the agent's session title, or the
-    /// terminal's glyph and title.
+    /// Row 1's title: the rename field; else the browser's page with its icon, a plugin's title, the agent's session
+    /// title, or the terminal's glyph and title.
     @ViewBuilder
     private func title(_ pane: HostStore.Pane?, new: Bool, browser: Browser?, agent: Bool) -> some View {
         if let browser {
@@ -228,6 +236,8 @@ struct PaneCard: View {
                     Text("New Pane").lineLimit(1)
                 } else if let pane, let label = pane.browser {
                     Text(page.browserTitle(pane, label) ?? "New Tab").lineLimit(1)
+                } else if let label = pane?.plugin {
+                    Text(label.title).lineLimit(1).truncationMode(.middle)
                 } else if agent {
                     Text(pane?.agentTitle ?? pane?.programName ?? "").lineLimit(1)
                 } else {
@@ -289,10 +299,11 @@ struct PaneCard: View {
 }
 
 extension Page {
-    /// A browser's or an agent's card has a second header row; a terminal's, a floated or a choosing one has one.
+    /// A browser's, a plugin's or an agent's card has a second header row; a terminal's, a floated or a choosing one
+    /// has one.
     func twoRows(_ pane: HostStore.Pane?) -> Bool {
         guard let pane, !floats(pane), store.chooser(pane.id) == nil else { return false }
-        return pane.browser != nil || pane.agent != nil || ChatAdapters.recognize(pane.program) != nil
+        return pane.plugin != nil || pane.agent != nil || ChatAdapters.recognize(pane.program) != nil
     }
 
     /// The card's header: one row or two.

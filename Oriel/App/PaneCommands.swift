@@ -58,7 +58,7 @@ extension CommandList {
                     }) { page?.renamingPaneID = target()?.id },
             // herdr's label goes: the header shows the program again. Not a browser pane's: its label is its kind.
             act("Reset Pane Name", nil, .paneMove, symbol: "arrow.uturn.backward",
-                enabled: pane?.label != nil && pane?.browser == nil) { await $0.store.rename(pane: $1.id, label: "") },
+                enabled: pane?.label != nil && pane?.plugin == nil) { await $0.store.rename(pane: $1.id, label: "") },
         ] + ends(page, pane, target)
     }
 
@@ -71,19 +71,23 @@ extension CommandList {
         let replace = Command(section: .close, title: "Replace Pane", key: .replacePane, group: .panes,
                               symbol: "arrow.clockwise.square", keywords: "pane restart new shell respawn reset",
                               enabled: pane != nil) { page?.replacePane(target()) }
-        // Only on an agent or browser pane: on a terminal it is Replace Pane.
-        let terminal = pane?.agent == nil && pane?.browser == nil ? [] : [
+        // Only on an agent or plugin pane: on a terminal it is Replace Pane.
+        let terminal = pane?.agent == nil && pane?.plugin == nil ? [] : [
             Command(section: .close, title: "Open Terminal Here", group: .panes, symbol: "terminal",
                     keywords: "pane shell kind") { page?.replacePane(target(), Replacement(button: "Open Terminal")) },
         ]
-        let browser = pane?.browser != nil ? [] : [
-            Command(section: .close, title: "Open Browser Here", group: .panes, symbol: "globe",
-                    keywords: "pane kind web page url localhost", enabled: pane != nil, action: {
+        // Each on every pane but one of its kind.
+        let plugins = [
+            (PluginKind.browser, "web page url localhost"), (.files, "file tree explorer folder"),
+            (.diff, "diff git uncommitted"),
+        ].filter { pane?.plugin?.kind != $0.0 }.map { kind, keywords in
+            Command(section: .close, title: "Open \(Chooser.Row.plugin(kind).labels.name) Here", group: .panes,
+                    symbol: kind.symbol, keywords: "pane kind " + keywords, enabled: pane != nil, action: {
                         if let page, let pane = target() {
-                            page.openBrowser(in: pane)
+                            page.open(kind, in: pane)
                         }
-                    }),
-        ]
+                    })
+        }
         let agent = Command(section: .close, title: "Start Agent Here", group: .panes, symbol: "sparkles",
                             keywords: "pane kind claude code codex pi opencode", enabled: pane != nil,
                             menu: Chooser.agents.map { agent in
@@ -93,7 +97,7 @@ extension CommandList {
                                     }
                                 }
                             })
-        return [replace] + terminal + [agent] + browser + [
+        return [replace] + terminal + [agent] + plugins + [
             Command(section: .close, title: "Close Pane", key: .closePane, group: .panes, symbol: "xmark.square",
                     keywords: "pane", enabled: pane != nil || page?.standIn != nil) { page?.closePane(target()) },
         ]
@@ -126,7 +130,7 @@ extension CommandList {
             Command(section: .view, title: "Stay on Top", symbol: "pin", checked: page.floating[terminalID] == true,
                     setting: true) { page.floating[terminalID]?.toggle() },
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    enabled: pane.map { $0.browser == nil } == true) { page.openFind(pane) },
+                    enabled: pane.map { $0.plugin == nil } == true) { page.openFind(pane) },
             Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
                     enabled: page.find != nil) { Task { await page.find?.step(1) } },
             Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: page.find != nil) {
