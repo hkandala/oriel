@@ -217,3 +217,24 @@ user's answers to the orchestrator's questions.
   history); it is now the first by key, in Claude's and pi's parsers.
 - **For the user.** Open the chat of a long Claude Code or Codex session after a relaunch: every turn shows, at once;
   switch to Chat while a reply streams; ask an agent for a table and a task list.
+
+### Track G
+- **Cause:** proven in the real app with synthetic trackpad touches posted through the HID tap and a log of
+  `SwipeRouter`'s state per touch event. AppKit builds each event's touches from the pad's whole frame, so a
+  lift the app misses leaves no stale touch behind. But an open context menu swallows the touch events (the lift
+  never reaches the app), and the next fingers reuse the old finger ids, so AppKit reports them `.moved`, not
+  `.began`. The old reset waited for an all-`.began` or an empty frame: after a missed lift that followed a
+  step, the next swipe stepped nothing until its own lift.
+- **Fix:** `ThreeFingers` starts over after a pause of more than 0.2 s in the touch stream, and no AppKit phase
+  decides anything. The check script lifts nowhere and swipes again; it fails on the old code.
+- **Not reproduced:** a stop that lasts until a relaunch. Through context menus, missed lifts and full screen in
+  and out, the window kept getting touches, and swipes came back within one gesture. Left that could still
+  stop them for good: the window no longer getting touches (AppKit replacing the frame view that takes them),
+  `panelOpen` staying set, or the event's window not matching a `WindowPages`. Web views and sheets were not
+  driven: the run that opens a browser pane posts keys, and those were paused.
+- **Decisions:** 0.2 s, because the pad reports fingers every 12 to 15 ms, still ones too, and event timestamps
+  are the pad's, so a busy main thread makes no pause. Fingers held still longer than that after a step, then
+  moved 20 pt, step again.
+- **For the user:** swipe, hold the three fingers still for a second, then move them: one step only. If swipes
+  stop again, check whether ⌥⌘] and a two-finger swipe over the sidebar still work; that tells a lost window
+  from a stuck swipe.

@@ -24,6 +24,13 @@ Problems that came back across phases, and the rule that stops each. How we work
   menu bar items share names with context menu items. Use `app.windows[id]` and the menu's own items.
 - **An accessibility client changes the app it watches**: it hides lazy-layout bugs and slows large UIs.
   Check rendering once with no client (`make strip-check`) and speed on a Release build.
+- **Trackpad touches can be synthesized.** An `IOHIDEvent` digitizer collection (its finger events as paths, plus
+  a vendor child 0xff00/0x1777 holding the pad's `mthid` device id) on a gesture `CGEvent` (`SLEventSetIOHIDEvent`,
+  field 87 the pad's registry id) reaches `NSEvent.allTouches()` as real touches, through the HID tap or a pid.
+  AppKit builds touches lazily per event against app-wide state: reused finger ids after an unseen lift come as
+  `.moved`.
+- **Never post synthetic key events.** A key event posted with modifier flags but no modifier key-up leaves the
+  session's modifiers down for every app. Keys reach the app only through XCUITest.
 - **Know XCUITest's input gaps on macOS.** Drags need `click(forDuration:thenDragTo:)`; scroll is a wheel
   with no phases; a ⌘ key whose menu item is disabled is never delivered. Real trackpad gestures go
   through the e2e helper as HID events. It cannot read a menu checkmark (`isSelected` is false), hear an
