@@ -45,11 +45,21 @@ final class FileTree: NSObject {
     private(set) var changes: [Git.Change] = []
     private(set) var history: [(commit: Git.Commit, row: Git.GraphRow)] = []
     private(set) var branch = ""
-    var showsGit = false
+    /// The history is read only while the section is open.
+    var showsGit = false {
+        didSet {
+            if showsGit {
+                Task { await loadGit() }
+            }
+        }
+    }
 
     @ObservationIgnored let outline = Outline()
     @ObservationIgnored let scroll = NSScrollView()
-    @ObservationIgnored var look = Look(style: .glass, dark: true)
+    @ObservationIgnored var look = Look(style: .glass, dark: true) {
+        didSet { outline.reloadData() }
+    }
+
     @ObservationIgnored private weak var plugin: Plugin?
     @ObservationIgnored private weak var page: Page?
     @ObservationIgnored private var root = ""
@@ -61,6 +71,7 @@ final class FileTree: NSObject {
     /// Every file under the root, read when a filter starts after a change; its rows while one is typed.
     @ObservationIgnored private var paths: [String]?
     @ObservationIgnored private var matches: [String: [Node]]?
+    @ObservationIgnored private var loadingPaths = false
 
     init(plugin: Plugin) {
         self.plugin = plugin
@@ -96,13 +107,15 @@ final class FileTree: NSObject {
         outline.setAccessibilityIdentifier("files.\(plugin?.paneID ?? "").tree")
         if root != self.root {
             self.root = root
-            (listings, nodes, expanded, paths, matches, changes, history) = ([:], [:], [], nil, nil, [], [])
+            (listings, nodes, expanded, paths, matches) = ([:], [:], [], nil, nil)
+            (failure, repo, branch, changes, history) = (nil, nil, "", [], [])
             outline.reloadData()
         }
         let exec = await page.store.machine.exec()
         self.exec = exec
-        repo = await gitUsable.value ? await Git.root(root, exec: exec) : nil
+        let repo = await gitUsable.value ? await Git.root(root, exec: exec) : nil
         guard root == self.root else { return }
+        self.repo = repo
         await relist()
         for await _ in Files.watch(root, exec: exec) {
             await relist()
@@ -112,11 +125,6 @@ final class FileTree: NSObject {
     func collapseAll() {
         outline.collapseItem(nil, collapseChildren: true)
         expanded = []
-    }
-
-    /// The colors changed (`look`).
-    func redraw() {
-        outline.reloadData()
     }
 
     func open(_ path: String) {
@@ -158,7 +166,7 @@ final class FileTree: NSObject {
                 (node.isFolder, node.letter, node.ignored) = (entry.isFolder, entry.letter, entry.ignored)
                 return node
             }
-            if folder.isEmpty {
+            if folder.isEmpty, failure != nil {
                 failure = nil
             }
             if matches == nil {
@@ -167,7 +175,9 @@ final class FileTree: NSObject {
         } catch {
             guard root == self.root else { return }
             if folder.isEmpty {
-                failure = error.localizedDescription
+                failure = "Can't list \(root)"
+                (listings, expanded) = ([:], [])
+                outline.reloadData()
             } else {
                 expanded.remove(folder)
             }
@@ -176,14 +186,23 @@ final class FileTree: NSObject {
 
     private func loadGit() async {
         guard let repo, let exec else { return }
+        // ponytail: with the root's listing, three `git status` runs per change on disk; one porcelain=v2 run for
+        // the branch and the changes when a big repository makes that slow.
         async let status = Git.status(repo, exec: exec)
-        async let log = Git.log(repo, exec: exec)
         async let head = GitStatus.of(repo, exec: exec)
-        let (changes, commits, branch) = await ((try? status) ?? [], (try? log) ?? [], head?.branch ?? "")
+        let commits = await showsGit ? (try? Git.log(repo, exec: exec)) : nil
+        let (changes, branch) = await ((try? status) ?? [], head?.branch ?? "")
+        // Only a change: Observation redraws on every write, and a build changes files every second.
         guard repo == self.repo else { return }
-        self.branch = branch
-        self.changes = changes
-        history = Array(zip(commits, Git.graph(commits)))
+        if branch != self.branch {
+            self.branch = branch
+        }
+        if changes != self.changes {
+            self.changes = changes
+        }
+        if let commits, commits.map(\.hash) != history.map(\.commit.hash) {
+            history = Array(zip(commits, Git.graph(commits)))
+        }
     }
 
     private func refilter() {
@@ -202,7 +221,10 @@ final class FileTree: NSObject {
             change.path.hasPrefix(prefix) ? (String(change.path.dropFirst(prefix.count)), change.letter) : nil
         }, uniquingKeysWith: { first, _ in first })
         var rows: [String: [Node]] = [:], seen: Set<String> = []
-        for path in paths where (path as NSString).lastPathComponent.localizedCaseInsensitiveContains(filter) {
+        // ponytail: the first 5,000 matches, all open at once; a lazy outline when a one-letter filter needs more.
+        let found = paths.lazy
+            .filter { ($0 as NSString).lastPathComponent.localizedCaseInsensitiveContains(self.filter) }
+        for path in found.prefix(5000) {
             var path = path, isFolder = false
             // The file, then each of its folders once.
             while seen.insert(path).inserted {
@@ -218,18 +240,23 @@ final class FileTree: NSObject {
         outline.expandItem(nil, expandChildren: true)
     }
 
-    @ObservationIgnored private var loadingPaths = false
-
     private func loadPaths() {
         guard !loadingPaths, let exec else { return }
         loadingPaths = true
         let root = root
         Task {
-            let all = await (try? Files.paths(root, repo: repo, exec: exec)) ?? []
+            let paths = await Result { try await Files.paths(root, repo: repo, exec: exec) }
             loadingPaths = false
-            guard root == self.root else { return }
-            self.paths = all
-            refilter()
+            // Another root starts its own read.
+            if root == self.root {
+                switch paths {
+                case let .success(paths): self.paths = paths
+                case .failure: failure = "Can't read the files in \(root)"
+                }
+            }
+            if self.paths != nil || root != self.root {
+                refilter()
+            }
         }
     }
 
@@ -288,9 +315,20 @@ extension FileTree: NSOutlineViewDataSource, NSOutlineViewDelegate {
     }
 }
 
-/// The tree's view: tells the card when it takes the keyboard.
+/// The tree's view: tells the card when it takes the keyboard, and takes it once in a window.
 final class Outline: NSOutlineView {
     var onKeyboard: () -> Void = {}
+    var wantsKeyboard = false {
+        didSet { viewDidMoveToWindow() }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard wantsKeyboard, let window else { return }
+        wantsKeyboard = false
+        // On the next turn: a first responder set during an update is undone.
+        DispatchQueue.main.async { window.makeFirstResponder(self) }
+    }
 
     override func becomeFirstResponder() -> Bool {
         let took = super.becomeFirstResponder()

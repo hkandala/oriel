@@ -22,8 +22,8 @@ enum PluginKind: String, CaseIterable {
         if ["md", "markdown", "mdx"].contains(ext) {
             return .markdown
         }
-        // `.ts` is TypeScript, not an MPEG-2 stream.
-        guard !ext.isEmpty, !["ts", "mts", "cts"].contains(ext), let type = UTType(filenameExtension: ext),
+        // `.ts` is TypeScript, not an MPEG-2 stream; a repository's `.plist` is XML.
+        guard !ext.isEmpty, !["ts", "mts", "cts", "plist"].contains(ext), let type = UTType(filenameExtension: ext),
               !type.isDynamic else { return .file }
         if [.image, .pdf, .audiovisualContent].contains(where: type.conforms) {
             return .preview

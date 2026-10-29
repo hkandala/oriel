@@ -21,10 +21,10 @@ struct FilesCard: View {
             if tree.repo == nil {
                 files
             } else if tree.showsGit {
-                // The user sets the split; the tree starts with most of the height.
+                // The user drags the split (it starts half and half).
                 VSplitView {
-                    files.frame(minHeight: 60, idealHeight: 400)
-                    git.frame(minHeight: 120, idealHeight: 240)
+                    files.frame(minHeight: 60)
+                    git.frame(minHeight: 120)
                 }
             } else {
                 VStack(spacing: 0) {
@@ -35,19 +35,11 @@ struct FilesCard: View {
         }
         .padding([.horizontal, .bottom], PaneCard.inset)
         .task(id: plugin.label.arg) { await tree.run(plugin.label.arg, page: page) }
-        .onChange(of: [look.dark, look.contrast], initial: true) {
-            tree.look = look
-            tree.redraw()
-        }
+        .onChange(of: [look.dark, look.contrast], initial: true) { tree.look = look }
         .onChange(of: plugin.wantsKeyboard, initial: true) {
-            guard plugin.wantsKeyboard else { return }
-            plugin.wantsKeyboard = false
-            // A card just made is not in its window yet.
-            Task {
-                for _ in 0 ..< 10 where tree.outline.window == nil {
-                    try? await Task.sleep(for: .milliseconds(50))
-                }
-                tree.outline.window?.makeFirstResponder(tree.outline)
+            if plugin.wantsKeyboard {
+                plugin.wantsKeyboard = false
+                tree.outline.wantsKeyboard = true
             }
         }
     }
@@ -91,7 +83,12 @@ private struct GitSection: View {
     let tree: FileTree
     let id: String
     let claim: () -> Void
-    @State private var selection: String?
+    @State private var selection: Pick?
+
+    private enum Pick: Hashable {
+        case change(String), commit(String)
+    }
+
     @FocusState private var focused: Bool
     @Environment(\.look) private var look
 
@@ -130,23 +127,23 @@ private struct GitSection: View {
         return List(selection: $selection) {
             header("Changes")
             ForEach(tree.changes, id: \.path) { change in
-                ChangeRow(change: change).tag("change:" + change.path).listRowSeparator(.hidden)
+                ChangeRow(change: change).tag(Pick.change(change.path)).listRowSeparator(.hidden)
                     .accessibilityIdentifier("\(id).change.\(change.path)")
-                    .simultaneousGesture(TapGesture().modifiers(.command).onEnded { open("change:" + change.path) })
+                    .simultaneousGesture(TapGesture().modifiers(.command).onEnded { open(.change(change.path)) })
             }
             header("History").padding(.top, 6)
             ForEach(tree.history, id: \.commit.hash) { commit, row in
-                HistoryRow(commit: commit, row: row, lanes: lanes).tag("commit:" + commit.hash)
+                HistoryRow(commit: commit, row: row, lanes: lanes).tag(Pick.commit(commit.hash))
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6))
                     .accessibilityIdentifier("\(id).commit.\(commit.hash)")
-                    .simultaneousGesture(TapGesture().modifiers(.command).onEnded { open("commit:" + commit.hash) })
+                    .simultaneousGesture(TapGesture().modifiers(.command).onEnded { open(.commit(commit.hash)) })
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .environment(\.defaultMinListRowHeight, 22)
-        .contextMenu(forSelectionType: String.self, menu: { _ in }, primaryAction: { $0.first.map(open) })
+        .contextMenu(forSelectionType: Pick.self, menu: { _ in }, primaryAction: { $0.first.map(open) })
         .focused($focused)
         .onChange(of: focused) {
             if focused {
@@ -160,12 +157,10 @@ private struct GitSection: View {
             .selectionDisabled().listRowSeparator(.hidden)
     }
 
-    private func open(_ tag: String) {
-        let (kind, value) = (tag.prefix { $0 != ":" }, String(tag.drop { $0 != ":" }.dropFirst()))
-        if kind == "change" {
-            tree.openDiff("uncommitted", at: value)
-        } else {
-            tree.openDiff(value)
+    private func open(_ pick: Pick) {
+        switch pick {
+        case let .change(path): tree.openDiff("uncommitted", at: path)
+        case let .commit(hash): tree.openDiff(hash)
         }
     }
 }
@@ -182,6 +177,8 @@ private struct ChangeRow: View {
             Text(path.lastPathComponent).lineLimit(1)
             Text(path.deletingLastPathComponent).foregroundStyle(.secondary).lineLimit(1).truncationMode(.head)
         }
+        // The whole row takes a ⌘-click.
+        .frame(maxWidth: .infinity, alignment: .leading).contentShape(.rect)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isStaticText)
         .accessibilityLabel(change.path)

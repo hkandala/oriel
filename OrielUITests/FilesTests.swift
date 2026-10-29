@@ -4,9 +4,10 @@ import XCTest
 /// the file kinds and the diff.
 extension OrielUITests {
     /// A repository with a commit after its first, a changed file in a folder, an untracked file and an ignored folder.
-    /// Rows show their letters; a folder lists on a double-click; the filter shows matches with their folders; a new
-    /// file on disk shows up; Collapse All closes the folder. A double-click on notes.md opens Markdown, on a change
-    /// the Uncommitted diff, a ⌘-click on the last commit its diff: each a new tab with that label.
+    /// Rows show their letters; a folder lists on a double-click; the filter shows only the matches and gives back the
+    /// open folder; a new file on disk shows up; Collapse All closes the folder. A double-click on notes.md opens
+    /// Markdown, a ⌘-click on a.swift File, a double-click on a change the Uncommitted diff, a ⌘-click on the last
+    /// commit its diff: each a new tab with that label.
     func testFilesShowsTheTreeAndOpensItsLinks() async throws {
         let (shell, head) = try await filesRepo()
         let (tab, pane) = try await filesCard()
@@ -19,19 +20,18 @@ extension OrielUITests {
         XCTAssertTrue(item("a.swift").has(\.stringValue, "", within: 1))
         XCTAssertFalse(item(".git").exists)
 
-        item("Sources").doubleClick()
-        XCTAssertTrue(item("Sources/main.swift").has(\.stringValue, "M", within: 3))
-        item("Sources").doubleClick()
-        XCTAssertTrue(item("Sources/main.swift").vanishes(within: 3))
-        element("pane.\(pane).filter").click()
-        app.typeText("main")
+        filterTree(pane, "main")
         XCTAssertTrue(item("Sources/main.swift").exists(within: 5))
         XCTAssertTrue(item("a.swift").vanishes(within: 1))
-        app.typeKey("a", modifierFlags: .command)
-        app.typeKey(.delete, modifierFlags: [])
+        filterTree(pane, "")
         XCTAssertTrue(item("a.swift").exists(within: 3))
         XCTAssertFalse(item("Sources/main.swift").exists)
         item("Sources").doubleClick()
+        XCTAssertTrue(item("Sources/main.swift").has(\.stringValue, "M", within: 3))
+        filterTree(pane, "notes")
+        XCTAssertTrue(item("Sources/main.swift").vanishes(within: 5))
+        filterTree(pane, "")
+        // The folder open before the filter is open again.
         XCTAssertTrue(item("Sources/main.swift").exists(within: 3))
         try await send("touch Sources/later.txt\r", to: shell)
         XCTAssertTrue(item("Sources/later.txt").exists(within: 5))
@@ -40,6 +40,9 @@ extension OrielUITests {
         keepScreenshot("files card")
 
         try await opens("oriel:markdown#", " \(root)/notes.md", from: tab) { item("notes.md").doubleClick() }
+        try await opens("oriel:file#", " \(root)/a.swift", from: tab) {
+            XCUIElement.perform(withKeyModifiers: .command) { item("a.swift").click() }
+        }
         element("files.\(pane).git").click()
         let change = element("files.\(pane).change.Sources/main.swift")
         XCTAssertTrue(change.has(\.stringValue, "M", within: 5))
@@ -84,6 +87,16 @@ extension OrielUITests {
         closeAfter("tab", tab)
         element("tab.\(tab)").click()
         return (tab, pane)
+    }
+
+    /// Types the filter's text in place of what it had, once the field has the keyboard (an empty one is a button
+    /// until clicked).
+    private func filterTree(_ pane: String, _ text: String) {
+        element("pane.\(pane).filter").click()
+        XCTAssertTrue(hasKeyboard("pane.\(pane).filter"))
+        app.typeKey("a", modifierFlags: .command)
+        app.typeKey(.delete, modifierFlags: [])
+        app.typeText(text)
     }
 
     /// The click opens a new tab, selected, labeled with that prefix and suffix; then the files tab is selected again.
