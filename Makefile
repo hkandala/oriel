@@ -28,7 +28,11 @@ lint:
 web: web/node_modules/.package-lock.json
 	rm -rf .build/web
 	web/node_modules/.bin/esbuild web/src/*.ts web/src/*.css --bundle --splitting --format=esm --minify \
-		--target=safari18 --log-level=warning --outdir=.build/web
+		--target=safari18 --log-level=warning --external:*.svg --external:*.gif --outdir=.build/web
+	@# pdf.js's worker, decoders, fonts and character maps, which it loads by name from the page's folder. Its viewer's
+	@# CSS names images of the editing tools the cards leave out.
+	cp web/node_modules/pdfjs-dist/build/pdf.worker.min.mjs web/node_modules/pdfjs-dist/wasm/{openjpeg,jbig2,qcms_bg}.wasm \
+		web/node_modules/pdfjs-dist/standard_fonts/*.{pfb,ttf} web/node_modules/pdfjs-dist/cmaps/*.bcmap .build/web
 
 web/node_modules/.package-lock.json: web/package-lock.json
 	npm ci --prefix web --no-audit --no-fund
