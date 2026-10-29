@@ -5,7 +5,8 @@ import XCTest
 extension OrielUITests {
     /// The file in CodeMirror; the jump bar follows the caret; an edit shows the dirty dot and ⌘Z clears it; ⌘S
     /// saves; a change on disk reloads a clean file, and a dirty one gets the toast (Keep Mine, then Reload); ⌘F opens
-    /// the editor's search. ⇧⌘← selects in the editor, not Move Tab Left; ⌘[ reaches the app before CodeMirror.
+    /// the editor's search; the overview's tile shows it. ⇧⌘← selects in the editor, not Move Tab Left; ⌘[ reaches the
+    /// app before CodeMirror.
     func testAFileCardEditsSavesAndReloadsItsFile() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("file")
@@ -55,7 +56,16 @@ extension OrielUITests {
         XCTAssertTrue(search.exists(within: 2) && hasKeyboard(search))
         app.typeKey(.escape, modifierFlags: [])
 
+        tiled(card, "file")
         try await keysStayInTheEditor(card, shell: left)
+    }
+
+    /// The card's page shows in its overview tile.
+    private func tiled(_ card: String, _ kind: String) {
+        app.typeKey("o", modifierFlags: [.command, .control])
+        XCTAssertTrue(element("overview.card.\(card)").has(\.stringValue, kind, within: 3))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(element("overview").vanishes(within: 2))
     }
 
     /// ⇧⌘← (Move Tab Left) selects the line in the editor; ⌘[ (Select Previous Pane) reaches the app.
@@ -104,7 +114,7 @@ extension OrielUITests {
     }
 
     /// An image at Fit, Actual Size and zoomed in; a PDF's page `n of m`, which follows a scroll; the info view of
-    /// another file, with no zoom.
+    /// another file, with no zoom; the overview's tile shows it.
     func testAPreviewCardShowsImagesPDFsAndOtherFiles() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("preview")
@@ -150,5 +160,6 @@ extension OrielUITests {
         XCTAssertTrue(name.exists(within: 10))
         XCTAssertFalse(element("pane.\(card).zoom.fit").exists)
         XCTAssertFalse(pages.exists)
+        tiled(card, "preview")
     }
 }
