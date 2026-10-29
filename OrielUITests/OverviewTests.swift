@@ -287,8 +287,8 @@ extension OrielUITests {
         XCTAssertTrue(overview.vanishes(within: 2))
     }
 
-    /// A browser's and a chat's cards show their own view in their tile: the page's snapshot, taken again while the
-    /// overview shows, and the chat. The chat takes no keyboard there: Esc leaves.
+    /// A browser's and a chat's cards show their own view in their tile, live: the page follows a new address. The
+    /// chat takes no keyboard there: Esc leaves.
     func testOverviewShowsBrowserAndChatCards() async throws {
         let (tab, chat) = try await startChat()
         closeAfter("tab", tab)
@@ -307,9 +307,11 @@ extension OrielUITests {
 
         app.typeKey("o", modifierFlags: [.command, .control])
         let shot = element("overview.card.\(browser)")
-        XCTAssertTrue(until(3) { shot.stringValue.hasPrefix("snapshot ") }, shot.stringValue)
+        XCTAssertTrue(shot.has(\.stringValue, "browser", within: 3))
         XCTAssertEqual(element("overview.card.\(chat)").stringValue, "chat")
+        // The page, not the card's fill.
         let white = mean(shot)
+        XCTAssertGreaterThan(white, 150)
         keepScreenshot("overview, browser and chat")
         // Another address from the label (as an agent sets it): the tile follows the page.
         try await Self.call(one, "pane.rename", ["pane_id": browser, "label": "oriel:browser#\(iid) \(dark)"])

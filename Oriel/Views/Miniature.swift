@@ -1,7 +1,6 @@
 import AppKit
 import HerdrKit
 import SwiftUI
-import WebKit
 
 /// A tab's page at the size it is given: its cards in herdr's layout (or its zoomed card), each with its terminal
 /// at its place in the card, live or its snapshot (`live`), scaled from the strip's page (`size`).
@@ -33,7 +32,7 @@ struct Miniature: View {
 
 /// A card at `scale`: its fill and edge, and what the page's card shows under its header: its terminal (10 pt in,
 /// 8 pt up from the bottom) live (its snapshot until it drew), or its snapshot, or for a terminal never shown the
-/// fill; any other card's own view (a browser's page, a chat). A floated pane's shows the float icon.
+/// fill; any other card's own view, live (a browser's page, a chat). A floated pane's shows the float icon.
 private struct MiniCard: View {
     let id: String
     let page: Page
@@ -50,8 +49,6 @@ private struct MiniCard: View {
         let terminal = CGSize(width: max(size.width - 2 * PaneCard.inset, 1),
                               height: max(size.height - header - gap, 1))
         let content = CGSize(width: size.width, height: max(size.height - header, 1))
-        // As `BrowserCard` lays out its page.
-        let web = CGSize(width: max(content.width - 12, 1), height: max(content.height - 6, 1))
         shape.fill(look.cardFill)
             .overlay(shape.stroke(edge.color, lineWidth: edge.width))
             .overlay(alignment: .topLeading) {
@@ -59,9 +56,8 @@ private struct MiniCard: View {
                     Image(systemName: "pip").foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let pane, let browser = page.browser(pane) {
-                    scaled(WebShot(browser: browser, size: web, width: web.width * scale)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        .padding([.horizontal, .bottom], 6), content, under: header)
+                    // Its web view moves here, as a terminal's does, and back to the card after.
+                    scaled(BrowserCard(browser: browser).miniCard(pane.id, "browser"), content, under: header)
                 } else if let pane, let chat = page.shownChat(pane) {
                     scaled(ChatView(chat: chat, page: page, terminal: nil).miniCard(pane.id, "chat"), content,
                            under: header)
@@ -116,50 +112,6 @@ extension Page {
     func shownChat(_ pane: HostStore.Pane) -> Chat? {
         guard store.chooser(pane.id) == nil, !floats(pane), let chat = chat(pane), chat.showsChat else { return nil }
         return chat
-    }
-}
-
-/// A browser card's page in a tile: a snapshot of its web view, which stays in its card out of the window, taken
-/// again each second while the tile shows. The latest per card is kept, for the zoom's miniature and the next open.
-private struct WebShot: View {
-    let browser: Browser
-    /// The page in the card.
-    let size: CGSize
-    /// Its width in the tile.
-    let width: CGFloat
-    @State private var shot: NSImage?
-    private static let shots = {
-        let shots = NSCache<NSString, NSImage>()
-        shots.countLimit = 32
-        return shots
-    }()
-
-    var body: some View {
-        let key = browser.terminalID as NSString, shot = shot ?? Self.shots.object(forKey: key)
-        ZStack {
-            if let shot {
-                Image(nsImage: shot).resizable()
-            } else {
-                Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .miniCard(browser.paneID, shot.map { "snapshot \(Int($0.size.width))" } ?? "loading")
-        .task(id: browser.terminalID) {
-            repeat {
-                // Hidden in its card until it drew a page: blank. A card never shown has no size yet.
-                guard browser.loaded else { continue }
-                if browser.view.frame.isEmpty {
-                    browser.view.setFrameSize(size)
-                }
-                let configuration = WKSnapshotConfiguration()
-                configuration.snapshotWidth = NSNumber(value: Double(width))
-                if let image = try? await browser.view.takeSnapshot(configuration: configuration) {
-                    self.shot = image
-                    Self.shots.setObject(image, forKey: key)
-                }
-            } while await (try? Task.sleep(for: .seconds(1))) != nil
-        }
     }
 }
 
