@@ -287,6 +287,39 @@ extension OrielUITests {
         XCTAssertTrue(overview.vanishes(within: 2))
     }
 
+    /// A browser's and a chat's cards show their own view in their tile: the page's snapshot, taken again while the
+    /// overview shows, and the chat. The chat takes no keyboard there: Esc leaves.
+    func testOverviewShowsBrowserAndChatCards() async throws {
+        let (tab, chat) = try await startChat()
+        closeAfter("tab", tab)
+        try await say("hello", in: chat)
+        XCTAssertTrue(row(chat, "reply", "Echo: **hello**").exists(within: 5))
+        // A shell beside it writes the pages, then becomes a browser by its label (a new iid: no saved page).
+        let browser = try await id(Self.call(one, "pane.split", ["target_pane_id": chat, "direction": "right",
+                                                                 "cwd": "/tmp", "focus": false]), "pane")
+        try await waitForPrompt(browser, in: one)
+        let page = try await writePages(from: browser)
+        let dark = page.replacing("one.html", with: "dark.html")
+        try await send("printf '<body style=\"background:black\"></body>' >\(dark.dropFirst(7)); clear\r", to: browser)
+        let iid = String(format: "e2e%03x", Int.random(in: 0 ..< 4096))
+        try await Self.call(one, "pane.rename", ["pane_id": browser, "label": "oriel:browser#\(iid) \(page)"])
+        XCTAssertTrue(pageText("oriel-page-one").exists(within: 10))
+
+        app.typeKey("o", modifierFlags: [.command, .control])
+        let shot = element("overview.card.\(browser)")
+        XCTAssertTrue(until(3) { shot.stringValue.hasPrefix("snapshot ") }, shot.stringValue)
+        XCTAssertEqual(element("overview.card.\(chat)").stringValue, "chat")
+        let white = mean(shot)
+        keepScreenshot("overview, browser and chat")
+        // Another address from the label (as an agent sets it): the tile follows the page.
+        try await Self.call(one, "pane.rename", ["pane_id": browser, "label": "oriel:browser#\(iid) \(dark)"])
+        try await Self.call(one, "pane.report_metadata", ["pane_id": browser, "source": "oriel-panes",
+                                                          "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
+        XCTAssertTrue(until(5) { mean(shot) < white - 100 }, "\(white) \(mean(shot))")
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(element("overview").vanishes(within: 2))
+    }
+
     /// How many times the sidebar was made (`-recordLatency`).
     var sidebarsMade: Int {
         element("app.latency").stringValue.components(separatedBy: "sidebar made").count

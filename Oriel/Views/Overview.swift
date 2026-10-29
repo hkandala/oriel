@@ -347,12 +347,14 @@ extension WindowPages {
         return Dictionary(kept) { first, _ in first }
     }
 
-    /// A tab's cards in its tile (terminal id, pane id), as its miniature draws them: its zoomed card alone, no
-    /// floated one.
+    /// A tab's terminals in its tile (terminal id, pane id), as its miniature draws them: its zoomed card alone, no
+    /// floated one, no browser or chat (their own view).
     func tileCards(_ page: Page, _ tab: String) -> [(String, String)] {
         let panes = (page.store.tabPanes[tab] ?? []).filter { !page.floats($0) }
         let zoomed = panes.filter { $0.id == page.zoomedPaneID }
-        return (zoomed.isEmpty ? panes : zoomed).compactMap { pane in pane.terminalID.map { ($0, pane.id) } }
+        return (zoomed.isEmpty ? panes : zoomed).compactMap { pane in
+            pane.browser == nil && page.shownChat(pane) == nil ? pane.terminalID.map { ($0, pane.id) } : nil
+        }
     }
 
     /// Each of these cards has a picture for its tile.

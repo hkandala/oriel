@@ -1,6 +1,7 @@
 import AppKit
 import HerdrKit
 import SwiftUI
+import WebKit
 
 /// A tab's page at the size it is given: its cards in herdr's layout (or its zoomed card), each with its terminal
 /// at its place in the card, live or its snapshot (`live`), scaled from the strip's page (`size`).
@@ -30,9 +31,9 @@ struct Miniature: View {
     }
 }
 
-/// A card at `scale`: its fill and edge, and its terminal where the page's card has it (under the header, 10 pt
-/// in, 8 pt up from the bottom): live (its snapshot until it drew), or its snapshot, or for a terminal never shown
-/// the fill. A floated pane's shows the float icon.
+/// A card at `scale`: its fill and edge, and what the page's card shows under its header: its terminal (10 pt in,
+/// 8 pt up from the bottom) live (its snapshot until it drew), or its snapshot, or for a terminal never shown the
+/// fill; any other card's own view (a browser's page, a chat). A floated pane's shows the float icon.
 private struct MiniCard: View {
     let id: String
     let page: Page
@@ -45,16 +46,25 @@ private struct MiniCard: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 10 * scale, style: .continuous),
             edge = look.edge(keyboard: false)
-        let pane = page.store.pane(id)
+        let pane = page.store.pane(id), header = page.headerHeight(pane)
         let terminal = CGSize(width: max(size.width - 2 * PaneCard.inset, 1),
-                              height: max(size.height - page.headerHeight(pane) - gap, 1))
+                              height: max(size.height - header - gap, 1))
+        let content = CGSize(width: size.width, height: max(size.height - header, 1))
+        // As `BrowserCard` lays out its page.
+        let web = CGSize(width: max(content.width - 12, 1), height: max(content.height - 6, 1))
         shape.fill(look.cardFill)
             .overlay(shape.stroke(edge.color, lineWidth: edge.width))
             .overlay(alignment: .topLeading) {
-                if let pane, page.floats(pane) || pane.browser != nil {
-                    // A browser card's web view stays in its card: its symbol here.
-                    Image(systemName: page.floats(pane) ? "pip" : "globe").foregroundStyle(.secondary)
+                if let pane, page.floats(pane) {
+                    Image(systemName: "pip").foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let pane, let browser = page.browser(pane) {
+                    scaled(WebShot(browser: browser, size: web, width: web.width * scale)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .padding([.horizontal, .bottom], 6), content, under: header)
+                } else if let pane, let chat = page.shownChat(pane) {
+                    scaled(ChatView(chat: chat, page: page, terminal: nil).miniCard(pane.id, "chat"), content,
+                           under: header)
                 } else if let pane, let id = pane.terminalID {
                     let isLive = live.contains(id)
                     // Not made for a tile that is not live (a view and a session each, while it scrolls).
@@ -68,18 +78,88 @@ private struct MiniCard: View {
                             Snapshot(surface: snapshot)
                         }
                     }
-                    .accessibilityElement()
-                    // A group's value does not reach XCUITest; static text's does (as the pane card's).
-                    .accessibilityAddTraits(.isStaticText)
-                    .accessibilityIdentifier("overview.card.\(pane.id)")
                     // e2e: and its snapshot's width in pixels.
-                    .accessibilityValue("\(view?.pictured != true ? "loading" : isLive ? "live" : "snapshot") "
+                    .miniCard(pane.id, "\(view?.pictured != true ? "loading" : isLive ? "live" : "snapshot") "
                         + "\(view?.snapshot?.width ?? 0)")
                     .frame(width: terminal.width * scale, height: terminal.height * scale)
                     .padding(.leading, PaneCard.inset * scale)
-                    .padding(.top, page.headerHeight(pane) * scale)
+                    .padding(.top, header * scale)
                 }
             }
+    }
+
+    /// A card's own view at the card's size under its header, scaled to the tile. The tile takes its clicks, wheel
+    /// and keyboard.
+    private func scaled(_ view: some View, _ content: CGSize, under header: CGFloat) -> some View {
+        view.frame(width: content.width, height: content.height)
+            .scaleEffect(scale, anchor: .topLeading)
+            .frame(width: content.width * scale, height: content.height * scale, alignment: .topLeading)
+            .disabled(true)
+            .allowsHitTesting(false)
+            .padding(.top, header * scale)
+    }
+}
+
+private extension View {
+    /// A card's element in its tile, with a value for the tests; its children are not elements (the tile is a button).
+    /// A group's value does not reach XCUITest; static text's does (as the pane card's).
+    func miniCard(_ paneID: String, _ value: String) -> some View {
+        accessibilityElement()
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityIdentifier("overview.card.\(paneID)")
+            .accessibilityValue(value)
+    }
+}
+
+extension Page {
+    /// The chat a pane's card shows in place of its terminal (`PaneCard`).
+    func shownChat(_ pane: HostStore.Pane) -> Chat? {
+        guard store.chooser(pane.id) == nil, !floats(pane), let chat = chat(pane), chat.showsChat else { return nil }
+        return chat
+    }
+}
+
+/// A browser card's page in a tile: a snapshot of its web view, which stays in its card out of the window, taken
+/// again each second while the tile shows. The latest per card is kept, for the zoom's miniature and the next open.
+private struct WebShot: View {
+    let browser: Browser
+    /// The page in the card.
+    let size: CGSize
+    /// Its width in the tile.
+    let width: CGFloat
+    @State private var shot: NSImage?
+    private static let shots = {
+        let shots = NSCache<NSString, NSImage>()
+        shots.countLimit = 32
+        return shots
+    }()
+
+    var body: some View {
+        let key = browser.terminalID as NSString, shot = shot ?? Self.shots.object(forKey: key)
+        ZStack {
+            if let shot {
+                Image(nsImage: shot).resizable()
+            } else {
+                Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .miniCard(browser.paneID, shot.map { "snapshot \(Int($0.size.width))" } ?? "loading")
+        .task(id: browser.terminalID) {
+            repeat {
+                // Hidden in its card until it drew a page: blank. A card never shown has no size yet.
+                guard browser.loaded else { continue }
+                if browser.view.frame.isEmpty {
+                    browser.view.setFrameSize(size)
+                }
+                let configuration = WKSnapshotConfiguration()
+                configuration.snapshotWidth = NSNumber(value: Double(width))
+                if let image = try? await browser.view.takeSnapshot(configuration: configuration) {
+                    self.shot = image
+                    Self.shots.setObject(image, forKey: key)
+                }
+            } while await (try? Task.sleep(for: .seconds(1))) != nil
+        }
     }
 }
 
