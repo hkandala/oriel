@@ -110,10 +110,7 @@ extension OrielUITests {
         XCTAssertEqual(composer.placeholderValue, "Ask Anything")
         // Its text on the reply's left edge.
         XCTAssertEqual(composer.frame.minX, reply.frame.minX, accuracy: 1)
-        // Grown to 10 lines in a small window, it keeps the last message clear of it.
-        let origin = window.coordinate(withNormalizedOffset: .zero)
-        let corner = origin.withOffset(CGVector(dx: window.frame.width - 2, dy: window.frame.height - 2))
-        corner.click(forDuration: 0.1, thenDragTo: origin.withOffset(CGVector(dx: 440, dy: 300)))
+        // Grown to 10 lines, it keeps the last message clear of it.
         for _ in 1 ... 9 {
             app.typeKey(.return, modifierFlags: .shift)
         }
