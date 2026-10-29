@@ -49,7 +49,7 @@ extension OrielUITests {
         // A change on disk shows without a reload.
         try await send("echo more >> b.txt\r", to: shell)
         try await expect("the new line", times: 100) { lines().contains("more") }
-        // Its overview tile borrows the diff view; the card has it again after, with its lines.
+        // Its overview tile shows; the card has its diff view again after, with its lines.
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(element("overview.card.\(pane)").has(\.stringValue, "diff", within: 3))
         app.typeKey("o", modifierFlags: [.command, .control])

@@ -4,7 +4,7 @@ import SwiftUI
 
 /// One paragraph of the diff's text: what its background and gutter show.
 struct DiffRow {
-    enum Kind {
+    enum Kind: CaseIterable {
         case header, gap, hunk, note, context, added, removed, filler
     }
 
@@ -72,21 +72,20 @@ struct DiffRow {
     }
 
     /// Each kind's, made once: a column has a row per line of the patch.
-    @MainActor static let attributes = Dictionary(uniqueKeysWithValues: [Kind.header, .gap, .hunk, .note, .context,
-                                                                         .added, .removed, .filler].map { kind in
-            let style = NSMutableParagraphStyle()
-            let height = kind == .header ? headerHeight : height
-            (style.minimumLineHeight, style.maximumLineHeight) = (height, height)
-            style.defaultTabInterval = 4 * digitWidth
-            style.tabStops = []
-            // The header's text is the file's path, for copy, under its header view.
-            let color: NSColor = switch kind {
-            case .header: .clear
-            case .gap, .hunk, .note: .secondaryLabelColor
-            default: .labelColor
-            }
-            return (kind, [NSAttributedString.Key.font: font, .foregroundColor: color, .paragraphStyle: style])
-        })
+    @MainActor static let attributes = Dictionary(uniqueKeysWithValues: Kind.allCases.map { kind in
+        let style = NSMutableParagraphStyle()
+        let height = kind == .header ? headerHeight : height
+        (style.minimumLineHeight, style.maximumLineHeight) = (height, height)
+        style.defaultTabInterval = 4 * digitWidth
+        style.tabStops = []
+        // The header's text is the file's path, for copy, under its header view.
+        let color: NSColor = switch kind {
+        case .header: .clear
+        case .gap, .hunk, .note: .secondaryLabelColor
+        default: .labelColor
+        }
+        return (kind, [NSAttributedString.Key.font: font, .foregroundColor: color, .paragraphStyle: style])
+    })
 
     static let digitWidth = ("0" as NSString).size(withAttributes: [.font: font]).width
 }

@@ -58,6 +58,7 @@ final class DiffCard {
             return
         }
         // git diff runs, and finds nothing, outside a repository too.
+        // ponytail: a machine that does not answer reads as no repository too, until the card shows again.
         guard await Git.root(root, exec: exec) != nil else {
             failure = "Not a Git repository"
             return
@@ -74,6 +75,7 @@ final class DiffCard {
                     viewed = viewed.filter { files.contains($0.value) }
                     folded.subtract(stale)
                     // A big file starts folded: the whole text is laid out at once (`DiffText.show`).
+                    // ponytail: by file; many mid-size files still lay out together.
                     let known = Set(self.files.map(\.path))
                     folded.formUnion(files.filter { !known.contains($0.path) && $0.added + $0.removed > 2000 }
                         .map(\.path))

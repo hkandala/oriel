@@ -307,6 +307,8 @@ final class DiffView: NSView {
     }
 
     private func placeHeaders() {
+        // Out of a window, no header views: they hold the card.
+        guard window != nil else { return }
         let text = texts[0], top = top, height = bounds.height
         var shown: [Int: CGFloat] = [:]
         for (place, row) in starts.enumerated() {
