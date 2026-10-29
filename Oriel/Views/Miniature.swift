@@ -32,8 +32,8 @@ struct Miniature: View {
 
 /// A card at `scale`: its fill and edge, and what the page's card shows under its header: its terminal (10 pt in,
 /// 8 pt up from the bottom) live (its snapshot until it drew), or its snapshot, or for a terminal never shown the
-/// fill; any other card's own view, live, once the strip made it (a browser's page, a chat), else its kind's
-/// symbol. A floated pane's shows the float icon.
+/// fill; any other card's own view, live, once the strip made it (a browser's page, a plugin's content, a chat), else
+/// its kind's symbol. A floated pane's shows the float icon.
 private struct MiniCard: View {
     let id: String
     let page: Page
@@ -53,21 +53,23 @@ private struct MiniCard: View {
         shape.fill(look.cardFill)
             .overlay(shape.stroke(edge.color, lineWidth: edge.width))
             .overlay(alignment: .topLeading) {
-                if let pane, page.floats(pane) || pane.plugin.map({ $0.kind != .browser }) == true {
-                    // A plugin's card stays in its card: its symbol here.
-                    Image(systemName: page.floats(pane) ? "pip" : pane.iconID).foregroundStyle(.secondary)
+                if let pane, page.floats(pane) {
+                    Image(systemName: "pip").foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let pane, pane.browser != nil || page.shownChat(pane) != nil {
+                } else if let pane, pane.plugin != nil || page.shownChat(pane) != nil {
                     // Not a terminal: its own view once the strip made it, else its kind's symbol. A tile makes no
                     // web view, proxy or transcript read: unlike a terminal's, it has no cap to keep.
                     if let browser = pane.terminalID.flatMap(page.terminals.built) {
                         // Its web view moves here, as a terminal's does, and back to the card after.
                         scaled(BrowserCard(browser: browser).miniCard(pane.id, "browser"), content, under: header)
+                    } else if let plugin = pane.terminalID.flatMap(page.terminals.builtPlugin) {
+                        scaled(PluginCard(plugin: plugin, page: page).miniCard(pane.id, plugin.kind.rawValue), content,
+                               under: header)
                     } else if let chat = page.shownChat(pane), !chat.history.entries.isEmpty {
                         scaled(ChatView(chat: chat, page: page, terminal: nil).miniCard(pane.id, "chat"), content,
                                under: header)
                     } else {
-                        Image(systemName: pane.browser != nil ? "globe" : "bubble.left.and.bubble.right")
+                        Image(systemName: pane.plugin != nil ? pane.iconID : "bubble.left.and.bubble.right")
                             .foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
                             .miniCard(pane.id, "symbol")
                     }
