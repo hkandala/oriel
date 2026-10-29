@@ -11,13 +11,41 @@ extension Page {
 }
 
 /// The card's content under its header, with the toast at its top. Each kind's content is a placeholder the
-/// variants replace (phases 43 and 44).
+/// variants replace (phases 43 and 44); a kind's content takes the keyboard on `plugin.wantsKeyboard` and calls
+/// `page.terminals.claimed` when it gets it.
 struct PluginCard: View {
+    let plugin: Plugin
+    let page: Page
+    /// False in an overview tile, which leaves the keyboard to the card.
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        PluginPlaceholder(plugin: plugin, page: page)
+            .overlay(alignment: .top) {
+                if let toast = plugin.toast {
+                    ToastView(toast: toast, plugin: plugin).padding(.top, 6)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.easeOut(duration: 0.15), value: plugin.toast == nil)
+            // In place of the card that had the keyboard.
+            .onAppear {
+                if isEnabled, page.hasKeyboard(plugin.paneID) {
+                    plugin.wantsKeyboard = true
+                }
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).card")
+    }
+}
+
+/// A kind's content until its variant's replaces it.
+private struct PluginPlaceholder: View {
     let plugin: Plugin
     let page: Page
     @State private var text = ""
     @FocusState private var focused: Bool
-    /// False in an overview tile, which leaves the keyboard to the card.
+    /// False in an overview tile.
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
@@ -45,19 +73,6 @@ struct PluginCard: View {
             }
         }
         .padding([.horizontal, .bottom], PaneCard.inset)
-        .overlay(alignment: .top) {
-            if let toast = plugin.toast {
-                ToastView(toast: toast, plugin: plugin).padding(.top, 6)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .animation(.easeOut(duration: 0.15), value: plugin.toast == nil)
-        // In place of the card that had the keyboard, and when the page gives it the keyboard.
-        .onAppear {
-            if isEnabled, page.hasKeyboard(plugin.paneID) {
-                plugin.wantsKeyboard = true
-            }
-        }
         .onChange(of: plugin.wantsKeyboard, initial: true) {
             if plugin.wantsKeyboard, isEnabled {
                 plugin.wantsKeyboard = false
@@ -69,8 +84,6 @@ struct PluginCard: View {
                 page.terminals.claimed(plugin.terminalID)
             }
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("\(id).card")
     }
 }
 
