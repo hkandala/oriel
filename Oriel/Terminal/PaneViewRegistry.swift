@@ -63,14 +63,19 @@ final class PaneViewRegistry {
     }
 
     /// The plugin pane's card, made on first use from its label.
-    func plugin(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String) -> Plugin {
+    func plugin(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String, store: HostStore) -> Plugin {
         if let plugin = plugins[terminalID], plugin.label.iid == label.iid {
             if plugin.paneID != pane.id {
                 plugin.paneID = pane.id
+                plugin.web.view.setAccessibilityIdentifier("\(plugin.web.kind).\(pane.id).page")
             }
             return plugin
         }
-        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label)
+        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label, store: store)
+        plugin.web.view.onKeyboard = claim(terminalID)
+        plugin.web.open = { [weak self] kind, arg in
+            Task { await self?.pages?.page(of: terminalID)?.open(kind, arg: arg) }
+        }
         plugins[terminalID] = plugin
         return plugin
     }
@@ -93,6 +98,7 @@ final class PaneViewRegistry {
         for (terminalID, plugin) in plugins {
             if let label = labels[terminalID], label != plugin.label {
                 plugin.label = label
+                plugin.web.arg = label.arg
             }
         }
         for (terminalID, browser) in browsers {
@@ -102,19 +108,15 @@ final class PaneViewRegistry {
         }
     }
 
-    /// A terminal or browser view took the keyboard: the newest holder. A view that had the keyboard before must not
-    /// take it back when SwiftUI moves it to a new host (`viewWillMove`). A floating window's (alone in it) drops none.
+    /// A terminal, browser or plugin view took the keyboard: the newest holder. A view that had the keyboard before
+    /// must not take it back when SwiftUI moves it to a new host (`viewWillMove`). A floating window's (alone in it)
+    /// drops none.
     private func claim(_ terminalID: String) -> () -> Void {
         { [weak self] in
             guard let self, pages?.floats(terminalID) != true else { return }
             dropClaims(but: terminalID)
             pages?.current?.tookKeyboard(terminalID)
         }
-    }
-
-    /// A plugin card's content took the keyboard: as a terminal's or a browser's view does.
-    func claimed(_ terminalID: String) {
-        claim(terminalID)()
     }
 
     /// The browser card of this terminal id, if made.
@@ -182,7 +184,7 @@ final class PaneViewRegistry {
         }
         terminals[terminalID]?.view.takeKeyboard()
         browsers[terminalID]?.takeKeyboard()
-        plugins[terminalID]?.wantsKeyboard = true
+        plugins[terminalID]?.web.view.takeKeyboard()
     }
 
     /// Per window: a floating window's terminals keep their claims.
@@ -193,14 +195,15 @@ final class PaneViewRegistry {
         for (id, browser) in browsers where id != terminalID && pages?.floats(id) != true {
             browser.dropClaim()
         }
-        for (id, plugin) in plugins where id != terminalID && plugin.wantsKeyboard {
-            plugin.wantsKeyboard = false
+        for (id, plugin) in plugins where id != terminalID && pages?.floats(id) != true {
+            plugin.web.view.dropClaim()
         }
     }
 
     /// The main window's terminal that has the keyboard, from the window itself, so it cannot drift.
     var keyboardTerminalID: String? {
         let views = terminals.mapValues { $0.view as NSView }.merging(browsers.mapValues(\.view)) { first, _ in first }
+            .merging(plugins.mapValues(\.web.view)) { first, _ in first }
         return views.first { pages?.floats($0.key) != true && $0.value.window?.firstResponder === $0.value }?.key
     }
 }
