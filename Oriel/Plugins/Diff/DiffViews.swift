@@ -5,6 +5,8 @@ import SwiftUI
 struct DiffContent: View {
     let plugin: Plugin
     let page: Page
+    /// False in an overview tile: the card loads and takes the keyboard.
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         let card = plugin.diff, id = "diff.\(plugin.paneID)"
@@ -22,9 +24,13 @@ struct DiffContent: View {
                     }
                 }
         }
-        .task(id: plugin.label.arg) { await card.load(plugin, page: page) }
+        .task(id: plugin.label.arg) {
+            if isEnabled {
+                await card.load(plugin, page: page)
+            }
+        }
         .onChange(of: plugin.wantsKeyboard, initial: true) {
-            if plugin.wantsKeyboard {
+            if plugin.wantsKeyboard, isEnabled {
                 plugin.wantsKeyboard = false
                 card.view.takeKeyboard()
             }
@@ -44,14 +50,18 @@ struct DiffContent: View {
     }
 }
 
+/// The card's diff view, which the newest host adopts (an overview tile, then the card again), as a terminal.
 private struct DiffHost: NSViewRepresentable {
     let card: DiffCard
 
-    func makeNSView(context _: Context) -> DiffView {
-        card.view
+    func makeNSView(context _: Context) -> TerminalHost.Host {
+        let host = TerminalHost.Host()
+        host.clipsToBounds = true
+        host.addSubview(card.view)
+        return host
     }
 
-    func updateNSView(_: DiffView, context: Context) {
+    func updateNSView(_: TerminalHost.Host, context: Context) {
         card.restyle(context.environment.look)
     }
 }
