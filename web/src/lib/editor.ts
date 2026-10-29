@@ -44,13 +44,15 @@ const load = (view: EditorView, text: string) => {
   while (from < old.length && from < now.length && old[from] === now[from]) from++
   let end = 0
   while (end < old.length - from && end < now.length - from && old.at(-1 - end) === now.at(-1 - end)) end++
-  view.dispatch({ changes: { from, to: old.length - end, insert: next.slice(from, now.length - end) } })
-  disk = view.state.doc
-  update(view.state)
+  const reload = view.state.update({ changes: { from, to: old.length - end, insert: next.slice(from, now.length - end) } })
+  // Before the update, which reports dirty against it.
+  disk = reload.state.doc
+  view.dispatch(reload)
 }
 
+/** Only edits: a save of the text on disk would still wake every watcher of the file. */
 export const save = (view: EditorView) => {
-  if (view.state.readOnly) return
+  if (view.state.readOnly || !dirty) return
   saving = view.state.doc
   report({ op: "save", text: view.state.sliceDoc() })
 }
