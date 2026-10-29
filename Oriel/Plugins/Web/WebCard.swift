@@ -10,11 +10,24 @@ import WebKit
 @MainActor @Observable
 final class WebCard {
     let kind: String
-    let arg: String
+    /// The label's argument; a new one (a rename from elsewhere, a diff's source) loads the page again with it.
+    var arg: String {
+        didSet {
+            if loaded {
+                script()
+                view.reload()
+            }
+        }
+    }
+
     @ObservationIgnored weak var store: HostStore?
     @ObservationIgnored let view: WebCardView
+    /// Opens a link from the page in a new tab (`Page.open(_:arg:)`).
+    @ObservationIgnored var open: ((PluginKind, String) -> Void)?
     fileprivate(set) var dirty = false
+    var toast: Toast?
     @ObservationIgnored private var loaded = false
+    @ObservationIgnored private var css = ""
 
     init(kind: String, arg: String, store: HostStore) {
         self.kind = kind
@@ -35,6 +48,24 @@ final class WebCard {
     /// The app's colors as CSS variables. The first call loads the page; the script also starts a page still loading
     /// or loaded again with them, so every first paint has them.
     func theme(_ css: String) {
+        self.css = css
+        script()
+        if loaded {
+            view.callAsyncJavaScript("document.documentElement.style.cssText = css", arguments: ["css": css],
+                                     in: nil, in: .page)
+        } else {
+            loaded = true
+            view.load(URLRequest(url: PluginScheme.page(kind)))
+        }
+    }
+
+    /// A message to the page's `receive` handler (`web/src/lib/bridge.ts`): row 2's controls. A page reads their first
+    /// state from its first ask's reply, so one sent before it listens is no loss.
+    func send(_ message: [String: Any]) {
+        view.callAsyncJavaScript("window.receive?.(message)", arguments: ["message": message], in: nil, in: .page)
+    }
+
+    private func script() {
         let card = (try? JSONSerialization.data(withJSONObject: ["arg": arg, "css": css])).map {
             String(decoding: $0, as: UTF8.self)
         } ?? "{}"
@@ -44,13 +75,6 @@ final class WebCard {
             source: "window.card = \(card); document.documentElement.style.cssText = card.css",
             injectionTime: .atDocumentStart, forMainFrameOnly: true,
         ))
-        if loaded {
-            view.callAsyncJavaScript("document.documentElement.style.cssText = css", arguments: ["css": css],
-                                     in: nil, in: .page)
-        } else {
-            loaded = true
-            view.load(URLRequest(url: PluginScheme.page(kind)))
-        }
     }
 
     /// One message from the page: a reply or an error text for an ask, nothing for a report.
@@ -67,6 +91,10 @@ final class WebCard {
             }
         case "dirty":
             dirty = message["dirty"] as? Bool == true
+        case "open":
+            // No kind: a file, opened with its kind.
+            guard let arg = message["arg"] as? String else { return (nil, "No path") }
+            open?((message["kind"] as? String).flatMap(PluginKind.init) ?? PluginKind.opening(arg), arg)
         default:
             return (nil, "Unknown message")
         }

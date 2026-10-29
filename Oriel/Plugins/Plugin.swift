@@ -100,27 +100,31 @@ extension PaneLabel {
 }
 
 /// A plugin pane's card (not the browser's, which has its own), made on first use from its label and kept by
-/// terminal id as terminals are: what its header and content share.
+/// terminal id as terminals are: what its header and content share, and its page.
 @MainActor @Observable
 final class Plugin {
     let terminalID: String
     var paneID: String
     /// Its arg changes with a rename from elsewhere or the card's own (a diff's source); its iid never does.
     var label: PaneLabel
-    /// Unsaved edits: the dot after the title.
-    var dirty = false
-    var toast: Toast?
-    /// The card is to take the keyboard, on the next turn (a first responder set during an update is undone).
-    var wantsKeyboard = false
+    /// The content: `web/src/<kind>.ts`.
+    let web: WebCard
 
-    init(terminalID: String, paneID: String, label: PaneLabel) {
+    init(terminalID: String, paneID: String, label: PaneLabel, store: HostStore) {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
+        web = WebCard(kind: (label.kind ?? .file).rawValue, arg: label.arg, store: store)
+        web.view.setAccessibilityIdentifier("\(web.kind).\(paneID).page")
     }
 
     var kind: PluginKind {
         label.kind ?? .file
+    }
+
+    /// Unsaved edits, as the page reports them: the dot after the title.
+    var dirty: Bool {
+        web.dirty
     }
 }
 

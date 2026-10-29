@@ -6,71 +6,35 @@ extension Page {
     /// A plugin pane's card, made on first use; nil for a browser's and every other pane.
     func plugin(_ pane: HostStore.Pane) -> Plugin? {
         guard let terminalID = pane.terminalID, let label = pane.plugin, label.kind != .browser else { return nil }
-        return terminals.plugin(pane, label, terminalID: terminalID)
+        return terminals.plugin(pane, label, terminalID: terminalID, store: store)
     }
 }
 
-/// The card's content under its header, with the toast at its top. Each kind's content is a placeholder the
-/// variants replace (phases 43 and 44).
+/// The card's content under its header, its kind's page, with the toast at its top.
 struct PluginCard: View {
     let plugin: Plugin
     let page: Page
-    @State private var text = ""
-    @FocusState private var focused: Bool
     /// False in an overview tile, which leaves the keyboard to the card.
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
-        let id = "\(plugin.kind.rawValue).\(plugin.paneID)"
-        VStack(spacing: 8) {
-            HStack {
-                Spacer()
-                // The placeholder's way to `Page.open` (the test's too) until the variants' links replace it.
-                Button("Open in New Tab") { Task { await page.open(plugin.kind, arg: plugin.label.arg) } }
-                    .accessibilityIdentifier("\(id).open")
+        WebCardContent(card: plugin.web)
+            .padding([.horizontal, .bottom], PaneCard.inset)
+            .overlay(alignment: .top) {
+                if let toast = plugin.web.toast {
+                    ToastView(toast: toast, plugin: plugin).padding(.top, 6)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
             }
-            if plugin.kind == .file || plugin.kind == .markdown {
-                TextEditor(text: $text).font(.system(size: 12, design: .monospaced)).scrollContentBackground(.hidden)
-                    .focused($focused)
-                    .onChange(of: text) { plugin.dirty = true }
-                    .accessibilityIdentifier("\(id).text")
-            } else {
-                Image(systemName: plugin.kind.symbol).font(.system(size: 28)).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(.rect)
-                    .focusable()
-                    .focusEffectDisabled()
-                    .focused($focused)
-                    .onTapGesture { focused = true }
+            .animation(.easeOut(duration: 0.15), value: plugin.web.toast == nil)
+            // In place of the card that had the keyboard.
+            .onAppear {
+                if isEnabled, page.hasKeyboard(plugin.paneID) {
+                    plugin.web.view.takeKeyboard()
+                }
             }
-        }
-        .padding([.horizontal, .bottom], PaneCard.inset)
-        .overlay(alignment: .top) {
-            if let toast = plugin.toast {
-                ToastView(toast: toast, plugin: plugin).padding(.top, 6)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .animation(.easeOut(duration: 0.15), value: plugin.toast == nil)
-        // In place of the card that had the keyboard, and when the page gives it the keyboard.
-        .onAppear {
-            if isEnabled, page.hasKeyboard(plugin.paneID) {
-                plugin.wantsKeyboard = true
-            }
-        }
-        .onChange(of: plugin.wantsKeyboard, initial: true) {
-            if plugin.wantsKeyboard, isEnabled {
-                plugin.wantsKeyboard = false
-                Task { focused = true }
-            }
-        }
-        .onChange(of: focused) {
-            if focused {
-                page.terminals.claimed(plugin.terminalID)
-            }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("\(id).card")
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).card")
     }
 }
 
@@ -84,13 +48,13 @@ private struct ToastView: View {
         HStack(spacing: 10) {
             Text(toast.text).lineLimit(1).accessibilityIdentifier(id)
             Button(toast.other.title) {
-                plugin.toast = nil
+                plugin.web.toast = nil
                 toast.other.action()
             }
             .buttonStyle(.glass)
             .accessibilityIdentifier("\(id).other")
             Button(toast.main.title) {
-                plugin.toast = nil
+                plugin.web.toast = nil
                 toast.main.action()
             }
             .buttonStyle(.glassProminent)
