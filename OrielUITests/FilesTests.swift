@@ -7,7 +7,7 @@ extension OrielUITests {
     /// Rows show their letters; a folder lists on a double-click; the filter shows only the matches and gives back the
     /// open folder; a new file on disk shows up; Collapse All closes the folder. A double-click on notes.md opens
     /// Markdown, a ⌘-click on a.swift File, a double-click on a change the Uncommitted diff, a ⌘-click on the last
-    /// commit its diff: each a new tab with that label.
+    /// commit its diff: each a new tab with that label. The overview's tile shows the card.
     func testFilesShowsTheTreeAndOpensItsLinks() async throws {
         let (shell, head) = try await filesRepo()
         let (tab, pane) = try await filesCard()
@@ -54,6 +54,18 @@ extension OrielUITests {
         try await opens("oriel:diff#", " \(root) \(head)", from: tab) {
             XCUIElement.perform(withKeyModifiers: .command) { commit.click() }
         }
+        overviewBorrows(pane)
+    }
+
+    /// The overview's tile shows the card's tree, which the card has again after.
+    private func overviewBorrows(_ pane: String) {
+        app.typeKey("o", modifierFlags: [.command, .control])
+        let tile = element("overview.card.\(pane)")
+        scrollOverview(to: tile)
+        XCTAssertTrue(tile.has(\.stringValue, "files", within: 3))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(element("overview").vanishes(within: 2))
+        XCTAssertTrue(element("files.\(pane).item.a.swift").exists(within: 3))
     }
 
     /// The repository in /tmp/oriel-e2e-files, made by a shell in a new tab: the shell's pane and the last commit.

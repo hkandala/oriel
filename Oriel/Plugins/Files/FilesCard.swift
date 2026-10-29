@@ -6,6 +6,8 @@ struct FilesCard: View {
     let plugin: Plugin
     let page: Page
     @Environment(\.look) private var look
+    /// False in an overview tile, which borrows the tree and leaves the runs and the keyboard to the card.
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         let tree = plugin.tree, id = "files.\(plugin.paneID)"
@@ -34,10 +36,14 @@ struct FilesCard: View {
             }
         }
         .padding([.horizontal, .bottom], PaneCard.inset)
-        .task(id: plugin.label.arg) { await tree.run(plugin.label.arg, page: page) }
+        .task(id: plugin.label.arg) {
+            if isEnabled {
+                await tree.run(plugin.label.arg, page: page)
+            }
+        }
         .onChange(of: [look.dark, look.contrast], initial: true) { tree.look = look }
         .onChange(of: plugin.wantsKeyboard, initial: true) {
-            if plugin.wantsKeyboard {
+            if plugin.wantsKeyboard, isEnabled {
                 plugin.wantsKeyboard = false
                 tree.outline.wantsKeyboard = true
             }

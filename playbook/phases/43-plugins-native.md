@@ -38,22 +38,23 @@ Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track ow
 
 - **Decisions:** which kind opens a file is `PluginKind.opening(_:)`, by the name alone (a remote file is not read
   first): `.md .markdown .mdx` → markdown; `.ts .mts .cts` and names the system does not know (`.rs`, `Makefile`,
-  `.gitignore`) and `.plist` (XML in a repository) → file; image, PDF, audio and video types → preview; other text
-  types → file; other known types (`.zip`, fonts) → preview. The file kind shows bytes that are not UTF-8 as the preview's info view.
+  `.gitignore`) and `.plist` (XML in a repository) → file; image, PDF, audio and video types → preview; other text types
+  → file; other known types (`.zip`, fonts) → preview. The file kind shows bytes that are not UTF-8 as the preview's
+  info view.
 - **Decisions:** the tree's state (the outline view, open folders, listings, filter, git data) is a `FileTree` kept on
-  the `Plugin`, so a float or a move keeps the open folders and the scroll; the card hosts its scroll view as the
-  browser hosts its web view (`HostedView`, the browser's host made general). Folders list when they open; on each
-  change the watch sees (the root's, FSEvents or the remote 2 s poll) the root and every open folder list again, and
-  git's status and branch read again (the section's count); the history only while the section is open. A value
-  is written only when it changed: a build changes files every second.
-- **Decisions:** a double-click on a folder opens or closes it; a double-click or ⌘-click on a file opens it.
-  The filter matches file names (not paths), case-insensitively, and shows the first 5,000 matches with their
-  folders, all open; it reads every path once per change on disk, when a filter starts. Clearing it gives back the
-  folders that were open. Changes and History open the diff of the git root
-  (`<repo> uncommitted` at the file through `Page.open(_:arg:at:)`, or `<repo> <hash>`).
+  the `Plugin`, so a float or a move keeps the open folders and the scroll; the card hosts its scroll view in a
+  `TerminalHost.Host` that adopts it, so an overview tile borrows it and the card takes it back. Folders list when they
+  open; on each change the watch sees (the root's, FSEvents or the remote 2 s poll) the root and every open folder list
+  again, and git's status and branch read again (the section's count); the history only while the section is open. A
+  value is written only when it changed: a build changes files every second.
+- **Decisions:** a double-click on a folder opens or closes it; a double-click or ⌘-click on a file opens it. The filter
+  matches file names (not paths), case-insensitively, and shows the first 5,000 matches with their folders, all open; it
+  reads every path once per change on disk, when a filter starts. Clearing it gives back the folders that were open.
+  Changes and History open the diff of the git root (`<repo> uncommitted` at the file through `Page.open(_:arg:at:)`, or
+  `<repo> <hash>`).
 - **Decisions:** colors: git letters use the agent-state tokens (`Look.git`: M amber, A R U green, D C red), a folder
   with a change inside shows a 6 pt dot in its letter's color; the lanes cycle blue, amber, green, red (no purple
   token). The Git section opens into a `VSplitView` (the user drags the split); Changes and History are header rows in
   one plain `List`, so the lanes touch from row to row.
-- **For the user:** check a repo with merges (lanes), the split's first position (half and half), Finder icons at
-  16 pt (generic for names the system does not know), and a Files card on a remote machine.
+- **For the user:** check a repo with merges (lanes), the split's first position (half and half), Finder icons at 16 pt
+  (generic for names the system does not know), and a Files card on a remote machine.
