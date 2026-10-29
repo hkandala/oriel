@@ -178,10 +178,16 @@ private func yields(_ changes: AsyncStream<Void>, writing file: URL) async throw
 @Test func `watches a file that comes later, and everything under a folder`() async throws {
     let folder = try scratchFolder()
     defer { try? FileManager.default.removeItem(at: folder) }
-    let later = folder.appending(path: "later")
+    // Its folder too.
+    let later = folder.appending(path: "later/f")
     for exec in try await execs() {
-        try? FileManager.default.removeItem(at: later)
-        try await yields(Files.watch(later.path, exec: exec), writing: later)
+        try? FileManager.default.removeItem(at: later.deletingLastPathComponent())
+        let changes = Files.watch(later.path, exec: exec)
+        try FileManager.default.createDirectory(
+            at: later.deletingLastPathComponent(),
+            withIntermediateDirectories: true,
+        )
+        try await yields(changes, writing: later)
     }
     let inner = folder.appending(path: "a/b")
     try FileManager.default.createDirectory(at: inner, withIntermediateDirectories: true)
