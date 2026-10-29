@@ -186,3 +186,30 @@ user's answers to the orchestrator's questions.
   keep no per-call args or status).
 - **For the user:** at Activity while a turn streams, the closed line must not flicker; the step symbols in an open
   run read as one size; a sideways swipe over an open output box whose text fits still turns the strip.
+
+### Track E
+
+- **Cause (22, 24).** `Exec.follow` read a new file from the first line of its last 256 KiB. A Claude Code session
+  passes that in one turn (the user's 796 KB session has its first prompt at 70 KB), so a chat opened after a relaunch
+  or mid-stream started inside the running turn: no earlier turns, and at Replies only "Working" until the reply came.
+  Item 24 is the same cut, not a separate bug.
+- **Fix (22).** A new file is read from its start. On the pane's machine, awk drops the lines the parser skips (an awk
+  pattern next to each parser: Claude's records that write `type` first and its non-queued attachments, Codex's
+  top-level types but `event_msg` and `turn_context`) and prints `oriel-skip <bytes>` for each, so the mark still
+  counts the file's bytes. Pi's and OpenCode's files pass whole (pi's tree needs every entry).
+- **Runs (22).** On the user's files: the 796 KB session passed 208 KB and showed its first prompt (the old start: 7
+  entries, no prompt); 17 Claude sessions passed 3.0 of 12.5 MB and 40 Codex rollouts 3.1 of 14.7 MB, each with the
+  same history as the whole file. The unit test fails on the old start.
+- **Fix (23).** The script also tells where the file's whole lines end when opened; the follower says `loaded` there.
+  The chat reads up to it into a copy and shows the copy at once (a cut-short read keeps what its marks read).
+- **Decisions.** awk reads a FIFO only `tail` writes to (opened, then removed at once), so the wrapper's kill of `tail`
+  ends awk by EOF: no orphan, no `pkill`. The filter runs on This Mac too (one path). No loading indicator: the chat is
+  empty for the few milliseconds of a local read.
+- **Fix (25).** swift-markdown 0.9.0 (cmark-gfm) parses; the views draw tables (head on a fill, column alignment),
+  task lists, strikethrough, nested quotes and lists, rules, and web images alone in a paragraph (a path belongs to the
+  pane's machine). swift-markdown has no autolink extension: bare `http(s)://` and `www.` addresses are linked with
+  `NSDataDetector` (not names such as `Oriel.app`). It has no footnotes either: `[^1]` reads as written.
+- **Also.** An unknown tool's target was its "first" text argument in a parsed dictionary's random order (a flaky
+  history); it is now the first by key, in Claude's and pi's parsers.
+- **For the user.** Open the chat of a long Claude Code or Codex session after a relaunch: every turn shows, at once;
+  switch to Chat while a reply streams; ask an agent for a table and a task list.
