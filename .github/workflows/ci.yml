@@ -35,9 +35,15 @@ jobs:
   checks:
     if: github.event_name != 'workflow_dispatch'
     runs-on: xcode-27
-    timeout-minutes: 15
+    # The grammars' clones take about 8 minutes when the package cache misses.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
+      - &packages
+        uses: actions/cache@v4
+        with:
+          path: .build/DerivedData/SourcePackages
+          key: packages-${{ hashFiles('Oriel.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved', 'Packages/*/Package.swift') }}
       - run: brew update --quiet && brew bundle
       - name: install herdr
         run: &install-herdr |
@@ -65,13 +71,15 @@ jobs:
   test:
     if: github.event_name == 'workflow_dispatch'
     runs-on: xcode-27
-    timeout-minutes: 20
+    # About 8 minutes of package clones on a cache miss, 2 to build, 10 of tests.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         shard: ${{ fromJSON(inputs.only_testing && '[0]' || inputs.on_demand && '[0, 1, 2, 3]' || '[0, 1, 2, 3, 4]') }}
     steps:
       - uses: actions/checkout@v7
+      - *packages
       - run: brew install xcbeautify
       - name: install herdr
         run: *install-herdr
