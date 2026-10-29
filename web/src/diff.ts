@@ -305,6 +305,8 @@ receive((message) => {
     case "layout":
       options.diffStyle = message.split ? "split" : "unified"
       viewer.setOptions({ ...options })
+      // The other layout has other heights: back to the change last stepped to, not wherever the offset now falls.
+      if (changes[change]) viewer.scrollTo({ type: "line", ...changes[change], align: "center" })
       break
     case "list":
       nav.hidden = !message.open
