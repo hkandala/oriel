@@ -238,6 +238,7 @@ user's answers to the orchestrator's questions.
 - **For the user:** swipe, hold the three fingers still for a second, then move them: one step only. If swipes
   stop again, check whether ⌥⌘] and a two-finger swipe over the sidebar still work; that tells a lost window
   from a stuck swipe.
+
 ### Track A
 
 - **Cause, item 1.** WebKit's Open Link in New Window asks the UI delegate for a window with navigation type
@@ -257,8 +258,11 @@ user's answers to the orchestrator's questions.
 - **Fix, item 3.** The web view sits in the terminals' host (`TerminalHost.Host`, now for any view), which fits
   it once its size stops changing for 150 ms: one size per motion. The page is clipped, or shows the card's fill
   at its new edge, until then. A window drag reflows the page when the drag pauses or ends, as terminals do.
-- **Runs.** No test for the hold itself (a test hook would cost more than it guards); the docked Web Inspector
-  check in the chooser test resizes the card after docking.
+- **Runs.** Measured by hand with a log line per web view size (a split and a close of a browser card beside a
+  terminal, three times each): 24–37 sizes per motion before, 1 after. xctrace's Animation Hitches recorded
+  nothing usable for an app it launched. No test for the hold itself (a test hook would cost more than it
+  guards). The docked Web Inspector check now resizes the card after docking: WebKit places a docked inspector by
+  unflipped frames, so the web view sits in a plain box inside the flipped host.
 - **For the user.** Split beside a browser card (⌘D on it and on its neighbor) and close again: the motion should
   match a terminal-only tab. Right-click a link: Open Link in New Tab, no Download items. ⌘-click a link and click
   a `target=_blank` one. Open an OAuth login: Esc and the × close it.
