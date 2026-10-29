@@ -200,7 +200,9 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   x 345–411 in a 364 px page); clicks landed on the scroll area. **Fix:** under 480 px the header's counts give way.
 - **Cause (Diff, Side by Side):** a layout switch kept the scroll offset, which in the other layout's heights no
   longer held the change stepped to. **Fix:** the viewer scrolls back to that change.
-- **Open:** ⌘-click on a line in a ~200 pt Side by Side column does not reach the line (the press lands on the column's
-  `code`, the click on `body`, `onLineClick` never fires). The test ⌘-clicks in Unified; check Side by Side by hand.
+- **Cause (Diff, ⌘-click in Side by Side):** a line scrolled past its ~94 px column, which clipped it where the click
+  landed (press on the column's `code`, click on `body`, no `onLineClick`). **Fix:** Side by Side wraps each column's
+  lines (`overflow: wrap`); after a layout switch or the file list showing or hiding, the viewer goes back to the change
+  last stepped to, once it has its new width.
 - **Runs:** diagnostics 40908776727, 40913245757, 40916005308 (page-side event and layout reports); all six web
-  plugin tests green in 40917474480.
+  plugin tests green in 40925089229, with ⌘-click in both layouts.
