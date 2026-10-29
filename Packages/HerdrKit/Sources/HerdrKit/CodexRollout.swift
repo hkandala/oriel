@@ -63,9 +63,11 @@ public enum CodexRollout {
     private static func mcp(_ item: [String: Any], id: String, time: Date?, into history: inout ChatHistory) {
         let arguments = (item["arguments"] as? [String: Any] ?? [:]).sorted { $0.key < $1.key }
         var tool = ChatTool(id: id, name: item["tool"] as? String ?? "tool", category: .other,
-                            target: ChatHistory.firstLine(arguments.first { $0.value is String }?.value), started: time)
+                            target: ChatHistory.firstLine(arguments.first { $0.value is String }?.value),
+                            input: ChatHistory.detail(item["arguments"]), started: time)
         tool.failed = item["status"] as? String == "failed"
         tool.result = tool.failed ? "failed" : ""
+        tool.output = ChatHistory.detail(item["result"] ?? item["error"])
         tool.ended = time
         history.append(ChatEntry(id: id, .tool(tool), time: time))
     }
@@ -78,11 +80,13 @@ public enum CodexRollout {
         let duration = item["duration"] as? [String: Any]
         let seconds = (duration?["secs"] as? Double ?? 0) + (duration?["nanos"] as? Double ?? 0) / 1e9
         var tool = ChatTool(id: id, name: path == nil ? "bash" : "read", category: path == nil ? .command : .read,
-                            target: path ?? ChatHistory.firstLine(script), started: time?.addingTimeInterval(-seconds))
+                            target: path ?? ChatHistory.firstLine(script), input: script,
+                            started: time?.addingTimeInterval(-seconds))
         let exit = item["exit_code"] as? Int, status = item["status"] as? String
         tool.failed = exit.map { $0 != 0 } ?? false || ["failed", "declined"].contains(status)
         tool.result = !tool.failed ? ChatHistory.firstLine(item["aggregated_output"])
             : exit.map { "exit \($0)" } ?? status ?? "failed"
+        tool.output = ChatHistory.detail(item["aggregated_output"])
         tool.ended = time
         history.append(ChatEntry(id: id, .tool(tool), time: time))
     }

@@ -134,16 +134,19 @@ public struct OpenCodeSession {
         let call = call(part["tool"] as? String ?? "tool", input, cwd)
         let target = call.target.isEmpty ? ChatHistory.firstLine(state["title"]) : call.target
         history.append(ChatEntry(id: id, .tool(ChatTool(id: callID, name: call.name, category: call.category,
-                                                        target: target, started: started)), time: started))
+                                                        target: target, input: ChatHistory.detail(input),
+                                                        started: started)), time: started))
         let ended = date(times?["end"])
         switch state["status"] as? String {
         case "error":
-            history.finish(tool: callID, result: ChatHistory.firstLine(state["error"]), failed: true, at: ended)
+            history.finish(tool: callID, result: ChatHistory.firstLine(state["error"]), failed: true,
+                           output: ChatHistory.detail(state["error"]), at: ended)
         case "completed":
             let metadata = state["metadata"] as? [String: Any] ?? [:],
                 diff = ChatTool.DiffLine.unified(metadata["diff"] as? String ?? "")
             let text = result(metadata, diff, output: state["output"])
-            history.finish(tool: callID, result: text, failed: text.hasPrefix("exit "), diff: diff, at: ended)
+            history.finish(tool: callID, result: text, failed: text.hasPrefix("exit "), diff: diff,
+                           output: ChatHistory.detail(state["output"]), at: ended)
         default: break
         }
     }

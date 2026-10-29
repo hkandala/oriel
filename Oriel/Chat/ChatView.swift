@@ -11,6 +11,8 @@ struct ChatView: View {
     private static let column: CGFloat = 760
     /// Stacks clicked open or closed: they stay so at every level (else open at All only).
     @State private var opened: [String: Bool] = [:]
+    /// Tool calls opened to their input and output.
+    @State private var openTools: Set<String> = []
     @State private var height: CGFloat = 0
     @FocusState private var composing: Bool
     @Environment(\.look) private var look
@@ -30,7 +32,8 @@ struct ChatView: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(rows) { row in
                         let open = opened[row.id] ?? (level == .all)
-                        ChatRowView(row: row, paneID: id, open: open) { opened[row.id] = !open }
+                        ChatRowView(row: row, paneID: id, open: open, toggle: { opened[row.id] = !open },
+                                    opened: openTools, toggleTool: { openTools.formSymmetricDifference([$0]) })
                     }
                     ForEach(chat.outgoing) { message in
                         outgoing(message)
@@ -46,15 +49,24 @@ struct ChatView: View {
                         problemCard(problem)
                     }
                 }
-                .padding(.horizontal, 12).padding(.vertical, 10)
+                .padding(.horizontal, 32).padding(.vertical, 16)
                 .frame(maxWidth: Self.column)
                 .frame(maxWidth: .infinity)
             }
+            // A click anywhere, on text too, gives the reply box (and the card) the keyboard; a button's or a link's
+            // click acts as well. Not a double or triple click or a ⇧-click, which select text: Copy needs it to stay.
+            .contentShape(.rect)
+            .simultaneousGesture(TapGesture().onEnded {
+                if let event = NSApp.currentEvent, event.clickCount < 2, !event.modifierFlags.contains(.shift) {
+                    composing = true
+                }
+            })
             .defaultScrollAnchor(.bottom)
             .defaultScrollAnchor(.bottom, for: .sizeChanges)
             .focusEffectDisabled()
             .accessibilityIdentifier("chat.\(id)")
-            bottom.padding(.horizontal, 10).padding(.bottom, 10).padding(.top, 4)
+            // The reply box lines up with the messages.
+            bottom.padding(.horizontal, 32).padding(.bottom, 14).padding(.top, 4)
                 .frame(maxWidth: Self.column).frame(maxWidth: .infinity)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
@@ -103,39 +115,51 @@ struct ChatView: View {
     private var composer: some View {
         let id = chat.paneID, working = chat.phase == .working
         let name = chat.adapter.name
-        return HStack(alignment: .bottom, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                TextField("Reply to \(name)", text: $chat.draft, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .lineLimit(1 ... 8)
-                    .focused($composing)
-                    .onSubmit { chat.send(chat.draft) }
-                    .accessibilityIdentifier("chat.\(id).composer")
-                if let model = chat.history.model {
-                    Text(model).font(.system(size: 10)).foregroundStyle(.tertiary).lineLimit(1)
+        return VStack(alignment: .leading, spacing: 2) {
+            TextField("Reply to \(name)", text: $chat.draft, axis: .vertical)
+                .textFieldStyle(.plain)
+                .font(.system(size: 14))
+                .lineLimit(1 ... 10)
+                .focused($composing)
+                .onSubmit { chat.send(chat.draft) }
+                .accessibilityIdentifier("chat.\(id).composer")
+            HStack(spacing: 8) {
+                let model = [chat.history.model.map(ChatHistory.modelName), chat.history.effort].compactMap(\.self)
+                    .joined(separator: " · ")
+                if !model.isEmpty {
+                    Text(model).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                         .accessibilityIdentifier("chat.\(id).model")
                 }
-            }
-            .padding(.horizontal, 14).padding(.vertical, 8)
-            .glassEffect(.regular, in: .rect(cornerRadius: 17))
-            .contentShape(.rect)
-            .onTapGesture { composing = true }
-            if working, chat.draft.isEmpty {
-                round("stop.fill", help: "Stop", id: "chat.\(id).stop", action: chat.stop)
-            } else {
-                round("arrow.up", help: "Send", id: "chat.\(id).send") { chat.send(chat.draft) }
-                    .disabled(chat.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        || ![.ready, .working].contains(chat.phase) && !chat.draft.hasPrefix("/"))
+                Spacer(minLength: 0)
+                if working, chat.draft.isEmpty {
+                    round("stop.fill", help: "Stop", id: "chat.\(id).stop", action: chat.stop)
+                } else {
+                    let text = !chat.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    let ready = [.ready, .working].contains(chat.phase) || chat.draft.hasPrefix("/")
+                    round("arrow.up", help: "Send", id: "chat.\(id).send", enabled: text && ready) {
+                        chat.send(chat.draft)
+                    }
+                }
             }
         }
+        .padding(.leading, 14).padding(.trailing, 7).padding(.top, 9).padding(.bottom, 7)
+        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .contentShape(.rect)
+        .onTapGesture { composing = true }
     }
 
-    private func round(_ symbol: String, help: String, id: String, action: @escaping () -> Void) -> some View {
+    /// A small round button in the reply box: the accent when it can act, else a faint gray.
+    private func round(_ symbol: String, help: String, id: String, enabled: Bool = true,
+                       action: @escaping () -> Void) -> some View
+    {
         Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 13, weight: .semibold)).frame(width: 34, height: 34)
+            Image(systemName: symbol).font(.system(size: 10, weight: .bold))
+                .foregroundStyle(enabled ? AnyShapeStyle(Look.onAccent) : AnyShapeStyle(.tertiary))
+                .frame(width: 22, height: 22)
+                .background(enabled ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary), in: .circle)
         }
-        .buttonStyle(.glassProminent)
-        .buttonBorderShape(.circle)
+        .buttonStyle(.plain)
+        .disabled(!enabled)
         .help(help)
         .accessibilityLabel(help)
         .accessibilityIdentifier(id)
@@ -207,5 +231,12 @@ private struct WaitingDrawer: View {
                 chat.wantsKeyboard = true
             }
         }
+    }
+}
+
+// ponytail: track B's `ChatHistory.effort` until its branch lands; delete on its rebase.
+private extension ChatHistory {
+    var effort: String? {
+        nil
     }
 }

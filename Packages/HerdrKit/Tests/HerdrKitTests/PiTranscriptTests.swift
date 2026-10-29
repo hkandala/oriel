@@ -61,6 +61,8 @@ private extension ChatHistory {
     #expect(tools[1].failed && tools[1].target == "ls /nonexistent" && tools[1].result == "exit 1")
     // The `!` command.
     #expect(tools[3].target == "echo bang" && tools[3].result == "exit 0" && !tools[3].failed)
+    #expect(tools[3].input == "echo bang" && tools[3].output == "bang")
+    #expect(tools[1].input.hasPrefix("command: ls /nonexistent") && tools[1].output.contains("No such file"))
     #expect(history.notes == ["Interrupted"])
     #expect(history.entries.contains { $0.kind == ChatEntry.Kind.reply(
         "a.txt contains \"bye\", `ls /nonexistent` failed because the directory doesn't exist, and I wrote b.txt "

@@ -27,7 +27,8 @@ extension OrielUITests {
         let stacks = app.descendants(matching: .any).matching(identifier: "chat.\(pane).stack")
         let stack = stacks.element(boundBy: 0)
         XCTAssertTrue(stack.has(\.stringValue, "closed", within: 2))
-        XCTAssertTrue(stack.label.hasPrefix("Ran 1 command"), stack.label)
+        // The turn's quiet line holds its run of calls.
+        XCTAssertTrue(stack.label.hasPrefix("Worked ") && stack.label.contains(" · 1 command"), stack.label)
         stack.click()
         XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
         level("Replies", in: pane)
@@ -88,6 +89,66 @@ extension OrielUITests {
         element("float.\(pane).detach").click()
         XCTAssertTrue(window.vanishes(within: 3))
         XCTAssertTrue(element("chat.\(pane).composer").exists(within: 3))
+    }
+
+    /// A tool call opens on its own to its input and output. A click on a reply or on the chat's empty side gives the
+    /// card the keyboard in its reply box, which grows with its lines up to 10 and then scrolls.
+    func testAChatTakesTheKeyboardOnAnyClickAndItsBoxGrows() async throws {
+        let (tab, pane) = try await startChat()
+        try await say("hello", in: pane)
+        let reply = row(pane, "reply", "Echo: **hello**")
+        XCTAssertTrue(reply.exists(within: 5))
+        // At Steps (open at All).
+        let stack = element("chat.\(pane).stack")
+        XCTAssertTrue(stack.exists(within: 2))
+        if stack.stringValue == "closed" {
+            stack.click()
+        }
+        let tool = element("chat.\(pane).tool")
+        XCTAssertTrue(tool.has(\.stringValue, "closed", within: 2))
+        tool.click()
+        XCTAssertTrue(tool.has(\.stringValue, "open", within: 2))
+        XCTAssertTrue(row(pane, "tool.input", "command: echo hello").exists(within: 2))
+        XCTAssertTrue(row(pane, "tool.output", "hello").exists)
+        let composer = element("chat.\(pane).composer")
+        let one = composer.frame.height
+        var heights: [Int: CGFloat] = [:]
+        app.typeText("1")
+        for line in 2 ... 12 {
+            app.typeKey(.return, modifierFlags: .option)
+            app.typeText("\(line)")
+            XCTAssertTrue(until(2) { composer.stringValue.hasSuffix("\n\(line)") })
+            heights[line] = composer.frame.height
+        }
+        XCTAssertGreaterThan(heights[3] ?? 0, one * 2.5, "\(one) \(heights)")
+        XCTAssertGreaterThan(heights[10] ?? 0, heights[9] ?? 0, "\(heights)")
+        XCTAssertEqual(heights[12], heights[10], "\(heights)")
+        app.typeKey("a", modifierFlags: .command)
+        app.typeKey(.delete, modifierFlags: [])
+
+        // A new pane beside it takes the keyboard; a click on the reply's text gives it back.
+        app.typeKey("d", modifierFlags: .command)
+        let chooser = try await replaced(pane, in: tab, besides: [pane])
+        XCTAssertTrue(element("pane.\(chooser).chooser.terminal").exists(within: 3))
+        let unfocused = NSPredicate(format: "hasKeyboardFocus == false")
+        XCTAssertTrue(until(2) { unfocused.evaluate(with: composer) })
+        reply.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5)).withOffset(CGVector(dx: 12, dy: 0)).click()
+        XCTAssertTrue(hasKeyboard(composer))
+        // A word selected with a double click keeps the keyboard, so Copy copies it.
+        reply.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5)).withOffset(CGVector(dx: 12, dy: 0))
+            .doubleClick()
+        XCTAssertTrue(until(2) { unfocused.evaluate(with: composer) })
+        app.typeKey("c", modifierFlags: .command)
+        composer.click()
+        app.typeKey("v", modifierFlags: .command)
+        XCTAssertTrue(until(2) { ["Echo", "hello"].contains(composer.stringValue) }, composer.stringValue)
+        app.typeKey("a", modifierFlags: .command)
+        app.typeKey(.delete, modifierFlags: [])
+        // And from the chooser again, a click on the chat's empty side.
+        element("pane.\(chooser).chooser.terminal").click()
+        XCTAssertTrue(until(2) { unfocused.evaluate(with: composer) })
+        element("chat.\(pane)").coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.2)).click()
+        XCTAssertTrue(hasKeyboard(composer))
     }
 
     /// The live terminal while it waits; a question answered in the chat; the chat again after a relaunch.

@@ -21,10 +21,11 @@ public struct ChatHistory: Equatable, Sendable {
 
     /// A tool call's result; nil when the call is not known (a result in a later read than its call is still paired).
     public mutating func finish(tool id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine] = [],
-                                at time: Date?)
+                                output: String = "", at time: Date?)
     {
         guard let index = tools.removeValue(forKey: id), case var .tool(tool) = entries[index].kind else { return }
         tool.result = result
+        tool.output = output
         tool.failed = failed
         tool.diff = diff.isEmpty ? tool.diff : diff
         tool.ended = time
@@ -141,14 +142,18 @@ public struct ChatTool: Equatable, Sendable {
     public var result: String?
     public var failed = false
     public var diff: [DiffLine] = []
+    /// What it was given and what it gave back, whole (`ChatHistory.detail`), for its open row.
+    public let input: String
+    public var output = ""
     public let started: Date?
     public var ended: Date?
 
-    public init(id: String, name: String, category: Category, target: String, started: Date?) {
+    public init(id: String, name: String, category: Category, target: String, input: String = "", started: Date?) {
         self.id = id
         self.name = name
         self.category = category
         self.target = target
+        self.input = input
         self.started = started
     }
 }
@@ -168,7 +173,8 @@ public enum ChatLevel: String, CaseIterable, Sendable {
 public enum ChatRow: Equatable, Sendable, Identifiable {
     case user(id: String, text: String)
     /// The quiet line under a user message: "Worked 1m 48s · 2 files edited · 3 commands". `since` while it works.
-    case summary(id: String, text: String, since: Date?)
+    /// `tools`: the run of tool calls right under it, which it opens to (Steps and All).
+    case summary(id: String, text: String, since: Date?, tools: [ChatTool] = [])
     case reply(id: String, text: String)
     case thinking(id: String)
     /// A run of tool calls between two replies.
@@ -178,7 +184,7 @@ public enum ChatRow: Equatable, Sendable, Identifiable {
 
     public var id: String {
         switch self {
-        case let .user(id, _), let .summary(id, _, _), let .reply(id, _), let .thinking(id), let .stack(id, _),
+        case let .user(id, _), let .summary(id, _, _, _), let .reply(id, _), let .thinking(id), let .stack(id, _),
              let .todos(id, _), let .note(id, _, _): id
         }
     }
@@ -233,7 +239,17 @@ public extension ChatHistory {
             }
             rows.append(row)
         }
-        return stack.isEmpty ? rows : rows + [.stack(id: stackID, tools: stack)]
+        if !stack.isEmpty {
+            rows.append(.stack(id: stackID, tools: stack))
+        }
+        // The quiet line takes the run right under it, so the two do not say the same twice.
+        if let index = rows.firstIndex(where: \.isSummary), index + 1 < rows.count,
+           case let .summary(id, text, since, _) = rows[index], case let .stack(_, tools) = rows[index + 1]
+        {
+            rows[index] = .summary(id: id, text: text, since: since, tools: tools)
+            rows.remove(at: index + 1)
+        }
+        return rows
     }
 
     /// "Worked 14s · 2 files edited · 3 commands · 1 failed"; "Working" while it runs (the view adds the time).
@@ -271,6 +287,21 @@ public extension ChatHistory {
         let text = (value as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let line = text.prefix { $0 != "\n" }
         return line.count > 120 ? line.prefix(119) + "…" : String(line)
+    }
+
+    /// A tool's input or output as its open row shows it: text as it is, an object as `key: value` lines, anything else
+    /// as JSON; at most 20 000 characters.
+    static func detail(_ value: Any?) -> String {
+        let text = switch value {
+        case nil, is NSNull: ""
+        case let text as String: text
+        case let object as [String: Any]:
+            object.sorted { $0.key < $1.key }.map { "\($0.key): \(detail($0.value))" }.joined(separator: "\n")
+        case let value?:
+            (try? JSONSerialization.data(withJSONObject: value, options: [.fragmentsAllowed, .withoutEscapingSlashes]))
+                .map { String(decoding: $0, as: UTF8.self) } ?? ""
+        }
+        return text.count > 20000 ? text.prefix(19999) + "…" : text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// A path under the session's folder from there, else whole.
@@ -349,5 +380,17 @@ public extension ChatTool {
         let text = parts.filter { $0.0 > 0 }.map { [$0.1, $0.2].filter { !$0.isEmpty }.joined(separator: " ") }
             .joined(separator: ", ")
         return text.prefix(1).uppercased() + text.dropFirst()
+    }
+}
+
+public extension ChatHistory {
+    /// A model as the agent's picker names it: Claude's ids (`claude-opus-5-5`, `claude-3-5-haiku-20241022`) as
+    /// "Opus 5.5" and "Haiku 3.5"; any other as it is.
+    static func modelName(_ model: String) -> String {
+        let parts = model.split(separator: "/").last?.split(separator: "-") ?? []
+        guard parts.first == "claude", let family = parts.first(where: { ["opus", "sonnet", "haiku"].contains($0) })
+        else { return model }
+        let version = parts.filter { $0.count < 3 && $0.allSatisfy(\.isNumber) }.joined(separator: ".")
+        return ([family.capitalized] + (version.isEmpty ? [] : [version])).joined(separator: " ")
     }
 }

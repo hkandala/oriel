@@ -118,7 +118,7 @@ public enum ClaudeTranscript {
             (category, target) = (.other, ChatHistory.firstLine(input.values.first { $0 is String }))
         }
         history.append(ChatEntry(id: id, .tool(ChatTool(id: toolID, name: shown, category: category, target: target,
-                                                        started: time)), time: time))
+                                                        input: ChatHistory.detail(input), started: time)), time: time))
     }
 
     /// A result as its row says it: lines read, lines changed with the diff, or a failure's first line.
@@ -159,6 +159,13 @@ public enum ClaudeTranscript {
         } else {
             text = ChatHistory.firstLine(content)
         }
-        history.finish(tool: id, result: text, failed: failed, diff: diff, at: time)
+        history.finish(
+            tool: id,
+            result: text,
+            failed: failed,
+            diff: diff,
+            output: ChatHistory.detail(content),
+            at: time,
+        )
     }
 }

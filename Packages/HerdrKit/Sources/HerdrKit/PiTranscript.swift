@@ -28,7 +28,7 @@ public struct PiTranscript: Sendable {
 
     private enum Step {
         case add(ChatEntry)
-        case finish(id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine], time: Date?)
+        case finish(id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine], output: String, time: Date?)
         case model(String)
     }
 
@@ -92,8 +92,8 @@ public struct PiTranscript: Sendable {
         for step in steps {
             switch step {
             case let .add(entry): history.append(entry)
-            case let .finish(id, result, failed, diff, time):
-                history.finish(tool: id, result: result, failed: failed, diff: diff, at: time)
+            case let .finish(id, result, failed, diff, output, time):
+                history.finish(tool: id, result: result, failed: failed, diff: diff, output: output, at: time)
             case let .model(model): history.model = model
             }
         }
@@ -124,10 +124,12 @@ public struct PiTranscript: Sendable {
             // A `!command` the user ran: a command row with its exit.
             let code = message["exitCode"] as? Int
             let tool = ChatTool(id: id, name: "bash", category: .command,
-                                target: ChatHistory.firstLine(message["command"]), started: time)
+                                target: ChatHistory.firstLine(message["command"]),
+                                input: ChatHistory.detail(message["command"]), started: time)
             let result = message["cancelled"] as? Bool == true ? "cancelled" : code.map { "exit \($0)" } ?? ""
             return [.add(ChatEntry(id: id, .tool(tool), time: time)),
-                    .finish(id: id, result: result, failed: code.map { $0 != 0 } ?? false, diff: [], time: time)]
+                    .finish(id: id, result: result, failed: code.map { $0 != 0 } ?? false, diff: [],
+                            output: ChatHistory.detail(message["output"]), time: time)]
         default: return []
         }
     }
@@ -172,7 +174,7 @@ public struct PiTranscript: Sendable {
         default: (.other, ChatHistory.firstLine(input.values.first { $0 is String }))
         }
         return ChatTool(id: block["id"] as? String ?? id, name: name, category: category, target: target,
-                        started: time)
+                        input: ChatHistory.detail(input), started: time)
     }
 
     /// A result as its row says it: lines read, lines changed with the diff, a failed command's exit, else its first
@@ -201,6 +203,7 @@ public struct PiTranscript: Sendable {
         } else {
             text = ChatHistory.firstLine(content)
         }
-        return .finish(id: call, result: text, failed: failed, diff: diff, time: time)
+        return .finish(id: call, result: text, failed: failed, diff: diff, output: ChatHistory.detail(content),
+                       time: time)
     }
 }
