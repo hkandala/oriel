@@ -6,7 +6,7 @@ extension Page {
     /// A plugin pane's card, made on first use; nil for a browser's and every other pane.
     func plugin(_ pane: HostStore.Pane) -> Plugin? {
         guard let terminalID = pane.terminalID, let label = pane.plugin, label.kind != .browser else { return nil }
-        return terminals.plugin(pane, label, terminalID: terminalID, store: store)
+        return terminals.plugin(pane, label, terminalID: terminalID)
     }
 }
 
@@ -22,8 +22,8 @@ struct PluginCard: View {
         let id = "\(plugin.kind.rawValue).\(plugin.paneID)"
         VStack(spacing: 8) {
             HStack {
-                Text(plugin.label.arg).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                Spacer(minLength: 0)
+                Spacer()
+                // The placeholder's way to `Page.open` (the test's too) until the variants' links replace it.
                 Button("Open in New Tab") { Task { await page.open(plugin.kind, arg: plugin.label.arg) } }
                     .accessibilityIdentifier("\(id).open")
             }
@@ -64,7 +64,7 @@ struct PluginCard: View {
         }
         .onChange(of: focused) {
             if focused {
-                page.tookKeyboard(plugin.terminalID)
+                page.terminals.claimed(plugin.terminalID)
             }
         }
         .accessibilityElement(children: .contain)
@@ -92,7 +92,6 @@ private struct ToastView: View {
                 toast.main.action()
             }
             .buttonStyle(.glassProminent)
-            .keyboardShortcut(.defaultAction)
             .accessibilityIdentifier("\(id).main")
         }
         .controlSize(.small)
@@ -135,7 +134,7 @@ private struct OpenWith: View {
     }
 }
 
-/// Their own view: asked when the menu opens, not at every render of the card.
+/// Their own view: SwiftUI asks LaunchServices again only when the path changes, not at every render of the card.
 private struct OpenWithItems: View {
     let url: URL
 

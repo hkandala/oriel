@@ -38,6 +38,8 @@ extension Page {
         guard let workspace = selectedWorkspace,
               let index = workspace.tabs.firstIndex(where: { $0.id == selectedTab?.id }) else { return }
         let label = store.newLabel(kind, arg: arg), cwd = keyboardPane?.cwd ?? "~"
+        // A path with a control character or over 1024 characters makes no plugin label.
+        guard PaneLabel(label.text) != nil else { return }
         await store.write { client in
             guard let id = try await client.newTab(workspace: workspace.id, cwd: cwd, label: label.text,
                                                    command: label.placeholder)
@@ -48,15 +50,15 @@ extension Page {
             follow(pane, pane.terminalID)
         }
     }
+}
 
-    /// The label's argument of a pane made in this pane's place: for Files and Changes, the git repository's root
-    /// of the pane's live folder, else the folder; a diff of its uncommitted changes.
-    func arg(_ kind: PluginKind, of paneID: String) async -> String {
+extension HostStore {
+    /// The label's argument of a pane opened in this folder: for Files and Changes, the folder's git repository's
+    /// root, else the folder; a diff of its uncommitted changes.
+    func arg(_ kind: PluginKind, in folder: String) async -> String {
         guard kind == .files || kind == .diff else { return "" }
-        let live = try? await store.client?.pane(paneID)
-        let folder = live?.cwd ?? store.pane(paneID)?.cwd ?? "~"
         var root = folder
-        if await gitUsable.value, let repo = await Git.root(folder, exec: store.machine.exec()) {
+        if await gitUsable.value, let repo = await Git.root(folder, exec: machine.exec()) {
             root = repo
         }
         return kind == .diff ? "\(root) uncommitted" : root

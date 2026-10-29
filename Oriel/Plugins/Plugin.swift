@@ -1,6 +1,5 @@
 import HerdrKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// The pane kinds Oriel draws itself over a herdr pane that runs a placeholder, named by the pane's label
 /// (future-work/plugins/labels): the browser and the default plugins.
@@ -9,8 +8,10 @@ enum PluginKind: String, CaseIterable {
 
     /// The tab's first part and the placeholder's title.
     var name: String {
-        rawValue == "diff" ? "Diff" : rawValue.capitalized
+        rawValue.capitalized
     }
+
+    static let symbols = Set(allCases.map(\.symbol))
 
     /// Its SF Symbol: the card's, the tab's and the chooser's icon.
     var symbol: String {
@@ -23,21 +24,6 @@ enum PluginKind: String, CaseIterable {
         case .files: "folder"
         }
     }
-
-    /// The kind that opens a file: Markdown; text in the file plugin, also a file with no extension (`Makefile`)
-    /// or one the system does not know (`.toml`); anything else (images, PDF, audio, video, archives) in the
-    /// preview.
-    init(path: String) {
-        let ext = (path as NSString).pathExtension.lowercased()
-        let type = UTType(filenameExtension: ext)
-        if ["md", "markdown", "mdx"].contains(ext) {
-            self = .markdown
-        } else if ext.isEmpty || type.map({ $0.isDynamic || $0.conforms(to: .text) }) ?? true {
-            self = .file
-        } else {
-            self = .preview
-        }
-    }
 }
 
 extension PaneLabel {
@@ -45,10 +31,15 @@ extension PaneLabel {
         PluginKind(rawValue: plugin)
     }
 
-    /// A diff's repo root and source: the last word, `uncommitted` or a commit hash.
+    /// A diff's repo root and source: the last word when it is `uncommitted` or a commit hash, else Uncommitted.
     var diff: (root: String, source: String) {
-        guard let space = arg.lastIndex(of: " ") else { return (arg, "uncommitted") }
-        return (String(arg[..<space]), String(arg[arg.index(after: space)...]))
+        if let space = arg.lastIndex(of: " ") {
+            let source = arg[arg.index(after: space)...]
+            if source == "uncommitted" || !source.isEmpty && source.allSatisfy(\.isHexDigit) {
+                return (String(arg[..<space]), String(source))
+            }
+        }
+        return (arg, "uncommitted")
     }
 
     /// The card's and the tab's title, from the label alone (menus ask for every tab's): the file's or the root's
@@ -58,7 +49,8 @@ extension PaneLabel {
             let source = diff.source
             return source == "uncommitted" ? "Changes" : String(source.prefix(7))
         }
-        return (arg as NSString).lastPathComponent
+        let name = (arg as NSString).lastPathComponent
+        return name.isEmpty ? kind?.name ?? plugin : name
     }
 
     /// The pane's command in herdr (ui/browser#in-herdrs-tui): the kind's name, the argument and "Shown in Oriel",
@@ -97,18 +89,16 @@ final class Plugin {
     var paneID: String
     /// Its arg changes with a rename from elsewhere or the card's own (a diff's source); its iid never does.
     var label: PaneLabel
-    @ObservationIgnored weak var store: HostStore?
     /// Unsaved edits: the dot after the title.
     var dirty = false
     var toast: Toast?
     /// The card is to take the keyboard, on the next turn (a first responder set during an update is undone).
     var wantsKeyboard = false
 
-    init(terminalID: String, paneID: String, label: PaneLabel, store: HostStore) {
+    init(terminalID: String, paneID: String, label: PaneLabel) {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
-        self.store = store
     }
 
     var kind: PluginKind {
