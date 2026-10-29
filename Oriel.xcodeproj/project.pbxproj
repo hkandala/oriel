@@ -11,6 +11,7 @@
 		5E1D7A3C9B2F4E6081A3C5D7 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = 6F2E8B4DAC305F7192B4D6E8 /* GhosttyTerminal */; };
 		8D4C2A6E1F3B5C7D9E0A1B2C /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = AF6E4C8A3B5D7E9F1A2C3D4E /* Markdown */; };
 		D5B2F3C4E5061728394A5B6C /* catalog.json in Resources */ = {isa = PBXBuildFile; fileRef = C4A1E2B3D4F5061728394A5B /* catalog.json */; };
+		7E44A1B2C3D4E5F60718293A /* web in Resources */ = {isa = PBXBuildFile; fileRef = 7E44A1B2C3D4E5F60718293B /* web */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,6 +25,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7E44A1B2C3D4E5F60718293B /* web */ = {isa = PBXFileReference; lastKnownFileType = folder; name = web; path = .build/web; sourceTree = "<group>"; };
 		C4A1E2B3D4F5061728394A5B /* catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = catalog.json; path = resources/icons/catalog.json; sourceTree = "<group>"; };
 		21288B51504EFA0EF1A20CCE /* Oriel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Oriel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		383C6A9484A91F97C24CC84E /* OrielUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OrielUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,6 +96,7 @@
 				23C2008A358C53916101BB13 /* Oriel */,
 				E5E33E2A6BF50261E7A42524 /* OrielUITests */,
 				C4A1E2B3D4F5061728394A5B /* catalog.json */,
+				7E44A1B2C3D4E5F60718293B /* web */,
 				108494E918F2B6D742A8C165 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -199,6 +202,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D5B2F3C4E5061728394A5B6C /* catalog.json in Resources */,
+				7E44A1B2C3D4E5F60718293A /* web in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

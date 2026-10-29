@@ -72,7 +72,8 @@ jobs:
         shard: ${{ fromJSON(inputs.only_testing && '[0]' || inputs.on_demand && '[0, 1, 2, 3]' || '[0, 1, 2, 3, 4]') }}
     steps:
       - uses: actions/checkout@v7
-      - run: brew install xcbeautify
+      # node: make web.
+      - run: brew install xcbeautify node
       - name: install herdr
         run: *install-herdr
       # The remote-host tests' machines.
