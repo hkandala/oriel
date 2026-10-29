@@ -53,6 +53,8 @@ struct ChatView: View {
                 .frame(maxWidth: Self.column)
                 .frame(maxWidth: .infinity)
             }
+            // The messages fade in under the header instead of being cut by it.
+            .fadeEdges(.vertical, start: 12, end: 0)
             .defaultScrollAnchor(.bottom)
             .defaultScrollAnchor(.bottom, for: .sizeChanges)
             .focusEffectDisabled()
