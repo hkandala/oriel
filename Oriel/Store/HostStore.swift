@@ -325,7 +325,7 @@ final class HostStore {
 let localExec = Task { await ProcessExec() }
 /// Checked once at launch, so the developer tools dialog never opens.
 /// ponytail: This Mac's check, for remote machines' git too; ask each machine when one lacks git.
-private let gitUsable = Task { await GitStatus.usable(exec: localExec.value) }
+let gitUsable = Task { await GitStatus.usable(exec: localExec.value) }
 
 /// Writes: each is one multiplexer action, then a snapshot read.
 extension HostStore {

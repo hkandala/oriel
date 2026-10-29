@@ -93,12 +93,11 @@ extension Browser {
               let url = Self.url(Self.shown(link, alias).absoluteString, local: !store.machine.isRemote)
         else { return false }
         approve(url)
-        let taken = Set(store.panes.compactMap { PaneLabel($0.label)?.iid })
-        let label = PaneLabel.browser(taken: taken, arg: url.absoluteString)
+        let label = store.newLabel(.browser, arg: url.absoluteString)
         Task {
             await store.write {
                 _ = try await $0.newTab(workspace: workspace.id, cwd: pane.cwd ?? "~", label: label.text,
-                                        command: Self.placeholder(label))
+                                        command: label.placeholder)
             }
         }
         return true

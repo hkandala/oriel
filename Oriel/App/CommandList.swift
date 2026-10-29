@@ -49,7 +49,7 @@ struct CommandList {
                     }),
             Command(section: .file, title: "Go to Directory…", key: .init("g", modifiers: [.command, .shift]),
                     group: .edit, symbol: "folder", keywords: "cd folder path navigate",
-                    enabled: page?.keyboardPane.map { $0.program?.isShell == true && $0.browser == nil } == true,
+                    enabled: page?.keyboardPane.map { $0.program?.isShell == true && $0.plugin == nil } == true,
                     action: {
                         Task { await page?.choosePath(directory: true) }
                     }),
@@ -88,7 +88,7 @@ struct CommandList {
                     }),
             Command(section: .close, title: "Close Window", symbol: "xmark") { NSApp.keyWindow?.performClose(nil) },
         ]
-        let find = page?.find, terminal = page?.keyboardPane.map { $0.browser == nil } == true
+        let find = page?.find, terminal = page?.keyboardPane.map { $0.plugin == nil } == true
         let browser = page?.keyboardPane.flatMap { page?.browser($0) }
         let edit = [
             Command(section: .edit, title: "Insert Path…", key: .init("i", modifiers: [.command, .shift]),

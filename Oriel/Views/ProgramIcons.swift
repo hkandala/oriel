@@ -25,8 +25,9 @@ struct ProgramTile: View {
     @Environment(\.displayScale) private var scale
 
     var body: some View {
-        // The globe (a browser pane) is no catalog icon: a generic tool's glyph, on the shell's tile.
-        let colors = programIcons.first { $0.id == (icon == "globe" ? "terminal" : icon) }?.tile
+        // A browser's or a plugin's symbol is no catalog icon: a generic tool's glyph, on the shell's tile.
+        let symbol = PluginKind.allCases.contains { $0.symbol == icon }
+        let colors = programIcons.first { $0.id == (symbol ? "terminal" : icon) }?.tile
         let shape = RoundedRectangle(cornerRadius: 5, style: .continuous)
         // The glyphs carry their own padding in a 24 pt box.
         ProgramMark(icon: icon, letter: letter, size: 17)
@@ -63,9 +64,9 @@ private struct ProgramMark: View {
         Group {
             if icon == "placeholder", let letter {
                 Text(letter).font(.system(size: size * 0.65, weight: .bold, design: .rounded))
-            } else if icon == "globe" {
-                // A browser pane's (ui/browser): the system's symbol, on the neutral tile.
-                Image(systemName: "globe").resizable().scaledToFit().padding(size * 0.12)
+            } else if PluginKind.allCases.contains(where: { $0.symbol == icon }) {
+                // A browser's or a plugin's (ui/browser): the system's symbol, on the neutral tile.
+                Image(systemName: icon).resizable().scaledToFit().padding(size * 0.12)
             } else {
                 Image("program.\(icon)").resizable()
             }

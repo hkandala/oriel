@@ -24,6 +24,8 @@ final class PaneViewRegistry {
     private var terminals: [String: PaneTerminal] = [:]
     /// Browser panes' cards (ui/browser), by terminal id as terminals are: a moved card keeps its page.
     private var browsers: [String: Browser] = [:]
+    /// The other plugin panes' cards, the same way.
+    private var plugins: [String: Plugin] = [:]
 
     /// The pane's terminal, made on first use.
     func terminal(_ terminalID: String, pane paneID: String, client: any Multiplexer) -> PaneTerminal {
@@ -60,15 +62,33 @@ final class PaneViewRegistry {
         return browser
     }
 
-    /// Cards whose label got another address from elsewhere load it (`Browser.follow`), at each snapshot.
+    /// The plugin pane's card, made on first use from its label.
+    func plugin(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String, store: HostStore) -> Plugin {
+        if let plugin = plugins[terminalID], plugin.label.iid == label.iid {
+            if plugin.paneID != pane.id {
+                plugin.paneID = pane.id
+            }
+            return plugin
+        }
+        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label, store: store)
+        plugins[terminalID] = plugin
+        return plugin
+    }
+
+    /// Cards whose label got another address from elsewhere load it (`Browser.follow`), at each snapshot; a plugin's
+    /// card takes its label's new argument.
     /// A card goes with its pane or its label (a rename that breaks it, another iid): its page, timers and proxy share
     /// stop with it.
     private func follow(_ alive: Set<String>) {
-        guard !browsers.isEmpty else { return }
+        guard !browsers.isEmpty || !plugins.isEmpty else { return }
         let labels = Dictionary((pages?.withFloats ?? []).flatMap(\.store.panes).compactMap { pane in
-            pane.terminalID.flatMap { id in pane.browser.map { (id, $0) } }
+            pane.terminalID.flatMap { id in pane.plugin.map { (id, $0) } }
         }, uniquingKeysWith: { first, _ in first })
         browsers = browsers.filter { alive.contains($0.key) && labels[$0.key]?.iid == $0.value.label.iid }
+        plugins = plugins.filter { alive.contains($0.key) && labels[$0.key]?.iid == $0.value.label.iid }
+        for (terminalID, plugin) in plugins where labels[terminalID] != plugin.label {
+            plugin.label = labels[terminalID] ?? plugin.label
+        }
         for (terminalID, browser) in browsers {
             if let label = labels[terminalID] {
                 browser.follow(label.arg)
@@ -146,6 +166,7 @@ final class PaneViewRegistry {
         }
         terminals[terminalID]?.view.takeKeyboard()
         browsers[terminalID]?.takeKeyboard()
+        plugins[terminalID]?.wantsKeyboard = true
     }
 
     /// Per window: a floating window's terminals keep their claims.

@@ -31,14 +31,17 @@ extension Page {
         WindowPages.openWindow?(id: "float", value: Floating(session: id, terminalID: terminalID))
     }
 
-    /// "New Pane" while it asks what it runs (as the card's header says), a browser's "Browser" and its page, an
-    /// agent's name and session title; nil for a terminal.
+    /// "New Pane" while it asks what it runs (as the card's header says), a browser's "Browser" and its page, a
+    /// plugin's kind and title, an agent's name and session title; nil for a terminal.
     func kindTitle(_ pane: HostStore.Pane) -> (name: String, detail: String?)? {
         if store.chooser(pane.id) != nil {
             return ("New Pane", nil)
         }
         if let label = pane.browser {
             return ("Browser", browserTitle(pane, label))
+        }
+        if let label = pane.plugin, let kind = label.kind {
+            return (kind.name, label.title)
         }
         return pane.agentTitle.map { (pane.agentLabel ?? "", $0) }
     }
@@ -182,7 +185,8 @@ struct FloatingWindow: View {
 
     private func content(_ pages: WindowPages, _ page: Page, _ pane: HostStore.Pane?) -> some View {
         let terminal = pane.flatMap(page.terminal), chooser = pane.flatMap { page.store.chooser($0.id) }
-        let browser = pane.flatMap(page.browser), chat = chooser == nil ? pane.flatMap(page.chat) : nil
+        let browser = pane.flatMap(page.browser), plugin = pane.flatMap(page.plugin)
+        let chat = chooser == nil ? pane.flatMap(page.chat) : nil
         let commands = CommandList(pages: pages, palette: $palette, settings: settings,
                                    floating: floating)
         return VStack(spacing: 0) {
@@ -191,6 +195,8 @@ struct FloatingWindow: View {
             ZStack {
                 if let browser {
                     FloatingBrowser(browser: browser, page: page)
+                } else if let plugin {
+                    FloatingPlugin(plugin: plugin, page: page)
                 } else if let chat, chat.showsChat {
                     ChatView(chat: chat, page: page, terminal: terminal)
                 } else if let terminal {
@@ -375,6 +381,9 @@ private struct PaneInfo: View {
             Group {
                 if let (name, detail) = page.kindTitle(pane) {
                     Text("\(name)\(Text(detail.map { " \($0)" } ?? "").foregroundStyle(.secondary))").lineLimit(1)
+                    if page.plugin(pane)?.dirty == true {
+                        DirtyDot(paneID: pane.id)
+                    }
                 } else {
                     PaneTitle(pane: pane)
                 }
