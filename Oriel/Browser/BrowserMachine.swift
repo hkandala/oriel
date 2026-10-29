@@ -88,7 +88,6 @@ extension Browser {
         UserDefaults.standard.set(Array((approvals + [Self.origin(url)]).suffix(200)), forKey: approvalsKey)
     }
 
-    /// Per device, per machine.
     private var approvalsKey: String {
         "browserApprovals.\(store?.machine.id ?? "")"
     }
@@ -141,7 +140,7 @@ extension Browser {
         return ssh
     }
 
-    /// Every spelling of loopback WebKit loads without a proxy (`127.1`, `localhost.`, `[::ffff:7f00:1]`, checked);
+    /// Every spelling of loopback WebKit loads without a proxy (`127.1`, `localhost.`, `[::ffff:7f00:1]`);
     /// `<name>.localhost` goes on to the proxy. Content rules have no alternation: one rule each.
     private static let noLoopback = Task { @MainActor in
         // Regexes in JSON strings: each backslash twice.
@@ -157,7 +156,7 @@ extension Browser {
     }
 
     /// A failed load in the app's words, and the line under it. The proxy refuses a port that does not answer and a
-    /// name the machine cannot reach; WebKit reports either code for it (checked).
+    /// name the machine cannot reach; WebKit reports either code for it.
     func failureText(_ error: NSError, _ url: URL?) -> (text: String, hint: String?) {
         let place = url.map { [$0.host, $0.port.map(String.init)].compactMap(\.self).joined(separator: ":") } ?? ""
         let local = url?.host.map { Self.loopback.contains($0) } ?? false

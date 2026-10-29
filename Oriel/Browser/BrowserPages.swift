@@ -63,8 +63,7 @@ extension Browser: WKUIDelegate {
 }
 
 extension Browser {
-    /// The page's icon after each load: its `<link rel=icon>`, else `/favicon.ico`; nil (the globe) when it does not
-    /// load. WebKit has no favicon API: the page fetches it, so its proxy, its rules and CORS apply as to any fetch.
+    /// WebKit has no favicon API: the page fetches its icon, so its proxy, its rules and CORS apply as to any fetch.
     func loadIcon() {
         let page = view.url
         Task {

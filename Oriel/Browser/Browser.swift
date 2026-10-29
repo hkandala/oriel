@@ -3,9 +3,8 @@ import HerdrKit
 import Observation
 import WebKit
 
-/// A browser pane's card (ui/browser): its web view and what the toolbar shows. Built from the label once; an
-/// open card then loads another address in its label (`follow`). The registry keeps it, so a tab shown again does
-/// not reload it.
+/// A browser pane's card (ui/browser): its web view and what the toolbar shows. Built once from the label; the
+/// registry keeps it, so a tab shown again does not reload it.
 @MainActor @Observable
 final class Browser: NSObject {
     let terminalID: String
@@ -13,10 +12,10 @@ final class Browser: NSObject {
     let label: PaneLabel
     @ObservationIgnored weak var store: HostStore?
     @ObservationIgnored let view: BrowserView
-    /// The page's address, as the address field shows it when not editing; empty before the first load.
+    /// As the address field shows it when not editing; empty before the first load.
     private(set) var address = ""
     private(set) var title = ""
-    /// The page's icon for the header, the globe while nil, and where it came from (`loadIcon`).
+    /// The page's icon and where it came from; nil: the globe.
     var icon: (href: String, image: NSImage?)?
     private(set) var loading = false
     private(set) var progress = 0.0
@@ -24,26 +23,23 @@ final class Browser: NSObject {
     private(set) var canGoForward = false
     /// A failed load, in the app's words, and the line under it.
     private(set) var failure: (text: String, hint: String?)?
-    /// A page the machine put in the label or the state file, from an origin not approved: "Open ‹url›?".
+    /// A page from an origin not approved, which the machine put in the label or the state file: "Open ‹url›?".
     private(set) var asking: URL?
-    /// The web view has shown a page: until then it stays hidden (an empty one draws white), under the globe and the
-    /// progress line.
+    /// The web view has shown a page; until then it stays hidden (an empty one draws white).
     private(set) var loaded = false
     /// The loader shows until the first page drew, or at once with nothing to load.
     private(set) var ready = false
-    /// A `window.open` page (OAuth needs its opener) in a sheet over the card, until it closes.
+    /// A `window.open` page (OAuth needs its opener) over the card, and its host.
     var popup: WKWebView?
-    /// Its address's host, its title.
     var popupHost = ""
     /// The address field takes the keyboard when it shows, or now (⌘L, a new empty card).
     var wantsAddress = false
     /// The pane got the keyboard while the state file was read: given once the address is known.
     @ObservationIgnored private var claimed = false
     @ObservationIgnored private var reading = true
-    /// The label's address the card follows: the label it was built from or this card's last rename. Another
-    /// address in the label (an agent's rename) loads in the card (`follow`).
+    /// The label's address this card follows (`follow`): the one it was built from or its last rename; and the one
+    /// that rename replaced, which a snapshot read before the rename still has.
     @ObservationIgnored private var labelled: String
-    /// The address this card's last rename replaced: a snapshot read before the rename still has it.
     @ObservationIgnored private var replaced: String?
     /// The saved back and forward list (WebKit's `interactionState`), restored with the saved page.
     @ObservationIgnored private var history: Data?
@@ -60,9 +56,8 @@ final class Browser: NSObject {
         self.paneID = paneID
         self.label = label
         labelled = label.arg
-        // A new pane (no address yet) has no state file: its address field takes the keyboard at once. A claim held
-        // across the read would be dropped when AppKit gives the keyboard to another card as the replaced pane's view
-        // leaves.
+        // A new pane has no state file to read: its address field takes the keyboard at once (a claim held across a
+        // read is lost when the replaced pane's view leaves).
         reading = !label.arg.isEmpty
         self.store = store
         let machine = store.machine
@@ -72,7 +67,7 @@ final class Browser: NSObject {
         configuration.websiteDataStore = data
         // Sites that sniff for Safari work.
         configuration.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15"
-        // `_inspector show` opens nothing without it (checked).
+        // `_inspector show` opens nothing without it.
         configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
         view = BrowserView(frame: .zero, configuration: configuration)
         super.init()
@@ -92,34 +87,29 @@ final class Browser: NSObject {
 
     /// The toolbar's values, by KVO on the main thread, where WebKit changes them.
     private func watch() -> [NSKeyValueObservation] {
-        [
-            view
-                .observe(\.isLoading) { [weak self] view, _ in
-                    MainActor.assumeIsolated { self?.loading = view.isLoading }
-                },
-            view.observe(\.estimatedProgress) { [weak self] view, _ in
-                MainActor.assumeIsolated { self?.progress = view.estimatedProgress }
-            },
-            view
-                .observe(\.canGoBack) { [weak self] view, _ in
-                    MainActor.assumeIsolated { self?.canGoBack = view.canGoBack }
-                },
-            view.observe(\.canGoForward) { [weak self] view, _ in
-                MainActor.assumeIsolated { self?.canGoForward = view.canGoForward }
-            },
-            view
-                .observe(\.title) { [weak self] view, _ in
-                    MainActor.assumeIsolated { self?.title = view.title ?? "" }
-                },
-            view.observe(\.url) { [weak self] view, _ in
+        func mirror(_ path: KeyPath<BrowserView, some Any>,
+                    _ update: @escaping @MainActor (Browser) -> Void) -> NSKeyValueObservation
+        {
+            view.observe(path) { [weak self] _, _ in
                 MainActor.assumeIsolated {
-                    if let self, let url = view.url, url.absoluteString != "about:blank" {
-                        self.address = Self.shown(url, self.alias).absoluteString
-                        // A single-page app's route (`pushState`) finishes no navigation.
-                        if self.loaded {
-                            self.save()
-                        }
+                    if let self {
+                        update(self)
                     }
+                }
+            }
+        }
+        return [
+            mirror(\.isLoading) { $0.loading = $0.view.isLoading },
+            mirror(\.estimatedProgress) { $0.progress = $0.view.estimatedProgress },
+            mirror(\.canGoBack) { $0.canGoBack = $0.view.canGoBack },
+            mirror(\.canGoForward) { $0.canGoForward = $0.view.canGoForward },
+            mirror(\.title) { $0.title = $0.view.title ?? "" },
+            mirror(\.url) { browser in
+                guard let url = browser.view.url, url.absoluteString != "about:blank" else { return }
+                browser.address = Self.shown(url, browser.alias).absoluteString
+                // A single-page app's route (`pushState`) finishes no navigation.
+                if browser.loaded {
+                    browser.save()
                 }
             },
         ]
@@ -154,7 +144,7 @@ final class Browser: NSObject {
         }
     }
 
-    /// The address field's Return: a bare `host:port` gets `http://`. The label gets the typed address.
+    /// The address field's Return; the label gets the typed address.
     func go(_ text: String) {
         guard let store, let url = Self.url(text, local: !store.machine.isRemote) else { return }
         asking = nil
@@ -281,9 +271,8 @@ final class Browser: NSObject {
         }
     }
 
-    /// WebKit's Web Inspector for this page, docked under it as Inspect Element opens it; its own control moves it to
-    /// a window. No public API shows it: `_WKInspector` (cmux ships it); Safari's Develop menu reaches every card too
-    /// (`isInspectable`).
+    /// Web Inspector, docked under the page; its own control moves it to a window. No public API shows it:
+    /// `_WKInspector` (cmux ships it).
     func showInspector() {
         let inspector = NSSelectorFromString("_inspector"), show = NSSelectorFromString("show")
         guard view.responds(to: inspector), let object = view.perform(inspector)?.takeUnretainedValue() as? NSObject,
@@ -300,10 +289,6 @@ final class Browser: NSObject {
         if let proxy {
             Task { await proxy.value?.closeProxy() }
         }
-    }
-
-    func closePopup() {
-        popup = nil
     }
 
     /// The address after a navigation, on the pane's machine, 500 ms after the last one; last writer wins.
@@ -366,8 +351,8 @@ extension Browser: WKNavigationDelegate {
 
     /// A `mailto:` or an app's link clicked in the page goes to its app; the page stays. Never from script or a frame.
     func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
-        // A remote page's link or redirect to `localhost` means its machine's.
-        // Its request as it is: an OAuth `form_post` keeps its body. The content rule blocks the rest (`proxy`).
+        // A remote page's link or redirect to `localhost` means its machine's, sent as it is (an OAuth `form_post`
+        // keeps its body). The content rule blocks the rest (`proxy`).
         if alias != nil, action.targetFrame?.isMainFrame == true, let url = action.request.url,
            Self.loopback.contains(url.host?.lowercased() ?? "")
         {

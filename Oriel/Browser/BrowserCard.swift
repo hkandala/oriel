@@ -9,8 +9,8 @@ extension Page {
         return terminals.browser(pane, label, terminalID: terminalID, store: store)
     }
 
-    /// A browser pane's page: its title, else its host, else its address; nil before it has one. Made no card: menus
-    /// ask for every tab's title.
+    /// A browser pane's page: its title, else its host, else its address; nil before it has one. Builds no card:
+    /// menus ask for every tab's title.
     func browserTitle(_ pane: HostStore.Pane, _ label: PaneLabel) -> String? {
         let browser = pane.terminalID.flatMap(terminals.built)
         let address = browser?.address ?? label.arg
@@ -44,7 +44,6 @@ struct BrowserCard: View {
         WebHost(view: browser.view)
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .padding([.horizontal, .bottom], 6)
-            // An empty web view draws white: hidden until it has a page.
             .opacity(browser.ready && browser.failure == nil && browser.asking == nil && browser.loaded ? 1 : 0)
             .overlay(alignment: .top) {
                 if browser.loading {
@@ -60,7 +59,6 @@ struct BrowserCard: View {
                 } else if !browser.ready {
                     BrowserLoader()
                 } else if !browser.loaded {
-                    // No page yet: the kind's symbol; a click gives the address field the keyboard.
                     Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(.rect)
                         .onTapGesture { browser.wantsAddress = true }
@@ -69,7 +67,7 @@ struct BrowserCard: View {
             }
             .overlay {
                 if let popup = browser.popup {
-                    Popup(view: popup, title: browser.popupHost, close: browser.closePopup).padding(24)
+                    Popup(view: popup, title: browser.popupHost, close: { browser.popup = nil }).padding(24)
                 }
             }
             .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: browser.ready)
@@ -77,7 +75,6 @@ struct BrowserCard: View {
             .accessibilityIdentifier("browser.\(browser.paneID).card")
     }
 
-    /// A load that failed, in the app's words, and Reload.
     private func failed(_ text: String, hint: String?) -> some View {
         VStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle").font(.system(size: 28)).foregroundStyle(.secondary)
@@ -121,7 +118,7 @@ private struct Asking: View {
     }
 }
 
-/// While a browser card is built: the `globe` symbol, and under it a spinner left of "Opening Browser…".
+/// While a browser card is built.
 struct BrowserLoader: View {
     var body: some View {
         VStack(spacing: 12) {
@@ -137,7 +134,7 @@ struct BrowserLoader: View {
     }
 }
 
-/// A `window.open` page over the card, with its title and a close button; `window.close()` closes it too.
+/// A `window.open` page over the card; `window.close()` closes it too.
 private struct Popup: View {
     let view: WKWebView
     let title: String
@@ -177,8 +174,7 @@ private struct WebHost: NSViewRepresentable {
     func updateNSView(_: NSView, context _: Context) {}
 }
 
-/// The card header's second row: Back, Forward, Reload or Stop, and the address field, which takes the free width;
-/// then Web Inspector.
+/// The card header's second row.
 struct BrowserToolbar: View {
     let browser: Browser
     let page: Page
@@ -189,7 +185,7 @@ struct BrowserToolbar: View {
 
     var body: some View {
         let id = "browser.\(browser.paneID)"
-        // The card buttons' one color; a button that cannot act dims as any disabled card button.
+        // A disabled button dims through its style alone, as the card's other buttons.
         HStack(spacing: 6) {
             HStack(spacing: 0) {
                 IconButton(symbol: "chevron.left", help: "Back", size: 22) { browser.view.goBack() }
@@ -198,10 +194,12 @@ struct BrowserToolbar: View {
                 IconButton(symbol: "chevron.right", help: "Forward", size: 22) { browser.view.goForward() }
                     .disabled(!browser.canGoForward)
                     .accessibilityIdentifier("\(id).forward")
-                IconButton(symbol: browser.loading ? "xmark" : "arrow.clockwise", help: browser.loading ? "Stop"
-                    : "Reload", size: 22) { browser.loading ? browser.view.stopLoading() : browser.reload() }
-                    .disabled(!browser.loaded)
-                    .accessibilityIdentifier("\(id).reload")
+                let loading = browser.loading
+                IconButton(symbol: loading ? "xmark" : "arrow.clockwise", help: loading ? "Stop" : "Reload", size: 22) {
+                    browser.loading ? browser.view.stopLoading() : browser.reload()
+                }
+                .disabled(!browser.loaded)
+                .accessibilityIdentifier("\(id).reload")
             }
             .foregroundStyle(look.paneButton)
             address(id)
@@ -213,8 +211,8 @@ struct BrowserToolbar: View {
         }
     }
 
-    /// A capsule: the host in full and the rest at half while not editing; a click or ⌘L selects it all. Return
-    /// loads, Esc puts the address back; both give the keyboard to the page.
+    /// The host in full and the rest at half while not editing; a click or ⌘L selects it all. Return and Esc give the
+    /// keyboard to the page.
     private func address(_ id: String) -> some View {
         TextField("Enter a URL", text: $text)
             .textFieldStyle(.plain)
@@ -226,7 +224,6 @@ struct BrowserToolbar: View {
             // opacity 0.
             .foregroundStyle(editing ? AnyShapeStyle(.primary) : AnyShapeStyle(.clear))
             .overlay(alignment: .leading) {
-                // A click selects the address, as ⌘L does.
                 if !editing {
                     shown.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading).contentShape(.rect)
                         .onTapGesture { editing = true }
@@ -241,7 +238,6 @@ struct BrowserToolbar: View {
             .padding(.leading, 10)
             .padding(.trailing, browser.alias == nil ? 10 : 4)
             .frame(minWidth: 120, maxWidth: .infinity, minHeight: 26, maxHeight: 26)
-            // A click puts the caret in it: the text cursor, and a little more fill, on hover.
             .background(Capsule().fill(.primary.opacity(hovering && !editing ? 0.1 : 0.06)))
             .pointerStyle(.horizontalText).onHover { hovering = $0 }
             .overlay {
@@ -265,9 +261,8 @@ struct BrowserToolbar: View {
                     return
                 }
                 page.tookKeyboard(browser.terminalID)
-                // Selected whole, after the field took the keyboard.
-                // To the field's editor only: sent to the first responder, a web view that took the keyboard meanwhile
-                // selected its whole page (a floated card).
+                // Selected whole once the field has the keyboard, in its editor only: a web view that took the keyboard
+                // meanwhile would select its whole page.
                 DispatchQueue.main.async { (NSApp.keyWindow?.firstResponder as? NSText)?.selectAll(nil) }
             }
             .onChange(of: browser.wantsAddress, initial: true) {
@@ -295,9 +290,8 @@ struct BrowserToolbar: View {
         }
     }
 
-    /// The address, or the prompt while there is none.
+    /// The address, or the prompt: the field's own is hidden with its text.
     private var shown: some View {
-        // The field's own prompt is hidden with its text.
         Group {
             if browser.address.isEmpty {
                 Text("Enter a URL").foregroundStyle(.tertiary)
