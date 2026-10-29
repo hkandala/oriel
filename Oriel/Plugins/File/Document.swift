@@ -41,13 +41,16 @@ extension WebCard {
         }
     }
 
-    /// While the card shows (`PluginCard`), so a remote machine is asked every 2 s only then: the Files plugin's page
-    /// lists again; a file that changed reloads when clean, and a dirty one gets the toast. A change while the card
+    /// While the card shows (`PluginCard`), so a remote machine is asked every 2 s only then: the Files and Diff pages
+    /// ask again; a file that changed reloads when clean, and a dirty one gets the toast. A change while the card
     /// was hidden shows when it comes back.
     func watch() async {
-        guard ["file", "markdown", "preview", "files"].contains(kind), let store else { return }
-        let changes = await Files.watch(arg, exec: store.machine.exec())
-        if kind == "files" {
+        guard let store else { return }
+        // A diff of the uncommitted changes follows its work tree; a commit's never changes.
+        let (root, source) = PaneLabel(plugin: kind, iid: "", arg: arg).diff
+        guard kind != "diff" || source == "uncommitted" else { return }
+        let changes = await Files.watch(kind == "diff" ? root : arg, exec: store.machine.exec())
+        if kind == "files" || kind == "diff" {
             // What changed while the card was hidden.
             send(["op": "changed"])
             for await _ in changes {

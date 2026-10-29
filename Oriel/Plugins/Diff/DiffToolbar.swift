@@ -59,14 +59,6 @@ struct DiffToolbar: View {
             }
             .foregroundStyle(look.paneButton)
         }
-        // Uncommitted follows the work tree while the card shows; a commit never changes.
-        .task(id: plugin.label.arg) {
-            guard source == "uncommitted" else { return }
-            let exec = await page.store.machine.exec()
-            for await _ in Files.watch(root, exec: exec) {
-                web.send(["op": "changed"])
-            }
-        }
         .task(id: root) {
             let usable = await gitUsable.value
             guard page.store.machine.isRemote || usable else { return }
