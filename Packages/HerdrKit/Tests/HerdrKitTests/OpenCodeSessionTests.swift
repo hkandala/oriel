@@ -31,6 +31,7 @@ private func tools(_ history: ChatHistory) -> [ChatTool] {
     let tools = tools(history)
     #expect(tools.map(\.name) == ["bash", "question", "read", "edit", "bash"])
     #expect(tools[0].target == "echo hi-oriel" && tools[0].result == "hi-oriel" && tools[0].category == .command)
+    #expect(tools[0].input.hasPrefix("command: echo hi-oriel") && tools[0].output == "hi-oriel", "\(tools[0].input)")
     #expect(tools[1].target == "Which color do you like?")
     #expect(tools[2].target == "a.txt" && tools[2].result == "1 line")
     #expect(tools[3].target == "a.txt" && tools[3].result == "+1 -1")

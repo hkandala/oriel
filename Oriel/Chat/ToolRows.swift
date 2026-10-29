@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 /// A run of tool calls as one quiet line (ui/chat-view#detail-levels), so the replies stand out: its header (the
-/// turn's quiet line, or the run's summary), a chevron and the time; open, a row per call under it, each of which opens
+/// turn's quiet line, or the run's summary and time) and a chevron; open, a row per call under it, each of which opens
 /// on its own to its input and output.
 struct ToolStack<Header: View>: View {
     let tools: [ChatTool]
@@ -25,9 +25,6 @@ struct ToolStack<Header: View>: View {
                         Text(running.target).foregroundStyle(.tertiary).lineLimit(1).truncationMode(.middle)
                     }
                     Spacer(minLength: 4)
-                    if running == nil {
-                        Time(start: tools.first?.started, end: tools.last?.ended)
-                    }
                 }
                 .padding(.horizontal, 6).frame(height: 24)
             }
@@ -143,7 +140,7 @@ private struct Chevron: View {
 }
 
 /// How long it took, from a second on.
-private struct Time: View {
+struct Time: View {
     let start: Date?
     let end: Date?
 

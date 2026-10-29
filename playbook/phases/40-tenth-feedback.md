@@ -121,4 +121,11 @@ agent    row 1: Session title ·························
   it (Claude's `claude-opus-5-5` reads "Opus 5.5", others raw) and `· effort` when track B gives one, and a 22 pt
   round Send or Stop at the right.
 - **Cause (13):** only the reply box took clicks. **Fix:** a simultaneous tap on the whole message list gives the
-  reply box (and so the card) the keyboard, also on a reply's text; buttons and links act as well.
+  reply box (and so the card) the keyboard, also on a reply's text and around the box; while the drawer shows, its
+  terminal. Buttons and links act as well. A double or triple click, a ⇧-click or a ⌃-click leaves the keyboard where
+  it is, so a selected word can be copied.
+- **Decisions:** `ChatRow` and the rows logic moved out of HerdrKit's `ChatHistory.swift` (near the 400-line limit
+  before track B's `effort`). A list marker wider than 12 pt (`10.`) pushes that item's first line a little right
+  of its later paragraphs; left as is.
+- **For the user:** a long tool output scrolls inside its 180 pt box under the wheel, then the chat scrolls; check
+  the feel with a real agent. Check the model line with Claude Code, Codex and OpenCode once track B lands.

@@ -53,14 +53,6 @@ struct ChatView: View {
                 .frame(maxWidth: Self.column)
                 .frame(maxWidth: .infinity)
             }
-            // A click anywhere, on text too, gives the reply box (and the card) the keyboard; a button's or a link's
-            // click acts as well. Not a double or triple click or a ⇧-click, which select text: Copy needs it to stay.
-            .contentShape(.rect)
-            .simultaneousGesture(TapGesture().onEnded {
-                if let event = NSApp.currentEvent, event.clickCount < 2, !event.modifierFlags.contains(.shift) {
-                    composing = true
-                }
-            })
             .defaultScrollAnchor(.bottom)
             .defaultScrollAnchor(.bottom, for: .sizeChanges)
             .focusEffectDisabled()
@@ -69,6 +61,19 @@ struct ChatView: View {
             bottom.padding(.horizontal, 32).padding(.bottom, 14).padding(.top, 4)
                 .frame(maxWidth: Self.column).frame(maxWidth: .infinity)
         }
+        // A click anywhere, on text too, gives the card the keyboard: the reply box, or the drawer's terminal. A
+        // button's or a link's click acts as well. Not a double or triple click or a ⇧-click, which select text (Copy
+        // needs it to stay), nor a ⌃-click, which opens the menu.
+        .contentShape(.rect)
+        .simultaneousGesture(TapGesture().onEnded {
+            guard let event = NSApp.currentEvent, event.clickCount < 2,
+                  event.modifierFlags.isDisjoint(with: [.shift, .control]) else { return }
+            if !chat.drawer {
+                composing = true
+            } else if let terminalID = page.store.pane(id)?.terminalID {
+                page.terminals.focus(terminalID)
+            }
+        })
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
         .task(id: ObjectIdentifier(chat)) { await chat.viewed() }
         // An answered question goes once the agent goes on (herdr's status; the adapter clears its own).

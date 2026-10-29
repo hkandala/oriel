@@ -80,7 +80,7 @@ public enum CodexRollout {
         let duration = item["duration"] as? [String: Any]
         let seconds = (duration?["secs"] as? Double ?? 0) + (duration?["nanos"] as? Double ?? 0) / 1e9
         var tool = ChatTool(id: id, name: path == nil ? "bash" : "read", category: path == nil ? .command : .read,
-                            target: path ?? ChatHistory.firstLine(script), input: script,
+                            target: path ?? ChatHistory.firstLine(script), input: ChatHistory.detail(script),
                             started: time?.addingTimeInterval(-seconds))
         let exit = item["exit_code"] as? Int, status = item["status"] as? String
         tool.failed = exit.map { $0 != 0 } ?? false || ["failed", "declined"].contains(status)

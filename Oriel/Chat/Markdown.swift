@@ -32,10 +32,7 @@ struct Markdown: View {
                     content(block)
                 }
                 // Under its list's bullets; a list item's later paragraph also under the item's text.
-                .padding(
-                    .leading,
-                    CGFloat(max(0, block.depth - 1)) * 18 + (block.depth > 0 && block.marker == nil ? 18 : 0),
-                )
+                .padding(.leading, CGFloat(max(0, block.depth - (block.marker == nil ? 0 : 1))) * 18)
                 .padding(.top, index == 0 ? 0 : Self.space(blocks[index - 1], block))
             }
         }
@@ -95,29 +92,22 @@ struct Markdown: View {
             interpretedSyntax: .full, failurePolicy: .returnPartiallyParsedIfPossible,
         )) else { return [Block(kind: .text, text: AttributedString(text))] }
         var blocks: [Block] = []
-        var last: Int?, lastItem: Int?
+        var last: Int?, items: Set<Int> = []
         for run in parsed.runs {
             let components = run.presentationIntent?.components ?? []
             let identity = components.first?.identity
             var piece = AttributedString(parsed[run.range])
             piece.presentationIntent = nil
-            if identity == last, identity != nil, let block = blocks.popLast() {
-                blocks.append(Block(
-                    kind: block.kind,
-                    text: block.text + piece,
-                    marker: block.marker,
-                    depth: block.depth,
-                ))
+            if identity == last, identity != nil, !blocks.isEmpty {
+                blocks[blocks.count - 1].text += piece
                 continue
             }
             last = identity
             var block = block(components.map(\.kind), piece)
             // A list item's later paragraphs line up under its first, with no bullet of their own.
-            let item = components.first { $0.kind.isListItem }?.identity
-            if item != nil, item == lastItem {
+            if let item = components.first(where: { $0.kind.isListItem })?.identity, !items.insert(item).inserted {
                 block.marker = nil
             }
-            lastItem = item
             blocks.append(block)
         }
         return blocks.map { block in
@@ -145,7 +135,8 @@ struct Markdown: View {
             switch component {
             case .codeBlock where kind == .text: kind = .code
             case let .header(level) where kind == .text: kind = .heading(level)
-            case .blockQuote where kind == .text: kind = .quote
+            // A quote keeps its bar around a heading too.
+            case .blockQuote where kind != .code: kind = .quote
             case let .listItem(ordinal) where marker == nil:
                 // The list that holds this item, the next component out.
                 marker = kinds.dropFirst(index + 1)

@@ -37,6 +37,7 @@ struct ChatRowView: View, Equatable {
                     WorkingDots()
                 }
                 Text(ChatTool.summary(tools)).foregroundStyle(.secondary)
+                Time(start: tools.first?.started, end: tools.last?.ended)
             }
         case let .todos(_, todos): Plan(todos: todos)
         case let .note(_, text, failed):

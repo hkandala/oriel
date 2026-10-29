@@ -29,6 +29,7 @@ private func history() throws -> ChatHistory {
     let tools = history.entries.compactMap(\.tool)
     #expect(tools.allSatisfy { $0.result != nil && $0.ended != nil })
     #expect(tools.first?.target == "echo spike-ok" && tools.first?.result == "spike-ok")
+    #expect(tools.first?.input == "echo spike-ok" && tools.first?.output == "spike-ok")
     let edits = tools.filter { $0.category == .edit }
     #expect(edits.map(\.result) == ["+2", "+1 -1"])
     #expect(edits[1].diff.map { "\($0.mark)\($0.number) \($0.text)" } == [" 1 alpha", "-2 beta", "+2 gamma"])
