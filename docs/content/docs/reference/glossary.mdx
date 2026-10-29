@@ -18,15 +18,17 @@ description: "The words these docs use"
 | strip / tab page | the main area that pages sideways / one tab's page in it |
 | tab capsule | one tab in the tab bar |
 | lit tab | a tab whose page is visible in the strip |
-| pane card | how the app draws one herdr pane: a header plus content |
+| pane card | how the app draws one herdr pane: a header plus content. A browser's or an agent's header has a second row for its kind's controls |
 | chooser | the list a new pane shows first: Terminal, Agent or Browser |
 | browser pane | a herdr pane labeled `oriel:browser#<iid> <url>`, which the app draws as a web page |
 | chat view | an agent pane drawn as messages with a reply box, for agents Oriel started with its flags |
+| Enable Chat | the button that starts an agent running without Oriel's flags again with them, in the same session |
+| session title | the name an agent keeps for its session (Claude Code, Codex and OpenCode make one; pi's `/name` sets one), shown as the agent pane's name unless the pane has a herdr label |
 | launch line / marker | the command and flags the chooser types to start an agent with a chat / the part of it (a UUID in an argument) by which the app knows the pane again |
 | adapter | one agent's side of the chat view: its launch line, marker, followers, Stop keys and answers (`ChatAdapter`) |
 | side files | the hooks' and plugins' small files under `~/.cache/oriel/` on the pane's machine |
 | pi-oriel | the small pi extension that ships inside Oriel and reports pi's session, tree moves, dialogs and phase |
-| detail level | how much of a turn the chat shows: Replies, Steps or All |
+| detail level | how much of a turn the chat shows: Replies, Steps or All, picked in the header's Show pull-down |
 | live terminal (drawer) | the pane's terminal at the bottom of a chat card while the agent asks something the chat cannot answer |
 | iid | a browser or plugin pane's instance id: 6 characters of `[a-z0-9]` in its label, which name its state file |
 | placeholder | the small script a browser or plugin pane runs in herdr, so herdr's TUI shows what the pane is |

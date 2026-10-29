@@ -18,7 +18,7 @@ One rule decides where each new thing goes (D57):
 | Workspaces, tabs, panes, order, labels (a browser pane's kind, iid and typed address: [The label](/docs/ui/browser#the-label)) | herdr | `session.snapshot` |
 | Split tree and ratios | herdr | `snapshot.layouts[]` |
 | Terminal content and PTY | herdr | `terminal session` frames |
-| Agent kind, status, `completion_seq` | herdr | `agents[]`, `panes[]` |
+| Agent kind, status, `completion_seq`, session (`agent_session`) | herdr | `agents[]`, `panes[]` |
 | A machine's sessions | herdr | `herdr session list --json`, run on the machine |
 | Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults`, JSON under `machines` |
 | Settings: appearance, interface style, text size and Focus Follows Mouse ([Settings](/docs/ui/settings)); the chat's detail level (`chatLevel`); the Agents view's folded groups (`agentsFolded`); a floating pane's window frame, per pane | app, disk | app storage (`UserDefaults`) |
@@ -32,6 +32,7 @@ One rule decides where each new thing goes (D57):
 | A chat per agent pane, by terminal id: its history, marks (how far each file was read), draft, messages on their way, and Chat or Terminal | app, per device | memory, on the session's `HostStore` ([Chat view](/docs/ui/chat-view)) |
 | A chat's side files: hooks and state lines, OpenCode's password, pi-oriel, OpenCode's plugin | the pane's machine | `~/.cache/oriel/` ([Side files](/docs/ui/chat-view#side-files)); files untouched for 30 days go |
 | An agent's transcript, session record and server | the agent | its own files and server on the pane's machine |
+| An agent session's title | the agent; the app keeps the last one read per pane in memory | the agent's own files on the pane's machine ([Session titles](/docs/ui/chat-view#session-titles)) |
 | ControlMaster sockets | app | `~/Library/Caches/oriel/`, while running |
 
 <Callout title="Nothing the app saves describes herdr's state">

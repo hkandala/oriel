@@ -211,6 +211,9 @@ below. Everything else goes to the agent's own files, on its machine.
   marker there ([Launch flags](/docs/ui/chat-view#launch-flags)), asked at
   the times on [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr).
   The app writes no herdr state for a chat.
+- **The session.** Each pane's `agent_session` in the snapshot names its
+  agent's session, for [Session titles](/docs/ui/chat-view#session-titles)
+  and [Enable Chat](/docs/ui/chat-view#enable-chat).
 - **Send** is `agent.prompt {target, text}`. herdr refuses it ("no longer the
   pane foreground process") unless a foreground process has the agent's
   name, and while herdr reports the agent blocked (pi-oriel reports pi's
@@ -498,6 +501,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Send in a chat | `agent.prompt {target: pane_id, text}`, only while the agent is ready or working ([Sending and stopping](/docs/ui/chat-view#sending-and-stopping)) |
 | Stop in a chat | `pane.send_keys {pane_id, keys: ["escape"]}` (OpenCode: twice), only while the agent works |
 | Chat text that starts with `/` | `pane.send_input` of the text, with no Return; the card shows its terminal |
+| Enable Chat | while the agent works or waits, `pane.send_keys` of its Stop keys; `pane.send_keys {keys: ["ctrl+c"]}`; `pane.send_input` of its quit command and Return; `pane.process_info` and `pane.get` until only the shell runs and herdr reports no agent (10 s at most); then `pane.send_input` of the launch line with the resume arguments, and the loader's calls ([Enable Chat](/docs/ui/chat-view#enable-chat)) |
 | Browser in the chooser, Open Browser Here | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid>", command}}` (a new tab with the labeled placeholder pane, never a `tab_id`), then `pane.move` beside the old pane and `pane.close` of the old one; a failed move closes the new pane ([Create](/docs/ui/browser#create)) |
 | An address typed in a browser card | `pane.rename {pane_id, label:"oriel:browser#<iid> <url>"}` |
 | Close a tab | `tab.close`; asks first only when a pane of it runs more than its shell (`pane.process_info` of each pane, at once), naming what runs, with the pane count |

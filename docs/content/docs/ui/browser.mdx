@@ -72,20 +72,29 @@ with its label, and the card works the same
 The card sits in herdr's split like any card, for example beside the dev
 server's terminal.
 
-- **Toolbar.** The card header (36 pt) is the toolbar. From the leading edge,
-  11 pt in: Back, Forward and Reload (Stop while a page loads), 22 × 22 pt
-  buttons with 11 pt glyphs. Then the address field, which takes the free
-  width. Then the ports chip ([Finding ports](#finding-ports)), the Web
-  Inspector button (`hammer`), and the usual card buttons: Float Pane, Split
-  Right, Split Down, Zoom and Close. 6 pt between items. Every toolbar button
-  has the card buttons' color, at 0.35 when it cannot act. The card buttons
-  keep their room while they are hidden, so the address field does not move
-  under the pointer on hover.
+- **Header.** Two rows, as on an agent card
+  ([Pane card](/docs/ui/window#pane-card)). Row 1 (36 pt): the page's icon
+  (16 pt) and its title, else its host, else its address, else "New Tab".
+  Then the card buttons, on the keyboard card and on a hovered card. Row 2
+  (32 pt) is the toolbar: Back, Forward and Reload (Stop while a page
+  loads), 22 × 22 pt buttons with 11 pt glyphs, then the address field,
+  which takes the free width, then the Web Inspector button (`hammer`). 6 pt
+  between items. The toolbar's buttons have the card buttons' color and dim
+  as any disabled card button when they cannot act. Row 2 ends where row 1
+  does, 8 pt in.
+- **Page icon.** WebKit has no favicon API. After each load, one script in
+  the page reads its `<link rel~=icon>` (else `/favicon.ico`) and fetches it,
+  at most 1 MiB in 5 s, and gives the image back in base64. The page's own
+  fetch goes through its proxy and its loopback rule
+  ([Remote localhost](#remote-localhost)), so CORS keeps a few cross-origin
+  icons out. The `globe` shows while there is no icon, and over a failed
+  load.
 - **Address field.** A capsule 26 pt tall, at least 120 pt wide, filled with
   the primary color at 0.06 under a 0.5 pt edge at 0.08, text 12.5 pt: the
   host and port in full, the rest in secondary. Empty, it says "Enter a URL".
   On a remote machine the machine's name sits in a chip at its end (11 pt, in
-  the needs-you color on a 0.18 fill of it). A click or ⌘L selects the whole
+  the needs-you color on a 0.18 fill of it). Under the pointer it shows the
+  text cursor and its fill goes to 0.1. A click or ⌘L selects the whole
   address under a 1.5 pt accent edge. Return loads it and gives the keyboard
   to the page. Esc puts back the current address and gives the keyboard to
   the page.
@@ -113,13 +122,14 @@ server's terminal.
 
 - The page is inset 6 pt from the card's sides and bottom, with a 6 pt
   radius. Cards are never glass.
-- The tab's title is the page's title, else its host, else "New Tab". Its
-  program icon and overview tile show `globe`.
+- The tab's title is "Browser", then the page's title (else its host) in
+  secondary text, as a terminal tab's "zsh oriel". Its program icon and
+  overview tile show `globe`.
 - The window's `PaneViewRegistry` keeps each web view by terminal id, so a
   card scrolled away or moved keeps its page.
 - A floated browser pane ([Floating pane](/docs/ui/window#floating-pane))
-  keeps the toolbar, without the card buttons, under the floating window's
-  title row, which shows the label's address.
+  keeps the toolbar under the floating window's title row. The title row
+  shows "Browser" and the page's title in secondary text, with no place.
 
 ## Popups, links and dialogs
 
@@ -251,22 +261,6 @@ connection. Nothing is installed on the machine.
   `AllowTcpForwarding yes` on the server (the default). A server that refuses
   shows as "cannot reach".
 - This Mac's store uses no proxy.
-
-## Finding ports
-
-The ports chip (`network`, in the toolbar, on every machine) lists the
-machine's listening TCP ports in a menu.
-- One run on the machine each time the menu opens, never on a timer:
-  `ss -ltnp`, else `lsof -nP -iTCP -sTCP:LISTEN`. It lists listeners on any
-  address or on loopback, one per port, with the process's name (empty for
-  another user's process).
-- Ports group under the session's workspaces, by each listener's
-  `HERDR_SESSION` and `HERDR_WORKSPACE_ID` (from `/proc/<pid>/environ`, else
-  one `ps -E`), then "Other". With no match it is one plain list.
-- The menu says "Looking for Ports…" until the first answer, then shows the
-  last answer until the new one comes. "No Listening Ports" and "‹machine› did
-  not answer" cover the rest.
-- A pick loads `localhost:<port>` in the card, as if typed.
 
 ## Commands on a browser card
 

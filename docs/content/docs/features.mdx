@@ -43,8 +43,8 @@ Each part of the window has its own page under UI design.
   OpenCode, with a loader until it is ready) or Browser. Return gives a
   terminal.
 - Browser panes: a web page in a card, with Web Inspector, its own logins
-  per machine, a remote machine's `localhost` through the SSH connection,
-  and a ports chip. Agents open them beside themselves.
+  per machine, the page's icon, and a remote machine's `localhost` through
+  the SSH connection. Agents open them beside themselves.
 - Layout changes animate.
 - Zoom a pane to fill the window, then return.
 - Drag a pane to swap it, place it beside another card, split it into
@@ -67,11 +67,16 @@ Each part of the window has its own page under UI design.
   you, or click it for every agent of the session, sorted by priority or by
   workspace order.
 - **Chat view:** an agent started from a new pane shows as messages with a
-  reply box, like Messages, on any machine. Switch to its terminal and back
-  in the card header. The agent keeps running. Pick how much to see:
-  Replies, Steps or All. Answer Claude Code's questions and OpenCode's
+  reply box, like Messages, on any machine, in a card or a floating window.
+  Switch to its terminal and back in the card header. The agent keeps
+  running. Pick how much to see: Replies, Steps or All, and open a tool call
+  to its input and output. Answer Claude Code's questions and OpenCode's
   permissions in the chat. When the agent asks something else, its live
   terminal shows at the bottom of the card.
+- **Enable Chat:** an agent started by hand starts again with a chat, in the
+  same session.
+- Agent panes show their sessions' own titles in the card, the tab and the
+  Agents view.
 - Notifications when an agent needs you or finishes. The Dock badge shows the
   number of agents that need you; the Dock menu lists those that need you or
   finished. No sounds.

@@ -138,7 +138,9 @@ One capsule per herdr tab of the selected workspace (D42).
   never shows an ellipsis. The folder part is in secondary text. The title is
   herdr's tab label. When the label is herdr's default (only digits), the
   title is the keyboard card's program and its folder's name, for example
-  "zsh ~" or "pi oriel" (D65). Until the program is known (a new tab's first
+  "zsh ~" or "pi oriel" (D65). An agent's tab shows the agent's name and its
+  pane's name in secondary text ("Claude Code Fix login"), and a browser's
+  "Browser" and its page. Until the program is known (a new tab's first
   second), the title is "New Tab", never the number.
 - **Status slot.** × only on the hovered tab (a 22 pt hit area over the
   capsule's end, so the tab's width never changes); the title then fades out
@@ -333,8 +335,9 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   per order, across relaunches.
 - **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
   lines, 4 pt apart; the program tile with its badge centers on both. Line 1,
-  on one centered line: the pane's name when it has one, else the agent's
-  name (herdr's `display_agent`, else `agent`), then on the right the status
+  on one centered line: the pane's name (its label, else its session's title,
+  else "New Session": [Session titles](/docs/ui/chat-view#session-titles)),
+  then on the right the status
   capsule, "Needs you" (amber), "Working" (blue), "Done" (green) or "Idle"
   (gray), the text in the color on a 0.15 fill of it, and the age ("now", "3m", "2h", "4d"), counted from the
   time the app saw the change. Line 2: "‹workspace› · ‹tab title›" in
@@ -454,7 +457,7 @@ How it works: [Layout and sizing](/docs/layout).
   stop for 0.1 s, or 0.4 s after the first frame (at once with Reduce Motion).
   At each new grid it keeps its old picture until herdr's frames settle, then
   shows the new one at once ([States](/docs/ui/states)).
-- **Header.** 36 pt tall. 11 pt in from the leading edge: the program glyph
+- **Header.** A terminal card's header is one row, 36 pt tall. 11 pt in from the leading edge: the program glyph
   (16 pt, secondary), 3 pt before herdr's pane label if set, else the
   program's name and the folder in secondary text, for example "vim ~/code" or
   "zsh ~" ([Program icons](/docs/ui/program-icons)). 8 pt in from the trailing
@@ -462,8 +465,24 @@ How it works: [Layout and sizing](/docs/layout).
   Down, Zoom and Close, with 11 pt regular glyphs, dimmer than the title row's buttons (white
   0.42 or black 0.45, at least 3:1 on the card). Zoom is disabled when the tab has one pane.
   While the [New pane](/docs/ui/new-pane) chooser shows, the header says "New
-  Pane". A browser card's header is its toolbar
-  ([Browser](/docs/ui/browser#the-card)).
+  Pane".
+- **Two rows.** A browser card and an agent card (herdr reports an agent, or
+  the pane has a chat's launch marker) add a second row, 32 pt, for their
+  kind's controls (D80). Row 1 keeps the title, a state capsule and the card
+  buttons, so it lines up with a terminal card's header beside it. Row 2 ends
+  where row 1 does.
+  - Browser: row 1 has the page's icon and title, row 2 the toolbar
+    ([Browser](/docs/ui/browser#the-card)).
+  - Agent: row 1 has the pane's name: its label, else its session's title
+    ([Session titles](/docs/ui/chat-view#session-titles)), and herdr's state
+    capsule (the chat's own capsule on a chat card). Row 2 has the program
+    glyph, the agent's name and the folder in secondary text ("Claude Code
+    ~/code/oriel"), then on the right `Show: Steps ⌄` and Chat | Terminal
+    ([Chat view](/docs/ui/chat-view#what-it-looks-like)), or Enable Chat
+    ([Enable Chat](/docs/ui/chat-view#enable-chat)).
+  - A card at the chooser and a floated card's placeholder keep one row. An
+    agent started by hand gets its second row when herdr reports it, and the
+    terminal gets 32 pt shorter then.
 - **Terminal.** 10 pt in from the card's sides and 8 pt above its bottom; its
   text starts 12 pt in, as in Rex.
 - The buttons show on the keyboard card and on a hovered card.
@@ -642,12 +661,17 @@ clients see it there.
   front.
 - **The window** has no tab bar and no sidebar. Its title row is the main
   window's: 46 pt, with the traffic lights where the main window has them.
-  It holds the traffic lights, then the pane's quick info (its icon, its
-  program and folder, or its label, and its agent's state capsule), a thin
-  vertical line, then "session › workspace › tab" in 11 pt tertiary text,
+  It holds the traffic lights, then the pane's quick info, a thin vertical
+  line, then the place, "session › workspace › tab", in 11 pt tertiary text,
   quieter than the pane's folder, on one line (the
   session as the sidebar names it, so `default` shows the machine's name; a
-  long one gives way first, in its middle), then on the right the title
+  long one gives way first, in its middle). The quick info is the pane's
+  icon, its title and its agent's state capsule. The title is the program and
+  folder or the label, an agent's name and its pane's name, or "Browser" and
+  the page, with the second part in secondary text. A plugin pane (any `oriel:`
+  label, such as a browser) shows no line and no place. A chat pane shows
+  `Show: Steps ⌄` (only while the chat shows) and Chat | Terminal after the
+  place. Then on the right the title
   row's 28 pt buttons: **Stay on Top** (a pin), **Close** (closes
   the pane, and asks first as any close does, in the floating window, also
   for a Close from the card in the tab) and, rightmost, **Detach**
@@ -655,9 +679,11 @@ clients see it there.
   again; nothing stops). The red traffic light detaches too. Below the title
   row, the glass card holds only the terminal, with no header, 8 pt in from
   the window's edges, its text 10 pt in from the card's sides, as in a pane
-  card. A browser pane's card has its toolbar instead
-  ([Browser](/docs/ui/browser#the-card)), and a pane at the chooser shows
-  the chooser. A pane's first float opens it at 60 % of the main window's width and
+  card. A chat pane's card shows its chat or its terminal
+  ([Chat view](/docs/ui/chat-view#switching-views)), a browser pane's card
+  its toolbar and page ([Browser](/docs/ui/browser#the-card)), and a pane at
+  the chooser the chooser. The window is at least 320 pt wide, 440 pt for a
+  chat pane. A pane's first float opens it at 60 % of the main window's width and
   75 % of its height (at least 720 × 460 pt), centered over the main window; it
   moves and resizes like any window, and keeps its frame for the next time
   that pane floats.

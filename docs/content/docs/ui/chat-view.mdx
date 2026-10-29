@@ -15,9 +15,10 @@ and
 
 ## Which panes have it
 
-- Agents that the [New pane](/docs/ui/new-pane#agent) chooser or Start Agent
-  Here started with Oriel's flags ([Launch flags](#launch-flags)). Their card
-  header has the Chat · Terminal switch.
+- Agents that the [New pane](/docs/ui/new-pane#agent) chooser, Start Agent
+  Here or [Enable Chat](#enable-chat) started with Oriel's flags
+  ([Launch flags](#launch-flags)). The second row of their card header has
+  the Chat | Terminal switch.
 - The app knows such a pane by a marker in the argv of its foreground
   processes, from `pane.process_info`
   ([Program icons](/docs/ui/program-icons#when-the-app-asks-herdr)). This
@@ -25,8 +26,9 @@ and
   launch in the same pane is a new chat.
 - Every other pane shows only its terminal and no switch: plain terminals,
   agents started by hand or from herdr's TUI, and agents that herdr restores
-  after a cold restart (herdr runs them again without the flags). A floated
-  pane also shows its terminal.
+  after a cold restart (herdr runs them again without the flags). An agent
+  among them whose session herdr knows shows Enable Chat in place of the
+  switch.
 - **The bare-command fallback.** If the shell is in front again at once after
   the launch line (two checks in a row, from 1 s on), the chooser types the
   bare command once more, for every agent. An agent build that refuses
@@ -40,6 +42,42 @@ and
   front: its own `command -v opencode` is not the pane shell's, where an
   alias or a function wins.
 
+### Enable Chat
+
+An agent that runs without Oriel's flags can start again with them, in the
+same session. The **Enable Chat** button sits where Chat | Terminal sits. It
+shows when herdr reports the agent and its session (`agent_session`, of the
+same agent), the pane's processes carry no marker, and the agent takes that
+session value:
+
+| Agent | Session from herdr | Added to the launch line |
+|---|---|---|
+| Claude Code | a UUID | `--resume <id>`, in place of `--session-id T` |
+| Codex | a UUID | `resume <id>`, after the `-c` flags |
+| Pi | the session file, an absolute path with no quote and no backslash | `--session '<file>'` |
+| OpenCode | its session id | `--session <id>`, before `--port` |
+
+1. While the agent works or needs you, an alert asks first: "Restart
+   ‹agent›?", with **Restart** and **Cancel**.
+2. The app makes the launch line first (for Pi and OpenCode with its run on
+   the machine). If that fails, the notice "‹agent› could not start with
+   chat" shows, and the agent keeps running.
+3. The card shows the chooser's loader. The app sends the Stop keys if the
+   agent works or waits, then ⌃C to clear the prompt, then types the quit
+   command (`/exit` for Claude Code and OpenCode, `/quit` for Codex and Pi)
+   while the agent still runs.
+4. When the shell is in front again and herdr no longer reports the agent,
+   within 10 s, the app types the launch line. Otherwise the notice
+   "‹agent› did not quit" shows.
+5. The loader waits for the agent as for a new one
+   ([New pane](/docs/ui/new-pane#agent)). There is no bare-command fallback:
+   a plain command would start a new session.
+
+- Codex shows its old messages only after the first message, when its hook
+  runs.
+- With no session from herdr there is no button. The app does not look for
+  one in the agent's files.
+
 ## Launch flags
 
 `T` is a new lowercase UUID per launch. The chooser types the line into the
@@ -50,7 +88,7 @@ and no backslash.
 
 | Agent | Written first | The launch line | Marker |
 |---|---|---|---|
-| Claude Code | nothing | `claude --session-id T --settings '<json>'`: inline hooks. A SessionStart hook appends the session's JSON (with `transcript_path`) to `hooks.jsonl`. A PermissionRequest hook for AskUserQuestion only waits for the chat's answer ([Waiting](#waiting)) | `--session-id T`, with `/.cache/oriel/chat/T;` in the same argv |
+| Claude Code | nothing | `claude --session-id T --settings '<json>'`: inline hooks. A SessionStart hook appends the session's JSON (with `transcript_path`) to `hooks.jsonl`. A PermissionRequest hook for AskUserQuestion only waits for the chat's answer ([Waiting](#waiting)) | the hooks' folder `/.cache/oriel/chat/T` in the `--settings` value |
 | Codex | nothing | `codex -c 'hooks.SessionStart=[…]' -c 'hooks.state={…}'`: a SessionStart hook that appends the session's JSON to `hooks.jsonl`, and that hook's trust hash | `/.cache/oriel/chat/T/` inside a `hooks.SessionStart=` argument |
 | Pi | `~/.cache/oriel/pi-oriel-<sha8>.ts` | `pi -e ~/.cache/oriel/pi-oriel-<sha8>.ts --oriel ~/.cache/oriel/chat/T/pi.jsonl` | that `--oriel` path, in the argv of `pi` or `pi.real` |
 | OpenCode | `~/.cache/oriel/opencode/oriel-tui.js` and its `tui.json`; the launch's password file `chat/T/pw` | `ORIEL_OC_STATE=…/state.jsonl OPENCODE_TUI_CONFIG=…/tui.json OPENCODE_SERVER_PASSWORD=$(cat "…/pw") opencode --port 0 --hostname 127.0.0.1 -- oriel-T` | `-- oriel-T` after `--port` (opencode ignores what follows `--`), and the state line's `pid` is a marked process's |
@@ -113,13 +151,18 @@ and no backslash.
   (`ClaudeTranscript`, `CodexRollout`, `PiTranscript`, `OpenCodeSession`),
   fills one `ChatHistory`: user text, replies, thinking, tool calls paired
   with their results (an edit with its diff), todo lists, notes
-  ("Interrupted", an API error, a compaction), turn ends and the model.
+  ("Interrupted", an API error, a compaction), turn ends, and the model and
+  thinking effort of the last reply.
   Anything else is skipped. Five lines in a row that do not parse are a
   problem ([Waiting](#waiting)).
 - Codex's parser reads only whole items (`item_completed`), `task_complete`,
   `turn_aborted`, `error` and `turn_context`. A plan reads as a reply.
 - **Markdown:** `AttributedString(markdown:)` with the full syntax, split
-  into blocks. Code blocks are monospaced and scroll sideways.
+  into blocks ([What it looks like](#what-it-looks-like)).
+- **Model and effort.** The model as the agent writes it. The effort is
+  Claude Code's `effort` field, Codex's `turn_context.effort`, pi's
+  `thinkingLevel` and OpenCode's `variant`, and none when the files have
+  none.
 
 ## The adapter interface
 
@@ -237,59 +280,115 @@ and **Show Terminal**, and the header's capsule says Error:
 ## Detail levels
 
 One setting for the app (`chatLevel`, Steps by default): **Replies**,
-**Steps** and **All**, in the app's segments left of the reply box.
+**Steps** and **All**, in the `Show: Steps ⌄` pull-down left of Chat |
+Terminal. It shows only while the chat does.
 
 - **Replies:** the user's messages, each turn's quiet line ("Worked 1m 48s ·
   2 files edited · 3 commands · 1 failed", "Working 12s" while it runs), its
   last reply, and notes.
 - **Steps:** adds every reply, plans and todo lists, and each run of tool
-  calls between two replies as one stacked card.
-- **All:** adds the thinking rows ("Thought"), and every stack is open.
-- A clicked stack keeps its open or closed state at every level.
+  calls between two replies as one quiet line.
+- **All:** adds the thinking rows ("Thought"), and every run is open.
+- A run clicked open or closed stays so at every level.
 
-**Tool cards.** A glass card. Its front shows a summary ("Edited 2 files, ran
-1 command, 1 failed", or "Editing…" while a call runs), the time or the working
-dots, and the latest call. One or two edges under it show that more calls are
-inside. Open, it has one row per call: the tool, its target, its result and
-its time (`bash npm test · exit 1   4.2s`). An edit shows its diff, the first
-40 lines.
+**Tool calls.** A run is one quiet line with no card: its summary ("Edited 2
+files, ran 1 command, 1 failed", the working dots while a call runs), a
+chevron, the running call's target while closed, and the time. The turn's
+quiet line takes the run right under it, so the two never say the same
+twice. A run after a reply keeps its own line.
+- Open, a run has one row per call: a symbol for its kind, the tool, its
+  target, its result (failed in red, a spinner while it runs), its time and
+  a chevron (`bash npm test exit 1   4.2s`).
+- A call opens on its own to its **Input** (an edit's diff instead, the
+  first 40 lines) and its **Output**: 11 pt monospaced, selectable, at most
+  180 pt tall, then it scrolls. The parsers keep each call's input and
+  output whole, up to 20 000 characters.
+- A todo list sits on a faint fill.
 
 ## What it looks like
 
 - As in Messages: the user's messages are bubbles in the accent color on the
-  right. Replies are plain, selectable text on the left.
-- The messages, the question card and the reply row sit in a 760 pt column,
-  centered on any card. The messages scroll, newest at the bottom.
-- The reply row: the level segments, the reply box (a glass capsule, "Reply
-  to ‹Agent›" with the chooser's name, up to 8 lines, the model in small
-  text, read only), then a round Send or Stop button.
-- The card keeps its header. On the right: the state capsule (Working, Needs
-  you, Done or Error, in the status colors, and none while idle), then Chat ·
-  Terminal in the app's own pill segments.
+  right (14 pt, radius 18). Replies are plain, selectable text on the left.
+- The messages, the question card and the reply box sit in a 760 pt column,
+  centered on any card, 32 pt in from its sides. The messages scroll, newest
+  at the bottom, and fade in under the header.
+- **Markdown.** 14 pt text with 4 pt line spacing. Headings are 22, 18 and
+  16 pt (bold for the first two levels), with 22 or 16 pt above them and 8 pt
+  under them. 12 pt between other blocks, 6 pt between list items. List items
+  hang behind their number or bullet (•, ◦, ▪ by depth), 18 pt in per level,
+  and a list item's later paragraphs line up under its text. Inline code is
+  at 0.9 of its text's size on a faint fill. Code blocks are 12.5 pt
+  monospaced and scroll sideways. Quotes are secondary, behind a 3 pt bar.
+- **The reply box.** A glass box (radius 18) with "Reply to ‹Agent›" (the
+  chooser's name), 14 pt. It grows from 1 to 10 lines, then scrolls. Under
+  the text, on the left: the model and the effort in 11 pt secondary
+  ("Opus 5.5 · high"). Claude's model ids read as the family and version.
+  Other models show as the agent writes them. On the right: a 22 pt round
+  Send, in the accent while it can send, or Stop.
+- **A click anywhere** on the chat, on text too, gives the reply box the
+  keyboard (the drawer's terminal while the drawer shows). A button or a link
+  acts as well. A double or triple click, a ⇧-click or a ⌃-click leaves the
+  keyboard where it is, so selected text can be copied.
+- **The header.** Row 1: the pane's name ([Session titles](#session-titles)),
+  the state capsule (Working, Needs you, Done or Error, in the status colors,
+  and none while idle) and the card buttons. Row 2: the program glyph, the
+  agent's name and the folder, then `Show: Steps ⌄` and Chat | Terminal in
+  the app's own pill segments
+  ([Pane card](/docs/ui/window#pane-card)).
 - The reply box takes the keyboard when the chat appears and when the drawer
   goes. The keyboard moved to a chat card goes to its reply box.
 
 ## Switching views
 
-- Chat · Terminal is in the card header, not a swipe: sideways swipes belong
+- Chat | Terminal is in the card header, not a swipe: sideways swipes belong
   to the strip.
 - A card of a marked pane opens on the chat. The choice is kept in memory per
   pane, for every window of the session. The card keeps the keyboard across
   a switch: the reply box or the terminal.
+- A floated chat pane shows its chat in its floating window, with `Show` and
+  Chat | Terminal in the window's title row
+  ([Floating pane](/docs/ui/window#floating-pane)).
 - The switch changes only what the card draws: the agent, its turn and its
   pane go on. The terminal stream stays open while the chat shows.
+
+## Session titles
+
+An agent pane's name is the user's herdr label, else its session's title,
+else "New Session". It shows in the card's row 1, the floating window's
+title row, the tab ("Claude Code" then the name in secondary text) and the
+Agents view's rows. It works for every agent pane, with or without a chat.
+
+herdr's `agent_session` on each pane names the agent's session: an id for
+Claude Code, Codex and OpenCode, the file for Pi. The app uses it only when
+its agent is the pane's agent. One `sh` run on the pane's machine reads the
+title, and again when the session, the terminal title or the status changes
+(agents name a session during a turn, and pi's `/name` retitles its
+terminal). The runs share the gate of the program asks, so a session's first
+snapshot does not start every run at once.
+
+| Agent | Where the title is |
+|---|---|
+| Claude Code | the last `custom-title` line (from `/rename`), else the last `ai-title` line, in the session's transcript `~/.claude/projects/*/<id>.jsonl` |
+| Codex | `thread_name` on the session's last line in `~/.codex/session_index.jsonl` |
+| Pi | the last `session_info` line (from `/name`) in the session file. pi names no session by itself |
+| OpenCode | `session.title` in its database, read with `sqlite3 -readonly`. Its placeholder "New session - …" counts as none |
+
+- An id goes into the script only when it holds letters, digits, `-` and `_`
+  only. A file must be an absolute path.
+- A title loses its control characters and is cut at 200 characters.
 
 ## VoiceOver and identifiers
 
 - Messages, replies, the quiet lines and notes read as text with their
-  words. A tool card is a button whose value is "open" or "closed", with an
-  Open or Close action. Send and Stop are named.
+  words. A run and each call are buttons whose value is "open" or "closed".
+  The Show pull-down's value is the level. Send and Stop are named.
 - Identifiers, after `chat.‹pane id›`: `.composer`, `.send`, `.stop`,
-  `.model`, `.level.replies` (`.steps`, `.all`), `.user`, `.sending`,
-  `.not-sent`, `.reply`, `.summary`, `.stack`, `.note`, `.question`,
-  `.option.‹option›`, `.drawer`, `.open-terminal`, `.problem` and
-  `.show-terminal`. The header has `pane.‹id›.state` and
-  `pane.‹id›.view.chat` (`.terminal`).
+  `.model`, `.level`, `.user`, `.sending`, `.not-sent`, `.reply`,
+  `.summary`, `.stack`, `.tool`, `.tool.input`, `.tool.output`, `.note`,
+  `.question`, `.option.‹option›`, `.drawer`, `.open-terminal`, `.problem`
+  and `.show-terminal`. The header has `pane.‹id›.title`,
+  `pane.‹id›.state`, `pane.‹id›.program`, `pane.‹id›.view.chat`
+  (`.terminal`) and `pane.‹id›.enable-chat`.
 
 ## Side files
 
@@ -358,10 +457,15 @@ on This Mac and on a remote machine, in light mode and in Classic.
   chat, and one answered in the TUI. A question. `/sessions` to an old
   session. Stop. A remote machine needs `curl`.
 - **MetaCode:** the card falls back to its terminal after 15 s.
+- **Enable Chat:** each agent started by hand, idle and working (the alert),
+  comes back in the same session with its chat. Codex keeps its hook after
+  `resume`.
+- **Titles:** real sessions' titles in the tab and the Agents view, after
+  `/rename` (Claude Code) and `/name` (Pi).
 - The company launchers rewrite `~/.claude/settings.json` and reinstall a
   plugin into `~/.codex` on each start, as they always do.
 
 ## Choices
 
-The decisions are D74 to D79 on the [Decisions](/docs/decisions#pane-kinds)
-page.
+The decisions are D74 to D79, D82 and D83 on the
+[Decisions](/docs/decisions#pane-kinds) page.
