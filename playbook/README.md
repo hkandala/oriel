@@ -55,3 +55,4 @@ run and test it is in the root `README.md`.
 | 37 | The browser pane on remote machines | [37-browser-remote.md](phases/37-browser-remote.md) |
 | 38 | Chat view: the core and Claude Code | [38-chat-view-core.md](phases/38-chat-view-core.md) |
 | 39 | Chat view: Codex, pi (pi-oriel) and opencode | [39-chat-view-agents.md](phases/39-chat-view-agents.md) |
+| 40 | Tenth feedback: two-row headers, browser polish, chat sessions and reading | [40-tenth-feedback.md](phases/40-tenth-feedback.md) |
