@@ -5,9 +5,9 @@ import XCTest
 extension OrielUITests {
     /// Uncommitted lists the changed and the untracked files and follows the work tree; the overview's tile shows
     /// the card; the source pop-up picks a commit (the label and the title follow, the page loads it); Next Change
-    /// scrolls to a change the page has not drawn; ⌘-click on a line and Open File open the file in a new tab right
-    /// after this one; Side by Side puts the old and the new line on one row; the file list hides; Viewed folds the
-    /// file.
+    /// scrolls to a change the page has not drawn; ⌘-click on a line (at the line) and Open File open the file in a
+    /// new tab right after this one; Side by Side puts the old and the new line on one row; the file list hides;
+    /// Viewed folds the file.
     func testDiffCardShowsAPatchAndOpensItsFiles() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("diff")
@@ -33,11 +33,7 @@ extension OrielUITests {
         try await send("echo new >c.txt\r", to: left)
         XCTAssertTrue(page.buttons["c.txt"].exists(within: 10))
 
-        let source = element("pane.\(card).diff.source")
-        source.click()
-        source.menuItems.matching(NSPredicate(format: "title BEGINSWITH %@", String(hash.prefix(7)))).firstMatch.click()
-        try await expect("the label names the commit") { try await paneLabel(card).hasSuffix(" \(root) \(hash)") }
-        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, String(hash.prefix(7)), within: 3))
+        try await pick(hash, in: card, root: root)
         XCTAssertTrue(page.buttons["b.md"].vanishes(within: 10))
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 3))
 
@@ -47,9 +43,14 @@ extension OrielUITests {
         element("pane.\(card).diff.next").click()
         XCTAssertTrue(far.exists(within: 3))
 
-        try await opens("\(root)/a.txt", after: tab) { XCUIElement.perform(withKeyModifiers: .command) { far.click() } }
+        let file = try await opens("\(root)/a.txt", after: tab) {
+            XCUIElement.perform(withKeyModifiers: .command) { far.click() }
+        }
+        // At the line: the editor draws only the lines in view.
+        let editor = element("file.\(file).page").textViews.firstMatch
+        XCTAssertTrue(until(5) { (editor.value as? String)?.contains("far290") == true })
         element("tab.\(tab)").click()
-        try await opens("\(root)/a.txt", after: tab) { page.buttons["Open a.txt"].click() }
+        _ = try await opens("\(root)/a.txt", after: tab) { page.buttons["Open a.txt"].click() }
         element("tab.\(tab)").click()
         // Side by Side: the old line and the new one on one row.
         element("pane.\(card).diff.layout").radioButtons["Side by Side"].click()
@@ -83,8 +84,17 @@ extension OrielUITests {
         }
     }
 
-    /// The action opens a file card for the path in a new tab right after `tab`, selected.
-    private func opens(_ path: String, after tab: String, _ action: () -> Void) async throws {
+    /// Picks the commit from the card's source pop-up: the label and the title name it.
+    private func pick(_ hash: String, in card: String, root: String) async throws {
+        let source = element("pane.\(card).diff.source")
+        source.click()
+        source.menuItems.matching(NSPredicate(format: "title BEGINSWITH %@", String(hash.prefix(7)))).firstMatch.click()
+        try await expect("the label names the commit") { try await paneLabel(card).hasSuffix(" \(root) \(hash)") }
+        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, String(hash.prefix(7)), within: 3))
+    }
+
+    /// The action opens a file card for the path in a new tab right after `tab`, selected; its pane.
+    private func opens(_ path: String, after tab: String, _ action: () -> Void) async throws -> String {
         let before = try await tabIDs()
         action()
         let opened = try await newTabID(after: before)
@@ -95,7 +105,8 @@ extension OrielUITests {
             return order.firstIndex(of: opened) == order.firstIndex(of: tab).map { $0 + 1 }
         }
         XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
-        let label = try await paneLabel(pane(of: opened))
+        let pane = try await pane(of: opened), label = try await paneLabel(pane)
         XCTAssertTrue(label.hasPrefix("oriel:file#") && label.hasSuffix(" \(path)"), label)
+        return pane
     }
 }
