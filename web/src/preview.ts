@@ -3,14 +3,14 @@
 import "pdfjs-dist/web/pdf_viewer.css"
 import "./file/preview.css"
 import { arg, ask, type In, type PreviewReply, receive, report } from "./lib/bridge"
-import { info } from "./lib/info"
+import { failed, info } from "./lib/info"
 
 type Zoom = Extract<In, { op: "zoom" }>["to"]
 let zoom: (to: Zoom) => void = () => {}
 /** What the file shown holds: an image's resize observer, a PDF's worker. */
 let release = () => {}
 
-const image = (url: string) => {
+const image = (url: string, fallback: () => void) => {
   const box = Object.assign(document.createElement("div"), { className: "scroller" })
   const img = Object.assign(new Image(), { src: url, alt: arg.split("/").pop() ?? "" })
   box.append(img)
@@ -22,6 +22,7 @@ const image = (url: string) => {
     img.style.width = `${img.naturalWidth * (scale === "fit" ? fit() : scale)}px`
   }
   img.onload = apply
+  img.onerror = fallback
   const observer = new ResizeObserver(apply)
   observer.observe(box)
   release = () => observer.disconnect()
@@ -32,7 +33,7 @@ const image = (url: string) => {
   }
 }
 
-const pdf = async (data: Uint8Array) => {
+const pdf = async (data: Uint8Array, fallback: () => void) => {
   const pdfjs = await import("pdfjs-dist")
   pdfjs.GlobalWorkerOptions.workerSrc = "pdf.worker.min.mjs"
   // The viewer reads the library from here.
@@ -51,13 +52,10 @@ const pdf = async (data: Uint8Array) => {
     report({ op: "page", page: pageNumber, pages: viewer.pagesCount }),
   )
   // The scheme serves pdf.js's fonts, maps and decoders from the bundle's one folder.
-  const document_ = await pdfjs.getDocument({
-    data,
-    isEvalSupported: false,
-    wasmUrl: "./",
-    standardFontDataUrl: "./",
-    cMapUrl: "./",
-  }).promise
+  const document_ = await pdfjs
+    .getDocument({ data, isEvalSupported: false, wasmUrl: "./", standardFontDataUrl: "./", cMapUrl: "./" })
+    .promise.catch(fallback)
+  if (!document_) return
   viewer.setDocument(document_)
   release = () => void document_.destroy()
   report({ op: "page", page: 1, pages: document_.numPages })
@@ -76,17 +74,22 @@ const show = async (file: PreviewReply) => {
   release = () => {}
   URL.revokeObjectURL(url)
   if ("info" in file) return info(file.info, document.body)
+  // A file WebKit or pdf.js cannot decode: the info view, never an empty card.
+  const fallback = () => {
+    zoom = () => {}
+    info(file.fallback, document.body)
+  }
   const bytes: Uint8Array = (Uint8Array as unknown as { fromBase64(s: string): Uint8Array }).fromBase64(file.data)
-  if (file.type === "application/pdf") return pdf(bytes)
+  if (file.type === "application/pdf") return pdf(bytes, fallback)
   url = URL.createObjectURL(new Blob([bytes], { type: file.type }))
-  if (file.type.startsWith("image/")) return image(url)
+  if (file.type.startsWith("image/")) return image(url, fallback)
   const player = document.createElement(file.type.startsWith("audio/") ? "audio" : "video")
-  Object.assign(player, { src: url, controls: true, className: "player" })
+  Object.assign(player, { src: url, controls: true, className: "player", onerror: fallback })
   document.body.replaceChildren(player)
 }
 
 /** One file at a time, in order: a PDF loads over several turns. */
-let shown = ask({ op: "read" }).then(show)
+let shown = ask({ op: "read" }).then(show, (error) => failed(error, document.body))
 receive((message) => {
   if (message.op === "zoom") zoom(message.to)
   // The file again after a change on disk.

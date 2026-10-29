@@ -10,3 +10,9 @@ export const info = (file: Info, parent: HTMLElement) => {
   view.append(icon, name, facts)
   parent.replaceChildren(view)
 }
+
+/** The app's error text (the file is gone, or not a file), in the info view's place. */
+export const failed = (error: unknown, parent: HTMLElement) => {
+  const text = error instanceof Error ? error.message : String(error)
+  parent.replaceChildren(Object.assign(document.createElement("div"), { className: "info", textContent: text }))
+}

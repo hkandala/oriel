@@ -2,11 +2,18 @@
 // report, ⌘S and ⌘F from the app's menu, and a reload from disk.
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands"
 import { bracketMatching, indentOnInput } from "@codemirror/language"
-import { highlightSelectionMatches, openSearchPanel, search, searchKeymap } from "@codemirror/search"
+import {
+  findNext,
+  findPrevious,
+  highlightSelectionMatches,
+  openSearchPanel,
+  search,
+  searchKeymap,
+} from "@codemirror/search"
 import { EditorState, type Extension, type Text } from "@codemirror/state"
 import { drawSelection, EditorView, highlightActiveLine, highlightSpecialChars, keymap } from "@codemirror/view"
 import { ask, at, type FileReply, type In, receive, report } from "./bridge"
-import { info } from "./info"
+import { failed, info } from "./info"
 
 const theme = EditorView.theme({
   "&": { height: "100%", fontSize: "var(--font-size)" },
@@ -76,12 +83,19 @@ export const handle = (view: EditorView, message: In) => {
       break
     case "find":
       find(view)
+      break
+    case "findNext":
+      findNext(view)
+      break
+    case "findPrevious":
+      findPrevious(view)
   }
 }
 
 /** The card's file in an editor under `parent`, or the info view when the file is too large to show. */
 export async function editor(extensions: Extension[], parent = document.body) {
-  const file: FileReply = await ask({ op: "read" })
+  const file: FileReply | undefined = await ask({ op: "read" }).catch((error) => failed(error, parent))
+  if (!file) return undefined
   if ("info" in file) {
     info(file.info, parent)
     return undefined

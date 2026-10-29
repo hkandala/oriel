@@ -27,7 +27,12 @@ struct PluginCard: View {
                 }
             }
             .animation(.easeOut(duration: 0.15), value: plugin.web.toast == nil)
-            .task(id: plugin.web.arg) { await plugin.web.watch() }
+            // Not in an overview tile: the card's own watch catches up when it shows again.
+            .task(id: "\(isEnabled) \(plugin.web.arg)") {
+                if isEnabled {
+                    await plugin.web.watch()
+                }
+            }
             // In place of the card that had the keyboard.
             .onAppear {
                 if isEnabled, page.hasKeyboard(plugin.paneID) {
