@@ -232,11 +232,3 @@ extension Page {
         return [title.name, title.folder].plainTitle
     }
 }
-
-extension [String?] {
-    /// A title's parts where it shows as plain text (⌘K, menus, window titles): with no dimmed part, a bar
-    /// separates them ("Browser | Hacker News").
-    var plainTitle: String {
-        compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " | ")
-    }
-}

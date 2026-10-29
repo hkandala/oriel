@@ -359,3 +359,11 @@ func reuse<Owner: AnyObject, Object: Identifiable<String>, Item: Identifiable<St
         owner[keyPath: list] = new
     }
 }
+
+extension [String?] {
+    /// A title's parts where it shows as plain text (⌘K, menus, window titles): with no dimmed part, a bar
+    /// separates them ("Browser | Hacker News").
+    var plainTitle: String {
+        compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " | ")
+    }
+}

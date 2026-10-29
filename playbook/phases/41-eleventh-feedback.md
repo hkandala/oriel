@@ -123,6 +123,7 @@ user's answers to the orchestrator's questions.
   header checked the chooser. **Fix:** the floating window's title says `New Pane` while the chooser shows.
 - **Cause (6):** the title made room for the × only; the dots sit in the same 28 pt slot. **Fix:** the title fades
   before them too.
-- **Decisions:** accessibility labels built from these titles carry the bar too (one title string everywhere).
+- **Decisions:** accessibility labels built from the plain title carry the bar too; the capsule's label, read from
+  its drawn text, does not.
 - **For the user:** ⌘K on a browser, an agent and a shell tab; a long agent tab title while it works; float a new
   pane (⌘D, then Float) before you pick.

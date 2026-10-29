@@ -373,7 +373,7 @@ private struct PaneInfo: View {
             ProgramTile(icon: pane.iconID, letter: pane.letter)
             Group {
                 if let (name, detail) = page.kindTitle(pane) {
-                    Text("\(name) \(Text(detail ?? "").foregroundStyle(.secondary))").lineLimit(1)
+                    Text("\(name)\(Text(detail.map { " \($0)" } ?? "").foregroundStyle(.secondary))").lineLimit(1)
                 } else {
                     PaneTitle(pane: pane)
                 }
