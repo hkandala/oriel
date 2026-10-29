@@ -132,14 +132,14 @@ struct BrowserLoader: View {
     }
 }
 
-/// A `window.open` page over the card; `window.close()` closes it too.
+/// A `window.open` page over the card; `window.close()`, Esc and the × close it.
 private struct Popup: View {
     let view: WKWebView
     let title: String
     let close: () -> Void
-    @Environment(\.look) private var look
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         VStack(spacing: 0) {
             HStack {
                 Text(title).font(.system(size: 12, weight: .medium)).lineLimit(1)
@@ -149,8 +149,9 @@ private struct Popup: View {
             .padding(.leading, 11).padding(.trailing, 6).frame(height: 32)
             WebHost(view: view)
         }
-        .background(look.cardFill)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        // Floating glass, not the card's fill: over a white page that left the × white on white.
+        .clipShape(shape)
+        .floatingGlass(in: shape)
         .shadow(radius: 12)
     }
 }
