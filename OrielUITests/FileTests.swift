@@ -223,7 +223,10 @@ extension OrielUITests {
         let capsule = element("tab.\(tab)")
         XCTAssertTrue(capsule.has(\.isHittable, true, within: 3))
         capsule.click()
-        XCTAssertTrue(element("\(kind).\(pane).card").exists(within: 5))
+        // In the window, not still sliding in: a click on its content would miss.
+        let card = element("\(kind).\(pane).card")
+        let window = app.windows.matching(NSPredicate(format: "identifier BEGINSWITH 'main-'")).firstMatch
+        XCTAssertTrue(until(5) { card.exists && window.frame.contains(card.frame) })
         return pane
     }
 }
