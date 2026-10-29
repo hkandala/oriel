@@ -2,7 +2,8 @@ import CoreGraphics
 import Foundation
 
 /// A three-finger swipe from the trackpad's touches (`SwipeRouter`): three fingers down 60 ms (a fourth one
-/// landing late is a system swipe) that moved 20 pt mostly one way. One step, then nothing until the fingers lift.
+/// landing late is a system swipe) that moved 20 pt mostly one way. One step, then nothing until the fingers lift
+/// or the touches pause 0.2 s.
 struct ThreeFingers {
     enum Step: Equatable {
         /// `row`: the sidebar's next (1) or previous (-1) workspace, or agent in the Agents view.

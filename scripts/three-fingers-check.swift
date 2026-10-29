@@ -40,7 +40,7 @@ enum ThreeFingersCheck {
                      "after the lift, the next swipe steps")
         recognizer = ThreeFingers()
         _ = recognizer.feed(three, at: 1)
-        _ = recognizer.feed(three.map { CGPoint(x: $0.x - 30, y: 0) }, at: 1.1)
+        precondition(recognizer.feed(three.map { CGPoint(x: $0.x - 30, y: 0) }, at: 1.1) == .session(1))
         // No lift: the next fingers come 0.3 s later, as moved touches.
         _ = recognizer.feed(three, at: 1.4)
         precondition(recognizer.feed(three.map { CGPoint(x: $0.x - 30, y: 0) }, at: 1.5) == .session(1),
