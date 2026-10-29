@@ -13,10 +13,11 @@ extension Browser: WKUIDelegate {
         let source = webView as? BrowserView
         let tab = source?.opensTab == true || action.navigationType == .linkActivated
         source?.opensTab = false
+        if tab, let url = action.request.url, openTab(url) {
+            return nil
+        }
         guard action.navigationType == .other, !tab else {
-            if !tab || action.request.url.map(openTab) != true {
-                webView.load(action.request)
-            }
+            webView.load(action.request)
             return nil
         }
         let popup = BrowserView(frame: .zero, configuration: configuration)
@@ -93,7 +94,7 @@ extension Browser {
         else { return false }
         approve(url)
         let taken = Set(store.panes.compactMap { PaneLabel($0.label)?.iid })
-        let label = PaneLabel(plugin: "browser", iid: PaneLabel.newIID(taken: taken), arg: url.absoluteString)
+        let label = PaneLabel.browser(taken: taken, arg: url.absoluteString)
         Task {
             await store.write {
                 _ = try await $0.newTab(workspace: workspace.id, cwd: pane.cwd ?? "~", label: label.text,
