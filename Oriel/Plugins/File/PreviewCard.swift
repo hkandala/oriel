@@ -194,9 +194,10 @@ struct FileInfo: View {
         .multilineTextAlignment(.center)
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Before the element: its focus wrapper would take the identifier from the combined label.
+        .takesKeyboard(plugin, page)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).info")
-        .takesKeyboard(plugin, page)
         .task(id: path) {
             if isEnabled {
                 size = try? await Files.size(path, exec: page.store.machine.exec())
