@@ -26,7 +26,8 @@ struct OpenCode: ChatAdapter {
     /// password, then gives the line: the password goes from its file into the environment, never into argv or the
     /// scrollback. The line reads the same in sh, bash, zsh and fish (3.4 and later).
     /// ponytail: a home folder with a `"` breaks `tui.json`; escape it if one shows up. A pane running for 30 days
-    /// loses its password file then (the chat says the server did not answer); touch it while followed if that matters.
+    /// loses its password file to the sweep (the chat says the server did not answer); touch it while followed if that
+    /// matters.
     static func prepare(_ token: String, resume: String?, on exec: any Exec) async -> String? {
         let script = #"""
         umask 077; c=$HOME/.cache/oriel; d=$c/chat/$1; p=$c/opencode/oriel-tui.js
@@ -136,7 +137,7 @@ struct OpenCode: ChatAdapter {
     @MainActor private func server(_ chat: Chat, _ url: String, _ id: String, _ waits: Waits,
                                    _ exec: any Exec) async
     {
-        guard let events = try? await exec.openCodeEvents(url, password: folder) else { return }
+        guard let events = try? await exec.openCodeEvents(url, folder: folder) else { return }
         var lines = events.makeAsyncIterator(), connected = false
         while !connected, let line = await lines.next() {
             connected = line.contains(#""server.connected""#)
@@ -171,7 +172,7 @@ struct OpenCode: ChatAdapter {
     @MainActor private func history(_ chat: Chat, _ url: String, _ id: String,
                                     _ exec: any Exec) async -> OpenCodeSession?
     {
-        let answer = await exec.openCode(url, "/session/\(id)/message", password: folder)
+        let answer = await exec.openCode(url, "/session/\(id)/message", folder: folder)
         guard !Task.isCancelled else { return nil }
         var session = OpenCodeSession(id: id)
         guard let answer, answer.status == 200, session.load(answer.body) else {
@@ -206,7 +207,7 @@ struct OpenCode: ChatAdapter {
             : ["answers": question.items.map { [answers[$0.text] ?? ""] }]
         guard let data = try? JSONSerialization.data(withJSONObject: body),
               let status = await exec.openCode(url, "/\(kind)/\(id)/reply", body: String(decoding: data, as: UTF8.self),
-                                               password: folder)?.status else { return false }
+                                               folder: folder)?.status else { return false }
         return (200 ..< 300).contains(status) || status == 404
     }
 }
@@ -245,7 +246,7 @@ struct OpenCode: ChatAdapter {
     func load(_ url: String, _ folder: String, _ exec: any Exec) async {
         var lists: [(String, [[String: Any]])] = []
         for kind in ["permission", "question"] {
-            let body = await exec.openCode(url, "/\(kind)", password: folder)?.body ?? ""
+            let body = await exec.openCode(url, "/\(kind)", folder: folder)?.body ?? ""
             lists.append((kind, (try? JSONSerialization.jsonObject(with: Data(body.utf8))) as? [[String: Any]] ?? []))
         }
         requests = []

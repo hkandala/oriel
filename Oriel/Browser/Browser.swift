@@ -30,16 +30,15 @@ final class Browser: NSObject {
     /// The loader shows until the first page drew, or at once with nothing to load.
     private(set) var ready = false
     /// A `window.open` page (OAuth needs its opener) over the card, and its host.
-    var popup: WKWebView?
-    var popupHost = ""
+    var popup: (view: WKWebView, host: String)?
     /// The address field takes the keyboard when it shows, or now (⌘L, a new empty card).
     var wantsAddress = false
     /// The pane got the keyboard while the state file was read: given once the address is known.
     @ObservationIgnored private var claimed = false
     @ObservationIgnored private var reading = true
-    /// The label's address this card follows (`follow`): the one it was built from or its last rename; and the one
-    /// that rename replaced, which a snapshot read before the rename still has.
+    /// The label's address this card follows (`follow`): the one it was built from or its last rename.
     @ObservationIgnored private var labelled: String
+    /// The address `labelled` replaced: a snapshot read before the rename still has it.
     @ObservationIgnored private var replaced: String?
     /// The saved back and forward list (WebKit's `interactionState`), restored with the saved page.
     @ObservationIgnored private var history: Data?
@@ -75,6 +74,7 @@ final class Browser: NSObject {
             let content = view.configuration.userContentController
             proxy = Task { await Self.proxy(machine, data, content) }
         }
+        // Safari's Develop menu reaches every card.
         view.isInspectable = true
         view.allowsBackForwardNavigationGestures = true
         view.navigationDelegate = self
@@ -266,6 +266,7 @@ final class Browser: NSObject {
     func dropClaim() {
         view.dropClaim()
         claimed = false
+        // Only a change: Observation reports equal writes too.
         if wantsAddress {
             wantsAddress = false
         }

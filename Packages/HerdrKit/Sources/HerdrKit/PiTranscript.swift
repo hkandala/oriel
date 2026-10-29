@@ -114,9 +114,8 @@ public struct PiTranscript: Sendable {
         let blocks = message["content"] as? [[String: Any]] ?? []
         switch message["role"] as? String {
         case "user":
-            let text = message["content"] as? String
-                ?? blocks.compactMap { $0["type"] as? String == "text" ? $0["text"] as? String : nil }
-                .joined(separator: "\n")
+            let texts = blocks.compactMap { $0["type"] as? String == "text" ? $0["text"] as? String : nil }
+            let text = message["content"] as? String ?? texts.joined(separator: "\n")
             return text.isEmpty ? [] : [.add(ChatEntry(id: id, .user(text), time: time))]
         case "assistant": return assistant(message, blocks, id: id, time: time)
         case "toolResult":

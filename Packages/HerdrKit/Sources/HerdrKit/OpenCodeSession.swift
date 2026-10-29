@@ -105,8 +105,8 @@ public struct OpenCodeSession {
                 history.append(ChatEntry(id: id + ".error", .note(error, failed: error != "Interrupted"),
                                          time: message.completed))
             } else if let completed = message.completed, let finish = message.finish, finish != "tool-calls" {
-                history.append(ChatEntry(id: id + ".end", .turnEnd(seconds: turn.map { completed.timeIntervalSince($0) }
-                        ?? 0), time: completed))
+                let seconds = turn.map { completed.timeIntervalSince($0) } ?? 0
+                history.append(ChatEntry(id: id + ".end", .turnEnd(seconds: seconds), time: completed))
             }
         }
         self.history = history
@@ -134,7 +134,8 @@ public struct OpenCodeSession {
             return
         }
         let callID = part["callID"] as? String ?? id
-        let tool = part["tool"] as? String ?? "tool", (category, target) = kind(tool, input, cwd)
+        let tool = part["tool"] as? String ?? "tool"
+        let (category, target) = row(tool, input, cwd)
         let name = tool == "task" ? input["subagent_type"] as? String ?? "agent" : tool
         let shown = target.isEmpty ? ChatHistory.firstLine(state["title"]) : target
         history.append(ChatEntry(id: id, .tool(ChatTool(id: callID, name: name, category: category,
@@ -146,8 +147,8 @@ public struct OpenCodeSession {
             history.finish(tool: callID, result: ChatHistory.firstLine(state["error"]), failed: true,
                            output: ChatHistory.detail(state["error"]), at: ended)
         case "completed":
-            let metadata = state["metadata"] as? [String: Any] ?? [:],
-                diff = ChatTool.DiffLine.unified(metadata["diff"] as? String ?? "")
+            let metadata = state["metadata"] as? [String: Any] ?? [:]
+            let diff = ChatTool.DiffLine.unified(metadata["diff"] as? String ?? "")
             let text = result(metadata, diff, output: state["output"])
             history.finish(tool: callID, result: text, failed: text.hasPrefix("exit "), diff: diff,
                            output: ChatHistory.detail(state["output"]), at: ended)
@@ -155,8 +156,8 @@ public struct OpenCodeSession {
         }
     }
 
-    /// The row's kind and target; empty: the tool's own title.
-    private static func kind(_ tool: String, _ input: [String: Any], _ cwd: String?) -> (ChatTool.Category, String) {
+    /// The row's kind and target; an empty target: the tool's own title.
+    private static func row(_ tool: String, _ input: [String: Any], _ cwd: String?) -> (ChatTool.Category, String) {
         let path = (input["filePath"] as? String).map { ChatHistory.short($0, cwd) } ?? ""
         let question = (input["questions"] as? [[String: Any]])?.first?["question"]
         return switch tool {
@@ -195,7 +196,7 @@ public struct OpenCodeSession {
 /// `folder` (relative to the home folder): curl reads it from a here-document, never from argv.
 public extension Exec {
     /// `/event`, the server's lines (`data: {json}`, blank lines between) until the stream is dropped.
-    func openCodeEvents(_ url: String, password folder: String) async throws -> AsyncStream<String> {
+    func openCodeEvents(_ url: String, folder: String) async throws -> AsyncStream<String> {
         let script = #"""
         exec curl -sN -K - "$2/event" <<EOF
         user = "opencode:$(cat "$HOME/$1/pw")"
@@ -205,7 +206,7 @@ public extension Exec {
     }
 
     /// One request, a POST when it has a JSON `body`: the HTTP status and the body; nil when there was no answer.
-    func openCode(_ url: String, _ path: String, body: String? = nil, password folder: String) async
+    func openCode(_ url: String, _ path: String, body: String? = nil, folder: String) async
         -> (status: Int, body: String)?
     {
         let script = #"""

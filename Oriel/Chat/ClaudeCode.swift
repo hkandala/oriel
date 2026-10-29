@@ -56,22 +56,22 @@ struct ClaudeCode: ChatAdapter {
     /// The side file: the last SessionStart's transcript is the history (a new one after `/clear`, a fork or a
     /// resume starts the history again); a question shows until it is answered. No session after 10 s: a problem.
     @MainActor private func hooks(_ chat: Chat, _ exec: any Exec) async {
-        await chat
-            .followSessions(folder + "/hooks.jsonl", on: exec, late: true, read: ClaudeTranscript.read) { object in
-                if object["hook_event_name"] as? String == "SessionStart" {
-                    return object["transcript_path"] as? String
-                }
-                if object["tool_name"] as? String == "AskUserQuestion",
-                   let questions = (object["tool_input"] as? [String: Any])?["questions"] as? [[String: Any]]
-                {
-                    // Only while its hook waits: a new chat reads the file from the start, old questions too.
-                    let question = Self.question(questions)
-                    if await exec.succeeds(#"test -f "$HOME/$1/ask""#, [folder]), !Task.isCancelled {
-                        chat.question = question
-                    }
-                }
-                return nil
+        let sideFile = folder + "/hooks.jsonl"
+        await chat.followSessions(sideFile, on: exec, late: true, read: ClaudeTranscript.read) { object in
+            if object["hook_event_name"] as? String == "SessionStart" {
+                return object["transcript_path"] as? String
             }
+            if object["tool_name"] as? String == "AskUserQuestion",
+               let questions = (object["tool_input"] as? [String: Any])?["questions"] as? [[String: Any]]
+            {
+                // Only while its hook waits: a new chat reads the file from the start, old questions too.
+                let question = Self.question(questions)
+                if await exec.succeeds(#"test -f "$HOME/$1/ask""#, [folder]), !Task.isCancelled {
+                    chat.question = question
+                }
+            }
+            return nil
+        }
     }
 
     /// The session record's `status`: idle (and `shell`, a background command) is ready, busy works, waiting waits for

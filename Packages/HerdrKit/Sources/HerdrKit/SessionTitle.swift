@@ -38,8 +38,8 @@ public extension Exec {
     func sessionTitle(agent: String, session: String) async -> String? {
         // pi's is a file; the others' ids go into OpenCode's SQL and Claude Code's file name: letters, digits, `-` and
         // `_` only.
-        let id = !session.isEmpty && session
-            .allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || "-_".contains($0)) }
+        let plain = session.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || "-_".contains($0)) }
+        let id = !session.isEmpty && plain
         guard let script = SessionTitle.scripts[agent], agent == "pi" ? session.hasPrefix("/") : id else { return nil }
         let text = try? await output(["sh", "-c", "{ \(script); } 2>/dev/null", "sh", session], timeout: .seconds(5))
         return SessionTitle.parse(agent: agent, text ?? "")

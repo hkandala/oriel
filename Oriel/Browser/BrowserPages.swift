@@ -15,13 +15,12 @@ extension Browser: WKUIDelegate {
         let popup = WKWebView(frame: .zero, configuration: configuration)
         popup.uiDelegate = self
         popup.setAccessibilityIdentifier("browser.\(paneID).popup")
-        self.popup = popup
-        popupHost = action.request.url?.host ?? ""
+        self.popup = (popup, action.request.url?.host ?? "")
         return popup
     }
 
     func webViewDidClose(_ webView: WKWebView) {
-        if webView === popup {
+        if webView === popup?.view {
             popup = nil
         }
     }

@@ -137,8 +137,8 @@ struct Markdown: View {
             case .blockQuote where kind != .code: kind = .quote
             case let .listItem(ordinal) where marker == nil:
                 // The list that holds this item, the next component out.
-                marker = kinds.dropFirst(index + 1)
-                    .first == .orderedList ? "\(ordinal)." : ["•", "◦", "▪"][(depth - 1) % 3]
+                let ordered = kinds.dropFirst(index + 1).first == .orderedList
+                marker = ordered ? "\(ordinal)." : ["•", "◦", "▪"][(depth - 1) % 3]
             default: break
             }
         }

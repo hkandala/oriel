@@ -66,7 +66,7 @@ struct BrowserCard: View {
             }
             .overlay {
                 if let popup = browser.popup {
-                    Popup(view: popup, title: browser.popupHost, close: { browser.popup = nil }).padding(24)
+                    Popup(view: popup.view, title: popup.host, close: { browser.popup = nil }).padding(24)
                 }
             }
             .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: browser.ready)
@@ -184,6 +184,7 @@ struct BrowserToolbar: View {
     var body: some View {
         let id = "browser.\(browser.paneID)"
         HStack(spacing: 6) {
+            // No opacity of their own: ChromeStyle dims a disabled button.
             HStack(spacing: 0) {
                 IconButton(symbol: "chevron.left", help: "Back", size: 22) { browser.view.goBack() }
                     .disabled(!browser.canGoBack)

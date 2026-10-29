@@ -109,10 +109,10 @@ struct ChatCapsule: View {
 }
 
 /// A small segmented control in the app's own style, as the tab bar.
-struct Segments<Value: Hashable>: View {
+struct Segments: View {
     let id: String
-    let options: [(String, Value)]
-    @Binding var selection: Value
+    let options: [(String, Bool)]
+    @Binding var selection: Bool
     @Environment(\.look) private var look
 
     var body: some View {

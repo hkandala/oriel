@@ -18,7 +18,6 @@ struct ChatView: View {
     private var settings = AppSettings()
 
     var body: some View {
-        let id = chat.paneID
         VStack(spacing: 0) {
             messages
             // The reply box lines up with the messages.
@@ -34,7 +33,7 @@ struct ChatView: View {
                   event.modifierFlags.isDisjoint(with: [.shift, .control]) else { return }
             if !chat.drawer {
                 composing = true
-            } else if let terminalID = page.store.pane(id)?.terminalID {
+            } else if let terminalID = page.store.pane(chat.paneID)?.terminalID {
                 page.terminals.focus(terminalID)
             }
         })
@@ -60,20 +59,20 @@ struct ChatView: View {
             }
         }
         .onChange(of: composing) {
-            if composing, let terminalID = page.store.pane(id)?.terminalID {
+            if composing, let terminalID = page.store.pane(chat.paneID)?.terminalID {
                 page.tookKeyboard(terminalID)
             }
         }
     }
 
     private var messages: some View {
-        let id = chat.paneID, working = chat.phase == .working, level = settings.chatLevel
+        let working = chat.phase == .working, level = settings.chatLevel
         let rows = chat.history.rows(level, working: working)
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 10) {
                 ForEach(rows) { row in
                     let open = opened[row.id] ?? (level == .all)
-                    ChatRowView(row: row, paneID: id, open: open, toggle: { opened[row.id] = !open },
+                    ChatRowView(row: row, paneID: chat.paneID, open: open, toggle: { opened[row.id] = !open },
                                 opened: openTools, toggleTool: { openTools.formSymmetricDifference([$0]) })
                 }
                 ForEach(chat.outgoing) { message in
@@ -99,7 +98,7 @@ struct ChatView: View {
         .defaultScrollAnchor(.bottom)
         .defaultScrollAnchor(.bottom, for: .sizeChanges)
         .focusEffectDisabled()
-        .accessibilityIdentifier("chat.\(id)")
+        .accessibilityIdentifier("chat.\(chat.paneID)")
     }
 
     @ViewBuilder private var bottom: some View {
@@ -118,7 +117,7 @@ struct ChatView: View {
     }
 
     private var composer: some View {
-        let id = chat.paneID, working = chat.phase == .working
+        let working = chat.phase == .working
         let name = chat.adapter.name
         return VStack(alignment: .leading, spacing: 2) {
             TextField("Reply to \(name)", text: $chat.draft, axis: .vertical)
@@ -127,21 +126,21 @@ struct ChatView: View {
                 .lineLimit(1 ... 10)
                 .focused($composing)
                 .onSubmit { chat.send(chat.draft) }
-                .accessibilityIdentifier("chat.\(id).composer")
+                .accessibilityIdentifier("chat.\(chat.paneID).composer")
             HStack(spacing: 8) {
                 let model = [chat.history.model.map(ChatHistory.modelName), chat.history.effort].compactMap(\.self)
                     .joined(separator: " · ")
                 if !model.isEmpty {
                     Text(model).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
-                        .accessibilityIdentifier("chat.\(id).model")
+                        .accessibilityIdentifier("chat.\(chat.paneID).model")
                 }
                 Spacer(minLength: 0)
                 if working, chat.draft.isEmpty {
-                    roundButton("stop.fill", help: "Stop", id: "chat.\(id).stop", action: chat.stop)
+                    roundButton("stop.fill", help: "Stop", id: "chat.\(chat.paneID).stop", action: chat.stop)
                 } else {
                     let text = !chat.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     let ready = [.ready, .working].contains(chat.phase) || chat.draft.hasPrefix("/")
-                    roundButton("arrow.up", help: "Send", id: "chat.\(id).send", enabled: text && ready) {
+                    roundButton("arrow.up", help: "Send", id: "chat.\(chat.paneID).send", enabled: text && ready) {
                         chat.send(chat.draft)
                     }
                 }
