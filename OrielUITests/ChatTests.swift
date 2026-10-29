@@ -208,6 +208,8 @@ extension OrielUITests {
         enable.click()
         XCTAssertTrue(element("chat.\(pane).composer").exists(within: 20))
         XCTAssertTrue(row(pane, "reply", "Echo: **hello**").exists(within: 5))
+        // The reply's model and effort, from the transcript.
+        XCTAssertEqual(element("chat.\(pane).model").stringValue, "claude-stand-in · high")
         XCTAssertFalse(enable.exists)
     }
 

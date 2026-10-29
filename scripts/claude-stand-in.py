@@ -89,7 +89,7 @@ def tool(command, output):
 
 
 def reply(text, started):
-    write("assistant", message={"model": "claude-stand-in", "content": [{"type": "text", "text": text}]})
+    write("assistant", effort="high", message={"model": "claude-stand-in", "content": [{"type": "text", "text": text}]})
     write("system", subtype="turn_duration", durationMs=int((time.time() - started) * 1000))
     report("idle")
     say(text)
