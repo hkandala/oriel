@@ -81,6 +81,8 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
 - **Decisions:** `lib/editor.ts` is the CodeMirror that File and Markdown share (no line numbers or colors: File adds
   them). Colors are Xcode's default roles, one `light-dark()` pair per role. A CRLF file saves as CRLF; a file not in
   UTF-8, or a remote one over 4 MiB, opens read only; over 16 MB both kinds show the info view.
+- **Decisions:** File wraps lines (cards are often narrow); a wrapped line goes on at its own indent (a line
+  decoration on the visible lines), and the lit line covers its rows. The jump bar's symbol has the `{}` glyph.
 - **Decisions:** languages load by extension, each its own chunk. Swift, Kotlin, Ruby, shell and TOML have only
   CodeMirror's legacy modes (no Lezer grammar for Swift exists): no tree, so their jump bar symbol is the
   declarations less indented above the caret; the others read the Lezer tree.
