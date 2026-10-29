@@ -159,7 +159,9 @@ extension OrielUITests {
 
         let popup = element("browser.\(pane).popup")
         app.webViews.buttons["Pop"].click()
-        XCTAssertTrue(popup.exists(within: 5))
+        let shown = popup.exists(within: 5)
+        keepScreenshot("popup")
+        XCTAssertTrue(shown)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(popup.vanishes(within: 3))
         app.webViews.buttons["Pop"].click()
