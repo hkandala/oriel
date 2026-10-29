@@ -145,3 +145,27 @@ identifiers of the header controls. Only the content area differs. Each variant'
   `PaneCard.swift` are near the 400-line limit: split before adding.
 - **For the user:** Open With ▾ lists the default app first; check its icons and that it is absent on a remote
   machine.
+
+### Track B
+
+- **Cause (item 6):** the relay passes NUL bytes unchanged: Perl's `.` matches NUL, ssh's channel is binary safe, and
+  the app splits lines only on `\n`. A unit test runs `-z` style output past the relay's 64 KB reads. `-z` output is
+  one long "line"; `checkedOutput` joins the lines again, so a name with a line break survives too.
+- **Fix:** `Files` (list, every path for the filter, read, size, save, watch) and `Git` (root, status, log, graph,
+  diff with word changes) in HerdrKit, plain values over `Exec`; the tests run each through `ProcessExec` and through
+  the relay, on a real repository with a merge and odd names, and on a recorded patch of this repo.
+- **Decisions:** the listing is a shell glob printing NUL-separated names (`ls -1Ap` cannot carry a line break in a
+  name) and hides `.git`; links to folders are folders. Git state comes from one `git status --ignored -- .` per
+  folder (no `check-ignore`): an untracked or ignored folder covers what is inside it, a folder shows the letter of a
+  change inside. Letters: `M A D R T`, `U` untracked, `C` conflict.
+- **Decisions:** `list` and `paths` take the repo root (nil: no git runs), so a Mac without the developer tools
+  never gets the install dialog; callers gate every `Git` call on `GitStatus.usable`. Uncommitted is staged,
+  unstaged and untracked files against HEAD (`git diff --no-index` per untracked file); a commit shows against its
+  first parent. A hash from a label must be hex. Word marks are UTF-16 ranges (NSString and JavaScript), none for
+  lines over 1,000 characters or with nothing in common.
+- **Decisions:** read prints `cksum` before `base64`: a change between the two only makes the next save stop with
+  `changed`. Save writes a new file beside the old (`cp -p` keeps the mode), checks the hash, then `mv`; a link is
+  written through so it stays a link. Watch on This Mac follows the path when an editor replaces the file; remote
+  checks `cksum` every 2 s while the stream is read. The filter's paths stop at 8 MB of names.
+- **For the user:** nothing to see yet; phases 43 and 44 draw this data. An untracked link to a folder is in the
+  Changes list but not in the Uncommitted diff (git's `--no-index` skips it).
