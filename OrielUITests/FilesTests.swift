@@ -27,7 +27,8 @@ extension OrielUITests {
         XCTAssertTrue(item("a.swift").exists(within: 3))
         XCTAssertFalse(item("Sources/main.swift").exists)
         item("Sources").doubleClick()
-        XCTAssertTrue(item("Sources/main.swift").has(\.stringValue, "M", within: 3))
+        XCTAssertTrue(item("Sources/main.swift").has(\.stringValue, "M", within: 3),
+                      element("files.\(pane).tree").debugDescription)
         filterTree(pane, "notes")
         XCTAssertTrue(item("Sources/main.swift").vanishes(within: 5))
         filterTree(pane, "")
