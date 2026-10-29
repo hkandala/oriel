@@ -193,14 +193,14 @@ struct FileInfo: View {
         }
         .font(.system(size: 12))
         .multilineTextAlignment(.center)
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .takesKeyboard(plugin, page)
         // One element that reads its lines: a plain Text gives a combined element no label.
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isStaticText)
         .accessibilityLabel([name, details, note].compactMap(\.self).joined(separator: ", "))
         .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).info")
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .takesKeyboard(plugin, page)
         .task(id: path) {
             if isEnabled {
                 size = try? await Files.size(path, exec: page.store.machine.exec())
