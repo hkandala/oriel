@@ -12,7 +12,7 @@ extension OrielUITests {
         let repo = "/tmp/oriel-e2e-files", root = "/private/tmp/oriel-e2e-files"
         try await makeRepo(repo, in: shell)
         let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
-            "type": "pane", "cwd": repo, "label": "oriel:files#e2efiles \(root)", "command": ["sh", "-c", "cat", "sh"],
+            "type": "pane", "cwd": repo, "label": "oriel:files#e2efil \(root)", "command": ["sh", "-c", "cat", "sh"],
         ]])
         let layout = reply["layout"] as? [String: Any]
         let tab: String = try field(layout?["tab_id"], "layout's tab")

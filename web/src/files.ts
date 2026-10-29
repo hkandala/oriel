@@ -7,6 +7,7 @@ import { type Change, type Commit, type Entry, arg as root, ask, receive, report
 document.body.innerHTML = `
 <p id="message" hidden></p>
 <div id="tree"></div>
+<div id="matches" hidden></div>
 <section id="git" hidden>
   <button id="git-head" aria-label="Git" aria-expanded="false"><span class="chevron"></span>Git</button>
   <div id="git-body"><h2>Changes</h2><div id="changes"></div><h2>History</h2><div id="history"></div></div>
@@ -20,9 +21,10 @@ const ignored = new Set<string>()
 let changes: Change[] = []
 /** The root, when it is a git repository's root. */
 let repo: string | undefined
-/** Row 2's filter, and every path of the root that it searches, loaded at its first letter. */
+/** Row 2's filter, every path of the root that it searches (loaded at its first letter), and how many match. */
 let filter = ""
 let paths: Promise<void> | undefined
+let matched = 0
 /** The root's last listing failed. */
 let failed = false
 
@@ -34,19 +36,12 @@ const base = root.replace(/\/$/, "")
 const parent = (path: string) => path.slice(0, path.lastIndexOf("/", path.length - 2) + 1)
 const folder = (path: string) => tree.getItem(path) as FileTreeDirectoryHandle | null
 
-const tree = new FileTree({
-  paths: [],
-  density: "compact",
+// The filter's matches are a second tree, of the files whose name matches with their folders: Pierre's own search
+// matches the whole path.
+const look = {
+  density: "compact" as const,
   // A folder with one folder in it is two rows, as in the Finder.
   flattenEmptyDirectories: false,
-  fileTreeSearchMode: "hide-non-matches",
-  // A click on a match ends the filter and shows the file in the whole tree: row 2's field empties with it.
-  onSearchChange: (value) => {
-    if (value === null && filter) {
-      filter = ""
-      report({ op: "filter", text: "" })
-    }
-  },
   unsafeCSS: `:host {
     --trees-bg-override: transparent; --trees-fg-override: var(--text); --trees-fg-muted-override: var(--dim);
     --trees-accent-override: var(--accent); --trees-font-size-override: var(--font-size);
@@ -58,10 +53,14 @@ const tree = new FileTree({
     --trees-git-renamed-color-override: var(--finished);
   }
   [data-item-contains-git-change="true"] > [data-item-section="git"] { opacity: 1; }`,
-})
+}
+const tree = new FileTree({ paths: [], ...look })
+const results = new FileTree({ paths: [], ...look })
 const host = document.getElementById("tree")!
 const message = document.getElementById("message")!
+const matches = document.getElementById("matches")!
 tree.render({ containerWrapper: host })
+results.render({ containerWrapper: matches })
 
 /** One at a time: two listings of a folder at once would add its entries twice. */
 let queue = Promise.resolve()
@@ -128,19 +127,40 @@ async function list(at: string) {
   showStatus()
   if (!at) show()
 }
-/** The message over the tree: the root's listing failed, or the filter matches nothing (the tree would show all). */
+/** The message over the trees: the root's listing failed, or the filter matches nothing. */
 function show() {
-  const none = tree.isSearchOpen() && !tree.getSearchMatchingPaths().length
-  host.hidden = none
+  const none = Boolean(filter) && !matched
   message.hidden = !failed && !none
   message.textContent = failed ? `Can't list ${root}` : none ? "No matching files" : ""
 }
 
+/** The files whose name has the filter's text, with their folders, open.
+ *  ponytail: the first 5,000, as the native variant; a search on the machine when roots get bigger. */
+function match() {
+  const text = filter.toLowerCase()
+  const found = [...children.values()].flatMap((set) =>
+    [...set].filter((path) => !path.endsWith("/") && path.slice(path.lastIndexOf("/") + 1).toLowerCase().includes(text)),
+  ).slice(0, 5000)
+  matched = found.length
+  host.hidden = Boolean(filter)
+  matches.hidden = !filter
+  results.resetPaths(filter ? found : [], { initialExpandedPaths: [...new Set(found.flatMap(folders))] })
+  show()
+}
+
+/** The folders above a path. */
+function folders(path: string): string[] {
+  const above = parent(path)
+  return above ? [above, ...folders(above)] : []
+}
+
 function showStatus() {
-  tree.setGitStatus([
+  const status = [
     ...changes.flatMap(({ letter, path }) => (STATUS[letter] ? [{ path, status: STATUS[letter] }] : [])),
     ...[...ignored].map((path) => ({ path, status: "ignored" as const })),
-  ])
+  ]
+  tree.setGitStatus(status)
+  results.setGitStatus(status)
 }
 
 /** The git section and the open folders again, after a change on the machine. A closed folder lists when it opens. */
@@ -154,12 +174,10 @@ async function refresh() {
   }
 }
 
-// A folder lists when the user opens it; the filter's matches open without it.
+// A folder lists when the user opens it.
 // ponytail: walks every folder not listed at each change of the tree (after a filter, all of the repository's); walk
 // the visible rows if a big repository's arrow keys lag.
 tree.subscribe(() => {
-  show()
-  if (tree.isSearchOpen()) return
   for (const at of unlisted) {
     if (!folder(at)?.isExpanded()) continue
     unlisted.delete(at)
@@ -171,7 +189,7 @@ receive((message) => {
   if (message.op === "filter") {
     filter = message.text
     paths ??= filter ? run(loadPaths).catch(() => {}) : undefined
-    void (paths ?? queue).then(() => (filter ? tree.setSearch(filter) : tree.closeSearch()))
+    void (paths ?? queue).then(match)
   } else if (message.op === "collapse") {
     for (const at of children.keys()) if (at) folder(at)?.collapse()
   } else if (message.op === "changed" && !due) {
@@ -181,6 +199,7 @@ receive((message) => {
     run(async () => {
       due = false
       await refresh()
+      if (filter) match()
     })
   }
 })
@@ -258,23 +277,19 @@ function commitRow({ hash, subject, date, lane, children, parents, through }: Co
 }
 
 /** Double-click, ⌘-click or Return on what `pick` finds opens it. In the capture phase, before the tree's own click
- *  (⌘ adds to its selection); the first click may end the filter and move the rows, so a double-click opens what its
- *  first click was on. */
+ *  (⌘ adds to its selection). */
 function onOpen(element: HTMLElement, pick: (node: HTMLElement) => string | undefined, open: (value: string) => void) {
   const under = (event: Event) => {
     const node = event.composedPath().find((n): n is HTMLElement => n instanceof HTMLElement && pick(n) !== undefined)
     return node && pick(node)
   }
-  let first: string | undefined
   element.addEventListener(
     "click",
     (event) => {
-      const at = under(event)
-      if (event.detail === 1) first = at
-      const picked = event.metaKey ? at : event.detail === 2 ? first : undefined
-      if (picked === undefined) return
+      const at = event.metaKey || event.detail === 2 ? under(event) : undefined
+      if (at === undefined) return
       event.stopPropagation()
-      open(picked)
+      open(at)
     },
     true,
   )
@@ -284,20 +299,21 @@ function onOpen(element: HTMLElement, pick: (node: HTMLElement) => string | unde
   })
 }
 
-// A double-click on a folder opens or closes it once, as in the Finder: its second click toggles nothing.
-host.addEventListener(
-  "click",
-  (event) => {
-    const folder = event.composedPath().some((n) => n instanceof HTMLElement && n.dataset.itemType === "folder")
-    if (folder && event.detail >= 2) event.stopPropagation()
-  },
-  true,
-)
-
 // A file: in a new tab with its kind; a change: the diff of the uncommitted changes at that file; a commit: its diff.
-onOpen(host, (node) => (node.dataset.itemType === "file" ? node.dataset.itemPath : undefined), (path) =>
-  report({ op: "open", arg: `${base}/${path}` }),
-)
+for (const trees of [host, matches]) {
+  onOpen(trees, (node) => (node.dataset.itemType === "file" ? node.dataset.itemPath : undefined), (path) =>
+    report({ op: "open", arg: `${base}/${path}` }),
+  )
+  // A double-click on a folder opens or closes it once, as in the Finder: its second click toggles nothing.
+  trees.addEventListener(
+    "click",
+    (event) => {
+      const folder = event.composedPath().some((n) => n instanceof HTMLElement && n.dataset.itemType === "folder")
+      if (folder && event.detail >= 2) event.stopPropagation()
+    },
+    true,
+  )
+}
 onOpen(document.getElementById("changes")!, (node) => node.dataset.change, (path) =>
   report({ op: "open", kind: "diff", arg: `${root} uncommitted`, at: path }),
 )

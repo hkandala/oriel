@@ -40,7 +40,7 @@ final class WebCard {
         didSet { send(["op": "list", "open": list]) }
     }
 
-    /// Files: row 2's filter, which the page also ends (a click on a match shows it in the whole tree).
+    /// Files: row 2's filter; a page loaded again ends it.
     var filter = ""
     var toast: Toast?
     /// A File card's jump bar: the scopes around the caret (`file.ts`).
