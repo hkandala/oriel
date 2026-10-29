@@ -2,7 +2,7 @@ import AppKit
 import WebKit
 
 /// The web view, which takes the keyboard as a terminal does (`PaneSurfaceView`): now, or once it is in a window.
-final class BrowserView: WKWebView {
+class BrowserView: WKWebView {
     var onKeyboard: (() -> Void)?
     /// A key the card takes before the page (its "Open this page?").
     var onKey: ((NSEvent) -> Bool)?
@@ -14,7 +14,8 @@ final class BrowserView: WKWebView {
 
     /// The key window's browser that has the keyboard: ⌘+ ⌘− ⌘0 zoom its page.
     static var focused: BrowserView? {
-        NSApp.keyWindow?.firstResponder as? BrowserView
+        // A web card follows the app's text size, as a native card does.
+        (NSApp.keyWindow?.firstResponder as? BrowserView).flatMap { $0 is WebCardView ? nil : $0 }
     }
 
     func takeKeyboard() {

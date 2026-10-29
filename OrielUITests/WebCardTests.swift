@@ -18,8 +18,9 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         let card = try await split(left)
         try await Self.call(one, "pane.rename", ["pane_id": card, "label": "oriel:webtest#e2eweb \(file)"])
-        let editor = app.webViews.textViews.firstMatch
-        XCTAssertTrue(until(10) { editor.value as? String == "oriel-web-42" })
+        // The page loads in a web process of its own.
+        let editor = element("webtest.\(card).page").textViews.firstMatch
+        XCTAssertTrue(until(10) { editor.exists && editor.value as? String == "oriel-web-42" })
         let edited = element("webtest.\(card)")
         XCTAssertEqual(edited.value as? String, "clean")
         keepScreenshot("web card")
@@ -42,5 +43,6 @@ extension OrielUITests {
         app.typeKey("[", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard("terminal.\(left)"))
         XCTAssertEqual(editor.value as? String, "x")
+        try await Self.call(one, "pane.send_text", ["pane_id": left, "text": "rm \(file)\r"])
     }
 }

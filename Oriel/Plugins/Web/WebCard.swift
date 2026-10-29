@@ -13,9 +13,7 @@ final class WebCard {
     let arg: String
     @ObservationIgnored weak var store: HostStore?
     @ObservationIgnored let view: WebCardView
-    private(set) var dirty = false
-    /// The symbol at the caret, for the jump bar.
-    private(set) var symbol = ""
+    fileprivate(set) var dirty = false
     @ObservationIgnored private var loaded = false
 
     init(kind: String, arg: String, store: HostStore) {
@@ -29,31 +27,30 @@ final class WebCard {
         view.underPageBackgroundColor = .clear
         view.setValue(false, forKey: "drawsBackground")
         view.isInspectable = true
-        configuration.userContentController.addScriptMessageHandler(Relay(card: self), contentWorld: .page,
-                                                                    name: "oriel")
+        let relay = Relay(card: self)
+        configuration.userContentController.addScriptMessageHandler(relay, contentWorld: .page, name: "oriel")
+        view.navigationDelegate = relay
     }
 
-    /// The app's colors as CSS variables. The first call loads the page with them, so its first paint has them.
+    /// The app's colors as CSS variables. The first call loads the page; the script also starts a page still loading
+    /// or loaded again with them, so every first paint has them.
     func theme(_ css: String) {
-        if loaded {
-            view.callAsyncJavaScript("document.documentElement.style.cssText = css", arguments: ["css": css],
-                                     in: nil, in: .page)
-            return
-        }
-        loaded = true
         let card = (try? JSONSerialization.data(withJSONObject: ["arg": arg, "css": css])).map {
             String(decoding: $0, as: UTF8.self)
         } ?? "{}"
-        view.configuration.userContentController.addUserScript(WKUserScript(
+        let content = view.configuration.userContentController
+        content.removeAllUserScripts()
+        content.addUserScript(WKUserScript(
             source: "window.card = \(card); document.documentElement.style.cssText = card.css",
             injectionTime: .atDocumentStart, forMainFrameOnly: true,
         ))
-        view.load(URLRequest(url: PluginScheme.page(kind)))
-    }
-
-    /// From row 2's controls to the page's `receive` handler.
-    func send(_ message: [String: Any]) {
-        view.callAsyncJavaScript("window.receive?.(message)", arguments: ["message": message], in: nil, in: .page)
+        if loaded {
+            view.callAsyncJavaScript("document.documentElement.style.cssText = css", arguments: ["css": css],
+                                     in: nil, in: .page)
+        } else {
+            loaded = true
+            view.load(URLRequest(url: PluginScheme.page(kind)))
+        }
     }
 
     /// One message from the page: a reply or an error text for an ask, nothing for a report.
@@ -61,7 +58,7 @@ final class WebCard {
         let message = body as? [String: Any] ?? [:]
         switch message["op"] as? String {
         case "read":
-            // ponytail: `cat` until phase 42's file data lands, which adds the hash and the size caps.
+            // ponytail: `cat`, trimmed, until phase 42's file data lands, which adds the hash and the size caps.
             guard let path = message["path"] as? String, let store else { return (nil, "No file") }
             do {
                 return try await (["text": store.machine.exec().output(["cat", "--", path])], nil)
@@ -70,10 +67,6 @@ final class WebCard {
             }
         case "dirty":
             dirty = message["dirty"] as? Bool == true
-        case "symbol":
-            symbol = message["symbol"] as? String ?? ""
-        case "open":
-            Links.shared.open(message["link"] as? String ?? "")
         default:
             return (nil, "Unknown message")
         }
@@ -83,8 +76,10 @@ final class WebCard {
 
 /// The content controller keeps its handler for good: a strong one kept the card, its web view and its process.
 @MainActor
-private final class Relay: NSObject, WKScriptMessageHandlerWithReply {
+private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigationDelegate {
     weak var card: WebCard?
+    /// The page's process ended since the last load finished: it loads again once.
+    private var reloaded = false
 
     init(card: WebCard) {
         self.card = card
@@ -95,19 +90,23 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply {
     {
         await card?.answer(message.body) ?? (nil, "Closed")
     }
+
+    func webView(_: WKWebView, didFinish _: WKNavigation!) {
+        reloaded = false
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        guard !reloaded else { return }
+        reloaded = true
+        card?.dirty = false
+        webView.reload()
+    }
 }
 
-final class WebCardView: WKWebView {
-    /// The card took the keyboard (a click in the page): the page's card with the keyboard.
-    var onKeyboard: (() -> Void)?
-
-    override func becomeFirstResponder() -> Bool {
-        let became = super.becomeFirstResponder()
-        if became {
-            onKeyboard?()
-        }
-        return became
-    }
+/// Takes the keyboard as a browser's page does.
+final class WebCardView: BrowserView {
+    /// The ⇧⌘← or ⇧⌘→ the menu handed to the page: WebKit sends it again when the page leaves it, for Move Tab.
+    var handed: NSEvent?
 
     /// WebKit gives the page every ⌘ key first, and CodeMirror takes some of the app's (⌘[ ⌘] select a pane): the
     /// menu goes first, as over a native text view.
@@ -131,9 +130,9 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
 
     func webView(_: WKWebView, start task: any WKURLSchemeTask) {
         guard let url = task.request.url else { return }
-        // One folder, no subfolders: the last component cannot climb out of it.
+        // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
         let file = url.lastPathComponent, page = url.pathExtension.isEmpty
-        let data = page ? Data("""
+        let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""
         <!doctype html><meta charset="utf-8"><link rel="stylesheet" href="card.css">\
         <script type="module" src="\(file).js"></script>
         """.utf8) : Self.folder.flatMap { try? Data(contentsOf: $0.appending(path: file)) }
@@ -146,7 +145,8 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         // The page's scripts come only from the bundle.
         task.didReceive(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: [
             "Content-Type": mime,
-            "Content-Security-Policy": "default-src \(Self.name): data:; style-src \(Self.name): 'unsafe-inline'",
+            "Content-Security-Policy": "default-src \(Self.name):; img-src \(Self.name): data:; "
+                + "style-src \(Self.name): 'unsafe-inline'",
         ]) ?? URLResponse())
         task.didReceive(data)
         task.didFinish()
