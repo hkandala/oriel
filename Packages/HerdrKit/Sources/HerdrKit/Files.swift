@@ -159,7 +159,7 @@ public enum Files {
 
     /// ponytail: a file's check reads it whole (up to 16 MB) every 2 s, and the caller reads it again to compare
     /// hashes; yield the hash when that costs too much. A folder's check sees its own entries and what
-    /// `git status` sees under it, not a new file in an ignored folder.
+    /// `git status` sees under it, not a new file in an ignored folder; its git runs without `GitStatus.usable`.
     private static func poll(_ path: String, exec: any Exec, _ changed: AsyncStream<Void>.Continuation) async {
         let script = #"""
         if [ -d "$1" ]; then
@@ -179,35 +179,42 @@ public enum Files {
     }
 }
 
-/// File system events on This Mac: for a folder anything under it, for a file its name in its folder, so a file an
-/// editor replaced, or one that comes back, is still seen.
+/// File system events on This Mac for a path and anything under it, whatever file it names now: a file an editor
+/// replaced, or one that comes back, is still seen. The stream is on the nearest folder that exists: one made later
+/// sends nothing.
 private final class Events: Sendable {
     private static let queue = DispatchQueue(label: "oriel.files.watch")
     private let changed: AsyncStream<Void>.Continuation
-    private let name: String?
+    /// Canonical, as the events name paths (`/private/tmp`).
+    private let target: String
     /// Set once in init and released once in `stop`, which the stream's end calls once.
     private nonisolated(unsafe) var stream: FSEventStreamRef?
 
     init(_ path: String, _ changed: AsyncStream<Void>.Continuation) {
-        var isFolder: ObjCBool = false
-        let folder = FileManager.default.fileExists(atPath: path, isDirectory: &isFolder) && isFolder.boolValue
+        var root = path, isFolder: ObjCBool = false
+        while root != "/",
+              !(FileManager.default.fileExists(atPath: root, isDirectory: &isFolder) && isFolder.boolValue)
+        {
+            root = (root as NSString).deletingLastPathComponent
+        }
+        let canonical = (try? URL(filePath: root).resourceValues(forKeys: [.canonicalPathKey]).canonicalPath) ?? root
+        target = canonical + path.dropFirst(root.count)
         self.changed = changed
-        name = folder ? nil : (path as NSString).lastPathComponent
         var context = FSEventStreamContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil,
                                            release: nil, copyDescription: nil)
         let callback: FSEventStreamCallback = { _, info, _, paths, _, _ in
             guard let info else { return }
             let events = Unmanaged<Events>.fromOpaque(info).takeUnretainedValue()
             let changed = Unmanaged<CFArray>.fromOpaque(paths).takeUnretainedValue() as? [String] ?? []
-            if events.name == nil || changed.contains(where: { ($0 as NSString).lastPathComponent == events.name }) {
+            if changed.contains(where: { $0 == events.target || $0.hasPrefix(events.target + "/") }) {
                 events.changed.yield()
             }
         }
         let flags = kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents
             | kFSEventStreamCreateFlagNoDefer
-        stream = FSEventStreamCreate(nil, callback, &context,
-                                     [folder ? path : (path as NSString).deletingLastPathComponent] as CFArray,
-                                     FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.3,
+        // A second's latency: a folder lists again at most that often while a build writes.
+        stream = FSEventStreamCreate(nil, callback, &context, [root] as CFArray,
+                                     FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 1,
                                      FSEventStreamCreateFlags(flags))
         if let stream {
             FSEventStreamSetDispatchQueue(stream, Self.queue)
@@ -215,10 +222,13 @@ private final class Events: Sendable {
         }
     }
 
+    /// On the events' queue: a callback that runs now uses `self`, which the context does not keep.
     func stop() {
-        guard let stream else { return }
-        FSEventStreamStop(stream)
-        FSEventStreamInvalidate(stream)
-        FSEventStreamRelease(stream)
+        Self.queue.async { [self] in
+            guard let stream else { return }
+            FSEventStreamStop(stream)
+            FSEventStreamInvalidate(stream)
+            FSEventStreamRelease(stream)
+        }
     }
 }

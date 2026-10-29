@@ -51,7 +51,7 @@ import Testing
             "A >sub/line\nbreak false", "A >sub/new/f.txt false", "A >sub/tab\t\"x false",
         ])
         #expect(files[0].hunks.flatMap(\.lines).map { "\($0.old ?? 0) \($0.new ?? 0) \($0.text)" }
-            == ["1 1 a\r", "2 0 b\r", "0 2 c\r"])
+            == ["1 1 a", "2 0 b", "0 2 c"])
         #expect(files[1].hunks.flatMap(\.lines).map(\.text) == ["a", "m", "c"])
         let merge = try await Git.log(repo.path, exec: exec)[0].hash
         #expect(try await Git.diff(repo.path, commit: merge, exec: exec).map(\.path) == ["side.txt"])
