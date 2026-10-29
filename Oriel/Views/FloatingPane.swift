@@ -163,8 +163,7 @@ struct FloatingWindow: View {
                 content(pages, page, pane)
             }
         }
-        // A chat's title row holds its switch too.
-        .frame(minWidth: page.flatMap { page in pane.flatMap(page.chat) } == nil ? 320 : 440, minHeight: 200)
+        .frame(minHeight: 200)
         .windowChrome(look)
         .environment(\.look, look)
         .navigationTitle(pane.map { pane in
@@ -200,7 +199,9 @@ struct FloatingWindow: View {
                     Color.clear
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Not on the window: a frame's minimum width hides its content's, and the title row's buttons (a chat's
+            // switch too) can need more.
+            .frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity)
             .overlay {
                 if let pane {
                     NewPaneOverlay(chooser: chooser, page: page, cardID: pane.id)

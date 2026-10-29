@@ -126,7 +126,13 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard("terminal.\(pane)", in: window))
         element("pane.\(pane).view.chat", in: window).click()
         XCTAssertTrue(hasKeyboard(composer))
-        element("float.\(pane).detach").click()
+        // At its narrowest, every title-row button still fits.
+        let origin = window.coordinate(withNormalizedOffset: .zero)
+        let corner = origin.withOffset(CGVector(dx: window.frame.width - 2, dy: window.frame.height - 2))
+        corner.click(forDuration: 0.1, thenDragTo: origin.withOffset(CGVector(dx: 200, dy: 200)))
+        let detach = element("float.\(pane).detach")
+        XCTAssertLessThanOrEqual(detach.frame.maxX, window.frame.maxX, "\(detach.frame) \(window.frame)")
+        detach.click()
         XCTAssertTrue(window.vanishes(within: 3))
         XCTAssertTrue(element("chat.\(pane).composer").exists(within: 3))
     }
