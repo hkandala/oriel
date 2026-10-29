@@ -246,7 +246,8 @@ extension CommandList {
                            let responder = NSApp.keyWindow?.firstResponder
                            if arrow, let text = responder as? NSTextView {
                                text.doCommand(by: select)
-                           } else if arrow, let event, let web = responder as? WebCardView {
+                           } else if arrow, let event, let web = responder as? WebCardView, web.handed !== event {
+                               web.handed = event
                                web.keyDown(with: event)
                            } else if let page, let tab = page.selectedTab {
                                Task { await page.store.move(tab: tab.id, by: offset) }
