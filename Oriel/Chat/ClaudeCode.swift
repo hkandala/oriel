@@ -2,10 +2,10 @@ import Foundation
 import HerdrKit
 
 /// Claude Code (resources/research/agents/claude-code.md). Started with `--session-id T` (or `--resume <session>`) and
-/// inline hooks in
-/// `--settings`: a SessionStart hook appends each session's transcript path to `~/.cache/oriel/chat/T/hooks.jsonl`, and
-/// a PermissionRequest hook for AskUserQuestion only appends the question there and waits for the chat's answer file.
-/// Its phase is its session record, `~/.claude/sessions/<pid>.json` (undocumented; herdr's status without one).
+/// inline hooks in `--settings`: a SessionStart hook appends each session's transcript path to
+/// `~/.cache/oriel/chat/T/hooks.jsonl`, and a PermissionRequest hook for AskUserQuestion only appends the question
+/// there and waits for the chat's answer file. Its phase is its session record, `~/.claude/sessions/<pid>.json`
+/// (undocumented; herdr's status without one).
 struct ClaudeCode: ChatAdapter {
     static let command = "claude"
     let token: String
