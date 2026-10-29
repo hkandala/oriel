@@ -23,6 +23,7 @@ struct PluginCard: View {
         Group {
             switch plugin.kind {
             case .files: FilesCard(plugin: plugin, page: page)
+            case .diff: DiffContent(plugin: plugin, page: page)
             default: PluginPlaceholder(plugin: plugin, page: page)
             }
         }
@@ -129,6 +130,7 @@ struct PluginToolbar: View {
     var body: some View {
         switch plugin.kind {
         case .files: FilesToolbar(plugin: plugin)
+        case .diff: DiffToolbar(plugin: plugin, page: page)
         default: placeholder
         }
     }

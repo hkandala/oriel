@@ -117,6 +117,8 @@ final class Plugin {
     var place: String?
     /// A Files card's tree.
     @ObservationIgnored lazy var tree = FileTree(plugin: self)
+    /// A diff's state, made on first use.
+    @ObservationIgnored lazy var diff = DiffCard()
 
     init(terminalID: String, paneID: String, label: PaneLabel) {
         self.terminalID = terminalID
