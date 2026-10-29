@@ -318,7 +318,8 @@ receive((message) => {
       break
     case "list":
       nav.hidden = !message.open
-      keepChange()
+      // Once the viewer has its new width: Side by Side wraps lines to it.
+      requestAnimationFrame(() => requestAnimationFrame(keepChange))
       break
     case "step": {
       if (!changes.length) return
