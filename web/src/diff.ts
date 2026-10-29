@@ -7,7 +7,7 @@ import {
   type FileDiffMetadata,
   parsePatchFiles,
 } from "@pierre/diffs"
-import { ask, at, receive, report } from "./lib/bridge"
+import { ask, at, type PatchReply, receive, report } from "./lib/bridge"
 
 const style = document.createElement("style")
 style.textContent = `
@@ -47,7 +47,7 @@ const main = element("main", "diff")
 const empty = element("p", "empty")
 document.body.append(nav, main, empty)
 
-const { root, split, list, ...first } = await ask({ op: "patch" }).catch((error: Error) => {
+const { root, split, list, ...first }: PatchReply = await ask({ op: "patch" }).catch((error: Error) => {
   empty.textContent = error.message
   throw error
 })
@@ -66,11 +66,34 @@ const options: CodeViewOptions<undefined, undefined> = {
   themeType: scheme(),
   diffStyle: split ? "split" : "unified",
   lineDiffType: "word",
+  // `N unmodified lines`, not expandable: that needs each file's whole text.
+  hunkSeparators: "line-info-basic",
   stickyHeaders: true,
   layout: { paddingTop: 0, paddingBottom: 24, gap: 0 },
   // The card's fill shows through; the sticky header blurs what scrolls under it.
   unsafeCSS: `
-    :host { --diffs-light-bg: transparent !important; --diffs-dark-bg: transparent !important }
+    :host {
+      --diffs-light-bg: transparent !important;
+      --diffs-dark-bg: transparent !important;
+      --diffs-addition-color-override: var(--finished);
+      --diffs-deletion-color-override: var(--error);
+      --diffs-modified-color-override: var(--working);
+      --diffs-bg-separator-override: transparent;
+    }
+    [data-line-type=change-addition] {
+      --diffs-computed-diff-line-bg: color-mix(in srgb, var(--finished) 10%, transparent) !important;
+    }
+    [data-line-type=change-deletion] {
+      --diffs-computed-diff-line-bg: color-mix(in srgb, var(--error) 10%, transparent) !important;
+    }
+    [data-line-type=change-addition] [data-diff-span] {
+      background-color: color-mix(in srgb, var(--finished) 28%, transparent) !important;
+    }
+    [data-line-type=change-deletion] [data-diff-span] {
+      background-color: color-mix(in srgb, var(--error) 28%, transparent) !important;
+    }
+    [data-separator] { border-block: 0.5px solid var(--divider) }
+    [data-separator-content] { background: none !important; color: var(--dim) }
     [data-diffs-header] {
       background: color-mix(in srgb, var(--text) 6%, transparent) !important;
       backdrop-filter: blur(20px);
@@ -96,15 +119,22 @@ const options: CodeViewOptions<undefined, undefined> = {
       row(diff.name)?.classList.toggle("viewed", check.checked)
     }
     label.append(check, "Viewed")
-    const open = element("button", "open", "Open File")
-    open.ariaLabel = `Open ${diff.name}`
-    open.onclick = () => openFile(diff.name)
-    box.append(label, open)
+    box.append(label)
+    // A deleted file has nothing to open.
+    if (diff.type !== "deleted") {
+      const open = element("button", "open", "Open File")
+      open.ariaLabel = `Open ${diff.name}`
+      open.onclick = () => openFile(diff.name)
+      box.append(open)
+    }
     return box
   },
   // ⌘-click: the file, at the line when it is in the new file.
   onLineClick: ({ event, lineNumber, annotationSide }, context) => {
-    if (event.metaKey) openFile(context.item.id, annotationSide === "additions" ? lineNumber : undefined)
+    const type = files.find((file) => file.name === context.item.id)?.type
+    if (event.metaKey && type !== "deleted") {
+      openFile(context.item.id, annotationSide === "additions" ? lineNumber : undefined)
+    }
   },
 }
 const viewer = new CodeView(options)
@@ -226,7 +256,7 @@ async function refresh() {
   asking = true
   do {
     again = false
-    const reply = await ask({ op: "patch" }).catch(() => undefined)
+    const reply: PatchReply | undefined = await ask({ op: "patch" }).catch(() => undefined)
     if (reply && reply.patch !== patch) show(reply.patch)
   } while (again)
   asking = false
