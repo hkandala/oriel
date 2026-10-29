@@ -45,14 +45,8 @@ struct ClaudeCode: ChatAdapter {
     /// The hooks' folder for T in the `--settings` value: the launcher's own `claude`, its `dotslash` and the native
     /// binary all carry it.
     init?(_ foreground: [Program.Foreground]) {
-        var token: String?, pids: [Int] = []
-        for process in foreground {
-            guard let flag = process.argv.firstIndex(of: "--settings"), flag + 1 < process.argv.count,
-                  let id = ChatAdapters.token(in: process.argv[flag + 1]), token == nil || token == id else { continue }
-            token = id
-            pids.append(process.pid)
-        }
-        guard let token else { return nil }
+        let marked = ChatAdapters.marked(foreground) { $0.after("--settings").flatMap(ChatAdapters.token(in:)) }
+        guard let (token, pids) = marked else { return nil }
         self.token = token
         self.pids = pids
     }
@@ -77,7 +71,7 @@ struct ClaudeCode: ChatAdapter {
                 {
                     // Only while its hook waits: a new chat reads the file from the start, old questions too.
                     let question = Self.question(questions)
-                    if await run(["sh", "-c", #"test -f "$HOME/$1/ask""#, "sh", folder], exec) == 0, !Task.isCancelled {
+                    if await exec.succeeds(#"test -f "$HOME/$1/ask""#, [folder]), !Task.isCancelled {
                         chat.question = question
                     }
                 }
@@ -100,7 +94,7 @@ struct ClaudeCode: ChatAdapter {
             }
             if waited, chat.phase != .waiting, chat.question != nil {
                 chat.question = nil
-                await run(["sh", "-c", #"rm -f "$HOME/$1/ask""#, "sh", folder], exec)
+                await exec.succeeds(#"rm -f "$HOME/$1/ask""#, [folder])
             }
         }
     }
@@ -110,14 +104,6 @@ struct ClaudeCode: ChatAdapter {
         guard let items = ChatQuestion.items(questions, several: "multiSelect"),
               let raw = try? JSONSerialization.data(withJSONObject: questions) else { return nil }
         return ChatQuestion(items: items, raw: raw)
-    }
-
-    /// A short run's exit status.
-    @discardableResult
-    private func run(_ argv: [String], _ exec: any Exec) async -> Int32 {
-        guard let channel = try? await exec.run(argv) else { return -1 }
-        channel.closeInput()
-        return await channel.exit().status
     }
 
     /// The hook prints this decision: allow, with the questions echoed and the answers by question text. Written whole
@@ -130,9 +116,6 @@ struct ClaudeCode: ChatAdapter {
                   ]],
               ]) else { return false }
         let script = #"d="$HOME/$1"; [ -f "$d/ask" ] && cat >"$d/answer.tmp" && mv "$d/answer.tmp" "$d/answer""#
-        guard let channel = try? await exec.run(["sh", "-c", script, "sh", folder]) else { return false }
-        channel.write(String(decoding: data, as: UTF8.self))
-        channel.closeInput()
-        return await channel.exit().status == 0
+        return await exec.succeeds(script, [folder], input: [String(decoding: data, as: UTF8.self)])
     }
 }

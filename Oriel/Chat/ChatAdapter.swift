@@ -140,11 +140,27 @@ enum ChatAdapters {
         all.first { $0.command == command }
     }
 
-    /// The lowercase UUID right after `/.cache/oriel/chat/` in an argument: a launch's side folder.
+    /// A launch's marker: a lowercase UUID.
+    static func token(_ id: some StringProtocol) -> String? {
+        UUID(uuidString: String(id)) != nil && id == id.lowercased() ? String(id) : nil
+    }
+
+    /// The marker right after `/.cache/oriel/chat/` in an argument: a launch's side folder.
     static func token(in argument: String) -> String? {
-        guard let folder = argument.range(of: "/.cache/oriel/chat/") else { return nil }
-        let id = String(argument[folder.upperBound...].prefix(36))
-        return UUID(uuidString: id) != nil && id == id.lowercased() ? id : nil
+        argument.range(of: "/.cache/oriel/chat/").flatMap { token(argument[$0.upperBound...].prefix(36)) }
+    }
+
+    /// The first marker `token` finds in a foreground process's argv, and the processes that carry that one.
+    static func marked(_ foreground: [Program.Foreground],
+                       _ token: ([String]) -> String?) -> (token: String, pids: [Int])?
+    {
+        var found: String?, pids: [Int] = []
+        for process in foreground {
+            guard let id = token(process.argv), found == nil || found == id else { continue }
+            found = id
+            pids.append(process.pid)
+        }
+        return found.map { ($0, pids) }
     }
 
     /// A UUID as it goes into a typed line.
@@ -155,5 +171,12 @@ enum ChatAdapters {
     static func recognize(_ program: Program?) -> (any ChatAdapter)? {
         guard let foreground = program?.foreground, !foreground.isEmpty else { return nil }
         return all.lazy.compactMap { $0.init(foreground) }.first
+    }
+}
+
+extension [String] {
+    /// The argument after `flag`.
+    func after(_ flag: String) -> String? {
+        firstIndex(of: flag).flatMap { $0 + 1 < count ? self[$0 + 1] : nil }
     }
 }

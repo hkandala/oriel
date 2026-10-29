@@ -68,10 +68,7 @@ public extension Exec {
     /// it.
     func write(home path: String, _ line: String) async {
         let script = #"umask 077; f="$HOME/$1"; mkdir -p "${f%/*}" && cat >"$f.$$" && mv "$f.$$" "$f""#
-        guard let channel = try? await run(["sh", "-c", script, "sh", path]) else { return }
-        channel.write(line)
-        channel.closeInput()
-        _ = await channel.exit()
+        await succeeds(script, [path], input: [line])
     }
 
     /// Once on connect: the session's state files untouched for 30 days (every write refreshes a file's age).

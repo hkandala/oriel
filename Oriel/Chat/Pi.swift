@@ -58,24 +58,19 @@ struct PiAgent: ChatAdapter {
         mkdir -p "$d" && chmod 700 "$d" && base64 -d >"$f.$$" && mv "$f.$$" "$f" || exit 1
         \#(ChatAdapters.sweep); exit 0
         """#
-        guard let channel = try? await exec.run(["sh", "-c", script, "sh", file]) else { return nil }
-        channel.write(source.base64EncodedString())
-        channel.closeInput()
-        return await channel.exit().status == 0 ? command + " " + flags(token, resume: resume) : nil
+        guard await exec.succeeds(script, [file], input: [source.base64EncodedString()]) else { return nil }
+        return command + " " + flags(token, resume: resume)
     }
 
     /// `--oriel …/.cache/oriel/chat/T/pi.jsonl` with T a lowercase UUID: the launcher's `pi` and its `pi.real` both
     /// carry it.
     init?(_ foreground: [Program.Foreground]) {
-        for process in foreground {
-            guard let flag = process.argv.firstIndex(of: "--oriel"), flag + 1 < process.argv.count else { continue }
-            let parts = process.argv[flag + 1].split(separator: "/").suffix(5).map(String.init)
-            guard parts.count == 5, parts[0 ..< 3] == [".cache", "oriel", "chat"], parts[4] == "pi.jsonl",
-                  UUID(uuidString: parts[3]) != nil, parts[3] == parts[3].lowercased() else { continue }
-            token = parts[3]
-            return
-        }
-        return nil
+        guard let token = ChatAdapters.marked(foreground, { argv in
+            argv.after("--oriel").flatMap { path in
+                ChatAdapters.token(in: path).flatMap { path.hasSuffix("/\($0)/pi.jsonl") ? $0 : nil }
+            }
+        })?.token else { return nil }
+        self.token = token
     }
 
     /// The state file from where the chat left it: the last `session` line's transcript is the history (a new one

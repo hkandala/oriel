@@ -40,12 +40,9 @@ struct OpenCode: ChatAdapter {
         od -An -tx1 -N16 /dev/urandom | tr -d ' \n' >"$d/pw" || exit 1
         \#(ChatAdapters.sweep); exit 0
         """#
-        guard let channel = try? await exec.run(["sh", "-c", script, "sh", token]) else { return nil }
-        for line in plugin.split(separator: "\n") {
-            channel.write(String(line))
+        guard await exec.succeeds(script, [token], input: plugin.split(separator: "\n").map(String.init)) else {
+            return nil
         }
-        channel.closeInput()
-        guard await channel.exit().status == 0 else { return nil }
         let folder = "$HOME/.cache/oriel/chat/\(token)"
         return "ORIEL_OC_STATE=\(folder)/state.jsonl OPENCODE_TUI_CONFIG=$HOME/.cache/oriel/opencode/tui.json "
             + "OPENCODE_SERVER_PASSWORD=$(cat \"\(folder)/pw\") \(command) \(flags(token, resume: resume))"
@@ -78,16 +75,10 @@ struct OpenCode: ChatAdapter {
     """#
 
     init?(_ foreground: [Program.Foreground]) {
-        var token: String?, pids: [Int] = []
-        for process in foreground {
-            guard process.argv.contains("--port"), let dashes = process.argv.firstIndex(of: "--"),
-                  dashes + 1 < process.argv.count, process.argv[dashes + 1].hasPrefix("oriel-") else { continue }
-            let id = String(process.argv[dashes + 1].dropFirst(6))
-            guard UUID(uuidString: id) != nil, id == id.lowercased(), token == nil || token == id else { continue }
-            token = id
-            pids.append(process.pid)
-        }
-        guard let token else { return nil }
+        guard let (token, pids) = ChatAdapters.marked(foreground, { argv in
+            guard argv.contains("--port"), let marker = argv.after("--"), marker.hasPrefix("oriel-") else { return nil }
+            return ChatAdapters.token(marker.dropFirst(6))
+        }) else { return nil }
         self.token = token
         self.pids = pids
     }

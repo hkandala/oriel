@@ -20,6 +20,15 @@ extension Exec {
         }.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Runs `sh -c script` with the arguments and `input` on its stdin, a line per write: true when it exits 0.
+    @discardableResult
+    public func succeeds(_ script: String, _ arguments: [String], input: [String] = []) async -> Bool {
+        guard let channel = try? await run(["sh", "-c", script, "sh"] + arguments) else { return false }
+        input.forEach(channel.write)
+        channel.closeInput()
+        return await channel.exit().status == 0
+    }
+
     /// Copies the file to a new folder of its own in `oriel-drops-<uid>` in the machine's temporary folder and gives
     /// back its path there, as herdr's remote client does with a dropped image (`herdr-clipboard-images-<uid>`): the
     /// folder is the user's alone (0700), and each copy removes the folders older than a day. The bytes go as base64

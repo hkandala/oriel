@@ -38,10 +38,9 @@ struct Codex: ChatAdapter {
     /// The hook's folder for T in a `hooks.SessionStart` value: the launcher's `codex` and the native binary both
     /// carry it.
     init?(_ foreground: [Program.Foreground]) {
-        let token = foreground.lazy.flatMap(\.argv).compactMap { argument in
-            argument.hasPrefix("hooks.SessionStart=") ? ChatAdapters.token(in: argument) : nil
-        }.first
-        guard let token else { return nil }
+        guard let token = ChatAdapters.marked(foreground, { argv in
+            argv.lazy.compactMap { $0.hasPrefix("hooks.SessionStart=") ? ChatAdapters.token(in: $0) : nil }.first
+        })?.token else { return nil }
         self.token = token
     }
 
