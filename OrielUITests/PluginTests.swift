@@ -4,7 +4,7 @@ import XCTest
 /// card with two header rows.
 extension OrielUITests {
     /// The chooser's Changes and ⌘K Open Files Here make labeled panes in the pane's place, rooted at its git
-    /// repository; Open in New Tab (`Page.open`) makes a tab right after the current one. File, Preview and Markdown
+    /// repository (a linked open's new tab: DiffTests). File, Preview and Markdown
     /// cards from their labels, their tabs titled by kind and file; an edit shows the dirty dot. The cards come back
     /// after a relaunch.
     func testPluginPanesOpenFromTheChooserThePaletteAndLinks() async throws {
@@ -45,7 +45,6 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(files).title").has(\.stringValue, "oriel-e2e-plugins", within: 3))
         keepScreenshot("files and changes cards")
 
-        try await openInNewTab(diff, after: tab, label: " \(root) uncommitted")
         try await fileCards(in: repo, root: root)
 
         relaunch()
@@ -53,25 +52,6 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         XCTAssertTrue(element("files.\(files).card").exists(within: connect))
         XCTAssertTrue(element("diff.\(diff).card").exists)
-    }
-
-    /// Page.open from the card's placeholder: a new tab right after this one, selected, with the same kind and
-    /// argument.
-    private func openInNewTab(_ diff: String, after tab: String, label: String) async throws {
-        let before = try await tabIDs()
-        element("diff.\(diff).open").click()
-        let opened = try await newTabID(after: before)
-        closeAfter("tab", opened)
-        // herdr adds it last; the move comes after.
-        try await expect("\(opened) right after \(tab)") {
-            let order = try await (Self.call(one, "tab.list", ["workspace_id": "w2"])["tabs"] as? [[String: Any]] ?? [])
-                .compactMap { $0["tab_id"] as? String }
-            return order.firstIndex(of: opened) == order.firstIndex(of: tab).map { $0 + 1 }
-        }
-        XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
-        XCTAssertTrue(element("tab.\(opened)").has(\.label, "Diff Changes", within: 3))
-        let copy = try await paneLabel(pane(of: opened))
-        XCTAssertTrue(copy.hasPrefix("oriel:diff#") && copy.hasSuffix(label), copy)
     }
 
     /// A tab per file kind made as Oriel makes one (`layout.apply` with the label and a placeholder): its card, Open

@@ -79,6 +79,14 @@ struct PluginToolbar: View {
     let page: Page
 
     var body: some View {
+        if plugin.kind == .diff {
+            DiffToolbar(plugin: plugin, page: page)
+        } else {
+            pathRow
+        }
+    }
+
+    private var pathRow: some View {
         HStack(spacing: 6) {
             // Each kind's own spacer: Preview's controls sit right of it, by Open With.
             switch plugin.kind {
