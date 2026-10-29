@@ -2,15 +2,22 @@ import AppKit
 import SwiftUI
 
 extension CommandList {
-    /// A plugin card's commands, in the main and the floating windows: Save for a file's text.
+    /// A plugin card's commands, in the main and the floating windows: Save for a file's text. Its key only there: a
+    /// disabled item would keep ⌘S from a terminal.
     static func plugin(_ plugin: Plugin?) -> [Command] {
         let file = plugin?.file
         return [
-            Command(section: .close, title: "Save", key: .init("s"), symbol: "square.and.arrow.down",
-                    keywords: "file write",
-                    enabled: file?.loaded == true && file?.readOnly == false && file?.failure == nil, action: {
-                        Task { await file?.save() }
-                    }),
+            Command(
+                section: .close,
+                title: "Save",
+                key: file == nil ? nil : .init("s"),
+                symbol: "square.and.arrow.down",
+                keywords: "file write",
+                enabled: file?.loaded == true && file?.readOnly == false && file?.failure == nil,
+                action: {
+                    Task { await file?.save() }
+                },
+            ),
         ]
     }
 

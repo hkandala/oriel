@@ -65,7 +65,7 @@ final class FileText {
             guard loaded, plugin?.dirty == true else { return apply(contents) }
             plugin?.toast = Toast(text: "\(name) changed on disk.",
                                   other: ("Reload", { [weak self] in self?.apply(contents) }),
-                                  main: ("Keep Mine", { [weak self] in self?.hash = contents.hash }))
+                                  main: ("Keep Mine", { [weak self] in self?.keep(contents) }))
         } catch {
             // A file gone keeps its text, which a save writes again; one grown too large shows the info view.
             if !loaded || error is FileError {
@@ -73,6 +73,12 @@ final class FileText {
                 hash = nil
             }
         }
+    }
+
+    /// The edits stay, over the disk's new version (once too large: back to the text).
+    private func keep(_ contents: FileContents) {
+        hash = contents.hash
+        failure = nil
     }
 
     /// ⌘S.

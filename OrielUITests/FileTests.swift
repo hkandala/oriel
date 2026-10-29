@@ -7,7 +7,7 @@ extension OrielUITests {
     /// clean card and asks on a dirty one; a save over a changed disk asks; undo, find, and the overview's tile.
     func testFileCardEditsSavesAndFollowsTheDisk() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let (_, shell) = try await newTab("file")
+        let (tab, shell) = try await newTab("file")
         let folder = "/tmp/oriel-e2e-file"
         let swift = #"struct Box {\n    func open() {}\n}\n"#
         try await run("rm -rf \(folder) && mkdir \(folder) && printf '\(swift)' >\(folder)/main.swift", in: shell)
@@ -50,6 +50,13 @@ extension OrielUITests {
 
         try await keepMineAndOverwrite(pane, shell: shell, folder: folder)
         try await undoFindAndOverview(pane)
+
+        // A terminal's ⌘F is still its own find bar.
+        element("tab.\(tab)").click()
+        element("terminal.\(shell)").click()
+        app.typeKey("f", modifierFlags: .command)
+        XCTAssertTrue(hasKeyboard("find.field"))
+        app.typeKey(.escape, modifierFlags: [])
     }
 
     /// Keep Mine keeps the edit for the next ⌘S; a ⌘S over a disk changed since asks, and Overwrite writes.

@@ -126,10 +126,8 @@ struct PreviewCard: View {
         Group {
             switch preview.content {
             case let .image(image): ImageScroll(image: image, preview: preview).accessibilityIdentifier("\(id).image")
-            case let .pdf(document): PDFPages(document: document, preview: preview)
-                .accessibilityIdentifier("\(id).pdf")
-            case let .media(url, version): Player(url: url, plugin: plugin).id(version)
-                .accessibilityIdentifier("\(id).player")
+            case let .pdf(document): PDFPages(document: document, preview: preview, id: "\(id).pdf")
+            case let .media(url, version): Player(url: url, plugin: plugin, id: "\(id).player").id(version)
             case let .info(note): FileInfo(plugin: plugin, page: page, note: note)
             case nil: PluginLoader(kind: .preview)
             }
@@ -268,6 +266,8 @@ private final class CenteringClip: NSClipView {
 private struct PDFPages: NSViewRepresentable {
     let document: PDFDocument
     let preview: Preview
+    /// On the view itself: AppKit's views keep their own accessibility.
+    let id: String
 
     func makeCoordinator() -> Pages {
         Pages(preview)
@@ -287,6 +287,7 @@ private struct PDFPages: NSViewRepresentable {
     }
 
     func updateNSView(_ view: PDFView, context: Context) {
+        view.setAccessibilityIdentifier(id)
         if view.document !== document {
             view.document = document
             context.coordinator.changed(Notification(name: .PDFViewPageChanged, object: view))
@@ -312,6 +313,7 @@ private struct PDFPages: NSViewRepresentable {
 private struct Player: NSViewRepresentable {
     let url: URL
     let plugin: Plugin
+    let id: String
 
     func makeNSView(context: Context) -> AVPlayerView {
         let view = AVPlayerView()
@@ -323,5 +325,7 @@ private struct Player: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_: AVPlayerView, context _: Context) {}
+    func updateNSView(_ view: AVPlayerView, context _: Context) {
+        view.setAccessibilityIdentifier(id)
+    }
 }
