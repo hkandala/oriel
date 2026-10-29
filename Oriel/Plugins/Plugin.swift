@@ -119,6 +119,8 @@ final class Plugin {
     @ObservationIgnored lazy var tree = FileTree(plugin: self)
     /// A diff's state, made on first use.
     @ObservationIgnored lazy var diff = DiffCard()
+    /// A file or markdown card's text (`Page.fileText`).
+    @ObservationIgnored var file: FileText?
 
     init(terminalID: String, paneID: String, label: PaneLabel) {
         self.terminalID = terminalID

@@ -129,13 +129,7 @@ extension CommandList {
                     enabled: palette != nil) { palette?.wrappedValue.toggle() },
             Command(section: .view, title: "Stay on Top", symbol: "pin", checked: page.floating[terminalID] == true,
                     setting: true) { page.floating[terminalID]?.toggle() },
-            Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    enabled: pane.map { $0.plugin == nil } == true) { page.openFind(pane) },
-            Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
-                    enabled: page.find != nil) { Task { await page.find?.step(1) } },
-            Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: page.find != nil) {
-                Task { await page.find?.step(-1) }
-            },
+        ] + Self.find(page, pane, terminal: pane.map { $0.plugin == nil } == true) + [
             edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
             edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
         ] + Self.pane(page, tabs: false) { pane }.filter { $0.section == .close }.map {
@@ -143,6 +137,6 @@ extension CommandList {
             var command = $0
             command.key = command.key == .closePane ? .closeTab : command.key
             return command
-        } + sizes + Self.browser(pane.flatMap(page.browser))
+        } + sizes + Self.browser(pane.flatMap(page.browser)) + Self.plugin(pane.flatMap(page.plugin))
     }
 }

@@ -88,23 +88,15 @@ struct CommandList {
                     }),
             Command(section: .close, title: "Close Window", symbol: "xmark") { NSApp.keyWindow?.performClose(nil) },
         ]
-        let find = page?.find, terminal = page?.keyboardPane.map { $0.plugin == nil } == true
+        let terminal = page?.keyboardPane.map { $0.plugin == nil } == true
         let browser = page?.keyboardPane.flatMap { page?.browser($0) }
         let edit = [
             Command(section: .edit, title: "Insert Path…", key: .init("i", modifiers: [.command, .shift]),
                     symbol: "text.insert", keywords: "file folder path",
                     enabled: terminal) { Task { await page?.choosePath(directory: false) } },
-            // As in Rex, Find Previous has no key: ⇧⌘G is Go to Directory.
-            Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    keywords: "search scrollback", enabled: live && terminal) { page?.openFind() },
-            Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
-                    enabled: find != nil) { Task { await page?.find?.step(1) } },
-            Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: find != nil) {
-                Task { await page?.find?.step(-1) }
-            },
-        ]
+        ] + Self.find(page, page?.keyboardPane, terminal: live && terminal)
         return file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + Self
-            .browser(browser)
+            .browser(browser) + Self.plugin(page?.keyboardPane.flatMap { page?.plugin($0) })
             + view + paneKeys
             + palette(page) + window(page, pages)
     }
