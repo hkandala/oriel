@@ -134,7 +134,6 @@ private struct GitSection: View {
             ForEach(tree.changes, id: \.path) { change in
                 ChangeRow(change: change).tag(Pick.change(change.path)).listRowSeparator(.hidden)
                     .accessibilityIdentifier("\(id).change.\(change.path)")
-                    .simultaneousGesture(TapGesture().modifiers(.command).onEnded { open(.change(change.path)) })
             }
             header("History").padding(.top, 6)
             ForEach(tree.history, id: \.commit.hash) { commit, row in
@@ -142,7 +141,6 @@ private struct GitSection: View {
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6))
                     .accessibilityIdentifier("\(id).commit.\(commit.hash)")
-                    .simultaneousGesture(TapGesture().modifiers(.command).onEnded { open(.commit(commit.hash)) })
             }
         }
         .listStyle(.plain)
@@ -150,6 +148,12 @@ private struct GitSection: View {
         .environment(\.defaultMinListRowHeight, 22)
         .contextMenu(forSelectionType: Pick.self, menu: { _ in }, primaryAction: { $0.first.map(open) })
         .focused($focused)
+        // ⌘-click: the list selects (or, on the selected row, deselects) the row.
+        .onChange(of: selection) { old, new in
+            if NSEvent.modifierFlags.contains(.command), let pick = new ?? old {
+                open(pick)
+            }
+        }
         .onChange(of: focused) {
             if focused {
                 claim()
@@ -182,8 +186,6 @@ private struct ChangeRow: View {
             Text(path.lastPathComponent).lineLimit(1)
             Text(path.deletingLastPathComponent).foregroundStyle(.secondary).lineLimit(1).truncationMode(.head)
         }
-        // The whole row takes a ⌘-click.
-        .frame(maxWidth: .infinity, alignment: .leading).contentShape(.rect)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isStaticText)
         .accessibilityLabel(change.path)
