@@ -135,11 +135,12 @@ struct PluginToolbar: View {
         switch plugin.kind {
         case .files: FilesToolbar(plugin: plugin)
         case .diff: DiffToolbar(plugin: plugin, page: page)
-        default: placeholder
+        default: withOpenWith
         }
     }
 
-    private var placeholder: some View {
+    /// The file kinds' row and the placeholders', Open With last.
+    private var withOpenWith: some View {
         HStack(spacing: 6) {
             switch plugin.kind {
             case .file: JumpBar(plugin: plugin, file: page.fileText(plugin))

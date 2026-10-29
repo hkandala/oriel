@@ -35,7 +35,6 @@ struct FilesCard: View {
                 }
             }
         }
-        .padding([.horizontal, .bottom], PaneCard.inset)
         .task(id: plugin.label.arg) {
             if isEnabled {
                 await tree.run(plugin.label.arg, page: page)
