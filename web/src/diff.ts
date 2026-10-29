@@ -251,6 +251,12 @@ function openFile(name: string, line?: number) {
   report({ op: "open", arg: `${root}/${name}`, at: line ? String(line) : undefined })
 }
 
+/** Another layout or width gives the lines other heights: back to the change last stepped to, not wherever the old
+ * offset now falls. */
+function keepChange() {
+  if (changes[change]) viewer.scrollTo({ type: "line", ...changes[change], align: "center" })
+}
+
 function scheme() {
   return document.documentElement.style.colorScheme === "light" ? "light" : "dark"
 }
@@ -308,11 +314,11 @@ receive((message) => {
       options.diffStyle = message.split ? "split" : "unified"
       options.overflow = message.split ? "wrap" : "scroll"
       viewer.setOptions({ ...options })
-      // The other layout has other heights: back to the change last stepped to, not wherever the offset now falls.
-      if (changes[change]) viewer.scrollTo({ type: "line", ...changes[change], align: "center" })
+      keepChange()
       break
     case "list":
       nav.hidden = !message.open
+      keepChange()
       break
     case "step": {
       if (!changes.length) return
