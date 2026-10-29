@@ -172,6 +172,8 @@ extension OrielUITests {
     func show(_ tab: String) async throws {
         let found = try await order(of: tab)
         let index = try XCTUnwrap(found)
+        // Not before the tab bar has it: herdr's new tab reaches the app with the next snapshot.
+        XCTAssertTrue(element("tab.\(tab)").exists(within: 5))
         app.typeKey("\(index + 1)", modifierFlags: .command)
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3))
     }
