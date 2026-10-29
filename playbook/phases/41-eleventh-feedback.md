@@ -287,3 +287,6 @@ user's answers to the orchestrator's questions.
   scaled, taking no input".
 - **For the user.** Open the overview with a browser tab and a chat tab: you see the page and the chat, live, not
   a globe or the terminal. Leave the overview through a browser tile: the page grows with the zoom.
+- **Runs.** The new test went green on CI after three test-only fixes for CI's machine: the first page loads slowly,
+  the web view's focus is not in the accessibility tree, and the tile sits below the window. The reviewer saw it
+  fail on the code before the keyboard fix: the page got the key.
