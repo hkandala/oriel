@@ -24,6 +24,8 @@ struct PluginCard: View {
             switch plugin.kind {
             case .files: FilesCard(plugin: plugin, page: page)
             case .diff: DiffContent(plugin: plugin, page: page)
+            case .file: FileCard(plugin: plugin, page: page)
+            case .preview: PreviewCard(plugin: plugin, page: page)
             default: PluginPlaceholder(plugin: plugin, page: page)
             }
         }
@@ -137,8 +139,13 @@ struct PluginToolbar: View {
 
     private var placeholder: some View {
         HStack(spacing: 6) {
-            Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
-                .truncationMode(.middle)
+            switch plugin.kind {
+            case .file: JumpBar(file: page.fileText(plugin))
+            case .preview: PreviewBar(preview: page.preview(plugin))
+            default:
+                Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
+                    .truncationMode(.middle)
+            }
             Spacer(minLength: 0)
             if [.file, .preview, .markdown].contains(plugin.kind), !page.store.machine.isRemote {
                 OpenWith(path: plugin.label.arg).accessibilityIdentifier("pane.\(plugin.paneID).open-with")

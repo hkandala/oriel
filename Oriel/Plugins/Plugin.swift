@@ -121,6 +121,8 @@ final class Plugin {
     @ObservationIgnored lazy var diff = DiffCard()
     /// A file or markdown card's text (`Page.fileText`).
     @ObservationIgnored var file: FileText?
+    /// A preview card's file (`Page.preview`).
+    @ObservationIgnored var preview: Preview?
 
     init(terminalID: String, paneID: String, label: PaneLabel) {
         self.terminalID = terminalID
