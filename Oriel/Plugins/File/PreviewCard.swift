@@ -122,8 +122,11 @@ struct PreviewCard: View {
             switch preview.content {
             case let .image(image): ImageScroll(image: image, preview: preview, page: page)
                 .accessibilityIdentifier("\(id).image")
-            case let .pdf(document): PDFPages(document: document, preview: preview, page: page, id: "\(id).pdf")
-            case let .media(url, version): Player(url: url, plugin: plugin, page: page, id: "\(id).player").id(version)
+            // A group of their own: AppKit's PDF and player views give out no identifier.
+            case let .pdf(document): PDFPages(document: document, preview: preview, page: page)
+                .accessibilityElement(children: .contain).accessibilityIdentifier("\(id).pdf")
+            case let .media(url, version): Player(url: url, plugin: plugin, page: page).id(version)
+                .accessibilityElement(children: .contain).accessibilityIdentifier("\(id).player")
             case let .info(note): FileInfo(plugin: plugin, page: page, note: note)
             case nil: PluginLoader(kind: .preview)
             }
@@ -297,8 +300,6 @@ private struct PDFPages: NSViewRepresentable {
     let document: PDFDocument
     let preview: Preview
     let page: Page
-    /// On the view itself: AppKit's views keep their own accessibility.
-    let id: String
 
     func makeCoordinator() -> Pages {
         Pages(preview)
@@ -318,7 +319,6 @@ private struct PDFPages: NSViewRepresentable {
     }
 
     func updateNSView(_ view: PDFView, context: Context) {
-        view.setAccessibilityIdentifier(id)
         if context.environment.isEnabled {
             view.takeKeyboard(preview.plugin)
         }
@@ -348,7 +348,6 @@ private struct Player: NSViewRepresentable {
     let url: URL
     let plugin: Plugin
     let page: Page
-    let id: String
 
     func makeNSView(context: Context) -> AVPlayerView {
         let view = AVPlayerView()
@@ -361,7 +360,6 @@ private struct Player: NSViewRepresentable {
     }
 
     func updateNSView(_ view: AVPlayerView, context: Context) {
-        view.setAccessibilityIdentifier(id)
         if context.environment.isEnabled {
             view.takeKeyboard(plugin)
         }
