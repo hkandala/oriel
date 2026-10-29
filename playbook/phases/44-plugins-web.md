@@ -46,7 +46,8 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   `.build/web`, which a folder reference in the project copies into the app's `Resources/web`. The scheme serves
   `oriel-plugin://app/<kind>` as a generated page that loads `card.css` and `<kind>.js`, and any other name from that
   one folder. The card's label argument and the CSS variables go in by a document-start script, so the first paint
-  has the app's colors; `color-scheme` follows the look.
+  has the app's colors; `color-scheme` follows the look. `UTType` knows no MIME type for `wasm` or `woff2`: the
+  track that bundles them adds the two.
 - **Decisions:** no shared process pool. `WKProcessPool` is deprecated and does nothing: three web views on one pool
   made three WebContent processes. Every web card is its own process.
 - **Decisions:** the bridge has the `read` ask and the `dirty` report, the two the test page uses. `read` is `cat`
@@ -64,5 +65,7 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
 - **Measured** (load average 360-430, so upper bounds): one card's WebContent process 45 MB (`footprint`), six cards
   45 MB each; the test page with a 2,000-line file from `load` to the first frame with the editor: 0.7-1.2 s alone,
   1.4 s for six at once. Bundle: `test.js` 388 KB, 126 KB gzip (CodeMirror's basic setup).
+- **Runs:** the UI test fails at ⌘[ with menu-first taken out (CodeMirror's indent keeps the keyboard) and passes
+  with it (local, three green runs). One local run drew a blank card while the disk was full.
 - **For the user:** nothing to try by hand yet: the test card shows only for a pane labeled `oriel:webtest#<iid>
   <path>`, and phase 42's integration replaces it with the five kinds.
