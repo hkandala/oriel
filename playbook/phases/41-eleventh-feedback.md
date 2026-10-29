@@ -284,9 +284,11 @@ user's answers to the orchestrator's questions.
   waits until it is back in its card: 6 lines in track A's `BrowserView.swift` and `WebHost`, as
   `PaneSurfaceView` does in a miniature.
 - **Decisions.** Not `takeSnapshot`, as the item proposed: the reviewer's spike showed that a web view out of a
-  window answers its first snapshot (sometimes blank) and then no more until the page paints again. A live card
-  costs about what it costs in the strip; browser tiles in view have no cap, as terminals have. A chat waiting in
-  its drawer shows its reply box in the tile: the drawer's terminal stays with its card. The design page's
+  window answers its first snapshot (sometimes blank) and then no more until the page paints again. A tile
+  shows a browser or a chat only once the strip made its view (a browser shown before, a loaded transcript),
+  else the kind's symbol: the overview starts no web view, proxy or transcript read, so these need no cap (final
+  review). A chat waiting in its drawer shows neither the reply box nor the drawer in its tile: the drawer needs
+  the terminal, which stays with its card. The design page's
   "terminal drawn live inside" needs the docs pass to add "or the card's own view (a browser's page, a chat),
   scaled, taking no input".
 - **For the user.** Open the overview with a browser tab and a chat tab: you see the page and the chat, live, not

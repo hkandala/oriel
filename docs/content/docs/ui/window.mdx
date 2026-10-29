@@ -616,7 +616,7 @@ once.
   content drawn live inside, at the place and size it has in the card (no
   header content: the tile's title row names the tab). The content is the
   terminal, or the card's own view for any other card: a browser's page, a
-  chat. A zoomed tab shows its
+  chat (its kind's symbol until the strip has shown that card). A zoomed tab shows its
   zoomed card. A floated pane's card shows the float icon. The selected tab
   of each workspace has the keyboard card's look. On hover the title row
   shows × at its end (Close Tab, as the tab bar's ×: it asks only when a
@@ -651,9 +651,11 @@ once.
 - Any other card shows its own view in the tile, live, at the card's size and scaled to the tile: the
   `BrowserCard` (its web view moves into the tile, then into the zoom, then back to the strip, as a
   terminal view does) and the `ChatView`. It is disabled and takes no hit tests, so the tile keeps the
-  clicks, the wheel and the keyboard; a web view in a tile refuses the keyboard. These cards do not
-  stream, have no snapshot and no cap. A web view's `takeSnapshot` was not used: out of a window it
-  answers once, sometimes blank, and then not again until the page paints.
+  clicks, the wheel and the keyboard; a web view in a tile refuses the keyboard. A tile shows only a view
+  the strip already made (a browser shown before, a chat whose transcript is loaded); any other shows its
+  kind's symbol (`globe`, `bubble.left.and.bubble.right`). So the overview starts no web view, proxy or
+  transcript read, and these cards need no cap. A web view's `takeSnapshot` was not used: out of a window
+  it answers once, sometimes blank, and then not again until the page paints.
 - Only the page in view's tiles in view stream and draw, once a scroll ends: at most 16 cards (6 on a
   remote machine) and 400 MB of surfaces. Nothing turns live or lets go while the grid scrolls or a swipe
   moves the pages. These are not visits (D46).

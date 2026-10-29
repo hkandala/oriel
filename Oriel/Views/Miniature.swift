@@ -32,7 +32,8 @@ struct Miniature: View {
 
 /// A card at `scale`: its fill and edge, and what the page's card shows under its header: its terminal (10 pt in,
 /// 8 pt up from the bottom) live (its snapshot until it drew), or its snapshot, or for a terminal never shown the
-/// fill; any other card's own view, live (a browser's page, a chat). A floated pane's shows the float icon.
+/// fill; any other card's own view, live, once the strip made it (a browser's page, a chat), else its kind's
+/// symbol. A floated pane's shows the float icon.
 private struct MiniCard: View {
     let id: String
     let page: Page
@@ -55,12 +56,20 @@ private struct MiniCard: View {
                 if let pane, page.floats(pane) {
                     Image(systemName: "pip").foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let pane, let browser = page.browser(pane) {
-                    // Its web view moves here, as a terminal's does, and back to the card after.
-                    scaled(BrowserCard(browser: browser).miniCard(pane.id, "browser"), content, under: header)
-                } else if let pane, let chat = page.shownChat(pane) {
-                    scaled(ChatView(chat: chat, page: page, terminal: nil).miniCard(pane.id, "chat"), content,
-                           under: header)
+                } else if let pane, pane.browser != nil || page.shownChat(pane) != nil {
+                    // Not a terminal: its own view once the strip made it, else its kind's symbol. A tile makes no
+                    // web view, proxy or transcript read: unlike a terminal's, it has no cap to keep.
+                    if let browser = pane.terminalID.flatMap(page.terminals.built) {
+                        // Its web view moves here, as a terminal's does, and back to the card after.
+                        scaled(BrowserCard(browser: browser).miniCard(pane.id, "browser"), content, under: header)
+                    } else if let chat = page.shownChat(pane), !chat.history.entries.isEmpty {
+                        scaled(ChatView(chat: chat, page: page, terminal: nil).miniCard(pane.id, "chat"), content,
+                               under: header)
+                    } else {
+                        Image(systemName: pane.browser != nil ? "globe" : "bubble.left.and.bubble.right")
+                            .foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .miniCard(pane.id, "symbol")
+                    }
                 } else if let pane, let id = pane.terminalID {
                     let isLive = live.contains(id)
                     // Not made for a tile that is not live (a view and a session each, while it scrolls).
@@ -90,6 +99,7 @@ private struct MiniCard: View {
         view.frame(width: content.width, height: content.height)
             .scaleEffect(scale, anchor: .topLeading)
             .frame(width: content.width * scale, height: content.height * scale, alignment: .topLeading)
+            // `WebHost` reads this as "in a tile" (`BrowserView.inTile`): no other card is disabled.
             .disabled(true)
             .allowsHitTesting(false)
             .padding(.top, header * scale)
@@ -104,14 +114,6 @@ private extension View {
             .accessibilityAddTraits(.isStaticText)
             .accessibilityIdentifier("overview.card.\(paneID)")
             .accessibilityValue(value)
-    }
-}
-
-extension Page {
-    /// The chat a pane's card shows in place of its terminal (`PaneCard`).
-    func shownChat(_ pane: HostStore.Pane) -> Chat? {
-        guard store.chooser(pane.id) == nil, !floats(pane), let chat = chat(pane), chat.showsChat else { return nil }
-        return chat
     }
 }
 

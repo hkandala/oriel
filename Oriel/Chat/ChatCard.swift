@@ -21,6 +21,12 @@ extension Page {
         return chat
     }
 
+    /// The chat a pane's card shows in place of its terminal: not under a chooser, not floated, its switch on Chat.
+    func shownChat(_ pane: HostStore.Pane) -> Chat? {
+        guard store.chooser(pane.id) == nil, !floats(pane), let chat = chat(pane), chat.showsChat else { return nil }
+        return chat
+    }
+
     /// The pane's card has the window's keyboard, or the pane floats: its window has its own.
     func hasKeyboard(_ paneID: String) -> Bool {
         keyboardPane?.id == paneID || store.pane(paneID).map(floats) == true

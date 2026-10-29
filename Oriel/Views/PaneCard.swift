@@ -58,7 +58,7 @@ struct PaneCard: View {
                     FloatedPlaceholder(page: page, pane: pane)
                 } else if let browser {
                     BrowserCard(browser: browser)
-                } else if let chat, chat.showsChat {
+                } else if let pane, let chat = page.shownChat(pane) {
                     ChatView(chat: chat, page: page, terminal: terminal)
                 } else if let terminal {
                     // Rex's text starts 12 pt in from the card's edge.
