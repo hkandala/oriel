@@ -39,16 +39,13 @@ public extension GitStatus {
         return await (try? exec.output(argv, timeout: .seconds(5))).flatMap(GitStatus.init(porcelain:))
     }
 
-    /// Whether git can run without macOS offering to install the developer tools: `/usr/bin/git` is a stub that
-    /// opens that dialog when `xcode-select -p` finds none. Asked once at launch.
+    /// Whether git can run without macOS offering to install the developer tools: on a Mac `/usr/bin/git` is a stub
+    /// that opens that dialog when `xcode-select -p` finds none. Asked once at launch.
     static func usable(exec: any Exec) async -> Bool {
-        // Each prints a path only when it succeeds.
-        let git = await (try? exec.output(["sh", "-c", "command -v git"])) ?? ""
-        guard !git.isEmpty else { return false }
-        if git != "/usr/bin/git" {
-            return true
-        }
-        return await !((try? exec.output(["xcode-select", "-p"])) ?? "").isEmpty
+        await exec.succeeds(#"""
+        g=$(command -v git) &&
+          { [ "$g" != /usr/bin/git ] || [ "$(uname)" != Darwin ] || xcode-select -p; } >/dev/null 2>&1
+        """#, [])
     }
 }
 
@@ -68,9 +65,9 @@ public enum Git {
                                                    "--porcelain=v1", "-z", "--untracked-files=all"]))
     }
 
-    /// The last 100 commits of HEAD, newest first.
+    /// The last 100 commits of HEAD, newest first, each child before its parents.
     public static func log(_ root: String, exec: any Exec) async throws -> [Commit] {
-        try await exec.checkedOutput(["git", "-C", root, "log", "-n", "100", "--no-show-signature",
+        try await exec.checkedOutput(["git", "-C", root, "log", "-n", "100", "--topo-order", "--no-show-signature",
                                       "--format=%H%x1f%P%x1f%an%x1f%at%x1f%s"])
             .split(separator: "\n").compactMap(Commit.init)
     }
@@ -79,7 +76,7 @@ public enum Git {
 public extension Git {
     /// A file in `git status`.
     struct Change: Equatable, Sendable {
-        /// `M`, `A`, `D`, `R`, `T`, `U` (untracked), `C` (conflict), or `!` (ignored).
+        /// `M`, `A` (also a copy), `D`, `R`, `T`, `U` (untracked), `C` (conflict), or `!` (ignored).
         public let letter: Character
         /// From the repository's root; a folder's ends in `/`.
         public let path: String
@@ -115,10 +112,13 @@ extension Git.Change {
     static func parse(_ porcelain: String) -> [Self] {
         var fields = porcelain.split(separator: "\0", omittingEmptySubsequences: true)[...]
         var changes: [Self] = []
-        while let field = fields.popFirst(), field.count > 3 {
-            let index = field[field.startIndex], tree = field[field.index(after: field.startIndex)]
+        // By bytes: a path may start with a combining character.
+        while let field = fields.popFirst()?.utf8, field.count > 3 {
+            let index = Character(Unicode.Scalar(field[field.startIndex]))
+            let tree = Character(Unicode.Scalar(field[field.index(after: field.startIndex)]))
             let oldPath = index == "R" || index == "C" ? fields.popFirst().map(String.init) : nil
-            changes.append(Self(letter: letter(index, tree), path: String(field.dropFirst(3)), oldPath: oldPath))
+            changes.append(Self(letter: letter(index, tree), path: String(decoding: field.dropFirst(3), as: UTF8.self),
+                                oldPath: oldPath))
         }
         return changes
     }
@@ -129,6 +129,7 @@ extension Git.Change {
         case ("?", "?"): "U"
         case ("!", "!"): "!"
         case ("U", _), (_, "U"), ("A", "A"), ("D", "D"): "C"
+        case ("C", _): "A" // a copy
         case ("A", _), ("R", _), (_, " "): index
         default: tree
         }
@@ -160,9 +161,10 @@ public extension Git {
             let through = lanes.indices.filter { lanes[$0] != nil }
             var parents: [Int] = []
             for (index, parent) in commit.parents.enumerated() {
-                // A parent another lane already waits for joins that lane; the first parent keeps the dot's.
-                let next = lanes.firstIndex(of: parent)
-                    ?? (index == 0 ? lane : lanes.firstIndex(of: nil) ?? lanes.endIndex)
+                // The first parent keeps the dot's lane, also when another lane waits for it: their lines meet at
+                // its dot, in the left one, as in `git log --graph`. Another parent joins a lane that waits for it.
+                let next = index == 0 ? lane : lanes.firstIndex(of: parent) ?? lanes.firstIndex(of: nil) ?? lanes
+                    .endIndex
                 if next == lanes.endIndex {
                     lanes.append(parent)
                 } else {

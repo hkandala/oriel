@@ -48,17 +48,22 @@ public enum Files {
         if let repo, folder == repo || folder.hasPrefix(repo + "/") {
             changes = await Git.Change.parse((try? exec.checkedOutput(["git", "--no-optional-locks", "-C", folder,
                                                                        "status", "--porcelain=v1", "-z", "--ignored",
-                                                                       "--", "."])) ?? "")
+                                                                       "-unormal", "--", "."])) ?? "")
             prefix = folder == repo ? "" : folder.dropFirst(repo.count + 1) + "/"
         }
-        return try await names.split(separator: "\0").filter { $0 != ".git/" }.map { name in
+        // git names an untracked or ignored folder once, with a `/`, not the files in it; a link without one. Such
+        // a folder may hold the whole listing.
+        let all = changes.first { $0.path.hasSuffix("/") && prefix.hasPrefix($0.path) }
+        let byName = Dictionary(grouping: changes.filter { $0.path.hasPrefix(prefix) }) {
+            $0.path.dropFirst(prefix.count).prefix { $0 != "/" }
+        }
+        return try await names.split(separator: "\0").filter { $0 != ".git/" && $0 != ".git" }.map { name in
             let isFolder = name.hasSuffix("/")
             let name = String(isFolder ? name.dropLast() : name)
             let path = prefix + name
-            // git names an untracked or ignored folder once, with a `/`, not the files in it; a link without one.
-            let covering = changes
-                .first { $0.path == path || $0.path.hasSuffix("/") && (path + "/").hasPrefix($0.path) }
-            let inside = isFolder ? changes.first { $0.letter != "!" && $0.path.hasPrefix(path + "/") } : nil
+            let mine = byName[Substring(name)] ?? []
+            let covering = all ?? mine.first { $0.path == path || $0.path == path + "/" }
+            let inside = isFolder ? mine.first { $0.letter != "!" && $0.path.count > path.count + 1 } : nil
             let ignored = covering?.letter == "!"
             return FileEntry(name: name, isFolder: isFolder, letter: ignored ? nil : covering?.letter ?? inside?.letter,
                              ignored: ignored)
@@ -68,7 +73,8 @@ public enum Files {
         }
     }
 
-    /// Every file under `root`, from it, for the filter; with `repo` (as `list`'s) the files git does not ignore.
+    /// Every file under `root`, from it, for the filter; with a `repo` (only whether there is one counts) the files git
+    /// does not ignore, and tracked files deleted since.
     /// ponytail: the first 8 MB of names (about 150,000 files); a search on the machine when roots get bigger.
     public static func paths(_ root: String, repo: String?, exec: any Exec) async throws -> [String] {
         let script = #"""
@@ -112,79 +118,54 @@ public enum Files {
         return size
     }
 
-    /// Writes `data` over the file if its disk hash is still `hash`, at once: a new file beside it, then `mv`. A link
-    /// is written through, so it stays a link. Gives the new hash; throws `changed` and writes nothing otherwise.
-    public static func save(_ data: Data, to path: String, replacing hash: String, exec: any Exec) async throws
+    /// Writes `data` over the file at once (a new file beside it, then `mv`) if its disk hash is still `hash`; nil
+    /// overwrites whatever is there. A link is written through, so it stays a link. Gives the new hash; throws
+    /// `changed` and writes nothing otherwise.
+    public static func save(_ data: Data, to path: String, replacing hash: String?, exec: any Exec) async throws
         -> String
     {
-        // `cp -p` gives the new file the old one's mode.
-        let script = #"""
-        t=$(mktemp "$(dirname "$1")/.oriel-save.XXXXXX") || exit
-        trap 'rm -f "$t"' EXIT
-        cp -p "$1" "$t" 2>/dev/null; base64 -d >"$t" || exit
-        [ "$(cksum <"$1")" = "$2" ] || { echo changed; exit 0; }
-        cksum <"$t"
-        if [ -h "$1" ]; then cat "$t" >"$1"; else mv -f "$t" "$1"; fi
-        """#
-        // Whole groups of 3 bytes: no padding inside the stream.
-        let chunks = stride(from: 0, to: data.count, by: 49152).map {
-            data[$0 ..< min($0 + 49152, data.count)].base64EncodedString()
-        }
-        let result = try await exec.checkedOutput(["sh", "-c", script, "sh", path, hash], input: chunks,
-                                                  timeout: .seconds(60))
+        let result = try await exec.checkedOutput(["sh", "-c", saveScript, "sh", path, hash ?? "", String(data.count)],
+                                                  input: base64Lines(data), timeout: .seconds(60))
         guard result != "changed" else { throw FileError.changed }
         return result
     }
 
-    /// Yields when the file or folder may have changed; compare `read`'s hash to skip your own saves. On This Mac a
-    /// file system source, which follows the path when an editor replaces the file; on a remote machine a check every
-    /// 2 s, while the stream is read.
+    /// `cp -p` gives the new file the old one's mode. The size check: a run whose stdin closed early (the connection
+    /// dropped, the app quit) decodes what came and exits 0.
+    static let saveScript = #"""
+    t=$(mktemp "$(dirname "$1")/.oriel-save.XXXXXX") || exit
+    trap 'rm -f "$t"' EXIT
+    cp -p "$1" "$t" 2>/dev/null; base64 -d >"$t" || exit
+    [ "$(wc -c <"$t")" -eq "$3" ] || { echo "The save was cut short" >&2; exit 1; }
+    [ -z "$2" ] || [ "$(cksum <"$1")" = "$2" ] || { echo changed; exit 0; }
+    cksum <"$t"
+    if [ -h "$1" ]; then cat "$t" >"$1"; else mv -f "$t" "$1"; fi
+    """#
+
+    /// Yields when the file, or anything under the folder, may have changed: compare `read`'s hash to skip your own
+    /// saves; list a folder's open folders again for new files and git letters. On This Mac file system events for
+    /// the path, whatever file it names now; on a remote machine a check every 2 s while the stream is read.
     public static func watch(_ path: String, exec: any Exec) -> AsyncStream<Void> {
         let (stream, continuation) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
-        let task = Task {
-            if exec is ProcessExec {
-                await watchHere(path, continuation)
-            } else {
-                await poll(path, exec: exec, continuation)
-            }
+        if exec is ProcessExec {
+            let events = Events(path, continuation)
+            continuation.onTermination = { _ in events.stop() }
+        } else {
+            let task = Task { await poll(path, exec: exec, continuation) }
+            continuation.onTermination = { _ in task.cancel() }
         }
-        continuation.onTermination = { _ in task.cancel() }
         return stream
     }
 
-    private static func watchHere(_ path: String, _ changed: AsyncStream<Void>.Continuation) async {
-        var first = true
-        while !Task.isCancelled {
-            let file = open(path, O_EVTONLY)
-            guard file >= 0 else {
-                // Gone: wait for it to come back.
-                try? await Task.sleep(for: .seconds(2))
-                continue
-            }
-            // Back, or another file under the path: it may have changed since the last event.
-            if !first {
-                changed.yield()
-            }
-            first = false
-            let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: file,
-                                                                   eventMask: [.write, .extend, .delete, .rename])
-            let (events, event) = AsyncStream<DispatchSource.FileSystemEvent>.makeStream()
-            source.setEventHandler { event.yield(source.data) }
-            source.setCancelHandler { close(file) }
-            source.resume()
-            for await mask in events {
-                changed.yield()
-                // The path now names another file, or none.
-                if !mask.isDisjoint(with: [.delete, .rename]) {
-                    break
-                }
-            }
-            source.cancel()
-        }
-    }
-
+    /// ponytail: a file's check reads it whole (up to 16 MB) every 2 s, and the caller reads it again to compare
+    /// hashes; yield the hash when that costs too much. A folder's check sees its own entries and what
+    /// `git status` sees under it, not a new file in an ignored folder.
     private static func poll(_ path: String, exec: any Exec, _ changed: AsyncStream<Void>.Continuation) async {
-        let script = #"if [ -d "$1" ]; then ls -1Ap "$1" | cksum; else cksum <"$1"; fi"#
+        let script = #"""
+        if [ -d "$1" ]; then
+          { ls -1Ap "$1"; git --no-optional-locks -C "$1" status --porcelain=v1 -z -unormal -- . 2>/dev/null; } | cksum
+        else cksum <"$1"; fi
+        """#
         // Nil before the first check; then nil inside while the file is gone.
         var last: String??
         while !Task.isCancelled {
@@ -195,5 +176,49 @@ public enum Files {
             last = now
             try? await Task.sleep(for: .seconds(2))
         }
+    }
+}
+
+/// File system events on This Mac: for a folder anything under it, for a file its name in its folder, so a file an
+/// editor replaced, or one that comes back, is still seen.
+private final class Events: Sendable {
+    private static let queue = DispatchQueue(label: "oriel.files.watch")
+    private let changed: AsyncStream<Void>.Continuation
+    private let name: String?
+    /// Set once in init and released once in `stop`, which the stream's end calls once.
+    private nonisolated(unsafe) var stream: FSEventStreamRef?
+
+    init(_ path: String, _ changed: AsyncStream<Void>.Continuation) {
+        var isFolder: ObjCBool = false
+        let folder = FileManager.default.fileExists(atPath: path, isDirectory: &isFolder) && isFolder.boolValue
+        self.changed = changed
+        name = folder ? nil : (path as NSString).lastPathComponent
+        var context = FSEventStreamContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil,
+                                           release: nil, copyDescription: nil)
+        let callback: FSEventStreamCallback = { _, info, _, paths, _, _ in
+            guard let info else { return }
+            let events = Unmanaged<Events>.fromOpaque(info).takeUnretainedValue()
+            let changed = Unmanaged<CFArray>.fromOpaque(paths).takeUnretainedValue() as? [String] ?? []
+            if events.name == nil || changed.contains(where: { ($0 as NSString).lastPathComponent == events.name }) {
+                events.changed.yield()
+            }
+        }
+        let flags = kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents
+            | kFSEventStreamCreateFlagNoDefer
+        stream = FSEventStreamCreate(nil, callback, &context,
+                                     [folder ? path : (path as NSString).deletingLastPathComponent] as CFArray,
+                                     FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.3,
+                                     FSEventStreamCreateFlags(flags))
+        if let stream {
+            FSEventStreamSetDispatchQueue(stream, Self.queue)
+            FSEventStreamStart(stream)
+        }
+    }
+
+    func stop() {
+        guard let stream else { return }
+        FSEventStreamStop(stream)
+        FSEventStreamInvalidate(stream)
+        FSEventStreamRelease(stream)
     }
 }

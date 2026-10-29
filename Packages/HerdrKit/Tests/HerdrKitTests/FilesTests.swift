@@ -24,13 +24,13 @@ private func makeScratchRepo() async throws -> URL {
     git init -q -b main
     mkdir -p sub/deep build
     printf 'a\n' >sub/a.txt; printf 'b\n' >'sub/deep/sp ace.txt'; printf 'build/\n*.log\n' >.gitignore
-    echo x >build/out; echo y >err.log
+    echo x >build/out; echo y >err.log; printf 'a\r\nb\r\n' >crlf.txt
     git add -A; at 1000000000; git commit -qm init
     echo two >two.txt; git add -A; at 1000000100; git commit -qm two
     git checkout -qb side; echo s >side.txt; git add -A; at 1000000200; git commit -qm side
     git checkout -q main; echo m >>sub/a.txt; at 1000000300; git commit -qam main
     at 1000000400; git merge -q --no-ff --no-edit side
-    printf 'a\nc\n' >sub/a.txt
+    printf 'a\nc\n' >sub/a.txt; printf 'a\r\nc\r\n' >crlf.txt
     git mv sub/deep sub/moved
     mkdir sub/new; echo n >sub/new/f.txt
     echo q >'sub/tab	"x'; printf 'l\n' >'sub/line
@@ -54,6 +54,7 @@ private func execs() async throws -> [any Exec] {
             FileEntry(name: "sub", isFolder: true, letter: "M", ignored: false),
             FileEntry(name: ".gitignore", isFolder: false, letter: nil, ignored: false),
             FileEntry(name: "bin.dat", isFolder: false, letter: "U", ignored: false),
+            FileEntry(name: "crlf.txt", isFolder: false, letter: "M", ignored: false),
             FileEntry(name: "err.log", isFolder: false, letter: nil, ignored: true),
             FileEntry(name: "side.txt", isFolder: false, letter: nil, ignored: false),
             FileEntry(name: "two.txt", isFolder: false, letter: nil, ignored: false),
@@ -79,7 +80,8 @@ private func execs() async throws -> [any Exec] {
     let repo = try await scratchRepo.value
     for exec in try await execs() {
         #expect(try await Files.paths(repo.path, repo: repo.path, exec: exec).sorted() == [
-            ".gitignore", "bin.dat", "link", "side.txt", "sub/a.txt", "sub/line\nbreak", "sub/moved/sp ace.txt",
+            ".gitignore", "bin.dat", "crlf.txt", "link", "side.txt", "sub/a.txt", "sub/line\nbreak",
+            "sub/moved/sp ace.txt",
             "sub/new/f.txt", "sub/tab\t\"x", "two.txt",
         ])
         let all = try await Files.paths(repo.path + "/sub", repo: nil, exec: exec)
@@ -108,12 +110,23 @@ private func execs() async throws -> [any Exec] {
             try await Files.save(Data(), to: file.path, replacing: read.hash, exec: exec)
         }
         #expect(try Data(contentsOf: file) == edited)
+        // A save whose stdin ended early writes nothing.
+        let chunks = base64Lines(Data(repeating: 7, count: 100_000))
+        await #expect(throws: HerdrError.failed("The save was cut short")) {
+            try await exec.checkedOutput(["sh", "-c", Files.saveScript, "sh", file.path, hash, "100000"],
+                                         input: chunks.dropLast())
+        }
+        #expect(try Data(contentsOf: file) == edited)
+        // Overwrite: no hash, no check.
+        try Data("theirs".utf8).write(to: file)
+        let mine = try await Files.save(edited, to: file.path, replacing: nil, exec: exec)
+        #expect(try await Files.read(file.path, exec: exec) == FileContents(data: edited, hash: mine))
 
         // A link stays a link; an empty file saves and reads.
         let link = folder.appending(path: "link")
         try? FileManager.default.removeItem(at: link)
         try FileManager.default.createSymbolicLink(at: link, withDestinationURL: file)
-        _ = try await Files.save(Data(), to: link.path, replacing: hash, exec: exec)
+        _ = try await Files.save(Data(), to: link.path, replacing: mine, exec: exec)
         #expect(try FileManager.default.destinationOfSymbolicLink(atPath: link.path) == file.path)
         #expect(try await Files.read(link.path, exec: exec).data.isEmpty)
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).sorted() == ["it's a\nfile", "link"])
@@ -133,11 +146,12 @@ private func execs() async throws -> [any Exec] {
     }
 }
 
-/// Writes to the file until the stream yields: the watcher starts on its own task.
+/// Writes to the file (a new file in the folder) until the stream yields: the watcher starts on its own task.
 private func yields(_ changes: AsyncStream<Void>, writing file: URL) async throws {
     let writer = Task {
         while !Task.isCancelled {
-            try? Data(UUID().uuidString.utf8).write(to: file)
+            try? Data(UUID().uuidString.utf8)
+                .write(to: file.hasDirectoryPath ? file.appending(path: UUID().uuidString) : file)
             try? await Task.sleep(for: .milliseconds(200))
         }
     }
@@ -153,11 +167,28 @@ private func yields(_ changes: AsyncStream<Void>, writing file: URL) async throw
     try Data().write(to: file)
     let changes = Files.watch(file.path, exec: localExec)
     try await yields(changes, writing: file)
-    // `.atomic` writes a new file and renames it over the old one: one event on the old file, then writes to the
-    // new one are seen only when the watcher follows the path.
+    // `.atomic` writes a new file and renames it over the old one; a watcher on the old file may still get two
+    // events, the third comes only from the new file.
     try Data("x".utf8).write(to: file, options: .atomic)
     #expect(await changes.first { true } != nil)
     try await yields(changes, writing: file)
+    try await yields(changes, writing: file)
+}
+
+@Test func `watches a file that comes later, and everything under a folder`() async throws {
+    let folder = try scratchFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let later = folder.appending(path: "later")
+    for exec in try await execs() {
+        try? FileManager.default.removeItem(at: later)
+        try await yields(Files.watch(later.path, exec: exec), writing: later)
+    }
+    let inner = folder.appending(path: "a/b")
+    try FileManager.default.createDirectory(at: inner, withIntermediateDirectories: true)
+    try Data().write(to: inner.appending(path: "f"))
+    try await yields(Files.watch(folder.path, exec: localExec), writing: inner.appending(path: "f"))
+    // Remote: the folder's own entries and git's view.
+    try await yields(Files.watch(folder.path, exec: RelayExec.start()), writing: URL(filePath: folder.path + "/"))
 }
 
 @Test func `polls a remote file every 2 s`() async throws {

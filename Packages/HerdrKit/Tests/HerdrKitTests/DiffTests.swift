@@ -46,14 +46,30 @@ import Testing
     for exec in try await [localExec, RelayExec.start()] as [any Exec] {
         let files = try await Git.diff(repo.path, commit: nil, exec: exec)
         #expect(files.map { "\($0.letter) \($0.oldPath ?? "")>\($0.path) \($0.binary)" } == [
-            "M >sub/a.txt false", "R sub/deep/sp ace.txt>sub/moved/sp ace.txt false", "A >bin.dat true",
+            "M >crlf.txt false", "M >sub/a.txt false", "R sub/deep/sp ace.txt>sub/moved/sp ace.txt false",
+            "A >bin.dat true",
             "A >sub/line\nbreak false", "A >sub/new/f.txt false", "A >sub/tab\t\"x false",
         ])
-        #expect(files[0].hunks.flatMap(\.lines).map(\.text) == ["a", "m", "c"])
+        #expect(files[0].hunks.flatMap(\.lines).map { "\($0.old ?? 0) \($0.new ?? 0) \($0.text)" }
+            == ["1 1 a\r", "2 0 b\r", "0 2 c\r"])
+        #expect(files[1].hunks.flatMap(\.lines).map(\.text) == ["a", "m", "c"])
         let merge = try await Git.log(repo.path, exec: exec)[0].hash
         #expect(try await Git.diff(repo.path, commit: merge, exec: exec).map(\.path) == ["side.txt"])
         await #expect(throws: HerdrError.failed("No commit --all")) {
             try await Git.diff(repo.path, commit: "--all", exec: exec)
         }
     }
+}
+
+@Test func `a mark with a combining character after it is still a mark`() {
+    let lines = DiffFile.parse("diff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1 +1 @@\n-\u{301}x\n+\u{301}y\n")[0].hunks[0]
+        .lines
+    #expect(lines.map(\.text) == ["\u{301}x", "\u{301}y"])
+}
+
+@Test func `the uncommitted patch before the first commit`() async throws {
+    let folder = try scratchFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    _ = try await localExec.checkedOutput(["sh", "-c", #"cd "$1" && git init -q && echo a >f"#, "sh", folder.path])
+    #expect(try await Git.diff(folder.path, commit: nil, exec: localExec).map(\.path) == ["f"])
 }
