@@ -221,7 +221,8 @@ An editable text view (`NSTextView` on TextKit 2).
   monospaced text in secondary, which the user can edit. Quotes stay
   straight and nothing is corrected. A click on a link puts the caret there.
 - **Over 128 KB** both modes show the plain text with no styling, editable in
-  Edit.
+  Edit. This is a known difference from the web variant, which renders Read
+  at any size.
 - **⌘E** (View ▸ Edit Mode, checked while editing) switches between Read and
   Edit. The card keeps the keyboard across the switch.
 - **The outline** is a 200 pt column at the left with the document's
@@ -272,7 +273,8 @@ The changes of one source in one scroll, drawn by TextKit 2.
 - **Side by Side** shows the old file and the new file in two columns that
   scroll together. A run of removed lines faces the run of added lines after
   it, and the shorter side gets hatched filler rows. Lines do not wrap: each
-  column scrolls sideways on its own.
+  column scrolls sideways on its own, a known difference from the web
+  variant, which wraps them.
 - **The file list** is a 220 pt column at the left: one row per file with
   its letter (`M A D R`), its name and `+n −m`. The path shows on hover. A
   click scrolls to the file, and the file at the top is lit. The toggle hides
