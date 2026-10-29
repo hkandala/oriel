@@ -61,14 +61,7 @@ private struct Block: View {
             let weight: Font.Weight = heading.level < 3 ? .bold : .semibold
             Text(Inline.text(heading, size: size)).font(.system(size: size, weight: weight))
         case let paragraph as Paragraph:
-            let images = paragraph.children.compactMap { $0 as? Markdown::Image }
-            if !images.isEmpty, images.count == paragraph.childCount {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(images.indices, id: \.self) { Picture(image: images[$0]) }
-                }
-            } else {
-                Text(Inline.text(paragraph, size: 14))
-            }
+            Text(Inline.text(paragraph, size: 14))
         case let code as CodeBlock:
             ScrollView(.horizontal) {
                 // A code block's last newline is no line of its own.
@@ -144,7 +137,8 @@ private struct TableGrid: View {
                         Text(Inline.text(rows[row][column], size: 14)).fontWeight(row == 0 ? .semibold : nil)
                             .multilineTextAlignment(alignment == .trailing ? .trailing : .leading)
                             .padding(.horizontal, 10).padding(.vertical, 6)
-                            .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity,
+                                   alignment: Alignment(horizontal: alignment, vertical: .center))
                             .background(row == 0 ? AnyShapeStyle(.primary.opacity(0.05)) : AnyShapeStyle(.clear))
                             .gridColumnAlignment(alignment)
                     }
@@ -160,20 +154,6 @@ private struct TableGrid: View {
         case .center: .center
         case .right: .trailing
         default: .leading
-        }
-    }
-}
-
-/// An image alone in its paragraph, from the web only: a path is on the pane's machine, which may be another one.
-private struct Picture: View {
-    let image: Markdown::Image
-
-    var body: some View {
-        let alt = Text(Inline.text(image, size: 14)).foregroundStyle(.secondary)
-        if let url = image.source.flatMap(URL.init(string:)), ["http", "https"].contains(url.scheme?.lowercased()) {
-            AsyncImage(url: url) { $0.resizable().scaledToFit().frame(maxHeight: 400) } placeholder: { alt }
-        } else {
-            alt
         }
     }
 }
@@ -198,7 +178,8 @@ private enum Inline {
                 label.link = link.destination.flatMap(URL.init(string:))
                 result += label
             case let image as Markdown::Image:
-                // Inside text, its description, a link to it.
+                // Its description, a link to it: loaded on its own, a reply could send what the agent read to any
+                // server.
                 var label = Self.text(image, size: size)
                 label.link = image.source.flatMap(URL.init(string:))
                 result += label

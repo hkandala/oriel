@@ -62,15 +62,14 @@ extension Chat {
                         line: ([String: Any]) async -> String?) async
     {
         var transcript: Task<Void, Never>?
-        defer { transcript?.cancel() }
+        // One history follow at a time: they share the chat's backlog.
         let follow = { (source: String) in
-            transcript?.cancel()
+            let old = transcript
+            old?.cancel()
             transcript = Task {
+                await old?.value
                 await self.follow(history: source, on: exec, skip: skip, read: read, restarted: restarted)
             }
-        }
-        if let source {
-            follow(source)
         }
         let timer = Task {
             try? await Task.sleep(for: .seconds(10))
@@ -80,6 +79,9 @@ extension Chat {
         }
         defer { timer.cancel() }
         guard let lines = try? await exec.follow(sideFile, from: marks[sideFile] ?? FileMark()) else { return }
+        if let source {
+            follow(source)
+        }
         // Lines buffered before a cancel still come: not into the next follow's chat.
         for await entry in lines where !Task.isCancelled {
             guard case let .line(text, mark) = entry else { continue }
@@ -94,42 +96,61 @@ extension Chat {
             marks[next] = nil
             follow(next)
         }
+        transcript?.cancel()
+        await transcript?.value
+    }
+
+    /// Changes the history a follow builds: the backlog while it loads, else the one the card shows.
+    func change<T>(_ body: (inout ChatHistory) -> T) -> T {
+        loading ? body(&backlog) : body(&history)
     }
 
     /// Follows the history file while it is the chat's, each line read by the adapter's parser (false: a torn line);
     /// five torn lines in a row are a problem, until a good one. `restarted`: the file was rewritten. What the file
-    /// held when opened goes into a copy that shows whole once read (a long session would show row by row, and
+    /// held when opened goes into the backlog, which shows whole once read (a long session would show row by row, and
     /// rebuild every row each time).
     private func follow(history source: String, on exec: any Exec, skip: String,
                         read: (String, inout ChatHistory) -> Bool, restarted: () -> Void) async
     {
         guard let lines = try? await exec.follow(source, from: marks[source] ?? FileMark(), skip: skip) else { return }
-        var torn = 0, loading = true, loaded = history
+        var torn = 0, count = 0
+        (loading, backlog) = (true, history)
         for await line in lines where !Task.isCancelled && self.source == source {
             switch line {
-            case let .opened(_, again) where again && !loaded.entries.isEmpty:
-                loaded = ChatHistory()
+            case let .opened(_, again) where again && !backlog.entries.isEmpty:
+                backlog = ChatHistory()
                 restarted()
             case let .line(text, mark):
                 marks[source] = mark
-                torn = (loading ? read(text, &loaded) : read(text, &history)) ? 0 : torn + 1
+                torn = change { read(text, &$0) } ? 0 : torn + 1
                 if torn == 5 {
                     problem = Self.unknownFormat
                 } else if torn == 0, problem == Self.unknownFormat {
                     problem = nil
                 }
-            case .loaded:
-                loading = false
-                history = loaded
-                // Let go of the copy, or the history's next line would copy it whole.
-                loaded = ChatHistory()
+                count += 1
+                // A long session takes a second to read: the app goes on meanwhile.
+                if count.isMultiple(of: 200) {
+                    await Task.yield()
+                }
+            case .loaded: showBacklog()
             case .opened: break
             }
         }
-        // Cut short (the card went, the connection dropped): the marks went on, so the history keeps what they read.
-        if loading, self.source == source {
-            history = loaded
+        // Cut short (the card went, the connection dropped): the marks went on, so the history keeps what they read;
+        // unless it is another session's now.
+        if loading {
+            showBacklog(self.source == source)
         }
+    }
+
+    private func showBacklog(_ show: Bool = true) {
+        loading = false
+        if show {
+            history = backlog
+        }
+        // Let go of the copy, or the history's next line would copy it whole.
+        backlog = ChatHistory()
     }
 }
 

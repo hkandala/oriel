@@ -93,7 +93,7 @@ struct PiAgent: ChatAdapter {
             }
             session = source
         case "tree":
-            kept.transcript.tree(object["leaf"] as? String, at: object["at"] as? Int ?? 0, into: &chat.history)
+            chat.change { kept.transcript.tree(object["leaf"] as? String, at: object["at"] as? Int ?? 0, into: &$0) }
         case "blocked":
             kept.beforeDialog = kept.phase == .waiting ? kept.beforeDialog : kept.phase
             kept.phase = .waiting

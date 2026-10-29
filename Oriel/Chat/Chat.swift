@@ -39,6 +39,9 @@ final class Chat {
     var wantsKeyboard = false
     /// Where each followed file was read up to, so a card shown again goes on from there.
     @ObservationIgnored var marks: [String: FileMark] = [:]
+    /// While a follow reads a history file up to where it ended when opened, the history it builds off screen.
+    @ObservationIgnored var backlog = ChatHistory()
+    @ObservationIgnored var loading = false
     /// Where the history comes from: its file, or OpenCode's server and session.
     @ObservationIgnored var source: String?
     @ObservationIgnored private var viewers = 0

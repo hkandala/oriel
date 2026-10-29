@@ -201,13 +201,16 @@ user's answers to the orchestrator's questions.
   entries, no prompt); 17 Claude sessions passed 3.0 of 12.5 MB and 40 Codex rollouts 3.1 of 14.7 MB, each with the
   same history as the whole file. The unit test fails on the old start.
 - **Fix (23).** The script also tells where the file's whole lines end when opened; the follower says `loaded` there.
-  The chat reads up to it into a copy and shows the copy at once (a cut-short read keeps what its marks read).
+  The chat reads up to it into its backlog and shows it at once (a cut-short read keeps what its marks read). pi's
+  `/tree` moves write into the backlog while it loads; the read yields every 200 lines (a 99 MB pi session parses in
+  about a second).
 - **Decisions.** awk reads a FIFO only `tail` writes to (opened, then removed at once), so the wrapper's kill of `tail`
-  ends awk by EOF: no orphan, no `pkill`. The filter runs on This Mac too (one path). No loading indicator: the chat is
+  ends awk by EOF: no orphan, no `pkill`. mawk (Debian's and Ubuntu's awk) runs with `-W interactive`, or it holds
+  lines until 8 KiB come. The filter runs on This Mac too (one path). No loading indicator: the chat is
   empty for the few milliseconds of a local read.
 - **Fix (25).** swift-markdown 0.9.0 (cmark-gfm) parses; the views draw tables (head on a fill, column alignment),
-  task lists, strikethrough, nested quotes and lists, rules, and web images alone in a paragraph (a path belongs to the
-  pane's machine). swift-markdown has no autolink extension: bare `http(s)://` and `www.` addresses are linked with
+  task lists, strikethrough, nested quotes and lists, and rules. An image shows as its description, linked to it: loaded
+  on its own, a reply could send what the agent read to any server. swift-markdown has no autolink extension: bare `http(s)://` and `www.` addresses are linked with
   `NSDataDetector` (not names such as `Oriel.app`). It has no footnotes either: `[^1]` reads as written.
 - **Also.** An unknown tool's target was its "first" text argument in a parsed dictionary's random order (a flaky
   history); it is now the first by key, in Claude's and pi's parsers.
