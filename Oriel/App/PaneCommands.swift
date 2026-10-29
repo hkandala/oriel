@@ -56,7 +56,7 @@ extension CommandList {
                     enabled: pane != nil, name: pane.map { pane in
                         (pane.label ?? "", { await page?.store.rename(pane: pane.id, label: $0) })
                     }) { page?.renamingPaneID = target()?.id },
-            // herdr's label goes: the header shows the program again. Not a browser pane's: its label is its kind.
+            // herdr's label goes: the header shows the program again. Not a plugin pane's: its label is its kind.
             act("Reset Pane Name", nil, .paneMove, symbol: "arrow.uturn.backward",
                 enabled: pane?.label != nil && pane?.plugin == nil) { await $0.store.rename(pane: $1.id, label: "") },
         ] + ends(page, pane, target)
