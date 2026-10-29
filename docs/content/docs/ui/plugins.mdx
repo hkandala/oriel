@@ -1,0 +1,389 @@
+---
+title: "Default plugins"
+description: "File, Preview, Markdown, Diff and Files: plugin panes whose content is a web page, linked to each other"
+---
+
+Five plugin pane kinds come with the app: **File** (a text editor),
+**Preview** (images, PDF, audio and video), **Markdown** (read and edit),
+**Diff** (git changes) and **Files** (a file tree with git). Each is a herdr
+pane that runs a placeholder, as a browser pane is
+([Browser](/docs/ui/browser)), and the app draws the card. The header rows, the
+toast, Open With and all file and git data are native. Only each card's
+content is a web page in a web view of its own
+([How the web cards work](#how-the-web-cards-work)). They work the same on
+This Mac and on remote machines, with the limits in
+[Remote machines](#remote-machines).
+
+## The label
+
+A plugin pane's herdr label is `oriel:<kind>#<iid> <arg>`
+([Labels and instance ids](/docs/future-work/plugins/labels)). The label is
+the whole state: the app keeps no state file for these kinds. A relaunch, a
+cold restart of herdr or another device rebuilds the card from the label alone.
+
+| Kind | Label argument | Title | Tab |
+|---|---|---|---|
+| `file` | the file's absolute path | the file's name | `File main.swift` |
+| `preview` | the file's absolute path | the file's name | `Preview logo.png` |
+| `markdown` | the file's absolute path | the file's name | `Markdown README.md` |
+| `diff` | the repository's root, then `uncommitted` or a commit hash | `Changes`, or the short hash | `Diff Changes` |
+| `files` | the root folder | the folder's name | `Files oriel` |
+
+- The tab and the floating window read "‹Kind› ‹title›", the title in
+  secondary text, as a terminal tab's "zsh oriel"
+  ([Tab bar](/docs/ui/window#tab-bar)). A path with a control character, or
+  over 1024 characters, makes no label, so nothing opens.
+- The placeholder prints the kind's name, the argument and "Shown in Oriel"
+  in the middle of the pane in herdr's TUI
+  ([In herdr's TUI](/docs/ui/browser#in-herdrs-tui)).
+- Rename Pane works. A new argument from elsewhere loads the page again with
+  it, and a name that breaks the label turns the card back into a terminal.
+  Reset Pane Name is disabled.
+- The card's program icon is the kind's SF Symbol on the neutral tile:
+  `doc.text`, `photo`, `doc.richtext`, `plusminus` and `folder`.
+
+## Ways in
+
+- **Files and Changes** are rows of the [New pane](/docs/ui/new-pane)
+  chooser, under Browser, and the commands **Open Files Here** and **Open
+  Changes Here** (File menu, the card's menu, the palette). Both take the
+  root of the git repository that the pane's folder is in (`git rev-parse
+  --show-toplevel`), else the folder. Changes opens on the uncommitted
+  changes. They replace the pane with Replace Pane's steps, as Browser does
+  ([Create](/docs/ui/browser#create)).
+- **File, Preview and Markdown** open only from links in other plugin cards.
+  Diff opens from links too. A link is a **linked open**: the kind's pane in
+  a new herdr tab right after the selected tab, in the same workspace and on
+  the same machine. The app selects the new tab and gives its card the keyboard. The
+  calls are `layout.apply` for a new tab with the labeled pane, then
+  `tab.move`, because herdr adds the tab last
+  ([Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls)).
+- **Which kind opens a file**, by its name alone (a remote file is not read
+  first): `.md`, `.markdown` and `.mdx` open Markdown. Images, PDF, audio and
+  video open Preview. Text opens File, and so does a name the system does not
+  know (`.rs`, `Makefile`). Anything else opens Preview, which shows the
+  info view. `.ts` is TypeScript and `.plist` is text.
+
+| From | Gesture | Opens |
+|---|---|---|
+| Files: a file | double-click, ⌘-click or Return | the file, with its kind |
+| Files: a change in the Git section | double-click, ⌘-click or Return | Diff, Uncommitted, scrolled to that file |
+| Files: a commit in History | double-click, ⌘-click or Return | Diff of that commit |
+| Diff: a file header's **Open File** | click | File, at the top |
+| Diff: a line | ⌘-click | File, with the caret on that line |
+| Markdown (Read): a relative link or image | click | the file, with its kind |
+| Markdown (Read): an `http` or `https` link | click | a browser pane |
+
+- A linked open's landing (a line, or a diff's file) is used once, by the
+  new card's first load. It is not in the label, so a relaunch opens at the
+  top.
+- A browser pane opened from Markdown follows the browser's load rule: a page
+  that is not approved or on the safe list asks **Open this page?** first
+  ([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)).
+
+## The card
+
+- **Row 1** (36 pt), as on a terminal card: the kind's symbol (16 pt,
+  secondary), the title (cut in the middle when it does not fit), a dirty dot
+  when there are unsaved edits, then the card buttons on the keyboard card
+  and on a hovered card ([Pane card](/docs/ui/window#pane-card)).
+- **Row 2** (32 pt) holds the kind's controls, described per kind below. It
+  ends where row 1 does. Its buttons are 22 × 22 pt in the card buttons'
+  color.
+- **Content.** The page fills the card under the header, 10 pt in from the
+  card's sides and bottom. The card's own fill shows through the page.
+- **A floated plugin pane** keeps row 2 under the floating window's title
+  row. The title row shows "‹Kind› ‹title›" and the dirty dot
+  ([Floating pane](/docs/ui/window#floating-pane)).
+- **Overview tile.** The tile shows the card's own web view, scaled and live,
+  as a browser card's ([Overview](/docs/ui/window#overview)). A tile watches
+  no file. The card catches up on what changed when it shows again.
+- The window's `PaneViewRegistry` keeps each card by terminal id, so a card
+  scrolled away or moved keeps its page, its edits and its scroll.
+- A plugin card takes the keyboard as a browser card does.
+
+## Edits, saves and reloads
+
+File and Markdown edit the file. Both use the same editor and the same rules.
+
+- **Dirty dot.** A 6 pt dot in secondary after the title, while the text
+  differs from the text on disk. Undo back to the disk's text removes it.
+  VoiceOver reads "Edited".
+- **⌘S** saves. It writes nothing when there are no edits. The save checks
+  the file's hash (`cksum`) from the last read or save. If the file on disk
+  did not change since, the app writes a new file beside it and moves it over
+  the old one, so a save is never half written. A link is written through and
+  stays a link. A CRLF file saves as CRLF.
+- **A change on disk** while the card shows: a clean file reloads in place.
+  Only the changed middle of the text is replaced, so the caret and the
+  scroll stay. A dirty file keeps the user's text and shows the toast.
+- **The toast** is one line on a glass capsule at the top of the card, 6 pt
+  under the header, with two small buttons. The second button is the
+  default. It slides in over 0.15 s. A button's action ends it.
+
+  | When | Text | Buttons |
+  |---|---|---|
+  | the file changed on disk and the card is dirty | "‹name› changed on disk." | Reload, **Keep Mine** |
+  | ⌘S, and the file changed on disk since the last read | "‹name› changed on disk since you opened it." | Overwrite, **Reload** |
+  | the save failed | "Could not save ‹name›: ‹reason›" | Close, **Try Again** |
+
+  Keep Mine takes the disk's new hash, so the next ⌘S writes over that
+  version without a question. Reload drops the edits.
+- **Read only.** A file that is not UTF-8 opens read only. So does a file
+  over 4 MiB on a remote machine.
+- **Too large.** A file over 16 MB shows the info view: the system's icon
+  for its type, its name, its kind and its size.
+- Preview reloads its file on a change too. Diff (Uncommitted) and Files
+  follow their folder ([Diff](#diff), [Files](#files)).
+
+## Open With
+
+File, Preview and Markdown have **Open With ▾** at the end of row 2, on This
+Mac only. The menu lists the default app for the file first, then a divider,
+then the other apps that open it, each with its icon (`NSWorkspace`). A pick
+opens the file in that app.
+
+## File
+
+An editable text view (CodeMirror 6).
+- **Row 2:** the jump bar, `folder › file › {} symbol`: the file's folder in
+  secondary, the file name, and the scopes around the caret, outermost first,
+  after a `curlybraces` glyph. Then Open With.
+- **Text:** line numbers, the current line lit, bracket matching, the other
+  matches of the selection marked, undo and redo, and Tab to indent. Lines
+  wrap, because cards are often narrow. A wrapped line goes on at its own
+  indent.
+- **Colors** for Swift, TypeScript, JavaScript, Python, Go, Rust, C, C++,
+  Java, Kotlin, Ruby, shell, JSON, YAML, TOML, HTML and CSS, by extension.
+  The colors are Xcode's default roles, one pair for light and dark. Each
+  language loads the first time a card needs it.
+- **Symbols** come from the language's syntax tree (functions, classes,
+  types, methods, JSON and YAML keys, CSS rules). Swift, Kotlin, Ruby, shell
+  and TOML have no syntax tree in CodeMirror, so their symbol is the
+  declarations above the caret with a smaller indent.
+- **Find** (⌘F) opens CodeMirror's search panel at the top of the card. ⌘G
+  and ⇧⌘G step through the matches.
+
+## Preview
+
+- **Row 2:** the path in secondary text (cut in the middle), the page as "3
+  of 12" for a PDF, then zoom for images and PDFs (Zoom to Fit, Actual Size,
+  Zoom Out, Zoom In), then Open With.
+- **Images** (PNG, JPEG, GIF, WebP, HEIC, TIFF, BMP and SVG), centered and
+  scrollable. Fit shrinks a large image to the card and never enlarges a
+  small one. Zoom In and Zoom Out step by a factor of 1.25, from 5 % to
+  1600 %.
+- **PDF** in pdf.js's viewer: pages draw as they scroll into view, Fit is the
+  page's width, and the page number follows the scroll.
+- **Audio and video** in WebKit's player.
+- **Any other file**, and one that WebKit or pdf.js cannot decode, shows the
+  info view. So does a file over the 16 MB cap.
+
+## Markdown
+
+- **Row 2:** `Read | Edit`, the outline toggle (`sidebar.left`, in the
+  accent while the outline shows), then Open With.
+- **Read** shows the text rendered (markdown-it, with HTML and bare
+  addresses as links). It renders the editor's current text, so unsaved
+  edits show too. YAML front matter is left out. Task items show boxes.
+  Headings get GitHub's ids, so `#section` links scroll. Images are not
+  loaded: their alt text is a link to the image.
+- **Edit** is the File card's editor with Markdown (GitHub's flavor) in a
+  640 pt column, in the system font 1 pt larger than the text size. Each mark
+  (a heading's `#`, emphasis, a link's brackets and address, code ticks)
+  hides unless the selection touches its element. A task's `[ ]` shows as a
+  box. Fenced code fences, link references, autolinks, setext underlines and
+  table pipes stay shown. Front matter shows as YAML in 12 pt monospace,
+  secondary.
+- **⌘E** (View ▸ Edit Mode, checked while editing) switches between Read and
+  Edit. ⌘F in Read switches to Edit, where the search panel is.
+- **The outline** is a 190 pt column at the left with the document's
+  headings, indented by level. A click scrolls Read to the heading, or puts
+  Edit's caret on it.
+- Links open from Read only ([Ways in](#ways-in)). A linked open with a line
+  opens Edit with the caret on that line. A page that loads again starts in
+  Read with the outline closed.
+- Dirty, ⌘S, the reload and the toast are as in
+  [Edits, saves and reloads](#edits-saves-and-reloads).
+
+## Diff
+
+The changes of one source in one scroll (`@pierre/diffs`).
+- **Row 2:** the source pop-up, `Unified | Side by Side`, then the file list
+  toggle (`sidebar.left`), Previous Change (`chevron.up`) and Next Change
+  (`chevron.down`).
+- **Source.** The pop-up shows "Uncommitted" or the commit's short hash. Its
+  menu has Uncommitted, a divider, then the last 50 commits of `HEAD` as
+  "hash  subject", read when the card appears. A pick renames the pane
+  (`<root> <hash>`), and the page loads again with the new source.
+- **Uncommitted** is the staged, unstaged and untracked changes against
+  `HEAD` (against the empty tree before the first commit), up to 16 MB of
+  patch. It follows the work tree while the card shows: on a change the page
+  asks for the patch again and draws only when the text changed. **A
+  commit** shows against its first parent.
+- **The scroll.** Each file has a sticky header with a disclosure, the path,
+  `+n −m`, a **Viewed** box and **Open File** (not on a deleted file).
+  Viewed folds the file and dims its row in the list. A refresh keeps each
+  file's fold and Viewed while its text is the same. A Viewed file whose text
+  changed opens again. A file new to the card with over 2,000 changed lines
+  starts folded. Changes inside a line are marked by word. Added lines use
+  the finished color at 10 %, removed lines the error color, and word marks
+  28 %. The sticky header blurs what scrolls under it.
+- **The file list** is a column at the left (28 % of the card, 160 to
+  260 pt): the file count, then one row per file with its name, its folder in
+  secondary, `+n −m` and its letter (`M A D R`). A click scrolls to the file.
+  The toggle hides and shows it.
+- **Previous and next change** step through the change blocks in order, from
+  the last one stepped to or the file picked in the list. They open a folded
+  file.
+- ⌘-click on a line opens File at that line. On a removed line it opens the
+  line after the change.
+- "No changes" shows when the patch is empty. A failed first read (not a
+  repository yet, a machine away) shows git's error and asks again at the
+  next change in the work tree.
+- Side by Side and the file list are kept per card while the app runs, also
+  across a new source. They are not saved.
+- A file with no hunks (binary, a mode change, a pure rename) shows its
+  header alone. `N unmodified lines` rows do not expand.
+
+## Files
+
+The whole tree of the root (`@pierre/trees`).
+- **Row 2:** the filter field ("Filter"), then **Collapse All**.
+- **The tree** starts with the root's listing and lists a folder when it
+  opens. `.git` is hidden, and links to folders are folders. Git letters and colors come from
+  one `git status`, so a folder never opened still shows a dot for a change
+  inside. Ignored files are dimmed. Modified is the needs-you color, added,
+  untracked and renamed the finished color, and deleted the error color.
+- **The filter** matches file names, case blind, and shows the matches with
+  their folders open, at most 5,000. The first letter loads every path under
+  the root: in a repository the files git does not ignore (`git ls-files`),
+  else every file, up to 8 MB of names. "No matching files" shows when none
+  match. A page that loads again starts with no filter.
+- **Opening.** Double-click, ⌘-click or Return on a file opens it in a new
+  tab with its kind. A double-click on a folder opens or closes it once.
+- **The Git section** sits at the bottom, collapsed, when the root is a
+  repository's root and git can run. Its header "Git" opens it. Inside:
+  - **Changes:** one row per changed file, with its letter, its name and its
+    folder in secondary. "No changes" when there are none.
+  - **History:** the last 100 commits as a graph, newest first, each row
+    with its lanes and dot, the subject, the short hash and the date. The
+    first parent stays in its child's lane, as in `git log --graph`. Lane
+    colors cycle through the accent, finished, working, needs-you and error
+    colors.
+- The tree, the letters and the Git section update after each change under
+  the root while the card shows, also while the section is closed. The open
+  folders list again. A root that cannot be listed shows "Can't list
+  ‹root›".
+
+## Keys
+
+Over a web card, ⌘ keys go to the menu first, as over a native text view. A
+key that no menu item has reaches the page. Some items have their key only
+over the card that uses it, because a disabled menu item swallows its key.
+
+| Keys | Command | When it has its key |
+|---|---|---|
+| ⌘S | Save (File menu): the editor's text to disk | only while a File or Markdown card has the keyboard |
+| ⌘F | Find… (Edit menu): the editor's search panel | on File and Markdown cards. Disabled on Preview, Diff and Files |
+| ⌘G | Find Next (Edit menu) | always. Over a terminal it steps the find bar |
+| ⇧⌘G | Find Previous (Edit menu) | only while a File or Markdown card has the keyboard. Elsewhere ⇧⌘G is Go to Directory |
+| ⌘E | Edit Mode (View menu) | only while a Markdown card has the keyboard |
+| ⌘+ ⌘− ⌘0 | the app's text size. The card's text follows it, with no page zoom | always |
+| ⇧⌘← ⇧⌘→ | Move Tab Left, Right | the page gets it first (select to the line's start or end). When the page does not take it, the tab moves |
+
+- ⌘[ ⌘], ⌘D, ⌘W and the other app keys work over a plugin card as over a
+  terminal.
+- A floating window's menu bar and palette offer Save, Edit Mode, Find, Find
+  Next and Find Previous with the same keys.
+- Replace Pane (⇧⌘R) gives a fresh shell with the chooser. Close, Replace Pane
+  and the commands that change a pane's kind ask nothing while the pane runs
+  only its placeholder. Unsaved edits are not a reason to ask.
+
+## Remote machines
+
+Every read, save, listing, watch and git command runs on the pane's machine
+through its `Exec`, over the relay's one SSH session
+([Commands](/docs/reference/herdr-calls#commands)). Nothing is installed on
+the machine. The limits:
+- No Open With: the file is not on the Mac.
+- A file over 4 MiB opens read only, because a save sends the whole file
+  through the relay.
+- No file system events: while a card shows, the app checks every 2 s. For a
+  file it compares the file's `cksum`. For a folder (Files, a Diff of
+  Uncommitted) it compares the folder's entries, its `git status` and the
+  changed files' text. A hidden card checks nothing.
+- git comes from the machine's `PATH`. When This Mac has git only as the
+  stub without the developer tools, Files cards show no git and Files and
+  Changes take the pane's folder as their root, on every machine. A remote
+  Diff card still runs git ([Git status](/docs/talking-to-herdr#git-status)).
+
+## How the web cards work
+
+- **One web view per card.** Each card is a `WKWebView` of its own, and
+  WebKit gives each one its own WebContent process. A shared process pool
+  does not help: `WKProcessPool` is deprecated and does nothing. A card's
+  process uses about 45 MB (`footprint`), and six cards use 45 MB each.
+- **The scheme.** The pages come from the app through a URL scheme,
+  `oriel-plugin://`, because `loadFileURL` runs no module scripts.
+  `oriel-plugin://app/<kind>` is a page that the app writes: it links
+  `card.css`, the kind's own CSS when there is one, and the module
+  `<kind>.js`. Any other name is a file of the bundle, from one folder with
+  no subfolders and no hidden files.
+- **The Content Security Policy**, sent with every answer:
+  `default-src oriel-plugin:; script-src oriel-plugin: 'wasm-unsafe-eval';
+  img-src oriel-plugin: data: blob:; media-src blob:; style-src
+  oriel-plugin: 'unsafe-inline'`. Scripts come only from the bundle. A
+  preview shows its file from a `blob:`.
+- **The navigation lock.** The card allows only `oriel-plugin:` navigations.
+  A Markdown file's HTML (a `<meta>` refresh, a form, an SVG link) cannot
+  take the card, and the bridge with it, to another site.
+- **Before the page runs**, a document-start script sets `window.card` (the
+  label's argument and a linked open's landing) and the app's colors as CSS
+  variables on the root: `--text`, `--dim`, `--divider`, `--accent`,
+  `--working`, `--needs-you`, `--finished`, `--error`, `--font-size` and
+  `color-scheme`. So the first paint has the app's colors. A change of look
+  or text size sets them again. The page's background is clear, and the
+  card's fill draws behind it.
+- **The bridge** is one script message handler with replies
+  (`WKScriptMessageHandlerWithReply`), named `oriel`. The page cannot run a
+  command: the app answers only these messages, on the card's own machine. Its types are in `web/src/lib/bridge.ts`.
+
+  | Direction | Messages |
+  |---|---|
+  | Asks (the page waits for JSON) | `read` (the file's text, its bytes in base64, or the info view's facts), `patch` (the diff's patch as git prints it, the root, row 2's state), `list` (a folder's entries), `paths` (every path, for the filter), `git` (changes and history with the graph's lanes) |
+  | Reports (no answer) | `dirty`, `save` (the editor's text), `symbol` (the jump bar), `page` (a PDF's page), `markdown` (Read or Edit, the outline), `open` (a linked open), `filter` (the filter ended) |
+  | From the app (`window.receive`) | `load` (the file again after a change on disk), `saved`, `save`, `find`, `findNext`, `findPrevious`, `zoom`, `layout`, `list`, `step`, `changed`, `filter`, `collapse`, `markdown` |
+
+- **Files stay native.** `read` keeps the file's hash on the app's side. ⌘S
+  asks the page for its text with `save`, and the app writes it by that hash.
+  The page parses git's patch itself for `@pierre/diffs`.
+- **Keys.** The card's view takes and drops the keyboard through the
+  registry, as a browser card does, and sends ⌘ keys to the menu first
+  ([Keys](#keys)).
+- **A crashed page** loads again, once per load. Unsaved edits are lost then.
+  Every card is inspectable: Safari's Develop menu reaches its page.
+- **The bundle.** `web/` is an npm package with an exact lockfile, no
+  framework, and one entry per kind (`web/src/<kind>.ts`, shared code in
+  `web/src/lib/`). `make web` bundles it with esbuild into ES modules with
+  shared chunks, copies pdf.js's worker, decoders, fonts and character maps
+  next to them, and puts the result in `.build/web`. The project copies that
+  folder into the app's `Resources/web`. `make build`, `make run`, `make e2e`
+  and `make app` run `make web` first. The built bundle is not in git.
+- **Measured** on a loaded Mac, so these are upper bounds: a 2,000-line file
+  takes 0.7 to 1.2 s from load to the first frame with the editor, and 1.4 s
+  for six cards at once. `markdown.js` alone is 662 KB (236 KB gzip), because
+  its language pulls in HTML, CSS, JavaScript and YAML. The Files page is
+  250 KB. Each language loads as its own chunk.
+
+## Not built
+
+- Go to File in ⌘K, search across a project, git actions (stage, commit),
+  and ⌘-click on a path in a terminal.
+- Quick Look for other file types: they show the info view.
+- Expandable `N unmodified lines` rows in Diff (they need each file's whole
+  text).
+- A landing kept over a relaunch, and Diff's layout and file list saved.
+- Images in Markdown's Read, and a table view in Edit.
+- A cap on live web views, and plugins from others with their own API
+  ([Pane kinds and plugins](/docs/future-work/plugins)).

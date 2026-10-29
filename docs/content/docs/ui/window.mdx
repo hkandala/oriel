@@ -139,8 +139,8 @@ One capsule per herdr tab of the selected workspace (D42).
   herdr's tab label. When the label is herdr's default (only digits), the
   title is the keyboard card's program and its folder's name, for example
   "zsh ~" or "pi oriel" (D65). An agent's tab shows the agent's name and its
-  pane's name in secondary text ("Claude Code Fix login"), and a browser's
-  "Browser" and its page. Until the program is known (a new tab's first
+  pane's name in secondary text ("Claude Code Fix login"), a browser's
+  "Browser" and its page, and a plugin's kind and title ("Files oriel"). Until the program is known (a new tab's first
   second), the title is "New Tab", never the number.
 - **Plain-text titles.** Where a title is plain text, with no dimmed part, a
   ` | ` separates its two parts: "zsh | oriel", "Claude Code | Fix login",
@@ -446,7 +446,7 @@ tabs.
 - One page per tab, full width, paged. Each workspace of each session has its
   own strip, so a switch never starts from another workspace's scroll.
 - A pane the app creates shows the [New pane](/docs/ui/new-pane) chooser
-  first: Terminal, Agent or Browser.
+  first: Terminal, Agent, Browser, Files or Changes.
 - Inside a page, pane cards follow herdr's split tree, with an 8 pt gap
   between them. The gap is the divider: drag it to resize (a grip shows on
   hover and while dragged), double-click it to reset it to 0.5, and ⌥⌘=
@@ -473,13 +473,17 @@ How it works: [Layout and sizing](/docs/layout).
   0.42 or black 0.45, at least 3:1 on the card). Zoom is disabled when the tab has one pane.
   While the [New pane](/docs/ui/new-pane) chooser shows, the header says "New
   Pane".
-- **Two rows.** A browser card and an agent card (herdr reports an agent, or
-  the pane has a chat's launch marker) add a second row, 32 pt, for their
+- **Two rows.** A browser card, a plugin card and an agent card (herdr
+  reports an agent, or the pane has a chat's launch marker) add a second row,
+  32 pt, for their
   kind's controls (D80). Row 1 keeps the title, a state capsule and the card
   buttons, so it lines up with a terminal card's header beside it. Row 2 ends
   where row 1 does.
   - Browser: row 1 has the page's icon and title, row 2 the toolbar
     ([Browser](/docs/ui/browser#the-card)).
+  - Plugin: row 1 has the kind's symbol, the title and a dirty dot for
+    unsaved edits, row 2 the kind's controls
+    ([Default plugins](/docs/ui/plugins#the-card)).
   - Agent: row 1 has the pane's name: its label, else its session's title
     ([Session titles](/docs/ui/chat-view#session-titles)), and herdr's state
     capsule (the chat's own capsule on a chat card). Row 2 has the program
@@ -507,7 +511,8 @@ How it works: [Layout and sizing](/docs/layout).
     workspace's name as a section header, in the sidebar's order), Rename
     Pane…, Reset Pane Name.
   - Replace Pane (⇧⌘R), Open Terminal Here, Start Agent Here ▸, Open Browser
-    Here ([New pane](/docs/ui/new-pane#commands-that-change-a-panes-kind)),
+    Here, Open Files Here, Open Changes Here
+    ([New pane](/docs/ui/new-pane#commands-that-change-a-panes-kind)),
     Close Pane (⌘W).
 - The same items are in View ▸ Pane in the menu bar, for the keyboard card
   (the zoomed card of the selected tab, when there is one). Replace Pane and
@@ -520,7 +525,7 @@ How it works: [Layout and sizing](/docs/layout).
 - **Rename Pane** puts a text field in the header. Enter saves the label; an
   empty name clears it; Esc cancels. Then the keyboard goes back to the card.
   **Reset Pane Name** (enabled once the pane has a name, not on a browser
-  pane, also in the palette)
+  or plugin pane, also in the palette)
   clears herdr's label, so the header shows the program again.
 - Drag the header to move the pane ([Drag and drop](/docs/ui/drag-and-drop)).
 - **Replace Pane** (⇧⌘R, also in the palette) puts a fresh shell in the pane's
@@ -528,14 +533,14 @@ How it works: [Layout and sizing](/docs/layout).
   the old one's place and size, starts in its folder, and gets the keyboard.
   The old card stays until herdr has closed the old pane; then the card shows
   the new terminal in place, with no slide or layout motion: only the
-  terminal's usual fade-in plays. On an agent or browser pane the new pane
+  terminal's usual fade-in plays. On an agent, browser or plugin pane the new pane
   shows the [New pane](/docs/ui/new-pane) chooser; on a terminal it does not.
   A zoomed pane's new pane stays zoomed, and
   a floated pane's new pane floats in a window at the same place, with its
   Stay on Top. ⌘W while a replace runs does nothing: the old pane is closing
   already.
 - Close and Replace Pane ask first unless the pane runs only its shell or a
-  browser pane's placeholder (Return confirms, Esc cancels). Replace Pane's dialog says "Replace
+  browser or plugin pane's placeholder (Return confirms, Esc cancels). Replace Pane's dialog says "Replace
   “‹name›”?" and has a Replace Pane button.
 - Every question before an action that ends something (a close, Replace
   Pane, Stop or Delete Session) shows that action's button in red, the
@@ -547,7 +552,9 @@ How it works: [Layout and sizing](/docs/layout).
 ## Find bar
 
 ⌘F (Edit ▸ Find…) opens the find bar on the keyboard card; ⌘F again focuses
-its field. It is disabled on a browser card.
+its field. It is disabled on a browser card and on Preview, Diff and Files
+cards. On File and Markdown cards ⌘F, ⌘G and ⇧⌘G use the editor's own search
+([Default plugins](/docs/ui/plugins#keys)).
 - A glass capsule 320 pt wide and 32 pt tall at the card's top right, 8 pt in
   from its edge and 8 pt under the header: the field ("Find"), the match count
   ("3 of 12", in a fixed slot so the bar never changes width), ↑ (Find
@@ -557,7 +564,7 @@ its field. It is disabled on a browser card.
 - A new query selects the last match, nearest the bottom. ⌘G or Enter goes to
   the next match down, ⇧Enter or ↑ to the previous one up, round the ends. Esc
   or × closes the bar and gives the keyboard back to the card. As in Rex, Find
-  Previous has no shortcut: ⇧⌘G is Go to Directory.
+  Previous has no shortcut here: ⇧⌘G is Go to Directory.
 - The text comes from herdr, read when the bar opens and again at the next
   step after Return was pressed in the pane, and the search is case blind.
   Each match scrolls herdr's viewport to it, with the match line centered.
@@ -616,7 +623,7 @@ once.
   content drawn live inside, at the place and size it has in the card (no
   header content: the tile's title row names the tab). The content is the
   terminal, or the card's own view for any other card: a browser's page, a
-  chat (its kind's symbol until the strip has shown that card). A zoomed tab shows its
+  plugin's content, a chat (its kind's symbol until the strip has shown that card). A zoomed tab shows its
   zoomed card. A floated pane's card shows the float icon. The selected tab
   of each workspace has the keyboard card's look. On hover the title row
   shows × at its end (Close Tab, as the tab bar's ×: it asks only when a
@@ -685,7 +692,8 @@ clients see it there.
   long one gives way first, in its middle). The quick info is the pane's
   icon, its title and its agent's state capsule. The title is the program and
   folder or the label, an agent's name and its pane's name, "Browser" and
-  the page, or "New Pane" while the chooser shows, with the second part in
+  the page, a plugin's kind and title with its dirty dot, or "New Pane" while
+  the chooser shows, with the second part in
   secondary text (the window's title has ` | ` there). A plugin pane (any
   `oriel:` label, such as a browser) shows no line and no place. A chat pane
   shows `Show: Replies ⌄` (only while the chat shows) and Chat | TUI after
@@ -699,7 +707,9 @@ clients see it there.
   the window's edges, its text 10 pt in from the card's sides, as in a pane
   card. A chat pane's card shows its chat or its terminal
   ([Chat view](/docs/ui/chat-view#switching-views)), a browser pane's card
-  its toolbar and page ([Browser](/docs/ui/browser#the-card)), and a pane at
+  its toolbar and page ([Browser](/docs/ui/browser#the-card)), a plugin
+  pane's card its row 2 and page ([Default plugins](/docs/ui/plugins#the-card)),
+  and a pane at
   the chooser the chooser. The window is at least 320 pt wide, and never
   narrower than its title row needs (a chat pane's switch makes it wider).
   A pane's first float opens it at 60 % of the main window's width and 75 %
@@ -718,10 +728,11 @@ clients see it there.
 - **Keys and ⌘K.** In the floating window the menu bar and the palette offer
   only what applies to it: Detach Pane (⌘W, as the red light: a window's
   close puts the pane back, nothing stops), Replace Pane (⇧⌘R), Open Terminal
-  Here, Start Agent Here, Open Browser Here, Close Pane (⇧⌘W), Stay on Top,
-  Find, Find Next and Find Previous, the font size items, Copy and Paste, and
-  on a browser pane Reload Page (⌘R), Open Location (⌘L) and Show Web
-  Inspector (⌥⌘I). The palette lists no tabs, workspaces or sessions.
+  Here, Start Agent Here, Open Browser Here, Open Files Here, Open Changes
+  Here, Close Pane (⇧⌘W), Stay on Top, Find, Find Next and Find Previous, the
+  font size items, Copy and Paste, on a browser pane Reload Page (⌘R), Open
+  Location (⌘L) and Show Web Inspector (⌥⌘I), and on a File or Markdown pane
+  Save (⌘S) and on a Markdown pane Edit Mode (⌘E). The palette lists no tabs, workspaces or sessions.
 - **Saved.** The floating panes and their Stay on Top are kept with the main
   window that floated them, and open again when it restores. A pane that
   herdr closed closes its window; one that moved to another tab or workspace
@@ -804,7 +815,8 @@ A window that watches a session another window controls (D66).
   - Font Size ›: 8 to 32 pt.
   - Start Agent Here ›: Claude Code, Codex, Pi and OpenCode
     ([New pane](/docs/ui/new-pane#commands-that-change-a-panes-kind)).
-- **Go to Directory** (⇧⌘G) opens the system folder panel at the keyboard
+- **Go to Directory** (⇧⌘G, which is Find Previous over a File or Markdown
+  card) opens the system folder panel at the keyboard
   card's folder. Choosing a folder types `cd -- '‹path›'` and Return into the
   card. Enabled only when the card runs only its shell.
 - **Insert Path** (⇧⌘I) opens the same panel with files too. Choosing types

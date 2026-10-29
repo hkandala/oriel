@@ -3,7 +3,10 @@ title: "Plugin security"
 description: "Machine binding, what run means, consent, the page's limits and caps"
 ---
 
-Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+Not built for installed plugins. The default plugins' pages load only the
+app's own files under a Content Security Policy and navigate only within the
+app's scheme ([How the web cards work](/docs/ui/plugins#how-the-web-cards-work)).
+This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
 
 - **One web page per card, bound to its pane's machine.** `run` and `dial` go
   only to that machine; the bridge functions take no machine or pane id,

@@ -3,7 +3,11 @@ title: "Plugin UI"
 description: "A plugin is a small web page drawn in a native web view in its card"
 ---
 
-Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+The default plugins use this design's web view per card, URL scheme and CSS
+variables as built, with a fixed bridge in place of `window.oriel`
+([How the web cards work](/docs/ui/plugins#how-the-web-cards-work)). For
+installed plugins this page is the design
+([Pane kinds and plugins](/docs/future-work/plugins)).
 
 A plugin is a small web page: HTML, CSS and JavaScript. Each plugin card is a
 native web view (a `WKWebView` with a `WKUIDelegate`, wrapped for SwiftUI)
@@ -43,7 +47,8 @@ How the page reaches its machine:
   ([Plugin security](/docs/future-work/plugins/security)).
 - WebKit is built into macOS and iOS, so the same plugin can run on an
   [iPhone and iPad app](/docs/future-work/iphone-and-ipad#plugins) too.
-- A web view costs about 50 MB empty and 120–200 MB in use. The app will keep
+- A web view costs about 50 MB empty and 120–200 MB in use. A default
+  plugin card's WebContent process measured 45 MB. The app will keep
   at most 6 live web views on the Mac, browser and plugin cards together,
   least recently used first out. An evicted card keeps an image of its last
   frame. Browser cards have no cap yet.

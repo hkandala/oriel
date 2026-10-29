@@ -1,12 +1,14 @@
 ---
 title: "Pane kinds and plugins"
-description: "Terminal, agent and browser are built in; every other pane kind is a plugin"
+description: "Terminal, agent, browser and the default plugins are built in; installed plugins are the design"
 ---
 
 Terminal, Agent and Browser are built in
-([New pane](/docs/ui/new-pane), [Browser](/docs/ui/browser)). Plugins are not
-built. The pages in this section are the design for plugins, on the
-foundation that the browser built ([The first slice](#the-first-slice)).
+([New pane](/docs/ui/new-pane), [Browser](/docs/ui/browser)), and so are five
+default plugins: File, Preview, Markdown, Diff and Files
+([Default plugins](/docs/ui/plugins)). Plugins that the user installs are not
+built. The pages in this section are their design, on the foundation that
+the browser and the default plugins built ([What is built](#what-is-built)).
 
 A pane kind is what a pane shows: a terminal, an agent, a browser or a
 plugin. Terminal, Agent and Browser are
@@ -18,7 +20,8 @@ built into the app. Every other pane kind is a plugin: a small web page
 | Terminal | built in | native terminal (libghostty) | none | none (the default) |
 | Agent | built in | native terminal + chat view ([Chat view](/docs/ui/chat-view)) | none | none (herdr sets `pane.agent`) |
 | Browser | built in | native web view ([Browser](/docs/ui/browser)) | none (only the page's own) | label `oriel:browser#<iid> <url>` |
-| `git-history`, `diff`, `markdown` | core | a web page in a native web view | yes, the public API | label `oriel:…` ([Labels and instance ids](/docs/future-work/plugins/labels)) |
+| File, Preview, Markdown, Diff, Files | built in ([Default plugins](/docs/ui/plugins)) | a web page from the app's bundle in a native web view | yes, with a fixed bridge, not the public API | label `oriel:<kind>#<iid> <arg>` |
+| core plugins | core | a web page in a native web view | yes, the public API | label `oriel:…` ([Labels and instance ids](/docs/future-work/plugins/labels)) |
 | your plugins | installed | a web page in a native web view | yes, the public API | label `oriel:…` |
 
 - Core plugins ship with the app. They use exactly the public API and are
@@ -33,8 +36,9 @@ built into the app. Every other pane kind is a plugin: a small web page
 ## Choosing a kind
 
 Every new pane shows the [New pane](/docs/ui/new-pane) chooser with the
-built-in kinds: Terminal, Agent and Browser. Its commands (Open Terminal Here,
-Start Agent Here, Open Browser Here) change a pane's kind later.
+built-in kinds: Terminal, Agent, Browser, Files and Changes. Its commands
+(Open Terminal Here, Start Agent Here, Open Browser Here, Open Files Here,
+Open Changes Here) change a pane's kind later.
 
 - Plugin kinds join the chooser when plugins are built: one more option that
   lists the plugin pane kinds from the manifests, core plugins first, then
@@ -79,25 +83,36 @@ func dial(host: String, port: Int) async throws -> Channel
 ## Where it lives
 
 - `PluginRegistry`: core, linked and installed plugins, their manifests and
-  consent.
-- `PluginHost`: one web page per plugin card, and the bridge
-  (`window.oriel`) to `run`, `dial` and the API; every call checks the card's
-  machine in Swift.
-- `HerdrKit` gets the label parser, the state-file write command and the
-  transcript parsers, each with unit tests. `SSHExec` gets `dial`.
-- The `PaneViewRegistry` owns browser and plugin cards as it owns terminal views,
-  so scrolling never destroys them.
+  consent (not built).
+- One web page per plugin card, and the bridge (`window.oriel`) to `run`,
+  `dial` and the API; every call checks the card's machine in Swift. The
+  default plugins' `WebCard` and `oriel-plugin://` scheme are built, with a
+  fixed bridge in place of `window.oriel`.
+- `HerdrKit` has the label parser and the default plugins' `Files` and `Git`.
+  It gets the state-file write command for plugins and the transcript
+  parsers. `SSHExec` gets `dial`.
+- The `PaneViewRegistry` owns browser and plugin cards as it owns terminal
+  views, so scrolling never destroys them (built).
 - App storage (`UserDefaults`): consent and This Mac answers per plugin id
   and source, plugin preferences (passwords in the Keychain), and approved
   browser origins per machine (built). Plugin code and its source
   record live in `~/Library/Application Support/Oriel/plugins/`. Browser
   cards keep one WebKit data store per machine.
 
-## The first slice
+## What is built
 
-The browser is the first pane kind on this design, built into the app:
-nothing to install, enable or disable, and its page gets no bridge (no
-`window.oriel`, so no `run`). It built the parts every later kind needs:
+The default plugins are five more pane kinds on this design, built into the
+app ([Default plugins](/docs/ui/plugins)). They have `oriel:<kind>` labels
+for any kind with one placeholder, the chooser's Files and Changes, linked
+opens into a new tab, a web page per card served from `oriel-plugin://` under
+a Content Security Policy with a navigation lock, and a fixed bridge of asks
+and reports ([How the web cards work](/docs/ui/plugins#how-the-web-cards-work)).
+They keep no state file. Their pages are the app's own, not plugins on the
+public API.
+
+The browser is built into the app too: nothing to install, enable or
+disable, and its page gets no bridge (no `window.oriel`, so no `run`). It has
+the parts every later kind needs:
 - the label grammar and its parser (HerdrKit's `PaneLabel`), the instance id,
   and restore by label
   ([Labels and instance ids](/docs/future-work/plugins/labels));
@@ -109,7 +124,8 @@ nothing to install, enable or disable, and its page gets no bridge (no
 - the load rule and the approvals per machine.
 
 Not built yet: **Refresh**, the cap of live web views, and the manifest value
-for a built-in kind. The browser calls its label and state file from Swift.
+for a built-in kind. The browser and the default plugins call their labels
+(and the browser its state file) from Swift.
 Plugins get them as calls: their pane context (machine, session, iid,
 argument, cwd), `setArg`, `state.get` and `state.set`, and `run`, as
 `window.oriel` ([Plugin API](/docs/future-work/plugins/api)). A built-in kind

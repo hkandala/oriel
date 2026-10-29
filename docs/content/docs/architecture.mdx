@@ -12,12 +12,13 @@ API bridge, a `terminal session` per streamed pane, and the event stream.
 
 | Piece | Job |
 |---|---|
-| `HerdrKit` (Swift package) | `Exec`, the `Multiplexer` interface and its herdr implementation: `call()`, the event stream, snapshot decoding, the split-tree rebuild, the remote command envelope and the relay |
+| `HerdrKit` (Swift package) | `Exec`, the `Multiplexer` interface and its herdr implementation: `call()`, the event stream, snapshot decoding, the split-tree rebuild, the remote command envelope and the relay; `Files` and `Git`, the plugin cards' file and git data over `Exec` |
 | `ProcessExec` | `Process` with pipes, for This Mac |
 | `SSHExec` | a remote machine: its ControlMaster, the askpass prompts and the relay that carries every run |
 | `HostStore` | the app's live model of one open session: snapshot, events, streams, seen state, git state, and which window controls it. One per session, shared by every window that shows it |
 | Window state | one per window: its machine, its open pages and its selection (page, workspace, tab, keyboard card, zoom, sidebar view and width), restored with `@SceneStorage` |
-| `PaneViewRegistry` | owns terminal views, so scrolling never destroys them |
+| `PaneViewRegistry` | owns terminal, browser and plugin views by terminal id, so scrolling never destroys them |
+| Plugin cards | `PluginKind` (labels, titles, which kind opens a file), `Plugin` and its `WebCard` (one web view, the bridge and the `oriel-plugin://` scheme), the pages in `web/` ([Default plugins](/docs/ui/plugins)) |
 | Views | title row, sidebar pages, Agents view, tab bar, strip, cards, overview, floating panes, panels and dialogs |
 
 `Exec` and `Multiplexer` are the only protocols. `HerdrKit` is a separate

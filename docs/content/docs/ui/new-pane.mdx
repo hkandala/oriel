@@ -1,9 +1,10 @@
 ---
 title: "New pane"
-description: "The chooser on a new pane: Terminal, Agent or Browser, its keys and look, and the commands that change a pane's kind"
+description: "The chooser on a new pane: Terminal, Agent, Browser, Files or Changes, its keys and look, and the commands that change a pane's kind"
 ---
 
-A new pane asks what it runs: **Terminal**, **Agent** or **Browser**.
+A new pane asks what it runs: **Terminal**, **Agent**, **Browser**,
+**Files** or **Changes**.
 Terminal is selected, so ⌘T and then Return gives a terminal with no click.
 
 ## Which panes show it
@@ -20,7 +21,7 @@ Terminal is selected, so ⌘T and then Return gives a terminal with no click.
   Tab, a drag) keeps what it shows: the chooser follows its pane by terminal
   id.
 - **Replace Pane** (⇧⌘R) on a terminal gives a fresh shell with no chooser. On
-  an agent or browser pane it gives a fresh shell with the chooser.
+  an agent, browser or plugin pane it gives a fresh shell with the chooser.
 - The chooser is the app's own state, kept on the session's `HostStore`, so
   every window of the app shows it on that pane. herdr, its TUI and other
   devices see a plain shell. After a relaunch, a pane still at the chooser
@@ -41,9 +42,9 @@ no title and no key hint. While the chooser shows, the card's header says
   rows (at most the card's height less 16 pt). Rows are 28 pt tall and 2 pt
   apart.
 - **Row**, from the leading edge, 8 pt in: the kind's symbol in a 22 pt column
-  (`terminal`, `sparkles`, `globe`, in secondary), the name in 13 pt, then on
-  the right a short description in 12 pt ("Shell", "Coding agent", "Web
-  page") and the row's number key in 11 pt, both tertiary. The description
+  (`terminal`, `sparkles`, `globe`, `folder`, `plusminus`, in secondary), the
+  name in 13 pt, then on the right a short description in 12 pt ("Shell",
+  "Coding agent", "Web page", "File tree", "Uncommitted diff") and the row's number key in 11 pt, both tertiary. The description
   hides on a card narrower than 300 pt.
 - **Agent** has a 9 pt chevron after its name: `chevron.right` when closed,
   `chevron.down` when open, with its symbol in the accent. Open, it shows its
@@ -80,7 +81,7 @@ and Return never reaches the old card's shell.
   and open selects the first agent.
 - → on Agent opens it. ← and Esc close it again, with Agent selected.
 - Esc on a closed list picks Terminal.
-- 1, 2 and 3 pick the top rows. While Agent is open, 1 to 4 pick the agents.
+- 1 to 5 pick the top rows. While Agent is open, 1 to 4 pick the agents.
 - A held key moves on, but picks only once.
 - The pointer selects a row once it moves, as in the palette. A click picks.
   A click beside the list gives the card the keyboard.
@@ -133,49 +134,57 @@ does not look for which agents are installed.
 
 ## Browser
 
-A pick turns the pane into a browser pane with Replace Pane's steps: the
-browser's labeled pane takes the old pane's place and size, and the old pane
-closes ([Create](/docs/ui/browser#create)). Meanwhile the card shows the
-browser's loader: the `globe` symbol, and under it a spinner and "Opening
-Browser…". Then the browser card fades in with an empty address field that
-has the keyboard ([Browser](/docs/ui/browser)).
+Browser, Files and Changes work the same way. A pick turns the pane into a
+browser or plugin pane with Replace Pane's steps: the labeled pane takes the
+old pane's place and size, and the old pane closes ([Create](/docs/ui/browser#create)). Meanwhile the card shows the
+kind's loader: its symbol, and under it a spinner and "Opening Browser…",
+"Opening Files…" or "Opening Diff…".
+- **Browser** fades in with an empty address field that has the keyboard
+  ([Browser](/docs/ui/browser)).
+- **Files** shows the tree of the git repository that the pane's folder is
+  in, else of the folder. **Changes** shows that repository's uncommitted
+  changes ([Default plugins](/docs/ui/plugins)).
 
 ## Commands that change a pane's kind
 
-Three commands turn the keyboard card into another kind. They are in the File
+Five commands turn the keyboard card into another kind. They are in the File
 menu and the card's context menu, between Replace Pane and Close Pane, and in
 the palette. They have no shortcut.
 
 | Command | Shows on | Does |
 |---|---|---|
-| Open Terminal Here | agent and browser panes | Replace Pane: a fresh shell, with no chooser |
+| Open Terminal Here | agent, browser and plugin panes | Replace Pane: a fresh shell, with no chooser |
 | Start Agent Here ▸ | every pane | a sub-page (in menus a submenu) with Claude Code, Codex, Pi and OpenCode; a pick replaces the pane with a fresh shell and starts that agent in it with its launch line, with the loader |
 | Open Browser Here | every pane but a browser pane | replaces the pane with a browser pane, with the loader |
+| Open Files Here | every pane but a Files pane | replaces the pane with a Files pane, with the loader |
+| Open Changes Here | every pane but a Diff pane | replaces the pane with a Diff pane of the uncommitted changes, with the loader |
 
-- A pane's kind: a browser pane has a browser label, an agent pane is one
-  where herdr reports an agent, and every other pane is a terminal (also one
+- A pane's kind: a browser or plugin pane has its kind's label, an agent
+  pane is one where herdr reports an agent, and every other pane is a terminal (also one
   that runs vim or a server).
-- All three use Replace Pane's steps: the new pane gets the old one's place,
+- All five use Replace Pane's steps: the new pane gets the old one's place,
   size and folder, and the keyboard, and a zoomed or floated pane stays so
   ([Pane card](/docs/ui/window#pane-card)).
 - They ask first as Replace Pane does, unless the pane runs only its shell or
-  a browser pane's placeholder. The dialog is Replace
+  a browser or plugin pane's placeholder. The dialog is Replace
   Pane's ("Replace “‹name›”?"), and its red button names the command: "Open
-  Terminal", "Start ‹agent›" or "Open Browser".
-- On a pane that shows the chooser, Start Agent Here and Open Browser Here act
-  as the chooser's picks, with no question.
+  Terminal", "Start ‹agent›", "Open Browser", "Open Files" or "Open Changes".
+- On a pane that shows the chooser, Start Agent Here and the Open … Here
+  commands act as the chooser's picks, with no question.
 - A floating window's palette and menu bar offer them too.
 
 ## VoiceOver and identifiers
 
 - The list is a group named "New Pane". Each row is a button named by its
-  option ("Terminal", "Agent", "Browser", "Claude Code", …), with the
+  option ("Terminal", "Agent", "Browser", "Files", "Changes", "Claude
+  Code", …), with the
   selected trait on the selected one. Agent's value is "expanded" or
   "collapsed".
 - When the chooser shows, VoiceOver moves to the selected row. The loader
-  reads "Starting ‹agent›" or "Opening Browser".
+  reads "Starting ‹agent›" or "Opening ‹kind›".
 - Identifiers sit on the leaf elements, after the card's `pane.‹id›`:
-  `pane.‹id›.chooser.terminal`, `.agent`, `.browser`, `.claude`, `.codex`,
+  `pane.‹id›.chooser.terminal`, `.agent`, `.browser`, `.files`, `.changes`,
+  `.claude`, `.codex`,
   `.pi`, `.opencode`, and `pane.‹id›.loader` for the loader.
 
 ## Later
@@ -183,5 +192,5 @@ the palette. They have no shortcut.
 - Flags per agent, set by the user (for example a permission mode), and only
   the agents installed on the machine
   ([Agent panes](/docs/future-work/plugins/agent#agent)).
-- Plugin pane kinds in the chooser
+- Installed plugin kinds in the chooser
   ([Pane kinds and plugins](/docs/future-work/plugins#choosing-a-kind)).
