@@ -156,3 +156,26 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   label (6), so the pane stayed a terminal.
 - **For the user:** open Files Here in a big repository (the kernel, a monorepo): the first letter of the filter
   loads every path; check the wait, the arrow keys after it, and the memory of its web process.
+
+### Track C
+
+- **Decisions:** the page owns Read | Edit and the outline and reports what it shows (`markdown` report); row 2's
+  `Segments`, the outline toggle and ⌘E (View ▸ Edit Mode, checked while editing) only ask for a change. A page that
+  loads again (a crash, a new label argument) starts in Read and the row follows it, with no state to keep in step.
+- **Decisions:** Read is markdown-it over the editor's current text, so unsaved edits show in Read too; Edit is the
+  File card's shared editor (`lib/editor.ts`) with CodeMirror's Markdown language (GFM) and a decoration that hides
+  each mark (`#`, emphasis, a link's brackets and address, code ticks) unless the selection touches its element.
+  Fenced code fences, autolinks, link references and setext underlines stay shown. ⌘F in Read switches to Edit,
+  where the search panel is.
+- **Decisions (with t43-markdown, for parity):** the same ids (`pane.<id>.mode.read|edit`, `pane.<id>.outline` with
+  `.isSelected`); front matter hidden in Read and skipped by the outline, text in Edit; images are not loaded, their
+  alt text links to them (a relative one opens Preview); links open from Read only; a linked open with a line opens
+  Edit at that line. Unlike the native variant there is no 128 KB gate: CodeMirror and markdown-it stay fast at
+  megabytes; the File card's caps (16 MB view, 4 MiB remote edit) hold.
+- **Decisions:** the outline comes from the editor's syntax tree in both modes (headings at the top level, in lists
+  and quotes); Read finds a heading by its source line (`data-line` from markdown-it's map). Read headings get
+  GitHub's ids, so `#section` links scroll.
+- **Measured:** `markdown.js` 649 KB, 231 KB gzip (lang-markdown pulls in the HTML, CSS and JavaScript languages for
+  HTML blocks).
+- **For the user:** open a long design page, toggle the outline, click a heading in both modes; ⌘E with the caret in a
+  bold word or a link shows its marks only there; a relative link and an http link open new tabs.
