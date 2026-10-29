@@ -1,9 +1,10 @@
 import HerdrKit
 import SwiftUI
 
-/// A run of tool calls as one quiet line (ui/chat-view#detail-levels), so the replies stand out; open, a row per call.
+/// A run of tool calls as one quiet line (ui/chat-view#detail-levels), so the replies stand out; open, a row per call
+/// and per thinking.
 struct ToolStack<Header: View>: View {
-    let tools: [ChatTool]
+    let steps: [ChatEntry]
     let open: Bool
     let paneID: String
     let toggle: () -> Void
@@ -13,15 +14,11 @@ struct ToolStack<Header: View>: View {
     @ViewBuilder let header: Header
 
     var body: some View {
-        let running = tools.last { $0.result == nil }
         VStack(alignment: .leading, spacing: 2) {
             Button(action: toggle) {
                 HStack(spacing: 6) {
                     header.lineLimit(1).layoutPriority(1)
                     Chevron(open: open)
-                    if let running, !open {
-                        Text(running.target).foregroundStyle(.tertiary).lineLimit(1).truncationMode(.middle)
-                    }
                     Spacer(minLength: 4)
                 }
                 .padding(.horizontal, 6).frame(height: 24)
@@ -30,8 +27,16 @@ struct ToolStack<Header: View>: View {
             .accessibilityValue(open ? "open" : "closed")
             .accessibilityIdentifier("chat.\(paneID).stack")
             if open {
-                ForEach(tools, id: \.id) { tool in
-                    ToolRow(tool: tool, open: opened.contains(tool.id), paneID: paneID) { toggleTool(tool.id) }
+                ForEach(steps) { step in
+                    if let tool = step.tool {
+                        ToolRow(tool: tool, open: opened.contains(tool.id), paneID: paneID) { toggleTool(tool.id) }
+                    } else {
+                        HStack(spacing: 6) {
+                            Icon(symbol: "text.bubble")
+                            Text("Thought").italic().foregroundStyle(.tertiary)
+                        }
+                        .padding(.horizontal, 6).frame(height: 22)
+                    }
                 }
                 .padding(.leading, 12)
             }
@@ -54,8 +59,7 @@ private struct ToolRow: View {
         VStack(alignment: .leading, spacing: 4) {
             Button(action: toggle) {
                 HStack(spacing: 6) {
-                    Image(systemName: Self.symbol(tool.category)).foregroundStyle(.tertiary).frame(width: 14)
-                        .accessibilityHidden(true)
+                    Icon(symbol: Self.symbol(tool.category))
                     Text(tool.name).foregroundStyle(.secondary)
                     Text(tool.target).font(.system(size: 11.5, design: .monospaced)).foregroundStyle(.secondary)
                         .lineLimit(1).truncationMode(.middle)
@@ -90,14 +94,23 @@ private struct ToolRow: View {
         }
     }
 
+    /// Squares and upright or wide rectangles only, so they read as one size.
     static func symbol(_ category: ChatTool.Category) -> String {
         switch category {
         case .read: "doc.text"
-        case .edit: "pencil"
+        case .edit: "square.and.pencil"
         case .command: "terminal"
-        case .search: "magnifyingglass"
-        case .other: "wrench.and.screwdriver"
+        case .search: "doc.text.magnifyingglass"
+        case .other: "curlybraces.square"
         }
+    }
+}
+
+private struct Icon: View {
+    let symbol: String
+
+    var body: some View {
+        Image(systemName: symbol).foregroundStyle(.tertiary).frame(width: 14).accessibilityHidden(true)
     }
 }
 

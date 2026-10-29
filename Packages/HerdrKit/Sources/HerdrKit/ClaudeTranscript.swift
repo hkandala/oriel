@@ -116,7 +116,7 @@ public enum ClaudeTranscript {
             (category, target) = (.other, ChatHistory.firstLine(question))
         default:
             // An MCP tool's own name (`mcp__server__tool`), and its first text argument.
-            shown = String(name.split(separator: "_").last ?? Substring(name)).lowercased()
+            shown = (name.components(separatedBy: "__").last ?? name).lowercased()
             (category, target) = (.other, ChatHistory.firstLine(input.values.first { $0 is String }))
         }
         history.append(ChatEntry(id: id, .tool(ChatTool(id: toolID, name: shown, category: category, target: target,

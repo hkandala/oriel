@@ -46,27 +46,28 @@ private func history() throws -> ChatHistory {
     // Opened, a call shows its whole input and output.
     #expect(failed.input == "command: ls /nonexistent\ndescription: List a directory that does not exist")
     #expect(failed.output.hasPrefix("Exit code 1\n"), "\(failed.output)")
-    #expect(tools.contains { $0.name == "files" && $0.category == .other })
+    #expect(tools.contains { $0.name == "search_files" && $0.category == .other })
     #expect(history.entries.contains { $0.kind == .turnEnd(seconds: 8.355) })
 }
 
-@Test func `replies show each turn's last reply; steps add every step, with tool runs stacked`() throws {
+/// A row's kind, and the steps of a quiet line or a stack.
+private extension ChatRow {
+    var kind: String {
+        String(describing: self).prefix { $0 != "(" }.description
+    }
+
+    var steps: [ChatEntry]? {
+        switch self {
+        case let .summary(_, _, _, _, steps), let .stack(_, steps): steps
+        default: nil
+        }
+    }
+}
+
+@Test func `replies show each turn's quiet line and last reply; activity opens the line to every step`() throws {
     let history = try history()
     let replies = history.rows(.replies, working: false)
-    #expect(replies.count {
-        if case .user = $0 {
-            true
-        } else {
-            false
-        }
-    } == 6)
-    #expect(!replies.contains {
-        if case .stack = $0 {
-            true
-        } else {
-            false
-        }
-    })
+    #expect(replies.count { $0.kind == "user" } == 6 && !replies.contains { $0.kind == "stack" })
     // The edit turn: its user message, its quiet line, its last reply.
     let turn = try #require(replies
         .firstIndex {
@@ -76,29 +77,44 @@ private func history() throws -> ChatHistory {
                 false
             }
         })
-    guard case let .summary(_, text, nil, _) = replies[turn + 1], case .reply = replies[turn + 2] else {
+    guard case let .summary(_, counts, nil, seconds?, []) = replies[turn + 1], case .reply = replies[turn + 2] else {
         Issue.record("no summary and reply after \(replies[turn])"); return
     }
-    #expect(text.hasPrefix("Worked ") && text.hasSuffix(" · 1 file edited · 1 command"))
+    #expect(counts == "Wrote 1 file, ran 1 command, edited 1 file, read 1 file" && seconds > 30)
 
-    let steps = history.rows(.steps, working: false)
-    let stacks = steps.compactMap {
-        switch $0 {
-        case let .stack(_, tools), let .summary(_, _, _, tools): tools
-        default: nil
-        }
+    // The same rows, each line holding every step of its turn: the MCP turn's calls and thinking.
+    let activity = history.rows(.activity, working: false)
+    #expect(activity.map(\.id) == replies.map(\.id))
+    let mcp = try #require(activity.compactMap(\.steps).first { $0.count == 9 })
+    #expect(ChatTool.summary(mcp.compactMap(\.tool))
+        == "Ran 3 commands, ran toolsearch 1 time, ran search_files 1 time, 2 failed")
+}
+
+@Test func `everything has no quiet line, and the thinking between calls is in their run`() throws {
+    let everything = try history().rows(.everything, working: false)
+    #expect(!everything.contains { $0.kind == "summary" })
+    #expect(everything.compactMap(\.steps).map { ChatTool.summary($0.compactMap(\.tool)) } == [
+        "Asked 1 question", "Wrote 1 file, ran 1 command, edited 1 file, read 1 file", "Ran 1 command",
+        "Ran 3 commands, ran toolsearch 1 time, ran search_files 1 time, 2 failed",
+    ])
+    // Thinking alone is a row of its own.
+    #expect(everything.count { $0.kind == "thinking" } == 2)
+    #expect(Set(everything.map(\.id)).count == everything.count)
+}
+
+@Test func `a run is worded as pi-content-layout words it`() {
+    func tool(_ name: String, failed: Bool = false, calls: [String] = []) -> ChatTool {
+        var tool = ChatTool(id: name, name: name, category: .other, target: "", started: nil)
+        tool.failed = failed
+        tool.calls = calls
+        return tool
     }
-    #expect(stacks.contains { ChatTool.summary($0) == "Edited 1 file, read 1 file, ran 1 command" })
-    // A run right under the quiet line is in it, not a stack of its own.
-    #expect(!zip(steps, steps.dropFirst()).contains { above, row in
-        if case .stack = row {
-            above.isSummary
-        } else {
-            false
-        }
-    })
-    #expect(steps.count > replies.count)
-    #expect(Set(steps.map(\.id)).count == steps.count)
+    #expect(ChatTool.summary([tool("read"), tool("bash", failed: true), tool("read"), tool("ls"), tool("ls")])
+        == "Read 2 files, ran 1 command, listed 2 directories, 1 failed")
+    // codemode is a command, and its script's calls count as their own.
+    #expect(ChatTool.summary([tool("codemode", calls: ["read", "web_fetch", "bash"]), tool("agent_list")])
+        == "Ran 2 commands, read 1 file, fetched 1 web page, checked agents")
+    #expect(ChatTool.summary([tool("explore"), tool("explore")]) == "Ran explore 2 times")
 }
 
 @Test func `the last turn says working while it runs`() {
@@ -107,11 +123,11 @@ private func history() throws -> ChatHistory {
     let tool = #"{"type":"tool_use","id":"t","name":"Bash","input":{"command":"npm test\nmore"}}"#
     ClaudeTranscript.read(#"{"type":"assistant","uuid":"a","message":{"content":[\#(tool)]}}"#, into: &history)
     #expect(history.rows(.replies, working: true).map(\.id) == ["u", "u.summary"])
-    guard case let .summary(_, _, _, tools) = history.rows(.steps, working: true).last else {
-        Issue.record("no tools in the quiet line"); return
+    guard case let .summary(_, counts, _, nil, steps) = history.rows(.activity, working: true).last else {
+        Issue.record("no steps in the quiet line"); return
     }
-    #expect(tools.first?.target == "npm test" && tools.first?.result == nil)
-    #expect(ChatTool.summary(tools) == "Running 1 command")
+    #expect(steps.first?.tool?.target == "npm test" && steps.first?.tool?.result == nil)
+    #expect(counts == "Ran 1 command")
     // A torn line is no entry.
     #expect(!ClaudeTranscript.read(#"{"type":"assist"#, into: &history))
     #expect(ChatHistory.duration(108) == "1m 48s")

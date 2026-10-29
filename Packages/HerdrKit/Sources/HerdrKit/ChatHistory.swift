@@ -20,11 +20,12 @@ public struct ChatHistory: Equatable, Sendable {
 
     /// A tool call's result, also in a later read than its call; dropped when the call is not known.
     public mutating func finish(tool id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine] = [],
-                                output: String = "", at time: Date?)
+                                output: String = "", calls: [String] = [], at time: Date?)
     {
         guard let index = tools.removeValue(forKey: id), case var .tool(tool) = entries[index].kind else { return }
         tool.result = result
         tool.output = output
+        tool.calls = calls
         tool.failed = failed
         tool.diff = diff.isEmpty ? tool.diff : diff
         tool.ended = time
@@ -55,6 +56,16 @@ public struct ChatEntry: Equatable, Sendable, Identifiable {
     }
 }
 
+public extension ChatEntry {
+    var tool: ChatTool? {
+        if case let .tool(tool) = kind {
+            tool
+        } else {
+            nil
+        }
+    }
+}
+
 extension ChatEntry {
     var user: String? {
         if case let .user(text) = kind {
@@ -72,12 +83,9 @@ extension ChatEntry {
         }
     }
 
-    var tool: ChatTool? {
-        if case let .tool(tool) = kind {
-            tool
-        } else {
-            nil
-        }
+    /// A tool call or thinking: a step of a run (ui/chat-view#detail-levels).
+    var isStep: Bool {
+        tool != nil || kind == .thinking
     }
 
     /// Its own row: a reply, a thinking row, a todo list or a note.
@@ -117,6 +125,8 @@ public struct ChatTool: Equatable, Sendable {
     /// What it was given and what it gave back, whole (`ChatHistory.detail`), for its open row.
     public let input: String
     public var output = ""
+    /// The tools a codemode script called, by name: a run counts them as its own.
+    public var calls: [String] = []
     public let started: Date?
     public var ended: Date?
 
@@ -144,8 +154,9 @@ public extension ChatHistory {
             : "\(whole / 3600)h \(whole % 3600 / 60)m"
     }
 
+    /// "1 file", "2 files", "2 directories".
     static func count(_ number: Int, _ noun: String) -> String {
-        "\(number) \(noun)\(number == 1 ? "" : "s")"
+        "\(number) \(number == 1 ? noun : noun.hasSuffix("y") ? noun.dropLast() + "ies" : noun + "s")"
     }
 
     /// A target or a result as its row shows it: the first line, at most 120 characters.
@@ -232,25 +243,40 @@ extension ChatTodo {
 }
 
 public extension ChatTool {
-    /// A stack's front: "Edited 2 files, ran 1 command, 1 failed"; "Editing 1 file, running 2 commands" while one runs.
+    /// A run's front as pi-content-layout words it (its tools.ts): "Read 3 files, ran 2 commands, 1 failed", in the
+    /// order the tools first ran; codemode's calls count as their own.
     static func summary(_ tools: [ChatTool]) -> String {
-        let running = tools.contains { $0.result == nil }
-        let files = { (category: Category) in Set(tools.filter { $0.category == category }.map(\.target)).count }
-        let calls = { (category: Category) in tools.count { $0.category == category } }
-        let searches = calls(.search), failed = tools.count(where: \.failed)
-        let parts = [
-            (files(.edit), running ? "editing" : "edited", ChatHistory.count(files(.edit), "file")),
-            (files(.read), running ? "reading" : "read", ChatHistory.count(files(.read), "file")),
-            (searches, running ? "searching" : "searched",
-             searches == 1 ? "once" : searches == 2 ? "twice" : "\(searches) times"),
-            (calls(.command), running ? "running" : "ran", ChatHistory.count(calls(.command), "command")),
-            (calls(.other), running ? "using" : "used", ChatHistory.count(calls(.other), "tool")),
-            (failed, "", "\(failed) failed"),
-        ]
-        let text = parts.filter { $0.0 > 0 }.map { [$0.1, $0.2].filter { !$0.isEmpty }.joined(separator: " ") }
-            .joined(separator: ", ")
+        var order: [(verb: String, noun: String)] = [], numbers: [String: Int] = [:]
+        for name in tools.flatMap({ [$0.name] + $0.calls }) {
+            let wording = wording[name] ?? ("ran \(name)", "time")
+            if numbers[wording.verb] == nil {
+                order.append(wording)
+            }
+            numbers[wording.verb, default: 0] += 1
+        }
+        let failed = tools.count(where: \.failed)
+        let text = (order.map { verb, noun in
+            noun.isEmpty ? verb : "\(verb) \(ChatHistory.count(numbers[verb, default: 0], noun))"
+        } + (failed > 0 ? ["\(failed) failed"] : [])).joined(separator: ", ")
         return text.prefix(1).uppercased() + text.dropFirst()
     }
+
+    /// Verb and noun by tool, as the rows name them, for every agent; no noun: the verb alone, uncounted.
+    private static let wording: [String: (verb: String, noun: String)] = {
+        let ran = ("ran", "command"), searched = ("searched", "pattern"), edited = ("edited", "file")
+        let read = ("read", "file"), listed = ("listed", "directory"), web = ("searched the web", "time")
+        let fetched = ("fetched", "web page"), asked = ("asked", "question"), talked = ("talked to", "agent")
+        let checked = ("checked agents", "")
+        return [
+            "read": read, "notebookread": read, "write": ("wrote", "file"),
+            "edit": edited, "multiedit": edited, "notebookedit": edited, "apply_patch": edited, "patch": edited,
+            "bash": ran, "codemode": ran, "bash_list": ran, "bash_watch": ran,
+            "grep": searched, "find": searched, "glob": searched, "ls": listed, "list": listed,
+            "websearch": web, "web_search": web, "webfetch": fetched, "web_fetch": fetched,
+            "askuserquestion": asked, "question": asked, "agent_start": ("started", "agent"), "agent_send": talked,
+            "agent_watch": talked, "agent_read": checked, "agent_list": checked, "agent_stop": ("stopped", "agent"),
+        ]
+    }()
 }
 
 public extension ChatHistory {

@@ -28,7 +28,8 @@ public struct PiTranscript: Sendable {
 
     private enum Step {
         case add(ChatEntry)
-        case finish(id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine], output: String, time: Date?)
+        case finish(id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine], output: String,
+                    calls: [String] = [], time: Date?)
         case model(String, effort: String?)
     }
 
@@ -92,8 +93,9 @@ public struct PiTranscript: Sendable {
         for step in steps {
             switch step {
             case let .add(entry): history.append(entry)
-            case let .finish(id, result, failed, diff, output, time):
-                history.finish(tool: id, result: result, failed: failed, diff: diff, output: output, at: time)
+            case let .finish(id, result, failed, diff, output, calls, time):
+                history.finish(tool: id, result: result, failed: failed, diff: diff, output: output, calls: calls,
+                               at: time)
             case let .model(model, effort):
                 history.model = model
                 history.effort = effort
@@ -184,11 +186,11 @@ public struct PiTranscript: Sendable {
     /// A result as its row says it: lines read, lines changed with the diff, a failed command's exit, else its first
     /// line.
     private func result(_ message: [String: Any], _ blocks: [[String: Any]], call: String, time: Date?) -> Step {
-        let failed = message["isError"] as? Bool == true
+        let failed = message["isError"] as? Bool == true, details = message["details"] as? [String: Any]
         let content = blocks.compactMap { $0["text"] as? String }.joined(separator: "\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         // `-12 old`, `+12 new`, ` 13 same`; `   ...` between hunks has no number.
-        let diff: [ChatTool.DiffLine] = ((message["details"] as? [String: Any])?["diff"] as? String ?? "")
+        let diff: [ChatTool.DiffLine] = (details?["diff"] as? String ?? "")
             .split(separator: "\n").compactMap { line in
                 guard let mark = line.first, "+- ".contains(mark) else { return nil }
                 let rest = line.dropFirst().drop { $0 == " " }, digits = rest.prefix { $0.isNumber }
@@ -207,7 +209,9 @@ public struct PiTranscript: Sendable {
         } else {
             text = ChatHistory.firstLine(content)
         }
+        // A codemode script's calls, tools and models alike.
+        let calls = (details?["calls"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String }
         return .finish(id: call, result: text, failed: failed, diff: diff, output: ChatHistory.detail(content),
-                       time: time)
+                       calls: calls, time: time)
     }
 }

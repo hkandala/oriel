@@ -10,8 +10,9 @@ extension OrielUITests {
         let (tab, pane) = try await startChat(agent: 1)
         try await say("hello", in: pane)
         XCTAssertTrue(row(pane, "reply", "Echo: **hello**").exists(within: 5))
-        // At Steps the turn's quiet line opens to its calls.
-        XCTAssertTrue(element("chat.\(pane).stack").label.contains(" · 1 command"))
+        keepLevel(in: pane)
+        level("Replies", in: pane)
+        XCTAssertTrue(element("chat.\(pane).summary").stringValue.hasSuffix(" · Ran 1 command"))
 
         // Stop sends Esc while it works.
         try await say("slow", in: pane)

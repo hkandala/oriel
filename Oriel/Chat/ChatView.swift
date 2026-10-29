@@ -10,7 +10,7 @@ struct ChatView: View {
     private static let column: CGFloat = 760
     /// The reply box's text from its sides.
     private static let inset: CGFloat = 14
-    /// Stacks clicked open or closed: they stay so at every level (else open at All only).
+    /// Stacks clicked open or closed: they stay so at every level (else open at Everything only).
     @State private var opened: [String: Bool] = [:]
     /// Tool calls opened to their input and output.
     @State private var openTools: Set<String> = []
@@ -78,14 +78,14 @@ struct ChatView: View {
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 10) {
                 ForEach(rows) { row in
-                    let open = opened[row.id] ?? (level == .all)
+                    let open = opened[row.id] ?? (level == .everything)
                     ChatRowView(row: row, paneID: chat.paneID, open: open, toggle: { opened[row.id] = !open },
                                 opened: openTools, toggleTool: { openTools.formSymmetricDifference([$0]) })
                 }
                 ForEach(chat.outgoing) { message in
                     outgoing(message)
                 }
-                if working, rows.last?.isSummary != true {
+                if working {
                     HStack(spacing: 6) {
                         WorkingDots()
                         Text("Working").foregroundStyle(.secondary)

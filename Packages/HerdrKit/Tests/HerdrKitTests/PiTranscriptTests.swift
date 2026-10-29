@@ -127,3 +127,17 @@ private extension ChatHistory {
     let read = transcript.read(user, end: 300_100, into: &history)
     #expect(read && history.users == ["hello"])
 }
+
+@Test func `a codemode result keeps the names of its script's calls`() {
+    var transcript = PiTranscript(), history = ChatHistory()
+    let call = #"{"type":"toolCall","id":"c","name":"codemode","arguments":{"code":"…"}}"#
+    let lines = [
+        #"{"type":"message","id":"a","parentId":null,"message":{"role":"assistant","content":[\#(call)]}}"#,
+        #"{"type":"message","id":"r","parentId":"a","message":{"role":"toolResult","toolCallId":"c","#
+            + #""content":[],"details":{"calls":[{"id":"c/1","name":"read"},{"id":"c/2","name":"web_fetch"}]}}}"#,
+    ]
+    for line in lines {
+        transcript.read(line, end: 0, into: &history)
+    }
+    #expect(history.tools.first?.calls == ["read", "web_fetch"])
+}

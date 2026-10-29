@@ -50,7 +50,7 @@ struct ChatSwitch: View {
         }
     }
 
-    /// "Show: Steps ⌄", a pull-down of the levels (ui/chat-view#detail-levels).
+    /// "Show: Replies ⌄", a pull-down of the levels (ui/chat-view#detail-levels).
     private var level: some View {
         Menu {
             Picker("Show", selection: settings.$chatLevel) {
