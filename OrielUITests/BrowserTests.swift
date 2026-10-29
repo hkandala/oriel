@@ -127,6 +127,7 @@ extension OrielUITests {
         try await Self.call(one, "pane.rename", ["pane_id": pane, "label": "oriel:browser#e2e1ab \(page)"])
         try await Self.call(one, "pane.report_metadata", ["pane_id": pane, "source": "oriel-panes",
                                                           "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
+        element("tab.\(tab)").click()
         XCTAssertTrue(pageText("oriel-page-one").exists(within: 5))
         let two = page.replacing("one.html", with: "two.html")
         var tabs = try await tabIDs()
@@ -143,8 +144,7 @@ extension OrielUITests {
             XCTAssertTrue(pageText("oriel-page-one").exists, how)
         }
 
-        // At its middle: XCUITest finds the link's text over the whole link.
-        app.webViews.links["Two"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).rightClick()
+        app.webViews.links["Two"].rightClick()
         let menu = app.windows.firstMatch.menuItems
         XCTAssertTrue(menu["Open Link in New Tab"].exists(within: 2))
         XCTAssertFalse(menu["Open Link in New Window"].exists)
