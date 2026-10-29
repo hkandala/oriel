@@ -25,10 +25,6 @@ enum SwipeRouter {
     private static func touched(_ event: NSEvent) {
         let touches = event.allTouches()
         let down = touches.filter { !$0.isResting && !$0.phase.isDisjoint(with: .touching) }
-        // A lift, or new touches (after a lift the app missed).
-        if down.allSatisfy({ $0.phase == .began }) {
-            fingers = ThreeFingers()
-        }
         let points = down.map { touch in
             CGPoint(x: touch.normalizedPosition.x * touch.deviceSize.width,
                     y: touch.normalizedPosition.y * touch.deviceSize.height)

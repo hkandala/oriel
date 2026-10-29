@@ -12,13 +12,17 @@ struct ThreeFingers {
     /// Where and when the three fingers were first down together.
     private var start: (center: CGPoint, time: TimeInterval)?
     private var done = false
+    private var last = -TimeInterval.infinity
 
     /// `points`: the fingers on the pad, in its points (y up); `cancelled`: the system took the touches.
     mutating func feed(_ points: [CGPoint], at time: TimeInterval, cancelled: Bool = false) -> Step? {
-        if points.isEmpty {
+        // The pad reports fingers on it every few milliseconds, still ones too: a pause means they lifted where
+        // the app did not see it (another app's window), and AppKit may report the next touches as moved, not began.
+        if points.isEmpty || time - last > 0.2 {
             self = Self()
-            return nil
         }
+        last = time
+        guard !points.isEmpty else { return nil }
         if cancelled || points.count > 3 {
             done = true
         }
