@@ -320,7 +320,7 @@ extension OrielUITests {
         XCTAssertTrue(shot.has(\.stringValue, "browser", within: 3))
         XCTAssertEqual(element("overview.card.\(chat)").stringValue, "chat")
         // w2's row is below CI's window.
-        scrollOverview(to: shot)
+        scrollOverview(to: shot, whole: true)
         let light = mean(shot)
         keepScreenshot("overview, browser and chat")
         // Another address from the label (as an agent sets it): the tile follows the page.
@@ -352,11 +352,14 @@ extension OrielUITests {
         usage.firstMatch(of: /Footprint: (\d+) MB/).flatMap { Int($0.1) } ?? .max
     }
 
-    /// Scrolls the overview until the element is hittable, `step` at a time; either way, as the sign follows the
-    /// natural scrolling setting.
-    func scrollOverview(to target: XCUIElement, step: Double = 300, steps: Int = 10) {
+    /// Scrolls the overview until the element is hittable (`whole`: and all in view), `step` at a time; either way,
+    /// as the sign follows the natural scrolling setting.
+    func scrollOverview(to target: XCUIElement, whole: Bool = false, step: Double = 300, steps: Int = 10) {
+        let shown = {
+            target.exists && target.isHittable && (!whole || self.element("overview").frame.contains(target.frame))
+        }
         for delta in [-step, step, -step] {
-            for _ in 0 ..< steps where !(target.exists && target.isHittable) {
+            for _ in 0 ..< steps where !shown() {
                 element("overview").scroll(byDeltaX: 0, deltaY: delta)
             }
         }
