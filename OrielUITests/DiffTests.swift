@@ -126,8 +126,15 @@ extension OrielUITests {
 
     /// Open File and ⌘-click on a line: the file's plugin in a new tab right after this one, selected.
     private func links(_ pane: String, in tab: String, root: String, text: XCUIElement) async throws {
-        let open = { self.element("diff.\(pane).file.b.txt.open").click() }
+        // b.txt's header is below a.txt's 80 lines: the file list scrolls to it.
+        let open = {
+            self.element("diff.\(pane).list.b.txt").click()
+            let button = self.element("diff.\(pane).file.b.txt.open")
+            XCTAssertTrue(button.exists(within: 2))
+            button.click()
+        }
         let line = {
+            self.element("diff.\(pane).list.a.txt").click()
             // The commit's first line, under a.txt's header and its hunk's row.
             let line = text.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 120, dy: 32 + 18 + 9))
             XCUIElement.perform(withKeyModifiers: .command) { line.click() }
