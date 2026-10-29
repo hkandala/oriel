@@ -53,7 +53,7 @@ final class DiffCard {
         (self.page, self.plugin) = (page, plugin)
         let (root, source) = plugin.label.diff, exec = await page.store.machine.exec()
         self.root = root
-        guard await gitUsable.value || page.store.machine.isRemote else {
+        guard await page.store.gitRuns() else {
             failure = "Git is not installed on this Mac"
             return
         }
@@ -131,7 +131,7 @@ final class DiffCard {
     /// The file's plugin in a new tab, at `line`.
     func open(_ file: DiffFile, line: Int? = nil) {
         let path = (root as NSString).appendingPathComponent(file.path)
-        Task { await page?.open(.opening(path), arg: path, at: line.map(String.init)) }
+        Task { await page?.open(.opening(path), arg: path, at: line.map(String.init), from: plugin?.terminalID ?? "") }
     }
 
     private func redraw(anchor: String? = nil) {

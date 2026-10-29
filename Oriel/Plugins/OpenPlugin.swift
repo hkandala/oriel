@@ -32,12 +32,14 @@ extension Page {
         }
     }
 
-    /// A linked open: a new herdr tab right after the selected one, in its workspace, which the snapshot after it
-    /// selects with the keyboard. Its card starts at `place` (`Plugin.place`).
-    func open(_ kind: PluginKind, arg: String, at place: String? = nil) async {
-        guard let workspace = selectedWorkspace,
-              let index = workspace.tabs.firstIndex(where: { $0.id == selectedTab?.id }) else { return }
-        let label = store.newLabel(kind, arg: arg), cwd = keyboardPane?.cwd ?? "~"
+    /// A linked open from the card of terminal `source`: a new herdr tab right after the card's tab, in its workspace
+    /// and folder (also from a floating window), which the snapshot after it selects with the keyboard; after the
+    /// selected tab once the card is gone. Its card starts at `place` (`Plugin.place`).
+    func open(_ kind: PluginKind, arg: String, at place: String? = nil, from source: String) async {
+        let card = store.panes.first { $0.terminalID == source }
+        guard let tabID = card?.tabID ?? selectedTab?.id, let workspace = store.workspace(of: tabID),
+              let index = workspace.tabs.firstIndex(where: { $0.id == tabID }) else { return }
+        let label = store.newLabel(kind, arg: arg), cwd = card?.cwd ?? keyboardPane?.cwd ?? "~"
         // A path with a control character or over 1024 characters makes no plugin label.
         guard PaneLabel(label.text) != nil else { return }
         await store.write { client in
@@ -48,7 +50,7 @@ extension Page {
             if let place, let terminalID = pane.terminalID {
                 terminals.places[terminalID] = place
             }
-            // herdr adds it last: before the tab now after the selected one.
+            // herdr adds it last: before the tab now after the card's.
             try await client.move(tab: pane.tabID, to: index + 1)
             follow(pane, pane.terminalID)
         }
@@ -61,9 +63,18 @@ extension HostStore {
     func arg(_ kind: PluginKind, in folder: String) async -> String {
         guard kind == .files || kind == .diff else { return "" }
         var root = folder
-        if await gitUsable.value, let repo = await Git.root(folder, exec: machine.exec()) {
+        if await gitRuns(), let repo = await Git.root(folder, exec: machine.exec()) {
             root = repo
         }
         return kind == .diff ? "\(root) uncommitted" : root
+    }
+
+    /// Git runs on a remote machine as it is (one without git fails, harmlessly), on This Mac only once its check
+    /// passed: `/usr/bin/git` without the developer tools opens their install dialog.
+    func gitRuns() async -> Bool {
+        if machine.isRemote {
+            return true
+        }
+        return await gitUsable.value
     }
 }

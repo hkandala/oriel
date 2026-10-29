@@ -119,7 +119,7 @@ final class FileTree: NSObject {
         }
         let exec = await page.store.machine.exec()
         self.exec = exec
-        let repo = await gitUsable.value ? await Git.root(root, exec: exec) : nil
+        let repo = await page.store.gitRuns() ? await Git.root(root, exec: exec) : nil
         guard root == self.root else { return }
         self.repo = repo == root ? root : nil
         await relist()
@@ -136,13 +136,13 @@ final class FileTree: NSObject {
 
     func open(_ path: String) {
         let path = (root as NSString).appendingPathComponent(path)
-        Task { await page?.open(.opening(path), arg: path) }
+        Task { await page?.open(.opening(path), arg: path, from: plugin?.terminalID ?? "") }
     }
 
     /// The diff of the uncommitted changes at this file, or of this commit.
     func openDiff(_ source: String, at file: String? = nil) {
         guard let repo else { return }
-        Task { await page?.open(.diff, arg: "\(repo) \(source)", at: file) }
+        Task { await page?.open(.diff, arg: "\(repo) \(source)", at: file, from: plugin?.terminalID ?? "") }
     }
 
     private func relist() async {

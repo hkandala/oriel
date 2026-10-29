@@ -261,7 +261,7 @@ struct MarkdownCard: View {
     private func open(_ url: URL) async {
         switch url.scheme?.lowercased() {
         case "http", "https":
-            await page.open(.browser, arg: url.absoluteString)
+            await page.open(.browser, arg: url.absoluteString, from: plugin.terminalID)
         case nil where url.path.isEmpty:
             let name = url.fragment(percentEncoded: false)?.lowercased()
             if let heading = OutlineHeading.parse(plugin.file.text).first(where: { $0.anchor == name }) {
@@ -272,7 +272,7 @@ struct MarkdownCard: View {
                              directoryHint: .isDirectory)
             let path = (URL(string: url.relativeString, relativeTo: folder) ?? url).standardized
                 .path(percentEncoded: false)
-            await page.open(.opening(path), arg: path)
+            await page.open(.opening(path), arg: path, from: plugin.terminalID)
         // A cloned repository's file is outside input: no `oriel:`, `file:`, `mailto:` or other app's link.
         default: break
         }
