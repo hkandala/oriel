@@ -79,12 +79,16 @@ const options: CodeViewOptions<undefined, undefined> = {
       cursor: default;
     }`,
   renderHeaderPrefix: (diff: FileDiffMetadata) => {
-    const button = element("button", item(diff.name)?.collapsed ? "disclosure shut" : "disclosure", "›")
-    button.ariaLabel = "Show or hide the file"
-    button.onclick = () => collapse(diff.name, !item(diff.name).collapsed)
+    const button = header(diff, "prefix", () => {
+      const button = element("button", "disclosure", "›")
+      button.ariaLabel = "Show or hide the file"
+      button.onclick = () => collapse(diff.name, !item(diff.name).collapsed)
+      return button
+    })
+    button.classList.toggle("shut", Boolean(item(diff.name)?.collapsed))
     return button
   },
-  renderHeaderMetadata: (diff: FileDiffMetadata) => {
+  renderHeaderMetadata: (diff: FileDiffMetadata) => header(diff, "metadata", () => {
     const box = element("span", "actions")
     box.append(...counts(diff))
     const label = element("label", "mark")
@@ -108,7 +112,7 @@ const options: CodeViewOptions<undefined, undefined> = {
       box.append(open)
     }
     return box
-  },
+  }),
   // ⌘-click: the file at the line, or for a removed line at the one after it.
   onLineClick: ({ event, lineNumber, annotationSide }, context) => {
     const file = files.find((file) => file.name === context.item.id)
@@ -117,6 +121,19 @@ const options: CodeViewOptions<undefined, undefined> = {
     }
   },
 }
+/**
+ * A file's header controls, made once per text: pierre asks for them at every render of the file (a scroll, the
+ * highlighter's answer), and a click whose press and release land on two different nodes does nothing.
+ */
+const headers = new Map<string, { text: string; node: HTMLElement }>()
+function header(diff: FileDiffMetadata, slot: string, make: () => HTMLElement) {
+  const key = `${slot} ${diff.name}`, body = text(diff), made = headers.get(key)
+  if (made?.text === body) return made.node
+  const node = make()
+  headers.set(key, { text: body, node })
+  return node
+}
+
 const viewer = new CodeView(options)
 viewer.setup(main)
 show(reply.patch)
