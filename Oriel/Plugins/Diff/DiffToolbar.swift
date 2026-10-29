@@ -12,13 +12,15 @@ struct DiffToolbar: View {
     var body: some View {
         @Bindable var web = plugin.web
         let id = "pane.\(plugin.paneID).diff", (root, source) = plugin.label.diff
+        // A link may name a commit by its short hash.
+        let picked = commits.first { $0.hash.hasPrefix(source) }?.hash ?? source
         HStack(spacing: 6) {
             Menu {
-                Picker("Source", selection: Binding(get: { source }, set: { pick(root, $0) })) {
+                Picker("Source", selection: Binding(get: { picked }, set: { pick(root, $0) })) {
                     Text("Uncommitted").tag("uncommitted")
                     Divider()
                     // A commit from a link may be older than the list.
-                    if source != "uncommitted", !commits.contains(where: { $0.hash == source }) {
+                    if picked == source, source != "uncommitted" {
                         Text(source.prefix(7)).tag(source)
                     }
                     ForEach(commits, id: \.hash) { commit in

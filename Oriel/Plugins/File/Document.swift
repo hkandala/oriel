@@ -47,9 +47,11 @@ extension WebCard {
     func watch() async {
         guard let store else { return }
         // A diff of the uncommitted changes follows its work tree; a commit's never changes.
-        let (root, source) = PaneLabel(plugin: kind, iid: "", arg: arg).diff
-        guard kind != "diff" || source == "uncommitted" else { return }
-        let changes = await Files.watch(kind == "diff" ? root : arg, exec: store.machine.exec())
+        // ponytail: on This Mac a build under an ignored folder makes the diff ask git about once a second; skip
+        // events under ignored folders if that costs.
+        let diff = PaneLabel(plugin: kind, iid: "", arg: arg).diff
+        guard kind != "diff" || diff.source == "uncommitted" else { return }
+        let changes = await Files.watch(kind == "diff" ? diff.root : arg, exec: store.machine.exec())
         if kind == "files" || kind == "diff" {
             // What changed while the card was hidden.
             send(["op": "changed"])

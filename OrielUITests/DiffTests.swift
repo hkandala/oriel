@@ -6,7 +6,8 @@ extension OrielUITests {
     /// Uncommitted lists the changed and the untracked files and follows the work tree; the overview's tile shows
     /// the card; the source pop-up picks a commit (the label and the title follow, the page loads it); Next Change
     /// scrolls to a change the page has not drawn; ⌘-click on a line and Open File open the file in a new tab right
-    /// after this one; Viewed folds the file; Side by Side and the file list change the page.
+    /// after this one; Side by Side puts the old and the new line on one row; the file list hides; Viewed folds the
+    /// file.
     func testDiffCardShowsAPatchAndOpensItsFiles() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("diff")
@@ -50,16 +51,19 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         try await opens("\(root)/a.txt", after: tab) { page.buttons["Open a.txt"].click() }
         element("tab.\(tab)").click()
-        page.checkBoxes["Viewed a.txt"].click()
-        XCTAssertTrue(far.vanishes(within: 3))
-
+        // Side by Side: the old line and the new one on one row.
         element("pane.\(card).diff.layout").radioButtons["Side by Side"].click()
-        XCTAssertTrue(page.descendants(matching: .any)["Side by Side"].exists(within: 3))
+        let old = page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'line 290'")).firstMatch
+        XCTAssertTrue(until(3) {
+            old.exists && abs(old.frame.midY - far.frame.midY) < 2 && old.frame.maxX < far.frame.minX
+        })
         keepScreenshot("diff card, side by side")
         element("pane.\(card).diff.file-list").click()
         XCTAssertTrue(page.buttons["a.txt"].vanishes(within: 3))
         element("pane.\(card).diff.file-list").click()
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 3))
+        page.checkBoxes["Viewed a.txt"].click()
+        XCTAssertTrue(far.vanishes(within: 3))
         try await send("cd / && rm -rf \(repo)\r", to: left)
     }
 

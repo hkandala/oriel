@@ -116,5 +116,12 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
 - **Decisions:** a linked open's landing (`Page.open(_:arg:at:)`, `window.card.at`) is one shot by terminal id,
   not in the label: a relaunch opens at the top. Previous / next step through the change blocks in order from the
   last one stepped to or the file picked in the list, not from the scroll position.
+- **Fix (review):** a remote folder's 2 s check now also reads the changed files' text: an edit to a file already
+  `M` changed neither the listing nor `git status`, so a remote Uncommitted went stale (red on the old poll, green
+  on the new in a HerdrKit test; the native variant gets it with HerdrKit). A failed first ask waits for a change
+  in the work tree and asks again, and a pick in the file list puts previous / next half a step before its file.
+- **Decisions:** a file with no hunks (binary, mode only, a pure rename) shows its header alone. In Side by Side a
+  ⌘-click on the old side of an unchanged line opens the file at its top. The ⌘-click's landing at the line is the
+  File page's (`lib/editor.ts`); DiffTests checks the new tab and its label, and the line once both are merged.
 - **For the user:** check the source pop-up's width with a long commit subject, Side by Side in a half-width card,
   and the sticky header's blur over the lines in Glass light and dark.
