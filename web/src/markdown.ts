@@ -63,7 +63,7 @@ function hidden(view: EditorView): DecorationSet {
   const { state } = view
   const ranges = []
   for (const { from, to } of view.visibleRanges) {
-    syntaxTree(state).iterate({
+    tree.iterate({
       from,
       to,
       enter(node) {
@@ -155,29 +155,26 @@ function show(view: EditorView, nowEdit: boolean, nowOutlined: boolean) {
   article.hidden = edit
   view.dom.hidden = !edit
   outline.hidden = !outlined
-  if (outlined) {
-    ensureSyntaxTree(view.state, view.state.doc.length, 200)
-    list(view)
-  }
+  // The whole document's headings: the background parse stops past the viewport.
+  if (outlined) list(view, ensureSyntaxTree(view.state, view.state.doc.length, 200) ?? undefined)
   ;(edit ? view : article).focus()
   report({ op: "markdown", edit, outline: outlined })
 }
 
 /** The outline's rows: the headings in the editor's syntax tree, at the top level, in lists and in quotes. */
-function list(view: EditorView) {
+function list(view: EditorView, tree = syntaxTree(view.state)) {
   const { state } = view
   const rows: HTMLButtonElement[] = []
-  syntaxTree(state).iterate({
+  tree.iterate({
     enter(node) {
       const level = /^(?:ATX|Setext)Heading(\d)$/.exec(node.name)?.[1]
-      // `Body` holds the Markdown after the front matter.
-      if (!level) return ["Document", "Body", "Blockquote", "BulletList", "OrderedList", "ListItem"].includes(node.name)
+      if (!level) return ["Document", "Blockquote", "BulletList", "OrderedList", "ListItem"].includes(node.name)
       const line = state.doc.lineAt(node.from)
-      // The text between an ATX heading's marks, or above a setext heading's underline.
+      // The text between an ATX heading's marks, or a setext heading's first line.
       const [first, last] = node.node.getChildren("HeaderMark")
       const text = node.name.startsWith("ATX")
         ? state.sliceDoc(first?.to ?? node.from, last?.from ?? node.to)
-        : state.sliceDoc(node.from, first?.from ?? node.to)
+        : state.sliceDoc(node.from, line.to)
       const row = document.createElement("button")
       row.textContent = text.trim() || line.text
       row.style.paddingLeft = `${12 * Number(level)}px`

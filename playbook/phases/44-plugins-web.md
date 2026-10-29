@@ -173,7 +173,8 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   Edit at that line. Unlike the native variant there is no 128 KB gate: CodeMirror and markdown-it stay fast at
   megabytes; the File card's caps (16 MB view, 4 MiB remote edit) hold. Front matter (`---` on the first line to the
   next `---` line) is YAML in Edit (`yamlFrontmatter`), so it is no rule or heading there nor in the outline. Away
-  from the caret a task's `[ ]` is a box; table pipes stay (CodeMirror has no table view).
+  from the caret a task's `[ ]` is a box; table pipes stay (CodeMirror has no table view). A file that starts with
+  `---` and has no second one is all YAML in Edit, with an empty outline, and renders normally in Read.
 - **Cause:** with `html: true` a file's `<meta http-equiv=refresh>`, a form or an SVG link navigated the card to any
   site, which then had the bridge (read and save the file). **Fix:** every web card allows only `oriel-plugin:`
   navigations (`Relay`).
@@ -183,7 +184,8 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
 - **Runs:** the UI test on a chosen-tests CI run, green after one fix of its own (a 5-letter iid is no plugin label).
   CI's screenshots and recording show the web card's content blank while the accessibility tree has it; on this Mac
   it draws.
-- **Measured:** `markdown.js` 649 KB, 231 KB gzip (lang-markdown pulls in the HTML, CSS and JavaScript languages for
-  HTML blocks).
+- **Measured:** `markdown.js` alone 662 KB, 236 KB gzip (lang-markdown pulls in the HTML, CSS and JavaScript
+  languages for HTML blocks, lang-yaml the front matter); with the other kinds, esbuild moves CodeMirror into shared
+  chunks.
 - **For the user:** open a long design page, toggle the outline, click a heading in both modes; ⌘E with the caret in a
   bold word or a link shows its marks only there; a relative link and an http link open new tabs.
