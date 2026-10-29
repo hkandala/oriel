@@ -197,6 +197,16 @@ private func yields(_ changes: AsyncStream<Void>, writing file: URL) async throw
     try await yields(Files.watch(folder.path, exec: RelayExec.start()), writing: URL(filePath: folder.path + "/"))
 }
 
+@Test func `a remote folder's poll sees an edit to a file already changed`() async throws {
+    let folder = try scratchFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    _ = try await localExec.checkedOutput(["sh", "-c", """
+    cd "$1" && git init -q && echo a >f && git add f && git -c user.name=t -c user.email=t@t commit -qm f && echo b >f
+    """, "sh", folder.path])
+    // `git status` says ` M f` before and after each write.
+    try await yields(Files.watch(folder.path, exec: RelayExec.start()), writing: folder.appending(path: "f"))
+}
+
 @Test func `polls a remote file every 2 s`() async throws {
     let folder = try scratchFolder()
     defer { try? FileManager.default.removeItem(at: folder) }

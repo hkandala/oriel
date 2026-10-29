@@ -158,12 +158,15 @@ public enum Files {
     }
 
     /// ponytail: a file's check reads it whole (up to 16 MB) every 2 s, and the caller reads it again to compare
-    /// hashes; yield the hash when that costs too much. A folder's check sees its own entries and what
-    /// `git status` sees under it, not a new file in an ignored folder; its git runs without `GitStatus.usable`.
+    /// hashes; yield the hash when that costs too much. A folder's check sees its own entries, what `git status` sees
+    /// under it and the changed files' text (an edit to a file already changed), not a new file in an ignored folder;
+    /// its git runs without `GitStatus.usable`.
     private static func poll(_ path: String, exec: any Exec, _ changed: AsyncStream<Void>.Continuation) async {
         let script = #"""
         if [ -d "$1" ]; then
-          { ls -1Ap "$1"; git --no-optional-locks -C "$1" status --porcelain=v1 -z -unormal -- . 2>/dev/null; } | cksum
+          { ls -1Ap "$1"; git --no-optional-locks -C "$1" status --porcelain=v1 -z -unormal -- . 2>/dev/null
+            git -C "$1" ls-files -z -m -o --exclude-standard -- . 2>/dev/null |
+              (cd "$1" && xargs -0 cat 2>/dev/null); } | cksum
         else cksum <"$1"; fi
         """#
         // Nil before the first check; then nil inside while the file is gone.
