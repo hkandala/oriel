@@ -142,10 +142,17 @@ One capsule per herdr tab of the selected workspace (D42).
   pane's name in secondary text ("Claude Code Fix login"), and a browser's
   "Browser" and its page. Until the program is known (a new tab's first
   second), the title is "New Tab", never the number.
+- **Plain-text titles.** Where a title is plain text, with no dimmed part, a
+  ` | ` separates its two parts: "zsh | oriel", "Claude Code | Fix login",
+  "Browser | Hacker News". That is in ⌘K, the Window menu, Move Pane to Tab,
+  the window title, a close dialog, the floating window's title and the
+  accessibility labels built from them. The tab capsule, the hover card and
+  the overview keep the dimmed part.
 - **Status slot.** × only on the hovered tab (a 22 pt hit area over the
   capsule's end, so the tab's width never changes); the title then fades out
   before it, never under it. Otherwise three working dots, on every tab with a
-  working agent, the selected one too. Needs you
+  working agent, the selected one too; the title fades out before them too.
+  Needs you
   and finished are badges on the front icon
   ([Theme and accessibility](/docs/ui/theme-and-accessibility#status)).
   VoiceOver reads the state in the tab's value: "codex, needs you".
@@ -336,7 +343,7 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
 - **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
   lines, 4 pt apart; the program tile with its badge centers on both. Line 1,
   on one centered line: the pane's name (its label, else its session's title,
-  else "New Session": [Session titles](/docs/ui/chat-view#session-titles)),
+  else "Untitled": [Session titles](/docs/ui/chat-view#session-titles)),
   then on the right the status
   capsule, "Needs you" (amber), "Working" (blue), "Done" (green) or "Idle"
   (gray), the text in the color on a 0.15 fill of it, and the age ("now", "3m", "2h", "4d"), counted from the
@@ -477,9 +484,9 @@ How it works: [Layout and sizing](/docs/layout).
     ([Session titles](/docs/ui/chat-view#session-titles)), and herdr's state
     capsule (the chat's own capsule on a chat card). Row 2 has the program
     glyph, the agent's name and the folder in secondary text ("Claude Code
-    ~/code/oriel"), then on the right `Show: Steps ⌄` and Chat | Terminal
-    ([Chat view](/docs/ui/chat-view#what-it-looks-like)), or Enable Chat
-    ([Enable Chat](/docs/ui/chat-view#enable-chat)).
+    ~/code/oriel"), then on the right `Show: Replies ⌄` and Chat | TUI
+    ([Chat view](/docs/ui/chat-view#what-it-looks-like)), or Relaunch with
+    Chat ([Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)).
   - A card at the chooser and a floated card's placeholder keep one row. An
     agent started by hand gets its second row when herdr reports it, and the
     terminal gets 32 pt shorter then.
@@ -606,8 +613,10 @@ once.
   capsule), and under it, 8 pt in, a miniature of the page: the tab's cards in
   herdr's layout, at the page's real proportions (the strip's page as it
   shows when the overview closes), each card its fill and edge with its
-  terminal drawn live inside, at the place and size it has in the card (no
-  header content: the tile's title row names the tab). A zoomed tab shows its
+  content drawn live inside, at the place and size it has in the card (no
+  header content: the tile's title row names the tab). The content is the
+  terminal, or the card's own view for any other card: a browser's page, a
+  chat. A zoomed tab shows its
   zoomed card. A floated pane's card shows the float icon. The selected tab
   of each workspace has the keyboard card's look. On hover the title row
   shows × at its end (Close Tab, as the tab bar's ×: it asks only when a
@@ -639,6 +648,12 @@ once.
 - Each tile hosts the pane's own terminal view, scaled by AppKit (a layer transform): libghostty keeps its
   size and grid, and herdr's PTY keeps the card's size. No second surface, stream or copy; the strip's
   cards take their views back when the overview closes.
+- Any other card shows its own view in the tile, live, at the card's size and scaled to the tile: the
+  `BrowserCard` (its web view moves into the tile, then into the zoom, then back to the strip, as a
+  terminal view does) and the `ChatView`. It is disabled and takes no hit tests, so the tile keeps the
+  clicks, the wheel and the keyboard; a web view in a tile refuses the keyboard. These cards do not
+  stream, have no snapshot and no cap. A web view's `takeSnapshot` was not used: out of a window it
+  answers once, sometimes blank, and then not again until the page paints.
 - Only the page in view's tiles in view stream and draw, once a scroll ends: at most 16 cards (6 on a
   remote machine) and 400 MB of surfaces. Nothing turns live or lets go while the grid scrolls or a swipe
   moves the pages. These are not visits (D46).
@@ -667,11 +682,12 @@ clients see it there.
   session as the sidebar names it, so `default` shows the machine's name; a
   long one gives way first, in its middle). The quick info is the pane's
   icon, its title and its agent's state capsule. The title is the program and
-  folder or the label, an agent's name and its pane's name, or "Browser" and
-  the page, with the second part in secondary text. A plugin pane (any `oriel:`
-  label, such as a browser) shows no line and no place. A chat pane shows
-  `Show: Steps ⌄` (only while the chat shows) and Chat | Terminal after the
-  place. Then on the right the title
+  folder or the label, an agent's name and its pane's name, "Browser" and
+  the page, or "New Pane" while the chooser shows, with the second part in
+  secondary text (the window's title has ` | ` there). A plugin pane (any
+  `oriel:` label, such as a browser) shows no line and no place. A chat pane
+  shows `Show: Replies ⌄` (only while the chat shows) and Chat | TUI after
+  the place. Then on the right the title
   row's 28 pt buttons: **Stay on Top** (a pin), **Close** (closes
   the pane, and asks first as any close does, in the floating window, also
   for a Close from the card in the tab) and, rightmost, **Detach**
@@ -682,9 +698,10 @@ clients see it there.
   card. A chat pane's card shows its chat or its terminal
   ([Chat view](/docs/ui/chat-view#switching-views)), a browser pane's card
   its toolbar and page ([Browser](/docs/ui/browser#the-card)), and a pane at
-  the chooser the chooser. The window is at least 320 pt wide, 440 pt for a
-  chat pane. A pane's first float opens it at 60 % of the main window's width and
-  75 % of its height (at least 720 × 460 pt), centered over the main window; it
+  the chooser the chooser. The window is at least 320 pt wide, and never
+  narrower than its title row needs (a chat pane's switch makes it wider).
+  A pane's first float opens it at 60 % of the main window's width and 75 %
+  of its height (at least 720 × 460 pt), centered over the main window; it
   moves and resizes like any window, and keeps its frame for the next time
   that pane floats.
 - **Stay on Top** keeps the window above every app's windows and on every

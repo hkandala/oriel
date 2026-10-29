@@ -117,9 +117,10 @@ does not look for which agents are installed.
   `unknown` 0.3 to 0.7 s after the command, then `idle` (or `blocked` on
   Claude Code's trust prompt) after 3 to 5 s.
 - At ready, the app reads the pane's foreground processes once
-  (`pane.process_info`), so a pane with a launch marker shows its chat at
-  once. The loader fades out over 0.15 s and the chat or the terminal fades
-  in, with the keyboard.
+  (`pane.process_info`), so a pane with a launch marker gets its Chat | TUI
+  switch at once. The loader fades out over 0.15 s and the agent's TUI fades
+  in, with the keyboard (the chat after
+  [Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)).
 - **The bare-command fallback.** When the shell is the foreground process
   again in two checks in a row, from 1 s after the line
   ([Program icons](/docs/ui/program-icons#when-the-app-asks-herdr)), the app

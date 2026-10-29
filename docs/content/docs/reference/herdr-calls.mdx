@@ -7,7 +7,7 @@ description: "Every herdr call and command the app uses, and the ones it never u
 
 | Call | Used for | Page |
 |---|---|---|
-| `session.snapshot` | all state and herdr's version of an open session, read after events and after every write (each pane's `agent_session` gives its agent's session: [Session titles](/docs/ui/chat-view#session-titles), [Enable Chat](/docs/ui/chat-view#enable-chat)); the health check every 30 s; waiting for a server the app started | [Reconcile](/docs/talking-to-herdr#reconcile) |
+| `session.snapshot` | all state and herdr's version of an open session, read after events and after every write (each pane's `agent_session` gives its agent's session: [Session titles](/docs/ui/chat-view#session-titles), [Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)); the health check every 30 s; waiting for a server the app started | [Reconcile](/docs/talking-to-herdr#reconcile) |
 | `events.subscribe` (long-lived) | "read the snapshot again" | [Events](/docs/talking-to-herdr#events) |
 | `workspace.create` \| `close` \| `rename` | sidebar actions: new (page header `+`, workspace menu), close, rename in place; folders dropped on the Dock icon. The new workspace's `root_pane` gets the [New pane](/docs/ui/new-pane) chooser | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `workspace.move_block` | Move Up and Down, drag to reorder (always with the row's group: the workspace and its linked worktrees) | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
@@ -16,12 +16,12 @@ description: "Every herdr call and command the app uses, and the ones it never u
 | `pane.swap` | drag onto a card in the same tab; the last step of a drop on a left or top edge; split left and up; with `direction`, ⌥⇧⌘ and an arrow | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.resize` | Resize Pane (View ▸ Pane, the palette), 5 % each | [Dividers](/docs/layout#dividers) |
 | `pane.rename` | Rename Pane, Reset Pane Name; a browser card's typed address goes into its label | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Browser](/docs/ui/browser#create) |
-| `layout.apply` | a browser pane: a new tab with one pane, its label and its placeholder command, never with a `tab_id` | [Create](/docs/ui/browser#create) |
-| `pane.send_input` | Go to Directory and Insert Path; an agent's launch line (or its bare command) from the chooser or Start Agent Here; Enable Chat's quit command and its launch line; chat text that starts with `/`, with no Return | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
-| `pane.send_keys` | special keys and Ctrl chords typed in a terminal card; a chat's Stop (Esc, OpenCode Esc twice); Enable Chat's Stop keys while the agent works or waits, then ⌃C | [Terminal plane](/docs/talking-to-herdr#terminal-plane) |
+| `layout.apply` | a browser pane: a new tab with one pane, its label and its placeholder command, never with a `tab_id`; also a link opened in a new tab | [Create](/docs/ui/browser#create), [Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs) |
+| `pane.send_input` | Go to Directory and Insert Path; an agent's launch line (or its bare command) from the chooser or Start Agent Here; Relaunch with Chat's quit command and its launch line; chat text that starts with `/`, with no Return | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
+| `pane.send_keys` | special keys and Ctrl chords typed in a terminal card; a chat's Stop (Esc, OpenCode Esc twice); Relaunch with Chat's Stop keys while the agent works or waits, then ⌃C | [Terminal plane](/docs/talking-to-herdr#terminal-plane) |
 | `pane.read` | `visible`: the hover card's lines for a pane that needs you; `recent`: find in a pane, and a Codex chat's last 8 lines every 0.5 s ([Codex's screen check](/docs/ui/chat-view#codexs-screen-check)); `visible` again after a find scroll, for the highlights | [Find bar](/docs/ui/window#find-bar) |
-| `pane.process_info` | close and Replace Pane check, Go to Directory's shell check, program icons, the agent loader's failure check, a chat agent's launch marker in the foreground argv, Enable Chat's wait for the shell | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr) |
-| `pane.get` | the keyboard card's fresh folder for New Tab, Go to Directory and Insert Path, and for a browser pane's create; the viewport's offset after a find scroll; the agent loader's ready check, every 250 ms ([New pane](/docs/ui/new-pane#agent)); Enable Chat's check that herdr let go of the agent | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
+| `pane.process_info` | close and Replace Pane check, Go to Directory's shell check, program icons, the agent loader's failure check, a chat agent's launch marker in the foreground argv, Relaunch with Chat's wait for the shell | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr) |
+| `pane.get` | the keyboard card's fresh folder for New Tab, Go to Directory and Insert Path, and for a browser pane's create; the viewport's offset after a find scroll; the agent loader's ready check, every 250 ms ([New pane](/docs/ui/new-pane#agent)); Relaunch with Chat's check that herdr let go of the agent | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `agent.prompt` | a chat's Send: `{target, text}`; herdr pastes it with bracketed paste and presses Enter | [Sending and stopping](/docs/ui/chat-view#sending-and-stopping) |
 | `pane.report_metadata` | the `oriel-shown` mark on each pane in view, for float requests | [Float requests](/docs/talking-to-herdr#float-requests) |
 | `pane.scroll` | find in a pane: scroll herdr's viewport to a match, and back to the bottom | [Find bar](/docs/ui/window#find-bar) |
@@ -77,7 +77,7 @@ A chat's, on the pane's machine ([Chat view](/docs/ui/chat-view)):
 
 ```sh
 sh -c '<prepare>' sh <token or file>                # before a Pi or OpenCode launch: write the extension or plugin, the password, the 30-day sweep
-sh -c 'f=…; while [ ! -f "$f" ]; do sleep 0.5; done; …; exec tail -c +N -F "$f"' sh <path> <offset> <inode>   # follow a side file or a transcript
+sh -c 'f=…; while [ ! -f "$f" ]; do sleep 0.5; done; …; awk "$4"… <fifo & exec tail -c +N -F "$f" >fifo' sh <path> <offset> <inode> <skip>   # follow a side file or a transcript, dropping the lines its parser skips
 sh -c 'while :; do …; sleep 0.3; done' sh .claude/sessions/<pid>.json   # watch Claude Code's session record
 sh -c 'test -f "$HOME/$1/ask"' sh .cache/oriel/chat/T   # Claude Code: does the question's hook still wait
 sh -c 'rm -f "$HOME/$1/ask"' sh .cache/oriel/chat/T     # the question was answered in the terminal: its hook ends

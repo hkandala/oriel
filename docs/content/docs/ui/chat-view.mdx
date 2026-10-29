@@ -16,9 +16,9 @@ and
 ## Which panes have it
 
 - Agents that the [New pane](/docs/ui/new-pane#agent) chooser, Start Agent
-  Here or [Enable Chat](#enable-chat) started with Oriel's flags
-  ([Launch flags](#launch-flags)). The second row of their card header has
-  the Chat | Terminal switch.
+  Here or [Relaunch with Chat](#relaunch-with-chat) started with Oriel's
+  flags ([Launch flags](#launch-flags)). The second row of their card header
+  has the Chat | TUI switch ([Switching views](#switching-views)).
 - The app knows such a pane by a marker in the argv of its foreground
   processes, from `pane.process_info`
   ([Program icons](/docs/ui/program-icons#when-the-app-asks-herdr)). This
@@ -27,8 +27,8 @@ and
 - Every other pane shows only its terminal and no switch: plain terminals,
   agents started by hand or from herdr's TUI, and agents that herdr restores
   after a cold restart (herdr runs them again without the flags). An agent
-  among them whose session herdr knows shows Enable Chat in place of the
-  switch.
+  among them whose session herdr knows shows Relaunch with Chat in place of
+  the switch.
 - **The bare-command fallback.** If the shell is in front again at once after
   the launch line (two checks in a row, from 1 s on), the chooser types the
   bare command once more, for every agent. An agent build that refuses
@@ -42,10 +42,11 @@ and
   front: its own `command -v opencode` is not the pane shell's, where an
   alias or a function wins.
 
-### Enable Chat
+### Relaunch with Chat
 
 An agent that runs without Oriel's flags can start again with them, in the
-same session. The **Enable Chat** button sits where Chat | Terminal sits. It
+same session. The **Relaunch with Chat** button sits where Chat | TUI sits,
+with the help tag "Restart ‹Agent› with chat, in the same session". It
 shows when herdr reports the agent and its session (`agent_session`, of the
 same agent), the pane's processes carry no marker, and the agent takes that
 session value:
@@ -72,6 +73,7 @@ session value:
 5. The loader waits for the agent as for a new one
    ([New pane](/docs/ui/new-pane#agent)). There is no bare-command fallback:
    a plain command would start a new session.
+6. The card opens on the chat, because the user asked for it.
 
 - Codex shows its old messages only after the first message, when its hook
   runs.
@@ -128,8 +130,26 @@ and no backslash.
   This Mac, the relay on a remote machine
   ([Running commands](/docs/talking-to-herdr#running-commands)).
   - `Exec.follow` follows a file as `tail -F` does. It waits for the file,
-    tells its inode and where it reads from, then runs `tail -c +N -F`. A
-    first read takes the last 256 KiB, from its first whole line.
+    tells its inode, where it reads from and where the file's whole lines
+    end, then runs `tail -c +N -F` into awk. A new file is read whole, from
+    its start: one Claude Code turn can pass 256 KiB.
+  - **The line filter.** awk drops the lines that the agent's parser skips
+    (an awk pattern next to each parser) and prints `oriel-skip <bytes>` in
+    their place, so the mark still counts the file's bytes. On a remote
+    machine only the lines the chat reads cross the relay. Claude Code: the
+    records that write another `type` first (`api-request-*`, …) and
+    attachments other than queued prompts. Codex: every top-level type but
+    `event_msg` and `turn_context`. Pi's file passes whole (its tree needs
+    every entry). A 796 KB Claude Code session sends 208 KB.
+  - awk reads a FIFO that only `tail` writes to, so the wrapper's kill of
+    `tail` ends awk too. mawk (Debian's and Ubuntu's awk) runs with
+    `-W interactive`, or it holds lines until 8 KiB come. The filter runs on
+    This Mac too.
+  - **Shown once loaded.** The chat reads the file up to the end of its
+    whole lines at the open into a backlog, off screen, then shows it at
+    once. Lines after that show as they come. A read that is cut short keeps
+    what it read. The read yields every 200 lines: a 99 MB pi session parses
+    in about a second. There is no loader: a local read takes milliseconds.
   - The chat keeps a mark (inode and offset) per file in memory, so a card
     shown again goes on from there. Another inode, or a shorter file, starts
     the file again.
@@ -140,13 +160,13 @@ and no backslash.
     `server.connected`, so no event falls between the two. Each event builds
     the history again whole (Simpler choice: a long session is megabytes).
 - A new session line (`/clear`, `/new`, a fork, a resume) starts the history
-  again. A resumed session's file is read from its start.
+  again.
 - The adapter follows only while a card shows the chat. Off screen, the
   header's state is herdr's. A dropped stream is followed again after 2 s,
   from the marks.
 - A message shows when it is on disk, 0.1–2 s after the TUI draws it. There
-  is no text word by word. While the agent works, the last row says
-  "Working".
+  is no text word by word. While the agent works, the last row is the
+  working dots and "Working", the chat's one loader.
 - **Parsers.** One small, lenient parser per agent, in HerdrKit
   (`ClaudeTranscript`, `CodexRollout`, `PiTranscript`, `OpenCodeSession`),
   fills one `ChatHistory`: user text, replies, thinking, tool calls paired
@@ -154,11 +174,12 @@ and no backslash.
   ("Interrupted", an API error, a compaction), turn ends, and the model and
   thinking effort of the last reply.
   Anything else is skipped. Five lines in a row that do not parse are a
-  problem ([Waiting](#waiting)).
+  problem ([Waiting](#waiting)). A tool the parser does not know shows its
+  own name (an MCP tool's last part) and its first text argument by key.
 - Codex's parser reads only whole items (`item_completed`), `task_complete`,
   `turn_aborted`, `error` and `turn_context`. A plan reads as a reply.
-- **Markdown:** `AttributedString(markdown:)` with the full syntax, split
-  into blocks ([What it looks like](#what-it-looks-like)).
+- **Markdown:** parsed by Apple's `swift-markdown` (cmark-gfm) and drawn
+  with SwiftUI, block by block ([What it looks like](#what-it-looks-like)).
 - **Model and effort.** The model as the agent writes it. The effort is
   Claude Code's `effort` field, Codex's `turn_context.effort`, pi's
   `thinkingLevel` and OpenCode's `variant`, and none when the files have
@@ -221,7 +242,7 @@ line with the new leaf and `at`, the transcript's size at the move.
 ## Sending and stopping
 
 - **Send:** Return or the Send button gives `agent.prompt {target, text}`,
-  only while the agent is ready or working. herdr pastes the text with
+  only while the agent is ready or working. ⇧Return and ⌥Return add a line. herdr pastes the text with
   bracketed paste and presses Enter. herdr refuses unless a foreground
   process has the agent's name.
 - While the agent works, Send stays on. Claude Code and OpenCode queue the
@@ -236,6 +257,10 @@ line with the new leaf and `at`, the transcript's size at the move.
 - **Stop** takes Send's place while the agent works and the reply box is
   empty. It sends `pane.send_keys` Esc (OpenCode: Esc twice, because the
   first only arms the interrupt). Never ⌃C.
+- **Esc** anywhere in the chat stops the agent as Stop does, while it works.
+  While it is idle, Esc does nothing. The chat must have the keyboard: the
+  reply box almost always has it, but not after a double-click selected
+  text. While the drawer shows, its terminal takes Esc.
 - The draft is kept in memory per pane, shared by every card of the pane.
 
 ## Waiting
@@ -279,30 +304,46 @@ and **Show Terminal**, and the header's capsule says Error:
 
 ## Detail levels
 
-One setting for the app (`chatLevel`, Steps by default): **Replies**,
-**Steps** and **All**, in the `Show: Steps ⌄` pull-down left of Chat |
-Terminal. It shows only while the chat does.
+One setting for the app (`chatLevel`, Replies by default): **Replies**,
+**Activity** and **Everything**, in the `Show: Replies ⌄` pull-down left of
+Chat | TUI. It shows only while the chat does. A saved `steps` or `all`
+reads as Replies.
 
-- **Replies:** the user's messages, each turn's quiet line ("Worked 1m 48s ·
-  2 files edited · 3 commands · 1 failed", "Working 12s" while it runs), its
-  last reply, and notes.
-- **Steps:** adds every reply, plans and todo lists, and each run of tool
-  calls between two replies as one quiet line.
-- **All:** adds the thinking rows ("Thought"), and every run is open.
-- A run clicked open or closed stays so at every level.
+- **Replies:** the user's messages, each turn's quiet line, its last reply,
+  and notes. The line counts every tool call of the turn and does not open:
+  "Worked 1m 48s · Read 9 files, ran 4 commands, 1 failed", and "Working
+  48s · …" while the turn runs.
+- **Activity:** the same rows. The turn's line opens to every step of the
+  turn: its tool calls and its thinking.
+- **Everything:** no turn line. Every reply, todo list and note, each run of
+  tool calls between two replies as one quiet line, open, and thinking alone
+  as a "Thought" row.
+- A line or run clicked open or closed stays so at every level.
+- No line or run has working dots: the loader is the chat's last row. While
+  a turn streams, a closed line changes only its counts and its time.
 
-**Tool calls.** A run is one quiet line with no card: its summary ("Edited 2
-files, ran 1 command, 1 failed", the working dots while a call runs), a
-chevron, the running call's target while closed, and the time. The turn's
-quiet line takes the run right under it, so the two never say the same
-twice. A run after a reply keeps its own line.
-- Open, a run has one row per call: a symbol for its kind, the tool, its
+**Tool calls.** A run is one quiet line with no card: its summary, a chevron
+and the time.
+- The summary uses pi-content-layout's words
+  ([`tools.ts`](https://github.com/hkandala/pi-hkandala/blob/master/extensions/pi-content-layout/tools.ts)):
+  a verb and a noun per tool for every agent's tool names, calls counted
+  (not distinct files), in the order the tools first ran: "Read 3 files, ran
+  2 commands, 1 failed". A tool it does not know reads "ran ‹tool› N
+  times". The tool calls of a codemode script count as their own.
+- As in its groups, thinking between tool calls is a step of the run (a
+  "Thought" row inside it).
+- Open, a run has one row per step: a symbol for its kind, the tool, its
   target, its result (failed in red, a spinner while it runs), its time and
-  a chevron (`bash npm test exit 1   4.2s`).
+  a chevron (`bash npm test exit 1   4.2s`). The symbols are squares and
+  rectangles of one size: `doc.text` (read), `square.and.pencil` (edit),
+  `terminal` (command), `doc.text.magnifyingglass` (search),
+  `curlybraces.square` (other) and `text.bubble` (thinking).
 - A call opens on its own to its **Input** (an edit's diff instead, the
   first 40 lines) and its **Output**: 11 pt monospaced, selectable, at most
-  180 pt tall, then it scrolls. The parsers keep each call's input and
-  output whole, up to 20 000 characters.
+  180 pt tall, then it scrolls. It is a vertical scroll view around a
+  sideways one, because inside the strip a scroll view of both axes gets no
+  vertical wheel. The parsers keep each call's input and output whole, up to
+  20 000 characters.
 - A todo list sits on a faint fill.
 
 ## What it looks like
@@ -311,16 +352,38 @@ twice. A run after a reply keeps its own line.
   right (14 pt, radius 18). Replies are plain, selectable text on the left.
 - The messages, the question card and the reply box sit in a 760 pt column,
   centered on any card, 32 pt in from its sides. The messages scroll, newest
-  at the bottom, and fade in under the header.
-- **Markdown.** 14 pt text with 4 pt line spacing. Headings are 22, 18 and
-  16 pt (bold for the first two levels), with 22 or 16 pt above them and 8 pt
-  under them. 12 pt between other blocks, 6 pt between list items. List items
-  hang behind their number or bullet (•, ◦, ▪ by depth), 18 pt in per level,
-  and a list item's later paragraphs line up under its text. Inline code is
-  at 0.9 of its text's size on a faint fill. Code blocks are 12.5 pt
-  monospaced and scroll sideways. Quotes are secondary, behind a 3 pt bar.
-- **The reply box.** A glass box (radius 18) with "Reply to ‹Agent›" (the
-  chooser's name), 14 pt. It grows from 1 to 10 lines, then scrolls. Under
+  at the bottom, and fade in under the header. In a floating window they
+  start 28 pt under the title row, not 16 pt, because the card has no header
+  there.
+- **Over the messages.** The question card and the reply box sit over the
+  bottom of the messages, which scroll under the glass. The last message
+  scrolls clear of the box as it grows. This is the one place where
+  something sits over pane content, because the user asked for it. The live
+  terminal keeps its own row under the messages. Simpler choice: a wheel
+  over the reply box does not scroll the messages under it.
+- **Markdown.** `swift-markdown` (cmark-gfm) parses it. 14 pt text with
+  4 pt line spacing. Headings are 22, 18 and 16 pt (bold for the first two
+  levels), with 22 or 16 pt above them and 8 pt under them. 12 pt between
+  other blocks, 6 pt between list items.
+  - List items hang behind their number, bullet (•, ◦, ▪ by depth) or task
+    box (`square`, `checkmark.square.fill`), and a list item's later blocks
+    line up under its text. Lists and quotes nest.
+  - Inline code is at 0.9 of its text's size on a faint fill. Code blocks
+    are 12.5 pt monospaced and scroll sideways. Quotes are secondary, behind
+    a 3 pt bar. A rule is a divider. Strikethrough is drawn. HTML shows as
+    written.
+  - A table sits in a faint frame (radius 8): the head row on a fill, a line
+    between rows, each column aligned as written.
+  - Links open only for `http`, `https` and `mailto`. Bare `http://`,
+    `https://` and `www.` addresses are links too (`NSDataDetector`:
+    swift-markdown has no autolinks), names such as `Oriel.app` are not.
+  - An image shows as its description, linked to its address. The chat never
+    fetches it: a reply could send what the agent read to any server.
+  - Footnotes read as written (`[^1]`): swift-markdown has none.
+- **The reply box.** A glass box (radius 18) with "Ask Anything", 14 pt. Its
+  text is 14 pt in from the box's sides, and the box is 18 pt in from the
+  column, so the text lines up with the messages' 32 pt edges. It grows from
+  1 to 10 lines, then scrolls. Under
   the text, on the left: the model and the effort in 11 pt secondary
   ("Opus 5.5 · high"). Claude's model ids read as the family and version.
   Other models show as the agent writes them. On the right: a 22 pt round
@@ -332,7 +395,7 @@ twice. A run after a reply keeps its own line.
 - **The header.** Row 1: the pane's name ([Session titles](#session-titles)),
   the state capsule (Working, Needs you, Done or Error, in the status colors,
   and none while idle) and the card buttons. Row 2: the program glyph, the
-  agent's name and the folder, then `Show: Steps ⌄` and Chat | Terminal in
+  agent's name and the folder, then `Show: Replies ⌄` and Chat | TUI in
   the app's own pill segments
   ([Pane card](/docs/ui/window#pane-card)).
 - The reply box takes the keyboard when the chat appears and when the drawer
@@ -340,13 +403,14 @@ twice. A run after a reply keeps its own line.
 
 ## Switching views
 
-- Chat | Terminal is in the card header, not a swipe: sideways swipes belong
-  to the strip.
-- A card of a marked pane opens on the chat. The choice is kept in memory per
-  pane, for every window of the session. The card keeps the keyboard across
+- Chat | TUI is in the card header, not a swipe: sideways swipes belong to
+  the strip. TUI is the agent's own terminal interface.
+- A card of a marked pane opens on its TUI; the user switches to Chat. After
+  [Relaunch with Chat](#relaunch-with-chat) it opens on the chat. The choice
+  is kept in memory per pane, for every window of the session. The card keeps the keyboard across
   a switch: the reply box or the terminal.
 - A floated chat pane shows its chat in its floating window, with `Show` and
-  Chat | Terminal in the window's title row
+  Chat | TUI in the window's title row
   ([Floating pane](/docs/ui/window#floating-pane)).
 - The switch changes only what the card draws: the agent, its turn and its
   pane go on. The terminal stream stays open while the chat shows.
@@ -354,7 +418,7 @@ twice. A run after a reply keeps its own line.
 ## Session titles
 
 An agent pane's name is the user's herdr label, else its session's title,
-else "New Session". It shows in the card's row 1, the floating window's
+else "Untitled". It shows in the card's row 1, the floating window's
 title row, the tab ("Claude Code" then the name in secondary text) and the
 Agents view's rows. It works for every agent pane, with or without a chat.
 
@@ -388,7 +452,7 @@ snapshot does not start every run at once.
   `.question`, `.option.‹option›`, `.drawer`, `.open-terminal`, `.problem`
   and `.show-terminal`. The header has `pane.‹id›.title`,
   `pane.‹id›.state`, `pane.‹id›.program`, `pane.‹id›.view.chat`
-  (`.terminal`) and `pane.‹id›.enable-chat`.
+  (`.tui`) and `pane.‹id›.enable-chat` (Relaunch with Chat).
 
 ## Side files
 
@@ -457,7 +521,7 @@ on This Mac and on a remote machine, in light mode and in Classic.
   chat, and one answered in the TUI. A question. `/sessions` to an old
   session. Stop. A remote machine needs `curl`.
 - **MetaCode:** the card falls back to its terminal after 15 s.
-- **Enable Chat:** each agent started by hand, idle and working (the alert),
+- **Relaunch with Chat:** each agent started by hand, idle and working (the alert),
   comes back in the same session with its chat. Codex keeps its hook after
   `resume`.
 - **Titles:** real sessions' titles in the tab and the Agents view, after
@@ -467,5 +531,5 @@ on This Mac and on a remote machine, in light mode and in Classic.
 
 ## Choices
 
-The decisions are D74 to D79, D82 and D83 on the
+The decisions are D74 to D79 and D82 to D86 on the
 [Decisions](/docs/decisions#pane-kinds) page.

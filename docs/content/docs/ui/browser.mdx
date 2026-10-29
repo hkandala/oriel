@@ -122,9 +122,17 @@ server's terminal.
 
 - The page is inset 6 pt from the card's sides and bottom, with a 6 pt
   radius. Cards are never glass.
+- **Resize.** While the card's size changes (a split's motion, a divider or a
+  window drag), the page keeps its size, clipped, or with the card's fill at
+  its new edge. 150 ms after the last change, or when a window drag ends, the
+  page takes the new size: one page layout per motion, as a terminal keeps
+  its grid ([States](/docs/ui/states)). A page laid out at every frame made
+  the split's motion stutter.
 - The tab's title is "Browser", then the page's title (else its host) in
-  secondary text, as a terminal tab's "zsh oriel". Its program icon and
-  overview tile show `globe`.
+  secondary text, as a terminal tab's "zsh oriel" ("Browser | Hacker News"
+  where a title is plain text: [Tab bar](/docs/ui/window#tab-bar)). Its
+  program icon shows `globe`. Its overview tile shows the page, live
+  ([Overview](/docs/ui/window#overview)).
 - The window's `PaneViewRegistry` keeps each web view by terminal id, so a
   card scrolled away or moved keeps its page.
 - A floated browser pane ([Floating pane](/docs/ui/window#floating-pane))
@@ -133,11 +141,25 @@ server's terminal.
 
 ## Popups, links and dialogs
 
+- **New tabs.** ⌘-click on a link, a link with `target=_blank`, and Open
+  Link in New Tab in the page's context menu open the link in a new browser
+  pane, in a new herdr tab after the workspace's other tabs. The new tab
+  stays in the background, as in Safari. The menu's Open Image, Open Frame
+  and Open Video in New Tab do the same. These items replace WebKit's "in
+  New Window" items.
+  - The user picked the link, so its origin is approved
+    ([When a page loads by itself](#when-a-page-loads-by-itself)) and the
+    new card loads it with no question.
+  - Only `http`, `https` and `file` links open a tab. A `target=_blank` form
+    and a `blob:` or `data:` page load in the card.
+  - WebKit does not tell `rel=opener` apart, so such a link opens a tab too.
+- The page's context menu has no download items: the app saves no
+  downloads.
 - A page's `window.open` (an OAuth login, for example) opens over the card,
-  24 pt in, with its host and a close button. The popup keeps its opener, and
-  `window.close()` closes it.
-- A link that asks for a new window without script (`target=_blank`) loads in
-  the card.
+  24 pt in, on the floating glass, with its host and a ×. It gets the
+  keyboard. The popup keeps its opener. `window.close()`, the × and Esc close
+  it, Esc also while the popup's own page has the keyboard. The page gets
+  the keyboard back if the popup had it.
 - A `mailto:` or app link that the user clicks opens its app. The page stays.
 - Page alerts and confirms show as a sheet on the window, titled with the
   origin. A file input opens the system's open panel as a sheet.
@@ -182,9 +204,10 @@ the instance state file
 Any process on a machine (a prompt-injected agent, a script) can rename a
 pane or write its state file. So:
 - A page the user types loads at once and approves its origin for that
-  machine; so does **Open**. A page that only finishes loading approves
-  nothing: a link the user clicks loads, but after a relaunch the card asks
-  before it opens a saved page from an origin not approved.
+  machine; so do **Open** and a link opened in a new tab. A page that only
+  finishes loading approves nothing: a link the user clicks loads in the
+  card, but after a relaunch the card asks before it opens a saved page from
+  an origin not approved.
 - A page from the machine (the label, the state file, a rename) loads by
   itself only if its origin is approved for that machine or on the safe list.
   Otherwise the card asks **Open this page?**, under a `globe`, with the

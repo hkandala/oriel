@@ -22,7 +22,12 @@ description: "Session pages in the sidebar and tab pages in the strip"
   sidebar hidden, or in the overview, up and down step the workspace.
   Fingers up go to the row above, down to the one below, whatever the scroll
   direction. One step a gesture, as the fingers move 20 pt (on the
-  trackpad) mostly one way, when the system's three-finger swipes are off
+  trackpad) mostly one way. The next step needs a lift, or a pause of more
+  than 0.2 s in the touches: the pad reports even still fingers every 12 to
+  15 ms, so a pause means a lift the app did not see (an open context menu
+  takes the touches), after which AppKit reports the new fingers as moved,
+  not began. No AppKit phase decides a step. It works when the system's
+  three-finger swipes are off
   (Trackpad settings: Swipe between full-screen apps, Mission Control and App
   Exposé on four fingers or off; no three-finger drag). macOS sends no scroll
   for three fingers: the app reads the trackpad's touches (`NSTouch`), which

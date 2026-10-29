@@ -29,7 +29,7 @@ One rule decides where each new thing goes (D57):
 | Approved browser origins, the newest 200 per machine | app, disk, per device | `UserDefaults`, a list under `browserApprovals.<machine id>` ([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)) |
 | Browser cookies, storage and cache, one store per machine | WebKit, disk, per device | `~/Library/WebKit/<bundle id>/WebsiteDataStore/<machine id>/` ([Profiles](/docs/ui/browser#profiles)) |
 | The choosers of new panes ([New pane](/docs/ui/new-pane)); browser cards' web views, by terminal id | app, per device | memory |
-| A chat per agent pane, by terminal id: its history, marks (how far each file was read), draft, messages on their way, and Chat or Terminal | app, per device | memory, on the session's `HostStore` ([Chat view](/docs/ui/chat-view)) |
+| A chat per agent pane, by terminal id: its history, marks (how far each file was read), draft, messages on their way, and Chat or TUI | app, per device | memory, on the session's `HostStore` ([Chat view](/docs/ui/chat-view)) |
 | A chat's side files: hooks and state lines, OpenCode's password, pi-oriel, OpenCode's plugin | the pane's machine | `~/.cache/oriel/` ([Side files](/docs/ui/chat-view#side-files)); files untouched for 30 days go |
 | An agent's transcript, session record and server | the agent | its own files and server on the pane's machine |
 | An agent session's title | the agent; the app keeps the last one read per pane in memory | the agent's own files on the pane's machine ([Session titles](/docs/ui/chat-view#session-titles)) |

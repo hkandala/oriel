@@ -213,7 +213,7 @@ below. Everything else goes to the agent's own files, on its machine.
   The app writes no herdr state for a chat.
 - **The session.** Each pane's `agent_session` in the snapshot names its
   agent's session, for [Session titles](/docs/ui/chat-view#session-titles)
-  and [Enable Chat](/docs/ui/chat-view#enable-chat).
+  and [Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat).
 - **Send** is `agent.prompt {target, text}`. herdr refuses it ("no longer the
   pane foreground process") unless a foreground process has the agent's
   name, and while herdr reports the agent blocked (pi-oriel reports pi's
@@ -501,9 +501,10 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Send in a chat | `agent.prompt {target: pane_id, text}`, only while the agent is ready or working ([Sending and stopping](/docs/ui/chat-view#sending-and-stopping)) |
 | Stop in a chat | `pane.send_keys {pane_id, keys: ["escape"]}` (OpenCode: twice), only while the agent works |
 | Chat text that starts with `/` | `pane.send_input` of the text, with no Return; the card shows its terminal |
-| Enable Chat | while the agent works or waits, `pane.send_keys` of its Stop keys; `pane.send_keys {keys: ["ctrl+c"]}`; `pane.send_input` of its quit command and Return; `pane.process_info` and `pane.get` until only the shell runs and herdr reports no agent (10 s at most); then `pane.send_input` of the launch line with the resume arguments, and the loader's calls ([Enable Chat](/docs/ui/chat-view#enable-chat)) |
+| Relaunch with Chat | while the agent works or waits, `pane.send_keys` of its Stop keys; `pane.send_keys {keys: ["ctrl+c"]}`; `pane.send_input` of its quit command and Return; `pane.process_info` and `pane.get` until only the shell runs and herdr reports no agent (10 s at most); then `pane.send_input` of the launch line with the resume arguments, and the loader's calls ([Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)) |
 | Browser in the chooser, Open Browser Here | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid>", command}}` (a new tab with the labeled placeholder pane, never a `tab_id`), then `pane.move` beside the old pane and `pane.close` of the old one; a failed move closes the new pane ([Create](/docs/ui/browser#create)) |
 | An address typed in a browser card | `pane.rename {pane_id, label:"oriel:browser#<iid> <url>"}` |
+| A link opened in a new tab (⌘-click, `target=_blank`, Open Link in New Tab) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid> <url>", command}}`: a new tab after the workspace's others, with the link in the label ([Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs)) |
 | Close a tab | `tab.close`; asks first only when a pane of it runs more than its shell (`pane.process_info` of each pane, at once), naming what runs, with the pane count |
 | Close a workspace | `workspace.close {workspace_id, close_group}`; asks as for a tab, with the tab and pane count. `close_group: true` for a repository's workspace with linked worktree workspaces: herdr refuses the close without it (`workspace_group_close_required`), and with it closes all of them, also ones not next to it. The git worktrees stay on disk. A worktree's own workspace closes alone |
 | Close Other Tabs, Close Tabs to the Right | one `tab.close` per tab, all at once; asks once as for a tab, with the total pane count |
