@@ -20,6 +20,8 @@ Problems that came back across phases, and the rule that stops each. How we work
   a frame away from what is drawn (place with padding); `.accessibilityElement(children: .ignore)` needs
   `.isStaticText` for its value to reach XCUITest. After a change to a shared surface (ids, keys, menu order,
   the chrome), grep the UI tests for it and run the ones that use it.
+- **A query can wait out the accessibility timeout (6 s).** One that reaches a web view as its page starts (a
+  popup) waited 6.1 s on CI, and the app drew nothing meanwhile: wait for a new web view's element for over 6 s.
 - **Scope every query.** `app.windows.firstMatch` can be a tooltip, a hover card or a floating pane, and
   menu bar items share names with context menu items. Use `app.windows[id]` and the menu's own items.
 - **An accessibility client changes the app it watches**: it hides lazy-layout bugs and slows large UIs.

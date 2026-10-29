@@ -86,7 +86,8 @@ extension OrielUITests {
         // window.open: over the card, gone on window.close().
         app.webViews.buttons["Pop"].click()
         let popup = element("browser.\(browser).popup")
-        XCTAssertTrue(popup.exists(within: 5))
+        // Over the accessibility timeout (6 s), as in testLinksOpenInNewTabsAndPopupsClose.
+        XCTAssertTrue(popup.exists(within: 10))
         popup.buttons["Done"].click()
         XCTAssertTrue(popup.vanishes(within: 3))
         app.webViews.links["Two"].click()
@@ -157,15 +158,16 @@ extension OrielUITests {
         app.webViews.links["Blank"].click()
         try await expectTab("target=_blank")
 
+        // Over 6 s: an accessibility query that reaches the popup's web view as it starts can wait out the
+        // accessibility timeout (6 s; CI took 6.1 s), and the popup draws only after it.
         let popup = element("browser.\(pane).popup")
         app.webViews.buttons["Pop"].click()
-        let shown = popup.exists(within: 5)
+        XCTAssertTrue(popup.exists(within: 10))
         keepScreenshot("popup")
-        XCTAssertTrue(shown)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(popup.vanishes(within: 3))
         app.webViews.buttons["Pop"].click()
-        XCTAssertTrue(popup.exists(within: 5))
+        XCTAssertTrue(popup.exists(within: 10))
         element("browser.\(pane).card").buttons["Close"].click()
         XCTAssertTrue(popup.vanishes(within: 3))
     }
