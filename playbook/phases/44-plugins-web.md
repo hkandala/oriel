@@ -98,6 +98,7 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   (Find Next and Previous) go to the editor's search; over an editor ⇧⌘G is Find Previous, not Go to Directory. An
   overview tile runs no second watch; Files lists again when its card shows.
 - **For the user:** check Open With's apps, the toast's look, and a PDF's zoom by hand.
+
 ### Track D
 
 - **Decisions:** the page parses git's patch itself: `Git.patch` gives `Git.diff`'s text (`Git.diff` parses the same
@@ -122,6 +123,6 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   in the work tree and asks again, and a pick in the file list puts previous / next half a step before its file.
 - **Decisions:** a file with no hunks (binary, mode only, a pure rename) shows its header alone. In Side by Side a
   ⌘-click on the old side of an unchanged line opens the file at its top. The ⌘-click's landing at the line is the
-  File page's (`lib/editor.ts`); DiffTests checks the new tab and its label, and the line once both are merged.
+  File page's (`lib/editor.ts`); DiffTests checks it.
 - **For the user:** check the source pop-up's width with a long commit subject, Side by Side in a half-width card,
   and the sticky header's blur over the lines in Glass light and dark.
