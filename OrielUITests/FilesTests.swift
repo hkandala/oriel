@@ -132,14 +132,10 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
         let label = try await paneLabel(pane(of: opened))
         XCTAssertTrue(label.hasPrefix(prefix) && label.hasSuffix(suffix), label)
-        // At rest: the new tab's capsule slides the bar.
-        let capsule = element("tab.\(tab)")
-        var frame = CGRect.null
-        XCTAssertTrue(until(2) {
-            defer { frame = capsule.frame }
-            return capsule.frame == frame
-        })
-        capsule.click()
+        // Closed at once: more tabs than the bar shows scroll it.
+        try await Self.call(one, "tab.close", ["tab_id": opened])
+        XCTAssertTrue(element("tab.\(opened)").vanishes(within: 3))
+        element("tab.\(tab)").click()
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3))
     }
 }
