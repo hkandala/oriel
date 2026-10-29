@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0A2120E44437314C4F083E64 /* HerdrKit in Frameworks */ = {isa = PBXBuildFile; productRef = 42A62881E820297033DC0FF9 /* HerdrKit */; };
 		5E1D7A3C9B2F4E6081A3C5D7 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = 6F2E8B4DAC305F7192B4D6E8 /* GhosttyTerminal */; };
+		8D4C2A6E1F3B5C7D9E0A1B2C /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = AF6E4C8A3B5D7E9F1A2C3D4E /* Markdown */; };
 		D5B2F3C4E5061728394A5B6C /* catalog.json in Resources */ = {isa = PBXBuildFile; fileRef = C4A1E2B3D4F5061728394A5B /* catalog.json */; };
 /* End PBXBuildFile section */
 
@@ -64,6 +65,7 @@
 			files = (
 				0A2120E44437314C4F083E64 /* HerdrKit in Frameworks */,
 				5E1D7A3C9B2F4E6081A3C5D7 /* GhosttyTerminal in Frameworks */,
+				8D4C2A6E1F3B5C7D9E0A1B2C /* Markdown in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,6 +143,7 @@
 			packageProductDependencies = (
 				42A62881E820297033DC0FF9 /* HerdrKit */,
 				6F2E8B4DAC305F7192B4D6E8 /* GhosttyTerminal */,
+				AF6E4C8A3B5D7E9F1A2C3D4E /* Markdown */,
 			);
 			productName = Oriel;
 			productReference = 21288B51504EFA0EF1A20CCE /* Oriel.app */;
@@ -177,6 +180,7 @@
 			packageReferences = (
 				CF6031F84141B56A559E35B9 /* XCLocalSwiftPackageReference "Packages/HerdrKit" */,
 				7A3F9C5EBD41608203C5E7F9 /* XCRemoteSwiftPackageReference "libghostty-spm" */,
+				9E5D3B7F2A4C6D8E0F1B2C3D /* XCRemoteSwiftPackageReference "swift-markdown" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 108494E918F2B6D742A8C165 /* Products */;
@@ -501,6 +505,14 @@
 				version = 2.2.2026100801;
 			};
 		};
+		9E5D3B7F2A4C6D8E0F1B2C3D /* XCRemoteSwiftPackageReference "swift-markdown" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/swiftlang/swift-markdown";
+			requirement = {
+				kind = exactVersion;
+				version = 0.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -512,6 +524,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7A3F9C5EBD41608203C5E7F9 /* XCRemoteSwiftPackageReference "libghostty-spm" */;
 			productName = GhosttyTerminal;
+		};
+		AF6E4C8A3B5D7E9F1A2C3D4E /* Markdown */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9E5D3B7F2A4C6D8E0F1B2C3D /* XCRemoteSwiftPackageReference "swift-markdown" */;
+			productName = Markdown;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -193,7 +193,8 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard(composer))
     }
 
-    /// The live terminal while it waits; a question answered in the chat; the chat again after a relaunch.
+    /// The live terminal while it waits; a question answered in the chat; the chat again after a relaunch, whole past
+    /// 256 KiB (a first read once took only the file's end).
     func testAChatShowsTheTerminalWhileItWaitsAndAnswersQuestions() async throws {
         let (tab, pane) = try await startChat()
         try await say("wait", in: pane)
@@ -211,6 +212,8 @@ extension OrielUITests {
         keepScreenshot("question")
         pear.click()
         XCTAssertTrue(row(pane, "reply", "You chose Pear.").exists(within: 5))
+        try await say("big", in: pane)
+        XCTAssertTrue(row(pane, "reply", "Big.").exists(within: 5))
 
         // No state kept in the app: the marker comes back from pane.process_info.
         relaunch()
@@ -221,7 +224,10 @@ extension OrielUITests {
         // The TUI first, as at every launch.
         XCTAssertTrue(element("pane.\(pane).view.tui").has(\.isSelected, true, within: 10))
         element("pane.\(pane).view.chat").click()
-        XCTAssertTrue(row(pane, "reply", "You chose Pear.").exists(within: 5))
+        XCTAssertTrue(row(pane, "reply", "Big.").exists(within: 5))
+        // At once: the first turn came with the last.
+        XCTAssertTrue(row(pane, "user", "wait").exists)
+        XCTAssertTrue(row(pane, "reply", "Allowed.").exists)
     }
 
     /// The same chat on a remote machine: hooks, transcript and answers over the relay.

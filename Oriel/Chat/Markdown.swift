@@ -1,157 +1,236 @@
+import Markdown
 import SwiftUI
 
-/// A reply's Markdown (ui/chat-view#where-messages-come-from), drawn block by block: `Text` draws a block's inline
-/// styles but runs the blocks together.
+/// swift-markdown has its own `Text`, `Image`, `Link` and `Table`: SwiftUI's `Text` here, the others by module.
+private typealias Text = SwiftUI::Text
+
+/// A reply's Markdown (ui/chat-view#what-it-looks-like), parsed by swift-markdown (cmark-gfm, with tables, task lists
+/// and strikethrough) and drawn block by block.
 struct Markdown: View {
     let text: String
 
-    enum Kind: Equatable {
-        case text, code, quote
-        case heading(Int)
+    var body: some View {
+        Blocks(container: Document(parsing: text))
+            .font(.system(size: 14))
+            .lineSpacing(4)
+            .textSelection(.enabled)
+            // Web and mail links only: a transcript (or a page the agent quotes) could hold `file:` or `oriel:` ones.
+            .environment(\.openURL, OpenURLAction { url in
+                ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
+            })
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityValue(text)
     }
+}
 
-    struct Block {
-        let kind: Kind
-        var text: AttributedString
-        /// A list item's bullet or number; nil outside a list.
-        var marker: String?
-        /// How many lists hold it.
-        var depth = 0
-    }
+/// A document's, a quote's or a list item's blocks, one under the other.
+private struct Blocks: View {
+    let container: any Markup
 
     var body: some View {
-        let blocks = Self.blocks(text)
+        let blocks = Array(container.children)
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    if let marker = block.marker {
-                        Text(marker).foregroundStyle(.secondary).frame(minWidth: 12, alignment: .trailing)
-                    }
-                    content(block)
-                }
-                // Under its list's bullets; a list item's later paragraph also under the item's text.
-                .padding(.leading, CGFloat(max(0, block.depth - (block.marker == nil ? 0 : 1))) * 18)
-                .padding(.top, index == 0 ? 0 : Self.space(blocks[index - 1], block))
+            ForEach(blocks.indices, id: \.self) { index in
+                let space = index == 0 ? 0 : Self.space(blocks[index - 1], blocks[index])
+                Block(markup: blocks[index]).padding(.top, space)
             }
         }
-        .font(.system(size: Self.size(.text)))
-        .lineSpacing(4)
-        .textSelection(.enabled)
-        // Web and mail links only: a transcript (or a page the agent quotes) could hold `file:` or `oriel:` ones.
-        .environment(\.openURL, OpenURLAction { url in
-            ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
-        })
-        .fixedSize(horizontal: false, vertical: true)
-        .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(.isStaticText)
-        .accessibilityValue(text)
     }
 
-    @ViewBuilder private func content(_ block: Block) -> some View {
-        switch block.kind {
-        case .code:
+    /// Wide before a heading, narrow under one and inside a list item, 12 pt between other blocks.
+    private static func space(_ above: any Markup, _ block: any Markup) -> CGFloat {
+        if let heading = block as? Heading {
+            heading.level < 3 ? 22 : 16
+        } else if above is Heading {
+            8
+        } else {
+            block.parent is ListItem ? 6 : 12
+        }
+    }
+}
+
+private struct Block: View {
+    let markup: any Markup
+
+    var body: some View {
+        switch markup {
+        case let heading as Heading:
+            let size: CGFloat = [22, 18, 16][min(max(heading.level, 1), 3) - 1]
+            let weight: Font.Weight = heading.level < 3 ? .bold : .semibold
+            Text(Inline.text(heading, size: size)).font(.system(size: size, weight: weight))
+        case let paragraph as Paragraph:
+            let images = paragraph.children.compactMap { $0 as? Markdown::Image }
+            if !images.isEmpty, images.count == paragraph.childCount {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(images.indices, id: \.self) { Picture(image: images[$0]) }
+                }
+            } else {
+                Text(Inline.text(paragraph, size: 14))
+            }
+        case let code as CodeBlock:
             ScrollView(.horizontal) {
-                Text(block.text).font(.system(size: 12.5, design: .monospaced)).lineSpacing(2).fixedSize()
+                // A code block's last newline is no line of its own.
+                Text(code.code.hasSuffix("\n") ? String(code.code.dropLast()) : code.code)
+                    .font(.system(size: 12.5, design: .monospaced)).lineSpacing(2).fixedSize()
                     .padding(.horizontal, 12).padding(.vertical, 10)
             }
             .scrollIndicators(.never)
             .background(.primary.opacity(0.05), in: .rect(cornerRadius: 8))
-        case let .heading(level):
-            Text(block.text).font(.system(size: Self.size(block.kind), weight: level < 3 ? .bold : .semibold))
-        case .quote:
-            Text(block.text).foregroundStyle(.secondary).padding(.leading, 12)
+        case is BlockQuote:
+            Blocks(container: markup).foregroundStyle(.secondary).padding(.leading, 12)
                 .overlay(alignment: .leading) { Capsule().fill(.tertiary).frame(width: 3) }
-        case .text: Text(block.text)
+        case let list as ListItemContainer:
+            ListBlock(list: list)
+        case let table as Markdown::Table:
+            TableGrid(table: table)
+        case is ThematicBreak:
+            Divider().padding(.vertical, 4)
+        case let html as HTMLBlock:
+            Text(html.rawHTML.trimmingCharacters(in: .newlines)).font(.system(size: 12.5, design: .monospaced))
+        default:
+            Text(markup.format())
         }
-    }
-
-    /// A block's font size: 14 pt, and headings by their level.
-    private static func size(_ kind: Kind) -> CGFloat {
-        if case let .heading(level) = kind {
-            [22, 18, 16][min(max(level, 1), 3) - 1]
-        } else {
-            14
-        }
-    }
-
-    /// The space above a block: wide before a heading, narrow under one and between list items.
-    private static func space(_ above: Block, _ block: Block) -> CGFloat {
-        switch (above.kind, block.kind) {
-        case (_, .heading(1)), (_, .heading(2)): 22
-        case (_, .heading): 16
-        case (.heading, _): 8
-        default: above.marker != nil && block.marker != nil ? 6 : 12
-        }
-    }
-
-    /// Runs of the same innermost block (a paragraph, a list item, a code block) make one block.
-    static func blocks(_ text: String) -> [Block] {
-        guard let parsed = try? AttributedString(markdown: text, options: .init(
-            interpretedSyntax: .full, failurePolicy: .returnPartiallyParsedIfPossible,
-        )) else { return [Block(kind: .text, text: AttributedString(text))] }
-        var blocks: [Block] = []
-        var last: Int?, items: Set<Int> = []
-        for run in parsed.runs {
-            let components = run.presentationIntent?.components ?? []
-            let identity = components.first?.identity
-            var piece = AttributedString(parsed[run.range])
-            piece.presentationIntent = nil
-            if identity == last, identity != nil, !blocks.isEmpty {
-                blocks[blocks.count - 1].text += piece
-                continue
-            }
-            last = identity
-            var block = block(components.map(\.kind), piece)
-            // A list item's later paragraphs line up under its first, with no bullet of their own.
-            if let item = components.first(where: { $0.kind.isListItem })?.identity, !items.insert(item).inserted {
-                block.marker = nil
-            }
-            blocks.append(block)
-        }
-        return blocks.map { block in
-            var block = block
-            switch block.kind {
-            // A code block's last newline is no line of its own.
-            case .code where block.text.characters.last == "\n": block.text.characters.removeLast()
-            case .code: break
-            // Inline code at 0.9 of its block's size (a monospaced face reads larger), on a faint fill.
-            default:
-                for run in block.text.runs where run.inlinePresentationIntent?.contains(.code) == true {
-                    block.text[run.range].font = .system(size: size(block.kind) * 0.9, design: .monospaced)
-                    block.text[run.range].backgroundColor = .primary.opacity(0.08)
-                }
-            }
-            return block
-        }
-    }
-
-    /// A new block of its innermost kind; a list item gets its bullet or number.
-    private static func block(_ kinds: [PresentationIntent.Kind], _ piece: AttributedString) -> Block {
-        let depth = kinds.count { $0 == .unorderedList || $0 == .orderedList }
-        var kind = Kind.text, marker: String?
-        for (index, component) in kinds.enumerated() {
-            switch component {
-            case .codeBlock where kind == .text: kind = .code
-            case let .header(level) where kind == .text: kind = .heading(level)
-            // A quote keeps its bar around a heading too.
-            case .blockQuote where kind != .code: kind = .quote
-            case let .listItem(ordinal) where marker == nil:
-                // The list that holds this item, the next component out.
-                let ordered = kinds.dropFirst(index + 1).first == .orderedList
-                marker = ordered ? "\(ordinal)." : ["•", "◦", "▪"][(depth - 1) % 3]
-            default: break
-            }
-        }
-        return Block(kind: kind, text: piece, marker: marker, depth: depth)
     }
 }
 
-private extension PresentationIntent.Kind {
-    var isListItem: Bool {
-        if case .listItem = self {
-            true
-        } else {
-            false
+/// Items hang behind their bullet (•, ◦, ▪ by depth), number or checkbox, 18 pt in per level.
+private struct ListBlock: View {
+    let list: any ListItemContainer
+
+    var body: some View {
+        let items = Array(list.listItems)
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(items.indices, id: \.self) { index in
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    marker(items[index], index).foregroundStyle(.secondary).frame(minWidth: 12, alignment: .trailing)
+                    Blocks(container: items[index])
+                }
+            }
         }
+    }
+
+    @ViewBuilder private func marker(_ item: ListItem, _ index: Int) -> some View {
+        if let checkbox = item.checkbox {
+            SwiftUI::Image(systemName: checkbox == .checked ? "checkmark.square.fill" : "square")
+        } else if let ordered = list as? OrderedList {
+            Text("\(Int(ordered.startIndex) + index).")
+        } else {
+            Text(["•", "◦", "▪"][depth % 3])
+        }
+    }
+
+    /// How many lists hold this one.
+    private var depth: Int {
+        sequence(first: list.parent) { $0?.parent }.prefix { $0 != nil }.count { $0 is ListItemContainer }
+    }
+}
+
+/// A table on a faint frame: the head on a fill, a line between rows, each column aligned as written.
+private struct TableGrid: View {
+    let table: Markdown::Table
+
+    var body: some View {
+        let rows = [Array(table.head.cells)] + table.body.rows.map { Array($0.cells) }
+        Grid(alignment: .leading, horizontalSpacing: 0, verticalSpacing: 0) {
+            ForEach(rows.indices, id: \.self) { row in
+                if row > 0 {
+                    Divider()
+                }
+                GridRow {
+                    ForEach(rows[row].indices, id: \.self) { column in
+                        let alignment = alignment(column)
+                        Text(Inline.text(rows[row][column], size: 14)).fontWeight(row == 0 ? .semibold : nil)
+                            .multilineTextAlignment(alignment == .trailing ? .trailing : .leading)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
+                            .background(row == 0 ? AnyShapeStyle(.primary.opacity(0.05)) : AnyShapeStyle(.clear))
+                            .gridColumnAlignment(alignment)
+                    }
+                }
+            }
+        }
+        .clipShape(.rect(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.quaternary))
+    }
+
+    private func alignment(_ column: Int) -> HorizontalAlignment {
+        switch column < table.columnAlignments.count ? table.columnAlignments[column] : nil {
+        case .center: .center
+        case .right: .trailing
+        default: .leading
+        }
+    }
+}
+
+/// An image alone in its paragraph, from the web only: a path is on the pane's machine, which may be another one.
+private struct Picture: View {
+    let image: Markdown::Image
+
+    var body: some View {
+        let alt = Text(Inline.text(image, size: 14)).foregroundStyle(.secondary)
+        if let url = image.source.flatMap(URL.init(string:)), ["http", "https"].contains(url.scheme?.lowercased()) {
+            AsyncImage(url: url) { $0.resizable().scaledToFit().frame(maxHeight: 400) } placeholder: { alt }
+        } else {
+            alt
+        }
+    }
+}
+
+/// A block's inline styles as one string: `Text` draws its emphasis, strikethrough and links.
+private enum Inline {
+    static func text(_ markup: any Markup, size: CGFloat) -> AttributedString {
+        markup.children.reduce(into: AttributedString()) { result, child in
+            switch child {
+            case let text as Markdown::Text: result += linked(text.string)
+            case let code as InlineCode:
+                // At 0.9 of its block's size (a monospaced face reads larger), on a faint fill.
+                var code = AttributedString(code.code)
+                code.font = .system(size: size * 0.9, design: .monospaced)
+                code.backgroundColor = .primary.opacity(0.08)
+                result += code
+            case is Emphasis: result += styled(child, size, .emphasized)
+            case is Strong: result += styled(child, size, .stronglyEmphasized)
+            case is Strikethrough: result += styled(child, size, .strikethrough)
+            case let link as Markdown::Link:
+                var label = Self.text(link, size: size)
+                label.link = link.destination.flatMap(URL.init(string:))
+                result += label
+            case let image as Markdown::Image:
+                // Inside text, its description, a link to it.
+                var label = Self.text(image, size: size)
+                label.link = image.source.flatMap(URL.init(string:))
+                result += label
+            // A break as a space or a newline, HTML as written.
+            default: result += AttributedString((child as? InlineMarkup)?.plainText ?? "")
+            }
+        }
+    }
+
+    private static func styled(_ markup: any Markup, _ size: CGFloat,
+                               _ intent: InlinePresentationIntent) -> AttributedString
+    {
+        var text = text(markup, size: size)
+        for run in text.runs {
+            text[run.range].inlinePresentationIntent = (run.inlinePresentationIntent ?? []).union(intent)
+        }
+        return text
+    }
+
+    private static let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+
+    /// A bare web address as a link (GFM's autolinks, which swift-markdown leaves as text); not a bare name such as
+    /// `Oriel.app`.
+    private static func linked(_ string: String) -> AttributedString {
+        var text = AttributedString(string)
+        for match in detector?.matches(in: string, range: NSRange(string.startIndex..., in: string)) ?? [] {
+            guard let range = Range(match.range, in: string), let url = match.url,
+                  ["http://", "https://", "www."].contains(where: string[range].lowercased().hasPrefix),
+                  let start = AttributedString.Index(range.lowerBound, within: text),
+                  let end = AttributedString.Index(range.upperBound, within: text) else { continue }
+            text[start ..< end].link = url
+        }
+        return text
     }
 }
