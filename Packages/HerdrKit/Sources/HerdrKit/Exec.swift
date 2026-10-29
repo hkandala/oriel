@@ -20,6 +20,25 @@ extension Exec {
         }.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// A command's stdout, its lines joined by "\n" (NUL bytes kept), with `input` on its stdin, a line per write.
+    /// Throws the command's stderr when it exits non-zero; past `timeout` the command is killed.
+    func checkedOutput(_ argv: [String], input: [String] = [],
+                       timeout: Duration = .seconds(10)) async throws -> String
+    {
+        let channel = try await run(argv)
+        input.forEach(channel.write)
+        channel.closeInput()
+        let output = try await withTimeout(timeout, onTimeout: channel.terminate) {
+            await channel.lines.reduce(into: []) { $0.append($1) }.joined(separator: "\n")
+        }
+        let (status, stderr) = await channel.exit()
+        guard status == 0 else {
+            let text = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            throw HerdrError.failed(text.isEmpty ? "\(argv[0]) failed (\(status))" : text)
+        }
+        return output
+    }
+
     /// Runs `sh -c script` with the arguments and `input` on its stdin, a line per write: true when it exits 0.
     @discardableResult
     public func succeeds(_ script: String, _ arguments: [String], input: [String] = []) async -> Bool {

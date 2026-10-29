@@ -1,0 +1,154 @@
+diff --git a/.github/workflows/docs-deploy.yml b/.github/workflows/docs-deploy.yml
+index 9d4999c7..6c6f0d2f 100644
+--- a/.github/workflows/docs-deploy.yml
++++ b/.github/workflows/docs-deploy.yml
+@@ -6,14 +6,10 @@ on:
+     branches: [main]
+     paths:
+       - 'docs/**'
+-      - 'resources/design.html'
+-      - 'resources/inspirations/selected/**'
+       - '.github/workflows/docs-deploy.yml'
+   pull_request:
+     paths:
+       - 'docs/**'
+-      - 'resources/design.html'
+-      - 'resources/inspirations/selected/**'
+       - '.github/workflows/docs-deploy.yml'
+   workflow_dispatch:
+ 
+diff --git a/README.md b/README.md
+index 561cac02..50759f34 100644
+--- a/README.md
++++ b/README.md
+@@ -45,8 +45,8 @@ Packages/HerdrKit/         Swift package, no UI: Exec/ProcessExec (child process
+                            events, paced snapshots), models, split tree, TerminalStream, starting a server
+ scripts/                   herdr-session.sh (throwaway sessions), e2e.sh and e2e-helper.py (UI test setup)
+ plan/                      the v0 plan, phase files and their findings
+-docs/                      the design site (MDX pages under docs/content/docs/)
+-resources/                 research notes, the one-page design overview, UI references
++docs/                      the design site (MDX pages under docs/content/docs/, the overview in docs/public/overview/)
++resources/                 research notes and UI references
+ ```
+ 
+ HerdrKit knows nothing about SwiftUI or libghostty; the app knows nothing about herdr's argv or JSON.
+@@ -90,8 +90,8 @@ pnpm dev
+ ```
+ 
+ The site needs pnpm 10 or newer (`docs/package.json` pins it). With an older global pnpm, run
+-`npx pnpm@10 install` and `npx pnpm@10 dev` instead. `resources/design.html` is a one-page overview with no build
+-step (`open resources/design.html`).
++`npx pnpm@10 install` and `npx pnpm@10 dev` instead. `docs/public/overview/index.html` is a one-page overview with no
++build step (`open docs/public/overview/index.html`).
+ 
+ The raw inspiration videos and frames are kept locally only; they are not in git.
+ 
+diff --git a/docs/.gitignore b/docs/.gitignore
+index f5130d07..58cc5c08 100644
+--- a/docs/.gitignore
++++ b/docs/.gitignore
+@@ -24,5 +24,4 @@ yarn-error.log*
+ .env*.local
+ .vercel
+ next-env.d.ts
+-public/overview/
+ 
+diff --git a/docs/next.config.mjs b/docs/next.config.mjs
+index a9574245..f438e432 100644
+--- a/docs/next.config.mjs
++++ b/docs/next.config.mjs
+@@ -8,7 +8,7 @@ const config = {
+   async redirects() {
+     return [
+       { source: '/', destination: '/docs', permanent: false },
+-      // the published resources/design.html; its relative image paths need the file URL
++      // the overview's relative image paths need the file URL
+       { source: '/overview', destination: '/overview/index.html', permanent: false },
+       // folders without an index page, and pages merged into others
+       { source: '/docs/ui', destination: '/docs/ui/window', permanent: false },
+diff --git a/docs/package.json b/docs/package.json
+index 2be58b45..4f3e22c3 100644
+--- a/docs/package.json
++++ b/docs/package.json
+@@ -3,9 +3,7 @@
+   "version": "0.0.1",
+   "private": true,
+   "scripts": {
+-    "prebuild": "node scripts/copy-overview.mjs",
+     "build": "next build",
+-    "predev": "node scripts/copy-overview.mjs",
+     "dev": "next dev",
+     "start": "next start",
+     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
+diff --git a/docs/public/inspirations/cube-07-terminal-and-file-tree-screen.jpg b/docs/public/inspirations/cube-07-terminal-and-file-tree-screen.jpg
+new file mode 100644
+index 00000000..2d54c3fe
+Binary files /dev/null and b/docs/public/inspirations/cube-07-terminal-and-file-tree-screen.jpg differ
+diff --git a/docs/public/inspirations/one-08-agent-list-grouped-by-project.jpg b/docs/public/inspirations/one-08-agent-list-grouped-by-project.jpg
+new file mode 100644
+index 00000000..e80d04f4
+Binary files /dev/null and b/docs/public/inspirations/one-08-agent-list-grouped-by-project.jpg differ
+diff --git a/docs/public/inspirations/rex-peek-01-single-terminal-glass-window.jpg b/docs/public/inspirations/rex-peek-01-single-terminal-glass-window.jpg
+new file mode 100644
+index 00000000..1d33707c
+Binary files /dev/null and b/docs/public/inspirations/rex-peek-01-single-terminal-glass-window.jpg differ
+diff --git a/docs/public/inspirations/rex-status-05-focused-vs-dimmed-pane.jpg b/docs/public/inspirations/rex-status-05-focused-vs-dimmed-pane.jpg
+new file mode 100644
+index 00000000..8e9e517d
+Binary files /dev/null and b/docs/public/inspirations/rex-status-05-focused-vs-dimmed-pane.jpg differ
+diff --git a/resources/design.html b/docs/public/overview/index.html
+similarity index 98%
+rename from resources/design.html
+rename to docs/public/overview/index.html
+index c6bca7cc..37162f05 100644
+--- a/resources/design.html
++++ b/docs/public/overview/index.html
+@@ -460,10 +460,10 @@ a1b2c3d fix auth null token
+   <h2><span class="num">6</span>Inspirations</h2>
+   <p class="lead">Cube Computer for the sideways strip, Superlogical Rex for quiet tabs, Arc for machine pages, and One for the floating agent pill.</p>
+   <div class="grid2">
+-    <figure><img class="shot" src="inspirations/selected/cube-01-sidebar-terminal-and-web-page.jpg" alt="Cube: each tab is a page; a terminal and a web page side by side."><figcaption><b>Cube</b>: each tab is a page; a terminal and a web page side by side.</figcaption></figure>
+-    <figure><img class="shot" src="inspirations/selected/cube-02-scrolling-web-into-studio-two-tabs-lit.jpg" alt="Cube, mid-swipe: content slides without resizing, and both visible tabs are lit."><figcaption><b>Cube</b>, mid-swipe: content slides without resizing, and both visible tabs are lit.</figcaption></figure>
+-    <figure><img class="shot" src="inspirations/selected/rex-status-04-background-tab-done-badge.jpg" alt="Rex: a background tab shows that its program finished."><figcaption><b>Rex</b>: a background tab shows that its program finished.</figcaption></figure>
+-    <figure><img class="shot" src="inspirations/selected/one-03-toolbar-expanded-inbox-card.jpg" alt="One (built on herdr): the edge pill, its buttons, and a card for a waiting agent."><figcaption><b>One</b> (built on herdr): the edge pill, its buttons, and a card for a waiting agent.</figcaption></figure>
++    <figure><img class="shot" src="../inspirations/cube-01-sidebar-terminal-and-web-page.jpg" alt="Cube: each tab is a page; a terminal and a web page side by side."><figcaption><b>Cube</b>: each tab is a page; a terminal and a web page side by side.</figcaption></figure>
++    <figure><img class="shot" src="../inspirations/cube-02-scrolling-web-into-studio-two-tabs-lit.jpg" alt="Cube, mid-swipe: content slides without resizing, and both visible tabs are lit."><figcaption><b>Cube</b>, mid-swipe: content slides without resizing, and both visible tabs are lit.</figcaption></figure>
++    <figure><img class="shot" src="../inspirations/rex-status-04-background-tab-done-badge.jpg" alt="Rex: a background tab shows that its program finished."><figcaption><b>Rex</b>: a background tab shows that its program finished.</figcaption></figure>
++    <figure><img class="shot" src="../inspirations/one-03-toolbar-expanded-inbox-card.jpg" alt="One (built on herdr): the edge pill, its buttons, and a card for a waiting agent."><figcaption><b>One</b> (built on herdr): the edge pill, its buttons, and a card for a waiting agent.</figcaption></figure>
+   </div>
+   <table>
+     <tr><th>From</th><th>We take</th></tr>
+@@ -475,12 +475,12 @@ a1b2c3d fix auth null token
+   </table>
+   <details><summary>More frames</summary>
+     <div class="grid3">
+-      <figure><img class="shot" src="inspirations/selected/cube-07-terminal-and-file-tree-screen.jpg" alt="Cube: split page"><figcaption>Cube: split page</figcaption></figure>
+-      <figure><img class="shot" src="inspirations/selected/rex-status-05-focused-vs-dimmed-pane.jpg" alt="Rex: unfocused split dimmed"><figcaption>Rex: unfocused split dimmed</figcaption></figure>
+-      <figure><img class="shot" src="inspirations/selected/rex-peek-01-single-terminal-glass-window.jpg" alt="Rex: minimal chrome"><figcaption>Rex: minimal chrome</figcaption></figure>
+-      <figure><img class="shot" src="inspirations/selected/rex-peek-02-tab-peek-live-thumbnails.jpg" alt="Rex: tab thumbnails"><figcaption>Rex: tab thumbnails</figcaption></figure>
+-      <figure><img class="shot" src="inspirations/selected/one-04-inbox-card-keyboard-hints.jpg" alt="One: card for a waiting agent"><figcaption>One: card for a waiting agent</figcaption></figure>
+-      <figure><img class="shot" src="inspirations/selected/one-08-agent-list-grouped-by-project.jpg" alt="One: agents grouped by project"><figcaption>One: agents grouped by project</figcaption></figure>
++      <figure><img class="shot" src="../inspirations/cube-07-terminal-and-file-tree-screen.jpg" alt="Cube: split page"><figcaption>Cube: split page</figcaption></figure>
++      <figure><img class="shot" src="../inspirations/rex-status-05-focused-vs-dimmed-pane.jpg" alt="Rex: unfocused split dimmed"><figcaption>Rex: unfocused split dimmed</figcaption></figure>
++      <figure><img class="shot" src="../inspirations/rex-peek-01-single-terminal-glass-window.jpg" alt="Rex: minimal chrome"><figcaption>Rex: minimal chrome</figcaption></figure>
++      <figure><img class="shot" src="../inspirations/rex-peek-02-tab-peek-live-thumbnails.jpg" alt="Rex: tab thumbnails"><figcaption>Rex: tab thumbnails</figcaption></figure>
++      <figure><img class="shot" src="../inspirations/one-04-inbox-card-keyboard-hints.jpg" alt="One: card for a waiting agent"><figcaption>One: card for a waiting agent</figcaption></figure>
++      <figure><img class="shot" src="../inspirations/one-08-agent-list-grouped-by-project.jpg" alt="One: agents grouped by project"><figcaption>One: agents grouped by project</figcaption></figure>
+     </div>
+   </details>
+   <details><summary>Lessons from about 25 existing herdr clients</summary>
+diff --git a/docs/scripts/copy-overview.mjs b/docs/scripts/copy-overview.mjs
+deleted file mode 100644
+index 0f16664a..00000000
+--- a/docs/scripts/copy-overview.mjs
++++ /dev/null
+@@ -1,9 +0,0 @@
+-// Publish resources/design.html (and the images it uses) at /overview/ without keeping a copy in git.
+-import { cpSync, mkdirSync, rmSync } from 'node:fs';
+-
+-const src = new URL('../../resources/', import.meta.url);
+-const out = new URL('../public/overview/', import.meta.url);
+-rmSync(out, { recursive: true, force: true });
+-mkdirSync(out, { recursive: true });
+-cpSync(new URL('design.html', src), new URL('index.html', out));
+-cpSync(new URL('inspirations/selected/', src), new URL('inspirations/selected/', out), { recursive: true });
