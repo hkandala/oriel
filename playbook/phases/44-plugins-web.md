@@ -50,8 +50,8 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   track that bundles them adds the two.
 - **Decisions:** no shared process pool. `WKProcessPool` is deprecated and does nothing: three web views on one pool
   made three WebContent processes. Every web card is its own process.
-- **Decisions:** the bridge has the `read` ask and the `dirty` report, the two the test page uses. `read` is `cat`
-  over `Exec` (it trims the text, so nothing may save through it) until phase 42's file data lands. Listings,
+- **Decisions:** the bridge has the `read` ask (`Files.read`, its text) and the `dirty` report, the two the test page
+  uses. The hash for a save, listings,
   patches, logs, the caret's symbol, links and row 2's messages come with their first users in tracks B to E,
   next to phase 42's data API: each is one `case` in `WebCard.answer` and one type in `web/src/lib/bridge.ts`.
 - **Decisions:** ⌘ keys go to the menu first, as over a native text view; only keys no menu item has (enabled or not)

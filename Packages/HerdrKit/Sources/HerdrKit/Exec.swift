@@ -10,7 +10,7 @@ public protocol Exec: Sendable {
     func herdr() async throws -> String?
 }
 
-public extension Exec {
+extension Exec {
     /// A command's whole stdout, trimmed; past `timeout` the command is killed and this throws.
     func output(_ argv: [String], timeout: Duration = .seconds(10)) async throws -> String {
         let channel = try await run(argv)
@@ -41,7 +41,7 @@ public extension Exec {
 
     /// Runs `sh -c script` with the arguments and `input` on its stdin, a line per write: true when it exits 0.
     @discardableResult
-    func succeeds(_ script: String, _ arguments: [String], input: [String] = []) async -> Bool {
+    public func succeeds(_ script: String, _ arguments: [String], input: [String] = []) async -> Bool {
         guard let channel = try? await run(["sh", "-c", script, "sh"] + arguments) else { return false }
         input.forEach(channel.write)
         channel.closeInput()
@@ -55,7 +55,7 @@ public extension Exec {
     /// ponytail: the whole file is queued on the machine's one relay at once, ahead of its panes' streams and keys, so
     /// files over 16 MB (herdr's limit for a dropped image) are refused; stream it with backpressure if bigger files
     /// are needed.
-    func upload(_ file: URL) async throws -> String {
+    public func upload(_ file: URL) async throws -> String {
         let name = file.lastPathComponent
         let values = try file.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
         guard values.isRegularFile == true else { throw HerdrError.failed("\(name) is not a file") }
@@ -69,7 +69,7 @@ public extension Exec {
 
     /// Prints only the new folder, whose name holds no line break (a file's may): the path is put together here. The
     /// shared folder must be the user's own, not a link another user made.
-    internal static var uploadScript: String {
+    static var uploadScript: String {
         #"""
         umask 077; r=${TMPDIR:-/tmp}; r=${r%/}/oriel-drops-$(id -u)
         mkdir -p "$r" && [ ! -h "$r" ] && [ -O "$r" ] && chmod 700 "$r" || exit 1
