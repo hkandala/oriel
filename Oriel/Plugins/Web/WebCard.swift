@@ -169,6 +169,12 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
         await card?.answer(message.body) ?? (nil, "Closed")
     }
 
+    /// The bundle's pages only: a Markdown file's HTML (a `<meta>` refresh, a form) would take the view, and the
+    /// bridge with it, to any site.
+    func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
+        action.request.url?.scheme == PluginScheme.name ? .allow : .cancel
+    }
+
     func webView(_: WKWebView, didFinish _: WKNavigation!) {
         reloaded = false
     }
