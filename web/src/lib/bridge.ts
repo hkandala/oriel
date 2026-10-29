@@ -41,6 +41,8 @@ type Report =
   | { op: "symbol"; symbol: string }
   | { op: "page"; page: number; pages: number }
   | { op: "filter"; text: string }
+  /** What the Markdown page shows. */
+  | { op: "markdown"; edit: boolean; outline: boolean }
 /** From the app: row 2's controls, menu commands, and the file again after a change on disk. */
 export type In =
   | ({ op: "load" } & (FileReply | PreviewReply))
@@ -53,6 +55,7 @@ export type In =
   | { op: "changed" }
   | { op: "filter"; text: string }
   | { op: "collapse" }
+  | { op: "markdown"; edit: boolean; outline: boolean }
 
 declare global {
   interface Window {

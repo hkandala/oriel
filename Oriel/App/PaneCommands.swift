@@ -131,6 +131,7 @@ extension CommandList {
                     setting: true) { page.floating[terminalID]?.toggle() },
             Command(section: .file, title: "Save", key: .init("s"), symbol: "square.and.arrow.down",
                     enabled: editor != nil) { editor?.web.send(["op": "save"]) },
+            Self.editMode { editor },
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
                     enabled: pane.map { $0.plugin == nil } == true || editor != nil, action: {
                         if let editor {

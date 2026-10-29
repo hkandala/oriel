@@ -42,6 +42,8 @@ final class WebCard {
 
     /// Files: row 2's filter; a page loaded again ends it.
     var filter = ""
+    /// What the Markdown page shows, as it reports it.
+    private(set) var markdown = (edit: false, outline: false)
     var toast: Toast?
     /// A File card's jump bar: the scopes around the caret (`file.ts`).
     private(set) var symbol = ""
@@ -120,14 +122,10 @@ final class WebCard {
             // check the first's old hash; its edits keep the dot for the next ⌘S.
             guard !saving, let text = message["text"] as? String, let hash else { return (nil, "Not read") }
             await save(text, over: hash)
-        case "symbol":
-            symbol = message["symbol"] as? String ?? ""
-        case "page":
-            page = "\(message["page"] as? Int ?? 1) of \(message["pages"] as? Int ?? 1)"
+        case "symbol", "page", "dirty", "markdown":
+            shows(message)
         case "patch":
             return await patch()
-        case "dirty":
-            dirty = message["dirty"] as? Bool == true
         case "open":
             // No kind: a file, opened with its kind.
             guard let arg = message["arg"] as? String else { return (nil, "No path") }
@@ -137,6 +135,20 @@ final class WebCard {
             return await files(message)
         }
         return (nil, nil)
+    }
+
+    /// A report of what the page shows: the jump bar's symbol, the PDF's page, the dirty dot, Markdown's mode.
+    private func shows(_ message: [String: Any]) {
+        switch message["op"] as? String {
+        case "symbol":
+            symbol = message["symbol"] as? String ?? ""
+        case "page":
+            page = "\(message["page"] as? Int ?? 1) of \(message["pages"] as? Int ?? 1)"
+        case "markdown":
+            markdown = (message["edit"] as? Bool == true, message["outline"] as? Bool == true)
+        default:
+            dirty = message["dirty"] as? Bool == true
+        }
     }
 }
 
