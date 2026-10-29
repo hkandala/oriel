@@ -25,3 +25,11 @@ body { display: flex; --diffs-font-family: ui-monospace, monospace; --diffs-font
 .mark { display: flex; align-items: center; gap: 4px }
 .disclosure { display: inline-block; transform: rotate(90deg); transition: transform 0.15s }
 .disclosure.shut { transform: none }
+/* A narrow card keeps Viewed and Open File in sight in each file's header: the counts, also in the file list, give way.
+   The header does not wrap: its height is fixed for the scroll. */
+@media (max-width: 480px) {
+  .actions .added,
+  .actions .removed {
+    display: none;
+  }
+}
