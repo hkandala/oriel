@@ -1,7 +1,15 @@
 // File: the card's file in CodeMirror with its language's colors, reporting the symbol at the caret for the jump bar.
 import { HighlightStyle, StreamLanguage, type StreamParser, syntaxHighlighting, syntaxTree } from "@codemirror/language"
-import type { EditorState, Extension } from "@codemirror/state"
-import { EditorView, highlightActiveLineGutter, lineNumbers } from "@codemirror/view"
+import { type EditorState, type Extension, RangeSetBuilder } from "@codemirror/state"
+import {
+  Decoration,
+  type DecorationSet,
+  EditorView,
+  highlightActiveLineGutter,
+  lineNumbers,
+  ViewPlugin,
+  type ViewUpdate,
+} from "@codemirror/view"
 import type { SyntaxNode } from "@lezer/common"
 import { tags } from "@lezer/highlight"
 import { arg, report } from "./lib/bridge"
@@ -104,11 +112,42 @@ const symbol = (state: EditorState) => {
   return (found.length ? found : indented(state)).join(" › ")
 }
 
+/** Cards are often narrow: lines wrap, and a wrapped line goes on at its own indent, as in Xcode. */
+const indents = (view: EditorView) => {
+  const builder = new RangeSetBuilder<Decoration>()
+  for (const { from, to } of view.visibleRanges) {
+    for (let pos = from; pos <= to; ) {
+      const line = view.state.doc.lineAt(pos)
+      const indent = /^[ \t]*/.exec(line.text)?.[0].replace(/\t/g, " ".repeat(view.state.tabSize)).length ?? 0
+      if (indent) {
+        const style = `padding-left: calc(${indent}ch + 6px); text-indent: -${indent}ch`
+        builder.add(line.from, line.from, Decoration.line({ attributes: { style } }))
+      }
+      pos = line.to + 1
+    }
+  }
+  return builder.finish()
+}
+const hanging = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet
+    constructor(view: EditorView) {
+      this.decorations = indents(view)
+    }
+    update(update: ViewUpdate) {
+      if (update.docChanged || update.viewportChanged) this.decorations = indents(update.view)
+    }
+  },
+  { decorations: (plugin) => plugin.decorations },
+)
+
 let last = ""
 await editor([
   lineNumbers(),
   highlightActiveLineGutter(),
   syntaxHighlighting(highlight),
+  EditorView.lineWrapping,
+  hanging,
   language,
   EditorView.updateListener.of((update) => {
     const now = symbol(update.state)
