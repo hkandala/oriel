@@ -160,7 +160,7 @@ extension HostStore {
     /// as Go to Directory types its `cd`, and shows the loader until the agent is ready: herdr reports it with a status
     /// (all four agents, read from their screens on any machine).
     /// The terminal shows sooner when the shell is in front again (the command failed or ended), or after 10 s.
-    /// `resume`: Enable Chat's session; the agent in the pane quits first.
+    /// `resume`: Relaunch with Chat's session; the agent in the pane quits first.
     func start(_ agent: Chooser.Agent, _ chooser: Chooser, resume: String? = nil) {
         // Once: a double click's second click lands on the row as it fades out.
         guard chooser.starting == nil else { return }
@@ -213,7 +213,7 @@ extension HostStore {
 }
 
 extension HostStore {
-    /// Enable Chat (ui/chat-view#which-panes-have-it): an agent herdr knows, started without Oriel's flags, in a
+    /// Relaunch with Chat (ui/chat-view#which-panes-have-it): an agent herdr knows, started without Oriel's flags, in a
     /// session herdr knows, again with the flags in that session, with the chooser's loader meanwhile.
     func enableChat(_ pane: Pane) {
         guard let agent = Chooser.agents.first(where: { $0.command == pane.agent }), let session = pane.session,
@@ -226,7 +226,7 @@ extension HostStore {
         start(agent, chooser, resume: session)
     }
 
-    /// The agent's line with Oriel's flags (Enable Chat's, made before its agent quit), else its command.
+    /// The agent's line with Oriel's flags (Relaunch with Chat's, made before its agent quit), else its command.
     private func firstLine(_ agent: Chooser.Agent, _ resumed: String?) async -> String {
         if let resumed {
             return resumed
@@ -234,8 +234,8 @@ extension HostStore {
         return await ChatAdapters.launch(agent.command, on: machine.exec()) ?? agent.command
     }
 
-    /// Enable Chat's launch line, made first so a failed run on the machine leaves the agent running, once the agent
-    /// quit; nil (with a notice) when either failed, and with no session.
+    /// Relaunch with Chat's launch line, made first so a failed run on the machine leaves the agent running, once the
+    /// agent quit; nil (with a notice) when either failed, and with no session.
     private func restart(_ agent: Chooser.Agent, _ chooser: Chooser, _ session: String?) async -> String? {
         guard let session else { return nil }
         guard let id = chooser.paneID,

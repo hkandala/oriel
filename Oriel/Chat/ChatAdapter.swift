@@ -7,13 +7,13 @@ protocol ChatAdapter: Sendable {
     /// The chooser's command, which is herdr's agent name too (`claude`).
     static var command: String { get }
     /// What the chooser adds to the command for a new launch, with `token` (a fresh lowercase UUID) as its marker, and
-    /// `resume`'s arguments for Enable Chat.
+    /// `resume`'s arguments for Relaunch with Chat.
     static func flags(_ token: String, resume: String?) -> String
     /// The whole launch line, after writing what it needs on the pane's machine; nil: the agent starts without
     /// Oriel's flags (no chat). The command and its flags by default.
     static func prepare(_ token: String, resume: String?, on exec: any Exec) async -> String?
     /// The arguments that resume a session (herdr's `agent_session` value); nil when the value is not one this agent
-    /// takes (no Enable Chat then). They go into a typed line: only plain ids and quotable paths.
+    /// takes (no Relaunch with Chat then). They go into a typed line: only plain ids and quotable paths.
     static func resume(_ session: String) -> String?
     /// The command that quits it, typed into its prompt.
     static var quit: String { get }
@@ -131,7 +131,7 @@ enum ChatAdapters {
         + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null"
 
     /// The line the chooser types for an agent with a chat; nil when it has none or its run on the machine failed.
-    /// `resume`: herdr's session of the agent, for Enable Chat (nil also when the agent does not take it).
+    /// `resume`: herdr's session of the agent, for Relaunch with Chat (nil also when the agent does not take it).
     static func launch(_ command: String, resume: String? = nil, on exec: any Exec) async -> String? {
         guard let adapter = adapter(command) else { return nil }
         let arguments = resume.flatMap(adapter.resume)

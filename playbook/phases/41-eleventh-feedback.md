@@ -127,3 +127,33 @@ user's answers to the orchestrator's questions.
   its drawn text, does not.
 - **For the user:** ⌘K on a browser, an agent and a shell tab; a long agent tab title while it works; float a new
   pane (⌘D, then Float) before you pick.
+
+### Track C
+
+- **Fix, items 7 and 8.** A chat pane opens on its TUI (`Chat.showsChat` is false at first). The switch reads
+  `Chat | TUI`, so its identifiers are `pane.‹id›.view.chat` and `.tui`. The button reads `Relaunch with Chat`. Its
+  help tag already said "Restart ‹Agent› with chat, in the same session".
+- **Decisions.** Relaunch with Chat opens on the chat, because the user asked for it (`Pane.relaunched`, read once
+  when the chat is made). If the relaunch fails, the flag stays set. That is harmless: only another relaunch puts a
+  marked agent in that pane. The code keeps the names `EnableChat` and `enable-chat`.
+- **Fix, items 9 and 10.** The placeholder is "Ask Anything". ⇧Return (and its key repeat) sends
+  `insertNewlineIgnoringFieldEditor:`, the same action as ⌥Return. A vertical `TextField` sent ⇧Return to
+  `onSubmit`.
+- **Fix, item 11.** The box's text is 14 pt in from its sides, and the box is 18 pt in from the column, so its text
+  lines up with the messages' 32 pt edges. Send stays 7 pt from the box's side.
+- **Fix, item 14.** The question card and the reply box are a `safeAreaInset` on the messages' scroll view, inside
+  the top fade's mask. The content scrolls under the glass, and the bottom anchor keeps the last message clear
+  of the box as it grows. The scroll view's accessibility frame stops at the inset, so a test cannot read the
+  overlap from that frame. The waiting drawer keeps its own row under the messages, because pane content never
+  sits under a terminal.
+- **Fix, item 12.** `onExitCommand` on the chat calls Stop. It acts only while the agent works. It needs the chat to
+  have the keyboard: the reply box almost always has it, but after a double-click selects text it does not. While
+  the drawer shows, the terminal takes Esc itself.
+- **Fix, item 15.** A floating window's chat starts 28 pt from the card's top, not 16 pt, because the floating
+  card has no header of its own above the messages.
+- **Decisions.** A wheel over the reply box does not scroll the messages under it (CI showed it). The box is drawn
+  over the scroll view, not inside it, and before this change the wheel did nothing there either. A pinned section
+  footer inside the scroll view would pass the wheel on, but it needs negative padding and puts lazy-stack layout
+  around the text field. Not worth that now.
+- **For the user.** In a long chat, scroll up: the messages show under the glass box. Hold ⇧Return: lines, no send.
+  Press Esc while the agent works.

@@ -19,10 +19,6 @@ struct ChatView: View {
     @Environment(\.look) private var look
     private var settings = AppSettings()
 
-    private var floats: Bool {
-        page.store.pane(chat.paneID).map(page.floats) == true
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             messages
@@ -78,6 +74,7 @@ struct ChatView: View {
     private var messages: some View {
         let working = chat.phase == .working, level = settings.chatLevel
         let rows = chat.history.rows(level, working: working)
+        let floats = page.store.pane(chat.paneID).map(page.floats) == true
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 10) {
                 ForEach(rows) { row in
@@ -138,7 +135,7 @@ struct ChatView: View {
                 .focused($composing)
                 .onSubmit { chat.send(chat.draft) }
                 // ⇧Return adds a line, as ⌥Return does.
-                .onKeyPress(.return, phases: .down) { press in
+                .onKeyPress(.return, phases: [.down, .repeat]) { press in
                     guard press.modifiers.contains(.shift) else { return .ignored }
                     NSApp.sendAction(#selector(NSResponder.insertNewlineIgnoringFieldEditor(_:)), to: nil, from: nil)
                     return .handled

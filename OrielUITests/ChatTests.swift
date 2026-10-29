@@ -81,10 +81,22 @@ extension OrielUITests {
         let reply = row(pane, "reply", "Echo: **hello**")
         XCTAssertTrue(reply.exists(within: 5))
         XCTAssertEqual(composer.placeholderValue, "Ask Anything")
-        // Its text on the reply's left edge, and the messages scroll on under it.
+        // Its text on the reply's left edge.
         XCTAssertEqual(composer.frame.minX, reply.frame.minX, accuracy: 1)
-        XCTAssertGreaterThanOrEqual(element("chat.\(pane)", in: window).frame.maxY, composer.frame.maxY)
+        // Grown to 10 lines in a small window, it keeps the last message clear of it.
+        let origin = window.coordinate(withNormalizedOffset: .zero)
+        let corner = origin.withOffset(CGVector(dx: window.frame.width - 2, dy: window.frame.height - 2))
+        corner.click(forDuration: 0.1, thenDragTo: origin.withOffset(CGVector(dx: 440, dy: 300)))
+        for _ in 1 ... 9 {
+            app.typeKey(.return, modifierFlags: .shift)
+        }
+        XCTAssertTrue(
+            until(2) { composer.frame.height > 150 && reply.frame.maxY <= composer.frame.minY },
+            "\(reply.frame)",
+        )
         keepScreenshot("floating chat", of: window)
+        app.typeKey("a", modifierFlags: .command)
+        app.typeKey(.delete, modifierFlags: [])
         element("pane.\(pane).view.tui", in: window).click()
         XCTAssertTrue(composer.vanishes(within: 3))
         XCTAssertTrue(hasKeyboard("terminal.\(pane)", in: window))
@@ -181,7 +193,7 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
         element("tab.\(tab)").click()
         // The TUI first, as at every launch.
-        XCTAssertTrue(element("pane.\(pane).view.chat").exists(within: 10))
+        XCTAssertTrue(element("pane.\(pane).view.tui").has(\.isSelected, true, within: 10))
         element("pane.\(pane).view.chat").click()
         XCTAssertTrue(row(pane, "reply", "You chose Pear.").exists(within: 5))
     }
@@ -199,14 +211,14 @@ extension OrielUITests {
         XCTAssertTrue(row(pane, "reply", "You chose Pear.").exists(within: 5))
     }
 
-    /// Claude Code started by hand has no chat: Enable Chat starts it again with the flags, in the same session (its
-    /// reply from before shows in the chat). Its tab shows the session's title, none yet.
+    /// Claude Code started by hand has no chat: Relaunch with Chat starts it again with the flags, in the same session
+    /// (its reply from before shows in the chat). Its tab shows the session's title, none yet.
     func testEnableChatStartsAnAgentAgainInItsSession() async throws {
         let (tab, pane) = try await startChat(["-appearance", "dark"], chat: false, plain: true)
         let enable = element("pane.\(pane).enable-chat")
         XCTAssertTrue(enable.exists(within: 10))
         XCTAssertEqual(enable.label, "Relaunch with Chat")
-        // Row 1 the session's title, row 2 the button where Chat | Terminal sits.
+        // Row 1 the session's title, row 2 the button where Chat | TUI sits.
         XCTAssertTrue(until(3) { self.twoRows(pane, title: "Untitled", above: "pane.\(pane).enable-chat") })
         let label = { self.element("tab.\(tab)").label }
         XCTAssertTrue(until(3) { label().contains("Claude Code Untitled") }, label())
