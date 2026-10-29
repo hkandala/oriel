@@ -94,6 +94,7 @@ struct PluginToolbar: View {
                 JumpBar(plugin: plugin)
                 Spacer(minLength: 0)
             case .preview: PreviewBar(plugin: plugin)
+            case .markdown: MarkdownBar(plugin: plugin)
             default:
                 Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
                     .truncationMode(.middle)

@@ -56,6 +56,7 @@ struct CommandList {
                     }),
             Command(section: .file, title: "Save", key: .init("s"), symbol: "square.and.arrow.down",
                     enabled: editor != nil) { page?.editor?.web.send(["op": "save"]) },
+            Self.editMode { page?.editor },
         ]
         let close = [
             Command(section: .close, title: "Close Tab", key: .closeTab, group: .tabs, symbol: "xmark.rectangle",
