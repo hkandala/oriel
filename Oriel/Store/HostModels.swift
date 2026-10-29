@@ -313,8 +313,8 @@ extension HostStore {
 
 extension HostStore {
     /// Reads its agent's session title again (`Exec.sessionTitle`) when the session, the terminal title or the status
-    /// changes: Claude Code and pi put a new title in the terminal's, and Codex and OpenCode name a session during its
-    /// first turn. Through the program asks' gate: a session's first snapshot has every agent at once.
+    /// changes: agents name a session during a turn, and pi's `/name` retitles its terminal. Through the program asks'
+    /// gate: a session's first snapshot has every agent at once.
     func watchTitle(_ pane: Pane, _ new: HerdrKit.Pane) {
         let session = new.agentSession.flatMap { $0.agent == new.agent ? $0.value : nil }
         if pane.session != session {

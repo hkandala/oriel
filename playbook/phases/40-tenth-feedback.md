@@ -129,3 +129,30 @@ agent    row 1: Session title ·························
   of its later paragraphs; left as is.
 - **For the user:** a long tool output scrolls inside its 180 pt box under the wheel, then the chat scrolls; check
   the feel with a real agent. Check the model line with Claude Code, Codex and OpenCode once track B lands.
+
+### Track B
+
+- **Cause (titles):** each agent keeps its title in its own place. Claude Code writes `ai-title` lines into its
+  transcript (`custom-title` after `/rename`, which wins); Codex keeps `thread_name` in `~/.codex/session_index.jsonl`;
+  pi writes `session_info` with `/name` only (it names nothing itself); OpenCode has `session.title` in its database
+  (`New session - …` until it names one). herdr's `agent_session` on each pane gives the session: an id for Claude
+  Code, Codex and OpenCode, the file for pi.
+- **Fix (titles):** one short `sh` run per agent pane on its machine reads the title, again when the session, the
+  terminal title or the status changes (through the program asks' gate). Shown as the user's herdr label, else the
+  title, else "New Session": the Agents view's rows and the tab (`Claude Code` then the title, dimmed).
+- **Fix (Enable Chat):** an agent herdr knows, with a session herdr knows and no launch marker, gets Enable Chat
+  where Chat · Terminal sits. It stops a turn or dialog (asking first, in an alert), clears the prompt with ⌃C, types
+  the agent's quit command, waits for the shell, then types the chooser's launch line with the resume arguments
+  (`--resume <id>`, `resume <id>`, `--session '<file>'`, `--session <id>`) under the chooser's loader. Claude Code's
+  marker is now the hooks' folder in `--settings`, so a resumed launch is a chat pane too.
+- **Fix (model, effort):** `chat.model` and `chat.effort` (String?) from the last reply: Claude Code's `effort` line
+  field, Codex's `turn_context.effort`, pi's `thinkingLevel`, OpenCode's `variant`.
+- **Decisions:** no session from herdr hides Enable Chat (no file scan for one). No title source for an agent herdr's
+  integration does not report: "New Session". A resumed launch has no bare-command fallback (it would start a new
+  session). Codex shows its old history only after the first message (its hook runs then).
+- **Spike:** herdr 0.9.5 takes `pane.report_agent_session` from the CLI for Claude Code and Codex ids, but not for a
+  pi file (dropped silently), so the UI test uses Claude Code's stand-in.
+- **For the user:** Enable Chat on a real Claude Code, Codex, pi and OpenCode started by hand (idle, and working:
+  the alert), and that each comes back in the same session with its chat. That Codex's `codex -c … resume <id>`
+  keeps the hook. The titles of real sessions in the tab and the Agents view, and a `/rename` (Claude Code), `/name`
+  (pi).
