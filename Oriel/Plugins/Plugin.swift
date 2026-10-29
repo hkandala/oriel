@@ -123,6 +123,9 @@ final class Plugin {
     @ObservationIgnored var file: FileText?
     /// A preview card's file (`Page.preview`).
     @ObservationIgnored var preview: Preview?
+    /// Markdown: Edit mode, else Read; its outline shows.
+    var editing = false
+    var outline = false
 
     init(terminalID: String, paneID: String, label: PaneLabel) {
         self.terminalID = terminalID

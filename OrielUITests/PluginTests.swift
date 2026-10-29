@@ -4,8 +4,8 @@ import XCTest
 /// card with two header rows.
 extension OrielUITests {
     /// The chooser's Changes and ⌘K Open Files Here make labeled panes in the pane's place, rooted at its git
-    /// repository. File, Preview and Markdown cards from their labels, their tabs titled by kind and file; an edit
-    /// shows the dirty dot. The cards come back after a relaunch.
+    /// repository. File, Preview and Markdown cards from their labels, their tabs titled by kind and file. The
+    /// cards come back after a relaunch.
     func testPluginPanesOpenFromTheChooserThePaletteAndLinks() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("plugins")
@@ -51,7 +51,7 @@ extension OrielUITests {
     }
 
     /// A tab per file kind made as Oriel makes one (`layout.apply` with the label and a placeholder): its card, Open
-    /// With on This Mac, the tab's title; typing into the markdown placeholder shows the dirty dot.
+    /// With on This Mac, the tab's title.
     private func fileCards(in repo: String, root: String) async throws {
         for (kind, name) in [("file", "main.swift"), ("preview", "icon.png"), ("markdown", "notes.md")] {
             let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
@@ -67,12 +67,6 @@ extension OrielUITests {
             XCTAssertTrue(element("pane.\(pane).title").has(\.stringValue, name, within: 3))
             XCTAssertTrue(element("pane.\(pane).open-with").exists)
             XCTAssertTrue(element("tab.\(tab)").has(\.label, "\(kind.capitalized) \(name)", within: 3))
-            guard kind == "markdown" else { continue }
-            XCTAssertFalse(element("pane.\(pane).dirty").exists)
-            element("markdown.\(pane).text").click()
-            app.typeText("# Notes")
-            XCTAssertTrue(element("pane.\(pane).dirty").exists(within: 3))
-            keepScreenshot("markdown card, edited")
         }
     }
 }

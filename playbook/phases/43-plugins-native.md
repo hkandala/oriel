@@ -119,3 +119,35 @@ Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track ow
   is the scroll view's magnification; Fit fits, Actual Size is 100 %.
 - **For the user:** check the colors of a few languages, a long wrapped line, ⌘F and ⌘G, ⌘Z after an edit, a reload
   while you type, a PDF's page count while you scroll, and Read Only on a remote file over 4 MiB.
+
+### Track B
+
+- **Decisions:** Read draws with the chat's swift-markdown renderer (`Markdown`, whose links now go to the
+  caller's `openURL`), in a centered 640 pt column, one `Markdown` per section in a lazy stack: the text is cut
+  before each top-level heading, because a ScrollViewReader reaches only its scroll view's own rows (ids inside
+  `Markdown`'s blocks were never found: the outline's scroll did not move on CI). Each section gets the file's link
+  reference definitions. Paragraphs reflow, code blocks and tables get their fill, front matter is left out.
+- **Decisions:** MarkdownEngine (0.15.0) is Edit only: it keeps the file's own text, so hard-wrapped lines stay
+  lines; tables draw as a grid, task boxes as boxes. It has no front-matter option and draws `---` as a rule:
+  Edit splits the front matter off its text and shows it above, in the engine's scrolling header, as editable
+  plain monospaced text (as the web variant); the file saves whole.
+- **Decisions:** above 128 KB both modes show MarkdownEngine's raw source mode (no styling, editable in Edit), not
+  the file card's `CodeView`: the same view, no tie to track A's editor. The web variant has no such gate.
+- **Decisions:** links open from Read only: http(s) in the browser plugin, a relative or absolute path or `file:`
+  in the kind `PluginKind.opening` gives (a folder too: its info view, not Files), `#heading` scrolls to the
+  heading (GitHub's anchor), `mailto:` with the Mac's mail app, any other scheme nothing (a cloned repo's file is
+  outside input). In Edit a click on a link puts the caret there (an event monitor takes the press from
+  MarkdownEngine, which gives every link to the Mac's browser, a relative path as `https://path`); a drag that
+  starts on a link selects nothing. Images show as their alt text, a link; none loads.
+- **Decisions:** MarkdownEngine hands out no text view: an anchor view under it takes the first responder or the
+  view under its middle, if it lies in the anchor's frame, for the outline's jump, a linked open's line (when the
+  view takes the keyboard), the link clicks, undo cleared after a reload from disk, and `usesFindBar`. Find works
+  in Edit and a big file's text only (Read is SwiftUI text; the web variant's Read finds). Edit has straight
+  quotes and no autocorrection. ⌘E is View ▸ Edit Mode with a checkmark; it holds the key only while a markdown
+  card has the keyboard (a disabled item would swallow a terminal's ⌘E). The outline starts hidden, Read is the
+  default; neither is saved. An Obsidian `[[Name|alias]]` before a heading moves Edit's jump to it by the alias's
+  length.
+- **Decisions:** the outline is swift-markdown's headings but front matter's (its closing `---` would make a
+  setext heading); parsed off the main actor while the outline shows.
+- **For the user:** Read and Edit look different (two engines: heading sizes, list spacing); text selection in
+  Read stops at a block's edge; an overview tile shows the first screen of Read.

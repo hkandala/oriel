@@ -26,6 +26,7 @@ struct PluginCard: View {
             case .diff: DiffContent(plugin: plugin, page: page)
             case .file: FileCard(plugin: plugin, page: page)
             case .preview: PreviewCard(plugin: plugin, page: page)
+            case .markdown: MarkdownCard(plugin: plugin, page: page)
             default: PluginPlaceholder(plugin: plugin, page: page)
             }
         }
@@ -68,7 +69,7 @@ private struct PluginPlaceholder: View {
                 Button("Open in New Tab") { Task { await page.open(plugin.kind, arg: plugin.label.arg) } }
                     .accessibilityIdentifier("\(id).open")
             }
-            if plugin.kind == .file || plugin.kind == .markdown {
+            if plugin.kind == .file {
                 TextEditor(text: $text).font(.system(size: 12, design: .monospaced)).scrollContentBackground(.hidden)
                     .focused($focused)
                     .onChange(of: text) { plugin.dirty = true }
@@ -145,6 +146,7 @@ struct PluginToolbar: View {
             switch plugin.kind {
             case .file: JumpBar(plugin: plugin, file: page.fileText(plugin))
             case .preview: PreviewBar(plugin: plugin, preview: page.preview(plugin))
+            case .markdown: MarkdownToolbar(plugin: plugin, page: page)
             default:
                 Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
                     .truncationMode(.middle)
