@@ -37,7 +37,7 @@ let package = Package(
         .target(
             name: "Grammars",
             dependencies: [.product(name: "SwiftTreeSitter", package: "swift-tree-sitter")] + grammars.map {
-                .product(name: $0.product, package: String($0.url.split(separator: "/").last!))
+                .product(name: $0.product, package: $0.url.split(separator: "/").last.map(String.init) ?? "")
             },
             swiftSettings: [.treatAllWarnings(as: .error)],
         ),

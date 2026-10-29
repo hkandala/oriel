@@ -9,7 +9,9 @@ import UniformTypeIdentifiers
 @MainActor @Observable
 final class Preview {
     enum Content {
-        case image(NSImage), pdf(PDFDocument), media(URL)
+        case image(NSImage), pdf(PDFDocument)
+        /// The file to play, and its hash: the player starts again when the file changes.
+        case media(URL, String)
         /// Why there is nothing to show, if not the file's type.
         case info(String?)
     }
@@ -24,7 +26,7 @@ final class Preview {
     @ObservationIgnored weak var scroll: NSScrollView?
     @ObservationIgnored weak var pdf: PDFView?
     /// Weak: the plugin keeps this.
-    private weak var plugin: Plugin?
+    private(set) weak var plugin: Plugin?
     private let machine: Machine
     @ObservationIgnored private var hash: String?
 
@@ -64,15 +66,19 @@ final class Preview {
             } else if type.conforms(to: .image) {
                 content = NSImage(data: contents.data).map(Content.image) ?? .info("Not an image")
             } else if machine.isRemote {
-                // The player reads a file. ponytail: one per card in the temporary folder, which the system empties.
-                let copy = FileManager.default.temporaryDirectory
-                    .appending(path: "oriel-preview-\(plugin?.label.iid ?? "").\((path as NSString).pathExtension)")
+                // The player reads a file. ponytail: one per version in the temporary folder, which the system
+                // empties.
+                let copy = FileManager.default.temporaryDirectory.appending(
+                    path: "oriel-preview-\(contents.hash.filter(\.isNumber)).\((path as NSString).pathExtension)",
+                )
                 try contents.data.write(to: copy)
-                content = .media(copy)
+                content = .media(copy, contents.hash)
             } else {
-                content = .media(URL(filePath: path))
+                content = .media(URL(filePath: path), contents.hash)
             }
         } catch {
+            // A file that comes back the same shows again.
+            hash = nil
             content = .info(FileText.reason(error))
         }
     }
@@ -122,13 +128,13 @@ struct PreviewCard: View {
             case let .image(image): ImageScroll(image: image, preview: preview).accessibilityIdentifier("\(id).image")
             case let .pdf(document): PDFPages(document: document, preview: preview)
                 .accessibilityIdentifier("\(id).pdf")
-            case let .media(url): Player(url: url).accessibilityIdentifier("\(id).player")
+            case let .media(url, version): Player(url: url, plugin: plugin).id(version)
+                .accessibilityIdentifier("\(id).player")
             case let .info(note): FileInfo(plugin: plugin, page: page, note: note)
             case nil: PluginLoader(kind: .preview)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .padding([.horizontal, .bottom], 6)
+        .takesKeyboard(plugin, page)
         .task(id: plugin.label.arg) {
             if isEnabled {
                 await preview.run()
@@ -176,6 +182,7 @@ struct FileInfo: View {
     let page: Page
     let note: String?
     @State private var size: Int?
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         let path = plugin.label.arg, type = UTType(filenameExtension: (path as NSString).pathExtension) ?? .data
@@ -196,7 +203,11 @@ struct FileInfo: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).info")
-        .task(id: path) { size = try? await Files.size(path, exec: page.store.machine.exec()) }
+        .task(id: path) {
+            if isEnabled {
+                size = try? await Files.size(path, exec: page.store.machine.exec())
+            }
+        }
     }
 }
 
@@ -218,6 +229,7 @@ private struct ImageScroll: NSViewRepresentable {
         scroll.documentView = NSImageView()
         if context.environment.isEnabled {
             preview.scroll = scroll
+            scroll.addGestureRecognizer(KeyboardClick(preview.plugin))
         }
         return scroll
     }
@@ -257,49 +269,116 @@ private struct PDFPages: NSViewRepresentable {
     let document: PDFDocument
     let preview: Preview
 
+    func makeCoordinator() -> Pages {
+        Pages(preview)
+    }
+
     func makeNSView(context: Context) -> PDFView {
         let view = PDFView()
         view.autoScales = true
         view.backgroundColor = .clear
         guard context.environment.isEnabled else { return view }
         preview.pdf = view
-        NotificationCenter.default
-            .addObserver(forName: .PDFViewPageChanged, object: view, queue: .main) { [weak view] _ in
-                MainActor.assumeIsolated {
-                    if let view {
-                        shown(view)
-                    }
-                }
-            }
+        view.addGestureRecognizer(KeyboardClick(preview.plugin))
+        // By selector: the center lets go of the coordinator by itself.
+        NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Pages.changed),
+                                               name: .PDFViewPageChanged, object: view)
         return view
     }
 
-    func updateNSView(_ view: PDFView, context _: Context) {
+    func updateNSView(_ view: PDFView, context: Context) {
         if view.document !== document {
             view.document = document
-            shown(view)
+            context.coordinator.changed(Notification(name: .PDFViewPageChanged, object: view))
         }
     }
 
-    private func shown(_ view: PDFView) {
-        guard let document = view.document else { return }
-        preview.page = ((view.currentPage.map(document.index) ?? 0) + 1, document.pageCount)
+    final class Pages: NSObject {
+        private weak var preview: Preview?
+
+        init(_ preview: Preview) {
+            self.preview = preview
+        }
+
+        @objc func changed(_ note: Notification) {
+            guard let view = note.object as? PDFView, view === preview?.pdf,
+                  let document = view.document else { return }
+            preview?.page = ((view.currentPage.map(document.index) ?? 0) + 1, document.pageCount)
+        }
     }
 }
 
-/// The system player for audio and video.
+/// The system player for audio and video; a new file makes a new one (`id`).
 private struct Player: NSViewRepresentable {
     let url: URL
+    let plugin: Plugin
 
-    func makeNSView(context _: Context) -> AVPlayerView {
+    func makeNSView(context: Context) -> AVPlayerView {
         let view = AVPlayerView()
         view.controlsStyle = .inline
+        view.player = AVPlayer(url: url)
+        if context.environment.isEnabled {
+            view.addGestureRecognizer(KeyboardClick(plugin))
+        }
         return view
     }
 
-    func updateNSView(_ view: AVPlayerView, context _: Context) {
-        if (view.player?.currentItem?.asset as? AVURLAsset)?.url != url {
-            view.player = AVPlayer(url: url)
-        }
+    func updateNSView(_: AVPlayerView, context _: Context) {}
+}
+
+extension View {
+    /// A content that is no text view takes the keyboard, as phase 42's placeholder: on a click, and when the page
+    /// gives it to the card.
+    func takesKeyboard(_ plugin: Plugin, _ page: Page) -> some View {
+        modifier(TakesKeyboard(plugin: plugin, page: page))
+    }
+}
+
+private struct TakesKeyboard: ViewModifier {
+    let plugin: Plugin
+    let page: Page
+    @FocusState private var focused: Bool
+    /// False in an overview tile, which leaves the keyboard to the card.
+    @Environment(\.isEnabled) private var isEnabled
+
+    func body(content: Content) -> some View {
+        content
+            .focusable()
+            .focusEffectDisabled()
+            .focused($focused)
+            .simultaneousGesture(TapGesture().onEnded { plugin.wantsKeyboard = true })
+            .onChange(of: plugin.wantsKeyboard, initial: true) {
+                if plugin.wantsKeyboard, isEnabled {
+                    plugin.wantsKeyboard = false
+                    Task { focused = true }
+                }
+            }
+            .onChange(of: focused) {
+                if focused {
+                    page.terminals.claimed(plugin.terminalID)
+                }
+            }
+    }
+}
+
+/// A click on a preview's AppKit view, which SwiftUI's taps miss: the card takes the keyboard (`takesKeyboard`).
+private final class KeyboardClick: NSClickGestureRecognizer {
+    private weak var plugin: Plugin?
+
+    init(_ plugin: Plugin?) {
+        self.plugin = plugin
+        super.init(target: nil, action: nil)
+        target = self
+        action = #selector(clicked)
+        delaysPrimaryMouseButtonEvents = false
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("init(coder:) is not used")
+    }
+
+    @objc private func clicked() {
+        plugin?.wantsKeyboard = true
     }
 }

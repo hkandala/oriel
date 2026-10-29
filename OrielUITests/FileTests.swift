@@ -1,14 +1,15 @@
 import XCTest
 
-/// The file and preview cards (phase 43, track A): a file's text that edits, saves and follows the disk; images, PDFs
-/// and other files in the preview.
+/// The file and preview cards (phase 43, track A): a file's text that edits, saves and follows the disk; images, PDFs,
+/// audio and other files in the preview.
 extension OrielUITests {
-    /// The text with colors' tree behind the jump bar's symbol; an edit shows the dirty dot and ⌘S writes it; a change
-    /// on disk reloads a clean card and asks on a dirty one; ⌘F shows the find bar; the overview's tile is a file.
+    /// The tree behind the jump bar's symbol; an edit shows the dirty dot and ⌘S writes it; a change on disk reloads a
+    /// clean card and asks on a dirty one; a save over a changed disk asks; undo, find, and the overview's tile.
     func testFileCardEditsSavesAndFollowsTheDisk() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("file")
         let folder = "/tmp/oriel-e2e-file"
+        removeAfter(folder, shell: shell)
         let swift = #"struct Box {\n    func open() {}\n}\n"#
         try await run("rm -rf \(folder) && mkdir \(folder) && printf '\(swift)' >\(folder)/main.swift", in: shell)
         let pane = try await openPlugin("file", "\(folder)/main.swift")
@@ -43,27 +44,54 @@ extension OrielUITests {
         app.typeText("x")
         XCTAssertTrue(dirty.exists(within: 3))
         try await run("printf 'let disk = 2\\n' >\(folder)/main.swift", in: shell)
-        let toast = element("pane.\(pane).toast")
-        XCTAssertTrue(toast.has(\.stringValue, "main.swift changed on disk.", within: 5))
+        XCTAssertTrue(element("pane.\(pane).toast").has(\.stringValue, "main.swift changed on disk.", within: 5))
         element("pane.\(pane).toast.other").click()
         XCTAssertTrue(text.has(\.stringValue, "let disk = 2\n", within: 3))
         XCTAssertTrue(dirty.vanishes(within: 3))
-        try await keepMineFindAndOverview(pane, shell: shell, folder: folder)
+
+        try await keepMineAndOverwrite(pane, shell: shell, folder: folder)
+        try await undoFindAndOverview(pane)
     }
 
-    private func keepMineFindAndOverview(_ pane: String, shell: String, folder: String) async throws {
-        let text = element("file.\(pane).text")
-        // Keep Mine keeps the edit, and the next ⌘S writes it over the disk's.
+    /// Keep Mine keeps the edit for the next ⌘S; a ⌘S over a disk changed since asks, and Overwrite writes.
+    private func keepMineAndOverwrite(_ pane: String, shell: String, folder: String) async throws {
+        let text = element("file.\(pane).text"), dirty = element("pane.\(pane).dirty")
+        let toast = element("pane.\(pane).toast")
         text.click()
         app.typeKey(.downArrow, modifierFlags: .command)
         app.typeText("// mine")
         try await run("printf 'let again = 3\\n' >\(folder)/main.swift", in: shell)
-        XCTAssertTrue(element("pane.\(pane).toast").exists(within: 5))
+        XCTAssertTrue(toast.exists(within: 5))
         element("pane.\(pane).toast.main").click()
         XCTAssertTrue(text.stringValue.hasSuffix("// mine"))
         app.typeKey("s", modifierFlags: .command)
-        XCTAssertTrue(element("pane.\(pane).dirty").vanishes(within: 5))
+        XCTAssertTrue(dirty.vanishes(within: 5))
         try await run("grep -q '^// mine$' \(folder)/main.swift", in: shell)
+
+        text.click()
+        app.typeKey(.downArrow, modifierFlags: .command)
+        app.typeText(" over")
+        try await run("printf 'let other = 4\\n' >\(folder)/main.swift", in: shell)
+        XCTAssertTrue(toast.exists(within: 5))
+        // The toast's question is left; the save finds the disk changed.
+        app.typeKey("s", modifierFlags: .command)
+        XCTAssertTrue(toast.has(\.stringValue, "main.swift changed on disk since you opened it.", within: 5))
+        XCTAssertTrue(dirty.exists)
+        element("pane.\(pane).toast.other").click()
+        XCTAssertTrue(dirty.vanishes(within: 5))
+        try await run("grep -q '^// mine over$' \(folder)/main.swift", in: shell)
+    }
+
+    /// ⌘Z takes an edit back; ⌘F shows the find bar; the overview borrows the text view, and the card has it back.
+    private func undoFindAndOverview(_ pane: String) async throws {
+        let text = element("file.\(pane).text")
+        let before = text.stringValue
+        text.click()
+        app.typeKey(.upArrow, modifierFlags: .command)
+        app.typeText("q")
+        XCTAssertTrue(text.has(\.stringValue, "q" + before, within: 2))
+        app.typeKey("z", modifierFlags: .command)
+        XCTAssertTrue(text.has(\.stringValue, before, within: 2))
 
         app.typeKey("f", modifierFlags: .command)
         XCTAssertTrue(element("file.\(pane).card").searchFields.firstMatch.exists(within: 3))
@@ -73,19 +101,64 @@ extension OrielUITests {
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(element("overview.card.\(pane)").has(\.stringValue, "file", within: 5))
         app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(text.has(\.isHittable, true, within: 5))
+        text.click()
+        app.typeText("w")
+        XCTAssertTrue(element("pane.\(pane).dirty").exists(within: 3))
     }
 
-    /// An image with zoom that reloads from disk, a PDF with its page, another file's info view.
-    func testPreviewCardShowsImagesPDFsAndOtherFiles() async throws {
+    /// An image with zoom that reloads from disk, a PDF's pages, audio, another file's info view; a click gives a
+    /// preview the keyboard.
+    func testPreviewCardShowsImagesPDFsAudioAndOtherFiles() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("preview")
         let folder = "/tmp/oriel-e2e-preview"
+        removeAfter(folder, shell: shell)
         let icon = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericDocumentIcon.icns"
+        // A WAV of silence: its header, then 2048 bytes.
+        let wav = #"RIFF\x24\x08\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00\x40\x1f\x00\x00\x40\x1f\x00\x00"#
+            + #"\x01\x00\x08\x00data\x00\x08\x00\x00"#
         try await run("""
         rm -rf \(folder) && mkdir \(folder) && cd \(folder) && sips -s format png \(icon) --out icon.png >/dev/null && \
-        sips -s format pdf icon.png --out doc.pdf >/dev/null && printf 'zip' >data.zip
+        seq 1 150 >n.txt && cupsfilter n.txt >three.pdf 2>/dev/null && printf 'zip' >data.zip && \
+        printf '\(wav)' >a.wav && head -c 2048 /dev/zero >>a.wav
         """, in: shell)
 
+        try await imageZoomsAndReloads(folder, shell: shell)
+
+        let pdf = try await openPlugin("preview", "\(folder)/three.pdf")
+        let pages = element("preview.\(pdf).pdf"), page = element("pane.\(pdf).page")
+        XCTAssertTrue(page.has(\.stringValue, "1 of 3", within: 5))
+        // Down, whichever way the wheel goes here.
+        pages.scroll(byDeltaX: 0, deltaY: -3000)
+        if !until(1, { page.stringValue != "1 of 3" }) {
+            pages.scroll(byDeltaX: 0, deltaY: 3000)
+        }
+        XCTAssertTrue(until(2) { page.stringValue != "1 of 3" }, page.stringValue)
+
+        let audio = try await openPlugin("preview", "\(folder)/a.wav")
+        XCTAssertTrue(element("preview.\(audio).player").exists(within: 5))
+        XCTAssertFalse(element("pane.\(audio).zoom.fit").exists)
+
+        let other = try await openPlugin("preview", "\(folder)/data.zip")
+        let info = element("preview.\(other).info")
+        XCTAssertTrue(info.exists(within: 5))
+        XCTAssertTrue(info.label.contains("data.zip"), info.label)
+        // A click gives it the keyboard from the terminal beside it: ⌘W closes the preview.
+        let terminal = try await split(other)
+        element("terminal.\(terminal)").click()
+        XCTAssertTrue(hasKeyboard("terminal.\(terminal)"))
+        info.click()
+        app.typeKey("w", modifierFlags: .command)
+        try await expect("\(other) closed") {
+            let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
+            let ids = panes.compactMap { $0["pane_id"] as? String }
+            return !ids.contains(other) && ids.contains(terminal)
+        }
+    }
+
+    /// Actual Size, then bigger; a smaller image on disk replaces it.
+    private func imageZoomsAndReloads(_ folder: String, shell: String) async throws {
         let image = try await openPlugin("preview", "\(folder)/icon.png")
         let picture = element("preview.\(image).image").images.firstMatch
         XCTAssertTrue(picture.exists(within: 5))
@@ -96,20 +169,15 @@ extension OrielUITests {
         element("pane.\(image).zoom.in").click()
         XCTAssertTrue(until(2) { picture.frame.width > actual * 1.2 }, "\(picture.frame.width) after \(actual)")
         keepScreenshot("preview card, image")
-        // A smaller image on disk: shown at its actual size.
         try await run("sips -z 64 64 \(folder)/icon.png >/dev/null", in: shell)
-        XCTAssertTrue(until(5) { abs(picture.frame.width - 64) < 2 }, "\(picture.frame.width)")
+        XCTAssertTrue(until(5) { picture.frame.width < actual / 4 }, "\(picture.frame.width) after \(actual)")
+    }
 
-        let pdf = try await openPlugin("preview", "\(folder)/doc.pdf")
-        XCTAssertTrue(element("preview.\(pdf).pdf").exists(within: 5))
-        XCTAssertTrue(element("pane.\(pdf).page").has(\.stringValue, "1 of 1", within: 3))
-        XCTAssertTrue(element("pane.\(pdf).zoom.fit").exists)
-
-        let other = try await openPlugin("preview", "\(folder)/data.zip")
-        let info = element("preview.\(other).info")
-        XCTAssertTrue(info.exists(within: 5))
-        XCTAssertTrue(info.label.contains("data.zip"), info.label)
-        XCTAssertFalse(element("pane.\(other).zoom.fit").exists)
+    /// After the test, before its tab closes.
+    private func removeAfter(_ folder: String, shell: String) {
+        addTeardownBlock { [one] in
+            _ = try? await Self.call(one, "pane.send_text", ["pane_id": shell, "text": "rm -rf \(folder)\r"])
+        }
     }
 
     /// Runs the command in the shell pane and waits for it to succeed.
@@ -123,12 +191,8 @@ extension OrielUITests {
     private func openPlugin(_ kind: String, _ path: String) async throws -> String {
         let iid = String(UUID().uuidString.lowercased().filter(\.isHexDigit).prefix(6))
         let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
-            "type": "pane", "cwd": "/tmp", "label": "oriel:\(kind)#\(iid) \(path)", "command": [
-                "sh",
-                "-c",
-                "cat",
-                "sh",
-            ],
+            "type": "pane", "cwd": "/tmp", "label": "oriel:\(kind)#\(iid) \(path)",
+            "command": ["sh", "-c", "cat", "sh"],
         ]])
         let layout = reply["layout"] as? [String: Any]
         let tab: String = try field(layout?["tab_id"], "layout's tab")

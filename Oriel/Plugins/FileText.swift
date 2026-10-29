@@ -57,15 +57,18 @@ final class FileText {
 
     /// The disk's file, when it is new: the text, unless it has edits: then a toast asks.
     private func check(_ exec: any Exec) async {
+        let known = hash
         do {
             let contents = try await Files.read(path, exec: exec)
-            guard contents.hash != hash, !saving else { return }
+            // Not when a save ended meanwhile: the read may be older than it.
+            guard contents.hash != hash, hash == known, !saving else { return }
             guard loaded, plugin?.dirty == true else { return apply(contents) }
             plugin?.toast = Toast(text: "\(name) changed on disk.",
                                   other: ("Reload", { [weak self] in self?.apply(contents) }),
                                   main: ("Keep Mine", { [weak self] in self?.hash = contents.hash }))
         } catch {
-            if !loaded {
+            // A file gone keeps its text, which a save writes again; one grown too large shows the info view.
+            if !loaded || error is FileError {
                 failure = FileText.reason(error)
             }
         }
@@ -73,12 +76,14 @@ final class FileText {
 
     /// ⌘S.
     func save() async {
-        guard loaded, !readOnly else { return }
+        guard loaded, !readOnly, failure == nil else { return }
         await write(replacing: hash)
     }
 
     /// nil: Overwrite, whatever the disk holds.
     private func write(replacing hash: String?) async {
+        // A second ⌘S while one saves would find the first one's hash on disk.
+        guard !saving else { return }
         let saved = text
         saving = true
         defer { saving = false }
@@ -107,14 +112,15 @@ final class FileText {
 
     /// The file's bytes as the text, clean.
     private func apply(_ contents: FileContents) {
-        guard !contents.data.contains(0), let string = String(data: contents.data, encoding: .utf8) else {
+        hash = contents.hash
+        // A byte order mark stays in the text, so a save keeps it.
+        guard !contents.data.contains(0), let string = String(validating: contents.data, as: UTF8.self) else {
             failure = "Not a text file"
             return
         }
         loading = true
         text = string
         loading = false
-        hash = contents.hash
         readOnly = machine.isRemote && contents.data.count > Files.remoteEditLimit
         failure = nil
         loaded = true

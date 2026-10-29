@@ -7,7 +7,8 @@ extension CommandList {
         let file = plugin?.file
         return [
             Command(section: .close, title: "Save", key: .init("s"), symbol: "square.and.arrow.down",
-                    keywords: "file write", enabled: file?.loaded == true && file?.readOnly == false, action: {
+                    keywords: "file write",
+                    enabled: file?.loaded == true && file?.readOnly == false && file?.failure == nil, action: {
                         Task { await file?.save() }
                     }),
         ]

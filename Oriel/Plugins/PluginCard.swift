@@ -29,6 +29,9 @@ struct PluginCard: View {
             default: PluginPlaceholder(plugin: plugin, page: page)
             }
         }
+        // As the browser's page.
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .padding([.horizontal, .bottom], 6)
         .overlay(alignment: .top) {
             if let toast = plugin.toast {
                 ToastView(toast: toast, plugin: plugin).padding(.top, 6)
@@ -80,7 +83,6 @@ private struct PluginPlaceholder: View {
                     .onTapGesture { focused = true }
             }
         }
-        .padding([.horizontal, .bottom], PaneCard.inset)
         .onChange(of: plugin.wantsKeyboard, initial: true) {
             if plugin.wantsKeyboard, isEnabled {
                 plugin.wantsKeyboard = false

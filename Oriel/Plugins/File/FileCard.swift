@@ -13,11 +13,9 @@ struct FileCard: View {
         let file = page.fileText(plugin)
         Group {
             if let failure = file.failure {
-                FileInfo(plugin: plugin, page: page, note: failure)
+                FileInfo(plugin: plugin, page: page, note: failure).takesKeyboard(plugin, page)
             } else if file.loaded {
                 CodeView(file: file, page: page)
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    .padding([.horizontal, .bottom], 6)
             } else {
                 PluginLoader(kind: .file)
             }
@@ -38,7 +36,12 @@ struct JumpBar: View {
     var body: some View {
         let folder = ((file.path as NSString).deletingLastPathComponent as NSString).lastPathComponent
         let name = (file.path as NSString).lastPathComponent
-        let parts = [folder, name, file.symbol].filter { !$0.isEmpty }
+        let type = UTType(filenameExtension: (name as NSString).pathExtension) ?? .plainText
+        let parts = [
+            (Image(systemName: "folder.fill"), folder),
+            (Image(nsImage: NSWorkspace.shared.icon(for: type)).resizable(), name),
+            (Image(systemName: "curlybraces"), file.symbol),
+        ].filter { !$0.1.isEmpty }
         HStack(spacing: 4) {
             ForEach(parts.indices, id: \.self) { index in
                 if index > 0 {
@@ -46,25 +49,22 @@ struct JumpBar: View {
                         .foregroundStyle(.tertiary)
                 }
                 Label {
-                    Text(parts[index]).lineLimit(1)
+                    Text(parts[index].1).lineLimit(1)
                 } icon: {
-                    switch index {
-                    case 0: Image(systemName: "folder.fill").foregroundStyle(.secondary)
-                    case 1: Image(nsImage: NSWorkspace.shared.icon(for: UTType(filenameExtension: (name as NSString)
-                                .pathExtension) ?? .plainText))
-                            .resizable().frame(width: 14, height: 14)
-                    default: Image(systemName: "curlybraces").foregroundStyle(.secondary)
-                    }
+                    parts[index].0.scaledToFit().frame(width: 14, height: 14)
                 }
                 .labelStyle(.titleAndIcon)
                 .foregroundStyle(index == parts.count - 1 ? .primary : .secondary)
             }
         }
-        .fontWeight(.regular)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isStaticText)
         .accessibilityLabel("Jump Bar")
-        .accessibilityValue(parts.joined(separator: " › "))
+        .accessibilityValue(parts.map(\.1).joined(separator: " › "))
         .accessibilityIdentifier("pane.\(plugin.paneID).jump")
+        if file.readOnly {
+            Text("Read Only").foregroundStyle(.secondary).fixedSize()
+                .accessibilityIdentifier("pane.\(plugin.paneID).read-only")
+        }
     }
 }

@@ -16,7 +16,6 @@ struct CodeView: NSViewRepresentable {
         host.clipsToBounds = true
         editor.scroll.removeFromSuperview()
         editor.scroll.frame = host.bounds
-        editor.scroll.autoresizingMask = [.width, .height]
         host.addSubview(editor.scroll)
         return host
     }
@@ -34,7 +33,6 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
     let scroll = CodeTextView.scrollableTextView()
     /// Weak: the file text keeps this.
     private weak var file: FileText?
-    private let page: Page
     private let text: CodeTextView
     private let grammar: Grammar?
     private let parser = Parser()
@@ -48,10 +46,10 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
 
     init(file: FileText, page: Page) {
         self.file = file
-        self.page = page
         space = " ".size(withAttributes: [.font: font]).width
         text = scroll.documentView as? CodeTextView ?? CodeTextView()
-        // ponytail: no colors over 4 MB, where a parse takes about a second; parse off the main actor then.
+        // ponytail: no colors over 4 MB, where a parse takes about a second; parse off the main actor then. The
+        // grammar and the cap hold for the first path and size.
         grammar = file.text.utf8.count <= 4 << 20 ? Grammar.of(file.path) : nil
         super.init()
         if let grammar {
@@ -78,14 +76,11 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
         text.isContinuousSpellCheckingEnabled = false
         text.smartInsertDeleteEnabled = false
         text.textContainerInset = NSSize(width: 4, height: 6)
-        text.setAccessibilityIdentifier("file.\(file.plugin?.paneID ?? "").text")
         text.textLayoutManager?.renderingAttributesValidator = { [weak self] manager, fragment in
             self?.color(fragment, manager)
         }
-        text.focused = { [page, weak plugin = file.plugin] in
-            if let plugin {
-                page.terminals.claimed(plugin.terminalID)
-            }
+        text.focused = { [weak terminals = page.terminals, id = file.plugin?.terminalID ?? ""] in
+            terminals?.claimed(id)
         }
         scroll.drawsBackground = false
         scroll.verticalRulerView = Gutter(text)
@@ -96,11 +91,18 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
     func update() {
         guard let file, let plugin = file.plugin else { return }
         if file.text != shown {
+            // The caret and the scroll stay where they were.
+            let selection = text.selectedRange(), origin = scroll.contentView.bounds.origin
             shown = file.text
             text.string = file.text
             undo.removeAllActions()
+            let length = (file.text as NSString).length
+            text.setSelectedRange(NSRange(location: min(selection.location, length), length: 0))
+            scroll.contentView.scroll(to: origin)
+            scroll.reflectScrolledClipView(scroll.contentView)
         }
         text.isEditable = !file.readOnly
+        text.setAccessibilityIdentifier("file.\(plugin.paneID).text")
         if plugin.wantsKeyboard {
             Task {
                 plugin.wantsKeyboard = false
@@ -161,13 +163,16 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
         }
     }
 
-    /// The tree follows each edit (only byte offsets count: the points tree-sitter also keeps are never read), and
-    /// the lines on screen color again.
+    /// The tree follows each edit, and the lines on screen color again.
+    /// ponytail: the edit's points are zero, as only byte offsets place colors; bash's heredoc scanner reads columns,
+    /// so a heredoc edited on its own line may color wrong. Pass rows and columns when that shows.
     func textStorage(_ storage: NSTextStorage, didProcessEditing mask: NSTextStorageEditActions, range: NSRange,
                      changeInLength delta: Int)
     {
         guard mask.contains(.editedCharacters) else { return }
-        (scroll.verticalRulerView as? Gutter)?.counted = (0, 0)
+        if let gutter = scroll.verticalRulerView as? Gutter, range.location < gutter.counted.offset {
+            gutter.counted = (0, 0)
+        }
         guard grammar != nil else { return }
         let zero = Point(row: 0, column: 0)
         tree?.edit(InputEdit(startByte: range.location * 2, oldEndByte: (range.upperBound - delta) * 2,
@@ -176,12 +181,9 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
         tree = parser.parse(tree: tree) { byte, _ in
             let start = byte / 2, length = min(characters.length - start, 4096)
             guard length > 0 else { return nil }
-            var data = Data(count: length * 2)
-            data.withUnsafeMutableBytes { bytes in
-                characters.getCharacters(bytes.baseAddress!.assumingMemoryBound(to: unichar.self),
-                                         range: NSRange(location: start, length: length))
-            }
-            return data
+            var buffer = [unichar](repeating: 0, count: length)
+            characters.getCharacters(&buffer, range: NSRange(location: start, length: length))
+            return buffer.withUnsafeBytes { Data($0) }
         }
         if let manager = text.textLayoutManager {
             manager.invalidateRenderingAttributes(for: manager.documentRange)

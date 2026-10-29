@@ -27,8 +27,7 @@ public struct Grammar {
     public let language: Language
     public let highlights: Query
 
-    // Made once per language, on first use; nil for a file no grammar reads.
-
+    /// Made once per language, on first use; nil for a file no grammar reads.
     public static func of(_ path: String) -> Grammar? {
         let ext = (path as NSString).pathExtension.lowercased()
         if let made = made[ext] {
