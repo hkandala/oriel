@@ -129,7 +129,8 @@ extension CommandList {
                     enabled: palette != nil) { palette?.wrappedValue.toggle() },
             Command(section: .view, title: "Stay on Top", symbol: "pin", checked: page.floating[terminalID] == true,
                     setting: true) { page.floating[terminalID]?.toggle() },
-            Command(section: .file, title: "Save", key: .init("s"), symbol: "square.and.arrow.down",
+            // The key only over an editor: a disabled item would swallow ⌘S everywhere else.
+            Command(section: .file, title: "Save", key: editor == nil ? nil : .save, symbol: "square.and.arrow.down",
                     enabled: editor != nil) { editor?.web.send(["op": "save"]) },
             Self.editMode { editor },
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",

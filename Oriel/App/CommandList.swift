@@ -54,7 +54,8 @@ struct CommandList {
                     action: {
                         Task { await page?.choosePath(directory: true) }
                     }),
-            Command(section: .file, title: "Save", key: .init("s"), symbol: "square.and.arrow.down",
+            // The key only over an editor: a disabled item would swallow ⌘S everywhere else.
+            Command(section: .file, title: "Save", key: editor == nil ? nil : .save, symbol: "square.and.arrow.down",
                     enabled: editor != nil) { page?.editor?.web.send(["op": "save"]) },
             Self.editMode { page?.editor },
         ]

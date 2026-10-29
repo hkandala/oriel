@@ -82,7 +82,8 @@ extension OrielUITests {
         XCTAssertTrue(element("overview").vanishes(within: 2))
     }
 
-    /// ⇧⌘← (Move Tab Left) selects the line in the editor; ⌘[ (Select Previous Pane) reaches the app.
+    /// ⇧⌘← (Move Tab Left) selects the line in the editor; ⌘[ (Select Previous Pane) reaches the app, and there ⌘F
+    /// is the terminal's Find.
     private func keysStayInTheEditor(_ card: String, shell: String) async throws {
         let editor = element("file.\(card).page").textViews.firstMatch
         editor.click()
@@ -96,6 +97,10 @@ extension OrielUITests {
         XCTAssertEqual(after, order)
         app.typeKey("[", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard("terminal.\(shell)"))
+        // Back in the terminal, ⌘F is its own Find again.
+        app.typeKey("f", modifierFlags: .command)
+        XCTAssertTrue(hasKeyboard(element("find.field")))
+        element("find.close").click()
     }
 
     /// A change on disk while dirty: the toast; Keep Mine keeps the edit and the next ⌘S writes it over the change;

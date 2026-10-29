@@ -21,6 +21,7 @@ extension KeyboardShortcut {
     static let nextTab = KeyboardShortcut("]", modifiers: [.command, .shift])
     static let bigger = KeyboardShortcut("+")
     static let findNext = KeyboardShortcut("g")
+    static let save = KeyboardShortcut("s")
     /// Go to Directory, and Find Previous over a File or Markdown card.
     static let findPrevious = KeyboardShortcut("g", modifiers: [.command, .shift])
 
