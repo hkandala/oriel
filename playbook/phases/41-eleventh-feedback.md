@@ -112,3 +112,17 @@ user's answers to the orchestrator's questions.
    stop every swipe after it. Prove the cause, fix it so the state cannot stick, and test the missed lift.
 
 ## Findings
+
+### Track B
+- **Cause (4):** every plain-text title joined its two parts with a space; only the tab capsule dims the second
+  part, so ⌘K, the Window menu and window titles read `Browser Hacker News`.
+- **Fix (4):** one `plainTitle` joins a title's parts with ` | ` for the tab's text title (⌘K, Window menu, Move Pane
+  to Tab, the window title, close dialog, agent rows), the card's plain title and the floating window's title. The
+  capsule, the hover card and the overview keep the dimmed part.
+- **Cause (5):** the floating window's title row and window title took the pane's program (`zsh tmp`); only the card
+  header checked the chooser. **Fix:** the floating window's title says `New Pane` while the chooser shows.
+- **Cause (6):** the title made room for the × only; the dots sit in the same 28 pt slot. **Fix:** the title fades
+  before them too.
+- **Decisions:** accessibility labels built from these titles carry the bar too (one title string everywhere).
+- **For the user:** ⌘K on a browser, an agent and a shell tab; a long agent tab title while it works; float a new
+  pane (⌘D, then Float) before you pick.
