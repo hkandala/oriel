@@ -58,3 +58,25 @@ Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track ow
   one plain `List`, so the lanes touch from row to row.
 - **For the user:** check a repo with merges (lanes), the split's first position (half and half), Finder icons at 16 pt
   (generic for names the system does not know), and a Files card on a remote machine.
+
+### Track C
+
+- **Decisions:** one TextKit 2 `NSTextView` per column, a paragraph per row (file header, unmodified-lines row, hunk,
+  line, filler), laid out whole at once so every row's top is known; no wrapping, so Side by Side's two views keep
+  their rows level and scroll together. Backgrounds, the old/new gutter and `+`/`−` are drawn in `drawBackground`
+  from those tops (no layout-fragment subclass); word marks are background attributes. Colors are the Look's
+  `finished`/`error`/`working`, as Files' git letters.
+- **Decisions:** the file headers are SwiftUI views over the text, placed at their rows on each scroll; the top file's
+  stays pinned until the next pushes it (sticky). Viewed folds the file and is kept with the file's patch: a file that
+  changes since is not viewed any more. Uncommitted runs the diff again on each `Files.watch` yield of the root while
+  the card shows (git's index refresh writes once, then it is quiet); the text changes only when the patch does.
+- **Decisions:** the source pop-up rewrites the pane's label (`<root> <hash>`), so the title, tab and a relaunch follow
+  it. Previous / Next go from run to run of changed lines across files; "N unmodified lines" has no expand (it needs
+  whole files). Defaults: Unified, file list open (agreed with t44-diff, as the row-2 ids).
+- **Decisions:** `Plugin.place` and `Page.open(_:arg:at:)` carry a linked open's landing (a file's line for ⌘-click, a
+  diff's file for Files' Changes), kept by terminal id until the card is made.
+- **Cause:** NSTextView (TextKit 2) moved the text left by its paragraph indent and kept the first column as narrow as
+  its scroll view; the gutter is now the container inset with no line padding, and the view's size is set from the
+  laid-out width.
+- **For the user:** a big change set (thousands of lines) opens in about 0.2 s; scroll, the pinned header, Viewed on a
+  long file, Side by Side on a narrow card, and ⌘-click on a removed line (opens the file at the line after it).
