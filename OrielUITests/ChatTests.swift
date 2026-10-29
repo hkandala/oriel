@@ -212,6 +212,9 @@ extension OrielUITests {
         keepScreenshot("question")
         pear.click()
         XCTAssertTrue(row(pane, "reply", "You chose Pear.").exists(within: 5))
+        // The reply comes from the transcript before the hook ends the wait, and Return sends nothing while the agent
+        // waits: the question goes once it has.
+        XCTAssertTrue(element("chat.\(pane).question").vanishes(within: 5))
         try await say("big", in: pane)
         XCTAssertTrue(row(pane, "reply", "Big.").exists(within: 5))
 
