@@ -5,7 +5,7 @@ import SwiftUI
 private typealias Text = SwiftUI::Text
 
 /// A reply's Markdown (ui/chat-view#what-it-looks-like), parsed by swift-markdown (cmark-gfm, with tables, task lists
-/// and strikethrough) and drawn block by block.
+/// and strikethrough) and drawn block by block. Its links go to the `openURL` its caller sets.
 struct Markdown: View {
     let text: String
 
@@ -14,10 +14,6 @@ struct Markdown: View {
             .font(.system(size: 14))
             .lineSpacing(4)
             .textSelection(.enabled)
-            // Web and mail links only: a transcript (or a page the agent quotes) could hold `file:` or `oriel:` ones.
-            .environment(\.openURL, OpenURLAction { url in
-                ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
-            })
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isStaticText)

@@ -30,6 +30,10 @@ struct ChatRowView: View, Equatable {
             stack(steps) { Summary(counts: counts, since: since, seconds: seconds) }
         case let .reply(_, text):
             Markdown(text: text).accessibilityIdentifier("chat.\(paneID).reply")
+                // Web and mail links only: a reply (or a page it quotes) could hold `file:` or `oriel:` ones.
+                .environment(\.openURL, OpenURLAction { url in
+                    ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
+                })
         case .thinking:
             Text("Thought").font(.system(size: 12)).italic().foregroundStyle(.tertiary)
         case let .stack(_, steps):
