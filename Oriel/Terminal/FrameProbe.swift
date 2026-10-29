@@ -72,7 +72,7 @@ final class FrameProbe {
     }
 
     private func sample(_ view: PaneSurfaceView, in window: NSWindow) -> Sample? {
-        guard view.window === window, view.superview is TerminalHost.Host else { return nil }
+        guard view.window === window, view.superview is SettlingHost else { return nil }
         let ink = (view.picture as? IOSurface).flatMap { surface in
             let key = "\(ObjectIdentifier(surface)) \(IOSurfaceGetSeed(surface))"
             if let ink = inks[key] {

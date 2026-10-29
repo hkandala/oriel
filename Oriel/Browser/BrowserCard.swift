@@ -162,8 +162,8 @@ private struct Popup: View {
 private struct WebHost: NSViewRepresentable {
     let view: WKWebView
 
-    func makeNSView(context: Context) -> TerminalHost.Host {
-        let host = TerminalHost.Host(), box = NSView()
+    func makeNSView(context: Context) -> SettlingHost {
+        let host = SettlingHost(), box = NSView()
         host.clipsToBounds = true
         // Only an overview's tile disables its card.
         (view as? BrowserView)?.inTile = !context.environment.isEnabled
@@ -177,7 +177,7 @@ private struct WebHost: NSViewRepresentable {
         return host
     }
 
-    func updateNSView(_: TerminalHost.Host, context _: Context) {}
+    func updateNSView(_: SettlingHost, context _: Context) {}
 }
 
 /// The card header's second row.

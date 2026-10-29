@@ -116,12 +116,12 @@ struct Overview: View {
         .opacity(opened ? 1 : 0)
         // e2e: the live cards and the snapshots kept (`-recordMotion YES`).
         .testValue("overview.snapshots", "Overview Snapshots",
-                   "\(pages.overviewLive.count) \(PaneTerminal.snapshots.count)", shown: TerminalHost.Host.record)
+                   "\(pages.overviewLive.count) \(PaneTerminal.snapshots.count)", shown: SettlingHost.record)
         .testValue(
             "overview.motion",
             "Overview Motion",
             "\(MiniTerminal.Mini.most)",
-            shown: TerminalHost.Host.record,
+            shown: SettlingHost.record,
         )
         // The keyboard leaves the terminals, which take none while in a miniature (`PaneSurfaceView`). Esc by a
         // monitor: a SwiftUI focus did not take the keyboard from a terminal moving into a miniature (CI).

@@ -169,12 +169,12 @@ private struct SplitLayout: View {
                         // A closed card fades as the others grow. A new one fades in with its slide (`entering`).
                         .transition(.asymmetric(insertion: .identity, removal: .opacity))
                         .onAppear {
-                            if TerminalHost.Host.record {
+                            if SettlingHost.record {
                                 cards.came += 1
                             }
                         }
                         .onDisappear {
-                            if TerminalHost.Host.record {
+                            if SettlingHost.record {
                                 cards.went += 1
                             }
                         }
@@ -192,7 +192,7 @@ private struct SplitLayout: View {
                 }
             }
         }
-        .testValue("cards.\(tabID)", "Cards", "\(cards.came) \(cards.went)", shown: TerminalHost.Host.record)
+        .testValue("cards.\(tabID)", "Cards", "\(cards.came) \(cards.went)", shown: SettlingHost.record)
         .animation(motion, value: tree)
         .animation(motion, value: zoomed)
         .onChange(of: tree, initial: true) {
