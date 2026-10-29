@@ -27,7 +27,7 @@ struct DiffToolbar: View {
                 }
                 .pickerStyle(.inline)
             } label: {
-                Text(plugin.label.title == "Changes" ? "Uncommitted" : plugin.label.title)
+                Text(source == "uncommitted" ? "Uncommitted" : source.prefix(7))
             }
             .menuStyle(.button)
             .buttonStyle(.borderless)
