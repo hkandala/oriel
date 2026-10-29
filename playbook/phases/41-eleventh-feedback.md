@@ -275,7 +275,10 @@ user's answers to the orchestrator's questions.
 - **Fix.** A card that is not a terminal shows its own view in its tile, live, at the card's size and scaled to the
   tile: the `BrowserCard` (its web view moves into the tile, then into the zoom, then back to the strip, as a
   terminal's view does) and the `ChatView`. It is disabled and takes no hit tests, so the tile keeps the clicks,
-  the wheel and the keyboard. Browser and chat panes no longer stream or wait in the tile.
+  the wheel and the keyboard. Browser and chat panes no longer stream or wait in the tile. A web view in a tile
+  refuses the keyboard, and a claim made meanwhile (the palette closing gives the keyboard card the keyboard)
+  waits until it is back in its card: 6 lines in track A's `BrowserView.swift` and `WebHost`, as
+  `PaneSurfaceView` does in a miniature.
 - **Decisions.** Not `takeSnapshot`, as the item proposed: the reviewer's spike showed that a web view out of a
   window answers its first snapshot (sometimes blank) and then no more until the page paints again. A live card
   costs about what it costs in the strip; browser tiles in view have no cap, as terminals have. A chat waiting in
