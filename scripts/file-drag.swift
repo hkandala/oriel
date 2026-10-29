@@ -49,11 +49,17 @@ source.wantsLayer = true
 source.layer?.contents = NSWorkspace.shared.icon(forFile: url.path)
 panel.contentView = source
 panel.orderFrontRegardless()
-// The helper drags once this line comes, not after a fixed wait: a press before the window is up starts no drag.
-DispatchQueue.main.async {
+/// "up" once the window server shows the panel: the helper drags once this line comes, and a press before then lands
+/// on Oriel's window under it and starts no drag. `orderFrontRegardless` returns before the panel is on screen.
+func announce() {
+    let shown = (CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? [])
+        .contains { $0[kCGWindowNumber as String] as? Int == panel.windowNumber }
+    guard shown else { return DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: announce) }
     print("up")
     fflush(stdout)
 }
+
+DispatchQueue.main.async(execute: announce)
 
 DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
     fputs("no drag ended: the press did not start one\n", stderr)
