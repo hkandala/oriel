@@ -240,10 +240,3 @@ private struct WaitingDrawer: View {
         }
     }
 }
-
-// ponytail: track B's `ChatHistory.effort` until its branch lands; delete on its rebase.
-private extension ChatHistory {
-    var effort: String? {
-        nil
-    }
-}

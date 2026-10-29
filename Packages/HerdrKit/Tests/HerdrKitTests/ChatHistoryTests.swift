@@ -124,3 +124,12 @@ private func history() throws -> ChatHistory {
     #expect(ChatHistory.modelName("anthropic/claude-opus-4") == "Opus 4")
     #expect(ChatHistory.modelName("gpt-5-codex") == "gpt-5-codex")
 }
+
+@Test func `claude's effort comes with each reply's model, none for a model without levels`() {
+    var history = ChatHistory()
+    ClaudeTranscript.read(#"{"type":"assistant","uuid":"a","effort":"medium","message":{"model":"claude-opus-5-5"}}"#,
+                          into: &history)
+    #expect(history.model == "claude-opus-5-5" && history.effort == "medium")
+    ClaudeTranscript.read(#"{"type":"assistant","uuid":"b","message":{"model":"claude-haiku-5-5"}}"#, into: &history)
+    #expect(history.model == "claude-haiku-5-5" && history.effort == nil)
+}

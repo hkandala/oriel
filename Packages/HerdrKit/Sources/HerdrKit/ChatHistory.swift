@@ -5,8 +5,9 @@ import Foundation
 /// extras an adapter may leave out.
 public struct ChatHistory: Equatable, Sendable {
     public private(set) var entries: [ChatEntry] = []
-    /// The model of the last reply, shown read only.
+    /// The model of the last reply and its thinking effort, in the agent's words ("high"), shown read only.
     public var model: String?
+    public var effort: String?
     /// Where each open tool call is, to pair it with its result.
     private var tools: [String: Int] = [:]
 

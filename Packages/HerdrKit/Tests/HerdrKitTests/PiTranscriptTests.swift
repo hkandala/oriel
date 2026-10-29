@@ -53,7 +53,7 @@ private extension ChatHistory {
     #expect(history.users == ["Read a.txt with your read tool, then run the bash command 'ls /nonexistent', then "
             + "write b.txt containing two lines x and y, then reply with one short sentence.",
         "Run bash 'sleep 20' then say ok"])
-    #expect(history.model == "claude-opus-5-5")
+    #expect(history.model == "claude-opus-5-5" && history.effort == "low")
     let tools = history.tools
     #expect(tools.map(\.name) == ["read", "bash", "write", "bash", "bash"])
     #expect(tools.allSatisfy { $0.result != nil })

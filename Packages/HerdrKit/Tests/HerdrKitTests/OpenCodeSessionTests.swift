@@ -72,3 +72,11 @@ private func tools(_ history: ChatHistory) -> [ChatTool] {
     #expect(diff.map { "\($0.mark)\($0.number) \($0.text)" } == [" 3 keep", "-4 old", "+4 new", "+5 more"])
     #expect(ChatTool.change(diff) == "+2 -1")
 }
+
+@Test func `opencode's effort is the reply's variant`() {
+    var session = OpenCodeSession(id: first)
+    let loaded = session
+        .load(#"[{"info":{"id":"m","role":"assistant","modelID":"muse-spark","variant":"low"},"parts":[]}]"#)
+    #expect(loaded)
+    #expect(session.history.model == "muse-spark" && session.history.effort == "low")
+}

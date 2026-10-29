@@ -29,7 +29,7 @@ public struct PiTranscript: Sendable {
     private enum Step {
         case add(ChatEntry)
         case finish(id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine], output: String, time: Date?)
-        case model(String)
+        case model(String, effort: String?)
     }
 
     /// Adds the entry, which ends `end` bytes into the file; it is the leaf now (pi appends to its leaf). False when
@@ -94,7 +94,9 @@ public struct PiTranscript: Sendable {
             case let .add(entry): history.append(entry)
             case let .finish(id, result, failed, diff, output, time):
                 history.finish(tool: id, result: result, failed: failed, diff: diff, output: output, at: time)
-            case let .model(model): history.model = model
+            case let .model(model, effort):
+                history.model = model
+                history.effort = effort
             }
         }
     }
@@ -135,7 +137,9 @@ public struct PiTranscript: Sendable {
     }
 
     private func assistant(_ message: [String: Any], _ blocks: [[String: Any]], id: String, time: Date?) -> [Step] {
-        var steps: [Step] = (message["model"] as? String).map { [.model($0)] } ?? []
+        var steps: [Step] = (message["model"] as? String)
+            .map { [.model($0, effort: message["thinkingLevel"] as? String)] }
+            ?? []
         for (index, block) in blocks.enumerated() {
             let entry = "\(id).\(index)"
             switch block["type"] as? String {

@@ -58,6 +58,8 @@ public enum ClaudeTranscript {
     private static func assistant(_ line: Line, into history: inout ChatHistory) {
         if let model = (line.object["message"] as? [String: Any])?["model"] as? String, !model.hasPrefix("<") {
             history.model = model
+            // A model without effort levels (Haiku) has none.
+            history.effort = line.object["effort"] as? String
         }
         let failed = line.object["isApiErrorMessage"] as? Bool == true
         for (index, block) in line.blocks.enumerated() {

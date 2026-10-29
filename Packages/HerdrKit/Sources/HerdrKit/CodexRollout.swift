@@ -17,6 +17,7 @@ public enum CodexRollout {
         switch (object["type"] as? String, payload["type"] as? String) {
         case ("turn_context", _):
             history.model = payload["model"] as? String ?? history.model
+            history.effort = payload["effort"] as? String ?? history.effort
         case ("event_msg", "item_completed"):
             if let item = payload["item"] as? [String: Any] {
                 self.item(item, time: time, into: &history)

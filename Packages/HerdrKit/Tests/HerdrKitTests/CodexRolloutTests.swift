@@ -25,7 +25,7 @@ private func history() throws -> ChatHistory {
         "Run the shell command 'sleep 30' then reply ok.",
         "Plan it, then tell main hello.",
     ])
-    #expect(history.model == "gpt-6.1-sol")
+    #expect(history.model == "gpt-6.1-sol" && history.effort == "high")
     let tools = history.entries.compactMap(\.tool)
     #expect(tools.allSatisfy { $0.result != nil && $0.ended != nil })
     #expect(tools.first?.target == "echo spike-ok" && tools.first?.result == "spike-ok")

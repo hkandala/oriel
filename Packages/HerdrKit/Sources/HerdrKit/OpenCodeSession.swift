@@ -23,6 +23,8 @@ public struct OpenCodeSession {
         /// "Interrupted", or the error's message.
         let error: String?
         let model: String?
+        /// The model's variant ("high"): its thinking effort.
+        let variant: String?
         let cwd: String?
     }
 
@@ -73,7 +75,7 @@ public struct OpenCodeSession {
         }
         messages[id] = Message(user: info["role"] as? String == "user", created: Self.date(time?["created"]),
                                completed: Self.date(time?["completed"]), finish: info["finish"] as? String,
-                               error: failure, model: info["modelID"] as? String,
+                               error: failure, model: info["modelID"] as? String, variant: info["variant"] as? String,
                                cwd: (info["path"] as? [String: Any])?["cwd"] as? String)
     }
 
@@ -93,6 +95,7 @@ public struct OpenCodeSession {
                 turn = message.created
             } else if let model = message.model {
                 history.model = model
+                history.effort = message.variant
             }
             for (partID, part) in (byMessage[id] ?? []).sorted(by: { $0.key < $1.key }) {
                 Self.read(part, id: partID, message, into: &history)
