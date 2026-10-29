@@ -179,6 +179,9 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
 - **Decisions:** the outline comes from the editor's syntax tree in both modes (headings at the top level, in lists
   and quotes); Read finds a heading by its source line (`data-line` from markdown-it's map). Read headings get
   GitHub's ids, so `#section` links scroll.
+- **Runs:** the UI test on a chosen-tests CI run, green after one fix of its own (a 5-letter iid is no plugin label).
+  CI's screenshots and recording show the web card's content blank while the accessibility tree has it; on this Mac
+  it draws.
 - **Measured:** `markdown.js` 649 KB, 231 KB gzip (lang-markdown pulls in the HTML, CSS and JavaScript languages for
   HTML blocks).
 - **For the user:** open a long design page, toggle the outline, click a heading in both modes; ⌘E with the caret in a
