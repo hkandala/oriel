@@ -12,7 +12,7 @@ extension Page {
         if let card = cards[id] {
             return card
         }
-        let card = WebCard(kind: "test", arg: label.arg, store: store)
+        let card = WebCard(kind: "test", arg: label.arg, place: nil, store: store)
         card.view.onKeyboard = { [weak self] in self?.tookKeyboard(id) }
         card.view.setAccessibilityIdentifier("webtest.\(pane.id).page")
         cards[id] = card

@@ -26,6 +26,8 @@ final class PaneViewRegistry {
     private var browsers: [String: Browser] = [:]
     /// The other plugin panes' cards, the same way.
     private var plugins: [String: Plugin] = [:]
+    /// Linked opens' landings (`Page.open(_:arg:at:)`) for the cards not made yet.
+    var landings: [String: String] = [:]
 
     /// The pane's terminal, made on first use.
     func terminal(_ terminalID: String, pane paneID: String, client: any Multiplexer) -> PaneTerminal {
@@ -71,10 +73,11 @@ final class PaneViewRegistry {
             }
             return plugin
         }
-        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label, store: store)
+        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label,
+                            place: landings.removeValue(forKey: terminalID), store: store)
         plugin.web.view.onKeyboard = claim(terminalID)
-        plugin.web.open = { [weak self] kind, arg in
-            Task { await self?.pages?.page(of: terminalID)?.open(kind, arg: arg) }
+        plugin.web.open = { [weak self] kind, arg, place in
+            Task { await self?.pages?.page(of: terminalID)?.open(kind, arg: arg, at: place) }
         }
         plugins[terminalID] = plugin
         return plugin

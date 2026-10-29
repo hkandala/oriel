@@ -110,11 +110,11 @@ final class Plugin {
     /// The content: `web/src/<kind>.ts`.
     let web: WebCard
 
-    init(terminalID: String, paneID: String, label: PaneLabel, store: HostStore) {
+    init(terminalID: String, paneID: String, label: PaneLabel, place: String?, store: HostStore) {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
-        web = WebCard(kind: (label.kind ?? .file).rawValue, arg: label.arg, store: store)
+        web = WebCard(kind: (label.kind ?? .file).rawValue, arg: label.arg, place: place, store: store)
         web.view.setAccessibilityIdentifier("\(web.kind).\(paneID).page")
     }
 
