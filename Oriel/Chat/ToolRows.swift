@@ -31,6 +31,8 @@ struct ToolStack<Header: View>: View {
                     if let tool = step.tool {
                         ToolRow(tool: tool, open: opened.contains(tool.id), paneID: paneID) { toggleTool(tool.id) }
                     } else {
+                        // Lined up with the tool rows around it: their icon and height. A lone thought between
+                        // replies (`ChatRowView`) has neither.
                         HStack(spacing: 6) {
                             Icon(symbol: "text.bubble")
                             Text("Thought").italic().foregroundStyle(.tertiary)
