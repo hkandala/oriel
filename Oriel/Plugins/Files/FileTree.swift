@@ -347,11 +347,12 @@ private final class Row: NSTableCellView {
     init() {
         super.init(frame: .zero)
         identifier = Self.id
-        let icon = NSImageView(), name = NSTextField(labelWithString: "")
+        let icon = NSImageView(), name = Name(labelWithString: "")
         name.lineBreakMode = .byTruncatingMiddle
         name.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         name.setContentHuggingPriority(.defaultLow, for: .horizontal)
         letter.setContentHuggingPriority(.required, for: .horizontal)
+        letter.setAccessibilityElement(false)
         imageView = icon
         textField = name
         let stack = NSStackView(views: [icon, name, letter])
@@ -382,8 +383,17 @@ private final class Row: NSTableCellView {
         letter.stringValue = node.letter.map { node.isFolder ? "●" : String($0) } ?? ""
         letter.font = .systemFont(ofSize: node.isFolder ? 7 : 11, weight: .semibold)
         letter.textColor = node.letter.map { NSColor(look.git($0)) }
-        setAccessibilityIdentifier(id)
-        setAccessibilityLabel(node.name)
-        setAccessibilityValue(node.ignored ? "Ignored" : node.letter.map(String.init) ?? "")
+        // On the name: the outline's own cell element stands in for this view.
+        textField?.setAccessibilityIdentifier(id)
+        (textField as? Name)?.value = node.ignored ? "Ignored" : node.letter.map(String.init) ?? ""
+    }
+}
+
+/// A row's name, whose accessibility value is the row's git letter, or Ignored.
+private final class Name: NSTextField {
+    var value = ""
+
+    override func accessibilityValue() -> String? {
+        value
     }
 }
