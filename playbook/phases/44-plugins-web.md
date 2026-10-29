@@ -193,3 +193,14 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   chunks.
 - **For the user:** open a long design page, toggle the outline, click a heading in both modes; ⌘E with the caret in a
   bold word or a link shows its marks only there; a relative link and an http link open new tabs.
+
+### Final review fixes
+
+- **Cause (Diff, Open File):** in a narrow card the file header's controls ran past the page's edge (Open File at
+  x 345–411 in a 364 px page); clicks landed on the scroll area. **Fix:** under 480 px the header's counts give way.
+- **Cause (Diff, Side by Side):** a layout switch kept the scroll offset, which in the other layout's heights no
+  longer held the change stepped to. **Fix:** the viewer scrolls back to that change.
+- **Open:** ⌘-click on a line in a ~200 pt Side by Side column does not reach the line (the press lands on the column's
+  `code`, the click on `body`, `onLineClick` never fires). The test ⌘-clicks in Unified; check Side by Side by hand.
+- **Runs:** diagnostics 40908776727, 40913245757, 40916005308 (page-side event and layout reports); all six web
+  plugin tests green in 40917474480.
