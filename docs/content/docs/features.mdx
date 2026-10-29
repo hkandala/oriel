@@ -40,12 +40,20 @@ Each part of the window has its own page under UI design.
 - Split in four directions, move between cards and swap them with the keys,
   rename a pane, move it to another tab or workspace from its context menu.
 - A new pane asks what it runs: Terminal, Agent (Claude Code, Codex, Pi or
-  OpenCode, with a loader until it is ready) or Browser. Return gives a
-  terminal.
+  OpenCode, with a loader until it is ready), Browser, Files or Changes.
+  Return gives a terminal.
 - Browser panes: a web page in a card, with Web Inspector, its own logins
   per machine, the page's icon, and a remote machine's `localhost` through
   the SSH connection. ⌘-click and Open Link in New Tab open a link in a new
   tab. Agents open them beside themselves.
+- Default plugins, on any machine: **Files** (the whole tree with a filter,
+  git letters, and a Git section with changes and a history graph),
+  **Changes** (the uncommitted diff or any recent commit, unified or side by
+  side, with a file list), and from their links **File** (an editor with
+  syntax colors and a jump bar), **Markdown** (Read and Edit with an outline)
+  and **Preview** (images, PDF, audio, video). Edits show a dirty dot, ⌘S
+  saves, and a file changed on disk reloads, or asks when there are edits.
+  Links open in a new tab beside the current one.
 - Layout changes animate.
 - Zoom a pane to fill the window, then return.
 - Drag a pane to swap it, place it beside another card, split it into

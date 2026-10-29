@@ -18,9 +18,18 @@ description: "The words these docs use"
 | strip / tab page | the main area that pages sideways / one tab's page in it |
 | tab capsule | one tab in the tab bar |
 | lit tab | a tab whose page is visible in the strip |
-| pane card | how the app draws one herdr pane: a header plus content. A browser's or an agent's header has a second row for its kind's controls |
-| chooser | the list a new pane shows first: Terminal, Agent or Browser |
+| pane card | how the app draws one herdr pane: a header plus content. A browser's, a plugin's or an agent's header has a second row for its kind's controls |
+| chooser | the list a new pane shows first: Terminal, Agent, Browser, Files or Changes |
 | browser pane | a herdr pane labeled `oriel:browser#<iid> <url>`, which the app draws as a web page |
+| plugin pane / default plugins | a herdr pane labeled `oriel:<kind>#<iid> <arg>` that the app draws / the five kinds that come with the app: File, Preview, Markdown, Diff and Files |
+| web card | a plugin card whose content is a page of the app's `web/` bundle in a web view of its own |
+| bridge (plugin) | the fixed messages between a web card's page and the app: asks with a JSON answer, reports, and messages from the app |
+| linked open | a link in a plugin card that opens a kind's pane in a new herdr tab right after its card's tab |
+| landing | the line or diff file a linked open scrolls to, once, on the new card's first load |
+| dirty dot | the dot after a File or Markdown card's title while it has unsaved edits |
+| toast | a one-line glass capsule at the top of a plugin card with two buttons, for example Reload or Keep Mine |
+| info view | a plugin card's view of a file it does not show: the type's icon, the name, the kind and the size |
+| jump bar | a File card's row 2: `folder › file › symbol at the caret` |
 | chat view | an agent pane drawn as messages with a reply box, for agents Oriel started with its flags. The card's Chat \| TUI switch flips between it and the agent's TUI (its own terminal interface) |
 | Relaunch with Chat | the button that starts an agent running without Oriel's flags again with them, in the same session |
 | session title | the name an agent keeps for its session (Claude Code, Codex and OpenCode make one; pi's `/name` sets one), shown as the agent pane's name unless the pane has a herdr label |
@@ -30,7 +39,7 @@ description: "The words these docs use"
 | pi-oriel | the small pi extension that ships inside Oriel and reports pi's session, tree moves, dialogs and phase |
 | detail level | how much of a turn the chat shows: Replies, Activity or Everything, picked in the header's Show pull-down |
 | live terminal (drawer) | the pane's terminal at the bottom of a chat card while the agent asks something the chat cannot answer |
-| iid | a browser or plugin pane's instance id: 6 characters of `[a-z0-9]` in its label, which name its state file |
+| iid | a browser or plugin pane's instance id: 6 characters of `[a-z0-9]` in its label; a browser's names its state file |
 | placeholder | the small script a browser or plugin pane runs in herdr, so herdr's TUI shows what the pane is |
 | keyboard card | the card that gets typed keys, one per tab; the app's own choice, never herdr's focus |
 | program icon | the icon of the program that runs in a pane, from Oriel's own catalog; a tab shows a stack of them |

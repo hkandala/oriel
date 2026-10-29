@@ -1,4 +1,4 @@
 {
   "title": "UI design",
-  "pages": ["window", "new-pane", "browser", "chat-view", "program-icons", "swiping", "drag-and-drop", "add-a-machine", "states", "settings", "theme-and-accessibility"]
+  "pages": ["window", "new-pane", "browser", "plugins", "chat-view", "program-icons", "swiping", "drag-and-drop", "add-a-machine", "states", "settings", "theme-and-accessibility"]
 }

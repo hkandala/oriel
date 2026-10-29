@@ -3,7 +3,9 @@ title: "Plugin API"
 description: "The whole plugin API and how the core plugins use it"
 ---
 
-Not built. This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+Not built. The default plugins' pages use a small fixed bridge instead
+([How the web cards work](/docs/ui/plugins#how-the-web-cards-work)). This page
+is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
 
 The app injects `window.oriel` into every plugin page before it runs.
 
@@ -59,7 +61,8 @@ Not in v1: network from the device (`fetch` reaches only the plugin's own
 files), clipboard read, file pickers, plugins outside panes (sidebar, status
 area, pills), one plugin opening another.
 
-How the core plugins use it:
+How core plugins would use it (the built-in Diff and Markdown use the fixed
+bridge instead: [Default plugins](/docs/ui/plugins)):
 - **Diff:** argument `base=main`. `run(["git","diff","--no-color",base])`
   again on each `snapshot` event, drawn per file. A "Send comment to agent"
   form calls `run(["herdr","agent","prompt",…])`.

@@ -159,6 +159,10 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
   from the machine's first browser card to its last (`-O cancel -D`), and
   forwards again on a new master
   ([Remote localhost](/docs/ui/browser#remote-localhost)).
+- **Plugin cards** of a remote machine read, save, list and watch files and
+  run git over the relay. There is no Open With, a file over 4 MiB opens read
+  only, and a card that shows checks for changes every 2 s instead of file
+  system events ([Remote machines](/docs/ui/plugins#remote-machines)).
 - **Chat panes** of a remote machine work as on This Mac: the launch line,
   the side files and every follower run on the machine, over the relay
   ([Chat view](/docs/ui/chat-view)). The relay passes lines, so pi-oriel goes
