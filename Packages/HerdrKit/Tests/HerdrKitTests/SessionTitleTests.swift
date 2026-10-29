@@ -34,5 +34,6 @@ import Testing
     #expect(await localExec.sessionTitle(agent: "pi", session: file.path) == "Trip notes")
     // Not a path or a plain id: never reaches the script.
     #expect(await localExec.sessionTitle(agent: "opencode", session: "x' or '1'='1") == nil)
+    #expect(await localExec.sessionTitle(agent: "opencode", session: "/x' union select sqlite_version() --") == nil)
     #expect(await localExec.sessionTitle(agent: "gemini", session: file.path) == nil)
 }

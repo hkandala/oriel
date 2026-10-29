@@ -145,11 +145,15 @@ agent    row 1: Session title ·························
   the agent's quit command, waits for the shell, then types the chooser's launch line with the resume arguments
   (`--resume <id>`, `resume <id>`, `--session '<file>'`, `--session <id>`) under the chooser's loader. Claude Code's
   marker is now the hooks' folder in `--settings`, so a resumed launch is a chat pane too.
-- **Fix (model, effort):** `chat.model` and `chat.effort` (String?) from the last reply: Claude Code's `effort` line
+- **Fix (model, effort):** `chat.history.model` and `chat.history.effort` (String?) from the last reply: Claude Code's `effort` line
   field, Codex's `turn_context.effort`, pi's `thinkingLevel`, OpenCode's `variant`.
 - **Decisions:** no session from herdr hides Enable Chat (no file scan for one). No title source for an agent herdr's
   integration does not report: "New Session". A resumed launch has no bare-command fallback (it would start a new
-  session). Codex shows its old history only after the first message (its hook runs then).
+  session). Enable Chat makes its launch line before the agent quits, so a failed run on the machine leaves the agent
+  running. While it restarts, the tab reads "New Tab", as for any chooser. Codex shows its old history only after the
+  first message (its hook runs then).
+- **For the docs pass:** Claude Code's marker is now the hooks' folder in `--settings` (a launch can be
+  `--resume <id>`), and Enable Chat with its resume arguments belongs under "Which panes have it".
 - **Spike:** herdr 0.9.5 takes `pane.report_agent_session` from the CLI for Claude Code and Codex ids, but not for a
   pi file (dropped silently), so the UI test uses Claude Code's stand-in.
 - **For the user:** Enable Chat on a real Claude Code, Codex, pi and OpenCode started by hand (idle, and working:

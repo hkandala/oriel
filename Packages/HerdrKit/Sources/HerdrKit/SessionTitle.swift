@@ -6,8 +6,8 @@ import Foundation
 /// (`session.title`, the same as its server's). Each script prints the lines `parse` reads, on the pane's machine.
 enum SessionTitle {
     static let scripts = [
-        // An id is looked for in every project folder.
-        "claude": #"f=$1; case $f in /*) ;; *) f=$(ls "$HOME"/.claude/projects/*/"$1".jsonl | head -n 1) ;; esac; "#
+        // The id's transcript, in any project folder.
+        "claude": #"f=$(ls "$HOME"/.claude/projects/*/"$1".jsonl | head -n 1); "#
             + #"grep -a '"type":"custom-title"' "$f" | tail -n 1; grep -a '"type":"ai-title"' "$f" | tail -n 1"#,
         "codex": #"grep -a -F "\"id\":\"$1\"" "$HOME/.codex/session_index.jsonl" | tail -n 1"#,
         "pi": #"grep -a '"type":"session_info"' "$1" | tail -n 1"#,
@@ -29,7 +29,7 @@ enum SessionTitle {
             }.first
         }
         let clean = title?.filter { !$0.isControl }.trimmingCharacters(in: .whitespaces).prefix(200)
-        return clean?.isEmpty == false ? String(clean ?? "") : nil
+        return clean.flatMap { $0.isEmpty ? nil : String($0) }
     }
 }
 
@@ -37,10 +37,11 @@ public extension Exec {
     /// The title of an agent's session, from herdr's `agent_session` value; nil when it has none yet, or for an agent
     /// with no known place for one.
     func sessionTitle(agent: String, session: String) async -> String? {
-        // An id goes into OpenCode's SQL and Claude Code's file name: letters, digits, `-` and `_` only.
+        // pi's is a file; the others' ids go into OpenCode's SQL and Claude Code's file name: letters, digits, `-` and
+        // `_` only.
         let id = !session.isEmpty && session
             .allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || "-_".contains($0)) }
-        guard let script = SessionTitle.scripts[agent], id || session.hasPrefix("/") else { return nil }
+        guard let script = SessionTitle.scripts[agent], agent == "pi" ? session.hasPrefix("/") : id else { return nil }
         let text = try? await output(["sh", "-c", "{ \(script); } 2>/dev/null", "sh", session], timeout: .seconds(5))
         return SessionTitle.parse(agent: agent, text ?? "")
     }

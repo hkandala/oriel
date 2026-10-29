@@ -65,15 +65,6 @@ final class Chat {
         }
     }
 
-    /// The model of the last reply and its thinking effort, as the agent's files say; nil when they don't.
-    var model: String? {
-        history.model
-    }
-
-    var effort: String? {
-        history.effort
-    }
-
     /// Its pane still runs this launch of the agent.
     var live: Bool {
         ChatAdapters.recognize(store?.pane(paneID)?.program)?.token == adapter.token
