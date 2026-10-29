@@ -11,14 +11,19 @@ struct OpenCode: ChatAdapter {
     let token: String
     let pids: [Int]
     /// The first Esc only arms the interrupt.
-    let stopKeys = ["escape", "escape"]
+    static let stopKeys = ["escape", "escape"]
+    static let quit = "/exit"
 
     var folder: String {
         ".cache/oriel/chat/\(token)"
     }
 
-    static func flags(_ token: String) -> String {
-        "--port 0 --hostname 127.0.0.1 -- oriel-\(token)"
+    static func flags(_ token: String, resume: String?) -> String {
+        (resume.map { $0 + " " } ?? "") + "--port 0 --hostname 127.0.0.1 -- oriel-\(token)"
+    }
+
+    static func resume(_ session: String) -> String? {
+        isID(session) ? "--session \(session)" : nil
     }
 
     /// Writes the plugin and its `tui.json` (each whole, then renamed: another pane may be starting) and the launch's
@@ -27,7 +32,7 @@ struct OpenCode: ChatAdapter {
     /// Side files untouched for 30 days go (`ChatAdapters.sweep`).
     /// ponytail: a home folder with a `"` breaks `tui.json`; escape it if one shows up. A pane running for 30 days
     /// loses its password file then (the chat says the server did not answer); touch it while followed if that matters.
-    static func prepare(_ token: String, on exec: any Exec) async -> String? {
+    static func prepare(_ token: String, resume: String?, on exec: any Exec) async -> String? {
         let script = #"""
         umask 077; c=$HOME/.cache/oriel; d=$c/chat/$1; p=$c/opencode/oriel-tui.js
         mkdir -p "$c/opencode" "$d" && cat >"$p.$$" && mv "$p.$$" "$p" && t=$c/opencode/tui.json &&
@@ -43,7 +48,7 @@ struct OpenCode: ChatAdapter {
         guard await channel.exit().status == 0 else { return nil }
         let folder = "$HOME/.cache/oriel/chat/\(token)"
         return "ORIEL_OC_STATE=\(folder)/state.jsonl OPENCODE_TUI_CONFIG=$HOME/.cache/oriel/opencode/tui.json "
-            + "OPENCODE_SERVER_PASSWORD=$(cat \"\(folder)/pw\") \(command) \(flags(token))"
+            + "OPENCODE_SERVER_PASSWORD=$(cat \"\(folder)/pw\") \(command) \(flags(token, resume: resume))"
     }
 
     /// The TUI plugin: one line whenever the session, a dialog or the server changes, checked every 200 ms. The

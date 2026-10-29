@@ -171,7 +171,7 @@ final class Chat {
     /// The agent's interrupt, only while it works.
     func stop() {
         guard phase == .working, let client = store?.client else { return }
-        let keys = adapter.stopKeys, paneID = paneID
+        let keys = type(of: adapter).stopKeys, paneID = paneID
         Task { try? await client.sendKeys(keys, pane: paneID) }
     }
 

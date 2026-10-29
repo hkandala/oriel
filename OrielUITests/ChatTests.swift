@@ -192,11 +192,29 @@ extension OrielUITests {
         XCTAssertTrue(row(pane, "reply", "You chose Pear.").exists(within: 5))
     }
 
+    /// Claude Code started by hand has no chat: Enable Chat starts it again with the flags, in the same session (its
+    /// reply from before shows in the chat). Its tab shows the session's title, none yet.
+    func testEnableChatStartsAnAgentAgainInItsSession() async throws {
+        let (tab, pane) = try await startChat(["-appearance", "dark"], chat: false, plain: true)
+        let enable = element("pane.\(pane).enable-chat")
+        XCTAssertTrue(enable.exists(within: 10))
+        let label = { self.element("tab.\(tab)").label }
+        XCTAssertTrue(until(3) { label().contains("Claude Code New Session") }, label())
+        try await send("hello\r", to: pane)
+        try await waitFor(pane) { $0.contains("Echo: **hello**") }
+        keepScreenshot("enable-chat")
+        enable.click()
+        XCTAssertTrue(element("chat.\(pane).composer").exists(within: 20))
+        XCTAssertTrue(row(pane, "reply", "Echo: **hello**").exists(within: 5))
+        XCTAssertFalse(enable.exists)
+    }
+
     /// A new tab of w2 whose chooser starts the agent at `agent` (its place in the chooser) as its stand-in,
     /// `scripts/<command>-stand-in.py`, once the chat shows with the keyboard in its reply box.
     /// `environment`: assignments before the stand-in's command; `chat: false` returns once the agent was picked.
-    func startChat(_ arguments: [String] = [], agent: Int = 0, environment: String = "",
-                   chat: Bool = true) async throws -> (tab: String, pane: String)
+    /// `plain`: typed into the shell with no flags instead, the chooser closed.
+    func startChat(_ arguments: [String] = [], agent: Int = 0, environment: String = "", chat: Bool = true,
+                   plain: Bool = false) async throws -> (tab: String, pane: String)
     {
         if !arguments.isEmpty {
             relaunch(one, arguments)
@@ -214,6 +232,11 @@ extension OrielUITests {
         let command = ["claude", "codex", "pi", "opencode"][agent]
         let standIn = Self.scripts.appending(path: "\(command)-stand-in.py").path
         try await send("function \(command) { \(environment)python3 '\(standIn)' \"$@\"; }\r", to: pane)
+        if plain {
+            app.typeKey(.escape, modifierFlags: [])
+            try await send("\(command)\r", to: pane)
+            return (tab, pane)
+        }
         app.typeKey("2", modifierFlags: [])
         app.typeKey("\(agent + 1)", modifierFlags: [])
         guard chat else { return (tab, pane) }

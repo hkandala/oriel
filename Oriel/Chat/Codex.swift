@@ -8,7 +8,8 @@ import HerdrKit
 struct Codex: ChatAdapter {
     static let command = "codex"
     let token: String
-    let stopKeys = ["escape"]
+    static let stopKeys = ["escape"]
+    static let quit = "/quit"
 
     /// Codex runs it with the user's login shell (`$SHELL -lc`), fish too: plain commands with no variable of its
     /// own, no quote and no backslash. It runs at each session's first prompt, not at launch, and sweeps old side
@@ -21,21 +22,24 @@ struct Codex: ChatAdapter {
     }
 
     /// The trust key is the `-c` layer's own (`codex-rs/hooks`); an inline table, as the `-c` parser splits a dotted
-    /// key on every dot.
-    static func flags(_ token: String) -> String {
+    /// key on every dot. `resume` after them: `codex resume` takes the overrides before it.
+    static func flags(_ token: String, resume: String?) -> String {
         let hook = hook(token), trust = CodexRollout.trust(hook)
         return #"-c 'hooks.SessionStart=[{hooks=[{type="command",command="\#(hook)"}]}]' "#
             + #"-c 'hooks.state={"/<session-flags>/config.toml:session_start:0:0"={trusted_hash="\#(trust)"}}'"#
+            + (resume.map { " " + $0 } ?? "")
+    }
+
+    /// Its thread again. The hook reports it at the first prompt after the resume, so the chat stays empty until then.
+    static func resume(_ session: String) -> String? {
+        ChatAdapters.uuid(session).map { "resume \($0)" }
     }
 
     /// The hook's folder for T in a `hooks.SessionStart` value: the launcher's `codex` and the native binary both
     /// carry it.
     init?(_ foreground: [Program.Foreground]) {
-        let token = foreground.lazy.flatMap(\.argv).compactMap { argument -> String? in
-            guard argument.hasPrefix("hooks.SessionStart="),
-                  let folder = argument.range(of: "/.cache/oriel/chat/") else { return nil }
-            let id = String(argument[folder.upperBound...].prefix(36))
-            return UUID(uuidString: id) != nil && id == id.lowercased() ? id : nil
+        let token = foreground.lazy.flatMap(\.argv).compactMap { argument in
+            argument.hasPrefix("hooks.SessionStart=") ? ChatAdapters.token(in: argument) : nil
         }.first
         guard let token else { return nil }
         self.token = token

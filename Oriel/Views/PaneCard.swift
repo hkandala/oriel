@@ -182,6 +182,8 @@ struct PaneCard: View {
                     Spacer(minLength: 0)
                     if let chat {
                         ChatSwitch(chat: chat, page: page)
+                    } else if EnableChat.offered(pane, page.store) {
+                        EnableChat(pane: pane, page: page)
                     }
                 }
                 .frame(height: Self.row)

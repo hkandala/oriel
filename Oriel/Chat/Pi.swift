@@ -9,7 +9,8 @@ import HerdrKit
 struct PiAgent: ChatAdapter {
     static let command = "pi"
     let token: String
-    let stopKeys = ["escape"]
+    static let stopKeys = ["escape"]
+    static let quit = "/quit"
     /// Kept with the chat, which keeps its adapter: what a follow that starts again goes on from.
     private let kept = Kept()
 
@@ -36,13 +37,21 @@ struct PiAgent: ChatAdapter {
         ".cache/oriel/chat/\(token)/pi.jsonl"
     }
 
-    static func flags(_ token: String) -> String {
-        "-e ~/\(file ?? "") --oriel ~/\(state(token))"
+    static func flags(_ token: String, resume: String?) -> String {
+        "-e ~/\(file ?? "") --oriel ~/\(state(token))" + (resume.map { " " + $0 } ?? "")
+    }
+
+    /// herdr's pi integration reports the session's file. Single quotes read the same in sh, bash, zsh and fish when
+    /// the path holds no quote and no backslash.
+    static func resume(_ session: String) -> String? {
+        guard session.hasPrefix("/"), !session.contains(where: { "'\\".contains($0) }),
+              !session.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else { return nil }
+        return "--session '\(session)'"
     }
 
     /// One run writes the extension, whole: base64 (the relay passes lines), a temporary file, then a rename. pi exits
     /// at once when `-e` names no file: no chat then. It sweeps old side files (`ChatAdapters.sweep`).
-    static func prepare(_ token: String, on exec: any Exec) async -> String? {
+    static func prepare(_ token: String, resume: String?, on exec: any Exec) async -> String? {
         guard let source, let file else { return nil }
         let script = #"""
         umask 077; d=$HOME/.cache/oriel; f=$HOME/$1
@@ -52,7 +61,7 @@ struct PiAgent: ChatAdapter {
         guard let channel = try? await exec.run(["sh", "-c", script, "sh", file]) else { return nil }
         channel.write(source.base64EncodedString())
         channel.closeInput()
-        return await channel.exit().status == 0 ? command + " " + flags(token) : nil
+        return await channel.exit().status == 0 ? command + " " + flags(token, resume: resume) : nil
     }
 
     /// `--oriel …/.cache/oriel/chat/T/pi.jsonl` with T a lowercase UUID: the launcher's `pi` and its `pi.real` both

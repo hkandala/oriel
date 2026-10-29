@@ -7,17 +7,23 @@ import HerdrKit
 protocol ChatAdapter: Sendable {
     /// The chooser's command, which is herdr's agent name too (`claude`).
     static var command: String { get }
-    /// What the chooser adds to the command for a new launch, with `token` (a fresh lowercase UUID) as its marker.
-    static func flags(_ token: String) -> String
+    /// What the chooser adds to the command for a new launch, with `token` (a fresh lowercase UUID) as its marker, and
+    /// `resume`'s arguments for Enable Chat.
+    static func flags(_ token: String, resume: String?) -> String
     /// The whole launch line, after writing what it needs on the pane's machine; nil: the agent starts without
     /// Oriel's flags (no chat). The command and its flags by default.
-    static func prepare(_ token: String, on exec: any Exec) async -> String?
+    static func prepare(_ token: String, resume: String?, on exec: any Exec) async -> String?
+    /// The arguments that resume a session (herdr's `agent_session` value); nil when the value is not one this agent
+    /// takes (no Enable Chat then). They go into a typed line: only plain ids and quotable paths.
+    static func resume(_ session: String) -> String?
+    /// The command that quits it, typed into its prompt.
+    static var quit: String { get }
+    /// Keys that interrupt a turn, sent only while the agent works.
+    static var stopKeys: [String] { get }
     /// The adapter of the launch whose marker is in the pane's foreground processes (`pane.process_info`), else nil.
     init?(_ foreground: [Program.Foreground])
     /// The launch's marker: a new launch in the same pane is a new chat.
     var token: String { get }
-    /// Keys that interrupt a turn, sent only while the agent works.
-    var stopKeys: [String] { get }
     /// Follows the agent on its machine until cancelled: the history, the phase it records, its questions and
     /// problems go into the chat. Goes on from the chat's marks.
     @MainActor func follow(_ chat: Chat, on exec: any Exec) async
@@ -32,8 +38,8 @@ extension ChatAdapter {
         Chooser.agents.first { $0.command == Self.command }?.name ?? Self.command
     }
 
-    static func prepare(_ token: String, on _: any Exec) async -> String? {
-        command + " " + flags(token)
+    static func prepare(_ token: String, resume: String?, on _: any Exec) async -> String? {
+        command + " " + flags(token, resume: resume)
     }
 
     func answer(_: ChatQuestion, _: [String: String], on _: any Exec) async -> Bool {
@@ -121,9 +127,27 @@ enum ChatAdapters {
         + "find $HOME/.cache/oriel/chat -mindepth 1 -type d -empty -mmin +1 -delete 2>/dev/null"
 
     /// The line the chooser types for an agent: its adapter's launch line when it has a chat, else its command.
-    static func launch(_ command: String, on exec: any Exec) async -> String {
-        guard let adapter = all.first(where: { $0.command == command }) else { return command }
-        return await adapter.prepare(UUID().uuidString.lowercased(), on: exec) ?? command
+    /// `resume`: herdr's session of the agent, for Enable Chat.
+    static func launch(_ command: String, resume: String? = nil, on exec: any Exec) async -> String {
+        guard let adapter = adapter(command) else { return command }
+        return await adapter.prepare(UUID().uuidString.lowercased(), resume: resume.flatMap(adapter.resume), on: exec)
+            ?? command
+    }
+
+    static func adapter(_ command: String?) -> (any ChatAdapter.Type)? {
+        all.first { $0.command == command }
+    }
+
+    /// The lowercase UUID right after `/.cache/oriel/chat/` in an argument: a launch's side folder.
+    static func token(in argument: String) -> String? {
+        guard let folder = argument.range(of: "/.cache/oriel/chat/") else { return nil }
+        let id = String(argument[folder.upperBound...].prefix(36))
+        return UUID(uuidString: id) != nil && id == id.lowercased() ? id : nil
+    }
+
+    /// A UUID as it goes into a typed line.
+    static func uuid(_ value: String) -> String? {
+        UUID(uuidString: value) != nil ? value : nil
     }
 
     static func recognize(_ program: Program?) -> (any ChatAdapter)? {

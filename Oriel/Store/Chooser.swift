@@ -160,12 +160,17 @@ extension HostStore {
     /// as Go to Directory types its `cd`, and shows the loader until the agent is ready: herdr reports it with a status
     /// (all four agents, read from their screens on any machine).
     /// The terminal shows sooner when the shell is in front again (the command failed or ended), or after 10 s.
-    func start(_ agent: Chooser.Agent, _ chooser: Chooser) {
+    /// `resume`: Enable Chat's session; the agent in the pane quits first.
+    func start(_ agent: Chooser.Agent, _ chooser: Chooser, resume: String? = nil) {
         // Once: a double click's second click lands on the row as it fades out.
         guard chooser.starting == nil else { return }
         chooser.starting = agent
         Task {
             defer { drop(chooser) }
+            if resume != nil, let id = chooser.paneID, await !quit(id, agent) {
+                await show(Notice(text: "\(agent.name) did not quit"))
+                return
+            }
             let clock = ContinuousClock(), begun = clock.now
             var sent: ContinuousClock.Instant?, shells = 0, line: String?
             // A new tab's stand-in waits for herdr's pane. A chooser dropped meanwhile (its pane closed) ends it.
@@ -174,7 +179,8 @@ extension HostStore {
                     guard let since = sent else {
                         // With Oriel's flags first; once more without them when the shell came back at once (a build
                         // that refuses them starts with no chat rather than not at all).
-                        let next = line == nil ? await ChatAdapters.launch(agent.command, on: machine.exec())
+                        let next = line == nil
+                            ? await ChatAdapters.launch(agent.command, resume: resume, on: machine.exec())
                             : agent.command
                         // Its pane may have closed during the launch's run on the machine.
                         guard choosers.contains(where: { $0 === chooser }),
@@ -198,7 +204,8 @@ extension HostStore {
                     if clock.now - since > .seconds(1), self.pane(id)?.starting == false {
                         shells = await (try? client.program(id))?.isShell == true ? shells + 1 : 0
                         if shells == 2 {
-                            guard line != agent.command else { return }
+                            // A resume's plain command would start another session.
+                            guard line != agent.command, resume == nil else { return }
                             (sent, shells) = (nil, 0)
                         }
                     }
@@ -206,6 +213,48 @@ extension HostStore {
                 try? await Task.sleep(for: .milliseconds(250))
             }
         }
+    }
+}
+
+extension HostStore {
+    /// Enable Chat (ui/chat-view#which-panes-have-it): an agent herdr knows, started without Oriel's flags, in a
+    /// session herdr knows, again with the flags in that session, with the chooser's loader meanwhile.
+    func enableChat(_ pane: Pane) {
+        guard let agent = Chooser.agents.first(where: { $0.command == pane.agent }), let session = pane.session,
+              chooser(pane.id) == nil else { return }
+        let chooser = Chooser()
+        chooser.paneID = pane.id
+        chooser.terminalID = pane.terminalID
+        choosers.append(chooser)
+        start(agent, chooser, resume: session)
+    }
+
+    /// Quits the agent as its user would: a turn or a dialog stopped first, the prompt cleared (⌃C, which alone ends
+    /// OpenCode with an empty prompt), then its quit command. True once only the shell runs and herdr let go of the
+    /// agent, within 10 s.
+    private func quit(_ paneID: String, _ agent: Chooser.Agent) async -> Bool {
+        guard let client, let adapter = ChatAdapters.adapter(agent.command) else { return false }
+        if pane(paneID)?.state.map({ $0 == .working || $0 == .needsYou }) == true {
+            try? await client.sendKeys(adapter.stopKeys, pane: paneID)
+            try? await Task.sleep(for: .seconds(1))
+        }
+        try? await client.sendKeys(["ctrl+c"], pane: paneID)
+        var typed = false
+        let clock = ContinuousClock(), begun = clock.now
+        while clock.now - begun < .seconds(10) {
+            try? await Task.sleep(for: .seconds(typed ? 0.3 : 1))
+            guard await (try? client.program(paneID))?.isShell == true else {
+                if !typed {
+                    typed = true
+                    try? await client.sendInput(adapter.quit, keys: ["enter"], pane: paneID)
+                }
+                continue
+            }
+            if await (try? client.pane(paneID))?.agent == nil {
+                return true
+            }
+        }
+        return false
     }
 }
 

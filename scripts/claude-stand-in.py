@@ -2,12 +2,15 @@
 """Claude Code's stand-in for the chat view's UI tests (CI has no Claude Code).
 
 Started by the chooser with Oriel's flags (`--session-id T --settings <json>`), it runs the settings' own hooks,
-writes a transcript in Claude Code's format, reports its state to herdr and answers prompts on its terminal:
-"wait" shows a dialog until 1 is typed, "ask" asks a question through the PermissionRequest hook, "slow" works until
-Esc, "mute" drops the next prompt, anything else gets one command and the reply "Echo: <prompt>".
+writes a transcript in Claude Code's format, reports its state and session to herdr (as herdr's Claude Code
+integration does) and answers prompts on its terminal: "wait" shows a dialog until 1 is typed, "ask" asks a question
+through the PermissionRequest hook, "slow" works until Esc, "mute" drops the next prompt, anything else gets one
+command and the reply "Echo: <prompt>". Ctrl-C clears the line, and on an empty one asks for another; "/exit" quits.
+Started without flags it keeps its transcript, which `--resume <session>` goes on with.
 """
 import json
 import os
+import re
 import select
 import shutil
 import signal
@@ -31,8 +34,11 @@ if os.environ.get("ORIEL_STAND_IN") != "1":
     os.symlink(app if os.path.exists(app) else os.path.realpath(sys.executable), link)
     os.execv(link, [link, os.path.abspath(__file__)] + sys.argv[1:])
 args = sys.argv[1:]
-token = args[args.index("--session-id") + 1]
-hooks = json.loads(args[args.index("--settings") + 1])["hooks"]
+settings = args[args.index("--settings") + 1] if "--settings" in args else '{"hooks":{}}'
+hooks = json.loads(settings)["hooks"]
+resumed = "--resume" in args
+token = args[args.index("--resume" if resumed else "--session-id") + 1] if resumed or "--session-id" in args \
+    else str(uuid.uuid4())
 transcript = os.path.join(folder, token + ".jsonl")
 
 
@@ -45,10 +51,13 @@ def hook(event, payload):
     return ""
 
 
+def herdr(*arguments):
+    subprocess.run([os.environ["HERDR_BIN_PATH"], "--session", os.environ["HERDR_SESSION"], "pane", *arguments,
+                    os.environ["HERDR_PANE_ID"]], capture_output=True)
+
+
 def report(state):
-    subprocess.run([os.environ["HERDR_BIN_PATH"], "--session", os.environ["HERDR_SESSION"], "pane", "report-agent",
-                    "--source", "oriel-e2e", "--agent", "claude", "--state", state, os.environ["HERDR_PANE_ID"]],
-                   capture_output=True)
+    herdr("report-agent", "--source", "oriel-e2e", "--agent", "claude", "--state", state)
 
 
 def write(kind, **fields):
@@ -124,19 +133,28 @@ def main():
     # A closed pane hangs up: clean up as on Ctrl-C.
     signal.signal(signal.SIGHUP, lambda *_: sys.exit(0))
     hook("SessionStart", {"session_id": token, "transcript_path": transcript, "cwd": os.getcwd(),
-                          "hook_event_name": "SessionStart", "source": "startup"})
+                          "hook_event_name": "SessionStart", "source": "resume" if resumed else "startup"})
     attributes = termios.tcgetattr(0)
     tty.setraw(0)
     # Bracketed paste on, as Claude Code has it: herdr's agent.prompt pastes, then presses Enter.
     sys.stdout.write("\x1b[?2004h")
     say("Claude Code stand-in " + token)
     report("idle")
-    line, mute = "", False
+    # herdr takes a session once the pane has its agent.
+    herdr("report-agent-session", "--source", "herdr:claude", "--agent", "claude", "--agent-session-id", token)
+    line, mute, armed = "", False, False
     try:
         while True:
             data = key()
-            if "\x03" in data or "\x04" in data:
+            if "\x03" in data:
+                if not line and armed:
+                    break
+                armed, line = not line, ""
+                say("\r\x1b[KPress Ctrl-C again to exit" if armed else "")
+                continue
+            if "\x04" in data:
                 break
+            armed = False
             line += data.replace("\x1b", "")
             if "\r" not in line:
                 sys.stdout.write(data.replace("\x1b", ""))
@@ -144,6 +162,8 @@ def main():
                 continue
             text, line = line.split("\r", 1)
             say("")
+            if text.strip() == "/exit":
+                break
             if mute:
                 mute = False
             elif text.strip():
@@ -153,9 +173,10 @@ def main():
         # What it and its hooks wrote goes with it; first, as a hung-up terminal takes no settings. A second hang-up
         # would stop it halfway.
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
-        if os.path.exists(transcript):
+        if "--settings" in args and os.path.exists(transcript):
             os.remove(transcript)
-        shutil.rmtree(os.path.expanduser("~/.cache/oriel/chat/" + token), ignore_errors=True)
+        for side in re.findall(r"/\.cache/oriel/chat/([0-9a-f-]{36})", settings)[:1]:
+            shutil.rmtree(os.path.expanduser("~/.cache/oriel/chat/" + side), ignore_errors=True)
         termios.tcsetattr(0, termios.TCSADRAIN, attributes)
 
 

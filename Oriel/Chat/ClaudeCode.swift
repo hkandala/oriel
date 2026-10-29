@@ -1,7 +1,8 @@
 import Foundation
 import HerdrKit
 
-/// Claude Code (resources/research/agents/claude-code.md). Started with `--session-id T` and inline hooks in
+/// Claude Code (resources/research/agents/claude-code.md). Started with `--session-id T` (or `--resume <session>`) and
+/// inline hooks in
 /// `--settings`: a SessionStart hook appends each session's transcript path to `~/.cache/oriel/chat/T/hooks.jsonl`, and
 /// a PermissionRequest hook for AskUserQuestion only appends the question there and waits for the chat's answer file.
 /// Its phase is its session record, `~/.claude/sessions/<pid>.json` (undocumented; herdr's status without one).
@@ -10,7 +11,8 @@ struct ClaudeCode: ChatAdapter {
     let token: String
     /// The processes that carry the marker: one of them has the session record.
     let pids: [Int]
-    let stopKeys = ["escape"]
+    static let stopKeys = ["escape"]
+    static let quit = "/exit"
 
     /// Under the home folder of the pane's machine: the user's own, on a shared machine too.
     var folder: String {
@@ -22,7 +24,7 @@ struct ClaudeCode: ChatAdapter {
     /// `ask` still holds its pid (a newer question's hook, or the chat seeing it answered in the terminal, ends it) and
     /// Claude lives, 30 minutes at most.
     /// ponytail: `$HOME` unquoted, so a home folder with a space gets no chat; quote it (escaped JSON) if one shows up.
-    static func flags(_ token: String) -> String {
+    static func flags(_ token: String, resume: String?) -> String {
         let folder = "umask 077;set -f;d=$HOME/.cache/oriel/chat/\(token);mkdir -p $d"
         let start = "\(folder);{ tr -d [:cntrl:];echo;}>>$d/hooks.jsonl;" + ChatAdapters.sweep
         let ask = "\(folder);rm -f $d/answer;echo $$ >$d/ask;{ tr -d [:cntrl:];echo;}>>$d/hooks.jsonl;n=0;"
@@ -32,19 +34,21 @@ struct ClaudeCode: ChatAdapter {
         let settings = #"{"hooks":{"SessionStart":[{"hooks":[{"type":"command","timeout":10,"command":"\#(start)"}]}],"#
             + #""PermissionRequest":[{"matcher":"AskUserQuestion","hooks":[{"type":"command","timeout":1810,"#
             + #""command":"\#(ask)"}]}]}}"#
-        return "--session-id \(token) --settings '\(settings)'"
+        return "\(resume ?? "--session-id \(token)") --settings '\(settings)'"
     }
 
-    /// `--session-id T` with T a UUID, and the hooks' folder for T in the same argv: the launcher's own `claude`, its
-    /// `dotslash` and the native binary all carry both.
+    /// The same session again: its hooks report it (`source: resume`) with its transcript.
+    static func resume(_ session: String) -> String? {
+        ChatAdapters.uuid(session).map { "--resume \($0)" }
+    }
+
+    /// The hooks' folder for T in the `--settings` value: the launcher's own `claude`, its `dotslash` and the native
+    /// binary all carry it.
     init?(_ foreground: [Program.Foreground]) {
         var token: String?, pids: [Int] = []
         for process in foreground {
-            guard let flag = process.argv.firstIndex(of: "--session-id"),
-                  flag + 1 < process.argv.count else { continue }
-            let id = process.argv[flag + 1]
-            guard UUID(uuidString: id) != nil, id == id.lowercased(), token == nil || token == id,
-                  process.argv.contains(where: { $0.contains("/.cache/oriel/chat/\(id);") }) else { continue }
+            guard let flag = process.argv.firstIndex(of: "--settings"), flag + 1 < process.argv.count,
+                  let id = ChatAdapters.token(in: process.argv[flag + 1]), token == nil || token == id else { continue }
             token = id
             pids.append(process.pid)
         }
