@@ -31,6 +31,15 @@ final class WebCard {
     /// Opens a link from the page in a new tab (`Page.open(_:arg:at:)`).
     @ObservationIgnored var open: ((PluginKind, String, String?) -> Void)?
     fileprivate(set) var dirty = false
+    /// A diff's row 2: Side by Side, and the file list shown. Per card, not saved.
+    var split = false {
+        didSet { send(["op": "layout", "split": split]) }
+    }
+
+    var list = true {
+        didSet { send(["op": "list", "open": list]) }
+    }
+
     var toast: Toast?
     /// A File card's jump bar: the scopes around the caret (`file.ts`).
     private(set) var symbol = ""
@@ -113,6 +122,8 @@ final class WebCard {
             symbol = message["symbol"] as? String ?? ""
         case "page":
             page = "\(message["page"] as? Int ?? 1) of \(message["pages"] as? Int ?? 1)"
+        case "patch":
+            return await patch()
         case "dirty":
             dirty = message["dirty"] as? Bool == true
         case "open":

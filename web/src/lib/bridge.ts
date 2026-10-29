@@ -6,7 +6,10 @@ export type Info = { name: string; size: string; kind: string; icon: string }
 export type FileReply = { text: string; readOnly: boolean } | { info: Info }
 export type PreviewReply = { type: string; data: string; fallback: Info } | { info: Info }
 
-type Ask = { op: "read" }
+/** `patch`: a diff's patch as git prints it, its repo's root, and row 2's state. */
+export type PatchReply = { patch: string; root: string; split: boolean; list: boolean }
+
+type Ask = { op: "read" } | { op: "patch" }
 /**
  * `open`: a new tab; with no kind, `arg` is a file opened with its kind; `at` its landing (`at` below). `save`: the
  * editor's text, to disk.
@@ -22,6 +25,11 @@ export type In =
   | ({ op: "load" } & (FileReply | PreviewReply))
   | { op: "saved" | "save" | "find" | "findNext" | "findPrevious" }
   | { op: "zoom"; to: "fit" | "actual" | "in" | "out" }
+  | { op: "layout"; split: boolean }
+  | { op: "list"; open: boolean }
+  | { op: "step"; by: 1 | -1 }
+  /** The work tree changed: ask for the patch again. */
+  | { op: "changed" }
 
 declare global {
   interface Window {
