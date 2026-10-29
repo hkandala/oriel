@@ -20,36 +20,83 @@ extension Page {
     }
 }
 
-/// A chat card's header controls (ui/chat-view#switching-views): the agent's state and the chat|term switch,
-/// which changes only what the card draws.
+/// A chat card's row-2 controls (ui/chat-view#switching-views): the detail level while the chat shows, and the
+/// Chat | Terminal switch, which changes only what the card draws.
 struct ChatSwitch: View {
     @Bindable var chat: Chat
     let page: Page
-    let state: AgentState?
-    @Environment(\.look) private var look
+    private var settings = AppSettings()
+
+    init(chat: Chat, page: Page) {
+        self.chat = chat
+        self.page = page
+    }
 
     var body: some View {
         let id = chat.paneID
-        HStack(spacing: 6) {
-            if let (text, color) = capsule {
-                Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(color)
-                    .padding(.horizontal, 6).padding(.vertical, 1)
-                    .background(color.opacity(0.15), in: .rect(cornerRadius: 4))
-                    .fixedSize()
-                    .accessibilityIdentifier("pane.\(id).state")
+        HStack(spacing: 8) {
+            if chat.showsChat {
+                level
             }
             Segments(id: "pane.\(id).view", options: [("Chat", true), ("Terminal", false)], selection: $chat.showsChat)
         }
         .fixedSize()
         .onChange(of: chat.showsChat) {
-            // The card keeps the keyboard: the reply box, or the terminal.
-            if page.keyboardPane?.id == id, let terminalID = page.store.pane(id)?.terminalID {
-                Task { page.terminals.focus(terminalID) }
-            }
+            // The card keeps the keyboard: the reply box, or the terminal; in a floating window too.
+            guard let pane = page.store.pane(id), let terminalID = pane.terminalID,
+                  page.keyboardPane?.id == id || page.floats(pane) else { return }
+            Task { page.terminals.focus(terminalID) }
         }
     }
 
-    /// Working, Needs you, Done or Error, in the status colors; none while idle.
+    /// "Show: Steps ⌄", a pull-down of the levels (ui/chat-view#detail-levels).
+    private var level: some View {
+        Menu {
+            Picker("Show", selection: settings.$chatLevel) {
+                ForEach(ChatLevel.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } label: {
+            HStack(spacing: 4) {
+                Text("Show: \(settings.chatLevel.title)")
+                Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
+            }
+            .font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 24)
+        }
+        .menuStyle(.button)
+        .menuIndicator(.hidden)
+        .buttonStyle(ChromeStyle(radius: 6))
+        .fixedSize()
+        .accessibilityLabel("Show")
+        .accessibilityValue(settings.chatLevel.title)
+        .accessibilityIdentifier("chat.\(chat.paneID).level")
+    }
+}
+
+extension ChatLevel {
+    var title: String {
+        rawValue.capitalized
+    }
+}
+
+/// The agent's state in a chat card's header: Working, Needs you, Done or Error, in the status colors; none while
+/// idle.
+struct ChatCapsule: View {
+    let chat: Chat
+    let state: AgentState?
+    @Environment(\.look) private var look
+
+    var body: some View {
+        if let (text, color) = capsule {
+            Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(color)
+                .padding(.horizontal, 6).padding(.vertical, 1)
+                .background(color.opacity(0.15), in: .rect(cornerRadius: 4))
+                .fixedSize()
+                .accessibilityIdentifier("pane.\(chat.paneID).state")
+        }
+    }
+
     private var capsule: (String, Color)? {
         // Only while the chat shows: nothing follows the agent behind its terminal, so nothing would clear it.
         if chat.problem != nil, chat.showsChat {

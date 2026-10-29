@@ -99,3 +99,46 @@ extension CommandList {
         ]
     }
 }
+
+extension CommandList {
+    /// The floating window's commands (D50): only what applies to it.
+    func floatingCommands(_ floating: Floating) -> [Command] {
+        let terminalID = floating.terminalID
+        guard let page = pages?.withFloats.first(where: { $0.id == floating.session }) else { return [] }
+        let pane = page.store.panes.first { $0.terminalID == terminalID }
+        let terminal = pane.flatMap(page.terminal)
+        var main = self
+        main.floating = nil
+        let sizes = main.all.filter { $0.section == .size || $0.title == "Font Size" }
+        func edit(_ title: String, _ action: Selector, _ symbol: String) -> Command {
+            Command(section: .palette, title: title, symbol: symbol, enabled: terminal != nil) {
+                if let terminal {
+                    NSApp.sendAction(action, to: terminal.view, from: nil)
+                }
+            }
+        }
+        return [
+            Command(section: .close, title: "Detach Pane", key: .closePane, symbol: "pip.exit") {
+                page.floating[terminalID] = nil
+            },
+            Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",
+                    enabled: palette != nil) { palette?.wrappedValue.toggle() },
+            Command(section: .view, title: "Stay on Top", symbol: "pin", checked: page.floating[terminalID] == true,
+                    setting: true) { page.floating[terminalID]?.toggle() },
+            Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
+                    enabled: pane.map { $0.browser == nil } == true) { page.openFind(pane) },
+            Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
+                    enabled: page.find != nil) { Task { await page.find?.step(1) } },
+            Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: page.find != nil) {
+                Task { await page.find?.step(-1) }
+            },
+            edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
+            edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
+        ] + Self.pane(page, tabs: false) { pane }.filter { $0.section == .close }.map {
+            // ⌘W detaches, as the red light.
+            var command = $0
+            command.key = command.key == .closePane ? .closeTab : command.key
+            return command
+        } + sizes + Self.browser(pane.flatMap(page.browser))
+    }
+}

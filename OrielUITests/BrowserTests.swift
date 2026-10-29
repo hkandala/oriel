@@ -184,7 +184,8 @@ extension OrielUITests {
         XCTAssertFalse(element("browser.\(site).open").exists)
         // A click gives the card the keyboard; the tab (herdr's number label) takes its page's title.
         pageText("oriel-page-one").click()
-        XCTAssertTrue(element("tab.\(tab)").has(\.label, "One", within: 3))
+        XCTAssertTrue(element("tab.\(tab)").has(\.label, "Browser One", within: 3))
+        XCTAssertTrue(twoRows(pane, title: "One", above: "browser.\(pane).address"))
         // An agent changes the address with the skill's commands: a rename, then a metadata token so Oriel reads the
         // layout again (a rename sends no event). The card loads it as a new page of its history.
         let two = page.replacing("one.html", with: "two.html")
@@ -193,14 +194,8 @@ extension OrielUITests {
                                                            "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
         XCTAssertTrue(pageText("oriel-page-two").exists(within: 5))
         XCTAssertTrue(element("browser.\(pane).back").has(\.isEnabled, true, within: 3))
-        XCTAssertTrue(element("tab.\(tab)").has(\.label, "Two", within: 3))
-        // Floated and back, the same page.
-        let window = try float(pane)
-        XCTAssertTrue(window.webViews.staticTexts.matching(NSPredicate(format: "value == 'oriel-page-two'")).firstMatch
-            .exists(within: 3))
-        keepScreenshot("floated browser", of: window)
-        element("float.\(pane).detach").click()
-        XCTAssertTrue(window.vanishes(within: 3))
+        XCTAssertTrue(element("tab.\(tab)").has(\.label, "Browser Two", within: 3))
+        try floatAndBack(pane)
         XCTAssertTrue(pageText("oriel-page-two").exists(within: 3))
         try await expectSaved("two.html", iid: "e2e5ab", shell: shell, in: five)
 
@@ -208,6 +203,23 @@ extension OrielUITests {
         XCTAssertTrue(element("detail.start").exists(within: 10))
         try await Self.post("\(five)/start")
         XCTAssertTrue(pageText("oriel-page-two").exists(within: 15))
+    }
+
+    /// Floated and back, the same page. The window's title row has no place: the tab's title is the shell's.
+    func floatAndBack(_ pane: String) throws {
+        let window = try float(pane)
+        XCTAssertTrue(window.webViews.staticTexts.matching(NSPredicate(format: "value == 'oriel-page-two'")).firstMatch
+            .exists(within: 3))
+        keepScreenshot("floated browser", of: window)
+        XCTAssertFalse(element("float.\(pane).place", in: window).exists)
+        element("float.\(pane).detach").click()
+        XCTAssertTrue(window.vanishes(within: 3))
+    }
+
+    /// A browser's or an agent's header: row 1's title (any when nil), and row 2's `control` under it.
+    func twoRows(_ pane: String, title: String? = nil, above control: String) -> Bool {
+        let row1 = element("pane.\(pane).title")
+        return title.map { row1.stringValue == $0 } != false && element(control).frame.minY >= row1.frame.maxY
     }
 
     func waitForPrompt(_ pane: String, in session: String) async throws {

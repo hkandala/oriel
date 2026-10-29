@@ -5,6 +5,8 @@ import SwiftUI
 struct PaneCard: View {
     /// The header's height, and the terminal's inset from the card's sides (the overview's miniatures too).
     static let header: CGFloat = 36
+    /// A browser's or an agent's second header row.
+    static let row: CGFloat = 32
     static let inset: CGFloat = 10
     let id: String
     let page: Page
@@ -146,48 +148,44 @@ struct PaneCard: View {
         .accessibilityHidden(away)
     }
 
-    /// `new`: the chooser shows (ui/new-pane), and the title says so.
+    /// `new`: the chooser shows (ui/new-pane), and the title says so. A browser's or an agent's card has a second row
+    /// with its kind's controls; a terminal's has one row.
     private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool, chat: Chat?)
         -> some View
     {
-        // A browser card's header is its toolbar (ui/browser#the-card), unless it is renamed.
-        let browser = pane.flatMap { page.renamingPaneID != id && !page.floats($0) ? page.browser($0) : nil }
-        return HStack(spacing: 3) {
-            if let browser {
-                BrowserToolbar(browser: browser, page: page)
-            } else {
-                // Clicks pass through to the header's double-click.
-                ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
-                if page.renamingPaneID == id {
-                    // Enter: herdr's label (an empty one clears it); the snapshot after it shows it. A click elsewhere
-                    // keeps the keyboard and the selection where it went.
-                    RenameField(prompt: "Pane Name", initial: pane?.label ?? "", commit: { label in
-                        Task { await page.store.rename(pane: id, label: label) }
-                    }, end: { stopRenaming(pane) }, blur: { page.renamingPaneID = nil })
-                        .accessibilityIdentifier("pane.\(id).rename")
-                } else {
-                    Group {
-                        if new {
-                            Text("New Pane").lineLimit(1)
-                        } else {
-                            PaneTitle(pane: pane)
-                        }
-                    }
-                    .allowsHitTesting(false)
-                    .accessibilityIdentifier("pane.\(id).title")
+        let floated = pane.map(page.floats) ?? false
+        let browser = floated ? nil : pane.flatMap(page.browser)
+        let agent = !floated && !new && (chat != nil || pane?.agent != nil)
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 3) {
+                title(pane, new: new, browser: browser, agent: agent)
+                Spacer(minLength: 0)
+                if let chat {
+                    ChatCapsule(chat: chat, state: pane?.state)
+                } else if agent, let state = pane?.state {
+                    StateCapsule(state: state).fixedSize().accessibilityIdentifier("pane.\(id).state")
+                }
+                // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.
+                // Not on a split's or a new tab's empty card before herdr has its pane (`Ahead`).
+                if showsButtons, pane != nil {
+                    buttons(zoomed: zoomed)
                 }
             }
-            Spacer(minLength: 0)
-            if let chat {
-                ChatSwitch(chat: chat, page: page, state: pane?.state)
-            }
-            // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.
-            // Not on a split's or a new tab's empty card before herdr has its pane (`Ahead`).
-            // A browser card keeps their room, so its address field does not move under the pointer on hover.
-            if showsButtons, pane != nil {
-                buttons(zoomed: zoomed)
-            } else if browser != nil {
-                buttons(zoomed: zoomed).hidden()
+            .frame(height: Self.header)
+            if let browser {
+                BrowserToolbar(browser: browser, page: page).frame(height: Self.row)
+            } else if agent, let pane {
+                HStack(spacing: 6) {
+                    ProgramGlyph(icon: pane.iconID, letter: pane.letter).allowsHitTesting(false)
+                    Text("\(pane.programName ?? "") \(Text(pane.folder ?? "").foregroundStyle(.secondary))")
+                        .fontWeight(.regular).lineLimit(1).truncationMode(.middle).allowsHitTesting(false)
+                        .accessibilityIdentifier("pane.\(id).program")
+                    Spacer(minLength: 0)
+                    if let chat {
+                        ChatSwitch(chat: chat, page: page)
+                    }
+                }
+                .frame(height: Self.row)
             }
         }
         .fontWeight(.medium)
@@ -195,13 +193,7 @@ struct PaneCard: View {
         .padding(.leading, 11)
         .padding(.trailing, 8)
         // A card narrower than its header cuts the header (the card clips) instead of growing.
-        .frame(
-            minWidth: 0,
-            maxWidth: .infinity,
-            minHeight: Self.header,
-            maxHeight: Self.header,
-            alignment: .leading,
-        )
+        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
         // Behind the header, so its buttons still take their own clicks.
         .background {
             Color.clear.contentShape(.rect).onTapGesture(count: 2) { page.zoom(id) }
@@ -209,6 +201,40 @@ struct PaneCard: View {
                 .dragSource(.pane(id), page: page, previewSize: size)
         }
         .contextMenu { PaneItems(page: page, pane: pane) }
+    }
+
+    /// Row 1's title: the rename field; else the browser's page with its icon, the agent's label or program, or the
+    /// terminal's glyph and title.
+    @ViewBuilder
+    private func title(_ pane: HostStore.Pane?, new: Bool, browser: Browser?, agent: Bool) -> some View {
+        if let browser {
+            BrowserIcon(browser: browser)
+        } else if !agent {
+            // Clicks pass through to the header's double-click.
+            ProgramGlyph(icon: pane?.iconID ?? "terminal", letter: pane?.letter).allowsHitTesting(false)
+        }
+        if page.renamingPaneID == id {
+            // Enter: herdr's label (an empty one clears it); the snapshot after it shows it. A click elsewhere
+            // keeps the keyboard and the selection where it went.
+            RenameField(prompt: "Pane Name", initial: pane?.label ?? "", commit: { label in
+                Task { await page.store.rename(pane: id, label: label) }
+            }, end: { stopRenaming(pane) }, blur: { page.renamingPaneID = nil })
+                .accessibilityIdentifier("pane.\(id).rename")
+        } else {
+            Group {
+                if new {
+                    Text("New Pane").lineLimit(1)
+                } else if let pane, let label = pane.browser {
+                    Text(page.browserTitle(pane, label) ?? "New Tab").lineLimit(1)
+                } else if agent {
+                    Text(pane?.label ?? pane?.programName ?? "").lineLimit(1)
+                } else {
+                    PaneTitle(pane: pane)
+                }
+            }
+            .allowsHitTesting(false)
+            .accessibilityIdentifier("pane.\(id).title")
+        }
     }
 
     private func edit(_ title: String, _ action: Selector, _ terminal: PaneTerminal) -> some View {

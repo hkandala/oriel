@@ -9,13 +9,13 @@ extension Page {
         return terminals.browser(pane, label, terminalID: terminalID, store: store)
     }
 
-    /// A browser pane's tab title: its page's title, else its host, else "New Tab". Made no card: menus ask for
-    /// every tab's title.
-    func browserTitle(_ pane: HostStore.Pane, _ label: PaneLabel) -> String {
+    /// A browser pane's page: its title, else its host, else its address; nil before it has one. Made no card: menus
+    /// ask for every tab's title.
+    func browserTitle(_ pane: HostStore.Pane, _ label: PaneLabel) -> String? {
         let browser = pane.terminalID.flatMap(terminals.built)
         let address = browser?.address ?? label.arg
         return browser.map(\.title).flatMap { $0.isEmpty ? nil : $0 } ?? URL(string: address)?.host
-            ?? (address.isEmpty ? "New Tab" : address)
+            ?? (address.isEmpty ? nil : address)
     }
 }
 
@@ -177,36 +177,37 @@ private struct WebHost: NSViewRepresentable {
     func updateNSView(_: NSView, context _: Context) {}
 }
 
-/// The card header's toolbar (mock-up A): Back, Forward, Reload or Stop, and the address field, which takes the free
-/// width; then Web Inspector.
+/// The card header's second row: Back, Forward, Reload or Stop, and the address field, which takes the free width;
+/// then Web Inspector.
 struct BrowserToolbar: View {
     let browser: Browser
     let page: Page
     @State private var text = ""
     @FocusState private var editing: Bool
+    @State private var hovering = false
     @Environment(\.look) private var look
 
     var body: some View {
         let id = "browser.\(browser.paneID)"
-        // The card buttons' one color; a button that cannot act at 0.35 of it.
+        // The card buttons' one color; a button that cannot act dims as any disabled card button.
         HStack(spacing: 6) {
             HStack(spacing: 0) {
                 IconButton(symbol: "chevron.left", help: "Back", size: 22) { browser.view.goBack() }
-                    .disabled(!browser.canGoBack).opacity(browser.canGoBack ? 1 : 0.35)
+                    .disabled(!browser.canGoBack)
                     .accessibilityIdentifier("\(id).back")
                 IconButton(symbol: "chevron.right", help: "Forward", size: 22) { browser.view.goForward() }
-                    .disabled(!browser.canGoForward).opacity(browser.canGoForward ? 1 : 0.35)
+                    .disabled(!browser.canGoForward)
                     .accessibilityIdentifier("\(id).forward")
                 IconButton(symbol: browser.loading ? "xmark" : "arrow.clockwise", help: browser.loading ? "Stop"
                     : "Reload", size: 22) { browser.loading ? browser.view.stopLoading() : browser.reload() }
-                    .disabled(!browser.loaded).opacity(browser.loaded ? 1 : 0.35)
+                    .disabled(!browser.loaded)
                     .accessibilityIdentifier("\(id).reload")
             }
             .foregroundStyle(look.paneButton)
             address(id)
             IconButton(symbol: "hammer", help: "Web Inspector", key: .init("i", modifiers: [.command, .option]),
                        size: 22, action: browser.showInspector)
-                .disabled(!browser.loaded).opacity(browser.loaded ? 1 : 0.35)
+                .disabled(!browser.loaded)
                 .foregroundStyle(look.paneButton)
                 .accessibilityIdentifier("\(id).inspector")
         }
@@ -240,7 +241,9 @@ struct BrowserToolbar: View {
             .padding(.leading, 10)
             .padding(.trailing, browser.alias == nil ? 10 : 4)
             .frame(minWidth: 120, maxWidth: .infinity, minHeight: 26, maxHeight: 26)
-            .background(Capsule().fill(.primary.opacity(0.06)))
+            // A click puts the caret in it: the text cursor, and a little more fill, on hover.
+            .background(Capsule().fill(.primary.opacity(hovering && !editing ? 0.1 : 0.06)))
+            .pointerStyle(.horizontalText).onHover { hovering = $0 }
             .overlay {
                 Capsule().strokeBorder(editing ? Color.accentColor : .primary.opacity(0.08),
                                        lineWidth: editing ? 1.5 : 0.5)
@@ -312,6 +315,20 @@ private func addressText(_ address: String) -> Text {
     let host = url.flatMap { url in url.host.map { $0 + (url.port.map { ":\($0)" } ?? "") } }
     let rest = host.map { address.components(separatedBy: $0).dropFirst().joined(separator: $0) } ?? ""
     return Text("\(Text(host ?? address))\(Text(rest).foregroundStyle(.secondary))")
+}
+
+/// Row 1's icon: the page's, else the globe.
+struct BrowserIcon: View {
+    let browser: Browser
+
+    var body: some View {
+        if let icon = browser.icon?.image {
+            Image(nsImage: icon).resizable().interpolation(.high).scaledToFit()
+                .frame(width: 16, height: 16).accessibilityHidden(true)
+        } else {
+            ProgramGlyph(icon: "globe")
+        }
+    }
 }
 
 /// A floated browser pane: the toolbar without the card buttons, under the floating window's title row.

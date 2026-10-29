@@ -2,8 +2,7 @@ import HerdrKit
 import SwiftUI
 
 /// An agent card's chat (ui/chat-view#what-it-looks-like): the messages, newest at the bottom, and the reply
-/// box with the detail level beside it; the live terminal in their place while the agent waits on something the chat
-/// cannot answer.
+/// box; the live terminal in their place while the agent waits on something the chat cannot answer.
 struct ChatView: View {
     @Bindable var chat: Chat
     let page: Page
@@ -105,9 +104,6 @@ struct ChatView: View {
         let id = chat.paneID, working = chat.phase == .working
         let name = chat.adapter.name
         return HStack(alignment: .bottom, spacing: 8) {
-            Segments(id: "chat.\(id).level", options: [("Replies", .replies), ("Steps", .steps), ("All", .all)],
-                     selection: settings.$chatLevel)
-                .padding(.bottom, 5)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 TextField("Reply to \(name)", text: $chat.draft, axis: .vertical)
                     .textFieldStyle(.plain)

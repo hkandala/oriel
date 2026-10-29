@@ -154,7 +154,9 @@ struct FloatingWindow: View {
         .frame(minWidth: 320, minHeight: 200)
         .windowChrome(look)
         .environment(\.look, look)
-        .navigationTitle(pane?.cardTitle ?? "terminal")
+        .navigationTitle(pane.map { pane in
+            pane.browser.map { "Browser " + (page?.browserTitle(pane, $0) ?? "") } ?? pane.cardTitle
+        } ?? "terminal")
         .background(FloatReader(terminalID: floating.terminalID, main: pages?.window,
                                 pinned: page?.floating[floating.terminalID] == true,
                                 closed: { page?.floating[floating.terminalID] = nil }))
@@ -168,28 +170,20 @@ struct FloatingWindow: View {
 
     private func content(_ pages: WindowPages, _ page: Page, _ pane: HostStore.Pane?) -> some View {
         let terminal = pane.flatMap(page.terminal), chooser = pane.flatMap { page.store.chooser($0.id) }
-        let browser = pane.flatMap(page.browser)
+        let browser = pane.flatMap(page.browser), chat = chooser == nil ? pane.flatMap(page.chat) : nil
         let commands = CommandList(pages: pages, palette: $palette, settings: settings,
                                    floating: floating)
         return VStack(spacing: 0) {
-            header(page, pane)
+            header(page, pane, chat: chat)
             // Not a Group, whose modifiers go on each child: the chooser's overlay would be made again as they change.
             ZStack {
                 if let browser {
                     FloatingBrowser(browser: browser, page: page)
+                } else if let chat, chat.showsChat {
+                    // In this window by now, as the terminal below.
+                    ChatView(chat: chat, page: page, terminal: terminal).onAppear { chat.wantsKeyboard = true }
                 } else if let terminal {
-                    TerminalCard(terminal: terminal, watched: page.watched,
-                                 alpha: chooser != nil ? 0 : page.watched ? 0.85 : 1)
-                        // In this window by now: a claim made while it was still the main window's card would
-                        // take that window's keyboard.
-                        .onAppear { terminal.view.takeKeyboard() }
-                        .overlay {
-                            if let find = page.find, find.paneID == pane?.id {
-                                FindHighlights(find: find, terminal: terminal)
-                            }
-                        }
-                        .padding(.horizontal, 10).padding(.vertical, gap)
-                        .contextMenu { CommandItems(commands: commands.all, sections: [.palette, .close]) }
+                    terminalCard(terminal, page, pane, faded: chooser != nil, commands)
                 } else {
                     Color.clear
                 }
@@ -222,7 +216,24 @@ struct FloatingWindow: View {
         .modifier(CloseDialog(page: page, floated: pane?.id))
     }
 
-    private func header(_ page: Page, _ pane: HostStore.Pane?) -> some View {
+    private func terminalCard(_ terminal: PaneTerminal, _ page: Page, _ pane: HostStore.Pane?, faded: Bool,
+                              _ commands: CommandList) -> some View
+    {
+        TerminalCard(terminal: terminal, watched: page.watched, alpha: faded ? 0 : page.watched ? 0.85 : 1)
+            // In this window by now: a claim made while it was still the main window's card would take that window's
+            // keyboard.
+            .onAppear { terminal.view.takeKeyboard() }
+            .overlay {
+                if let find = page.find, find.paneID == pane?.id {
+                    FindHighlights(find: find, terminal: terminal)
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, gap)
+            .contextMenu { CommandItems(commands: commands.all, sections: [.palette, .close]) }
+    }
+
+    /// A plugin's pane (a browser) shows no place: its tab's title is another pane's program and folder.
+    private func header(_ page: Page, _ pane: HostStore.Pane?, chat: Chat?) -> some View {
         let workspace = pane.flatMap { page.store.workspace(of: $0.tabID) }
         let tab = workspace?.tabs.first { $0.id == pane?.tabID }
         let rest = [workspace?.label, tab.map(page.titleText)]
@@ -231,20 +242,27 @@ struct FloatingWindow: View {
         let id = "float.\(pane?.id ?? "")"
         return HStack(spacing: gap) {
             if let pane {
-                PaneInfo(pane: pane).layoutPriority(1).accessibilityIdentifier("\(id).info")
-                Rectangle().fill(look.divider).frame(width: 1, height: 12)
+                PaneInfo(pane: pane, page: page, chat: chat).layoutPriority(1).accessibilityIdentifier("\(id).info")
             }
-            // One line; the session's name gives way first, in its middle.
-            HStack(spacing: 0) {
-                Text(page.store.title).truncationMode(.middle)
-                Text(rest).layoutPriority(1)
+            if PaneLabel(pane?.label) == nil {
+                if pane != nil {
+                    Rectangle().fill(look.divider).frame(width: 1, height: 12)
+                }
+                // One line; the session's name gives way first, in its middle.
+                HStack(spacing: 0) {
+                    Text(page.store.title).truncationMode(.middle)
+                    Text(rest).layoutPriority(1)
+                }
+                .font(.system(size: 11)).foregroundStyle(.tertiary).lineLimit(1)
+                .accessibilityElement(children: .ignore)
+                .accessibilityAddTraits(.isStaticText)
+                .accessibilityValue(page.store.title + rest)
+                .accessibilityIdentifier("\(id).place")
             }
-            .font(.system(size: 11)).foregroundStyle(.tertiary).lineLimit(1)
-            .accessibilityElement(children: .ignore)
-            .accessibilityAddTraits(.isStaticText)
-            .accessibilityValue(page.store.title + rest)
-            .accessibilityIdentifier("\(id).place")
             Spacer(minLength: 0)
+            if let chat {
+                ChatSwitch(chat: chat, page: page)
+            }
             // The title row's buttons.
             IconButton(symbol: pinned ? "pin.fill" : "pin", help: "Stay on Top", accent: pinned) {
                 page.floating[floating.terminalID]?.toggle()
@@ -333,62 +351,31 @@ private struct FloatReader: NSViewRepresentable {
     }
 }
 
-/// A floated pane's quick info in its window's title row: its icon, its program and folder (or its label), and
-/// its agent's state.
+/// A floated pane's quick info in its window's title row: its icon, its program and folder (or its label; a
+/// browser's "Browser" and its page), and its agent's state.
 private struct PaneInfo: View {
     let pane: HostStore.Pane
+    let page: Page
+    let chat: Chat?
 
     var body: some View {
         HStack(spacing: 6) {
             ProgramTile(icon: pane.iconID, letter: pane.letter)
-            PaneTitle(pane: pane).fontWeight(.medium)
-            if let state = pane.state {
+            Group {
+                if let label = pane.browser {
+                    Text("Browser \(Text(page.browserTitle(pane, label) ?? "").foregroundStyle(.secondary))")
+                        .lineLimit(1)
+                } else {
+                    PaneTitle(pane: pane)
+                }
+            }
+            .fontWeight(.medium)
+            if let chat {
+                ChatCapsule(chat: chat, state: pane.state)
+            } else if let state = pane.state {
                 StateCapsule(state: state)
             }
         }
         .accessibilityElement(children: .combine)
-    }
-}
-
-extension CommandList {
-    /// The floating window's commands (D50): only what applies to it.
-    func floatingCommands(_ floating: Floating) -> [Command] {
-        let terminalID = floating.terminalID
-        guard let page = pages?.withFloats.first(where: { $0.id == floating.session }) else { return [] }
-        let pane = page.store.panes.first { $0.terminalID == terminalID }
-        let terminal = pane.flatMap(page.terminal)
-        var main = self
-        main.floating = nil
-        let sizes = main.all.filter { $0.section == .size || $0.title == "Font Size" }
-        func edit(_ title: String, _ action: Selector, _ symbol: String) -> Command {
-            Command(section: .palette, title: title, symbol: symbol, enabled: terminal != nil) {
-                if let terminal {
-                    NSApp.sendAction(action, to: terminal.view, from: nil)
-                }
-            }
-        }
-        return [
-            Command(section: .close, title: "Detach Pane", key: .closePane, symbol: "pip.exit") {
-                page.floating[terminalID] = nil
-            },
-            Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",
-                    enabled: palette != nil) { palette?.wrappedValue.toggle() },
-            Command(section: .view, title: "Stay on Top", symbol: "pin", checked: page.floating[terminalID] == true,
-                    setting: true) { page.floating[terminalID]?.toggle() },
-            Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    enabled: pane.map { $0.browser == nil } == true) { page.openFind(pane) },
-            Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
-                    enabled: page.find != nil) { Task { await page.find?.step(1) } },
-            Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: page.find != nil) {
-                Task { await page.find?.step(-1) }
-            },
-            edit("Copy", #selector(NSText.copy(_:)), "doc.on.doc"),
-            edit("Paste", #selector(NSText.paste(_:)), "doc.on.clipboard"),
-        ] + Self.pane(page, tabs: false) { pane }.filter { $0.section == .close }.map {
-            // ⌘W detaches, as the red light.
-            var command = $0
-            command.key = command.key == .closePane ? .closeTab : command.key
-            return command
-        } + sizes + Self.browser(pane.flatMap(page.browser))
     }
 }

@@ -1,4 +1,5 @@
 import AppKit
+import Network
 import WebKit
 
 /// What a page asks of its card: new windows, dialogs and file panels.
@@ -59,5 +60,42 @@ extension Browser: WKUIDelegate {
         alert.informativeText = message
         buttons.forEach { alert.addButton(withTitle: $0) }
         return await alert.beginSheetModal(for: window)
+    }
+}
+
+extension Browser {
+    /// The page's icon after each load: its `<link rel=icon>`, else `/favicon.ico`; nil (the globe) when it does not
+    /// load. WebKit has no favicon API. Fetched through the card's proxy; a remote card's only from its page's host,
+    /// which its proxy asks the machine for.
+    func loadIcon() {
+        Task {
+            let script = "return document.querySelector('link[rel~=icon]')?.href ?? null"
+            let href = try? await view.callAsyncJavaScript(script, contentWorld: .defaultClient) as? String
+            let fallback = view.url.flatMap { URL(string: "/favicon.ico", relativeTo: $0)?.absoluteURL }
+            guard let page = view.url, let url = href.flatMap(URL.init(string:)) ?? fallback, url != icon?.url
+            else { return }
+            icon = (url, icon?.image)
+            let image = await Self.image(url, page: page, remote: alias != nil,
+                                         proxies: view.configuration.websiteDataStore.proxyConfigurations)
+            // Not over a newer page's.
+            if icon?.url == url {
+                icon = (url, image)
+            }
+        }
+    }
+
+    private static func image(_ url: URL, page: URL, remote: Bool, proxies: [ProxyConfiguration]) async -> NSImage? {
+        let scheme = url.scheme?.lowercased() ?? ""
+        guard ["http", "https", "data"].contains(scheme), !remote || scheme == "data" || url.host == page.host
+        else { return nil }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.proxyConfigurations = proxies
+        configuration.timeoutIntervalForRequest = 5
+        let session = URLSession(configuration: configuration)
+        defer { session.finishTasksAndInvalidate() }
+        guard let (data, response) = try? await session.data(from: url),
+              (response as? HTTPURLResponse).map({ $0.statusCode < 300 }) ?? true, data.count < 1 << 20
+        else { return nil }
+        return NSImage(data: data)
     }
 }
