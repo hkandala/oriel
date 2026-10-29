@@ -133,12 +133,15 @@ identifiers of the header controls. Only the content area differs. Each variant'
   the source the last word (`uncommitted` or a hash). Titles come from the label alone (`PaneLabel.title`), so menus
   build no card. The diff's kind name is `Diff` (tab `Diff Changes`); the chooser row and ⌘K say Changes.
 - **Decisions:** Files and Changes take the git root of the pane's live folder (`Git.root`, only when This Mac's
-  git check passed), else the folder. `PluginKind(path:)` is the spec's "which kind opens a file" rule (unknown or no
-  extension → file), for the variants' links.
+  git check passed, inside Replace Pane's write so a second pick cannot start a second replace), else the folder.
+  "Which kind opens a file" is left to the first variant track that opens one (no caller here).
 - **Decisions:** `Page.open(_:arg:)` makes the tab with `layout.apply`, then `tab.move` to right after the selected
   tab (herdr adds it last; spiked: no focus change), and selects it on the next snapshot.
 - **For the variants:** each placeholder has an `Open in New Tab` button (it drives `Page.open` in the test) and file
   and markdown an empty editor that sets `dirty`; replace both. A content view takes the keyboard on
   `plugin.wantsKeyboard` and calls `page.tookKeyboard` when it gets it, as the placeholder does.
+- **For the variants:** Find (⌘F) is off on every plugin pane and a disabled menu item swallows its key: enable it
+  (and add ⌘S, ⌘E) for the kinds that use them. `Page.swift`, `HostStore.swift`, `FloatingPane.swift` and
+  `PaneCard.swift` are near the 400-line limit: split before adding.
 - **For the user:** Open With ▾ lists the default app first; check its icons and that it is absent on a remote
   machine.
