@@ -32,7 +32,7 @@ public struct DiffLine: Equatable, Sendable {
         case context, added, removed
 
         /// From a line's first character; nil for `\ No newline at end of file`.
-        init?(_ mark: Character?) {
+        init?(_ mark: Unicode.Scalar?) {
             switch mark {
             case " ": self = .context
             case "+": self = .added
@@ -56,7 +56,7 @@ public extension Git {
     /// changes: staged, unstaged and untracked files against HEAD.
     static func diff(_ root: String, commit: String?, exec: any Exec) async throws -> [DiffFile] {
         // The user's config must not change the format: color, an external tool, other prefixes, quoted names.
-        let git = ["git", "-c", "core.quotePath=false"]
+        let git = ["git", "-c", "core.quotePath=false", "-c", "diff.suppressBlankEmpty=false"]
         let flags = ["--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/", "-M"]
         if let commit {
             // A hash from a pane's label: never an option.
@@ -67,10 +67,14 @@ public extension Git {
                 timeout: .seconds(30),
             ))
         }
+        // Before the first commit, against the empty tree.
+        // ponytail: 16 MB of patch and 64 KB of untracked names (a cut last line reads as a shorter file); a patch
+        // per file when bigger changes must show.
         let script = #"""
-        cd "$1" && shift && git "$@" HEAD || exit
-        git ls-files -z -o --exclude-standard | xargs -0 -r -n 1 git "$@" --no-index -- /dev/null
-        exit 0
+        cd "$1" && shift && h=$(git rev-parse -q --verify HEAD || git hash-object -t tree /dev/null) || exit
+        { git "$@" "$h" --
+          git ls-files -z -o --exclude-standard | head -c 65536 | xargs -0 -r -n 1 git "$@" --no-index -- /dev/null
+        } | head -c 16777216
         """#
         return try await DiffFile.parse(exec.checkedOutput(
             ["sh", "-c", script, "sh", root] + git.dropFirst() + ["diff"] + flags,
@@ -83,7 +87,8 @@ extension DiffFile {
     static func parse(_ patch: String) -> [DiffFile] {
         var files: [DiffFile] = []
         var old = 0, new = 0
-        for line in patch.split(separator: "\n") {
+        // By scalars: "\r\n" is one Character, and so is a mark with a combining character after it.
+        for line in patch.unicodeScalars.split(separator: "\n").map(Substring.init) {
             if line.hasPrefix("diff --git ") {
                 files.append(DiffFile(path: headerPath(line.dropFirst(11))))
             } else if files.isEmpty {
@@ -96,8 +101,8 @@ extension DiffFile {
                 files[files.count - 1].hunks.append(Hunk(header: String(line)))
             } else if files[files.count - 1].hunks.isEmpty {
                 files[files.count - 1].header(line)
-            } else if let kind = DiffLine.Kind(line.first) {
-                let text = String(line.dropFirst())
+            } else if let kind = DiffLine.Kind(line.unicodeScalars.first) {
+                let text = String(line.unicodeScalars.dropFirst())
                 files[files.count - 1].hunks[files[files.count - 1].hunks.count - 1].lines.append(DiffLine(
                     kind: kind, text: text, old: kind == .added ? nil : old, new: kind == .removed ? nil : new,
                 ))
@@ -151,12 +156,14 @@ extension DiffFile {
                 bytes.append(UInt8(String(decoding: [next] + rest.prefix(2), as: UTF8.self), radix: 8) ?? 0)
                 rest = rest.dropFirst(2)
             } else {
-                let escapes: [UInt8: UInt8] = [0x61: 7, 0x62: 8, 0x74: 9, 0x6E: 10, 0x76: 11, 0x66: 12, 0x72: 13]
                 bytes.append(escapes[next] ?? next)
             }
         }
         return String(decoding: bytes, as: UTF8.self)
     }
+
+    /// `\a \b \t \n \v \f \r`.
+    private static let escapes: [UInt8: UInt8] = [0x61: 7, 0x62: 8, 0x74: 9, 0x6E: 10, 0x76: 11, 0x66: 12, 0x72: 13]
 
     /// Marks the changed words of each removed line against the added line at the same place in the block after it.
     static func markWords(_ lines: inout [DiffLine]) {
@@ -188,9 +195,7 @@ extension DiffFile {
         guard old.utf16.count <= 1000, new.utf16.count <= 1000 else { return ([], []) }
         let before = tokens(old), after = tokens(new)
         let difference = after.map(\.text).difference(from: before.map(\.text))
-        guard difference.removals.count < before.count || difference.insertions.count < after.count else {
-            return ([], [])
-        }
+        guard difference.removals.count < before.count else { return ([], []) }
         var removed: [Int] = [], inserted: [Int] = []
         for change in difference {
             switch change {

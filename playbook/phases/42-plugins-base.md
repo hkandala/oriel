@@ -153,19 +153,25 @@ identifiers of the header controls. Only the content area differs. Each variant'
   one long "line"; `checkedOutput` joins the lines again, so a name with a line break survives too.
 - **Fix:** `Files` (list, every path for the filter, read, size, save, watch) and `Git` (root, status, log, graph,
   diff with word changes) in HerdrKit, plain values over `Exec`; the tests run each through `ProcessExec` and through
-  the relay, on a real repository with a merge and odd names, and on a recorded patch of this repo.
+  the relay, on a real repository with a merge, a CRLF file and odd names, and on a recorded patch of this repo.
 - **Decisions:** the listing is a shell glob printing NUL-separated names (`ls -1Ap` cannot carry a line break in a
   name) and hides `.git`; links to folders are folders. Git state comes from one `git status --ignored -- .` per
   folder (no `check-ignore`): an untracked or ignored folder covers what is inside it, a folder shows the letter of a
   change inside. Letters: `M A D R T`, `U` untracked, `C` conflict.
 - **Decisions:** `list` and `paths` take the repo root (nil: no git runs), so a Mac without the developer tools
-  never gets the install dialog; callers gate every `Git` call on `GitStatus.usable`. Uncommitted is staged,
-  unstaged and untracked files against HEAD (`git diff --no-index` per untracked file); a commit shows against its
-  first parent. A hash from a label must be hex. Word marks are UTF-16 ranges (NSString and JavaScript), none for
-  lines over 1,000 characters or with nothing in common.
+  never gets the install dialog; callers gate every `Git` call on `GitStatus.usable` (now true on Linux). Uncommitted
+  is staged, unstaged and untracked files against HEAD (the empty tree before the first commit), capped at 16 MB; a
+  commit shows against its first parent. The log is in topological order, and the graph keeps the first parent in
+  its child's lane, as `git log --graph`. Word marks are UTF-16 ranges (NSString and JavaScript).
 - **Decisions:** read prints `cksum` before `base64`: a change between the two only makes the next save stop with
-  `changed`. Save writes a new file beside the old (`cp -p` keeps the mode), checks the hash, then `mv`; a link is
-  written through so it stays a link. Watch on This Mac follows the path when an editor replaces the file; remote
-  checks `cksum` every 2 s while the stream is read. The filter's paths stop at 8 MB of names.
+  `changed`. Save writes a new file beside the old (`cp -p` keeps the mode), checks its size (a cut stdin decodes and
+  exits 0) and the hash (nil: Overwrite), then `mv`; a link is written through. `mv` breaks hard links and makes the
+  saver the owner; a file in a folder the user cannot write does not save; a killed save leaves a `.oriel-save.*`.
+- **Decisions:** one `watch` for files and folders. This Mac: FSEvents on the path (a file's folder, filtered by
+  name), so an editor's replace or a file that comes back is seen, and a folder yields for any change under it:
+  the Files plugin lists its open folders again on each yield, for new files and git letters. Remote: a 2 s check of
+  the file's `cksum`, or of a folder's entries plus its `git status`.
+- **Decisions:** `git diff` may refresh `.git/index` (stat-dirty files) even with `--no-optional-locks`: never put
+  the diff on a timer. The filter's paths stop at 8 MB of names and, in a repo, include tracked files deleted since.
 - **For the user:** nothing to see yet; phases 43 and 44 draw this data. An untracked link to a folder is in the
   Changes list but not in the Uncommitted diff (git's `--no-index` skips it).

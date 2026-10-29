@@ -60,20 +60,10 @@ extension Exec {
         let values = try file.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
         guard values.isRegularFile == true else { throw HerdrError.failed("\(name) is not a file") }
         guard values.fileSize ?? 0 <= 16 << 20 else { throw HerdrError.failed("\(name) is over 16 MB") }
-        let handle = try FileHandle(forReadingFrom: file)
-        defer { try? handle.close() }
-        let channel = try await run(["sh", "-c", Self.uploadScript, "sh", name])
-        // Whole groups of 3 bytes: no padding inside the stream.
-        while let chunk = try handle.read(upToCount: 49152), !chunk.isEmpty {
-            channel.write(chunk.base64EncodedString())
-        }
-        channel.closeInput()
-        let folder = await channel.lines.reduce("") { $1 }
-        let (status, stderr) = await channel.exit()
-        guard status == 0, folder.hasPrefix("/") else {
-            let text = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
-            throw HerdrError.failed(text.isEmpty ? "Copying \(name) failed (\(status))" : text)
-        }
+        // ponytail: ten minutes for 16 MB; a progress bar when slow links need longer.
+        let folder = try await checkedOutput(["sh", "-c", Self.uploadScript, "sh", name],
+                                             input: base64Lines(Data(contentsOf: file)), timeout: .seconds(600))
+        guard folder.hasPrefix("/") else { throw HerdrError.failed("Copying \(name) failed") }
         return folder + "/" + name
     }
 
@@ -87,6 +77,11 @@ extension Exec {
         d=$(mktemp -d "$r/XXXXXXXX") && base64 -d >"$d/$1" && echo "$d"
         """#
     }
+}
+
+/// The bytes as base64 lines, for a run's stdin: whole groups of 3 bytes, so no padding inside the stream.
+func base64Lines(_ data: Data) -> [String] {
+    stride(from: 0, to: data.count, by: 49152).map { data[$0 ..< min($0 + 49152, data.count)].base64EncodedString() }
 }
 
 public struct Channel: Sendable {
