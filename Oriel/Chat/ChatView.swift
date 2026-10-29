@@ -8,6 +8,8 @@ struct ChatView: View {
     let terminal: PaneTerminal?
     /// The conversation's reading column, as in Messages: a wide card centers it.
     private static let column: CGFloat = 760
+    /// The reply box's text from its sides.
+    private static let inset: CGFloat = 14
     /// Stacks clicked open or closed: they stay so at every level (else open at All only).
     @State private var opened: [String: Bool] = [:]
     /// Tool calls opened to their input and output.
@@ -17,13 +19,21 @@ struct ChatView: View {
     @Environment(\.look) private var look
     private var settings = AppSettings()
 
+    private var floats: Bool {
+        page.store.pane(chat.paneID).map(page.floats) == true
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             messages
-            // The reply box lines up with the messages.
-            bottom.padding(.horizontal, 32).padding(.bottom, 14).padding(.top, 4)
-                .frame(maxWidth: Self.column).frame(maxWidth: .infinity)
+            if chat.drawer, let terminal {
+                WaitingDrawer(chat: chat, page: page, terminal: terminal).frame(height: max(160, height * 0.45))
+                    .padding(.horizontal, 32).padding(.bottom, 14).padding(.top, 4)
+                    .frame(maxWidth: Self.column).frame(maxWidth: .infinity)
+            }
         }
+        // Esc stops the agent while it works, as in its TUI.
+        .onExitCommand(perform: chat.stop)
         // A click anywhere, on text too, gives the card the keyboard: the reply box, or the drawer's terminal. A
         // button's or a link's click acts as well. Not a double or triple click or a ⇧-click, which select text (Copy
         // needs it to stay), nor a ⌃-click, which opens the menu.
@@ -89,43 +99,52 @@ struct ChatView: View {
                     problemCard(problem)
                 }
             }
-            .padding(.horizontal, 32).padding(.vertical, 16)
+            // A floating window's card starts right under its title row, with no header of its own above.
+            .padding(.horizontal, 32).padding(.top, floats ? 28 : 16).padding(.bottom, 16)
             .frame(maxWidth: Self.column)
             .frame(maxWidth: .infinity)
         }
-        // The messages fade in under the header instead of being cut by it.
-        .fadeEdges(.vertical, start: 12, end: 0)
         .defaultScrollAnchor(.bottom)
         .defaultScrollAnchor(.bottom, for: .sizeChanges)
         .focusEffectDisabled()
         .accessibilityIdentifier("chat.\(chat.paneID)")
-    }
-
-    @ViewBuilder private var bottom: some View {
-        if chat.drawer, let terminal {
-            WaitingDrawer(chat: chat, page: page, terminal: terminal).frame(height: max(160, height * 0.45))
-        } else {
-            VStack(spacing: 8) {
-                if let question = chat.question, chat.phase == .waiting {
-                    QuestionCard(question: question, paneID: chat.paneID) { chat.answer($0) }
-                        .disabled(question.answered)
-                        .id(question.raw)
+        // The reply box is glass over the messages' bottom, which scroll under it and clear of it.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !chat.drawer {
+                VStack(spacing: 8) {
+                    if let question = chat.question, chat.phase == .waiting {
+                        QuestionCard(question: question, paneID: chat.paneID) { chat.answer($0) }
+                            .disabled(question.answered)
+                            .id(question.raw)
+                    }
+                    composer
                 }
-                composer
+                // The box's text on the messages' edges: the box reaches past them by its own padding.
+                .padding(.horizontal, 32 - Self.inset).padding(.bottom, 14).padding(.top, 4)
+                .frame(maxWidth: Self.column).frame(maxWidth: .infinity)
             }
         }
+        // The messages fade in under the header instead of being cut by it.
+        .fadeEdges(.vertical, start: 12, end: 0)
     }
 
     private var composer: some View {
         let working = chat.phase == .working
-        let name = chat.adapter.name
         return VStack(alignment: .leading, spacing: 2) {
-            TextField("Reply to \(name)", text: $chat.draft, axis: .vertical)
+            TextField("Ask Anything", text: $chat.draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 14))
                 .lineLimit(1 ... 10)
                 .focused($composing)
                 .onSubmit { chat.send(chat.draft) }
+                // ⇧Return adds a line, as ⌥Return does.
+                .onKeyPress(.return, phases: .down) { press in
+                    guard press.modifiers.contains(.shift) else { return .ignored }
+                    NSApp.sendAction(#selector(NSResponder.insertNewlineIgnoringFieldEditor(_:)), to: nil, from: nil)
+                    return .handled
+                }
+                // Its text ends as far in as it starts; Send sits closer to the box's side.
+                .padding(.trailing, Self.inset - 7)
                 .accessibilityIdentifier("chat.\(chat.paneID).composer")
             HStack(spacing: 8) {
                 let model = [chat.history.model.map(ChatHistory.modelName), chat.history.effort].compactMap(\.self)
@@ -146,7 +165,7 @@ struct ChatView: View {
                 }
             }
         }
-        .padding(.leading, 14).padding(.trailing, 7).padding(.top, 9).padding(.bottom, 7)
+        .padding(.leading, Self.inset).padding(.trailing, 7).padding(.top, 9).padding(.bottom, 7)
         .glassEffect(.regular, in: .rect(cornerRadius: 18))
         .contentShape(.rect)
         .onTapGesture { composing = true }

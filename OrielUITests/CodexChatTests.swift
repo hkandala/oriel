@@ -44,7 +44,10 @@ extension OrielUITests {
         element("workspace.w2").click()
         XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
         element("tab.\(tab)").click()
-        XCTAssertTrue(row(pane, "reply", "Allowed.").exists(within: 10))
+        // The TUI first, as at every launch.
+        XCTAssertTrue(element("pane.\(pane).view.chat").exists(within: 10))
+        element("pane.\(pane).view.chat").click()
+        XCTAssertTrue(row(pane, "reply", "Allowed.").exists(within: 5))
 
         // A new session (`/new`, then a message): its rollout is the history, and the old rows go.
         try await say("new", in: pane)

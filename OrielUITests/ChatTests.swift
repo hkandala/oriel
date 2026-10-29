@@ -46,11 +46,10 @@ extension OrielUITests {
         XCTAssertEqual(stack.stringValue, "closed")
         keepScreenshot("chat")
 
-        // Stop sends Esc while it works.
+        // Esc anywhere in the chat stops it while it works, as Stop does.
         try await say("slow", in: pane)
-        let stop = element("chat.\(pane).stop")
-        XCTAssertTrue(stop.exists(within: 5))
-        stop.click()
+        XCTAssertTrue(element("chat.\(pane).stop").exists(within: 5))
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(row(pane, "note", "Interrupted").exists(within: 5))
         XCTAssertTrue(element("chat.\(pane).send").exists(within: 5))
 
@@ -66,7 +65,7 @@ extension OrielUITests {
         app.typeText("/help\r")
         XCTAssertTrue(element("chat.\(pane).composer").vanishes(within: 3))
         try await waitFor(pane) { $0.contains("/help") }
-        XCTAssertTrue(element("pane.\(pane).view.terminal").isSelected)
+        XCTAssertTrue(element("pane.\(pane).view.tui").isSelected)
         element("pane.\(pane).view.chat").click()
         XCTAssertTrue(element("chat.\(pane).composer").exists(within: 3))
     }
@@ -79,9 +78,14 @@ extension OrielUITests {
         XCTAssertTrue(composer.exists(within: 5))
         XCTAssertTrue(hasKeyboard(composer))
         try await say("hello", in: pane)
-        XCTAssertTrue(row(pane, "reply", "Echo: **hello**").exists(within: 5))
+        let reply = row(pane, "reply", "Echo: **hello**")
+        XCTAssertTrue(reply.exists(within: 5))
+        XCTAssertEqual(composer.placeholderValue, "Ask Anything")
+        // Its text on the reply's left edge, and the messages scroll on under it.
+        XCTAssertEqual(composer.frame.minX, reply.frame.minX, accuracy: 1)
+        XCTAssertGreaterThanOrEqual(element("chat.\(pane)", in: window).frame.maxY, composer.frame.maxY)
         keepScreenshot("floating chat", of: window)
-        element("pane.\(pane).view.terminal", in: window).click()
+        element("pane.\(pane).view.tui", in: window).click()
         XCTAssertTrue(composer.vanishes(within: 3))
         XCTAssertTrue(hasKeyboard("terminal.\(pane)", in: window))
         element("pane.\(pane).view.chat", in: window).click()
@@ -115,7 +119,7 @@ extension OrielUITests {
         var heights: [Int: CGFloat] = [:]
         app.typeText("1")
         for line in 2 ... 12 {
-            app.typeKey(.return, modifierFlags: .option)
+            app.typeKey(.return, modifierFlags: line.isMultiple(of: 2) ? .shift : .option)
             app.typeText("\(line)")
             XCTAssertTrue(until(2) { composer.stringValue.hasSuffix("\n\(line)") })
             heights[line] = composer.frame.height
@@ -176,7 +180,10 @@ extension OrielUITests {
         element("workspace.w2").click()
         XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
         element("tab.\(tab)").click()
-        XCTAssertTrue(row(pane, "reply", "You chose Pear.").exists(within: 10))
+        // The TUI first, as at every launch.
+        XCTAssertTrue(element("pane.\(pane).view.chat").exists(within: 10))
+        element("pane.\(pane).view.chat").click()
+        XCTAssertTrue(row(pane, "reply", "You chose Pear.").exists(within: 5))
     }
 
     /// The same chat on a remote machine: hooks, transcript and answers over the relay.
@@ -198,6 +205,7 @@ extension OrielUITests {
         let (tab, pane) = try await startChat(["-appearance", "dark"], chat: false, plain: true)
         let enable = element("pane.\(pane).enable-chat")
         XCTAssertTrue(enable.exists(within: 10))
+        XCTAssertEqual(enable.label, "Relaunch with Chat")
         // Row 1 the session's title, row 2 the button where Chat | Terminal sits.
         XCTAssertTrue(until(3) { self.twoRows(pane, title: "Untitled", above: "pane.\(pane).enable-chat") })
         let label = { self.element("tab.\(tab)").label }
@@ -206,6 +214,7 @@ extension OrielUITests {
         try await waitFor(pane) { $0.contains("Echo: **hello**") }
         keepScreenshot("enable-chat")
         enable.click()
+        // Asked for, the chat shows first.
         XCTAssertTrue(element("chat.\(pane).composer").exists(within: 20))
         XCTAssertTrue(row(pane, "reply", "Echo: **hello**").exists(within: 5))
         // The reply's model and effort, from the transcript.
@@ -214,7 +223,8 @@ extension OrielUITests {
     }
 
     /// A new tab of w2 whose chooser starts the agent at `agent` (its place in the chooser) as its stand-in,
-    /// `scripts/<command>-stand-in.py`, once the chat shows with the keyboard in its reply box.
+    /// `scripts/<command>-stand-in.py`, once its TUI showed first and then, switched to, the chat with the keyboard in
+    /// its reply box.
     /// `environment`: assignments before the stand-in's command; `chat: false` returns once the agent was picked.
     /// `plain`: typed into the shell with no flags instead, the chooser closed.
     func startChat(_ arguments: [String] = [], agent: Int = 0, environment: String = "", chat: Bool = true,
@@ -244,8 +254,13 @@ extension OrielUITests {
         app.typeKey("2", modifierFlags: [])
         app.typeKey("\(agent + 1)", modifierFlags: [])
         guard chat else { return (tab, pane) }
+        let tui = element("pane.\(pane).view.tui")
+        XCTAssertTrue(tui.exists(within: 15))
+        XCTAssertTrue(tui.isSelected)
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
+        element("pane.\(pane).view.chat").click()
         let composer = element("chat.\(pane).composer")
-        XCTAssertTrue(composer.exists(within: 15))
+        XCTAssertTrue(composer.exists(within: 3))
         XCTAssertTrue(hasKeyboard(composer))
         return (tab, pane)
     }

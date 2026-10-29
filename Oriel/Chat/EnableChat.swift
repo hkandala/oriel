@@ -1,7 +1,7 @@
 import HerdrKit
 import SwiftUI
 
-/// Enable Chat (ui/chat-view#which-panes-have-it), where Chat · Terminal sits on an agent card with no launch marker:
+/// Relaunch with Chat (ui/chat-view#which-panes-have-it), where Chat | TUI sits on an agent card with no launch marker:
 /// it starts the agent again with Oriel's flags in the same session. It asks first while the agent works or waits.
 struct EnableChat: View {
     let pane: HostStore.Pane
@@ -25,7 +25,7 @@ struct EnableChat: View {
                 page.store.enableChat(pane)
             }
         } label: {
-            Label("Enable Chat", systemImage: "bubble.left.and.text.bubble.right")
+            Label("Relaunch with Chat", systemImage: "bubble.left.and.text.bubble.right")
                 .font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 20)
         }
         .buttonStyle(ChromeStyle(radius: 6))

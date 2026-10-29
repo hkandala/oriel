@@ -37,7 +37,7 @@ extension ChatAdapter {
         ".cache/oriel/chat/\(token)"
     }
 
-    /// As the chat names it ("Reply to Claude Code"): the chooser's name.
+    /// As the chat names it ("Claude Code is asking in the terminal"): the chooser's name.
     var name: String {
         Chooser.agents.first { $0.command == Self.command }?.name ?? Self.command
     }

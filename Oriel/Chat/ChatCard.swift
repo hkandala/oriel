@@ -15,6 +15,8 @@ extension Page {
         }
         // A new launch is a new chat (a closed pane's goes with the snapshot that drops it).
         let chat = Chat(adapter: adapter, paneID: pane.id, store: store)
+        chat.showsChat = pane.relaunched
+        pane.relaunched = false
         store.chats[terminalID] = chat
         return chat
     }
@@ -26,7 +28,7 @@ extension Page {
 }
 
 /// A chat card's row-2 controls (ui/chat-view#switching-views): the detail level while the chat shows, and the
-/// Chat | Terminal switch, which changes only what the card draws.
+/// Chat | TUI switch, which changes only what the card draws.
 struct ChatSwitch: View {
     @Bindable var chat: Chat
     let page: Page
@@ -38,7 +40,7 @@ struct ChatSwitch: View {
             if chat.showsChat {
                 level
             }
-            Segments(id: "pane.\(id).view", options: [("Chat", true), ("Terminal", false)], selection: $chat.showsChat)
+            Segments(id: "pane.\(id).view", options: [("Chat", true), ("TUI", false)], selection: $chat.showsChat)
         }
         .fixedSize()
         .onChange(of: chat.showsChat) {

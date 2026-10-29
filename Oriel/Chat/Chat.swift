@@ -24,8 +24,8 @@ final class Chat {
         didSet { confirm() }
     }
 
-    /// The card shows the chat; else its terminal (kept in memory per pane).
-    var showsChat = true
+    /// The card shows the chat; else its TUI, which shows first (kept in memory per pane).
+    var showsChat = false
     /// The phase the agent itself records (a session record, a state file, its server); nil: herdr's status.
     var recorded: Phase?
     /// What the agent asks that the chat can answer, shown while it waits.

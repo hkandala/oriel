@@ -92,6 +92,8 @@ extension HostStore {
         @ObservationIgnored var titleKey: String?
         /// What runs in the foreground (the shell when nothing else does), from the last `pane.process_info`.
         var program: Program?
+        /// Relaunch with Chat restarted its agent: the user asked for the chat, so it shows first.
+        @ObservationIgnored var relaunched = false
         /// herdr was asked for the program at least once.
         @ObservationIgnored var asked = false
         /// Asks made, so only the latest answer lands.

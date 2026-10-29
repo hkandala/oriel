@@ -222,6 +222,7 @@ extension HostStore {
         chooser.paneID = pane.id
         chooser.terminalID = pane.terminalID
         choosers.append(chooser)
+        pane.relaunched = true
         start(agent, chooser, resume: session)
     }
 
