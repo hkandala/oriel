@@ -98,6 +98,17 @@ extension OrielUITests {
         XCTAssertTrue(options[0].vanishes(within: 2))
         try await waitForPrompt(right)
         try await typeAndRead(right)
+
+        // Floated while it asks, its window says "New Pane" too, in the title row and the window's title.
+        app.typeKey("d", modifierFlags: .command)
+        let new = try await replaced(right, in: tab, besides: [left, right])
+        XCTAssertTrue(element("pane.\(new).chooser.terminal").exists(within: 3))
+        let window = try float(new)
+        let info = element("float.\(new).info", in: window)
+        XCTAssertTrue(until(3) { info.stringValue.hasPrefix("New Pane") }, info.debugDescription)
+        XCTAssertEqual(window.title, "New Pane")
+        element("float.\(new).detach").click()
+        XCTAssertTrue(window.vanishes(within: 3))
     }
 
     /// An agent's pick types its command into the shell and shows the loader until herdr reports the agent; one whose

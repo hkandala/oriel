@@ -31,8 +31,12 @@ extension Page {
         WindowPages.openWindow?(id: "float", value: Floating(session: id, terminalID: terminalID))
     }
 
-    /// A browser's "Browser" and its page, an agent's name and session title; nil for a terminal.
+    /// "New Pane" while it asks what it runs (as the card's header says), a browser's "Browser" and its page, an
+    /// agent's name and session title; nil for a terminal.
     func kindTitle(_ pane: HostStore.Pane) -> (name: String, detail: String?)? {
+        if store.chooser(pane.id) != nil {
+            return ("New Pane", nil)
+        }
         if let label = pane.browser {
             return ("Browser", browserTitle(pane, label))
         }
