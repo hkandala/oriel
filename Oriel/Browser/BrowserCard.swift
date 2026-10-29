@@ -156,20 +156,21 @@ private struct Popup: View {
 }
 
 /// Shows a web view the registry owns; the newest host adopts it. A card out of view takes its web view out of the
-/// window with it, and the web view lives on (hidden ones saw dropped events otherwise).
+/// window with it, and the web view lives on (hidden ones saw dropped events otherwise). The host fits it to itself
+/// once a motion ends, as a terminal's does.
 private struct WebHost: NSViewRepresentable {
     let view: WKWebView
 
-    func makeNSView(context _: Context) -> NSView {
-        let host = NSView()
+    func makeNSView(context _: Context) -> TerminalHost.Host {
+        let host = TerminalHost.Host()
+        host.clipsToBounds = true
         view.removeFromSuperview()
         view.frame = host.bounds
-        view.autoresizingMask = [.width, .height]
         host.addSubview(view)
         return host
     }
 
-    func updateNSView(_: NSView, context _: Context) {}
+    func updateNSView(_: TerminalHost.Host, context _: Context) {}
 }
 
 /// The card header's second row.

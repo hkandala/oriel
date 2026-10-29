@@ -38,9 +38,10 @@ struct TerminalHost: NSViewRepresentable {
         }
     }
 
-    /// Fits the terminal to itself once its size stops changing (a window drag, a divider drag, the sidebar or
-    /// layout motion): meanwhile the terminal keeps its grid, clipped, so neither libghostty nor the program
-    /// reflows at every step.
+    /// Fits the terminal (or a browser card's web view) to itself once its size stops changing (a window drag, a
+    /// divider drag, the sidebar or layout motion): meanwhile the terminal keeps its grid, clipped, so neither
+    /// libghostty nor the program reflows at every step. A web view laid its page out at every step, and the
+    /// motion stuttered.
     final class Host: NSView {
         private var fitting: Task<Void, Never>?
         /// e2e (`-recordMotion YES`): the sizes this host took, and the ms from the first to the last size of the
@@ -66,7 +67,8 @@ struct TerminalHost: NSViewRepresentable {
             fitting?.cancel()
             // At once until its first stream opened (it opens at the card's size; the terminal waits for that to
             // settle), and for a view that never had a frame.
-            guard let view, view.terminal?.grid != nil, !view.frame.isEmpty else {
+            let surface = view as? PaneSurfaceView
+            guard let view, surface == nil || surface?.terminal?.grid != nil, !view.frame.isEmpty else {
                 fit()
                 return
             }
@@ -85,14 +87,14 @@ struct TerminalHost: NSViewRepresentable {
         }
 
         /// Gone from here once a newer host adopted it.
-        private var view: PaneSurfaceView? {
-            subviews.first as? PaneSurfaceView
+        private var view: NSView? {
+            subviews.first
         }
 
         private func fit() {
             guard let view, !bounds.isEmpty, view.frame.size != bounds.size else { return }
             // Before libghostty hears of the size.
-            view.terminal?.hold()
+            (view as? PaneSurfaceView)?.terminal?.hold()
             view.frame = bounds
         }
     }
