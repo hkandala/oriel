@@ -81,7 +81,7 @@ extension OrielUITests {
         // By their tops: a narrow column wraps the old line.
         XCTAssertTrue(until(3) {
             old.exists && abs(old.frame.minY - far.frame.minY) < 2 && old.frame.maxX < far.frame.minX
-        })
+        }, "old \(old.exists ? old.frame : .zero), new \(far.exists ? far.frame : .zero)")
         keepScreenshot("diff card, side by side")
         element("pane.\(card).diff.file-list").click()
         XCTAssertTrue(page.buttons["a.txt"].vanishes(within: 3))
