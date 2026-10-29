@@ -53,8 +53,9 @@ cold restart of herdr or another device rebuilds the card from the label alone.
   ([Create](/docs/ui/browser#create)).
 - **File, Preview and Markdown** open only from links in other plugin cards.
   Diff opens from links too. A link is a **linked open**: the kind's pane in
-  a new herdr tab right after the selected tab, in the same workspace and on
-  the same machine. The app selects the new tab and gives its card the
+  a new herdr tab right after the tab of the card that was clicked (also from
+  a floating window), in its workspace, folder and machine; after the
+  selected tab when that card is gone. The app selects the new tab and gives its card the
   keyboard. The calls are `layout.apply` for a new tab with the labeled pane,
   then `tab.move`, because herdr adds the tab last
   ([Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls)).
@@ -66,12 +67,12 @@ cold restart of herdr or another device rebuilds the card from the label alone.
 
 | From | Gesture | Opens |
 |---|---|---|
-| Files: a file | double-click or ⌘-click | the file, with its kind |
+| Files: a file | double-click, ⌘-click or Return | the file, with its kind |
 | Files: a change in the Git section | double-click, ⌘-click or Return | Diff, Uncommitted, scrolled to that file |
 | Files: a commit in History | double-click, ⌘-click or Return | Diff of that commit |
 | Diff: a file header's **Open File** | click | the file, with its kind, at the top |
 | Diff: a line | ⌘-click | the file, with its kind, with the caret on that line |
-| Markdown (Read): a relative or absolute path, or a `file:` link | click | the file, with its kind |
+| Markdown (Read): a relative or absolute path | click | the file, with its kind |
 | Markdown (Read): an `http` or `https` link | click | a browser pane |
 
 - A linked open's landing (a line, or a diff's file) is used once, when the
@@ -112,14 +113,16 @@ cold restart of herdr or another device rebuilds the card from the label alone.
 File and Markdown edit the file. Both use the same load, save and reload
 (`FileText`).
 
-- **Dirty dot.** A 6 pt dot in secondary after the title, from the first
-  edit until a save or a reload. VoiceOver reads "Edited".
+- **Dirty dot.** A 6 pt dot in secondary after the title while the text
+  differs from the disk's: an undo back to it clears the dot. VoiceOver reads
+  "Edited".
 - **⌘S** saves. The save checks the file's hash (`cksum`) from the last read
   or save. If the file on disk did not change since, the app writes a new
   file beside it and moves it over the old one, so a save is never half
   written. A link is written through and stays a link. A byte order mark
-  stays in the text, so a save keeps it. Edits made while a save runs stay
-  unsaved.
+  stays in the text, so a save keeps it, and a file with CRLF line ends
+  saves with CRLF throughout (Return types a bare line feed). ⌘S on a clean
+  file writes nothing. Edits made while a save runs stay unsaved.
 - **A change on disk** while the card shows: a clean file reloads in place.
   The caret and the scroll stay, and undo starts again. A dirty file keeps
   the user's text and shows the toast.
@@ -140,10 +143,10 @@ File and Markdown edit the file. Both use the same load, save and reload
   File shows "Read Only" after its jump bar, and Markdown's `Read | Edit` is
   disabled.
 - **Not text.** A file with a NUL byte, or one that is not UTF-8, shows the
-  info view in File (the system's icon for its type, its name, its size and
-  its kind) and "Not a text file" in Markdown.
-- **Too large.** A file over 16 MB shows "Too large to show (‹size›)" there
-  instead.
+  info view in File and Markdown (the system's icon for its type, its name,
+  its size and its kind) with "Not a text file".
+- **Too large.** A file over 16 MB shows the info view with "Too large to
+  show (‹size›)" instead.
 - A file that goes away keeps its text, and a save writes it again.
 - Preview reloads its file on a change too. Diff (Uncommitted) and Files
   follow their folder ([Diff](#diff), [Files](#files)).
@@ -185,7 +188,8 @@ An editable text view (`NSTextView` on TextKit 2).
   of 12" for a PDF, then zoom for images and PDFs (Fit, Zoom Out, Zoom In,
   Actual Size), then Open With.
 - **Images** in a scroll view that zooms, centered when smaller than the
-  card. An image bigger than the card opens fitted. Zoom In and Zoom Out step
+  card. An image bigger than the card opens fitted; Fit never enlarges past
+  100 %. Zoom In and Zoom Out step
   by a factor of 1.25, from 2 % to 3200 %, and a pinch zooms too. With the
   keyboard, the arrows scroll a zoomed image by 40 pt.
 - **PDF** in PDFKit's `PDFView`: Fit scales the page to the card, Actual
@@ -226,12 +230,11 @@ An editable text view (`NSTextView` on TextKit 2).
   that holds the heading (Read is cut before each top-level heading), or
   puts Edit's caret on the heading's line at the top.
 - **Links** open from Read only ([Ways in](#ways-in)). A `#heading` link
-  scrolls to the heading by GitHub's anchor, `mailto:` opens the Mac's mail
-  app, and other schemes do nothing.
+  scrolls to the heading by GitHub's anchor; other schemes (`file:` and
+  `mailto:` too) do nothing.
 - A linked open with a line opens Edit with the caret on that line. A new
   card starts in Read with the outline closed. Neither is saved.
-- Find (⌘F) works in Edit and on a file over 128 KB, with the system find
-  bar. It is disabled in Read.
+- Find (⌘F) opens the system find bar; in Read it first switches to Edit.
 - Dirty, ⌘S, the reload and the toast are as in
   [Edits, saves and reloads](#edits-saves-and-reloads).
 
@@ -297,12 +300,12 @@ The whole tree of the root, in an outline view (`NSOutlineView`).
   matches with their folders, all open. When a filter starts, the card reads
   every path under the root: in a repository the files git does not ignore
   (`git ls-files`), else every file, up to 8 MB of names. It reads them again
-  after a change on disk. Clearing the filter brings back the folders that
-  were open.
-- **Opening.** A double-click or ⌘-click on a file opens it in a new tab
-  with its kind. A double-click on a folder opens or closes it.
-- **The Git section** sits at the bottom, collapsed, when the root is in a
-  repository and git can run. Its header shows "Git", the branch and the
+  after a change on disk. With no match the card says "No matching files".
+  Clearing the filter brings back the folders that were open.
+- **Opening.** A double-click, ⌘-click or Return on a file opens it in a new
+  tab with its kind. A double-click on a folder opens or closes it.
+- **The Git section** sits at the bottom, collapsed, when the root is a
+  repository's root and git can run. Its header shows "Git", the branch and the
   number of changes. Open, it splits the card with the tree, half and half,
   and the user can drag the split. Inside, one list:
   - **Changes:** one row per changed file, with its letter, its name and its
@@ -326,7 +329,7 @@ swallows its key.
 | Keys | Command | When it has its key |
 |---|---|---|
 | ⌘S | Save (File menu): the text to disk | only while a File or Markdown card has the keyboard |
-| ⌘F | Find… (Edit menu): the system find bar | on a File card, and a Markdown card in Edit or over 128 KB. Disabled on Preview, Diff, Files and Markdown's Read |
+| ⌘F | Find… (Edit menu): the system find bar | on a File or Markdown card (Read switches to Edit). Disabled on Preview, Diff and Files |
 | ⌘G | Find Next (Edit menu) | always. Over a terminal it steps the find bar |
 | ⇧⌘G | Find Previous (Edit menu) | only while a card with a find bar has the keyboard. Elsewhere ⇧⌘G is Go to Directory |
 | ⌘E | Edit Mode (View menu) | only while a Markdown card with a file it can edit has the keyboard |
@@ -356,10 +359,11 @@ the machine. The limits:
   changed files' text. A hidden card checks nothing.
 - Audio and video play from a copy in the Mac's temporary folder, one per
   version of the file.
-- git comes from the machine's `PATH`. When This Mac has git only as the
-  stub without the developer tools, Files cards show no git and Files and
-  Changes take the pane's folder as their root, on every machine. A remote
-  Diff card still runs git ([Git status](/docs/talking-to-herdr#git-status)).
+- git comes from the machine's `PATH`, and a remote machine runs it as it
+  is. When This Mac has git only as the stub without the developer tools,
+  This Mac's Files cards show no git, its Diff cards say so, and its Files and
+  Changes take the pane's folder as their root
+  ([Git status](/docs/talking-to-herdr#git-status)).
 
 ## How the native cards work
 
@@ -432,6 +436,6 @@ No card has a web view or JavaScript. Each kind's content is under
   text).
 - A landing kept over a relaunch, and Diff's layout, Markdown's mode and the
   outline saved.
-- Images in Markdown's Read, Find in Read, and colors in a File over 4 MB.
+- Images in Markdown's Read, and colors in a File over 4 MB.
 - Plugins from others with their own API
   ([Pane kinds and plugins](/docs/future-work/plugins)).
