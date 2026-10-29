@@ -53,6 +53,8 @@ struct CommandList {
                     action: {
                         Task { await page?.choosePath(directory: true) }
                     }),
+            Command(section: .file, title: "Save", key: .init("s"), symbol: "square.and.arrow.down",
+                    enabled: page?.editor != nil) { page?.editor?.web.send(["op": "save"]) },
         ]
         let close = [
             Command(section: .close, title: "Close Tab", key: .closeTab, group: .tabs, symbol: "xmark.rectangle",
@@ -96,7 +98,13 @@ struct CommandList {
                     enabled: terminal) { Task { await page?.choosePath(directory: false) } },
             // As in Rex, Find Previous has no key: ⇧⌘G is Go to Directory.
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
-                    keywords: "search scrollback", enabled: live && terminal) { page?.openFind() },
+                    keywords: "search scrollback", enabled: live && terminal || page?.editor != nil, action: {
+                        if let editor = page?.editor {
+                            editor.web.send(["op": "find"])
+                        } else {
+                            page?.openFind()
+                        }
+                    }),
             Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
                     enabled: find != nil) { Task { await page?.find?.step(1) } },
             Command(section: .edit, title: "Find Previous", symbol: "chevron.up", enabled: find != nil) {

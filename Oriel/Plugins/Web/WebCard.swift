@@ -29,6 +29,14 @@ final class WebCard {
     @ObservationIgnored var open: ((PluginKind, String, String?) -> Void)?
     fileprivate(set) var dirty = false
     var toast: Toast?
+    /// A File card's jump bar: the scopes around the caret (`file.ts`).
+    private(set) var symbol = ""
+    /// A PDF preview's `3 of 12`.
+    private(set) var page = ""
+    /// The file's hash as last read or saved, which a save checks (`Document.swift`).
+    @ObservationIgnored var hash: String?
+    /// A save is writing: its own change on disk is no reload.
+    @ObservationIgnored var saving = false
     @ObservationIgnored private var loaded = false
     @ObservationIgnored private var css = ""
 
@@ -88,13 +96,18 @@ final class WebCard {
         let message = body as? [String: Any] ?? [:]
         switch message["op"] as? String {
         case "read":
-            guard let path = message["path"] as? String, let store else { return (nil, "No file") }
-            do {
-                let file = try await Files.read(path, exec: store.machine.exec())
-                return (["text": String(decoding: file.data, as: UTF8.self)], nil)
-            } catch {
-                return (nil, error.localizedDescription)
-            }
+            // A page loaded again, maybe for another file: its reports come again.
+            symbol = ""
+            page = ""
+            return await read()
+        case "save":
+            // Only a file read: a nil hash would overwrite whatever is on disk.
+            guard let text = message["text"] as? String, let hash else { return (nil, "Not read") }
+            await save(text, over: hash)
+        case "symbol":
+            symbol = message["symbol"] as? String ?? ""
+        case "page":
+            page = "\(message["page"] as? Int ?? 1) of \(message["pages"] as? Int ?? 1)"
         case "dirty":
             dirty = message["dirty"] as? Bool == true
         case "open":
@@ -167,21 +180,25 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         guard let url = task.request.url else { return }
         // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
         let file = url.lastPathComponent, page = url.pathExtension.isEmpty
+        // A kind's page has its own styles when it imports CSS (esbuild writes `<kind>.css`).
+        let styles = Self.folder.map { FileManager.default.fileExists(atPath: $0.appending(path: "\(file).css").path) }
         let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""
         <!doctype html><meta charset="utf-8"><link rel="stylesheet" href="card.css">\
+        \(styles == true ? "<link rel=\"stylesheet\" href=\"\(file).css\">" : "")\
         <script type="module" src="\(file).js"></script>
         """.utf8) : Self.folder.flatMap { try? Data(contentsOf: $0.appending(path: file)) }
         guard let data else {
             task.didFailWithError(URLError(.fileDoesNotExist))
             return
         }
-        let mime = page ? "text/html"
+        // UTType knows no MIME type for pdf.js's decoders.
+        let mime = page ? "text/html" : url.pathExtension == "wasm" ? "application/wasm"
             : UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
-        // The page's scripts come only from the bundle.
+        // The page's scripts come only from the bundle; a preview shows its file from a blob.
         task.didReceive(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: [
             "Content-Type": mime,
-            "Content-Security-Policy": "default-src \(Self.name):; img-src \(Self.name): data:; "
-                + "style-src \(Self.name): 'unsafe-inline'",
+            "Content-Security-Policy": "default-src \(Self.name):; script-src \(Self.name): 'wasm-unsafe-eval'; "
+                + "img-src \(Self.name): data: blob:; media-src blob:; style-src \(Self.name): 'unsafe-inline'",
         ]) ?? URLResponse())
         task.didReceive(data)
         task.didFinish()

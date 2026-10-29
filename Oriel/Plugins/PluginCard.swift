@@ -27,6 +27,7 @@ struct PluginCard: View {
                 }
             }
             .animation(.easeOut(duration: 0.15), value: plugin.web.toast == nil)
+            .task(id: plugin.web.arg) { await plugin.web.watch() }
             // In place of the card that had the keyboard.
             .onAppear {
                 if isEnabled, page.hasKeyboard(plugin.paneID) {
@@ -74,8 +75,13 @@ struct PluginToolbar: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
-                .truncationMode(.middle)
+            switch plugin.kind {
+            case .file: JumpBar(plugin: plugin)
+            case .preview: PreviewBar(plugin: plugin)
+            default:
+                Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
+                    .truncationMode(.middle)
+            }
             Spacer(minLength: 0)
             if [.file, .preview, .markdown].contains(plugin.kind), !page.store.machine.isRemote {
                 OpenWith(path: plugin.label.arg).accessibilityIdentifier("pane.\(plugin.paneID).open-with")
