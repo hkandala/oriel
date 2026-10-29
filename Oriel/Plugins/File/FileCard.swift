@@ -32,6 +32,7 @@ struct FileCard: View {
 
 /// Row 2 of a file card: `folder › file › symbol at the caret`, as Xcode's jump bar.
 struct JumpBar: View {
+    let plugin: Plugin
     let file: FileText
 
     var body: some View {
@@ -64,6 +65,6 @@ struct JumpBar: View {
         .accessibilityAddTraits(.isStaticText)
         .accessibilityLabel("Jump Bar")
         .accessibilityValue(parts.joined(separator: " › "))
-        .accessibilityIdentifier("pane.\(file.plugin.paneID).jump")
+        .accessibilityIdentifier("pane.\(plugin.paneID).jump")
     }
 }

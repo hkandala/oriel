@@ -47,7 +47,9 @@ struct CommandList {
                     keywords: "create start switch", enabled: openSession != nil, action: {
                         openSession?.wrappedValue = true
                     }),
-            Command(section: .file, title: "Go to Directory…", key: .init("g", modifiers: [.command, .shift]),
+            // ⇧⌘G is Find Previous in a file's text.
+            Command(section: .file, title: "Go to Directory…",
+                    key: page?.hasText(page?.keyboardPane) == true ? nil : .findPrevious,
                     group: .edit, symbol: "folder", keywords: "cd folder path navigate",
                     enabled: page?.keyboardPane.map { $0.program?.isShell == true && $0.plugin == nil } == true,
                     action: {

@@ -9,8 +9,8 @@ final class FileText {
     /// What the editor shows and edits; a change from the editor marks the card dirty.
     var text = "" {
         didSet {
-            if !loading, !plugin.dirty {
-                plugin.dirty = true
+            if !loading, plugin?.dirty == false {
+                plugin?.dirty = true
             }
         }
     }
@@ -23,7 +23,8 @@ final class FileText {
     /// The file card's jump bar: the symbol at the caret.
     var symbol = ""
 
-    let plugin: Plugin
+    /// Weak: the plugin keeps this.
+    private(set) weak var plugin: Plugin?
     private let machine: Machine
     /// The disk's hash when the text was read or saved; the save checks it.
     @ObservationIgnored private var hash: String?
@@ -38,7 +39,7 @@ final class FileText {
     }
 
     var path: String {
-        plugin.label.arg
+        plugin?.label.arg ?? ""
     }
 
     private var name: String {
@@ -59,10 +60,10 @@ final class FileText {
         do {
             let contents = try await Files.read(path, exec: exec)
             guard contents.hash != hash, !saving else { return }
-            guard loaded, plugin.dirty else { return apply(contents) }
-            plugin.toast = Toast(text: "\(name) changed on disk.",
-                                 other: ("Reload", { [weak self] in self?.apply(contents) }),
-                                 main: ("Keep Mine", { [weak self] in self?.hash = contents.hash }))
+            guard loaded, plugin?.dirty == true else { return apply(contents) }
+            plugin?.toast = Toast(text: "\(name) changed on disk.",
+                                  other: ("Reload", { [weak self] in self?.apply(contents) }),
+                                  main: ("Keep Mine", { [weak self] in self?.hash = contents.hash }))
         } catch {
             if !loaded {
                 failure = FileText.reason(error)
@@ -83,18 +84,18 @@ final class FileText {
         defer { saving = false }
         do {
             self.hash = try await Files.save(Data(saved.utf8), to: path, replacing: hash, exec: machine.exec())
-            plugin.toast = nil
+            plugin?.toast = nil
             // Edits made while it saved stay unsaved.
             if text == saved {
-                plugin.dirty = false
+                plugin?.dirty = false
             }
         } catch FileError.changed {
-            plugin.toast = Toast(text: "\(name) changed on disk since you opened it.",
-                                 other: ("Overwrite", { [weak self] in Task { await self?.write(replacing: nil) } }),
-                                 main: ("Reload", { [weak self] in Task { await self?.reload() } }))
+            plugin?.toast = Toast(text: "\(name) changed on disk since you opened it.",
+                                  other: ("Overwrite", { [weak self] in Task { await self?.write(replacing: nil) } }),
+                                  main: ("Reload", { [weak self] in Task { await self?.reload() } }))
         } catch {
-            plugin.toast = Toast(text: "\(name) was not saved: \(FileText.reason(error))", other: ("Cancel", {}),
-                                 main: ("Try Again", { [weak self] in Task { await self?.write(replacing: hash) } }))
+            plugin?.toast = Toast(text: "\(name) was not saved: \(FileText.reason(error))", other: ("Cancel", {}),
+                                  main: ("Try Again", { [weak self] in Task { await self?.write(replacing: hash) } }))
         }
     }
 
@@ -117,8 +118,8 @@ final class FileText {
         readOnly = machine.isRemote && contents.data.count > Files.remoteEditLimit
         failure = nil
         loaded = true
-        plugin.dirty = false
-        plugin.toast = nil
+        plugin?.dirty = false
+        plugin?.toast = nil
     }
 
     /// An error as the card says it.

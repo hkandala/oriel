@@ -32,7 +32,8 @@ struct CodeView: NSViewRepresentable {
 /// The text view, its gutter and its tree, and what goes between them and the file's text.
 final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NSTextContentStorageDelegate {
     let scroll = CodeTextView.scrollableTextView()
-    private let file: FileText
+    /// Weak: the file text keeps this.
+    private weak var file: FileText?
     private let page: Page
     private let text: CodeTextView
     private let grammar: Grammar?
@@ -77,11 +78,15 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
         text.isContinuousSpellCheckingEnabled = false
         text.smartInsertDeleteEnabled = false
         text.textContainerInset = NSSize(width: 4, height: 6)
-        text.setAccessibilityIdentifier("file.\(file.plugin.paneID).text")
+        text.setAccessibilityIdentifier("file.\(file.plugin?.paneID ?? "").text")
         text.textLayoutManager?.renderingAttributesValidator = { [weak self] manager, fragment in
             self?.color(fragment, manager)
         }
-        text.focused = { [page, plugin = file.plugin] in page.terminals.claimed(plugin.terminalID) }
+        text.focused = { [page, weak plugin = file.plugin] in
+            if let plugin {
+                page.terminals.claimed(plugin.terminalID)
+            }
+        }
         scroll.drawsBackground = false
         scroll.verticalRulerView = Gutter(text)
         scroll.rulersVisible = true
@@ -89,21 +94,22 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
 
     /// The file's state into the view: a reload's text, read only, the keyboard, a linked open's line.
     func update() {
+        guard let file, let plugin = file.plugin else { return }
         if file.text != shown {
             shown = file.text
             text.string = file.text
             undo.removeAllActions()
         }
         text.isEditable = !file.readOnly
-        if file.plugin.wantsKeyboard {
+        if plugin.wantsKeyboard {
             Task {
-                file.plugin.wantsKeyboard = false
+                plugin.wantsKeyboard = false
                 text.window?.makeFirstResponder(text)
             }
         }
-        if let place = file.plugin.place {
+        if let place = plugin.place {
             Task {
-                file.plugin.place = nil
+                plugin.place = nil
                 if let line = Int(place) {
                     show(line: line)
                 }
@@ -126,7 +132,7 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
 
     func textDidChange(_: Notification) {
         shown = text.string
-        file.text = shown ?? ""
+        file?.text = shown ?? ""
     }
 
     /// A wrapped line goes on at its own indent, as in Xcode.
@@ -150,7 +156,7 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NST
         text.setNeedsDisplay(text.visibleRect)
         scroll.verticalRulerView?.needsDisplay = true
         let symbol = symbol(at: text.selectedRange().location)
-        if file.symbol != symbol {
+        if let file, file.symbol != symbol {
             file.symbol = symbol
         }
     }

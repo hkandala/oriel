@@ -23,7 +23,8 @@ final class Preview {
     var page = (number: 0, count: 0)
     @ObservationIgnored weak var scroll: NSScrollView?
     @ObservationIgnored weak var pdf: PDFView?
-    let plugin: Plugin
+    /// Weak: the plugin keeps this.
+    private weak var plugin: Plugin?
     private let machine: Machine
     @ObservationIgnored private var hash: String?
 
@@ -33,7 +34,7 @@ final class Preview {
     }
 
     var path: String {
-        plugin.label.arg
+        plugin?.label.arg ?? ""
     }
 
     var type: UTType? {
@@ -65,7 +66,7 @@ final class Preview {
             } else if machine.isRemote {
                 // The player reads a file. ponytail: one per card in the temporary folder, which the system empties.
                 let copy = FileManager.default.temporaryDirectory
-                    .appending(path: "oriel-preview-\(plugin.label.iid).\((path as NSString).pathExtension)")
+                    .appending(path: "oriel-preview-\(plugin?.label.iid ?? "").\((path as NSString).pathExtension)")
                 try contents.data.write(to: copy)
                 content = .media(copy)
             } else {
@@ -138,10 +139,11 @@ struct PreviewCard: View {
 
 /// Row 2 of a preview card: the path; zoom for an image or a PDF, and a PDF's page.
 struct PreviewBar: View {
+    let plugin: Plugin
     let preview: Preview
 
     var body: some View {
-        let id = "pane.\(preview.plugin.paneID)"
+        let id = "pane.\(plugin.paneID)"
         Text(preview.path).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1).truncationMode(.middle)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityIdentifier("\(id).path")

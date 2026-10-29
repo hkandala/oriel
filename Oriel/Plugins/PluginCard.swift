@@ -140,8 +140,8 @@ struct PluginToolbar: View {
     private var placeholder: some View {
         HStack(spacing: 6) {
             switch plugin.kind {
-            case .file: JumpBar(file: page.fileText(plugin))
-            case .preview: PreviewBar(preview: page.preview(plugin))
+            case .file: JumpBar(plugin: plugin, file: page.fileText(plugin))
+            case .preview: PreviewBar(plugin: plugin, preview: page.preview(plugin))
             default:
                 Text(plugin.label.arg).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1)
                     .truncationMode(.middle)
