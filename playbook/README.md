@@ -56,3 +56,7 @@ run and test it is in the root `README.md`.
 | 38 | Chat view: the core and Claude Code | [38-chat-view-core.md](phases/38-chat-view-core.md) |
 | 39 | Chat view: Codex, pi (pi-oriel) and opencode | [39-chat-view-agents.md](phases/39-chat-view-agents.md) |
 | 40 | Tenth feedback: two-row headers, browser polish, chat sessions and reading | [40-tenth-feedback.md](phases/40-tenth-feedback.md) |
+| 41 | Eleventh feedback: browser links, titles, the chat's reply box, rows, loading, overview, swipes | [41-eleventh-feedback.md](phases/41-eleventh-feedback.md) |
+| 42 | Default plugins: the shared spec and base (branch `plugins-base`) | [42-plugins-base.md](phases/42-plugins-base.md) |
+| 43 | Default plugins with native views (branch `plugins-native`) | [43-plugins-native.md](phases/43-plugins-native.md) |
+| 44 | Default plugins with web components (branch `plugins-web`) | [44-plugins-web.md](phases/44-plugins-web.md) |
