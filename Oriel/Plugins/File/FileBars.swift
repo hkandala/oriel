@@ -10,7 +10,8 @@ struct JumpBar: View {
         let path = plugin.label.arg as NSString, folder = (path.deletingLastPathComponent as NSString).lastPathComponent
         let symbol = plugin.web.symbol, chevron = Text(" › ").foregroundStyle(.tertiary)
         let file = Text("\(Text(folder).foregroundStyle(.secondary))\(chevron)\(path.lastPathComponent)")
-        let shown = symbol.isEmpty ? file : Text("\(file)\(chevron)\(symbol)")
+        let shown = symbol.isEmpty ? file
+            : Text("\(file)\(chevron)\(Text(Image(systemName: "curlybraces")).foregroundStyle(.secondary)) \(symbol)")
         shown.fontWeight(.regular).lineLimit(1).truncationMode(.middle)
             .accessibilityValue([folder, path.lastPathComponent, symbol].filter { !$0.isEmpty }
                 .joined(separator: " › "))
