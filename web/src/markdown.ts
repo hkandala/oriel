@@ -59,14 +59,18 @@ const marks = new Set([
 // A setext heading's underline stays: hidden, it would leave an empty line.
 const shown = new Set(["FencedCode", "Autolink", "LinkReference", "SetextHeading1", "SetextHeading2"])
 
+// Front matter in Edit: plain secondary monospace, as the native variant draws it.
+const frontmatter = Decoration.mark({ class: "cm-frontmatter" })
+
 function hidden(view: EditorView): DecorationSet {
   const { state } = view
   const ranges = []
   for (const { from, to } of view.visibleRanges) {
-    tree.iterate({
+    syntaxTree(state).iterate({
       from,
       to,
       enter(node) {
+        if (node.name === "Frontmatter") ranges.push(frontmatter.range(node.from, node.to))
         const parent = node.node.parent
         if (!marks.has(node.name) || !parent || shown.has(parent.name)) return
         // A bare address (GFM) is the text itself.
@@ -137,6 +141,9 @@ const view = await editor([
     "&": { fontSize: "calc(var(--font-size) + 1px)" },
     ".cm-scroller": { fontFamily: "system-ui", lineHeight: "1.55" },
     ".cm-content": { boxSizing: "border-box", maxWidth: "640px", margin: "0 auto", padding: "16px 24px 48px" },
+    ".cm-frontmatter, .cm-frontmatter *": {
+      fontFamily: "ui-monospace, monospace", fontSize: "12px", color: "var(--dim)",
+    },
   })),
   EditorView.updateListener.of((update) => {
     if (update.docChanged && !edit) render(update.state.doc.toString())

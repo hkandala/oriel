@@ -172,7 +172,8 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   alt text links to them (a relative one opens Preview); links open from Read only; a linked open with a line opens
   Edit at that line. Unlike the native variant there is no 128 KB gate: CodeMirror and markdown-it stay fast at
   megabytes; the File card's caps (16 MB view, 4 MiB remote edit) hold. Front matter (`---` on the first line to the
-  next `---` line) is YAML in Edit (`yamlFrontmatter`), so it is no rule or heading there nor in the outline. Away
+  next `---` line) is YAML in Edit (`yamlFrontmatter`), plain secondary 12 pt monospace as in the native variant, so it is no rule or
+  heading there nor in the outline. ⌘E has its key only over a Markdown card: a disabled item would swallow it. Away
   from the caret a task's `[ ]` is a box; table pipes stay (CodeMirror has no table view). A file that starts with
   `---` and has no second one is all YAML in Edit, with an empty outline, and renders normally in Read.
 - **Cause:** with `html: true` a file's `<meta http-equiv=refresh>`, a form or an SVG link navigated the card to any
