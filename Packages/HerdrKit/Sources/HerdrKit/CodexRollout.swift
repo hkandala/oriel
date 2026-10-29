@@ -5,6 +5,10 @@ import Foundation
 /// (resources/research/agents/codex.md#3-file-watching-and-the-parser). The parser reads the typed items of
 /// `item_completed` events, which are whole when written, and the turn's end; anything else is skipped.
 public enum CodexRollout {
+    /// The lines `read` skips, as an awk pattern for `Exec.follow`: every top-level `type` but `event_msg` and
+    /// `turn_context` (most of a rollout is `response_item`).
+    public static let unread = #"/^[{][^{]*"type": *"/ && !/^[{][^{]*"type": *"(event_msg|turn_context)"/"#
+
     /// Adds what the line holds; false when it is not JSON (a torn line).
     @discardableResult
     public static func read(_ line: String, into history: inout ChatHistory) -> Bool {

@@ -56,8 +56,8 @@ extension Chat {
 
     /// Follows an agent's side file from the chat's mark: `line` gives a line's history file when it starts a session
     /// (and handles any other line itself). A new file is the history from its start. `late`: no session after 10 s is
-    /// a problem.
-    func followSessions(_ sideFile: String, on exec: any Exec, late: Bool,
+    /// a problem. `skip`: the lines of the history file its parser skips (`Exec.follow`).
+    func followSessions(_ sideFile: String, on exec: any Exec, late: Bool, skip: String = "0",
                         read: @escaping (String, inout ChatHistory) -> Bool, restarted: @escaping () -> Void = {},
                         line: ([String: Any]) async -> String?) async
     {
@@ -65,7 +65,9 @@ extension Chat {
         defer { transcript?.cancel() }
         let follow = { (source: String) in
             transcript?.cancel()
-            transcript = Task { await self.follow(history: source, on: exec, read: read, restarted: restarted) }
+            transcript = Task {
+                await self.follow(history: source, on: exec, skip: skip, read: read, restarted: restarted)
+            }
         }
         if let source {
             follow(source)
@@ -95,27 +97,38 @@ extension Chat {
     }
 
     /// Follows the history file while it is the chat's, each line read by the adapter's parser (false: a torn line);
-    /// five torn lines in a row are a problem, until a good one. `restarted`: the file was rewritten.
-    private func follow(history source: String, on exec: any Exec, read: (String, inout ChatHistory) -> Bool,
-                        restarted: () -> Void = {}) async
+    /// five torn lines in a row are a problem, until a good one. `restarted`: the file was rewritten. What the file
+    /// held when opened goes into a copy that shows whole once read (a long session would show row by row, and
+    /// rebuild every row each time).
+    private func follow(history source: String, on exec: any Exec, skip: String,
+                        read: (String, inout ChatHistory) -> Bool, restarted: () -> Void) async
     {
-        guard let lines = try? await exec.follow(source, from: marks[source] ?? FileMark()) else { return }
-        var torn = 0
+        guard let lines = try? await exec.follow(source, from: marks[source] ?? FileMark(), skip: skip) else { return }
+        var torn = 0, loading = true, loaded = history
         for await line in lines where !Task.isCancelled && self.source == source {
             switch line {
-            case let .opened(_, again) where again && !history.entries.isEmpty:
-                history = ChatHistory()
+            case let .opened(_, again) where again && !loaded.entries.isEmpty:
+                loaded = ChatHistory()
                 restarted()
             case let .line(text, mark):
                 marks[source] = mark
-                torn = read(text, &history) ? 0 : torn + 1
+                torn = (loading ? read(text, &loaded) : read(text, &history)) ? 0 : torn + 1
                 if torn == 5 {
                     problem = Self.unknownFormat
                 } else if torn == 0, problem == Self.unknownFormat {
                     problem = nil
                 }
+            case .loaded:
+                loading = false
+                history = loaded
+                // Let go of the copy, or the history's next line would copy it whole.
+                loaded = ChatHistory()
             case .opened: break
             }
+        }
+        // Cut short (the card went, the connection dropped): the marks went on, so the history keeps what they read.
+        if loading, self.source == source {
+            history = loaded
         }
     }
 }

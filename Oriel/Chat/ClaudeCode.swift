@@ -56,8 +56,8 @@ struct ClaudeCode: ChatAdapter {
     /// The side file: the last SessionStart's transcript is the history (a new one after `/clear`, a fork or a
     /// resume starts the history again); a question shows until it is answered. No session after 10 s: a problem.
     @MainActor private func hooks(_ chat: Chat, _ exec: any Exec) async {
-        let sideFile = folder + "/hooks.jsonl"
-        await chat.followSessions(sideFile, on: exec, late: true, read: ClaudeTranscript.read) { object in
+        let sideFile = folder + "/hooks.jsonl", skip = ClaudeTranscript.unread
+        await chat.followSessions(sideFile, on: exec, late: true, skip: skip, read: ClaudeTranscript.read) { object in
             if object["hook_event_name"] as? String == "SessionStart" {
                 return object["transcript_path"] as? String
             }

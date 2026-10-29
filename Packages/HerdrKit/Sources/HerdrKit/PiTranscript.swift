@@ -177,7 +177,8 @@ public struct PiTranscript: Sendable {
         case "bash": (.command, ChatHistory.firstLine(input["command"]))
         case "grep", "find": (.search, ChatHistory.firstLine(input["pattern"]))
         case "ls": (.search, path)
-        default: (.other, ChatHistory.firstLine(input.values.first { $0 is String }))
+        // The first text argument by name: a parsed object has no order.
+        default: (.other, ChatHistory.firstLine(input.sorted { $0.key < $1.key }.first { $0.value is String }?.value))
         }
         return ChatTool(id: block["id"] as? String ?? id, name: name, category: category, target: target,
                         input: ChatHistory.detail(input), started: time)

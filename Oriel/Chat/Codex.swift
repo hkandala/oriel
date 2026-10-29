@@ -56,7 +56,7 @@ struct Codex: ChatAdapter {
     /// The last SessionStart with a rollout is the history: a new one after `/new`, `/clear`, a fork or a resume,
     /// at its first prompt. One with no rollout (a hidden thread of Codex's own) is not.
     @MainActor private func sessions(_ chat: Chat, _ exec: any Exec) async {
-        await chat.followSessions(folder + "/hooks.jsonl", on: exec, late: false,
+        await chat.followSessions(folder + "/hooks.jsonl", on: exec, late: false, skip: CodexRollout.unread,
                                   read: CodexRollout.read) { $0["transcript_path"] as? String }
     }
 

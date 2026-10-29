@@ -5,6 +5,12 @@ import Foundation
 /// `user` and `assistant` lines with `text`, `tool_use`, `tool_result` and `thinking` blocks. Queued prompts, turn
 /// ends, errors and compaction are extras of 2.1.x that may change; anything else is skipped.
 public enum ClaudeTranscript {
+    /// The lines `read` skips that are most of a transcript, as an awk pattern for `Exec.follow`: records of the
+    /// other types that write `type` first (`api-request-blob`, `last-prompt`, …), and attachments other than queued
+    /// prompts.
+    public static let unread = #"/^[{] *"type": *"/ && !/^[{] *"type": *"(user|assistant|system|attachment)"/ || "#
+        + #"/^[{][^{]*"attachment": *[{]/ && !/"queued_command"/"#
+
     /// Adds what the line holds; false when it is not JSON (a torn line).
     @discardableResult
     public static func read(_ line: String, into history: inout ChatHistory) -> Bool {
@@ -115,9 +121,11 @@ public enum ClaudeTranscript {
             let question = (input["questions"] as? [[String: Any]])?.first?["question"]
             (category, target) = (.other, ChatHistory.firstLine(question))
         default:
-            // An MCP tool's own name (`mcp__server__tool`), and its first text argument.
+            // An MCP tool's own name (`mcp__server__tool`), and its first text argument by name (the same each read:
+            // a parsed object has no order).
             shown = (name.components(separatedBy: "__").last ?? name).lowercased()
-            (category, target) = (.other, ChatHistory.firstLine(input.values.first { $0 is String }))
+            let text = input.sorted { $0.key < $1.key }.first { $0.value is String }?.value
+            (category, target) = (.other, ChatHistory.firstLine(text))
         }
         history.append(ChatEntry(id: id, .tool(ChatTool(id: toolID, name: shown, category: category, target: target,
                                                         input: ChatHistory.detail(input), started: time)), time: time))
