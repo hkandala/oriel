@@ -47,20 +47,27 @@ import Testing
     #expect(await watching.exit().status == 9)
 }
 
+/// A remote machine's runs, here without ssh: SSHExec's relay and command.
+struct RelayExec: Exec {
+    let relay: Relay
+
+    static func start() async throws -> RelayExec {
+        try await RelayExec(relay: #require(Relay.start(ProcessExec.spawn(["perl", "-e", Relay.script],
+                                                                          localExec.environment))))
+    }
+
+    func run(_ argv: [String]) throws -> Channel {
+        try relay.run("exec " + SSHExec.quoted(argv))
+    }
+
+    func herdr() -> String? {
+        nil
+    }
+}
+
 /// A dropped file's copy over the relay (here without ssh): the same bytes under the same name, in a folder of its own.
 @Test func `upload copies a file whole`() async throws {
-    struct RelayExec: Exec {
-        let relay: Relay
-        func run(_ argv: [String]) throws -> Channel {
-            try relay.run("exec " + SSHExec.quoted(argv))
-        }
-
-        func herdr() -> String? {
-            nil
-        }
-    }
-    let relay = try #require(await Relay.start(ProcessExec.spawn(["perl", "-e", Relay.script], localExec.environment)))
-    let exec = RelayExec(relay: relay)
+    let exec = try await RelayExec.start()
     let folder = URL.temporaryDirectory.appending(path: "oriel-upload-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: folder) }
@@ -75,4 +82,15 @@ import Testing
     await #expect(throws: HerdrError.failed("\(folder.lastPathComponent) is not a file")) {
         try await exec.upload(folder)
     }
+}
+
+/// `git … -z` output keeps its NUL bytes over the relay, also past the relay's 64 KB reads.
+@Test func `relay passes NUL bytes unchanged`() async throws {
+    let relay = try #require(await Relay.start(ProcessExec.spawn(["perl", "-e", Relay.script], localExec.environment)))
+    let run = try relay
+        .run(#"printf 'a\000b c\000\n'; i=0; while [ $i -lt 20000 ]; do printf 'x/y z\000'; i=$((i+1)); done"#)
+    run.closeInput()
+    let lines = await run.lines.reduce([]) { $0 + [$1] }
+    #expect(lines.first == "a\0b c\0")
+    #expect(lines.count == 2 && lines[1] == String(repeating: "x/y z\0", count: 20000))
 }
