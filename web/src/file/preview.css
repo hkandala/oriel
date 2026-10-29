@@ -1,0 +1,27 @@
+/* Preview (preview.ts): the image centered in a scroll view, the PDF's pages, the player. */
+.scroller {
+  display: flex;
+  height: 100%;
+  overflow: auto;
+}
+.scroller img {
+  flex: none;
+  margin: auto;
+}
+.pdf {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+.pdfViewer .page {
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+}
+.player {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+audio.player {
+  height: auto;
+  margin-top: 40%;
+}
