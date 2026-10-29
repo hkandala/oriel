@@ -62,9 +62,12 @@ extension OrielUITests {
         element("diff.\(diff).open").click()
         let opened = try await newTabID(after: before)
         closeAfter("tab", opened)
-        let order = try await (Self.call(one, "tab.list", ["workspace_id": "w2"])["tabs"] as? [[String: Any]] ?? [])
-            .compactMap { $0["tab_id"] as? String }
-        XCTAssertEqual(order.firstIndex(of: opened), order.firstIndex(of: tab).map { $0 + 1 }, "\(order)")
+        // herdr adds it last; the move comes after.
+        try await expect("\(opened) right after \(tab)") {
+            let order = try await (Self.call(one, "tab.list", ["workspace_id": "w2"])["tabs"] as? [[String: Any]] ?? [])
+                .compactMap { $0["tab_id"] as? String }
+            return order.firstIndex(of: opened) == order.firstIndex(of: tab).map { $0 + 1 }
+        }
         XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
         XCTAssertTrue(element("tab.\(opened)").has(\.label, "Diff Changes", within: 3))
         let copy = try await paneLabel(pane(of: opened))
