@@ -44,6 +44,12 @@ components"
 - `plugins-base` (local): this phase, from main. Phase 43 and 44 branch from it as `plugins-native` and
   `plugins-web` (local). Track branches merge into their integration branch with a fast-forward:
   `git rebase <integration> && make lint build test && git push . HEAD:refs/heads/<integration>`.
+- Phase 41 and this phase run at the same time; phases 43 and 44 start together when this phase's tracks are on
+  `plugins-base`. None of them waits for phase 41.
+- CI: no pushes along the way. Each track runs its own UI tests once, at its end (one chosen-tests run on a tag,
+  deleted after); each branch gets one full run at the end.
+- Code: the ponytail rules hold here as everywhere: the least code that does the spec, no layer, protocol or option
+  for a later plugin, no copied logic between kinds.
 - At the end, after phase 41 is all on main: each integration branch rebases on main's last commit, gets its docs
   pass, a final review, a parity review across the two, and a full CI run (`gh workflow run ci.yml --ref <branch>`).
   Then the orchestrator pushes `plugins-native` and `plugins-web` to origin (the user asked for these two remote
