@@ -169,8 +169,12 @@ final class Browser: NSObject {
         restore(url)
     }
 
-    /// Return opens and Esc dismisses "Open this page?" while the card has the keyboard.
-    private func key(_ event: NSEvent) -> Bool {
+    /// Esc closes the popup; Return opens and Esc dismisses "Open this page?" while the card has the keyboard.
+    func key(_ event: NSEvent) -> Bool {
+        if popup != nil, event.keyCode == 53 {
+            closePopup()
+            return true
+        }
         guard asking != nil, [36, 76, 53].contains(event.keyCode) else { return false }
         if event.keyCode == 53 {
             notNow()
@@ -351,7 +355,13 @@ extension Browser: WKNavigationDelegate {
     }
 
     /// A `mailto:` or an app's link clicked in the page goes to its app; the page stays. Never from script or a frame.
+    /// A ⌘-clicked page opens in a new tab.
     func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
+        if action.navigationType == .linkActivated, action.modifierFlags.contains(.command),
+           let url = action.request.url, openTab(url)
+        {
+            return .cancel
+        }
         // A remote page's link or redirect to `localhost` means its machine's, sent as it is (an OAuth `form_post`
         // keeps its body). The content rule blocks the rest (`proxy`).
         if alias != nil, action.targetFrame?.isMainFrame == true, let url = action.request.url,

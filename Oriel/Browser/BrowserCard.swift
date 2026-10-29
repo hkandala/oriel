@@ -66,7 +66,7 @@ struct BrowserCard: View {
             }
             .overlay {
                 if let popup = browser.popup {
-                    Popup(view: popup.view, title: popup.host, close: { browser.popup = nil }).padding(24)
+                    Popup(view: popup.view, title: popup.host, close: browser.closePopup).padding(24)
                 }
             }
             .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: browser.ready)

@@ -1,27 +1,38 @@
 import AppKit
+import HerdrKit
 import WebKit
 
 /// What a page asks of its card: new windows, dialogs and file panels.
 extension Browser: WKUIDelegate {
-    /// `window.open` (an OAuth popup keeps its opener) in a sheet over the card; a link that asks for a new window
-    /// without script opens in the card.
+    /// `window.open` (an OAuth popup keeps its opener) in a sheet over the card. A link that asks for a new window
+    /// (`target=_blank`) and Open Link in New Tab open a tab; a form that does loads in the card.
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for action: WKNavigationAction, windowFeatures _: WKWindowFeatures) -> WKWebView?
     {
+        let view = webView as? BrowserView
+        if view?.opensTab == true || action.navigationType == .linkActivated {
+            view?.opensTab = false
+            if let url = action.request.url {
+                openTab(url)
+            }
+            return nil
+        }
         guard action.navigationType == .other else {
             webView.load(action.request)
             return nil
         }
-        let popup = WKWebView(frame: .zero, configuration: configuration)
+        let popup = BrowserView(frame: .zero, configuration: configuration)
         popup.uiDelegate = self
+        popup.onKey = { [weak self] in self?.key($0) ?? false }
         popup.setAccessibilityIdentifier("browser.\(paneID).popup")
+        popup.takeKeyboard()
         self.popup = (popup, action.request.url?.host ?? "")
         return popup
     }
 
     func webViewDidClose(_ webView: WKWebView) {
         if webView === popup?.view {
-            popup = nil
+            closePopup()
         }
     }
 
@@ -62,6 +73,31 @@ extension Browser: WKUIDelegate {
 }
 
 extension Browser {
+    func closePopup() {
+        popup = nil
+        view.takeKeyboard()
+    }
+
+    /// Open Link in New Tab, ⌘-click and `target=_blank`: a browser pane on the link in a new tab after the
+    /// workspace's others, left in the background as Safari does. The user picked the link: its origin is approved,
+    /// so the new card loads it. False for an address a label cannot hold.
+    @discardableResult
+    func openTab(_ link: URL) -> Bool {
+        guard let store, let pane = store.pane(paneID), let workspace = store.workspace(of: pane.tabID),
+              let url = Self.url(Self.shown(link, alias).absoluteString, local: !store.machine.isRemote)
+        else { return false }
+        approve(url)
+        let taken = Set(store.panes.compactMap { PaneLabel($0.label)?.iid })
+        let label = PaneLabel(plugin: "browser", iid: PaneLabel.newIID(taken: taken), arg: url.absoluteString)
+        Task {
+            await store.write {
+                _ = try await $0.newTab(workspace: workspace.id, cwd: pane.cwd ?? "~", label: label.text,
+                                        command: Self.placeholder(label))
+            }
+        }
+        return true
+    }
+
     /// WebKit has no favicon API: the page fetches its icon, so its proxy, its rules and CORS apply as to any fetch.
     func loadIcon() {
         let page = view.url

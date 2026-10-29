@@ -3,14 +3,14 @@ import XCTest
 /// Browser panes (ui/browser): a herdr pane labeled `oriel:browser#<iid> <url>` with a placeholder, shown
 /// as a web view card. The test pages are files a shell of the session writes (the runner is sandboxed).
 extension OrielUITests {
-    /// Two pages: one links to two and opens a popup that closes itself.
+    /// Two pages: one links to two (also in a new window) and opens a popup that closes itself.
     func writePages(from pane: String, in session: String? = nil) async throws -> String {
         let folder = "/tmp/oriel-e2e-browser"
         try await Self.call(session ?? one, "pane.send_text", ["pane_id": pane, "text": """
         mkdir -p \(folder) && printf '<title>One</title><link rel="icon" href="data:image/svg+xml,<svg \
         xmlns=%%22http://www.w3.org/2000/svg%%22 \
         viewBox=%%220 0 16 16%%22><rect width=%%2216%%22 height=%%2216%%22/></svg>"> \
-        <p>oriel-page-one</p><a href="two.html">Two</a> \
+        <p>oriel-page-one</p><a href="two.html">Two</a> <a href="two.html" target="_blank">Blank</a> \
         <button onclick="window.open(\\x27pop.html\\x27)">Pop</button>' >\(folder)/one.html && \
         printf '<title>Two</title><p>oriel-page-two</p>' >\(folder)/two.html && \
         printf '<p>oriel-pop</p><button onclick="window.close()">Done</button>' >\(folder)/pop.html && clear\r
@@ -123,6 +123,57 @@ extension OrielUITests {
         XCTAssertTrue(pageText("oriel-page-one").exists(within: 5))
 
         try await openBrowserHere(on: left, in: tab, besides: browser)
+    }
+
+    /// A link opens in a new tab, in the background, from the page's menu (which has no New Window or download items),
+    /// by ⌘-click and as a `target=_blank` link: each a browser pane on two.html. A `window.open` popup stays over the
+    /// card and closes by Esc and by its close button.
+    func testLinksOpenInNewTabsAndPopupsClose() async throws {
+        let (tab, shell) = try await newTab("links")
+        try await waitForPrompt(shell)
+        let page = try await writePages(from: shell)
+        let pane = try await split(shell)
+        try await Self.call(one, "pane.rename", ["pane_id": pane, "label": "oriel:browser#e2e1ab \(page)"])
+        try await Self.call(one, "pane.report_metadata", ["pane_id": pane, "source": "oriel-panes",
+                                                          "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
+        XCTAssertTrue(pageText("oriel-page-one").exists(within: 5))
+        let two = page.replacing("one.html", with: "two.html")
+        var tabs = try await tabIDs()
+        func expectTab(_ how: String) async throws {
+            let new = try await newTabID(after: tabs)
+            closeAfter("tab", new)
+            tabs.append(new)
+            let pane = try await self.pane(of: new)
+            try await expect("\(how): two.html in \(new)") {
+                let label = try await paneLabel(pane)
+                return label.hasPrefix("oriel:browser#") && label.hasSuffix(" \(two)")
+            }
+            XCTAssertTrue(element("tab.\(tab)").isSelected, how)
+            XCTAssertTrue(pageText("oriel-page-one").exists, how)
+        }
+
+        app.webViews.links["Two"].rightClick()
+        let menu = app.windows.firstMatch.menuItems
+        XCTAssertTrue(menu["Open Link in New Tab"].exists(within: 2))
+        XCTAssertFalse(menu["Open Link in New Window"].exists)
+        XCTAssertFalse(menu["Download Linked File"].exists)
+        keepScreenshot("page menu")
+        menu["Open Link in New Tab"].click()
+        try await expectTab("the menu")
+        XCUIElement.perform(withKeyModifiers: .command) { app.webViews.links["Two"].click() }
+        try await expectTab("⌘-click")
+        app.webViews.links["Blank"].click()
+        try await expectTab("target=_blank")
+
+        let popup = element("browser.\(pane).popup")
+        app.webViews.buttons["Pop"].click()
+        XCTAssertTrue(popup.exists(within: 5))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(popup.vanishes(within: 3))
+        app.webViews.buttons["Pop"].click()
+        XCTAssertTrue(popup.exists(within: 5))
+        element("browser.\(pane).card").buttons["Close"].click()
+        XCTAssertTrue(popup.vanishes(within: 3))
     }
 
     /// Open Browser Here from the palette on a terminal: a browser pane in its place. Not offered on a browser pane,
