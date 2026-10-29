@@ -6,8 +6,8 @@ extension OrielUITests {
     /// Uncommitted lists the changed and the untracked files and follows the work tree; the overview's tile shows
     /// the card; the source pop-up picks a commit (the label and the title follow, the page loads it); Open File
     /// opens the file in a new tab right after this one; Viewed folds the file and opens it again; Next Change
-    /// scrolls to a change the page has not drawn; Side by Side puts the old and the new line on one row; the file
-    /// list hides; ⌘-click on a line opens the file at the line.
+    /// scrolls to a change the page has not drawn; ⌘-click on a line opens the file at the line; Side by Side puts
+    /// the old and the new line on one row; the file list hides.
     func testDiffCardShowsAPatchAndOpensItsFiles() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("diff")
@@ -55,15 +55,16 @@ extension OrielUITests {
         XCTAssertFalse(far.exists)
         element("pane.\(card).diff.next").click()
         element("pane.\(card).diff.next").click()
-        XCTAssertTrue(far.exists(within: 3))
-        try await sideBySide(card, page, far)
         XCTAssertTrue(far.has(\.isHittable, true, within: 3))
+        // In Unified: a ~200 pt Side by Side column clips the line where the click lands (phase 44's findings).
         let file = try await opens("\(root)/a.txt", after: tab) {
             XCUIElement.perform(withKeyModifiers: .command) { far.click() }
         }
         // At the line: the editor draws only the lines in view.
         let editor = element("file.\(file).page").textViews.firstMatch
         XCTAssertTrue(until(5) { (editor.value as? String)?.contains("far290") == true })
+        try await show(tab)
+        try await sideBySide(card, page, far)
         try await send("cd / && rm -rf \(repo)\r", to: left)
     }
 
