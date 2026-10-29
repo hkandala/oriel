@@ -26,10 +26,11 @@ extension WebCard {
 
 extension CommandList {
     /// ⌘E, Edit Mode in the View menu: Read or Edit on the Markdown card with the keyboard, checked while editing.
-    /// The action asks `target` when it runs: the menu bar may be older than the last keyboard move.
+    /// The action asks `target` when it runs: the menu bar may be older than the last keyboard move. No key over
+    /// another card: a disabled item would swallow its ⌘E.
     static func editMode(_ target: @escaping @MainActor () -> Plugin?) -> Command {
         let markdown = { target().flatMap { $0.kind == .markdown ? $0.web : nil } }
-        return Command(section: .view, title: "Edit Mode", key: .init("e"), symbol: "pencil",
+        return Command(section: .view, title: "Edit Mode", key: markdown() == nil ? nil : .init("e"), symbol: "pencil",
                        keywords: "markdown read", enabled: markdown() != nil,
                        checked: markdown()?.markdown.edit == true, action: {
                            if let web = markdown() {
