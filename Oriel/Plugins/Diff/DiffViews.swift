@@ -52,14 +52,14 @@ struct DiffContent: View {
 private struct DiffHost: NSViewRepresentable {
     let card: DiffCard
 
-    func makeNSView(context _: Context) -> TerminalHost.Host {
-        let host = TerminalHost.Host()
+    func makeNSView(context _: Context) -> SettlingHost {
+        let host = SettlingHost()
         host.clipsToBounds = true
         host.addSubview(card.view)
         return host
     }
 
-    func updateNSView(_: TerminalHost.Host, context: Context) {
+    func updateNSView(_: SettlingHost, context: Context) {
         card.restyle(context.environment.look)
     }
 }

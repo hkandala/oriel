@@ -54,14 +54,14 @@ struct FilesCard: View {
 private struct TreeHost: NSViewRepresentable {
     let view: NSView
 
-    func makeNSView(context _: Context) -> TerminalHost.Host {
-        let host = TerminalHost.Host()
+    func makeNSView(context _: Context) -> SettlingHost {
+        let host = SettlingHost()
         host.clipsToBounds = true
         host.addSubview(view)
         return host
     }
 
-    func updateNSView(_: TerminalHost.Host, context _: Context) {}
+    func updateNSView(_: SettlingHost, context _: Context) {}
 }
 
 /// The card header's second row: the filter and Collapse All.

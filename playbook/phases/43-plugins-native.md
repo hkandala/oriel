@@ -43,7 +43,7 @@ Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track ow
   info view.
 - **Decisions:** the tree's state (the outline view, open folders, listings, filter, git data) is a `FileTree` kept on
   the `Plugin`, so a float or a move keeps the open folders and the scroll; the card hosts its scroll view in a
-  `TerminalHost.Host` that adopts it, so an overview tile borrows it and the card takes it back. Folders list when they
+  `SettlingHost` that adopts it, so an overview tile borrows it and the card takes it back. Folders list when they
   open; on each change the watch sees (the root's, FSEvents or the remote 2 s poll) the root and every open folder list
   again, and git's status and branch read again (the section's count); the history only while the section is open. A
   value is written only when it changed: a build changes files every second.

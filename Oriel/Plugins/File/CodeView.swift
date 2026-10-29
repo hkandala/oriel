@@ -10,8 +10,8 @@ struct CodeView: NSViewRepresentable {
 
     /// The newest host adopts the editor, as a terminal's does: an overview tile borrows it, and the card takes it
     /// back after.
-    func makeNSView(context _: Context) -> TerminalHost.Host {
-        let host = TerminalHost.Host(), editor = file.editor ?? CodeEditor(file: file, page: page)
+    func makeNSView(context _: Context) -> SettlingHost {
+        let host = SettlingHost(), editor = file.editor ?? CodeEditor(file: file, page: page)
         file.editor = editor
         host.clipsToBounds = true
         editor.scroll.frame = host.bounds
@@ -19,7 +19,7 @@ struct CodeView: NSViewRepresentable {
         return host
     }
 
-    func updateNSView(_: TerminalHost.Host, context: Context) {
+    func updateNSView(_: SettlingHost, context: Context) {
         // Only an overview's tile disables its card.
         if context.environment.isEnabled {
             file.editor?.update()
