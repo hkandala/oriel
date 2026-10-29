@@ -179,6 +179,12 @@ def main():
             os.remove(transcript)
         for side in re.findall(r"/\.cache/oriel/chat/([0-9a-f-]{36})", settings)[:1]:
             shutil.rmtree(os.path.expanduser("~/.cache/oriel/chat/" + side), ignore_errors=True)
+        # Bracketed paste off again, as Claude Code leaves it: bash 3.2 would take herdr's next paste marks as text.
+        try:
+            sys.stdout.write("\x1b[?2004l")
+            sys.stdout.flush()
+        except OSError:
+            pass
         termios.tcsetattr(0, termios.TCSADRAIN, attributes)
 
 
