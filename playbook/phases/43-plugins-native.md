@@ -102,9 +102,15 @@ Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track ow
   “‹name› changed on disk.” [Reload] [Keep Mine]; a save that finds the disk changed gets “‹name› changed on disk
   since you opened it.” [Overwrite] [Reload]. The safe choice is the main button (phase 42's Toast). Keep Mine takes
   the disk's hash: the next ⌘S writes over that version but still stops on a later change.
-- **Decisions:** ⌘S (File ▸ Save) and ⌘F, ⌘G on a card with a file text: `CommandList.plugin` and `CommandList.find`.
-  Find sends `performTextFinderAction:` down the responder chain, so the system find bar opens on whichever text view
-  has the keyboard (markdown's too). The terminal's find stays as it was.
+- **Decisions:** ⌘S (File ▸ Save), ⌘F, ⌘G and ⇧⌘G on a card with a file text: `CommandList.plugin` and
+  `CommandList.find`. Find sends `performTextFinderAction:` down the responder chain, so the system find bar opens on
+  whichever text view has the keyboard (markdown's too). Save's ⌘S and Find Previous's ⇧⌘G exist only on such a card
+  (elsewhere ⇧⌘G stays Go to Directory): a disabled item would keep the key from a terminal. The terminal's find
+  stays as it was.
+- **Decisions:** PluginCard clips and pads every kind's content once (6 pt, as the browser's page). A content that is
+  no text view takes the keyboard through `takesKeyboard` (a click, AppKit views too, and `wantsKeyboard`); the file
+  card's text view claims it itself. A click on a PDF or a video moves the first responder to the card, so its own
+  arrow and Space keys stop.
 - **Decisions:** the jump bar's symbol is the innermost declaration around the caret from the tree (a node type that
   ends in declaration, definition, item, spec or specifier, and its `name` field, C declarator or first identifier),
   not `tags.scm`, which 7 of the grammars lack.
@@ -112,4 +118,4 @@ Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track ow
   hash). Audio and video on This Mac play from the file; a remote one from a copy in the temporary folder. Image zoom
   is the scroll view's magnification; Fit fits, Actual Size is 100 %.
 - **For the user:** check the colors of a few languages, a long wrapped line, ⌘F and ⌘G, ⌘Z after an edit, a reload
-  while you type, and a PDF's page count while you scroll.
+  while you type, a PDF's page count while you scroll, and Read Only on a remote file over 4 MiB.
