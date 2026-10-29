@@ -8,16 +8,24 @@ struct CodeView: NSViewRepresentable {
     let file: FileText
     let page: Page
 
-    func makeCoordinator() -> CodeEditor {
-        CodeEditor(file: file, page: page)
+    /// The newest host adopts the editor, as a terminal's does: an overview tile borrows it, and the card takes it
+    /// back after.
+    func makeNSView(context _: Context) -> TerminalHost.Host {
+        let host = TerminalHost.Host(), editor = file.editor ?? CodeEditor(file: file, page: page)
+        file.editor = editor
+        host.clipsToBounds = true
+        editor.scroll.removeFromSuperview()
+        editor.scroll.frame = host.bounds
+        editor.scroll.autoresizingMask = [.width, .height]
+        host.addSubview(editor.scroll)
+        return host
     }
 
-    func makeNSView(context: Context) -> NSScrollView {
-        context.coordinator.scroll
-    }
-
-    func updateNSView(_: NSScrollView, context: Context) {
-        context.coordinator.update()
+    func updateNSView(_: TerminalHost.Host, context: Context) {
+        // Only an overview's tile disables its card.
+        if context.environment.isEnabled {
+            file.editor?.update()
+        }
     }
 }
 
@@ -96,10 +104,11 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 
     private func show(line: Int) {
         let string = text.string as NSString
-        var range = NSRange(location: 0, length: 0)
-        for _ in 0 ..< max(line, 1) where range.upperBound < string.length || range.location == 0 {
-            range = string.lineRange(for: NSRange(location: range.upperBound, length: 0))
+        var start = 0
+        for _ in 1 ..< max(line, 1) where start < string.length {
+            start = NSMaxRange(string.lineRange(for: NSRange(location: start, length: 0)))
         }
+        let range = string.lineRange(for: NSRange(location: start, length: 0))
         text.setSelectedRange(NSRange(location: range.location, length: 0))
         text.scrollRangeToVisible(range)
     }
@@ -129,7 +138,9 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     func textStorage(_ storage: NSTextStorage, didProcessEditing mask: NSTextStorageEditActions, range: NSRange,
                      changeInLength delta: Int)
     {
-        guard mask.contains(.editedCharacters), grammar != nil else { return }
+        guard mask.contains(.editedCharacters) else { return }
+        (scroll.verticalRulerView as? Gutter)?.counted = (0, 0)
+        guard grammar != nil else { return }
         let zero = Point(row: 0, column: 0)
         tree?.edit(InputEdit(startByte: range.location * 2, oldEndByte: (range.upperBound - delta) * 2,
                              newEndByte: range.upperBound * 2, startPoint: zero, oldEndPoint: zero, newEndPoint: zero))
@@ -246,8 +257,9 @@ final class CodeTextView: NSTextView {
 /// Line numbers beside the text, for the paragraphs on screen; the caret's brighter.
 private final class Gutter: NSRulerView {
     private let text: CodeTextView
-    /// The last count, which the next starts from: scrolling counts only the lines scrolled past.
-    private var counted = (offset: 0, lines: 0, length: 0)
+    /// The last count, which the next starts from: scrolling counts only the lines scrolled past. An edit starts
+    /// it again.
+    var counted = (offset: 0, lines: 0)
 
     init(_ text: CodeTextView) {
         self.text = text
@@ -290,12 +302,12 @@ private final class Gutter: NSRulerView {
     }
 
     /// Line breaks before the offset.
-    /// ponytail: counts the characters between this offset and the last (all of them after an edit); keep line
-    /// starts when files over 4 MB scroll slowly.
+    /// ponytail: counts the characters between this offset and the last, all of them after an edit or a scroll up;
+    /// keep line starts when big files scroll slowly.
     private func lines(before offset: Int) -> Int {
         let characters = text.textStorage?.mutableString ?? NSMutableString()
-        if counted.length != characters.length || counted.offset > offset {
-            counted = (0, 0, characters.length)
+        if counted.offset > offset {
+            counted = (0, 0)
         }
         var buffer = [unichar](repeating: 0, count: 65536)
         var scanned = counted.offset

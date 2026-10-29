@@ -111,6 +111,8 @@ extension Page {
 struct PreviewCard: View {
     let plugin: Plugin
     let page: Page
+    /// False in an overview tile, which draws its own copy and leaves the work and the zoom to the card.
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         let preview = page.preview(plugin), id = "preview.\(plugin.paneID)"
@@ -126,7 +128,11 @@ struct PreviewCard: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .padding([.horizontal, .bottom], 6)
-        .task(id: plugin.label.arg) { await preview.run() }
+        .task(id: plugin.label.arg) {
+            if isEnabled {
+                await preview.run()
+            }
+        }
     }
 }
 
@@ -197,7 +203,7 @@ private struct ImageScroll: NSViewRepresentable {
     let image: NSImage
     let preview: Preview
 
-    func makeNSView(context _: Context) -> NSScrollView {
+    func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSScrollView()
         scroll.contentView = CenteringClip()
         scroll.drawsBackground = false
@@ -208,7 +214,9 @@ private struct ImageScroll: NSViewRepresentable {
         scroll.minMagnification = 0.02
         scroll.maxMagnification = 32
         scroll.documentView = NSImageView()
-        preview.scroll = scroll
+        if context.environment.isEnabled {
+            preview.scroll = scroll
+        }
         return scroll
     }
 
@@ -247,10 +255,11 @@ private struct PDFPages: NSViewRepresentable {
     let document: PDFDocument
     let preview: Preview
 
-    func makeNSView(context _: Context) -> PDFView {
+    func makeNSView(context: Context) -> PDFView {
         let view = PDFView()
         view.autoScales = true
         view.backgroundColor = .clear
+        guard context.environment.isEnabled else { return view }
         preview.pdf = view
         NotificationCenter.default
             .addObserver(forName: .PDFViewPageChanged, object: view, queue: .main) { [weak view] _ in

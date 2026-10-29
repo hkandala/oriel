@@ -29,6 +29,8 @@ final class FileText {
     @ObservationIgnored private var hash: String?
     @ObservationIgnored private var loading = false
     @ObservationIgnored private var saving = false
+    /// The file card's text view, which an overview tile borrows.
+    @ObservationIgnored var editor: CodeEditor?
 
     init(plugin: Plugin, machine: Machine) {
         self.plugin = plugin
@@ -43,26 +45,28 @@ final class FileText {
         (path as NSString).lastPathComponent
     }
 
-    /// The card's `.task(id: path)`: loads the file, then follows it on disk: a clean card reloads, a dirty one
-    /// asks.
+    /// The card's `.task(id: path)`: loads the file, then follows it on disk.
     func run() async {
         let exec = await machine.exec()
-        do {
-            try await apply(Files.read(path, exec: exec))
-        } catch {
-            failure = FileText.reason(error)
-        }
+        await check(exec)
         for await _ in Files.watch(path, exec: exec) {
-            guard let contents = try? await Files.read(path, exec: exec), contents.hash != hash, !saving else {
-                continue
-            }
-            guard plugin.dirty else {
-                apply(contents)
-                continue
-            }
+            await check(exec)
+        }
+    }
+
+    /// The disk's file, when it is new: the text, unless it has edits: then a toast asks.
+    private func check(_ exec: any Exec) async {
+        do {
+            let contents = try await Files.read(path, exec: exec)
+            guard contents.hash != hash, !saving else { return }
+            guard loaded, plugin.dirty else { return apply(contents) }
             plugin.toast = Toast(text: "\(name) changed on disk.",
                                  other: ("Reload", { [weak self] in self?.apply(contents) }),
                                  main: ("Keep Mine", { [weak self] in self?.hash = contents.hash }))
+        } catch {
+            if !loaded {
+                failure = FileText.reason(error)
+            }
         }
     }
 

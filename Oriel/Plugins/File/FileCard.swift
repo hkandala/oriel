@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
 struct FileCard: View {
     let plugin: Plugin
     let page: Page
+    /// False in an overview tile, which shows the card's text and leaves the work to the card.
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         let file = page.fileText(plugin)
@@ -20,7 +22,11 @@ struct FileCard: View {
                 PluginLoader(kind: .file)
             }
         }
-        .task(id: plugin.label.arg) { await file.run() }
+        .task(id: plugin.label.arg) {
+            if isEnabled {
+                await file.run()
+            }
+        }
     }
 }
 
