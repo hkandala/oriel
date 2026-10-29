@@ -155,7 +155,9 @@ agent    row 1: Session title ·························
 - **For the docs pass:** Claude Code's marker is now the hooks' folder in `--settings` (a launch can be
   `--resume <id>`), and Enable Chat with its resume arguments belongs under "Which panes have it".
 - **Spike:** herdr 0.9.5 takes `pane.report_agent_session` from the CLI for Claude Code and Codex ids, but not for a
-  pi file (dropped silently), so the UI test uses Claude Code's stand-in.
+  pi file (dropped silently), so the UI test uses Claude Code's stand-in. After a session report from `herdr:claude`,
+  herdr takes no more state reports for that agent from any source, so the stand-in reports a session only when
+  started by hand.
 - **For the user:** Enable Chat on a real Claude Code, Codex, pi and OpenCode started by hand (idle, and working:
   the alert), and that each comes back in the same session with its chat. That Codex's `codex -c … resume <id>`
   keeps the hook. The titles of real sessions in the tab and the Agents view, and a `/rename` (Claude Code), `/name`
