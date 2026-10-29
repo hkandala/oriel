@@ -1,6 +1,6 @@
 import XCTest
 
-/// Browser cards and their machine (ui/browser#remote-localhost, #finding-ports). The test server names the
+/// Browser cards and their machine (ui/browser#remote-localhost). The test server names the
 /// process that connected to it: WebKit on This Mac, sshd through a remote machine's proxy. On CI Key Host is this Mac
 /// over SSH (`scripts/ci-sshd.sh`), so one port serves both machines.
 extension OrielUITests {
@@ -37,50 +37,20 @@ extension OrielUITests {
         try await waitFor(pane, times: 300) { $0.contains("oriel-who-ready") }
     }
 
-    /// The card's buttons show while the pointer is on the card and push the toolbar left: the click waits for them.
-    /// Menu items take no identifier: found by title.
-    func openPorts(_ browser: String, port: Int, in window: XCUIElement) -> XCUIElement {
-        element("browser.\(browser).address", in: window).hover()
-        XCTAssertTrue(element("pane.\(browser).close", in: window).exists(within: 3))
-        element("browser.\(browser).ports", in: window).click()
-        return app.menuItems[":\(port) Python"]
-    }
-
     func whoText(_ prefix: String, in window: XCUIElement) -> XCUIElement {
         window.webViews.staticTexts.matching(NSPredicate(format: "value BEGINSWITH %@", prefix)).firstMatch
     }
 
-    /// The ports chip lists the server under its workspace, from a run when it opens; a pick loads it in the card and
-    /// puts it in the label.
-    func testThePortsChipOpensAListeningPort() async throws {
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        let window = app.windows[app.windows.firstMatch.identifier]
-        let (tab, left) = try await createWorkspace("ports")
-        element("workspace.\(workspace(of: tab))").click()
-        try await waitForPrompt(left)
-        let port = Int.random(in: 47100 ... 47900)
-        try await serveWho(port, from: left)
-        element("terminal.\(left)").click()
-        let (browser, made) = try await chooseBrowser(besides: left, in: tab)
-        let item = openPorts(browser, port: port, in: window)
-        XCTAssertTrue(item.exists(within: 5))
-        XCTAssertTrue(app.menuItems["ports"].exists)
-        keepScreenshot("ports chip")
-        item.click()
-        XCTAssertTrue(whoText("via=com.apple.WebKit", in: window).exists(within: 5))
-        try await expect("the port in the label") { try await paneLabel(browser) == "\(made) http://localhost:\(port)" }
-    }
-
     /// One browser pane on two machines at once: This Mac's window loads This Mac's `localhost:<port>` directly, Key
     /// Host's loads Key Host's through its proxy (sshd connects) as `key-host.localhost`, and shows `localhost` with
-    /// the machine's name. Key Host's ports chip lists the server.
+    /// the machine's name.
     func testARemoteBrowserCardLoadsItsMachinesLocalhost() async throws {
         try await skipWithoutSSH()
         relaunch(one, ["-machines", Self.keyHost])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let identifier = app.windows.firstMatch.identifier
         let first = app.windows[identifier]
-        let (tab, left) = try await createWorkspace("remote ports")
+        let (tab, left) = try await createWorkspace("remote localhost")
         let workspace = workspace(of: tab)
         element("workspace.\(workspace)").click()
         try await waitForPrompt(left)
@@ -107,14 +77,6 @@ extension OrielUITests {
         XCTAssertTrue(element("browser.\(browser).machine", in: remote).exists)
         keepScreenshot("remote browser card", of: remote)
 
-        let item = openPorts(browser, port: port, in: remote)
-        XCTAssertTrue(item.exists(within: 10))
-        XCTAssertTrue(app.menuItems["remote ports"].exists)
-        item.click()
-        try await expect("the picked port in the label") {
-            try await paneLabel(browser) == "oriel:browser#e2erem http://localhost:\(port)"
-        }
-        XCTAssertTrue(whoText("via=sshd", in: remote).exists(within: 5))
         // A port nothing listens on: the proxy's refusal at once (ssh's own close made WebKit wait 60 s).
         element("browser.\(browser).address", in: remote).click()
         app.typeText("localhost:\(port + 1)\r")

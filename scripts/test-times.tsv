@@ -8,7 +8,6 @@
 65	testMemoryAndCPUOverManyTabs
 48	testAChatSendsStopsAndShowsItsLevels
 48	testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar
-46	testThePortsChipOpensAListeningPort
 43	testLayoutMotionAnimatesWithoutBlanking
 40	testSelectedTextIsReadable
 38	testOverviewShowsEveryTabLiveAndOpensOne
