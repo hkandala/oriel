@@ -30,7 +30,7 @@ struct CodeView: NSViewRepresentable {
 }
 
 /// The text view, its gutter and its tree, and what goes between them and the file's text.
-final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
+final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate, NSTextContentStorageDelegate {
     let scroll = CodeTextView.scrollableTextView()
     private let file: FileText
     private let page: Page
@@ -41,10 +41,14 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// The file's text as the view last had it.
     private var shown: String?
     private let undo = UndoManager()
+    private let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+    /// A space's width: tabs stop every four.
+    private let space: CGFloat
 
     init(file: FileText, page: Page) {
         self.file = file
         self.page = page
+        space = " ".size(withAttributes: [.font: font]).width
         text = scroll.documentView as? CodeTextView ?? CodeTextView()
         // ponytail: no colors over 4 MB, where a parse takes about a second; parse off the main actor then.
         grammar = file.text.utf8.count <= 4 << 20 ? Grammar.of(file.path) : nil
@@ -54,7 +58,12 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         }
         text.delegate = self
         text.textStorage?.delegate = self
-        text.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        text.textContentStorage?.delegate = self
+        text.font = font
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.tabStops = []
+        paragraph.defaultTabInterval = space * 4
+        text.defaultParagraphStyle = paragraph
         text.textColor = .labelColor
         text.drawsBackground = false
         text.isRichText = false
@@ -118,6 +127,19 @@ final class CodeEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     func textDidChange(_: Notification) {
         shown = text.string
         file.text = shown ?? ""
+    }
+
+    /// A wrapped line goes on at its own indent, as in Xcode.
+    func textContentStorage(_ storage: NSTextContentStorage, textParagraphWith range: NSRange) -> NSTextParagraph? {
+        guard let source = storage.textStorage, range.length > 0 else { return nil }
+        let line = NSMutableAttributedString(attributedString: source.attributedSubstring(from: range))
+        let indent = line.string.prefix { $0 == " " || $0 == "\t" }.reduce(CGFloat(0)) { $0 + ($1 == "\t" ? 4 : 1) }
+        guard indent > 0 else { return nil }
+        let style = (line.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle ?? text
+            .defaultParagraphStyle ?? .default).mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+        style.headIndent = indent * space
+        line.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: line.length))
+        return NSTextParagraph(attributedString: line)
     }
 
     func undoManager(for _: NSTextView) -> UndoManager? {
