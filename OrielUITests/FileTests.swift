@@ -60,7 +60,8 @@ extension OrielUITests {
     /// it again.
     private func findKeys(_ card: String) {
         let editor = element("file.\(card).page").textViews.firstMatch
-        let search = element("file.\(card).page").textFields.firstMatch
+        // Not the panel's Replace field.
+        let search = element("file.\(card).page").textFields["Find"]
         for (key, modifiers) in [
             ("f", XCUIElement.KeyModifierFlags.command),
             ("g", .command),
@@ -186,7 +187,8 @@ extension OrielUITests {
 
         try await Self.call(one, "pane.rename", ["pane_id": card, "label": label + "lines.pdf"])
         let pages = element("pane.\(card).page")
-        XCTAssertTrue(until(10) { pages.stringValue.hasPrefix("1 of ") && pages.stringValue != "1 of 1" })
+        XCTAssertTrue(until(10) { pages.exists && pages.stringValue.hasPrefix("1 of ") && pages.stringValue != "1 of 1"
+        })
         let first = pages.stringValue
         page.scroll(byDeltaX: 0, deltaY: -3000)
         XCTAssertTrue(until(3) { pages.stringValue != first })
