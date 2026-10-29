@@ -162,6 +162,20 @@ extension OrielUITests {
         }
     }
 
+    /// The tab's order in w2.
+    func order(of tab: String) async throws -> Int? {
+        try await (Self.call(one, "tab.list", ["workspace_id": "w2"])["tabs"] as? [[String: Any]] ?? [])
+            .compactMap { $0["tab_id"] as? String }.firstIndex(of: tab)
+    }
+
+    /// Shows w2's tab by its key (⌘1–9): a click misses one past the tab bar's end on CI's screen.
+    func show(_ tab: String) async throws {
+        let found = try await order(of: tab)
+        let index = try XCTUnwrap(found)
+        app.typeKey("\(index + 1)", modifierFlags: .command)
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3))
+    }
+
     /// The text in the result bundle, kept also when the test passes.
     func keep(_ text: String, as name: String) {
         let attachment = XCTAttachment(string: text)
