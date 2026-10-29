@@ -242,15 +242,15 @@ line with the new leaf and `at`, the transcript's size at the move.
 ## Sending and stopping
 
 - **Send:** Return or the Send button gives `agent.prompt {target, text}`,
-  only while the agent is ready or working. ⇧Return and ⌥Return add a line. herdr pastes the text with
-  bracketed paste and presses Enter. herdr refuses unless a foreground
-  process has the agent's name.
+  only while the agent is ready or working. ⇧Return and ⌥Return add a line.
+  herdr pastes the text with bracketed paste and presses Enter. herdr refuses
+  unless a foreground process has the agent's name.
 - While the agent works, Send stays on. Claude Code and OpenCode queue the
   text. Codex and Pi steer the turn with it: the history gets it after the
   running tool.
 - **Sent** means the user entry showed up in the history, matched by its
   text. Until then the bubble is dimmed. After 5 s, and once the agent no
-  longer works or waits, it shows "Not sent" with **Show Terminal**, and the
+  longer works or waits, it shows "Not sent" with **Show TUI**, and the
   draft comes back when the reply box is empty. A late entry still clears it.
 - Text that starts with `/` is not sent. The card flips to its terminal, and
   the text is typed there with `pane.send_input`, with no Return.
@@ -289,13 +289,13 @@ disabled, until the agent goes on.
 **The live terminal.** When the agent waits on anything else, the bottom of
 the card (45 % of its height, at least 160 pt) becomes the live terminal, in
 place of the reply box. Its header says "‹Agent› is asking in the terminal",
-with **Open Terminal**, which flips the whole card. It gets the keyboard.
+with **Open TUI**, which flips the whole card. It gets the keyboard.
 When the agent works or is idle again, it goes, and the reply box takes the
 keyboard back. This covers tool approvals, Codex's questions, Pi's extension
 dialogs and every picker.
 
 **The chat cannot read the session.** A red card says so, with the reason
-and **Show Terminal**, and the header's capsule says Error:
+and **Show TUI**, and the header's capsule says Error:
 - "‹Agent› has not started a session": Claude Code or Pi after 10 s with no
   session, or Codex when a message is not sent and its hook never ran.
 - "OpenCode has not reported its session" ([MetaCode](#which-panes-have-it)),
@@ -407,8 +407,8 @@ and the time.
   the strip. TUI is the agent's own terminal interface.
 - A card of a marked pane opens on its TUI; the user switches to Chat. After
   [Relaunch with Chat](#relaunch-with-chat) it opens on the chat. The choice
-  is kept in memory per pane, for every window of the session. The card keeps the keyboard across
-  a switch: the reply box or the terminal.
+  is kept in memory per pane, for every window of the session. The card keeps
+  the keyboard across a switch: the reply box or the terminal.
 - A floated chat pane shows its chat in its floating window, with `Show` and
   Chat | TUI in the window's title row
   ([Floating pane](/docs/ui/window#floating-pane)).

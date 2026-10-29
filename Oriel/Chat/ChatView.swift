@@ -184,7 +184,7 @@ struct ChatView: View {
         .accessibilityIdentifier(id)
     }
 
-    /// Sending, dimmed; or "Not sent" with Show Terminal.
+    /// Sending, dimmed; or "Not sent" with Show TUI.
     private func outgoing(_ message: Chat.Outgoing) -> some View {
         VStack(alignment: .trailing, spacing: 4) {
             UserBubble(text: message.text, paneID: chat.paneID, sending: true).opacity(message.notSent ? 0.5 : 0.7)
@@ -192,7 +192,7 @@ struct ChatView: View {
                 HStack(spacing: 8) {
                     Text("Not sent").font(.system(size: 11)).foregroundStyle(look.error)
                         .accessibilityIdentifier("chat.\(chat.paneID).not-sent")
-                    Button("Show Terminal") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
+                    Button("Show TUI") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
                 }
             }
         }
@@ -205,7 +205,7 @@ struct ChatView: View {
                 .font(.system(size: 13, weight: .semibold)).foregroundStyle(look.error)
             Text(problem).font(.system(size: 12)).foregroundStyle(.secondary)
                 .accessibilityIdentifier("chat.\(chat.paneID).problem")
-            Button("Show Terminal") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
+            Button("Show TUI") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
                 .accessibilityIdentifier("chat.\(chat.paneID).show-terminal")
         }
         .padding(12)
@@ -227,7 +227,7 @@ private struct WaitingDrawer: View {
                 Circle().fill(look.needsYou).frame(width: 7, height: 7)
                 Text("\(chat.adapter.name) is asking in the terminal").font(.system(size: 12, weight: .semibold))
                 Spacer(minLength: 4)
-                Button("Open Terminal") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
+                Button("Open TUI") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
                     .accessibilityIdentifier("chat.\(chat.paneID).open-terminal")
             }
             TerminalCard(terminal: terminal, watched: page.watched, alpha: 1)

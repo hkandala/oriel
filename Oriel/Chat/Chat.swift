@@ -30,7 +30,7 @@ final class Chat {
     var recorded: Phase?
     /// What the agent asks that the chat can answer, shown while it waits.
     var question: ChatQuestion?
-    /// Why the chat cannot read the session; Show Terminal then.
+    /// Why the chat cannot read the session; Show TUI then.
     var problem: String?
     var outgoing: [Outgoing] = []
     /// The reply box's text, shared by every card of the pane.
