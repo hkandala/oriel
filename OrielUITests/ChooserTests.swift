@@ -2,6 +2,9 @@ import XCTest
 
 /// A new pane's chooser (ui/new-pane): Terminal, Agent or Browser, with the keyboard from the start; and the commands
 /// that change a pane's kind.
+/// The chooser's rows the arrow test checks, and Claude Code under an open Agent.
+private let chooserRows = ["terminal", "agent", "browser", "files", "changes", "claude"]
+
 extension OrielUITests {
     /// A pane the app made shows the chooser: Return picks Terminal.
     func pickTerminal(_ pane: String) {
@@ -66,7 +69,7 @@ extension OrielUITests {
         XCTAssertTrue(hasKeyboard("terminal.\(left)"))
         app.typeKey("d", modifierFlags: .command)
         let right = try await replaced(left, in: tab, besides: [left])
-        let options = ["terminal", "agent", "browser", "claude"].map { element("pane.\(right).chooser.\($0)") }
+        let options = chooserRows.map { element("pane.\(right).chooser.\($0)") }
         func selected(_ index: Int) -> Bool {
             until(2) { options.map { $0.exists && $0.isSelected } == options.indices.map { $0 == index } }
         }
@@ -74,16 +77,17 @@ extension OrielUITests {
         XCTAssertTrue(selected(0))
         app.typeKey(.downArrow, modifierFlags: [])
         XCTAssertTrue(selected(1))
-        XCTAssertFalse(options[3].exists)
+        XCTAssertFalse(options[5].exists)
         app.typeKey(.rightArrow, modifierFlags: [])
-        XCTAssertTrue(selected(3))
+        XCTAssertTrue(selected(5))
         app.typeKey(.leftArrow, modifierFlags: [])
         XCTAssertTrue(selected(1))
-        XCTAssertTrue(options[3].vanishes(within: 2))
-        app.typeKey(.downArrow, modifierFlags: [])
-        app.typeKey(.downArrow, modifierFlags: [])
-        XCTAssertTrue(selected(2))
-        for _ in 0 ..< 3 {
+        XCTAssertTrue(options[5].vanishes(within: 2))
+        for _ in 0 ..< 4 {
+            app.typeKey(.downArrow, modifierFlags: [])
+        }
+        XCTAssertTrue(selected(4))
+        for _ in 0 ..< 5 {
             app.typeKey(.upArrow, modifierFlags: [])
         }
         XCTAssertTrue(selected(0))
