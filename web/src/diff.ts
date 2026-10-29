@@ -41,6 +41,8 @@ const options: CodeViewOptions<undefined, undefined> = {
   theme: { dark: "pierre-dark", light: "pierre-light" },
   themeType: scheme(),
   diffStyle: split ? "split" : "unified",
+  // Side by Side wraps each column's lines: a line scrolled past its narrow column was cut off where a click lands.
+  overflow: split ? "wrap" : "scroll",
   lineDiffType: "word",
   // `N unmodified lines`, not expandable: that needs each file's whole text.
   hunkSeparators: "line-info-basic",
@@ -304,6 +306,7 @@ receive((message) => {
       break
     case "layout":
       options.diffStyle = message.split ? "split" : "unified"
+      options.overflow = message.split ? "wrap" : "scroll"
       viewer.setOptions({ ...options })
       // The other layout has other heights: back to the change last stepped to, not wherever the offset now falls.
       if (changes[change]) viewer.scrollTo({ type: "line", ...changes[change], align: "center" })
