@@ -1,5 +1,5 @@
 {
-  "originHash" : "29060b058fa3710da6a7df077693bcb637e15712593f9b39f9a010bf66d42e89",
+  "originHash" : "eba48f1c9ad43e52d4aaa6cb2f980e95c068df6c2dad72a4492a27b22beab7ee",
   "pins" : [
     {
       "identity" : "displaylink",
@@ -38,12 +38,30 @@
       }
     },
     {
+      "identity" : "swift-markdown-engine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nodes-app/swift-markdown-engine",
+      "state" : {
+        "revision" : "f762ab7ec17472e6d3f3b652b97c747e507c66ec",
+        "version" : "0.15.0"
+      }
+    },
+    {
       "identity" : "swift-tree-sitter",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tree-sitter/swift-tree-sitter",
       "state" : {
         "revision" : "08ef81eb8620617b55b08868126707ad72bf754f",
         "version" : "0.25.0"
+      }
+    },
+    {
+      "identity" : "swiftmath",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mgriebling/SwiftMath",
+      "state" : {
+        "revision" : "fa8244ed032f4a1ade4cb0571bf87d2f1a9fd2d7",
+        "version" : "1.7.3"
       }
     },
     {
