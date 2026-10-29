@@ -17,7 +17,8 @@ extension OrielUITests {
         XCTAssertEqual(headers, headers.sorted())
         XCTAssertEqual(Set(headers).count, 4)
         XCTAssertTrue(element("palette.workspace.\(one).w1").exists)
-        XCTAssertTrue(element("palette.command.Split Right").exists)
+        // The Commands section's first row: a lazy list builds only the rows in view, and CI's screen is small.
+        XCTAssertTrue(element("palette.command.New Window").exists)
         keepScreenshot("palette root")
         app.typeText("split r")
         XCTAssertTrue(element("palette.command.Split Right").has(\.isSelected, true, within: 2))
