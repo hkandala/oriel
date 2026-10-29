@@ -310,8 +310,10 @@ extension OrielUITests {
         try await Self.call(one, "pane.rename", ["pane_id": browser,
                                                  "label": "oriel:browser#\(iid) file://\(folder)/light.html"])
         XCTAssertTrue(title.has(\.stringValue, "Light", within: connect))
+        // The web view's focus is not in the accessibility tree: the page's title shows it has the keyboard.
         element("browser.\(browser)").click()
-        XCTAssertTrue(hasKeyboard(element("browser.\(browser)")))
+        app.typeText("a")
+        XCTAssertTrue(title.has(\.stringValue, "key a", within: 2))
 
         app.typeKey("o", modifierFlags: [.command, .control])
         let shot = element("overview.card.\(browser)")
@@ -333,8 +335,9 @@ extension OrielUITests {
         app.typeText("x")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
-        XCTAssertTrue(hasKeyboard(element("browser.\(browser)")))
         XCTAssertEqual(title.stringValue, "Dark")
+        app.typeText("y")
+        XCTAssertTrue(title.has(\.stringValue, "key y", within: 2))
     }
 
     /// How many times the sidebar was made (`-recordLatency`).
