@@ -131,11 +131,9 @@ enum ChatAdapters {
     /// take it).
     static func launch(_ command: String, resume: String? = nil, on exec: any Exec) async -> String? {
         guard let adapter = adapter(command) else { return nil }
-        let arguments = resume.map(adapter.resume)
-        if case .some(nil) = arguments {
-            return nil
-        }
-        return await adapter.prepare(UUID().uuidString.lowercased(), resume: arguments ?? nil, on: exec)
+        let arguments = resume.flatMap(adapter.resume)
+        guard resume == nil || arguments != nil else { return nil }
+        return await adapter.prepare(UUID().uuidString.lowercased(), resume: arguments, on: exec)
     }
 
     static func adapter(_ command: String?) -> (any ChatAdapter.Type)? {

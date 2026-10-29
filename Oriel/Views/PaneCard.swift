@@ -176,7 +176,8 @@ struct PaneCard: View {
             } else if agent, let pane {
                 HStack(spacing: 6) {
                     ProgramGlyph(icon: pane.iconID, letter: pane.letter).allowsHitTesting(false)
-                    Text("\(pane.programName ?? "") \(Text(pane.folder ?? "").foregroundStyle(.secondary))")
+                    let name = pane.agentLabel ?? pane.programName ?? ""
+                    Text("\(name) \(Text(pane.folder ?? "").foregroundStyle(.secondary))")
                         .fontWeight(.regular).lineLimit(1).truncationMode(.middle).allowsHitTesting(false)
                         .accessibilityIdentifier("pane.\(id).program")
                     Spacer(minLength: 0)
@@ -204,7 +205,7 @@ struct PaneCard: View {
         .contextMenu { PaneItems(page: page, pane: pane) }
     }
 
-    /// Row 1's title: the rename field; else the browser's page with its icon, the agent's label or program, or the
+    /// Row 1's title: the rename field; else the browser's page with its icon, the agent's session title, or the
     /// terminal's glyph and title.
     @ViewBuilder
     private func title(_ pane: HostStore.Pane?, new: Bool, browser: Browser?, agent: Bool) -> some View {
@@ -228,7 +229,7 @@ struct PaneCard: View {
                 } else if let pane, let label = pane.browser {
                     Text(page.browserTitle(pane, label) ?? "New Tab").lineLimit(1)
                 } else if agent {
-                    Text(pane?.label ?? pane?.programName ?? "").lineLimit(1)
+                    Text(pane?.agentTitle ?? pane?.programName ?? "").lineLimit(1)
                 } else {
                     PaneTitle(pane: pane)
                 }

@@ -157,7 +157,7 @@ struct FloatingWindow: View {
         .environment(\.look, look)
         .navigationTitle(pane.map { pane in
             pane.browser.map { ["Browser", page?.browserTitle(pane, $0)].compactMap(\.self).joined(separator: " ") }
-                ?? pane.cardTitle
+                ?? pane.agentTitle.map { "\(pane.agentLabel ?? "") \($0)" } ?? pane.cardTitle
         } ?? "terminal")
         .background(FloatReader(terminalID: floating.terminalID, main: pages?.window,
                                 pinned: page?.floating[floating.terminalID] == true,
@@ -352,8 +352,8 @@ private struct FloatReader: NSViewRepresentable {
     }
 }
 
-/// A floated pane's quick info in its window's title row: its icon, its program and folder (or its label; a
-/// browser's "Browser" and its page), and its agent's state.
+/// A floated pane's quick info in its window's title row: its icon, its program and folder (or its label; an
+/// agent's name and session title; a browser's "Browser" and its page), and its agent's state.
 private struct PaneInfo: View {
     let pane: HostStore.Pane
     let page: Page
@@ -366,6 +366,8 @@ private struct PaneInfo: View {
                 if let label = pane.browser {
                     Text("Browser \(Text(page.browserTitle(pane, label) ?? "").foregroundStyle(.secondary))")
                         .lineLimit(1)
+                } else if let title = pane.agentTitle {
+                    Text("\(pane.agentLabel ?? "") \(Text(title).foregroundStyle(.secondary))").lineLimit(1)
                 } else {
                     PaneTitle(pane: pane)
                 }
