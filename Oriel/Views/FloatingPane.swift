@@ -30,6 +30,14 @@ extension Page {
         }
         WindowPages.openWindow?(id: "float", value: Floating(session: id, terminalID: terminalID))
     }
+
+    /// A browser's "Browser" and its page, an agent's name and session title; nil for a terminal.
+    func kindTitle(_ pane: HostStore.Pane) -> (name: String, detail: String?)? {
+        if let label = pane.browser {
+            return ("Browser", browserTitle(pane, label))
+        }
+        return pane.agentTitle.map { (pane.agentLabel ?? "", $0) }
+    }
 }
 
 extension WindowPages {
@@ -156,8 +164,7 @@ struct FloatingWindow: View {
         .windowChrome(look)
         .environment(\.look, look)
         .navigationTitle(pane.map { pane in
-            pane.browser.map { ["Browser", page?.browserTitle(pane, $0)].compactMap(\.self).joined(separator: " ") }
-                ?? pane.agentTitle.map { "\(pane.agentLabel ?? "") \($0)" } ?? pane.cardTitle
+            page?.kindTitle(pane).map { [$0, $1].compactMap(\.self).joined(separator: " ") } ?? pane.cardTitle
         } ?? "terminal")
         .background(FloatReader(terminalID: floating.terminalID, main: pages?.window,
                                 pinned: page?.floating[floating.terminalID] == true,
@@ -264,7 +271,6 @@ struct FloatingWindow: View {
             if let chat {
                 ChatSwitch(chat: chat, page: page)
             }
-            // The title row's buttons.
             IconButton(symbol: pinned ? "pin.fill" : "pin", help: "Stay on Top", accent: pinned) {
                 page.floating[floating.terminalID]?.toggle()
             }
@@ -352,8 +358,7 @@ private struct FloatReader: NSViewRepresentable {
     }
 }
 
-/// A floated pane's quick info in its window's title row: its icon, its program and folder (or its label; an
-/// agent's name and session title; a browser's "Browser" and its page), and its agent's state.
+/// A floated pane's icon, title and agent state, in its window's title row.
 private struct PaneInfo: View {
     let pane: HostStore.Pane
     let page: Page
@@ -363,11 +368,8 @@ private struct PaneInfo: View {
         HStack(spacing: 6) {
             ProgramTile(icon: pane.iconID, letter: pane.letter)
             Group {
-                if let label = pane.browser {
-                    Text("Browser \(Text(page.browserTitle(pane, label) ?? "").foregroundStyle(.secondary))")
-                        .lineLimit(1)
-                } else if let title = pane.agentTitle {
-                    Text("\(pane.agentLabel ?? "") \(Text(title).foregroundStyle(.secondary))").lineLimit(1)
+                if let (name, detail) = page.kindTitle(pane) {
+                    Text("\(name) \(Text(detail ?? "").foregroundStyle(.secondary))").lineLimit(1)
                 } else {
                     PaneTitle(pane: pane)
                 }
