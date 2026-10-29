@@ -70,10 +70,11 @@ extension Browser {
     func loadIcon() {
         Task {
             let script = "return document.querySelector('link[rel~=icon]')?.href ?? null"
+            // Spaces stay raw in a `data:` icon's href; URL would escape its `%`s with them.
             let href = try? await view.callAsyncJavaScript(script, contentWorld: .defaultClient) as? String
-            let fallback = view.url.flatMap { URL(string: "/favicon.ico", relativeTo: $0)?.absoluteURL }
-            guard let page = view.url, let url = href.flatMap(URL.init(string:)) ?? fallback, url != icon?.url
-            else { return }
+            let page = view.url, raw = href?.replacingOccurrences(of: " ", with: "%20")
+            let found = raw.flatMap(URL.init(string:)) ?? page.flatMap { URL(string: "/favicon.ico", relativeTo: $0) }
+            guard let page, let url = found?.absoluteURL, url != icon?.url else { return }
             icon = (url, icon?.image)
             let image = await Self.image(url, page: page, remote: alias != nil,
                                          proxies: view.configuration.websiteDataStore.proxyConfigurations)

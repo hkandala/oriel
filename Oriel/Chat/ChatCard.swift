@@ -58,11 +58,10 @@ struct ChatSwitch: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            HStack(spacing: 4) {
-                Text("Show: \(settings.chatLevel.title)")
-                Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
-            }
-            .font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 24)
+            // One text: an image beside it was a second element with the menu's identifier.
+            let chevron = Text(Image(systemName: "chevron.down")).font(.system(size: 8, weight: .semibold))
+            Text("Show: \(settings.chatLevel.title)  \(chevron)")
+                .font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 24)
         }
         .menuStyle(.button)
         .menuIndicator(.hidden)
