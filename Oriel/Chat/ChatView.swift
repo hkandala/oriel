@@ -97,6 +97,16 @@ struct ChatView: View {
             .frame(maxWidth: Self.column)
             .frame(maxWidth: .infinity)
         }
+        // A new chat: the agent's program icon, gray, in the middle.
+        .background {
+            if rows.isEmpty, chat.outgoing.isEmpty, chat.problem == nil, let pane = page.store.pane(chat.paneID) {
+                ProgramGlyph(icon: pane.iconID, letter: pane.letter, size: 64).opacity(0.5)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityAddTraits(.isImage)
+                    .accessibilityLabel(chat.adapter.name)
+                    .accessibilityIdentifier("chat.\(chat.paneID).empty")
+            }
+        }
         .defaultScrollAnchor(.bottom)
         .defaultScrollAnchor(.bottom, for: .sizeChanges)
         .focusEffectDisabled()

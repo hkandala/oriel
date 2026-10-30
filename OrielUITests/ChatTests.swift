@@ -74,10 +74,15 @@ extension OrielUITests {
         XCTAssertTrue(element("chat.\(pane).composer").exists(within: 3))
     }
 
-    /// An open tool call's long output scrolls inside its box under two fingers, not the chat around it.
+    /// A new chat shows the agent's icon; an open tool call's long output scrolls inside its box under two fingers,
+    /// not the chat around it.
     func testAToolOutputScrollsInsideItsBox() async throws {
         let pane = try await startChat().pane
+        let empty = element("chat.\(pane).empty")
+        XCTAssertTrue(empty.exists(within: 3))
+        keepScreenshot("empty chat")
         try await say("long", in: pane)
+        XCTAssertTrue(empty.vanishes(within: 2))
         XCTAssertTrue(row(pane, "reply", "Counted.").exists(within: 5))
         keepLevel(in: pane)
         level("Everything", in: pane)

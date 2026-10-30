@@ -43,13 +43,14 @@ struct ProgramTile: View {
     }
 }
 
-/// The program's glyph alone, for card headers and hover card rows.
+/// The program's glyph alone, for card headers, hover card rows and an empty chat.
 struct ProgramGlyph: View {
     let icon: String
     var letter: String?
+    var size: CGFloat = 16
 
     var body: some View {
-        ProgramMark(icon: icon, letter: letter, size: 16).foregroundStyle(.secondary).accessibilityHidden(true)
+        ProgramMark(icon: icon, letter: letter, size: size).foregroundStyle(.secondary).accessibilityHidden(true)
     }
 }
 
