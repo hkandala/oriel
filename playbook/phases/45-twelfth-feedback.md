@@ -126,3 +126,7 @@ are the orchestrator's.
   had written its 150 turns by then, but the app drew them live at about 6 turns a second, and `agent.prompt` timed out
   ("Not sent"). The same tests on main and on this code in parallel were both green. Watch for it: lines that come
   live (not the backlog) can still go into the history one by one.
+- **Cause, the slow live run.** Lines written after the backlog reached the chat one at a time, and the card drew again
+  for each: a 150-turn burst came in at about 6 turns a second on CI. **Fix:** a follow hands over everything that came
+  since the chat last asked, applied in one main-actor turn, so the card draws once per batch (a unit test: a
+  600-line burst comes in at most two batches to a busy reader).
